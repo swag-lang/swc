@@ -17,7 +17,7 @@ bool SymbolEnum::computeNextValue(Sema& sema, const SourceCodeRef& codeRef)
 {
     bool overflow = false;
 
-    // Update enum "nextValue" = value << 1
+    // Flag enums start at one, then double a single-bit value.
     if (isEnumFlags())
     {
         if (nextValue().isZero())
@@ -37,10 +37,9 @@ bool SymbolEnum::computeNextValue(Sema& sema, const SourceCodeRef& codeRef)
             nextValue().shiftLeft(1, overflow);
         }
     }
-
-    // Update enum "nextValue" = value + 1
     else
     {
+        // Ordinary enums advance by one.
         const ApsInt one(1, nextValue().bitWidth(), nextValue().isUnsigned());
         nextValue().add(one, overflow);
     }

@@ -23,6 +23,7 @@ bool SymbolVariable::isUsingField() const noexcept
 
     if (fieldDecl->is(AstNodeId::SingleVarDecl))
         return fieldDecl->cast<AstSingleVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
+
     if (fieldDecl->is(AstNodeId::MultiVarDecl))
         return fieldDecl->cast<AstMultiVarDecl>().hasFlag(AstVarDeclFlagsE::Using);
 
@@ -39,9 +40,8 @@ const SymbolStruct* SymbolVariable::usingTargetStruct(const TaskContext& ctx, bo
 {
     outIsPointer = false;
 
-    // A using field exposes members/operators of either a struct value or a pointer
-    // to a struct. Report pointer-ness separately because some lookups intentionally
-    // refuse to compose through borrowed/indirect storage.
+    // Using fields can expose struct values or pointers. Report indirection separately
+    // because some lookups cannot compose through borrowed storage.
     const TypeManager& typeMgr = ctx.typeMgr();
     if (!typeRef().isValid())
         return nullptr;
@@ -75,18 +75,16 @@ void SymbolVariable::setClosureCaptureByRef(bool value) noexcept
 
 void SymbolVariable::setClosureCapturedSource(SymbolVariable* source) noexcept
 {
-    // The capture symbol is the closure field; the source points back to the
-    // original local/parameter so escape analysis and debug info can report the
-    // user-visible storage.
+    // Captures are closure fields. Keep the original local or parameter so escape
+    // analysis and debug information refer to the user-visible storage.
     addExtraFlag(SymbolVariableFlagsE::ClosureCapture);
     closureCapturedSource_ = source;
 }
 
 void SymbolVariable::setGlobalStorage(DataSegmentKind kind, uint32_t offset)
 {
-    // Global variables are addressed through a data segment plus offset. Mark the
-    // storage kind atomically with the offset so later codegen paths do not have to
-    // infer globals from symbol-map ownership.
+    // Store the data-segment location before publishing GlobalStorage so codegen
+    // need not infer global storage from symbol-map ownership.
     globalStorageKind_ = kind;
     offset_            = offset;
     addExtraFlag(SymbolVariableFlagsE::GlobalStorage);

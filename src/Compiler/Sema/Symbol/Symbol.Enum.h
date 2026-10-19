@@ -57,11 +57,13 @@ public:
 
     void           addImpl(Sema& sema, SymbolImpl& symImpl);
     SymbolImplList impls() const { return impls_.snapshot(); }
+
     template<typename F>
     void forEachImpl(const F& fn) const
     {
         impls_.forEach(fn);
     }
+
     bool     isEnumFlags() const { return attributes().hasRtFlag(RtAttributeFlagsE::EnumFlags); }
     uint64_t sizeOf(TaskContext& ctx) const { return underlyingType(ctx).sizeOf(ctx); }
 

@@ -17,11 +17,14 @@ public:
 
     const Symbol* aliasedSymbol() const { return aliasedSymbol_; }
     void          setAliasedSymbol(const Symbol* sym) { aliasedSymbol_ = sym; }
-    TypeRef       underlyingTypeRef() const { return underlyingTypeRef_; }
-    void          setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
-    bool          isStrict() const { return attributes().hasRtFlag(RtAttributeFlagsE::Strict); }
-    uint64_t      sizeOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).sizeOf(ctx); }
-    uint32_t      alignOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).alignOf(ctx); }
+
+    TypeRef underlyingTypeRef() const { return underlyingTypeRef_; }
+    void    setUnderlyingTypeRef(TypeRef ref) { underlyingTypeRef_ = ref; }
+
+    bool isStrict() const { return attributes().hasRtFlag(RtAttributeFlagsE::Strict); }
+
+    uint64_t sizeOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).sizeOf(ctx); }
+    uint32_t alignOf(TaskContext& ctx) const { return ctx.typeMgr().get(underlyingTypeRef()).alignOf(ctx); }
 
 private:
     const Symbol* aliasedSymbol_     = nullptr;

@@ -12,6 +12,7 @@ namespace SymbolOwnerFunction
         {
             if (map->isFunction())
                 return &map->cast<SymbolFunction>();
+
             map = map->ownerSymMap();
         }
 

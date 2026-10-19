@@ -35,6 +35,7 @@ MicroOperandRef MicroOperandStorage::append(const std::span<const MicroInstrOper
         return MicroOperandRef::invalid();
 
     const MicroOperandRef first(static_cast<uint32_t>(operands_.size()));
+
     // Rewrite operands live outside this storage, so construct them directly
     // from their source instead of default-initializing and then assigning.
     operands_.insert(operands_.end(), values.begin(), values.end());
@@ -90,6 +91,7 @@ void MicroStorage::clear() noexcept
     nodes_.clear();
     freeList_.clear();
     quarantinedRefs_.clear();
+
     head_  = MicroInstrRef::invalid();
     tail_  = MicroInstrRef::invalid();
     count_ = 0;
@@ -124,6 +126,7 @@ bool MicroStorage::erase(MicroInstrRef ref)
 
     node = Node{};
     quarantinedRefs_.push_back(ref);
+
     SWC_ASSERT(count_ > 0);
     --count_;
     ++revision_;
@@ -170,6 +173,7 @@ MicroInstrRef MicroStorage::insertBefore(MicroInstrRef beforeRef, const MicroIns
     Node&               node = nodes_[ref.get()];
     node.instr               = value;
     completeInsertedDebugSourceInfo(beforeRef, node.instr);
+
     const MicroInstrRef prev     = nodes_[beforeRef.get()].prev;
     node.prev                    = prev;
     node.next                    = beforeRef;
@@ -224,16 +228,19 @@ void MicroStorage::moveRangeToEnd(const MicroInstrRef firstRef, const MicroInstr
 
     const MicroInstrRef beforeRef = nodes_[firstRef.get()].prev;
     const MicroInstrRef afterRef  = nodes_[lastRef.get()].next;
+
     if (beforeRef.isValid())
         nodes_[beforeRef.get()].next = afterRef;
     else
         head_ = afterRef;
+
     nodes_[afterRef.get()].prev = beforeRef;
 
     nodes_[firstRef.get()].prev = tail_;
     nodes_[tail_.get()].next    = firstRef;
     nodes_[lastRef.get()].next  = MicroInstrRef::invalid();
     tail_                       = lastRef;
+
     ++revision_;
 }
 

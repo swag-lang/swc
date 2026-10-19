@@ -8,13 +8,15 @@ SWC_BEGIN_NAMESPACE();
 class MicroOperandStorage
 {
 public:
-    uint32_t                                       count() const noexcept;
-    size_t                                         allocatedBytes() const noexcept;
-    void                                           clear() noexcept;
+    uint32_t count() const noexcept;
+    size_t   allocatedBytes() const noexcept;
+    void     clear() noexcept;
+
     std::pair<MicroOperandRef, MicroInstrOperand*> emplaceUninitArray(uint32_t count);
     MicroOperandRef                                append(std::span<const MicroInstrOperand> values);
-    MicroInstrOperand*                             ptr(MicroOperandRef ref) noexcept;
-    const MicroInstrOperand*                       ptr(MicroOperandRef ref) const noexcept;
+
+    MicroInstrOperand*       ptr(MicroOperandRef ref) noexcept;
+    const MicroInstrOperand* ptr(MicroOperandRef ref) const noexcept;
 
 private:
     std::vector<MicroInstrOperand> operands_;
@@ -36,6 +38,7 @@ inline MicroInstrOperand* MicroInstr::ops(MicroOperandStorage& operands) const
 {
     if (!numOperands)
         return nullptr;
+
     return operands.ptr(opsRef);
 }
 
@@ -43,6 +46,7 @@ inline const MicroInstrOperand* MicroInstr::ops(const MicroOperandStorage& opera
 {
     if (!numOperands)
         return nullptr;
+
     return operands.ptr(opsRef);
 }
 
@@ -58,11 +62,12 @@ inline void MicroInstr::collectRegOperands(MicroOperandStorage& operands, MicroI
         const MicroInstrRegMode mode = modes[i];
         if (mode != MicroInstrRegMode::Use && mode != MicroInstrRegMode::Def && mode != MicroInstrRegMode::UseDef)
             continue;
+
         MicroReg* reg = &instructionOps[i].reg;
         if (!reg->isValid() || reg->isNoBase())
             continue;
-        out.push_back({reg, mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef,
-                       mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef});
+
+        out.push_back({reg, mode == MicroInstrRegMode::Use || mode == MicroInstrRegMode::UseDef, mode == MicroInstrRegMode::Def || mode == MicroInstrRegMode::UseDef});
     }
 }
 
@@ -87,7 +92,8 @@ public:
         Iterator  operator++(int);
         Iterator& operator--();
         Iterator  operator--(int);
-        bool      operator==(const Iterator& other) const;
+
+        bool operator==(const Iterator& other) const;
     };
 
     struct ConstIterator
@@ -108,7 +114,8 @@ public:
         ConstIterator  operator++(int);
         ConstIterator& operator--();
         ConstIterator  operator--(int);
-        bool           operator==(const ConstIterator& other) const;
+
+        bool operator==(const ConstIterator& other) const;
     };
 
     class View
@@ -116,6 +123,7 @@ public:
     {
     public:
         explicit View(MicroStorage* storage);
+
         Iterator begin() const;
         Iterator end() const;
 
@@ -128,6 +136,7 @@ public:
     {
     public:
         explicit ConstView(const MicroStorage* storage);
+
         ConstIterator begin() const;
         ConstIterator end() const;
 
@@ -135,30 +144,37 @@ public:
         const MicroStorage* storage_ = nullptr;
     };
 
-    uint32_t                              count() const noexcept;
-    uint32_t                              slotCount() const noexcept { return static_cast<uint32_t>(nodes_.size()); }
-    uint64_t                              revision() const noexcept;
-    size_t                                allocatedBytes() const noexcept;
-    void                                  clear() noexcept;
-    MicroInstr*                           ptr(MicroInstrRef ref) noexcept;
-    const MicroInstr*                     ptr(MicroInstrRef ref) const noexcept;
+    uint32_t count() const noexcept;
+    uint32_t slotCount() const noexcept { return static_cast<uint32_t>(nodes_.size()); }
+    uint64_t revision() const noexcept;
+    size_t   allocatedBytes() const noexcept;
+    void     clear() noexcept;
+
+    MicroInstr*       ptr(MicroInstrRef ref) noexcept;
+    const MicroInstr* ptr(MicroInstrRef ref) const noexcept;
+
     std::pair<MicroInstrRef, MicroInstr*> emplaceUninit();
     bool                                  erase(MicroInstrRef ref);
+
     // An erased slot is only handed out again once everything keyed by its
     // reference has been dropped. Relocations are keyed that way, and a pass
     // that erases a relocated load and inserts an instruction before its own
     // cleanup runs would otherwise see the new instruction inherit the old
     // relocation. MicroBuilder::pruneDeadRelocations is what calls this.
-    void          releaseErasedRefs();
+    void releaseErasedRefs();
+
     MicroInstrRef lastInstructionRef() const noexcept { return tail_; }
     MicroInstrRef findNextInstructionRef(MicroInstrRef afterRef) const noexcept;
     MicroInstrRef findPreviousInstructionRef(MicroInstrRef beforeRef) const noexcept;
+
     MicroInstrRef insertBefore(MicroInstrRef beforeRef, const MicroInstr& value);
     MicroInstrRef insertDerivedBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
     MicroInstrRef insertSyntheticBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
+
     // Relinks the run [firstRef, lastRef] behind the last instruction. Every reference stays
     // valid, so whatever is keyed by one - a relocation, a label - follows its instruction.
-    void      moveRangeToEnd(MicroInstrRef firstRef, MicroInstrRef lastRef);
+    void moveRangeToEnd(MicroInstrRef firstRef, MicroInstrRef lastRef);
+
     View      view() noexcept;
     ConstView view() const noexcept;
 
@@ -179,10 +195,11 @@ private:
     std::vector<Node>          nodes_;
     std::vector<MicroInstrRef> freeList_;
     std::vector<MicroInstrRef> quarantinedRefs_;
-    MicroInstrRef              head_     = MicroInstrRef::invalid();
-    MicroInstrRef              tail_     = MicroInstrRef::invalid();
-    uint32_t                   count_    = 0;
-    uint64_t                   revision_ = 1;
+
+    MicroInstrRef head_     = MicroInstrRef::invalid();
+    MicroInstrRef tail_     = MicroInstrRef::invalid();
+    uint32_t      count_    = 0;
+    uint64_t      revision_ = 1;
 };
 
 inline MicroStorage::Iterator::reference MicroStorage::Iterator::operator*() const
@@ -201,6 +218,7 @@ inline MicroStorage::Iterator& MicroStorage::Iterator::operator++()
 {
     SWC_ASSERT(storage);
     SWC_ASSERT(current.isValid());
+
     current = storage->nodes_[current.get()].next;
     return *this;
 }
@@ -208,10 +226,12 @@ inline MicroStorage::Iterator& MicroStorage::Iterator::operator++()
 inline MicroStorage::Iterator& MicroStorage::Iterator::operator--()
 {
     SWC_ASSERT(storage);
+
     if (current.isInvalid())
         current = storage->tail_;
     else
         current = storage->nodes_[current.get()].prev;
+
     return *this;
 }
 
@@ -236,6 +256,7 @@ inline MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator++()
 {
     SWC_ASSERT(storage);
     SWC_ASSERT(current.isValid());
+
     current = storage->nodes_[current.get()].next;
     return *this;
 }
@@ -243,10 +264,12 @@ inline MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator++()
 inline MicroStorage::ConstIterator& MicroStorage::ConstIterator::operator--()
 {
     SWC_ASSERT(storage);
+
     if (current.isInvalid())
         current = storage->tail_;
     else
         current = storage->nodes_[current.get()].prev;
+
     return *this;
 }
 
@@ -303,6 +326,7 @@ inline MicroInstr* MicroStorage::ptr(const MicroInstrRef ref) noexcept
     Node& node = nodes_[ref.get()];
     if (!node.alive)
         return nullptr;
+
     return &node.instr;
 }
 
@@ -314,6 +338,7 @@ inline const MicroInstr* MicroStorage::ptr(const MicroInstrRef ref) const noexce
     const Node& node = nodes_[ref.get()];
     if (!node.alive)
         return nullptr;
+
     return &node.instr;
 }
 

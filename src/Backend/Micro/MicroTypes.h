@@ -224,6 +224,7 @@ enum class MicroOp : uint8_t
     VecUnpackHi32,
     VecUnpackHi64,
     VecPermB,
+
     // Byte blend through the sign bit of every mask byte (vpblendvb): an
     // OpTernaryRegRegReg whose first register is both the destination and the
     // lanes kept where the mask is clear, the second the lanes taken where it
@@ -335,6 +336,7 @@ inline MicroOp scalarFusedFloatOp(const MicroOp op)
 {
     if (op < MicroOp::VecAddProductF32 || op > MicroOp::VecProductSubtractFromF64)
         return op;
+
     constexpr MicroOp scalar[] = {MicroOp::FloatAddProduct, MicroOp::FloatSubtractProduct, MicroOp::FloatProductAdd, MicroOp::FloatProductSubtractFrom};
     return scalar[(static_cast<uint8_t>(op) - static_cast<uint8_t>(MicroOp::VecAddProductF32)) / 2];
 }
@@ -350,6 +352,7 @@ inline MicroOpBits fusedFloatElementBits(const MicroOp op, MicroOpBits bits)
 {
     if (!isVecMicroOp(op))
         return bits;
+
     SWC_ASSERT(isFusedFloatMicroOp(op));
     return (static_cast<uint8_t>(op) - static_cast<uint8_t>(MicroOp::VecAddProductF32)) & 1 ? MicroOpBits::B64 : MicroOpBits::B32;
 }

@@ -318,21 +318,24 @@ public:
     // The nearest enclosing function in the lexical chain, for a local or nested function.
     const SymbolFunction* parentLexicalFunction() const;
 
-    void             setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
-    bool             isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
-    bool             isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
-    bool             isFallible() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Fallible); }
-    bool             isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
-    bool             isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
-    bool             isEmptyNonForeign() const noexcept { return isEmpty() && !isForeign(); }
-    bool             isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
-    bool             isForeignOrEmptyOrAttribute() const noexcept { return isForeign() || isEmpty() || isAttribute(); }
-    bool             isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
-    bool             hasVariadicParam() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Variadic); }
-    void             setPure(bool value) noexcept;
-    bool             isForeign() const noexcept { return attributes().hasForeign; }
-    bool             hasFullInitialization() const noexcept { return inferredFullInitialization_ || attributes().hasRtFlag(RtAttributeFlagsE::FullInit); }
-    void             setInferredFullInitialization(bool value) const noexcept { inferredFullInitialization_ = value; }
+    void setExtraFlags(EnumFlags<AstFunctionFlagsE> parserFlags);
+
+    bool isClosure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Closure); }
+    bool isMethod() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Method); }
+    bool isFallible() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Fallible); }
+    bool isConst() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Const); }
+    bool isEmpty() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Empty); }
+    bool isEmptyNonForeign() const noexcept { return isEmpty() && !isForeign(); }
+    bool isAttribute() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Attribute); }
+    bool isForeignOrEmptyOrAttribute() const noexcept { return isForeign() || isEmpty() || isAttribute(); }
+    bool isPure() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Pure); }
+    bool hasVariadicParam() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::Variadic); }
+    void setPure(bool value) noexcept;
+
+    bool isForeign() const noexcept { return attributes().hasForeign; }
+    bool hasFullInitialization() const noexcept { return inferredFullInitialization_ || attributes().hasRtFlag(RtAttributeFlagsE::FullInit); }
+    void setInferredFullInitialization(bool value) const noexcept { inferredFullInitialization_ = value; }
+
     std::string_view foreignModuleName() const { return attributes().foreignModuleName; }
     std::string_view foreignFunctionName() const { return attributes().foreignFunctionName; }
     std::string_view foreignLinkModuleName() const { return attributes().foreignLinkModuleName; }
@@ -347,31 +350,37 @@ public:
     uint32_t interfaceMethodSlot() const noexcept { return SWC_CHECK_NOT(interfaceMethodSlot_, K_INVALID_INTERFACE_METHOD_SLOT); }
     void     setInterfaceMethodSlot(uint32_t slot) noexcept { interfaceMethodSlot_ = slot; }
 
-    SpecOpKind          specOpKind() const noexcept { return specOpKind_; }
-    void                setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
-    CallConvKind        callConvKind() const noexcept { return callConvKind_; }
-    void                setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
+    SpecOpKind specOpKind() const noexcept { return specOpKind_; }
+    void       setSpecOpKind(SpecOpKind kind) noexcept { specOpKind_ = kind; }
+
+    CallConvKind callConvKind() const noexcept { return callConvKind_; }
+    void         setCallConvKind(CallConvKind kind) noexcept { callConvKind_ = kind; }
+
     MicroBuilder&       microInstrBuilder(TaskContext& ctx);
     const MicroBuilder* microInstrBuilder() const noexcept { return microInstrBuilder_.load(std::memory_order_acquire); }
     void                releaseMicroInstrBuilder() noexcept;
-    AstNodeRef          declNodeRef() const noexcept { return declNodeRef_; }
-    const NodePayload*  declNodePayloadContext() const noexcept { return declNodePayloadCtx_; }
-    void                setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
-    void                setDeclNodePayloadContext(const NodePayload* payloadContext) noexcept { declNodePayloadCtx_ = payloadContext; }
-    uint32_t            debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
-    void                setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
-    MicroReg            debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
-    void                setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
-    bool                tryMarkCodeGenJobScheduled() noexcept;
-    void                addCallDependency(const SymbolFunction* sym);
-    void                appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
-    void                addLifecycleDependency(const SymbolFunction* sym, bool observesEffects = true);
-    void                appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
-    void                appendLifecycleEffectDependencies(SmallVector<SymbolFunction*>& out) const;
 
-    // Runs `visit` over the order in place. A caller that only reads it - to judge whether a
-    // metadata pointer may be pulled in, or to collect what a run refers to - would otherwise copy
-    // a few hundred pointers per question, a million times over a module.
+    AstNodeRef         declNodeRef() const noexcept { return declNodeRef_; }
+    const NodePayload* declNodePayloadContext() const noexcept { return declNodePayloadCtx_; }
+    void               setDeclNodeRef(AstNodeRef nodeRef) noexcept { declNodeRef_ = nodeRef; }
+    void               setDeclNodePayloadContext(const NodePayload* payloadContext) noexcept { declNodePayloadCtx_ = payloadContext; }
+
+    uint32_t debugStackFrameSize() const noexcept { return debugStackFrameSize_; }
+    void     setDebugStackFrameSize(uint32_t value) noexcept { debugStackFrameSize_ = value; }
+    MicroReg debugStackBaseReg() const noexcept { return debugStackBaseReg_; }
+    void     setDebugStackBaseReg(MicroReg reg) noexcept { debugStackBaseReg_ = reg; }
+
+    bool tryMarkCodeGenJobScheduled() noexcept;
+
+    void addCallDependency(const SymbolFunction* sym);
+    void appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+
+    void addLifecycleDependency(const SymbolFunction* sym, bool observesEffects = true);
+    void appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
+    void appendLifecycleEffectDependencies(SmallVector<SymbolFunction*>& out) const;
+
+    // Visit the cached order in place so metadata and dependency queries avoid
+    // copying hundreds of pointers for every compile-time call.
     template<typename Visit>
     void visitJitOrder(Visit&& visit) const
     {
@@ -382,8 +391,7 @@ public:
             visit(function);
     }
 
-    // Answers a question about the whole order without reading the whole order: a verdict that
-    // one dependency already settles stops there instead of walking the rest of the closure.
+    // Stop when one dependency settles the predicate instead of scanning the whole closure.
     template<typename Pred>
     bool allInJitOrder(Pred&& pred) const
     {
@@ -399,39 +407,31 @@ public:
         return true;
     }
 
-    // Everything the JIT order is derived from: a new call dependency, or a function withdrawn
-    // from code generation. A cached order is reused only while this has not moved, so the walk
-    // is paid once per graph state instead of once per compile-time call.
+    // Invalidate JIT orders when call dependencies grow or functions leave code generation.
+    // Unchanged graph versions reuse the cached order across compile-time calls.
     static void     noteCallGraphChanged() noexcept { s_callGraphVersion.fetch_add(1, std::memory_order_release); }
     static uint64_t callGraphVersion() noexcept { return s_callGraphVersion.load(std::memory_order_acquire); }
 
-    // This function's own share of the same two events. The global version moves with every call
-    // edge any function gains, and nearly all of them land outside a given closure; an order is
-    // still current while none of the functions it holds has moved. The epoch only grows, so the
-    // sum over a closure is unchanged exactly when every member is.
+    // Most global graph changes lie outside a given closure. Track each function's
+    // changes separately: monotonic epochs keep the closure sum unchanged exactly
+    // when no member changed.
     void     noteOwnCallGraphChanged() noexcept { callGraphEpoch_.fetch_add(1, std::memory_order_release); }
     uint32_t callGraphEpoch() const noexcept { return callGraphEpoch_.load(std::memory_order_acquire); }
 
-    // Body size, in auto-inline cost units, that semantic analysis inlined into this function.
-    // With the function's own size it estimates its code-generation work, so the native backend
-    // can start the longest jobs first instead of leaving one of them as the module's tail.
+    // Add inlined bodies to the function's estimated code-generation cost so the native
+    // backend can schedule the longest jobs first. Uses auto-inline cost units.
     void     noteInlinedCost(uint32_t cost) const noexcept { inlinedCost_.fetch_add(cost, std::memory_order_relaxed); }
     uint32_t inlinedCost() const noexcept { return inlinedCost_.load(std::memory_order_relaxed); }
 
     bool hasLoweredCode() const noexcept;
 
-    // Offsets of the global-init slots this function's code refers to. Its lowered code no longer
-    // changes once emitted, so the answer is computed once instead of at every compile-time call
-    // that runs through it.
+    // Lowered code is immutable after emission. Cache its global-init relocation offsets
+    // once instead of recomputing them for every compile-time call.
     const std::vector<uint64_t>& globalInitRelocationOffsets() const;
 
-    // What this function's constant relocations can reach, and the state of the constant graph
-    // the walk read. Every compile-time call in a module asks this of the same few thousand
-    // functions, and the answer only moves when the constants they name do, so it is walked
-    // once per state of that graph instead of once per call. The second member of each entry is
-    // the relocation's own tolerance for an unresolved function, which decides whether the
-    // target still has to be judged. The list is handed out by shared pointer: a reader keeps
-    // the snapshot it was given even when another thread replaces a stale one.
+    // Cache reachable constant-relocation targets until their constant graph changes.
+    // Each entry also records whether its relocation tolerates an unresolved function.
+    // Shared ownership keeps a reader's snapshot alive when another thread refreshes it.
     using ConstantJitTargetList = std::vector<std::pair<SymbolFunction*, bool>>;
 
     struct ConstantJitTargets
@@ -442,60 +442,75 @@ public:
 
     ConstantJitTargets& constantJitTargets() const noexcept { return constantJitTargets_; }
     std::shared_mutex&  constantJitTargetsMutex() const noexcept { return constantJitTargetsMutex_; }
-    bool                isJitWaitSatisfied(TaskStateKind kind) const noexcept;
-    void*               jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
-    void*               jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
-    void*               jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
-    bool                ownsJitCodeAddress(const void* address) const noexcept
+
+    bool  isJitWaitSatisfied(TaskStateKind kind) const noexcept;
+    void* jitPatchAddress() const noexcept { return jitPatchedAddress_.load(std::memory_order_acquire); }
+    void* jitEntryAddress() const noexcept { return jitEntryAddress_.load(std::memory_order_acquire); }
+    void* jitWorkAddress() const noexcept { return jitState_.has(JitStateE::Prepared) ? jitExecMemory_.entryPoint() : nullptr; }
+
+    bool ownsJitCodeAddress(const void* address) const noexcept
     {
         if (!address)
             return false;
+
         if (address == jitEntryAddress() || address == jitPatchAddress())
             return true;
+
         const auto* begin = static_cast<const std::byte*>(jitExecMemory_.entryPoint());
         return begin && address >= begin && address < begin + jitExecMemory_.size();
     }
-    uint64_t                jitReadyVersion() const noexcept { return jitReadyVersion_.load(std::memory_order_acquire); }
-    void                    setJitReadyVersion(uint64_t version) noexcept { jitReadyVersion_.store(version, std::memory_order_release); }
-    void                    resetJitState() noexcept;
-    Result                  emit(TaskContext& ctx);
-    Result                  ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
+
+    uint64_t jitReadyVersion() const noexcept { return jitReadyVersion_.load(std::memory_order_acquire); }
+    void     setJitReadyVersion(uint64_t version) noexcept { jitReadyVersion_.store(version, std::memory_order_release); }
+    void     resetJitState() noexcept;
+
+    Result emit(TaskContext& ctx);
+    Result ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
+
     GenericInstanceStorage& genericInstanceStorage(const TaskContext& ctx) const noexcept;
     bool                    tryGetGenericInstanceArgs(const TaskContext& ctx, const SymbolFunction& instance, SmallVector<GenericInstanceKey>& outArgs) const;
     bool                    tryGetGenericInstanceArgs(const TaskContext& ctx, SmallVector<GenericInstanceKey>& outArgs) const;
-    AstNodeRef              findGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
-    void                    cacheGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
-    std::recursive_mutex&   genericEvalRunMutex(const TaskContext& ctx) const noexcept;
-    std::shared_mutex&      lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
-    std::shared_ptr<void>*  lazyBodyRunState() const noexcept;
-    std::shared_ptr<void>&  ensureLazyBodyRunState(const TaskContext& ctx) const noexcept;
-    static Result           jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions, const Symbol* waiterSymbol = nullptr);
-    Result                  jit(TaskContext& ctx);
-    const MachineCode&      loweredCode() const noexcept { return loweredMicroCode_; }
+
+    AstNodeRef            findGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings) const;
+    void                  cacheGenericEvalNode(const TaskContext& ctx, const NodePayload* payloadContext, const Ast& ownerAst, AstNodeRef sourceRef, std::span<const SemaClone::ParamBinding> bindings, AstNodeRef evalRef) const;
+    std::recursive_mutex& genericEvalRunMutex(const TaskContext& ctx) const noexcept;
+
+    std::shared_mutex&     lazyBodyRunMutex() const noexcept { return lazyBodyRunMutex_; }
+    std::shared_ptr<void>* lazyBodyRunState() const noexcept;
+    std::shared_ptr<void>& ensureLazyBodyRunState(const TaskContext& ctx) const noexcept;
+
+    static Result jitBatch(TaskContext& ctx, std::span<SymbolFunction* const> functions, const Symbol* waiterSymbol = nullptr);
+    Result        jit(TaskContext& ctx);
+
+    const MachineCode& loweredCode() const noexcept { return loweredMicroCode_; }
 
     const GenericInstanceOrigin* genericInstanceOrigin() const noexcept;
 
-    bool                   isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
-    void                   setGenericRoot(bool value) noexcept;
-    bool                   isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
-    void                   setGenericInstance(const TaskContext& ctx, SymbolFunction* root, const GenericInstanceOrigin& origin) noexcept;
-    bool                   hasUnmaterializedGenericBody() const noexcept;
-    SymbolFunction*        genericRootOrSelf() noexcept;
-    const SymbolFunction*  genericRootOrSelf() const noexcept;
-    SymbolFunction*        genericRootSym() noexcept;
-    const SymbolFunction*  genericRootSym() const noexcept;
+    bool isGenericRoot() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericRoot); }
+    void setGenericRoot(bool value) noexcept;
+    bool isGenericInstance() const noexcept { return hasExtraFlag(SymbolFunctionFlagsE::GenericInstance); }
+    void setGenericInstance(const TaskContext& ctx, SymbolFunction* root, const GenericInstanceOrigin& origin) noexcept;
+    bool hasUnmaterializedGenericBody() const noexcept;
+
+    SymbolFunction*       genericRootOrSelf() noexcept;
+    const SymbolFunction* genericRootOrSelf() const noexcept;
+    SymbolFunction*       genericRootSym() noexcept;
+    const SymbolFunction* genericRootSym() const noexcept;
+
     const SymbolImpl*      declImplContext() const noexcept;
     const SymbolInterface* declInterfaceContext() const noexcept;
-    void                   setGenericCompletionOwner(const TaskContext& ctx) const noexcept;
-    bool                   isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
-    bool                   isGenericCompletionActive(const TaskContext& ctx) const noexcept;
-    bool                   tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
-    void                   finishGenericCompletion() const noexcept;
-    bool                   isGenericNodeCompleted() const noexcept;
-    void                   setGenericNodeCompleted() const noexcept;
+
+    void setGenericCompletionOwner(const TaskContext& ctx) const noexcept;
+    bool isGenericCompletionOwner(const TaskContext& ctx) const noexcept;
+    bool isGenericCompletionActive(const TaskContext& ctx) const noexcept;
+    bool tryStartGenericCompletion(const TaskContext& ctx) const noexcept;
+    void finishGenericCompletion() const noexcept;
+    bool isGenericNodeCompleted() const noexcept;
+    void setGenericNodeCompleted() const noexcept;
 
 private:
     struct GenericData;
+
     friend class JITPatchJob;
     friend class CompilerInstance;
 
@@ -515,16 +530,18 @@ private:
                                                             SymbolFunctionFlagsE::Pure |
                                                             SymbolFunctionFlagsE::Variadic;
 
-    bool         hasJitPreparedAddress() const noexcept { return jitWorkAddress() != nullptr; }
-    bool         hasJitPatchedAddress() const noexcept { return jitPatchAddress() != nullptr; }
-    bool         hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
-    bool         tryMarkJitPatchJobScheduled() noexcept;
+    bool hasJitPreparedAddress() const noexcept { return jitWorkAddress() != nullptr; }
+    bool hasJitPatchedAddress() const noexcept { return jitPatchAddress() != nullptr; }
+    bool hasJitEntryAddress() const noexcept { return jitEntryAddress() != nullptr; }
+    bool tryMarkJitPatchJobScheduled() noexcept;
+
     GenericData& ensureGenericData(const TaskContext& ctx) const noexcept;
     GenericData* genericData() const noexcept;
-    Result       jitMaterialize(TaskContext& ctx);
-    bool         jitPrepare(TaskContext& ctx);
-    Result       jitPatch(TaskContext& ctx);
-    void         jitFinalize(TaskContext& ctx);
+
+    Result jitMaterialize(TaskContext& ctx);
+    bool   jitPrepare(TaskContext& ctx);
+    Result jitPatch(TaskContext& ctx);
+    void   jitFinalize(TaskContext& ctx);
 
     static constexpr uint32_t K_INVALID_INTERFACE_METHOD_SLOT  = 0xFFFFFFFFu;
     static constexpr uint8_t  K_INVALID_RT_ATTRIBUTE_BIT_INDEX = 0xFFu;
@@ -532,7 +549,8 @@ private:
     std::vector<SymbolVariable*>     parameters_;
     std::vector<SymbolVariable*>     localVariables_;
     PointerSet<const SymbolVariable> localVariableSet_;
-    void                             refreshJitOrderCache() const;
+
+    void refreshJitOrderCache() const;
 
     static inline std::atomic<uint64_t>           s_freesMaskVersion{0};
     static inline std::atomic<uint64_t>           s_callGraphVersion{0};

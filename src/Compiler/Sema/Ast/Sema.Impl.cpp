@@ -29,6 +29,7 @@ namespace
 
         const IdentifierRef targetIdRef = resolveImplRegistrationTargetId(sema, nodeRef);
         SWC_ASSERT(targetIdRef.isValid());
+
         symImpl.setPendingRegistrationTargetIdRef(targetIdRef);
         sema.compiler().incPendingImplRegistrations(targetIdRef);
     }
@@ -60,8 +61,10 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
             idRef = identView.sym()->idRef();
         else
             idRef = sema.idMgr().addIdentifier(sema.ctx(), identView.node()->codeRef());
+
         auto* sym = Symbol::make<SymbolImpl>(sema.ctx(), this, tokRef(), idRef, SymbolFlagsE::Zero);
         sema.setSymbol(sema.curNodeRef(), sym);
+
         if (identView.hasSymbol())
         {
             Symbol* target = identView.sym();
@@ -73,9 +76,8 @@ Result AstImpl::semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const
                 sym->setSymInterface(&target->cast<SymbolInterface>());
         }
 
-        // An `impl` block will be registered to its target only in the second pass, once the name
-        // lookup has run. Track pending registrations per target so unrelated impls cannot keep
-        // other structs artificially blocked.
+        // Target lookup finishes in the second pass. Count pending registrations
+        // by target so unrelated impls cannot block each other's structs.
         if (nodeForRef.isInvalid())
             registerPendingImplTarget(sema, *sym, nodeIdentRef);
 
@@ -95,7 +97,6 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     auto& symImpl = sema.curViewSymbol().sym()->cast<SymbolImpl>();
 
-    // After the first name
     if (childRef == nodeIdentRef)
     {
         const SemaNodeView identView = sema.viewSymbol(nodeIdentRef);
@@ -112,13 +113,9 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         }
         else
         {
-            // The interface name in `impl <Iface> for <Struct>` can flakily resolve to a same-named
-            // impl block instead of the interface: every `impl IWnd for X` is a symbol carrying the
-            // interface's identifier ("IWnd"), so it is a homonym of the `interface IWnd` symbol in
-            // name lookup. Under parallel sema the lookup non-deterministically returns one of those
-            // sibling impls. Recover the interface that impl implements — its symInterface is set
-            // during the impl header's own sema, before the impl is registered as a lookup candidate,
-            // so it is reliably available here — and re-point the identifier to it.
+            // Sibling impl blocks share the interface's name, so parallel lookup may
+            // return an impl instead. Its symInterface was initialized before
+            // registration; use it to recover and bind the interface symbol.
             SymbolInterface* symInterface = nullptr;
             if (sym.isInterface())
             {
@@ -129,8 +126,10 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
                 symInterface = sym.isImpl() ? sym.cast<SymbolImpl>().symInterface() : nullptr;
                 if (!symInterface)
                     return SemaError::raise(sema, DiagnosticId::sema_err_impl_not_interface, nodeIdentRef);
+
                 sema.setSymbol(nodeIdentRef, symInterface);
             }
+
             symImpl.setSymInterface(symInterface);
         }
 
@@ -138,7 +137,6 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
             return Result::Continue;
     }
 
-    // After the 'for' name, if defined
     if (childRef == nodeForRef)
     {
         const SemaNodeView identView = sema.viewType(nodeIdentRef);
@@ -154,11 +152,9 @@ Result AstImpl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
         symImpl.setTyped(sema.ctx());
     }
 
-    // Before the body
     if ((childRef == nodeIdentRef && nodeForRef.isInvalid()) || childRef == nodeForRef)
     {
-        // The target has been resolved and the impl has been attached at this point.
-        // Only resolve pending registrations when there is no error.
+        // Complete registration only after the resolved impl is attached.
         if (!symImpl.isPendingRegistrationResolved())
         {
             symImpl.setPendingRegistrationResolved();
@@ -181,6 +177,7 @@ Result AstImpl::semaPostNode(Sema& sema)
     symImpl.setDeclared(sema.ctx());
     symImpl.setTyped(sema.ctx());
     symImpl.setSemaCompleted(sema.ctx());
+
     return Result::Continue;
 }
 
@@ -189,6 +186,7 @@ void AstImpl::semaErrorCleanup(Sema& sema, AstNodeRef nodeRef)
     const SemaNodeView view = sema.viewSymbol(nodeRef);
     if (!view.hasSymbol())
         return;
+
     auto& symImpl = view.sym()->cast<SymbolImpl>();
     if (!symImpl.isPendingRegistrationResolved())
     {

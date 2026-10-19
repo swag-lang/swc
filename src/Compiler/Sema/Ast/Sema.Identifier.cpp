@@ -827,7 +827,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         }
 
         // Late globals start as zero storage behind a non-null exposed type.
-        // Guard reads at runtime; assignments, address-taking and null tests clear
+        // Guard reads at runtime; pure stores, address-taking and null tests clear
         // the guard. Cross-function analysis cannot prove these globals set.
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
             SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef()));

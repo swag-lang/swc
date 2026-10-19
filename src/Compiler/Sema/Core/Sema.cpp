@@ -34,10 +34,12 @@ const Runtime::BuildCfg& Sema::buildCfg() const
 Runtime::SafetyWhat Sema::runtimeSafetyGuards() const
 {
     auto guards = buildCfg().safetyGuards;
+
     // Tests need assertions even with release optimizations. Explicit local safety
     // overrides still apply after this default, as they do for every other guard.
     if (ctx().cmdLine().command == CommandKind::Test)
         guards = static_cast<Runtime::SafetyWhat>(static_cast<uint16_t>(guards) | static_cast<uint16_t>(Runtime::SafetyWhat::Assert));
+
     return guards;
 }
 
@@ -48,9 +50,8 @@ namespace
         if (!waitCodeRef.isValid())
             return false;
 
-        // Wait states are resumed later, possibly after another branch has already
-        // reported an error on the same source line. In that case retrying the wait
-        // only produces secondary noise, so abort the resumed node early.
+        // A resumed wait may follow another error on this line. Abort it to
+        // avoid reporting secondary errors from the same failed expression.
         const SourceView&     srcView    = sema.srcView(waitCodeRef.srcViewRef);
         const SourceFile*     waitFile   = srcView.file();
         const SourceFile*     ownerFile  = sema.ownerSourceFile(waitCodeRef.srcViewRef);
@@ -102,6 +103,7 @@ namespace
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sema.ast());
+
         for (const AstNodeRef childRef : children)
             cleanupPendingImplRegistrations(sema, childRef);
     }
@@ -121,20 +123,19 @@ namespace
 
         return sema.token(node.codeRef()).id == TokenId::CompilerAst;
     }
-
 }
 
 SymbolMap* Sema::childStartSymMap(Sema& parent, NodePayload& payloadContext)
 {
     inheritMissingNamespaces(parent.ctx(), payloadContext);
 
-    // A child sema can analyze nodes stored in another payload context (for example a
-    // declaration from another source view). In that case the module namespace is the
-    // only stable root; the parent's current scope belongs to a different AST walk.
+    // A foreign payload needs its module namespace as the stable root; the
+    // parent's current scope belongs to another AST walk.
     if (&payloadContext != parent.nodePayloadContext_)
     {
         if (!payloadContext.moduleNamespace_)
             payloadContext.moduleNamespace_ = parent.nodePayloadContext_->moduleNamespace_;
+
         return &payloadContext.moduleNamespace();
     }
 
@@ -152,9 +153,8 @@ void Sema::inheritMissingNamespaces(TaskContext& ctx, NodePayload& payloadContex
     if (payloadContext.moduleNamespace_ && payloadContext.fileNamespace_)
         return;
 
-    // Generated or imported payloads may be created before their namespace pointers are
-    // filled. Rehydrate them from the owning source file so later symbol registration
-    // does not accidentally fall back to the caller's namespace.
+    // Generated or imported payloads can precede namespace initialization.
+    // Recover the owner's namespaces so registration cannot use the caller's.
     if (!payloadContext.ast_.hasSourceView())
         return;
 
@@ -221,6 +221,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 {
     visit_.start(nodePayloadContext_->ast(), root);
     pushFrame(parent.frame());
+
     // Ancestor-derived contexts are rooted in the active visit subtree. A child sema
     // starts a fresh walk from `root`, so inheriting those markers would leak state
     // outside the original AST branch.
@@ -252,10 +253,9 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
 
     frame().setLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().lookupScope()));
     frame().setUpLookupScope(remapScopeFromParent(parent.scopes_, scopes_, parent.frame().upLookupScope()));
-    // Escape state contains AST-local node references. A child walking the same payload
-    // continues the parent's flow, but a declaration or lazy body owned by a
-    // different payload starts a distinct function analysis. Copying the caller's facts
-    // there makes their node references index the wrong AST.
+
+    // Escape facts contain AST-local refs. Preserve them only for the same
+    // payload; another declaration or lazy body starts a separate analysis.
     if (&payloadContext == parent.nodePayloadContext_)
     {
         variableEscapeInfos_   = parent.variableEscapeInfos_;
@@ -284,6 +284,7 @@ Sema::VariableEscapeInfoMap& Sema::mutableVariableEscapeInfos()
 {
     if (variableEscapeInfos_.use_count() > 1)
         variableEscapeInfos_ = std::make_shared<VariableEscapeInfoMap>(*variableEscapeInfos_);
+
     return *variableEscapeInfos_;
 }
 
@@ -291,6 +292,7 @@ Sema::ProjectionEscapeInfoMap& Sema::mutableProjectionEscapeInfos()
 {
     if (projectionEscapeInfos_.use_count() > 1)
         projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>(*projectionEscapeInfos_);
+
     return *projectionEscapeInfos_;
 }
 
@@ -299,6 +301,7 @@ const SemaEscapeInfo* Sema::variableEscapeInfo(const SymbolVariable& symVar) con
     const auto it = variableEscapeInfos_->find(&symVar);
     if (it == variableEscapeInfos_->end())
         return nullptr;
+
     return &it->second;
 }
 
@@ -319,8 +322,10 @@ void Sema::clearProjectionsOfRoot(const SymbolVariable& symVar)
     const auto ofRoot = [&symVar](const auto& it) {
         return it.first.root == &symVar;
     };
+
     if (std::ranges::none_of(*projectionEscapeInfos_, ofRoot))
         return;
+
     std::erase_if(mutableProjectionEscapeInfos(), ofRoot);
 }
 
@@ -328,13 +333,13 @@ void Sema::clearVariableEscapeInfo(const SymbolVariable& symVar)
 {
     if (variableEscapeInfos_->contains(&symVar))
         mutableVariableEscapeInfos().erase(&symVar);
+
     clearProjectionsOfRoot(symVar);
 }
 
 void Sema::detachVariableOwnedPayload(const SymbolVariable& symVar)
 {
-    // Nothing to detach unless the borrow still designates the payload: the assignment below
-    // would write back what is already there, and writing is what costs a copy.
+    // Check before writing: a redundant update would copy the shared map.
     const SemaEscapeInfo* current = variableEscapeInfo(symVar);
     if (!current || !current->viaOwnedPayload)
         return;
@@ -367,9 +372,8 @@ SemaEscapeInfo Sema::variableEscapeInfoIncludingProjections(const SymbolVariable
             mergeEscapeInfo(result, info);
     }
 
-    // A parameter borrow the value only reached through one of its fields says the value
-    // CARRIES the parameter, not that it IS it. The distinction only matters to the FREES
-    // summary, which is why every other consumer can ignore the flag.
+    // A field can carry an origin without being its storage. Keep that
+    // distinction for the frees summary; other escape checks ignore it.
     if ((result.kind == SemaEscapeKind::Parameter || result.isLocalBorrow()) && (!own || own->kind != result.kind))
         result.viaStoredField = true;
 
@@ -383,9 +387,11 @@ SemaEscapeInfo Sema::variableFieldEscapeInfo(const SymbolVariable& symVar, const
     {
         if (projection.root != &symVar || projection.components.empty())
             continue;
+
         const SemaEscapeProjectionComponent& first = projection.components[0];
         if (first.kind != SemaEscapeProjectionKind::Field || !first.field || first.field->name(ctx()) != fieldName)
             continue;
+
         mergeEscapeInfo(result, info);
     }
 
@@ -411,6 +417,7 @@ SemaEscapeInfo Sema::projectionEscapeInfoIncludingWildcards(const SemaEscapeProj
                 continue;
             if (right.kind == SemaEscapeProjectionKind::AnyIndex && left.kind != SemaEscapeProjectionKind::Field)
                 continue;
+
             matches = false;
             break;
         }
@@ -418,6 +425,7 @@ SemaEscapeInfo Sema::projectionEscapeInfoIncludingWildcards(const SemaEscapeProj
         if (matches)
             mergeEscapeInfo(result, info);
     }
+
     return result;
 }
 
@@ -425,11 +433,13 @@ void Sema::setProjectionEscapeInfo(const SemaEscapeProjection& projection, const
 {
     if (!projection.root || projection.components.empty())
         return;
+
     if (!info.hasBorrow())
     {
         clearProjectionEscapeInfo(projection);
         return;
     }
+
     mutableProjectionEscapeInfos()[projection] = info;
 }
 
@@ -441,6 +451,7 @@ void Sema::clearProjectionEscapeInfo(const SemaEscapeProjection& projection)
     std::erase_if(mutableProjectionEscapeInfos(), [&projection](const auto& it) {
         if (it.first.root != projection.root || it.first.components.size() < projection.components.size())
             return false;
+
         return std::equal(projection.components.begin(), projection.components.end(), it.first.components.begin());
     });
 }
@@ -449,6 +460,7 @@ uint32_t Sema::variableScopeDepth(const SymbolVariable& symVar) const
 {
     if (!variableScopeDepths_)
         return 0;
+
     const auto it = variableScopeDepths_->find(&symVar);
     return it == variableScopeDepths_->end() ? 0 : it->second;
 }
@@ -457,8 +469,10 @@ void Sema::setVariableScopeDepth(const SymbolVariable& symVar, uint32_t depth)
 {
     if (!depth)
         return;
+
     if (!variableScopeDepths_)
         variableScopeDepths_.emplace();
+
     (*variableScopeDepths_)[&symVar] = depth;
 }
 
@@ -490,14 +504,15 @@ void Sema::mergeEscapeInfo(SemaEscapeInfo& destination, const SemaEscapeInfo& so
     // even when the representative origin changes to a shorter ordinary local.
     const bool viaErasedPayload = destination.viaErasedPayload || source.viaErasedPayload;
 
-    // Severity alone cannot order two locals. Keeping the first origin made a longer
-    // borrow hide a shorter one when captures, aggregate fields or branches merged.
+    // Two local origins need lifetime ordering, not just severity: retain
+    // the shorter borrow when captures, aggregate fields, or branches merge.
     if (destination.isLocalBorrow() && source.isLocalBorrow() && destination.sourceVar != source.sourceVar && localStorageOutlives(*destination.sourceVar, *source.sourceVar))
     {
         destination = source;
     }
     else
         destination.mergeFrom(source);
+
     destination.viaErasedPayload = viaErasedPayload;
 }
 
@@ -508,6 +523,7 @@ namespace
     {
         if (src.empty())
             return;
+
         if (!dst)
             dst.emplace();
 
@@ -539,6 +555,7 @@ void Sema::nextEscapeBranchAlternative()
     EscapeBranchState& state = escapeBranchStack_.back();
     mergeEscapeStates(*this, state.mergedState, *variableEscapeInfos_);
     mergeEscapeStates(*this, state.mergedProjectionState, *projectionEscapeInfos_);
+
     variableEscapeInfos_   = state.entryState;
     projectionEscapeInfos_ = state.entryProjectionState;
 }
@@ -552,18 +569,19 @@ void Sema::popEscapeBranch(bool mergeEntryState)
     EscapeBranchState& state = escapeBranchStack_.back();
     mergeEscapeStates(*this, state.mergedState, *variableEscapeInfos_);
     mergeEscapeStates(*this, state.mergedProjectionState, *projectionEscapeInfos_);
+
     if (mergeEntryState)
     {
         mergeEscapeStates(*this, state.mergedState, *state.entryState);
         mergeEscapeStates(*this, state.mergedProjectionState, *state.entryProjectionState);
     }
 
-    // Nothing merged means every alternative, and the entry when it counts, left the map empty:
-    // the current one is empty too, and stays.
+    // If nothing merged, every relevant alternative left the current map empty.
     if (state.mergedState)
         variableEscapeInfos_ = std::make_shared<VariableEscapeInfoMap>(std::move(*state.mergedState));
     if (state.mergedProjectionState)
         projectionEscapeInfos_ = std::make_shared<ProjectionEscapeInfoMap>(std::move(*state.mergedProjectionState));
+
     escapeBranchStack_.pop_back();
 }
 
@@ -693,6 +711,7 @@ SemaScope* Sema::resolvedUpLookupScope()
 {
     if (auto* scope = upLookupScope())
         return scope;
+
     const auto* scope = lookupScope();
     return scope ? scope->lookupParent() : nullptr;
 }
@@ -701,6 +720,7 @@ const SemaScope* Sema::resolvedUpLookupScope() const
 {
     if (const auto* scope = upLookupScope())
         return scope;
+
     const auto* scope = lookupScope();
     return scope ? scope->lookupParent() : nullptr;
 }
@@ -725,6 +745,7 @@ bool Sema::hasActiveLookupScopeOverride() const
         return true;
     if (overrideNodes->ast != &ast())
         return false;
+
     return overrideNodes->nodeRefs.contains(curNodeRef());
 }
 
@@ -797,10 +818,9 @@ SemaNodeView Sema::curView(EnumFlags<SemaNodeViewPartE> part)
     return view(curNodeRef(), part);
 }
 
-// One counter for the whole compilation. A per-analysis counter would restart whenever a body is
-// analyzed by a fresh 'Sema' — a generic instantiation, an inlined body — and two subjects stamped
-// with the same rank stop ordering against each other. Only the relative order inside one chain of
-// nested 'with' blocks is read, and one thread creates those in order.
+// A global counter avoids duplicate ranks when generic or inline analyses create
+// fresh semas. Only relative order in one nested with-chain matters, and its
+// subjects are created in order by one thread.
 uint64_t Sema::nextAutoMemberOrder()
 {
     static std::atomic<uint64_t> counter{0};
@@ -811,6 +831,7 @@ SemaScope* Sema::pushScope(SemaScopeFlags flags)
 {
     SemaScope* parent = curScope_;
     scopes_.emplace_back(scopeArena_.create(flags, parent));
+
     SemaScope* scope = scopes_.back().get();
     scope->setSymMap(parent->symMap());
     curScope_ = scope;
@@ -828,8 +849,10 @@ SemaScope* Sema::pushScope(SemaScopeFlags flags)
 void Sema::popScope()
 {
     SWC_ASSERT(curScope_);
+
     if (frame().lookupScope() == curScope_)
         frame().setLookupScope(curScope_->lookupParent());
+
     curScope_ = curScope_->parent();
     scopes_.pop_back();
 }
@@ -846,9 +869,8 @@ void Sema::pushFrame(SemaFrame&& frame)
 
 void Sema::addNarrowKillAllFrames(std::span<const Symbol* const> path)
 {
-    // A narrowing kill must survive the pop of every enclosing region that had proven the
-    // path, so it is recorded in every live frame -- except past a 'defer' body, whose
-    // statements run at scope exit and cannot invalidate what precedes it.
+    // Record invalidations in every enclosing frame so they survive pops.
+    // Stop at defer bodies: their statements run later, at scope exit.
     for (size_t index = frames_.size(); index > 0; --index)
     {
         auto& frame = frames_[index - 1];
@@ -860,14 +882,14 @@ void Sema::addNarrowKillAllFrames(std::span<const Symbol* const> path)
 
 void Sema::addNarrowFactPastBindingFrames(std::span<const Symbol* const> path, SemaNarrowFactKind kind)
 {
-    // A proof made while a binding frame is on top belongs to the statement, not to the operand
-    // that frame was pushed for: recorded there, it would be dropped when the initializer or the
-    // right side ends. Write it into the innermost frame that really scopes the statement, and
-    // into the binding frames on the way so the rest of that operand sees it too.
+    // Binding frames scope operands, so their facts disappear too early for
+    // statement-wide proofs. Update them and the first enclosing statement
+    // frame, keeping the proof visible while the operand is still visited.
     for (size_t index = frames_.size(); index > 0; --index)
     {
         auto& frame = frames_[index - 1];
         frame.addNarrowFact(path, kind);
+
         // An inline body can resolve this path back to a caller binding; its proof must stop here.
         if (frame.inlineContextRootRef().isValid())
             return;
@@ -883,6 +905,7 @@ bool Sema::anyFrameHasNarrowFacts() const
     for (const auto& frame : frames_)
         if (frame.hasNarrowFacts())
             return true;
+
     return false;
 }
 
@@ -895,6 +918,7 @@ void Sema::popFrame()
 void Sema::armNarrowFactCapture(AstNodeRef bodyRef)
 {
     SWC_ASSERT(bodyRef.isValid());
+
     for (auto& capture : narrowFactCaptures_)
     {
         if (capture.nodeRef == bodyRef)
@@ -911,7 +935,9 @@ void Sema::armNarrowFactCapture(AstNodeRef bodyRef)
 void Sema::captureNarrowFacts(AstNodeRef bodyRef)
 {
     SWC_ASSERT(bodyRef.isValid());
+
     const std::span<const SemaNarrowFact> facts = frame().narrowFacts();
+
     for (auto& capture : narrowFactCaptures_)
     {
         if (capture.nodeRef == bodyRef)
@@ -938,6 +964,7 @@ bool Sema::takeNarrowFactCapture(AstNodeRef bodyRef, SmallVector2<SemaNarrowFact
         const bool filled = it->filled;
         if (filled)
             facts = std::move(it->facts);
+
         narrowFactCaptures_.erase(it);
         return filled;
     }
@@ -950,9 +977,11 @@ void Sema::markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef)
     SWC_UNUSED(parentRef);
     if (!childRef.isValid())
         return;
+
     AstNodeRef blockRef = childRef;
     if (node(blockRef).is(AstNodeId::CompilerCodeBlock))
         blockRef = node(blockRef).cast<AstCompilerCodeBlock>().nodeBodyRef;
+
     if (blockRef.isValid() && node(blockRef).is(AstNodeId::EmbeddedBlock))
         node(blockRef).cast<AstEmbeddedBlock>().addFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
 }
@@ -970,6 +999,7 @@ bool Sema::isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) con
         // argument still happens normally.
         if (parentRef.isInvalid())
             return false;
+
         switch (node(parentRef).id())
         {
             case AstNodeId::EmbeddedBlock:
@@ -980,11 +1010,13 @@ bool Sema::isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) con
             default:
                 return false;
         }
+
         blockRef = node(blockRef).cast<AstCompilerCodeBlock>().nodeBodyRef;
     }
 
     if (blockRef.isInvalid() || node(blockRef).isNot(AstNodeId::EmbeddedBlock))
         return false;
+
     return node(blockRef).cast<AstEmbeddedBlock>().hasFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
 }
 
@@ -992,6 +1024,7 @@ bool Sema::isLValueStored(AstNodeRef ref) const
 {
     if (ref.isInvalid())
         return false;
+
     const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
     return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::LValue)) != 0;
 }
@@ -1000,6 +1033,7 @@ bool Sema::isValueStored(AstNodeRef ref) const
 {
     if (ref.isInvalid())
         return false;
+
     const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
     return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::Value)) != 0;
 }
@@ -1008,6 +1042,7 @@ bool Sema::isFoldedTypedConstStored(AstNodeRef ref) const
 {
     if (ref.isInvalid())
         return false;
+
     const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
     return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::FoldedTypedConst)) != 0;
 }
@@ -1016,6 +1051,7 @@ bool Sema::isConstAssignBindingStored(AstNodeRef ref) const
 {
     if (ref.isInvalid())
         return false;
+
     const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
     return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::ConstAssignBinding)) != 0;
 }
@@ -1033,6 +1069,7 @@ bool Sema::isConstAssignTargetStored(AstNodeRef ref) const
 {
     if (ref.isInvalid())
         return false;
+
     const NodePayloadFlags flags = nodePayloadContext().payloadFlagsStored(node(ref));
     return (static_cast<uint16_t>(flags) & static_cast<uint16_t>(NodePayloadFlags::ConstAssignTarget)) != 0;
 }
@@ -1053,6 +1090,7 @@ void Sema::deferFramePopOnPostChild(AstNodeRef popAfterChildRef)
 {
     const size_t before = frames_.size();
     SWC_ASSERT(before > 0);
+
     auto& entry                    = deferredPopFrames_.emplace_back();
     entry.nodeRef                  = curNodeRef();
     entry.childRef                 = popAfterChildRef;
@@ -1077,6 +1115,7 @@ void Sema::deferFramePopOnPostNode(AstNodeRef popNodeRef)
 {
     const size_t before = frames_.size();
     SWC_ASSERT(before > 0);
+
     auto& entry                    = deferredPopFrames_.emplace_back();
     entry.nodeRef                  = popNodeRef.isValid() ? popNodeRef : curNodeRef();
     entry.onPostNode               = true;
@@ -1088,6 +1127,7 @@ void Sema::deferPostNodeAction(AstNodeRef nodeRef, std::function<Result(Sema&, A
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(callback);
+
     auto& action    = deferredPostNodeActions_.emplace_back();
     action.nodeRef  = nodeRef;
     action.callback = std::move(callback);
@@ -1103,12 +1143,14 @@ SemaScope* Sema::pushScopePopOnPostChild(SemaScopeFlags flags, AstNodeRef popAft
     SemaScope*   scope  = pushScope(flags);
     const size_t before = scopes_.size();
     SWC_ASSERT(before > 0);
+
     auto& scopeEntry                    = deferredPopScopes_.emplace_back();
     scopeEntry.nodeRef                  = curNodeRef();
     scopeEntry.childRef                 = popAfterChildRef;
     scopeEntry.onPostNode               = false;
     scopeEntry.expectedScopeCountBefore = before;
     scopeEntry.expectedScopeCountAfter  = before - 1;
+
     return scope;
 }
 
@@ -1117,11 +1159,13 @@ SemaScope* Sema::pushScopePopOnPostNode(SemaScopeFlags flags, AstNodeRef popNode
     SemaScope*   scope  = pushScope(flags);
     const size_t before = scopes_.size();
     SWC_ASSERT(before > 0);
+
     auto& scopeEntry                    = deferredPopScopes_.emplace_back();
     scopeEntry.nodeRef                  = popNodeRef.isValid() ? popNodeRef : curNodeRef();
     scopeEntry.onPostNode               = true;
     scopeEntry.expectedScopeCountBefore = before;
     scopeEntry.expectedScopeCountAfter  = before - 1;
+
     return scope;
 }
 
@@ -1131,6 +1175,7 @@ const Symbol* Sema::waiterSymbol()
     const SemaNodeView view = viewSymbol(visit().root());
     if (view.hasSymbol())
         return view.sym();
+
     return topSymMap();
 }
 
@@ -1200,19 +1245,17 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     if (shouldAbortWait(*this))
         return Result::Error;
 
-    // Wait helpers store enough context for the scheduler to sleep this job and later
-    // resume the same AST node. Keep the recorded source location close to the blocked
-    // dependency so diagnostics point at the expression that actually needs the symbol.
+    // Preserve the blocked expression's location so the scheduler can resume
+    // the same AST node and diagnostics identify the actual dependency.
     const AstNodeRef    waitNodeRef = fallbackWaitNodeRef(*this, curNodeRef());
     const SourceCodeRef waitCodeRef = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     if (waitHasErrorOnLine(*this, waitCodeRef))
         return Result::Error;
 
 #if SWC_DEV_MODE
-    // A function's own parameter is in scope for its whole body, so a wait on its name means the
-    // body is analyzed before its parameter scope was populated: the ordering suspected behind
-    // an imported generic instance method once losing its parameter (compiler.core.081). Stop
-    // here, with the function named, rather than let the drain report an unknown symbol later.
+    // Parameters must already be visible throughout the body. Catch ordering
+    // failures here with the function named, before an unknown-symbol error
+    // hides the cause (imported generic instance regression: compiler.core.081).
     if (const SymbolFunction* function = frame().currentFunction())
     {
         for (const SymbolVariable* param : function->parameters())
@@ -1232,19 +1275,18 @@ Result Sema::waitIdentifier(IdentifierRef idRef, const SourceCodeRef& codeRef)
     wait.codeRef      = waitCodeRef;
     wait.idRef        = idRef;
     wait.waiterSymbol = waiterSymbol();
+
     return Result::Pause;
 }
 
 Result Sema::waitAutoScopeMember(IdentifierRef idRef, TypeRef candidateTypeRef, const SourceCodeRef& codeRef)
 {
-    // A `.member` whose scope is already decided resolves like the qualified spelling of the
-    // same access, so it waits the same way. The scope keeps growing while the type's other
-    // `impl` blocks are analysed — a mixin minting a constant there has not necessarily run —
-    // and answering "no such member" from a lookup that merely came back empty turns a
-    // publication order into a compilation error.
+    // Auto-scoped members need the same wait as qualified accesses: other impls
+    // or mixins may still publish members. An empty lookup is not yet an error.
     const Result result = waitIdentifier(idRef, codeRef);
     if (result == Result::Pause)
         ctx().state().autoScopeTypeRef = candidateTypeRef;
+
     return result;
 }
 
@@ -1257,6 +1299,7 @@ Result Sema::waitPredefined(IdentifierManager::PredefinedName name, TypeRef& typ
     if (const Symbol* predefinedSym = SemaHelpers::findPredefinedRuntimeSymbol(*this, name))
     {
         SWC_RESULT(waitSemaCompleted(predefinedSym, codeRef));
+
         typeRef = typeMgr().runtimeType(name);
         if (typeRef.isValid())
             return Result::Continue;
@@ -1272,11 +1315,13 @@ Result Sema::waitRuntimeFunction(const IdentifierManager::RuntimeFunctionKind ki
     {
         const IdentifierRef idRef = idMgr().runtimeFunction(kind);
         SWC_ASSERT(idRef.isValid());
+
         return waitIdentifier(idRef, codeRef);
     }
 
     SWC_RESULT(waitDeclared(symbol, codeRef));
     SWC_RESULT(waitTyped(symbol, codeRef));
+
     return Result::Continue;
 }
 
@@ -1292,6 +1337,7 @@ Result Sema::waitCompilerDefined(IdentifierRef idRef, const SourceCodeRef& codeR
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     wait.idRef                   = idRef;
     wait.waiterSymbol            = waiterSymbol();
+
     return Result::Pause;
 }
 
@@ -1307,6 +1353,7 @@ Result Sema::waitImplRegistrations(IdentifierRef idRef, const SourceCodeRef& cod
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     wait.idRef                   = idRef;
     wait.waiterSymbol            = waiterSymbol();
+
     return Result::Pause;
 }
 
@@ -1322,6 +1369,7 @@ Result Sema::parkOnSymbol(TaskStateKind kind, const Symbol* blockingSymbol, AstN
     wait.codeRef                 = fallbackWaitCodeRef(*this, waitNodeRef, codeRef);
     wait.symbol                  = blockingSymbol;
     wait.waiterSymbol            = waiterSymbol();
+
     return Result::Pause;
 }
 
@@ -1329,6 +1377,7 @@ Result Sema::waitDeclared(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isDeclared())
         return Result::Continue;
+
     return parkOnSymbol(TaskStateKind::SemaWaitSymDeclared, symbol, curNodeRef(), codeRef);
 }
 
@@ -1336,6 +1385,7 @@ Result Sema::waitTyped(const Symbol* symbol, const SourceCodeRef& codeRef)
 {
     if (!symbol || symbol->isTyped())
         return Result::Continue;
+
     return parkOnSymbol(TaskStateKind::SemaWaitSymTyped, symbol, curNodeRef(), codeRef);
 }
 
@@ -1343,6 +1393,7 @@ Result Sema::waitConstraintsResolved(const Symbol* symbol, const SourceCodeRef& 
 {
     if (!symbol || symbol->areConstraintsResolved())
         return Result::Continue;
+
     return parkOnSymbol(TaskStateKind::SemaWaitSymConstraintsResolved, symbol, curNodeRef(), codeRef);
 }
 
@@ -1350,6 +1401,7 @@ Result Sema::waitSemaCompletedNoLazy(const Symbol* symbol, const SourceCodeRef& 
 {
     if (!symbol || symbol->isSemaCompleted())
         return Result::Continue;
+
     return parkOnSymbol(TaskStateKind::SemaWaitSymSemaCompleted, symbol, curNodeRef(), codeRef);
 }
 
@@ -1357,6 +1409,7 @@ Result Sema::waitSemaCompleted(const Symbol* symbol, const SourceCodeRef& codeRe
 {
     if (!symbol)
         return Result::Continue;
+
     if (shouldAbortWait(*this, symbol))
         return Result::Error;
 
@@ -1405,6 +1458,7 @@ Result Sema::waitCodeGenCompleted(const Symbol* symbol, const SourceCodeRef& cod
 {
     if (!symbol || symbol->isCodeGenCompleted())
         return Result::Continue;
+
     return parkOnSymbol(TaskStateKind::SemaWaitSymCodeGenCompleted, symbol, curNodeRef(), codeRef);
 }
 
@@ -1412,6 +1466,7 @@ Result Sema::waitCodeGenPreSolved(const Symbol* symbol, const SourceCodeRef& cod
 {
     if (!symbol || symbol->isCodeGenPreSolved() || symbol->isCodeGenCompleted())
         return Result::Continue;
+
     return parkOnSymbol(TaskStateKind::SemaWaitSymCodeGenPreSolved, symbol, curNodeRef(), codeRef);
 }
 
@@ -1419,6 +1474,7 @@ Result Sema::waitSemaCompleted(const TypeInfo* type, AstNodeRef nodeRef)
 {
     if (!type || type->isCompleted(ctx()))
         return Result::Continue;
+
     return parkOnSymbol(TaskStateKind::SemaWaitTypeCompleted, type->getNotCompletedSymbol(ctx()), nodeRef, SourceCodeRef::invalid());
 }
 
@@ -1426,6 +1482,7 @@ Result Sema::waitTypeInfoGeneration(std::atomic<uint64_t>& owner, uint64_t gener
 {
     ctx().state().typeInfoOwner      = &owner;
     ctx().state().typeInfoGeneration = generation;
+
     return parkOnSymbol(TaskStateKind::SemaWaitTypeInfoGeneration, nullptr, nodeRef, SourceCodeRef::invalid());
 }
 
@@ -1472,6 +1529,7 @@ Result Sema::postDeclChild(AstNode& node, AstNodeRef& childRef)
     const Result         result = info.semaPostDeclChild(*this, node, childRef);
     if (result == Result::Continue)
         processDeferredPopsPostChild(curNodeRef(), childRef);
+
     return result;
 }
 
@@ -1481,6 +1539,7 @@ Result Sema::postDecl(AstNode& node)
     const Result         result = info.semaPostDecl(*this, node);
     if (result == Result::Continue)
         processDeferredPopsPostNode(curNodeRef());
+
     return result;
 }
 
@@ -1546,8 +1605,7 @@ Result Sema::postNode(AstNode& node)
                 SemaHelpers::ensureCodeGenLoweringPayload(*this, nodeRef).valueBorrowSafetyOverride = enabled;
         }
 
-        // An armed body publishes what it proved here, while the frame it owns is still the
-        // current one: the pop below is what the capture exists to survive.
+        // Capture the body's facts before its frame is popped.
         if (!narrowFactCaptures_.empty())
         {
             for (const auto& capture : narrowFactCaptures_)
@@ -1564,6 +1622,7 @@ Result Sema::postNode(AstNode& node)
         if (nodeRef == curNodeRef())
             SWC_RESULT(processDeferredPostNodeActions(nodeRef));
     }
+
     return result;
 }
 
@@ -1577,10 +1636,9 @@ void Sema::errorCleanupNode(AstNodeRef nodeRef, AstNode& node)
         return;
 
     Symbol* sym = view.sym();
-    // Only declaration nodes own the lifetime of their attached symbol. Use
-    // sites can also carry resolved symbols (identifiers, calls, etc.), and a
-    // failure while sema-ing those nodes must not invalidate the referenced
-    // declaration in another parallel job.
+
+    // Only declarations own their symbols. A failing use site must not
+    // invalidate a referenced declaration being analyzed by another job.
     if (sym != nullptr && sym->decl() == &node && !sym->isSemaCompleted())
         sym->setIgnored(ctx());
 }
@@ -1595,6 +1653,7 @@ void Sema::cleanupFailedVisit()
         const AstNodeRef parentRef = visit().parentNodeRef(up);
         if (parentRef.isInvalid())
             break;
+
         errorCleanupNode(parentRef, ast().node(parentRef));
     }
 
@@ -1625,9 +1684,8 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
         {
             const bool generatedTopLevelContext = frame().hasContextFlag(SemaFrameContextFlagsE::GeneratedTopLevel);
 
-            // Nested generated top-level blocks now receive their own decl pass before
-            // the full pass reaches this point. That restores the same symbol visibility
-            // contract as regular files, so their declaration jobs can stay deferred.
+            // Generated top-level blocks receive their own declaration pass,
+            // so declaration jobs can stay deferred as in regular files.
             if ((deferCompilerTopLevel && (compilerRun || compilerAst)) || (!generatedTopLevelContext && childInfo.hasFlag(AstNodeIdFlagsE::SemaJob)))
                 return Result::Continue;
         }
@@ -1652,6 +1710,7 @@ Result Sema::preNodeChild(AstNode& node, AstNodeRef& childRef)
                 deferTopLevelItem(childRef, DeferredTopLevelItemKind::SemaJob);
             else
                 enqueueTopLevelSemaJob(childRef);
+
             return Result::SkipChildren;
         }
     }
@@ -1665,21 +1724,24 @@ Result Sema::postNodeChild(AstNode& node, AstNodeRef& childRef)
     const Result         result = info.semaPostNodeChild(*this, node, childRef);
     if (result == Result::Continue)
         processDeferredPopsPostChild(curNodeRef(), childRef);
+
     return result;
 }
 
 void Sema::processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef)
 {
-    // Process in reverse order (stack-like) so nested registrations are handled correctly.
+    // Unwind in reverse registration order to respect nested frames and scopes.
     while (!deferredPopFrames_.empty())
     {
         const auto& last = deferredPopFrames_.back();
         if (last.onPostNode || last.nodeRef != nodeRef || last.childRef != childRef)
             break;
+
         SWC_ASSERT(frames_.size() == last.expectedFrameCountBefore);
         SWC_ASSERT(last.expectedFrameCountAfter + 1 == last.expectedFrameCountBefore);
         popFrame();
         SWC_ASSERT(frames_.size() == last.expectedFrameCountAfter);
+
         deferredPopFrames_.pop_back();
     }
 
@@ -1688,10 +1750,12 @@ void Sema::processDeferredPopsPostChild(AstNodeRef nodeRef, AstNodeRef childRef)
         const auto& last = deferredPopScopes_.back();
         if (last.onPostNode || last.nodeRef != nodeRef || last.childRef != childRef)
             break;
+
         SWC_ASSERT(scopes_.size() == last.expectedScopeCountBefore);
         SWC_ASSERT(last.expectedScopeCountAfter + 1 == last.expectedScopeCountBefore);
         popScope();
         SWC_ASSERT(scopes_.size() == last.expectedScopeCountAfter);
+
         deferredPopScopes_.pop_back();
     }
 }
@@ -1703,9 +1767,11 @@ void Sema::processDeferredPopsPostNode(AstNodeRef nodeRef)
         const auto& last = deferredPopFrames_.back();
         if (!last.onPostNode || last.nodeRef != nodeRef)
             break;
+
         SWC_ASSERT(frames_.size() == last.expectedFrameCountBefore);
         popFrame();
         SWC_ASSERT(frames_.size() == last.expectedFrameCountAfter);
+
         deferredPopFrames_.pop_back();
     }
 
@@ -1714,9 +1780,11 @@ void Sema::processDeferredPopsPostNode(AstNodeRef nodeRef)
         const auto& last = deferredPopScopes_.back();
         if (!last.onPostNode || last.nodeRef != nodeRef)
             break;
+
         SWC_ASSERT(scopes_.size() == last.expectedScopeCountBefore);
         popScope();
         SWC_ASSERT(scopes_.size() == last.expectedScopeCountAfter);
+
         deferredPopScopes_.pop_back();
     }
 }
@@ -1744,6 +1812,7 @@ void Sema::deferTopLevelItem(AstNodeRef nodeRef, DeferredTopLevelItemKind kind)
     DeferredTopLevelItem item;
     item.nodeRef = nodeRef;
     item.kind    = kind;
+
     if (frames_.size() > 1)
         item.frame = std::make_shared<const SemaFrame>(frame());
 
@@ -1777,9 +1846,7 @@ Result Sema::runCurrentVisit()
             taskState.setSemaParsing(nodeRef, currentCodeRef);
         }
 
-        // AstVisit owns the pre/post traversal cursor. Sema only translates its pause,
-        // error and stop states into job-level results, which keeps resumable semantic
-        // analysis localized to the visitor.
+        // AstVisit owns resumable traversal; translate its states to job results.
         const AstVisitResult result = visit_.step(ctx());
         if (result == AstVisitResult::Pause)
             return Result::Pause;
@@ -1802,6 +1869,7 @@ Result Sema::processDeferredTopLevelNode(const DeferredTopLevelItem& item, uint3
         visit_.start(ast(), item.nodeRef);
         if (item.frame)
             pushFramePopOnPostNode(*item.frame, item.nodeRef);
+
         deferredTopLevelItemRunning_     = true;
         deferredTopLevelItemInsertIndex_ = insertIndex;
     }
@@ -1834,6 +1902,7 @@ Result Sema::processDeferredTopLevelItems()
     while (deferredTopLevelItemIndex_ < deferredTopLevelItems_.size())
     {
         const DeferredTopLevelItem item = deferredTopLevelItems_[deferredTopLevelItemIndex_];
+
         switch (item.kind)
         {
             case DeferredTopLevelItemKind::SemaJob:
@@ -1841,9 +1910,12 @@ Result Sema::processDeferredTopLevelItems()
                 // A child job starts from a copy of the current frame.
                 if (item.frame)
                     pushFrame(*item.frame);
+
                 enqueueTopLevelSemaJob(item.nodeRef);
+
                 if (item.frame)
                     popFrame();
+
                 deferredTopLevelItemIndex_++;
                 break;
             }
@@ -1925,6 +1997,7 @@ namespace
     bool resolveCompilerDefined(std::span<Job* const> waiting)
     {
         bool doneSomething = false;
+
         for (Job* job : waiting)
         {
             const TaskState& state = job->ctx().state();
@@ -1954,6 +2027,7 @@ namespace
                 continue;
             if (function->hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
                 continue;
+
             return true;
         }
 
@@ -1977,16 +2051,19 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
     auto&             jobMgr   = ctx.global().jobMgr();
     CompilerInstance& compiler = ctx.compiler();
     SWC_DEV_LOOP_GUARD(loopGuard, 100000, "Sema::waitDone");
+
     constexpr uint32_t maxPausedLazyBodyWakes    = 1024;
     uint32_t           pausedLazyBodyWakes       = 0;
     constexpr uint32_t maxPausedTypeInfoGenWakes = 1024;
     uint32_t           pausedTypeInfoGenWakes    = 0;
-    std::vector<Job*>  waiting;
+
+    std::vector<Job*> waiting;
 
     while (true)
     {
         SWC_DEV_LOOP_TICK(loopGuard);
         jobMgr.waitAll(clientId);
+
 #if SWC_DEV_MODE
         jobMgr.noteBarrierRound();
 #endif
@@ -2050,10 +2127,9 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             continue;
         }
 
-        // A job parked on type-info generation is waiting on transient shard-lock contention,
-        // not a semantic dependency: the owning worker publishes and clears it. Re-drive these
-        // waiters (bounded, to still surface a genuine cycle) instead of breaking out and
-        // letting SemaCycle misreport the contention as an unresolvable dependency.
+        // Type-info waits can reflect transient shard-lock contention rather
+        // than a semantic cycle. Retry them a bounded number of times before
+        // letting cycle detection judge the remaining dependencies.
         if (pausedTypeInfoGenWakes < maxPausedTypeInfoGenWakes && hasPausedTypeInfoGenWait(waiting))
         {
             pausedTypeInfoGenWakes++;
@@ -2061,6 +2137,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             jobMgr.wakeAll(clientId);
             continue;
         }
+
         break;
     }
 
@@ -2094,6 +2171,7 @@ void Sema::waitDone(TaskContext& ctx, JobClientId clientId)
             const SourceView& srcView = f->ast().srcView();
             if (srcView.mustSkip())
                 continue;
+
             f->unitTest().verifyUntouchedExpected(ctx, srcView);
         }
     }

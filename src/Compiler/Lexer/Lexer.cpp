@@ -1202,14 +1202,17 @@ void Lexer::lexSymbol()
             else
             {
                 raiseTokenError(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
+
                 hasUtf8Error_  = true;
                 hasTokenError_ = true;
+
                 buffer_++;
                 break;
             }
 
             const uint32_t tokenLen = static_cast<uint32_t>(buffer_ - startToken_);
-            auto           diag     = reportTokenError(DiagnosticId::lex_err_invalid_char, startTokenOffset_, tokenLen);
+
+            auto diag = reportTokenError(DiagnosticId::lex_err_invalid_char, startTokenOffset_, tokenLen);
             diag.addArgument(Diagnostic::ARG_VALUE, std::format("{:04X}", static_cast<uint32_t>(wc)));
             diag.report(*ctx_);
         }
@@ -1224,8 +1227,7 @@ void Lexer::lexSingleLineComment()
     token_.id = TokenId::CommentLine;
     buffer_ += 2;
 
-    // Stop before EOL (LF or CR), do not consume it here.
-    // Safe lookahead: zeros after endBuffer_ will stop the loop
+    // Leave the line ending for the following whitespace token.
     while (buffer_ < endBuffer_ && buffer_[0] != '\n' && buffer_[0] != '\r')
         buffer_++;
 
@@ -1238,9 +1240,9 @@ void Lexer::lexMultiLineComment()
     buffer_ += 2;
 
     uint32_t depth = 1;
+
     while (buffer_ < endBuffer_ && depth > 0)
     {
-        // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
             raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
@@ -1280,7 +1282,6 @@ void Lexer::lexMultiLineComment()
 
 void Lexer::checkFormat(uint32_t& startOffset)
 {
-    // BOM (Byte Order Mark) constants
     static constexpr char8_t UTF8[]     = {0xEF, 0xBB, 0xBF};
     static constexpr char8_t UTF16_BE[] = {0xFE, 0xFF};
     static constexpr char8_t UTF16_LE[] = {0xFF, 0xFE};
@@ -1289,7 +1290,6 @@ void Lexer::checkFormat(uint32_t& startOffset)
 
     const std::string_view content = srcView_->stringView();
 
-    // Ensure we have enough bytes to check
     if (content.size() < 3)
     {
         startOffset = 0;
@@ -1336,9 +1336,12 @@ void Lexer::checkFormat(uint32_t& startOffset)
     {
         if ((data[0] == UTF32_BE[0] && data[1] == UTF32_BE[1] && data[2] == UTF32_BE[2] && data[3] == UTF32_BE[3]) ||
             (data[0] == UTF32_LE[0] && data[1] == UTF32_LE[1] && data[2] == UTF32_LE[2] && data[3] == UTF32_LE[3]) ||
-            (data[0] == 0x2B && data[1] == 0x2F && data[2] == 0x76 && (data[3] == 0x38 || data[3] == 0x39 || data[3] == 0x2B || data[3] == 0x2F)) || // UTF-7
-            (data[0] == 0xDD && data[1] == 0x73 && data[2] == 0x66 && data[3] == 0x73) ||                                                            // UTF-EBCDIC
-            (data[0] == 0x84 && data[1] == 0x31 && data[2] == 0x95 && data[3] == 0x33))                                                              // GB-18030
+            // UTF-7
+            (data[0] == 0x2B && data[1] == 0x2F && data[2] == 0x76 && (data[3] == 0x38 || data[3] == 0x39 || data[3] == 0x2B || data[3] == 0x2F)) ||
+            // UTF-EBCDIC
+            (data[0] == 0xDD && data[1] == 0x73 && data[2] == 0x66 && data[3] == 0x73) ||
+            // GB-18030
+            (data[0] == 0x84 && data[1] == 0x31 && data[2] == 0x95 && data[3] == 0x33))
         {
             startOffset = 4;
             badFormat   = true;
@@ -1365,11 +1368,13 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     srcView_->tokens().clear();
     srcView_->lines().clear();
     srcView_->lines().push_back(0);
+
     prevTokenWasWhitespace_ = false;
     prevTokenHadEolInside_  = false;
     prevCodeTokenId_        = TokenId::Invalid;
-    hasFileError_           = false;
-    hasUtf8Error_           = false;
+
+    hasFileError_ = false;
+    hasUtf8Error_ = false;
 
     langSpec_   = &ctx.global().langSpec();
     ctx_        = &ctx;
@@ -1380,32 +1385,32 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     srcView_->setSourceStartOffset(startOffset);
 
     const auto* base = reinterpret_cast<const char8_t*>(srcView.stringView().data());
-    buffer_          = base + startOffset;
-    startBuffer_     = base;
-    endBuffer_       = startBuffer_ + srcView.stringView().size();
 
-    // Reserve space based on source size
+    buffer_      = base + startOffset;
+    startBuffer_ = base;
+    endBuffer_   = startBuffer_ + srcView.stringView().size();
+
     srcView_->tokens().reserve(srcView.stringView().size() / 10);
     if (!isRawMode())
         srcView_->lines().reserve(srcView.stringView().size() / 60);
 
+    // Padded source storage permits two-byte lookahead throughout dispatch.
     while (buffer_ < endBuffer_)
     {
-        // Every branch below either pushes a token/trivia entry or advances buffer_ past
-        // invalid input. Keeping that invariant local prevents infinite loops after
-        // recovery diagnostics.
+        // Every branch must advance buffer_ or finish lexing so recovery cannot
+        // retry the same invalid input indefinitely.
         hasTokenError_    = false;
         startToken_       = buffer_;
         startTokenOffset_ = static_cast<uint32_t>(startToken_ - startBuffer_);
         token_.byteStart  = startTokenOffset_;
         token_.flags      = TokenFlagsE::Zero;
+
 #if SWC_HAS_TOKEN_DEBUG_INFO
         token_.dbgPtr     = startToken_;
         token_.dbgSrcView = &srcView;
         token_.dbgLoc.fromOffset(ctx, srcView, token_.byteStart);
 #endif
 
-        // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
             raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
@@ -1414,21 +1419,18 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
             continue;
         }
 
-        // Blanks
         if (langSpec_->isWhiteSpace(buffer_[0]))
         {
             lexWhitespace();
             continue;
         }
 
-        // Number literal
         if (langSpec_->isDigit(buffer_[0]))
         {
             lexNumber();
             continue;
         }
 
-        // Attribute start
         if (buffer_[0] == '#' && buffer_[1] == '[')
         {
             token_.id = TokenId::SymAttrStart;
@@ -1437,48 +1439,42 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
             continue;
         }
 
-        // String literal (multi-line) - safe to read buffer_[1] and buffer_[2] due to padding after endBuffer_
         if (buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
         {
             lexMultiLineStringLiteral();
             continue;
         }
 
-        // String literal (single-line)
         if (buffer_[0] == '"')
         {
             lexSingleLineStringLiteral();
             continue;
         }
 
-        // Line comment - safe to read buffer_[1] due to padding after endBuffer_
         if (buffer_[0] == '/' && buffer_[1] == '/')
         {
             lexSingleLineComment();
             continue;
         }
 
-        // Multi-line comment - safe to read buffer_[1] due to padding after endBuffer_
         if (buffer_[0] == '/' && buffer_[1] == '*')
         {
             lexMultiLineComment();
             continue;
         }
 
-        // Identifier or keyword
         if (langSpec_->isIdentifierStart(buffer_[0]))
         {
             lexIdentifier();
             if (srcView_->mustSkip())
                 return;
+
             continue;
         }
 
-        // Character literal or quote operator - context-sensitive
-        // Quote syntax reuses `'`: when the last meaningful token of the line can carry a
-        // suffix or generic arguments, leave the quote to lexSymbol(); otherwise it opens a
-        // character literal. Trivia is skipped by that test, so a blank never changes the
-        // reading and '5's32' and '5 's32' are the same suffixed literal.
+        // After a token that can carry a suffix or generic arguments on this line,
+        // ' is a quote operator; otherwise it opens a character literal. Trivia does
+        // not change the meaning of 5's32 versus 5 's32.
         if (buffer_[0] == '\'')
         {
             if (!canPrecedeQuoteOperator())
@@ -1488,7 +1484,6 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
             }
         }
 
-        // Operators and punctuation
         lexSymbol();
     }
 
@@ -1498,7 +1493,6 @@ void Lexer::tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags)
     token_.byteStart = static_cast<uint32_t>(startToken_ - startBuffer_);
     pushToken();
 
-    // Compute the start trivia of each token
     if (lexerFlags_.has(LexerFlagsE::EmitTrivia))
         buildTriviaIndex();
 
@@ -1518,6 +1512,7 @@ void Lexer::buildTriviaIndex() const
     // trivia_ is in lex order and tokRef is monotonic, so a single cursor builds
     // the compact token -> trivia slice table without per-token searches.
     uint32_t tIdx = 0;
+
     for (uint32_t tokIdx = 0; tokIdx < numTok; ++tokIdx)
     {
         triviaStart[tokIdx] = tIdx;

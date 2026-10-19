@@ -1525,6 +1525,7 @@ namespace
                 innerRef = node.cast<AstAsCastExpr>().nodeExprRef;
             else
                 break;
+
             resolvedRef = sema.resolvedNodeRef(innerRef);
         }
 
@@ -1535,28 +1536,21 @@ namespace
         return identifierVariable(sema, call.nodeExprRef) != nullptr;
     }
 
-    // The per-function summary recorded by checkReturn: when the callee's returned value
-    // may borrow one of its parameters, the call result borrows the matching arguments.
-    //
-    // NOT CONSUMED INLINE: sema jobs run in a non-deterministic order, so an intra-module
-    // callee may or may not be sema-completed when its call site is analyzed - and
-    // waiting for a function body from another function body turns legal mutual
-    // recursion into a stalled-dependency error (SemaCycle). Consuming the mask here
-    // would make the errors flicker between otherwise identical builds. Instead, call
-    // sites in escaping positions snapshot their argument borrows into deferred records
-    // (recordDeferredCallBorrow below), judged once the module has no pending sema job.
+    // Returned-parameter summaries must not be consumed during semantic analysis:
+    // job order would change diagnostics, while waiting for callees would deadlock
+    // legal mutual recursion. Snapshot argument borrows at escaping call sites and
+    // check them after the module's semantic jobs complete.
     SemaEscapeInfo callResultEscapeInfo(const Sema& sema, AstNodeRef callRef, const AstCallExpr& call, const uint32_t& budget)
     {
         SWC_UNUSED(call);
         SWC_UNUSED(callRef);
         SWC_UNUSED(sema);
         SWC_UNUSED(budget);
+
         return {};
     }
 
-    // How the analyzed site uses the opaque call: its result is returned by the
-    // caller, its result is stored outside the local frame, or the call just happens
-    // and only its arguments matter.
+    // Whether the opaque result escapes through a return/store, or only arguments matter.
     enum class DeferredCallUse : uint8_t
     {
         Return,
@@ -1564,9 +1558,7 @@ namespace
         Argument,
     };
 
-    // Resolves a variable to the signature parameter it stands for: the variable
-    // itself when flagged Parameter, or the receiver when it is the body 'me' binding
-    // of a method (which carries no Parameter flag).
+    // The body's 'me' binding lacks Parameter: map it to the method's signature receiver.
     const SymbolVariable* signatureParameterFor(Sema& sema, const SymbolVariable& symVar)
     {
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
@@ -1598,6 +1590,7 @@ namespace
             if (component.kind == SemaEscapeProjectionKind::Field)
                 return component.field;
         }
+
         return nullptr;
     }
 
@@ -1614,6 +1607,7 @@ namespace
         SemaEscapeProjection projection;
         if (!storageProjection(sema, projectedRef, projection))
             return nullptr;
+
         normalizeProjectionRoot(sema, projection);
         return firstProjectionField(projection);
     }
@@ -1622,6 +1616,7 @@ namespace
     {
         if (left.kind == SemaEscapeProjectionKind::AnyIndex || right.kind == SemaEscapeProjectionKind::AnyIndex)
             return left.kind != SemaEscapeProjectionKind::Field && right.kind != SemaEscapeProjectionKind::Field;
+
         return left == right;
     }
 
@@ -1635,6 +1630,7 @@ namespace
             if (!projectionComponentsMatch(prefix.components[i], value.components[i]))
                 return false;
         }
+
         return true;
     }
 
@@ -1647,11 +1643,9 @@ namespace
         return outProjection.root != nullptr && !outProjection.components.empty();
     }
 
-    // Replacing an owning field disconnects views of its OLD payload from the owner.
-    // The view remains usable until that old allocation is explicitly released; a later
-    // growth of the owner's NEW payload cannot invalidate it. This is the compiler-
-    // inferred version boundary used by collection copy hooks (`old = .buffer;
-    // .buffer = null; .realloc(...); copy(old, ...)`).
+    // Replacing an owning field detaches views of its old allocation. Those views remain
+    // valid until that allocation is released; growing the new payload cannot invalidate
+    // them. Collection copy hooks use this boundary to retain and copy the old buffer.
     void detachReplacedOwnedPayloadViews(Sema& sema, const SemaEscapeProjection& rawProjection, TypeRef targetTypeRef)
     {
         if (!isOwnedPayloadCarrier(sema, targetTypeRef) && !hasOwningLifecycle(sema, targetTypeRef))
@@ -1661,18 +1655,22 @@ namespace
         normalizeProjectionRoot(sema, replaced);
         if (!replaced.root || replaced.components.empty())
             return;
+
         const SymbolVariable* replacedField = firstProjectionField(replaced);
         if (!replacedField)
             return;
 
         SmallVector<const SymbolVariable*> detachedViews;
+
         struct DeferredDetachment
         {
             const SymbolVariable* viewVar = nullptr;
             const SymbolVariable* owner   = nullptr;
             const SymbolVariable* field   = nullptr;
         };
+
         SmallVector<DeferredDetachment> detachedDeferredViews;
+
         for (const auto& [viewVar, info] : sema.variableEscapeInfos())
         {
             if (!viewVar)
@@ -1683,21 +1681,25 @@ namespace
                 SemaEscapeProjection source;
                 if (ownedPayloadProjection(sema, info, source) && projectionIsPrefixOf(replaced, source))
                     detachedViews.push_back(viewVar);
+
                 continue;
             }
 
             if (!info.isDeferredCallBorrow())
                 continue;
+
             for (const auto& snapshot : info.deferredCalls)
             {
                 if (!snapshot)
                     continue;
+
                 for (const SemaEscapeDeferredCheck& check : snapshot->checks)
                 {
                     if (check.borrowedVar != replaced.root)
                         continue;
                     if (check.borrowedPayloadField && check.borrowedPayloadField != replacedField)
                         continue;
+
                     detachedDeferredViews.push_back({viewVar, replaced.root, check.borrowedPayloadField ? check.borrowedPayloadField : replacedField});
                 }
             }
@@ -1705,6 +1707,7 @@ namespace
 
         for (const SymbolVariable* viewVar : detachedViews)
             sema.detachVariableOwnedPayload(*viewVar);
+
         for (const DeferredDetachment& detached : detachedDeferredViews)
             sema.detachVariableOwnedPayloadField(*detached.viewVar, *detached.owner, *detached.field);
     }
@@ -1743,6 +1746,7 @@ namespace
         size_t paramIndex = 0;
         if (!findCallerParameterIndex(fn, *info.sourceVar, paramIndex) || paramIndex >= 64)
             return 0;
+
         return 1ULL << paramIndex;
     }
 
@@ -1750,6 +1754,7 @@ namespace
     {
         if (info.parameterOriginsMask || info.parameterIndirectOriginsMask)
             return info.parameterOriginsMask;
+
         return parameterOriginsMask(fn, info);
     }
 
@@ -1772,7 +1777,9 @@ namespace
     {
         SemaEscapeProjection  payloadProjection;
         const SymbolVariable* payloadField = ownedPayloadProjection(sema, info, payloadProjection) ? firstProjectionField(payloadProjection) : nullptr;
-        const uint64_t        origins      = parameterOriginsMask(fn, info);
+
+        const uint64_t origins = parameterOriginsMask(fn, info);
+
         for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
         {
             const size_t i = std::countr_zero(remainingOrigins);
@@ -1780,14 +1787,13 @@ namespace
                 fn.addReturnBorrowsParam(i, true);
             if (!(directParameterOriginsMask(fn, info) & (1ULL << i)))
                 continue;
+
             fn.addReturnBorrowsParam(i);
             if (!info.viaStoredField)
                 fn.addReturnsStorageParam(i);
 
-            // A result read OUT of what the parameter owns is a view the parameter's own
-            // reallocation moves. A result that merely reaches the parameter - a fresh
-            // object holding a back-reference to it - is not, and only this flag can tell
-            // the invalidation check which of the two it is looking at.
+            // Reallocation invalidates views of the owned payload, but not independent
+            // objects that merely hold back-references to the parameter. Preserve that distinction.
             if (info.viaOwnedPayload)
             {
                 if (payloadField)
@@ -1801,6 +1807,7 @@ namespace
     void addStoredBorrowOrigins(SymbolFunction& fn, const SemaEscapeInfo& info)
     {
         const uint64_t origins = parameterOriginsMask(fn, info);
+
         for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
         {
             const size_t i = std::countr_zero(remainingOrigins);
@@ -1819,6 +1826,7 @@ namespace
         const uint64_t origins  = indirect ? info.parameterIndirectOriginsMask : directParameterOriginsMask(fn, info);
         if (!indirect && info.viaStoredField)
             return;
+
         for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
         {
             const size_t i = std::countr_zero(remainingOrigins);
@@ -1865,21 +1873,14 @@ namespace
         // their own local ordering, which does not compare with the enclosing function.
         if (sourceDepth == destinationDepth && ((!outsideInline && SemaHelpers::effectiveInlinePayload(sema)) || !TypeGen::lifecycleFlagsOfTypeRef(sema.ctx(), destination.typeRef()).hasDrop))
             return false;
+
         return sema.localStorageOutlives(destination, source);
     }
 
-    // Does the container argument of a stores-into-parameter pair provably outlive the
-    // borrowed one? A callee that keeps its argument is only a fault at sites where the
-    // keeper is still readable after the borrowed storage is gone.
-    //
-    // A global container outlives every frame value, so any frame borrow handed to it
-    // dangles. A deeper source (a loop body, an inner block) dies while the container is
-    // still in use. Within one scope, a container with a destructor also outlives sources
-    // declared after it: cleanup runs in reverse declaration order.
-    //
-    // A caller-owned destination outlives this function's local storage. Parameter-to-
-    // parameter stores still propagate to the caller, where their actual lifetimes are
-    // known; only a stored frame borrow is judged here.
+    // Report stores only when the destination remains readable after the borrowed source
+    // dies. Globals and caller storage outlive frame values; shallower locals outlive
+    // nested scopes. Within a scope, destructors observe reverse declaration order.
+    // Parameter-to-parameter stores propagate to callers, where lifetimes are known.
     bool intoArgumentOutlivesStored(Sema& sema, const SemaEscapeInfo& intoInfo, const SemaEscapeInfo& storedInfo)
     {
         if (intoInfo.kind == SemaEscapeKind::Static)
@@ -1925,6 +1926,7 @@ namespace
             check.callee     = &callee;
             check.paramIndex = paramIndex;
             check.indirect   = indirect;
+
             outCapture.checks.push_back(std::move(check));
         }
 
@@ -1935,6 +1937,7 @@ namespace
             edge.callee           = &callee;
             edge.calleeParamIndex = paramIndex;
             edge.calleeIndirect   = indirect;
+
             outCapture.edges.push_back(std::move(edge));
         }
     }
@@ -1947,6 +1950,7 @@ namespace
             if (!(mask & (1ULL << guard.paramIndex)))
                 return false;
         }
+
         return true;
     }
 
@@ -1957,21 +1961,19 @@ namespace
             if (!guard.indirect && (guard.callee->returnsPayloadParamsMask() & (1ULL << guard.paramIndex)))
                 return &guard;
         }
+
         return nullptr;
     }
 
-    // Snapshots the borrows carried by the arguments of an opaque call into check
-    // templates (escaping borrows) and proto-edges (caller-parameter arguments). The
-    // flow state is only valid NOW, so the argument side is captured eagerly; the
-    // callee's summaries are read later, when they are final regardless of the sema
-    // job order. 'collectPairs' additionally crosses the arguments against the
-    // callee's stores-into-parameter pairs ('g_container.add(&local)') - only wanted
-    // from the once-per-call Argument hook. Returns false when nothing borrows or the
-    // call is not summarizable.
+    // Snapshot arguments while their flow state is valid; read final callee summaries
+    // after semantic jobs complete. Capture checks for escaping borrows and summary
+    // edges for caller parameters. The once-per-call Argument hook also collects
+    // stores-into-parameter pairs when collectPairs is set.
     bool captureOpaqueCallBorrows(Sema& sema, AstNodeRef exprRef, bool collectPairs, SemaEscapeDeferredCallSnapshot& outCapture, uint32_t& budget)
     {
         if (exprRef.isInvalid() || !budget)
             return false;
+
         --budget;
 
         AstNodeRef resolvedRef = sema.resolvedNodeRef(exprRef);
@@ -2013,17 +2015,11 @@ namespace
         if (!fn)
             return false;
 
-        // Whether an expansion happened is not a question for the attributes: a call that
-        // was expanded no longer resolves to a CallExpr at all, and the walk above would
-        // have stopped. Reading '#[Inline]' instead made the verdict depend on whether the
-        // build configuration inlines - and an imported '#[Inline]' accessor is never
-        // expanded anyway, because its body does not cross the module boundary (the
-        // generated API declares it '#[Swag.Foreign]' and keeps the attribute). Both
-        // mistakes dropped 'String.toString' and its kind out of the analysis.
-        //
-        // A macro or a mixin is a different matter: it is expanded from source before this
-        // point, and its parameters are code rather than values, so there is no summary to
-        // pair them against.
+        // Expanded calls no longer resolve to CallExpr. Do not use Inline attributes
+        // to decide this: expansion depends on build settings, and imported inline
+        // bodies are unavailable even though their generated foreign APIs keep the attribute.
+        // Macro/mixin parameters represent source code rather than values, so they
+        // have no call summary to match here.
         if (fn->attributes().hasMacroOrMixin())
             return false;
 
@@ -2031,9 +2027,7 @@ namespace
         if (params.empty())
             return false;
 
-        // The LANGUAGE allocator interface: 'free'/'realloc' invalidate the pointer
-        // carried by the request's 'address' field. Cheap name test first, the
-        // qualified name only on candidates.
+        // Allocator free/realloc invalidate the pointer in the request's address field.
         const bool calleeIsAllocFree = fn->isAllocatorRelease(sema.ctx());
 
         SmallVector<ResolvedCallArgument> args;
@@ -2045,6 +2039,7 @@ namespace
             SemaEscapeInfo info;
             bool           indirect;
         };
+
         struct ParameterMapping
         {
             uint32_t caller;
@@ -2052,6 +2047,7 @@ namespace
             bool     callerIndirect;
             bool     calleeIndirect;
         };
+
         SmallVector<ArgumentBorrow>   argBorrows;
         SmallVector<ParameterMapping> parameterMappings;
 
@@ -2076,13 +2072,9 @@ namespace
             if (paramTypeRef.isValid() && sema.typeMgr().get(paramTypeRef).isAnyVariadic())
                 break;
 
-            // A parameter that cannot carry a borrow can neither return nor store one -
-            // with one exception. 'typeCanCarryBorrow' refuses to SCAN the fields of an
-            // owner, because a bitwise walk of them would confuse ownership with
-            // borrowing; that says nothing about the owner being unable to LEND what it
-            // holds, which is exactly what an accessor taking it by value hands back.
-            // Without this, the pointer spelling of a call errors and the by-value one
-            // right next to it is silent.
+            // Owner fields are excluded from structural borrow scans to avoid confusing
+            // ownership with borrowing. A by-value owner can still lend its payload,
+            // so include it when propagating accessor results.
             const bool paramIsByValueOwner = paramTypeRef.isValid() &&
                                              SemaHelpers::isByValueAggregateType(sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramTypeRef)) &&
                                              hasOwningLifecycle(sema, paramTypeRef);

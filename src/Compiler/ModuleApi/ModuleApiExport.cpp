@@ -56,10 +56,12 @@ namespace
             return result;
 
         result.wholeFileExported = isWholeFileExported(file);
-        const auto& fileNode     = rootNode.cast<AstFile>();
+
+        const auto& fileNode = rootNode.cast<AstFile>();
 
         SmallVector<AstNodeRef> globalRefs;
         file.ast().appendNodes(globalRefs, fileNode.spanGlobalsRef);
+
         for (auto globalRef : globalRefs)
         {
             if (globalRef.isInvalid())
@@ -94,6 +96,7 @@ namespace
 
         fs::path result = exportApiDir / fs::path(moduleName.c_str());
         result.replace_extension(".swg");
+
         return result.lexically_normal();
     }
 
@@ -124,12 +127,14 @@ namespace
         const bool      exists = fs::exists(path, ec);
         if (ec)
             return reportModuleApiDirectoryClearError(ctx, path, FileSystem::normalizeSystemMessage(ec));
+
         if (!exists)
             return Result::Continue;
 
         const bool isDirectory = fs::is_directory(path, ec);
         if (ec)
             return reportModuleApiDirectoryClearError(ctx, path, FileSystem::normalizeSystemMessage(ec));
+
         if (!isDirectory)
             return reportModuleApiDirectoryClearError(ctx, path, FileSystem::describePathProblem(FileSystem::PathProblem::NotDirectory));
 
@@ -154,7 +159,6 @@ namespace
 
         return Result::Continue;
     }
-
 }
 
 namespace ModuleApiExport
@@ -164,6 +168,7 @@ namespace ModuleApiExport
         Utf8 artifactName = compiler.artifactName();
         if (!artifactName.empty())
             return artifactName;
+
         return "module";
     }
 
@@ -180,6 +185,7 @@ namespace ModuleApiExport
             return "\r\n";
         if (content.find('\n') != std::string_view::npos)
             return "\n";
+
         return "\r\n";
     }
 
@@ -227,12 +233,15 @@ namespace ModuleApi
         {
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
+
             if (!isPublishedFile(it->path()) || paths.contains(it->path().lexically_normal()))
                 continue;
+
             fs::remove(it->path(), ec);
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, it->path(), FileSystem::normalizeSystemMessage(ec));
         }
+
         if (ec)
             return FileSystem::reportInvalidFolder(ctx, destinationDirectory, FileSystem::normalizeSystemMessage(ec));
 
@@ -240,7 +249,8 @@ namespace ModuleApi
         {
             const std::string_view captured = file.content->view();
             const fs::path         path     = (destinationDirectory / file.path.lexically_relative(sourceDirectory)).lexically_normal();
-            const auto             size     = fs::file_size(path, ec);
+
+            const auto size = fs::file_size(path, ec);
             if (!ec && size == captured.size())
             {
                 const auto writeTime = fs::last_write_time(path, ec);
@@ -253,12 +263,14 @@ namespace ModuleApi
                         continue;
                 }
             }
+
             SWC_RESULT(ensureModuleApiDirectory(ctx, path.parent_path()));
             SWC_RESULT(ModuleApiExport::writeModuleApiFile(ctx, path, captured));
             fs::last_write_time(path, file.writeTime, ec);
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
         }
+
         return Result::Continue;
     }
 
@@ -274,11 +286,13 @@ namespace ModuleApi
             outBecause = FileSystem::normalizeSystemMessage(ec);
             return Result::Error;
         }
+
         if (incomplete)
         {
             outBecause = "module API publication did not complete; rebuild the exporting module";
             return Result::Error;
         }
+
         return Result::Continue;
     }
 
@@ -288,19 +302,24 @@ namespace ModuleApi
             return Result::Error;
 
         incompletePath_ = directory / ".swc-api-incomplete";
-        FileSystem::IoErrorInfo    ioError;
+
+        FileSystem::IoErrorInfo ioError;
+
         constexpr std::string_view marker = "module API publication in progress\n";
+
         if (FileSystem::writeBinaryFile(incompletePath_, marker.data(), marker.size(), ioError) != Result::Continue)
         {
             outBecause = FileSystem::describeIoFailure(ioError);
             return Result::Error;
         }
+
         return Result::Continue;
     }
 
     Result DirectoryAccess::completePublication(Utf8& outBecause)
     {
         SWC_ASSERT(!incompletePath_.empty());
+
         std::error_code ec;
         fs::remove(incompletePath_, ec);
         if (ec)
@@ -308,6 +327,7 @@ namespace ModuleApi
             outBecause = FileSystem::normalizeSystemMessage(ec);
             return Result::Error;
         }
+
         incompletePath_.clear();
         return Result::Continue;
     }
@@ -315,9 +335,11 @@ namespace ModuleApi
     static Result finishPublication(TaskContext& ctx, DirectoryAccess& publication, const fs::path& directory, std::span<const fs::path> publishedPaths)
     {
         SWC_RESULT(removeStaleGeneratedModuleApiFiles(ctx, directory, publishedPaths));
+
         Utf8 because;
         if (publication.completePublication(because) != Result::Continue)
             return FileSystem::reportInvalidFolder(ctx, directory, because);
+
         return Result::Continue;
     }
 
@@ -337,17 +359,17 @@ namespace ModuleApi
         JobManager&       jobMgr       = ctx.global().jobMgr();
 
         ModuleApiFileEntries localEntries;
+
         // Documentation consumes the same resolved entries immediately after sema. Retain
         // them on the compiler so the renderer does not repeat the AST classification pass.
         ModuleApiFileEntries& collectedEntries = compiler.cmdLine().command == CommandKind::Doc ? compiler.prepareModuleApiPublicEntries() : localEntries;
-        // The published interface is a build product. A test compile also sees test-gated
-        // publics, and exporting them would leak symbols only the test artifacts carry into
-        // the api every later build consumes; those consumers then reference functions the
-        // plain dependency artifacts do not export.
+
+        // Test-only publics have no matching symbols in normal artifacts. Keep them
+        // out of the persistent API used by later builds.
         const bool suppressExport = compiler.cmdLine().sourceDrivenTest || compiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
 
-        // Sema is done here, so walking the ASTs is safe now. Without an export
-        // directory, only diagnostics such as public global variables are needed.
+        // Semantic analysis is complete; collect public diagnostics even when no
+        // API is published.
         const bool diagnosticsOnly = (exportApiDir.empty() || suppressExport) && compiler.cmdLine().command != CommandKind::Doc;
         SWC_RESULT(collectPublicEntries(ctx, collectedEntries, diagnosticsOnly));
 
@@ -355,6 +377,7 @@ namespace ModuleApi
             return Result::Continue;
 
         SWC_RESULT(ensureModuleApiDirectory(ctx, exportApiDir));
+
         DirectoryAccess publication;
         Utf8            because;
         if (publication.beginPublication(because, exportApiDir) != Result::Continue)
@@ -364,11 +387,12 @@ namespace ModuleApi
         if (suppressExport)
             return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
-        const Utf8        moduleNamespace  = compiler.moduleNamespaceName();
+        const Utf8 moduleNamespace = compiler.moduleNamespaceName();
+
         const SourceFile* firstSourceFile  = nullptr;
         bool              hasModuleSources = false;
 
-        // Cheap sequential pass: gather the module's source files and the reduction values.
+        // Gather module sources and choose the file that supplies line endings.
         std::vector<const SourceFile*> moduleFiles;
         for (const SourceFile* file : compiler.files())
         {
@@ -388,38 +412,46 @@ namespace ModuleApi
         if (!hasModuleSources)
             return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
-        // Extract each file's generated roots in parallel (independent per file), then merge
-        // sequentially in file order. The merge keeps the first occurrence of each root in that
-        // order, as the linear path did, so the deduplicated result is identical.
-        const auto&                                      entries = collectedEntries;
+        // Extract roots independently, then merge in file order so the first
+        // occurrence of each root remains stable.
+        const auto& entries = collectedEntries;
+
         std::vector<std::vector<ModuleApiGeneratedRoot>> perFileRoots(moduleFiles.size());
-        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(moduleFiles.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
-            const SourceFile*       file     = moduleFiles[i];
-            const ModuleApiFileInfo fileInfo = analyzeModuleApiFile(*file, moduleNamespace.view());
-            if (fileInfo.wholeFileExported)
-                return;
+        jobMgr.parallelForIndexed(
+            ctx,
+            static_cast<uint32_t>(moduleFiles.size()),
+            JobKind::ModuleApiExport,
+            compiler.jobClientId(),
+            [&](TaskContext& workerCtx, uint32_t i) {
+                const SourceFile*       file     = moduleFiles[i];
+                const ModuleApiFileInfo fileInfo = analyzeModuleApiFile(*file, moduleNamespace.view());
+                if (fileInfo.wholeFileExported)
+                    return;
 
-            const auto fileEntryIt = entries.find(file->ast().srcView().ref());
-            if (fileEntryIt == entries.end())
-                return;
+                const auto fileEntryIt = entries.find(file->ast().srcView().ref());
+                if (fileEntryIt == entries.end())
+                    return;
 
-            appendGeneratedRootsForFile(workerCtx, *file, fileEntryIt->second, perFileRoots[i]);
-        });
+                appendGeneratedRootsForFile(workerCtx, *file, fileEntryIt->second, perFileRoots[i]);
+            });
 
         std::vector<ModuleApiGeneratedRoot> generatedRoots;
         ModuleApiExport::mergeGeneratedRootsUnique(generatedRoots, perFileRoots);
         SWC_RESULT(ModuleApiExport::appendSupportingDeclarationRoots(ctx, generatedRoots));
 
-        // Sequential pass: resolve destination paths and detect duplicate names (needs the
-        // shared name map). The expensive content build + disk write is dispatched afterwards.
+        // Resolve whole-file destinations serially because duplicate names share a map.
+        // Content generation and writes can then run independently.
         struct WholeFileExport
         {
             const SourceFile* file;
             fs::path          dstPath;
-            bool              hasModuleNamespace;
+
+            bool hasModuleNamespace;
         };
+
         std::vector<WholeFileExport>       wholeExports;
         std::unordered_map<Utf8, fs::path> wholeFileExportNames;
+
         for (const SourceFile* file : compiler.files())
         {
             if (!file || !file->hasFlag(FileFlagsE::ModuleSrc))
@@ -442,16 +474,25 @@ namespace ModuleApi
             publishedPaths.push_back(wholeExports.back().dstPath);
         }
 
-        // Build + write each whole-file export in parallel (each targets a distinct file).
+        // Each whole-file export has an independent destination.
         std::vector wholeExportResults(wholeExports.size(), Result::Continue);
-        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(wholeExports.size()), JobKind::ModuleApiExport, compiler.jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
-            const WholeFileExport& we = wholeExports[i];
-            wholeExportResults[i]     = ModuleApiExport::validateWholeFileFunctionBodies(workerCtx, *we.file);
-            if (wholeExportResults[i] != Result::Continue)
-                return;
-            const Utf8 content    = buildExportedModuleApiContent(workerCtx, *we.file, moduleNamespace.view(), we.hasModuleNamespace);
-            wholeExportResults[i] = writeModuleApiFile(workerCtx, we.dstPath, content.view());
-        });
+        jobMgr.parallelForIndexed(
+            ctx,
+            static_cast<uint32_t>(wholeExports.size()),
+            JobKind::ModuleApiExport,
+            compiler.jobClientId(),
+            [&](TaskContext& workerCtx, uint32_t i) {
+                const WholeFileExport& we = wholeExports[i];
+
+                wholeExportResults[i] = ModuleApiExport::validateWholeFileFunctionBodies(workerCtx, *we.file);
+                if (wholeExportResults[i] != Result::Continue)
+                    return;
+
+                const Utf8 content = buildExportedModuleApiContent(workerCtx, *we.file, moduleNamespace.view(), we.hasModuleNamespace);
+
+                wholeExportResults[i] = writeModuleApiFile(workerCtx, we.dstPath, content.view());
+            });
+
         for (const Result r : wholeExportResults)
             if (r != Result::Continue)
                 return Result::Error;
@@ -462,6 +503,7 @@ namespace ModuleApi
         SWC_RESULT(writeGeneratedModuleImports(ctx, exportApiDir, preferredLineEnding(*firstSourceFile)));
         if (!compiler.moduleSetupImports().empty())
             publishedPaths.push_back((exportApiDir / ".swc-deps").lexically_normal());
+
         if (generatedRoots.empty())
             return finishPublication(ctx, publication, exportApiDir, publishedPaths);
 
@@ -479,7 +521,9 @@ namespace ModuleApi
         SWC_RESULT(buildGeneratedModuleApiSingleFileContent(ctx, generatedRoots, moduleNamespace.view(), preferredLineEnding(*firstSourceFile), content));
         if (writeModuleApiFile(ctx, generatedDstPath, content.view()) != Result::Continue)
             return Result::Error;
+
         publishedPaths.push_back(generatedDstPath);
+
         return finishPublication(ctx, publication, exportApiDir, publishedPaths);
     }
 }

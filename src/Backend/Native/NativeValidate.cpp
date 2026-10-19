@@ -50,6 +50,7 @@ void NativeValidate::validate() const
             SWC_ASSERT(info.cacheHit);
             continue;
         }
+
         validateRelocations(*info.machineCode);
     }
 }
@@ -165,9 +166,11 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
         SWC_ASSERT(hasSourceRef);
         if (!hasSourceRef)
             return;
+
         shardIndex = sourceRef.shardIndex;
         baseOffset = sourceRef.offset;
     }
+
     SWC_ASSERT(baseOffset != INVALID_REF);
     SWC_ASSERT(shardIndex < ConstantManager::SHARD_COUNT);
 
@@ -247,6 +250,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         DataSegmentRef typeInfoRef;
         SWC_ASSERT(findDataSegmentRelocation(typeInfoRef, shardIndex, baseOffset + offsetof(Runtime::Any, type)));
+
         const DataSegment& typeInfoSegment = builder_->compiler().cstMgr().shardDataSegment(typeInfoRef.shardIndex);
         SWC_ASSERT(typeInfoRef.offset < typeInfoSegment.extentSize());
 
@@ -261,6 +265,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         DataSegmentRef valueRef;
         SWC_ASSERT(findDataSegmentRelocation(valueRef, shardIndex, baseOffset + offsetof(Runtime::Any, value)));
+
         const DataSegment& valueSegment = builder_->compiler().cstMgr().shardDataSegment(valueRef.shardIndex);
         SWC_ASSERT(valueRef.offset < valueSegment.extentSize());
 
@@ -289,6 +294,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         DataSegmentRef targetRef;
         SWC_ASSERT(findDataSegmentRelocation(targetRef, shardIndex, baseOffset + offsetof(Runtime::String, ptr)));
+
         const DataSegment& targetSegment = builder_->compiler().cstMgr().shardDataSegment(targetRef.shardIndex);
         SWC_ASSERT(targetRef.offset < targetSegment.extentSize());
         return;
@@ -312,6 +318,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         DataSegmentRef targetRef;
         SWC_ASSERT(findDataSegmentRelocation(targetRef, shardIndex, baseOffset + offsetof(Runtime::Slice<uint8_t>, ptr)));
+
         const DataSegment& targetSegment = builder_->compiler().cstMgr().shardDataSegment(targetRef.shardIndex);
 
         const uint64_t byteCount = slice->count * elementSize;
@@ -345,6 +352,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         {
             const uint64_t elementOffset = idx * elementSize;
             SWC_ASSERT(elementOffset + elementSize <= bytes.size());
+
             const auto elementBytes = std::span{bytes.data() + elementOffset, static_cast<size_t>(elementSize)};
             validateNativeStaticPayload(elementTypeRef, shardIndex, baseOffset + static_cast<uint32_t>(elementOffset), elementBytes);
         }
@@ -411,6 +419,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         DataSegmentRef invokeRef;
         SWC_ASSERT(findDataSegmentRelocation(invokeRef, shardIndex, baseOffset + offsetof(Runtime::ClosureValue, invoke)));
+
         const DataSegment& invokeSegment = builder_->compiler().cstMgr().shardDataSegment(invokeRef.shardIndex);
         SWC_ASSERT(invokeRef.offset < invokeSegment.extentSize());
 
@@ -420,6 +429,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
 
         DataSegmentRef captureRef;
         SWC_ASSERT(findDataSegmentRelocation(captureRef, shardIndex, baseOffset + offsetof(Runtime::ClosureValue, capture)));
+
         const DataSegment& captureSegment = builder_->compiler().cstMgr().shardDataSegment(captureRef.shardIndex);
         SWC_ASSERT(captureRef.offset < captureSegment.extentSize());
         return;
@@ -446,6 +456,7 @@ void NativeValidate::validateNativeStaticPayload(const TypeRef typeRef, const ui
         SWC_ASSERT(targetFunction != nullptr);
         if (!targetFunction->isForeign())
             SWC_ASSERT(builder_->tryFindFunctionInfo(*targetFunction) != nullptr);
+
         return;
     }
 
@@ -456,6 +467,7 @@ bool NativeValidate::findDataSegmentRelocation(DataSegmentRef& outTargetRef, con
 {
     outTargetRef = {};
     SWC_ASSERT(builder_ != nullptr);
+
     const DataSegment&    segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
     DataSegmentRelocation relocation;
     if (!segment.findRelocation(relocation, offset, DataSegmentRelocationKind::DataSegmentOffset))
@@ -472,6 +484,7 @@ bool NativeValidate::findFunctionSymbolRelocation(const SymbolFunction*& outTarg
 {
     outTargetSymbol = nullptr;
     SWC_ASSERT(builder_ != nullptr);
+
     const DataSegment&    segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
     DataSegmentRelocation relocation;
     if (!segment.findRelocation(relocation, offset, DataSegmentRelocationKind::FunctionSymbol))

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Core/Utf8.h"
@@ -20,9 +21,8 @@ namespace SymbolSort
         return key;
     }
 
-    // Location keys for many symbols. The file part of a key, the source path and its separator,
-    // is the costly half: a path conversion. It is made once per source file here, not once per
-    // symbol; the keys are the ones locationKey builds.
+    // Cache each source path and separator once to avoid repeated path conversion.
+    // Keys match locationKey(), including the zero-padded token suffix.
     class LocationKeyCache
     {
     public:
@@ -108,6 +108,7 @@ namespace SymbolSort
 
         values.clear();
         values.reserve(entries.size());
+
         T* previous = nullptr;
         for (const auto& entry : entries)
         {
@@ -127,9 +128,8 @@ namespace SymbolSort
         values.erase(std::unique(values.begin(), values.end()), values.end());
     }
 
-    // Sort a non-null, already unique symbol list by the same stable location order. Native
-    // code-generation dependencies are inserted through a membership set after their first sort,
-    // so later rounds need no null removal or duplicate scan.
+    // Sort an already unique, non-null list in stable source location order.
+    // Native dependency rounds maintain membership separately, so no cleanup is needed.
     template<typename T>
     void sortByLocation(std::vector<T*>& values, const CompilerInstance& compiler, LocationKeyCache& keys)
     {
@@ -148,10 +148,8 @@ namespace SymbolSort
             return;
         }
 
-        // A key is the file part, which ends with the only separator it holds, then ten digits.
-        // Two keys then compare as their file parts and, on a tie, as their token numbers, so the
-        // keys need not be built: the same stable order comes from the parts.
-
+        // When paths contain no separator, comparing cached file prefixes and
+        // token numbers preserves the full-key order without constructing keys.
         struct Located
         {
             T*          symbol = nullptr;
@@ -171,10 +169,13 @@ namespace SymbolSort
             entries.reserve(values.size());
             for (T* symbol : values)
                 entries.push_back({.symbol = symbol, .key = keys.key(*symbol)});
+
             std::ranges::stable_sort(entries, {}, &Entry<T>::key);
+
             values.clear();
             for (const auto& entry : entries)
                 values.push_back(entry.symbol);
+
             return;
         }
 
@@ -185,6 +186,7 @@ namespace SymbolSort
                 if (order)
                     return order < 0;
             }
+
             return lhs.tokRef < rhs.tokRef;
         });
 

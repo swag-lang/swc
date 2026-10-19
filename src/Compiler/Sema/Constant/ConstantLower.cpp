@@ -462,7 +462,6 @@ namespace
         return relocateSegmentAddress(dstPtr, sema, segment, payload.baseOffset, srcPtr);
     }
 
-    // These helpers keep `lowerConstantToBytes` focused on dispatching by runtime shape.
     Result lowerStringConstantToBytes(std::span<std::byte> dstBytes, const TypeRef dstTypeRef, const ConstantValue& cst)
     {
         SWC_ASSERT((cst.isNull() || cst.isString() || cst.isStruct(dstTypeRef)) && dstBytes.size() == sizeof(Runtime::String));
@@ -499,8 +498,9 @@ namespace
         if (cst.isSlice())
         {
             const std::span<const std::byte> bytes = cst.getSlice();
-            runtimeValue.count                     = cst.getSliceCount();
-            runtimeValue.ptr                       = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data()));
+
+            runtimeValue.count = cst.getSliceCount();
+            runtimeValue.ptr   = reinterpret_cast<uint8_t*>(const_cast<std::byte*>(bytes.data()));
         }
 
         writeValue(dstBytes, runtimeValue);
@@ -549,6 +549,7 @@ namespace
         SWC_INTERNAL_CHECK(boxedValueTypeRef != dstTypeRef);
 
         ConstantRef typeInfoCstRef = ConstantRef::invalid();
+
         // Async path: yield the worker on shard-lock contention instead of blocking it.
         SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, boxedValueTypeRef, sema.ctx().state().nodeRef));
         SWC_INTERNAL_CHECK(typeInfoCstRef.isValid());
@@ -563,7 +564,8 @@ namespace
             SWC_INTERNAL_CHECK(valueCst.isValuePointer());
             const uint64_t         ptrValue    = valueCst.getValuePointer();
             const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&ptrValue), sizeof(ptrValue)});
-            anyValue.value                     = const_cast<char*>(payloadData.data());
+
+            anyValue.value = const_cast<char*>(payloadData.data());
             writeValue(dstBytes, anyValue);
             return Result::Continue;
         }
@@ -574,7 +576,8 @@ namespace
         {
             constexpr uint8_t      zeroByte    = 0;
             const std::string_view payloadData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(&zeroByte), sizeof(zeroByte)});
-            anyValue.value                     = const_cast<char*>(payloadData.data());
+
+            anyValue.value = const_cast<char*>(payloadData.data());
             writeValue(dstBytes, anyValue);
             return Result::Continue;
         }
@@ -636,10 +639,8 @@ namespace
         return Result::Continue;
     }
 
-    // An aggregate element keeps the type its literal had, while the destination decides the
-    // memory layout it is written into, so the element must go through the same implicit
-    // conversion its assignment was checked under: an integer literal placed in a float field
-    // lands as that float, never as its integer bytes.
+    // Aggregate elements keep their literal types, but destination layout requires
+    // the checked implicit conversion: an integer in a float field needs float bytes.
     ConstantRef castAggregateElementConstant(Sema& sema, ConstantRef cstRef, TypeRef dstTypeRef)
     {
         if (cstRef.isInvalid())
@@ -651,6 +652,7 @@ namespace
 
         CastRequest castRequest{CastKind::Implicit};
         castRequest.setConstantFoldingSrc(cstRef);
+
         ConstantRef castedCstRef = ConstantRef::invalid();
         SWC_INTERNAL_CHECK(Cast::castConstant(sema, castedCstRef, castRequest, cstRef, dstTypeRef) == Result::Continue);
         return castedCstRef.isValid() ? castedCstRef : cstRef;
@@ -710,6 +712,7 @@ namespace
     {
         while (start < fields.size() && !fields[start])
             ++start;
+
         return start;
     }
 
@@ -724,6 +727,7 @@ namespace
             {
                 if (!dstFields[fieldIdx])
                     continue;
+
                 outValues[fieldIdx] = values[valueIdx];
                 ++valueIdx;
             }
@@ -750,6 +754,7 @@ namespace
             else
             {
                 SWC_INTERNAL_CHECK(!seenNamed);
+
                 // Positional entries advance in order before any named entry, so
                 // every field at or after nextPos is still unassigned.
                 fieldIdx = nextPositionalStructField(dstFields, nextPos);
@@ -785,6 +790,7 @@ namespace
             ConstantRef valueRef = valuesByField[fieldIdx];
             if (valueRef.isInvalid())
                 valueRef = field->defaultValueRef();
+
             valueRef = castAggregateElementConstant(sema, valueRef, fieldTypeRef);
 
             if (valueRef.isValid())
@@ -813,6 +819,7 @@ namespace
             ConstantRef   enumValueRef      = cstRef;
             if (cst.isEnumValue())
                 enumValueRef = cst.getEnumValue();
+
             return lowerConstantToBytes(sema, dstBytes, sema.typeMgr().get(underlyingTypeRef), enumValueRef);
         }
 
@@ -1040,6 +1047,7 @@ namespace
             case TypeInfoKind::Function:
                 if (typeInfo.isLambdaClosure())
                     return materializeStaticClosure(sema, segment, payload);
+
                 return materializeStaticPointer(sema, segment, payload);
 
             case TypeInfoKind::TypeInfo:
@@ -1072,7 +1080,8 @@ Result ConstantLower::lowerAggregateStructToBytes(Sema& sema, std::span<std::byt
 
 Result ConstantLower::materializeStaticPayload(Sema& sema, uint32_t& outOffset, DataSegment& segment, const TypeInfo& typeInfo, const std::span<const std::byte> srcBytes)
 {
-    outOffset             = INVALID_REF;
+    outOffset = INVALID_REF;
+
     const TypeRef typeRef = typeInfo.typeRef();
     SWC_INTERNAL_CHECK(typeRef.isValid());
 
@@ -1082,7 +1091,8 @@ Result ConstantLower::materializeStaticPayload(Sema& sema, uint32_t& outOffset, 
     SWC_INTERNAL_CHECK(sizeOf == srcBytes.size());
 
     const auto [offset, storage] = segment.reserveBytes(static_cast<uint32_t>(sizeOf), alignOf, true);
-    outOffset                    = offset;
+
+    outOffset = offset;
     return materializeStaticPayloadInPlace(sema, segment, typeRef, typeInfo, {.baseOffset = offset, .dstBytes = rawBytes(storage, sizeOf), .srcBytes = srcBytes});
 }
 

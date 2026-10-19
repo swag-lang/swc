@@ -29,11 +29,11 @@ namespace
         if (!srcElemType.isSupportsNullableQualifier() || !dstElemType.isSupportsNullableQualifier())
             return false;
 
-        // During the explicit-nullability migration, legacy element types can flow to an explicit
-        // nullable destination because the runtime representation is unchanged and the destination
-        // still accepts null.  Do not use that relaxation for explicit non-null destinations.
+        // Legacy element types can flow to nullable destinations without changing
+        // representation. Explicit non-null destinations need the stronger guarantee.
         if (dstElemType.isNonNullable())
             return srcElemType.isNonNullable();
+
         return dstElemType.isNullable();
     }
 
@@ -65,9 +65,8 @@ namespace
         return {reinterpret_cast<const std::byte*>(view.data()), view.size()};
     }
 
-    // A byte buffer reinterpreted as a string must fold to a string constant. Keeping the source
-    // array or slice constant under the 'string' type makes every consumer that reads it as a
-    // string (lowering into storage, comparison, a struct 'opSet') see the wrong representation.
+    // Retagging array/slice bytes as string would retain the wrong payload
+    // representation for storage lowering, comparisons, and struct opSet.
     void foldByteStringConstant(Sema& sema, CastRequest& castRequest, std::span<const std::byte> bytes)
     {
         const std::string_view view{reinterpret_cast<const char*>(bytes.data()), bytes.size()};
@@ -84,6 +83,7 @@ namespace
     void setAnyPointerConstant(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, uint64_t ptrValue)
     {
         SWC_ASSERT(dstType.isAnyPointer());
+
         const TypeRef dstPointeeTypeRef = dstType.payloadTypeRef();
 
         ConstantValue ptrCst;
@@ -96,8 +96,7 @@ namespace
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), ptrCst));
     }
 
-    // The i-th value node of the array literal being cast, unwrapped from its
-    // initializer, or invalid when the cast carries no literal node to rewrite.
+    // Return the literal element to rewrite, or invalid when no literal is available.
     AstNodeRef aggregateElemValueNodeRef(const Sema& sema, AstNodeRef aggregateNodeRef, size_t elemIndex)
     {
         if (aggregateNodeRef.isInvalid())
@@ -110,6 +109,7 @@ namespace
         AstNodeRef nodeRef = sema.ast().nthNode(node.cast<AstArrayLiteral>().spanChildrenRef, elemIndex);
         while (nodeRef.isValid() && sema.node(nodeRef).is(AstNodeId::InitializerExpr))
             nodeRef = sema.node(nodeRef).cast<AstInitializerExpr>().nodeExprRef;
+
         return nodeRef;
     }
 
@@ -125,6 +125,7 @@ namespace
         {
             std::vector valueBytes(valueSize, std::byte{0});
             SWC_RESULT(ConstantLower::lowerToBytes(sema, std::span{valueBytes.data(), valueBytes.size()}, srcCstRef, srcType));
+
             const std::string_view rawValueData = sema.cstMgr().addPayloadBuffer(std::string_view{reinterpret_cast<const char*>(valueBytes.data()), valueBytes.size()});
             ptr                                 = reinterpret_cast<uint64_t>(rawValueData.data());
         }
@@ -141,6 +142,7 @@ namespace
             return true;
         if (srcType.isValuePointer() && dstType.isBlockPointer() && castKind == CastKind::Explicit)
             return true;
+
         return false;
     }
 
@@ -152,6 +154,7 @@ namespace
 
         if (!srcPointeeTypeRef.isValid() || !dstPointeeTypeRef.isValid())
             return Result::Continue;
+
         const TypeInfo& srcPointeeType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcPointeeTypeRef);
         const TypeInfo& dstPointeeType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstPointeeTypeRef);
         const TypeRef   srcPointee     = srcPointeeType.typeRef();
@@ -172,6 +175,7 @@ namespace
         {
             if (!srcPointeeType.payloadSymStruct().isDynamic())
                 return castRequest.fail(DiagnosticId::sema_err_downcast_dynamic, srcPointee, dstPointee);
+
             return castRequest.fail(DiagnosticId::sema_err_dynamic_cast_modifier, srcPointee, dstPointee);
         }
 
@@ -191,7 +195,7 @@ namespace
         if (pointerKindsCompatible(srcType, dstType, castKind))
             return true;
 
-        // Keep the historical same-payload / void relaxation localized instead of duplicating it at each cast site.
+        // Centralize the historical same-payload and void relaxation.
         return pointerPayloadShortcutMatches(typeMgr, srcType, dstType);
     }
 
@@ -209,9 +213,9 @@ namespace
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return false;
 
-        const TypeManager& typeMgr      = sema.typeMgr();
-        const TypeInfo&    srcType      = typeMgr.unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
-        const TypeInfo&    dstType      = typeMgr.unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
+        const TypeManager& typeMgr = sema.typeMgr();
+        const TypeInfo&    srcType = typeMgr.unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
+        const TypeInfo&    dstType = typeMgr.unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
         if (srcType.typeRef() == dstType.typeRef())
             return true;
         if (!srcType.isAnyPointer() || !dstType.isAnyPointer())
@@ -225,11 +229,12 @@ namespace
 
         if (payloadShortcut)
             return true;
+
         return pointerPayloadsCompatible(sema, castRequest, srcType.payloadTypeRef(), dstType.payloadTypeRef());
     }
 
-    // How far a source signature may differ from the destination it converts to. Only the top
-    // level relaxes: a parameter or return type that is itself a function must match exactly.
+    // Relax only the outer signature. Nested function parameters and returns
+    // must still match exactly.
     enum class SignatureMatchE : uint8_t
     {
         Zero = 0,
@@ -237,11 +242,11 @@ namespace
         // A plain function can become a closure.
         IgnoreClosure = 1 << 0,
 
-        // A function that never fails can stand where failure is allowed. A fallible call only
-        // reads the context error flag after the callee returns, and a callee that never fails
-        // leaves it clear, so the conversion needs no adapter.
+        // Infallible callees leave the error flag clear, so fallible callers
+        // can use them without an adapter.
         WidenToFallible = 1 << 1,
     };
+
     using SignatureMatch = EnumFlags<SignatureMatchE>;
 
     bool sameFunctionTypeRecursive(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
@@ -269,6 +274,7 @@ namespace
         TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
         if (func.isConst())
             typeFlags.add(TypeInfoFlagsE::Const);
+
         return sema.typeMgr().addType(TypeInfo::makeValuePointer(ownerTypeRef, typeFlags));
     }
 
@@ -381,7 +387,7 @@ Result Cast::castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef 
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
-    // A compatible cast still cannot drop const unless asked to, and folds a constant source.
+    // Preserve const unless explicitly removed, then fold any constant source.
     const auto acceptCast = [&]() -> Result {
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
@@ -436,14 +442,14 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
     const TypeInfo&    srcType = typeMgr.get(srcTypeRef);
     const TypeInfo&    dstType = typeMgr.get(dstTypeRef);
 
-    // UFCS receiver: allow taking the address to get a pointer, directly or through a
-    // 'using' field chain. Whether the value is actually addressable (lvalue) is
-    // validated later by `Cast::cast`.
+    // UFCS may take the receiver address directly or through using fields.
+    // Cast::cast checks addressability after this compatibility decision.
     if (castRequest.flags.has(CastFlagsE::UfcsArgument) && !dstType.isNullable() && !srcType.isPointerOrReference())
     {
         bool receiverMatches = dstType.payloadTypeRef() == srcTypeRef;
         if (!receiverMatches && srcType.isStruct())
             SWC_RESULT(resolveUsingStructCastPathWithoutPointerStep(sema, castRequest, srcTypeRef, dstType.payloadTypeRef(), receiverMatches));
+
         if (receiverMatches)
         {
             const bool sourceIsConst = srcType.isConst() || castRequest.flags.has(CastFlagsE::ConstSource);
@@ -470,6 +476,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
             if (dstPointeeType.isStruct())
             {
                 SWC_RESULT(sema.waitSemaCompleted(&dstPointeeType, castRequest.errorNodeRef));
+
                 if (dstPointeeType.payloadSymStruct().implementsInterfaceOrUsingFields(sema, srcType.payloadSymInterface()))
                 {
                     if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
@@ -532,6 +539,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isString());
+
                 const uint64_t ptrValue = reinterpret_cast<uint64_t>(srcCst.getString().data());
                 setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, ptrValue);
             }
@@ -552,11 +560,10 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         }
     }
 
-    // Any integer that fits in an address becomes one in a single explicit cast, zero-extended
-    // when it is narrower. An enum reaches this through its underlying type. A 'cast()' names
-    // no destination, and overload resolution would then let any integer bind a pointer
-    // parameter — displacing the receiver of a method call whose arguments are written that
-    // way — so a deduced destination keeps the narrow rule it always had.
+    // Explicit address casts accept fitting integers, zero-extending narrow ones;
+    // enums use their underlying type. Keep destination-deduced cast() restricted
+    // to u64 so arbitrary integer arguments cannot bind pointer parameters and
+    // displace a method receiver during overload resolution.
     const bool integerFitsAddress = castRequest.flags.has(CastFlagsE::DeducedDestination) ? srcTypeRef == sema.typeMgr().typeU64() : srcType.isIntLike() && srcType.sizeOf(sema.ctx()) <= sizeof(void*);
     if (integerFitsAddress)
     {
@@ -567,6 +574,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
                 if (!foldConstantIntLikeToPointer(sema, castRequest, dstTypeRef))
                     return Result::Error;
             }
+
             return Result::Continue;
         }
     }
@@ -588,6 +596,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isArray());
+
                 const uint64_t ptrValue = reinterpret_cast<uint64_t>(srcCst.getArray().data());
                 setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, ptrValue);
             }
@@ -596,7 +605,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
         }
     }
 
-    // Preserve the current struct-by-value pointer cast behavior until struct parameters stop lowering like references.
+    // Struct parameters still lower as references; preserve that pointer-cast rule.
     if (srcType.isStruct())
     {
         const auto dstElemTypeRef = dstType.payloadTypeRef();
@@ -610,6 +619,7 @@ Result Cast::castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcType
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isStruct());
+
                 const uint64_t ptrValue = reinterpret_cast<uint64_t>(srcCst.getStruct().data());
                 setAnyPointerConstant(sema, castRequest, dstTypeRef, dstType, ptrValue);
             }
@@ -628,7 +638,6 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     const TypeInfo& srcType = typeMgr.get(srcTypeRef);
     const TypeInfo& dstType = typeMgr.get(dstTypeRef);
 
-    // String -> const [..] u8
     if (srcType.isString())
     {
         if (dstType.isConst() && dstType.payloadTypeRef() == typeMgr.typeU8())
@@ -672,6 +681,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isArray());
+
                 const uint64_t      sliceCount = srcType.sliceCountFromArrayCast(ctx, dstElemType);
                 const ConstantValue sliceCst   = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, srcCst.getArray(), sliceCount, dstType.flags());
                 castRequest.outConstRef        = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
@@ -681,7 +691,6 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         }
     }
 
-    // cstring -> const [..] u8
     if (srcType.isCString())
     {
         if (castRequest.kind == CastKind::Explicit && dstType.payloadTypeRef() == typeMgr.typeU8())
@@ -709,6 +718,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
         const auto& srcElemTypes             = srcType.payloadAggregate().types;
         bool        anyElemNeedsRuntimeValue = false;
+
         for (size_t i = 0; i < srcElemTypes.size(); ++i)
         {
             const TypeRef srcElemTypeRef = srcElemTypes[i];
@@ -734,9 +744,8 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             anyElemNeedsRuntimeValue |= !elemView.hasConstant();
         }
 
-        // Runtime element conversions make the aggregate a runtime value: drop its folded
-        // constant so code generation walks the rewritten element nodes instead of
-        // materializing the stale payload.
+        // Runtime conversions rewrite element nodes. Drop the stale constant
+        // so code generation constructs the aggregate from those nodes.
         if (anyElemNeedsRuntimeValue)
         {
             sema.clearConstant(castRequest.errorNodeRef);
@@ -755,10 +764,12 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
         std::vector<ConstantRef> castedValues;
         castedValues.reserve(srcValues.size());
+
         for (size_t i = 0; i < srcValues.size(); ++i)
         {
             CastRequest elemRequest = castRequest.makeNested();
             elemRequest.setConstantFoldingSrc(srcValues[i]);
+
             const Result res = castAllowed(sema, elemRequest, srcElemTypes[i], dstElemTypeRef);
             if (res != Result::Continue)
             {
@@ -769,6 +780,7 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             ConstantRef castedRef = elemRequest.constantFoldingResult();
             if (castedRef.isInvalid())
                 castedRef = srcValues[i];
+
             castedValues.push_back(castedRef);
         }
 
@@ -783,10 +795,10 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
 
         const ConstantValue sliceCst = ConstantValue::makeSliceCounted(ctx, dstElemTypeRef, arraySpan, srcValues.size(), dstType.flags());
         castRequest.outConstRef      = sema.cstMgr().addConstant(sema.ctx(), sliceCst);
+
         return Result::Continue;
     }
 
-    // void* -> slice (explicit only)
     if (srcType.isAnyPointer() && srcType.payloadTypeRef() == sema.typeMgr().typeVoid())
     {
         if (castRequest.kind == CastKind::Explicit)
@@ -798,7 +810,6 @@ Result Cast::castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         }
     }
 
-    // slice -> slice
     if (srcType.isSlice())
     {
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
@@ -816,25 +827,28 @@ Result Cast::castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef src
     const TypeInfo& dstType = sema.typeMgr().get(dstTypeRef);
     if (dstType.isAnyTypeInfo(sema.ctx()))
     {
-        // Overload probing only needs the allow/deny decision; skip materializing the
-        // TypeInfo runtime payload (the chosen overload re-runs the real cast afterwards).
+        // Probing needs no runtime metadata; the selected overload casts again.
         if (castRequest.materializeConstantResult())
         {
             const auto cst = sema.cstMgr().get(castRequest.srcConstRef);
             SWC_RESULT(sema.makeRuntimeTypeInfo(castRequest.outConstRef, cst.getTypeValue(), castRequest.errorNodeRef));
+
             const TypeRef metadataTypeRef = sema.cstMgr().get(castRequest.outConstRef).typeRef();
             CastRequest   metadataCast(castRequest.kind);
             metadataCast.flags        = castRequest.flags;
             metadataCast.errorNodeRef = castRequest.errorNodeRef;
             metadataCast.errorCodeRef = castRequest.errorCodeRef;
             metadataCast.setConstantFoldingSrc(castRequest.outConstRef);
+
             const Result result = castToFromTypeInfo(sema, metadataCast, metadataTypeRef, dstTypeRef);
             if (result != Result::Continue)
             {
                 if (result == Result::Error)
                     castRequest.failure = metadataCast.failure;
+
                 return result;
             }
+
             castRequest.outConstRef = metadataCast.outConstRef;
         }
 
@@ -848,15 +862,19 @@ Result Cast::castToFromTypeInfo(Sema& sema, CastRequest& castRequest, TypeRef sr
 {
     TypeRef baseTypeRef = TypeRef::invalid();
     SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, baseTypeRef, sema.node(sema.curNodeRef()).codeRef()));
+
     const auto normalize = [&](TypeRef typeRef) {
         const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (!type.isTypeInfo())
             return typeRef;
+
         TypeInfoFlags flags = TypeInfoFlagsE::Const;
         if (type.isNullable())
             flags.add(TypeInfoFlagsE::Nullable);
+
         return sema.typeMgr().addType(TypeInfo::makeValuePointer(baseTypeRef, flags));
     };
+
     return castToPointer(sema, castRequest, normalize(srcTypeRef), normalize(dstTypeRef));
 }
 
@@ -882,6 +900,7 @@ Result Cast::castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTyp
             SignatureMatch match = SignatureMatchE::WidenToFallible;
             if (!srcFunc.isClosure() && dstFunc.isClosure())
                 match = match | SignatureMatchE::IgnoreClosure;
+
             if (sameFunctionSignatureRecursive(sema, srcFunc, dstFunc, match))
             {
                 castRequest.usedFallibleWidening = true;
@@ -913,6 +932,7 @@ Result Cast::castToString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 {
     const TypeManager& typeMgr = sema.typeMgr();
     const auto&        srcType = typeMgr.get(srcTypeRef);
+
     if (srcType.isSlice())
     {
         if (castRequest.kind != CastKind::Explicit)
@@ -999,6 +1019,7 @@ Result Cast::castToCString(Sema& sema, CastRequest& castRequest, TypeRef srcType
             {
                 const ConstantValue& srcCst = sema.cstMgr().get(castRequest.constantFoldingSrc());
                 SWC_ASSERT(srcCst.isArray());
+
                 const uint64_t ptrValue = reinterpret_cast<uint64_t>(srcCst.getArray().data());
                 setCStringPointerConstant(sema, castRequest, dstTypeRef, dstType, ptrValue);
             }
@@ -1046,9 +1067,8 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         castRequest.setConstantFoldingSrc(srcCstRef);
     }
 
-    // Overload probing only needs the allow/deny decision (casting to 'any' is allowed once the
-    // source constant concretizes above). Skip boxing the value into a runtime Any -- which would
-    // materialize the boxed type's TypeInfo -- since the chosen overload re-runs the real cast.
+    // Probing has enough information once the source concretizes. Skip Any
+    // boxing and TypeInfo materialization until the selected overload casts again.
     if (!castRequest.materializeConstantResult())
         return Result::Continue;
 
@@ -1056,6 +1076,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     {
         const AstNodeRef ownerNodeRef = castRequest.errorNodeRef.isValid() ? castRequest.errorNodeRef : sema.ctx().state().nodeRef;
         SWC_RESULT(SemaHelpers::normalizeTypeInfoConstantRef(sema, srcCstRef, ownerNodeRef));
+
         anyTypeRef = sema.cstMgr().get(srcCstRef).typeRef();
         srcType    = &typeMgr.get(anyTypeRef);
         castRequest.setConstantFoldingSrc(srcCstRef);
@@ -1067,18 +1088,22 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
         const ConstantRef nullAnyCstRef = sema.cstMgr().addZeroPayloadConstant(ctx, dstTypeRef);
         SWC_ASSERT(nullAnyCstRef.isValid());
         castRequest.setConstantFoldingResult(nullAnyCstRef);
+
         return Result::Continue;
     }
 
     const TypeRef boxedAnyTypeRef = SemaHelpers::preciseAnyBoxedValueTypeRef(sema, anyTypeRef, srcCstRef, castRequest.errorNodeRef);
     SWC_ASSERT(boxedAnyTypeRef.isValid());
+
     const TypeInfo& boxedAnyType    = sema.typeMgr().get(boxedAnyTypeRef);
     const bool      boxedAsTypeInfo = boxedAnyType.isTypeInfo();
 
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
     SWC_RESULT(sema.makeRuntimeTypeInfo(typeInfoCstRef, boxedAnyTypeRef, castRequest.errorNodeRef));
+
     const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
+
     DataSegmentRef typeInfoRef;
     const bool     hasTypeInfoRef = sema.cstMgr().resolveConstantDataSegmentRef(typeInfoRef, typeInfoCstRef, reinterpret_cast<const void*>(typeInfoCst.getValuePointer()));
     SWC_ASSERT(hasTypeInfoRef);
@@ -1105,6 +1130,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
             if (boxedAsTypeInfo)
             {
                 SWC_ASSERT(srcCst.isValuePointer());
+
                 const uint64_t  ptrValue = srcCst.getValuePointer();
                 const std::span ptrBytes{reinterpret_cast<const std::byte*>(&ptrValue), sizeof(ptrValue)};
                 SWC_RESULT(ConstantLower::materializeStaticPayload(sema, valueOffset, segment, boxedAnyType, ptrBytes));
@@ -1130,6 +1156,7 @@ Result Cast::castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef,
     ConstantValue anyCst = ConstantValue::makeStructBorrowed(ctx, dstTypeRef, std::span{storage, sizeof(Runtime::Any)});
     anyCst.setDataSegmentRef({.shardIndex = typeInfoRef.shardIndex, .offset = anyOffset});
     castRequest.setConstantFoldingResult(sema.cstMgr().addMaterializedPayloadConstant(anyCst));
+
     return Result::Continue;
 }
 
@@ -1158,6 +1185,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_to_interface, srcTypeRef, dstTypeRef);
         if (srcType.isConst() && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast_const, srcTypeRef, dstTypeRef);
+
         return Result::Continue;
     }
 
@@ -1167,6 +1195,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
         const TypeInfo&     objectStructType = sema.typeMgr().get(objectStructTypeRef);
         const SymbolStruct& fromStruct       = objectStructType.payloadSymStruct();
         SWC_RESULT(sema.waitSemaCompleted(&objectStructType, castRequest.errorNodeRef));
+
         const SymbolInterface& toItf = dstType.payloadSymInterface();
         if (const SymbolImpl* impl = fromStruct.findInterfaceImplOrUsingFields(sema.ctx(), toItf))
         {
@@ -1177,6 +1206,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
                 castRequest.failure.codeRef = castRequest.errorCodeRef;
                 return constraints;
             }
+
             const bool constObject = srcType.isConst() || objectStructType.isConst() ||
                                      (!srcType.isAnyPointer() && castRequest.flags.has(CastFlagsE::ConstSource));
             if (constObject && !dstType.isConst() && !castRequest.flags.has(CastFlagsE::UnConst))
@@ -1184,6 +1214,7 @@ Result Cast::castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTy
 
             if (castRequest.isConstantFolding())
                 castRequest.setConstantFoldingResult(ConstantRef::invalid());
+
             return Result::Continue;
         }
     }
@@ -1265,6 +1296,7 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
             const ConstantValue valueCst = ConstantValue::make(ctx, runtimeAny.value, valueTypeRef, ConstantValue::PayloadOwnership::Borrowed);
             if (!valueCst.isValid())
                 return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+
             valueCstRef = sema.cstMgr().addConstant(ctx, valueCst);
         }
     }
@@ -1296,10 +1328,12 @@ Result Cast::castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
     {
         if (result == Result::Error)
             castRequest.failure = castFromAnyRequest.failure;
+
         return result;
     }
 
     castRequest.setConstantFoldingResult(castFromAnyRequest.constantFoldingResult());
+
     return Result::Continue;
 }
 

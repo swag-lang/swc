@@ -100,6 +100,7 @@ namespace
         const TokenRef bodyEndTokRef = bodyNode.tokRefEnd(ast);
         if (!bodyEndTokRef.isValid())
             return TokenRef::invalid();
+
         if (!ast.hasSourceView())
             return bodyEndTokRef;
 
@@ -117,6 +118,7 @@ namespace
         {
             SmallVector<AstNodeRef> childRefs;
             node.collectChildrenFromAst(childRefs, ast);
+
             for (size_t i = childRefs.size(); i > 0; --i)
             {
                 const AstNodeRef childRef = childRefs[i - 1];
@@ -193,6 +195,7 @@ namespace
     void extendModuleApiSnippetEndOffset(const SourceView& srcView, const TokenRef startTokRef, const TokenRef endTokRef, uint32_t& ioEndOffset)
     {
         ModuleApiDelimiterBalance balance;
+
         for (uint32_t tokIndex = startTokRef.get(); tokIndex <= endTokRef.get() && tokIndex < srcView.tokens().size(); ++tokIndex)
             updateModuleApiDelimiterBalance(balance, srcView.token(TokenRef(tokIndex)).id);
 
@@ -255,9 +258,8 @@ namespace
 
         const AstNode& node = ast.node(nodeRef);
 
-        // Only a top-level 'public' is redundant in the generated file, which opens with
-        // '#global public'. A member keeps its modifier: nothing sets a file-wide member default,
-        // so dropping it would republish the field as 'internal' and close the surface.
+        // Top-level public is redundant after #global public. Member modifiers must
+        // remain: the file default does not apply to fields, which would become internal.
         if (const auto* accessNode = node.safeCast<AstAccessModifier>(); accessNode && !accessNode->hasFlag(AstAccessModifierFlagsE::Member))
         {
             const SourceView& srcView = moduleApiNodeSourceView(ctx, ast, nodeRef);
@@ -277,6 +279,7 @@ namespace
 
         SmallVector<AstNodeRef> childRefs;
         node.collectChildrenFromAst(childRefs, ast);
+
         for (const AstNodeRef childRef : childRefs)
             collectModuleApiPublicStripRanges(ctx, ast, childRef, outRanges);
     }
@@ -318,6 +321,7 @@ namespace
         {
             if (range.endOffset <= snippetStartOffset)
                 continue;
+
             if (range.startOffset >= snippetStartOffset + snippetText.size())
                 break;
 
@@ -325,11 +329,13 @@ namespace
             const uint32_t relativeEnd   = std::min<uint32_t>(static_cast<uint32_t>(snippetText.size()), range.endOffset - snippetStartOffset);
             if (relativeStart > cursor)
                 result.append(snippetText.substr(cursor, relativeStart - cursor));
+
             cursor = std::max(cursor, relativeEnd);
         }
 
         if (cursor < snippetText.size())
             result.append(snippetText.substr(cursor));
+
         return result;
     }
 
@@ -365,6 +371,7 @@ namespace
         {
             if (wroteLine)
                 output += eol;
+
             output += line;
             wroteLine = true;
         }
@@ -375,7 +382,8 @@ namespace
 
     struct ModuleApiLexedPiece
     {
-        TokenId          tokenId = TokenId::Invalid;
+        TokenId tokenId = TokenId::Invalid;
+
         std::string_view text;
     };
 
@@ -385,7 +393,8 @@ namespace
         while (ioTokenIndex < tokens.size())
         {
             const auto [triviaStart, triviaEnd] = srcView.triviaRangeForToken(TokenRef(ioTokenIndex));
-            ioTriviaIndex                       = std::max(ioTriviaIndex, triviaStart);
+
+            ioTriviaIndex = std::max(ioTriviaIndex, triviaStart);
             if (ioTriviaIndex < triviaEnd)
             {
                 const SourceTrivia& trivia = srcView.trivia()[ioTriviaIndex++];
@@ -432,8 +441,10 @@ namespace
                 flushModuleApiLine(output, line, eol, wroteLine, lineHasContent, preserveEmptyLine);
                 pendingSpace       = false;
                 ioIndentStripIndex = 0;
+
                 if (c == '\r' && index + 1 < text.size() && text[index + 1] == '\n')
                     index++;
+
                 index++;
                 continue;
             }
@@ -457,6 +468,7 @@ namespace
             line += c;
             if (c != ' ' && c != '\t')
                 lineHasContent = true;
+
             index++;
         }
     }
@@ -477,6 +489,7 @@ namespace ModuleApi
         TokenRef       bodyTokRef = moduleApiSnippetStartTokRef(ast, bodyNode);
         if (!bodyTokRef.isValid())
             bodyTokRef = bodyNode.tokRef();
+
         if (!bodyTokRef.isValid())
             return TokenRef::invalid();
 
@@ -519,6 +532,7 @@ namespace ModuleApi
         {
             const TokenRef prevTokRef(node.tokRef().get() - 1);
             const TokenId  prevId = ast.srcView().token(prevTokRef).id;
+
             switch (node.id())
             {
                 case AstNodeId::FunctionDecl:
@@ -569,6 +583,7 @@ namespace ModuleApi
         const AstNode& node = ast.node(nodeRef);
         if (node.srcViewRef().isValid())
             return ctx.compiler().srcView(node.srcViewRef());
+
         return ast.srcView();
     }
 
@@ -576,6 +591,7 @@ namespace ModuleApi
     {
         outStartOffset = 0;
         outEndOffset   = 0;
+
         if (nodeRef.isInvalid())
             return false;
 
@@ -587,14 +603,17 @@ namespace ModuleApi
         const TokenRef startTokRef = moduleApiSnippetStartTokRef(ast, node);
         if (!startTokRef.isValid())
             return false;
+
         const TokenRef endTokRef = moduleApiSnippetEndTokRef(ast, node);
         if (!endTokRef.isValid())
             return false;
 
         const SourceView& srcView = moduleApiNodeSourceView(ctx, ast, nodeRef);
-        outStartOffset            = srcView.tokenByteStart(srcView.token(startTokRef));
-        outEndOffset              = srcView.tokenByteEnd(srcView.token(endTokRef));
+
+        outStartOffset = srcView.tokenByteStart(srcView.token(startTokRef));
+        outEndOffset   = srcView.tokenByteEnd(srcView.token(endTokRef));
         extendModuleApiSnippetEndOffset(srcView, startTokRef, endTokRef, outEndOffset);
+
         return true;
     }
 
@@ -606,7 +625,8 @@ namespace ModuleApi
 
     bool tryGetModuleApiSnippet(TaskContext& ctx, const SourceFile& file, const AstNodeRef nodeRef, std::string_view& outSnippet)
     {
-        outSnippet           = {};
+        outSnippet = {};
+
         uint32_t startOffset = 0;
         uint32_t endOffset   = 0;
         if (!tryGetModuleApiSnippetOffsets(ctx, file, nodeRef, startOffset, endOffset))
@@ -614,7 +634,8 @@ namespace ModuleApi
 
         const SourceView&      srcView = moduleApiNodeSourceView(ctx, file.ast(), nodeRef);
         const std::string_view source  = srcView.stringView();
-        endOffset                      = std::min(endOffset, static_cast<uint32_t>(source.size()));
+
+        endOffset = std::min(endOffset, static_cast<uint32_t>(source.size()));
         while (endOffset > startOffset && std::isspace(static_cast<unsigned char>(source[endOffset - 1])))
             endOffset--;
 
@@ -636,6 +657,7 @@ namespace ModuleApi
         std::vector<ModuleApiStripRange> stripRanges;
         collectModuleApiPublicStripRanges(ctx, file.ast(), nodeRef, stripRanges);
         normalizeModuleApiStripRanges(stripRanges);
+
         const Utf8 filteredSnippet = stripModuleApiSourceRanges(snippetText, startOffset, stripRanges);
 
         SourceFile lexFile(FileRef::invalid(), file.path(), FileFlagsE::CustomSrc);
@@ -645,11 +667,13 @@ namespace ModuleApi
         Lexer      lexer;
         lexer.tokenize(ctx, srcView, LexerFlagsE::EmitTrivia | LexerFlagsE::AllowReservedIdentifiers);
 
-        Utf8     result;
-        Utf8     line;
-        bool     wroteLine        = false;
-        bool     lineHasContent   = false;
-        bool     pendingSpace     = false;
+        Utf8 result;
+        Utf8 line;
+
+        bool wroteLine      = false;
+        bool lineHasContent = false;
+        bool pendingSpace   = false;
+
         uint32_t tokenIndex       = 0;
         uint32_t triviaIndex      = 0;
         size_t   indentStripIndex = 0;
@@ -667,6 +691,7 @@ namespace ModuleApi
             {
                 if (!line.empty() && line.back() != ' ' && line.back() != '\t')
                     pendingSpace = true;
+
                 continue;
             }
 
@@ -680,6 +705,7 @@ namespace ModuleApi
         }
 
         flushModuleApiLine(result, line, eol, wroteLine, lineHasContent, false);
+
         return result;
     }
 }

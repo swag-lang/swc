@@ -19,9 +19,9 @@ namespace CodeGenMoveElision
     // 'resolvedSourceRef': the reset and the scope-exit drop can be elided.
     bool canElideMoveSource(CodeGen& codeGen, const SymbolVariable& symVar, AstNodeRef resolvedSourceRef);
 
-    // A return can transfer ownership when no defer or captured address observes
-    // the local afterward. Lexically later uses belong to other control paths,
-    // so the last-use and post-domination rules of canElideMoveSource do not apply.
+    // A return can transfer ownership unless a defer or closure can still observe
+    // the local. Lexically later uses belong to other control paths, so the
+    // last-use and post-domination rules of canElideMoveSource do not apply.
     bool canMoveOutAtReturn(CodeGen& codeGen, const SymbolVariable& symVar);
 }
 

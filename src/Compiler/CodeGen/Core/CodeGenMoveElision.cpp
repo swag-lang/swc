@@ -34,9 +34,8 @@ namespace
         }
     }
 
-    // Whether the use of a local at the walker's current node can leak the local's
-    // address (or reach it through a hidden call, like a user operator or an intrinsic).
-    // Conservative: anything not provably a plain value read/write escapes.
+    // Only proven plain reads/writes are safe. Other uses can expose an address
+    // directly or through hidden operator/intrinsic calls.
     bool useEscapes(const CodeGen& codeGen, const AstVisit& walker)
     {
         bool crossedMember = false;
@@ -89,6 +88,7 @@ namespace
                 case AstNodeId::ForCStyleStmt:
                     if (!crossedMember)
                         return true;
+
                     continue;
 
                 case AstNodeId::UnaryExpr:
@@ -98,6 +98,7 @@ namespace
                         return true;
                     if (!crossedMember)
                         return true;
+
                     continue;
                 }
 
@@ -116,6 +117,7 @@ namespace
         const auto& symVar = sym->cast<SymbolVariable>();
         if (!symVar.hasExtraFlag(SymbolVariableFlagsE::FunctionLocal) || symVar.hasGlobalStorage())
             return nullptr;
+
         return &symVar;
     }
 
@@ -156,15 +158,14 @@ namespace
             info.escaped = true;
     }
 
-    // One lexical pass over the function body, resolved exactly like the emission walk
-    // (the same node-ref resolver), recording per-local uses, escapes, and decl blocks.
+    // Use the emission walk's resolver so declaration blocks, uses, and escapes
+    // describe the same substituted nodes as code generation.
     void buildAnalysis(CodeGen& codeGen)
     {
         codeGen.setMoveElisionAnalyzed();
 
-        // Walk the same root as the emission walk ('#test' blocks and short functions do
-        // not use a plain FunctionDecl node): parameters and attributes visited along the
-        // way record nothing (parameters are not function locals).
+        // Match the emission root, including #test blocks and short functions.
+        // Parameters and attributes encountered along the way are not function locals.
         const AstNodeRef rootRef = codeGen.function().declNodeRef();
         if (rootRef.isInvalid())
             return;
@@ -172,6 +173,7 @@ namespace
         AstVisit                walker;
         SmallVector<AstNodeRef> blockRefs;
         int                     escapeDepth = 0;
+
         walker.setMode(AstVisitMode::ResolveBeforeCallbacks);
         walker.setNodeRefResolver([&codeGen](const AstNodeRef nodeRef) { return codeGen.resolvedNodeRef(nodeRef); });
         walker.setPreNodeVisitor([&codeGen, &walker, &blockRefs, &escapeDepth](const AstNode& node) {
@@ -183,8 +185,7 @@ namespace
                 case AstNodeId::FunctionBody:
                 case AstNodeId::EmbeddedBlock:
                 case AstNodeId::TopLevelBlock:
-                    // Declarations share this lexical owner; do not rediscover it
-                    // through the ancestor chain for every local in the block.
+                    // Cache the lexical owner shared by declarations in this block.
                     blockRefs.push_back(walker.currentNodeRef());
                     break;
 
@@ -206,11 +207,14 @@ namespace
 
             return Result::Continue;
         });
+
         walker.setPostNodeVisitor([&blockRefs, &escapeDepth](const AstNode& node) {
             if (isEscapeContext(node.id()))
                 escapeDepth--;
+
             if (isPlainBlock(node.id()))
                 blockRefs.pop_back();
+
             return Result::Continue;
         });
 
@@ -220,6 +224,7 @@ namespace
             const AstVisitResult result = walker.step(codeGen.ctx());
             if (result == AstVisitResult::Stop)
                 break;
+
             if (result != AstVisitResult::Continue)
             {
                 // The analysis could not complete: forbid every elision in this function.
@@ -234,6 +239,7 @@ const SymbolVariable* CodeGenMoveElision::directStructVariable(CodeGen& codeGen,
 {
     if (outResolvedRef)
         *outResolvedRef = AstNodeRef::invalid();
+
     if (nodeRef.isInvalid())
         return nullptr;
 
@@ -251,13 +257,14 @@ const SymbolVariable* CodeGenMoveElision::directStructVariable(CodeGen& codeGen,
     if (!sym || !sym->isVariable())
         return nullptr;
 
-    const auto&     symVar        = sym->cast<SymbolVariable>();
-    const TypeInfo& storageType   = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), symVar.typeRef());
+    const auto&     symVar      = sym->cast<SymbolVariable>();
+    const TypeInfo& storageType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), symVar.typeRef());
     if (!storageType.isStruct())
         return nullptr;
 
     if (outResolvedRef)
         *outResolvedRef = resolvedRef;
+
     return &symVar;
 }
 
@@ -271,6 +278,7 @@ namespace
             symVar.hasGlobalStorage() ||
             symVar.isClosureCapture())
             return false;
+
         return !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar);
     }
 }
@@ -293,9 +301,8 @@ bool CodeGenMoveElision::canElideMoveSource(CodeGen& codeGen, const SymbolVariab
     if (info.escaped || info.declBlockRef.isInvalid() || info.lastUseRef != resolvedSourceRef)
         return false;
 
-    // The move must post-dominate every later exit of the declaring scope: only plain
-    // blocks between the statement being emitted and the declaring block. Earlier exits
-    // are unaffected — their scope drops were already emitted when this decision is made.
+    // Only plain blocks may separate the move from its declaring scope, so it
+    // post-dominates every later exit. Earlier exits already have their drops.
     const AstVisit& visit = codeGen.visit();
     for (size_t up = 0;; ++up)
     {
@@ -323,10 +330,9 @@ bool CodeGenMoveElision::canMoveOutAtReturn(CodeGen& codeGen, const SymbolVariab
     if (!found)
         return false;
 
-    // Address escapes through calls or stored pointers do not block a return move-out:
-    // after the return, such observers would have seen a dropped local anyway, and a
-    // relocatable type restores its invariants through 'opPostMove'. Only defer bodies
-    // and closures can still legitimately run against the local afterwards.
+    // Calls and stored pointers cannot legitimately observe the local after return:
+    // its scope drop would have run anyway. opPostMove restores relocation invariants.
+    // Defers and closures can still access the local, so their escapes block the move.
     const CodeGenMoveElisionVar& info = *found;
     return !info.deferEscaped && info.declBlockRef.isValid();
 }

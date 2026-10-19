@@ -919,6 +919,7 @@ Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::b
             std::memcpy(bytes.data() + slots[i], &descriptor, sizeof(descriptor));
         }
     }
+
     return Result::Continue;
 }
 
@@ -928,6 +929,7 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
     computeImplicitDefaultFlags(sema);
     if (requiresExplicitInitialization() || hasRuntimeImplicitDefault())
         return Result::Continue;
+
     if (hasImplicitAllZeroDefault())
     {
         outRef = sema.cstMgr().addZeroPayloadConstant(sema.ctx(), typeRef);
@@ -950,6 +952,7 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
         }
 
         SWC_ASSERT(structSize);
+
         const TypeInfo& defaultType = ctx.typeMgr().get(typeRef);
         if (ConstantHelpers::typeHasUnionStorage(ctx, defaultType))
         {
@@ -968,6 +971,7 @@ Result SymbolStruct::computeDefaultValue(Sema& sema, TypeRef typeRef, ConstantRe
             SWC_INTERNAL_CHECK(initializeDynamicIdentityBytes(sema, bytes, defaultType) == Result::Continue);
             defaultStructCst_ = ConstantHelpers::materializeStaticPayloadConstant(sema, typeRef, std::span{bytes.data(), bytes.size()});
         }
+
         SWC_ASSERT(defaultStructCst_.isValid());
     });
 
@@ -985,10 +989,12 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
         {
             if (!isSwagAttribute(sema.ctx(), attribute, "Opaque"))
                 continue;
+
             for (const AttributeParamInstance& param : attribute.params)
             {
                 if (!param.valueCstRef.isValid() || !sema.cstMgr().get(param.valueCstRef).getBool())
                     continue;
+
                 if (param.nameIdRef == sema.idMgr().addIdentifier("runtimeDefault"))
                     self->addExtraFlag(SymbolStructFlagsE::DefaultRuntime);
                 if (param.nameIdRef == sema.idMgr().addIdentifier("requiresInit"))
@@ -1004,6 +1010,7 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
 
         bool allZero      = !isDynamic() && !hasRuntimeImplicitDefault() && !requiresExplicitInitialization();
         bool requiresInit = requiresExplicitInitialization();
+
         for (const SymbolVariable* field : fields_)
         {
             if (!field)
@@ -1022,6 +1029,7 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
 
         if (allZero)
             self->addExtraFlag(SymbolStructFlagsE::DefaultAllZero);
+
         if (requiresInit)
             self->addExtraFlag(SymbolStructFlagsE::DefaultRequiresInit);
     });
@@ -1034,10 +1042,13 @@ bool SymbolStruct::typeHasRuntimeImplicitDefault(Sema& sema, TypeRef typeRef)
     {
         if (std::ranges::any_of(type.payloadArrayDims(), [](uint64_t count) { return count == 0; }))
             return false;
+
         return typeHasRuntimeImplicitDefault(sema, type.payloadArrayElemTypeRef());
     }
+
     if (!type.isStruct())
         return false;
+
     const SymbolStruct& symStruct = type.payloadSymStruct();
     symStruct.computeImplicitDefaultFlags(sema);
     return symStruct.hasRuntimeImplicitDefault();
@@ -1096,11 +1107,14 @@ namespace
 struct SymbolStruct::GenericData
 {
     // Keep generic-only state off the main symbol so non-generic structs stay compact.
-    GenericInstanceOrigin                         origin;
-    GenericInstanceStorage                        instances;
-    std::atomic<const TaskContext*>               completionOwner = nullptr;
-    mutable std::atomic<uint32_t>                 completionState = 0;
-    SymbolStruct*                                 rootSym         = nullptr;
+    GenericInstanceOrigin  origin;
+    GenericInstanceStorage instances;
+
+    std::atomic<const TaskContext*> completionOwner = nullptr;
+    mutable std::atomic<uint32_t>   completionState = 0;
+
+    SymbolStruct* rootSym = nullptr;
+
     mutable std::recursive_mutex                  evalRunMutex;
     mutable std::shared_mutex                     evalCacheMutex;
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
@@ -1133,6 +1147,7 @@ const SymbolImpl* SymbolStruct::findInterfaceImplOrUsingFields(const TaskContext
 {
     if (const SymbolImpl* impl = findInterfaceImpl(itf.idRef()))
         return impl;
+
     if (!mayHaveUsingField())
         return nullptr;
 
@@ -1179,6 +1194,7 @@ bool SymbolStruct::resolveUsingFieldPath(const TaskContext& ctx, const SymbolStr
     outSteps.clear();
     if (this == &targetStruct)
         return true;
+
     PointerSet<const SymbolStruct> visited;
     return resolveUsingFieldPathRec(ctx, *this, targetStruct, outSteps, visited);
 }
@@ -1192,6 +1208,7 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
         const AstNode* decl = symVar.decl();
         SWC_ASSERT(decl != nullptr);
         SWC_ASSERT(decl->is(AstNodeId::SingleVarDecl) || decl->is(AstNodeId::MultiVarDecl));
+
         const auto& type        = symVar.typeInfo(sema.ctx());
         AstNodeRef  typeNodeRef = AstNodeRef::invalid();
         if (decl->is(AstNodeId::SingleVarDecl))
@@ -1211,9 +1228,8 @@ Result SymbolStruct::canBeCompleted(Sema& sema) const
             return Result::Error;
         }
 
-        // Function values have pointer/closure storage. Their parameter and return
-        // types do not affect the enclosing struct layout, and waiting for them can
-        // create false cycles for signatures such as `func(Self)`.
+        // Function values have pointer/closure storage; signature types do not affect
+        // this layout. Waiting for func(Self) would create a false dependency cycle.
         if (!type.isFunction())
             SWC_RESULT(sema.waitSemaCompleted(&type, typeNodeRef));
     }
@@ -1249,12 +1265,14 @@ Result SymbolStruct::registerSpecOps(Sema& sema) const
     {
         if (symImpl->isIgnored())
             continue;
+
         for (SymbolFunction* symFunc : symImpl->specOps())
         {
             if (!symFunc)
                 continue;
             if (symFunc->isGenericRoot() && !symFunc->isGenericInstance())
                 continue;
+
             SWC_RESULT(SemaSpecOp::registerSymbol(sema, *symFunc));
         }
     }
@@ -1266,9 +1284,11 @@ void SymbolStruct::addField(SymbolVariable* sym)
 {
     SWC_ASSERT(sym != nullptr);
     SWC_ASSERT(!fieldIndexMap_.contains(sym));
+
     // Published before the field so a reader that sees the field also sees the flag.
     if (sym->isUsingField())
         addExtraFlag(SymbolStructFlagsE::UsingField);
+
     fieldIndexMap_.emplace(sym, fields_.size());
     fields_.push_back(sym);
 }

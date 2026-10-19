@@ -37,18 +37,19 @@ namespace
         lib.make_lower();
         if (fs::path(std::string(lib)).extension().empty())
             lib += ".lib";
+
         return lib;
     }
 
-    // Gathers the link library required by every foreign function referenced by a code block. The
-    // dependency-module hooks are themselves foreign functions, so this also pulls in dependency libs.
-    // A function's library depends on the function alone, so one already in 'seen' adds nothing.
+    // Dependency hooks are foreign functions too, so their libraries join those
+    // referenced by ordinary code. A function already in seen needs no further lookup.
     void collectForeignLibs(std::set<Utf8>& outLibNames, PointerSet<const SymbolFunction>& seen, const TaskContext& ctx, const MachineCode& code)
     {
         for (const MicroRelocation& relocation : code.codeRelocations)
         {
             if (relocation.kind != MicroRelocation::Kind::ForeignFunctionAddress || !relocation.targetSymbol)
                 continue;
+
             const auto* function = relocation.targetSymbol->safeCast<SymbolFunction>();
             if (!function || !seen.insert(function))
                 continue;
@@ -78,9 +79,8 @@ namespace
         return isDebugSectionName(name) || name.view() == SymbolTable::OBJECT_SECTION;
     }
 
-    // Every name the link defines. A module defines thousands of symbols and every relocation is
-    // checked against them, so the names are borrowed from their owners into one flat table
-    // instead of being copied into a node each. An owner must outlive the table.
+    // Borrow defined names into a flat table to avoid copying thousands of symbols.
+    // Their owners must outlive the table and every relocation lookup.
     class DefinedNames
     {
     public:
@@ -103,6 +103,7 @@ namespace
         {
             if (isLinkerMetadataSection(section.name))
                 continue;
+
             for (const CoffInputReloc& reloc : section.relocs)
             {
                 if (!defined.contains(reloc.symbolName))
@@ -116,7 +117,8 @@ namespace
         size_t   objectIndex     = 0;
         uint32_t sectionIndex    = 0;
         uint32_t characteristics = 0;
-        Utf8     symbolName;
+
+        Utf8 symbolName;
     };
 
     struct LinkSymbolAlias
@@ -129,7 +131,8 @@ namespace
     {
         size_t   objectIndex  = 0;
         uint32_t sectionIndex = 0;
-        Utf8     symbolName;
+
+        Utf8 symbolName;
     };
 
     struct FunctionFoldGroup
@@ -149,6 +152,7 @@ namespace
             {
                 if (outSectionIndex != INVALID_REF)
                     return false;
+
                 outSectionIndex = sectionIndex;
                 continue;
             }
@@ -166,6 +170,7 @@ namespace
                 continue;
             if (!outSymbolName.empty())
                 return false;
+
             outSymbolName = symbol.name;
         }
 
@@ -190,6 +195,7 @@ namespace
             SWC_ASSERT(it != symbolIndices.end());
             if (it == symbolIndices.end())
                 continue;
+
             LinkSymbol symbol = image.symbols[it->second];
             symbol.name       = alias.name;
             symbolIndices.emplace(symbol.name, image.symbols.size());
@@ -208,8 +214,10 @@ namespace
                 continue;
             if (textSectionIndex != INVALID_REF)
                 return false;
+
             textSectionIndex = sectionIndex;
         }
+
         if (textSectionIndex == INVALID_REF)
             return false;
 
@@ -220,8 +228,10 @@ namespace
                 continue;
             if (!functionSymbol.empty())
                 return false;
+
             functionSymbol = symbol.name;
         }
+
         if (functionSymbol.empty())
             return false;
 
@@ -235,6 +245,7 @@ namespace
     {
         if (target == selfSymbol)
             return "$self";
+
         const auto it = knownAliases.find(target);
         return it == knownAliases.end() ? target.view() : it->second.view();
     }
@@ -248,6 +259,7 @@ namespace
             hash = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
             hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, selfSymbol, knownAliases)));
         }
+
         return hash;
     }
 
@@ -265,6 +277,7 @@ namespace
             if (canonicalRelocationTarget(lhsRelocation.symbolName, lhsSymbol, knownAliases) != canonicalRelocationTarget(rhsRelocation.symbolName, rhsSymbol, knownAliases))
                 return false;
         }
+
         return true;
     }
 
@@ -278,6 +291,7 @@ namespace
             hash = Math::hashCombine(hash, static_cast<uint32_t>(relocation.type));
             hash = Math::hashCombine(hash, Math::hash(canonicalRelocationTarget(relocation.symbolName, candidate.symbolName, knownAliases)));
         }
+
         return hash;
     }
 
@@ -297,6 +311,7 @@ namespace
             if (canonicalRelocationTarget(lhsRelocation.symbolName, lhs.symbolName, knownAliases) != canonicalRelocationTarget(rhsRelocation.symbolName, rhs.symbolName, knownAliases))
                 return false;
         }
+
         return true;
     }
 
@@ -320,6 +335,7 @@ namespace
             if (tryGetFunctionFoldCandidate(candidate, objects[objectIndex], objectIndex))
                 candidates.push_back(std::move(candidate));
         }
+
         if (candidates.size() < 2)
             return;
 
@@ -337,6 +353,7 @@ namespace
                 // Unwind records and the runtime name of a function do not take its address.
                 if (section.name == ".pdata" || section.name.view() == SymbolTable::OBJECT_SECTION)
                     continue;
+
                 for (const CoffInputReloc& relocation : section.relocs)
                 {
                     const auto it = candidateBySymbol.find(relocation.symbolName);
@@ -345,6 +362,7 @@ namespace
                 }
             }
         }
+
         for (const LinkSection& section : image.sections)
         {
             for (const LinkReloc& relocation : section.relocs)
@@ -354,9 +372,11 @@ namespace
                     addressObserved[it->second] = true;
             }
         }
+
         for (const LinkExport& exported : image.exports)
             if (const auto it = candidateBySymbol.find(exported.symbolName); it != candidateBySymbol.end())
                 addressObserved[it->second] = true;
+
         if (const auto it = candidateBySymbol.find(image.entrySymbol); it != candidateBySymbol.end())
             addressObserved[it->second] = true;
 
@@ -368,14 +388,17 @@ namespace
         std::unordered_map<uint32_t, std::vector<FunctionFoldGroup>> groupsByHash;
         for (size_t i = 0; i < candidates.size(); ++i)
         {
-            const uint32_t hash       = functionFoldHash(candidates[i], objects, knownAliases);
-            auto&          groups     = groupsByHash[hash];
-            const auto     equivalent = std::ranges::find_if(groups, [&](const FunctionFoldGroup& group) { return sameFoldableFunction(candidates[i], candidates[group.members.front()], objects, knownAliases); });
+            const uint32_t hash   = functionFoldHash(candidates[i], objects, knownAliases);
+            auto&          groups = groupsByHash[hash];
+
+            const auto equivalent = std::ranges::find_if(groups, [&](const FunctionFoldGroup& group) { return sameFoldableFunction(candidates[i], candidates[group.members.front()], objects, knownAliases); });
+
             if (equivalent == groups.end())
             {
                 groups.push_back({.members = {i}});
                 continue;
             }
+
             equivalent->members.push_back(i);
         }
 
@@ -400,6 +423,7 @@ namespace
                 {
                     if (memberIndex == canonicalIndex || addressObserved[memberIndex])
                         continue;
+
                     outAliases.push_back({.name = candidates[memberIndex].symbolName, .canonicalName = candidates[canonicalIndex].symbolName});
                 }
             }
@@ -425,16 +449,17 @@ namespace
                 if (foldedSymbols.contains(candidate.symbolName))
                     continue;
             }
+
             if (retainedCount != objectIndex)
                 objects[retainedCount] = std::move(objects[objectIndex]);
             ++retainedCount;
         }
+
         objects.resize(retainedCount);
     }
 
-    // A folded function has no code of its own left: its name now resolves to the survivor, which
-    // already describes that code, and a second description at that address would only make a
-    // debugger or a stack trace pick one at random.
+    // Folded names resolve to the surviving function. Drop their debug records so
+    // debuggers and stack traces cannot pick conflicting descriptions of that address.
     void dropFoldedFunctions(LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& symbols, const std::vector<LinkSymbolAlias>& functionAliases)
     {
         if (functionAliases.empty())
@@ -444,6 +469,7 @@ namespace
         folded.reserve(functionAliases.size());
         for (const LinkSymbolAlias& alias : functionAliases)
             folded.insert(alias.name.view());
+
         std::erase_if(debugInfo.functions, [&folded](const LinkDebugFunction& function) { return folded.contains(function.symbolName.view()); });
         std::erase_if(symbols, [&folded](const SymbolTable::Entry& entry) { return folded.contains(entry.symbolName.view()); });
     }
@@ -460,6 +486,7 @@ namespace
             relocations.reserve(section.relocs.size());
             for (const CoffInputReloc& reloc : section.relocs)
                 relocations.push_back({.offset = reloc.offset, .symbolName = reloc.symbolName});
+
             SymbolTable::read(ioSymbols, section.bytes.span(), relocations);
         }
     }
@@ -470,6 +497,7 @@ namespace
         {
             if (isDebugSectionName(section.name))
                 continue;
+
             for (const LinkReloc& reloc : section.relocs)
             {
                 if (!defined.contains(reloc.symbolName))
@@ -522,6 +550,7 @@ namespace
             item.archive = std::move(archive);
             item.loaded  = true;
         }
+
         return Result::Continue;
     }
 
@@ -535,6 +564,7 @@ namespace
             if (item.loaded)
                 outArchives.push_back(std::move(item.archive));
         }
+
         return Result::Continue;
     }
 
@@ -561,6 +591,7 @@ namespace
         {
             for (uint32_t i = 0; i < image.sections.size(); ++i)
                 sectionByName_[image.sections[i].name] = i;
+
             for (const LinkSymbol& symbol : image.symbols)
                 definedNames_.insert(symbol.name);
         }
@@ -578,6 +609,7 @@ namespace
             SWC_RESULT(placeTextSection(std::move(sections.textSection), description));
             if (description.includeData)
                 SWC_RESULT(appendDataSections());
+
             return placeUnwindSections(sections.unwind);
         }
 
@@ -596,6 +628,7 @@ namespace
                 SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
             for (const NativeFunctionInfo* info : description.functions)
                 SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols));
+
             return Result::Continue;
         }
 
@@ -603,10 +636,12 @@ namespace
         {
             SectionPlacement placement;
             SWC_RESULT(appendNativeSection(placement, std::move(textSection)));
+
             if (description.startup)
                 addSymbol(description.startup->symbolName, placement.index, placement.base + description.startup->textOffset);
             for (const NativeFunctionInfo* info : description.functions)
                 addSymbol(info->symbolName, placement.index, placement.base + info->textOffset);
+
             return Result::Continue;
         }
 
@@ -617,8 +652,10 @@ namespace
             target.relocations            = &textSection.relocations;
             target.functionOffset         = functionOffset;
             target.allowUnresolvedSymbols = allowUnresolvedSymbols;
+
             for (const MicroRelocation& relocation : code.codeRelocations)
                 SWC_RESULT(builder_->appendCodeRelocation(target, ownerName, relocation));
+
             return Result::Continue;
         }
 
@@ -631,6 +668,7 @@ namespace
                 SWC_RESULT(appendDataSection(builder_->mergedData, builder_->scopedSymbolNames().dataBase));
             if (builder_->mergedBss.bss)
                 SWC_RESULT(appendDataSection(builder_->mergedBss, builder_->scopedSymbolNames().bssBase));
+
             return Result::Continue;
         }
 
@@ -659,6 +697,7 @@ namespace
                 .functions    = debugFunctions,
                 .emitCodeView = false,
             };
+
             return DebugInfo::buildObject(debugInfoRequest, debugInfoResult);
         }
 
@@ -692,19 +731,23 @@ namespace
         {
             if (!placeNativeSection(outPlacement, section))
                 return Result::Continue;
+
             for (const NativeSectionRelocation& relocation : section.relocations)
                 SWC_RESULT(appendRelocation(outPlacement.index, outPlacement.base, section.name, relocation, Utf8{relocation.symbolName}));
+
             return Result::Continue;
         }
 
-        // For a section its caller is done with: each relocation hands its symbol name over
-        // instead of having it copied, one allocation per relocation of the module's code.
+        // Transfer relocation names from a consumed section to avoid copying
+        // and allocating a symbol name for every relocation.
         Result appendNativeSection(SectionPlacement& outPlacement, NativeSectionData&& section)
         {
             if (!placeNativeSection(outPlacement, section))
                 return Result::Continue;
+
             for (NativeSectionRelocation& relocation : section.relocations)
                 SWC_RESULT(appendRelocation(outPlacement.index, outPlacement.base, section.name, relocation, std::move(relocation.symbolName)));
+
             return Result::Continue;
         }
 
@@ -754,6 +797,7 @@ namespace
             outPlacement.index = sectionIndex;
             outPlacement.base  = base;
             outPlacement.valid = true;
+
             return true;
         }
 
@@ -775,14 +819,18 @@ namespace
                 case IMAGE_REL_AMD64_ADDR64:
                     if (patchOffset + sizeof(uint64_t) > section.bytes.size())
                         return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
+
                     section.bytes.writeLe64(patchOffset, relocation.addend);
                     break;
+
                 case IMAGE_REL_AMD64_ADDR32NB:
                 case IMAGE_REL_AMD64_REL32:
                     if (patchOffset + sizeof(uint32_t) > section.bytes.size())
                         return builder_->reportError(DiagnosticId::cmd_err_link_reloc_out_of_bounds);
+
                     section.bytes.writeLe32(patchOffset, static_cast<uint32_t>(relocation.addend));
                     break;
+
                 default:
                     SWC_UNREACHABLE();
             }
@@ -793,6 +841,7 @@ namespace
             linkReloc.symbolName   = std::move(symbolName);
             linkReloc.kind         = kind;
             section.relocs.push_back(std::move(linkReloc));
+
             return Result::Continue;
         }
 
@@ -808,8 +857,9 @@ namespace
             image_->symbols.push_back(std::move(symbol));
         }
 
-        NativeBackendBuilder*              builder_ = nullptr;
-        LinkImage*                         image_   = nullptr;
+        NativeBackendBuilder* builder_ = nullptr;
+        LinkImage*            image_   = nullptr;
+
         std::unordered_map<Utf8, uint32_t> sectionByName_;
         std::unordered_set<Utf8>           definedNames_;
     };
@@ -887,6 +937,7 @@ namespace
         // Library names: every foreign-function and dependency-hook module.
         for (const Utf8& library : builder.compiler().foreignLibs())
             outLibNames.insert(normalizedLibName(library.view()));
+
         PointerSet<const SymbolFunction> foreignFunctions;
         for (const NativeFunctionInfo& info : builder.functionInfos)
             if (info.machineCode)
@@ -902,13 +953,10 @@ namespace
             if (!dir.empty())
                 outDirs.push_back(dir);
 
-        // Every archive an imported module published is a candidate, named or not.
-        //
-        // The names collected above come from this artifact's own code, and they stop one module
-        // short: when a dependency arrives as an archive rather than a DLL, its own dependencies
-        // stop being its business and become undefined symbols of this link. Nothing here mentions
-        // them, so nothing would look for the archive that defines them. Loading an archive costs
-        // reading it — members are still pulled only for a symbol something asked for.
+        // Include every archive published by imported modules: a static dependency's
+        // own dependencies become undefined symbols of this link, even when our code
+        // never names them. Members of these additional archives are still pulled
+        // only to satisfy requested symbols.
         for (const fs::path& dir : builder.compiler().importedDependencyLinkDirs())
         {
             outDirs.push_back(dir);
@@ -933,6 +981,7 @@ namespace
         {
             if (!file || !file->hasFlag(FileFlagsE::ImportedApi) || !file->path().has_parent_path())
                 continue;
+
             const fs::path parent = file->path().parent_path().lexically_normal();
             if (std::ranges::find(outDirs, parent) == outDirs.end())
                 outDirs.push_back(parent);
@@ -955,7 +1004,8 @@ Result PELinker::buildNativeImage(LinkImage& image) const
     const auto&                                 descriptions = builder_->objectDescriptions;
     std::vector<NativeImageDescriptionSections> sections(descriptions.size());
     std::vector<Result>                         results(descriptions.size(), Result::Continue);
-    JobManager&                                 jobMgr = builder_->ctx().global().jobMgr();
+
+    JobManager& jobMgr = builder_->ctx().global().jobMgr();
     jobMgr.parallelForIndexed(builder_->ctx(), static_cast<uint32_t>(descriptions.size()), JobKind::NativeLinkPrepare, jobMgr.newClientId(), [&](TaskContext&, const uint32_t index) {
         results[index] = lowering.buildDescription(sections[index], descriptions[index]);
     });
@@ -993,10 +1043,12 @@ Result PELinker::appendIncrementalFunctionArchive(std::vector<Archive>& outArchi
     {
         if (!info.cacheHit || !info.symbol)
             continue;
+
         const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
         SWC_ASSERT(record && record->hit && !record->objectBytes.empty());
         if (!record || !record->hit || record->objectBytes.empty())
             continue;
+
         members.push_back({.name = std::format("function_{:06}.obj", members.size()), .bytes = record->objectBytes});
     }
 
@@ -1011,8 +1063,10 @@ Result PELinker::appendIncrementalFunctionArchive(std::vector<Archive>& outArchi
     Archive archive;
     if (!archive.load(diag, std::move(archiveBytes)))
         return builder_->reportError(diag);
+
     archive.setSourcePath(builder_->functionCacheArchivePath());
     outArchives.push_back(std::move(archive));
+
     return Result::Continue;
 }
 
@@ -1033,12 +1087,14 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     std::unordered_set<Utf8> undefined;
     collectUndefined(undefined, image, defined);
 
-    std::unordered_set<Utf8>                                             imported;
-    std::vector<CoffObject>                                              pulledObjects;
+    std::unordered_set<Utf8> imported;
+    std::vector<CoffObject>  pulledObjects;
+
     std::unordered_map<uint32_t, std::vector<ReadOnlyDataFoldCandidate>> readOnlyDataByHash;
     std::vector<LinkSymbolAlias>                                         readOnlyDataAliases;
     std::unordered_map<Utf8, Utf8>                                       readOnlyDataAliasMap;
-    std::vector                                                          worklist(undefined.begin(), undefined.end());
+
+    std::vector worklist(undefined.begin(), undefined.end());
 
     while (!worklist.empty())
     {
@@ -1079,6 +1135,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
 
             for (const CoffInputSymbol& sym : pulled.definedSymbols)
                 defined.insert(pulledDefinedNames.emplace_back(sym.name));
+
             std::unordered_set<Utf8> newUndefined;
             collectUndefined(newUndefined, pulled, defined);
             for (const Utf8& u : newUndefined)
@@ -1092,10 +1149,12 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
                 const CoffInputSection& rdata      = pulled.sections[rdataSectionIndex];
                 const uint32_t          hash       = readOnlyDataFoldHash(rdata, rdataSymbolName, readOnlyDataAliasMap);
                 auto&                   candidates = readOnlyDataByHash[hash];
-                const auto              duplicate  = std::ranges::find_if(candidates, [&](const ReadOnlyDataFoldCandidate& candidate) {
+
+                const auto duplicate = std::ranges::find_if(candidates, [&](const ReadOnlyDataFoldCandidate& candidate) {
                     const CoffInputSection& canonical = pulledObjects[candidate.objectIndex].sections[candidate.sectionIndex];
                     return sameFoldableReadOnlyData(rdata, rdataSymbolName, canonical, candidate.symbolName, readOnlyDataAliasMap);
                 });
+
                 if (duplicate != candidates.end())
                 {
                     readOnlyDataAliasMap.emplace(rdataSymbolName, duplicate->symbolName);
@@ -1128,6 +1187,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     dropFoldedFunctions(debugInfo, ioSymbols, functionAliases);
     if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
         return builder_->reportError(diag);
+
     addLinkSymbolAliases(image, readOnlyDataAliases);
     addLinkSymbolAliases(image, functionAliases);
 
@@ -1147,12 +1207,14 @@ namespace
         if (section.bytes.empty())
             return;
 
-        section.name                = Utf8(SymbolTable::IMAGE_SECTION);
-        section.align               = 4;
+        section.name  = Utf8(SymbolTable::IMAGE_SECTION);
+        section.align = 4;
+
         const uint32_t sectionIndex = static_cast<uint32_t>(image.sections.size());
         section.relocs.reserve(relocations.size());
         for (SymbolTable::Relocation& relocation : relocations)
             section.relocs.push_back({.sectionIndex = sectionIndex, .offset = relocation.offset, .symbolName = std::move(relocation.symbolName), .kind = LinkRelocKind::Rva32});
+
         image.sections.push_back(std::move(section));
     }
 
@@ -1175,10 +1237,12 @@ void PELinker::collectExports(LinkImage& image) const
     {
         if (!info.exported)
             continue;
+
         LinkExport exported;
         exported.name       = info.symbolName;
         exported.symbolName = info.symbolName;
         image.exports.push_back(std::move(exported));
+
         if (!info.exportName.empty() && info.exportName != info.symbolName)
         {
             LinkExport alias;
@@ -1225,6 +1289,7 @@ namespace
             else if (!cmdLine.moduleFilePath.empty())
                 iconPath = cmdLine.moduleFilePath.parent_path() / iconPath;
         }
+
         iconPath = FileSystem::absolutePathNoThrow(iconPath).lexically_normal();
 
         FileSystem::IoErrorInfo ioError;
@@ -1313,11 +1378,13 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
     std::set<Utf8>        libNames;
     std::vector<fs::path> dirs;
     collectLibrarySearch(libNames, dirs);
+
     std::vector<ArchiveLoadItem> archiveItems;
     collectArchiveLoadItems(archiveItems, libNames, dirs);
 
     std::vector<std::unique_ptr<LinkPrepareJobBase>> jobs;
     jobs.reserve(archiveItems.size() + 1);
+
     auto enqueueJob = [&](std::unique_ptr<LinkPrepareJobBase> job) {
         LinkPrepareJobBase& ref = *job;
         jobs.push_back(std::move(job));
@@ -1350,6 +1417,7 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
     for (ArchiveLoadItem& item : archiveItems)
         if (item.loaded)
             archives.push_back(std::move(item.archive));
+
     SWC_RESULT(appendIncrementalFunctionArchive(archives));
 
     collectDebugInfo(outJob);
@@ -1386,10 +1454,8 @@ namespace
         CollectedDebugRecords collected;
         collectDebugRecords(builder, functionPtrs, builder.startup.get(), true, collected);
 
-        // Mirror the COFF object split as PDB compilands: each function's owning object file (its codegen
-        // job) becomes a module named after that .obj. Visual Studio expects this per-object compiland
-        // layout; the previous source-file-sized ones (with the image itself as module 0) confused its
-        // module model.
+        // Match PDB compilands to the COFF object split. Visual Studio expects
+        // each function to belong to a module named after its owning object file.
         dbg.objectNames.reserve(builder.objectDescriptions.size());
         for (const NativeObjDescription& obj : builder.objectDescriptions)
         {
@@ -1414,6 +1480,7 @@ namespace
             .globals    = collected.globals,
             .constants  = collected.constants,
         };
+
         DebugInfoPdbResult pdbTypes;
         DebugInfo::buildPdbInfo(request, pdbTypes);
         dbg.tpiRecords     = std::move(pdbTypes.tpiRecords);
@@ -1427,6 +1494,7 @@ namespace
             const auto [it, inserted] = fileIndices.try_emplace(path, 0u);
             if (!inserted)
                 return it->second;
+
             const auto    index = static_cast<uint32_t>(dbg.files.size());
             LinkDebugFile entry;
             entry.path = path;
@@ -1436,6 +1504,7 @@ namespace
                 entry.checksum.assign(hash.begin(), hash.end());
                 entry.checksumKind = 3; // CV_SourceChksum_SHA256
             }
+
             dbg.files.push_back(std::move(entry));
             it->second = index;
             return index;
@@ -1502,15 +1571,14 @@ namespace
                 const uint32_t      line  = std::min<uint32_t>(resolved.source.codeRange.line, 0x00FFFFFFu);
                 if (!block.lines.empty() && block.lines.back() == line)
                     continue;
+
                 block.codeOffsets.push_back(resolved.debugRange->codeStartOffset);
                 block.lines.push_back(line);
             }
 
-            // The prologue is emitted as non-step-visible code, so the first step-visible
-            // range (and hence the first line record) starts past the function entry. That
-            // leaves the entry point and prologue without any source mapping, so a breakpoint
-            // at the function start or a sample landing in the prologue resolves to nothing.
-            // Mirror MSVC by extending the function's first line down to code offset 0.
+            // The prologue is not step-visible, so line records start after entry.
+            // Extend the first source line to offset 0, as MSVC does, to preserve
+            // source mappings for entry breakpoints and samples in the prologue.
             size_t prologueBlock = std::numeric_limits<size_t>::max();
             if (fn.primaryFileIndex != std::numeric_limits<uint32_t>::max())
             {
@@ -1518,10 +1586,12 @@ namespace
                 {
                     if (fn.lineBlocks[blockIndex].fileIndex != fn.primaryFileIndex)
                         continue;
+
                     prologueBlock = blockIndex;
                     break;
                 }
             }
+
             if (prologueBlock == std::numeric_limits<size_t>::max() && !fn.lineBlocks.empty())
                 prologueBlock = 0;
             if (prologueBlock != std::numeric_limits<size_t>::max() && !fn.lineBlocks[prologueBlock].codeOffsets.empty())
@@ -1572,6 +1642,7 @@ Result PELinker::collectArchiveMembers(std::vector<LinkArchiveMember>& outMember
 
     const auto count = static_cast<uint32_t>(builder_->objectDescriptions.size());
     outMembers.resize(count);
+
     const auto fillMember = [&](TaskContext&, uint32_t i) {
         const NativeObjDescription& description = builder_->objectDescriptions[i];
         outMembers[i]                           = {.name = Utf8(description.objPath.filename()), .bytes = description.objBytes};
@@ -1597,10 +1668,9 @@ Result PELinker::prepareStaticLibraryLink(LinkJob& outJob) const
     return collectArchiveMembers(outJob.archiveMembers);
 }
 
-// Prepares the archive a shared library publishes beside its DLL. It re-splits the same machine
-// code one function per object, so the executable that links it pulls only the functions it
-// reaches; the image the DLL was lowered from is already copied into outJob, which is what makes it
-// safe to overwrite the text offsets that lowering computed.
+// Publish a shared library's code as one-function archive members as well.
+// The DLL image is already copied into outJob, so repartitioning can safely
+// overwrite the original text offsets.
 Result PELinker::prepareStaticLibrarySideArchive(LinkJob& outJob) const
 {
     SWC_ASSERT(builder_ != nullptr);
@@ -1644,6 +1714,7 @@ Result PELinker::prepareIncrementalFunctionCache(LinkJob& outJob) const
     {
         if (!info.symbol)
             continue;
+
         const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
         if (!record)
             continue;
@@ -1657,6 +1728,7 @@ Result PELinker::prepareIncrementalFunctionCache(LinkJob& outJob) const
             if (generated != generatedObjects.end())
                 objectBytes = generated->second;
         }
+
         if (!objectBytes || objectBytes->empty())
             continue;
 
@@ -1708,6 +1780,7 @@ Result PELinker::prepareIncrementalObjects(LinkJob& outJob) const
     {
         if (!info.cacheHit || !info.symbol)
             continue;
+
         const NativeFunctionCacheRecord* record = builder_->functionCacheRecord(*info.symbol);
         SWC_ASSERT(record && record->hit);
         if (!record || !record->hit)
@@ -1749,6 +1822,7 @@ Result PELinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, c
         Diagnostic diag;
         if (!readCoffObject(object, diag, bytes))
             return Result::Continue;
+
         appendMemberSymbols(symbols, object);
         objects.push_back(std::move(object));
     }

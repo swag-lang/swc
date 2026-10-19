@@ -21,8 +21,8 @@ namespace
     {
         const TypeRef typeRef        = originalType.typeRef();
         const TypeRef storageTypeRef = storageType.typeRef();
-        ConstantValue result;
 
+        ConstantValue result;
         if (storageType.isArrayOrSimd())
             result = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, storedBytes);
         else if (storageType.isNumericIntLike() || storageType.isFloat() || storageType.isPointerOrReference() || storageType.isTypeInfo() || storageType.isCString() || (storageType.isFunction() && !storageType.isLambdaClosure()))
@@ -91,8 +91,9 @@ ConstantRef CodeGenConstantHelpers::materializeStaticArrayBufferConstant(CodeGen
     if (elementTypeRef.isInvalid())
         return ConstantRef::invalid();
 
-    const std::array<uint64_t, 1> dims         = {count};
-    const TypeRef                 arrayTypeRef = codeGen.typeMgr().addArrayType(dims, elementTypeRef);
+    const std::array<uint64_t, 1> dims = {count};
+
+    const TypeRef arrayTypeRef = codeGen.typeMgr().addArrayType(dims, elementTypeRef);
     return materializeStaticPayloadConstant(codeGen, arrayTypeRef, payload);
 }
 
@@ -123,6 +124,7 @@ ConstantRef CodeGenConstantHelpers::materializeStaticPayloadConstant(CodeGen& co
         return ConstantRef::invalid();
 
     SWC_ASSERT(sizeOf != 0 || offset == INVALID_REF);
+
     const std::span<const std::byte> storedBytes = sizeOf ? std::span{segment.ptr<std::byte>(offset), sizeOf} : std::span<const std::byte>{};
     const DataSegmentRef             dataRef{.shardIndex = placementShardIndex, .offset = offset};
     const ConstantValue              value = makeMaterializedConstantValue(ctx, typeInfo, storageType, storedBytes, dataRef);
@@ -153,15 +155,17 @@ ConstantRef CodeGenConstantHelpers::materializeRuntimeBufferConstant(CodeGen& co
     const uint32_t shardIndex    = targetRef.isInvalid() ? 0 : targetRef.shardIndex;
     DataSegment&   segment       = cstMgr.shardDataSegment(shardIndex);
     const auto [offset, storage] = segment.reserveBytes(sizeof(Runtime::Slice<std::byte>), alignof(Runtime::Slice<std::byte>), true);
-    auto* runtimeValue           = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
-    runtimeValue->ptr            = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
-    runtimeValue->count          = count;
+
+    auto* runtimeValue  = reinterpret_cast<Runtime::Slice<std::byte>*>(storage);
+    runtimeValue->ptr   = const_cast<std::byte*>(static_cast<const std::byte*>(targetPtr));
+    runtimeValue->count = count;
 
     if (targetRef.isValid())
         segment.addRelocation(offset + offsetof(Runtime::Slice<std::byte>, ptr), targetRef.offset);
 
     ConstantValue runtimeValueCst = ConstantValue::makeStructBorrowed(codeGen.ctx(), typeRef, std::span{storage, sizeof(Runtime::Slice<std::byte>)});
     runtimeValueCst.setDataSegmentRef({.shardIndex = shardIndex, .offset = offset});
+
     const ConstantRef cstRef = cstMgr.addUniqueMaterializedPayloadConstant(runtimeValueCst);
     return cstMgr.publishRuntimeBufferConstant(cacheShardIndex, typeRef, targetPtr, count, cstRef);
 }
@@ -186,6 +190,7 @@ Result CodeGenConstantHelpers::loadTypeInfoConstantReg(MicroReg& outReg, CodeGen
 {
     ConstantRef typeInfoCstRef = ConstantRef::invalid();
     SWC_RESULT(codeGen.cstMgr().makeTypeInfo(codeGen.sema(), typeInfoCstRef, typeRef, codeGen.curNodeRef()));
+
     const ConstantValue& typeInfoCst = codeGen.cstMgr().get(typeInfoCstRef);
     SWC_ASSERT(typeInfoCst.isValuePointer());
 

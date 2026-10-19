@@ -37,8 +37,8 @@ bool CodeGenInterfaceHelpers::resolveInterfaceCastInfo(CodeGen& codeGen, const S
         if (!targetStruct)
             continue;
 
-        // Interface implementation can come from a `using` field, but the runtime object pointer must
-        // still be adjusted to the embedded object before building the interface pair.
+        // A using field supplies the implementation; adjust the runtime object
+        // pointer to that embedded object before building the interface pair.
         if (const SymbolImpl* implSym = targetStruct->findInterfaceImpl(dstItf.idRef()))
         {
             outInfo.objectStruct        = targetStruct;
@@ -61,8 +61,10 @@ Result CodeGenInterfaceHelpers::prepareInterfaceMethodTable(ConstantRef& outRef,
     {
         if (allowIncomplete)
             return Result::Continue;
+
         return tableResult;
     }
+
     SWC_ASSERT(outRef.isValid());
 
     if (const SymbolInterface* interfaceSym = castInfo.implSym->symInterface())
@@ -94,6 +96,7 @@ void CodeGenInterfaceHelpers::emitLoadInterfaceMethodTableAddress(MicroReg& outR
     SWC_ASSERT(tableCstRef.isValid());
     const ConstantValue& tableCst = codeGen.cstMgr().get(tableCstRef);
     SWC_ASSERT(tableCst.isArray());
+
     outReg = codeGen.nextVirtualIntRegister();
     codeGen.builder().emitLoadRegPtrReloc(outReg, reinterpret_cast<uint64_t>(tableCst.getArray().data()), tableCstRef);
 }

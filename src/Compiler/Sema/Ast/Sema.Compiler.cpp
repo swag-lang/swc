@@ -710,10 +710,12 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
     {
         SWC_ASSERT(parts.size() == 1);
         SWC_RESULT(castCompilerConditionToBool(sema, parts[0]));
+
         const SemaNodeView conditionView = sema.viewConstant(parts[0]);
         SWC_ASSERT(conditionView.hasConstant());
         if (!conditionView.cst()->getBool())
             return SemaError::raise(sema, DiagnosticId::sema_err_compiler_assert, codeRef());
+
         return Result::Continue;
     }
 
@@ -727,6 +729,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_compiler_error, codeRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, text);
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -735,6 +738,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             auto diag = SemaError::report(sema, DiagnosticId::sema_warn_compiler_warning, codeRef());
             diag.addArgument(Diagnostic::ARG_BECAUSE, text);
             diag.report(sema.ctx());
+
             return Result::Continue;
         }
 
@@ -745,6 +749,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
             Logger::print(ctx, text);
             Logger::print(ctx, "\n");
             ctx.global().logger().unlock();
+
             return Result::Continue;
         }
 
@@ -766,6 +771,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             const SourceFile*      file     = srcView.file();
             const std::string_view nameView = sema.cstMgr().addString(ctx, file ? std::string_view{file->pathString()} : std::string_view{""});
             const ConstantValue    val      = ConstantValue::makeString(ctx, nameView);
+
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }
@@ -774,6 +780,7 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             const SourceCodeRange codeRange = tok.codeRange(ctx, srcView);
             const ConstantValue&  val       = ConstantValue::makeInt(ctx, ApsInt::makeUnsigned(codeRange.line), 0, TypeInfo::Sign::Unsigned);
+
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
             break;
         }
@@ -803,9 +810,11 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
+
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetOs));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+
             sema.setConstant(sema.curNodeRef(), enumValueRef);
             break;
         }
@@ -816,14 +825,17 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
             if (!isDirectFunctionParameterDefault(sema, sema.curNodeRef()))
                 return SemaError::raise(sema, DiagnosticId::sema_err_caller_location_default_only, codeRef());
+
             sema.setType(sema.curNodeRef(), typeRef);
             sema.setIsValue(*this);
             break;
         }
+
         case TokenId::CompilerCurLocation:
         {
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::SourceCodeLocation, typeRef, codeRef()));
+
             ConstantRef cstRef = ConstantRef::invalid();
             SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(sema, cstRef, *this, SemaHelpers::currentLocationFunction(sema)));
             sema.setConstant(sema.curNodeRef(), cstRef);
@@ -834,9 +846,11 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TargetArch, typeRef, codeRef()));
+
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(sema.ctx().cmdLine().targetArch));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+
             sema.setConstant(sema.curNodeRef(), enumValueRef);
             break;
         }
@@ -859,9 +873,11 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::CompilerCommand, typeRef, codeRef()));
+
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(compilerCommandFromKind(sema.ctx().cmdLine().command)));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+
             sema.setConstant(sema.curNodeRef(), enumValueRef);
             break;
         }
@@ -870,9 +886,11 @@ Result AstCompilerLiteral::semaPostNode(Sema& sema)
         {
             TypeRef typeRef = TypeRef::invalid();
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TargetOs, typeRef, codeRef()));
+
             const ConstantRef   valueCst     = sema.cstMgr().addS32(ctx, static_cast<int32_t>(nativeTargetOs()));
             const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCst, typeRef);
             const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+
             sema.setConstant(sema.curNodeRef(), enumValueRef);
             break;
         }
@@ -905,14 +923,18 @@ Result AstCompilerGlobal::semaPreDecl(Sema& sema) const
         case Mode::AccessPublic:
             sema.frame().setCurrentAccess(SymbolAccess::Public);
             break;
+
         case Mode::AccessPrivate:
             sema.frame().setCurrentAccess(SymbolAccess::Private);
             break;
+
         case Mode::AccessInternal:
             sema.frame().setCurrentAccess(SymbolAccess::Internal);
             break;
+
         case Mode::Namespace:
             return AstNamespaceDecl::pushNamespace(sema, this, spanNameRef);
+
         default:
             break;
     }
@@ -932,6 +954,7 @@ Result AstCompilerGlobal::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
 
     if (mode == Mode::AttributeList && childRef == nodeModeRef)
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Zero, childRef);
+
     return Result::Continue;
 }
 
@@ -948,6 +971,7 @@ namespace
         sema.frame().setGlobalCompilerIfEnabled(enabled);
         if (!enabled && sema.file())
             sema.file()->unitTest().markExcludedByGlobalIf();
+
         return Result::SkipChildren;
     }
 }
@@ -969,4 +993,5 @@ Result AstCompilerGlobal::semaPostNode(Sema& sema) const
 
     return Result::Continue;
 }
+
 SWC_END_NAMESPACE();

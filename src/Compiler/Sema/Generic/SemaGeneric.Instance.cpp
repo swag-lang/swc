@@ -465,19 +465,24 @@ namespace SemaGeneric
                 {
                     if (root.isStruct())
                         result = validateGenericStructWhereConstraints(sema, root.cast<SymbolStruct>(), params, resolvedArgs, errorNodeRef);
+
                     if (result == Result::Continue)
                         result = runGenericInstanceNode(sema, root, *outInstance);
+
                     if (result == Result::Continue)
                         setGenericNodeCompleted(*outInstance);
                 }
 
                 if (result == Result::Continue)
                     result = finalizeGenericInstance(sema, root, *outInstance, params, resolvedArgs);
+
                 finishGenericCompletion(*outInstance);
+
                 if (result != Result::Continue)
                 {
                     if (result == Result::Error && !outInstance->isIgnored() && !outInstance->isSemaCompleted())
                         outInstance->setIgnored(sema.ctx());
+
                     return result;
                 }
 
@@ -490,7 +495,8 @@ namespace SemaGeneric
 
         void setGenericParamNotDeducedFailure(Sema& sema, const GenericParamDesc& param, CastFailure& outFailure)
         {
-            outFailure        = {};
+            outFailure = {};
+
             outFailure.diagId = DiagnosticId::sema_err_generic_parameter_not_deduced;
             outFailure.addArgument(Diagnostic::ARG_VALUE, Utf8{sema.idMgr().get(param.idRef).name});
         }
@@ -513,6 +519,7 @@ namespace SemaGeneric
             {
                 if (resolvedArgs[i].present)
                     continue;
+
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_generic_struct_missing_arg, sema.curNodeRef());
                 diag.addArgument(Diagnostic::ARG_SYM, genericRoot.name(sema.ctx()));
                 diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(params[i].idRef).name);
@@ -528,6 +535,7 @@ namespace SemaGeneric
             outInstance = nullptr;
             if (outWhereFailure)
                 *outWhereFailure = {};
+
             if (!hasGenericParams(genericRoot))
                 return Result::Continue;
 
@@ -545,10 +553,12 @@ namespace SemaGeneric
                 appendGenericParams(*sourceSema, *genericRoot.decl(), spanRef, params);
             else
                 appendGenericParams(*sourceSema, spanRef, params);
+
             if (genericArgNodes.size() > params.size())
             {
                 if (reportStructFailure)
                     return reportStructSpecializationFailure(sema, genericRoot, params.span(), {}, genericArgNodes);
+
                 return Result::Continue;
             }
 
@@ -556,6 +566,7 @@ namespace SemaGeneric
             SmallVector<GenericResolvedArg> resolvedArgs(params.size());
             for (size_t i = 0; i < genericArgNodes.size(); ++i)
                 SWC_RESULT(SemaGeneric::resolveExplicitGenericArg(sema, params[i], genericArgNodes[i], resolvedArgs[i]));
+
             const ResolvedGenericBindingSource source{params.span(), resolvedArgs.span()};
 
             if (const auto* genericStruct = genericRoot.safeCast<SymbolStruct>())
@@ -565,10 +576,12 @@ namespace SemaGeneric
             }
 
             SWC_RESULT(materializeGenericArgs(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), genericArgNodes, errorNodeRef));
+
             if (hasMissingGenericArgs(resolvedArgs.span()))
             {
                 if (reportStructFailure)
                     return reportStructSpecializationFailure(sema, genericRoot, params.span(), resolvedArgs.span(), genericArgNodes);
+
                 return Result::Continue;
             }
 
@@ -576,8 +589,10 @@ namespace SemaGeneric
             {
                 FunctionWhereInputs whereInputs;
                 buildFunctionWhereInputs(*sourceSema, *function, source, whereInputs);
+
                 bool satisfied = true;
                 SWC_RESULT(checkFunctionWhereConstraints(*sourceSema, satisfied, *function, whereInputs.bindings.span(), whereInputs.bindingText, outWhereFailure, errorNodeRef));
+
                 if (!satisfied)
                     return outWhereFailure ? Result::Continue : Result::Error;
             }
@@ -591,6 +606,8 @@ namespace SemaGeneric
                 return;
 
             SmallVector usedContextParams(contextParams.size(), false);
+
+            // Prefer bindings with the same parameter name and kind.
             for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
             {
                 if (resolvedArgs[targetIndex].present)
@@ -608,7 +625,8 @@ namespace SemaGeneric
                     resolvedArgs[targetIndex].present = true;
                     resolvedArgs[targetIndex].typeRef = contextArgs[contextIndex].typeRef;
                     resolvedArgs[targetIndex].cstRef  = contextArgs[contextIndex].cstRef;
-                    usedContextParams[contextIndex]   = true;
+
+                    usedContextParams[contextIndex] = true;
                     break;
                 }
             }
@@ -616,6 +634,7 @@ namespace SemaGeneric
             if (!allowKindFallback)
                 return;
 
+            // Reserve matching context arguments for parameters that are already resolved.
             for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
             {
                 if (!resolvedArgs[targetIndex].present)
@@ -639,6 +658,7 @@ namespace SemaGeneric
                 }
             }
 
+            // Fill remaining parameters from unused context arguments of the same kind.
             for (size_t targetIndex = 0; targetIndex < targetParams.size(); ++targetIndex)
             {
                 if (resolvedArgs[targetIndex].present)
@@ -652,15 +672,18 @@ namespace SemaGeneric
                 {
                     if (!usedContextParams[contextIndex] && targetParams[targetIndex].kind == contextParams[contextIndex].kind)
                         break;
+
                     ++contextIndex;
                 }
+
                 if (contextIndex == contextParams.size())
                     continue;
 
                 resolvedArgs[targetIndex].present = true;
                 resolvedArgs[targetIndex].typeRef = contextArgs[contextIndex].typeRef;
                 resolvedArgs[targetIndex].cstRef  = contextArgs[contextIndex].cstRef;
-                usedContextParams[contextIndex]   = true;
+
+                usedContextParams[contextIndex] = true;
             }
         }
 
@@ -719,6 +742,7 @@ namespace SemaGeneric
                 instance = genericStructInstanceFromFunctionOwner(genericRoot, inlinePayload.sourceFunction);
                 return instance != nullptr;
             });
+
             return instance;
         }
 
@@ -731,6 +755,7 @@ namespace SemaGeneric
         {
             if (const SymbolStruct* instance = genericStructInstanceFromImplFrames(sema))
                 return instance;
+
             return genericStructInstanceFromScopes(sema);
         }
 
@@ -748,6 +773,7 @@ namespace SemaGeneric
         {
             SmallVector<const SymbolFunction*> functions;
             collectAmbientGenericFunctions(sema, functions);
+
             for (const SymbolFunction* function : functions)
             {
                 if (!hasMissingGenericArgs(resolvedArgs))
@@ -809,6 +835,7 @@ namespace SemaGeneric
     {
         Symbol* instance = nullptr;
         SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance, outWhereFailure));
+
         outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
         return Result::Continue;
     }
@@ -820,6 +847,7 @@ namespace SemaGeneric
             *outFailure = {};
         if (outFailureArgIndex)
             *outFailureArgIndex = UINT32_MAX;
+
         if (!hasGenericParams(genericRoot))
             return Result::Continue;
 
@@ -836,6 +864,7 @@ namespace SemaGeneric
         appendGenericParams(*sourceSema, *decl, decl->spanGenericParamsRef, params);
         if (params.empty())
             return Result::Continue;
+
         if (explicitGenericArgNodes.size() > params.size())
             return Result::Continue;
 
@@ -843,9 +872,11 @@ namespace SemaGeneric
         SmallVector<GenericResolvedArg> resolvedArgs(params.size());
         for (size_t i = 0; i < explicitGenericArgNodes.size(); ++i)
             SWC_RESULT(resolveExplicitGenericArg(sema, params[i], explicitGenericArgNodes[i], resolvedArgs[i]));
+
         SWC_RESULT(deduceGenericFunctionArgs(sema, genericRoot, params.span(), resolvedArgs, args, ufcsArg, outFailure, outFailureArgIndex));
         if (outFailure && outFailure->diagId != DiagnosticId::None)
             return Result::Continue;
+
         if (hasMissingGenericArgs(resolvedArgs.span()))
             resolveArgsFromAmbientFunctions(sema, params.span(), resolvedArgs.span(), false);
 
@@ -863,6 +894,7 @@ namespace SemaGeneric
                     }
                 }
             }
+
             return Result::Continue;
         }
 
@@ -870,19 +902,23 @@ namespace SemaGeneric
         bool                               whereSatisfied = true;
         if (outFailure)
             *outFailure = {};
+
         if (decl->spanConstraintsRef.isValid())
         {
             FunctionWhereInputs whereInputs;
             buildFunctionWhereInputs(*sourceSema, genericRoot, source, whereInputs);
+
             CastFailure  localFailure;
             CastFailure* whereFailure = outFailure ? outFailure : &localFailure;
             SWC_RESULT(Internal::checkFunctionWhereConstraints(*sourceSema, whereSatisfied, genericRoot, whereInputs.bindings.span(), whereInputs.bindingText, whereFailure, errorNodeRef));
+
             if (!whereSatisfied)
                 return Result::Continue;
         }
 
         Symbol* instance = nullptr;
         SWC_RESULT(createGenericInstance(*sourceSema, genericRoot, params.span(), resolvedArgs.span(), instance, genericInstanceOrigin(sema), errorNodeRef));
+
         outInstance = instance ? &instance->cast<SymbolFunction>() : nullptr;
         return Result::Continue;
     }
@@ -891,6 +927,7 @@ namespace SemaGeneric
     {
         Symbol* instance = nullptr;
         SWC_RESULT(instantiateGenericExplicit(sema, genericRoot, genericArgNodes, instance, nullptr, reportFailure));
+
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
     }
@@ -924,6 +961,7 @@ namespace SemaGeneric
 
         Symbol* instance = nullptr;
         SWC_RESULT(createGenericInstance(*targetSema, genericRoot, targetParams.span(), resolvedArgs.span(), instance, genericInstanceOrigin(sema), sema.curNodeRef()));
+
         outInstance = instance ? &instance->cast<SymbolStruct>() : nullptr;
         return Result::Continue;
     }

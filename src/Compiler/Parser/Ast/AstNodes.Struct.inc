@@ -994,47 +994,46 @@ struct AstQualifiedType : AstNodeT<AstNodeId::QualifiedType, AstQualifiedTypeFla
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstMoveRefType : AstNodeT<AstNodeId::MoveRefType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstValuePointerType : AstNodeT<AstNodeId::ValuePointerType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstBlockPointerType : AstNodeT<AstNodeId::BlockPointerType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstSliceType : AstNodeT<AstNodeId::SliceType>
 {
     AstNodeRef nodePointeeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePointeeTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
 {
     SpanRef    spanDimensionsRef;
@@ -1051,49 +1050,46 @@ struct AstArrayType : AstNodeT<AstNodeId::ArrayType>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstSimdType : AstNodeT<AstNodeId::SimdType>
 {
     AstNodeRef nodeArrayTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArrayTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeArrayTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstNamedType : AstNodeT<AstNodeId::NamedType>
 {
     AstNodeRef nodeIdentRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstBuiltinType : AstNodeT<AstNodeId::BuiltinType>
 {
-    // The type this node names, when the compiler synthesized it. A generated type node borrows
-    // the location of the statement that produced it, and that token names no type, so the
-    // answer cannot come from the token the way a written type's does.
+    // Synthesized nodes borrow a statement's source location, whose token names
+    // no type. Store the intended builtin type explicitly.
     TokenId typeTokenId = TokenId::Invalid;
 
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerTypeExpr : AstNodeT<AstNodeId::CompilerTypeExpr>
 {
     AstNodeRef nodeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstLambdaType : AstNodeT<AstNodeId::LambdaType, AstFunctionFlagsE>
 {
     SpanRef    spanParamsRef;
@@ -1109,29 +1105,26 @@ struct AstLambdaType : AstNodeT<AstNodeId::LambdaType, AstFunctionFlagsE>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstRetValType : AstNodeT<AstNodeId::RetValType>
 {
     static Result semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCodeType : AstNodeT<AstNodeId::CodeType>
 {
     AstNodeRef nodeTypeRef;
-    // Declared block parameters ('#code(a, b: T)'), a span of CodeParam nodes.
-    // Names are the default call-site binder names and the '#inject' binding names.
-    // Kept out of collectChildren: they are a compile-time naming contract, not
-    // semantically visited nodes.
+
+    // CodeParam names supply default call-site binders and #inject bindings.
+    // They form a naming contract and are excluded from semantic traversal.
     SpanRef spanParamsRef = SpanRef::invalid();
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstCodeParamFlagsE : AstNode::ParserFlags
 {
     Zero = 0,
@@ -1146,55 +1139,56 @@ struct AstCodeParam : AstNodeT<AstNodeId::CodeParam, AstCodeParamFlagsE>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstVariadicType : AstNodeT<AstNodeId::VariadicType>
 {
     static Result semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstTypedVariadicType : AstNodeT<AstNodeId::TypedVariadicType>
 {
     AstNodeRef nodeTypeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTypeRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerIf : AstNodeT<AstNodeId::CompilerIf>
 {
     AstNodeRef nodeConditionRef;
     AstNodeRef nodeIfBlockRef;
     AstNodeRef nodeElseBlockRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeConditionRef, nodeIfBlockRef, nodeElseBlockRef}); }
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result     semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
-    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerSwitch : AstNodeT<AstNodeId::CompilerSwitch>
 {
     AstModifierFlags modifierFlags;
-    AstNodeRef       nodeExprRef;
-    SpanRef          spanCasesRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const;
+    AstNodeRef nodeExprRef;
+    SpanRef    spanCasesRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const;
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result     semaPreDeclChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
-    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerSwitchCase : AstNodeT<AstNodeId::CompilerSwitchCase>
 {
     SpanRef    spanExprRef;
@@ -1209,17 +1203,16 @@ struct AstCompilerSwitchCase : AstNodeT<AstNodeId::CompilerSwitchCase>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstAttribute : AstNodeT<AstNodeId::Attribute>
 {
     AstNodeRef nodeCallRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCallRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCallRef}); }
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result     semaPostNode(Sema& sema) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
 {
     AstNodeRef nodeBodyRef;
@@ -1236,7 +1229,6 @@ struct AstAttributeList : AstCompoundT<AstNodeId::AttributeList>
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
 {
     static Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef);
@@ -1244,10 +1236,10 @@ struct AstUsingDecl : AstCompoundT<AstNodeId::UsingDecl>
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 {
     static Result codeGenPreNode(const CodeGen& codeGen);
+
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1255,10 +1247,10 @@ struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
     static Result semaPostNode(Sema& sema);
 };
 
-// -----------------------------------------------------------------------------
 struct AstUnionDecl : AstAggregateDeclT<AstNodeId::UnionDecl>
 {
     static Result codeGenPreNode(const CodeGen& codeGen);
+
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1266,10 +1258,10 @@ struct AstUnionDecl : AstAggregateDeclT<AstNodeId::UnionDecl>
     static Result semaPostNode(Sema& sema);
 };
 
-// -----------------------------------------------------------------------------
 struct AstAnonymousStructDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousStructDecl>
 {
     static Result codeGenPreNode(const CodeGen& codeGen);
+
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1277,10 +1269,10 @@ struct AstAnonymousStructDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousS
     static Result semaPostNode(Sema& sema);
 };
 
-// -----------------------------------------------------------------------------
 struct AstAnonymousUnionDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousUnionDecl>
 {
     static Result codeGenPreNode(const CodeGen& codeGen);
+
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1288,13 +1280,11 @@ struct AstAnonymousUnionDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousUn
     static Result semaPostNode(Sema& sema);
 };
 
-// -----------------------------------------------------------------------------
 struct AstAggregateBody : AstCompoundT<AstNodeId::AggregateBody>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstInterfaceDecl : AstAggregateDeclT<AstNodeId::InterfaceDecl>
 {
     Result        semaPreDecl(Sema& sema) const;
@@ -1304,32 +1294,30 @@ struct AstInterfaceDecl : AstAggregateDeclT<AstNodeId::InterfaceDecl>
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstInterfaceBody : AstCompoundT<AstNodeId::InterfaceBody>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstAccessModifierFlagsE : AstNode::ParserFlags
 {
     Zero     = 0,
-    Member   = 1 << 0, // written inside an aggregate body, so it sets member access instead of symbol visibility
-    ReadOnly = 1 << 1, // 'readonly' was written, alone or after a level: writes are restricted to the declaring type
+    Member   = 1 << 0, // Inside an aggregate: changes member access instead of symbol visibility.
+    ReadOnly = 1 << 1, // Writes stay within the declaring type.
 };
 
 struct AstAccessModifier : AstNodeT<AstNodeId::AccessModifier, AstAccessModifierFlagsE>
 {
     AstNodeRef nodeWhatRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeWhatRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeWhatRef}); }
+
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     static Result semaPostNode(const Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>
 {
     uint32_t sourceLength = 0;
@@ -1337,23 +1325,22 @@ struct AstConstraintBlock : AstCompoundT<AstNodeId::ConstraintBlock>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstConstraintExpr : AstNodeT<AstNodeId::ConstraintExpr>
 {
     AstNodeRef nodeExprRef;
-    uint32_t   sourceLength = 0;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    uint32_t sourceLength = 0;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstGenericParamList : AstCompoundT<AstNodeId::GenericParamList>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstGenericParamValue : AstGenericParamT<AstNodeId::GenericParamValue>
 {
     AstNodeRef nodeTypeRef;
@@ -1367,13 +1354,11 @@ struct AstGenericParamValue : AstGenericParamT<AstNodeId::GenericParamValue>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstGenericParamType : AstGenericParamT<AstNodeId::GenericParamType>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstVarDeclFlagsE : AstNode::ParserFlags
 {
     Zero               = 0,
@@ -1382,24 +1367,24 @@ enum class AstVarDeclFlagsE : AstNode::ParserFlags
     Let                = 1 << 2,
     Parameter          = 1 << 3,
     Using              = 1 << 4,
-    FwdCopy            = 1 << 5, // copy variant of a '#fwd' parameter: requires a copyable type at match time
+    FwdCopy            = 1 << 5, // Copy arm of #fwd; matching requires a copyable type.
     NamedDestructuring = 1 << 6,
 };
 
 struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlagsE>, AstVarDeclBase
 {
-    // When valid, the declared symbol uses this identifier instead of the one
-    // derived from the name token. Used by sema-synthesized declarations whose
-    // effective name comes from another source view (e.g. '#inject' bindings
-    // renamed by a call-site binder).
+    // Override the name token when a synthesized declaration takes its identifier
+    // from another source view, as with renamed #inject bindings.
     IdentifierRef forcedIdentRef = IdentifierRef::invalid();
-    // For '#inject' binding declarations: the synthesized block that owns them.
-    // A binding only shadows caller pre-resolved symbols for code injected by the
-    // same '#inject' (hygiene across nested macro expansions).
+
+    // A binding shadows pre-resolved caller symbols only inside its own #inject
+    // block, preserving hygiene across nested expansions.
     AstNodeRef injectBlockRef = AstNodeRef::invalid();
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
+
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPreDecl(Sema& sema) const;
     Result     semaPreNode(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1408,13 +1393,14 @@ struct AstSingleVarDecl : AstNamedNodeT<AstNodeId::SingleVarDecl, AstVarDeclFlag
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, AstVarDeclBase
 {
     SpanRef spanNamesRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { collectVarChildren(out); }
+
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     Result     semaPreDecl(Sema& sema) const;
     Result     semaPreNode(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1423,54 +1409,56 @@ struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, As
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstVarDeclDestructuring : AstNodeT<AstNodeId::VarDeclDestructuring, AstVarDeclFlagsE>
 {
-    SpanRef    spanNamesRef;
-    SpanRef    spanFieldNamesRef;
+    SpanRef spanNamesRef;
+    SpanRef spanFieldNamesRef;
+
     AstNodeRef nodeInitRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstVarDeclList : AstCompoundT<AstNodeId::VarDeclList>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 {
     AstNodeRef nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     Result     semaPostNode(Sema& sema) const;
     Result     semaPreDecl(Sema& sema) const;
     Result     semaPreNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 // 'try'/'catch'/'expect'/'notnull' applied to an expression.
 struct AstErrorManagementExpr : AstNodeT<AstNodeId::ErrorManagementExpr>
 {
     AstNodeRef nodeExprRef;
-    TokenRef   errNameTokRef; // 'let x = catch f() as err': binds the caught error into a named local; invalid otherwise
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    // Optional local name for a caught error, as in catch f() as err.
+    TokenRef errNameTokRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema) const;
-    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result        codeGenPostNode(CodeGen& codeGen) const;
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result     codeGenPostNode(CodeGen& codeGen) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstUnreachableStmt : AstNodeT<AstNodeId::UnreachableStmt>
 {
     static Result semaPreNode(Sema& sema);
@@ -1478,7 +1466,6 @@ struct AstUnreachableStmt : AstNodeT<AstNodeId::UnreachableStmt>
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstContinueStmt : AstNodeT<AstNodeId::ContinueStmt>
 {
     static Result semaPreNode(Sema& sema);
@@ -1486,7 +1473,6 @@ struct AstContinueStmt : AstNodeT<AstNodeId::ContinueStmt>
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstBreakStmt : AstNodeT<AstNodeId::BreakStmt>
 {
     static Result semaPreNode(Sema& sema);

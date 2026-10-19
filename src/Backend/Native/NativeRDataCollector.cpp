@@ -20,6 +20,7 @@ Result NativeRDataCollector::collectAndEmit()
     SWC_RESULT(collectStartupRoots());
     SWC_RESULT(collectFunctionRoots());
     SWC_RESULT(collectGlobalRoots());
+
     return emitCollectedRoots();
 }
 
@@ -66,8 +67,8 @@ Result NativeRDataCollector::emitCollectedRoots()
 
 Result NativeRDataCollector::collectPendingAllocations()
 {
-    // First in, first out: an allocation's dependencies are reached after every root, in the
-    // order of the allocations that reference them, so the emission order is the reference order.
+    // Walk the queue in insertion order so dependencies follow all roots and
+    // are discovered in the order of the allocations that reference them.
     std::vector<DataSegmentRelocation> allocationRelocations;
     for (size_t next = 0; next < pending_.size(); ++next)
     {
@@ -116,6 +117,7 @@ Result NativeRDataCollector::collectCodeRoots(const Utf8& ownerName, const std::
 Result NativeRDataCollector::enqueueConstantRelocation(const Utf8& ownerName, const MicroRelocation& relocation)
 {
     SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
+
     DataSegmentRef sourceRef;
     SWC_RESULT(builder_->resolveConstantSourceRef(sourceRef, ownerName, relocation));
     return enqueueSourceOffset(ownerName, sourceRef.shardIndex, sourceRef.offset);
@@ -137,8 +139,10 @@ Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const ui
     ReachableRDataAllocation& reachable = it->second;
     reachable.source                    = allocation;
     reachable.ownerName                 = ownerName;
+
     reachableAllocations_.push_back({shardIndex, &reachable});
     pending_.push_back({shardIndex, &reachable});
+
     return Result::Continue;
 }
 
@@ -149,11 +153,9 @@ Result NativeRDataCollector::emitReachableAllocations()
     for (auto& mappings : builder_->rdataAllocationMap)
         mappings.clear();
 
-    // Allocations are emitted in the order the roots reached them: functions in emission order
-    // with their relocations in code order, globals and startup code, each in a fixed order.
-    // Which shard holds a constant, and at which offset, follows the order in which compilation
-    // jobs created it; laying the section out by shard and offset made two builds of the same
-    // program differ.
+    // Emit in discovery order, which follows roots and relocation references.
+    // Shards and source offsets depend on compilation scheduling and would make
+    // the resulting layout nondeterministic.
     for (const PendingRDataAllocation& entry : reachableAllocations_)
     {
         const DataSegment&           segment    = builder_->compiler().cstMgr().shardDataSegment(entry.shardIndex);
@@ -165,6 +167,7 @@ Result NativeRDataCollector::emitReachableAllocations()
         const auto* sourceBytes = segment.ptr<std::byte>(allocation.offset);
         SWC_ASSERT(sourceBytes != nullptr);
         const bool zeroFilled = std::ranges::all_of(std::span<const std::byte>{sourceBytes, allocation.size}, [](const std::byte value) { return value == std::byte{}; });
+
         // resize already zeroed the destination. Keep the result for the
         // object writer instead of scanning the copied bytes a second time.
         if (!zeroFilled)
@@ -177,6 +180,7 @@ Result NativeRDataCollector::emitReachableAllocations()
         mapEntry.align         = std::max(allocation.align, 1u);
         mapEntry.emittedOffset = emittedOffset;
         mapEntry.zeroFilled    = zeroFilled;
+
         builder_->rdataAllocationMap[entry.shardIndex].push_back(mapEntry);
         builder_->rdataAllocations.push_back(mapEntry);
     }
@@ -192,6 +196,7 @@ Result NativeRDataCollector::emitReachableAllocations()
         const PendingRDataAllocation& entry      = reachableAllocations_[allocationIndex];
         const DataSegment&            segment    = builder_->compiler().cstMgr().shardDataSegment(entry.shardIndex);
         const DataSegmentAllocation&  allocation = entry.allocation->source;
+
         // The emission list retains the order above; only the per-shard lookup tables were sorted.
         const NativeRDataAllocationMapEntry& mapping = builder_->rdataAllocations[firstAllocationIndex + allocationIndex];
         SWC_ASSERT(mapping.shardIndex == entry.shardIndex && mapping.sourceOffset == allocation.offset);
@@ -211,6 +216,7 @@ Result NativeRDataCollector::emitReachableAllocations()
 
                 if (!rdataBaseName)
                     rdataBaseName = &builder_->scopedSymbolNames().rdataBase;
+
                 record.symbolName = *rdataBaseName;
                 record.addend     = targetOffset;
                 builder_->mergedRData.relocations.push_back(std::move(record));

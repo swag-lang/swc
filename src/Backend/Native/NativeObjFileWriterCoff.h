@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Backend/Debug/DebugInfo.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/NativeSection.h"
@@ -44,12 +45,13 @@ private:
     {
         NativeSectionData                    data;
         std::vector<NativeSectionRelocation> relocations;
-        uint16_t                             sectionNumber         = 0;
-        uint32_t                             pointerToRawData      = 0;
-        uint32_t                             pointerToRelocations  = 0;
-        uint16_t                             numberOfRelocations   = 0;
-        uint32_t                             sizeOfRawData         = 0;
-        bool                                 hasRelocationOverflow = false;
+
+        uint16_t sectionNumber         = 0;
+        uint32_t pointerToRawData      = 0;
+        uint32_t pointerToRelocations  = 0;
+        uint16_t numberOfRelocations   = 0;
+        uint32_t sizeOfRawData         = 0;
+        bool     hasRelocationOverflow = false;
     };
 
     // Symbol name -> record index. Every name is borrowed from an owner that outlives the object
@@ -71,6 +73,7 @@ private:
         {
             if (name.size() <= K_COFF_SHORT_NAME_SIZE)
                 return 0;
+
             const auto [existing, inserted] = offsets.try_emplace(name, Math::hash(name), size);
             if (!inserted)
                 return *existing;
@@ -94,9 +97,11 @@ private:
     Result        appendCodeRelocations(const NativeFunctionInfo& owner, const MachineCode& code, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
     Result        appendSingleCodeRelocation(uint32_t functionOffset, const Utf8& ownerName, const MicroRelocation& relocation, CoffSectionBuild& textSection, bool allowUnresolvedSymbols, bool splitRDataReferences) const;
     static Result applySectionRelocations(CoffSectionBuild& section);
-    void          addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex) const;
-    static void   addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex, std::string_view ownedName, CoffSymbolRecord record);
-    static void   addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex);
+
+    void        addDefinedSymbols(const NativeObjDescription& description, const std::vector<CoffSectionBuild>& sections, const std::vector<DebugInfoDefinedSymbol>& extraSymbols, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex) const;
+    static void addSymbolRecord(std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex, std::string_view ownedName, CoffSymbolRecord record);
+    static void addUndefinedSymbols(const std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, CoffSymbolIndex& symbolIndex);
+
     static Result buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const CoffSymbolIndex& symbolIndex);
 
     NativeBackendBuilder* builder_ = nullptr;

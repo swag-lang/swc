@@ -42,6 +42,7 @@ namespace
                               allowInline,
                               calledFn.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning),
                               calledFn.isTyped());
+
         return detail;
     }
 #endif
@@ -98,9 +99,8 @@ namespace
 
     AstNodeRef makeSyntheticStringConstantArg(Sema& sema, const SourceCodeRef& codeRef, std::string_view value)
     {
-        // Synthetic overload arguments bypass the parser and the regular literal
-        // visitor. Seed the semantic payload immediately so Match can consume them
-        // exactly like already-checked source expressions.
+        // Synthetic arguments bypass parser and literal visits. Publish their semantic
+        // payload now so matching sees an already checked source expression.
         const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::StringLiteral>(codeRef.tokRef);
         nodePtr->setCodeRef(codeRef);
 
@@ -108,8 +108,10 @@ namespace
         ConstantValue      constant = ConstantValue::makeString(ctx, value);
         constant.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
         const ConstantRef constantRef = sema.cstMgr().addConstant(ctx, constant);
+
         sema.setConstant(nodeRef, constantRef);
         sema.setIsValue(*nodePtr);
+
         return nodeRef;
     }
 
@@ -122,11 +124,13 @@ namespace
             case TokenId::SymAsterisk: return SpecOperator::Mul;
             case TokenId::SymSlash: return SpecOperator::Div;
             case TokenId::SymPercent: return SpecOperator::Mod;
+
             case TokenId::SymAmpersand: return SpecOperator::BitAnd;
             case TokenId::SymPipe: return SpecOperator::BitOr;
             case TokenId::SymCircumflex: return SpecOperator::BitXor;
             case TokenId::SymLowerLower: return SpecOperator::Shl;
             case TokenId::SymGreaterGreater: return SpecOperator::Shr;
+
             default: return std::nullopt;
         }
     }
@@ -139,6 +143,7 @@ namespace
             case TokenId::SymPlus: return SpecOperator::Pos;
             case TokenId::SymMinus: return SpecOperator::Neg;
             case TokenId::SymTilde: return SpecOperator::BitNot;
+
             default: return std::nullopt;
         }
     }
@@ -152,18 +157,19 @@ namespace
             case TokenId::SymAsteriskEqual: return SpecOperator::MulAssign;
             case TokenId::SymSlashEqual: return SpecOperator::DivAssign;
             case TokenId::SymPercentEqual: return SpecOperator::ModAssign;
+
             case TokenId::SymAmpersandEqual: return SpecOperator::BitAndAssign;
             case TokenId::SymPipeEqual: return SpecOperator::BitOrAssign;
             case TokenId::SymCircumflexEqual: return SpecOperator::BitXorAssign;
             case TokenId::SymLowerLowerEqual: return SpecOperator::ShlAssign;
             case TokenId::SymGreaterGreaterEqual: return SpecOperator::ShrAssign;
+
             default: return std::nullopt;
         }
     }
 
-    // The operator reaches the hook as a 'Swag.Operator' value, so a misspelled member is a
-    // symbol error instead of a comparison that silently never matches. Resolving the runtime
-    // enum can suspend, hence the Result-returning shape.
+    // Pass a Swag.Operator value so misspelled members fail symbol resolution.
+    // Resolving the runtime enum can pause, so constructing the argument returns Result.
     Result makeSyntheticOperatorArg(AstNodeRef& outNodeRef, Sema& sema, const SourceCodeRef& codeRef, SpecOperator op)
     {
         outNodeRef = AstNodeRef::invalid();
@@ -178,6 +184,7 @@ namespace
         const ConstantRef   valueCstRef  = sema.cstMgr().addS32(ctx, static_cast<int32_t>(op));
         const ConstantValue enumValue    = ConstantValue::makeEnumValue(ctx, valueCstRef, typeRef);
         const ConstantRef   enumValueRef = sema.cstMgr().addConstant(ctx, enumValue);
+
         sema.setType(nodeRef, typeRef);
         sema.setConstant(nodeRef, enumValueRef);
         sema.setIsValue(*nodePtr);
@@ -188,14 +195,14 @@ namespace
 
     AstNodeRef makeSyntheticBoolConstantArg(Sema& sema, const SourceCodeRef& codeRef, bool value)
     {
-        // Same contract as makeSyntheticStringConstantArg: this node is created
-        // after sema has already reached the special-op path, so no later literal
-        // pass will come back to fill type/constant/value flags.
+        // As with synthetic strings, fill all semantic flags now: no literal pass follows.
         const auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::BoolLiteral>(codeRef.tokRef);
         nodePtr->setCodeRef(codeRef);
+
         sema.setType(nodeRef, sema.typeMgr().typeBool());
         sema.setConstant(nodeRef, sema.cstMgr().cstBool(value));
         sema.setIsValue(*nodePtr);
+
         return nodeRef;
     }
 
@@ -223,14 +230,15 @@ namespace
         if (node.nodeWhereRef.isInvalid())
             return node.nodeBodyRef;
 
-        // 'foreach where' is passed to opVisit as a code block. Represent the
-        // filter as an if-statement around the user body so the visit function sees
-        // the same control-flow shape the source would have produced.
-        auto [ifRef, ifPtr]     = sema.ast().makeNode<AstNodeId::IfStmt>(node.tokRef());
+        // Pass 'foreach where' to opVisit as a code block whose if-statement wraps
+        // the original body, preserving the filter's control flow.
+        auto [ifRef, ifPtr] = sema.ast().makeNode<AstNodeId::IfStmt>(node.tokRef());
+
         ifPtr->nodeConditionRef = node.nodeWhereRef;
         ifPtr->nodeIfBlockRef   = node.nodeBodyRef;
         ifPtr->nodeElseBlockRef = AstNodeRef::invalid();
         ifPtr->setCodeRef(node.codeRef());
+
         return ifRef;
     }
 
@@ -240,6 +248,7 @@ namespace
         nodePtr->setCodeRef(node.codeRef());
         nodePtr->nodeBodyRef    = makeForeachVisitBodyRef(sema, node);
         nodePtr->payloadTypeRef = sema.typeMgr().typeVoid();
+
         return nodeRef;
     }
 
@@ -248,6 +257,7 @@ namespace
         const AstNode& childNode = ast.node(childRef);
         if (const auto* accessNode = childNode.safeCast<AstAccessModifier>())
             return accessNode->nodeWhatRef;
+
         return childRef;
     }
 
@@ -255,9 +265,8 @@ namespace
     {
         outAst = nullptr;
 
-        // An impl can be represented in three places while sema is still moving:
-        // the instantiated generic block, the current worker AST, or the original
-        // source-file AST. Return the matching AST together with its child refs.
+        // Impl children may belong to an instantiated generic block, the worker AST
+        // or the source-file AST. Return the owning AST alongside its child refs.
         const AstNodeRef genericBlockRef = symImpl.genericBlockRef();
         if (genericBlockRef.isValid() && sema.ast().hasNode(genericBlockRef))
         {
@@ -283,6 +292,7 @@ namespace
 
         outAst = &sourceFile->ast();
         outAst->appendNodes(outChildren, implDecl->spanChildrenRef);
+
         return true;
     }
 
@@ -292,6 +302,7 @@ namespace
         SmallVector<AstNodeRef> children;
         if (!collectImplPendingChildren(sema, symImpl, children, implAst))
             return false;
+
         for (const AstNodeRef childRef : children)
         {
             const AstNodeRef declRef  = unwrapVisitFunctionDeclRef(*implAst, childRef);
@@ -314,6 +325,7 @@ namespace
 
         bool foundDecl       = false;
         bool foundRegistered = false;
+
         for (const SymbolImpl* symImpl : ownerStruct.impls())
         {
             if (!symImpl || symImpl->isIgnored())
@@ -331,6 +343,7 @@ namespace
 
         if (foundDecl && !foundRegistered)
             return sema.waitIdentifier(idRef, codeRef);
+
         return Result::Continue;
     }
 
@@ -353,6 +366,7 @@ namespace
             unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), valueType.payloadTypeRef());
         else
             unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), unwrappedTypeRef);
+
         if (!unwrappedTypeRef.isValid())
             unwrappedTypeRef = view.typeRef();
 
@@ -373,6 +387,7 @@ namespace
             return true;
         if (view.type()->isPointerOrReference())
             return sema.typeMgr().get(view.type()->payloadTypeRef()).isConst();
+
         return false;
     }
 
@@ -407,14 +422,13 @@ namespace
             return Result::Continue;
         }
 
-        // Literal operator overloads are published during pre-decl and can be specialized before
-        // declaration finishes, which silently drops the candidate. Generic `opVisit` can also be
-        // queried from `foreach` before the declaration is fully ready in some build modes, so make
-        // both cases wait for declaration completion unless we are currently resolving that same
-        // operator overload.
+        // Literal/visit overloads can be published before declaration finishes, which
+        // would silently lose a premature specialization. Wait for declaration unless
+        // resolving that same overload, where waiting would create a self-dependency.
         if (symFunc.specOpKind() != SpecOpKind::OpSetLiteral &&
             symFunc.specOpKind() != SpecOpKind::OpVisit)
             return Result::Continue;
+
         if (sema.waiterSymbol() == &symFunc)
             return Result::Continue;
 
@@ -447,6 +461,7 @@ namespace
 
                 SymbolFunction* specialized = nullptr;
                 CastFailure     whereFailure;
+
                 // A rejected constraint is a candidate mismatch; an error while creating
                 // the specialization is a failed dependency and must reach the caller.
                 SWC_RESULT(SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized, &whereFailure));
@@ -454,8 +469,10 @@ namespace
                 {
                     if (whereFailure.diagId == DiagnosticId::sema_err_function_where_failed)
                         continue;
+
                     return SemaGeneric::instantiateFunctionExplicit(sema, *symFunc, genericArgNodes, specialized);
                 }
+
                 if (specialized)
                 {
                     SWC_RESULT(sema.waitSemaCompleted(specialized, specialized->codeRef()));
@@ -493,12 +510,9 @@ namespace
         return Result::Continue;
     }
 
-    // Comparison is the one operator family an embedded struct must not compete for. Every other
-    // family widens what the embedder can do — an embedded 'opCast' or 'opBinary' adds a target
-    // type or an operand type the embedder does not handle itself — but two structs comparing
-    // equal is a question only one of them can answer, so an embedded 'opEquals' taking over for
-    // the whole embedder is never what was meant. It ties with the embedder's own, which is
-    // reported as an ambiguity rather than resolved.
+    // Embedded comparisons must not compete with the embedder's own identity. Stop
+    // at the first using level with an answer. Other operator families add operand
+    // or conversion targets and can merge candidates from embedded structs.
     bool specOpHidesUsingCandidates(Sema& sema, IdentifierRef idRef)
     {
         return idRef == sema.idMgr().predefined(IdentifierManager::PredefinedName::OpEquals) ||
@@ -520,9 +534,8 @@ namespace
         return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
     }
 
-    // Whether one of the collected operators can actually take the right operand. Asking the
-    // matcher is what keeps a comparison promoted through a 'using' member — which no signature
-    // test would recognize as taking the embedder — from being mistaken for no answer at all.
+    // Probe matching rather than signatures: a comparison promoted through a using
+    // member can accept the embedder without naming it in its declared parameters.
     Result hasViableRelationalCandidate(bool& outViable, Sema& sema, const AstRelationalExpr& node, std::span<Symbol* const> candidates)
     {
         outViable = false;
@@ -532,6 +545,7 @@ namespace
         const SemaNodeView            calleeView(sema, sema.curNodeRef(), SemaNodeViewPartE::Node);
         Match::FunctionCandidateProbe probe;
         SWC_RESULT(Match::probeFunctionCandidates(sema, calleeView, candidates, args, node.nodeLeftRef, probe, true));
+
         outViable = probe.matched && probe.fn != nullptr;
         return Result::Continue;
     }
@@ -540,9 +554,9 @@ namespace
     {
         outCandidates.clear();
 
-        // The search widens one using-level at a time, so a comparison can stop as soon as a level
-        // answers instead of merging every level into one overload set.
-        const bool                       stopAtAnsweringLevel = specOpHidesUsingCandidates(sema, idRef);
+        // Widen by one using level so comparisons can stop at the first answer.
+        const bool stopAtAnsweringLevel = specOpHidesUsingCandidates(sema, idRef);
+
         PointerSet<const SymbolStruct>   visited;
         SmallVector<const SymbolStruct*> level{&ownerStruct};
 
@@ -560,6 +574,7 @@ namespace
 
             if (visited.empty())
                 visited.insert(&ownerStruct);
+
             level.clear();
             for (const SymbolStruct* target : nextLevel)
             {
@@ -571,9 +586,8 @@ namespace
         return Result::Continue;
     }
 
-    // Candidates for an assignment written on a struct: 'opSet'/'opAssign' for a plain receiver,
-    // 'opIndexSet'/'opIndexAssign' for an indexed one. A compound assignment carries the operator
-    // it stands for as a synthetic generic argument.
+    // Indexed writes use opIndexSet/opIndexAssign; plain writes use opSet/opAssign.
+    // Compound assignments pass their operator as a synthetic generic argument.
     Result collectAssignSpecOpCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, TokenId tokId, bool indexed, SmallVector<Symbol*>& outCandidates)
     {
         if (!Token::isOpAssign(tokId))
@@ -582,7 +596,8 @@ namespace
             return Result::Continue;
         }
 
-        using Name                     = IdentifierManager::PredefinedName;
+        using Name = IdentifierManager::PredefinedName;
+
         const bool          isSimple   = tokId == TokenId::SymEqual;
         const Name          setName    = indexed ? Name::OpIndexSet : Name::OpSet;
         const Name          assignName = indexed ? Name::OpIndexAssign : Name::OpAssign;
@@ -630,6 +645,7 @@ namespace
         const auto  index  = receiverRef.isValid() ? 1u : 0u;
         if (index >= params.size())
             return nullptr;
+
         return params[index];
     }
 
@@ -679,7 +695,7 @@ namespace
         return firstConstCandidate;
     }
 
-    // Leaves an indexed write to the write operator of the assignment around it.
+    // Let the enclosing assignment select the indexed write operator.
     void deferIndexAssignSpecOp(Sema& sema, AstNodeRef indexExprRef, bool& outHandled)
     {
         auto* payload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
@@ -687,7 +703,6 @@ namespace
         outHandled = true;
     }
 
-    // Binds the current assignment to its write operator 'calledFn'.
     void bindAssignSpecOp(Sema& sema, SymbolFunction* calledFn, bool& outHandled)
     {
         sema.ensureSemaPayload<AssignSpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
@@ -715,6 +730,7 @@ namespace
     {
         outIndexedExprRef = AstNodeRef::invalid();
         outArgs.clear();
+
         if (indexNodeRef.isInvalid())
             return false;
 
@@ -724,6 +740,7 @@ namespace
             const auto& indexNode = node.cast<AstIndexExpr>();
             if (sema.node(indexNode.nodeArgRef).is(AstNodeId::RangeExpr))
                 return false;
+
             outIndexedExprRef = indexNode.nodeExprRef;
             outArgs.push_back(indexNode.nodeArgRef);
             return true;
@@ -739,6 +756,7 @@ namespace
                 if (sema.node(argRef).is(AstNodeId::RangeExpr))
                     return false;
             }
+
             return !outArgs.empty();
         }
 
@@ -755,8 +773,10 @@ namespace
         {
             const bool savedSilent = sema.ctx().silentDiagnostic();
             sema.ctx().setSilentDiagnostic(true);
+
             const Result matchResult = Match::resolveFunctionCandidates(sema, calleeView, candidates, args, ufcsArg, &outResolvedArgs);
             sema.ctx().setSilentDiagnostic(savedSilent);
+
             if (matchResult == Result::Pause)
                 return Result::Pause;
             if (matchResult != Result::Continue)
@@ -802,7 +822,8 @@ namespace
 
         CastRequest castRequest(CastKind::Assignment);
         castRequest.errorNodeRef = node.nodeRightRef;
-        const Result castResult  = Cast::castAllowed(sema, castRequest, rightView.typeRef(), leftView.typeRef());
+
+        const Result castResult = Cast::castAllowed(sema, castRequest, rightView.typeRef(), leftView.typeRef());
         sema.ctx().setSilentDiagnostic(savedSilent);
         if (castResult == Result::Pause)
             return Result::Pause;
@@ -820,6 +841,7 @@ namespace
         args.reserve(indexArgRefs.size() + 1);
         for (const AstNodeRef indexArgRef : indexArgRefs)
             args.push_back(normalizeIndexSpecOpArgRef(sema, indexArgRef));
+
         args.push_back(node.nodeRightRef);
 
         SmallVector<ResolvedCallArgument> resolvedArgs;
@@ -829,6 +851,7 @@ namespace
 
         const auto symView = sema.curViewSymbol();
         SWC_ASSERT(symView.sym() && symView.sym()->isFunction());
+
         outCalledFn = &symView.sym()->cast<SymbolFunction>();
         return Result::Continue;
     }
@@ -1732,7 +1755,7 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, false, nullptr, true, true, &calledFn));
 
     sema.ensureSemaPayload<UnarySpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
-    outHandled             = true;
+    outHandled                                                             = true;
     return Result::Continue;
 }
 
@@ -1844,7 +1867,7 @@ namespace
         SWC_RESULT(resolveSyntheticCall(sema, node, selected.candidates.span(), selected.args.span(), selected.receiverRef, false, nullptr, true, true, &calledFn));
 
         sema.ensureSemaPayload<BinarySpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
-        outHandled              = true;
+        outHandled                                                              = true;
         return Result::Continue;
     }
 
@@ -1978,10 +2001,10 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     auto& relationalPayload    = sema.ensureSemaPayload<RelationalSpecOpPayload>(relRef);
     relationalPayload.calledFn = calledFn;
 
-    const SemaNodeView specOpView          = sema.viewConstant(relRef);
-    const ConstantRef  specOpCstRef        = specOpView.cstRef();
-    const AstNodeRef   relSubstRef         = specOpView.nodeRef();
-    relationalPayload.inlineSubstituteRef  = relSubstRef.isValid() && relSubstRef != relRef ? relSubstRef : AstNodeRef::invalid();
+    const SemaNodeView specOpView         = sema.viewConstant(relRef);
+    const ConstantRef  specOpCstRef       = specOpView.cstRef();
+    const AstNodeRef   relSubstRef        = specOpView.nodeRef();
+    relationalPayload.inlineSubstituteRef = relSubstRef.isValid() && relSubstRef != relRef ? relSubstRef : AstNodeRef::invalid();
 
     switch (tok.id)
     {

@@ -53,8 +53,9 @@ namespace
     {
         SwitchSeenCases                         seen;
         SmallVector<CompilerSwitchCaseSemaData> cases;
-        AstNodeRef                              selectedBodyRef   = AstNodeRef::invalid();
-        bool                                    selectionResolved = false;
+
+        AstNodeRef selectedBodyRef   = AstNodeRef::invalid();
+        bool       selectionResolved = false;
     };
 
     CompilerSwitchCaseSemaData& ensureCompilerSwitchCaseSemaData(CompilerSwitchSemaPayload& payload, AstNodeRef bodyRef)
@@ -112,7 +113,8 @@ namespace
         if (payload.selectionResolved)
             return Result::Continue;
 
-        payload.selectionResolved      = true;
+        payload.selectionResolved = true;
+
         const ConstantRef switchCstRef = sema.viewConstant(node.nodeExprRef).cstRef();
         SWC_ASSERT(switchCstRef.isValid());
 
@@ -137,6 +139,7 @@ namespace
                     diag.addNote(DiagnosticId::sema_note_previous_default_case);
                     diag.last().addSpan(sema.node(defaultCaseRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
                     diag.report(sema.ctx());
+
                     return Result::Error;
                 }
 
@@ -156,6 +159,7 @@ namespace
 
         if (payload.selectedBodyRef.isInvalid())
             payload.selectedBodyRef = defaultBodyRef;
+
         return Result::Continue;
     }
 
@@ -214,6 +218,7 @@ namespace
     {
         const std::string_view storedValue = sema.cstMgr().addString(sema.ctx(), value);
         const ConstantValue    val         = ConstantValue::makeString(sema.ctx(), storedValue);
+
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), val));
     }
 
@@ -229,6 +234,7 @@ namespace
                 break;
             if (map->idRef().isInvalid())
                 continue;
+
             scopeChain.push_back(map);
         }
 
@@ -238,6 +244,7 @@ namespace
             const std::string_view name = scope->name(sema.ctx());
             if (name.empty())
                 continue;
+
             if (!result.empty())
                 result.append(".");
             result.append(name);
@@ -252,6 +259,7 @@ namespace
             return symImpl.symStruct();
         if (symImpl.isForEnum())
             return symImpl.symEnum();
+
         return symImpl.symInterface();
     }
 

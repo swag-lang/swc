@@ -12,7 +12,6 @@ SWC_BEGIN_NAMESPACE();
 
 class SymbolFunction;
 
-// Some runtime attributes have their own flag
 enum class RtAttributeFlagsE : uint64_t
 {
     Zero           = 0,
@@ -54,16 +53,17 @@ using GeneratedOperatorFlags = EnumFlags<GeneratedOperatorFlagsE>;
 
 struct AttributeParamInstance
 {
-    bool          operator==(const AttributeParamInstance&) const = default;
-    IdentifierRef nameIdRef                                       = IdentifierRef::invalid();
-    ConstantRef   valueCstRef                                     = ConstantRef::invalid();
+    bool operator==(const AttributeParamInstance&) const = default;
+
+    IdentifierRef nameIdRef   = IdentifierRef::invalid();
+    ConstantRef   valueCstRef = ConstantRef::invalid();
 };
 
-// One attribute
 struct AttributeInstance
 {
-    bool                                 operator==(const AttributeInstance&) const = default;
-    const SymbolFunction*                symbol                                     = nullptr;
+    bool operator==(const AttributeInstance&) const = default;
+
+    const SymbolFunction*                symbol = nullptr;
     SmallVector4<AttributeParamInstance> params;
 };
 
@@ -73,40 +73,45 @@ struct RuntimeSafetyOverride
     bool     value    = false;
 };
 
-// A list of attributes
 struct AttributeList
 {
-    bool                            operator==(const AttributeList&) const = default;
+    bool operator==(const AttributeList&) const = default;
+
     SmallVector4<AttributeInstance> attributes;
-    RtAttributeFlags                rtFlags                  = RtAttributeFlagsE::Zero;
-    uint64_t                        returnBorrowsParamsMask  = 0;
-    uint64_t                        storesParamsMask         = 0;
-    uint64_t                        storesIntoParamPairs     = 0;
-    uint64_t                        freesParamsMask          = 0;
-    uint64_t                        reallocatesParamsMask    = 0;
-    uint64_t                        returnsPayloadParamsMask = 0;
-    uint64_t                        returnsStorageParamsMask = 0;
-    std::optional<bool>             observesExternalBorrows;
-    uint64_t                        returnsIndirectParamsMask    = 0;
-    uint64_t                        storesIndirectParamsMask     = 0;
-    uint64_t                        storesIndirectIntoParamPairs = 0;
-    uint64_t                        freesIndirectParamsMask      = 0;
-    // These two exist for `#[Swag.PrintMicro]` and `#[Swag.PrintAst]`, which a compilation carries
-    // on at most one function. Inline storage for four strings each would put 320 bytes of an
-    // attribute list — a third of it — at the service of two debugging attributes, and every scope
-    // push of the semantic pass copies that list.
-    std::vector<Utf8>           printMicroPassOptions;
-    std::vector<Utf8>           printAstStageOptions;
-    WarningPolicy               warnings;
-    std::optional<bool>         backendOptimize;
+
+    RtAttributeFlags rtFlags = RtAttributeFlagsE::Zero;
+
+    uint64_t            returnBorrowsParamsMask  = 0;
+    uint64_t            storesParamsMask         = 0;
+    uint64_t            storesIntoParamPairs     = 0;
+    uint64_t            freesParamsMask          = 0;
+    uint64_t            reallocatesParamsMask    = 0;
+    uint64_t            returnsPayloadParamsMask = 0;
+    uint64_t            returnsStorageParamsMask = 0;
+    std::optional<bool> observesExternalBorrows;
+
+    uint64_t returnsIndirectParamsMask    = 0;
+    uint64_t storesIndirectParamsMask     = 0;
+    uint64_t storesIndirectIntoParamPairs = 0;
+    uint64_t freesIndirectParamsMask      = 0;
+
+    // Debug print options are rare, but every scope copies its attribute list.
+    // Keep their string storage in vectors instead of inflating each copied list.
+    std::vector<Utf8> printMicroPassOptions;
+    std::vector<Utf8> printAstStageOptions;
+
+    WarningPolicy       warnings;
+    std::optional<bool> backendOptimize;
+
     bool                        hasForeign = false;
     Utf8                        foreignModuleName;
     Utf8                        foreignFunctionName;
     Utf8                        foreignLinkModuleName;
     std::optional<CallConvKind> foreignCallConvKind;
     std::optional<CallConvKind> declaredCallConvKind;
-    GeneratedOperatorFlags      generatedOperators = GeneratedOperatorFlagsE::Zero;
-    SourceCodeRef               generatedOperatorsCodeRef;
+
+    GeneratedOperatorFlags generatedOperators = GeneratedOperatorFlagsE::Zero;
+    SourceCodeRef          generatedOperatorsCodeRef;
 
     bool empty() const
     {
@@ -142,6 +147,7 @@ struct AttributeList
     bool hasRtFlag(RtAttributeFlags fl) const { return rtFlags.has(fl); }
     bool hasMacroOrMixin() const { return hasRtFlag(RtAttributeFlagsE::Macro | RtAttributeFlagsE::Mixin); }
     void addRtFlag(RtAttributeFlags fl) { rtFlags.add(fl); }
+
     bool hasGeneratedOperators() const { return generatedOperators.any(); }
     void addGeneratedOperator(GeneratedOperatorFlags fl, const SourceCodeRef& codeRef)
     {
@@ -181,8 +187,8 @@ struct AttributeList
         return SemaSafety::hasMask(effectiveMask, what);
     }
 
-    // The STATIC (compile-time) sanity checks reuse the SafetyWhat flags but are
-    // controlled by their own attribute ('Swag.Sanity') and build-config mask.
+    // Compile-time sanity checks reuse SafetyWhat bits, with their own
+    // Swag.Sanity attribute and build-configuration mask.
     void addSanityOverride(Runtime::SafetyWhat what, bool value)
     {
         const uint16_t whatMask = SemaSafety::mask(what);
@@ -205,17 +211,16 @@ struct AttributeList
         return SemaSafety::hasMask(effectiveMask, what);
     }
 
-    // Computed borrow summaries re-imported from a module API ('Swag.BorrowSummary'):
-    // bit i of 'returns' = the return value may borrow parameter #i, bit i of 'stores'
-    // = parameter #i may be stored beyond the call, bit (i*8+j) of 'into' = parameter
-    // #j may be stored into storage reachable from parameter #i, bit i of 'frees' =
-    // the call invalidates what parameter #i points to, bit i of 'reallocates' = the
-    // call may move or release the payload parameter #i owns, bit i of 'returnsPayload'
-    // = the return value is a view INTO that payload rather than merely a value that can
-    // reach parameter #i. Bit i of 'returnsStorage' means the result aliases the
-    // parameter's storage, rather than carrying it in a separate allocation. The
-    // indirect masks track borrows carried by the source parameter's pointee;
-    // the destination index in an indirect pair still denotes the direct parameter.
+    // Imported Swag.BorrowSummary masks (unary masks use bit i for parameter i):
+    //   returns: the result may borrow parameter i.
+    //   stores: parameter i may escape the call.
+    //   into: bit i*8+j stores parameter j into storage reachable from i.
+    //   frees: parameter i's pointee may be invalidated.
+    //   reallocates: parameter i's owned payload may move or be released.
+    //   returnsPayload: the result views parameter i's payload.
+    //   returnsStorage: the result aliases parameter i's storage.
+    // Indirect masks describe the source parameter's pointee; destination indices
+    // still name direct parameters.
     void addBorrowSummary(uint64_t returnsMask, uint64_t storesMask, uint64_t intoPairs, uint64_t freesMask, uint64_t reallocatesMask, uint64_t returnsPayloadMask, uint64_t returnsStorageMask, bool observesExternal, uint64_t returnsIndirectMask, uint64_t storesIndirectMask, uint64_t intoIndirectPairs, uint64_t freesIndirectMask)
     {
         returnBorrowsParamsMask |= returnsMask;
@@ -226,6 +231,7 @@ struct AttributeList
         returnsPayloadParamsMask |= returnsPayloadMask;
         returnsStorageParamsMask |= returnsStorageMask & returnsMask;
         observesExternalBorrows = observesExternalBorrows.value_or(false) || observesExternal;
+
         returnsIndirectParamsMask |= returnsIndirectMask;
         storesIndirectParamsMask |= storesIndirectMask;
         storesIndirectIntoParamPairs |= intoIndirectPairs;
@@ -259,9 +265,8 @@ private:
     std::optional<uint16_t> runtimeSafetyDisableMask_;
     bool                    hasRuntimeSafetyOverrides_ = false;
 
-    // Sanity has no history consumers: only the last decision for each bit matters.
-    // Preserve presence separately because an explicit zero-mask override still makes
-    // the attribute list nonempty. Copies into nested frames inherit the complete state.
+    // Sanity needs only the latest decision per bit. Preserve zero-mask presence
+    // so explicit overrides keep the list nonempty; nested frames copy all state.
     uint16_t sanityOverrideMask_ = 0;
     uint16_t sanityEnabledMask_  = 0;
     bool     hasSanityOverrides_ = false;

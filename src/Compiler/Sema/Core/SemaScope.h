@@ -31,15 +31,13 @@ public:
         SymbolVariable*  symVar      = nullptr;
         AstNodeRef       baseExprRef = AstNodeRef::invalid();
 
-        // Ranks one subject against another. A binding created later is nested inside the ones
-        // created before it, and that is the only ordering a leading dot needs: the scope chain
-        // cannot answer it, because a subject is not always recorded on the scope a reader would
-        // call innermost, and binding vars live in one flat list shared with the receiver.
+        // Later bindings are nested more deeply. Rank by creation order because
+        // subjects need not sit on the innermost physical scope, and binding vars
+        // share one flat list with the receiver.
         uint64_t order = 0;
 
-        // The inline expansion this subject was written in, or null for ordinary source. An
-        // inlined body sees the caller's scopes, and a subject the caller owns is not one of the
-        // body's own: it ranks behind the body's receiver, exactly like a caller's binding var.
+        // Track the subject's expansion: caller-owned subjects visible to an
+        // inlined body rank behind that body's receiver, like caller binding vars.
         const SemaInlinePayload* inlinePayload = nullptr;
     };
 
@@ -61,8 +59,10 @@ public:
         parent_ = parent;
         depth_  = parent ? parent->depth() + 1 : 1;
     }
+
     // Physical scope depth is independent of redirected macro/mixin lookup parents.
-    uint32_t   depth() const { return depth_; }
+    uint32_t depth() const { return depth_; }
+
     SemaScope* lookupParent() const { return lookupParent_ ? lookupParent_ : parent_; }
     void       setLookupParent(SemaScope* parent) { lookupParent_ = parent; }
 
@@ -91,17 +91,18 @@ public:
 
         scope.addUsingSymMap(usingSymMap);
     }
+
     const SmallVector<SymbolMap*>& usingSymMaps() const { return usingSymMaps_; }
 
-    // Every symbol sets one bit of a name filter, so a lookup passes over a scope that cannot
-    // hold its name without reading any of its symbols. An impl is renamed after it is declared,
-    // so it sets every bit.
+    // Name bits skip scopes that cannot contain a lookup. Impl names can change
+    // after declaration, so impl symbols set every bit to avoid false negatives.
     template<typename S>
     void addSymbol(S* symbol)
     {
         symbols_.push_back(symbol);
         symbolNames_ |= symbol->isImpl() ? ~0ull : nameBit(symbol->idRef());
     }
+
     const SmallVector<Symbol*>& symbols() const { return symbols_; }
     bool                        mayHaveSymbolNamed(IdentifierRef idRef) const { return (symbolNames_ & nameBit(idRef)) != 0; }
 
@@ -109,8 +110,10 @@ public:
     {
         if (!binding.symMap && !binding.typeRef.isValid() && !binding.symVar && binding.baseExprRef.isInvalid())
             return;
+
         autoMemberBindings_.push_back(binding);
     }
+
     const std::vector<AutoMemberBinding>& autoMemberBindings() const { return autoMemberBindings_; }
 
     IdentifierRef uniqIdentifier(const uint32_t index) const
@@ -128,22 +131,26 @@ public:
 private:
     static uint64_t nameBit(IdentifierRef idRef) { return 1ull << ((static_cast<uint64_t>(idRef.get()) * 0x9E3779B97F4A7C15ull) >> 58); }
 
-    SemaScope*                            parent_       = nullptr;
-    SemaScope*                            lookupParent_ = nullptr;
-    SemaScopeFlags                        flags_        = SemaScopeFlagsE::Zero;
-    uint32_t                              depth_        = 1;
-    SymbolMap*                            symMap_       = nullptr;
-    SmallVector<SymbolMap*>               usingSymMaps_;
-    SmallVector<Symbol*>                  symbols_;
-    uint64_t                              symbolNames_ = 0;
-    std::vector<AutoMemberBinding>        autoMemberBindings_;
+    SemaScope* parent_       = nullptr;
+    SemaScope* lookupParent_ = nullptr;
+
+    SemaScopeFlags flags_ = SemaScopeFlagsE::Zero;
+    uint32_t       depth_ = 1;
+
+    SymbolMap*              symMap_ = nullptr;
+    SmallVector<SymbolMap*> usingSymMaps_;
+
+    SmallVector<Symbol*> symbols_;
+    uint64_t             symbolNames_ = 0;
+
+    std::vector<AutoMemberBinding> autoMemberBindings_;
+
     std::array<IdentifierRef, UNIQ_COUNT> uniqIdentifiers_ = {};
 };
 
-// A Sema opens a scope for every block, loop, call argument list and inline expansion, and closes
-// it again soon after. It takes them from chunks it keeps instead of one allocation each. A closed
-// scope is destroyed in place and its slot is never handed out again: an inline payload still
-// remembers the scope it was expanded from, so a later scope must never take that address.
+// Allocate frequently opened scopes in chunks. Destroy closed scopes in place,
+// but never reuse their addresses: inline payloads retain references to the
+// scope they expanded from.
 class SemaScopeArena
 {
 public:
@@ -175,8 +182,9 @@ private:
     static constexpr size_t K_MAX_CHUNK_SCOPES   = 16;
 
     std::vector<std::unique_ptr<Slot[]>> chunks_;
-    size_t                               chunkCapacity_ = 0;
-    size_t                               chunkUsed_     = 0;
+
+    size_t chunkCapacity_ = 0;
+    size_t chunkUsed_     = 0;
 };
 
 // Ends a scope taken from a SemaScopeArena: the arena keeps the storage.

@@ -34,15 +34,18 @@ namespace
 
     struct ForStmtCodeGenPayload
     {
-        MicroLabelRef   loopLabel     = MicroLabelRef::invalid();
-        MicroLabelRef   continueLabel = MicroLabelRef::invalid();
-        MicroLabelRef   doneLabel     = MicroLabelRef::invalid();
-        MicroReg        indexReg      = MicroReg::invalid();
-        MicroReg        boundReg      = MicroReg::invalid();
-        TypeRef         indexTypeRef  = TypeRef::invalid();
-        SymbolVariable* indexSym      = nullptr;
-        bool            inclusive     = false;
-        bool            unsignedCmp   = false;
+        MicroLabelRef loopLabel     = MicroLabelRef::invalid();
+        MicroLabelRef continueLabel = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel     = MicroLabelRef::invalid();
+
+        MicroReg indexReg = MicroReg::invalid();
+        MicroReg boundReg = MicroReg::invalid();
+
+        TypeRef         indexTypeRef = TypeRef::invalid();
+        SymbolVariable* indexSym     = nullptr;
+
+        bool inclusive   = false;
+        bool unsignedCmp = false;
     };
 
     AstNodeRef preparedChildRef(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -50,6 +53,7 @@ namespace
         AstNodeRef preparedRef = codeGen.resolvedNodeRef(nodeRef);
         if (preparedRef.isInvalid())
             preparedRef = nodeRef;
+
         return SemaHelpers::resolveTransparentConditionExprSourceRef(codeGen.sema(), preparedRef);
     }
 
@@ -65,6 +69,7 @@ namespace
     {
         if (compareType.isInt())
             return MicroOpBits::B64;
+
         return CodeGenTypeHelpers::conditionBits(compareType, codeGen.ctx());
     }
 
@@ -135,6 +140,7 @@ namespace
             codeGen.sema().setResolvedCallArguments(codeGen.curNodeRef(), loopPayload->countResolvedArgs);
             codeGen.sema().setIsValue(codeGen.curNodeRef());
             SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), loopPayload->countFn));
+
             const CodeGenNodePayload countPayload = codeGen.payload(codeGen.curNodeRef());
             codeGen.clearNodePayload<CodeGenNodePayload>(codeGen.curNodeRef());
 
@@ -146,6 +152,7 @@ namespace
         TypeRef            exprTypeRef  = CodeGenExprView::payloadTypeRef(codeGen, exprPayload, exprRef);
         const TypeInfo*    exprTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
         SWC_ASSERT(exprTypeInfo);
+
         const TypeInfo& exprType = *exprTypeInfo;
         MicroBuilder&   builder  = codeGen.builder();
 
@@ -232,10 +239,11 @@ namespace
         loopState.indexTypeRef = semaPayload->indexTypeRef;
         loopState.inclusive    = semaPayload->inclusive;
 
-        const TypeInfo&   compareType   = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), loopState.indexTypeRef);
-        const MicroOpBits opBits        = loopOperationBits(codeGen, compareType);
-        MicroReg          lowerReg      = MicroReg::invalid();
-        MicroReg          upperReg      = MicroReg::invalid();
+        const TypeInfo&   compareType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), loopState.indexTypeRef);
+        const MicroOpBits opBits      = loopOperationBits(codeGen, compareType);
+
+        MicroReg lowerReg = MicroReg::invalid();
+        MicroReg upperReg = MicroReg::invalid();
         if (semaPayload->isRangeLoop)
         {
             if (semaPayload->lowerBoundRef.isValid())
@@ -267,6 +275,7 @@ namespace
 
         loopState.boundReg = upperReg;
         builder.emitLoadRegReg(loopState.indexReg, lowerReg, opBits);
+
         builder.emitCmpRegReg(loopState.indexReg, upperReg, opBits);
         const auto cpuCond = loopState.inclusive ? CodeGenCompareHelpers::greaterCond(loopState.unsignedCmp) : CodeGenCompareHelpers::greaterEqualCond(loopState.unsignedCmp);
         builder.emitJumpToLabel(cpuCond, MicroOpBits::B32, loopState.doneLabel);
@@ -286,6 +295,7 @@ Result AstForCStyleStmt::codeGenPreNode(CodeGen& codeGen)
     loopState.bodyLabel = builder.createLabel();
     loopState.postLabel = builder.createLabel();
     loopState.doneLabel = builder.createLabel();
+
     codeGen.setNodePayload(codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
@@ -355,6 +365,7 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
             const ScopedDebugNoStep noStep(builder, true);
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
         }
+
         codeGen.popFrame();
         return Result::Continue;
     }
@@ -379,6 +390,7 @@ Result AstForCStyleStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
         {
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
         }
+
         codeGen.popFrame();
     }
 
@@ -463,19 +475,23 @@ Result AstForStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& chil
             return Result::Continue;
         }
 
-        const TypeInfo&   compareType   = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), loopState->indexTypeRef);
-        const MicroOpBits opBits        = loopOperationBits(codeGen, compareType);
-        MicroBuilder&     builder       = codeGen.builder();
+        const TypeInfo&   compareType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), loopState->indexTypeRef);
+        const MicroOpBits opBits      = loopOperationBits(codeGen, compareType);
+
+        MicroBuilder& builder = codeGen.builder();
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);
 
         builder.placeLabel(loopState->continueLabel);
         if (loopState->indexSym != nullptr)
             emitLoopVariableReg(codeGen, *loopState->indexSym, loopState->indexReg);
+
         if (loopState->inclusive)
         {
+            // Check the inclusive endpoint before incrementing so a maximum bound cannot wrap.
             builder.emitCmpRegReg(loopState->indexReg, loopState->boundReg, opBits);
             builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
+
             builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, opBits);
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
         }
@@ -517,6 +533,7 @@ Result AstContinueStmt::codeGenPostNode(CodeGen& codeGen)
         return Result::Continue;
 
     SWC_RESULT(codeGen.emitDeferredActionsUntilBreakOwner(continueCtx.nodeRef));
+
     MicroBuilder& builder = codeGen.builder();
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, continueLabel);
     return Result::Continue;

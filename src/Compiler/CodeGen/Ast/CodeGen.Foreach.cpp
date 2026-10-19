@@ -37,20 +37,24 @@ namespace
 
     struct ForeachStmtCodeGenPayload
     {
-        MicroLabelRef         loopLabel        = MicroLabelRef::invalid();
-        MicroLabelRef         whereFalseLabel  = MicroLabelRef::invalid();
-        MicroLabelRef         continueLabel    = MicroLabelRef::invalid();
-        MicroLabelRef         doneLabel        = MicroLabelRef::invalid();
-        MicroReg              baseReg          = MicroReg::invalid();
-        MicroReg              countReg         = MicroReg::invalid();
-        MicroReg              indexReg         = MicroReg::invalid();
-        TypeRef               indexTypeRef     = TypeRef::invalid();
-        uint32_t              aliasSymbolCount = 0;
-        const SymbolVariable* stateSym         = nullptr;
-        const SymbolVariable* sourceSpillSym   = nullptr;
-        uint64_t              elementSize      = 0;
-        uint64_t              valueSize        = 0;
-        bool                  enumValues       = false;
+        MicroLabelRef loopLabel       = MicroLabelRef::invalid();
+        MicroLabelRef whereFalseLabel = MicroLabelRef::invalid();
+        MicroLabelRef continueLabel   = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel       = MicroLabelRef::invalid();
+
+        MicroReg baseReg  = MicroReg::invalid();
+        MicroReg countReg = MicroReg::invalid();
+        MicroReg indexReg = MicroReg::invalid();
+
+        TypeRef  indexTypeRef     = TypeRef::invalid();
+        uint32_t aliasSymbolCount = 0;
+
+        const SymbolVariable* stateSym       = nullptr;
+        const SymbolVariable* sourceSpillSym = nullptr;
+
+        uint64_t elementSize = 0;
+        uint64_t valueSize   = 0;
+        bool     enumValues  = false;
     };
 
     bool foreachUsesCustomVisit(CodeGen& codeGen, AstNodeRef nodeRef)
@@ -107,8 +111,8 @@ namespace
 
         SWC_ASSERT(loopState.sourceSpillSym != nullptr);
 
-        // Foreach needs a stable base pointer across iterations, so spill small by-value sources into the
-        // hidden storage symbol reserved for the loop state.
+        // Spill small by-value sources into hidden loop storage so their base
+        // address stays stable across iterations.
         MicroBuilder&  builder      = codeGen.builder();
         const MicroReg spillAddrReg = materializeForeachInternalStackAddress(codeGen, *(loopState.sourceSpillSym));
         builder.emitLoadMemReg(spillAddrReg, 0, sourcePayload.reg, microOpBitsFromChunkSize(static_cast<uint32_t>(sizeOfValue)));
@@ -124,6 +128,7 @@ namespace
         {
             if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
                 return *symbolPayload;
+
             const SymbolFunction& symbolFunc = codeGen.function();
             return CodeGenFunctionHelpers::materializeFunctionParameter(codeGen, symbolFunc, symVar);
         }
@@ -132,6 +137,7 @@ namespace
         {
             if (const CodeGenNodePayload* symbolPayload = codeGen.variablePayload(symVar))
                 return *symbolPayload;
+
             return codeGen.resolveLocalStackPayload(symVar);
         }
 
@@ -198,6 +204,7 @@ namespace
             const auto& symAlias = symbolView.sym()->cast<SymbolAlias>();
             if (symAlias.aliasedSymbol() && symAlias.aliasedSymbol()->isEnum())
                 return &symAlias.aliasedSymbol()->cast<SymbolEnum>();
+
             return enumSymbolFromTypeRef(codeGen, symAlias.underlyingTypeRef());
         }
 
@@ -321,13 +328,12 @@ namespace
         const SymbolVariable&    valueSym     = symbols[0]->cast<SymbolVariable>();
         const CodeGenNodePayload valuePayload = resolveForeachVariablePayload(codeGen, valueSym);
 
-        // Struct elements bind through their const address: like the '&name' form, the
-        // binding stores the element address (no copy, no per-iteration lifecycle).
-        // Sema marks that decision with BindsValueAddress when it synthesizes the
-        // pointer-typed binding.
+        // Struct elements implicitly bind by const address, like '&name'. Sema's
+        // BindsValueAddress pointer binding avoids copies and per-iteration lifecycles.
         const bool bindsElementAddress = node.hasFlag(AstForeachStmtFlagsE::ByAddress) ||
                                          node.hasFlag(AstForeachStmtFlagsE::BindsValueAddress) ||
                                          codeGen.typeMgr().get(valueSym.typeRef()).isReference();
+
         if (bindsElementAddress)
         {
             if (valuePayload.isAddress())
@@ -403,7 +409,8 @@ namespace
 
                 const uint64_t totalSize  = exprType.sizeOf(codeGen.ctx());
                 const uint64_t totalCount = totalSize / loopState.elementSize;
-                loopState.baseReg         = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
+
+                loopState.baseReg = materializeForeachSourceAddress(codeGen, loopState, exprPayload, exprType);
                 builder.emitLoadRegImm(loopState.countReg, ApInt(totalCount, 64), MicroOpBits::B64);
             }
             else
@@ -485,6 +492,7 @@ Result AstForeachStmt::codeGenPreNode(CodeGen& codeGen) const
     loopState.whereFalseLabel = builder.createLabel();
     loopState.continueLabel   = builder.createLabel();
     loopState.doneLabel       = builder.createLabel();
+
     codeGen.setNodePayload(codeGen.curNodeRef(), loopState);
     return Result::Continue;
 }
@@ -510,18 +518,19 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     SWC_ASSERT(loopState != nullptr);
 
     const AstNodeRef exprRef = codeGen.resolvedNodeRef(nodeExprRef);
-
-    MicroBuilder& builder = codeGen.builder();
+    MicroBuilder&    builder = codeGen.builder();
 
     if (childRef == exprRef)
     {
         SWC_RESULT(emitForeachInit(codeGen, *this, *loopState));
         builder.placeLabel(loopState->loopLabel);
-        // The loop head always reloads the persisted state because the previous iteration may have crossed
-        // callbacks that invalidated the current virtual register assignments.
+
+        // Reload persisted state: callbacks in the previous iteration may have
+        // invalidated the virtual register assignments.
         emitForeachLoadLoopState(codeGen, *loopState);
         builder.emitCmpRegImm(loopState->countReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, loopState->doneLabel);
+
         SWC_RESULT(emitForeachBindSymbols(codeGen, *this, *loopState));
         return Result::Continue;
     }
@@ -548,18 +557,21 @@ Result AstForeachStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
         builder.setCurrentDebugSourceCodeRef(codeGen.node(codeGen.curNodeRef()).codeRef());
         builder.setCurrentDebugNoStep(false);
+
         if (whereRef.isValid())
         {
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
             builder.placeLabel(loopState->whereFalseLabel);
             SWC_RESULT(emitForeachAliasDrops(codeGen, *loopState));
         }
+
         builder.placeLabel(loopState->continueLabel);
         emitForeachLoadLoopState(codeGen, *loopState);
         builder.emitOpBinaryRegImm(loopState->indexReg, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
         builder.emitOpBinaryRegImm(loopState->countReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
         emitForeachStoreLoopState(codeGen, *loopState);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->loopLabel);
+
         codeGen.popFrame();
         return Result::Continue;
     }

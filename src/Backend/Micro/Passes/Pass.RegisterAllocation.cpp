@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -97,18 +98,7 @@ namespace
                info.regModes[2] != MicroInstrRegMode::None;
     }
 
-    constexpr std::array<uint64_t, 10> K_LOOP_DEPTH_WEIGHTS = {
-        1ull,
-        10ull,
-        100ull,
-        1'000ull,
-        10'000ull,
-        100'000ull,
-        1'000'000ull,
-        10'000'000ull,
-        100'000'000ull,
-        1'000'000'000ull,
-    };
+    using MicroOptimizationLimits::RegisterAllocation::K_LOOP_DEPTH_WEIGHTS;
 
     bool hasVirtualRegisters(const MicroStorage& instructions, const MicroOperandStorage& operands, const Encoder* encoder)
     {
@@ -752,7 +742,7 @@ void MicroRegisterAllocationPass::computeGlobalBenefits(std::vector<uint64_t>& o
         if (!depth && functionHasLoop_)
             continue;
 
-        const uint64_t weight = K_LOOP_DEPTH_WEIGHTS[std::min(depth, 9u)];
+        const uint64_t weight = K_LOOP_DEPTH_WEIGHTS[std::min(depth, static_cast<uint32_t>(K_LOOP_DEPTH_WEIGHTS.size() - 1))];
 
         const std::span<const uint64_t> liveRow = DenseBits::row(liveInVirtualBits_, idx, wordCount);
         for (size_t wordIndex = 0; wordIndex < liveRow.size(); ++wordIndex)
@@ -782,7 +772,7 @@ void MicroRegisterAllocationPass::computeGlobalAccessBenefits(std::vector<uint64
     for (uint32_t idx = 0; idx < instructionUseDefs_.size(); ++idx)
     {
         const uint32_t depth  = idx < loopDepth_.size() ? loopDepth_[idx] : 0u;
-        const uint64_t weight = K_LOOP_DEPTH_WEIGHTS[std::min(depth, 9u)];
+        const uint64_t weight = K_LOOP_DEPTH_WEIGHTS[std::min(depth, static_cast<uint32_t>(K_LOOP_DEPTH_WEIGHTS.size() - 1))];
 
         const auto addAccess = [&](const MicroReg reg) {
             if (!reg.isVirtual())
@@ -1171,8 +1161,8 @@ void MicroRegisterAllocationPass::beginLoopResidency(const LoopRegion& region, c
     // Registers each class must keep out of the committed pairs: the pairs
     // are protected from eviction at the back-edge, and preloads must not
     // drain what the body's own short-lived values allocate from.
-    constexpr size_t K_RESIDENT_MIN_FREE_INT   = 4;
-    constexpr size_t K_RESIDENT_MIN_FREE_FLOAT = 2;
+    using MicroOptimizationLimits::RegisterAllocation::K_RESIDENT_MIN_FREE_FLOAT;
+    using MicroOptimizationLimits::RegisterAllocation::K_RESIDENT_MIN_FREE_INT;
 
     // Keep only mappings the loop actually reads and whose register nothing
     // fixed can touch inside the region. A value merely carried through holds
@@ -1515,14 +1505,14 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
 
     // Fixed-point scale for the density ranking below, so the comparison
     // stays in integers.
-    constexpr uint64_t K_DENSITY_SCALE = 1024;
+    using MicroOptimizationLimits::RegisterAllocation::K_DENSITY_SCALE;
 
     // How far below the best candidate a value may rank and still be granted a register the
     // function names elsewhere (the span-scoped path further down). Measured on bench/: without a
     // bound the extra supply reached every candidate that earns anything at all, and the local
     // allocator pressure that caused cost more than the reservations returned - sha256 and leven
     // each lost 7%. Bounding it kept their gains and left wordfreq and csvagg's intact.
-    constexpr uint64_t K_SPAN_SCOPED_DENSITY_DIVISOR = 2;
+    using MicroOptimizationLimits::RegisterAllocation::K_SPAN_SCOPED_DENSITY_DIVISOR;
 
     struct GlobalCandidate
     {
@@ -1606,16 +1596,16 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
     // for ints would exclude the whole float class, whose pool is smaller
     // than that floor. A function with calls additionally needs callee-saved
     // registers left for its own values live across one.
-    constexpr uint32_t K_MIN_FREE_INT_CLASS   = 7;
-    constexpr uint32_t K_MIN_FREE_FLOAT_CLASS = 4;
+    using MicroOptimizationLimits::RegisterAllocation::K_MIN_FREE_FLOAT_CLASS;
+    using MicroOptimizationLimits::RegisterAllocation::K_MIN_FREE_INT_CLASS;
     // Callee-saved registers kept out of the hulls for the local allocator's
     // own call-crossing values. Ints need two: their first allocation sweep
     // has no other escape hatch, and one proved insolvent. Floats make do
     // with one — they fall back to caller-saved registers spilled around
     // calls, and allocatePhysical has a last-resort valve into the
     // nonvolatile pool.
-    constexpr uint32_t K_MIN_FREE_PERSISTENT_INT   = 2;
-    constexpr uint32_t K_MIN_FREE_PERSISTENT_FLOAT = 1;
+    using MicroOptimizationLimits::RegisterAllocation::K_MIN_FREE_PERSISTENT_FLOAT;
+    using MicroOptimizationLimits::RegisterAllocation::K_MIN_FREE_PERSISTENT_INT;
 
     const bool hasCalls                = functionHasCalls();
     auto&      reservedInt             = reservedInt_;
@@ -1808,7 +1798,7 @@ void MicroRegisterAllocationPass::assignGlobalRegisters()
                     // microscopic while their reload count is millions.
                     // 100 = one depth-two boundary crossing under computeGlobalBenefits'
                     // order-of-magnitude-per-level weighting.
-                    constexpr uint64_t K_PERSISTENT_MIN_RAW_BENEFIT = 100;
+                    using MicroOptimizationLimits::RegisterAllocation::K_PERSISTENT_MIN_RAW_BENEFIT;
 
                     // Loop-scoped candidates obey the same density gate: a
                     // reservation over a fat loop body starves the local
@@ -2417,7 +2407,7 @@ void MicroRegisterAllocationPass::analyzeLiveness()
     for (const uint32_t idx : callPositions_)
     {
         const bool    hotCall           = idx >= guardedCallPositions_.size() || !guardedCallPositions_[idx];
-        const uint8_t weight            = idx < loopDepth_.size() && loopDepth_[idx] ? 10u : 1u;
+        const uint8_t weight            = idx < loopDepth_.size() && loopDepth_[idx] ? MicroOptimizationLimits::RegisterAllocation::K_LOOP_CALL_WEIGHT : 1u;
         const auto&   successors        = controlFlowGraph.successors(idx);
         const auto    recordLiveOutWord = [&](const size_t wordIndex, uint64_t wordBits) {
             while (wordBits)
@@ -3656,7 +3646,7 @@ void MicroRegisterAllocationPass::flushAtBoundary(const uint32_t instructionInde
     // few instructions) and releases the rest, clean, to the pool. A value a
     // surrounding loop's residency committed to is exempt: dropping it here
     // would only make the back-edge fixup reload it again every iteration.
-    constexpr uint32_t K_KEEP_MAX_NEXT_USE_DISTANCE = 48;
+    using MicroOptimizationLimits::RegisterAllocation::K_KEEP_MAX_NEXT_USE_DISTANCE;
 
     const LoopRegion* sealedRegion = inst.op == MicroInstrOpcode::Label ? findSealedLoopRegion(instructionIndex) : nullptr;
 
@@ -4314,7 +4304,7 @@ void MicroRegisterAllocationPass::rewriteInstructions()
             if (request.virtKey.isVirtualInt())
                 request.needsPersistent = liveAcrossCall && !conv_->intPersistentRegs.empty();
             else
-                request.needsPersistent = requestDenseIndex < vregsLiveAcrossHotCall_.size() && vregsLiveAcrossHotCall_[requestDenseIndex] >= 10 && !conv_->floatPersistentRegs.empty();
+                request.needsPersistent = requestDenseIndex < vregsLiveAcrossHotCall_.size() && vregsLiveAcrossHotCall_[requestDenseIndex] >= MicroOptimizationLimits::RegisterAllocation::K_PERSISTENT_FLOAT_CALL_WEIGHT && !conv_->floatPersistentRegs.empty();
 
             const auto      physReg = assignVirtReg(request, protectedKeys, forbiddenPhysRegs, remapForbiddenPhysRegs, stamp, stackDepth, pending_);
             AssignedPhysReg assignedPhysReg;
@@ -4753,7 +4743,8 @@ Result MicroRegisterAllocationPass::run(MicroPassContext& context)
     // Joining the two values of a copy renames registers and erases the copy,
     // which every analysis above has to see again. A round joins each value
     // once, so a value copied into several others takes more than one round.
-    constexpr uint32_t K_MAX_JOIN_ROUNDS = 4;
+
+    const auto K_MAX_JOIN_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.registerJoinRounds, MicroOptimizationLimits::RegisterAllocation::K_MAX_JOIN_ROUNDS);
     for (uint32_t round = 0; round < K_MAX_JOIN_ROUNDS && coalesceSameValueCopies(); ++round)
     {
         if (!analyze())

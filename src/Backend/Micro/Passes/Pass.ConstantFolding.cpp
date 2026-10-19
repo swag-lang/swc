@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.ConstantFolding.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -159,7 +160,7 @@ namespace
         FlatKeyMap<uint64_t>       constantAddressByInstruction;
     };
 
-    constexpr uint32_t K_MAX_ADDRESS_CHAIN_DEPTH = 8;
+    using MicroOptimizationLimits::ConstantFolding::K_MAX_ADDRESS_CHAIN_DEPTH;
 
     bool resolveConstantAddress(uint64_t& outAddress, const ConstantMemoryContext& context, const MicroReg reg, const MicroInstrRef atInstRef, const uint32_t depth)
     {
@@ -328,8 +329,8 @@ namespace
         if (!segment.findAllocation(allocation, segmentRef.offset) || segmentRef.offset != allocation.offset ||
             !allocation.size || allocation.size % width)
             return false;
-        constexpr uint32_t K_MAX_UNIFORM_TABLE_ENTRIES = 256;
-        const uint32_t     count                       = allocation.size / width;
+        using MicroOptimizationLimits::ConstantFolding::K_MAX_UNIFORM_TABLE_ENTRIES;
+        const uint32_t count = allocation.size / width;
         if (count > K_MAX_UNIFORM_TABLE_ENTRIES)
             return false;
         // The table is one complete immutable allocation. Validate its whole byte
@@ -998,7 +999,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     floatContext.operands     = &operands;
     floatContext.knownValues  = &knownValues;
     floatContext.knownFlags   = &knownFlags;
-    floatContext.noSignedZero = context.builder && context.builder->backendBuildCfg().fpMathNoSignedZero;
+    floatContext.noSignedZero = context.builder && context.builder->backendBuildCfg().math.noSignedZero;
 
     auto& toErase = scratch.toErase;
     toErase.clear();

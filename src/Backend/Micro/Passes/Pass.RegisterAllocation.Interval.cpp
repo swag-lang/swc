@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
@@ -739,7 +740,7 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     // A livelock backstop: a legitimate walk processes each node once, plus
     // one requeue per split. Anything far beyond that is the walk arguing
     // with itself over one register, and the function falls back.
-    const uint32_t iterationBudget = 16 * static_cast<uint32_t>(out.nodes.size()) + 256;
+    const uint32_t iterationBudget = MicroOptimizationLimits::RegisterAllocationInterval::K_WALK_STEPS_PER_NODE * static_cast<uint32_t>(out.nodes.size()) + MicroOptimizationLimits::RegisterAllocationInterval::K_WALK_STEP_SLACK;
     uint32_t       iterations      = 0;
 
     while (!walk.unhandled.empty() && !walk.failed)
@@ -1803,8 +1804,8 @@ bool MicroRegisterAllocationPass::applyIntervalAllocation(IntervalWalkResult& re
     // without connectors is dropped with them.
     {
         const auto weightAt = [&](const uint32_t idx) -> uint64_t {
-            const uint32_t depth = idx < loopDepth_.size() ? std::min(loopDepth_[idx], 8u) : 0u;
-            return 1ull << (3 * depth);
+            const uint32_t depth = idx < loopDepth_.size() ? std::min(loopDepth_[idx], MicroOptimizationLimits::RegisterAllocationInterval::K_MAX_STORE_COST_DEPTH) : 0u;
+            return 1ull << (MicroOptimizationLimits::RegisterAllocationInterval::K_STORE_COST_DEPTH_SHIFT * depth);
         };
         // A store parking a value at a guarded call belongs to the cold block and is left out
         // of the trade: moved to the definition it would land on the hot path.

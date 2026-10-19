@@ -164,7 +164,10 @@ SWC_TEST_BEGIN(MicroPassManager_PreRa_ReportsALoopThatNeverSettles)
     // A loop that runs out of sweeps used to return an error that said nothing outside a
     // micro-validating build, so the caller reported whatever it made of it - for the compile-time
     // evaluations lowered through this loop, a semantic error about the user's own source.
-    MicroBuilder builder(ctx);
+    MicroBuilder             builder(ctx);
+    Runtime::BuildCfgBackend config{};
+    config.optimizer.iterations.preRaSweeps = 3;
+    builder.setBackendBuildCfg(config);
     builder.emitLoadRegImm(MicroReg::intReg(0), ApInt(0, 64), MicroOpBits::B64);
     const auto value = builder.instructions().lastInstructionRef();
     builder.emitRet();
@@ -174,8 +177,7 @@ SWC_TEST_BEGIN(MicroPassManager_PreRa_ReportsALoopThatNeverSettles)
     manager.addPreRaLoopPass(never);
 
     MicroPassContext passContext;
-    passContext.callConvKind               = CallConvKind::Swag;
-    passContext.optimizationIterationLimit = 3;
+    passContext.callConvKind = CallConvKind::Swag;
 
     const RestoreErrorCount restoreErrors;
     const uint64_t          errorsBefore = Stats::getNumErrors();
@@ -190,6 +192,33 @@ SWC_TEST_BEGIN(MicroPassManager_PreRa_ReportsALoopThatNeverSettles)
         return Result::Error;
     if (Stats::getNumErrors() != errorsBefore + 1)
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MicroPassManager_PostRa_UsesPerBuilderBudgets)
+{
+    for (const uint32_t budget : {1u, 2u, 4u})
+    {
+        MicroBuilder             builder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimizer.iterations.postRaSweeps = budget;
+        builder.setBackendBuildCfg(config);
+        builder.emitLoadRegImm(MicroReg::intReg(0), ApInt(0, 64), MicroOpBits::B64);
+        const auto value = builder.instructions().lastInstructionRef();
+        builder.emitRet();
+
+        constexpr Rewrite    steps[] = {{0, 1}, {1, 2}, {2, 3}};
+        ImmediateRewritePass rewrite(value, steps);
+        MicroPassManager     manager;
+        manager.addPostRaOptimPass(rewrite);
+        MicroPassContext passContext;
+        passContext.callConvKind = CallConvKind::Swag;
+        SWC_RESULT(builder.runPasses(manager, nullptr, passContext));
+        const auto actual = builder.instructions().ptr(value)->ops(builder.operands())[2].immediateValue().as64();
+        if (actual != std::min(budget, 3u) || rewrite.calls != budget)
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

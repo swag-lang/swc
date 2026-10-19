@@ -4,6 +4,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -23,7 +24,6 @@ namespace
     // an inner loop lands in the enclosing loop's body and may be invariant
     // there too; three levels covers every loop nest in the standard library
     // and bounds the cost on a pathological one.
-    constexpr uint32_t K_MAX_LEVELS = 3;
 
     struct FrameRef
     {
@@ -1664,7 +1664,7 @@ namespace
                 const MicroReg base           = ops[1].reg;
                 const uint64_t offset         = ops[4].valueU64;
                 uint32_t       entryReadIndex = n;
-                for (uint32_t j = header; j > 0 && header - j < 16;)
+                for (uint32_t j = header; j > 0 && header - j < MicroOptimizationLimits::PostRALoopHoist::K_MAX_ENTRY_READ_LOOKBACK;)
                 {
                     --j;
                     const MicroInstr* prior = storage.ptr(refs[j]);
@@ -1799,6 +1799,7 @@ Result MicroPostRaLoopHoistPass::run(MicroPassContext& context)
 
     // The frame-reachability answer is a property of the function, so the rounds below share one.
     FrameReachability framePrivacy;
+    const auto        K_MAX_LEVELS = MicroOptimizationLimits::configured(context.optimizer().iterations.postRaHoistLevels, MicroOptimizationLimits::PostRALoopHoist::K_MAX_LEVELS);
     for (uint32_t level = 0; level < K_MAX_LEVELS; ++level)
     {
         if (!hoistRound(context, conv, framePrivacy))

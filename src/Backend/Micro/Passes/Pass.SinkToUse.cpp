@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroDenseRegIndex.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -21,12 +22,11 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_MAX_ROUNDS = 4;
 
     // How far a definition may sink. The point is collapsing the long
     // materialize-everything-then-compute runs a block is emitted as; a bound
     // keeps the barrier scans linear in practice.
-    constexpr uint32_t K_MAX_SINK_DISTANCE = 96;
+    using MicroOptimizationLimits::SinkToUse::K_MAX_SINK_DISTANCE;
 
     struct RegCounts
     {
@@ -379,7 +379,8 @@ Result MicroSinkToUsePass::run(MicroPassContext& context)
     if (context.instructions->count() < 3)
         return Result::Continue;
 
-    bool changedAny = false;
+    bool       changedAny   = false;
+    const auto K_MAX_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.sinkToUseRounds, MicroOptimizationLimits::SinkToUse::K_MAX_ROUNDS);
     for (uint32_t round = 0; round < K_MAX_ROUNDS; ++round)
     {
         if (!sinkRound(context))

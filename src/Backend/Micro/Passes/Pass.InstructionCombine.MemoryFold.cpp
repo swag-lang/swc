@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Immediate.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
@@ -19,8 +20,8 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_FOLD_WINDOW      = 16;
-        constexpr uint32_t K_MAX_SLP_STORE_WINDOW = K_MAX_FOLD_WINDOW * 4;
+        using MicroOptimizationLimits::InstructionCombineMemoryFold::K_MAX_FOLD_WINDOW;
+        using MicroOptimizationLimits::InstructionCombineMemoryFold::K_MAX_SLP_STORE_WINDOW;
 
         bool hasPotentialWordStoreGroup(Context& ctx, MicroInstrRef loadRef)
         {

@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -42,7 +43,7 @@ namespace InstructionCombine
         using MicroLabelHelpers::tryGetJumpTargetLabelId;
 
         // How far back an earlier guard is looked for.
-        constexpr uint32_t K_MAX_SCAN = 96;
+        using MicroOptimizationLimits::InstructionCombineGuard::K_MAX_SCAN;
 
         struct GuardTest
         {

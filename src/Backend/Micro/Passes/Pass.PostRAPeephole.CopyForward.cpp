@@ -2,6 +2,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.ForwardRegTouch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
@@ -29,8 +30,8 @@ namespace PostRaPeephole
 {
     namespace
     {
-        constexpr int      K_MAX_SAME_COPY_WINDOW   = 16;
-        constexpr uint32_t K_MAX_COPY_SOURCE_WINDOW = 16;
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_MAX_COPY_SOURCE_WINDOW;
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_MAX_SAME_COPY_WINDOW;
 
         bool canMoveUnaryAcrossCopy(const MicroInstr& inst, const MicroInstrOperand* ops)
         {
@@ -272,7 +273,7 @@ namespace PostRaPeephole
             !initial[0].reg.isFloat() || !initial[1].reg.isFloat() || initial[0].reg == initial[1].reg)
             return false;
 
-        constexpr uint32_t                       K_MAX_WINDOW = 64;
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_MAX_WINDOW;
         SmallVector<MicroInstrRef, K_MAX_WINDOW> observed;
         SmallVector<MicroInstrRef, 6>            copies;
         observed.push_back(ref);
@@ -417,21 +418,21 @@ namespace PostRaPeephole
             copy[0].reg == copy[1].reg || copy[2].opBits != MicroOpBits::B64 ||
             ctx.isPrivateFrameBase(copy[0].reg) || ctx.isPrivateFrameBase(copy[1].reg))
             return false;
-        const MicroReg     dst       = copy[0].reg;
-        const MicroReg     src       = copy[1].reg;
-        constexpr uint32_t maxWindow = 16;
+        const MicroReg dst = copy[0].reg;
+        const MicroReg src = copy[1].reg;
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_INTEGER_COPY_WINDOW;
         // A removed 64-bit MOV saves three bytes. Each renamed 64-bit form can
         // add at most one addressing byte, so three rewrites cannot grow code.
-        constexpr uint32_t                                                        maxRewrites = 3;
-        std::array<MicroInstrRef, maxWindow + 1>                                  window;
-        std::array<MicroInstrRef, maxRewrites>                                    rewrittenRefs;
-        std::array<std::array<MicroInstrOperand, Action::K_MAX_OPS>, maxRewrites> rewrittenOps;
-        uint32_t                                                                  rewriteCount  = 0;
-        bool                                                                      sourceChanged = false;
-        window[0]                                                                               = ref;
-        auto walker                                                                             = MicroStorage::Iterator{ctx.storage, ref};
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_INTEGER_COPY_REWRITES;
+        std::array<MicroInstrRef, K_INTEGER_COPY_WINDOW + 1>                                  window;
+        std::array<MicroInstrRef, K_INTEGER_COPY_REWRITES>                                    rewrittenRefs;
+        std::array<std::array<MicroInstrOperand, Action::K_MAX_OPS>, K_INTEGER_COPY_REWRITES> rewrittenOps;
+        uint32_t                                                                              rewriteCount  = 0;
+        bool                                                                                  sourceChanged = false;
+        window[0]                                                                                           = ref;
+        auto walker                                                                                         = MicroStorage::Iterator{ctx.storage, ref};
         ++walker;
-        for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
+        for (uint32_t step = 1; step <= K_INTEGER_COPY_WINDOW && walker.current.isValid(); ++step, ++walker)
         {
             const MicroInstrRef cursor  = walker.current;
             const MicroInstr*   current = &*walker;
@@ -453,7 +454,7 @@ namespace PostRaPeephole
                 return false;
             if (readsDestination || writesDestination)
             {
-                if (!readsDestination || rewriteCount == maxRewrites || current->numOperands > Action::K_MAX_OPS || !canRenameFullWidth(*current, ops))
+                if (!readsDestination || rewriteCount == K_INTEGER_COPY_REWRITES || current->numOperands > Action::K_MAX_OPS || !canRenameFullWidth(*current, ops))
                     return false;
                 auto& rewritten = rewrittenOps[rewriteCount];
                 std::copy_n(ops, current->numOperands, rewritten.data());
@@ -537,16 +538,16 @@ namespace PostRaPeephole
         }
 
         // The readers of the second copy, up to its death.
-        constexpr uint32_t                                                        maxWindow   = 16;
-        constexpr uint32_t                                                        maxRewrites = 3;
-        std::array<MicroInstrRef, maxWindow + 1>                                  window;
-        std::array<MicroInstrRef, maxRewrites>                                    rewrittenRefs;
-        std::array<std::array<MicroInstrOperand, Action::K_MAX_OPS>, maxRewrites> rewrittenOps;
-        uint32_t                                                                  rewriteCount = 0;
-        window[0]                                                                              = copyRef;
-        auto walker                                                                            = MicroStorage::Iterator{ctx.storage, copyRef};
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_COPY_CHAIN_REWRITES;
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_COPY_CHAIN_WINDOW;
+        std::array<MicroInstrRef, K_COPY_CHAIN_WINDOW + 1>                                  window;
+        std::array<MicroInstrRef, K_COPY_CHAIN_REWRITES>                                    rewrittenRefs;
+        std::array<std::array<MicroInstrOperand, Action::K_MAX_OPS>, K_COPY_CHAIN_REWRITES> rewrittenOps;
+        uint32_t                                                                            rewriteCount = 0;
+        window[0]                                                                                        = copyRef;
+        auto walker                                                                                      = MicroStorage::Iterator{ctx.storage, copyRef};
         ++walker;
-        for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
+        for (uint32_t step = 1; step <= K_COPY_CHAIN_WINDOW && walker.current.isValid(); ++step, ++walker)
         {
             const MicroInstrRef  cursor  = walker.current;
             const MicroInstr*    current = &*walker;
@@ -554,12 +555,12 @@ namespace PostRaPeephole
             if (ctx.isClaimed(cursor) || current->op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
                 info.flags.has(MicroInstrFlagsE::JumpInstruction) || info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
                 return false;
-            window[step]               = cursor;
-            const MicroInstrOperand* ops = current->ops(*ctx.operands);
-            const RegTouch secondTouch = regTouch(ctx, *current, second);
+            window[step]                         = cursor;
+            const MicroInstrOperand* ops         = current->ops(*ctx.operands);
+            const RegTouch           secondTouch = regTouch(ctx, *current, second);
             if (secondTouch.use)
             {
-                if (secondTouch.def || !ops || rewriteCount == maxRewrites || current->numOperands > Action::K_MAX_OPS ||
+                if (secondTouch.def || !ops || rewriteCount == K_COPY_CHAIN_REWRITES || current->numOperands > Action::K_MAX_OPS ||
                     info.flags.has(MicroInstrFlagsE::EncoderRegUseDef))
                     return false;
                 auto& rewritten = rewrittenOps[rewriteCount];
@@ -766,15 +767,15 @@ namespace PostRaPeephole
         // overwritten. Redirect that read to the copy destination as well.
         // Claim through the overwrite so another rule cannot add a read of
         // the old register after the comparison in this sweep.
-        constexpr uint32_t                       maxWindow = 12;
-        std::array<MicroInstrRef, maxWindow + 2> window;
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_CONVERSION_COMPARE_WINDOW;
+        std::array<MicroInstrRef, K_CONVERSION_COMPARE_WINDOW + 2> window;
         window[0] = binaryRef;
         window[1] = ref;
         MicroInstrRef     compareRef;
         MicroInstrOperand compareOps[Action::K_MAX_OPS] = {};
         auto              walker                        = MicroStorage::Iterator{ctx.storage, ref};
         ++walker;
-        for (uint32_t step = 0; step < maxWindow && walker.current.isValid(); ++step, ++walker)
+        for (uint32_t step = 0; step < K_CONVERSION_COMPARE_WINDOW && walker.current.isValid(); ++step, ++walker)
         {
             const MicroInstrRef cursor  = walker.current;
             const MicroInstr*   current = &*walker;
@@ -842,13 +843,13 @@ namespace PostRaPeephole
             ctx.isClaimed(producerRef))
             return false;
 
-        constexpr uint32_t                       maxWindow = 16;
-        std::array<MicroInstrRef, maxWindow + 2> window;
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_CONVERSION_RESULT_WINDOW;
+        std::array<MicroInstrRef, K_CONVERSION_RESULT_WINDOW + 2> window;
         window[0]   = producerRef;
         window[1]   = copyRef;
         auto walker = MicroStorage::Iterator{ctx.storage, copyRef};
         ++walker;
-        for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
+        for (uint32_t step = 1; step <= K_CONVERSION_RESULT_WINDOW && walker.current.isValid(); ++step, ++walker)
         {
             const MicroInstrRef cursor  = walker.current;
             const MicroInstr*   current = &*walker;
@@ -930,12 +931,12 @@ namespace PostRaPeephole
         if (!copy || copy[2].opBits != MicroOpBits::B64 ||
             !copy[0].reg.isInt() || !copy[1].reg.isInt() || ctx.isPrivateFrameBase(copy[0].reg))
             return false;
-        constexpr uint32_t                       maxWindow = 8;
-        std::array<MicroInstrRef, maxWindow + 1> window;
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_INTEGER_READER_WINDOW;
+        std::array<MicroInstrRef, K_INTEGER_READER_WINDOW + 1> window;
         window[0]   = ref;
         auto walker = MicroStorage::Iterator{ctx.storage, ref};
         ++walker;
-        for (uint32_t step = 1; step <= maxWindow && walker.current.isValid(); ++step, ++walker)
+        for (uint32_t step = 1; step <= K_INTEGER_READER_WINDOW && walker.current.isValid(); ++step, ++walker)
         {
             const MicroInstrRef cursor  = walker.current;
             const MicroInstr*   current = &*walker;
@@ -3716,13 +3717,13 @@ namespace PostRaPeephole
         const MicroReg dst = copy[0].reg;
         const MicroReg src = copy[1].reg;
 
-        constexpr uint32_t                       maxWindow = 16;
-        std::array<MicroInstrRef, maxWindow + 1> window;
-        uint32_t                                 count = 0;
-        window[count++]                                = copyRef;
-        auto scan                                      = MicroStorage::Iterator{ctx.storage, copyRef};
+        using MicroOptimizationLimits::PostRAPeepholeCopyForward::K_VECTOR_PRODUCER_WINDOW;
+        std::array<MicroInstrRef, K_VECTOR_PRODUCER_WINDOW + 1> window;
+        uint32_t                                                count = 0;
+        window[count++]                                               = copyRef;
+        auto scan                                                     = MicroStorage::Iterator{ctx.storage, copyRef};
         --scan;
-        for (; scan.current.isValid() && count <= maxWindow; --scan)
+        for (; scan.current.isValid() && count <= K_VECTOR_PRODUCER_WINDOW; --scan)
         {
             const MicroInstr*    inst = &*scan;
             const MicroInstrDef& info = MicroInstr::info(inst->op);
@@ -3737,7 +3738,7 @@ namespace PostRaPeephole
             if (srcTouch.use || srcTouch.def || dstTouch.use || dstTouch.def)
                 return false;
         }
-        if (!scan.current.isValid() || count > maxWindow + 1 || window[count - 1] != scan.current)
+        if (!scan.current.isValid() || count > K_VECTOR_PRODUCER_WINDOW + 1 || window[count - 1] != scan.current)
             return false;
 
         // The producer writes the whole register, `src` and nothing else, as a plain definition.

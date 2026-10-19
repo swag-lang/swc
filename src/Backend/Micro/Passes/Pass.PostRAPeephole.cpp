@@ -3,6 +3,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Support/Core/PointerSet.h"
@@ -106,9 +107,9 @@ namespace
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return false;
 
-        const auto         refs            = cfg.instructionRefs();
-        const CallConv&    conv            = CallConv::get(context.callConvKind);
-        constexpr uint32_t K_MAX_BACKTRACK = 256;
+        const auto      refs = cfg.instructionRefs();
+        const CallConv& conv = CallConv::get(context.callConvKind);
+        using MicroOptimizationLimits::PostRAPeephole::K_MAX_BACKTRACK;
         for (uint32_t labelIndex = 1; labelIndex + 1 < refs.size(); ++labelIndex)
         {
             const MicroInstr* label   = storage.ptr(refs[labelIndex]);
@@ -635,7 +636,7 @@ namespace
                 {
                     const uint32_t index = pending.back();
                     pending.pop_back();
-                    if (!visited.insert(index) || visited.size() > 256)
+                    if (!visited.insert(index) || visited.size() > MicroOptimizationLimits::PostRAPeephole::K_MAX_STACK_VALUE_VISITS)
                     {
                         valid = false;
                         break;
@@ -822,7 +823,7 @@ namespace
         };
 
         // A bounded walk: a store whose fate is not settled within it stays.
-        constexpr uint32_t         K_MAX_WALK = 4096;
+        using MicroOptimizationLimits::PostRAPeephole::K_MAX_WALK;
         std::vector<uint32_t>      seen(refs.size(), 0);
         std::vector<uint32_t>      pending;
         std::vector<MicroInstrRef> deadStores;

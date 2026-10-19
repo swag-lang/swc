@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Backend/RuntimeBackendConfig.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Utf8.h"
 
@@ -101,6 +102,8 @@ struct MicroPassContext
 
     // Temporary SSA value propagation storage owned by the worker running this pipeline.
     MicroSsaValueScratch* ssaValueScratch = nullptr;
+
+    const Runtime::BuildCfgBackendOptimizer& optimizer() const;
 
     // Optional fixed-point iteration cap for optimization loops (0 = use level default).
     uint32_t optimizationIterationLimit = 0;

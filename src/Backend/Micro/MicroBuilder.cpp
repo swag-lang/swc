@@ -1080,6 +1080,12 @@ void MicroBuilder::emitOpBinaryRegRegImm(MicroReg regDst, MicroReg regSrc, const
     ops[4].setImmediateValue(value);
 }
 
+const Runtime::BuildCfgBackendOptimizer& MicroPassContext::optimizer() const
+{
+    static constexpr Runtime::BuildCfgBackendOptimizer defaults{};
+    return builder ? builder->backendBuildCfg().optimizer : defaults;
+}
+
 Result MicroBuilder::runPasses(const MicroPassManager& passes, Encoder* encoder, MicroPassContext& context)
 {
     thread_local MicroSsaValueScratch tlSsaValueScratch;

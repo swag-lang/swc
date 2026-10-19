@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -1060,7 +1061,7 @@ Result MicroMemToRegPass::run(MicroPassContext& context)
                 int32_t       object    = -1;
                 bool          onEntry   = false;
             };
-            constexpr uint32_t                  K_MAX_PENDING = 64;
+            using MicroOptimizationLimits::MemToReg::K_MAX_PENDING;
             SmallVector<PendingStore>           pendingStores;
             SmallVector<MicroInstrRef>          deadStores;
             std::vector<uint8_t>                escapedNow(varRanges.size(), 0);

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -602,7 +603,7 @@ namespace InstructionCombine
         // in tryFuseInPlaceUpdate) so dropping the mask cannot perturb anyone else.
         MicroReg      cur    = dst;
         MicroInstrRef curRef = ref;
-        for (int depth = 0; depth < 8; ++depth)
+        for (int depth = 0; depth < MicroOptimizationLimits::InstructionCombineRegImm::K_MAX_MASK_COPY_DEPTH; ++depth)
         {
             const auto reach = ctx.ssa->reachingDef(cur, curRef);
             if (!reach.valid() || reach.isPhi || !reach.inst)

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/Passes/Pass.PreRAPeephole.Internal.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -14,7 +15,7 @@ namespace PreRaPeephole
 
         // An address can remain live through a short conversion chain before
         // its store. Keep the search bounded while covering that straight line.
-        constexpr uint32_t K_MAX_ADDR_FORWARD_COPIES = 16;
+        using MicroOptimizationLimits::PreRAPeepholeAddressForward::K_MAX_ADDR_FORWARD_COPIES;
 
         // The first reader of the address on the straight line after its
         // definition - the candidate consumer for the lea. Folding the lea into
@@ -312,7 +313,7 @@ namespace PreRaPeephole
                         if (!isEncodableAmcScale(scale))
                             return false;
                         setRegDestination(MicroInstrOpcode::VecUnaryAmcRegMem, add + ops[3].valueU64);
-                        out.ops[7].microOp  = ops[4].microOp;
+                        out.ops[7].microOp = ops[4].microOp;
                         return true;
                     }
                     return false;
@@ -360,7 +361,7 @@ namespace PreRaPeephole
                             op != MicroOp::Or && op != MicroOp::Xor)
                             return false;
                         setMemDestination(MicroInstrOpcode::OpBinaryAmcMemReg, add + ops[4].valueU64);
-                        out.ops[7].microOp  = ops[3].microOp;
+                        out.ops[7].microOp = ops[3].microOp;
                         return true;
                     }
                     return false;

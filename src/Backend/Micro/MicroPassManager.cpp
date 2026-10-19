@@ -1,6 +1,7 @@
 ﻿#include "pch.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/MicroVerify.h"
@@ -49,13 +50,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_OPT_ITERATION_OFF = 1;
+    using MicroOptimizationLimits::Pipeline::K_OPT_ITERATION_OFF;
     // Leave room for interacting rewrites after full unrolling. Constant-address
     // and select-width chains converge within their own passes, rather than
     // consuming one whole sweep per unrolled iteration. --validate-micro catches
     // an oscillating rule by its re-entered state before this budget is exhausted.
-    constexpr uint32_t K_OPT_ITERATION_ON = 24;
-    constexpr uint32_t K_RA_ITERATION_ON  = 16;
+    using MicroOptimizationLimits::Pipeline::K_OPT_ITERATION_ON;
+    using MicroOptimizationLimits::Pipeline::K_RA_ITERATION_ON;
 
     std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
     {
@@ -172,8 +173,8 @@ namespace
     uint32_t optimizationIterationLimit(const Runtime::BuildCfgBackend& backendCfg)
     {
         if (!backendCfg.optimizes())
-            return K_OPT_ITERATION_OFF;
-        return K_OPT_ITERATION_ON;
+            return MicroOptimizationLimits::configured(backendCfg.optimizer.iterations.preRaSweeps, K_OPT_ITERATION_OFF);
+        return MicroOptimizationLimits::configured(backendCfg.optimizer.iterations.preRaSweeps, K_OPT_ITERATION_ON);
     }
 
     uint32_t loopIterationLimit(const MicroPassContext& context, const uint32_t defaultLimit)
@@ -390,7 +391,7 @@ namespace
         std::unordered_set<uint64_t> seenStates;
         if (MicroVerify::isEnabled(context))
         {
-            seenStates.reserve(settings.maxIterations + 1);
+            seenStates.reserve(static_cast<size_t>(settings.maxIterations) + 1);
             SWC_RESULT(verifyCurrentState(context, "optimization-loop-start", verifyCache));
             seenStates.insert(verifyCache.structuralHash);
         }
@@ -753,13 +754,14 @@ Result MicroPassManager::run(MicroPassContext& context) const
     SWC_RESULT(runLinearPasses(context, preRaFinalPasses_, verifyCache));
 
     // Register allocation loop - legalize + regalloc iterate until stable.
-    const uint32_t         raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, K_RA_ITERATION_ON), 1);
+    const uint32_t         raMaxIterations = std::max<uint32_t>(loopIterationLimit(context, MicroOptimizationLimits::configured(context.optimizer().iterations.allocationSweeps, K_RA_ITERATION_ON)), 1);
     const LoopPassSettings raSettings{.maxIterations = raMaxIterations, .name = "ra-legalize-loop"};
     SWC_RESULT(runLoopPasses(context, raLoopPasses_, raSettings, verifyCache));
 
     if (!postRaOptimPasses_.empty() && !postRaSetupPasses_.empty())
     {
-        for (uint32_t iteration = 0; iteration < 2; ++iteration)
+        const auto prePrologueSweeps = MicroOptimizationLimits::configured(context.optimizer().iterations.prePrologueSweeps, MicroOptimizationLimits::Pipeline::K_PRE_PROLOGUE_SWEEPS);
+        for (uint32_t iteration = 0; iteration < prePrologueSweeps; ++iteration)
         {
             SWC_RESULT(runPass(context, *postRaPeepholePass_, verifyCache));
             bool changed = context.passChanged;
@@ -786,7 +788,7 @@ Result MicroPassManager::run(MicroPassContext& context) const
     // best-effort bounded loop: stop as soon as a sweep changes nothing, and
     // otherwise stop at the iteration cap keeping whatever (always-valid) IR
     // the last sweep produced. No SSA is needed post-RA.
-    const uint32_t postRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, optimizationIterationLimit(context.builder->backendBuildCfg())), 1);
+    const uint32_t postRaMaxIterations = std::max<uint32_t>(loopIterationLimit(context, MicroOptimizationLimits::configured(context.optimizer().iterations.postRaSweeps, context.builder->backendBuildCfg().optimizes() ? K_OPT_ITERATION_ON : K_OPT_ITERATION_OFF)), 1);
     SWC_RESULT(runBoundedLoopPasses(context, postRaOptimPasses_, postRaMaxIterations, verifyCache));
 
     SWC_RESULT(runLinearPasses(context, finalPasses_, verifyCache));

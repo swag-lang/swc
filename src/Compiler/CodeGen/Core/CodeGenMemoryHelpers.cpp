@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenArrayTraversal.h"
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
@@ -20,8 +21,8 @@ namespace
     Result emitDynamicIdentityRec(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, bool initializeUsingSlots)
     {
         // The caller has established dynamic storage; array elements retain that property.
-        const TypeInfo& type          = originalType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
-        MicroBuilder&   builder       = codeGen.builder();
+        const TypeInfo& type    = originalType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        MicroBuilder&   builder = codeGen.builder();
         if (type.isArray())
             return CodeGenArrayTraversal::emit(codeGen, dstReg, type, [&](const TypeInfo& elementType, MicroReg elementReg) {
                 return emitDynamicIdentityRec(codeGen, elementType, elementReg, true);
@@ -53,13 +54,9 @@ namespace
         return Result::Continue;
     }
 
-    constexpr uint32_t K_DEFAULT_UNROLL_MEM_LIMIT = 256;
-
     uint32_t getUnrollMemLimit(const Runtime::BuildCfgBackend& buildCfg)
     {
-        if (buildCfg.unrollMemLimit)
-            return buildCfg.unrollMemLimit;
-        return K_DEFAULT_UNROLL_MEM_LIMIT;
+        return MicroOptimizationLimits::configured(buildCfg.optimizer.unroll.memoryBytes, MicroOptimizationLimits::Memory::K_DEFAULT_UNROLL_MEM_LIMIT);
     }
 
     void emitMemCopyChunk(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint64_t offset, uint32_t chunkSize, MicroReg tmpIntReg, MicroReg tmpFloatReg, const SourceCodeRef& sourceCodeRef = SourceCodeRef::invalid(), const SourceCodeRef& destinationCodeRef = SourceCodeRef::invalid())
@@ -875,8 +872,8 @@ Result CodeGenMemoryHelpers::emitDynamicIdentity(CodeGen& codeGen, TypeRef typeR
 
 void CodeGenMemoryHelpers::emitCopyPreservingDynamicIdentity(CodeGen& codeGen, const TypeInfo& originalType, MicroReg dstReg, MicroReg srcReg)
 {
-    const TypeInfo& type          = originalType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
-    const uint64_t  size          = type.sizeOf(codeGen.ctx());
+    const TypeInfo& type = originalType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+    const uint64_t  size = type.sizeOf(codeGen.ctx());
     SWC_ASSERT(size <= std::numeric_limits<uint32_t>::max());
     if (!SymbolStruct::typeHasDynamicStorage(codeGen.ctx(), type))
     {

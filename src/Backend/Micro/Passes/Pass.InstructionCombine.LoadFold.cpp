@@ -2,6 +2,7 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
@@ -27,7 +28,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_LOADFOLD_WINDOW = 16;
+        using MicroOptimizationLimits::InstructionCombineLoadFold::K_MAX_LOADFOLD_WINDOW;
 
         // A returned 64-bit boolean is cheapest when its SETcc destination can
         // occupy the integer return register and be cleared before CMP. If the
@@ -897,7 +898,7 @@ namespace InstructionCombine
             return true;
         }
 
-        constexpr uint32_t K_MAX_REREAD_WINDOW = 32;
+        using MicroOptimizationLimits::InstructionCombineLoadFold::K_MAX_REREAD_WINDOW;
 
         // The SSA value a register carries at an instruction, looked up through
         // the plain 64-bit copies mem2reg and the front end leave between a
@@ -905,7 +906,7 @@ namespace InstructionCombine
         MicroSsaState::ReachingDef rootAddressValue(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
         {
             MicroSsaState::ReachingDef reach = ctx.ssa->reachingDef(reg, atRef);
-            for (uint32_t depth = 0; depth < 8 && reach.valid() && !reach.isPhi && reach.inst && reach.inst->op == MicroInstrOpcode::LoadRegReg; ++depth)
+            for (uint32_t depth = 0; depth < MicroOptimizationLimits::InstructionCombineLoadFold::K_MAX_REREAD_COPY_DEPTH && reach.valid() && !reach.isPhi && reach.inst && reach.inst->op == MicroInstrOpcode::LoadRegReg; ++depth)
             {
                 const MicroInstrOperand* copyOps = reach.inst->ops(*ctx.operands);
                 if (!copyOps || copyOps[2].opBits != MicroOpBits::B64 || !copyOps[1].reg.isVirtual())

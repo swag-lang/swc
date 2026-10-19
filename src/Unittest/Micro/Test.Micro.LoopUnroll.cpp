@@ -31,6 +31,36 @@ namespace
 
 // Ordinary loops stop at sixteen trips; an unrelated seventeen-trip copy
 // remains a loop.
+SWC_TEST_BEGIN(MicroLoopUnroll_UsesConfiguredTripBudget)
+{
+    for (const uint32_t maxTrips : {2u, 4u})
+    {
+        MicroBuilder             builder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimizer.unroll.maxTrips = maxTrips;
+        builder.setBackendBuildCfg(config);
+        const MicroReg counter = MicroReg::virtualIntReg(1);
+        const auto     header  = builder.createLabel();
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitLoadMemReg(CallConv::get(CallConvKind::Swag).stackPointer, 0x20, counter, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(3, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B64, header);
+        builder.emitRet();
+
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopUnrollPass>(builder));
+        const uint32_t expectedBranches = maxTrips < 3 ? 1 : 0;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::JumpCond) != expectedBranches)
+            return Result::Error;
+        const uint32_t expectedStores = maxTrips < 3 ? 1 : 3;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != expectedStores)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(LoopUnroll_SixteenTrips_Flattens)
 {
     for (const uint64_t bound : {uint64_t{16}, uint64_t{17}})

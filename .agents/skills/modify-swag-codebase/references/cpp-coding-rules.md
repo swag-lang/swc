@@ -126,6 +126,23 @@ So reach for a template when it removes a real maintenance hazard — a list tha
 step across copies, a family a new case has to be added to twice — and check the executable size
 afterwards. When the only gain is a shorter file, a plain parameter is the better trade.
 
+## Name And Centralize Optimizer Policy
+
+Keep micro-backend tuning values in
+`src/Backend/Micro/MicroOptimizationLimits.h`, grouped by their owning pass or analysis.
+Every iteration cap, search window, recursion budget, code-growth threshold, and cost-model
+weight needs a named compile-time constant and a comment explaining its purpose, units,
+and what reaching it means. Do not embed such values in loops, comparisons, or formulas.
+Keep independently motivated policies separate even when their defaults happen to match.
+Derive coupled guards, offsets, and steps from the same constant.
+
+Keep instruction widths, operand positions, ABI requirements, sentinels, exact pattern
+arities, and inline container capacities with their representation. They are not tuning
+parameters. Centralizing policy must not change thresholds, convergence/fallback behavior,
+or introduce runtime indirection. Runtime overrides belong in the typed
+`BuildCfgBackendOptimizer` configuration and its documented Swag mirror; include every
+new override in native cache identity and test a non-default value at the pass boundary.
+
 ## Enforce Invariants
 
 - Avoid unnecessary defensive programming.

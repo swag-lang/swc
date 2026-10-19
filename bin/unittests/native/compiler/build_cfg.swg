@@ -4,6 +4,13 @@ const Cfg = #run Swag.compiler().getBuildCfg()![]
 #assert(#typeof(Cfg) == Swag.Build.Config)
 #assert(#typeof(Cfg.backend.optimLevel) == Swag.Build.BackendOptimLevel)
 #assert(Cfg.backend.debugInfo == false)
+#assert(#typeof(Cfg.backend.math) == Swag.Build.BackendMath)
+#assert(Cfg.backend.math.unsafe == false)
+#assert(Cfg.backend.math.approxFunc == false)
+#assert(#typeof(Cfg.backend.optimizer) == Swag.Build.Optimizer)
+#assert(Cfg.backend.optimizer.iterations.preRaSweeps == 0)
+#assert(Cfg.backend.optimizer.unroll.memoryBytes == 0)
+#assert(Cfg.backend.optimizer.vectorization.maxTreeDepth == 0)
 #assert(#typeof(Cfg.backend.enableExceptions) == bool)
 #static if #hastag("Swag.AllocatorDiagnostics")
 {

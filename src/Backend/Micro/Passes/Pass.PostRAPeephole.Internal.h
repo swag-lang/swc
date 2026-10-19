@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/RefTypes.h"
@@ -14,7 +15,7 @@ class MicroBuilder;
 
 namespace PostRaPeephole
 {
-    constexpr int K_MAX_LIVENESS_WINDOW = 32;
+    using MicroOptimizationLimits::PostRAPeepholeLiveness::K_MAX_LIVENESS_WINDOW;
 
     struct Action
     {

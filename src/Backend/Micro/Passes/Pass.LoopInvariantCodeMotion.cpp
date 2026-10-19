@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -26,7 +27,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_MAX_ROUNDS = 64;
 
     using NaturalLoop          = MicroPassHelpers::NaturalLoop;
     using RegDefinitionSummary = MicroPassHelpers::RegDefinitionSummary;
@@ -704,7 +704,7 @@ namespace
                 slotDefReg[i] = destReg;
             }
 
-            constexpr size_t K_MAX_WEB_DEFS = 32;
+            using MicroOptimizationLimits::LoopInvariantCodeMotion::K_MAX_WEB_DEFS;
 
             const auto eligibleWeb = [&](const MicroReg reg) -> const RegWeb* {
                 const RegWeb* web = findWeb(reg);
@@ -1261,7 +1261,8 @@ Result MicroLoopInvariantCodeMotionPass::run(MicroPassContext& context)
     if (!context.builder->controlFlowGraph().hasLoop())
         return Result::Continue;
 
-    bool changedAny = false;
+    bool       changedAny   = false;
+    const auto K_MAX_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.loopInvariantRounds, MicroOptimizationLimits::LoopInvariantCodeMotion::K_MAX_ROUNDS);
     for (uint32_t round = 0; round < K_MAX_ROUNDS; ++round)
     {
         if (!licmHoistRound(context))

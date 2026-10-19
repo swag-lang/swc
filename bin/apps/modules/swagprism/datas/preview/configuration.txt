@@ -9,5 +9,5 @@
     // cfg.backend.optimLevel = .O2
     // cfg.backend.inlineMode = .Never
     // cfg.backend.vectorize = false
-    // cfg.backend.fpMathApproxFunc = true
+    // cfg.backend.math.approxFunc = true
 }

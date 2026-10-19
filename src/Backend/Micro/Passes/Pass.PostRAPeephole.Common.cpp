@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
@@ -9,7 +10,7 @@ namespace PostRaPeephole
 {
     namespace
     {
-        constexpr uint32_t K_MAX_STORE_SCAN_WINDOW = 32;
+        using MicroOptimizationLimits::PostRAPeepholeCommon::K_MAX_STORE_SCAN_WINDOW;
 
         bool isSelfCopyNoEffect(const MicroInstr& inst, const MicroInstrOperand* ops)
         {

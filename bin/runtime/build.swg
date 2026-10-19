@@ -111,23 +111,113 @@ namespace Swag.Build
         O2 = 2     // Also what does; the 'release' preset.
     }
 
+    // Iterations policy overrides; every zero field selects the compiler default.
+    struct OptimizerIterations
+    {
+        public
+        {
+            preRaSweeps:             u32     // Pre-allocation optimization sweeps; exhaustion reports a compiler error. Zero selects 1 at O0, otherwise 24.
+            allocationSweeps:        u32     // Legalization/allocation sweeps; exhaustion reports a compiler error. Zero selects 16.
+            postRaSweeps:            u32     // Post-allocation cleanup sweeps; exhaustion keeps the last valid result. Zero selects 1 at O0, otherwise 24.
+            prePrologueSweeps:       u32     // Peephole and dead-code cleanup sweeps before frame setup. Zero selects 2.
+            branchThreadRounds:      u32     // Branch-threading rounds within one pass invocation. Zero selects 4096.
+            inductionVariableRounds: u32     // Loop rediscovery rounds within one induction-variable pass. Zero selects 32.
+            loopInvariantRounds:     u32     // Hoisting rounds within one loop-invariant-code-motion pass. Zero selects 64.
+            sinkToUseRounds:         u32     // Scheduling rounds that move definitions towards their consumers. Zero selects 4.
+            registerJoinRounds:      u32     // Copy-coalescing rounds before register allocation. Zero selects 4.
+            postRaHoistLevels:       u32     // Outer-loop levels visited by post-allocation hoisting. Zero selects 3.
+        }
+    }
+
+    // Unroll policy overrides; every zero field selects the compiler default.
+    struct OptimizerUnroll
+    {
+        public
+        {
+            memoryBytes:                  u32     // Maximum bytes expanded for constant-size memory operations. Zero selects 256.
+            maxTrips:                     u32     // Maximum trip count for ordinary full loop unrolling. Zero selects 16.
+            maxWideTableTrips:            u32     // Maximum trip count admitting larger constant-table bodies. Zero selects 4.
+            maxBodyInstructions:          u32     // Maximum original instructions considered for full unrolling; ordinary loops also obey their own cap. Zero selects 144.
+            maxTotalInstructions:         u32     // Maximum expanded instructions for the constant-table exception. Zero selects 576.
+            maxOrdinaryBodyInstructions:  u32     // Maximum original instructions for ordinary full unrolling. Zero selects 96.
+            maxOrdinaryTotalInstructions: u32     // Maximum expanded instructions for ordinary full unrolling. Zero selects 384.
+            maxBranchedTotalInstructions: u32     // Maximum expanded instructions when branches survive unrolling. Zero selects 96.
+            maxNestedTotalInstructions:   u32     // Maximum flattened instructions for a fully unrolled loop nest. Zero selects 768.
+            maxPartialBodyInstructions:   u32     // Maximum original instructions for partial indexed-loop unrolling. Zero selects 12.
+            partialFactor:                u32     // Scalar copies per partial indexed-loop iteration; clamped to 1..64. Zero selects 4.
+            initializerLookback:          u32     // Maximum preheader instructions searched for the loop counter initializer. Zero selects 8.
+            sumInitializerLookback:       u32     // Maximum preheader instructions searched for an accumulator initializer. Zero selects 16.
+        }
+    }
+
+    // Vectorization policy overrides; every zero field selects the compiler default.
+    struct OptimizerVectorization
+    {
+        public
+        {
+            maxPlanInstructions: u32     // Maximum generated instructions in one SLP vectorization plan. Zero selects 4096.
+            maxTreeDepth:        u32     // Maximum recursive SLP tree depth; capped at the implementation stack bound of 512. Zero selects 512.
+            maxPromotedPerLoop:  u32     // Maximum vector-state objects promoted simultaneously in one loop. Zero selects 6.
+        }
+    }
+
+    // Backend optimization budgets for this compilation.
+    //
+    // Zero fields retain the compiler defaults. Set overrides during module setup; the optimizer
+    // copies the resulting configuration for each function. These budgets do not enable passes
+    // disabled by [[Swag.Build.Backend.optimLevel]] or [[Swag.Build.Backend.vectorize]]. Fixed proof limits
+    // and instruction representations remain compiler-owned.
+    //
+    // ```swag
+    // #run
+    // {
+    //     let cfg = Swag.compiler().getBuildCfg()!
+    //     cfg.backend.optimizer.iterations.preRaSweeps = 48
+    //     cfg.backend.optimizer.unroll.maxTrips = 32
+    //     cfg.backend.optimizer.unroll.memoryBytes = 512
+    // }
+    // ```
+    struct Optimizer
+    {
+        public
+        {
+            iterations:    OptimizerIterations        // Budgets for pipeline sweeps and local pass rounds.
+            unroll:        OptimizerUnroll            // Code-growth and discovery budgets for loops and memory operations.
+            vectorization: OptimizerVectorization     // Budgets for vector-plan discovery and loop promotion.
+        }
+    }
+
+    // Floating-point policy for this compilation.
+    //
+    // The release preset enables 'fma', 'noNaN', 'noInf', and 'noSignedZero'. The devmode
+    // preset leaves all fields false. 'unsafe' and 'approxFunc' reserve permissions for
+    // future optimizations and currently have no effect. These flags do not enable optimizer
+    // passes disabled by [[Swag.Build.Backend.optimLevel]].
+    struct BackendMath
+    {
+        public
+        {
+            fma:          bool     // Allow contraction into fused multiply-add instructions, which round once instead of twice.
+            noNaN:        bool     // Assume floating-point values are not NaN.
+            noInf:        bool     // Assume floating-point values are never infinite.
+            noSignedZero: bool     // Allow transformations that ignore the sign of zero.
+            unsafe:       bool     // Reserved permission for unsafe floating-point transformations; currently unused.
+            approxFunc:   bool     // Reserved permission for approximate math-function implementations; currently unused.
+        }
+    }
+
     // Backend options
     struct Backend
     {
         public
         {
-            optimLevel       = BackendOptimLevel.O0     // Backend optimization level (set per build config)
-            vectorize:          bool     // Auto-vectorize; true in 'release'
-            debugInfo        = false     // Emit native debug information (CodeView and PDB on Windows); '--debug' enables it for command-line builds
-            enableExceptions = true      // Generate unwind information for JIT code and register it with the host (SEH function tables on Windows)
-            fpMathFma:          bool     // true in 'release'
-            fpMathNoNaN:        bool     // true in 'release'
-            fpMathNoInf:        bool     // true in 'release'
-            fpMathNoSignedZero: bool     // true in 'release'
-            fpMathUnsafe:       bool
-            fpMathApproxFunc:   bool
-            unrollMemLimit:     u32     // Maximum number of bytes to unroll memset/cpy in optimize mode
+            optimLevel       = BackendOptimLevel.O0             // Backend optimization level (set per build config)
+            vectorize: bool                                     // Auto-vectorize; true in 'release'
+            debugInfo        = false                            // Emit native debug information (CodeView and PDB on Windows); '--debug' enables it for command-line builds
+            enableExceptions = true                             // Generate unwind information for JIT code and register it with the host (SEH function tables on Windows)
+            math:      BackendMath                              // Floating-point assumptions and transformation permissions.
             inlineMode       = BackendInlineMode.MarkedOnly     // Inlining policy (set per build config)
+            optimizer: Optimizer                                // Per-compilation optimization budgets; zero fields keep compiler defaults.
         }
     }
 

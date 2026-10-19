@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Immediate.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -12,7 +13,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_INPLACE_WINDOW = 32;
+        using MicroOptimizationLimits::InstructionCombineRegReg::K_MAX_INPLACE_WINDOW;
 
         bool isInPlaceBinaryOp(MicroInstrOpcode op)
         {
@@ -1609,7 +1610,7 @@ namespace InstructionCombine
                 // A single-use computed factor can already carry the product
                 // in its own result register. A zero plus CMOV then adds work.
                 auto factor = ctx.ssa->reachingDef(ops[1 - side].reg, ref);
-                for (uint32_t depth = 0; depth < 8 && factor.valid() && !factor.isPhi && factor.inst && factor.inst->op == MicroInstrOpcode::LoadRegReg; ++depth)
+                for (uint32_t depth = 0; depth < MicroOptimizationLimits::InstructionCombineRegReg::K_MAX_FACTOR_COPY_DEPTH && factor.valid() && !factor.isPhi && factor.inst && factor.inst->op == MicroInstrOpcode::LoadRegReg; ++depth)
                 {
                     const auto* copy = factor.inst->ops(*ctx.operands);
                     if (!copy || !copy[1].reg.isVirtualInt())
@@ -2204,8 +2205,8 @@ namespace InstructionCombine
     }
     namespace
     {
-        constexpr uint32_t K_MAX_BSWAP_DEPTH = 10;
-        constexpr int8_t   K_BIT_ZERO        = -1;
+        using MicroOptimizationLimits::InstructionCombineRegReg::K_MAX_BSWAP_DEPTH;
+        constexpr int8_t K_BIT_ZERO = -1;
 
         // Where each bit of a value comes from: a bit of one leaf value, or
         // zero. LLVM's recognizeBSwapOrBitReverseIdiom tracks the same thing.
@@ -2422,7 +2423,7 @@ namespace InstructionCombine
         // whose SSA value can still address the fused load at the OR.
         bool normalizeByteIndex(const Context& ctx, MicroReg reg, MicroInstrRef at, MicroInstrRef root, uint64_t& offset, MicroReg& outReg, uint32_t& outValue)
         {
-            for (uint32_t depth = 0; depth < 5; ++depth)
+            for (uint32_t depth = 0; depth < MicroOptimizationLimits::InstructionCombineRegReg::K_MAX_BYTE_INDEX_DEPTH; ++depth)
             {
                 const auto def = ctx.ssa->reachingDef(reg, at);
                 if (!def.valid() || (def.inst && (ctx.isClaimed(def.instRef) || ctx.isRelocated(def.instRef))))
@@ -2463,7 +2464,7 @@ namespace InstructionCombine
 
         bool tracePackedByte(const Context& ctx, MicroReg reg, MicroInstrRef at, uint32_t shift, uint32_t depth, std::array<PackedByteLoad, 4>& loads, uint32_t& found)
         {
-            if (depth >= 12 || shift > 24)
+            if (depth >= MicroOptimizationLimits::InstructionCombineRegReg::K_MAX_PACKED_BYTE_DEPTH || shift > 24)
                 return false;
             const auto def = ctx.ssa->reachingDef(reg, at);
             if (!def.valid() || def.isPhi || !def.inst || ctx.isClaimed(def.instRef) || ctx.isRelocated(def.instRef))
@@ -2556,7 +2557,7 @@ namespace InstructionCombine
         uint32_t seen   = 0;
         auto     scanIt = MicroStorage::Iterator{ctx.storage, ref};
         --scanIt;
-        for (uint32_t step = 0; scanIt.current.isValid() && step < 64 && seen != 0xF; ++step, --scanIt)
+        for (uint32_t step = 0; scanIt.current.isValid() && step < MicroOptimizationLimits::InstructionCombineRegReg::K_MAX_PACKED_BYTE_SCAN && seen != 0xF; ++step, --scanIt)
         {
             const auto*         between = &*scanIt;
             const MicroInstrRef scan    = scanIt.current;

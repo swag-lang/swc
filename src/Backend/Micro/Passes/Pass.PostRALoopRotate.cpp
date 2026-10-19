@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -66,7 +67,7 @@ namespace
 
     // A header carrying more than this around its compare is not worth
     // duplicating for the one jump the rotation removes.
-    constexpr uint32_t K_MAX_TEST_RUN = 8;
+    using MicroOptimizationLimits::PostRALoopRotate::K_MAX_TEST_RUN;
 
     // Thread a repeated indexed zero test when the two returns of an inlined
     // search already establish its result. A path through a read-only call is
@@ -171,7 +172,7 @@ namespace
             uint32_t                     visits  = 0;
             std::unordered_set<uint64_t> visiting;
             const auto                   provesEdge = [&](auto&& self, const uint32_t predecessor, const uint32_t successor, const bool wantZero) -> bool {
-                if (++visits > 512 || predecessor >= order.size() || successor >= order.size())
+                if (++visits > MicroOptimizationLimits::PostRALoopRotate::K_MAX_EDGE_PROOF_VISITS || predecessor >= order.size() || successor >= order.size())
                     return false;
                 const uint64_t edge = (static_cast<uint64_t>(predecessor) << 32) | successor;
                 if (!visiting.insert(edge).second)

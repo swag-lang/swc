@@ -13,6 +13,45 @@
 
 SWC_BEGIN_NAMESPACE();
 
+SWC_TEST_BEGIN(Compiler_OptimizerConfigurationReachesNativeLayout)
+{
+    static constexpr std::string_view SOURCE     = R"(#global private
+#run
+{
+    let cfg = Swag.compiler().getBuildCfg()!
+    cfg.backend.optimizer.iterations.preRaSweeps = 48
+    cfg.backend.optimizer.unroll.maxTrips = 32
+    cfg.backend.optimizer.unroll.memoryBytes = 512
+    cfg.backend.optimizer.vectorization.maxTreeDepth = 64
+    cfg.backend.math.fma = true
+    cfg.backend.math.noSignedZero = true
+    cfg.backend.math.approxFunc = true
+    cfg.moduleBuildNum = 123
+}
+)";
+    const fs::path                    sourcePath = Unittest::makeTestSourcePath("Compiler", "OptimizerConfigurationReachesNativeLayout");
+    CommandLine                       cmdLine;
+    cmdLine.command = CommandKind::Sema;
+    cmdLine.name    = "compiler_optimizer_configuration";
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+    const uint64_t   errorsBefore = Stats::getNumErrors();
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, SOURCE);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+    const auto& policy = compiler.buildCfg().backend.optimizer;
+    if (policy.iterations.preRaSweeps != 48 || policy.unroll.maxTrips != 32 ||
+        policy.unroll.memoryBytes != 512 || policy.vectorization.maxTreeDepth != 64 ||
+        !compiler.buildCfg().backend.math.fma || !compiler.buildCfg().backend.math.noSignedZero ||
+        !compiler.buildCfg().backend.math.approxFunc || compiler.buildCfg().backend.math.noNaN ||
+        compiler.buildCfg().moduleBuildNum != 123)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_CommandLineTagsReachSema)
 {
     static constexpr std::string_view SOURCE     = R"(#global private

@@ -3,6 +3,7 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -804,14 +805,14 @@ namespace
         if (!context.encoder || conv.stackAlignment != 16 || !conv.framePointer.isValid())
             return false;
 
-        const uint64_t                 reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
-        SmallVector<MicroInstrRef, 33> order;
-        const auto                     view  = context.instructions->view();
-        auto                           it    = view.begin();
-        const auto                     endIt = view.end();
+        const uint64_t                                                                                        reserve = ABICall::computeCallStackAdjust(context.callConvKind, 0);
+        SmallVector<MicroInstrRef, MicroOptimizationLimits::PrologEpilogSanitize::K_MAX_FRAME_SETUP_SCAN + 1> order;
+        const auto                                                                                            view  = context.instructions->view();
+        auto                                                                                                  it    = view.begin();
+        const auto                                                                                            endIt = view.end();
         // The body shape below can only start in the first 32 instructions.
         // Avoid collecting the rest of a function when that prefix cannot match.
-        for (; it != endIt && order.size() < 33; ++it)
+        for (; it != endIt && order.size() < MicroOptimizationLimits::PrologEpilogSanitize::K_MAX_FRAME_SETUP_SCAN + 1; ++it)
             order.push_back(it.current);
         if (order.size() < 12)
             return false;
@@ -829,7 +830,7 @@ namespace
         size_t   bodyBase        = order.size();
         uint64_t frameSize       = 0;
         bool     sawFramePointer = false;
-        for (size_t i = 0; i + 1 < order.size() && i < 32; ++i)
+        for (size_t i = 0; i + 1 < order.size() && i < MicroOptimizationLimits::PrologEpilogSanitize::K_MAX_FRAME_SETUP_SCAN; ++i)
         {
             const MicroInstr*        inst = get(i);
             const MicroInstrOperand* ops  = opsAt(i);

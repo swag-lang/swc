@@ -3,6 +3,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -852,9 +853,10 @@ Result MicroInductionVariablePass::run(MicroPassContext& context)
     // each loop at most once per invocation: another pass can expose new shapes
     // in that loop, and products retain priority over sums until the next sweep.
     // Keep a local bound; the pass manager still checks convergence across sweeps.
-    constexpr uint32_t K_MAX_LOCAL_ROUNDS = 32;
+
     // Most functions have one natural loop; keep its header without allocating a hash table.
     SmallVector<MicroInstrRef, 4> processedHeaders;
+    const auto                    K_MAX_LOCAL_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.inductionVariableRounds, MicroOptimizationLimits::InductionVariable::K_MAX_LOCAL_ROUNDS);
     for (uint32_t round = 0; round < K_MAX_LOCAL_ROUNDS; ++round)
     {
         bool hasOtherLoop = false;

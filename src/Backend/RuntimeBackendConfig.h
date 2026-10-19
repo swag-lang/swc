@@ -32,20 +32,73 @@ namespace Runtime
         O2 = 2,
     };
 
+    struct BuildCfgBackendOptimizerIterations
+    {
+        uint32_t preRaSweeps             = 0; // Pre-allocation optimization sweeps; exhaustion reports a compiler error.
+        uint32_t allocationSweeps        = 0; // Legalization/allocation sweeps; exhaustion reports a compiler error.
+        uint32_t postRaSweeps            = 0; // Post-allocation cleanup sweeps; exhaustion keeps the last valid result.
+        uint32_t prePrologueSweeps       = 0; // Peephole and dead-code cleanup sweeps before frame setup.
+        uint32_t branchThreadRounds      = 0; // Branch-threading rounds within one pass invocation.
+        uint32_t inductionVariableRounds = 0; // Loop rediscovery rounds within one induction-variable pass.
+        uint32_t loopInvariantRounds     = 0; // Hoisting rounds within one loop-invariant-code-motion pass.
+        uint32_t sinkToUseRounds         = 0; // Scheduling rounds that move definitions towards their consumers.
+        uint32_t registerJoinRounds      = 0; // Copy-coalescing rounds before register allocation.
+        uint32_t postRaHoistLevels       = 0; // Outer-loop levels visited by post-allocation hoisting.
+    };
+
+    struct BuildCfgBackendOptimizerUnroll
+    {
+        uint32_t memoryBytes                  = 0; // Maximum bytes expanded for constant-size memory operations.
+        uint32_t maxTrips                     = 0; // Maximum trip count for ordinary full loop unrolling.
+        uint32_t maxWideTableTrips            = 0; // Maximum trip count admitting larger constant-table bodies.
+        uint32_t maxBodyInstructions          = 0; // Maximum original instructions considered for full unrolling; ordinary loops also obey their own cap.
+        uint32_t maxTotalInstructions         = 0; // Maximum expanded instructions for the constant-table exception.
+        uint32_t maxOrdinaryBodyInstructions  = 0; // Maximum original instructions for ordinary full unrolling.
+        uint32_t maxOrdinaryTotalInstructions = 0; // Maximum expanded instructions for ordinary full unrolling.
+        uint32_t maxBranchedTotalInstructions = 0; // Maximum expanded instructions when branches survive unrolling.
+        uint32_t maxNestedTotalInstructions   = 0; // Maximum flattened instructions for a fully unrolled loop nest.
+        uint32_t maxPartialBodyInstructions   = 0; // Maximum original instructions for partial indexed-loop unrolling.
+        uint32_t partialFactor                = 0; // Scalar copies per partial indexed-loop iteration; clamped to 1..64.
+        uint32_t initializerLookback          = 0; // Maximum preheader instructions searched for the loop counter initializer.
+        uint32_t sumInitializerLookback       = 0; // Maximum preheader instructions searched for an accumulator initializer.
+    };
+
+    struct BuildCfgBackendOptimizerVectorization
+    {
+        uint32_t maxPlanInstructions = 0; // Maximum generated instructions in one SLP vectorization plan.
+        uint32_t maxTreeDepth        = 0; // Maximum recursive SLP tree depth; capped at the implementation stack bound of 512.
+        uint32_t maxPromotedPerLoop  = 0; // Maximum vector-state objects promoted simultaneously in one loop.
+    };
+
+    // Keep field order synchronized with Swag.Build.Optimizer in bin/runtime/build.swg.
+    struct BuildCfgBackendOptimizer
+    {
+        BuildCfgBackendOptimizerIterations    iterations;
+        BuildCfgBackendOptimizerUnroll        unroll;
+        BuildCfgBackendOptimizerVectorization vectorization;
+    };
+
+    // Floating-point policy; keep the layout synchronized with Swag.Build.BackendMath.
+    struct BuildCfgBackendMath
+    {
+        bool fma          = false; // Allow fused multiply-add contraction; true in release.
+        bool noNaN        = false; // Assume floating-point values are not NaN; true in release.
+        bool noInf        = false; // Assume floating-point values are finite; true in release.
+        bool noSignedZero = false; // Allow transformations that ignore the sign of zero; true in release.
+        bool unsafe       = false; // Reserve permission for unsafe floating-point transformations.
+        bool approxFunc   = false; // Reserve permission for approximate math-function implementations.
+    };
+
     struct BuildCfgBackend
     {
         BuildCfgBackendOptimLevel optimLevel = BuildCfgBackendOptimLevel::O0;
         bool                      vectorize;
         bool                      debugInfo;
         bool                      enableExceptions;
-        bool                      fpMathFma;
-        bool                      fpMathNoNaN;
-        bool                      fpMathNoInf;
-        bool                      fpMathNoSignedZero;
-        bool                      fpMathUnsafe;
-        bool                      fpMathApproxFunc;
-        uint32_t                  unrollMemLimit;
+        BuildCfgBackendMath       math;
         BuildCfgBackendInlineMode inlineMode = BuildCfgBackendInlineMode::MarkedOnly;
+
+        BuildCfgBackendOptimizer optimizer;
 
         // The optimizer runs at all.
         constexpr bool optimizes() const { return optimLevel != BuildCfgBackendOptimLevel::O0; }

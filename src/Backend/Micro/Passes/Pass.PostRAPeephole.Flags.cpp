@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.ForwardRegTouch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
@@ -8,7 +9,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
-    constexpr uint32_t K_MAX_CARRY_PATTERN_WINDOW = 4;
+    using MicroOptimizationLimits::PostRAPeepholeFlags::K_MAX_CARRY_PATTERN_WINDOW;
 
     // An unsigned modular sum is at least its original left operand exactly
     // when the addition did not carry. Keep the ADD flags across a fallback
@@ -163,11 +164,11 @@ namespace PostRaPeephole
         if (!cmp || !cmp[0].reg.isAnyInt() || !cmp[1].reg.isAnyInt())
             return false;
 
-        constexpr uint32_t                       maxWindow = 4;
-        std::array<MicroInstrRef, maxWindow + 1> window;
+        using MicroOptimizationLimits::PostRAPeepholeFlags::K_REPEATED_COMPARE_WINDOW;
+        std::array<MicroInstrRef, K_REPEATED_COMPARE_WINDOW + 1> window;
         window[0]            = cmpRef;
         MicroInstrRef cursor = ctx.previousRef(cmpRef);
-        for (uint32_t step = 1; step <= maxWindow && cursor.isValid(); ++step, cursor = ctx.previousRef(cursor))
+        for (uint32_t step = 1; step <= K_REPEATED_COMPARE_WINDOW && cursor.isValid(); ++step, cursor = ctx.previousRef(cursor))
         {
             const MicroInstr* previous = ctx.instruction(cursor);
             if (!previous || ctx.isClaimed(cursor))

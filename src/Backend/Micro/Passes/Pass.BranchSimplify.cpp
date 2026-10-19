@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroCompare.h"
 #include "Backend/Micro/MicroInstrInfo.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -822,7 +823,7 @@ namespace
         decisions.clear();
         thread_local FlatKeySet visitedLabels;
 
-        constexpr uint32_t K_MAX_WALK = 256;
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_WALK;
         for (const ConditionalJump& candidate : conditionalJumps)
         {
             const uint32_t ordinal = candidate.ordinal;
@@ -1318,7 +1319,7 @@ namespace
             MicroReg                 trackedBool     = boolReg;
             MicroInstrRef            processedDefRef = MicroInstrRef::invalid();
             const MicroInstrOperand* processedDefOps = nullptr;
-            for (uint32_t hop = 0; defInst && hop < 4; ++hop)
+            for (uint32_t hop = 0; defInst && hop < MicroOptimizationLimits::BranchSimplify::K_MAX_BOOL_DEF_HOPS; ++hop)
             {
                 const MicroInstrOperand* stepOps = defInst->ops(operands);
                 processedDefRef                  = defRef;
@@ -1581,7 +1582,7 @@ namespace
         return false;
     }
 
-    constexpr uint32_t K_MAX_SHORT_CIRCUIT_BOOL_CHAIN = 6;
+    using MicroOptimizationLimits::BranchSimplify::K_MAX_SHORT_CIRCUIT_BOOL_CHAIN;
 
     inline bool collectShortCircuitBoolChain(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef jumpRef, SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN>& outChain, bool requireCopy, const MicroInstrOperand*& outSetOps, BoolBits& outBits)
     {
@@ -2007,7 +2008,7 @@ namespace
     // stands, possibly a sweep later, so the join is left to it.
     bool fallsIntoBranchlessLink(const ProgramLayout& layout, const MicroStorage& storage, const MicroOperandStorage& operands, size_t ordinal)
     {
-        constexpr size_t K_MAX_LINK = 8;
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_LINK;
 
         for (size_t step = 0; step < K_MAX_LINK && ordinal + step < layout.order.size(); ++step)
         {
@@ -2526,8 +2527,8 @@ namespace
     // dual `c != C1 and c != C2 ...` (setne, the same exits) is its complement.
     bool convertEqualityChainsToBitTests(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache, RelocationRefCache& relocationCache)
     {
-        constexpr uint32_t K_MIN_CHAIN = 3;
-        constexpr uint32_t K_MAX_CHAIN = 64;
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_CHAIN;
+        using MicroOptimizationLimits::BranchSimplify::K_MIN_CHAIN;
 
         if (!context.builder)
             return false;
@@ -2790,8 +2791,8 @@ namespace
 
     bool convertOrChainsToBranchless(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
     {
-        constexpr uint32_t K_MAX_LINKS = 4;
-        constexpr uint32_t K_MAX_BODY  = 3;
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_BODY;
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_LINKS;
 
         if (!context.builder)
             return false;
@@ -3023,9 +3024,9 @@ namespace
         auto&                labelReferences = scanPtr->labelReferences;
         auto&                mentions        = scanPtr->mentions;
 
-        constexpr size_t K_MAX_SHAPE = 11;
-        const size_t     count       = layout.order.size();
-        const auto       instAt      = [&](size_t index) -> const MicroInstr* {
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_SHAPE;
+        const size_t count  = layout.order.size();
+        const auto   instAt = [&](size_t index) -> const MicroInstr* {
             return index < count ? storage.ptr(layout.order[index]) : nullptr;
         };
 
@@ -3204,9 +3205,9 @@ namespace
     // then being what D held before the chain.
     bool convertSwitchesToPackedTables(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache, RelocationRefCache& relocationCache)
     {
-        constexpr size_t   K_MIN_CASES    = 3;
-        constexpr uint64_t K_MAX_ENTRIES  = 63;
-        constexpr size_t   K_MAX_LOOKBACK = 4;
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_ENTRIES;
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_LOOKBACK;
+        using MicroOptimizationLimits::BranchSimplify::K_MIN_CASES;
 
         if (!context.builder)
             return false;
@@ -3554,7 +3555,7 @@ namespace
             const uint32_t entryBytes  = width <= 8 ? 1 : width <= 16 ? 2
                                                       : width <= 32   ? 4
                                                                       : 8;
-            const bool     memoryTable = width > 1 && entryBytes * 8 <= resultWidth && table.size() <= 256 && context.taskContext && context.taskContext->hasCompiler();
+            const bool     memoryTable = width > 1 && entryBytes * 8 <= resultWidth && table.size() <= MicroOptimizationLimits::BranchSimplify::K_MAX_MEMORY_TABLE_ENTRIES && context.taskContext && context.taskContext->hasCompiler();
             if (!memoryTable && (width >= resultWidth || static_cast<uint64_t>(width) * table.size() > 64))
                 continue;
 
@@ -5153,7 +5154,7 @@ namespace
     // hand back y, and 0.0 and -0.0 compare equal.
     bool convertFloatSelectsToMinMax(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context, BranchScanCache& scanCache)
     {
-        constexpr uint32_t K_MAX_FLAG_WINDOW = 4;
+        using MicroOptimizationLimits::BranchSimplify::K_MAX_FLAG_WINDOW;
 
         BranchScan* scanPtr = ensureBranchScan(scanCache, storage, operands);
         if (!scanPtr)
@@ -5413,7 +5414,7 @@ namespace
     // triangle is convertBranchesToConditionalMoves above; a diamond whose
     // arms hold their own selects converts from the inside out, one
     // fixed-point iteration per nesting level.
-    constexpr uint32_t K_MAX_IF_CONVERT_ARM_INSTR = 6;
+    using MicroOptimizationLimits::BranchSimplify::K_MAX_IF_CONVERT_ARM_INSTR;
 
     bool isSpeculatableMicroOp(const MicroOp op)
     {
@@ -5661,7 +5662,7 @@ namespace
 
             if (std::ranges::find(visitedPhis, use.phiIndex) != visitedPhis.end())
                 continue;
-            if (visitedPhis.size() >= 16)
+            if (visitedPhis.size() >= MicroOptimizationLimits::BranchSimplify::K_MAX_OUTSIDE_USE_PHIS)
                 return true;
             visitedPhis.push_back(use.phiIndex);
 
@@ -8113,8 +8114,9 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     // Threading one exit of an `and` chain exposes the next join to the
     // fuse, and the fused test to the next threading: a chain settles in
     // one run instead of one link per optimization sweep.
-    constexpr uint32_t              K_MAX_THREAD_ROUNDS = 4096;
+
     thread_local ProgramLayoutCache shortCircuitLayout;
+    const auto                      K_MAX_THREAD_ROUNDS = MicroOptimizationLimits::configured(context.optimizer().iterations.branchThreadRounds, MicroOptimizationLimits::BranchSimplify::K_MAX_THREAD_ROUNDS);
     for (uint32_t round = 0; round < K_MAX_THREAD_ROUNDS; ++round)
     {
         shortCircuitLayout.invalidate();

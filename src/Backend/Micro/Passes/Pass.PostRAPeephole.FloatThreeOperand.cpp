@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.ForwardRegTouch.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
@@ -22,8 +23,8 @@ namespace PostRaPeephole
 {
     namespace
     {
-        constexpr uint32_t K_MAX_COPY_FOLD_SCAN         = 8;
-        constexpr uint32_t K_MAX_COPY_FOLD_LOOKAHEAD    = 12;
+        using MicroOptimizationLimits::PostRAPeepholeFloatThreeOperand::K_MAX_COPY_FOLD_LOOKAHEAD;
+        using MicroOptimizationLimits::PostRAPeepholeFloatThreeOperand::K_MAX_COPY_FOLD_SCAN;
 
         bool hasThreeOperandForm(const MicroOp op)
         {
@@ -573,7 +574,7 @@ namespace PostRaPeephole
             {
                 // Contraction can change which NaN payload wins. Keep packed
                 // expressions with observable NaNs in their original form.
-                if (!ctx.builder->backendBuildCfg().fpMathNoNaN)
+                if (!ctx.builder->backendBuildCfg().math.noNaN)
                     return false;
                 const bool wide = multiply.elementBits == MicroOpBits::B64;
                 switch (fused[4].microOp)
@@ -639,7 +640,7 @@ namespace PostRaPeephole
         // `v = [m]`, `v -= p`. The pair still contracts when nothing in between reads or writes
         // the product or writes either factor - the fused form reads the factors where the
         // accumulation stands. Look a few instructions back for such a product.
-        constexpr uint32_t K_MAX_PRODUCT_GAP = 6;
+        using MicroOptimizationLimits::PostRAPeepholeFloatThreeOperand::K_MAX_PRODUCT_GAP;
 
         bool findSeparatedProduct(Context& ctx, std::span<const MicroInstrRef> refs, uint32_t blockBegin, uint32_t accumulateIndex, uint32_t& outMultiplyIndex)
         {
@@ -776,7 +777,7 @@ namespace PostRaPeephole
         const auto& cfg = ctx.builder->controlFlowGraph();
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return;
-        const bool allowFusion = ctx.encoder && ctx.encoder->supportsFusedFloatMultiplyAdd() && ctx.builder->backendBuildCfg().fpMathFma;
+        const bool allowFusion = ctx.encoder && ctx.encoder->supportsFusedFloatMultiplyAdd() && ctx.builder->backendBuildCfg().math.fma;
         const auto refs        = cfg.instructionRefs();
         bool       candidate   = false;
         for (const auto ref : refs)
@@ -1151,7 +1152,7 @@ namespace PostRaPeephole
 
     static bool mayContractFollowingAccumulation(Context& ctx, MicroInstrRef productRef)
     {
-        if (!ctx.builder || !ctx.builder->backendBuildCfg().fpMathFma || !ctx.encoder->supportsFusedFloatMultiplyAdd())
+        if (!ctx.builder || !ctx.builder->backendBuildCfg().math.fma || !ctx.encoder->supportsFusedFloatMultiplyAdd())
             return false;
         FloatBinary product;
         if (!floatBinary(product, *ctx.instruction(productRef), *ctx.operands) || product.op != MicroOp::FloatMultiply)
@@ -1159,7 +1160,7 @@ namespace PostRaPeephole
 
         auto scan = MicroStorage::Iterator{ctx.storage, productRef};
         ++scan;
-        for (uint32_t step = 0; step < 12 && scan.current.isValid(); ++step, ++scan)
+        for (uint32_t step = 0; step < MicroOptimizationLimits::PostRAPeepholeFloatThreeOperand::K_MAX_FMA_ACCUMULATION_SCAN && scan.current.isValid(); ++step, ++scan)
         {
             if (ctx.isClaimed(scan.current))
                 return true;
@@ -1224,14 +1225,14 @@ namespace PostRaPeephole
         if (isFloat ? (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64 && !(lateFloatMemory && opBits == MicroOpBits::B128)) : !isStandardIntBits(opBits))
             return false;
 
-        constexpr uint32_t kMaxScan = 12;
+        using MicroOptimizationLimits::PostRAPeepholeFloatThreeOperand::K_LOAD_CONSUMER_SCAN;
 
         auto scanIt = MicroStorage::Iterator{ctx.storage, loadRef};
         ++scanIt;
         MicroInstrRef     opRef   = scanIt.current;
         const MicroInstr* opInst  = nullptr;
         uint32_t          opIndex = ctx.instructionIndex + 1;
-        for (uint32_t step = 0; step < kMaxScan && scanIt.current.isValid(); ++step, ++scanIt)
+        for (uint32_t step = 0; step < K_LOAD_CONSUMER_SCAN && scanIt.current.isValid(); ++step, ++scanIt)
         {
             opRef                       = scanIt.current;
             const MicroInstr* candidate = &*scanIt;
@@ -1340,7 +1341,7 @@ namespace PostRaPeephole
                 return false;
             const bool commute = !fused && consumerOps[1].reg == loaded;
             if (commute && ((op != MicroOp::FloatAdd && op != MicroOp::FloatMultiply) ||
-                            !ctx.builder || !ctx.builder->backendBuildCfg().fpMathNoNaN ||
+                            !ctx.builder || !ctx.builder->backendBuildCfg().math.noNaN ||
                             !areFloatUpperLanesDeadAfter(ctx, opRef, consumerOps[0].reg, opBits)))
                 return false;
             if (floatLanesReadAfter(ctx, opRef, loaded))
@@ -1359,7 +1360,7 @@ namespace PostRaPeephole
 
             // Reserve the complete motion window: another queued rewrite must
             // not expose a use of the removed carrier or move a memory write in.
-            SmallVector<MicroInstrRef, kMaxScan + 1> window;
+            SmallVector<MicroInstrRef, K_LOAD_CONSUMER_SCAN + 1> window;
             for (auto it = MicroStorage::Iterator{ctx.storage, loadRef};; ++it)
             {
                 window.push_back(it.current);
@@ -1507,12 +1508,12 @@ namespace PostRaPeephole
         // Walk back to whatever last wrote the destination. Only a load of this
         // very address means the register already holds the memory operand;
         // running out of budget before finding that write proves nothing.
-        constexpr uint32_t kMaxScan = 12;
+        using MicroOptimizationLimits::PostRAPeepholeFloatThreeOperand::K_MEMORY_DESTINATION_SCAN;
 
         bool loadFound = false;
         auto walker    = MicroStorage::Iterator{ctx.storage, opRef};
         --walker;
-        for (uint32_t step = 0; step < kMaxScan && !loadFound; ++step)
+        for (uint32_t step = 0; step < K_MEMORY_DESTINATION_SCAN && !loadFound; ++step)
         {
             if (!walker.current.isValid())
                 return false;
@@ -2068,7 +2069,7 @@ namespace PostRaPeephole
             (rootOps[2].opBits != MicroOpBits::B32 && rootOps[2].opBits != MicroOpBits::B64))
             return false;
 
-        constexpr uint32_t                           K_MAX_WINDOW = 16;
+        using MicroOptimizationLimits::PostRAPeepholeFloatThreeOperand::K_MAX_WINDOW;
         SmallVector<MicroInstrRef, K_MAX_WINDOW + 2> observed;
         SmallVector<Action, K_MAX_WINDOW>            rewrites;
         observed.push_back(rootRef);

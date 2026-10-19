@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -240,7 +241,7 @@ namespace InstructionCombine
     {
         bool traceFrameDerivedAddress(const Context& ctx, MicroReg reg, MicroInstrRef atRef)
         {
-            constexpr uint32_t K_MAX_ADDRESS_CHAIN = 8;
+            using MicroOptimizationLimits::InstructionCombineCommon::K_MAX_ADDRESS_CHAIN;
 
             for (uint32_t depth = 0; depth < K_MAX_ADDRESS_CHAIN; ++depth)
             {

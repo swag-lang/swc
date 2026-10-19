@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
@@ -36,7 +37,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_BUILD_WINDOW = 64;
+        using MicroOptimizationLimits::InstructionCombineBuildVector::K_MAX_BUILD_WINDOW;
 
         struct Lane
         {
@@ -508,12 +509,12 @@ namespace InstructionCombine
                 const uint32_t dwordLanes = 4 / laneBytes;
 
                 // An immediate costs its materialization on top of the insert.
-                uint32_t viaMovd  = lanes[0].isImm ? 2 : 1;
-                uint32_t viaClear = 1;
+                uint32_t viaMovd  = lanes[0].isImm ? MicroOptimizationLimits::InstructionCombineBuildVector::K_IMMEDIATE_INSERT_COST : MicroOptimizationLimits::InstructionCombineBuildVector::K_REGISTER_INSERT_COST;
+                uint32_t viaClear = MicroOptimizationLimits::InstructionCombineBuildVector::K_VECTOR_CLEAR_COST;
                 for (uint32_t i = 0; i < count; ++i)
                 {
                     const bool     zero = isZeroLane(lanes[i]);
-                    const uint32_t cost = lanes[i].isImm ? 2 : 1;
+                    const uint32_t cost = lanes[i].isImm ? MicroOptimizationLimits::InstructionCombineBuildVector::K_IMMEDIATE_INSERT_COST : MicroOptimizationLimits::InstructionCombineBuildVector::K_REGISTER_INSERT_COST;
                     if (i > 0 && (!zero || i < dwordLanes))
                         viaMovd += cost;
                     if (!zero)

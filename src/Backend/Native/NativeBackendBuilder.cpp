@@ -102,14 +102,39 @@ namespace
         bytes.pushBack(static_cast<std::byte>(config.vectorize));
         bytes.pushBack(static_cast<std::byte>(config.debugInfo));
         bytes.pushBack(static_cast<std::byte>(config.enableExceptions));
-        bytes.pushBack(static_cast<std::byte>(config.fpMathFma));
-        bytes.pushBack(static_cast<std::byte>(config.fpMathNoNaN));
-        bytes.pushBack(static_cast<std::byte>(config.fpMathNoInf));
-        bytes.pushBack(static_cast<std::byte>(config.fpMathNoSignedZero));
-        bytes.pushBack(static_cast<std::byte>(config.fpMathUnsafe));
-        bytes.pushBack(static_cast<std::byte>(config.fpMathApproxFunc));
-        bytes.appendLe32(config.unrollMemLimit);
+        bytes.pushBack(static_cast<std::byte>(config.math.fma));
+        bytes.pushBack(static_cast<std::byte>(config.math.noNaN));
+        bytes.pushBack(static_cast<std::byte>(config.math.noInf));
+        bytes.pushBack(static_cast<std::byte>(config.math.noSignedZero));
+        bytes.pushBack(static_cast<std::byte>(config.math.unsafe));
+        bytes.pushBack(static_cast<std::byte>(config.math.approxFunc));
         bytes.pushBack(static_cast<std::byte>(config.inlineMode));
+        bytes.appendLe32(config.optimizer.iterations.preRaSweeps);
+        bytes.appendLe32(config.optimizer.iterations.allocationSweeps);
+        bytes.appendLe32(config.optimizer.iterations.postRaSweeps);
+        bytes.appendLe32(config.optimizer.iterations.prePrologueSweeps);
+        bytes.appendLe32(config.optimizer.iterations.branchThreadRounds);
+        bytes.appendLe32(config.optimizer.iterations.inductionVariableRounds);
+        bytes.appendLe32(config.optimizer.iterations.loopInvariantRounds);
+        bytes.appendLe32(config.optimizer.iterations.sinkToUseRounds);
+        bytes.appendLe32(config.optimizer.iterations.registerJoinRounds);
+        bytes.appendLe32(config.optimizer.iterations.postRaHoistLevels);
+        bytes.appendLe32(config.optimizer.unroll.memoryBytes);
+        bytes.appendLe32(config.optimizer.unroll.maxTrips);
+        bytes.appendLe32(config.optimizer.unroll.maxWideTableTrips);
+        bytes.appendLe32(config.optimizer.unroll.maxBodyInstructions);
+        bytes.appendLe32(config.optimizer.unroll.maxTotalInstructions);
+        bytes.appendLe32(config.optimizer.unroll.maxOrdinaryBodyInstructions);
+        bytes.appendLe32(config.optimizer.unroll.maxOrdinaryTotalInstructions);
+        bytes.appendLe32(config.optimizer.unroll.maxBranchedTotalInstructions);
+        bytes.appendLe32(config.optimizer.unroll.maxNestedTotalInstructions);
+        bytes.appendLe32(config.optimizer.unroll.maxPartialBodyInstructions);
+        bytes.appendLe32(config.optimizer.unroll.partialFactor);
+        bytes.appendLe32(config.optimizer.unroll.initializerLookback);
+        bytes.appendLe32(config.optimizer.unroll.sumInitializerLookback);
+        bytes.appendLe32(config.optimizer.vectorization.maxPlanInstructions);
+        bytes.appendLe32(config.optimizer.vectorization.maxTreeDepth);
+        bytes.appendLe32(config.optimizer.vectorization.maxPromotedPerLoop);
     }
 
     Utf8 functionCacheFingerprint(const NativeBackendBuilder& builder, const SymbolFunction& function)
@@ -583,10 +608,10 @@ namespace
     // or generic instance still being analysed) is checked again every round.
     struct ConstantDependencyScan
     {
-        StampedKeySet               visitedAllocations;
-        bool                        globalInitScanned = false;
+        StampedKeySet                visitedAllocations;
+        bool                         globalInitScanned = false;
         std::vector<SymbolFunction*> pendingFunctions;
-        RejectedConstantFunctions  rejected;
+        RejectedConstantFunctions    rejected;
     };
 
     bool appendConstantFunctionDependencies(const NativeBackendBuilder& builder, std::vector<SymbolFunction*>& functions, PointerSet<SymbolFunction>& seenFunctions, ConstantDependencyScan& scan)
@@ -610,8 +635,7 @@ namespace
         }
         scan.rejected.functions.resize(rejectedCount);
 
-        const auto scanFunction = [&](const SymbolFunction* function)
-        {
+        const auto scanFunction = [&](const SymbolFunction* function) {
             const MachineCode& code = function->loweredCode();
             for (const MicroRelocation& relocation : code.codeRelocations)
             {
@@ -778,9 +802,9 @@ namespace
 
     struct NativeFunctionInfoOptions
     {
-        bool                                supportsExportedFunctions = false;
-        bool                                includeDebugNames         = false;
-        SymbolSort::LocationKeyCache*       sortKeys                  = nullptr;
+        bool                          supportsExportedFunctions = false;
+        bool                          includeDebugNames         = false;
+        SymbolSort::LocationKeyCache* sortKeys                  = nullptr;
     };
 
     NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal, const NativeFunctionInfoOptions& options)

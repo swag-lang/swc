@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -26,7 +27,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr int K_MAX_PHI_DEPTH = 4;
+        using MicroOptimizationLimits::InstructionCombineConstProp::K_MAX_PHI_DEPTH;
 
         bool resolveConstValue(uint64_t& outImm, const Context& ctx, uint32_t valueId, MicroOpBits readBits, int depth)
         {
@@ -312,7 +313,7 @@ namespace InstructionCombine
             ++walker;
 
             const auto endIt = ctx.storage->view().end();
-            for (uint32_t step = 0; step < 16 && walker != endIt; ++step, ++walker)
+            for (uint32_t step = 0; step < MicroOptimizationLimits::InstructionCombineConstProp::K_MAX_SWAP_FLAG_SCAN && walker != endIt; ++step, ++walker)
             {
                 const MicroInstr&    inst = *walker;
                 const MicroInstrDef& info = MicroInstr::info(inst.op);
@@ -953,7 +954,7 @@ namespace InstructionCombine
 
     namespace
     {
-        constexpr int K_MAX_BOUND_DEPTH = 6;
+        using MicroOptimizationLimits::InstructionCombineConstProp::K_MAX_BOUND_DEPTH;
 
         // Proves an inclusive unsigned upper bound for the full value of 'reg' at
         // 'useRef', by walking its reaching definitions. Only definitions whose
@@ -1138,7 +1139,7 @@ namespace InstructionCombine
 
         const auto endIt        = ctx.storage->view().end();
         bool       windowClosed = false;
-        for (uint32_t step = 0; step < 16 && walker != endIt; ++step, ++walker)
+        for (uint32_t step = 0; step < MicroOptimizationLimits::InstructionCombineConstProp::K_MAX_RESOLVED_FLAG_SCAN && walker != endIt; ++step, ++walker)
         {
             const MicroInstr&    inst = *walker;
             const MicroInstrDef& info = MicroInstr::info(inst.op);

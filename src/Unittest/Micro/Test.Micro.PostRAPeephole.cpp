@@ -2797,7 +2797,9 @@ SWC_TEST_BEGIN(PostRAPeephole_FlagReuse_MemorySubThenCompareZero)
         else
             builder.emitOpBinaryMemImm(base, 0x28, ApInt(1, 32), MicroOp::Subtract, MicroOpBits::B32);
         builder.emitCmpMemImm(base, variant == 1 ? 0x2C : 0x28, ApInt(0, variant == 2 ? 64 : 32), variant == 2 ? MicroOpBits::B64 : MicroOpBits::B32);
-        builder.emitJumpToLabel(variant == 3 ? MicroCond::Below : variant == 4 ? MicroCond::NotEqual : MicroCond::Equal, MicroOpBits::B32, takenLabel);
+        builder.emitJumpToLabel(variant == 3 ? MicroCond::Below : variant == 4 ? MicroCond::NotEqual
+                                                                               : MicroCond::Equal,
+                                MicroOpBits::B32, takenLabel);
         builder.emitRet();
         builder.placeLabel(takenLabel);
         builder.emitRet();
@@ -3968,7 +3970,7 @@ SWC_TEST_BEGIN(PostRAPeephole_CommutedFloatMemoryKeepsScalarBits)
                         std::array<uint64_t, 8> values = {first, 0x89ABCDEF01234567, second, UINT64_MAX};
                         MicroBuilder            builder(ctx);
                         auto                    cfg = builder.backendBuildCfg();
-                        cfg.fpMathNoNaN             = true;
+                        cfg.math.noNaN              = true;
                         builder.setBackendBuildCfg(cfg);
                         builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
                         builder.emitLoadRegMem(loaded, base, 16, bits);
@@ -4016,8 +4018,8 @@ SWC_TEST_BEGIN(PostRAPeephole_NonDestructiveFloatMemoryChecksMotionAndLanes)
     {
         MicroBuilder builder(ctx);
         auto         cfg = builder.backendBuildCfg();
-        cfg.fpMathNoNaN  = test != Case::StrictCommute;
-        cfg.fpMathFma    = test == Case::ProductToAccumulate;
+        cfg.math.noNaN   = test != Case::StrictCommute;
+        cfg.math.fma     = test == Case::ProductToAccumulate;
         builder.setBackendBuildCfg(cfg);
         if (test == Case::Indexed)
             builder.emitLoadAmcRegMem(loaded, MicroOpBits::B64, base, MicroReg::intReg(8), 8, 16, MicroOpBits::B64);
@@ -5600,7 +5602,7 @@ SWC_TEST_BEGIN(PostRAPeephole_FusedProductRespectsPolicyAndLaneLiveness)
                     {
                         MicroBuilder             builder(ctx);
                         Runtime::BuildCfgBackend config{};
-                        config.fpMathFma = variant != 1;
+                        config.math.fma = variant != 1;
                         builder.setBackendBuildCfg(config);
                         if (threeOperandMultiply)
                             builder.emitOpBinaryRegRegReg(product, first, second, MicroOp::FloatMultiply, bits);
@@ -5689,7 +5691,7 @@ SWC_TEST_BEGIN(PostRAPeephole_FusedProductReusesMultiplyInput)
                             const bool               productObserved = variant == 3 || variant == 4;
                             MicroBuilder             builder(ctx);
                             Runtime::BuildCfgBackend config{};
-                            config.fpMathFma = variant != 1;
+                            config.math.fma = variant != 1;
                             builder.setBackendBuildCfg(config);
                             builder.setRetUsesAbiRegs(false, false);
                             if (product == left)
@@ -5748,7 +5750,7 @@ SWC_TEST_BEGIN(PostRAPeephole_FusedProductPreservesAccumulatorAndExplicitMuladd)
         {
             MicroBuilder             builder(ctx);
             Runtime::BuildCfgBackend config{};
-            config.fpMathFma = true;
+            config.math.fma = true;
             builder.setBackendBuildCfg(config);
             if (variant == 0)
                 builder.emitOpTernaryRegRegReg(accumulator, first, second, MicroOp::MultiplyAdd, bits);
@@ -5797,7 +5799,7 @@ SWC_TEST_BEGIN(PostRAPeephole_FusedProductTakesTheReloadedFactorAccumulation)
         {
             MicroBuilder             builder(ctx);
             Runtime::BuildCfgBackend config{};
-            config.fpMathFma = variant != 5;
+            config.math.fma = variant != 5;
             builder.setBackendBuildCfg(config);
             if (variant == 2)
                 builder.emitOpBinaryRegRegReg(product, factor, product, MicroOp::FloatMultiply, bits);
@@ -6356,7 +6358,7 @@ SWC_TEST_BEGIN(PostRAPeephole_MemoryProductContractionRespectsMotionAndPolicy)
     {
         MicroBuilder builder(ctx);
         auto         cfg = builder.backendBuildCfg();
-        cfg.fpMathFma    = test != Case::Disabled;
+        cfg.math.fma     = test != Case::Disabled;
         builder.setBackendBuildCfg(cfg);
         const bool rip = test == Case::Rip || test == Case::DuplicateRelocation;
         builder.emitOpBinaryRegRegMem(product, factor, rip ? MicroReg::instructionPointer() : base, rip ? 0 : 8, MicroOp::FloatMultiply, MicroOpBits::B64);
@@ -6452,7 +6454,7 @@ SWC_TEST_BEGIN(PostRAPeephole_MemoryProductContractionMatchesFusedRounding)
                         std::array<uint64_t, 10> values = {sample[0] | (bits == MicroOpBits::B32 ? 0xFEDCBA9800000000 : 0), 0x89ABCDEF01234567, sample[1], 0x0123456789ABCDEF, sample[2], UINT64_MAX};
                         MicroBuilder             builder(ctx);
                         auto                     cfg = builder.backendBuildCfg();
-                        cfg.fpMathFma                = true;
+                        cfg.math.fma                 = true;
                         builder.setBackendBuildCfg(cfg);
                         builder.emitLoadRegMem(factor, base, 16, MicroOpBits::B128);
                         if (contract)
@@ -6574,8 +6576,8 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedContractionMatchesScalarFusedRounding)
                             auto         values = input;
                             MicroBuilder builder(ctx);
                             auto         cfg = builder.backendBuildCfg();
-                            cfg.fpMathFma    = true;
-                            cfg.fpMathNoNaN  = true;
+                            cfg.math.fma     = true;
+                            cfg.math.noNaN   = true;
                             builder.setBackendBuildCfg(cfg);
                             if (contract)
                             {
@@ -6649,8 +6651,8 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedContractionRespectsPolicyAndDependencies)
     {
         MicroBuilder builder(ctx);
         auto         cfg = builder.backendBuildCfg();
-        cfg.fpMathFma    = test != Case::Disabled;
-        cfg.fpMathNoNaN  = test != Case::ObservableNaN;
+        cfg.math.fma     = test != Case::Disabled;
+        cfg.math.noNaN   = test != Case::ObservableNaN;
         builder.setBackendBuildCfg(cfg);
         builder.emitOpBinaryRegRegReg(product, left, right, MicroOp::VecMulF64, MicroOpBits::B128);
         const auto multiply = builder.instructions().lastInstructionRef();

@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -31,8 +32,7 @@ namespace
 {
     using NaturalLoop = MicroPassHelpers::NaturalLoop;
 
-    constexpr uint32_t K_INVALID               = std::numeric_limits<uint32_t>::max();
-    constexpr uint32_t K_MAX_PROMOTED_PER_LOOP = 6;
+    constexpr uint32_t K_INVALID = std::numeric_limits<uint32_t>::max();
 
     // How much is known about where a root register points; only the stack
     // pointer paired with one incoming parameter is ever assumed disjoint.
@@ -464,7 +464,7 @@ namespace
         SmallVector<Chunk> promoted;
         for (const Chunk& chunk : chunks)
         {
-            if (promoted.size() >= K_MAX_PROMOTED_PER_LOOP)
+            if (promoted.size() >= MicroOptimizationLimits::configured(context.optimizer().vectorization.maxPromotedPerLoop, MicroOptimizationLimits::VecLoopPromote::K_MAX_PROMOTED_PER_LOOP))
                 break;
 
             bool clean = true;

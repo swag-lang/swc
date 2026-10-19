@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -55,8 +56,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_LOOP_HEADER_ALIGNMENT = 16;
-    constexpr uint32_t K_BRANCH_BOUNDARY       = 32;
+    using MicroOptimizationLimits::Emit::K_BRANCH_BOUNDARY;
+    using MicroOptimizationLimits::Emit::K_LOOP_HEADER_ALIGNMENT;
 
     // LLVM's MCAssembler needPadding: a branch group must neither cross a boundary nor end on one.
     bool needsBoundaryPadding(const uint32_t start, const uint32_t end)

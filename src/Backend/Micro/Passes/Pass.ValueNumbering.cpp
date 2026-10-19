@@ -4,6 +4,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -70,7 +71,7 @@ namespace
 
     uint32_t resolveValueAlias(const ValueAliases& aliases, uint32_t valueId)
     {
-        for (uint32_t depth = 0; depth < 8; ++depth)
+        for (uint32_t depth = 0; depth < MicroOptimizationLimits::ValueNumbering::K_MAX_ALIAS_DEPTH; ++depth)
         {
             const uint32_t* alias = aliases.find(valueId);
             if (!alias)
@@ -92,7 +93,7 @@ namespace
         if (!reach.valid())
             return MicroSsaState::K_INVALID_VALUE;
 
-        for (uint32_t depth = 0; depth < 8; ++depth)
+        for (uint32_t depth = 0; depth < MicroOptimizationLimits::ValueNumbering::K_MAX_COPY_DEPTH; ++depth)
         {
             if (reach.isPhi || !reach.inst || reach.inst->op != MicroInstrOpcode::LoadRegReg)
                 break;
@@ -1020,7 +1021,7 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
 
             // The earlier result must still be what its register holds here, or be worth
             // keeping in a register of its own.
-            const uint32_t reachingId = ssaState->reachingValueId(cand.defReg, instRef);
+            const uint32_t reachingId  = ssaState->reachingValueId(cand.defReg, instRef);
             const bool     overwritten = reachingId == MicroSsaState::K_INVALID_VALUE || reachingId != cand.defValueId;
             if (overwritten && (!sameResult || !isPreservableCompute(*inst, ops) || !cand.defReg.isVirtualInt()))
                 continue;

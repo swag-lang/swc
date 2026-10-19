@@ -3,6 +3,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
@@ -94,7 +95,7 @@ namespace PostRaPeephole
             return false;
         };
 
-        constexpr uint32_t K_MAX_SPAN = 64;
+        using MicroOptimizationLimits::PostRAPeepholeTrivial::K_MAX_SPAN;
         // Only predecessors between source and candidate can be visited.
         std::array<uint8_t, K_MAX_SPAN + 1> visited;
         std::vector<uint32_t>               pending;
@@ -446,7 +447,7 @@ namespace PostRaPeephole
 
     namespace
     {
-        constexpr uint32_t K_MAX_RETURN_TAIL = 16;
+        using MicroOptimizationLimits::PostRAPeepholeTrivial::K_MAX_RETURN_TAIL;
 
         bool collectSimpleReturnTail(const Context& ctx, MicroInstrRef ref, std::array<MicroInstrRef, K_MAX_RETURN_TAIL>& refs, uint32_t& count)
         {
@@ -532,7 +533,7 @@ namespace PostRaPeephole
             return false;
 
         MicroInstrRef exitRef = ctx.nextRef(collisionRef);
-        for (uint32_t step = 0; step < 12; ++step)
+        for (uint32_t step = 0; step < MicroOptimizationLimits::PostRAPeepholeTrivial::K_MAX_RETURN_EXIT_SCAN; ++step)
         {
             const MicroInstr* inst = ctx.instruction(exitRef);
             if (!inst || inst->op == MicroInstrOpcode::Ret)

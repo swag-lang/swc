@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.LoopUnroll.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
@@ -45,25 +46,8 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // Ordinary loops stop at sixteen trips. Four or fewer trips over constant
-    // tables admit a larger body: fixed indices expose constant loads to later
-    // passes, even when branches make the original body fairly large.
-    constexpr uint64_t K_MAX_TRIPS                = 16;
-    constexpr uint64_t K_MAX_WIDE_TABLE_TRIPS     = 4;
-    constexpr uint32_t K_MAX_BODY_INSTR           = 144;
-    constexpr uint32_t K_MAX_TOTAL_INSTR          = 576;
-    constexpr uint32_t K_MAX_ORDINARY_BODY_INSTR  = 96;
-    constexpr uint32_t K_MAX_ORDINARY_TOTAL_INSTR = 384;
-    // A body with branches usually keeps its tests and jumps after unrolling.
-    // The exception below is a short loop over constant tables: each fixed
-    // index lets later passes fold a table lookup despite those branches.
-    constexpr uint32_t K_MAX_TOTAL_INSTR_WITH_BRANCHES = 96;
-    // A nest whose inner loops all flatten leaves no branch behind, and both
-    // element indices of a pair become constants. It may take twice an
-    // ordinary loop's budget, counted on the code that remains once every
-    // inner loop has been unrolled in its turn.
-    constexpr uint32_t K_MAX_NEST_TOTAL_INSTR = 2 * K_MAX_ORDINARY_TOTAL_INSTR;
-
+    // Resolve the configured unroll budgets at each entry point. Proof bounds stay
+    // compiler-owned; table and nested-loop exceptions retain independent growth budgets.
     struct LabelInfo
     {
         uint32_t ordinal   = std::numeric_limits<uint32_t>::max();
@@ -172,6 +156,7 @@ namespace
     // outer unroll would only multiply loops.
     bool flattenedNestSize(uint64_t& outTotal, const MicroPassContext& context, const MicroStorage& storage, const MicroOperandStorage& operands, const std::vector<MicroInstrRef>& order, const LabelTable& labels, const CountedLoop& outer)
     {
+        const auto limits = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
         struct InnerLoop
         {
             uint32_t jump       = 0;
@@ -217,7 +202,7 @@ namespace
                 (ops[0].cpuCond != MicroCond::Less && ops[0].cpuCond != MicroCond::Below) ||
                 addOps[2].microOp != MicroOp::Add || addOps[0].reg != cmpOps[0].reg || !cmpOps[0].reg.isVirtualInt() ||
                 cmpOps[2].hasWideImmediateValue() || addOps[3].hasWideImmediateValue() ||
-                addOps[3].valueU64 < 1 || addOps[3].valueU64 > 64 || cmpOps[2].valueU64 > 1000000)
+                addOps[3].valueU64 < 1 || addOps[3].valueU64 > MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_STEP || cmpOps[2].valueU64 > MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_BOUND)
                 return false;
             const LabelInfo& header = *findLabel(labels, ops[2].valueU64);
             if (header.firstJump != o || header.lastJump != o)
@@ -291,7 +276,7 @@ namespace
                         derived.emplace(ops[0].reg, it->second);
                     break;
                 case MicroInstrOpcode::LoadAddrRegMem:
-                    if (const auto it = offsets.find(ops[1].reg); it != offsets.end() && ops[3].valueU64 <= 1000000)
+                    if (const auto it = offsets.find(ops[1].reg); it != offsets.end() && ops[3].valueU64 <= MicroOptimizationLimits::LoopUnroll::K_MAX_DERIVED_OFFSET)
                         derived.emplace(ops[0].reg, it->second + static_cast<int64_t>(ops[3].valueU64));
                     break;
                 default:
@@ -334,7 +319,7 @@ namespace
                 if (start < 0 || static_cast<uint64_t>(start) >= inner.bound || (inner.bound - static_cast<uint64_t>(start)) % inner.step != 0)
                     return false;
                 const uint64_t innerTrips = (inner.bound - static_cast<uint64_t>(start)) / inner.step;
-                if (!bodyCount || bodyCount > K_MAX_ORDINARY_BODY_INSTR || innerTrips > K_MAX_TRIPS || bodyCount * innerTrips > K_MAX_ORDINARY_TOTAL_INSTR)
+                if (!bodyCount || bodyCount > limits.maxOrdinaryBodyInstructions || innerTrips > limits.maxTrips || bodyCount * innerTrips > limits.maxOrdinaryTotalInstructions)
                     return false;
                 total += bodyCount * innerTrips;
                 o = inner.jump + 1;
@@ -350,6 +335,7 @@ namespace
     // the 64-bit accumulator, so the four packed lanes have identical values.
     bool vectorizeIndexedXorLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal)
     {
+        const auto limits = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
         if (jumpOrdinal != headerOrdinal + 7 || jumpOrdinal + 1 >= order.size())
             return false;
 
@@ -404,7 +390,7 @@ namespace
             return false;
 
         bool haveZeroInit = false;
-        for (uint32_t back = 1; back <= 8 && back <= headerOrdinal; ++back)
+        for (uint32_t back = 1; back <= limits.initializerLookback && back <= headerOrdinal; ++back)
         {
             const MicroInstr* inst = storage.ptr(order[headerOrdinal - back]);
             if (!inst || inst->op == MicroInstrOpcode::Label)
@@ -627,6 +613,7 @@ namespace
     // in source order so overlapping ranges retain their original behavior.
     bool partiallyUnrollIndexedLoop(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder& builder, const std::vector<MicroInstrRef>& order, const std::unordered_map<uint32_t, SmallVector<MicroRelocation, 2>>& relocsBySlot, const uint32_t headerOrdinal, const uint32_t jumpOrdinal, const uint64_t headerId)
     {
+        const auto limits = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
         if (headerOrdinal + 4 > jumpOrdinal || jumpOrdinal + 1 >= order.size())
             return false;
         const MicroInstr*        compare = storage.ptr(order[jumpOrdinal - 1]);
@@ -647,7 +634,7 @@ namespace
         const MicroReg counter      = cmpOps[0].reg;
         const MicroReg bound        = cmpOps[1].reg;
         bool           haveZeroInit = false;
-        for (uint32_t back = 1; back <= 8 && back <= headerOrdinal; ++back)
+        for (uint32_t back = 1; back <= limits.initializerLookback && back <= headerOrdinal; ++back)
         {
             const MicroInstr* inst = storage.ptr(order[headerOrdinal - back]);
             if (!inst || inst->op == MicroInstrOpcode::Label)
@@ -667,7 +654,7 @@ namespace
         const uint32_t bodyBegin = headerOrdinal + 1;
         const uint32_t bodyEnd   = jumpOrdinal - 2;
         const uint32_t bodyCount = bodyEnd - bodyBegin;
-        if (!bodyCount || bodyCount > 12)
+        if (!bodyCount || bodyCount > limits.maxPartialBodyInstructions)
             return false;
         bool                         indexedRead            = false;
         bool                         indexedWrite           = false;
@@ -706,7 +693,7 @@ namespace
                 const uint64_t    stride = ops[5].valueU64;
                 const MicroOpBits bits   = inst->op == MicroInstrOpcode::LoadAmcRegMem ? ops[3].opBits : ops[4].opBits;
                 if (ops[1].reg == counter || ops[2].reg != counter || (stride != 1 && stride != 2 && stride != 4 && stride != 8) ||
-                    ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX) - 3 * stride)
+                    ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX) - (limits.partialFactor - 1) * stride)
                     return false;
                 allReadsHaveUnitStride = allReadsHaveUnitStride && stride == 1;
                 indexedRead            = true;
@@ -720,7 +707,7 @@ namespace
                 if (indexedWrite || !indexedRead || bodyCount != 2 || ordinal != bodyBegin + 1 ||
                     ops[0].reg == counter || ops[1].reg != counter || ops[2].reg != loadedValue ||
                     ops[3].opBits != loadedBits || ops[4].opBits != loadedBits || ops[5].valueU64 != elementStride ||
-                    ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX) - 3 * elementStride)
+                    ops[6].hasWideImmediateValue() || ops[6].valueU64 > static_cast<uint64_t>(INT32_MAX) - (limits.partialFactor - 1) * elementStride)
                     return false;
                 indexedWrite = true;
                 indexedBases.insert(ops[0].reg);
@@ -755,7 +742,7 @@ namespace
         MicroInstrOperand boundCheck[3] = {};
         boundCheck[0].reg               = bound;
         boundCheck[1].opBits            = MicroOpBits::B64;
-        boundCheck[2].setImmediateValue(ApInt(4, 64));
+        boundCheck[2].setImmediateValue(ApInt(limits.partialFactor, 64));
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::CmpRegImm, boundCheck);
         MicroInstrOperand shortJump[3] = {};
         shortJump[0].cpuCond           = MicroCond::Below;
@@ -771,13 +758,13 @@ namespace
         limitSub[0].reg               = limit;
         limitSub[1].opBits            = MicroOpBits::B64;
         limitSub[2].microOp           = MicroOp::Subtract;
-        limitSub[3].setImmediateValue(ApInt(3, 64));
+        limitSub[3].setImmediateValue(ApInt(limits.partialFactor - 1, 64));
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::OpBinaryRegImm, limitSub);
         MicroInstrOperand groupLabel[1] = {};
         groupLabel[0].valueU64          = groupId;
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::Label, groupLabel);
 
-        for (uint64_t copy = 0; copy < 4; ++copy)
+        for (uint64_t copy = 0; copy < limits.partialFactor; ++copy)
         {
             for (uint32_t ordinal = bodyBegin; ordinal < bodyEnd; ++ordinal)
             {
@@ -796,7 +783,7 @@ namespace
             }
         }
         MicroInstrOperand groupStep[4] = {originalStep[0], originalStep[1], originalStep[2], originalStep[3]};
-        groupStep[3].setImmediateValue(ApInt(4, 64));
+        groupStep[3].setImmediateValue(ApInt(limits.partialFactor, 64));
         storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::OpBinaryRegImm, groupStep);
         MicroInstrOperand groupCmp[3] = {};
         groupCmp[0].reg               = counter;
@@ -845,6 +832,7 @@ namespace
     // loop changes where the allocator sees its header.
     bool rotateConstantCountdown(MicroPassContext& context, const std::vector<MicroInstrRef>& order, const LabelTable& labels, uint32_t h, uint32_t latch)
     {
+        const auto           limits   = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
         if (h + 4 > latch || latch + 2 >= order.size())
@@ -882,7 +870,7 @@ namespace
 
         // The starting count, from the straight-line preheader, read by nothing before the loop.
         MicroInstrOperand* initOps = nullptr;
-        for (uint32_t back = 1; back <= 8 && back <= h && !initOps; ++back)
+        for (uint32_t back = 1; back <= limits.initializerLookback && back <= h && !initOps; ++back)
         {
             MicroInstr*          cand = storage.ptr(order[h - back]);
             const MicroInstrDef& info = MicroInstr::info(cand->op);
@@ -903,13 +891,13 @@ namespace
         if (!initOps || initOps[1].opBits != bits || initOps[2].hasWideImmediateValue())
             return false;
         const uint64_t trips = initOps[2].valueU64;
-        if (!trips || trips > K_MAX_TRIPS)
+        if (!trips || trips > limits.maxTrips)
             return false;
 
         const uint32_t bodyBegin = h + 3;
         const uint32_t bodyEnd   = latch - 1;
         const uint64_t bodyCount = bodyEnd - bodyBegin;
-        if (!bodyCount || bodyCount > K_MAX_ORDINARY_BODY_INSTR || bodyCount * trips > K_MAX_ORDINARY_TOTAL_INSTR)
+        if (!bodyCount || bodyCount > limits.maxOrdinaryBodyInstructions || bodyCount * trips > limits.maxOrdinaryTotalInstructions)
             return false;
         for (uint32_t o = bodyBegin; o < bodyEnd; ++o)
         {
@@ -955,6 +943,7 @@ namespace
 
 Result MicroLoopUnrollPass::run(MicroPassContext& context)
 {
+    const auto limits   = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
     context.passChanged = false;
     if (!context.instructions || !context.operands || !context.builder)
         return Result::Continue;
@@ -1119,13 +1108,13 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                 continue;
             const uint64_t bound = cmpOps[2].valueU64;
             const uint64_t step  = addOps[3].valueU64;
-            if (step < 1 || step > 64 || bound > 1000000)
+            if (step < 1 || step > MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_STEP || bound > MicroOptimizationLimits::LoopUnroll::K_MAX_COUNTED_BOUND)
                 continue;
 
             // The counter's starting constant, from the straight-line preheader.
             uint64_t initValue = 0;
             bool     haveInit  = false;
-            for (uint32_t back = 1; back <= 8 && back <= h; ++back)
+            for (uint32_t back = 1; back <= limits.initializerLookback && back <= h; ++back)
             {
                 const MicroInstr* cand = storage.ptr(order[h - back]);
                 if (!cand)
@@ -1163,7 +1152,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             const uint32_t bodyBegin = h + 1;
             const uint32_t bodyEnd   = jccOrdinal - 2;
             const uint32_t bodyCount = bodyEnd - bodyBegin;
-            if (!bodyCount || bodyCount > K_MAX_BODY_INSTR)
+            if (!bodyCount || bodyCount > limits.maxBodyInstructions)
                 continue;
 
             // A pure addition or subtraction of the induction values has a
@@ -1187,7 +1176,7 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
                     const MicroOpBits sumBits     = bodyOps[2].opBits;
                     uint64_t          initialSum  = 0;
                     bool              haveSumInit = false;
-                    for (uint32_t back = 1; back <= 16 && back <= h; ++back)
+                    for (uint32_t back = 1; back <= limits.sumInitializerLookback && back <= h; ++back)
                     {
                         const MicroInstr* init = storage.ptr(order[h - back]);
                         if (!init)
@@ -1244,11 +1233,11 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             }
             // Exact larger loops can retain one latch per two trips. Keep the
             // counter updates between copies: body readers see the original value.
-            const bool partial = trips > K_MAX_TRIPS && trips % 2 == 0 &&
-                                 trips > K_MAX_TOTAL_INSTR / bodyCount &&
-                                 bodyCount >= 16 && bodyCount <= K_MAX_ORDINARY_BODY_INSTR;
+            const bool partial = trips > limits.maxTrips && trips % 2 == 0 &&
+                                 trips > limits.maxTotalInstructions / bodyCount &&
+                                 bodyCount >= MicroOptimizationLimits::LoopUnroll::K_MIN_PAIRED_BODY_INSTR && bodyCount <= limits.maxOrdinaryBodyInstructions;
             const uint64_t copies = partial ? 2 : trips;
-            if (copies > K_MAX_TOTAL_INSTR / bodyCount)
+            if (copies > limits.maxTotalInstructions / bodyCount)
                 continue;
 
             // Body scan: collect internal labels, verify every branch is either
@@ -1344,24 +1333,24 @@ Result MicroLoopUnrollPass::run(MicroPassContext& context)
             // each copy. This can repay the branch duplication within the overall
             // code-size cap; ordinary branched loops keep the smaller budget.
             const bool foldsTableIndices = indexedConstantLoads != 0;
-            if (trips > K_MAX_TRIPS && !foldsTableIndices && !partial)
+            if (trips > limits.maxTrips && !foldsTableIndices && !partial)
                 continue;
 
             // A nest that flattens completely is judged on its flattened size.
             bool flattensNest = false;
-            if (!internalLabels.empty() && trips > 1 && !foldsTableIndices && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES)
+            if (!internalLabels.empty() && trips > 1 && !foldsTableIndices && bodyCount * trips > limits.maxBranchedTotalInstructions)
             {
                 const CountedLoop outer{.bodyBegin = bodyBegin, .bodyEnd = bodyEnd, .counter = counter, .initValue = initValue, .step = step, .trips = trips};
                 uint64_t          flattened = 0;
-                flattensNest                = flattenedNestSize(flattened, context, storage, operands, order, labels, outer) && flattened <= K_MAX_NEST_TOTAL_INSTR;
+                flattensNest                = flattenedNestSize(flattened, context, storage, operands, order, labels, outer) && flattened <= limits.maxNestedTotalInstructions;
             }
 
             // One trip copies nothing, so no size limit applies to it.
             const bool growsCode = trips > 1 && !flattensNest;
-            if (growsCode && (!foldsTableIndices || trips > K_MAX_WIDE_TABLE_TRIPS) &&
-                (bodyCount > K_MAX_ORDINARY_BODY_INSTR || bodyCount * copies > K_MAX_ORDINARY_TOTAL_INSTR))
+            if (growsCode && (!foldsTableIndices || trips > limits.maxWideTableTrips) &&
+                (bodyCount > limits.maxOrdinaryBodyInstructions || bodyCount * copies > limits.maxOrdinaryTotalInstructions))
                 continue;
-            if (growsCode && !internalLabels.empty() && bodyCount * trips > K_MAX_TOTAL_INSTR_WITH_BRANCHES && !foldsTableIndices)
+            if (growsCode && !internalLabels.empty() && bodyCount * trips > limits.maxBranchedTotalInstructions && !foldsTableIndices)
                 continue;
 
             // No jump from outside the body may land on an internal label.

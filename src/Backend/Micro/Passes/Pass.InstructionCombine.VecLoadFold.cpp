@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroInstrInfo.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -34,9 +35,9 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_VECFOLD_WINDOW = 512;
-        constexpr uint32_t K_MAX_ORIGIN_DEPTH   = 12;
-        constexpr uint32_t K_MAX_ENTRY_WALK     = 256;
+        using MicroOptimizationLimits::InstructionCombineVecLoadFold::K_MAX_ENTRY_WALK;
+        using MicroOptimizationLimits::InstructionCombineVecLoadFold::K_MAX_ORIGIN_DEPTH;
+        using MicroOptimizationLimits::InstructionCombineVecLoadFold::K_MAX_VECFOLD_WINDOW;
 
         bool isLowWiden(const MicroOp op)
         {
@@ -95,7 +96,7 @@ namespace InstructionCombine
         bool isZeroVectorValue(const Context& ctx, const uint32_t valueId, const uint32_t depth)
         {
             const auto values = ctx.ssa->values();
-            if (valueId >= values.size() || depth > 4)
+            if (valueId >= values.size() || depth > MicroOptimizationLimits::InstructionCombineVecLoadFold::K_MAX_COMPARE_PHI_DEPTH)
                 return false;
 
             const MicroSsaState::ValueInfo& info = values[valueId];

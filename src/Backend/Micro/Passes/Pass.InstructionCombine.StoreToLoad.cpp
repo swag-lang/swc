@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -484,7 +485,7 @@ namespace InstructionCombine
         if (!ctx.ssa->sameValueAt(base, def.instRef, storeRef))
             return false;
 
-        constexpr uint32_t     K_MAX_WINDOW = 32;
+        using MicroOptimizationLimits::InstructionCombineStoreToLoad::K_MAX_WINDOW;
         MicroStorage::Iterator it{ctx.storage, storeRef};
         --it;
         for (uint32_t step = 0; it.current.isValid() && it.current != def.instRef; ++step, --it)

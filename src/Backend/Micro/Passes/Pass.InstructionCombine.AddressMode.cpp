@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Encoder/X64Immediate.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Support/Report/Assert.h"
@@ -173,7 +174,7 @@ namespace InstructionCombine
 
         auto candidateIt = MicroStorage::Iterator{ctx.storage, ref};
         --candidateIt;
-        for (uint32_t steps = 0; candidateIt.current.isValid() && steps < 24; ++steps, --candidateIt)
+        for (uint32_t steps = 0; candidateIt.current.isValid() && steps < MicroOptimizationLimits::InstructionCombineAddressMode::K_MAX_RELATED_INDEX_SCAN; ++steps, --candidateIt)
         {
             const MicroInstrRef candidateRef = candidateIt.current;
             const MicroInstr*   candidate    = &*candidateIt;
@@ -1199,7 +1200,7 @@ namespace InstructionCombine
                 // literal: `t = 2; t *= stride` is how `2 * stride` lowers.
                 const auto immediateOf = [&](const MicroReg reg, const MicroInstrRef atOp) -> const MicroInstrOperand* {
                     auto def = ctx.ssa->reachingDef(reg, atOp);
-                    for (uint32_t depth = 0; depth < 2 && def.valid() && !def.isPhi && def.inst; ++depth)
+                    for (uint32_t depth = 0; depth < MicroOptimizationLimits::InstructionCombineAddressMode::K_MAX_STRIDE_DEF_DEPTH && def.valid() && !def.isPhi && def.inst; ++depth)
                     {
                         if (def.inst->op == MicroInstrOpcode::LoadRegImm)
                             return def.inst->ops(*ctx.operands);

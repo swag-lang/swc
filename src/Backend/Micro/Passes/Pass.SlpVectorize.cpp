@@ -3,6 +3,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroRelocation.h"
@@ -68,8 +69,8 @@ namespace
         uint32_t    count() const { return K_MICRO_128_BIT_BYTES / bytes; }
         MicroOpBits bits() const { return bytes == 4 ? MicroOpBits::B32 : MicroOpBits::B64; }
     };
-    constexpr uint32_t K_MAX_PLAN_INSTRS = 4096;
-    constexpr uint32_t K_MAX_TREE_DEPTH  = 512;
+    using MicroOptimizationLimits::SlpVectorize::K_MAX_PLAN_INSTRS;
+    using MicroOptimizationLimits::SlpVectorize::K_MAX_TREE_DEPTH;
 
     // Lane operations the value graph models. Wider scalar forms map onto
     // these when their low 32 bits behave like the 32-bit operation.
@@ -900,11 +901,13 @@ namespace
     class TreeBuilder
     {
     public:
-        TreeBuilder(BlockScan& scan, VectorPlan& plan, bool nonDestructive, bool canLoadMask) :
+        TreeBuilder(BlockScan& scan, VectorPlan& plan, const Runtime::BuildCfgBackendOptimizerVectorization& tuning, bool nonDestructive, bool canLoadMask) :
             scan_(&scan),
             plan_(&plan),
             nonDestructive_(nonDestructive),
-            canLoadMask_(canLoadMask)
+            canLoadMask_(canLoadMask),
+            maxTreeDepth_(std::min(MicroOptimizationLimits::configured(tuning.maxTreeDepth, K_MAX_TREE_DEPTH), K_MAX_TREE_DEPTH)),
+            maxPlanInstructions_(MicroOptimizationLimits::configured(tuning.maxPlanInstructions, K_MAX_PLAN_INSTRS))
         {
         }
 
@@ -912,7 +915,7 @@ namespace
         // tuple.ids[i], or K_INVALID_ID when the tuple cannot be vectorized.
         uint32_t build(const TupleKey& tuple, uint32_t depth)
         {
-            if (depth > K_MAX_TREE_DEPTH || plan_->totalInstrs() > K_MAX_PLAN_INSTRS)
+            if (depth > maxTreeDepth_ || plan_->totalInstrs() > maxPlanInstructions_)
                 return K_INVALID_ID;
 
             const auto memoIt = plan_->tupleRegs.find(tuple);
@@ -1314,6 +1317,8 @@ namespace
         VectorPlan* plan_           = nullptr;
         bool        nonDestructive_ = false;
         bool        canLoadMask_    = false;
+        uint32_t    maxTreeDepth_;
+        uint32_t    maxPlanInstructions_;
     };
 
     // ------------------------------------------------------------------
@@ -1997,7 +2002,7 @@ namespace
         // Build the seed groups: complete 16-byte chunks of candidates.
         VectorPlan             plan;
         const bool             canLoadMask = fn.context->builder && fn.context->taskContext && fn.context->taskContext->hasCompiler();
-        TreeBuilder            builder(scan, plan, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary(), canLoadMask);
+        TreeBuilder            builder(scan, plan, fn.context->optimizer().vectorization, fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary(), canLoadMask);
         std::vector<SeedGroup> vectorized;
 
         for (auto& [rootKey, candidates] : candidatesByRoot)

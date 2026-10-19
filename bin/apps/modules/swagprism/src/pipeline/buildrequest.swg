@@ -40,10 +40,10 @@ impl BuildSettings
                         .allocatorLeaks = false
                     .errorStackTrace = false
                     .backend.vectorize = true
-                    .backend.fpMathFma = true
-                    .backend.fpMathNoNaN = true
-                    .backend.fpMathNoInf = true
-                    .backend.fpMathNoSignedZero = true
+                    .backend.math.fma = true
+                    .backend.math.noNaN = true
+                    .backend.math.noInf = true
+                    .backend.math.noSignedZero = true
                     .backend.inlineMode = .Auto
                 }
             }

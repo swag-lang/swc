@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -16,9 +17,9 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_DEMAND_DEPTH = 4;
+        using MicroOptimizationLimits::InstructionCombineNarrowExtend::K_MAX_DEMAND_DEPTH;
         // A chain of selects, one per `if`, passes its value through each.
-        constexpr uint32_t K_MAX_SELECT_DEPTH = 24;
+        using MicroOptimizationLimits::InstructionCombineNarrowExtend::K_MAX_SELECT_DEPTH;
 
         // The width of a byte or word operation that updates `reg` in place, or
         // 0: such an operation reads its own bits and carries the rest of the
@@ -484,7 +485,7 @@ namespace InstructionCombine
 
     namespace
     {
-        constexpr uint32_t K_MAX_FLAG_WALK = 4;
+        using MicroOptimizationLimits::InstructionCombineNarrowExtend::K_MAX_FLAG_WALK;
 
         // The compare whose flags `ref` reads: the nearest earlier compare
         // across instructions that leave the flags alone.

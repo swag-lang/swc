@@ -2,6 +2,7 @@
 #include "Backend/Micro/Passes/Pass.StrengthReduction.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -179,8 +180,8 @@ namespace
     {
         // The compare may follow a few moves that leave the flags alone, as
         // the zero it reads being loaded.
-        constexpr uint32_t K_MAX_MOVES = 3;
-        auto               cmpIt       = instRef.isInvalid() ? storage.view().begin() : MicroStorage::Iterator{&storage, instRef};
+        using MicroOptimizationLimits::StrengthReduction::K_MAX_MOVES;
+        auto cmpIt = instRef.isInvalid() ? storage.view().begin() : MicroStorage::Iterator{&storage, instRef};
         if (instRef.isValid())
             ++cmpIt;
         MicroInstrRef     cmpRef = cmpIt.current;
@@ -794,7 +795,7 @@ namespace
 
             // The test also bounds every value the compared register was copied from.
             MicroSsaState::ReachingDef tested = ssa.reachingDef(cmpOps[0].reg, refs[i]);
-            for (uint32_t depth = 0; depth < 8 && tested.valid(); ++depth)
+            for (uint32_t depth = 0; depth < MicroOptimizationLimits::StrengthReduction::K_MAX_TEST_COPY_DEPTH && tested.valid(); ++depth)
             {
                 outTests.push_back({.valueId = tested.valueId, .proven = proven, .bits = bits});
                 if (tested.isPhi || !tested.inst || tested.inst->op != MicroInstrOpcode::LoadRegReg)
@@ -812,7 +813,7 @@ namespace
     bool isKnownNonNegative(const MicroSsaState& ssa, const MicroPassHelpers::MicroDomTree& dom, std::span<const SignTest> tests, const MicroOperandStorage& operands, MicroReg reg, MicroInstrRef atRef, const uint32_t atIndex, const MicroOpBits bits)
     {
         MicroSsaState::ReachingDef reach = ssa.reachingDef(reg, atRef);
-        for (uint32_t depth = 0; depth < 8 && reach.valid(); ++depth)
+        for (uint32_t depth = 0; depth < MicroOptimizationLimits::StrengthReduction::K_MAX_VALUE_COPY_DEPTH && reach.valid(); ++depth)
         {
             for (const SignTest& test : tests)
             {

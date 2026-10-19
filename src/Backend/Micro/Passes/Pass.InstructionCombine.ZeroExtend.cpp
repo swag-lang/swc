@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -33,7 +34,7 @@ namespace InstructionCombine
 {
     namespace
     {
-        constexpr uint32_t K_MAX_PHI_DEPTH = 8;
+        using MicroOptimizationLimits::InstructionCombineZeroExtend::K_MAX_PHI_DEPTH;
 
         // Binary operations whose low 32 result bits are a function of their
         // operands' low 32 bits, so a 32-bit mask over the 64-bit result is
@@ -241,7 +242,7 @@ namespace InstructionCombine
         // dword and qword copies.
         bool regConstant(const Context& ctx, MicroReg reg, MicroInstrRef atRef, uint64_t& outValue)
         {
-            constexpr uint32_t K_MAX_COPIES = 4;
+            using MicroOptimizationLimits::InstructionCombineZeroExtend::K_MAX_COPIES;
 
             uint64_t mask = UINT64_MAX;
             for (uint32_t step = 0; step <= K_MAX_COPIES && reg.isVirtualInt(); ++step)
@@ -599,8 +600,7 @@ namespace InstructionCombine
         // access names its object by the byte it touches, and touches none in a gap. An indexed
         // one stays in the object its base pointed at; the frame base and the stack pointer
         // point at no object, so an index from them could reach any. False when unknown.
-        bool frameAccess(const Context& ctx, std::span<const MicroFrameObject> objects, const MicroFrameObject*& outObject, uint64_t& outOffset, uint64_t& outStride,
-                         const MicroReg reg, const MicroInstrRef ref, const uint64_t displacement, const uint64_t stride)
+        bool frameAccess(const Context& ctx, std::span<const MicroFrameObject> objects, const MicroFrameObject*& outObject, uint64_t& outOffset, uint64_t& outStride, const MicroReg reg, const MicroInstrRef ref, const uint64_t displacement, const uint64_t stride)
         {
             FrameAddress address;
             if (!frameAddressOf(ctx, address, reg, ref))

@@ -3,6 +3,7 @@
 #include "Backend/Encoder/Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
@@ -20,9 +21,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint32_t K_INVALID      = std::numeric_limits<uint32_t>::max();
-    constexpr uint32_t K_MAX_BODY     = 256;
-    constexpr uint32_t K_MAX_ROOT_HOP = 16;
+    constexpr uint32_t K_INVALID = std::numeric_limits<uint32_t>::max();
+    using MicroOptimizationLimits::LoopLoadForward::K_MAX_BODY;
+    using MicroOptimizationLimits::LoopLoadForward::K_MAX_ROOT_HOP;
 
     struct RegDefs
     {

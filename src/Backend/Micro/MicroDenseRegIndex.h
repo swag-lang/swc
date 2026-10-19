@@ -1,4 +1,5 @@
 #pragma once
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroReg.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -81,7 +82,7 @@ public:
 
 private:
     static constexpr uint32_t K_DIRECT_KIND_COUNT = static_cast<uint32_t>(MicroRegKind::VirtualFloat) + 1;
-    static constexpr uint32_t K_MAX_DIRECT_INDEX  = 1u << 20;
+    static constexpr uint32_t K_MAX_DIRECT_INDEX  = MicroOptimizationLimits::DenseRegIndex::K_MAX_DIRECT_INDEX;
 
     uint32_t* directIndexSlot(const MicroReg reg)
     {

@@ -59,22 +59,22 @@ namespace
 
     void reapplyBuildCfgPresetOverrides(Runtime::BuildCfg& buildCfg, const Runtime::BuildCfg& explicitBuildCfg)
     {
-        buildCfg.safetyGuards               = explicitBuildCfg.safetyGuards;
-        buildCfg.sanityGuards               = explicitBuildCfg.sanityGuards;
-        buildCfg.allocatorCaptureStack      = explicitBuildCfg.allocatorCaptureStack;
-        buildCfg.allocatorLeaks             = explicitBuildCfg.allocatorLeaks;
-        buildCfg.allocatorTrackAllocations  = explicitBuildCfg.allocatorTrackAllocations;
-        buildCfg.allocatorElectricMode      = explicitBuildCfg.allocatorElectricMode;
-        buildCfg.allocatorFillMemory        = explicitBuildCfg.allocatorFillMemory;
-        buildCfg.errorStackTrace            = explicitBuildCfg.errorStackTrace;
-        buildCfg.backend.optimLevel         = explicitBuildCfg.backend.optimLevel;
-        buildCfg.backend.vectorize          = explicitBuildCfg.backend.vectorize;
-        buildCfg.backend.inlineMode         = explicitBuildCfg.backend.inlineMode;
-        buildCfg.backend.debugInfo          = explicitBuildCfg.backend.debugInfo;
-        buildCfg.backend.fpMathFma          = explicitBuildCfg.backend.fpMathFma;
-        buildCfg.backend.fpMathNoNaN        = explicitBuildCfg.backend.fpMathNoNaN;
-        buildCfg.backend.fpMathNoInf        = explicitBuildCfg.backend.fpMathNoInf;
-        buildCfg.backend.fpMathNoSignedZero = explicitBuildCfg.backend.fpMathNoSignedZero;
+        buildCfg.safetyGuards              = explicitBuildCfg.safetyGuards;
+        buildCfg.sanityGuards              = explicitBuildCfg.sanityGuards;
+        buildCfg.allocatorCaptureStack     = explicitBuildCfg.allocatorCaptureStack;
+        buildCfg.allocatorLeaks            = explicitBuildCfg.allocatorLeaks;
+        buildCfg.allocatorTrackAllocations = explicitBuildCfg.allocatorTrackAllocations;
+        buildCfg.allocatorElectricMode     = explicitBuildCfg.allocatorElectricMode;
+        buildCfg.allocatorFillMemory       = explicitBuildCfg.allocatorFillMemory;
+        buildCfg.errorStackTrace           = explicitBuildCfg.errorStackTrace;
+        buildCfg.backend.optimLevel        = explicitBuildCfg.backend.optimLevel;
+        buildCfg.backend.vectorize         = explicitBuildCfg.backend.vectorize;
+        buildCfg.backend.inlineMode        = explicitBuildCfg.backend.inlineMode;
+        buildCfg.backend.debugInfo         = explicitBuildCfg.backend.debugInfo;
+        buildCfg.backend.math.fma          = explicitBuildCfg.backend.math.fma;
+        buildCfg.backend.math.noNaN        = explicitBuildCfg.backend.math.noNaN;
+        buildCfg.backend.math.noInf        = explicitBuildCfg.backend.math.noInf;
+        buildCfg.backend.math.noSignedZero = explicitBuildCfg.backend.math.noSignedZero;
     }
 
     void reapplyExplicitBuildCfgOverrides(Runtime::BuildCfg& buildCfg, const CommandLine& cmdLine)

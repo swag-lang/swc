@@ -242,22 +242,22 @@ namespace
         {
             // Runtime safety guards cost cycles and stay off in release; the static
             // sanity checks are free at runtime and stay on.
-            buildCfg.safetyGuards               = Runtime::SafetyWhat::None;
-            buildCfg.sanityGuards               = Runtime::SafetyWhat::All;
-            buildCfg.allocatorCaptureStack      = false;
-            buildCfg.allocatorLeaks             = false;
-            buildCfg.allocatorTrackAllocations  = false;
-            buildCfg.allocatorElectricMode      = false;
-            buildCfg.allocatorFillMemory        = false;
-            buildCfg.errorStackTrace            = false;
-            buildCfg.backend.optimLevel         = Runtime::BuildCfgBackendOptimLevel::O2;
-            buildCfg.backend.vectorize          = true;
-            buildCfg.backend.debugInfo          = false;
-            buildCfg.backend.fpMathFma          = true;
-            buildCfg.backend.fpMathNoNaN        = true;
-            buildCfg.backend.fpMathNoInf        = true;
-            buildCfg.backend.fpMathNoSignedZero = true;
-            buildCfg.backend.inlineMode         = Runtime::BuildCfgBackendInlineMode::Auto;
+            buildCfg.safetyGuards              = Runtime::SafetyWhat::None;
+            buildCfg.sanityGuards              = Runtime::SafetyWhat::All;
+            buildCfg.allocatorCaptureStack     = false;
+            buildCfg.allocatorLeaks            = false;
+            buildCfg.allocatorTrackAllocations = false;
+            buildCfg.allocatorElectricMode     = false;
+            buildCfg.allocatorFillMemory       = false;
+            buildCfg.errorStackTrace           = false;
+            buildCfg.backend.optimLevel        = Runtime::BuildCfgBackendOptimLevel::O2;
+            buildCfg.backend.vectorize         = true;
+            buildCfg.backend.debugInfo         = false;
+            buildCfg.backend.math.fma          = true;
+            buildCfg.backend.math.noNaN        = true;
+            buildCfg.backend.math.noInf        = true;
+            buildCfg.backend.math.noSignedZero = true;
+            buildCfg.backend.inlineMode        = Runtime::BuildCfgBackendInlineMode::Auto;
         }
         else
         {

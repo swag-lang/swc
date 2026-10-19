@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 
@@ -561,7 +562,7 @@ namespace InstructionCombine
     // places.
     bool tryReuseSubtractionFlags(Context& ctx, MicroInstrRef ref, const MicroInstr& inst)
     {
-        constexpr uint32_t K_MAX_WINDOW = 6;
+        using MicroOptimizationLimits::InstructionCombineCompare::K_MAX_WINDOW;
 
         if (ctx.isClaimed(ref) || !ctx.ssa)
             return false;

@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
@@ -16,7 +17,7 @@ class MicroSsaState;
 
 namespace MicroPassHelpers
 {
-    constexpr uint32_t K_MAX_ROOT_CHAIN = 32;
+    using MicroOptimizationLimits::Helpers::K_MAX_ROOT_CHAIN;
 
     struct RegTouch
     {

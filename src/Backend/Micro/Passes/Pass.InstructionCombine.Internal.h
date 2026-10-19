@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroSsaState.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Core.h"
@@ -14,7 +15,7 @@ struct MicroPassContext;
 
 namespace InstructionCombine
 {
-    constexpr uint32_t K_MAX_COPY_CHAIN = 4;
+    using MicroOptimizationLimits::InstructionCombine::K_MAX_COPY_CHAIN;
 
     // A single rewrite command emitted by a pattern and applied after the
     // scan completes. Rewrites mutate opcode + operands in place when the
@@ -129,7 +130,7 @@ namespace InstructionCombine
         // the upper half zero. Collected on the first question.
         bool isZeroExtendedFrameRead(MicroReg base, MicroInstrRef ref, uint64_t displacement, uint64_t scale) const;
 
-        mutable bool                                       zeroExtendedFrameReady = false;
+        mutable bool zeroExtendedFrameReady = false;
         // A frame address: its offset from the frame base, the stride an index adds to it
         // in multiples of (zero for an exact address), and for an indexed address the offset
         // of the object its base pointed at, which the index cannot leave.

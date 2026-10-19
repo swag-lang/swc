@@ -1510,10 +1510,8 @@ namespace
             }
         }
 
-        // A place context needs the element's ADDRESS rather than its value: the base of a
-        // member access, the operand of an address-of, the target of an assignment, or an
-        // element that is indexed again. 'opIndexPtr' is preferred there; a plain read
-        // prefers the value-returning 'opIndex'.
+        // Place contexts (member access, address-of, assignment or further indexing)
+        // prefer opIndexPtr's element address; ordinary reads prefer opIndex's value.
         bool placeContext = false;
         if (parentRef.isValid())
         {
@@ -1542,6 +1540,7 @@ namespace
         {
             if (deferToSimpleAssignWriteSpecOp)
                 deferIndexAssignSpecOp(sema, indexExprRef, outHandled);
+
             return Result::Continue;
         }
 
@@ -1552,6 +1551,7 @@ namespace
             splitMutableReceiverCandidates(sema, valueCandidates.span(), mutableCandidates, constCandidates);
             if (mutableCandidates.empty())
                 splitMutableReceiverCandidates(sema, ptrCandidates.span(), mutableCandidates, constCandidates);
+
             if (mutableCandidates.empty())
             {
                 deferIndexAssignSpecOp(sema, indexExprRef, outHandled);
@@ -1567,9 +1567,8 @@ namespace
         bool            matched  = false;
         SymbolFunction* calledFn = nullptr;
 
-        // 'opIndexPtr' calls are never const-evaluated: the returned pointer is an address
-        // into runtime storage. They do inline — the call payload then carries the element
-        // address computed by the inlined body, and codegen re-tags it like a reference return.
+        // opIndexPtr returns an address in runtime storage, so do not const-evaluate it.
+        // Inlining retains that address in the payload for codegen's reference-like result.
         const auto tryResolveIndexSet = [&](SmallVector<Symbol*>& set, bool allowConstEval, bool allowInline) -> Result {
             if (set.empty() || matched)
                 return Result::Continue;
@@ -1589,6 +1588,7 @@ namespace
 
                 if (!constCandidates.empty())
                     SWC_RESULT(resolveSyntheticCall(sema, sema.node(indexExprRef), constCandidates.span(), args.span(), indexedExprRef, true, &matched, allowConstEval, allowInline, &calledFn));
+
                 return Result::Continue;
             }
 
@@ -1610,6 +1610,7 @@ namespace
         {
             if (deferToSimpleAssignWriteSpecOp)
                 deferIndexAssignSpecOp(sema, indexExprRef, outHandled);
+
             return Result::Continue;
         }
 
@@ -1642,6 +1643,7 @@ Result SemaSpecOp::tryResolveIndex(Sema& sema, const AstIndexListExpr& node, con
 {
     SmallVector<AstNodeRef> args;
     sema.ast().appendNodes(args, node.spanChildrenRef);
+
     return tryResolveIndexWithArgs(sema, sema.curNodeRef(), node.nodeExprRef, node.codeRef(), args.span(), indexedView, outHandled);
 }
 
@@ -1677,9 +1679,11 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         TypeRef indexedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), indexedView.typeRef());
         if (!indexedTypeRef.isValid())
             indexedTypeRef = indexedView.typeRef();
+
         const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
         writesThroughPtr            = indexedType.isReferenceOrNonNullValuePointer();
     }
+
     if (!writesThroughPtr)
         SWC_RESULT(SemaCheck::isAssignable(sema, indexedExprRef, sema.viewNodeTypeSymbol(indexedExprRef)));
 
@@ -1698,9 +1702,8 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
         bool            setMatched = false;
         SWC_RESULT(probeIndexAssignSpecOp(sema, node, indexedExprRef, indexArgRefs.span(), candidates.span(), setFn, setMatched));
 
-        // A dedicated indexed write operator is more specific than mutating through an opIndex
-        // reference; without one, the write goes through the reference when it can, and through
-        // the general write operator below otherwise.
+        // Prefer a dedicated indexed write over mutation through an opIndex reference.
+        // Otherwise use that reference if assignable, then fall back to the general write.
         SWC_ASSERT(!setMatched || setFn);
         if (!setMatched && canAssignThroughRef)
             return Result::Continue;
@@ -1710,10 +1713,13 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     args.reserve(indexArgRefs.size() + 1);
     for (const AstNodeRef indexArgRef : indexArgRefs)
         args.push_back(normalizeIndexSpecOpArgRef(sema, indexArgRef));
+
     args.push_back(node.nodeRightRef);
+
     sema.clearSemaPayload(leftNodeRef);
     auto* deferredPayload = sema.compiler().allocate<DeferredIndexAssignSpecOpPayload>();
     sema.setSemaPayload(leftNodeRef, deferredPayload);
+
     SymbolFunction* calledFn = nullptr;
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), indexedExprRef, false, nullptr, true, true, &calledFn));
 
@@ -1738,6 +1744,7 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
         unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), operandValueType.payloadTypeRef());
     else
         unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), unwrappedTypeRef);
+
     if (!unwrappedTypeRef.isValid())
         unwrappedTypeRef = operandView.typeRef();
 
@@ -1764,7 +1771,8 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     SWC_RESULT(resolveSyntheticCall(sema, node, candidates.span(), args.span(), node.nodeExprRef, false, nullptr, true, true, &calledFn));
 
     sema.ensureSemaPayload<UnarySpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
-    outHandled                                                             = true;
+
+    outHandled = true;
     return Result::Continue;
 }
 
@@ -1772,23 +1780,27 @@ namespace
 {
     struct BinarySpecOpResolution
     {
-        SmallVector<Symbol*>          candidates;
-        SmallVector<AstNodeRef>       args;
+        SmallVector<Symbol*>    candidates;
+        SmallVector<AstNodeRef> args;
+
         Match::FunctionCandidateProbe probe;
-        AstNodeRef                    receiverRef = AstNodeRef::invalid();
+
+        AstNodeRef receiverRef = AstNodeRef::invalid();
 
         bool matched() const { return probe.matched && probe.fn != nullptr; }
     };
 
     struct BinarySpecOpProbeRequest
     {
-        const SemaNodeView* receiverView    = nullptr;
-        AstNodeRef          receiverRef     = AstNodeRef::invalid();
-        AstNodeRef          argRef          = AstNodeRef::invalid();
-        IdentifierRef       opId            = IdentifierRef::invalid();
-        AstNodeRef          genericArg      = AstNodeRef::invalid();
-        SpecOperator        op              = SpecOperator::Add;
-        bool                commutativeOnly = false;
+        const SemaNodeView* receiverView = nullptr;
+        AstNodeRef          receiverRef  = AstNodeRef::invalid();
+        AstNodeRef          argRef       = AstNodeRef::invalid();
+
+        IdentifierRef opId       = IdentifierRef::invalid();
+        AstNodeRef    genericArg = AstNodeRef::invalid();
+        SpecOperator  op         = SpecOperator::Add;
+
+        bool commutativeOnly = false;
     };
 
     std::optional<bool> commutativeAttributeApplies(Sema& sema, const SymbolFunction& fn, SpecOperator op)
@@ -1798,6 +1810,7 @@ namespace
         {
             if (!attr.symbol || attr.symbol->idRef() != commutativeId || !attr.symbol->inSwagNamespace(sema.ctx()))
                 continue;
+
             if (attr.params.empty())
                 return true;
 
@@ -1862,6 +1875,7 @@ namespace
         SWC_RESULT(collectSpecOpCandidates(sema, *ownerStruct, request.opId, std::span{&request.genericArg, 1}, out.candidates, request.commutativeOnly));
         if (request.commutativeOnly)
             filterCommutativeBinaryCandidates(sema, out.candidates, request.op);
+
         if (out.candidates.empty())
             return Result::Continue;
 
@@ -1876,7 +1890,8 @@ namespace
         SWC_RESULT(resolveSyntheticCall(sema, node, selected.candidates.span(), selected.args.span(), selected.receiverRef, false, nullptr, true, true, &calledFn));
 
         sema.ensureSemaPayload<BinarySpecOpPayload>(sema.curNodeRef()).calledFn = calledFn;
-        outHandled                                                              = true;
+
+        outHandled = true;
         return Result::Continue;
     }
 
@@ -1924,6 +1939,7 @@ Result SemaSpecOp::tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const
         const int cmp = Match::compareFunctionCandidateProbes(left.probe, right->probe);
         if (cmp == 0 && left.probe.fn != right->probe.fn)
             return raiseAmbiguousBinarySpecOp(sema, left, *right);
+
         return finalizeBinarySpecOp(sema, node, cmp <= 0 ? left : *right, outHandled);
     }
 
@@ -1963,10 +1979,9 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
 
     TypeRef unwrappedTypeRef = relationalOperandTypeRef(sema, leftView.typeRef());
     {
-        // A receiver cast left in place by a paused resolution retries with a pointer-typed
-        // left operand: when the other side is not pointer-like, the comparison is a value
-        // question about the pointee. Two pointers keep comparing as addresses, and so
-        // does a pointer against 'null' - an identity question, never the pointee's.
+        // Paused resolution can leave a receiver cast on the left. Compare its pointee
+        // when the right operand is a value; pointer/pointer and pointer/null comparisons
+        // remain address-identity checks.
         const TypeInfo& retryLeftType = sema.typeMgr().get(unwrappedTypeRef);
         if (retryLeftType.isNonNullValuePointer())
         {
@@ -1975,6 +1990,7 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
                 unwrappedTypeRef = relationalOperandTypeRef(sema, retryLeftType.payloadTypeRef());
         }
     }
+
     const TypeInfo& leftType = sema.typeMgr().get(unwrappedTypeRef);
     if (!leftType.isStruct())
         return Result::Continue;
@@ -1987,11 +2003,9 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     if (candidates.empty())
         return Result::Continue;
 
-    // Declaring 'opEquals' adds a comparison; it never takes away the one the struct already had.
-    // So when none of the overloads can take the other operand, and that operand is this same
-    // struct, the built-in comparison answers instead of a bad-argument error at every call site.
-    // Any other operand type keeps reporting, which is where the overload is what the author
-    // meant, and ordering keeps reporting throughout because it has no built-in answer.
+    // opEquals adds overloads without removing built-in equality of the same struct.
+    // Fall back when no overload accepts that struct; other operand types and ordering
+    // still report mismatches because they have no equivalent built-in answer.
     if (Token::isOpEquality(tok.id) &&
         SemaSpecOp::isOwnerStructType(sema.ctx(), ownerStruct, relationalOperandTypeRef(sema, sema.viewType(node.nodeRightRef).typeRef())))
     {
@@ -2010,9 +2024,10 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
     auto& relationalPayload    = sema.ensureSemaPayload<RelationalSpecOpPayload>(relRef);
     relationalPayload.calledFn = calledFn;
 
-    const SemaNodeView specOpView         = sema.viewConstant(relRef);
-    const ConstantRef  specOpCstRef       = specOpView.cstRef();
-    const AstNodeRef   relSubstRef        = specOpView.nodeRef();
+    const SemaNodeView specOpView   = sema.viewConstant(relRef);
+    const ConstantRef  specOpCstRef = specOpView.cstRef();
+    const AstNodeRef   relSubstRef  = specOpView.nodeRef();
+
     relationalPayload.inlineSubstituteRef = relSubstRef.isValid() && relSubstRef != relRef ? relSubstRef : AstNodeRef::invalid();
 
     switch (tok.id)
@@ -2041,20 +2056,25 @@ Result SemaSpecOp::tryResolveRelational(Sema& sema, const AstRelationalExpr& nod
             {
                 const int ordering = sema.cstMgr().get(specOpCstRef).getInt().compare(ApsInt::makeSigned32(0));
                 bool      cmpRes   = false;
+
                 switch (tok.id)
                 {
                     case TokenId::SymLess:
                         cmpRes = ordering < 0;
                         break;
+
                     case TokenId::SymLessEqual:
                         cmpRes = ordering <= 0;
                         break;
+
                     case TokenId::SymGreater:
                         cmpRes = ordering > 0;
                         break;
+
                     case TokenId::SymGreaterEqual:
                         cmpRes = ordering >= 0;
                         break;
+
                     default:
                         SWC_UNREACHABLE();
                 }

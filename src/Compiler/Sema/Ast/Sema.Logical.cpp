@@ -17,6 +17,7 @@ namespace
     {
         const ConstantRef leftCstRef  = nodeLeftView.cstRef();
         const ConstantRef rightCstRef = nodeRightView.cstRef();
+
         const ConstantRef cstFalseRef = sema.cstMgr().cstFalse();
         const ConstantRef cstTrueRef  = sema.cstMgr().cstTrue();
 
@@ -29,6 +30,7 @@ namespace
                     result = cstFalseRef;
                 else
                     result = cstTrueRef;
+
                 return Result::Continue;
 
             case TokenId::KwdOr:
@@ -38,6 +40,7 @@ namespace
                     result = cstTrueRef;
                 else
                     result = cstFalseRef;
+
                 return Result::Continue;
 
             default:
@@ -51,6 +54,7 @@ namespace
             return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeLeftRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
         if (!nodeRightView.type()->isConvertibleToBoolAliasAware(sema.ctx()))
             return SemaError::raiseBinaryOperandType(sema, nodeRef, node.nodeRightRef, nodeLeftView.typeRef(), nodeRightView.typeRef());
+
         return Result::Continue;
     }
 }
@@ -66,7 +70,8 @@ Result AstLogicalExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
         const TokenId op    = sema.token(codeRef()).id;
         const auto&   facts = op == TokenId::KwdAnd ? guards.whenTrue : guards.whenFalse;
-        SemaFrame     frame = sema.frame();
+
+        SemaFrame frame = sema.frame();
         frame.clearBindingScoped();
         SemaHelpers::addNarrowFacts(frame, {facts.data(), facts.size()});
         sema.pushFramePopOnPostChild(std::move(frame), nodeRightRef);
@@ -81,27 +86,24 @@ Result AstLogicalExpr::semaPostNode(Sema& sema)
     SemaNodeView     nodeLeftView  = sema.viewNodeTypeConstant(nodeLeftRef);
     SemaNodeView     nodeRightView = sema.viewNodeTypeConstant(nodeRightRef);
 
-    // Value-check
     SWC_RESULT(SemaHelpers::readReferenceValue(sema, nodeLeftView));
     SWC_RESULT(SemaHelpers::readReferenceValue(sema, nodeRightView));
     SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, nodeLeftView));
     SWC_RESULT(SemaCheck::prepareBoolExprValue(sema, nodeRightView));
     sema.setIsValue(*this);
 
-    // Type-check
     const Token& tok = sema.token(codeRef());
     SWC_RESULT(check(sema, nodeRef, *this, nodeLeftView, nodeRightView));
 
-    // Set the result type
     SWC_RESULT(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeBool(), CastKind::BoolExpr));
     SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeBool(), CastKind::BoolExpr));
     sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
-    // Constant folding
     if (nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid())
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
+
         sema.setConstant(sema.curNodeRef(), result);
     }
 

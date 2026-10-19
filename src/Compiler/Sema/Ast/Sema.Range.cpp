@@ -19,6 +19,7 @@ namespace
             return Result::Continue;
         if (type.isEnum())
             return sema.waitSemaCompleted(&type, nodeRef);
+
         return SemaError::raiseInvalidRangeType(sema, nodeRef, view.typeRef());
     }
 
@@ -27,6 +28,7 @@ namespace
         const ConstantValue& value = sema.cstMgr().get(cstRef);
         if (value.isEnumValue())
             return value.getEnumValue();
+
         return cstRef;
     }
 
@@ -91,10 +93,11 @@ Result AstRangeExpr::semaPostNode(Sema& sema)
 
     if (nodeDownView.cstRef().isValid() && nodeUpView.cstRef().isValid())
     {
-        ConstantRef          downCstRef = rangeComparableConstantRef(sema, nodeDownView.cstRef());
-        ConstantRef          upCstRef   = rangeComparableConstantRef(sema, nodeUpView.cstRef());
-        const ConstantValue& downCst    = sema.cstMgr().get(downCstRef);
-        const ConstantValue& upCst      = sema.cstMgr().get(upCstRef);
+        ConstantRef downCstRef = rangeComparableConstantRef(sema, nodeDownView.cstRef());
+        ConstantRef upCstRef   = rangeComparableConstantRef(sema, nodeUpView.cstRef());
+
+        const ConstantValue& downCst = sema.cstMgr().get(downCstRef);
+        const ConstantValue& upCst   = sema.cstMgr().get(upCstRef);
 
         // An exclusive range whose bounds are equal is empty, not invalid: it yields zero
         // iterations and an empty slice. Only an inverted range (lower above upper) is an error.

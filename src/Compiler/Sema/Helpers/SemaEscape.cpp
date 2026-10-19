@@ -18,21 +18,16 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// The borrow rules in this file are part of the LANGUAGE, not of the sanity tooling, and
-// nothing here consults '#[Swag.Sanity]' or 'buildCfg.sanityGuards'. A program that lets a
-// view outlive the storage it views is not a Swag program, and whether it is accepted must
-// not depend on an attribute: a guarantee a caller can switch off is not a guarantee.
+// Borrow validity is a language rule, independent of '#[Swag.Sanity]' and
+// 'buildCfg.sanityGuards': views must never outlive their backing storage.
 //
-// What stays under '.Lifecycle' is the other half - the backend analyses that PROVE a
-// runtime fault (use after free, use after move, a read of uninitialized storage). Those
-// answer "this run will certainly fault", and how much of that a compiler can prove is a
-// property of the compiler, not of the language.
+// Backend .Lifecycle checks separately prove runtime faults such as use after free,
+// use after move and uninitialized reads. Their proof coverage depends on the compiler.
 
 namespace
 {
-    // Recursive shape probes are conservative filters, not proof engines. The caps keep
-    // pathological recursive types/expressions from turning borrow checking into an
-    // unbounded walk; exhausting a budget means "do not infer a borrow carrier".
+    // Bound recursive shape probes. Exhausting a budget conservatively declines
+    // to infer a borrow carrier rather than performing an unbounded walk.
     constexpr uint32_t K_TYPE_BUDGET = 128;
     constexpr uint32_t K_EXPR_BUDGET = 128;
 
@@ -49,6 +44,7 @@ namespace
     {
         if (nodeRef.isInvalid())
             return TypeRef::invalid();
+
         return sema.viewType(nodeRef).typeRef();
     }
 
@@ -99,6 +95,7 @@ namespace
         typeRef              = type.typeRef();
         if (type.isPointerOrReference())
             typeRef = unwrapAliasEnum(sema, type.payloadTypeRef());
+
         return hasOwningLifecycle(sema, typeRef);
     }
 
@@ -106,6 +103,7 @@ namespace
     {
         if (!budget || !typeRef.isValid())
             return false;
+
         budget--;
 
         const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
@@ -113,9 +111,8 @@ namespace
         if (isDirectBorrowCarrier(type))
             return true;
 
-        // Structural carriers are discovered through fields/elements, but cycles are
-        // common in user types. A back-edge only says "already being inspected", so
-        // treat it as neutral and let another path prove the carrier if one exists.
+        // Recursive types can revisit a carrier still being inspected. Treat back-edges
+        // as neutral so another path can establish whether the type carries a borrow.
         if (!visiting.insert(typeRef))
             return false;
 
@@ -136,14 +133,12 @@ namespace
         if (!type.isStruct())
             return false;
 
-        // Owner structs, such as a string owning its buffer, contain raw pointers internally, but their
-        // lifecycle means a bitwise field scan would confuse ownership with borrowing.
+        // Scanning an owner's raw pointers would confuse ownership with borrowing.
         if (hasOwningLifecycle(sema, typeRef))
             return false;
 
-        // A struct still being analyzed can grow its field vector concurrently:
-        // iterating it would race. Conservative no-carrier answer (no tracking, never
-        // a false positive).
+        // Incomplete structs may grow their fields concurrently. Skip tracking rather
+        // than race on the vector or produce a false positive.
         if (!type.payloadSymStruct().isSemaCompleted())
             return false;
 
@@ -185,11 +180,9 @@ namespace
         return !paramType.isPointerOrReference() && !paramType.isAnyVariadic();
     }
 
-    // Does a by-value parameter really behave like a local? An OWNING one does not: the
-    // callee neither copies nor drops it, so what it owns stays the caller's and only its
-    // slot lives in this frame. Rooting such a parameter at the frame would report every
-    // accessor of an owner taken by value as an escape; rooting it at the signature moves
-    // the judgement to the call site, where the argument's real lifetime is known.
+    // Owning value parameters are neither copied nor dropped by the callee: only their
+    // slot is frame-local. Root their payload at the signature so callers check the
+    // argument's real lifetime instead of rejecting every by-value owner accessor.
     bool isFrameLocalParameterStorage(Sema& sema, const SymbolVariable& symVar)
     {
         return isByValueParameterStorage(sema, symVar) && !hasOwningLifecycle(sema, symVar.typeRef());
@@ -229,6 +222,7 @@ namespace
             return;
 
         const auto& params = currentFn->parameters();
+
         for (size_t i = 0; i < params.size() && i < 64; ++i)
         {
             if (params[i] == &parameter)
@@ -243,11 +237,11 @@ namespace
     {
         if (symVar.isClosureCapture())
         {
-            // By-ref captures are aliases of their source variable. If the capture has
-            // no explicit escape info yet, continue from the original symbol so copies
-            // of the closure report against the storage that actually dies.
+            // By-reference captures alias their source. Without explicit escape info,
+            // follow that symbol so closure copies identify the storage that actually dies.
             if (const SemaEscapeInfo* existing = sema.variableEscapeInfo(symVar))
                 return *existing;
+
             if (symVar.closureCaptureByRef() && symVar.closureCapturedSource())
                 return variableStorageInfo(sema, *symVar.closureCapturedSource(), sourceRef, typeRef);
         }
@@ -271,9 +265,8 @@ namespace
             info.kind = SemaEscapeKind::Local;
         else
         {
-            // Inside a method, a symbol that is neither a parameter, a local nor a global
-            // is a struct field reached through the implicit 'me' receiver: caller-owned
-            // data, rooted at the receiver so returns feed the borrow summary.
+            // An implicit field access reaches caller-owned storage through 'me'.
+            // Root it at the receiver so returned borrows feed the function summary.
             const SymbolFunction* currentFn = sema.currentFunction();
             if (currentFn &&
                 currentFn->hasExtraFlag(SymbolFunctionFlagsE::Method) &&
@@ -302,12 +295,12 @@ namespace
 
         if (!view.hasSymbol() || !view.sym() || !view.sym()->isVariable())
             return nullptr;
+
         return &view.sym()->cast<SymbolVariable>();
     }
 
-    // 'Cast::createCast' substitutes the source node with the cast wrapper itself, so
-    // resolved views on the operand loop back to the cast. Such operands must be analyzed
-    // through their stored (pre-substitution) node and type.
+    // Cast::createCast substitutes the source with its wrapper, so resolving the operand
+    // loops back to the cast. Use the operand's stored node and type in that case.
     bool castOperandSelfSubstituted(Sema& sema, AstNodeRef castRef, AstNodeRef operandRef)
     {
         return operandRef.isValid() && sema.resolvedNodeRef(operandRef) == castRef;
@@ -319,6 +312,7 @@ namespace
             return TypeRef::invalid();
         if (castOperandSelfSubstituted(sema, castRef, operandRef))
             return sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef();
+
         return expressionTypeRef(sema, operandRef);
     }
 
@@ -328,12 +322,12 @@ namespace
         return typeRef.isValid() && sema.typeMgr().get(typeRef).isArray();
     }
 
-    // Walkers below mix raw operand edges with substitute hops; a reentrant cast chain
-    // (an argument re-wrapped across sema revisits) can make that graph cyclic, so every
-    // recursive walk carries a depth budget and bails out conservatively when exceeded.
+    // Raw operand edges and substitution hops can form cycles across semantic revisits.
+    // Bound recursive storage walks and return a conservative result on exhaustion.
     constexpr uint32_t K_STORAGE_WALK_BUDGET = 64;
 
     const SymbolVariable* storageRootVariableAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, bool& outWholeVariable, uint32_t depth);
+
     const SymbolVariable* storageRootVariable(Sema& sema, AstNodeRef nodeRef, bool forAssignment, bool& outWholeVariable, uint32_t depth = 0)
     {
         outWholeVariable = false;
@@ -385,24 +379,27 @@ namespace
             case AstNodeId::ErrorManagementExpr:
                 if (sema.token(node.codeRef()).id == TokenId::SymBang)
                     return storageProjection(sema, node.cast<AstErrorManagementExpr>().nodeExprRef, outProjection, depth + 1);
+
                 return false;
 
             case AstNodeId::CastExpr:
             {
-                // An implicit conversion (e.g. the nullable widening synthesized when a
-                // flow-narrowed value meets a nullable target) must stay transparent for
-                // field-sensitive borrow tracking.
+                // Implicit conversions, including nullable widening after flow narrowing,
+                // stay transparent to field-sensitive borrow tracking.
                 const AstNodeRef operandRef      = node.cast<AstCastExpr>().nodeExprRef;
                 const bool       selfSubstituted = castOperandSelfSubstituted(sema, resolvedRef, operandRef);
                 const TypeRef    operandTypeRef  = selfSubstituted ? sema.viewStored(operandRef, SemaNodeViewPartE::Type).typeRef() : expressionTypeRef(sema, operandRef);
                 const TypeRef    resultTypeRef   = expressionTypeRef(sema, resolvedRef);
+
                 // Decoding an integer address designates its pointee, not the
                 // integer's local slot. It cannot preserve a storage projection.
                 if (resultTypeRef.isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), resultTypeRef).isAnyPointer() &&
                     (!operandTypeRef.isValid() || !sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), operandTypeRef).isAnyPointer()))
                     return false;
+
                 if (selfSubstituted)
                     return storageProjectionAt(sema, operandRef, outProjection, depth + 1);
+
                 return storageProjection(sema, operandRef, outProjection, depth + 1);
             }
 
@@ -410,9 +407,11 @@ namespace
             {
                 if (!storageProjection(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, outProjection, depth + 1))
                     return false;
+
                 const SymbolVariable* field = identifierVariable(sema, resolvedRef);
                 if (!field || field == outProjection.root)
                     return false;
+
                 outProjection.components.push_back({.kind = SemaEscapeProjectionKind::Field, .field = field});
                 return true;
             }
@@ -428,6 +427,7 @@ namespace
                     outProjection.components.push_back({.kind = SemaEscapeProjectionKind::ConstantIndex, .index = static_cast<uint64_t>(indexView.cst()->getInt().asI64())});
                 else
                     outProjection.components.push_back({.kind = SemaEscapeProjectionKind::AnyIndex});
+
                 return true;
             }
 
@@ -436,14 +436,9 @@ namespace
         }
     }
 
-    // A BLOCK pointer held by a value with an OWNING lifecycle addresses memory that
-    // value releases when it dies: '[*] T' is how the language spells "a buffer of
-    // elements", which is what an owner allocates and frees.
-    //
-    // A plain '*T' is deliberately excluded: a single-object pointer inside an owner is
-    // just as often a back-reference to something it does not own (a parent window, a
-    // callback target), and rooting those at the holder invents borrows that do not
-    // exist.
+    // A block pointer ('[*] T') inside an owner denotes a buffer released with that owner.
+    // Plain '*T' fields may be back-references to parents or callback targets; rooting
+    // those at the holder would invent ownership and report nonexistent borrows.
     bool isOwnedPayloadCarrier(Sema& sema, TypeRef typeRef)
     {
         if (!typeRef.isValid())
@@ -452,10 +447,8 @@ namespace
         return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isBlockPointer();
     }
 
-    // The variable owning the storage a carrier EXPRESSION addresses, when that carrier
-    // was read out of an owning value ('me.table', 'set.buffer'): writing through it
-    // writes into the owner, and reading through it borrows the owner. Null when the
-    // carrier came from a value that does not free it - its pointee may live anywhere.
+    // Find the owner whose payload a carrier expression addresses. Reads borrow that
+    // owner and writes target it. Non-owning carriers have no known payload root.
     const SymbolVariable* carrierBaseStorageRoot(Sema& sema, AstNodeRef baseRef, bool forAssignment, uint32_t depth);
 
     const SymbolVariable* ownedPayloadStorageRootAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, uint32_t depth);
@@ -473,9 +466,8 @@ namespace
         return ownedPayloadStorageRootAt(sema, resolvedRef, forAssignment, depth);
     }
 
-    // Same walk, entered on a node the caller ALREADY resolved. Re-resolving it would
-    // undo that: the operand of a self-substituted cast resolves back to the cast, and
-    // the walk would then see a cast where its caller carefully saw the member access.
+    // Enter on an already resolved node. Resolving again could replace a stored
+    // member-access operand with its self-substituted cast wrapper.
     const SymbolVariable* ownedPayloadStorageRootAt(Sema& sema, AstNodeRef resolvedRef, bool forAssignment, uint32_t depth)
     {
         if (resolvedRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
@@ -486,19 +478,25 @@ namespace
         {
             case AstNodeId::ParenExpr:
                 return ownedPayloadStorageRoot(sema, node.cast<AstParenExpr>().nodeExprRef, forAssignment, depth + 1);
+
             case AstNodeId::InitializerExpr:
                 return ownedPayloadStorageRoot(sema, node.cast<AstInitializerExpr>().nodeExprRef, forAssignment, depth + 1);
+
             case AstNodeId::AutoCastExpr:
                 return ownedPayloadStorageRoot(sema, node.cast<AstAutoCastExpr>().nodeExprRef, forAssignment, depth + 1);
+
             case AstNodeId::AsCastExpr:
                 return ownedPayloadStorageRoot(sema, node.cast<AstAsCastExpr>().nodeExprRef, forAssignment, depth + 1);
+
             case AstNodeId::ErrorManagementExpr:
                 return ownedPayloadStorageRoot(sema, node.cast<AstErrorManagementExpr>().nodeExprRef, forAssignment, depth + 1);
+
             case AstNodeId::CastExpr:
             {
                 const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
                 if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
                     return nullptr;
+
                 return ownedPayloadStorageRoot(sema, operandRef, forAssignment, depth + 1);
             }
 
@@ -509,11 +507,9 @@ namespace
                 return nullptr;
         }
 
-        // An implicit conversion SUBSTITUTES the member-access node, so its resolved type
-        // is the CONVERTED one: a '[*] u8' payload assigned to an 'AllocatorRequest.address'
-        // field reads back as '*void' and stops looking like a payload. Whether a member is
-        // storage its owner frees is a property of the FIELD's declaration, so decide on
-        // that and fall back to the expression only when the field symbol is unavailable.
+        // Implicit conversion changes the expression's resolved type (for example,
+        // '[*] u8' becomes '*void'). Ownership follows the field's declared type;
+        // use the expression type only when the field symbol is unavailable.
         const SymbolVariable* memberField   = identifierVariable(sema, resolvedRef);
         const TypeRef         memberTypeRef = memberField ? memberField->typeRef() : expressionTypeRef(sema, resolvedRef);
         if (!isOwnedPayloadCarrier(sema, memberTypeRef))
@@ -536,9 +532,8 @@ namespace
         if (!hasOwningLifecycle(sema, leftTypeRef))
             return nullptr;
 
-        // Reached through a POINTER, the owner is whatever that pointer designates, not
-        // the pointer variable: a local '*Array' aimed at caller storage owns nothing,
-        // and its payload must not be rooted at the frame.
+        // A pointer reaches the designated owner, not its own slot. A frame-local
+        // '*Array' pointing to caller storage must not root the payload at this frame.
         if (leftIsCarrier)
             return carrierBaseStorageRoot(sema, leftRef, forAssignment, depth + 1);
 
@@ -546,10 +541,8 @@ namespace
         return storageRootVariable(sema, leftRef, forAssignment, leftWhole, depth + 1);
     }
 
-    // The storage root of an expression reached THROUGH a carrier ('p[]', 'p.field',
-    // 'p[i]'): the pointee is a root only when the carrier is tracked - a pointer holding
-    // a local borrow, a pointer parameter (caller-owned storage), a local bound to either
-    // of those, or a payload owned by a known value.
+    // Follow a carrier to tracked storage: a local borrow, a pointer parameter,
+    // a local bound to either, or a known owner's payload.
     const SymbolVariable* carrierBaseStorageRoot(Sema& sema, AstNodeRef baseRef, bool forAssignment, uint32_t depth)
     {
         bool                  baseWhole = false;
@@ -560,9 +553,8 @@ namespace
             if (baseInfo && baseInfo->isLocalBorrow())
                 return baseInfo->sourceVar;
 
-            // Data reached through a pointer/reference parameter (including the body 'me'
-            // binding) belongs to the caller: root at the parameter so returns feed the
-            // borrow summary. Same for a local that was bound to such a pointer.
+            // Pointer/reference parameters, including 'me', designate caller storage.
+            // Root returns at the parameter, including locals bound to that pointer.
             if (!forAssignment)
             {
                 if (baseInfo && baseInfo->kind == SemaEscapeKind::Parameter && baseInfo->sourceVar)
@@ -630,6 +622,7 @@ namespace
                 const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
                 if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
                     return storageRootVariableAt(sema, operandRef, forAssignment, outWholeVariable, depth + 1);
+
                 return storageRootVariable(sema, operandRef, forAssignment, outWholeVariable, depth + 1);
             }
 
@@ -643,11 +636,11 @@ namespace
                     return carrierBaseStorageRoot(sema, leftRef, forAssignment, depth);
                 }
 
-                // A member access never designates the WHOLE variable, whatever the
-                // recursion reports for the left side.
+                // A field access never designates the whole variable, even if its left side does.
                 bool                  leftWhole = false;
                 const SymbolVariable* leftRoot  = storageRootVariable(sema, leftRef, forAssignment, leftWhole, depth + 1);
-                outWholeVariable                = false;
+
+                outWholeVariable = false;
                 return leftRoot;
             }
 
@@ -669,9 +662,8 @@ namespace
                     return lowering ? lowering->runtimeStorageSym : nullptr;
                 }
 
-                // A dereference designates the pointee storage, not the pointer variable: it
-                // is a borrow root only when the pointer itself borrows a tracked local. A
-                // heap or caller-owned pointee is not a borrow root.
+                // Follow the carrier to its pointee storage instead of rooting the borrow
+                // at the pointer variable.
                 if (Token::isDeref(sema.token(node.codeRef()).id))
                 {
                     outWholeVariable = false;
@@ -696,10 +688,8 @@ namespace
         const SymbolVariable* sourceVar     = storageRootVariable(sema, sourceRef, false, wholeVariable);
         if (sourceVar)
         {
-            // A reference-typed VARIABLE designates the storage it was bound to: return
-            // that binding's borrow. Decided on the declared type - a self-substituted
-            // cast operand (implicit receiver conversion) reports the cast's result
-            // type, not the variable's.
+            // Reference variables designate their bound storage. Use the declared type:
+            // implicit receiver conversion may replace the operand's resolved type.
             if (wholeVariable && sourceVar->typeRef().isValid() && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), sourceVar->typeRef()).isReference())
             {
                 if (const SemaEscapeInfo* existing = sema.variableEscapeInfo(*sourceVar))
@@ -714,6 +704,7 @@ namespace
 
             return variableStorageInfo(sema, *sourceVar, sourceRef, typeRef);
         }
+
         return {};
     }
 
@@ -762,6 +753,7 @@ namespace
 
         if (!candidateTypeRef.isValid())
             return {};
+
         const TypeInfo& candidateType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), candidateTypeRef);
         if (isDirectBorrowCarrier(candidateType) || !SemaHelpers::isByValueAggregateType(candidateType))
             return {};
@@ -819,6 +811,7 @@ namespace
             outComponent = {.kind = SemaEscapeProjectionKind::Field, .field = slot.field};
         else
             outComponent = {.kind = SemaEscapeProjectionKind::ConstantIndex, .index = slot.index};
+
         return true;
     }
 
@@ -834,16 +827,19 @@ namespace
             return aggregateLiteralChildren(sema, outChildren, rawNode.cast<AstNamedArgument>().nodeArgRef);
         if (rawNode.is(AstNodeId::CastExpr))
             return aggregateLiteralChildren(sema, outChildren, rawNode.cast<AstCastExpr>().nodeExprRef);
+
         if (rawNode.is(AstNodeId::StructLiteral))
         {
             rawNode.cast<AstStructLiteral>().collectChildren(outChildren, sema.ast());
             return true;
         }
+
         if (rawNode.is(AstNodeId::StructInitializerList))
         {
             AstNode::collectChildren(outChildren, sema.ast(), rawNode.cast<AstStructInitializerList>().spanArgsRef);
             return true;
         }
+
         return false;
     }
 
@@ -855,6 +851,7 @@ namespace
         SemaEscapeInfo result;
         for (const AstNodeRef childRef : children)
             result = mergeEscapeInfo(sema, result, expressionEscapeInfoRec(sema, childRef, budget));
+
         return result;
     }
 
@@ -862,6 +859,7 @@ namespace
     {
         if (!budget || nodeRef.isInvalid())
             return {};
+
         --budget;
 
         const AstNode& node = sema.node(nodeRef);
@@ -874,9 +872,11 @@ namespace
         // initializers and expressions used for side effects do not all escape with it.
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sema.ast());
+
         SemaEscapeInfo result;
         for (const AstNodeRef childRef : children)
             result = mergeEscapeInfo(sema, result, inlineReturnEscapeInfo(sema, childRef, budget));
+
         return result;
     }
 
@@ -885,18 +885,16 @@ namespace
         return expressionEscapeInfoRec(sema, argumentValueRef(sema, argRef), budget);
     }
 
-    // Only composite storage can be aliased by an implicit carrier binding (array decay,
-    // opCast borrowing 'self', interface creation, ...). Scalars convert by value: casting
-    // a 'u64' to a pointer reinterprets the value and never borrows the variable storage.
-    // Owner structs (a string owning its buffer, ...) qualify too: their heap payload is freed when the
-    // owner drops, and for a LOCAL owner the drop coincides with scope death - rooting a
-    // view at the owner variable reports exactly the escapes that dangle. Parameter and
-    // global owners yield Parameter/Static kinds and stay silent locally.
+    // Implicit carrier bindings borrow composite storage; scalar-to-pointer casts
+    // reinterpret values without borrowing their slots. Owners also expose storage:
+    // local views expire with the owner, while parameter/global owners remain rooted
+    // at caller/static storage and produce no local escape report.
     bool expressionMayExposeStorageBorrow(Sema& sema, AstNodeRef exprRef)
     {
         const TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, exprRef));
         if (typeRef.isInvalid())
             return false;
+
         const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
         return !isDirectBorrowCarrier(type) && SemaHelpers::isByValueAggregateType(type);
     }

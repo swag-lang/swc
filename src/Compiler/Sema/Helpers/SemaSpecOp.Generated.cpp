@@ -72,9 +72,9 @@ namespace
         if (typeRef.isInvalid())
             return false;
 
-        const TypeInfo& declaredType  = ctx.typeMgr().get(typeRef);
-        const TypeInfo& type          = declaredType.unwrapAliasTypeOrSelf(ctx);
-        typeRef                       = type.typeRef();
+        const TypeInfo& declaredType = ctx.typeMgr().get(typeRef);
+        const TypeInfo& type         = declaredType.unwrapAliasTypeOrSelf(ctx);
+        typeRef                      = type.typeRef();
         if (!visiting.insert(typeRef))
             return false;
 
@@ -148,6 +148,7 @@ namespace
             return Result::Continue;
         if (!visited.insert(typeRef))
             return Result::Continue;
+
         if (type.isArray())
         {
             for (const uint64_t dimension : type.payloadArrayDims())
@@ -155,18 +156,22 @@ namespace
                 if (!dimension)
                     return Result::Continue;
             }
+
             return addTypeCallDependenciesRec(sema, type.payloadArrayElemTypeRef(), kind, visited, observesEffects);
         }
+
         const SymbolStruct& owner   = type.payloadSymStruct();
         const SourceCodeRef codeRef = sema.node(sema.curNodeRef()).codeRef();
         SWC_RESULT(sema.waitSemaCompleted(&owner, codeRef));
         if (defaultInit && !SymbolStruct::typeHasRuntimeImplicitDefault(sema, typeRef))
             return Result::Continue;
+
         if (!defaultInit && owner.attributes().hasRtFlag(RtAttributeFlagsE::Opaque))
         {
             const SourceFile* ownerFile = sema.compiler().sourceViewFile(owner);
             if (!ownerFile)
                 ownerFile = sema.ownerSourceFile(owner.srcViewRef());
+
             const bool imported = ownerFile && ownerFile->isImportedApi();
             if (imported)
                 SWC_RESULT(owner.waitPendingImplMembers(sema, codeRef));
@@ -176,19 +181,23 @@ namespace
             {
                 if (!method || method->isIgnored() || method->name(sema.ctx()) != wrapperName)
                     continue;
+
                 // Source wrappers may be collecting their own dependencies. Only
                 // imported declarations can be awaited here without a recursive wait.
                 if (!imported && !method->isSemaCompleted())
                     continue;
+
                 SWC_RESULT(sema.waitTyped(method, codeRef));
                 SWC_RESULT(sema.waitSemaCompleted(method, codeRef));
                 if (!method->isForeign() || !method->attributes().hasRtFlag(RtAttributeFlagsE::Implicit))
                     continue;
+
                 if (sema.isCurrentFunction())
                     sema.currentFunction()->addLifecycleDependency(method, observesEffects);
                 return Result::Continue;
             }
         }
+
         const SymbolFunction* direct = nullptr;
         switch (kind)
         {
@@ -202,9 +211,11 @@ namespace
                     {
                         if (!method || method->name(sema.ctx()) != "swagOpaqueInit")
                             continue;
+
                         SWC_RESULT(sema.waitTyped(method, codeRef));
                         SWC_RESULT(sema.waitSemaCompleted(method, codeRef));
                     }
+
                     direct = owner.opaqueInit(sema.ctx());
                 }
                 break;
@@ -213,13 +224,16 @@ namespace
             case SpecOpKind::OpPostMove: direct = owner.opPostMove(); break;
             default: SWC_UNREACHABLE();
         }
+
         if (direct && sema.isCurrentFunction())
             sema.currentFunction()->addLifecycleDependency(direct, observesEffects);
+
         for (const SymbolVariable* field : owner.fields())
         {
             if (field && (!defaultInit || field->defaultValueRef().isInvalid()))
                 SWC_RESULT(addTypeCallDependenciesRec(sema, field->typeRef(), kind, visited, observesEffects));
         }
+
         return Result::Continue;
     }
 
@@ -724,9 +738,9 @@ namespace
         if (typeRef.isInvalid())
             return Result::Continue;
 
-        const TypeInfo& declaredType  = sema.typeMgr().get(typeRef);
-        const TypeInfo& type          = declaredType.unwrapAliasTypeOrSelf(sema.ctx());
-        typeRef                       = type.typeRef();
+        const TypeInfo& declaredType = sema.typeMgr().get(typeRef);
+        const TypeInfo& type         = declaredType.unwrapAliasTypeOrSelf(sema.ctx());
+        typeRef                      = type.typeRef();
         if (!visiting.insert(typeRef))
             return Result::Continue;
 
@@ -768,8 +782,8 @@ namespace
         if (typeRef.isInvalid())
             return Result::Continue;
 
-        const TypeInfo& type          = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
-        typeRef                       = type.typeRef();
+        const TypeInfo& type = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
+        typeRef              = type.typeRef();
         if (!visiting.insert(typeRef))
             return Result::Continue;
 

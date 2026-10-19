@@ -535,6 +535,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
                     if (Symbol* visible = const_cast<Symbol*>(firstVisibleSymbol(head, false)))
                         return visible;
                 }
+
                 count_.fetch_add(1, std::memory_order_relaxed);
                 symbol->setOwnerSymMap(this);
                 result = insertSymbolOrdered(head, symbol);
@@ -545,6 +546,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
                 count_.fetch_add(1, std::memory_order_relaxed);
                 symbol->setOwnerSymMap(this);
                 symbol->setNextHomonym(nullptr);
+
                 small_[smallSize].key = idRef;
                 small_[smallSize].head.store(symbol, std::memory_order_relaxed);
                 smallSize_.store(smallSize + 1, std::memory_order_release);
@@ -556,12 +558,14 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
                 // entries stay intact for readers still scanning them.
                 tableReserve(ctx, bigTable_, SMALL_CAP + 1);
                 HeadTable& table = *bigTable_.load(std::memory_order_relaxed);
+
                 for (uint32_t i = 0; i < SMALL_CAP; ++i)
                 {
                     const uint64_t key  = shardKey(small_[i].key);
                     const uint32_t hash = Math::hash(small_[i].key.get());
                     tablePlace(table, tableSlot(table, key, hash), key, small_[i].head.load(std::memory_order_relaxed));
                 }
+
                 smallSize_.store(SMALL_CAP + 1, std::memory_order_release);
                 result = tableInsert(ctx, bigTable_, idRef, Math::hash(idRef.get()), symbol, acceptHomonyms);
             }
@@ -578,6 +582,7 @@ Symbol* SymbolMap::addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomony
 
     if (result == symbol || symbol->ownerSymMap() == this)
         notifyInserted(ctx, idRef);
+
     return result;
 }
 

@@ -1369,11 +1369,14 @@ namespace
             const AstNodeRef castRef = Cast::createCast(sema, binding->typeRef, clonedExprRef);
             if (castRef.isInvalid())
                 return AstNodeRef::invalid();
+
             if (binding->preserveUseCodeRef)
                 sema.node(castRef).setCodeRef(node.codeRef());
+
             foldTypedBindingConstant(sema, *binding, castRef);
             if (!cloneContext.resolveBindingExprWithParentBindings)
                 setCallerInlineContextOverride(sema, castRef, *binding);
+
             return markConstParamBindingTarget(sema, *binding, castRef);
         }
 
@@ -1382,21 +1385,21 @@ namespace
         auto [nodeRef, nodePtr]      = sema.ast().makeNode<AstNodeId::Identifier>(node.tokRef());
         nodePtr->flags()             = node.flags();
         nodePtr->setCodeRef(node.codeRef());
-        // An intrinsic name (Swag.min, Swag.vecSplat, ...) resolves by name in every scope and picks its
-        // overload from the call's argument types, and its identifier only ever stores the first
-        // overload of the set. Carrying that symbol pins a cloned call on the wrong overload when
-        // the source call was folded to a constant and so kept no selected function of its own
-        // to override the pin with (an auto-inlined `v + Swag.vecSplat(1'u32)` came back as sixteen
-        // bytes). Leave the name to re-resolve; the call pins its selected function afterwards
-        // whenever the source kept one.
-        const auto* intrinsicFunction             = storedView && storedView->sym ? storedView->sym->safeCast<SymbolFunction>() : nullptr;
-        const bool  intrinsicName                 = intrinsicFunction && intrinsicFunction->intrinsicId() != TokenId::Invalid;
-        const bool  sourceSymbolOwnedByFunction   = storedView && storedView->sym && storedView->sym->ownerSymMap() && storedView->sym->ownerSymMap()->isFunction();
-        const bool  sourceFunctionLocalIdentifier = storedView &&
+
+        // Intrinsic identifiers store the first overload; each call selects one from its
+        // argument types. A folded source call may no longer carry that selection, so copying
+        // its identifier's symbol could pin the clone to the wrong overload. Resolve intrinsic
+        // names again; calls with a stored selection pin it afterwards.
+        const auto* intrinsicFunction           = storedView && storedView->sym ? storedView->sym->safeCast<SymbolFunction>() : nullptr;
+        const bool  intrinsicName               = intrinsicFunction && intrinsicFunction->intrinsicId() != TokenId::Invalid;
+        const bool  sourceSymbolOwnedByFunction = storedView && storedView->sym && storedView->sym->ownerSymMap() && storedView->sym->ownerSymMap()->isFunction();
+
+        const bool sourceFunctionLocalIdentifier = storedView &&
                                                    storedView->sym &&
                                                    storedView->sym->isFunctionLocalVariable() &&
                                                    nodeTokInRange &&
                                                    sema.token(node.codeRef()).id == TokenId::Identifier;
+
         const bool sourceLexicalLocalIdentifier = storedView &&
                                                   storedView->sym &&
                                                   !storedView->sym->ownerSymMap() &&
@@ -1404,9 +1407,11 @@ namespace
                                                   isNonParameterVariableDecl(*storedView->sym) &&
                                                   nodeTokInRange &&
                                                   sema.token(node.codeRef()).id == TokenId::Identifier;
+
         const bool sourceRebindableLocalIdentifier = sourceSymbolOwnedByFunction ||
                                                      sourceFunctionLocalIdentifier ||
                                                      sourceLexicalLocalIdentifier;
+
         const bool sourceLocalIdentifierPinned = pinResolvedSymbol && (sourceSymbolOwnedByFunction || sourceFunctionLocalIdentifier || sourceLexicalLocalIdentifier);
 
         const bool preserveSyntheticSymbol = storedView && storedView->sym && !intrinsicName &&
@@ -1424,23 +1429,24 @@ namespace
                 sema.setSymbolList(nodeRef, storedView->symList);
             else
                 sema.setSymbol(nodeRef, storedView->sym);
-            // When pinning resolved symbols (a cross-Ast clone, or a same-Ast inline that opted
-            // in) the cloned identifier must not be re-resolved by name in the destination
-            // scope: the source symbol may be private/internal, an overload that name-lookup
-            // would pick wrong, or shadowed there. Mark it pre-resolved so sema honors the
-            // carried symbol. Rebindable local symbols are excluded above so they still bind to
-            // the cloned decls / substituted arguments.
+
+            // Cross-AST clones and opted-in same-AST inlining must keep the source symbol:
+            // destination lookup may hide it or choose another overload. Rebindable locals
+            // are excluded above so they still resolve to cloned declarations or arguments.
             if (pinResolvedSymbol)
                 nodePtr->addFlag(AstIdentifierFlagsE::PreResolvedSymbol);
         }
+
         const bool carryResolvedTypeId = storedView &&
                                          storedView->typeRef.isValid() &&
                                          !storedView->cstRef.isValid() &&
                                          (node.hasFlag(AstIdentifierFlagsE::GenericTypeBinding) || (storedView->sym && storedView->sym->isType()));
+
         const bool carryInline = storedView &&
                                  ((!storedView->hasSymbol && (storedView->typeRef.isValid() || storedView->cstRef.isValid())) ||
                                   carryResolvedTypeId ||
                                   (crossAstSource && storedView->cstRef.isValid()));
+
         if (carryInline)
         {
             // Nested generic cloning can hit identifiers that were already substituted by an

@@ -1555,15 +1555,13 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
             return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_nullable_member_access, node.nodeLeftRef, nodeLeftView.typeRef());
     }
 
-    // Interface
     if (nodeLeftView.type()->isInterface())
         return memberInterface(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet);
 
-    // Aggregate struct
     if (nodeLeftView.type()->isAggregateStruct())
         return memberAggregateStruct(sema, memberRef, node, nodeLeftView, idRef, tokNameRef, allowOverloadSet, *nodeLeftView.type());
 
-    // Dereference pointer
+    // Normalize type values and reference layers before member lookup.
     const TypeInfo* typeInfo = nodeLeftView.type();
     if (typeInfo->isTypeValue())
     {
@@ -1592,6 +1590,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
             structRef = sema.typeMgr().structTypeInfoVariadic();
         else if (underlying.isCodeBlock())
             structRef = sema.typeMgr().structTypeInfoCodeBlock();
+
         typeInfo = &sema.typeMgr().get(structRef);
     }
     else if (typeInfo->isTypeInfo())
@@ -1599,6 +1598,7 @@ Result SemaHelpers::resolveMemberAccess(Sema& sema, AstNodeRef memberRef, AstMem
         TypeRef typeInfoRef = sema.typeMgr().structTypeInfo();
         if (!typeInfoRef.isValid())
             SWC_RESULT(sema.waitPredefined(IdentifierManager::PredefinedName::TypeInfo, typeInfoRef, {node.srcViewRef(), tokNameRef}));
+
         SWC_ASSERT(typeInfoRef.isValid());
         typeInfo = &sema.typeMgr().get(typeInfoRef);
     }

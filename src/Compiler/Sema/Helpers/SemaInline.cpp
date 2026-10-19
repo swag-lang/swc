@@ -2622,12 +2622,10 @@ namespace
                 }
                 else
                 {
-                    // The value the signature already resolved, in the scope that wrote it.
-                    // A default is required to be constant, so this is what the ordinary call
-                    // path binds too. Cloning the written expression instead would re-resolve
-                    // its names where the call is: a published cross-module declaration names
-                    // things that exist only in its own module, and a '#code' block parameter
-                    // is the one default with no constant of its own.
+                    // Use the signature's constant default, as the ordinary call path does.
+                    // Cloning its source would resolve names in the caller's scope, where
+                    // private cross-module names may not exist. A '#code' parameter is the
+                    // exception: its default has no constant payload.
                     const ConstantRef defaultCstRef = param->defaultValueRef();
                     if (defaultCstRef.isValid())
                     {
@@ -2640,6 +2638,7 @@ namespace
                         const AstNodeRef defaultRef    = bindingArgumentRef(sema, *param, defaultArgRef);
                         if (defaultRef.isInvalid())
                             return Result::Continue;
+
                         assignInlineBindingExpr(sema, bound[i], *param, defaultRef);
                     }
                 }
@@ -2727,6 +2726,7 @@ namespace
             return false;
         const bool bodyHasCalls = decl->hasFlag(AstFunctionFlagsE::AutoInlineHasCalls);
         const bool repeatedCall = decl->autoInlineRepeatedCall;
+
         // The large budget is a last-call-to-static bonus: it only applies where this module owns
         // every possible caller and can truly eliminate the remaining call edge. Public helpers
         // may still be called by another module, so they keep only the former small leaf policy.
@@ -2740,17 +2740,21 @@ namespace
             if ((bodyHasCalls && !repeatedCall && returnType.isNullable()) || isInlineAggregateType(returnType))
                 return false;
         }
+
         for (const SymbolVariable* param : fn.parameters())
         {
             if (!param)
                 continue;
+
             // `me` is the method receiver, not an aggregate value copied into the inline body.
             // Ordinary inline materialization already binds its address explicitly (including
             // indexed/rvalue receivers), and parse-time eligibility rejects implicit `.member`
             // accesses whose contextual receiver could otherwise change after cloning.
             if (param->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
                 continue;
+
             const TypeInfo& paramType = param->type(sema.ctx());
+
             // Block-pointer bindings already retain their declared parameter type,
             // including nullable qualification. Volunteer a body with calls only at
             // one repeated site; other nullable bindings keep their existing boundary.
@@ -2762,13 +2766,10 @@ namespace
             if (((bodyHasCalls || decl->autoInlineHasNotNull) && paramType.isNullable() && (!repeatedCall || !paramType.isBlockPointer())) ||
                 (isInlineAggregateType(paramType) && !sliceView))
                 return false;
-            // A reference parameter to an aggregate (e.g. `const &{x, y}`) is excluded for the same
-            // reason its by-value form is: the aggregate is not a scalar/pointer the auto-inline clone
-            // can carry faithfully. For an ANONYMOUS aggregate this is also unsafe under concurrency -
-            // the clone re-resolves a member access (`param.x`) by name against that ephemeral tuple
-            // type, whose member-symbol map may not yet be published on the thread doing the inline,
-            // intermittently yielding a spurious "unknown symbol". Look through the reference and
-            // apply the same scalar/pointer-only boundary to the pointee.
+
+            // References to aggregates share the same auto-inline boundary as by-value
+            // aggregates. Re-resolving a cloned access against an anonymous aggregate can
+            // also race publication of its member-symbol map.
             if (paramType.isReference() && paramType.payloadTypeRef().isValid() &&
                 isInlineAggregateType(sema.ctx().typeMgr().get(paramType.payloadTypeRef())))
                 return false;
@@ -3118,8 +3119,10 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
     inlinePayload->returnTypeRef       = returnTypeRef;
     inlinePayload->aliasIdentifiers    = aliasIdentifiers;
     inlinePayload->aliasNameRefs       = aliasNameRefs;
+
     for (const AstNodeRef materializedBindingRef : materializedBindings)
         inlinePayload->materializedArgRefs.push_back(materializedBindingRef);
+
     if (isOrdinaryInline)
     {
         SmallVector<AstNodeRef> rootChildren;
@@ -3127,6 +3130,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         if (materializedBindings.size() < rootChildren.size())
             inlinePayload->narrowFactsBodyStartRef = rootChildren[materializedBindings.size()];
     }
+
     if (!declaredCodeParams.empty())
         inlinePayload->codeParamSourceAst = declAst;
     for (uint32_t paramIndex = 0; paramIndex < declaredCodeParams.size(); ++paramIndex)
@@ -3136,12 +3140,14 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
         if (declaredCodeParams[paramIndex].isVar && paramIndex < 32)
             inlinePayload->codeParamVarMask |= 1u << paramIndex;
     }
+
     for (const SemaClone::ParamBinding& binding : bindings)
     {
         if (binding.sourceParam)
             binding.sourceParam->markInlineBound();
         inlinePayload->argMappings.push_back(binding);
     }
+
     for (SymbolVariable* bindingVar : frame.bindingVars())
         inlinePayload->callerBindingVars.push_back(bindingVar);
     for (TypeRef bindingType : frame.bindingTypes())

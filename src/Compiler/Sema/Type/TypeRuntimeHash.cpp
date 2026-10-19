@@ -307,6 +307,7 @@ namespace
             case ConstantKind::String:
                 h = Math::hashCombine(h, Math::hash(value.getString()));
                 break;
+
             case ConstantKind::Struct:
                 h = Math::hashCombine(h, Math::hash(value.getStruct()));
                 break;
@@ -319,24 +320,29 @@ namespace
                 for (const ConstantRef nestedRef : value.getAggregate())
                     h = Math::hashCombine(h, stableConstantHash(ctx, nestedRef));
                 break;
+
             case ConstantKind::Int:
                 h = Math::hashCombine(h, value.getInt().hash());
                 break;
             case ConstantKind::Float:
                 h = Math::hashCombine(h, value.getFloat().hash());
                 break;
+
             case ConstantKind::ValuePointer:
                 h = Math::hashCombine(h, value.getValuePointer());
                 break;
             case ConstantKind::BlockPointer:
                 h = Math::hashCombine(h, value.getBlockPointer());
                 break;
+
             case ConstantKind::Slice:
                 h = Math::hashCombine(h, Math::hash(value.getSlice()));
                 h = Math::hashCombine(h, value.getSliceCount());
                 break;
+
             case ConstantKind::Null:
                 break;
+
             case ConstantKind::TypeValue:
                 h = Math::hashCombine(h, stableTypeHash(ctx, value.getTypeValue()));
                 break;

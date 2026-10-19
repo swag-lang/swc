@@ -485,6 +485,7 @@ namespace
             return Result::Continue;
         if (!paramType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
+
         return SemaHelpers::normalizeTypeInfoConstantRef(sema, ioCstRef, ownerNodeRef);
     }
 
@@ -500,18 +501,21 @@ namespace
         const IdentifierRef      borrowSummaryIdRef     = sema.idMgr().addIdentifier("BorrowSummary");
         const IdentifierRef      callingConventionIdRef = sema.idMgr().addIdentifier("CallingConvention");
         const IdentifierRef      warningIdRef           = sema.idMgr().addIdentifier("Warning");
+
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Optimize))
             return collectOptimizeLevel(sema, args, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintMicro))
             return collectPrintOptions(sema, args, outAttributes.printMicroPassOptions, "pre-emit");
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::PrintAst))
             return collectPrintOptions(sema, args, outAttributes.printAstStageOptions, "post-sema");
+
         if (idRef == safetyIdRef)
             return collectSafetyOverride(sema, resolvedArgs, outAttributes, &AttributeList::addRuntimeSafetyOverride);
         if (idRef == sanityIdRef)
             return collectSafetyOverride(sema, resolvedArgs, outAttributes, &AttributeList::addSanityOverride);
         if (idRef == borrowSummaryIdRef)
             return collectBorrowSummaryOptions(sema, resolvedArgs, outAttributes);
+
         if (idRef == callingConventionIdRef)
         {
             CallConvKind kind = CallConvKind::Swag;
@@ -519,12 +523,14 @@ namespace
             outAttributes.declaredCallConvKind = kind;
             return Result::Continue;
         }
+
         if (idRef == warningIdRef)
             return collectWarningOptions(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Foreign))
             return collectForeignOptions(sema, resolvedArgs, outAttributes);
         if (idRef == idMgr.predefined(IdentifierManager::PredefinedName::Operators))
             return collectOperatorOptions(sema, args, outAttributes);
+
         return Result::Continue;
     }
 

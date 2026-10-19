@@ -1050,11 +1050,13 @@ namespace
                                            explicitType->isStruct() &&
                                            isStructField &&
                                            &explicitType->payloadSymStruct() == &fieldOwnerSymMap->cast<SymbolStruct>();
+
         bool requiresExplicitInit = false;
         if (context.nodeInitRef.isInvalid() && !isParameter && finalTypeRef.isValid() && !directSelfStructField)
         {
             SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, finalTypeRef, context.nodeTypeRef));
             requiresExplicitInit = SymbolStruct::typeRequiresExplicitInitialization(sema, finalTypeRef);
+
             // A 'late' declaration (struct field or global) intentionally has no
             // initializer: its zero (null) storage is the 'unset' sentinel, guarded at
             // every read. It is exempt from the requires-init rule like a struct field.
@@ -1063,8 +1065,9 @@ namespace
                 return reportTypeRequiresInit(sema, context, finalTypeRef);
             if (requiresExplicitInit && supportsDefiniteInit)
             {
-                const TypeInfo& type          = sema.typeMgr().get(finalTypeRef);
-                const TypeInfo& storageType   = type.unwrapAliasTypeOrSelf(sema.ctx());
+                const TypeInfo& type        = sema.typeMgr().get(finalTypeRef);
+                const TypeInfo& storageType = type.unwrapAliasTypeOrSelf(sema.ctx());
+
                 // Definite assignment tracks a complete static array as one
                 // construction unit. Element/range coverage remains deliberately
                 // conservative, but a known whole-object construction such as
@@ -1080,6 +1083,7 @@ namespace
                     if (auto* symVar = getVariableSymbol(s))
                         symVar->addExtraFlag(SymbolVariableFlagsE::NeedsDefiniteInit);
                 }
+
                 sema.noteInitFlowCandidate();
             }
         }
@@ -1087,23 +1091,28 @@ namespace
         ConstantRef implicitStructCstRef   = ConstantRef::invalid();
         ConstantRef implicitGlobalStoreRef = ConstantRef::invalid();
         bool        implicitStructZeroInit = false;
+
         if (context.nodeInitRef.isInvalid() && !isParameter && explicitTypeRef.isValid() && explicitType && explicitType->isStructOrArray())
         {
             if (!directSelfStructField && !requiresExplicitInit)
             {
                 SWC_RESULT(sema.waitSemaCompleted(explicitType, context.nodeTypeRef));
+
                 const bool hasGlobalStorage = std::ranges::any_of(symbols, [](Symbol* symbol) {
                     const SymbolVariable* variable = getVariableSymbol(symbol);
                     return variable && isGlobalStorageVariable(*variable);
                 });
                 if ((hasGlobalStorage || isConst) && SymbolStruct::typeHasRuntimeImplicitDefault(sema, explicitTypeRef))
                     return SemaError::raiseExprNotConst(sema, sema.curNodeRef());
+
                 SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(sema, explicitTypeRef));
+
                 if (explicitType->isStruct())
                 {
                     const auto& symStruct = explicitType->payloadSymStruct();
                     symStruct.computeImplicitDefaultFlags(sema);
                     implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
+
                     if (hasGlobalStorage)
                         SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitGlobalStoreRef));
                     if (isConst)
@@ -1124,15 +1133,18 @@ namespace
                         SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(sema, bytes.span(), explicitTypeRef));
                         implicitGlobalStoreRef = ConstantHelpers::materializeStaticPayloadConstant(sema, explicitTypeRef, bytes.span());
                     }
+
                     if (implicitGlobalStoreRef.isInvalid())
                         return SemaError::raiseExprNotConst(sema, sema.curNodeRef());
                 }
+
                 // Resolving union defaults can discover a partial pointer overwrite.
                 // Those untouched address bytes only exist after runtime relocation.
                 if ((hasGlobalStorage || isConst) && SymbolStruct::typeHasRuntimeImplicitDefault(sema, explicitTypeRef))
                     return SemaError::raiseExprNotConst(sema, sema.curNodeRef());
             }
         }
+
         const bool hasImplicitStructConstInit = implicitStructZeroInit || implicitStructCstRef.isValid();
 
         // A struct or array local declared without an initializer owns a value either way: the type's
@@ -1218,8 +1230,8 @@ namespace
         SWC_RESULT(completeVar(sema, symbols, finalTypeRef));
         if (sema.isCurrentFunction() && !isParameter && context.nodeInitRef.isInvalid())
         {
-            const TypeInfo& type          = sema.typeMgr().get(finalTypeRef);
-            const TypeInfo& storageType   = type.unwrapAliasTypeOrSelf(sema.ctx());
+            const TypeInfo& type        = sema.typeMgr().get(finalTypeRef);
+            const TypeInfo& storageType = type.unwrapAliasTypeOrSelf(sema.ctx());
             if (requiresExplicitInit || storageType.isStruct())
                 sema.noteInitFlowCandidate();
         }

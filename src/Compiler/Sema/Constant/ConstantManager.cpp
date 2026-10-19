@@ -830,6 +830,7 @@ uint32_t ConstantManager::smallIntTypeIndex(const TaskContext& ctx, TypeRef type
         return 1;
     if (typeRef == typeMgr.typeIntUnsigned())
         return 2;
+
     if (typeRef == typeMgr.typeU8())
         return 3;
     if (typeRef == typeMgr.typeU16())
@@ -838,6 +839,7 @@ uint32_t ConstantManager::smallIntTypeIndex(const TaskContext& ctx, TypeRef type
         return 5;
     if (typeRef == typeMgr.typeU64())
         return 6;
+
     if (typeRef == typeMgr.typeS8())
         return 7;
     if (typeRef == typeMgr.typeS16())
@@ -846,6 +848,7 @@ uint32_t ConstantManager::smallIntTypeIndex(const TaskContext& ctx, TypeRef type
         return 9;
     if (typeRef == typeMgr.typeS64())
         return 10;
+
     return INVALID_REF;
 }
 
@@ -1104,12 +1107,12 @@ bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const Da
 
     SmallVector<DataSegmentRef> pending;
 
-    // Roots commonly share runtime type graphs. Scan their union once. The visited set holds
-    // nothing between queries - a later one must observe newly published metadata - but its table
-    // is the worker's: every constant-call fold asks this, and each one allocated a node per
-    // allocation it walked.
+    // Roots commonly share runtime type graphs; scan their union once per query. Reuse
+    // the worker's table capacity, but clear membership so later queries observe newly
+    // published metadata.
     static thread_local StampedKeySet visited;
     visited.clear();
+
     for (const DataSegmentRef root : roots)
     {
         pending.push_back(root);
@@ -1117,14 +1120,17 @@ bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const Da
         {
             const DataSegmentRef current = pending.back();
             pending.pop_back();
+
             const WalkedAllocation* walked = walkedAllocation(shardDataSegment(current.shardIndex), current.offset);
             if (!walked)
                 continue;
+
             // The high bit keeps the first allocation of the first shard from packing to zero,
             // which the table reads as a free slot.
             const uint64_t key = 1ULL << 63 | static_cast<uint64_t>(current.shardIndex) << 32 | walked->allocation.offset;
             if (!visited.insert(key))
                 continue;
+
             for (const DataSegmentRelocation& relocation : walked->relocations)
             {
                 if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
@@ -1137,6 +1143,7 @@ bool ConstantManager::hasUnpublishedFunctionRelocations(const std::span<const Da
             }
         }
     }
+
     return false;
 }
 

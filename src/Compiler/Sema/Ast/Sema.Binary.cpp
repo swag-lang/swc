@@ -45,11 +45,9 @@ namespace
         return SemaHelpers::binaryOpNeedsOverflowSafety(op, node.modifierFlags);
     }
 
-    // An INTEGER division needs the '.Math' guard when the divisor is only known at run time:
-    // a zero divisor traps in hardware, with no location and no message, and under the
-    // compile-time JIT it ends the compiler. A constant divisor needs nothing - a zero one is
-    // already a static error and a nonzero one cannot fail - and a float division needs
-    // nothing either, since dividing by zero there is IEEE-defined and yields an infinity.
+    // Integer division by a runtime divisor needs the '.Math' guard: division by zero
+    // traps without source context and can terminate the compile-time JIT. Constant
+    // divisors are checked statically; floating-point division follows IEEE behavior.
     bool needsBinaryDivideRuntimeSafety(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (op != TokenId::SymSlash && op != TokenId::SymPercent)
@@ -384,14 +382,16 @@ namespace
             }
         }
 
-        const TypeInfo& leftAliasType            = SemaHelpers::aliasType(sema, nodeLeftView);
-        const TypeInfo& rightAliasType           = SemaHelpers::aliasType(sema, nodeRightView);
-        const TypeInfo* leftEnumType             = leftAliasType.isEnum() ? leftAliasType.unwrapAliasEnumType(sema.ctx()) : nullptr;
-        const TypeInfo* rightEnumType            = rightAliasType.isEnum() ? rightAliasType.unwrapAliasEnumType(sema.ctx()) : nullptr;
-        const TypeInfo& leftType                 = leftEnumType ? *leftEnumType : leftAliasType;
-        const TypeInfo& rightType                = rightEnumType ? *rightEnumType : rightAliasType;
-        TypeRef         resultTypeRef            = nodeLeftView.typeRef();
-        bool            handledPointerArithmetic = false;
+        const TypeInfo& leftAliasType  = SemaHelpers::aliasType(sema, nodeLeftView);
+        const TypeInfo& rightAliasType = SemaHelpers::aliasType(sema, nodeRightView);
+        const TypeInfo* leftEnumType   = leftAliasType.isEnum() ? leftAliasType.unwrapAliasEnumType(sema.ctx()) : nullptr;
+        const TypeInfo* rightEnumType  = rightAliasType.isEnum() ? rightAliasType.unwrapAliasEnumType(sema.ctx()) : nullptr;
+        const TypeInfo& leftType       = leftEnumType ? *leftEnumType : leftAliasType;
+        const TypeInfo& rightType      = rightEnumType ? *rightEnumType : rightAliasType;
+
+        TypeRef resultTypeRef            = nodeLeftView.typeRef();
+        bool    handledPointerArithmetic = false;
+
         switch (op)
         {
             case TokenId::SymPlus:
@@ -402,6 +402,7 @@ namespace
                         SWC_RESULT(Cast::cast(sema, nodeLeftView, sema.typeMgr().typeS64(), CastKind::Implicit));
                         nodeRightView.compute(sema, node.nodeRightRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     }
+
                     resultTypeRef            = nodeRightView.typeRef();
                     handledPointerArithmetic = true;
                 }
@@ -412,6 +413,7 @@ namespace
                         SWC_RESULT(Cast::cast(sema, nodeRightView, sema.typeMgr().typeS64(), CastKind::Implicit));
                         nodeLeftView.compute(sema, node.nodeLeftRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
                     }
+
                     resultTypeRef            = nodeLeftView.typeRef();
                     handledPointerArithmetic = true;
                 }

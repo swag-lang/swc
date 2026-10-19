@@ -52,6 +52,7 @@ namespace
     bool compareSameKind(const ConstantValue& lhs, const ConstantValue& rhs, NumericCmp numericCmp) noexcept
     {
         SWC_ASSERT(lhs.kind() == rhs.kind());
+
         switch (lhs.kind())
         {
             case ConstantKind::Bool:
@@ -62,6 +63,7 @@ namespace
                 return lhs.getRune() == rhs.getRune();
             case ConstantKind::String:
                 return lhs.getString() == rhs.getString();
+
             case ConstantKind::Struct:
                 return std::ranges::equal(lhs.getStruct(), rhs.getStruct());
             case ConstantKind::Array:
@@ -69,24 +71,29 @@ namespace
             case ConstantKind::AggregateStruct:
             case ConstantKind::AggregateArray:
                 return lhs.getAggregate() == rhs.getAggregate();
+
             case ConstantKind::Int:
                 return numericCmp == NumericCmp::Same ? lhs.getInt().same(rhs.getInt()) : lhs.getInt().eq(rhs.getInt());
             case ConstantKind::Float:
                 return numericCmp == NumericCmp::Same ? lhs.getFloat().same(rhs.getFloat()) : lhs.getFloat().eq(rhs.getFloat());
+
             case ConstantKind::TypeValue:
                 return lhs.getTypeValue() == rhs.getTypeValue();
             case ConstantKind::EnumValue:
                 return lhs.getEnumValue() == rhs.getEnumValue();
+
             case ConstantKind::ValuePointer:
                 return lhs.getValuePointer() == rhs.getValuePointer();
             case ConstantKind::BlockPointer:
                 return lhs.getBlockPointer() == rhs.getBlockPointer();
+
             case ConstantKind::Slice:
             {
                 const bool lhsPresent = lhs.getSliceCount() != 0 || lhs.getSlice().data() != nullptr;
                 const bool rhsPresent = rhs.getSliceCount() != 0 || rhs.getSlice().data() != nullptr;
                 return std::ranges::equal(lhs.getSlice(), rhs.getSlice()) && lhs.getSliceCount() == rhs.getSliceCount() && lhsPresent == rhsPresent;
             }
+
             case ConstantKind::Null:
                 return true;
 
@@ -111,6 +118,7 @@ namespace
         {
             if (delta)
                 return false;
+
             outRef = baseRef;
             return true;
         }

@@ -505,6 +505,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
             const auto& values = nodeExprView.cst()->getAggregateArray();
             if (std::cmp_greater_equal(constIndex, values.size()))
                 return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
+
             sema.setConstant(sema.curNodeRef(), values[constIndex]);
         }
 
@@ -540,6 +541,7 @@ Result AstIndexExpr::semaPostNode(Sema& sema)
         // a dynamic one is bound-checked at run time like an array index.
         if (hasConstIndex && std::cmp_greater_equal(constIndex, indexedType.payloadSimdLaneCount()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, indexedType.payloadSimdLaneCount());
+
         sema.setType(sema.curNodeRef(), indexedType.payloadSimdLaneTypeRef());
     }
     else if (indexedType.isValuePointer())

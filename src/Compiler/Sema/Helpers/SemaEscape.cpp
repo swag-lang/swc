@@ -2640,6 +2640,7 @@ namespace
                 const SymbolVariable* symVar = identifierVariable(sema, resolvedRef);
                 if (!symVar)
                     return {};
+
                 SemaEscapeInfo trackedInfo = sema.variableEscapeInfoIncludingProjections(*symVar);
                 if (trackedInfo.hasBorrow())
                     return trackedInfo;
@@ -2661,9 +2662,8 @@ namespace
                     }
                 }
 
-                // A method body binds 'me' to a body-local symbol distinct from the
-                // signature receiver: root it at the receiver parameter so 'g(me)'
-                // feeds the summaries like any parameter argument.
+                // The body's 'me' symbol differs from the signature receiver. Map it back
+                // so forwarding 'me' contributes parameter origins to the summary.
                 if (symVar->idRef() == sema.idMgr().predefined(IdentifierManager::PredefinedName::Me))
                 {
                     const SymbolFunction* currentFn = sema.currentFunction();
@@ -2693,13 +2693,16 @@ namespace
             case AstNodeId::AutoCastExpr:
             {
                 const auto& castNode = node.cast<AstAutoCastExpr>();
+
                 // Ordinary contextual conversions have a separate CastExpr wrapper.
                 // Dynamic conversions lower on this node and can borrow its operand's storage.
                 if (castNode.modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
                     return castEscapeInfo(sema, resolvedRef, castNode.nodeExprRef, budget);
+
                 SemaEscapeInfo info = expressionEscapeInfoRec(sema, castNode.nodeExprRef, budget);
                 if (info.hasBorrow())
                     info.typeRef = expressionTypeRef(sema, resolvedRef);
+
                 return info;
             }
 
@@ -2708,6 +2711,7 @@ namespace
                 SemaEscapeInfo info = expressionEscapeInfoRec(sema, node.cast<AstAsCastExpr>().nodeExprRef, budget);
                 if (info.hasBorrow())
                     info.typeRef = expressionTypeRef(sema, resolvedRef);
+
                 return info;
             }
 
@@ -2726,9 +2730,8 @@ namespace
             case AstNodeId::NamedArgument:
                 return expressionEscapeInfoRec(sema, node.cast<AstNamedArgument>().nodeArgRef, budget);
 
-            // An inline expansion substitutes the call with its root block; the
-            // expansion's value flows out of its return statements, so the walk reads
-            // through them to reach the borrow the callee's body hands back.
+            // Inline calls resolve to expansion blocks; their return statements carry
+            // the value and borrow produced by the callee body.
             case AstNodeId::ReturnStmt:
                 return expressionEscapeInfoRec(sema, node.cast<AstReturnStmt>().nodeExprRef, budget);
 
@@ -2742,16 +2745,12 @@ namespace
                         return projectedInfo;
                 }
 
-                // A payload carrier read out of a value with an owning lifecycle
-                // ('set.table', 'string.buffer') addresses memory that value releases
-                // when it dies: the read borrows the owner, whatever the left side of
-                // the access borrowed to reach it.
+                // Reading an owner's payload borrows that owner, independently of the
+                // borrow used to reach the owner through the left side.
                 if (const SymbolVariable* ownedRoot = ownedPayloadStorageRootAt(sema, resolvedRef, false, 0))
                 {
-                    // A method body has TWO 'me' symbols and the one the body reads
-                    // carries no Parameter flag, so it matches nothing in the signature:
-                    // map it to the receiver, or the borrow names an origin the summary
-                    // cannot express and the whole edge is dropped.
+                    // The body-local 'me' lacks Parameter. Map it to the signature receiver
+                    // so the summary can express this origin instead of dropping the edge.
                     const SymbolVariable* sigParam = signatureParameterFor(sema, *ownedRoot);
                     const SymbolVariable& ownerVar = sigParam ? *sigParam : *ownedRoot;
 
@@ -2759,12 +2758,11 @@ namespace
                     SemaEscapeInfo ownedInfo     = variableStorageInfo(sema, ownerVar, resolvedRef, memberTypeRef);
                     if (ownedInfo.hasBorrow())
                     {
-                        // A by-value parameter is neither copied nor dropped by the
-                        // callee: only its SLOT is frame storage. What it owns stays the
-                        // caller's, so the payload is a caller borrow feeding the summary,
-                        // not a frame borrow.
+                        // Only an owning value parameter's slot is frame-local. Its payload
+                        // remains caller-owned and must contribute a parameter borrow.
                         if (ownedInfo.kind == SemaEscapeKind::Local && ownerVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
                             ownedInfo.kind = SemaEscapeKind::Parameter;
+
                         if (ownedInfo.kind == SemaEscapeKind::Parameter)
                             setParameterOrigin(sema, ownedInfo, ownerVar);
 
@@ -2779,11 +2777,11 @@ namespace
                 SemaEscapeInfo   info        = expressionEscapeInfoRec(sema, leftRef, budget);
                 if (!info.hasBorrow() && structuralBorrowCarrierType(sema, leftTypeRef))
                     info = deferredCallBorrowInfo(sema, leftRef);
+
                 if (info.hasBorrow())
                 {
-                    // Ordinary carrier members copy an independent pointee. An erased
-                    // payload may contain views into itself or into its owned storage;
-                    // copying such a view must preserve the payload's lifetime.
+                    // Ordinary carrier members copy independent pointees. Erased payloads can
+                    // contain views into themselves or their owned storage, so copies retain that lifetime.
                     const TypeRef memberTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), expressionTypeRef(sema, resolvedRef));
                     if (isDirectBorrowCarrier(sema, memberTypeRef) && !info.viaErasedPayload)
                     {
@@ -2792,17 +2790,19 @@ namespace
                             const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
                             if (leftType.isPointerOrReference() && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
                             {
-                                // Reading through a slot does not make a copied pointer
-                                // alias that slot. An aggregate already held by value
-                                // carries its fields' borrows, so those routes survive.
+                                // A copied pointer does not alias its source slot. Aggregate
+                                // contents retain the borrows carried by their fields.
                                 info = aggregatePointeeBorrowInfo(sema, leftRef, leftType.payloadTypeRef(), budget);
                             }
                             else if (!structuralBorrowCarrierType(sema, leftTypeRef))
                                 return {};
+
                             if (info.hasBorrow())
                                 info.typeRef = memberTypeRef;
+
                             return info;
                         }
+
                         return {};
                     }
 
@@ -2827,6 +2827,7 @@ namespace
             default:
                 if (typeCanCarryBorrowImpl(sema, expressionTypeRef(sema, resolvedRef)))
                     return childrenEscapeInfo(sema, node, budget);
+
                 return {};
         }
     }
@@ -2843,6 +2844,7 @@ namespace
             SemaEscapeInfo info = expressionEscapeInfoWithTarget(sema, childRef, childTargetTypeRef, budget);
             if (!info.hasBorrow() && typeCanCarryBorrowImpl(sema, childTargetTypeRef))
                 info = deferredCallBorrowInfo(sema, childRef);
+
             result = mergeEscapeInfo(sema, result, info);
         }
 
@@ -2870,6 +2872,7 @@ namespace
             {
                 SmallVector<AstNodeRef> children;
                 rawNode.cast<AstStructLiteral>().collectChildren(children, sema.ast());
+
                 return aggregateChildrenEscapeInfoWithTarget(sema, children.span(), targetTypeRef, budget);
             }
 
@@ -2877,6 +2880,7 @@ namespace
             {
                 SmallVector<AstNodeRef> children;
                 AstNode::collectChildren(children, sema.ast(), rawNode.cast<AstStructInitializerList>().spanArgsRef);
+
                 return aggregateChildrenEscapeInfoWithTarget(sema, children.span(), targetTypeRef, budget);
             }
 
@@ -2896,9 +2900,8 @@ namespace
 
             case AstNodeId::MemberAccessExpr:
             {
-                // This conversion is specific to value copies. Reading an array
-                // member to form a slice or an element address still borrows the
-                // parent storage through expressionEscapeInfoRec.
+                // Value copies follow field contents. Forming slices or element addresses
+                // still borrows parent storage through expressionEscapeInfoRec.
                 if (!structuralBorrowCarrierType(sema, targetTypeRef) ||
                     unwrapAliasEnum(sema, expressionTypeRef(sema, resolvedRef)) != unwrapAliasEnum(sema, targetTypeRef))
                     break;
@@ -2915,6 +2918,7 @@ namespace
                 const TypeRef    leftTypeRef = unwrapAliasEnum(sema, expressionTypeRef(sema, leftRef));
                 if (leftTypeRef.isInvalid())
                     break;
+
                 const TypeInfo& leftType = sema.typeMgr().get(leftTypeRef);
                 SemaEscapeInfo  info;
                 if (leftType.isPointerOrReference() && structuralBorrowCarrierType(sema, leftType.payloadTypeRef()))
@@ -2929,8 +2933,10 @@ namespace
                 }
                 else
                     break;
+
                 if (info.hasBorrow())
                     info.typeRef = targetTypeRef;
+
                 return info;
             }
 
@@ -2975,6 +2981,7 @@ namespace
             {
                 SmallVector<AstNodeRef> children;
                 node.cast<AstStructLiteral>().collectChildren(children, sema.ast());
+
                 return aggregateChildrenEscapeInfoWithTarget(sema, children.span(), targetTypeRef, budget);
             }
 
@@ -2982,6 +2989,7 @@ namespace
             {
                 SmallVector<AstNodeRef> children;
                 AstNode::collectChildren(children, sema.ast(), node.cast<AstStructInitializerList>().spanArgsRef);
+
                 return aggregateChildrenEscapeInfoWithTarget(sema, children.span(), targetTypeRef, budget);
             }
 
@@ -3070,6 +3078,7 @@ namespace
         diag.addNote(DiagnosticId::sema_note_borrow_source_declared_here);
         diag.last().addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.last().addSpan(info.sourceVar->codeRange(sema.ctx()));
+
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -3086,6 +3095,7 @@ namespace
         diag.addNote(DiagnosticId::sema_note_borrow_source_declared_here);
         diag.last().addArgument(Diagnostic::ARG_SYM, info.sourceVar->name(sema.ctx()));
         diag.last().addSpan(info.sourceVar->codeRange(sema.ctx()));
+
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -3105,6 +3115,7 @@ namespace
                 sema.setProjectionEscapeInfo(*projection, info);
             else
                 sema.clearVariableEscapeInfo(dstVar);
+
             return Result::Continue;
         }
 
@@ -3115,10 +3126,9 @@ namespace
             if (info.isLocalBorrow() && localStorageOutlivesBorrow(sema, dstVar, *info.sourceVar))
                 return reportBorrowScopeEscape(sema, atNodeRef, info, dstVar);
 
-            // Materialized cast storage behaves like an anonymous local of the scope it
-            // was created in: a shallower destination outlives it. Inline expansions
-            // materialize into the enclosing statement and open their own scopes, so
-            // their depths do not compare.
+            // Materialized cast storage belongs to its creation scope; a shallower destination
+            // outlives it. Inline expansions materialize in the enclosing statement with
+            // their own scopes, whose depths cannot be compared here.
             if (info.isMaterializedBorrow() && info.sourceScopeDepth)
             {
                 const uint32_t dstDepth = sema.variableScopeDepth(dstVar);
@@ -3130,13 +3140,12 @@ namespace
                 sema.setProjectionEscapeInfo(*projection, info);
             else
                 sema.setVariableEscapeInfo(dstVar, info);
+
             return Result::Continue;
         }
 
-        // A deferred opaque-call borrow reaching storage that outlives the frame:
-        // stamp this site and judge against the callee's (final) summaries. Summary
-        // edges only propagate for destinations that provably hand the borrow onward:
-        // globals (the caller stores it) and retval storage (the caller returns it).
+        // Check escaping opaque-call borrows against final summaries. Propagate edges
+        // only through globals (stored onward) and retval storage (returned onward).
         if (info.isDeferredCallBorrow())
         {
             std::optional<SemaEscapeSummaryEdgeKind> edgeKind;
@@ -3144,6 +3153,7 @@ namespace
                 edgeKind = SemaEscapeSummaryEdgeKind::ReturnToStores;
             else if (dstVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
                 edgeKind = SemaEscapeSummaryEdgeKind::ReturnToReturn;
+
             emitDeferredCallEscape(sema, info, atNodeRef, what, edgeKind);
             return Result::Continue;
         }
@@ -3170,6 +3180,7 @@ namespace
         const TypeRef sourceRef = SemaHelpers::unwrapBindingType(sema.ctx(), expressionTypeRef(sema, exprRef));
         if (targetRef.isInvalid() || targetRef != sourceRef)
             return false;
+
         const TypeInfo& type = sema.typeMgr().get(targetRef);
         if (!type.isStruct() && !type.isArray())
             return false;
@@ -3177,6 +3188,7 @@ namespace
         SemaEscapeProjection source;
         if (!storageProjection(sema, exprRef, source) || !source.root)
             return false;
+
         // A whole-value borrow can describe fields whose provenance is opaque. A
         // few explicit field writes do not replace that incomplete description.
         if (sema.variableEscapeInfo(*source.root))
@@ -3201,8 +3213,10 @@ namespace
                 sema.mergeEscapeInfo(existing->info, binding.info);
             else
                 outBindings.push_back(std::move(binding));
+
             handled = true;
         }
+
         return handled;
     }
 
@@ -3233,6 +3247,7 @@ namespace
             SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, childValueRef, childTypeRef, budget);
             if (!info.hasBorrow() && typeCanCarryBorrowImpl(sema, childTypeRef))
                 info = deferredCallBorrowInfo(sema, childValueRef);
+
             if (info.hasBorrow())
                 outBindings.push_back({.projection = projection, .info = std::move(info), .sourceRef = childRef});
         }
@@ -3253,8 +3268,10 @@ namespace
             sema.clearVariableEscapeInfo(*destination.root);
         else
             sema.clearProjectionEscapeInfo(destination);
+
         for (const auto& binding : bindings)
             SWC_RESULT(storeOrReportDestinationInfo(sema, *destination.root, binding.sourceRef, binding.info, what, &binding.projection));
+
         return Result::Continue;
     }
 

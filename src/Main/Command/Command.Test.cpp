@@ -396,17 +396,16 @@ namespace
         }
     }
 
-    // Runs the marker verification as its own timed stage; tells whether no error was raised.
     bool runVerifyStage(TaskContext& ctx)
     {
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Verify))
             stage.emplace(ctx, ScopedTimedLog::Stage::Verify);
+
         verifyExpectedMarkers(ctx);
         return !Stats::hasError();
     }
 
-    // A request to run 'function' at once, outside any node.
     JITExecManager::Request immediateJitRequest(const SymbolFunction& function)
     {
         JITExecManager::Request request;
@@ -467,10 +466,7 @@ namespace
             return false;
 
         const JITExecManager::Request request = immediateJitRequest(function);
-        return CommandRun::afterPauses(ctx, [&] {
-                   return ctx.compiler().jitExecMgr().submit(ctx, request);
-               }) == Result::Continue &&
-               !Stats::hasError();
+        return CommandRun::afterPauses(ctx, [&] { return ctx.compiler().jitExecMgr().submit(ctx, request); }) == Result::Continue && !Stats::hasError();
     }
 
     // Like runJitFunction, but success is judged against the error count taken before
@@ -496,6 +492,7 @@ namespace
             const Result result = ctx.compiler().jitExecMgr().submit(ctx, request);
             if (result == Result::Continue)
                 break;
+
             if (result != Result::Pause)
                 return false;
 
@@ -516,6 +513,7 @@ namespace
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::JIT))
             stage.emplace(ctx, ScopedTimedLog::Stage::JIT);
+
         uint32_t expectedTestCount = 0;
 
         if (CommandRun::afterPauses(ctx, [&] {
@@ -543,6 +541,7 @@ namespace
             initFunctions                           = std::move(nativeBuilder.initFunctions);
             preMainFunctions                        = std::move(nativeBuilder.preMainFunctions);
             testFunctions                           = std::move(nativeBuilder.testFunctions);
+
             filterJitFunctions(allFunctions, jitSelection);
             filterJitFunctions(initFunctions, jitSelection);
             filterJitFunctions(preMainFunctions, jitSelection);
@@ -557,13 +556,9 @@ namespace
         if (testFunctions.size() != expectedTestCount)
             return reportJitTestCountMismatch(ctx, expectedTestCount, static_cast<uint32_t>(testFunctions.size()));
 
-        // When a module has no #test functions there is nothing to run in the JIT test
-        // phase. Executing its #init / #premain here is pointless (the native build still
-        // runs them in the produced artifact) and, because #premain can recursively touch
-        // typeinfo defined in other modules (e.g. Reflection.registerType walking a type
-        // graph), running it concurrently with those modules' code generation in a parallel
-        // workspace build races on the shared typeinfo data segments and can read a
-        // half-materialized type (null fields buffer) -> JIT access violation. Skip it.
+        // With no tests, skip #init/#premain too: another module may still be
+        // materializing shared typeinfo during parallel code generation. Traversing
+        // it here could observe a partial type; native artifacts run their own hooks.
         if (testFunctions.empty())
             return true;
 
@@ -611,6 +606,7 @@ namespace
             const Utf8 testLocation = ScopedTimedLog::formatTestLocation(ctx, *function);
             if (stage)
                 stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
+
             const bool testPassed = runJitTestFunction(ctx, *function);
             if (!testPassed)
             {
@@ -622,6 +618,7 @@ namespace
                 diag.addArgument(Diagnostic::ARG_VALUE, testLocation);
                 diag.report(ctx);
             }
+
             executedTestCount++;
             if (stage)
                 stage->setProgressStat(ScopedTimedLog::formatTestProgress(ctx, executedTestCount, expectedTestCount, failedTestCount, testLocation));
@@ -633,6 +630,7 @@ namespace
             ScopedTimedLog::appendTestStats(ctx, statParts, executedTestCount, failedTestCount);
             stage->setStat(ScopedTimedLog::joinStatItems(ctx, statParts));
         }
+
         Stats::get().numTests.fetch_add(executedTestCount, std::memory_order_relaxed);
         Stats::get().numTestsFailed.fetch_add(failedTestCount, std::memory_order_relaxed);
 
@@ -662,11 +660,9 @@ namespace
                     });
                     compiler.setNativeArtifactBuilt(builder.artifactLinked());
 
-                    // The JIT phase already counted the executed tests. When it is disabled the
-                    // native artifact is the one that runs them, so account for them here instead.
-                    // Only the tally the executable reported counts: falling back to the static
-                    // function count reports tests that may never have run, which is how an inert
-                    // native test pass stayed green.
+                    // The native artifact owns the test tally when JIT is disabled. Use only
+                    // its reported execution counts; a static function count can claim success
+                    // even when the artifact ran no tests.
                     if (!compiler.cmdLine().testJit)
                     {
                         Stats::get().numTests.fetch_add(builder.nativeTestsExecuted, std::memory_order_relaxed);
@@ -695,6 +691,7 @@ namespace Command
     void test(CompilerInstance& compiler)
     {
         SWC_ASSERT(compiler.cmdLine().command == CommandKind::Test);
+
         TaskContext                   ctx(compiler);
         std::optional<ScopedTimedLog> stage;
         if (ScopedTimedLog::isOutputEnabled(ctx, ScopedTimedLog::Stage::Test))

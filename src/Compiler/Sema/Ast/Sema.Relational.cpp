@@ -386,8 +386,11 @@ namespace
         {
             const auto [leftAddress, rightAddress] = constantPointerAddresses(compareLeftView, compareRightView);
 
-            const int compareResult = leftAddress < rightAddress ? -1 : leftAddress > rightAddress ? 1
-                                                                                                   : 0;
+            const int compareResult = leftAddress < rightAddress
+                                          ? -1
+                                      : leftAddress > rightAddress
+                                          ? 1
+                                          : 0;
 
             result = sema.cstMgr().cstS32(compareResult);
             return Result::Continue;
@@ -463,17 +466,20 @@ namespace
             return Result::Continue;
         if (compareLeftView.type()->isPointerLikeAliasAware(sema.ctx()) && compareRightView.type()->isNull())
             return Result::Continue;
+
         const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
         const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
             return Result::Continue;
         if (compareLeftType.isAnyTypeInfo(sema.ctx()) && compareRightType.isAnyTypeInfo(sema.ctx()))
             return Result::Continue;
+
         Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, node.codeRef());
         diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
         addMissingRelationalSpecOpHelp(sema, diag, nodeLeftView, SpecOpKind::OpEquals);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -483,6 +489,7 @@ namespace
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
         if (SemaHelpers::aliasType(sema, compareLeftView).isScalarNumeric() && SemaHelpers::aliasType(sema, compareRightView).isScalarNumeric())
             return Result::Continue;
+
         const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, compareLeftView);
         const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, compareRightView);
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
@@ -493,6 +500,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
         addMissingRelationalSpecOpHelp(sema, diag, nodeLeftView, SpecOpKind::OpCompare);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -519,9 +527,8 @@ namespace
             if (!self.type() || !other.type())
                 return Result::Continue;
 
-            // A nullable operand compares as a nullable typeinfo: comparisons never
-            // dereference, so the nullability of the source must be preserved rather
-            // than rejected by the non-null default.
+            // Preserve nullable qualifiers when comparing typeinfo: equality does
+            // not dereference, and the non-null default would reject valid operands.
             TypeRef typeInfoTargetRef = sema.typeMgr().typeTypeInfo();
             if (SemaHelpers::aliasEnumType(sema, self).isNullable())
             {
@@ -548,9 +555,8 @@ namespace
             return Result::Continue;
         }
 
-        // A reference to a struct compares as the struct itself (unless the other side
-        // is a pointer, which pointerReferenceForEquality handles as identity), and a
-        // reference to a pointer compares its pointee against 'null'.
+        // Read a struct reference as its value unless the other operand is a pointer.
+        // A reference to a pointer reads that pointer when compared to null.
         Result structReferenceForEquality(Sema& sema, SemaNodeView& self, const SemaNodeView& other)
         {
             if (!self.type() || !other.type())
@@ -599,6 +605,7 @@ namespace
             {
                 TypeInfo readOnlyType = *typedView.type();
                 readOnlyType.addFlag(TypeInfoFlagsE::Const);
+
                 targetTypeRef = sema.typeMgr().addType(readOnlyType);
                 SWC_RESULT(Cast::castIfNeeded(sema, typedView, targetTypeRef, CastKind::Implicit));
             }
@@ -619,7 +626,8 @@ namespace
             CastRequest leftRequest(CastKind::Implicit);
             leftRequest.errorNodeRef = leftView.nodeRef();
             leftRequest.probing      = true;
-            const Result leftResult  = Cast::castAllowed(sema, leftRequest, leftView.typeRef(), rightView.typeRef());
+
+            const Result leftResult = Cast::castAllowed(sema, leftRequest, leftView.typeRef(), rightView.typeRef());
             if (leftResult == Result::Pause)
                 return Result::Pause;
             if (leftResult == Result::Continue)
@@ -628,7 +636,8 @@ namespace
             CastRequest rightRequest(CastKind::Implicit);
             rightRequest.errorNodeRef = rightView.nodeRef();
             rightRequest.probing      = true;
-            const Result rightResult  = Cast::castAllowed(sema, rightRequest, rightView.typeRef(), leftView.typeRef());
+
+            const Result rightResult = Cast::castAllowed(sema, rightRequest, rightView.typeRef(), leftView.typeRef());
             if (rightResult == Result::Pause)
                 return Result::Pause;
             if (rightResult == Result::Continue)
@@ -657,7 +666,8 @@ namespace
 
             CastRequest castRequest(CastKind::Implicit);
             castRequest.errorNodeRef = referenceView.nodeRef();
-            const Result result      = Cast::castAllowed(sema, castRequest, referenceView.typeRef(), targetTypeRef);
+
+            const Result result = Cast::castAllowed(sema, castRequest, referenceView.typeRef(), targetTypeRef);
             if (result == Result::Pause)
                 return result;
             if (result != Result::Continue)
@@ -676,6 +686,7 @@ namespace
 
             SWC_RESULT(Cast::castIfNeeded(sema, pointerView, targetTypeRef, CastKind::Implicit));
             SWC_RESULT(Cast::cast(sema, referenceView, targetTypeRef, CastKind::Implicit));
+
             return Result::Continue;
         }
     }

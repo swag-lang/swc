@@ -1658,6 +1658,7 @@ bool SemaHelpers::isAssumedCast(Sema& sema)
     const AstNodeRef scopeRef = sema.frame().currentErrorScope();
     if (scopeRef.isInvalid() || sema.token(sema.node(scopeRef).codeRef()).id != TokenId::KwdAssume)
         return false;
+
     sema.ensureSemaPayload<ErrorManagementPayload>(scopeRef).containsAssumedCast = true;
     return true;
 }
@@ -1667,10 +1668,14 @@ Result SemaHelpers::prepareFallibleCast(Sema& sema)
     markCurrentErrorScopeFallible(sema);
     if (!acceptFallibleExpression(sema))
         return SemaError::raise(sema, DiagnosticId::sema_err_fallible_cast_requires_handler, sema.curNodeRef());
-    auto& lowering               = ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+
+    auto& lowering = ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+
     lowering.fallibleDynamicCast = true;
+
     // This is a language error, independent of optional runtime safety guards.
     lowering.addRuntimeSafety(Runtime::SafetyWhat::DynCast);
+
     return requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::FailedCast, sema.curNode().codeRef());
 }
 
@@ -1713,6 +1718,7 @@ Result AstIntrinsicCallExpr::semaPostNode(Sema& sema) const
     }
 
     SWC_RESULT(setupIntrinsicMathRuntimeSafety(sema, *this));
+
     return Result::Continue;
 }
 
@@ -1721,6 +1727,7 @@ Result AstErrorManagementExpr::semaPreNode(Sema& sema)
     const auto& node = sema.curNode().cast<AstErrorManagementExpr>();
     if (node.errNameTokRef.isValid())
         SWC_RESULT(registerCatchErrCapture(sema, node, node.errNameTokRef));
+
     return semaErrorManagementPreNodeCommon(sema);
 }
 
@@ -1743,6 +1750,7 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
     const SemaNodeView exprView        = sema.viewNodeTypeConstant(nodeExprRef);
     const AstNodeRef   resolvedExprRef = exprView.nodeRef();
     sema.inheritPayloadFlags(sema.curNode(), resolvedExprRef);
+
     TypeRef     resultTypeRef  = exprView.typeRef();
     const auto* codeGenPayload = sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef());
     if (codeGenPayload && codeGenPayload->notNullUnwrap)
@@ -1752,21 +1760,18 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
         if (narrowedTypeRef.isValid())
             resultTypeRef = narrowedTypeRef;
     }
+
     sema.setType(sema.curNodeRef(), resultTypeRef);
 
-    // Collapsing this node onto the operand's constant makes CodeGen::postNode emit that constant
-    // INSTEAD of calling codeGenPostNode, which drops the whole fallible-wrapper lowering. That is
-    // fine only when nothing has to happen at runtime. Two things do: a `notnull` null check, and
-    // an `as err` capture, whose local is seeded to null by the wrapper (__clearErr) — without the
-    // wrapper the slot stays uninitialized and `err` reads back garbage on the success path.
+    // Folding this node to a constant bypasses its fallible-wrapper lowering.
+    // Keep that wrapper for notnull checks and as err captures: __clearErr
+    // must initialize the capture to null even when the operand succeeds.
     const bool requiresNotNullRuntimeCheck = codeGenPayload && codeGenPayload->notNullUnwrap && codeGenPayload->hasRuntimeSafety(Runtime::SafetyWhat::Expect);
     const bool requiresRuntimeLowering     = requiresNotNullRuntimeCheck || errNameTokRef.isValid();
     if (exprView.cstRef().isValid() && !requiresRuntimeLowering)
     {
-        // The node's stored payload holds EITHER a type or a constant, and downstream
-        // views derive the node's type from a stored constant: a nullable-unwrap must
-        // propagate the operand's constant RETYPED to the unwrapped type, or the
-        // `notnull` narrowing would silently revert to the operand's nullable type.
+        // Views derive type from a stored constant. Retype a narrowed constant
+        // so notnull cannot revert to the operand's nullable type.
         ConstantRef resultCstRef = exprView.cstRef();
         if (codeGenPayload && codeGenPayload->notNullUnwrap && resultTypeRef.isValid())
         {
@@ -1778,8 +1783,10 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
                 resultCstRef = sema.cstMgr().addConstant(sema.ctx(), narrowedCst);
             }
         }
+
         sema.setConstant(sema.curNodeRef(), resultCstRef);
     }
+
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
     // Only 'catch' resumes with a default result. 'expect' terminates on failure,
@@ -1788,6 +1795,7 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
     const TokenId tokenId         = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
     if (!isNotNullUnwrap && errorManagementSynthesizesDefaultResult(tokenId) && resultTypeRef.isValid())
         SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, resultTypeRef, sema.curNodeRef()));
+
     if (!isNotNullUnwrap &&
         errorManagementSynthesizesDefaultResult(tokenId) &&
         resultTypeRef.isValid() &&
@@ -1798,6 +1806,7 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
         diag.addArgument(Diagnostic::ARG_TYPE, resultTypeRef);
         diag.addNote(DiagnosticId::sema_note_catch_default_result);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -1812,6 +1821,7 @@ Result AstErrorManagementStmt::semaPreNode(Sema& sema)
     const auto& node = sema.curNode().cast<AstErrorManagementStmt>();
     if (node.errNameTokRef.isValid())
         SWC_RESULT(registerCatchErrCapture(sema, node, node.errNameTokRef));
+
     return semaErrorManagementPreNodeCommon(sema);
 }
 
@@ -1829,6 +1839,7 @@ Result AstErrorManagementStmt::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::ParallelRangeFallible, codeRef()));
         SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::HasErr, codeRef()));
     }
+
     return semaErrorManagementPostNodeCommon(sema, nodeBodyRef);
 }
 
@@ -1853,16 +1864,17 @@ Result AstFailExpr::semaPostNode(Sema& sema) const
         }
     }
 
-    auto& payload            = sema.ensureSemaPayload<ErrorManagementPayload>(sema.curNodeRef());
+    auto& payload = sema.ensureSemaPayload<ErrorManagementPayload>(sema.curNodeRef());
+
     payload.containsFallible = true;
     payload.isFallibleResult = true;
     markCurrentErrorScopeFallible(sema);
+
     SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::SetErrRaw, codeRef()));
 
-    // The fail node's single runtime storage serves two writes: the ERROR value handed to
-    // '__setErrRaw', and the synthesized zero RESULT the (unreachable) consumers of the
-    // fail expression read through when the result is address-backed. Size the slot for
-    // whichever is larger, so zeroing a wide result never writes past an error-sized slot.
+    // The same slot holds the error passed to __setErrRaw and the synthesized
+    // zero result used by address-backed consumers on the unreachable path.
+    // Reserve the larger layout so clearing a wide result cannot overrun it.
     const TypeRef resultTypeRef  = preferredFailResultType(sema);
     TypeRef       storageTypeRef = exprView.typeRef();
     if (resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid() && storageTypeRef.isValid())
@@ -1872,11 +1884,13 @@ Result AstFailExpr::semaPostNode(Sema& sema) const
         if (resultType.sizeOf(sema.ctx()) > sema.typeMgr().get(storageTypeRef).sizeOf(sema.ctx()))
             storageTypeRef = resultTypeRef;
     }
+
     SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), *this, storageTypeRef, "__fail_runtime_storage"));
 
     sema.setType(sema.curNodeRef(), resultTypeRef);
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
+
     return Result::Continue;
 }
 

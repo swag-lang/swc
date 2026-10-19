@@ -789,9 +789,10 @@ namespace
             return;
         }
 
-        const SymbolStruct&                symStruct  = type.payloadSymStruct();
-        const auto&                        fields     = symStruct.fields();
-        const auto                         interfaces = symStruct.interfaces();
+        const SymbolStruct& symStruct  = type.payloadSymStruct();
+        const auto&         fields     = symStruct.fields();
+        const auto          interfaces = symStruct.interfaces();
+
         std::vector<const SymbolFunction*> methods;
         SmallVector<TypeRef>               methodTypes;
         if (symStruct.exportsRuntimeMethods(ctx))
@@ -809,6 +810,7 @@ namespace
                 methodTypes.push_back(methodTypeRef);
             }
         }
+
         uint32_t usingCount = 0;
         for (const SymbolVariable* symField : fields)
         {
@@ -823,12 +825,15 @@ namespace
 
         entry.structFieldsCount = static_cast<uint32_t>(fields.size());
         entry.structFieldTypes.clear();
+
         entry.usingFieldsCount = usingCount;
         entry.usingFieldTypes.clear();
+
         entry.structMethodsCount = static_cast<uint32_t>(methods.size());
         entry.structMethodTypes.clear();
         entry.structMethodTypes.append(methodTypes.data(), methodTypes.size());
         entry.structMethods.assign(methods.begin(), methods.end());
+
         entry.structInterfacesCount = static_cast<uint32_t>(interfaces.size());
         entry.structInterfaceTypes.clear();
         entry.structInterfaces.assign(interfaces.begin(), interfaces.end());
@@ -841,8 +846,9 @@ namespace
         else
         {
             const auto [fieldsOffset, fieldsPtr] = storage.reserveSpan<Runtime::TypeValue>(static_cast<uint32_t>(fields.size()));
-            entry.structFieldsOffset             = fieldsOffset;
-            rtType.fields.ptr                    = fieldsPtr;
+
+            entry.structFieldsOffset = fieldsOffset;
+            rtType.fields.ptr        = fieldsPtr;
             storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, fields.ptr), fieldsOffset);
 
             Runtime::TypeValue* usingFieldsPtr    = nullptr;
@@ -850,6 +856,7 @@ namespace
             if (usingCount)
             {
                 const auto usingStorage = storage.reserveSpan<Runtime::TypeValue>(usingCount);
+
                 usingFieldsOffset       = usingStorage.first;
                 usingFieldsPtr          = usingStorage.second;
                 entry.usingFieldsOffset = usingFieldsOffset;
@@ -867,14 +874,15 @@ namespace
                 const SymbolVariable* symField = fields[i];
                 SWC_ASSERT(symField);
 
-                Runtime::TypeValue& tv = fieldsPtr[i];
-
+                Runtime::TypeValue&    tv         = fieldsPtr[i];
                 const auto&            id         = ctx.idMgr().get(symField->idRef());
                 const std::string_view fieldName  = id.name;
                 const uint32_t         elemOffset = fieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                tv.name.length                    = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
-                tv.crc                            = Math::crc32(fieldName);
-                tv.offset                         = symField->offset();
+
+                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
+                tv.crc         = Math::crc32(fieldName);
+                tv.offset      = symField->offset();
+
                 if (symField->isUsingField())
                     tv.flags = enumOr(tv.flags, Runtime::TypeValueFlags::HasUsing);
                 if (symField->hasExtraFlag(SymbolVariableFlagsE::LateInit))
@@ -907,10 +915,12 @@ namespace
 
                 Runtime::TypeValue& usingTv         = usingFieldsPtr[usingIndex];
                 const uint32_t      usingElemOffset = usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
-                usingTv.name.length                 = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
-                usingTv.crc                         = Math::crc32(fieldName);
-                usingTv.offset                      = symField->offset();
-                usingTv.flags                       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
+
+                usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
+                usingTv.crc         = Math::crc32(fieldName);
+                usingTv.offset      = symField->offset();
+                usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
+
                 entry.usingFieldTypes.push_back(symField->typeRef());
                 ++usingIndex;
             }
@@ -923,8 +933,9 @@ namespace
         else
         {
             const auto [methodsOffset, methodsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structMethodsCount);
-            entry.structMethodsOffset              = methodsOffset;
-            rtType.methods.ptr                     = methodsPtr;
+
+            entry.structMethodsOffset = methodsOffset;
+            rtType.methods.ptr        = methodsPtr;
             storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, methods.ptr), methodsOffset);
 
             for (uint32_t i = 0; i < entry.structMethodsCount; ++i)
@@ -935,8 +946,10 @@ namespace
                 Runtime::TypeValue&    tv         = methodsPtr[i];
                 const uint32_t         elemOffset = methodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
                 const std::string_view methodName = symMethod->name(ctx);
-                tv.name.length                    = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
-                tv.crc                            = Math::crc32(methodName);
+
+                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), methodName);
+                tv.crc         = Math::crc32(methodName);
+
                 if (canReflectMethodValue(*symMethod))
                     storage.addFunctionRelocation(elemOffset + offsetof(Runtime::TypeValue, value), symMethod, true);
             }
@@ -949,8 +962,9 @@ namespace
         else
         {
             const auto [interfacesOffset, interfacesPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.structInterfacesCount);
-            entry.structInterfacesOffset                 = interfacesOffset;
-            rtType.interfaces.ptr                        = interfacesPtr;
+
+            entry.structInterfacesOffset = interfacesOffset;
+            rtType.interfaces.ptr        = interfacesPtr;
             storage.addRelocation(offset + offsetof(Runtime::TypeInfoStruct, interfaces.ptr), interfacesOffset);
 
             for (uint32_t i = 0; i < entry.structInterfacesCount; ++i)
@@ -961,30 +975,32 @@ namespace
 
                 Runtime::TypeValue& tv         = interfacesPtr[i];
                 const uint32_t      elemOffset = interfacesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                tv.name.length                 = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{symInterface->getFullScopedName(ctx)});
+
+                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), Utf8{symInterface->getFullScopedName(ctx)});
                 entry.structInterfaceTypes.push_back(symInterface->typeRef());
 
-                // Wire the interface method table (itable) into `value` so `Swag.makeInterface`/`Swag.tableOf`
-                // can build an interface from a runtime typeinfo when the implementing struct lives
-                // in a module the call site cannot enumerate as a static candidate (e.g. a generic
-                // function of a library building an interface for a struct of an importer). Layout matches
-                // SymbolImpl::ensureInterfaceMethodTable: slot[0] = the owning struct's typeinfo,
-                // slot[1..] = the impl's resolved method pointers. Skip generic ROOTs (their methods
-                // are uninstantiated and have no concrete code to relocate to).
+                // Runtime interface construction needs the implementation table when the
+                // implementing struct is outside the call site's static candidates. Match
+                // SymbolImpl::ensureInterfaceMethodTable: the owning typeinfo comes first,
+                // followed by resolved method pointers. Generic roots have no concrete
+                // method code to relocate.
                 const auto&                        itfMethods = symInterface->functions();
                 SmallVector<const SymbolFunction*> implMethods;
                 implMethods.reserve(itfMethods.size());
+
                 bool itableComplete = !symStruct.isGenericRoot() || symStruct.isGenericInstance();
                 for (const SymbolFunction* itfMethod : itfMethods)
                 {
                     if (!itableComplete)
                         break;
+
                     const SymbolFunction* implMethod = itfMethod ? symImpl->resolveInterfaceMethodTarget(ctx, *itfMethod) : nullptr;
                     if (!implMethod || !canReflectMethodValue(*implMethod, true) || implMethod->isGenericRoot())
                     {
                         itableComplete = false;
                         break;
                     }
+
                     implMethods.push_back(implMethod);
                 }
 
@@ -992,11 +1008,14 @@ namespace
                 {
                     const uint32_t slotCount           = static_cast<uint32_t>(implMethods.size()) + 1;
                     const auto [tableOffset, tablePtr] = storage.reserveSpan<const void*>(slotCount);
-                    // slot 0: the owning struct's own typeinfo (this typeinfo, currently at `offset`).
+
+                    // The first slot points back to the owning struct's typeinfo.
                     tablePtr[0] = storage.ptr<Runtime::TypeInfo>(offset);
                     storage.addRelocation(tableOffset, offset);
+
                     for (uint32_t m = 0; m < implMethods.size(); ++m)
                         storage.addFunctionRelocation(tableOffset + static_cast<uint32_t>((m + 1) * sizeof(void*)), implMethods[m], true);
+
                     storage.addRelocation(elemOffset + offsetof(Runtime::TypeValue, value), tableOffset);
                     tv.value = storage.ptr<std::byte>(tableOffset);
                 }

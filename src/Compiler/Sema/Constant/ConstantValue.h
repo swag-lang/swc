@@ -8,24 +8,30 @@
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
+
 class TaskContext;
 class TypeInfo;
 
 enum class ConstantKind
 {
     Invalid,
+
     Bool,
     Char,
     Rune,
     String,
     Int,
     Float,
+
     ValuePointer,
     BlockPointer,
     Slice,
+
     Null,
+
     TypeValue,
     EnumValue,
+
     Struct,
     AggregateStruct,
     Array,
@@ -59,34 +65,41 @@ public:
     bool le(const ConstantValue& rhs) const noexcept;
     bool gt(const ConstantValue& rhs) const noexcept;
 
-    ConstantKind   kind() const { return kind_; }
-    TypeRef        typeRef() const { return typeRef_; }
-    void           setTypeRef(TypeRef ref) { typeRef_ = ref; }
+    ConstantKind kind() const { return kind_; }
+    TypeRef      typeRef() const { return typeRef_; }
+    void         setTypeRef(TypeRef ref) { typeRef_ = ref; }
+
     DataSegmentRef dataSegmentRef() const noexcept;
     void           setDataSegmentRef(DataSegmentRef ref) noexcept;
     bool           resolveDataSegmentRef(DataSegmentRef& outRef, const void* ptr) const noexcept;
-    bool           isValid() const { return kind_ != ConstantKind::Invalid; }
-    bool           isBool() const { return kind_ == ConstantKind::Bool; }
-    bool           isChar() const { return kind_ == ConstantKind::Char; }
-    bool           isRune() const { return kind_ == ConstantKind::Rune; }
-    bool           isString() const { return kind_ == ConstantKind::String; }
-    bool           isInt() const { return kind_ == ConstantKind::Int; }
-    bool           isFloat() const { return kind_ == ConstantKind::Float; }
-    bool           isValuePointer() const { return kind_ == ConstantKind::ValuePointer; }
-    bool           isBlockPointer() const { return kind_ == ConstantKind::BlockPointer; }
-    bool           isAnyPointer() const { return isValuePointer() || isBlockPointer(); }
-    bool           isSlice() const { return kind_ == ConstantKind::Slice; }
-    bool           isNull() const { return kind_ == ConstantKind::Null; }
-    bool           isTypeValue() const { return kind_ == ConstantKind::TypeValue; }
-    bool           isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
-    bool           isStruct() const { return kind_ == ConstantKind::Struct; }
-    bool           isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
-    bool           isArray() const { return kind_ == ConstantKind::Array; }
-    bool           isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
-    bool           isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
-    bool           isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
-    bool           isStructOrArray() const { return isStruct() || isArray(); }
-    bool           isSpanPayload() const { return isStructOrArray() || isSlice(); }
+
+    bool isValid() const { return kind_ != ConstantKind::Invalid; }
+    bool isBool() const { return kind_ == ConstantKind::Bool; }
+    bool isChar() const { return kind_ == ConstantKind::Char; }
+    bool isRune() const { return kind_ == ConstantKind::Rune; }
+    bool isString() const { return kind_ == ConstantKind::String; }
+    bool isInt() const { return kind_ == ConstantKind::Int; }
+    bool isFloat() const { return kind_ == ConstantKind::Float; }
+
+    bool isValuePointer() const { return kind_ == ConstantKind::ValuePointer; }
+    bool isBlockPointer() const { return kind_ == ConstantKind::BlockPointer; }
+    bool isAnyPointer() const { return isValuePointer() || isBlockPointer(); }
+    bool isSlice() const { return kind_ == ConstantKind::Slice; }
+    bool isNull() const { return kind_ == ConstantKind::Null; }
+
+    bool isTypeValue() const { return kind_ == ConstantKind::TypeValue; }
+    bool isEnumValue() const { return kind_ == ConstantKind::EnumValue; }
+
+    bool isStruct() const { return kind_ == ConstantKind::Struct; }
+    bool isStruct(TypeRef typeRef) const { return kind_ == ConstantKind::Struct && typeRef_ == typeRef; }
+    bool isArray() const { return kind_ == ConstantKind::Array; }
+
+    bool isAggregate() const { return kind_ == ConstantKind::AggregateArray || kind_ == ConstantKind::AggregateStruct; }
+    bool isAggregateStruct() const { return kind_ == ConstantKind::AggregateStruct; }
+    bool isAggregateArray() const { return kind_ == ConstantKind::AggregateArray; }
+
+    bool isStructOrArray() const { return isStruct() || isArray(); }
+    bool isSpanPayload() const { return isStructOrArray() || isSlice(); }
 
     // Tests absence in both literal nulls and compound runtime representations.
     bool isNullValue(const TaskContext& ctx) const noexcept;
@@ -213,21 +226,27 @@ public:
     static ConstantValue makeString(const TaskContext& ctx, std::string_view value);
     static ConstantValue makeChar(const TaskContext& ctx, char32_t value);
     static ConstantValue makeRune(const TaskContext& ctx, char32_t value);
+
     static ConstantValue makeTypeValue(TaskContext& ctx, TypeRef value);
+
     static ConstantValue makeInt(const TaskContext& ctx, const ApsInt& value, uint32_t bitWidth, TypeInfo::Sign sign);
     static ConstantValue makeIntUnsized(const TaskContext& ctx, const ApsInt& value, TypeInfo::Sign sign);
     static ConstantValue makeFloat(const TaskContext& ctx, const ApFloat& value, uint32_t bitWidth);
     static ConstantValue makeFloatUnsized(const TaskContext& ctx, const ApFloat& value);
     static ConstantValue makeFromIntLike(const TaskContext& ctx, const ApsInt& v, const TypeInfo& ty);
+
     static ConstantValue makeEnumValue(const TaskContext& ctx, ConstantRef valueCst, TypeRef typeRef);
+
     static ConstantValue makeStruct(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes);
     static ConstantValue makeStructBorrowed(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes);
     static ConstantValue makeArray(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes);
     static ConstantValue makeArrayBorrowed(const TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes);
     static ConstantValue makeAggregateStruct(TaskContext& ctx, const std::span<const IdentifierRef>& names, const std::span<const ConstantRef>& values, const std::span<const SourceCodeRef>& fieldRefs = {});
     static ConstantValue makeAggregateArray(TaskContext& ctx, const std::span<const ConstantRef>& values, const std::span<const SourceCodeRef>& fieldRefs = {});
+
     static ConstantValue makeValuePointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeBlockPointer(TaskContext& ctx, TypeRef typeRef, uint64_t value, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+
     static ConstantValue makeSlice(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeSliceBorrowed(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static ConstantValue makeSliceCounted(TaskContext& ctx, TypeRef typeRef, std::span<const std::byte> bytes, uint64_t count, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
@@ -254,26 +273,28 @@ public:
         payloadSlice_.val   = bytes;
         payloadSlice_.count = count;
     }
+
     void setPayloadStruct(std::span<const std::byte> bytes) { payloadStruct_.val = normalizePayloadBytes(bytes); }
     void setPayloadArray(std::span<const std::byte> bytes) { payloadArray_.val = normalizePayloadBytes(bytes); }
 
 private:
-    // Constructs this value's payload from another's, for whichever kind 'kind_' already says it
-    // is. Copy and move differ only in how the one non-trivial arm - the aggregate - is built, so
-    // MOVE_AGGREGATE carries that difference and every other arm is written once.
+    // Build the payload for the selected kind. Only the aggregate arm needs distinct
+    // copy/move construction; MOVE_AGGREGATE selects it while sharing the other arms.
     template<bool MOVE_AGGREGATE, typename OTHER>
     void constructPayloadFrom(OTHER& other);
 
     static std::span<const std::byte> normalizePayloadBytes(std::span<const std::byte> bytes) noexcept;
-    static uint64_t                   packDataSegmentRef(DataSegmentRef ref) noexcept;
-    static DataSegmentRef             unpackDataSegmentRef(uint64_t packedRef) noexcept;
 
-    ConstantKind          kind_    = ConstantKind::Invalid;
-    TypeRef               typeRef_ = TypeRef::invalid();
+    static uint64_t       packDataSegmentRef(DataSegmentRef ref) noexcept;
+    static DataSegmentRef unpackDataSegmentRef(uint64_t packedRef) noexcept;
+
+    ConstantKind kind_    = ConstantKind::Invalid;
+    TypeRef      typeRef_ = TypeRef::invalid();
+
     std::atomic<uint64_t> dataSegmentRef_{packDataSegmentRef({})};
 
-    // For Struct/Array/Slice only. When borrowed, the std::span<const std::byte> points to external storage whose lifetime must outlive
-    // the constant (typically memory already stored in a `DataSegment`).
+    // Borrowed Struct/Array/Slice spans require backing storage that outlives this
+    // constant, typically a DataSegment allocation.
     bool payloadBorrowed_ = false;
 
     union

@@ -51,6 +51,7 @@ namespace
             const TypeRef underlyingTypeRef = fieldType.payloadSymEnum().underlyingTypeRef();
             if (!underlyingTypeRef.isValid())
                 return Result::Continue;
+
             ConstantRef underlyingCstRef = ConstantRef::invalid();
             SWC_RESULT(makeScalarFieldConstantFromBytes(sema, sema.typeMgr().get(underlyingTypeRef), bytes, underlyingCstRef));
             if (!underlyingCstRef.isValid())
@@ -99,9 +100,8 @@ namespace
                 pointedTypeRef = cstType.payloadTypeRef();
             else if (cstType.isTypeInfo())
             {
-                // The constant is typed as *TypeInfo (base), but the actual data
-                // may be a derived struct (e.g. TypeInfoArray). Use the field's
-                // owner struct to determine the correct data size.
+                // A *TypeInfo constant may contain a derived struct such as TypeInfoArray.
+                // Size the bytes from the field's owner rather than the base pointer type.
                 const SymbolMap* ownerMap = symVar.ownerSymMap();
                 if (ownerMap && ownerMap->isStruct())
                     pointedTypeRef = ownerMap->cast<SymbolStruct>().typeRef();
@@ -113,8 +113,10 @@ namespace
 
             const TypeInfo& pointedType = sema.typeMgr().get(pointedTypeRef);
             SWC_ASSERT(pointedType.isStruct());
+
             const uint64_t ptr = cst.isValuePointer() ? cst.getValuePointer() : cst.getBlockPointer();
             SWC_ASSERT(ptr);
+
             bytes = std::span{reinterpret_cast<const std::byte*>(static_cast<uintptr_t>(ptr)), pointedType.sizeOf(sema.ctx())};
             return Result::Continue;
         }
@@ -137,6 +139,7 @@ namespace
             failStructMemberType(sema, symVar, nodeMemberRef);
             return;
         }
+
         const auto& sym = owner->cast<SymbolStruct>();
 
         size_t fieldIndex = 0;
@@ -145,6 +148,7 @@ namespace
             failStructMemberType(sema, symVar, nodeMemberRef);
             return;
         }
+
         if (std::cmp_greater_equal(fieldIndex, values.size()))
         {
             failStructMemberType(sema, symVar, nodeMemberRef);
@@ -164,6 +168,7 @@ namespace
         outCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, bytes);
         if (outCstRef.isInvalid())
             return failStructMemberType(sema, symVar, nodeMemberRef);
+
         return Result::Continue;
     }
 }
@@ -202,28 +207,34 @@ namespace
 {
     Result extractAtIndexAggregateArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        outCstRef          = ConstantRef::invalid();
+        outCstRef = ConstantRef::invalid();
+
         const auto& values = cst.getAggregateArray();
         if (std::cmp_greater_equal(constIndex, values.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, values.size());
+
         outCstRef = values[constIndex];
         return Result::Continue;
     }
 
     Result extractAtIndexString(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        outCstRef                = ConstantRef::invalid();
+        outCstRef = ConstantRef::invalid();
+
         const std::string_view s = cst.getString();
         if (std::cmp_greater_equal(constIndex, s.size()))
             return SemaError::raiseIndexOutOfRange(sema, nodeArgRef, constIndex, s.size());
+
         const ConstantValue cstInt = ConstantValue::makeIntSized(sema.ctx(), static_cast<uint8_t>(s[constIndex]));
-        outCstRef                  = sema.cstMgr().addConstant(sema.ctx(), cstInt);
+
+        outCstRef = sema.cstMgr().addConstant(sema.ctx(), cstInt);
         return Result::Continue;
     }
 
     Result extractAtIndexBytes(Sema& sema, std::span<const std::byte> bytes, TypeRef elemTypeRef, int64_t constIndex, uint64_t count, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        outCstRef                = ConstantRef::invalid();
+        outCstRef = ConstantRef::invalid();
+
         TaskContext&    ctx      = sema.ctx();
         const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
         SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, elemTypeRef, nodeArgRef));
@@ -248,11 +259,13 @@ namespace
 
     Result extractAtIndexArray(Sema& sema, const ConstantValue& cst, int64_t constIndex, AstNodeRef nodeArgRef, ConstantRef& outCstRef)
     {
-        outCstRef                = ConstantRef::invalid();
+        outCstRef = ConstantRef::invalid();
+
         TaskContext&    ctx      = sema.ctx();
         const TypeRef   typeRef  = sema.typeMgr().unwrapAlias(sema.ctx(), cst.typeRef());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isArray());
+
         const auto&    dims  = typeInfo.payloadArrayDims();
         const uint64_t count = dims.empty() ? 0 : dims[0];
         if (std::cmp_greater_equal(constIndex, count))
@@ -262,6 +275,7 @@ namespace
         {
             const TypeRef nextTypeRef = sema.typeMgr().addArrayTypeAfterFirstDimension(typeInfo);
             SWC_RESULT(ConstantHelpers::waitStaticPayloadTypeReady(sema, nextTypeRef, nodeArgRef));
+
             const uint64_t    nextSize   = sema.typeMgr().get(nextTypeRef).sizeOf(ctx);
             const std::span   nextBytes  = {cst.getArray().data() + (constIndex * nextSize), nextSize};
             const ConstantRef nextCstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, nextTypeRef, nextBytes);
@@ -280,6 +294,7 @@ namespace
         const TypeRef   typeRef  = sema.typeMgr().unwrapAlias(sema.ctx(), cst.typeRef());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isSlice());
+
         const std::span<const std::byte> bytes     = cst.getSlice();
         const uint64_t                   elemCount = cst.getSliceCount();
         return extractAtIndexBytes(sema, bytes, typeInfo.payloadTypeRef(), constIndex, elemCount, nodeArgRef, outCstRef);
@@ -318,12 +333,9 @@ Result ConstantExtract::atIndexRef(Sema& sema, const ConstantValue& cst, int64_t
     SWC_ASSERT(cst.isValid());
     outCstRef = ConstantRef::invalid();
 
-    // A `null` constant of an indexable type (e.g. `cast(const [..] s32) null`) carries no
-    // element payload to extract. The TYPE is indexable, so this is not a "type does not support
-    // indexing" error — leave the index un-folded (outCstRef invalid) so it lowers to a runtime
-    // index with the normal bound check. This matters once such an expression becomes constant
-    // (e.g. a function inlined with a constant argument that folds a ternary to its `null` branch);
-    // without it, const-folding a null-slice index wrongly reports the slice type as non-indexable.
+    // Null constants carry no element bytes even when their type is indexable. Leave
+    // the result unresolved for runtime bounds checking rather than rejecting the type.
+    // Inlining and constant folding can expose such null-slice expressions.
     if (cst.isNull())
         return Result::Continue;
 
@@ -347,6 +359,7 @@ Result ConstantExtract::atIndex(Sema& sema, const ConstantValue& cst, int64_t co
     SWC_RESULT(atIndexRef(sema, cst, constIndex, nodeArgRef, outCstRef));
     if (outCstRef.isValid())
         sema.setConstant(sema.curNodeRef(), outCstRef);
+
     return Result::Continue;
 }
 

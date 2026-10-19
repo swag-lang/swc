@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Backend/Linker/LinkImage.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/StringMap.h"
@@ -7,11 +8,6 @@
 SWC_BEGIN_NAMESPACE();
 
 class Diagnostic;
-
-// Reader for Windows COFF archives (`!<arch>`), covering both static libraries (members are COFF
-// objects) and import libraries (members are "short import" records describing a DLL export). Only
-// the first linker member (the symbol -> member index) is decoded; that is all symbol resolution
-// needs. Members are pulled on demand by the linker.
 
 struct ArchiveImport
 {
@@ -22,6 +18,8 @@ struct ArchiveImport
     bool     isData    = false;
 };
 
+// Reads COFF static and import libraries. Symbol lookup decodes only the first
+// linker member; the linker then loads the referenced members on demand.
 class Archive
 {
 public:
@@ -49,9 +47,8 @@ public:
     void            setSourcePath(fs::path path) { sourcePath_ = std::move(path); }
 
 private:
-    // Symbol names borrow the immutable byte buffer, which moves together with the index. A
-    // system import library names thousands of symbols and every link reads a few of them: one
-    // flat table holds them all where a node-based map allocated one node per symbol.
+    // Symbol names borrow bytes_, so the index must move with its immutable buffer.
+    // A flat table avoids per-symbol allocations for large import libraries.
     ByteArray           bytes_;
     StringMap<uint32_t> symbolToMember_;
     fs::path            sourcePath_;

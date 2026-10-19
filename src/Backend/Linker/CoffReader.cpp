@@ -32,6 +32,7 @@ namespace
         const size_t start = stringTableOffset + nameOffset;
         if (start >= bytes.size())
             return {};
+
         const auto* begin = reinterpret_cast<const char*>(bytes.data() + start);
         size_t      len   = 0;
         while (start + len < bytes.size() && begin[len] != '\0')
@@ -50,6 +51,7 @@ namespace
                 ++len;
             return {shortName, len};
         }
+
         return readStringTableNameView(bytes, stringTableOffset, record.N.Name.Long);
     }
 }
@@ -67,6 +69,7 @@ EnumFlags<LinkSectionFlagsE> linkSectionFlagsFromCoffCharacteristics(uint32_t ch
         flags.add(LinkSectionFlagsE::Write);
     if (characteristics & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
         flags.add(LinkSectionFlagsE::Uninit);
+
     return flags;
 }
 
@@ -142,6 +145,7 @@ namespace
         // Validate every section and relocation, even when the caller only needs defined symbols.
         if (outSections)
             outSections->resize(sectionCount);
+
         for (size_t s = 0; s < sectionCount; ++s)
         {
             IMAGE_SECTION_HEADER header{};
@@ -170,6 +174,7 @@ namespace
                     outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_section_out_of_bounds);
                     return false;
                 }
+
                 if (section)
                 {
                     const auto rawBegin = bytes.begin() + header.PointerToRawData;
@@ -192,6 +197,7 @@ namespace
                     outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_coff_truncated_reloc_overflow);
                     return false;
                 }
+
                 relocCount = overflow.RelocCount;
                 relocOffset += sizeof(IMAGE_RELOCATION);
                 if (relocCount > 0)
@@ -200,6 +206,7 @@ namespace
 
             if (section)
                 section->relocs.reserve(relocCount);
+
             for (uint32_t r = 0; r < relocCount; ++r)
             {
                 IMAGE_RELOCATION reloc{};
@@ -266,8 +273,9 @@ bool readCoffDefinedSymbols(std::vector<CoffInputSymbol>& outSymbols, Diagnostic
 bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects)
 {
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
-    // Views of the names: the objects' own outlive the merge, and the image's symbols already
-    // present (typically none) are copied once, since the image grows below.
+
+    // Input object names outlive the merge. Copy existing image names before
+    // appending symbols, since growth can move their original storage.
     StringMap<bool>   definedNames;
     std::vector<Utf8> presentNames;
     const auto        defineName = [&](const std::string_view name) {
@@ -277,6 +285,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
     // Seed with any sections already present (typically none).
     for (uint32_t i = 0; i < outImage.sections.size(); ++i)
         sectionByName[outImage.sections[i].name] = i;
+
     presentNames.reserve(outImage.symbols.size());
     for (const LinkSymbol& symbol : outImage.symbols)
         defineName(presentNames.emplace_back(symbol.name).view());
@@ -289,6 +298,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
         for (size_t s = 0; s < object.sections.size(); ++s)
         {
             const CoffInputSection& section = object.sections[s];
+
             // CodeView goes to the PDB and the symbol fragment to the image's own table, both through
             // the linker; neither is a section of the image.
             if (section.name.view().starts_with(".debug") || section.name.view() == SymbolTable::OBJECT_SECTION)

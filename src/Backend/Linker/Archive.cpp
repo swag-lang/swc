@@ -32,6 +32,7 @@ namespace
                 return false;
             outSize = outSize * 10 + static_cast<uint32_t>(c - '0');
         }
+
         return true;
     }
 
@@ -99,6 +100,7 @@ bool Archive::load(Diagnostic& outDiag, ByteArray bytes)
             outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_symbol_names);
             return false;
         }
+
         const auto* nameStart = reinterpret_cast<const char*>(bytes_.data() + nameCursor);
         size_t      nameLen   = 0;
         while (nameCursor + nameLen < memberEnd && nameStart[nameLen] != '\0')
@@ -126,18 +128,21 @@ std::span<const std::byte> Archive::memberData(Diagnostic& outDiag, uint32_t hea
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_member_out_of_range);
         return {};
     }
+
     uint32_t memberSize = 0;
     if (!parseMemberSize(memberSize, bytes_, headerOffset))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_bad_member);
         return {};
     }
+
     const size_t dataOffset = headerOffset + MEMBER_HEADER_SIZE;
     if (!bytes_.containsRange(dataOffset, memberSize))
     {
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_truncated_member);
         return {};
     }
+
     return {bytes_.data() + dataOffset, memberSize};
 }
 
@@ -163,8 +168,9 @@ bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint3
     while (nameLen < maxLen && strings[nameLen] != '\0')
         ++nameLen;
     const std::string_view importName{strings, nameLen};
-    const size_t           dllStart = nameLen + 1;
-    size_t                 dllLen   = 0;
+
+    const size_t dllStart = nameLen + 1;
+    size_t       dllLen   = 0;
     while (dllStart + dllLen < maxLen && strings[dllStart + dllLen] != '\0')
         ++dllLen;
     const std::string_view dllName{strings + dllStart, dllLen};
@@ -174,6 +180,7 @@ bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint3
     outImport.isData     = type == 1;     // IMPORT_OBJECT_DATA
     outImport.byOrdinal  = nameType == 0; // IMPORT_OBJECT_ORDINAL
     outImport.ordinal    = ordinalOrHint;
+
     return true;
 }
 
@@ -194,10 +201,12 @@ namespace
         appendHeaderField(header, "0", 28, 6);  // uid
         appendHeaderField(header, "0", 34, 6);  // gid
         appendHeaderField(header, "0", 40, 8);  // mode
+
         const auto result = std::to_chars(header.data() + 48, header.data() + 58, dataSize);
         SWC_ASSERT(result.ec == std::errc{});
         header[58] = '\x60';
         header[59] = '\n';
+
         out.append(std::string_view{header.data(), header.size()});
     }
 
@@ -223,6 +232,7 @@ namespace
         // The second COFF linker member stores one-based unsigned-short member indices.
         if (count <= std::numeric_limits<uint16_t>::max())
             return true;
+
         outDiag = Diagnostic::get(DiagnosticId::cmd_err_link_archive_member_limit);
         outDiag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(count));
         return false;
@@ -232,8 +242,8 @@ namespace
     // long-names member, then the member contents.
     void emitArchive(ByteArray& outBytes, std::vector<ArchiveMemberBuild>& members)
     {
-        // Long member names (>15 chars do not fit the inline "name/" form) live in a "//" member; an
-        // affected member references them with "/<decimal-offset>".
+        // Names longer than 15 characters live in a "//" member and are referenced
+        // by "/<decimal-offset>" instead of the inline "name/" form.
         size_t   longNamesSize   = 0;
         uint32_t symbolCount     = 0;
         size_t   symbolNamesSize = 0;
@@ -251,6 +261,7 @@ namespace
             std::string_view name;
             uint16_t         memberIndex;
         };
+
         std::vector<IndexedSymbol> sortedSymbols;
         sortedSymbols.reserve(symbolCount);
         for (size_t index = 0; index < members.size(); ++index)
@@ -258,14 +269,17 @@ namespace
             for (const Utf8& symbol : members[index].symbols)
                 sortedSymbols.push_back({symbol.view(), static_cast<uint16_t>(index + 1)});
         }
+
         std::ranges::sort(sortedSymbols, [](const IndexedSymbol& left, const IndexedSymbol& right) {
             if (left.name != right.name)
                 return left.name < right.name;
             return left.memberIndex < right.memberIndex;
         });
+
         // Match the first directory's first-definition lookup when several members define a name.
         const auto duplicates = std::ranges::unique(sortedSymbols, {}, &IndexedSymbol::name);
         sortedSymbols.erase(duplicates.begin(), duplicates.end());
+
         size_t sortedNamesSize = 0;
         for (const IndexedSymbol& symbol : sortedSymbols)
             sortedNamesSize += symbol.name.size() + 1;
@@ -277,9 +291,11 @@ namespace
         size_t cursor = 8; // after "!<arch>\n"
         cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(linkerDataSize);
         cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(secondLinkerDataSize);
+
         const bool hasLongNames = longNamesSize != 0;
         if (hasLongNames)
             cursor += MEMBER_HEADER_SIZE + archiveAlignedSize(longNamesSize);
+
         for (ArchiveMemberBuild& member : members)
         {
             member.headerOffset = static_cast<uint32_t>(cursor);
@@ -296,11 +312,13 @@ namespace
         for (const ArchiveMemberBuild& member : members)
             for (size_t s = 0; s < member.symbols.size(); ++s)
                 outBytes.appendBe32(member.headerOffset);
+
         for (const ArchiveMemberBuild& member : members)
         {
             for (const Utf8& symbol : member.symbols)
                 outBytes.appendCString(symbol.view());
         }
+
         if (linkerDataSize & 1)
             outBytes.pushBack(static_cast<std::byte>('\n'));
 
@@ -310,9 +328,11 @@ namespace
         outBytes.appendLe32(static_cast<uint32_t>(members.size()));
         for (const ArchiveMemberBuild& member : members)
             outBytes.appendLe32(member.headerOffset);
+
         outBytes.appendLe32(static_cast<uint32_t>(sortedSymbols.size()));
         for (const IndexedSymbol& symbol : sortedSymbols)
             outBytes.appendLe16(symbol.memberIndex);
+
         for (const IndexedSymbol& symbol : sortedSymbols)
             outBytes.appendCString(symbol.name);
         if (secondLinkerDataSize & 1)
@@ -325,8 +345,10 @@ namespace
             {
                 if (member.name.size() <= 15)
                     continue;
+
                 outBytes.appendCString(member.name);
             }
+
             if (longNamesSize & 1)
                 outBytes.pushBack(static_cast<std::byte>('\n'));
         }
@@ -351,6 +373,7 @@ namespace
                 nameSize = static_cast<size_t>(result.ptr - nameField.data());
                 longNameOffset += member.name.size() + 1;
             }
+
             appendArchiveMember(outBytes, std::string_view{nameField.data(), nameSize}, member.data);
         }
     }
@@ -380,9 +403,11 @@ bool buildCoffStaticArchive(ByteArray& outBytes, Diagnostic& outDiag, const std:
             aliasedMemberBytes = inputMember.bytes;
             member.data        = aliasedMemberBytes.span();
         }
+
         member.symbols.reserve(symbols.size());
         for (CoffInputSymbol& symbol : symbols)
             member.symbols.push_back(std::move(symbol.name));
+
         members.push_back(std::move(member));
     }
 
@@ -399,8 +424,10 @@ bool buildCoffImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::strin
     size_t recordsSize = 0;
     for (const Utf8& name : exportNames)
         recordsSize += IMPORT_HEADER_SIZE + name.size() + 1 + dllFileName.size() + 1;
+
     ByteArray importRecords;
     importRecords.reserve(recordsSize);
+
     std::vector<ArchiveMemberBuild> members;
     members.reserve(exportNames.size());
 
@@ -408,14 +435,18 @@ bool buildCoffImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::strin
     {
         // A short-import record: IMPORT_OBJECT_HEADER followed by importName\0 dllName\0.
         const size_t recordOffset = importRecords.size();
-        importRecords.appendLe16(0); // Sig1
+        // Sig1, Sig2, Version, and Machine.
+        importRecords.appendLe16(0);
         importRecords.appendLe16(IMPORT_SIG2);
-        importRecords.appendLe16(0); // Version
+        importRecords.appendLe16(0);
         importRecords.appendLe16(IMPORT_MACHINE_AMD64);
-        importRecords.appendLe32(0);                                                               // TimeDateStamp
-        importRecords.appendLe32(static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1)); // SizeOfData
-        importRecords.appendLe16(0);                                                               // OrdinalOrHint
-        importRecords.appendLe16(1 << 2);                                                          // NameType=NAME(1), Type=CODE(0)
+
+        // TimeDateStamp, SizeOfData, OrdinalOrHint, and NameType=NAME/Type=CODE.
+        importRecords.appendLe32(0);
+        importRecords.appendLe32(static_cast<uint32_t>(name.size() + 1 + dllFileName.size() + 1));
+        importRecords.appendLe16(0);
+        importRecords.appendLe16(1 << 2);
+
         importRecords.appendCString(name.view());
         const size_t dllOffset = importRecords.size();
         importRecords.appendCString(dllFileName);
@@ -424,6 +455,7 @@ bool buildCoffImportLibrary(ByteArray& outBytes, Diagnostic& outDiag, std::strin
         // Use the record's copy: the caller's DLL name may alias the output that emission replaces.
         member.name = {reinterpret_cast<const char*>(importRecords.data() + dllOffset), dllFileName.size()};
         member.data = importRecords.span().subspan(recordOffset);
+
         member.symbols.reserve(2);
         member.symbols.push_back(name);               // the thunk symbol
         member.symbols.emplace_back("__imp_" + name); // the IAT symbol

@@ -950,16 +950,10 @@ namespace
         return Result::Continue;
     }
 
-    // Aggregate literals are the only return expressions that build the whole value from
-    // scratch, so they are the only ones that can be told to build it in the caller's slot.
-    // An lvalue return ('return someLocal', 'return me.field') still owes a copy, and the
-    // scratch storages other nodes request (the member-access spill slot is a bare 8-byte
-    // array, not the return type) must never be redirected onto the return slot.
-    //
-    // This holds for a type with lifecycle hooks too. A literal is a new value: its fields
-    // run their own copy or move hook as they enter it, and the aggregate they form has no
-    // earlier owner to copy from. Built in the caller's slot, it owes no 'opPostCopy', no
-    // 'opPostMove', and leaves nothing behind to drop.
+    // Only aggregate literals build a whole new value directly in caller storage.
+    // An lvalue return still owes a copy, and unrelated spill slots must not target
+    // the return slot. Literal fields keep their copy/move hooks; the freshly built
+    // aggregate has no previous owner requiring post-copy, post-move or drop hooks.
     bool returnExprBuildsWholeValueInPlace(const Sema& sema, AstNodeRef exprRef)
     {
         if (exprRef.isInvalid())
@@ -972,11 +966,9 @@ namespace
                exprNode.is(AstNodeId::ArrayLiteral);
     }
 
-    // An inlined body does not return through the ABI: 'emitInlineResultStore' copies the value
-    // into the '__inline_result' local the expansion created in the caller. Building the literal
-    // straight into that local removes the same copy. This is the safer half of the two: the
-    // result local is freshly synthesized per call site, so unlike the return slot it can never
-    // alias anything the inlined body reads.
+    // Inline results bypass the ABI and copy into a fresh __inline_result local.
+    // Building there removes that copy; the per-call local cannot alias values
+    // read by the inlined body.
     Result bindInlineResultRuntimeStorage(SemaFrame& frame, Sema& sema, AstNodeRef exprRef, const SemaInlinePayload& inlinePayload)
     {
         // '#[Swag.CalleeReturn]' returns to the caller's own return path, not to a result local.
@@ -989,11 +981,8 @@ namespace
         return Result::Continue;
     }
 
-    // Return-value optimization. Binding a storage symbol as the frame's runtime storage makes
-    // every node that materializes into runtime storage
-    // (SemaHelpers::getOrCreateRuntimeStorageSymbol) pick that destination instead of a fresh
-    // local, which is exactly the mechanism an explicit 'var x: retval' uses. CodeGen then sees
-    // the value already sitting where it belongs and drops the copy.
+    // Set frame runtime storage to the caller's return slot, as var x: retval does.
+    // Materializing nodes reuse this destination so codegen can omit the return copy.
     Result bindReturnSlotRuntimeStorage(SemaFrame& frame, Sema& sema, AstNodeRef exprRef)
     {
         if (!returnExprBuildsWholeValueInPlace(sema, exprRef))
@@ -1002,6 +991,7 @@ namespace
             return Result::Continue;
         if (const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema))
             return bindInlineResultRuntimeStorage(frame, sema, exprRef, *inlinePayload);
+
         // '#run' and '#ast' returns are re-read out of the local frame and persisted into
         // the compiler segment, so their value must stay where that path expects it.
         if (returnValueIsCompilerMaterialized(sema))
@@ -1011,6 +1001,7 @@ namespace
         SWC_RESULT(SemaHelpers::currentFunctionUsesIndirectReturnStorage(usesIndirectReturnStorage, sema));
         if (!usesIndirectReturnStorage)
             return Result::Continue;
+
         // An explicit 'retval' local makes the slot readable, so it can no longer be used as
         // an in-place destination for a value that might read it.
         if (SemaHelpers::functionExposesReturnSlot(*sema.currentFunction()))
@@ -1032,6 +1023,7 @@ namespace
 
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *payload.runtimeStorageSym, storageTypeRef));
         frame.setCurrentRuntimeStorage(exprRef, payload.runtimeStorageSym);
+
         return Result::Continue;
     }
 
@@ -1050,9 +1042,8 @@ namespace
                 if (exprTypeView.type() && exprTypeView.type()->isVoid())
                     return Result::Continue;
 
-                // A '#run' statement block is compiled as a generated function: its name means nothing
-                // to the reader, and its declaration is the block itself. A '#run' block used as an
-                // expression returns its value instead, and never reaches here.
+                // Diagnose a statement #run block directly; its generated function
+                // name is irrelevant. Expression #run blocks return values elsewhere.
                 const auto*    currentFn = sema.currentFunction();
                 const AstNode* declNode  = currentFn ? currentFn->decl() : nullptr;
                 if (declNode && declNode->is(AstNodeId::CompilerFunc) && sema.token(declNode->codeRef()).id == TokenId::CompilerRun)
@@ -1067,17 +1058,21 @@ namespace
                     diag.last().addSpan(currentFn->codeRange(sema.ctx()));
                 }
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
 
             SemaNodeView view = sema.viewNodeTypeConstant(exprRef);
             if (returnType.isAnyTypeInfo(sema.ctx()))
                 SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, view));
+
             const CastCallSite returnSite{.function = sema.currentFunction(), .returnValue = true};
             SWC_RESULT(Cast::cast(sema, view, returnTypeRef, CastKind::Implicit, CastFlagsE::Zero, &returnSite));
+
             if (!returnValueIsCompilerMaterialized(sema))
             {
                 SWC_RESULT(SemaSpecOp::addValueTransferCallDependencies(sema, view.nodeRef(), returnTypeRef, AstModifierFlagsE::Zero, true));
+
                 const SemaNodeView    sourceView = sema.viewSymbol(SemaHelpers::resolveTransparentExprSourceRef(sema, view.nodeRef()));
                 const SymbolVariable* source     = sourceView.sym() ? sourceView.sym()->safeCast<SymbolVariable>() : nullptr;
                 if (!returnType.isReference() && source && source->isFunctionLocalVariable(*sema.currentFunction()) &&
@@ -1087,9 +1082,11 @@ namespace
                     // deferred observer still needs it. Both are real transfer paths.
                     SWC_RESULT(SemaSpecOp::addLifecycleCallDependencies(sema, returnTypeRef, SpecOpKind::OpPostMove));
                 }
+
                 const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema);
                 SWC_RESULT(SemaEscape::checkReturn(sema, returnRef, exprRef, returnTypeRef, inlinePayload ? inlinePayload->sourceFunction : nullptr));
             }
+
             return Result::Continue;
         }
 
@@ -1114,6 +1111,7 @@ namespace
                 }
             }
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -1143,8 +1141,9 @@ namespace
     template<typename T>
     Result buildFunctionExprParameters(Sema& sema, const T& node, SymbolFunction& sym)
     {
-        TaskContext&            ctx             = sema.ctx();
-        const SymbolFunction*   bindingFunction = resolveLambdaBindingFunction(sema);
+        TaskContext&          ctx             = sema.ctx();
+        const SymbolFunction* bindingFunction = resolveLambdaBindingFunction(sema);
+
         SmallVector<AstNodeRef> params;
         sema.ast().appendNodes(params, node.spanArgsRef);
 
@@ -1176,6 +1175,7 @@ namespace
             diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(params.size()));
             diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(bindingFunction->parameters().size() - bindingParamOffset));
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -1195,6 +1195,7 @@ namespace
             }
             else if (param.nodeDefaultValueRef.isValid())
                 SWC_RESULT(SemaHelpers::deduceDefaultValueType(sema, param.nodeDefaultValueRef, paramType));
+
             if (!paramType.isValid())
                 paramType = resolveGroupedFunctionExprParameterType(sema, params, paramIndex);
 
@@ -1270,6 +1271,7 @@ namespace
                 TypeRef returnTypeRef = sema.viewType(node.nodeBodyRef).typeRef();
                 SWC_RESULT(concretizeImplicitReturnTypeIfNeeded(sema, node.nodeBodyRef, returnTypeRef));
                 SWC_RESULT(SemaCheck::noMoveRefType(sema, returnTypeRef, sema.node(node.nodeBodyRef).codeRef()));
+
                 sym.setReturnTypeRef(returnTypeRef);
             }
             else
@@ -1280,6 +1282,7 @@ namespace
 
         const TypeInfo ti      = TypeInfo::makeFunction(&sym, TypeInfoFlagsE::Zero);
         const TypeRef  typeRef = sema.typeMgr().addType(ti);
+
         sym.setTypeRef(typeRef);
         sym.setTyped(sema.ctx());
 

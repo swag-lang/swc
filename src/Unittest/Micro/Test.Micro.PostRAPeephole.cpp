@@ -15,6 +15,7 @@
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
+#include "Backend/Micro/Passes/Pass.PrologEpilog.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeManager.h"
@@ -39,6 +40,11 @@ namespace
         passContext.sanitizerFunction     = function;
         passContext.spillAreaLo           = spillLo;
         passContext.spillAreaHi           = spillHi;
+        if (spillLo < spillHi)
+        {
+            passContext.spillFrameEntryLo = static_cast<int64_t>(spillLo);
+            passContext.spillFrameEntryHi = static_cast<int64_t>(spillHi);
+        }
         return builder.runPasses(passManager, encoder, passContext);
     }
 
@@ -694,6 +700,96 @@ SWC_TEST_BEGIN(PostRAPeephole_KeepsStackArgumentBeforeCallAndReturn)
         X64Encoder encoder(ctx);
         SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 0x20, 0x28));
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_KeepsAddressedOutgoingSlotWithSpillDisplacement)
+{
+    const auto&    conv    = CallConv::get(CallConvKind::Swag);
+    const auto     stack   = conv.stackPointer;
+    const auto     spill   = MicroReg::intReg(12);
+    const auto     payload = MicroReg::intReg(13);
+    SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable parameter(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    parameter.setTypeRef(ctx.typeMgr().typeBlockPtrU8());
+    callee.addParameter(&parameter);
+    callee.setReturnTypeRef(ctx.typeMgr().typeVoid());
+    for (uint32_t variant = 0; variant < 3; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadMemReg(stack, 0x80, spill, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(stack, ApInt(0x100, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(conv.intArgRegs[0], stack, 0x80, MicroOpBits::B64);
+        builder.emitLoadMemReg(stack, 0x80, payload, MicroOpBits::B64);
+        if (variant == 1)
+            builder.emitLoadRegMem(conv.intReturn, conv.intArgRegs[0], 0, MicroOpBits::B64);
+        else
+            builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(stack, ApInt(0x100, 64), MicroOp::Add, MicroOpBits::B64);
+        if (variant == 0)
+            builder.emitLoadRegMem(conv.intReturn, stack, 0x80, MicroOpBits::B64);
+        builder.emitRet();
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 0x80, 0x88));
+        uint32_t payloadStores = 0;
+        for (const auto& inst : builder.instructions().view())
+            if (inst.op == MicroInstrOpcode::LoadMemReg && inst.ops(builder.operands())[1].reg == payload)
+                ++payloadStores;
+        if (payloadStores != 1)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_PrivateSpillBoundsFollowPrologue)
+{
+    const auto&    conv  = CallConv::get(CallConvKind::Swag);
+    const auto     stack = conv.stackPointer;
+    const auto     value = MicroReg::intReg(12);
+    SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    SymbolVariable parameter(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+    parameter.setTypeRef(ctx.typeMgr().typeBlockPtrU8());
+    callee.addParameter(&parameter);
+    callee.setReturnTypeRef(ctx.typeMgr().typeVoid());
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        MicroBuilder builder(ctx);
+        if (variant & 1)
+            builder.emitLoadRegImm(value, ApInt(42, 64), MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(stack, ApInt(0x100, 64), MicroOp::Subtract, MicroOpBits::B64);
+        if (!(variant & 1))
+            builder.emitLoadRegImm(value, ApInt(42, 64), MicroOpBits::B64);
+        builder.emitLoadMemReg(stack, 0x80, value, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(stack, ApInt(0x100, 64), MicroOp::Subtract, MicroOpBits::B64);
+        builder.emitLoadAddressRegMem(conv.intArgRegs[0], stack, 0x80, MicroOpBits::B64);
+        builder.emitLoadMemReg(stack, 0x80, value, MicroOpBits::B64);
+        builder.emitCallLocal(&callee, CallConvKind::Swag);
+        builder.emitOpBinaryRegImm(stack, ApInt(0x200, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitRet();
+        MicroPrologEpilogPass   prologue;
+        MicroPostRaPeepholePass peephole;
+        MicroPassManager        passes;
+        passes.addStartPass(prologue);
+        passes.addStartPass(peephole);
+        MicroPassContext context;
+        context.callConvKind           = CallConvKind::Swag;
+        context.preservePersistentRegs = true;
+        context.forceFramePointer      = (variant & 2) != 0;
+        context.spillAreaLo            = 0x80;
+        context.spillAreaHi            = 0x88;
+        context.spillFrameEntryLo      = -0x100;
+        context.spillFrameEntryHi      = 0;
+        X64Encoder encoder(ctx);
+        SWC_RESULT(builder.runPasses(passes, &encoder, context));
+        uint32_t stores = 0;
+        for (const auto& inst : builder.instructions().view())
+            if (inst.op == MicroInstrOpcode::LoadMemReg && inst.ops(builder.operands())[0].reg == stack && inst.ops(builder.operands())[3].valueU64 == 0x80)
+                ++stores;
+        if (stores != 1)
             return Result::Error;
     }
     return Result::Continue;

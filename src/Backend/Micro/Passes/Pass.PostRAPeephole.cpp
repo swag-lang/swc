@@ -736,7 +736,8 @@ namespace
     bool eraseDeadSpillStore(MicroPassContext& context)
     {
         if (!context.builder || context.spillAreaLo >= context.spillAreaHi ||
-            context.spillAreaHi - context.spillAreaLo < sizeof(uint64_t))
+            context.spillAreaHi - context.spillAreaLo < sizeof(uint64_t) ||
+            context.spillFrameEntryLo >= context.spillFrameEntryHi)
             return false;
 
         MicroStorage&        storage  = *context.instructions;
@@ -849,7 +850,8 @@ namespace
                 continue;
 
             const auto storedOffset = absoluteOffset(storeIndex, saved[3].valueU64);
-            if (!storedOffset)
+            if (!storedOffset || *storedOffset < context.spillFrameEntryLo || *storedOffset > context.spillFrameEntryHi ||
+                slotSize > static_cast<uint64_t>(context.spillFrameEntryHi - *storedOffset))
                 continue;
             const auto offset = *storedOffset;
             ++stamp;

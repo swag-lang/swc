@@ -74,12 +74,16 @@ struct MicroPassContext
     bool keepLocalStackBase   = false;
     bool localStackBaseFolded = false;
 
-    // The byte range of the frame register allocation gave its own spill slots, as the emitted
-    // code addresses it. Those slots are the compiler's: no source object overlaps one and no
-    // pointer can be made to reach one, which is what lets a post-RA pass reason about them in a
-    // function whose other frame objects escape. Empty (lo >= hi) when nothing spilled.
+    // Raw displacement envelope of allocator spill accesses. Stack adjustments can make an
+    // outgoing argument use a displacement in this envelope too; ownership needs the
+    // entry-relative frame below. Empty (lo >= hi) when nothing spilled.
     uint64_t spillAreaLo = std::numeric_limits<uint64_t>::max();
     uint64_t spillAreaHi = 0;
+
+    // Bytes reserved exclusively for allocator homes, relative to incoming SP.
+    // Allocation sweeps extend this prefix; the prologue relocates it below saved registers.
+    int64_t spillFrameEntryLo = 0;
+    int64_t spillFrameEntryHi = 0;
 
     // The frame objects, in offset order (see MicroPassHelpers::frameObjects). Built from the
     // lowered function's symbols on first use; the frame compaction pass publishes the layout it

@@ -1,0 +1,61 @@
+{
+  "counter_convention": "Executed non-NOP native instructions and memory operands per original timestep; Clang nested loops weighted 4,3,2,1; LDC includes advance prologue/epilogue per step. sqrt/div packed instructions each cover two double lanes. Times are historical accepted campaign 20261018-194437, never mixed with fresh variants.",
+  "rows": [
+    [
+      "zig",
+      348,
+      135,
+      "4 packed + 2 scalar",
+      17.1885
+    ],
+    [
+      "clang",
+      540,
+      193,
+      "10 scalar",
+      22.7218
+    ],
+    [
+      "ldc",
+      471,
+      190,
+      "10 scalar, out-of-line",
+      23.0192
+    ],
+    [
+      "rust",
+      448,
+      215,
+      "3 packed + 4 scalar",
+      21.0342
+    ],
+    [
+      "swag-after",
+      396,
+      163,
+      "10 scalar",
+      null
+    ],
+    [
+      "clang-full",
+      403,
+      183,
+      "4 packed + 2 scalar",
+      null
+    ],
+    [
+      "clang-full-noslp",
+      525,
+      159,
+      "10 scalar",
+      null
+    ],
+    [
+      "ldc-inline",
+      349,
+      123,
+      "4 packed + 2 scalar",
+      null
+    ]
+  ]
+}

@@ -11,10 +11,8 @@ class SymbolMap;
 class MatchContext
 {
 public:
-    // How a symbol became visible at a given point.
-    // At the same scope depth, what a namespace declares itself shadows what its `using`
-    // directives bring in, as in a lexical scope: a module's own `Error` beats `Swag.Error`
-    // reaching it through a persisted `using Swag`.
+    // At equal depth, namespace declarations shadow names brought in by using directives.
+    // A module's own Error therefore precedes Swag.Error imported through using Swag.
     enum class VisibilityTier : uint8_t
     {
         LocalScope      = 0, // directly declared in the scope
@@ -28,7 +26,8 @@ public:
     {
         uint16_t       scopeDepth = 0; // 0 = innermost, increases as we go outward
         VisibilityTier visibility = VisibilityTier::LocalScope;
-        static int     compare(const Priority& a, const Priority& b);
+
+        static int compare(const Priority& a, const Priority& b);
     };
 
     SourceCodeRef codeRef = SourceCodeRef::invalid();
@@ -40,18 +39,17 @@ public:
     // This is useful for speculative/probing lookups where the caller will try other strategies.
     bool noWaitOnEmpty = false;
 
-    // When true, `Match::match` will not wait for matched symbols that are not
-    // declared or typed yet. Callers can use this to probe visible symbols
-    // without turning an eager lookup into a hard dependency.
+    // Probe symbols that are not declared or typed yet without waiting, so speculative
+    // lookup does not create a hard dependency.
     bool noWaitOnPendingSymbols = false;
 
-    // When true, a struct hint is searched without the members its `using` fields bring in.
-    // Those are found by walking the struct's fields, which another job may still be adding
-    // while the struct is incomplete, so only a lookup made after its completion may read them.
+    // Skip members brought in by a struct's using fields. Walking those fields is safe
+    // only after completion, when other jobs can no longer add fields.
     bool skipUsingFieldMembers = false;
 
     void clear();
     void resetCandidates();
+
     void beginSymMapLookup(const Priority& priority);
     void addSymbol(const Symbol* symbol, const Priority& priority);
 
@@ -59,6 +57,7 @@ public:
     // the scope priorities cannot express, such as preferring a namespace of the current module.
     void replaceWithSingleSymbol(const Symbol* symbol);
     void addIgnoredSymbol(const Priority& priority);
+
     void collectCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const;
     void collectCallableSymbols(SmallVector<const Symbol*>& outSymbols) const;
     void appendCallFallbackSymbols(SmallVector<const Symbol*>& outSymbols) const;
@@ -69,6 +68,7 @@ public:
         const Symbol* symbol;
         Priority      priority;
     };
+
     SmallVector<LocalSymbol> localSymbols;
 
     void addSymbol(const Symbol* symbol)
@@ -99,6 +99,7 @@ public:
 
 private:
     SmallVector<const Symbol*> symbols_;
+
     // Unique symbols in first-discovery order, including candidates below the best priority.
     SmallVector<const Symbol*> allSymbols_;
 

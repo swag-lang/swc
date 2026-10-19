@@ -21,6 +21,7 @@ namespace Match
             {
                 namedParamIndices_.emplace();
                 namedParamIndices_->reserve(params.size() - paramStart);
+
                 for (uint32_t i = paramStart; i < params.size(); ++i)
                     namedParamIndices_->try_emplace(params[i].idRef, i);
             }
@@ -30,6 +31,7 @@ namespace Match
                 const auto it = namedParamIndices_->find(idRef);
                 if (it == namedParamIndices_->end())
                     return false;
+
                 outIndex = it->second;
                 return true;
             }
@@ -47,7 +49,8 @@ namespace Match
         }
 
     private:
-        uint32_t                                                   namedLookups_ = 0;
+        uint32_t namedLookups_ = 0;
+
         std::optional<std::unordered_map<IdentifierRef, uint32_t>> namedParamIndices_;
     };
 }

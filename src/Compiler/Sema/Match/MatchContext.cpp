@@ -8,8 +8,10 @@ int MatchContext::Priority::compare(const Priority& a, const Priority& b)
 {
     if (a.scopeDepth != b.scopeDepth)
         return (a.scopeDepth < b.scopeDepth) ? -1 : 1;
+
     if (a.visibility != b.visibility)
         return (static_cast<uint8_t>(a.visibility) < static_cast<uint8_t>(b.visibility)) ? -1 : 1;
+
     return 0;
 }
 
@@ -17,6 +19,7 @@ void MatchContext::replaceWithSingleSymbol(const Symbol* symbol)
 {
     symbols_.clear();
     symbols_.push_back(symbol);
+
     allSymbols_.clear();
     allSymbols_.push_back(symbol);
 }
@@ -27,6 +30,7 @@ void MatchContext::clear()
     symMaps.clear();
     symMapPriorities.clear();
     localSymbols.clear();
+
     symMapHint          = nullptr;
     hasCurrentPriority_ = false;
     codeRef             = SourceCodeRef::invalid();
@@ -36,8 +40,10 @@ void MatchContext::resetCandidates()
 {
     symbols_.clear();
     allSymbols_.clear();
-    hasBestPriority_        = false;
-    bestPriority_           = Priority{};
+
+    hasBestPriority_ = false;
+    bestPriority_    = Priority{};
+
     hasIgnoredBestPriority_ = false;
     ignoredBestPriority_    = Priority{};
 }
@@ -68,6 +74,7 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
         bestPriority_    = priority;
         symbols_.push_back(symbol);
         allSymbols_.push_back(symbol);
+
         return;
     }
 
@@ -84,21 +91,22 @@ void MatchContext::addSymbol(const Symbol* symbol, const Priority& priority)
         bestPriority_    = priority;
         symbols_.clear();
         symbols_.push_back(symbol);
+
         return;
     }
 
     if (cmp > 0)
     {
-        // Worse than best: ignore.
+        // Keep lower-priority symbols only in the fallback list.
         return;
     }
 
     if (cmp < 0)
     {
-        // Better: replace the current best set.
         bestPriority_ = priority;
         symbols_.clear();
         symbols_.push_back(symbol);
+
         return;
     }
 

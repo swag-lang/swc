@@ -31,8 +31,9 @@ namespace Match
     struct FunctionCandidateRanking
     {
         std::span<const FunctionConversionRank> perArgRanks;
-        uint32_t                                usedDefaults    = 0;
-        bool                                    genericInstance = false;
+
+        uint32_t usedDefaults    = 0;
+        bool     genericInstance = false;
     };
 
     enum class ResolveCallMode : uint8_t
@@ -45,24 +46,26 @@ namespace Match
     struct FunctionCandidateProbe
     {
         SmallVector<FunctionConversionRank> perArgRanks;
-        SymbolFunction*                     fn              = nullptr;
-        uint32_t                            usedDefaults    = 0;
-        bool                                genericInstance = false;
-        bool                                matched         = false;
+
+        SymbolFunction* fn = nullptr;
+
+        uint32_t usedDefaults    = 0;
+        bool     genericInstance = false;
+        bool     matched         = false;
     };
 
     Result match(Sema& sema, MatchContext& lookUpCxt, IdentifierRef idRef);
     void   collectVisibleNames(Sema& sema, const SourceCodeRef& codeRef, std::vector<Utf8>& out);
     Result matchCallFallbackSymbols(Sema& sema, const SemaNodeView& nodeCallee, SmallVector<Symbol*>& outSymbols);
+
     Result ghosting(Sema& sema, const Symbol& sym);
 
     AstNodeRef resolveCallArgumentRef(Sema& sema, AstNodeRef argRef);
     AstNodeRef resolveCallArgumentValueRef(Sema& sema, AstNodeRef argRef);
     void       resolveCallArgumentValues(Sema& sema, SmallVector<AstNodeRef>& outArgs, std::span<const AstNodeRef> args);
 
-    // True when the argument expression is an explicit '#move expr' (or the move variant
-    // of '#fwd expr'), i.e. a freshly formed move reference, as opposed to reading a
-    // variable whose type happens to be a move reference.
+    // Recognize freshly formed move references from '#move' and the move variant of '#fwd'.
+    // Reading a variable with a move-reference type does not count as an explicit move.
     bool isExplicitMoveArgument(Sema& sema, AstNodeRef argRef);
 
     int    compareFunctionCandidateRankings(const FunctionCandidateRanking& a, const FunctionCandidateRanking& b);

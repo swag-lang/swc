@@ -29,9 +29,11 @@ namespace
     {
         if (!typeRef.isValid())
             return false;
+
         const TypeInfo& type = sema.typeMgr().get(typeRef);
         if (type.isNullable())
             return true;
+
         const TypeInfo* unwrappedType = type.unwrapAliasEnumType(sema.ctx());
         return unwrappedType && unwrappedType->isNullable();
     }
@@ -42,6 +44,7 @@ namespace
             return false;
         if (calledFn->specOpKind() != SpecOpKind::OpSet && calledFn->specOpKind() != SpecOpKind::OpSetLiteral)
             return false;
+
         return calledFn->hasFullInitialization();
     }
 
@@ -51,43 +54,45 @@ namespace
     {
         if (!sym)
             return -1;
+
         for (uint32_t i = 0; i < entries.size(); i++)
         {
             if (entries[i].sym == sym)
                 return static_cast<int32_t>(i);
         }
+
         return -1;
     }
 
-    // One local participating in initialization flow. It either has a safe default
-    // that may be elided, or requires a proof before it can be observed. Fields of a
-    // struct local are tracked individually (one bit each, capped at 63); every other
-    // type is a single slot (bit 0).
+    // Track safe defaults that may be elided and storage that requires proof before use.
+    // Struct fields use individual bits (up to 63); other types use a single slot.
     struct TrackedVar
     {
-        SymbolVariable*            sym                  = nullptr;
-        const SymbolStruct*        fieldStruct          = nullptr; // set when fields are tracked individually
-        uint32_t                   fieldCount           = 0;       // 0 => single slot
-        uint64_t                   fullMask             = 1;
-        uint64_t                   dropMask             = 0; // bits of fields with a drop lifecycle
-        uint64_t                   lateMask             = 0; // bits of 'late' fields ('lateOnly' tracking)
-        bool                       typeHasDrop          = false;
-        bool                       isRetVal             = false;
-        bool                       lateOnly             = false; // tracked only for its 'late' fields: regular zero-initialized storage
-        bool                       defaultInitCandidate = false;
-        bool                       needsDefiniteInit    = false;
-        bool                       fullInitReceiver     = false;
-        bool                       errored              = false; // one report per variable
+        SymbolVariable*     sym         = nullptr;
+        const SymbolStruct* fieldStruct = nullptr; // set when fields are tracked individually
+        uint32_t            fieldCount  = 0;       // 0 => single slot
+
+        uint64_t fullMask = 1;
+        uint64_t dropMask = 0; // bits of fields with a drop lifecycle
+        uint64_t lateMask = 0; // bits of 'late' fields ('lateOnly' tracking)
+
+        bool typeHasDrop          = false;
+        bool isRetVal             = false;
+        bool lateOnly             = false; // tracked only for its 'late' fields: regular zero-initialized storage
+        bool defaultInitCandidate = false;
+        bool needsDefiniteInit    = false;
+        bool fullInitReceiver     = false;
+        bool errored              = false; // one report per variable
+
         SmallVector<AstNodeRef, 4> firstInitAssignRefs;
-        uint32_t                   blockDepth = 0;
-        uint32_t                   loopDepth  = 0;
+
+        uint32_t blockDepth = 0;
+        uint32_t loopDepth  = 0;
     };
 
-    // Per-path init state: two bitsets per tracked var, parallel to the tracked list.
-    // 'must' = initialized on every path reaching this point (governs reads and drop
-    // points); 'may' = initialized on at least one path (a drop may only be elided
-    // when even 'may' is empty). Entries beyond a state's size behave as K_ALL_BITS
-    // (variable not in scope on that path, hence inert).
+    // Per-path bitsets parallel to the tracked variables: 'must' means initialized on every
+    // path and governs reads and drops; 'may' prevents drop elision if any path initialized
+    // the slot. Missing entries are K_ALL_BITS because the variable is out of scope.
     struct FlowState
     {
         SmallVector<uint64_t, 8> must;
@@ -95,27 +100,32 @@ namespace
 
         uint64_t getMust(uint32_t i) const { return i < must.size() ? must[i] : K_ALL_BITS; }
         uint64_t getMay(uint32_t i) const { return i < may.size() ? may[i] : K_ALL_BITS; }
-        void     set(uint32_t i, uint64_t mustBits, uint64_t mayBits)
+
+        void set(uint32_t i, uint64_t mustBits, uint64_t mayBits)
         {
             while (must.size() <= i)
             {
                 must.push_back(K_ALL_BITS);
                 may.push_back(K_ALL_BITS);
             }
+
             must[i] = mustBits;
             may[i]  = mayBits;
         }
+
         void add(uint32_t i, uint64_t bits) { set(i, getMust(i) | bits, getMay(i) | bits); }
     };
 
     void joinInto(FlowState& dst, const FlowState& src)
     {
         const uint32_t common = std::min(dst.must.size32(), src.must.size32());
+
         for (uint32_t i = 0; i < common; i++)
         {
             dst.must[i] &= src.must[i];
             dst.may[i] |= src.may[i];
         }
+
         // Entries only one side has behave as K_ALL_BITS on the other: the 'must'
         // intersection keeps them, the 'may' union saturates them.
         for (uint32_t i = common; i < dst.may.size32(); i++)
@@ -132,8 +142,9 @@ namespace
     // A breakable construct (loop or switch) currently being walked.
     struct BreakCtx
     {
-        bool                      acceptsContinue = false;
-        uint32_t                  blockDepth      = 0;
+        bool     acceptsContinue = false;
+        uint32_t blockDepth      = 0;
+
         SmallVector<FlowState, 2> breakStates;
     };
 
@@ -151,6 +162,7 @@ namespace
         {
             FlowState state;
             trackFullInitReceiver(state);
+
             const FlowExit exit = walk(bodyRef, state);
             if (exit == FlowExit::Normal)
                 checkFullInitExit(state);
@@ -166,22 +178,20 @@ namespace
                             sym_->setInferredFullInitialization(true);
                             markInitialAssignmentsAsConstruction(var);
                         }
+
                         continue;
                     }
 
-                    // A type with no safe default reaches codegen only after this
-                    // pass has proved that every observation is preceded by a write.
-                    // The same flag prevents materializing an impossible default.
+                    // Every observation of storage without a safe default must follow a write.
+                    // This flag also prevents codegen from materializing that impossible default.
                     if (var.needsDefiniteInit)
                     {
                         var.sym->addExtraFlag(SymbolVariableFlagsE::DefaultInitElided);
                         continue;
                     }
 
-                    // This is deliberately a late lowering decision: semantic
-                    // resolution tells us whether an initial assignment is an
-                    // ordinary store or a user opSet. We only omit storage
-                    // initialization when every first write constructs the value.
+                    // Wait for semantic resolution to distinguish stores from user opSet calls.
+                    // Omit default initialization only when every first write constructs the value.
                     if (var.defaultInitCandidate && firstInitializersCanConstruct(var))
                     {
                         var.sym->addExtraFlag(SymbolVariableFlagsE::DefaultInitElided);
@@ -200,14 +210,14 @@ namespace
                 diag.report(sema_->ctx());
             }
 
-            // A local annotated 'nullable' whose every incoming value is provably
-            // non-null (and whose address never escapes) wears a dead qualifier.
+            // Reject a nullable qualifier if all incoming values are non-null and the address never escapes.
             if (!aborted_)
             {
                 for (const NullableLocal& local : nullableLocals_)
                 {
                     if (!local.sawValue || local.keepNull)
                         continue;
+
                     hadError_ = true;
                     auto diag = SemaError::report(*sema_, DiagnosticId::sema_err_nullable_local_contract, *local.sym);
                     SemaError::setReportArguments(*sema_, diag, local.sym);
@@ -219,25 +229,32 @@ namespace
         }
 
     private:
-        Sema*                   sema_ = nullptr;
-        const SymbolFunction*   sym_  = nullptr;
+        Sema*                 sema_ = nullptr;
+        const SymbolFunction* sym_  = nullptr;
+
         std::vector<TrackedVar> vars_;
         std::vector<BreakCtx*>  breakables_;
         SmallVector<int32_t, 4> withTargets_; // tracked index or -1, innermost last
-        uint32_t                blockDepth_            = 0;
-        uint32_t                loopDepth_             = 0;
-        uint32_t                deferDepth_            = 0;
-        uint32_t                handledDepth_          = 0; // catch/expect wrappers
-        uint32_t                inlineDepth_           = 0; // inline/mixin expansions: 'return' exits the expansion, not the function
-        uint32_t                nodeCount_             = 0;
-        uint32_t                errorCount_            = 0;
-        bool                    aborted_               = false;
-        bool                    hadError_              = false;
-        int32_t                 fullInitReceiverIndex_ = -1;
+
+        uint32_t blockDepth_   = 0;
+        uint32_t loopDepth_    = 0;
+        uint32_t deferDepth_   = 0;
+        uint32_t handledDepth_ = 0; // catch/expect wrappers
+        uint32_t inlineDepth_  = 0; // inline/mixin expansions: 'return' exits the expansion, not the function
+
+        uint32_t nodeCount_  = 0;
+        uint32_t errorCount_ = 0;
+
+        bool aborted_  = false;
+        bool hadError_ = false;
+
+        int32_t fullInitReceiverIndex_ = -1;
+
         // 'nullable' return contract tracking.
         bool returnContract_ = false;
         bool returnSeen_     = false;
         bool mayReturnNull_  = false;
+
         // 'nullable' local contract tracking (function-global, not path-based): a local
         // is reported when every value it can ever hold is provably non-null.
         struct NullableLocal
@@ -246,6 +263,7 @@ namespace
             bool                  keepNull = false; // saw a possibly-null value or an escape
             bool                  sawValue = false;
         };
+
         SmallVector<NullableLocal, 8> nullableLocals_;
 
         // Shape-based proof that an expression's value cannot be null (the nodes are
@@ -285,6 +303,7 @@ namespace
                     return false;
             }
         }
+
         // Active recursion stack: a child ref can resolve back to an ancestor through
         // the substitution table (self-substituted casts); never re-enter one.
         SmallVector<AstNodeRef, 32> activeRefs_;
@@ -361,12 +380,14 @@ namespace
                     case AstNodeId::AutoCastExpr:
                         if (node.cast<AstAutoCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}))
                             return ref;
+
                         ref = node.cast<AstAutoCastExpr>().nodeExprRef;
                         break;
 
                     case AstNodeId::CastExpr:
                         if (node.cast<AstCastExpr>().modifierFlags.hasAny({AstModifierFlagsE::Try, AstModifierFlagsE::Assume}) || node.cast<AstCastExpr>().hasFlag(AstCastExprFlagsE::Fallible))
                             return ref;
+
                         ref = node.cast<AstCastExpr>().nodeExprRef;
                         break;
 
@@ -467,7 +488,8 @@ namespace
                         const AstNodeRef   identRef   = autoMember.nodeIdentRef.isValid() ? autoMember.nodeIdentRef : ref;
                         const SemaNodeView view       = sema_->viewSymbol(identRef);
                         const Symbol*      fieldSym   = view.hasSymbol() ? view.singleSymbol() : nullptr;
-                        out.fieldIndex                = fieldIndexOf(vars_[out.varIndex], fieldSym);
+
+                        out.fieldIndex = fieldIndexOf(vars_[out.varIndex], fieldSym);
                         return true;
                     }
 
@@ -495,11 +517,13 @@ namespace
                 return -1;
 
             const auto& fields = var.fieldStruct->fields();
+
             for (uint32_t i = 0; i < fields.size() && i < 63; i++)
             {
                 if (fields[i] == fieldSym)
                     return static_cast<int32_t>(i);
             }
+
             return -1;
         }
 
@@ -510,6 +534,7 @@ namespace
         {
             if (deferDepth_ || aborted_ || var.errored || errorCount_ >= K_MAX_ERRORS)
                 return;
+
             var.errored = true;
             errorCount_++;
             hadError_ = true;
@@ -520,6 +545,7 @@ namespace
                 diag.addArgument(Diagnostic::ARG_VALUE, Utf8{var.fieldStruct->fields()[fieldIndex]->name(sema_->ctx())});
             if (var.sym->codeRef().isValid() && var.sym->codeRef().srcViewRef == sema_->node(atRef).codeRef().srcViewRef)
                 diag.last().addSpan(var.sym->codeRange(sema_->ctx()), "declared here");
+
             diag.report(sema_->ctx());
         }
 
@@ -565,6 +591,7 @@ namespace
                     // declares that the incoming storage is a construction site.
                     if (var.typeHasDrop)
                         return false;
+
                     continue;
                 }
 
@@ -585,6 +612,7 @@ namespace
         {
             if (deferDepth_)
                 return;
+
             const TrackedVar& var = vars_[path.varIndex];
             if (path.fieldIndex >= 0)
                 state.add(path.varIndex, 1ull << path.fieldIndex);
@@ -601,17 +629,16 @@ namespace
             TrackedVar& var = vars_[path.varIndex];
             if (var.needsDefiniteInit)
             {
-                // An unknown callee may read through the escaped address before it
-                // writes. Require a real initialized value rather than guessing that
-                // every address-taking use is an out parameter.
+                // An unknown callee may read through the address before writing to it.
+                // Taking an address alone does not establish an output-parameter contract.
                 checkRead(state, atRef, path);
                 return;
             }
+
             if (var.defaultInitCandidate)
             {
-                // An escaped address can observe the language-mandated default before
-                // any later store. Keep that default when the callee contract is not
-                // available to this pass.
+                // An escaped address can expose the default value without a construction contract.
+                // Keep that default materialized.
                 disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
                 return;
             }
@@ -630,19 +657,21 @@ namespace
                 state.set(path.varIndex, state.getMust(path.varIndex) | (var.fullMask & ~var.lateMask), var.fullMask);
         }
 
-        // Reports whether a nested or indexed write goes THROUGH the first-level field rather
-        // than into part of it. A pointer-like field is dereferenced, so the write lands in
-        // storage the variable does not own; every other field is written in place.
+        // Pointer-like fields dereference external storage on a nested write; other fields
+        // keep the write inside the tracked aggregate.
         bool writesThroughField(const TrackedVar& var, int32_t fieldIndex) const
         {
             if (fieldIndex < 0 || !var.fieldStruct)
                 return false;
+
             const auto& fields = var.fieldStruct->fields();
             if (static_cast<size_t>(fieldIndex) >= fields.size() || !fields[fieldIndex])
                 return false;
+
             const TypeRef fieldTypeRef = fields[fieldIndex]->typeRef();
             if (!fieldTypeRef.isValid())
                 return false;
+
             const TypeInfo& type = sema_->typeMgr().unwrapAliasEnumTypeOrSelf(sema_->ctx(), fieldTypeRef);
             return type.isPointerOrReference();
         }
@@ -651,24 +680,24 @@ namespace
         {
             if (!typeRef.isValid())
                 return false;
+
             const TypeInfo& declaredType = sema_->typeMgr().get(typeRef);
             if (declaredType.isNullable())
                 return false;
+
             const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(sema_->ctx());
             return !type.isNullable() && type.isPointerLikeOrReference();
         }
 
-        // Records whether a function-level return can produce a null value. The
-        // returned expression is widened IN PLACE to the declared 'nullable' type, so
-        // the proof works on the expression's SHAPE: an address-of is never null, an
-        // identifier follows its declared type, a call follows the callee's declared
-        // return type. Everything else conservatively counts as nullable.
+        // Implicit widening retypes nodes in place, so inspect the value's original shape
+        // and declared types rather than its final semantic type.
         void noteReturnValue(AstNodeRef exprRef)
         {
             if (!returnContract_ || deferDepth_ || mayReturnNull_)
                 return;
             if (exprRef.isInvalid())
                 return;
+
             returnSeen_ = true;
 
             if (!valueShapeIsNonNull(exprRef))
@@ -679,6 +708,7 @@ namespace
         {
             if (deferDepth_)
                 return;
+
             TrackedVar& var = vars_[path.varIndex];
 
             // 'late' field read: proven set on EVERY path elides the runtime read
@@ -695,6 +725,7 @@ namespace
                     reportLateRead(atRef, var, path.fieldIndex);
                     state.add(path.varIndex, fieldBit); // suppress cascading reports
                 }
+
                 return;
             }
 
@@ -708,6 +739,7 @@ namespace
                     return;
                 if (path.fieldIndex < 0 && (bits & var.fullMask) == var.fullMask)
                     return;
+
                 reportDefiniteInitUse(atRef, var, path.fieldIndex);
                 state.set(path.varIndex, var.fullMask, var.fullMask);
                 return;
@@ -728,20 +760,25 @@ namespace
         {
             if (deferDepth_)
                 return;
+
             TrackedVar& var = vars_[varIndex];
             if (!var.typeHasDrop || var.isRetVal)
                 return;
+
             const uint64_t bits = state.getMust(varIndex);
             if ((bits & var.dropMask) == var.dropMask)
                 return;
+
             if (var.needsDefiniteInit)
             {
                 reportDefiniteInitDrop(atRef, var);
                 state.set(varIndex, var.fullMask, var.fullMask);
                 return;
             }
+
             if (!var.defaultInitCandidate)
                 return;
+
             disqualifyDefaultInitElision(state, varIndex);
         }
 
@@ -809,6 +846,7 @@ namespace
                 return;
             if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) || symVar.hasGlobalStorage())
                 return;
+
             const bool needsDefiniteInit = symVar.hasExtraFlag(SymbolVariableFlagsE::NeedsDefiniteInit);
             if (!needsDefiniteInit && hasInitExpr)
                 return;
@@ -820,14 +858,15 @@ namespace
             }
 
             SWC_UNUSED(declRef);
+
             TrackedVar var;
             var.sym        = &symVar;
             var.isRetVal   = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
             var.blockDepth = blockDepth_;
             var.loopDepth  = loopDepth_;
-            // A mixin expansion is caller text, and the declaration's symbol may
-            // be shared with another expansion. It still needs definite-init
-            // checking, but cannot carry a reusable default-elision fact.
+
+            // Mixin expansions share symbols across callers: check definite initialization,
+            // but do not reuse a caller's default-elision decision.
             var.defaultInitCandidate = !needsDefiniteInit && inlineDepth_ == 0;
             var.needsDefiniteInit    = needsDefiniteInit;
 
@@ -842,14 +881,13 @@ namespace
             const TypeInfo& type        = sema_->typeMgr().get(typeRef);
             const TypeInfo& storageType = type.unwrapAliasTypeOrSelf(sema_->ctx());
 
-            // Element-wise coverage needs a dedicated range analysis. A static array
-            // with no safe default is nevertheless a useful single construction unit:
-            // a whole-object assignment or 'Swag.init(values)' proves it initialized,
-            // while an indexed write stays conservative below.
+            // Indexed writes need range analysis to prove full coverage. Treat arrays without
+            // a safe default as one unit, initialized by whole assignment or Swag.init.
             if (storageType.isArray())
             {
                 if (!var.needsDefiniteInit)
                     return;
+
                 var.dropMask = var.typeHasDrop ? var.fullMask : 0;
             }
 
@@ -868,6 +906,7 @@ namespace
                 {
                     // The struct's own opDrop may read every field.
                     var.dropMask = var.fullMask;
+
                     for (uint32_t i = 0; i < var.fieldCount; i++)
                     {
                         if (symStruct.fields()[i]->hasExtraFlag(SymbolVariableFlagsE::LateInit))
@@ -886,6 +925,7 @@ namespace
                             lateMask |= 1ull << i;
                     }
                 }
+
                 if (lateMask)
                 {
                     // The null sentinel of a late field is observable through a
@@ -899,11 +939,11 @@ namespace
             }
             else
             {
-                // Register locals already receive ordinary dead-store elimination.
-                // They enter this pass only when their type has no safe implicit
-                // default and every observation therefore needs a proof.
+                // Register locals already receive dead-store elimination. Track them here only
+                // when their type has no safe default and each observation requires proof.
                 if (!var.needsDefiniteInit)
                     return;
+
                 var.dropMask = var.typeHasDrop ? var.fullMask : 0;
             }
 
@@ -917,6 +957,7 @@ namespace
             const SemaNodeView view = sema_->viewSymbol(declRef);
             if (!view.hasSymbol())
                 return;
+
             for (Symbol* sym : view.symbols())
             {
                 if (sym && sym->isVariable())
@@ -924,23 +965,23 @@ namespace
             }
         }
 
-        // Registers the locals with an EXPLICIT 'nullable' annotation (an inferred type
-        // has nothing to remove). Without an initializer the storage defaults to
-        // null, which keeps the qualifier meaningful.
+        // Check explicit nullable locals. Inferred types need no qualifier diagnostic,
+        // and an uninitialized nullable local may still supply its null default.
         void trackNullableLocals(AstNodeRef declRef, const AstVarDeclBase* varBase)
         {
-            // Inside an inline/mixin expansion the declaration belongs to the callee's
-            // generic code: its qualifier must stay valid across ALL instantiations.
+            // Generic inline expansions share the qualifier across all instantiations.
             if (deferDepth_ || inlineDepth_ || varBase->nodeTypeRef.isInvalid())
                 return;
 
             const SemaNodeView view = sema_->viewSymbol(declRef);
             if (!view.hasSymbol())
                 return;
+
             for (Symbol* sym : view.symbols())
             {
                 if (!sym || !sym->isVariable())
                     continue;
+
                 const auto& symVar = sym->cast<SymbolVariable>();
                 if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter) ||
                     symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ||
@@ -962,6 +1003,7 @@ namespace
                 {
                     local.keepNull = true; // defaults to null
                 }
+
                 nullableLocals_.push_back(local);
             }
         }
@@ -972,9 +1014,11 @@ namespace
             const AstNodeRef identRef = unwrap(targetRef);
             if (identRef.isInvalid() || sema_->node(identRef).isNot(AstNodeId::Identifier))
                 return;
+
             const int32_t index = indexOfVariable(nullableLocals_, identifierVariable(identRef));
             if (index < 0)
                 return;
+
             NullableLocal& local = nullableLocals_[index];
             local.sawValue       = true;
             if (escape || valueRef.isInvalid() || !valueShapeIsNonNull(valueRef))

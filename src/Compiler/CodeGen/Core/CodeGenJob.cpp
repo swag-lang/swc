@@ -39,9 +39,8 @@ namespace
         wait.symbol       = &waitedSymbol;
         wait.waiterSymbol = &waiterSymbol;
 
-        // Re-check after publishing the wait state so we do not sleep on a dependency
-        // that reached CodeGenPreSolved/Completed concurrently between the caller check
-        // and the scheduler transition to Waiting.
+        // Re-check after publishing the wait state: the dependency may finish
+        // between the caller's check and the scheduler transition to Waiting.
         if (waitedSymbol.isCodeGenPreSolved() || waitedSymbol.isCodeGenCompleted())
         {
             ctx.state().setNone();
@@ -55,6 +54,7 @@ namespace
     {
         if (result == Result::Error)
             symbolFunc.setIgnored(ctx);
+
         return Job::toJobResult(ctx, result);
     }
 }
@@ -64,9 +64,8 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
     symbolFunc_(&symbolFunc),
     root_(root)
 {
-    // Codegen must use the exact NodePayload/Ast that owns the function declaration.
-    // Generic clones keep the original source location, so resolving the payload only
-    // from srcView can bind codegen to a different AST with unrelated substitute refs.
+    // Generic clones retain source locations, so srcView alone can select the
+    // wrong AST. Use the payload context that owns the function declaration.
     nodePayloadCtx_ = const_cast<NodePayload*>(symbolFunc.declNodePayloadContext());
 
     if (!nodePayloadCtx_)
@@ -83,6 +82,7 @@ CodeGenJob::CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbo
 void CodeGenJob::initSemaAndCodeGen()
 {
     SWC_ASSERT(nodePayloadCtx_ != nullptr);
+
     ownedSema_ = std::make_unique<Sema>(ctx(), *nodePayloadCtx_, false);
     ownedSema_->enableLocalLoweringPayloads();
     codeGen_ = std::make_unique<CodeGen>(*ownedSema_);
@@ -99,11 +99,11 @@ JobResult CodeGenJob::exec()
 {
     const JobResult result = execImpl();
 
-    // A completed job stays owned by the compiler until the module ends, so what it drops here
-    // is what the module stops paying for: the lowering Sema and the CodeGen it fed, with every
-    // map and stack they grew. A sleeping job keeps both, since it resumes where it stopped.
+    // Finished jobs remain in the compiler until module end; release their
+    // sema/codegen maps and stacks now. Sleeping jobs need them to resume.
     if (result != JobResult::Sleep)
         releaseSemaAndCodeGen();
+
     return result;
 }
 
@@ -117,10 +117,12 @@ JobResult CodeGenJob::execImpl()
 {
     SWC_ASSERT(symbolFunc_);
     ctx().state().setNone();
+
     if (symbolFunc_->isIgnored())
         return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
     if (symbolFunc_->isCodeGenCompleted())
         return JobResult::Done;
+
     if (symbolFunc_->attributes().hasMacroOrMixin())
     {
         symbolFunc_->setCodeGenPreSolved(ctx());
@@ -134,6 +136,7 @@ JobResult CodeGenJob::execImpl()
     const Result selfWaitResult = sema().waitSemaCompleted(symbolFunc_, symbolFunc_->codeRef());
     if (selfWaitResult != Result::Continue)
         return abortCodeGen(ctx(), *symbolFunc_, selfWaitResult);
+
 #if SWC_DEV_MODE
     if (symbolFunc_->hasUnmaterializedGenericBody())
         panicUnmaterializedCodeGenTarget(ctx(), *symbolFunc_);
@@ -148,15 +151,18 @@ JobResult CodeGenJob::execImpl()
     {
         if (dependency->isExcludedByCondition())
             continue;
+
         const Result waitResult = sema().waitSemaCompleted(dependency, dependency->codeRef());
         if (dependency->isExcludedByCondition())
         {
             ctx().state().setNone();
             continue;
         }
+
         if (waitResult != Result::Continue)
             return abortCodeGen(ctx(), *symbolFunc_, waitResult);
     }
+
     for (const SymbolFunction* dependency : lifecycleDependencies)
     {
         if (!dependency->isExcludedByCondition())
@@ -166,29 +172,25 @@ JobResult CodeGenJob::execImpl()
     SmallVector<SymbolFunction*> deps;
     symbolFunc_->appendCallDependencies(deps);
 
-    // Collect dependencies only after sema completion. The call graph can still
-    // grow while semantic analysis is running, and codegen can discover extra
-    // lowering-time helpers later, so we refresh it again below before
-    // declaring codegen completed.
-    ///////////////////////////////////////////
+    // Sema can grow the call graph until completion. Codegen can discover more
+    // helpers, so refresh dependencies again before declaring completion.
     for (const SymbolFunction* dep : deps)
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)
             return abortCodeGen(ctx(), *symbolFunc_, depWaitResult);
+
         if (dep->isIgnored())
             return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
     }
 
-    // Schedule codegen jobs for dependencies that are not scheduled yet.
-    ///////////////////////////////////////////
+    // Schedule dependencies before generating this body.
     for (SymbolFunction* dep : deps)
     {
         sema().compiler().tryEnqueueCodeGenJob(sema(), *dep, dep->declNodeRef());
     }
 
-    // Generate micro instructions only once and mark codegen as pre-solved.
-    ///////////////////////////////////////////
+    // Sleeping jobs resume here without regenerating an already lowered body.
     if (!symbolFunc_->isCodeGenPreSolved())
     {
         SWC_ASSERT(root_.isValid());
@@ -198,8 +200,7 @@ JobResult CodeGenJob::execImpl()
 
         symbolFunc_->setCodeGenPreSolved(ctx());
 
-        // Lowered microcode persisted on the symbol for later materialization.
-        ///////////////////////////////////////////
+        // Reuse a native artifact when available; otherwise emit the lowered body.
         NativeBackendBuilder* nativeBuilder = sema().compiler().activeNativeBuilder();
         if (!nativeBuilder || !nativeBuilder->tryReuseFunction(*symbolFunc_))
         {
@@ -212,15 +213,14 @@ JobResult CodeGenJob::execImpl()
     SmallVector<SymbolFunction*> finalDeps;
     symbolFunc_->appendCallDependencies(finalDeps);
 
-    // Finalize only when every dependency observed after codegen has reached a
-    // lowered state. This preserves parallel scheduling while ensuring
-    // functions discovered during sema/codegen are also joined.
-    ///////////////////////////////////////////
+    // Join every dependency seen after codegen, including newly discovered
+    // helpers. Each must be lowered before this function is complete.
     for (SymbolFunction* dep : finalDeps)
     {
         const Result depWaitResult = sema().waitSemaCompleted(dep, dep->codeRef());
         if (depWaitResult != Result::Continue)
             return abortCodeGen(ctx(), *symbolFunc_, depWaitResult);
+
         if (dep->isIgnored())
             return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
 

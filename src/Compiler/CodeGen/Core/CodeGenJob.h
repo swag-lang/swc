@@ -15,13 +15,16 @@ public:
 
     CodeGenJob(const TaskContext& ctx, Sema& sema, SymbolFunction& symbolFunc, AstNodeRef root);
     JobResult exec() override;
+
 #if SWC_DEV_MODE
     Utf8 statsLabel() const override;
 #endif
+
     Sema&       sema() { return *ownedSema_; }
     const Sema& sema() const { return *ownedSema_; }
-    // The semantic and code-generation state exists only while the job runs. A finished job
-    // has released it, so a diagnostic that walks the job list reads nullptr here.
+
+    // Finished jobs release their state. Diagnostics walking the retained job
+    // list therefore need this nullable accessor.
     Sema*       trySema() { return ownedSema_.get(); }
     const Sema* trySema() const { return ownedSema_.get(); }
 
@@ -32,9 +35,10 @@ private:
 
     std::unique_ptr<Sema>    ownedSema_;
     std::unique_ptr<CodeGen> codeGen_;
-    SymbolFunction*          symbolFunc_     = nullptr;
-    NodePayload*             nodePayloadCtx_ = nullptr;
-    AstNodeRef               root_           = AstNodeRef::invalid();
+
+    SymbolFunction* symbolFunc_     = nullptr;
+    NodePayload*    nodePayloadCtx_ = nullptr;
+    AstNodeRef      root_           = AstNodeRef::invalid();
 };
 
 SWC_END_NAMESPACE();

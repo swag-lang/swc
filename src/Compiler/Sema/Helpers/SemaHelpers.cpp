@@ -46,6 +46,7 @@ void SemaHelpers::addCurrentScopeSymbol(Sema& sema, Symbol* sym)
 {
     SemaScope* scope = currentLocalSymbolScope(sema);
     SWC_ASSERT(scope);
+
     scope->addSymbol(sym);
     sema.compiler().notifyAlive();
 }
@@ -62,6 +63,7 @@ namespace
                 return node.cast<AstCastExpr>().nodeExprRef;
             case AstNodeId::AsCastExpr:
                 return node.cast<AstAsCastExpr>().nodeExprRef;
+
             default:
                 return AstNodeRef::invalid();
         }
@@ -85,6 +87,7 @@ namespace
         {
             case AstNodeId::ParenExpr:
                 return node.cast<AstParenExpr>().nodeExprRef;
+
             default:
                 return AstNodeRef::invalid();
         }
@@ -139,6 +142,7 @@ TypeRef SemaHelpers::ensureStructTypeRef(Sema& sema, SymbolStruct& symStruct)
     typeRef = sema.typeMgr().addType(TypeInfo::makeStruct(&symStruct));
     symStruct.setTypeRef(typeRef);
     symStruct.setTyped(sema.ctx());
+
     return typeRef;
 }
 
@@ -184,6 +188,7 @@ SymbolFunction* SemaHelpers::callableTypeFunction(TaskContext& ctx, TypeRef type
 const SymbolFunction* SemaHelpers::resolveLambdaBindingFunction(Sema& sema)
 {
     const std::span<const TypeRef> bindingTypes = sema.frame().bindingTypes();
+
     for (size_t bindingIndex = bindingTypes.size(); bindingIndex > 0; --bindingIndex)
     {
         const TypeRef bindingTypeRef = unwrapBindingType(sema.ctx(), bindingTypes[bindingIndex - 1]);
@@ -214,9 +219,8 @@ bool SemaHelpers::binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFl
     }
 }
 
-// A constant shift amount is checked here whatever the value operand is: negative, or at or
-// above the value's width, it is the same error the fold of a whole constant shift reports,
-// and it is what lets the runtime guard stay off every shift by a constant.
+// Check constant amounts even when the shifted value is runtime. Reject negative
+// or oversized amounts here so shifts by constants need no runtime guard.
 Result SemaHelpers::checkConstantShiftAmount(Sema& sema, AstNodeRef nodeRef, const TypeInfo& valueType, const SemaNodeView& amountView, AstNodeRef amountNodeRef)
 {
     if (!amountView.hasConstant() || !valueType.isInt() || valueType.isIntUnsized())
@@ -233,6 +237,7 @@ Result SemaHelpers::checkConstantShiftAmount(Sema& sema, AstNodeRef nodeRef, con
         status = Math::FoldStatus::NegativeShift;
     else if (!amount.fits64() || amount.as64() >= width)
         status = Math::FoldStatus::LargeShift;
+
     if (status == Math::FoldStatus::Ok)
         return Result::Continue;
 
@@ -243,18 +248,17 @@ Result SemaHelpers::checkConstantShiftAmount(Sema& sema, AstNodeRef nodeRef, con
 
     auto diag = SemaError::reportFoldSafety(sema, status, nodeRef, SemaError::ReportLocation::Token);
     diag.addArgument(Diagnostic::ARG_RIGHT, amountView.cstRef());
+
     const DiagnosticId labelId = status == Math::FoldStatus::NegativeShift ? DiagnosticId::sema_note_negative_shift_amount_here : DiagnosticId::sema_note_large_shift_amount_here;
     diag.last().addSpan(sema.node(amountNodeRef).codeRangeWithChildren(sema.ctx(), sema.ast()), labelId, DiagnosticSeverity::Note);
     diag.report(sema.ctx());
+
     return Result::Error;
 }
 
-// A binding type targets the expression it was pushed for, and the frame copies that carry
-// it down would otherwise reach every statement of a nested block: the u8 of
-// `var x: u8 = #run { ... }` is the type of what the block returns, not of its statements.
-// Each statement starts clean; `return` pushes the return type it binds. The block's own frame
-// is cleared in place: a frame pushed per statement would take the narrowing facts the
-// statement establishes away with it.
+// Contextual types belong to the enclosing expression, not each nested statement:
+// the u8 in var x: u8 = #run { ... } constrains the result. Clear bindings in the
+// existing frame so statement narrowing facts survive; return supplies its own type.
 void SemaHelpers::scopeBindingsForStatement(Sema& sema)
 {
     sema.frame().clearBindingTypes();
@@ -316,19 +320,20 @@ bool SemaHelpers::bindingSymbolResolvesStandalone(Sema& sema, const SymbolVariab
     if (symVar.ownerSymMap() && symVar.ownerSymMap()->isStruct())
         return false;
 
-    // A parameter resolves positionally in the function whose body is being analyzed.
-    // Another function's parameter - a macro receiver bound at the call site - has no
-    // storage there, and codegen would remap it by name onto an unrelated caller
-    // parameter.
+    // Parameters resolve by position in their owning function. A macro receiver
+    // from another function has no storage here and could otherwise be remapped
+    // by name to an unrelated caller parameter.
     if (symVar.hasExtraFlag(SymbolVariableFlagsE::Parameter))
     {
         const SymbolFunction* fn = sema.currentFunction();
         if (!fn)
             return false;
+
         const auto& params = fn->parameters();
         const auto  index  = symVar.parameterIndex();
         if (index < params.size() && params[index] == &symVar)
             return true;
+
         return std::ranges::find(params, &symVar) != params.end();
     }
 
@@ -352,8 +357,7 @@ AstNodeRef SemaHelpers::resolveTransparentConditionExprSourceRef(Sema& sema, Ast
 
 namespace
 {
-    // Resolve substitutes and unwrap transparent wrappers (parens, casts) down to the
-    // expression that actually carries the narrowing information.
+    // Follow substitutes and transparent wrappers to the expression carrying the fact.
     AstNodeRef resolveNarrowSourceRef(Sema& sema, AstNodeRef nodeRef)
     {
         for (int depth = 0; depth < 16 && nodeRef.isValid(); depth++)
@@ -393,6 +397,7 @@ namespace
         {
             case SemaNarrowFactKind::NonNull:
                 return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isNullable();
+
             case SemaNarrowFactKind::NonZero:
                 return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isIntLike();
         }
@@ -409,9 +414,8 @@ namespace
 
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::GlobalStorage) || symVar.hasGlobalStorage())
         {
-            // An ordinary inline body was already checked with its receiver parameter as
-            // a stable narrowing root. Direct receiver substitution can turn that root
-            // into a global variable at the call site; keep the callee's local proof valid.
+            // Inlining can substitute a global for an already-validated receiver
+            // parameter. Preserve the callee's local narrowing proof.
             const SemaInlinePayload* inlinePayload = SemaHelpers::effectiveInlinePayload(sema);
             if (!inlinePayload || !inlinePayload->sourceFunction)
                 return false;
@@ -459,6 +463,7 @@ namespace
         {
             case SemaNarrowFactKind::NonNull:
                 return narrowOperandIsNullLiteral(sema, nodeRef);
+
             case SemaNarrowFactKind::NonZero:
                 return narrowOperandIsZeroLiteral(sema, nodeRef);
         }
@@ -484,18 +489,16 @@ namespace
         if (!SemaHelpers::extractNarrowPath(sema, resolvedRef, path))
             return;
 
-        // Check the DECLARED type of the path's last component: by the time guards are
-        // collected, the condition expression node itself may already have been cast to
-        // bool by the truthiness check.
+        // Use the path's declared type: the condition node may already have
+        // been converted to bool by the truthiness check.
         if (!narrowTypeAcceptsKind(sema, path.back()->typeRef(), kind))
             return;
 
         appendNarrowFact(facts, path, kind);
     }
 
-    // `x != <sentinel>` proves the fact on the true edge, `x == <sentinel>` on the false
-    // one. Returns false when the comparison is not against this kind's sentinel, so the
-    // caller can try the next kind.
+    // != sentinel proves the true edge; == sentinel proves the false edge.
+    // A missing sentinel returns false so the caller can try another fact kind.
     bool collectSentinelComparisonGuard(Sema& sema, const AstRelationalExpr& relational, TokenId op, SemaNarrowFactKind kind, SemaHelpers::NarrowGuards& out)
     {
         const bool leftIsSentinel  = narrowOperandIsSentinel(sema, relational.nodeLeftRef, kind);
@@ -505,6 +508,7 @@ namespace
 
         const AstNodeRef targetRef = leftIsSentinel ? relational.nodeRightRef : relational.nodeLeftRef;
         collectNarrowGuardFromExpr(sema, targetRef, kind, op == TokenId::SymBangEqual ? out.whenTrue : out.whenFalse);
+
         return true;
     }
 }
@@ -514,8 +518,7 @@ bool SemaHelpers::extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4
     if (nodeRef.isInvalid())
         return false;
 
-    // Unwrap substitutes and transparent wrappers (parens, casts): they do not change
-    // which storage path is being accessed.
+    // Transparent wrappers and substitutes preserve the accessed storage path.
     const AstNodeRef resolvedRef = resolveNarrowSourceRef(sema, nodeRef);
     if (!resolvedRef.isValid())
         return false;
@@ -538,10 +541,10 @@ bool SemaHelpers::extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4
             return false;
 
         outPath.push_back(rightSym);
+
         return true;
     }
 
-    // Leaf: a resolved variable usable as a narrowing root.
     const SemaNodeView view = sema.view(resolvedRef, SemaNodeViewPartE::Symbol);
     const Symbol*      sym  = view.singleSymbol();
     if (!sym || !sym->isVariable())
@@ -550,6 +553,7 @@ bool SemaHelpers::extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4
         return false;
 
     outPath.push_back(sym);
+
     return true;
 }
 
@@ -570,10 +574,13 @@ void SemaHelpers::collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuar
 
             NarrowGuards child;
             collectNarrowGuards(sema, unary.nodeExprRef, child);
+
             for (auto& fact : child.whenTrue)
                 out.whenFalse.push_back(std::move(fact));
+
             for (auto& fact : child.whenFalse)
                 out.whenTrue.push_back(std::move(fact));
+
             return;
         }
 
@@ -582,13 +589,14 @@ void SemaHelpers::collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuar
             const auto&  logical = node.cast<AstLogicalExpr>();
             NarrowGuards left;
             NarrowGuards right;
+
             collectNarrowGuards(sema, logical.nodeLeftRef, left);
             collectNarrowGuards(sema, logical.nodeRightRef, right);
 
             const TokenId op = sema.token(logical.codeRef()).id;
             if (op == TokenId::KwdAnd)
             {
-                // `a and b` true ⇒ both sides true.
+                // Both operands are true on the true edge of and.
                 for (auto& fact : left.whenTrue)
                     out.whenTrue.push_back(std::move(fact));
                 for (auto& fact : right.whenTrue)
@@ -596,7 +604,7 @@ void SemaHelpers::collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuar
             }
             else if (op == TokenId::KwdOr)
             {
-                // `a or b` false ⇒ both sides false.
+                // Both operands are false on the false edge of or.
                 for (auto& fact : left.whenFalse)
                     out.whenFalse.push_back(std::move(fact));
                 for (auto& fact : right.whenFalse)
@@ -615,14 +623,14 @@ void SemaHelpers::collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuar
 
             if (collectSentinelComparisonGuard(sema, relational, op, SemaNarrowFactKind::NonNull, out))
                 return;
+
             collectSentinelComparisonGuard(sema, relational, op, SemaNarrowFactKind::NonZero, out);
             return;
         }
 
         default:
-            // Bare truthiness. Only the non-null reading is inferred here: `if count` is a
-            // very common shape, and recording a fact no consumer reads would slow every
-            // narrowing query down for nothing. A non-zero proof must be spelled `!= 0`.
+            // Bare truthiness infers only presence. Require != 0 for non-zero
+            // proofs, avoiding unused facts on common conditions such as if count.
             collectNarrowGuardFromExpr(sema, resolvedRef, SemaNarrowFactKind::NonNull, out.whenTrue);
     }
 }
@@ -632,10 +640,9 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
     if (!typeRef.isValid() || !sema.frame().hasNarrowFacts())
         return TypeRef::invalid();
 
-    // Prefer stripping the Nullable flag from the type IN PLACE so the narrowed type
-    // keeps its exact structure (alias identity included); unwrap aliases only to find
-    // a flag hidden behind them. Most types carry no such flag, and a guarded region views
-    // every one of them: that answer comes before the current node is read.
+    // Preserve alias identity by clearing Nullable on the original type; unwrap
+    // only to find a hidden flag. Most types are not nullable, so reject them
+    // before reading the current node.
     const TypeInfo* nullableType = &sema.typeMgr().get(typeRef);
     if (!nullableType->isNullable())
     {
@@ -664,6 +671,7 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
                 {
                     SmallVector<AstNodeRef> targets;
                     sema.node(leftRef).collectChildrenFromAst(targets, sema.ast());
+
                     for (const AstNodeRef targetRef : targets)
                     {
                         if (sema.resolvedNodeRef(targetRef) == nodeRef)
@@ -683,16 +691,15 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
 
     TypeInfo resultType = *nullableType;
     resultType.removeFlag(TypeInfoFlagsE::Nullable);
+
     return sema.typeMgr().addType(resultType);
 }
 
 namespace
 {
-    // Whether a plain 'break' written inside 'nodeRef' would leave the loop this walk started
-    // from. Only an unlabelled break at the loop's own nesting level does: one written inside a
-    // nested loop or switch belongs to that construct. A labelled break names a scope this
-    // walk cannot resolve, so it is not counted - a missed exit only ever costs a diagnostic
-    // that is not raised, while a wrongly counted one rejects a correct program.
+    // Count only breaks leaving this loop. Nested loops/switches own their
+    // breaks, and labelled exits need scope resolution this walk does not have.
+    // Ignoring uncertain exits can miss a diagnostic; counting one can reject valid code.
     bool loopBodyBreaksOut(Sema& sema, AstNodeRef nodeRef)
     {
         if (nodeRef.isInvalid())
@@ -721,6 +728,7 @@ namespace
 
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, sema.ast());
+
         return std::ranges::any_of(children, [&](AstNodeRef childRef) { return loopBodyBreaksOut(sema, childRef); });
     }
 
@@ -733,6 +741,7 @@ namespace
         const size_t count = sema.ast().spanSize(body.spanChildrenRef);
         if (!count)
             return false;
+
         const AstNodeRef lastRef = sema.ast().nthNode(body.spanChildrenRef, count - 1);
         return lastRef.isValid() && sema.node(lastRef).is(AstNodeId::FallThroughStmt);
     }
@@ -742,13 +751,12 @@ namespace
         const SemaNodeView view = sema.viewSymbol(callRef);
         if (!view.hasSymbol() || !view.sym()->isFunction())
             return false;
+
         return view.sym()->cast<SymbolFunction>().attributes().hasRtFlag(RtAttributeFlagsE::NoReturn);
     }
 
-    // A 'switch' leaves the function when no value can walk past it: every case body leaves,
-    // and some case always matches. '#complete' is that second half for an enum - the promise
-    // the language lets the user make, and the reason the dispatch carries no range test once
-    // its guard is off.
+    // Every case must leave, and some case must always match. For enums,
+    // #complete supplies that guarantee even when its runtime range guard is off.
     bool switchStopsFunctionFlow(Sema& sema, AstNodeRef switchRef, const AstNode& node)
     {
         const auto& switchStmt = node.cast<AstSwitchStmt>();
@@ -757,12 +765,14 @@ namespace
 
         SmallVector<AstNodeRef> caseBodies;
         sema.ast().appendNodes(caseBodies, switchStmt.spanChildrenRef);
+
         size_t count = 0;
         for (const AstNodeRef childRef : caseBodies)
         {
             if (childRef.isValid() && sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
                 caseBodies[count++] = sema.node(childRef).cast<AstSwitchCaseStmt>().nodeBodyRef;
         }
+
         caseBodies.resize(count);
 
         for (uint32_t i = 0; i < caseBodies.size32(); i++)
@@ -770,9 +780,8 @@ namespace
             if (SemaHelpers::stopsLocalFlow(sema, caseBodies[i], SemaHelpers::LocalFlowStop::Function))
                 continue;
 
-            // A body ending in 'fallthrough' continues into the next one, and every body is
-            // judged, so the chain leaves the function as long as it does not fall out of the
-            // last case - which the parser does not let it do anyway.
+            // Fallthrough reaches the next case, which is checked separately.
+            // The parser already prevents fallthrough past the final case.
             if (i + 1 < caseBodies.size32() && endsWithFallthrough(sema, caseBodies[i]))
                 continue;
 
@@ -806,6 +815,7 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
         case AstNodeId::IntrinsicCallExpr:
             if (node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicPanic)
                 return true;
+
             return callsNoReturnFunction(sema, nodeRef);
 
         case AstNodeId::CallExpr:
@@ -823,8 +833,7 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
             return ifVarDecl.nodeElseBlockRef.isValid() && stopsLocalFlow(sema, ifVarDecl.nodeIfBlockRef, stop) && stopsLocalFlow(sema, ifVarDecl.nodeElseBlockRef, stop);
         }
 
-        // Its case bodies are judged on the function question: a 'break' in one of them leaves
-        // the switch, not the block holding it.
+        // A case break leaves the switch, so test case bodies for function exits.
         case AstNodeId::SwitchStmt:
             return switchStopsFunctionFlow(sema, nodeRef, node);
 
@@ -835,9 +844,11 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
         {
             if (stop != LocalFlowStop::Function)
                 return false;
+
             const auto& whileStmt = node.cast<AstWhileStmt>();
             if (sema.viewConstant(whileStmt.nodeExprRef).cstRef() != sema.cstMgr().cstTrue())
                 return false;
+
             return !loopBodyBreaksOut(sema, whileStmt.nodeBodyRef);
         }
 
@@ -852,17 +863,16 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
             if (children.empty())
                 return false;
 
-            // A block leaves the function as soon as ONE of its statements does; the block
-            // rules only care about the last one, since a statement after a jump is dead and
-            // reported as such rather than judged here.
+            // Any function-exiting statement stops the body. Block checks use
+            // only the last statement; unreachable-code checking handles earlier jumps.
             if (stop != LocalFlowStop::Function)
                 return stopsLocalFlow(sema, children.back(), stop);
+
             return std::ranges::any_of(children, [&](AstNodeRef childRef) { return stopsLocalFlow(sema, childRef, stop); });
         }
 
-        // Statements that hold a body without being a jump of their own. They only answer the
-        // 'Function' question: for the block rules a '#static if' or a 'with' is one statement
-        // among others, and treating it as a jump would report the next one as unreachable.
+        // These statements contain bodies but are not block-level jumps.
+        // Inspect them only for function exits, avoiding false unreachable reports.
         case AstNodeId::WithStmt:
         case AstNodeId::CompilerIf:
         case AstNodeId::CompilerSwitch:
@@ -871,8 +881,10 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
         {
             if (stop != LocalFlowStop::Function)
                 return false;
+
             SmallVector<AstNodeRef> children;
             node.collectChildrenFromAst(children, sema.ast());
+
             return std::ranges::any_of(children, [&](AstNodeRef childRef) { return stopsLocalFlow(sema, childRef, stop); });
         }
 
@@ -893,9 +905,8 @@ void SemaHelpers::addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFac
 
 namespace
 {
-    // Walk an assignment (or address-of) target down to its leftmost root identifier,
-    // without requiring the subtree to be sema'd. Returns the collected root identifier,
-    // or sets `outKillAll` when the write cannot be attributed to a single root.
+    // Find assignment/address-of roots before semantic resolution. Set outKillAll
+    // when syntax cannot identify one root.
     void collectNarrowWrittenRoot(Sema& sema, AstNodeRef nodeRef, SmallVector8<IdentifierRef>& outRoots, bool& outKillAll)
     {
         while (nodeRef.isValid())
@@ -921,12 +932,13 @@ namespace
                     const IdentifierRef idRef = SemaHelpers::resolveIdentifier(sema, node.codeRef());
                     if (idRef.isValid())
                         outRoots.push_back(idRef);
+
                     return;
                 }
 
                 default:
-                    // Index writes (`a[i] = ...`) and other shapes never re-null a tracked
-                    // pointer path (paths never traverse an indexing), so ignore them.
+                    // Tracked paths never traverse indexing, so indexed writes cannot
+                    // invalidate a tracked pointer path.
                     return;
             }
         }
@@ -941,6 +953,7 @@ namespace
         {
             const AstNodeRef nodeRef = stack.back();
             stack.pop_back();
+
             if (nodeRef.isInvalid())
                 continue;
 
@@ -995,9 +1008,8 @@ void SemaHelpers::killNarrowFactsForLoopBody(Sema& sema, AstNodeRef bodyRef, Sem
 
 void SemaHelpers::killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, bool nonNull)
 {
-    // Adding a positive fact is only useful when narrowing is possible at all; killing is
-    // only needed when something is currently narrowed. A fact can live in a frame below the
-    // top one, so the question is asked of every live frame.
+    // Kills matter only while facts are live. Search every frame because an
+    // enclosing region may hold the proof even when the top frame has none.
     if (!nonNull && !sema.anyFrameHasNarrowFacts())
         return;
 
@@ -1019,10 +1031,9 @@ void SemaHelpers::killNarrowPathAfterStatement(Sema& sema, AstNodeRef exprRef, b
     }
     else
     {
-        // A kill must outlive any enclosing region that proved the path non-null. It is NOT
-        // restricted to nullable-declared paths: aliasing a plain struct is exactly what lets
-        // a callee rewrite the nullable fields reached through it, and a kill on the prefix is
-        // what drops their proofs.
+        // Invalidate every region proving this path or a descendant. A plain
+        // struct prefix still matters: aliasing it lets a callee rewrite its
+        // nullable fields, so the prefix itself need not be nullable.
         sema.addNarrowKillAllFrames({path.data(), path.size()});
     }
 }

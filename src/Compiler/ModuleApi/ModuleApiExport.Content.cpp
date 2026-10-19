@@ -741,6 +741,7 @@ namespace
         ModuleApiOrderedEntry entry;
         entry.namespacePath.assign(namespacePath.begin(), namespacePath.end());
         entry.snippets.push_back(std::move(snippet));
+
         outEntries.push_back(std::move(entry));
     }
 
@@ -763,22 +764,26 @@ namespace
         ModuleApiOrderedEntry entry;
         entry.namespacePath.assign(namespacePath.begin(), namespacePath.end());
         entry.snippets.push_back(std::move(snippet));
+
         entry.implPrefix = std::move(implPrefix);
         entry.file       = &file;
         entry.implRef    = implRef;
         entry.isImpl     = true;
+
         outEntries.push_back(std::move(entry));
     }
 
     void appendOrderedEntries(TaskContext& ctx, Utf8& outContent, std::span<const ModuleApiOrderedEntry> entries, std::string_view eol)
     {
         std::vector<IdentifierRef> openNamespacePath;
+
         for (const ModuleApiOrderedEntry& entry : entries)
         {
             const uint32_t sharedCount = commonNamespacePrefixCount(openNamespacePath, entry.namespacePath);
             closeNamespaceBlocks(outContent, openNamespacePath, sharedCount, eol);
             openNamespaceBlocks(ctx, outContent, entry.namespacePath, sharedCount, eol);
             openNamespacePath = entry.namespacePath;
+
             appendOrderedEntryContent(outContent, entry, eol);
         }
 
@@ -797,22 +802,26 @@ namespace
         outContent += eol;
 
         std::vector<ModuleApiOrderedEntry> orderedEntries;
-        std::unordered_set<Utf8>           emittedUsingKeys;
-        PointerSet<const SourceFile>       usingFiles;
+
+        std::unordered_set<Utf8>     emittedUsingKeys;
+        PointerSet<const SourceFile> usingFiles;
 
         for (size_t rootIndex = 0; rootIndex < roots.size(); ++rootIndex)
         {
-            const ModuleApiGeneratedRoot& root             = roots[rootIndex];
-            Utf8&                         sanitizedSnippet = snippets[rootIndex];
+            const ModuleApiGeneratedRoot& root = roots[rootIndex];
+
+            Utf8& sanitizedSnippet = snippets[rootIndex];
             if (root.file && usingFiles.insert(root.file))
             {
                 std::vector<ModuleApiUsingSnippet> usingSnippets;
                 SWC_RESULT(collectFileUsingSnippets(ctx, *root.file, moduleNamespace, eol, usingSnippets));
+
                 for (ModuleApiUsingSnippet& usingSnippet : usingSnippets)
                 {
                     Utf8 usingKey = buildNamespacePathKey(ctx, usingSnippet.namespacePath);
                     usingKey += '\n';
                     usingKey += usingSnippet.snippet;
+
                     if (!emittedUsingKeys.insert(usingKey).second)
                         continue;
 
@@ -865,12 +874,14 @@ namespace
         prefix += eol;
         prefix += "#global public";
         prefix += eol;
+
         if (!ioContent.starts_with(prefix))
             return Result::Error;
 
         ioContent.erase(0, prefix.size());
         if (ioContent.starts_with(eol))
             ioContent.erase(0, eol.size());
+
         return Result::Continue;
     }
 
@@ -884,6 +895,7 @@ namespace
         size_t pos = 0;
         Utf8   trimmed;
         bool   emittedAnyPreambleLine = false;
+
         while (pos < ioContent.size())
         {
             const size_t lineStart = pos;
@@ -897,6 +909,7 @@ namespace
                 pos = lineEnd;
                 while (pos < ioContent.size() && (ioContent[pos] == '\r' || ioContent[pos] == '\n'))
                     ++pos;
+
                 continue;
             }
 
@@ -961,6 +974,7 @@ namespace ModuleApiExport
 
         tokenizeAndRemoveModuleApiAttributes(ctx, content, NON_CONSUMER_ATTRIBUTES);
         normalizeModuleApiAttributes(ctx, content);
+
         return content;
     }
 
@@ -987,17 +1001,12 @@ namespace ModuleApiExport
         outContent += "#global public";
         outContent += eol;
 
-        // The native libraries this module's own code calls into travel with its interface.
-        //
-        // While a consumer only imports the module, they are the shared library's business, and it
-        // resolved them when it was linked. The moment a consumer links this module's code in
-        // instead, they become undefined symbols of that link, and nothing the consumer wrote names
-        // the library defining them: 'gui' calling 'DwmSetWindowAttribute' is what an executable
-        // ends up having to resolve against 'dwmapi'.
-        // Registration follows parallel semantic completion; the published interface has a
-        // stable order regardless of which worker first encountered each library.
+        // Native dependencies must travel with the API when consumers link the
+        // module's code into their own executable (for example, gui needs dwmapi).
+        // Sort registrations discovered by parallel semantic workers.
         auto foreignLibs = ctx.compiler().foreignLibs();
         std::ranges::sort(foreignLibs);
+
         for (const Utf8& foreignLib : foreignLibs)
         {
             outContent += "#foreignlib(\"";
@@ -1006,12 +1015,13 @@ namespace ModuleApiExport
             outContent += eol;
         }
 
-        // Split the roots into per-source-file contiguous groups (cheap, sequential).
+        // Split roots into contiguous groups by source file.
         struct RootGroup
         {
             size_t start;
             size_t count;
         };
+
         std::vector<RootGroup> groups;
         for (size_t rootIndex = 0; rootIndex < roots.size();)
         {
@@ -1019,6 +1029,7 @@ namespace ModuleApiExport
             size_t            nextIndex  = rootIndex + 1;
             while (nextIndex < roots.size() && roots[nextIndex].file == sourceFile)
                 ++nextIndex;
+
             groups.push_back({rootIndex, nextIndex - rootIndex});
             rootIndex = nextIndex;
         }
@@ -1034,44 +1045,66 @@ namespace ModuleApiExport
         // large generated modules such as ogl.
         std::vector<Utf8> rootSnippets(roots.size());
         std::vector       groupResults(groups.size(), Result::Continue);
-        JobManager&       jobMgr = ctx.global().jobMgr();
-        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t g) {
-            ModuleApiValidationStack groupValidationStack;
-            groupValidationStack.supportingSymbols = &supportingSymbols;
-            const size_t groupEnd                  = groups[g].start + groups[g].count;
-            for (size_t rootIndex = groups[g].start; rootIndex < groupEnd; ++rootIndex)
-            {
-                groupResults[g] = buildGeneratedRootSnippet(workerCtx, roots[rootIndex], eol, rootSnippets[rootIndex], groupValidationStack);
-                if (groupResults[g] != Result::Continue)
-                    break;
-            }
-        });
+
+        JobManager& jobMgr = ctx.global().jobMgr();
+        jobMgr.parallelForIndexed(
+            ctx,
+            static_cast<uint32_t>(groups.size()),
+            JobKind::ModuleApiExport,
+            ctx.compiler().jobClientId(),
+            [&](TaskContext& workerCtx, uint32_t g) {
+                ModuleApiValidationStack groupValidationStack;
+
+                groupValidationStack.supportingSymbols = &supportingSymbols;
+
+                const size_t groupEnd = groups[g].start + groups[g].count;
+                for (size_t rootIndex = groups[g].start; rootIndex < groupEnd; ++rootIndex)
+                {
+                    groupResults[g] = buildGeneratedRootSnippet(workerCtx, roots[rootIndex], eol, rootSnippets[rootIndex], groupValidationStack);
+                    if (groupResults[g] != Result::Continue)
+                        break;
+                }
+            });
 
         for (const Result groupResult : groupResults)
             SWC_RESULT(groupResult);
 
         std::unordered_set<Utf8> emittedPreambleLines;
 
-        // Build each group's content in parallel. Snippet bytes are moved into their final
-        // ordered entries by one group.
+        // Each group moves its cached snippets into its own ordered output.
         std::vector<Utf8> groupContents(groups.size());
         std::ranges::fill(groupResults, Result::Continue);
-        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(groups.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t g) {
-            groupResults[g] = buildGeneratedModuleApiContent(workerCtx, roots.subspan(groups[g].start, groups[g].count), std::span{rootSnippets}.subspan(groups[g].start, groups[g].count), moduleNamespace, eol, groupContents[g]);
-        });
+
+        jobMgr.parallelForIndexed(
+            ctx,
+            static_cast<uint32_t>(groups.size()),
+            JobKind::ModuleApiExport,
+            ctx.compiler().jobClientId(),
+            [&](TaskContext& workerCtx, uint32_t g) {
+                groupResults[g] = buildGeneratedModuleApiContent(
+                    workerCtx,
+                    roots.subspan(groups[g].start, groups[g].count),
+                    std::span{rootSnippets}.subspan(groups[g].start, groups[g].count),
+                    moduleNamespace,
+                    eol,
+                    groupContents[g]);
+            });
 
         bool appendedBlock = false;
         for (size_t g = 0; g < groups.size(); ++g)
         {
             SWC_RESULT(groupResults[g]);
+
             Utf8& fileContent = groupContents[g];
             SWC_RESULT(removeGeneratedModuleApiHeader(fileContent, moduleNamespace, eol));
             trimLeadingGeneratedModulePreamble(fileContent, emittedPreambleLines, eol);
+
             if (!fileContent.empty())
             {
                 outContent += eol;
                 if (appendedBlock && !outContent.ends_with(eol))
                     outContent += eol;
+
                 outContent += fileContent;
                 appendedBlock = true;
             }
@@ -1079,7 +1112,9 @@ namespace ModuleApiExport
 
         const Utf8 tripleBreak = std::format("{}{}{}", eol, eol, eol);
         const Utf8 doubleBreak = std::format("{}{}", eol, eol);
+
         outContent.replace_loop(tripleBreak.view(), doubleBreak.view());
+
         return formatGeneratedModuleApiContent(ctx, outContent);
     }
 }

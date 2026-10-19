@@ -40,7 +40,6 @@ namespace
         {
             const char ch = input[i];
 
-            // Toggle quote states
             if (ch == '\'' && !inDoubleQuote)
             {
                 inSingleQuote = !inSingleQuote;
@@ -57,7 +56,6 @@ namespace
                 continue;
             }
 
-            // If not inside quotes, check for substring match
             if (!inSingleQuote && !inDoubleQuote && input.compare(i, from.size(), from) == 0)
             {
                 result += to;
@@ -123,7 +121,6 @@ void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopRep
     Utf8 current = *this;
     Utf8 next    = replaceOutsideQuotes(current, from, to);
 
-    // Loop until no more changes if requested
     if (loopReplace)
     {
         while (next != current)
@@ -138,15 +135,14 @@ void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopRep
 
 void Utf8::push_back_uni(char32_t cp)
 {
-    // Replace invalid values (surrogates or > U+10FFFF) with U+FFFD
+    // Encode invalid code points as the UTF-8 replacement character (U+FFFD).
     if ((cp >= 0xD800 && cp <= 0xDFFF) || cp > 0x10FFFF)
     {
-        // U+FFFD in UTF-8
         this->append("\xEF\xBF\xBD");
         return;
     }
 
-    // Reserve up to 4 extra bytes (max UTF-8 length)
+    // A Unicode scalar needs at most four UTF-8 bytes.
     this->reserve(this->size() + 4);
 
     if (cp <= 0x7F)

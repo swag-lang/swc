@@ -46,6 +46,7 @@ namespace
             case FormatLiteralCase::Preserve:
                 break;
         }
+
         return c;
     }
 
@@ -99,6 +100,7 @@ namespace
             if (c != '_')
                 cleaned += applyLiteralCase(c, digitCase);
         }
+
         return cleaned;
     }
 
@@ -133,8 +135,10 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
 {
     srcView_ = &srcView;
     options_ = &options;
+
     pieces_.clear();
     gaps_.clear();
+
     blocks_.clear();
     inlineBodies_.clear();
     logicalExpressions_.clear();
@@ -142,6 +146,7 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
     hangingLines_.clear();
     branchChains_.clear();
     functionBodies_.clear();
+
     ownedTexts_.clear();
 
     const auto& tokens = srcView.tokens();
@@ -167,6 +172,7 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
         piece.byteStart = byteStart;
         piece.id        = id;
         piece.isComment = id == TokenId::CommentLine || id == TokenId::CommentBlock;
+
         if (tokenIndex != FormatPiece::INVALID_INDEX)
             tokenToPiece_[tokenIndex] = static_cast<uint32_t>(pieces_.size());
         pieces_.push_back(piece);
@@ -310,6 +316,7 @@ void FormatModel::computeBrackets()
                         pieces_[openIndex].match = i;
                     }
                 }
+
                 piece.depth = static_cast<uint32_t>(stack.size());
                 break;
             }
@@ -331,6 +338,7 @@ void FormatModel::setGapSpaces(const uint32_t pieceIndex, const uint32_t spaces)
 {
     FormatGap& gap = gaps_[pieceIndex];
     SWC_ASSERT(!gap.frozen);
+
     gap.modified = true;
     gap.newlines = 0;
     gap.spaces   = spaces;
@@ -342,6 +350,7 @@ void FormatModel::setGapBreak(const uint32_t pieceIndex, const uint32_t newlines
     FormatGap& gap = gaps_[pieceIndex];
     SWC_ASSERT(!gap.frozen);
     SWC_ASSERT(newlines > 0);
+
     gap.modified = true;
     gap.newlines = newlines;
     gap.spaces   = 0;
@@ -352,6 +361,7 @@ void FormatModel::replaceText(const uint32_t pieceIndex, Utf8 text)
 {
     FormatPiece& piece = pieces_[pieceIndex];
     SWC_ASSERT(!piece.frozen);
+
     ownedTexts_.push_back(std::move(text));
     piece.text     = ownedTexts_.back().view();
     piece.replaced = true;
@@ -371,6 +381,7 @@ bool FormatModel::rangeEditable(const uint32_t first, const uint32_t last) const
         if (piece(i).frozen || gapBefore(i).frozen)
             return false;
     }
+
     return true;
 }
 
@@ -381,15 +392,12 @@ bool FormatModel::gapHasNewline(const uint32_t pieceIndex) const
 
 uint32_t FormatModel::gapNewlineCount(const uint32_t pieceIndex) const
 {
-    // Counted once when the model was built for an original gap, and set by whoever
-    // modified it since: every pass reads this for every piece it looks at.
+    // Cached when the gap is built or modified; every formatting pass reads it.
     const uint32_t newlines = gaps_[pieceIndex].newlines;
 
-    // The blank-line caps are applied when the gap is rendered, so a pass that
-    // reads the raw count reasons about a layout the reader will never see: a
-    // run of three blank lines that renders as one would still break an
-    // `across-blanks` alignment group, and the next run of the formatter —
-    // seeing the collapsed file — would align it after all.
+    // Use the rendered blank-line cap here as well. Reading raw counts could
+    // split an alignment group that becomes contiguous after rendering,
+    // making the next formatting pass produce a different result.
     return std::min(newlines, maxAllowedNewlines(pieceIndex));
 }
 
@@ -398,6 +406,7 @@ uint32_t FormatModel::gapColumns(const uint32_t pieceIndex) const
     const FormatGap& gap = gaps_[pieceIndex];
     if (gap.modified)
         return gap.spaces;
+
     return textColumns(gap.origText, std::max(options_->tabWidth, 1u));
 }
 
@@ -436,6 +445,7 @@ uint32_t FormatModel::lineStartOf(const uint32_t pieceIndex) const
         const uint32_t prev = prevPiece(current);
         if (prev == FormatPiece::INVALID_INDEX)
             return current;
+
         current = prev;
     }
 }
@@ -450,6 +460,7 @@ std::string_view FormatModel::lineIndentOf(const uint32_t pieceIndex) const
     const size_t lastEol = gap.origText.find_last_of("\r\n");
     if (lastEol == std::string_view::npos)
         return lineStart == 0 ? gap.origText : std::string_view{};
+
     return gap.origText.substr(lastEol + 1);
 }
 
@@ -461,6 +472,7 @@ void FormatModel::collectLineStarts(std::vector<uint32_t>& out) const
     {
         if (pieces_[i].removed)
             continue;
+
         if (atLineStart || gapHasNewline(i))
             out.push_back(i);
         atLineStart = false;
@@ -533,6 +545,7 @@ void FormatModel::render(Utf8& output) const
     {
         if (pieces_[i].removed)
             continue;
+
         renderGap(output, i);
         renderPiece(output, i);
     }
@@ -615,6 +628,7 @@ void FormatModel::renderOriginalGap(Utf8& output, const uint32_t gapIndex) const
                     output += "\r\n";
                 else
                     output += c;
+
                 emittedNewlines++;
                 atLineStart = true;
             }
@@ -700,6 +714,7 @@ void FormatModel::renderCommentPiece(Utf8& output, const FormatPiece& piece) con
         {
             if (index + 1 < piece.text.size() && piece.text[index + 1] == '\n')
                 index++;
+
             appendEol(output);
             index++;
             continue;
@@ -797,6 +812,7 @@ void FormatModel::renderNumberPiece(Utf8& output, const FormatPiece& piece) cons
                 out += expTail[0];
                 expTail = expTail.substr(1);
             }
+
             if (options_->normalizeDigitSeparators.value_or(false))
                 appendDigitsRegrouped(out, expTail, groupSize, FormatLiteralCase::Preserve);
             else
@@ -847,6 +863,7 @@ void FormatModel::appendIndent(Utf8& output, const std::string_view indentText) 
                 else if (c == ' ')
                     columns++;
             }
+
             output.append(columns / indentWidth, '\t');
             output.append(columns % indentWidth, ' ');
             break;
@@ -862,6 +879,7 @@ void FormatModel::appendIndent(Utf8& output, const std::string_view indentText) 
                 else if (c == ' ')
                     columns++;
             }
+
             output.append(columns, ' ');
             break;
         }

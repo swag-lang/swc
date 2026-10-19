@@ -33,6 +33,7 @@ namespace
     {
         if (!symVar || symVar->decl() != decl)
             return false;
+
         return !tokRef.isValid() || symVar->tokRef() == tokRef;
     }
 
@@ -42,6 +43,7 @@ namespace
             return;
         if (symbol->tokRef().isValid() && symbol->tokRef().get() > nodeTokRef.get())
             return;
+
         if (!ioBestMatch ||
             !ioBestMatch->tokRef().isValid() ||
             (symbol->tokRef().isValid() && ioBestMatch->tokRef().get() < symbol->tokRef().get()))
@@ -168,9 +170,8 @@ namespace
 
     bool tryResolveImplicitReceiverFieldPayload(CodeGen& codeGen, const SymbolVariable& symVar, CodeGenNodePayload& outPayload)
     {
-        // A static (per-impl) data member has its own global storage; even though it
-        // is nominally a member of the receiver struct, it must never be addressed
-        // relative to the receiver instance. Let it fall through to the global path.
+        // Static impl members have their own global storage. Use the global path
+        // rather than an address relative to the receiver instance.
         if (symVar.hasGlobalStorage())
             return false;
 
@@ -303,11 +304,9 @@ namespace
         return true;
     }
 
-    // A mixin is textual caller code. Its locals can deliberately share the
-    // caller's symbol map, so a function-wide flow fact is not a storage fact
-    // for that expansion. Keep the declared default at this boundary; regular
-    // inline functions still use their cloned, per-call symbols and retain the
-    // optimization.
+    // Mixin locals can share the caller's symbol map, so function-wide flow
+    // facts do not describe each expansion's storage. Keep declared defaults
+    // here; ordinary inline functions have per-call cloned symbols and can elide them.
     bool isInsideMixinExpansion(const CodeGen& codeGen)
     {
         for (uint32_t up = 0;; ++up)
@@ -345,6 +344,7 @@ namespace
 
         if (emitDefaultValueToLocalStack(codeGen, symVar, dstReg, localSize))
             return Result::Continue;
+
         return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, symVar.typeRef(), dstReg);
     }
 
@@ -382,6 +382,7 @@ namespace
             default:
                 if (symbol.isType())
                     return;
+
                 SWC_UNREACHABLE();
         }
     }
@@ -409,7 +410,8 @@ namespace
         CodeGenNodePayload symbolPayload;
         symbolPayload.typeRef     = symVar.typeRef();
         symbolPayload.storageKind = initPayload.storageKind;
-        MicroBuilder& builder     = codeGen.builder();
+
+        MicroBuilder& builder = codeGen.builder();
         if (initPayload.isAddress())
         {
             symbolPayload.reg = codeGen.nextVirtualIntRegister();
@@ -425,14 +427,16 @@ namespace
         codeGen.setVariablePayload(symVar, symbolPayload);
     }
 
-    // Whether 'materializeSingleVarFromPayload' gives the variable storage of its own, filled with
-    // a copy of the source bytes, rather than binding the variable to the source address.
+    // Caller return slots and stack locals receive a copy; register bindings
+    // can instead alias the source address.
     bool variableHasOwnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
     {
         if (symVar.hasGlobalStorage())
             return false;
+
         if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
             return true;
+
         return symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid();
     }
 
@@ -443,6 +447,7 @@ namespace
         const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.resolvedNodeRef(initRef) : AstNodeRef::invalid();
         if (resolvedInitRef.isInvalid())
             return false;
+
         if (codeGen.sema().isLValue(resolvedInitRef))
             return true;
 
@@ -451,6 +456,7 @@ namespace
         const AstNode& resolvedInit = codeGen.node(resolvedInitRef);
         if (!resolvedInit.is(AstNodeId::ConditionalExpr) && !resolvedInit.is(AstNodeId::NullCoalescingExpr))
             return false;
+
         return codeGen.payload(initRef).isAddress();
     }
 
@@ -477,8 +483,10 @@ namespace
     {
         if (!initPayload.isAddress() || initPayload.runtimeStorageSym != &symVar)
             return false;
+
         if (initPayload.runtimeStorageOverridden)
             return true;
+
         return payloadNodeRef.isValid() && codeGen.node(payloadNodeRef).is(AstNodeId::ErrorManagementExpr);
     }
 
@@ -490,13 +498,13 @@ namespace
             if (codeGen.sema().isLValue(resolvedInitRef))
                 return true;
 
-            // An address-backed selection ('a ? b : c', 'a orelse b') forwards the storage
-            // of whichever operand won — possibly a named variable — so binding its result
-            // is a copy of live storage, never an adoption.
+            // Address-backed selections can forward a named variable's storage,
+            // so binding their result copies live storage rather than adopting it.
             const AstNode& resolvedInit = codeGen.node(resolvedInitRef);
             if (initPayload.isAddress() && (resolvedInit.is(AstNodeId::ConditionalExpr) || resolvedInit.is(AstNodeId::NullCoalescingExpr)))
                 return true;
         }
+
         return initPayload.runtimeStorageSym != nullptr;
     }
 
@@ -504,15 +512,16 @@ namespace
     {
         if (initRef.isInvalid())
             return AstModifierFlagsE::Zero;
+
         if (const auto* initExpr = codeGen.node(initRef).safeCast<AstInitializerExpr>())
             return initExpr->modifierFlags;
+
         return AstModifierFlagsE::Zero;
     }
 
-    // A '#move' initializer can read through a move reference, such as a '#fwd' parameter in
-    // its move variant. The initializer is then a conversion of the reference into a value, which
-    // is neither an lvalue nor the storage to reset: the pointee belongs to the caller. Returns the
-    // reference expression, or an invalid reference for any other initializer.
+    // A #move initializer can convert a move reference (such as a #fwd parameter)
+    // to a value. Reset the caller's pointee rather than the conversion result.
+    // Recover the reference expression, if any.
     AstNodeRef varInitMoveReferenceSource(CodeGen& codeGen, AstNodeRef initRef)
     {
         AstNodeRef exprRef = initRef;
@@ -524,16 +533,17 @@ namespace
 
         while (exprRef.isValid() && codeGen.node(exprRef).is(AstNodeId::ParenExpr))
             exprRef = codeGen.node(exprRef).cast<AstParenExpr>().nodeExprRef;
+
         if (exprRef.isInvalid())
             return AstNodeRef::invalid();
 
         const SemaNodeView view = codeGen.sema().viewStored(exprRef, SemaNodeViewPartE::Type);
         if (!view.type() || !view.type()->isMoveReference())
             return AstNodeRef::invalid();
+
         return exprRef;
     }
 
-    // Returns the register holding the address of the object a move reference designates.
     MicroReg moveReferencePointeeReg(CodeGen& codeGen, AstNodeRef referenceRef)
     {
         const CodeGenNodePayload& payload = codeGen.payload(referenceRef);
@@ -560,8 +570,10 @@ namespace
         {
             if (codeGen.hasLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove))
                 SWC_RESULT(codeGen.emitLifecycle(symVar.typeRef(), CodeGen::LifecycleKind::PostMove, symbolPayload.reg));
+
             if (initPayload.runtimeStorageSym)
                 codeGen.cancelTemporaryDrop(*initPayload.runtimeStorageSym);
+
             return Result::Continue;
         }
 
@@ -574,8 +586,8 @@ namespace
         if (!isMove && !varInitNeedsPostCopy(codeGen, initRef, initPayload))
             return Result::Continue;
 
-        // A literal that could not be built in the variable was built in a temporary nothing
-        // else names: the variable adopts it, exactly as it adopts an owned call result.
+        // A literal built in an unnamed temporary can be adopted, just like
+        // an owned call result.
         const bool                   adoptsLiteral = !isMove && CodeGenFunctionHelpers::isFreshAggregateLiteral(codeGen, initRef);
         const CodeGen::LifecycleKind postKind      = isMove || adoptsLiteral ? CodeGen::LifecycleKind::PostMove : CodeGen::LifecycleKind::PostCopy;
         if (codeGen.hasLifecycle(symVar.typeRef(), postKind))
@@ -594,6 +606,7 @@ namespace
                     SWC_RESULT(CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, symVar.typeRef(), pointeeReg));
                 else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
                     SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, pointeeReg, symVar.typeRef(), referenceRef));
+
                 return Result::Continue;
             }
 
@@ -634,6 +647,7 @@ namespace
         const CodeGenNodePayload& initPayload = codeGen.payload(initRef);
         if (initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, initPayload))
             return Result::Continue;
+
         CodeGenMemoryHelpers::storePayloadToAddress(codeGen, symbolPayload.reg, initPayload, localSize);
         return emitVarInitPostCopy(codeGen, symVar, initRef, initPayload, symbolPayload);
     }
@@ -652,6 +666,7 @@ namespace
 
             const uint32_t localSize = CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(symVar.typeRef()));
             SWC_ASSERT(localSize > 0);
+
             const CodeGenNodePayload symbolPayload = CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(codeGen, symVar);
 
             const auto* initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
@@ -669,6 +684,7 @@ namespace
             // location, regardless of how the initializer was produced.
             const uint32_t localSize = symVar.codeGenLocalSize();
             SWC_ASSERT(localSize > 0);
+
             const CodeGenNodePayload symbolPayload   = codeGen.resolveLocalStackPayload(symVar);
             const auto*              initNodePayload = initRef.isValid() ? codeGen.safeNodePayload<CodeGenNodePayload>(initRef) : nullptr;
             if (initNodePayload && initPayloadAliasesSymbolStorage(codeGen, symVar, initRef, *initNodePayload))
@@ -680,6 +696,7 @@ namespace
             }
             else
                 SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), symbolPayload.reg));
+
             return Result::Continue;
         }
 
@@ -785,12 +802,10 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
             return Result::Continue;
     }
 
-    // CodeGen::postNode emits a node whose live view folds to a constant itself and hands the
-    // others to this hook, so only a stored constant can be left here: the one a named 'const'
-    // binds, or the one under a substituted conversion. A conversion that runs an operator keeps
-    // no constant form, so the cast substituted for this identifier carries none and the
-    // resolved view describes that cast instead of what this node yields. The constant a named
-    // 'const' carries is then the only value there is to materialize.
+    // CodeGen::postNode already handles live constants. Only a stored constant
+    // from a named const or substituted conversion can remain here. An operator
+    // conversion has no constant form: its resolved view describes the cast,
+    // so the named const's stored value is the one to materialize.
     const bool isConstantBinding = codeGen.curNode().cast<AstIdentifier>().hasFlag(AstIdentifierFlagsE::ConstantBinding);
     if (isConstantBinding || codeGen.resolvedNodeRef(codeGen.curNodeRef()) != codeGen.curNodeRef())
     {
@@ -823,6 +838,7 @@ Result AstIdentifier::codeGenPostNode(CodeGen& codeGen)
         if (payload && payload->isAddress())
             SWC_RESULT(CodeGenSafety::emitLateReadCheck(codeGen, codeGen.curNode(), payload->reg, symbol->cast<SymbolVariable>().typeRef()));
     }
+
     return Result::Continue;
 }
 
@@ -849,6 +865,7 @@ Result AstSingleVarDecl::codeGenPostNode(CodeGen& codeGen) const
         {
             SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, nodeInitRef));
         }
+
         codeGen.registerImplicitDrop(symVar);
     }
 
@@ -905,10 +922,9 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
     const SymbolVariable* initStorageSym     = codeGen.runtimeStorageSymbol(nodeInitRef);
     const bool            movesInitTemporary = initStorageSym && codeGen.hasTemporaryDrop(*initStorageSym);
 
-    // A field that lands in storage of its own was copied bit for bit, so its lifecycle hook runs
-    // exactly as for a single declaration: a named source keeps its value and the field is a copy,
-    // while any other source is a temporary whose field moves out, whether or not the temporary
-    // carries a drop of its own. A binding that only aliases the source storage needs neither.
+    // Fields copied into their own storage need the same lifecycle hook as a
+    // single declaration: copy a named source, move from a temporary even when
+    // it has no drop. Bindings that alias the source storage need neither.
     const bool copiesFromLValue  = destructuringSourceIsLValue(codeGen, nodeInitRef);
     const auto emitFieldPostMove = [&codeGen, copiesFromLValue](const SymbolVariable& symVar) -> Result {
         if (!variableHasOwnStorage(codeGen, symVar))
@@ -926,6 +942,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
     SmallVector<TokenRef> tokNames;
     codeGen.ast().appendTokens(tokNames, spanNamesRef);
+
     const SemaNodeView       view = codeGen.curViewSymbol();
     SmallVector<Symbol*>     recoveredSymbols;
     std::span<Symbol* const> symbols = view.symList();
@@ -1007,6 +1024,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 
         if (movesInitTemporary)
             codeGen.cancelTemporaryDrop(*initStorageSym);
+
         return Result::Continue;
     }
 
@@ -1029,6 +1047,7 @@ Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
             continue;
 
         SWC_ASSERT(symbolIndex < symbols.size());
+
         const size_t          fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring) ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initType, SourceCodeRef{srcViewRef(), fieldNames[i]}) : i;
         const auto            fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, initType, fieldIndex);
         const SymbolVariable& symVar      = symbols[symbolIndex++]->cast<SymbolVariable>();

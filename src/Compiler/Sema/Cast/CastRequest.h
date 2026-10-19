@@ -42,32 +42,34 @@ enum class CastFlagsE : uint32_t
     Fallible             = 1 << 14,
     NonNullChecked       = 1 << 15, // an explicit cast owns the check or the caller's assumption
 };
+
 using CastFlags = EnumFlags<CastFlagsE>;
 
 struct CastRequest
 {
-    CastKind        kind                 = CastKind::Implicit;
-    CastFlags       flags                = CastFlagsE::Zero;
-    AstNodeRef      errorNodeRef         = AstNodeRef::invalid();
-    SourceCodeRef   errorCodeRef         = SourceCodeRef::invalid();
-    ConstantRef     srcConstRef          = ConstantRef::invalid();
-    ConstantRef     outConstRef          = ConstantRef::invalid();
+    CastKind  kind  = CastKind::Implicit;
+    CastFlags flags = CastFlagsE::Zero;
+
+    AstNodeRef    errorNodeRef = AstNodeRef::invalid();
+    SourceCodeRef errorCodeRef = SourceCodeRef::invalid();
+
+    ConstantRef srcConstRef = ConstantRef::invalid();
+    ConstantRef outConstRef = ConstantRef::invalid();
+
     SymbolFunction* selectedStructOpCast = nullptr;
     CastFailure     failure{};
 
-    // True during overload-resolution probing: we only need the allow/deny + rank decision,
-    // not the folded constant. When set, post-decision result materialization (whole-value
-    // byte lowering, aggregate/array fold, throwaway type interning) is skipped -- the chosen
-    // overload re-runs the real cast afterwards. Constant-value-dependent *decisions* still
-    // run, because srcConstRef stays set (isConstantFolding() is unaffected).
+    // Overload probing needs the decision and rank, not the folded result.
+    // Skip result allocation and type interning; the selected overload casts
+    // again. Keep source constants available for value-dependent decisions.
     bool probing = false;
 
-    // Set when the cast succeeded by binding a plain value to a '#move' parameter through a
-    // call-site temporary copy: overload resolution ranks this below an exact match.
+    // A temporary copy can bind a plain value to #move, but ranks below
+    // an exact overload match.
     bool usedCopyToMoveRef = false;
 
-    // Set when a callable that never fails converted to a fallible callable type: an overload
-    // taking the infallible type stays preferred.
+    // Widening an infallible callable succeeds, but an overload retaining
+    // the infallible type remains preferred.
     bool usedFallibleWidening = false;
 
     CastRequest() = delete;
@@ -80,19 +82,23 @@ struct CastRequest
         nested.errorNodeRef = errorNodeRef;
         nested.errorCodeRef = errorCodeRef;
         nested.probing      = probing;
+
         return nested;
     }
 
     Result fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::string_view value = "", DiagnosticId note = DiagnosticId::None);
 
     bool isConstantFolding() const { return srcConstRef.isValid(); }
-    // Whether the folded constant *result* should actually be materialized. False while probing.
-    bool        materializeConstantResult() const { return srcConstRef.isValid() && !probing; }
+
+    // Probing inspects constants without materializing their folded results.
+    bool materializeConstantResult() const { return srcConstRef.isValid() && !probing; }
+
     ConstantRef constantFoldingSrc() const { return srcConstRef; }
     ConstantRef constantFoldingResult() const { return outConstRef; }
     void        setConstantFoldingSrc(ConstantRef v);
     void        setConstantFoldingResult(ConstantRef v);
-    void        applyAutoCast(const Sema& sema, AstNodeRef nodeRef);
+
+    void applyAutoCast(const Sema& sema, AstNodeRef nodeRef);
 };
 
 SWC_END_NAMESPACE();

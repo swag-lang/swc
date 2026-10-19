@@ -15,6 +15,7 @@ Result CastRequest::fail(DiagnosticId d, TypeRef srcRef, TypeRef dstRef, std::st
     failure.set(errorNodeRef, d, srcRef, dstRef, value, note);
     if (errorCodeRef.isValid())
         failure.codeRef = errorCodeRef;
+
     return Result::Error;
 }
 
@@ -33,6 +34,7 @@ void CastRequest::applyAutoCast(const Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return;
+
     const auto* autoCast = sema.node(nodeRef).safeCast<AstAutoCastExpr>();
     if (!autoCast)
         return;

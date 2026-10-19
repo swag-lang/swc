@@ -56,10 +56,8 @@ struct UserDefinedLiteralSuffixInfo
     std::string_view suffix;
 };
 
-// Which argument of which call a parameter cast converts, which function a returned value is
-// converted for, or which declaration an initial value is converted for. Only a failed cast reads
-// it, to name them in its message, so the message arguments are built there instead of once per
-// argument of every call.
+// Retain the call, return, or initialization context for failure diagnostics.
+// Build message arguments only on failure, avoiding work for successful casts.
 struct CastCallSite
 {
     const SymbolFunction* function    = nullptr;
@@ -70,28 +68,31 @@ struct CastCallSite
 
 bool resolveDynamicStructCastSourceInfo(Sema& sema, AstNodeRef sourceRef, TypeRef sourceTypeRef, DynamicStructCastSourceInfo& outInfo);
 
-// The struct a value converted to an interface refers to: the struct itself, or the one behind
-// a pointer or a reference. Invalid when the source cannot designate a struct at all.
+// Find the struct itself or behind a pointer/reference. Return invalid when
+// the source cannot designate a struct for interface conversion.
 TypeRef interfaceObjectStructTypeRef(const TypeManager& typeMgr, const TaskContext& ctx, TypeRef sourceTypeRef);
 
-// Whether the destination struct is reachable from the source one through 'using' fields only,
-// with no pointer hop on the way — the shape a cast can lower to a plain field offset.
+// A using-field path with no pointer step can lower to a plain field offset.
 Result resolveUsingStructCastPathWithoutPointerStep(Sema& sema, const CastRequest& castRequest, TypeRef srcStructTypeRef, TypeRef dstStructTypeRef, bool& outFound);
 
 struct Cast
 {
-    static Result              castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    static TypeRef             castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind = CastKind::Implicit);
-    static Result              cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const CastCallSite* callSite = nullptr);
-    static Result              castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const CastCallSite* callSite = nullptr);
-    static Result              castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, CastKind castKind = CastKind::Promotion);
+    static Result  castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    static TypeRef castAllowedBothWays(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind = CastKind::Implicit);
+
+    static Result cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const CastCallSite* callSite = nullptr);
+    static Result castIfNeeded(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind castKind, CastFlags castFlags = CastFlagsE::Zero, const CastCallSite* callSite = nullptr);
+    static Result castPromote(Sema& sema, SemaNodeView& nodeLeftView, SemaNodeView& nodeRightView, CastKind castKind = CastKind::Promotion);
+
     static Result              emitCastFailure(Sema& sema, const CastFailure& f);
     static DiagnosticArguments callSiteErrorArguments(const TaskContext& ctx, const CastCallSite& callSite);
-    static Result              castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequest, ConstantRef cstRef, TypeRef targetTypeRef);
-    static Result              castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeRef targetTypeRef, AstNodeRef errorNodeRef, CastKind castKind = CastKind::Implicit);
 
-    static Result  promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts = false, bool signUnificationOnly = false);
-    static Result  concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
+    static Result castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequest, ConstantRef cstRef, TypeRef targetTypeRef);
+    static Result castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeRef targetTypeRef, AstNodeRef errorNodeRef, CastKind castKind = CastKind::Implicit);
+
+    static Result promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView, ConstantRef& leftCstRef, ConstantRef& rightCstRef, bool force32BitInts = false, bool signUnificationOnly = false);
+    static Result concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef nodeOwnerRef, ConstantRef cstRef, TypeInfo::Sign hintSign);
+
     static TypeRef indirectValueCastTypeRef(const Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef);
 
     // Modifier bits shared by explicit and destination-deduced casts.
@@ -108,30 +109,37 @@ struct Cast
             castFlags.add(CastFlagsE::Try);
         if (modifierFlags.has(AstModifierFlagsE::Assume))
             castFlags.add(CastFlagsE::Assume);
+
         return castFlags;
     }
 
-    // What a 'cast()' contributes to a cast request. It is explicit, but its destination comes
-    // from the context instead of being written down, and both the cast path and the overload
-    // matcher have to say so identically.
+    // cast() is explicit with a context-deduced destination. Share the flags
+    // between cast execution and overload matching so they interpret it alike.
     static CastFlags autoCastFlags(AstModifierFlags modifierFlags);
-    static Result    castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastFlags flags);
+
+    static Result castDynamic(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastFlags flags);
 
     static AstNodeRef createCast(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags = AstCastExprFlagsE::Zero);
     static AstNodeRef createCastNode(Sema& sema, TypeRef dstTypeRef, AstNodeRef nodeRef, AstCastExprFlagsE castFlags = AstCastExprFlagsE::Zero);
-    static void       convertEnumToUnderlying(Sema& sema, SemaNodeView& view);
-    static TypeRef    runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
-    static Result     attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
-    static Result     retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, bool createIfMissing = false);
-    static bool       resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo);
-    static TokenRef   userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRef);
-    static Result     resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, AstNodeRef srcNodeRef = AstNodeRef::invalid());
-    static Result     resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef = AstNodeRef::invalid());
-    static bool       isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType);
+
+    static void convertEnumToUnderlying(Sema& sema, SemaNodeView& view);
+
+    static TypeRef runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
+    static Result  attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, ConstantRef srcConstRef);
+    static Result  retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, bool createIfMissing = false);
+
+    static bool     resolveUserDefinedLiteralSuffix(const Sema& sema, AstNodeRef nodeRef, UserDefinedLiteralSuffixInfo& outInfo);
+    static TokenRef userDefinedLiteralValueTokRef(const Sema& sema, AstNodeRef nodeRef);
+
+    static Result resolveStructOpCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, AstNodeRef srcNodeRef = AstNodeRef::invalid());
+    static Result resolveStructSetCastCandidate(Sema& sema, const SourceCodeRef& codeRef, TypeRef srcTypeRef, TypeRef dstTypeRef, CastKind castKind, SymbolFunction*& outCalledFn, TypeRef& outParamTypeRef, AstNodeRef srcNodeRef = AstNodeRef::invalid());
+
+    static bool isImplicitNullableAnyStringCast(const TypeInfo& srcType, const TypeInfo& dstType);
 
 private:
     static Result castIdentity(const Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castBit(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToBool(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
@@ -141,42 +149,54 @@ private:
     static Result castToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castToEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castFromEnum(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castFromNull(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castFromIndirectValue(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToReference(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castPointerToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToPointer(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castToSlice(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToArray(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castFromSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castFromTypeValue(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToFromTypeInfo(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castToFunction(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castToString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToCString(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
     static Result castToAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToVariadic(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castToInterface(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static Result castFromAny(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
 
-    static void    foldConstantIdentity(CastRequest& castRequest);
-    static bool    foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType);
-    static bool    foldConstantBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
-    static bool    foldConstantBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
-    static bool    foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest);
-    static bool    foldConstantFloatToBool(Sema& sema, CastRequest& castRequest);
-    static bool    foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    static bool    foldConstantIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    static bool    foldConstantFloatToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    static bool    foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
-    static bool    foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
-    static bool    foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
+    static void foldConstantIdentity(CastRequest& castRequest);
+    static bool foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef, const TypeInfo& dstType, const TypeInfo& srcType);
+    static bool foldConstantBoolToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
+    static bool foldConstantBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
+    static bool foldConstantIntLikeToBool(Sema& sema, CastRequest& castRequest);
+    static bool foldConstantFloatToBool(Sema& sema, CastRequest& castRequest);
+
+    static bool foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    static bool foldConstantIntLikeToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    static bool foldConstantFloatToIntLike(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+    static bool foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
+    static bool foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
+    static bool foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, TypeRef dstTypeRef);
+
     static TypeRef castAllowedBothWays(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
     static bool    concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, TypeInfo::Sign hintSign);
-    static Result  castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
+
+    static Result castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef);
 };
 
 SWC_END_NAMESPACE();

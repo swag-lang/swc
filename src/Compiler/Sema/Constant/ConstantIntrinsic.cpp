@@ -53,6 +53,7 @@ namespace
         const TypeInfo& storageType = SemaHelpers::aliasEnumType(sema, argView);
         if (!storageType.isFloat())
             return false;
+
         out = argView.cst()->getFloat();
         return true;
     }
@@ -62,6 +63,7 @@ namespace
         ApFloat value;
         if (!getFloatArg(sema, argRef, value))
             return false;
+
         out = value.asDouble();
         return true;
     }
@@ -91,17 +93,18 @@ namespace
             const ApFloat  typedAf  = af.toFloat(bitWidth, exact, overflow);
             if (overflow)
                 return Result::Continue;
+
             cv = ConstantValue::makeFloat(sema.ctx(), typedAf, bitWidth);
         }
+
         cv.setTypeRef(resultTypeRef);
         const ConstantRef cstRef = sema.cstMgr().addConstant(sema.ctx(), cv);
         sema.setConstant(callRef, cstRef);
         return Result::Continue;
     }
 
-    // 'Swag.vecSplat' of a constant scalar is the one packed operation with a compile-time
-    // answer: the lane bytes simply repeat. Folding it is what lets a vector constant be
-    // declared, and the result is the same byte payload an aggregate literal produces.
+    // Swag.vecSplat folds a scalar by repeating lane bytes, producing the same packed
+    // payload as an aggregate literal and allowing vector constant declarations.
     Result foldVectorSplat(Sema& sema, AstNodeRef callRef, std::span<AstNodeRef> args)
     {
         const SemaNodeView argView(sema, args[0], SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
@@ -120,6 +123,7 @@ namespace
 
         ByteArray                  buffer(16);
         const std::span<std::byte> bytes = buffer.span();
+
         for (uint32_t i = 0; i < laneCount; ++i)
         {
             const std::span dstChunk{bytes.data() + (i * laneBytes), laneBytes};
@@ -146,6 +150,7 @@ namespace
             return "expected a value greater than zero";
         if (name == "pow")
             return "this base and exponent combination has no real-valued result";
+
         return {};
     }
 
@@ -153,13 +158,17 @@ namespace
     {
         const DiagnosticId diagId = Math::foldStatusDiagnosticId(status);
         SWC_ASSERT(diagId != DiagnosticId::None);
+
         const auto diag = SemaError::report(sema, diagId, argRef);
         if (relatedArgRef.isValid())
             diag.last().addSpan(sema.node(relatedArgRef).codeRangeWithChildren(sema.ctx(), sema.ast()));
+
         diag.last().addArgument(Diagnostic::ARG_SYM, fn.name(sema.ctx()));
+
         const Utf8 domainHelp = intrinsicDomainHelp(sema.ctx(), fn);
         if (!domainHelp.empty())
             diag.last().addArgument(Diagnostic::ARG_WHAT, domainHelp);
+
         diag.report(sema.ctx());
         return Result::Error;
     }
@@ -175,14 +184,17 @@ namespace
         const TypeInfo& storageType = SemaHelpers::aliasEnumType(sema, argView);
         if (!storageType.isIntLike())
             return false;
+
         const uint32_t bits = storageType.payloadIntLikeBits();
         if (bits == 0)
             return false;
+
         const ConstantValue& cst = *argView.cst();
         const ApsInt         v   = cst.getIntLike();
-        outValue                 = v.as64();
-        outBitWidth              = bits;
-        outUnsigned              = storageType.isIntLikeUnsigned();
+
+        outValue    = v.as64();
+        outBitWidth = bits;
+        outUnsigned = storageType.isIntLikeUnsigned();
         return true;
     }
 
@@ -209,6 +221,7 @@ namespace
             case TokenId::IntrinsicSqrt:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Sqrt;
                 return true;
+
             case TokenId::IntrinsicSin:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Sin;
                 return true;
@@ -218,6 +231,7 @@ namespace
             case TokenId::IntrinsicTan:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Tan;
                 return true;
+
             case TokenId::IntrinsicSinh:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Sinh;
                 return true;
@@ -227,6 +241,7 @@ namespace
             case TokenId::IntrinsicTanh:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Tanh;
                 return true;
+
             case TokenId::IntrinsicASin:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::ASin;
                 return true;
@@ -236,6 +251,7 @@ namespace
             case TokenId::IntrinsicATan:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::ATan;
                 return true;
+
             case TokenId::IntrinsicLog:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Log;
                 return true;
@@ -245,6 +261,7 @@ namespace
             case TokenId::IntrinsicLog10:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Log10;
                 return true;
+
             case TokenId::IntrinsicFloor:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Floor;
                 return true;
@@ -257,15 +274,18 @@ namespace
             case TokenId::IntrinsicRound:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Round;
                 return true;
+
             case TokenId::IntrinsicAbs:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Abs;
                 return true;
+
             case TokenId::IntrinsicExp:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Exp;
                 return true;
             case TokenId::IntrinsicExp2:
                 outOp = Math::FoldIntrinsicUnaryFloatOp::Exp2;
                 return true;
+
             default:
                 return false;
         }
@@ -290,6 +310,7 @@ namespace
             return true;
         if (fullName.size() <= suffix.size())
             return false;
+
         return fullName.ends_with(suffix) && fullName[fullName.size() - suffix.size() - 1] == '.';
     }
 
@@ -322,6 +343,7 @@ namespace
             return ReflectionLifecycleOp::HasDynamicStorage;
         if (name == "canCopy")
             return ReflectionLifecycleOp::CanCopy;
+
         return ReflectionLifecycleOp::IsPod;
     }
 
@@ -341,6 +363,7 @@ namespace
                 return SymbolStruct::typeHasDynamicStorage(ctx, type);
             case ReflectionLifecycleOp::IsPod:
                 return !flags.hasDrop && !flags.hasPostMove && !flags.hasPostCopy && !SymbolStruct::typeHasDynamicStorage(ctx, type);
+
             default:
                 SWC_UNREACHABLE();
         }
@@ -352,6 +375,7 @@ namespace
             return TypeRef::invalid();
 
         const SemaNodeView argView(sema, argRef, SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
+
         // A null descriptor has no represented type. Let the predicate evaluate its null guard
         // instead of folding the lifecycle flags of the descriptor pointer itself.
         if (argView.hasConstant() && argView.cst()->isNullValue(sema.ctx()))
@@ -379,6 +403,7 @@ void ConstantIntrinsic::tryConstantFoldDataOf(Sema& sema, TypeRef resultTypeRef,
     TypeRef              dataTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
     if (view.cstRef().isValid())
         dataTypeRef = SemaHelpers::deduceConcretizedAggregateLiteralType(sema, dataTypeRef, view.cstRef());
+
     const TypeInfo* type = &sema.typeMgr().get(dataTypeRef);
 
     uint64_t ptrValue = 0;
@@ -633,6 +658,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
         case TokenId::IntrinsicMulAdd:
         {
             SWC_ASSERT(args.size() == 3);
+
             ApFloat a, b, c;
             if (!getFloatArg(sema, args[0], a) || !getFloatArg(sema, args[1], b) || !getFloatArg(sema, args[2], c))
                 return Result::Continue;
@@ -657,7 +683,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             if (!getIntLikeArg(sema, args[0], val, bits, uns))
                 return Result::Continue;
 
-            // Mask to the actual bit width
+            // Ignore storage bits above the declared integer width when counting.
             if (bits < 64)
                 val &= (1ULL << bits) - 1;
 
@@ -703,12 +729,14 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                     result       = static_cast<uint64_t>((v >> 8) | (v << 8));
                     break;
                 }
+
                 case 32:
                 {
                     const auto v = static_cast<uint32_t>(val);
                     result       = static_cast<uint64_t>(((v >> 24) & 0x000000FF) | ((v >> 8) & 0x0000FF00) | ((v << 8) & 0x00FF0000) | ((v << 24) & 0xFF000000));
                     break;
                 }
+
                 case 64:
                 {
                     result = ((val >> 56) & 0x00000000000000FFULL) |
@@ -721,6 +749,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
                              ((val << 56) & 0xFF00000000000000ULL);
                     break;
                 }
+
                 default:
                     return Result::Continue;
             }
@@ -745,7 +774,7 @@ Result ConstantIntrinsic::tryConstantFoldCall(Sema& sema, const SymbolFunction& 
             if (!getIntLikeArg(sema, args[1], count, countBits, countUns))
                 return Result::Continue;
 
-            // Mask value and count
+            // Discard excess value bits and reduce the rotation count to its legal range.
             if (valBits < 64)
                 val &= (1ULL << valBits) - 1;
             count %= valBits;

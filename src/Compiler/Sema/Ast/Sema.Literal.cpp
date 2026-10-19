@@ -372,7 +372,6 @@ Result AstCharacterLiteral::semaPreNode(Sema& sema) const
     const SourceView&  srcView = sema.compiler().srcView(srcViewRef());
     std::string_view   str     = tok.string(srcView);
 
-    // Remove delimiters
     str = str.substr(1, str.size() - 2);
 
     char32_t value = 0;
@@ -380,11 +379,11 @@ Result AstCharacterLiteral::semaPreNode(Sema& sema) const
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         auto [buf, wc, eat] = Utf8Helper::decodeOneChar(reinterpret_cast<const char8_t*>(str.data()), reinterpret_cast<const char8_t*>(str.data() + str.size()));
-        value               = wc;
+
+        value = wc;
     }
     else
     {
-        // Character literal contains a single escape sequence.
         const LangSpec& langSpec = sema.compiler().global().langSpec();
 
         SWC_ASSERT(!str.empty());
@@ -393,12 +392,12 @@ Result AstCharacterLiteral::semaPreNode(Sema& sema) const
         size_t i = 0;
         value    = decodeEscapeSequence(str, i, langSpec);
 
-        // We expect exactly one escape sequence and nothing else.
         SWC_ASSERT(i + 1 == str.size());
     }
 
     const auto val = ConstantValue::makeChar(ctx, value);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+
     return Result::SkipChildren;
 }
 
@@ -409,21 +408,23 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     const SourceView&  srcView = sema.compiler().srcView(srcViewRef());
     std::string_view   str     = tok.string(srcView);
 
-    // Remove delimiters
     switch (tok.id)
     {
         case TokenId::StringLine:
             str = str.substr(1, str.size() - 2);
             break;
+
         case TokenId::StringMultiLine:
             str = str.substr(3, str.size() - 6);
             break;
+
         default:
             SWC_UNREACHABLE();
     }
 
-    const LangSpec&  langSpec = sema.compiler().global().langSpec();
-    const bool       isRaw    = tok.hasFlag(TokenFlagsE::Raw);
+    const LangSpec& langSpec = sema.compiler().global().langSpec();
+    const bool      isRaw    = tok.hasFlag(TokenFlagsE::Raw);
+
     Utf8             normalized;
     std::string_view value = str;
 
@@ -434,6 +435,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
         normalized = normalizeMultilineLiteral(str, stringAlignColumn(tok, srcView), langSpec);
         if (!isRaw)
             normalized = foldEscapedEols(normalized);
+
         value = normalized;
     }
 
@@ -442,22 +444,22 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
         auto val = ConstantValue::makeString(ctx, value);
         val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+
         return Result::SkipChildren;
     }
 
-    // Fast path if no escape sequence inside the string
     if (!tok.hasFlag(TokenFlagsE::Escaped))
     {
         auto val = ConstantValue::makeString(ctx, value);
         val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+
         return Result::SkipChildren;
     }
 
     Utf8 result;
     result.reserve(value.size());
 
-    // Decode escape sequences
     for (size_t i = 0; i < value.size(); ++i)
     {
         const char ch = value[i];
@@ -475,6 +477,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
     auto val = ConstantValue::makeString(ctx, result);
     val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+
     return Result::SkipChildren;
 }
 
@@ -488,7 +491,6 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
     SWC_ASSERT(str.size() > 2);
     SWC_ASSERT(str[0] == '0' && (str[1] == 'b' || str[1] == 'B'));
 
-    // Remove '0b' or '0B' prefix
     str = str.substr(2);
 
     const LangSpec& langSpec = sema.compiler().global().langSpec();
@@ -506,10 +508,10 @@ Result AstBinaryLiteral::semaPreNode(Sema& sema) const
         value.bitwiseOr((c == '1') ? 1 : 0);
     }
 
-    // Convert the binary string to an integer constant
     value.setUnsigned(true);
     const auto val = ConstantValue::makeIntUnsized(ctx, value, TypeInfo::Sign::Unsigned);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+
     return Result::SkipChildren;
 }
 
@@ -523,7 +525,6 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
     SWC_ASSERT(str.size() > 2);
     SWC_ASSERT(str[0] == '0' && (str[1] == 'x' || str[1] == 'X'));
 
-    // Remove '0x' or '0X' prefix
     str = str.substr(2);
 
     const LangSpec& langSpec = sema.compiler().global().langSpec();
@@ -534,10 +535,11 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
             continue;
 
         bool over = false;
-        value.logicalShiftLeft(4, over); // multiply by 16
+        value.logicalShiftLeft(4, over);
         if (over)
         {
             raiseNumberTooBig(sema, codeRef(), tokStr);
+
             return Result::Error;
         }
 
@@ -546,10 +548,10 @@ Result AstHexaLiteral::semaPreNode(Sema& sema) const
         value.bitwiseOr(digit & 0xF);
     }
 
-    // Convert the hexadecimal string to an integer constant
     value.setUnsigned(true);
     const auto val = ConstantValue::makeIntUnsized(ctx, value, TypeInfo::Sign::Unsigned);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+
     return Result::SkipChildren;
 }
 
@@ -571,33 +573,33 @@ Result AstIntegerLiteral::semaPreNode(Sema& sema) const
 
         if (c < '0' || c > '9')
         {
-            // Lexer should prevent this
             SWC_ASSERT(false && "decimal literal contains a non-decimal digit");
             continue;
         }
 
         const auto digit = static_cast<size_t>(c - '0');
 
-        // multiply the current value by 10
         bool over = false;
         value.mul(10, over);
         if (over)
         {
             raiseNumberTooBig(sema, codeRef(), str);
+
             return Result::Error;
         }
 
-        // add a digit
         value.add(digit, over);
         if (over)
         {
             raiseNumberTooBig(sema, codeRef(), str);
+
             return Result::Error;
         }
     }
 
     const auto val = ConstantValue::makeIntUnsized(ctx, ApsInt{value, false}, TypeInfo::Sign::Unknown);
     sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
+
     return Result::SkipChildren;
 }
 

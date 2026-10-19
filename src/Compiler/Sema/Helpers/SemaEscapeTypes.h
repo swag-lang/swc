@@ -11,16 +11,15 @@ class SymbolFunction;
 class SymbolVariable;
 enum class DiagnosticId;
 
-// A call whose result may borrow one of its arguments, recorded while analyzing the
-// caller and judged once the whole module is sema-completed: only then is the callee's
-// 'returnBorrowsParamsMask' final, whatever order the sema jobs ran in.
+// Defer call-result borrow checks until module completion, when the callee's
+// returnBorrowsParamsMask is final regardless of job order.
 struct SemaEscapeDeferredGuard
 {
     const SymbolFunction* callee     = nullptr;
     uint32_t              paramIndex = 0;
-    // Invalidation requires each call to preserve storage or expose its payload,
-    // with at least one payload accessor along the complete route. A mere lifetime
-    // dependency cannot establish that the result aliases the mutated allocation.
+
+    // Each call must preserve storage or expose a payload, with at least one
+    // payload accessor. Lifetime dependencies alone do not prove allocation aliasing.
     bool requireStorageRoute = false;
     bool indirect            = false; // consult returnsIndirect instead of returns
 
@@ -32,35 +31,37 @@ struct SemaEscapeDeferredCheck
     const SymbolFunction* callee     = nullptr;
     uint32_t              paramIndex = 0;
     bool                  indirect   = false; // judge the copied pointee contents
-    // Judged against the callee's STORES summary (the callee keeps its argument beyond
-    // the call) instead of its RETURN summary (the call result carries the borrow).
+
+    // Check retained arguments (STORES), rather than borrows in the result (RETURN).
     bool judgeStores = false;
+
     // Every preceding call in a chained local must return the borrow for it to reach
     // the final judged call. A list avoids an arbitrary composition-depth limit.
     SmallVector4<SemaEscapeDeferredGuard> guards;
-    // Judged against the callee's PAIR summary instead: parameter #paramIndex stored
-    // into storage reachable from parameter #intoParamIndex, whose argument at this
-    // site provably outlives the borrowed one.
+
+    // PAIR checks track paramIndex stored through intoParamIndex, whose argument
+    // is proven to outlive the borrowed one at this site.
     bool     judgePairs     = false;
     uint32_t intoParamIndex = 0;
-    // No summary condition at all: the fault is certain from the callee's identity
-    // (a frame borrow handed to 'IAllocator.free' as the request address).
+
+    // Certain from callee identity, such as a frame address sent to IAllocator.free.
     bool judgeAlways = false;
-    // The borrowed argument roots at a GLOBAL. Nothing can escape through it - a global
-    // outlives every frame - so this record is never judged as an escape. It exists only
-    // to carry the route back to the owner, which is what tells the invalidation check
-    // that a call result reads what that global owns.
+
+    // Global storage outlives every frame, so this is not an escape error.
+    // Keep provenance back to the owning global for invalidation checks.
     bool staticSource = false;
+
     // Provenance-only snapshot (not an escape diagnostic), used when an accessor result
     // inside a method routes back to the caller-owned receiver parameter.
     bool routeOnly = false;
-    // The borrowed source is an owner (its payload lives on the heap): freeing it is
-    // legitimate, so a FREES-only match must stay silent.
+
+    // Releasing an owner's heap payload is valid; a FREES-only match stays silent.
     bool ownerSource = false;
+
     // Releasing a separate carrier does not release the data referenced by its fields.
     bool viaStoredField = false;
-    // The local the borrowed argument roots at. 'symName' is what the diagnostic prints;
-    // this is the identity, for the checks that must match a route back to a variable.
+
+    // Variable identity for provenance matching; symName supplies diagnostic text.
     const SymbolVariable* borrowedVar = nullptr;
     DiagnosticId          diagId      = {};
     FileRef               fileRef;
@@ -68,17 +69,19 @@ struct SemaEscapeDeferredCheck
     Utf8                  symName;
     Utf8                  what;
     TypeRef               typeRef;
-    DiagnosticId          noteId = {};
-    Utf8                  noteSymName;
-    SourceCodeRange       noteRange;
-    // A second note, for the checks that need to show two places at once (where a view
-    // was taken, and where it is read again after its storage moved).
+
+    DiagnosticId    noteId = {};
+    Utf8            noteSymName;
+    SourceCodeRange noteRange;
+
+    // Some checks highlight both view creation and a later read after mutation.
     DiagnosticId    note2Id = {};
     Utf8            note2SymName;
     SourceCodeRange note2Range;
-    // Judged against the callee's REALLOCATES summary: the call can move or release the
-    // payload its receiver owns, so a view into that payload read afterwards is stale.
+
+    // REALLOCATES checks detect later reads of payloads the callee may move or free.
     bool judgeReallocates = false;
+
     // First receiver field of the saved view and of the mutation site. Null means the
     // receiver itself. The callee summary supplies its own first field at final judgement.
     const SymbolVariable*               borrowedPayloadField    = nullptr;
@@ -87,33 +90,34 @@ struct SemaEscapeDeferredCheck
     Utf8                                valueName;
 };
 
-// A structural change of storage that a local view was reading. Recorded where the flow
-// state proves the view is live, and judged once the whole body is resolved - only then
-// can later reads, including reads reached through a loop back edge, be matched to symbols.
+// Record mutations while flow facts prove a view live. Check later reads after
+// body resolution, when symbols and loop back-edge uses can be matched reliably.
 struct SemaBorrowInvalidation
 {
     const SymbolVariable* viewVar   = nullptr;
     const SymbolVariable* sourceVar = nullptr;
     const SymbolFunction* callee    = nullptr;
+
     // The complete function or inline-expansion body that owns this mutation. Capturing
     // it here avoids consulting the caller's partially substituted tree at report time.
     AstNodeRef bodyRef = AstNodeRef::invalid();
+
     // The node, not only its range, lets a back-edge check distinguish a break of
     // this loop from a break owned by a nested loop or switch.
     AstNodeRef      mutationRef = AstNodeRef::invalid();
     SourceCodeRange mutationRange;
-    // Where the call's own text ends. Arguments are evaluated BEFORE the callee runs, so
-    // a view named inside them is read before the change, not after it: the search for a
-    // later read starts past the whole call expression, not past its name.
-    uint32_t                            evaluationEndOffset = 0;
-    Utf8                                mutationName;
+
+    // Arguments are read before the callee mutates storage. Search for later
+    // uses after the whole call expression, not after its name.
+    uint32_t evaluationEndOffset = 0;
+    Utf8     mutationName;
+
     const SymbolVariable*               borrowedPayloadField    = nullptr;
     const SymbolVariable*               receiverProjectionField = nullptr;
     SmallVector4<const SymbolVariable*> detachedPayloadFields;
-    // What the view's provenance depends on. A view taken straight out of the storage
-    // needs nothing; one obtained from an accessor call only aliases the receiver when
-    // that accessor's return summary says so, and summaries are final only once the
-    // module is drained.
+
+    // Accessor results alias a receiver only when its final return summary says
+    // so. Direct storage views need no guard; accessor routes wait for module drain.
     SmallVector4<SemaEscapeDeferredGuard> guards;
 };
 
@@ -124,43 +128,48 @@ enum class SemaEscapeSummaryEdgeKind : uint8_t
     ExternalToExternal, // callee can observe ambient borrows -> caller can too
     RetentionToPair,    // a call can retain/return an alias of the receiver before a store
     ExternalToPair,     // an observer in a live-slot interval prevents eliding that store
-    ReturnToReturn,     // return-position call: callee returns #j -> caller returns #i
-    ReturnToStores,     // result stored durably: callee returns #j -> caller stores #i
-    StoresToStores,     // any call: callee stores #j -> caller stores #i
-    PairToPair,         // callee stores #j into #k -> caller stores mapped #i into #h
-    ReturnToPair,       // callee RETURNS storage of #j, and the caller stored #i through that
-                        // result: caller stores #i into its own parameter #h
+
+    ReturnToReturn, // return-position call: callee returns #j -> caller returns #i
+    ReturnToStores, // result stored durably: callee returns #j -> caller stores #i
+    StoresToStores, // any call: callee stores #j -> caller stores #i
+
+    PairToPair,   // callee stores #j into #k -> caller stores mapped #i into #h
+    ReturnToPair, // callee RETURNS storage of #j, and the caller stored #i through that
+                  // result: caller stores #i into its own parameter #h
 };
 
-// A call that hands one of the caller's own parameters to the callee: whatever the
-// callee's summary says about that parameter flows into the caller's summary. Resolved
-// by a mask fixpoint in reportDeferredChecks, making the per-function summaries
-// transitive across chains of opaque calls (a wrapper level no longer hides a borrow).
+// Propagate callee effects on a caller parameter through opaque call chains.
+// reportDeferredChecks resolves these edges with a mask fixpoint.
 struct SemaEscapeSummaryEdge
 {
-    SymbolFunction*           caller               = nullptr;
-    const SymbolFunction*     callee               = nullptr;
-    uint32_t                  callerParamIndex     = 0;
-    uint32_t                  calleeParamIndex     = 0;
-    uint32_t                  callerIntoParamIndex = 0;
-    uint32_t                  calleeIntoParamIndex = 0;
-    SemaEscapeSummaryEdgeKind kind                 = SemaEscapeSummaryEdgeKind::ReturnToReturn;
-    bool                      callerIndirect       = false;
-    bool                      calleeIndirect       = false;
-    // The argument was a payload the parameter OWNS, not the parameter's own storage.
-    // The borrow still propagates, but the FREES summary must not: releasing what an
-    // object owns does not release the object.
+    SymbolFunction*       caller = nullptr;
+    const SymbolFunction* callee = nullptr;
+
+    uint32_t callerParamIndex     = 0;
+    uint32_t calleeParamIndex     = 0;
+    uint32_t callerIntoParamIndex = 0;
+    uint32_t calleeIntoParamIndex = 0;
+
+    SemaEscapeSummaryEdgeKind kind           = SemaEscapeSummaryEdgeKind::ReturnToReturn;
+    bool                      callerIndirect = false;
+    bool                      calleeIndirect = false;
+
+    // Owned payload borrows propagate, but freeing the payload does not free
+    // the owner itself and must not propagate FREES.
     bool viaOwnedPayload = false;
-    // The argument only CARRIES the parameter in one of its fields; its own storage is a
-    // distinct allocation. The borrow still propagates, and so does the STORES summary,
-    // but the FREES summary must not: releasing the carrier releases the carrier.
+
+    // A field-carried borrow propagates retention, but freeing its separate
+    // carrier allocation does not free the parameter it carries.
     bool viaStoredField = false;
+
     // The argument was read out of the caller parameter's box as 'parameter[]'. A callee
     // freeing it frees what the box holds: the caller's INDIRECT frees summary.
     bool viaParameterPointee = false;
+
     // First field used to reach the callee argument from the caller parameter. A callee
     // reallocation then affects this field, whatever nested payload it moves internally.
     const SymbolVariable* callerProjectionField = nullptr;
+
     // Intermediate calls must return this parameter's borrow before the outer
     // summary can apply. Storage effects additionally require every result to alias
     // the preceding argument; a fresh carrier only forwards the lifetime dependency.
@@ -178,21 +187,19 @@ struct SemaEscapeFreesForwarding
     bool                  calleeIndirect   = false;
 };
 
-// An edge that forwards a release: what the callee frees through its parameter, the caller frees
-// through the parameter it passed - or, for a value read out of that parameter's box, through
-// the box. It is the only kind the frees propagation reads.
+// Only release-forwarding edges propagate frees: either directly through the
+// passed parameter or indirectly through the contents of its box.
 inline bool isFreeForwardingEscapeSummaryEdge(const SemaEscapeSummaryEdge& edge)
 {
     if (!edge.caller || !edge.callee || edge.kind != SemaEscapeSummaryEdgeKind::StoresToStores || edge.viaOwnedPayload)
         return false;
+
     return edge.callerIndirect ? edge.viaParameterPointee : !edge.calleeIndirect && !edge.viaStoredField;
 }
 
-// The captured argument borrows of one opaque call. Checks are templates whose site,
-// wording and judged summary are stamped when the borrow provably escapes; edges are
-// proto-edges whose kind is chosen by the escape flavor. Also stored per-Sema when the
-// call result is bound to a local ('let p = f(&v)'), so the judgement happens only if
-// that local later escapes ('return p').
+// Capture opaque-call argument borrows before their escape is known. Checks
+// gain diagnostic context and edges gain their kind when the borrow escapes.
+// A local-bound result retains this snapshot until that local later escapes.
 struct SemaEscapeDeferredCallSnapshot
 {
     std::vector<SemaEscapeDeferredCheck> checks;

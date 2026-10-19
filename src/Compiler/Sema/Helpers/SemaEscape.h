@@ -9,46 +9,39 @@ class TaskContext;
 
 namespace SemaEscape
 {
-    bool   typeCanCarryBorrow(Sema& sema, TypeRef typeRef);
+    bool typeCanCarryBorrow(Sema& sema, TypeRef typeRef);
+
     Result checkVariableInitializer(Sema& sema, const SymbolVariable& symVar, AstNodeRef initRef, TypeRef targetTypeRef);
     Result applyAssignment(Sema& sema, AstNodeRef leftRef, AstNodeRef rightRef);
     Result checkReturn(Sema& sema, AstNodeRef returnRef, AstNodeRef exprRef, TypeRef returnTypeRef, const SymbolFunction* inlineSourceFn);
-    void   finalizeBorrowStores(Sema& sema, SymbolFunction& function, AstNodeRef bodyRef);
-    void   bindForeachAddressAlias(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef);
 
-    // The storage variable a 'foreach' source expression ultimately reads (through an
-    // opCast-to-slice, a reference binding, aliases, ...). Registered as the loop's
-    // iteration borrow so a structural mutation of that same variable inside the body is
-    // flagged. Null when the source has no single storage root (a range, a temporary).
+    void finalizeBorrowStores(Sema& sema, SymbolFunction& function, AstNodeRef bodyRef);
+
+    void bindForeachAddressAlias(Sema& sema, const SymbolVariable& symVar, AstNodeRef exprRef);
+
+    // Track the foreach source's storage through casts, aliases, and references
+    // to detect mutation during iteration. Ranges and temporaries have no single root.
     const SymbolVariable* iterationSourceRoot(Sema& sema, AstNodeRef exprRef);
 
-    // Reports when a resolved call structurally mutates a collection that an enclosing
-    // loop is iterating (the receiver roots at an active iteration borrow, and the callee
-    // is a non-const, non-operator method: add/remove/clear/free ...).
+    // Reject structural mutation of a collection borrowed by an enclosing loop.
     Result checkIterationMutation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn);
 
-    // Records a resolved call that structurally changes storage a local view is reading
-    // ('let v: string = s; s.append("..."); use(v)'). The iteration check above is this
-    // same rule restricted to loops.
+    // Record structural storage changes while local views are live; iteration
+    // mutation checks apply the same rule specifically to loops.
     void noteBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn);
 
-    // Judges the recorded changes against the fully resolved body: a read of the view
-    // written after the change reads storage the change may have moved or freed.
+    // Check later view reads after the entire body has resolved.
     Result reportBorrowInvalidations(Sema& sema, AstNodeRef declRef);
 
-    // Called on every resolved opaque call: records the "callee stores its argument"
-    // deferred checks for borrowed arguments, and the stores-propagation edges for
-    // caller-parameter arguments.
+    // Opaque calls defer retained-argument checks and record summary propagation
+    // when arguments borrow the caller's parameters.
     void noteCallArguments(Sema& sema, AstNodeRef callRef);
 
-    // 'Swag.setContext' stores a POINTER to its argument in runtime-owned storage that
-    // outlives the frame, so installing a frame local and returning leaves every later
-    // 'Swag.getContext' reading recycled stack. Silent when the body restores a previous
-    // context with a 'defer', which is what makes the scoped idiom sound.
+    // setContext retains a pointer beyond this frame, so local storage would
+    // dangle after return. A defer restoring the old context makes scoped use safe.
     Result checkSetContext(Sema& sema, AstNodeRef intrinsicRef, AstNodeRef argRef);
 
-    // Judges the deferred call-site records against the (now final) per-function borrow
-    // summaries. Runs once the module has no pending sema job (Sema::waitDone).
+    // Judge deferred records against final summaries after Sema::waitDone drains jobs.
     void reportDeferredChecks(TaskContext& ctx);
 
     // Compile-time execution can lower a completed call graph before the module-wide

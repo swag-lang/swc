@@ -55,6 +55,7 @@ namespace
 
         for (const SymbolVariable* field : type.payloadSymStruct().fields())
             SWC_RESULT(emitTypedLifecyclePoison(codeGen, codeGen.offsetAddressReg(addressReg, field->offset()), codeGen.typeMgr().get(field->typeRef())));
+
         return Result::Continue;
     }
 
@@ -69,9 +70,11 @@ namespace
         const uint64_t size = type.sizeOf(codeGen.ctx());
         if (size > sizeof(uint64_t))
             return MicroOpBits::B64;
+
         const MicroOpBits numericBits = CodeGenTypeHelpers::numericOrBoolBits(type);
         if (numericBits != MicroOpBits::Zero)
             return numericBits;
+
         const MicroOpBits storageBits = CodeGenTypeHelpers::bitsFromStorageSize(size);
         return storageBits != MicroOpBits::Zero ? storageBits : MicroOpBits::B64;
     }
@@ -93,8 +96,9 @@ namespace
         codeGen.function().addCallDependency(&runtimeFunction);
         SWC_ASSERT(runtimeFunction.parameters().size() == 2);
 
-        const CallConvKind                callConvKind = runtimeFunction.callConvKind();
-        const CallConv&                   callConv     = CallConv::get(callConvKind);
+        const CallConvKind callConvKind = runtimeFunction.callConvKind();
+        const CallConv&    callConv     = CallConv::get(callConvKind);
+
         SmallVector<ABICall::PreparedArg> preparedArgs;
         preparedArgs.reserve(2);
 
@@ -184,6 +188,7 @@ namespace
             builder.emitLoadZeroExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
         else
             builder.emitLoadSignedExtendRegReg(dstReg, srcReg, MicroOpBits::B64, srcBits);
+
         return dstReg;
     }
 
@@ -199,6 +204,7 @@ namespace
     {
         if (bits >= 64)
             return std::numeric_limits<uint64_t>::max();
+
         return (1ull << bits) - 1;
     }
 
@@ -207,6 +213,7 @@ namespace
         SWC_ASSERT(bits > 0 && bits <= 64);
         if (bits == 64)
             return std::numeric_limits<int64_t>::max();
+
         return (1ull << (bits - 1)) - 1;
     }
 
@@ -242,6 +249,7 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
     codeGen.needsValueBorrowRuntime = hasValueBorrowSafety(codeGen);
 
     RefSet<AstNodeRef> visited;
+
     struct PendingNode
     {
         AstNodeRef ref;
@@ -377,6 +385,7 @@ Result CodeGenSafety::emitValueBorrowSite(CodeGen& codeGen, AstNodeRef homeRef)
     {
         if (borrow.expressionRef != homeRef)
             continue;
+
         bool inScope = false;
         for (size_t up = 0;; ++up)
         {
@@ -389,12 +398,15 @@ Result CodeGenSafety::emitValueBorrowSite(CodeGen& codeGen, AstNodeRef homeRef)
                 break;
             }
         }
+
         if (!inScope)
             continue;
+
         const AstNodeRef payloadRef = borrow.addressHome ? codeGen.node(homeRef).cast<AstSingleVarDecl>().nodeInitRef : homeRef;
         const auto*      payloadPtr = codeGen.safePayload(payloadRef);
         if (!payloadPtr || !payloadPtr->reg.isValid() || (!borrow.addressHome && !payloadPtr->isAddress()))
             continue;
+
         const auto& payload = *payloadPtr;
         MicroReg    address = payload.reg;
         if (borrow.addressHome && payload.isAddress())
@@ -402,8 +414,10 @@ Result CodeGenSafety::emitValueBorrowSite(CodeGen& codeGen, AstNodeRef homeRef)
             address = codeGen.nextVirtualIntRegister();
             codeGen.builder().emitLoadRegMem(address, payload.reg, 0, MicroOpBits::B64);
         }
+
         SWC_RESULT(emitValueBorrowBegin(codeGen, borrow.stackOffset, address, codeGen.typeMgr().get(borrow.typeRef).sizeOf(codeGen.ctx())));
     }
+
     return Result::Continue;
 }
 
@@ -418,17 +432,16 @@ bool CodeGenSafety::hasValueBorrowSafety(const CodeGen& codeGen)
     const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
     if (lowering && lowering->valueBorrowSafetyOverride >= 0)
         return lowering->valueBorrowSafetyOverride != 0;
+
     const auto*    expansion = codeGen.frame().currentInlineContext().payload;
     const uint16_t mask      = expansion ? expansion->runtimeSafetyMask : codeGen.function().attributes().effectiveRuntimeSafetyMask(codeGen.buildCfg().safetyGuards);
     return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::ValueBorrow)) != 0;
 }
 
-// A direct write to a local that owns its stack slot, rather than referring to other storage,
-// cannot reach a live value borrow while the function has no call-site borrow open: a caller's
-// borrow ranges over storage that existed before this frame, and a callee's borrow ends before
-// the callee returns. An inline expansion keeps the guard, because its body runs inside the
-// interval of the caller's call borrows. A local stored in the caller's return slot keeps it too,
-// because the caller can borrow that destination.
+// A direct write to an owned local stack slot cannot overlap a caller's older
+// storage; callee borrows end before returning. With no local call-site borrow
+// open, the write needs no guard. Keep checks for inline bodies, which run inside
+// caller borrows, and caller return slots, which the caller can borrow.
 bool CodeGenSafety::isUnborrowableLocalWrite(CodeGen& codeGen, AstNodeRef targetRef)
 {
     while (codeGen.node(targetRef).is(AstNodeId::ParenExpr))
@@ -448,6 +461,7 @@ bool CodeGenSafety::isUnborrowableLocalWrite(CodeGen& codeGen, AstNodeRef target
         return false;
     if (!symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) || !codeGen.localStackBaseReg().isValid())
         return false;
+
     return !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar);
 }
 
@@ -455,12 +469,14 @@ Result CodeGenSafety::prepareValueBorrowSafety(CodeGen& codeGen)
 {
     if (!codeGen.needsValueBorrowRuntime)
         return Result::Continue;
+
     for (const auto kind : {IdentifierManager::RuntimeFunctionKind::ValueBorrowEnter, IdentifierManager::RuntimeFunctionKind::ValueBorrowLeave, IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite})
     {
         SymbolFunction* fn = nullptr;
         SWC_RESULT(codeGen.sema().waitRuntimeFunction(kind, fn, codeGen.function().codeRef()));
         codeGen.function().addCallDependency(fn);
     }
+
     return Result::Continue;
 }
 
@@ -476,11 +492,14 @@ namespace
             SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), location, codeGen.curNode()));
             args.push_back(CodeGenConstantHelpers::makeAddressPayloadFromConstant(codeGen, location).reg);
         }
+
         if (trailingArg.isValid())
             args.push_back(trailingArg);
+
         auto&               instructions = codeGen.builder().instructions();
         const MicroInstrRef previous     = instructions.lastInstructionRef();
         SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *function, args.span()));
+
         for (MicroInstrRef ref = instructions.findNextInstructionRef(previous); ref.isValid(); ref = instructions.findNextInstructionRef(ref))
         {
             auto* instruction = instructions.ptr(ref);
@@ -490,6 +509,7 @@ namespace
                 instruction->frameWriteGuard    = frameWriteGuard;
             }
         }
+
         return Result::Continue;
     }
 }
@@ -498,9 +518,11 @@ Result CodeGenSafety::emitValueBorrowBegin(CodeGen& codeGen, uint32_t recordOffs
 {
     if (!size)
         return Result::Continue;
+
     const MicroReg record = codeGen.offsetAddressReg(codeGen.localStackBaseReg(), recordOffset);
     const MicroReg count  = codeGen.nextVirtualIntRegister();
     codeGen.builder().emitLoadRegImm(count, ApInt(size, 64), MicroOpBits::B64);
+
     SmallVector<MicroReg> args;
     args.push_back(record);
     args.push_back(address);
@@ -524,18 +546,18 @@ Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, M
     if (!hasValueBorrowSafety(codeGen))
         return Result::Continue;
 
-    // The module's cache of the value-borrow extent address, which the backend's extent test reads
-    // in front of the call and the runtime fills on the first one.
+    // Cache the module's borrow-extent address. The backend tests it before the
+    // runtime call; the runtime fills it on first use.
     const MicroReg cacheReg = codeGen.nextVirtualIntRegister();
     codeGen.builder().emitLoadRegDataSegmentReloc(cacheReg, DataSegmentKind::GlobalZero, codeGen.compiler().valueBorrowExtentCacheOffset());
 
     SmallVector<MicroReg> args;
     args.push_back(address);
     args.push_back(size);
-    // A borrow covering this frame can only be one of the function's own, opened at a call site
-    // or an inline binding and closed when that call returns: a caller's borrow covers storage
-    // older than the frame, and a callee's ends before the callee returns. While none of the
-    // function's own is open, the backend drops the check of a write it proves lands in the frame.
+
+    // Only borrows opened by this function can cover its frame: caller storage
+    // predates it and callee borrows end before return. With none open, the backend
+    // can discard checks for writes it proves target this frame.
     return emitValueBorrowRuntimeCall(codeGen, IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite, args, true, !codeGen.hasOpenLocalValueBorrow(), cacheReg);
 }
 
@@ -543,6 +565,7 @@ Result CodeGenSafety::emitValueBorrowWrite(CodeGen& codeGen, MicroReg address, u
 {
     if (!size || !hasValueBorrowSafety(codeGen))
         return Result::Continue;
+
     const MicroReg count = codeGen.nextVirtualIntRegister();
     codeGen.builder().emitLoadRegImm(count, ApInt(size, 64), MicroOpBits::B64);
     return emitValueBorrowWrite(codeGen, address, count);
@@ -564,8 +587,7 @@ bool CodeGenSafety::hasLifecycleRuntimeSafety(const CodeGen& codeGen)
 
 bool CodeGenSafety::hasLifecycleSanity(const CodeGen& codeGen)
 {
-    // The STATIC use-after-move analysis needs the moved-from markers: it follows the
-    // 'Swag.Sanity' attribute, not the runtime safety guards.
+    // Swag.Sanity controls static use-after-move markers independently of runtime guards.
     const uint16_t mask = codeGen.function().attributes().effectiveSanityMask(codeGen.buildCfg().sanityGuards);
     return (mask & static_cast<uint16_t>(Runtime::SafetyWhat::Lifecycle)) != 0;
 }
@@ -584,20 +606,22 @@ Result CodeGenSafety::emitValueBorrowWriteElements(CodeGen& codeGen, MicroReg ad
     builder.emitLoadRegReg(bytes, count, MicroOpBits::B64);
     builder.emitCmpRegImm(count, ApInt(UINT64_MAX / elementSize, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, multiply);
+
     // An invalid extent must not wrap to zero and bypass the overlap check.
     builder.emitLoadRegImm(bytes, ApInt(UINT64_MAX, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, ready);
+
     builder.placeLabel(multiply);
     builder.emitOpBinaryRegImm(bytes, ApInt(elementSize, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+
     builder.placeLabel(ready);
     return emitValueBorrowWrite(codeGen, address, bytes);
 }
 
 bool CodeGenSafety::hasLifecycleInvalidate(const CodeGen& codeGen)
 {
-    // Invalidation serves both worlds: the runtime poison (Safety) and the static
-    // moved-from marker (Sanity). Emit it when either one is active; the emitter
-    // gates each part on its own flag.
+    // Invalidation also checks active value borrows. Runtime poisoning and static
+    // moved-from markers are enabled independently inside the emitter.
     return hasLifecycleRuntimeSafety(codeGen) || hasLifecycleSanity(codeGen) || hasValueBorrowSafety(codeGen);
 }
 
@@ -631,10 +655,13 @@ Result CodeGenSafety::emitLifecyclePoisonLoop(CodeGen& codeGen, const MicroReg a
     builder.placeLabel(loopLabel);
     builder.emitCmpRegImm(cntReg, ApInt(0, 64), MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, doneLabel);
+
     CodeGenMemoryHelpers::emitMemSet(codeGen, ptrReg, fillReg, static_cast<uint32_t>(elementSizeInBytes));
+
     builder.emitOpBinaryRegImm(ptrReg, ApInt(elementSizeInBytes, 64), MicroOp::Add, MicroOpBits::B64);
     builder.emitOpBinaryRegImm(cntReg, ApInt(1, 64), MicroOp::Subtract, MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopLabel);
+
     builder.placeLabel(doneLabel);
     return Result::Continue;
 }
@@ -646,17 +673,16 @@ Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg a
 
     SWC_RESULT(emitValueBorrowWrite(codeGen, addrReg, sizeInBytes));
 
-    // The 0xDD poison is a RUNTIME mitigation: it belongs to Swag.Safety(.Lifecycle).
+    // Runtime poisoning follows Swag.Safety(.Lifecycle).
     if (hasLifecycleRuntimeSafety(codeGen))
         SWC_RESULT(emitTypedLifecyclePoison(codeGen, addrReg, type));
 
-    // The moved-from marker feeds the STATIC sanitizer: it belongs to Swag.Sanity(.Lifecycle).
+    // Static moved-from markers follow Swag.Sanity(.Lifecycle).
     if (!hasLifecycleSanity(codeGen))
         return Result::Continue;
 
-    // The sanitizer only tracks frame slots: mark the source storage as moved-from when it
-    // is a plain local. The address is re-materialized here so the marker stays resolvable
-    // even when a lifecycle call was emitted in between (calls clear the sanitizer state).
+    // Static analysis tracks plain local frame slots. Recompute the address here:
+    // a lifecycle call in between clears the analyzer's address state.
     if (sourceRef.isInvalid() || !codeGen.localStackBaseReg().isValid())
         return Result::Continue;
 
@@ -681,9 +707,8 @@ Result CodeGenSafety::emitLifecycleInvalidate(CodeGen& codeGen, const MicroReg a
     if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, symVar))
         return Result::Continue;
 
-    // The local's storage must be the struct itself: for a reference-like variable the
-    // frame slot holds a pointer, and marking it would flag legitimate reads of the
-    // reference on the way to its (correctly poisoned) pointee.
+    // Mark struct storage itself. A reference slot only holds a pointer; marking
+    // it would reject valid reads on the way to the already poisoned pointee.
     const TypeInfo& varType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), symVar.typeRef());
     if (!varType.isStruct())
         return Result::Continue;
@@ -721,8 +746,7 @@ Result CodeGenSafety::emitBoundCheck(CodeGen& codeGen, AstNodeRef indexRef, cons
     return Result::Continue;
 }
 
-// An exclusive range whose bounds are equal is empty, and the loop lowering already exits
-// before the first iteration, so only an inverted range (lower above upper) panics here.
+// Equal exclusive bounds are empty; only inverted ranges need a panic.
 Result CodeGenSafety::emitLoopBoundCheck(CodeGen& codeGen, AstNodeRef nodeRef, MicroReg lowerReg, MicroReg upperReg, const TypeInfo& indexType)
 {
     // The loop initializer passes the index type after resolving its aliases.
@@ -763,9 +787,8 @@ Result CodeGenSafety::emitSliceRangeCheck(CodeGen& codeGen, AstNodeRef nodeRef, 
     SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen, nodePayload);
     SWC_ASSERT(panicFunction != nullptr);
 
-    // A slice describes a window, so its bounds have to stay in order and inside the source.
-    // Both are compared as counts, which are unsigned. A pointer source has no count of its
-    // own, so only the ordering can be checked there.
+    // Check unsigned ordering and containment within the source. Pointer sources
+    // have no count, so only ordering can be checked.
     MicroBuilder&       builder    = codeGen.builder();
     const MicroLabelRef inRangeRef = builder.createLabel();
     const MicroLabelRef panicRef   = builder.createLabel();
@@ -817,9 +840,8 @@ Result CodeGenSafety::emitNotNullCheck(CodeGen& codeGen, const AstNode& node)
     return emitRuntimePanicCall(codeGen, *panicFunction, node, "notnull on null value");
 }
 
-// Shared by 'notnull' and '!.': test a freshly generated nullable value and panic when it
-// is null, falling through to the access otherwise. The caller has already checked that
-// the guard is wanted; 'valueRef' must be a node whose payload is live.
+// Guard nullable values for 'notnull' and '!.'; valueRef needs a live payload.
+// A null value panics; a present value continues to the access.
 Result CodeGenSafety::emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, AstNodeRef valueRef, std::string_view what)
 {
     const auto* ownerPayload = codeGen.loweringPayload(ownerRef);
@@ -844,9 +866,8 @@ Result CodeGenSafety::emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, As
     MicroBuilder&  builder     = codeGen.builder();
     const MicroReg presenceReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, valuePayload, valueTypeRef, valueType, presenceBits);
 
-    // Resolve the panic helper from the runtime directly. A node carries ONE runtime
-    // function, and the owner's slot may already hold an unrelated one, so neither payload
-    // can be trusted here.
+    // Resolve directly from the runtime: each node has one helper slot, which
+    // either payload may already use for an unrelated function.
     const IdentifierRef panicIdRef    = codeGen.idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::SafetyPanic);
     SymbolFunction*     panicFunction = panicIdRef.isValid() ? codeGen.compiler().runtimeFunctionSymbol(panicIdRef) : nullptr;
     SWC_ASSERT(panicFunction != nullptr);
@@ -886,6 +907,7 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
         valuePayload.setIsAddress();
     else
         valuePayload.setIsValue();
+
     const MicroReg presenceReg = CodeGenCompareHelpers::materializeConditionOperand(codeGen, valuePayload, resolvedTypeRef, typeInfo, bits);
 
     const MicroLabelRef presentLabel = builder.createLabel();
@@ -902,13 +924,13 @@ Result CodeGenSafety::emitNullExtractCheck(CodeGen& codeGen, const AstNode& node
         SWC_ASSERT(panicFunction != nullptr);
         SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "null value cast into a non-null type"));
     }
+
     builder.placeLabel(presentLabel);
     return Result::Continue;
 }
 
-// Guards a read of a 'late' field or global: the storage stays zero (null) until the
-// first assignment while the exposed type is non-null. Loads the value at 'addrReg' and
-// panics when it is still null.
+// Late fields/globals expose a non-null type but stay null until assigned.
+// Read their storage and panic if initialization has not occurred.
 Result CodeGenSafety::emitLateReadCheck(CodeGen& codeGen, const AstNode& node, MicroReg addrReg, TypeRef lateTypeRef)
 {
     const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
@@ -990,12 +1012,9 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
     const MicroOp  shiftOp     = isLeftShift ? MicroOp::ShiftLeft : (valueSigned ? MicroOp::ShiftArithmeticRight : MicroOp::ShiftRight);
     const uint64_t bitWidth    = getNumBits(shiftCtx.valueBits);
 
-    // A shift amount is valid below the value's width and nowhere else, and the shift itself is
-    // the bare instruction. A constant amount was checked when it folded. A runtime amount out
-    // of range is a fault that overflow safety reports; without safety the result is unspecified
-    // — the processor masks the amount — which is where C leaves it. The selection of zero that
-    // used to follow every variable shift cost a compare and a conditional move on every shift
-    // of every hot loop, for a value no program asked for.
+    // Constant counts were checked during folding. Overflow safety rejects runtime
+    // counts outside [0, value width). Without that guard, out-of-range results are
+    // unspecified and the processor may mask the count. Emit the bare shift.
     bool constantBelowWidth = false;
     if (shiftCtx.countOperandRef.isValid())
     {
@@ -1013,8 +1032,7 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
 
     if (!constantBelowWidth && hasOverflowRuntimeSafety(codeGen))
     {
-        // One unsigned compare of the widened amount covers the negative case too: a negative
-        // signed amount widens to a value far above any width.
+        // An unsigned comparison also rejects negative signed counts after widening.
         const MicroReg      amount64 = widenIntRegTo64(codeGen, shiftCtx.countReg, *shiftCtx.countType, shiftCtx.countBits);
         const MicroLabelRef inRange  = builder.createLabel();
         builder.emitCmpRegImm(amount64, ApInt(bitWidth, 64), MicroOpBits::B64);
@@ -1027,14 +1045,9 @@ Result CodeGenSafety::emitShiftIntLike(CodeGen& codeGen, const AstNode& node, co
     return Result::Continue;
 }
 
-// Lowers an integer division or remainder together with the two faults it can carry: a zero
-// divisor, and the signed minimum divided by -1.
-//
-// Both faults report through a CALL, and a panic is not guaranteed to end the program - a
-// '#test' installs a hook and '@panic' then returns to its caller. So neither report may fall
-// through into the divide: the operands would be read after the call clobbered them. Every failing
-// path therefore produces the zero result and jumps past the operation, which is the shape the
-// signed-overflow arm already used and the reason it was written that way.
+// Guard zero divisors and signed MIN/-1. Panic hooks can return (for example
+// in #test), so a reported fault must jump past the hardware operation;
+// the reporting call may already have clobbered its operands.
 Result CodeGenSafety::emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node, const MicroReg leftReg, const MicroReg rightReg, const MicroOp op, const MicroOpBits opBits, const bool isSigned, const bool zeroOnOverflow)
 {
     // The guard bypasses the hardware operation on MIN/-1, even without runtime safety.
@@ -1076,8 +1089,10 @@ Result CodeGenSafety::emitDivOrModIntLike(CodeGen& codeGen, const AstNode& node,
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
         builder.emitCmpRegImm(leftReg, minSignedImmediate(opBits), opBits);
         builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, doOpLabel);
+
         if (hasOverflowRuntimeSafety(codeGen))
             SWC_RESULT(emitOverflowCheck(codeGen, node));
+
         if (zeroOnOverflow)
             builder.emitClearReg(leftReg, opBits);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
@@ -1174,6 +1189,7 @@ Result CodeGenSafety::emitIntLikeCastOverflowCheck(CodeGen& codeGen, const AstNo
     const uint32_t    dstBits     = dstType.payloadIntLikeBits();
     if (!dstBits)
         return Result::Continue;
+
     MicroBuilder&       builder   = codeGen.builder();
     const MicroLabelRef failLabel = builder.createLabel();
     const MicroLabelRef doneLabel = builder.createLabel();
@@ -1201,13 +1217,16 @@ Result CodeGenSafety::emitIntLikeCastOverflowCheck(CodeGen& codeGen, const AstNo
     {
         builder.emitCmpRegImm(srcReg64, ApInt(minSignedValue(dstBits), 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B32, failLabel);
+
         builder.emitCmpRegImm(srcReg64, ApInt(maxSignedValue(dstBits), 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Greater, MicroOpBits::B32, failLabel);
     }
 
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
     builder.placeLabel(failLabel);
     SWC_RESULT(emitOverflowCheck(codeGen, node));
+
     builder.placeLabel(doneLabel);
     return Result::Continue;
 }
@@ -1223,6 +1242,7 @@ Result CodeGenSafety::emitFloatToIntCastOverflowCheck(CodeGen& codeGen, const As
     const uint32_t    dstBits = dstType.payloadIntLikeBits();
     if (!dstBits)
         return Result::Continue;
+
     const bool          dstUnsigned = dstType.isIntLikeUnsigned();
     MicroBuilder&       builder     = codeGen.builder();
     const MicroLabelRef failLabel   = builder.createLabel();
@@ -1254,8 +1274,10 @@ Result CodeGenSafety::emitFloatToIntCastOverflowCheck(CodeGen& codeGen, const As
     }
 
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
     builder.placeLabel(failLabel);
     SWC_RESULT(emitOverflowCheck(codeGen, node));
+
     builder.placeLabel(doneLabel);
     return Result::Continue;
 }
@@ -1279,8 +1301,10 @@ Result CodeGenSafety::emitUnaryMathIntrinsicCall(CodeGen& codeGen, const AstIntr
     SWC_RESULT(emitUnaryMathDomainCheck(codeGen, valueReg, codeGen.typeMgr().get(resultTypeRef), op, failLabel));
     SWC_RESULT(CodeGenCallHelpers::codeGenCallExprCommon(codeGen, node.nodeExprRef));
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
     builder.placeLabel(failLabel);
     SWC_RESULT(emitMathCheck(codeGen, node));
+
     builder.placeLabel(doneLabel);
     return Result::Continue;
 }

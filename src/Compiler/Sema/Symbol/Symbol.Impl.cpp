@@ -35,6 +35,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_WHAT, objectStruct.name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_SYM, interfaceMethod.name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_VALUE, itfSym.name(sema.ctx()));
+
         auto&             note    = diag.addElement(DiagnosticId::sema_note_interface_method_declared_here);
         const SourceView& srcView = sema.compiler().srcView(interfaceMethod.srcViewRef());
         note.setSrcView(&srcView);
@@ -136,10 +137,13 @@ const SymbolMap* SymbolImpl::targetSymbolMap() const
 {
     if (isForStruct())
         return symStruct();
+
     if (isForEnum())
         return symEnum();
+
     if (isForInterface())
         return symInterface();
+
     return nullptr;
 }
 
@@ -147,6 +151,7 @@ TypeRef SymbolImpl::ownerTypeRef() const
 {
     if (isForStruct())
         return symStruct()->typeRef();
+
     if (isForEnum())
         return symEnum()->typeRef();
 
@@ -156,6 +161,7 @@ TypeRef SymbolImpl::ownerTypeRef() const
 void SymbolImpl::addFunction(const TaskContext& ctx, SymbolFunction* sym)
 {
     SWC_UNUSED(ctx);
+
     const std::unique_lock lk(mutex_);
     if (sym->specOpKind() != SpecOpKind::None && sym->specOpKind() != SpecOpKind::Invalid)
         specOps_.push_back(sym);
@@ -174,17 +180,13 @@ const SymbolFunction* SymbolImpl::findFunction(IdentifierRef functionIdRef) cons
 
 namespace
 {
-    // Interface methods may share a name ('#fwd' variants, overloads). Parameters are
-    // compared positionally, skipping the receiver (the interface method sees an
-    // interface 'me', the implementation a concrete struct 'me'). The complete type is
-    // part of the slot identity: checking only move-reference-ness aliases unrelated
-    // overloads with the same arity to the first implementation method.
+    // Match interface overloads by complete parameter types, excluding the
+    // implementation's extra receiver. Checking only arity or move-reference status
+    // would bind unrelated signatures to the same slot.
     bool implMethodMatchesInterfaceMethod(const TaskContext& ctx, const SymbolFunction& implMethod, const SymbolFunction& interfaceMethod)
     {
         SWC_UNUSED(ctx);
 
-        // An implementation method carries its receiver as a leading parameter; an
-        // interface prototype does not.
         const auto&  implParams = implMethod.parameters();
         const auto&  itfParams  = interfaceMethod.parameters();
         const size_t implOffset = implParams.size() == itfParams.size() + 1 ? 1 : 0;
@@ -213,10 +215,13 @@ const SymbolFunction* SymbolImpl::findFunctionForInterfaceMethod(const TaskConte
         const auto& implMethod = symbol->cast<SymbolFunction>();
         if (implMethod.isGenericRoot() && !implMethod.isGenericInstance())
             continue;
+
         if (!firstByName)
             firstByName = &implMethod;
+
         if (implMethod.hasExtraFlag(SymbolFunctionFlagsE::WhereConstraintFailed))
             continue;
+
         if (implMethodMatchesInterfaceMethod(ctx, implMethod, interfaceMethod))
             return &implMethod;
     }
@@ -233,7 +238,8 @@ const SymbolFunction* SymbolImpl::resolveInterfaceMethodTarget(const TaskContext
 
 SmallVector<SymbolFunction*, 8> SymbolImpl::specOps() const
 {
-    const std::shared_lock          lk(mutex_);
+    const std::shared_lock lk(mutex_);
+
     SmallVector<SymbolFunction*, 8> result;
     result.assign(specOps_.begin(), specOps_.end());
     return result;
@@ -243,8 +249,10 @@ Result SymbolImpl::validateInterfaceConstraints(Sema& sema, CastFailure& failure
 {
     if (hasExtraFlag(SymbolImplFlagsE::InterfaceConstraintsValid))
         return Result::Continue;
+
     SWC_RESULT(sema.waitSemaCompleted(this, codeRef()));
     SWC_RESULT(sema.waitSemaCompleted(symInterface(), codeRef()));
+
     for (const SymbolFunction* interfaceMethod : symInterface()->functions())
     {
         // Resolve conditional overloads only after their availability is known.
@@ -253,9 +261,11 @@ Result SymbolImpl::validateInterfaceConstraints(Sema& sema, CastFailure& failure
             const auto* method = candidate->safeCast<SymbolFunction>();
             if (!method || method->isIgnored() || (method->isGenericRoot() && !method->isGenericInstance()))
                 continue;
+
             SWC_RESULT(sema.waitTyped(method, method->codeRef()));
             if (!implMethodMatchesInterfaceMethod(sema.ctx(), *method, *interfaceMethod))
                 continue;
+
             const auto* decl = method->declAs<AstFunctionDecl>();
             if (decl && decl->spanConstraintsRef.isValid() && !method->isEmpty())
                 SWC_RESULT(sema.waitConstraintsResolved(method, method->codeRef()));
@@ -264,6 +274,7 @@ Result SymbolImpl::validateInterfaceConstraints(Sema& sema, CastFailure& failure
         const SymbolFunction* method = resolveInterfaceMethodTarget(sema.ctx(), *interfaceMethod);
         if (!method)
             return Result::Continue;
+
         SWC_RESULT(sema.waitTyped(method, method->codeRef()));
         const auto* decl = method->declAs<AstFunctionDecl>();
         if (!decl || decl->spanConstraintsRef.isInvalid() || method->isEmpty())
@@ -275,12 +286,14 @@ Result SymbolImpl::validateInterfaceConstraints(Sema& sema, CastFailure& failure
 
         bool satisfied = false;
         SWC_RESULT(SemaGeneric::evaluateFunctionWhereConstraints(sema, satisfied, *method, &failure));
+
         failure.nodeRef = sema.curNodeRef();
         failure.noteId  = DiagnosticId::sema_note_generic_where_declared_here;
         failure.addArgument(Diagnostic::ARG_SYM, method->name(sema.ctx()));
         failure.addArgument(Diagnostic::ARG_VALUE, failure.valueStr);
         return Result::Error;
     }
+
     const_cast<SymbolImpl*>(this)->addExtraFlag(SymbolImplFlagsE::InterfaceConstraintsValid);
     return Result::Continue;
 }
@@ -314,6 +327,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     SWC_ASSERT(objectStruct != nullptr);
     SWC_ASSERT(itfSym != nullptr);
     SWC_ASSERT(objectStruct->typeRef().isValid());
+
     SWC_RESULT(sema.waitSemaCompleted(this, codeRef()));
     SWC_RESULT(sema.waitSemaCompleted(objectStruct, objectStruct->codeRef()));
     SWC_RESULT(sema.waitSemaCompleted(itfSym, itfSym->codeRef()));
@@ -335,6 +349,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
 
     SmallVector<const SymbolFunction*> implMethods;
     implMethods.reserve(methods.size());
+
     for (const SymbolFunction* interfaceMethod : methods)
     {
         SWC_ASSERT(interfaceMethod != nullptr);
@@ -343,6 +358,7 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
         {
             if (!missingMethodReported_.exchange(true))
                 reportMissingInterfaceMethod(sema, *this, *objectStruct, *itfSym, *interfaceMethod);
+
             return Result::Error;
         }
 
@@ -353,8 +369,10 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
             const Result result = validateInterfaceConstraints(sema, failure);
             if (result == Result::Error)
                 return Cast::emitCastFailure(sema, failure);
+
             return result;
         }
+
         implMethods.push_back(implMethod);
     }
 
@@ -385,15 +403,19 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
 
     if (!tableStorage)
     {
-        DataSegment& segment               = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex);
+        DataSegment& segment = sema.cstMgr().shardDataSegment(typeInfoRef.shardIndex);
+
         const auto [tableOffset, newTable] = segment.reserveSpan<void*>(slotCount);
-        newTable[0]                        = reinterpret_cast<void*>(typeInfoCst.getValuePointer());
+
+        newTable[0] = reinterpret_cast<void*>(typeInfoCst.getValuePointer());
         segment.addRelocation(tableOffset, typeInfoRef.offset);
+
         for (uint32_t i = 0; i < implMethods.size(); ++i)
         {
             newTable[i + 1] = nullptr;
             segment.addFunctionRelocation(tableOffset + (i + 1) * sizeof(void*), implMethods[i]);
         }
+
         tableStorage = newTable;
         tableRef     = {.shardIndex = typeInfoRef.shardIndex, .offset = tableOffset};
     }
@@ -401,10 +423,13 @@ Result SymbolImpl::ensureInterfaceMethodTable(Sema& sema, ConstantRef& outRef) c
     const std::span tableBytes{reinterpret_cast<const std::byte*>(tableStorage), static_cast<size_t>(slotCount) * sizeof(void*)};
     ConstantValue   tableCst = ConstantValue::makeArrayBorrowed(ctx, tableTypeRef, tableBytes);
     tableCst.setDataSegmentRef(tableRef);
+
     interfaceMethodTableRef_ = sema.cstMgr().addMaterializedPayloadConstant(tableCst);
     SWC_ASSERT(interfaceMethodTableRef_.isValid());
+
     interfaceMethodTablePublishedRef_.store(interfaceMethodTableRef_.get(), std::memory_order_release);
     outRef = interfaceMethodTableRef_;
+
     return Result::Continue;
 }
 

@@ -64,6 +64,7 @@ namespace SemaRuntime
             return isCompilerOnlyFunction(sema.compiler(), *function);
         if (const auto* variable = symbol.safeCast<SymbolVariable>())
             return isCompilerOnlyVariable(*variable);
+
         return false;
     }
 
@@ -122,7 +123,9 @@ namespace SemaRuntime
         const bool    runtimeContext     = isRuntimeArtifactContext(sema);
         const Symbol* compilerOnlySymbol = nullptr;
         bool          copied             = false;
+
         outStorage.clear();
+
         for (size_t index = 0; index < inSymbols.size(); ++index)
         {
             const T symbol = inSymbols[index];
@@ -134,6 +137,7 @@ namespace SemaRuntime
                 {
                     if (!compilerOnlySymbol)
                         compilerOnlySymbol = baseSymbol;
+
                     keep = false;
                 }
             }
@@ -146,6 +150,7 @@ namespace SemaRuntime
                     outStorage.append(inSymbols.data(), index);
                     copied = true;
                 }
+
                 continue;
             }
 
@@ -173,6 +178,7 @@ namespace SemaRuntime
         SWC_RESULT(filterRuntimeAccessibleSymbols(sema, nodeRef, inSymbols, filteredSymbols, outSymbols, shouldKeep));
         if (filteredSymbols.data() != outSymbols.data() || filteredSymbols.size() != outSymbols.size())
             outSymbols.assign(filteredSymbols.begin(), filteredSymbols.end());
+
         return Result::Continue;
     }
 

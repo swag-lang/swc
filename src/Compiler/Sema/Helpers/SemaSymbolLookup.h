@@ -47,6 +47,7 @@ namespace SemaSymbolLookup
                 storage.clear();
                 return storage.span();
             }
+
             return symbols;
         }
 
@@ -69,6 +70,7 @@ namespace SemaSymbolLookup
 
                 storage[writeIndex++] = sym;
             }
+
             storage.resize(writeIndex);
             return storage.span();
         }
@@ -89,6 +91,7 @@ namespace SemaSymbolLookup
                         storage.append(symbols.data(), index);
                         copied = true;
                     }
+
                     continue;
                 }
             }
@@ -103,8 +106,7 @@ namespace SemaSymbolLookup
     template<typename T>
     bool isCallCalleeCandidate(T sym)
     {
-        // Currently, "callable" means "function symbol".
-        // Extend here later for function pointers/delegates/call-operator types if needed.
+        // Only function symbols participate in this overload-set filter.
         return sym && sym->isFunction();
     }
 

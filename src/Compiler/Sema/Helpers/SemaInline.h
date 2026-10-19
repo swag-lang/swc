@@ -15,48 +15,58 @@ struct SemaInlinePayload;
 namespace SemaInline
 {
     const SemaInlinePayload* expansionPayload(Sema& sema, AstNodeRef nodeRef);
-    bool                     canInlineCall(Sema& sema, const SymbolFunction& fn);
-    Result                   tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs = {});
+
+    bool   canInlineCall(Sema& sema, const SymbolFunction& fn);
+    Result tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<AstNodeRef> sourceArgs = {});
 }
 
 struct SemaInlinePayload
 {
     bool returnsToCallerSite() const { return sourceFunction && sourceFunction->attributes().hasRtFlag(RtAttributeFlagsE::CalleeReturn); }
 
-    const SymbolFunction*                            sourceFunction          = nullptr;
-    SemaInlinePayload*                               parentInlinePayload     = nullptr;
-    SemaScope*                                       callerScope             = nullptr;
-    const SymbolImpl*                                callerImpl              = nullptr;
-    SemaScope*                                       upLookupScope           = nullptr;
-    bool                                             crossAstInline          = false;
-    uint16_t                                         runtimeSafetyMask       = 0;
-    uint16_t                                         callerRuntimeSafetyMask = 0;
-    SymbolVariable*                                  resultVar               = nullptr;
-    SmallVector<SemaClone::ParamBinding, 6>          argMappings;
-    SmallVector2<SymbolVariable*>                    callerBindingVars;
-    SmallVector2<TypeRef>                            callerBindingTypes;
-    SmallVector2<AstNodeRef>                         materializedArgRefs;
-    SmallVector2<SymbolVariable*>                    localVariables;
-    std::array<IdentifierRef, 10>                    aliasIdentifiers = {};
-    std::array<SourceCodeRef, 10>                    aliasNameRefs    = {};                  // where the call site wrote each alias
-    TokenRef                                         sourceEndRef     = TokenRef::invalid(); // last token of 'sourceFunction', once asked
-    std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers  = {};
-    // Declared '#code' parameter names of the callee ('stmt: #code(v, dbl)'), in slot
-    // order. Fallback names for slots with no call-site alias/binder, and the naming
-    // contract for '#inject' value bindings. Bit k of the mask: parameter k is 'var'.
-    // When a parameter is typed ('#code(line: *String)'), its type node (owned by
-    // codeParamSourceAst) types the synthesized binding declaration.
+    const SymbolFunction* sourceFunction      = nullptr;
+    SemaInlinePayload*    parentInlinePayload = nullptr;
+
+    SemaScope*        callerScope   = nullptr;
+    const SymbolImpl* callerImpl    = nullptr;
+    SemaScope*        upLookupScope = nullptr;
+
+    bool     crossAstInline          = false;
+    uint16_t runtimeSafetyMask       = 0;
+    uint16_t callerRuntimeSafetyMask = 0;
+
+    SymbolVariable* resultVar = nullptr;
+
+    SmallVector<SemaClone::ParamBinding, 6> argMappings;
+    SmallVector2<SymbolVariable*>           callerBindingVars;
+    SmallVector2<TypeRef>                   callerBindingTypes;
+    SmallVector2<AstNodeRef>                materializedArgRefs;
+
+    SmallVector2<SymbolVariable*> localVariables;
+
+    std::array<IdentifierRef, 10> aliasIdentifiers = {};
+    std::array<SourceCodeRef, 10> aliasNameRefs    = {}; // where the call site wrote each alias
+
+    TokenRef sourceEndRef = TokenRef::invalid(); // last token of 'sourceFunction', once asked
+
+    std::array<IdentifierRef, SemaScope::UNIQ_COUNT> uniqIdentifiers = {};
+
+    // Declared #code slot names provide fallbacks for missing call-site aliases/binders
+    // and define #inject value names. Type nodes belong to codeParamSourceAst;
+    // bit k of codeParamVarMask marks a var parameter.
     SmallVector2<IdentifierRef> codeParamNames;
     SmallVector2<AstNodeRef>    codeParamTypeNodes;
-    const Ast*                  codeParamSourceAst = nullptr;
-    uint32_t                    codeParamVarMask   = 0;
-    AstNodeRef                  callRef            = AstNodeRef::invalid();
-    AstNodeRef                  inlineRootRef      = AstNodeRef::invalid();
-    TypeRef                     returnTypeRef      = TypeRef::invalid();
-    // First callee-origin statement of an ordinary-inline root. From that child on, the
-    // caller's flow-narrowing facts are dropped so the body typechecks exactly as it did
-    // standalone; the materialized argument bindings BEFORE it are caller code and keep
-    // the facts. Invalid for macros/mixins (textual expansions of caller code).
+
+    const Ast* codeParamSourceAst = nullptr;
+    uint32_t   codeParamVarMask   = 0;
+
+    AstNodeRef callRef       = AstNodeRef::invalid();
+    AstNodeRef inlineRootRef = AstNodeRef::invalid();
+    TypeRef    returnTypeRef = TypeRef::invalid();
+
+    // Drop caller flow-narrowing facts from this first callee-origin statement onward.
+    // Earlier materialized argument bindings remain caller code and retain those facts.
+    // Invalid for macros/mixins, which expand textually as caller code.
     AstNodeRef narrowFactsBodyStartRef = AstNodeRef::invalid();
 };
 
@@ -71,6 +81,7 @@ namespace SemaInline
                 if (binding.idRef == idRef)
                     return &binding;
             }
+
             payload = payload->parentInlinePayload;
         }
 
@@ -83,6 +94,7 @@ namespace SemaInline
     {
         while (payload && !hasReturnContext(*payload))
             payload = payload->parentInlinePayload;
+
         return payload;
     }
 
@@ -90,6 +102,7 @@ namespace SemaInline
     {
         while (payload && !hasReturnContext(*payload))
             payload = payload->parentInlinePayload;
+
         return payload;
     }
 }

@@ -700,6 +700,86 @@ SWC_TEST_BEGIN(PostRAPeephole_KeepsStackArgumentBeforeCallAndReturn)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_DeadSpillsUseEntryRelativeAddressesAcrossCalls)
+{
+    const auto& conv  = CallConv::get(CallConvKind::Swag);
+    const auto  stack = conv.stackPointer;
+    const auto  value = MicroReg::intReg(12);
+    const auto  other = MicroReg::intReg(13);
+    for (uint32_t variant = 0; variant < 18; ++variant)
+    {
+        SymbolFunction callee(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+        callee.setReturnTypeRef(variant == 11 ? ctx.typeMgr().typeString() : ctx.typeMgr().typeVoid());
+        if (variant == 8)
+            callee.addExtraFlag(SymbolFunctionFlagsE::Closure);
+        if (variant == 9)
+            callee.addExtraFlag(SymbolFunctionFlagsE::Fallible);
+        if (variant == 10 || variant == 17)
+            callee.addExtraFlag(SymbolFunctionFlagsE::Variadic);
+        std::array<std::optional<SymbolVariable>, 12> parameters;
+        uint32_t                                      parameterCount = 0;
+        if (variant == 1 || variant == 17)
+            parameterCount = 7;
+        else if (variant == 12)
+            parameterCount = 12;
+        else if (variant == 10)
+            parameterCount = 1;
+        for (uint32_t i = 0; i < parameterCount; ++i)
+        {
+            auto&      parameter = parameters[i].emplace(nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+            const bool variadic  = (variant == 10 || variant == 17) && i + 1 == parameterCount;
+            TypeRef    type      = ctx.typeMgr().typeU64();
+            if (variadic)
+                type = ctx.typeMgr().typeVariadic();
+            else if (variant == 12 && i >= 6)
+                type = ctx.typeMgr().typeF64();
+            parameter.setTypeRef(type);
+            callee.addParameter(&parameter);
+        }
+
+        MicroBuilder builder(ctx);
+        builder.emitLoadMemReg(stack, 0x80, value, MicroOpBits::B64);
+        if (variant == 13 || variant == 14)
+            builder.emitOpTernaryRegRegMem(MicroReg::floatReg(0), MicroReg::floatReg(1), stack, variant == 13 ? 0x50 : 0x7C, MicroOp::FloatAddProduct, MicroOpBits::B64);
+        if (variant == 15)
+            builder.emitOpBinaryRegRegMem(MicroReg::floatReg(0), MicroReg::floatReg(1), stack, 0x50, MicroOp::FloatAdd, MicroOpBits::B64);
+        if (variant == 16)
+            builder.emitOpBinaryRegMem(MicroReg::floatReg(0), stack, 0x50, MicroOp::FloatAdd, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(stack, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+        if (variant == 7)
+            builder.emitLoadMemReg(stack, 0x88, other, MicroOpBits::B64);
+        if (variant == 2)
+            builder.emitCallReg(other, CallConvKind::Swag);
+        else
+            builder.emitCallLocal(&callee, CallConvKind::Swag);
+        if (variant == 3 || variant == 4)
+            builder.emitLoadRegMem(conv.intReturn, stack, variant == 3 ? 0x88 : 0x80, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(stack, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        if (variant == 5)
+        {
+            builder.emitOpBinaryRegImm(stack, ApInt(0x80, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitPop(conv.intReturn);
+        }
+        if (variant == 6)
+            builder.emitLoadRegReg(stack, other, MicroOpBits::B64);
+        builder.emitRet();
+
+        X64Encoder encoder(ctx);
+        SWC_RESULT(runPostRaPeepholePass(builder, &encoder, MicroReg::invalid(), nullptr, 0x80, 0x88));
+        uint32_t sourceStores = 0;
+        for (const auto& inst : builder.instructions().view())
+        {
+            if (inst.op == MicroInstrOpcode::LoadMemReg && inst.ops(builder.operands())[1].reg == value)
+                ++sourceStores;
+        }
+        const bool removable = variant == 0 || variant == 4 || variant == 7 || variant == 10 || variant == 12 || variant == 13 || variant == 15 || variant == 16;
+        if (sourceStores != (removable ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // A vector's sixteen-byte home follows the same rule with its own width: the
 // overwrite has to cover both halves, a read of either half keeps the store,
 // and a read of the slot beside it does not.
@@ -922,6 +1002,80 @@ SWC_TEST_BEGIN(PostRAPeephole_ForwardsPrivateFrameReloadAcrossBranches)
                 if (!ops || ops[0].reg != saved)
                     return Result::Error;
             }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_ReloadsDuplicatedSpillFromItsLocal)
+{
+    const MicroReg stack = CallConv::get(CallConvKind::Swag).stackPointer;
+    const MicroReg local = MicroReg::intReg(3);
+    const MicroReg alias = MicroReg::intReg(9);
+    for (const bool floating : {false, true})
+    {
+        const MicroReg value  = floating ? MicroReg::floatReg(7) : MicroReg::intReg(8);
+        const MicroReg result = floating ? MicroReg::floatReg(8) : MicroReg::intReg(10);
+        // Cover aliases through either frame base, partial stores, unknown
+        // pointers, changing stack depth, calls, and control-flow joins.
+        for (uint32_t variant = 0; variant < 18; ++variant)
+        {
+            MicroBuilder builder(ctx);
+            builder.emitLoadRegReg(local, stack, MicroOpBits::B64);
+            if (variant == 9 || variant == 15 || variant == 16)
+                builder.emitOpBinaryRegImm(stack, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+            if (variant == 17)
+            {
+                const auto join = builder.createLabel();
+                builder.emitCmpRegImm(alias, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B64, join);
+                builder.emitOpBinaryRegImm(stack, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+                builder.placeLabel(join);
+            }
+            builder.emitLoadMemReg(stack, 0x80, value, MicroOpBits::B64);
+            builder.emitLoadMemReg(local, 16, variant == 8 ? result : value, MicroOpBits::B64);
+            builder.emitClearReg(value, MicroOpBits::B64);
+            if (variant == 1 || variant == 2 || variant == 6 || variant == 7 || variant == 13 || variant == 14)
+            {
+                const MicroReg base   = variant == 6 || variant == 7 || variant == 14 ? stack : local;
+                uint64_t       offset = 16;
+                if (variant == 2)
+                    offset = 20;
+                else if (variant == 7)
+                    offset = 0x84;
+                else if (variant == 13)
+                    offset = 32;
+                else if (variant == 14)
+                    offset = 0x90;
+                builder.emitLoadMemReg(base, offset, value, variant == 2 || variant == 7 ? MicroOpBits::B32 : MicroOpBits::B64);
+            }
+            if (variant == 15 || variant == 16)
+                builder.emitLoadMemReg(stack, variant == 15 ? 32 : 16, value, MicroOpBits::B64);
+            if (variant == 3)
+                builder.emitLoadMemReg(alias, 0, value, MicroOpBits::B64);
+            if (variant == 4)
+                builder.emitOpBinaryRegImm(stack, ApInt(8, 64), MicroOp::Subtract, MicroOpBits::B64);
+            if (variant == 5)
+                builder.emitLoadRegReg(local, alias, MicroOpBits::B64);
+            if (variant == 10)
+                builder.emitLoadAmcMemReg(local, alias, 1, 0, MicroOpBits::B64, value, MicroOpBits::B64);
+            if (variant == 11)
+                builder.emitCallReg(alias, CallConvKind::Swag);
+            if (variant == 12)
+                builder.placeLabel(builder.createLabel());
+            builder.emitLoadRegMem(result, stack, 0x80, MicroOpBits::B64);
+            const MicroInstrRef reload = builder.instructions().lastInstructionRef();
+            builder.emitLoadMemReg(local, 64, result, MicroOpBits::B64);
+            builder.emitRet();
+
+            X64Encoder encoder(ctx);
+            SWC_RESULT(runPostRaPeepholePass(builder, &encoder, local, nullptr, 0x80, 0x98));
+            const auto* inst   = builder.instructions().ptr(reload);
+            const auto* ops    = inst && inst->op == MicroInstrOpcode::LoadRegMem ? inst->ops(builder.operands()) : nullptr;
+            const bool  reused = variant == 0 || variant == 9 || variant == 13 || variant == 14 || variant == 16;
+            if (!ops || ops[1].reg != (reused ? local : stack) || ops[3].valueU64 != (reused ? 16u : 0x80u))
+                return Result::Error;
         }
     }
     return Result::Continue;

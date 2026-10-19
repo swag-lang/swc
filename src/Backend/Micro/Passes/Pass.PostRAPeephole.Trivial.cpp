@@ -14,6 +14,133 @@ SWC_BEGIN_NAMESPACE();
 
 namespace PostRaPeephole
 {
+    // A value stored both in its source local and in a spill home can be read
+    // from the local while both locations still hold the same bits. Leave the
+    // spill store for readers outside the proven region; dead-store elimination
+    // removes it only after every reader has gone.
+    bool reuseLocalStoresForSpillReloads(MicroPassContext& context)
+    {
+        if (!context.builder || context.spillAreaLo >= context.spillAreaHi)
+            return false;
+        const MicroReg stack = CallConv::get(context.callConvKind).stackPointer;
+        const MicroReg local = context.debugStackBasePhysReg;
+        if (!local.isValid() || local == stack)
+            return false;
+        auto&       storage  = *context.instructions;
+        auto&       operands = *context.operands;
+        const auto& cfg      = context.builder->controlFlowGraph();
+        const auto  refs     = cfg.instructionRefs();
+
+        // Capture must be in the entry block, before any path can skip it.
+        uint32_t capture = MicroControlFlowGraph::K_NO_INDEX;
+        for (uint32_t i = 0; i < refs.size(); ++i)
+        {
+            const auto& inst = *storage.ptr(refs[i]);
+            const auto* ops  = inst.ops(operands);
+            const auto& info = MicroInstr::info(inst.op);
+            if (inst.op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                info.flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                break;
+            if (inst.op == MicroInstrOpcode::LoadRegReg && ops && ops[0].reg == local && ops[1].reg == stack && ops[2].opBits == MicroOpBits::B64)
+            {
+                capture = i;
+                break;
+            }
+        }
+        if (capture == MicroControlFlowGraph::K_NO_INDEX)
+            return false;
+        uint32_t stableUntil = static_cast<uint32_t>(refs.size());
+        for (uint32_t i = capture + 1; i < refs.size(); ++i)
+        {
+            if (MicroPassHelpers::regTouch(*storage.ptr(refs[i]), operands, local, context.encoder).def)
+            {
+                stableUntil = i;
+                break;
+            }
+        }
+
+        std::optional<FlatKeyMap<uint64_t>> stackOffsets;
+        bool                                changed = false;
+        using MicroOptimizationLimits::PostRAPeepholeCommon::K_SPILL_RELOAD_WINDOW;
+        for (uint32_t i = capture + 1; i + 1 < stableUntil; ++i)
+        {
+            const auto& spill = *storage.ptr(refs[i]);
+            const auto& saved = *storage.ptr(refs[i + 1]);
+            if (spill.op != MicroInstrOpcode::LoadMemReg || saved.op != MicroInstrOpcode::LoadMemReg)
+                continue;
+            const auto* spillOps = spill.ops(operands);
+            const auto* savedOps = saved.ops(operands);
+            if (!spillOps || !savedOps || spillOps[0].reg != stack || savedOps[0].reg != local ||
+                spillOps[1].reg != savedOps[1].reg || spillOps[2].opBits != MicroOpBits::B64 || savedOps[2].opBits != MicroOpBits::B64)
+                continue;
+            const uint64_t spillOffset = spillOps[3].valueU64;
+            const uint64_t localOffset = savedOps[3].valueU64;
+            if (spillOffset < context.spillAreaLo || spillOffset > context.spillAreaHi ||
+                8 > context.spillAreaHi - spillOffset || spillOffset > INT32_MAX || localOffset > INT32_MAX)
+                continue;
+            if (!stackOffsets)
+                stackOffsets = MicroPassHelpers::collectStackPointerOffsets(context, refs[capture], 0);
+            const auto* offset = stackOffsets->find(refs[i].get());
+            if (!offset)
+                continue;
+            const auto stackDelta = static_cast<int64_t>(*offset);
+            if (stackDelta < INT32_MIN || stackDelta > INT32_MAX)
+                continue;
+            const auto spillLocation = stackDelta + static_cast<int64_t>(spillOffset);
+            const auto localLocation = static_cast<int64_t>(localOffset);
+            if (spillLocation < localLocation + 8 && localLocation < spillLocation + 8)
+                continue;
+
+            const uint32_t end = i + std::min<uint32_t>(K_SPILL_RELOAD_WINDOW, static_cast<uint32_t>(refs.size()) - i);
+            for (uint32_t j = i + 2; j < end; ++j)
+            {
+                auto&       inst = *storage.ptr(refs[j]);
+                auto*       ops  = inst.ops(operands);
+                const auto& info = MicroInstr::info(inst.op);
+                if (inst.op == MicroInstrOpcode::Label || info.flags.has(MicroInstrFlagsE::JumpInstruction) ||
+                    info.flags.has(MicroInstrFlagsE::TerminatorInstruction) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                    MicroPassHelpers::regTouch(inst, operands, local, context.encoder, stack).def)
+                    break;
+
+                if (info.flags.has(MicroInstrFlagsE::WritesMemory))
+                {
+                    // Normalize both frame bases to the capture, including the
+                    // allocator's spill reserve below it. Every other writer is
+                    // an alias barrier, including indexed stores.
+                    uint64_t writtenOffset = 0;
+                    uint64_t writtenSize   = 0;
+                    if (ops && (ops[0].reg == local || ops[0].reg == stack))
+                    {
+                        if (inst.op == MicroInstrOpcode::LoadMemReg || inst.op == MicroInstrOpcode::StoreVecMemReg)
+                        {
+                            writtenOffset = ops[3].valueU64;
+                            writtenSize   = getNumBytes(ops[2].opBits);
+                        }
+                        else if (inst.op == MicroInstrOpcode::LoadMemImm)
+                        {
+                            writtenOffset = ops[2].valueU64;
+                            writtenSize   = getNumBytes(ops[1].opBits);
+                        }
+                    }
+                    if (!writtenSize || writtenOffset > INT32_MAX)
+                        break;
+                    const auto writtenLocation = static_cast<int64_t>(writtenOffset) + (ops[0].reg == stack ? stackDelta : 0);
+                    if ((writtenLocation < localLocation + 8 && localLocation < writtenLocation + static_cast<int64_t>(writtenSize)) ||
+                        (writtenLocation < spillLocation + 8 && spillLocation < writtenLocation + static_cast<int64_t>(writtenSize)))
+                        break;
+                }
+                if (inst.op == MicroInstrOpcode::LoadRegMem && ops && ops[1].reg == stack &&
+                    ops[2].opBits == MicroOpBits::B64 && ops[3].valueU64 == spillOffset)
+                {
+                    ops[1].reg      = local;
+                    ops[3].valueU64 = localOffset;
+                    changed         = true;
+                }
+            }
+        }
+        return changed;
+    }
+
     namespace
     {
         bool labelsHaveSingleReference(const Context& ctx, const uint64_t firstLabelId, const uint64_t secondLabelId)

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 
 #if SWC_HAS_UNITTEST
 
@@ -375,7 +376,7 @@ SWC_TEST_BEGIN(ConstantManager_PreservesStringNormalizationOnRepeatedInputs)
         value.setTypeRef(inputType);
         const ConstantRef    first        = manager.addConstant(ctx, value);
         const ConstantValue& stored       = manager.get(first);
-        const DataSegment&   segment      = manager.shardDataSegment(first.get() >> ConstantManager::LOCAL_BITS);
+        const DataSegment&   segment      = manager.shardDataSegment(first.get() >> ConstantStorageLayout::LOCAL_BITS);
         const uint32_t       extent       = segment.extentSize();
         const TypeRef        expectedType = inputType == aliasType ? ctx.typeMgr().typeString() : nullableType;
         if (stored.typeRef() != expectedType || stored.getString() != value.getString() || value.typeRef() != inputType)
@@ -477,7 +478,7 @@ SWC_TEST_BEGIN(ConstantManager_EnrichesStorageReferencesWithoutMutatingInputs)
 #endif
         if (value.dataSegmentRef().isValid())
             return Result::Error;
-        if (value.isArray() && ((ref.get() >> ConstantManager::LOCAL_BITS) != shardIndex || stored.getArray().data() != payload.data()))
+        if (value.isArray() && ((ref.get() >> ConstantStorageLayout::LOCAL_BITS) != shardIndex || stored.getArray().data() != payload.data()))
             return Result::Error;
     }
 }
@@ -717,7 +718,7 @@ SWC_TEST_BEGIN(ConstantManager_SourceLocationsPublishOnceAcrossWorkers)
             if (refs[worker][i] != refs[0][i])
                 return Result::Error;
     uint64_t relocationCount = 0;
-    for (uint32_t i = 0; i < ConstantManager::SHARD_COUNT; ++i)
+    for (uint32_t i = 0; i < ConstantStorageLayout::SHARD_COUNT; ++i)
         relocationCount += manager.shardDataSegment(i).copyRelocations().size();
     if (relocationCount != locationCount)
         return Result::Error;

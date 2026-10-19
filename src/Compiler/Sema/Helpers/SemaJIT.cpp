@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+#include "pch.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -440,7 +441,7 @@ namespace
 
             // Record a shard's version before reading its allocations: cached results
             // remain valid only while every visited shard keeps that version.
-            SWC_ASSERT(current.shardIndex < ConstantManager::SHARD_COUNT);
+            SWC_ASSERT(current.shardIndex < ConstantStorageLayout::SHARD_COUNT);
             const uint32_t shardBit = 1u << current.shardIndex;
             if (!(walk.seenShardMask & shardBit))
             {
@@ -654,7 +655,7 @@ namespace
 
         // Constant function roots can appear without changing the call graph. Their source is
         // the relocation graph across these shards; its versions are a compact invalidation key.
-        for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
+        for (uint32_t shardIndex = 0; shardIndex < ConstantStorageLayout::SHARD_COUNT; ++shardIndex)
             mix(sema.cstMgr().shardDataSegment(shardIndex).relocationVersion());
         mix(sema.compiler().globalInitSegment().relocationVersion());
 

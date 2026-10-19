@@ -7,6 +7,7 @@
 #include "Backend/Micro/Passes/Pass.SsaValuePropagation.Internal.h"
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/SourceFile.h"
@@ -101,7 +102,7 @@ void MicroBuilder::addRelocation(const MicroRelocation& relocation)
     if (relocation.constantRef.isValid())
     {
         SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
-        SWC_ASSERT(!relocation.hasConstantSource() || relocation.constantShard < ConstantManager::SHARD_COUNT);
+        SWC_ASSERT(!relocation.hasConstantSource() || relocation.constantShard < ConstantStorageLayout::SHARD_COUNT);
     }
     else if (relocation.hasConstantSource())
     {
@@ -110,7 +111,7 @@ void MicroBuilder::addRelocation(const MicroRelocation& relocation)
         // data-segment location is the whole identity, and it is what both
         // backends resolve the target from.
         SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
-        SWC_ASSERT(relocation.constantShard < ConstantManager::SHARD_COUNT);
+        SWC_ASSERT(relocation.constantShard < ConstantStorageLayout::SHARD_COUNT);
     }
     else if (relocation.targetSymbol)
     {

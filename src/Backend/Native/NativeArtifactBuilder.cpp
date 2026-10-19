@@ -5,6 +5,8 @@
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeRDataCollector.h"
 #include "Backend/RuntimeName.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/SourceFile.h"
@@ -934,7 +936,7 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
     // here, when assigning the allocation to its archive member.
     const uint32_t scopeHash = builder_->scopedSymbolNames().scopeHash;
     uint32_t       objIndex  = static_cast<uint32_t>(functionCount + 1);
-    for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
+    for (uint32_t shardIndex = 0; shardIndex < ConstantStorageLayout::SHARD_COUNT; ++shardIndex)
     {
         auto& mappings = builder_->rdataAllocationMap[shardIndex];
         for (uint32_t allocationIndex = 0; allocationIndex < mappings.size(); ++allocationIndex)
@@ -944,7 +946,7 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
 
             if (allocationIndex % batchSize == 0)
             {
-                static_assert(ConstantManager::SHARD_COUNT <= std::numeric_limits<uint16_t>::max());
+                static_assert(ConstantStorageLayout::SHARD_COUNT <= std::numeric_limits<uint16_t>::max());
                 NativeObjDescription& description = builder_->objectDescriptions[objIndex++];
                 description.rdataShardIndex       = static_cast<uint16_t>(shardIndex);
                 description.rdataAllocationIndex  = allocationIndex;

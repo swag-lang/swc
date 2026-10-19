@@ -2,9 +2,10 @@
 #include "Backend/Linker/LinkJob.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeSection.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
@@ -227,8 +228,8 @@ public:
     NativeSectionData mergedData;
     NativeSectionData mergedBss;
 
-    std::array<std::vector<NativeRDataAllocationMapEntry>, ConstantManager::SHARD_COUNT> rdataAllocationMap;
-    std::vector<NativeRDataAllocationMapEntry>                                           rdataAllocations;
+    std::array<std::vector<NativeRDataAllocationMapEntry>, ConstantStorageLayout::SHARD_COUNT> rdataAllocationMap;
+    std::vector<NativeRDataAllocationMapEntry>                                                 rdataAllocations;
 
     std::vector<NativeObjDescription> objectDescriptions;
 

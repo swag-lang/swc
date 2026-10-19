@@ -5,7 +5,7 @@
 #include "Compiler/Sema/Constant/ConstantEnumType.h"
 #include "Compiler/Sema/Constant/ConstantLower.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
-#include "Compiler/Sema/Constant/ConstantShardPreference.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
@@ -149,7 +149,14 @@ namespace
         if (!sema.cstMgr().resolveDataSegmentRef(ref, ptr))
             return false;
 
-        return ConstantShardPreference::mergeRequiredShardIndex(outShardIndex, hasRequiredShard, ref.shardIndex);
+        if (!hasRequiredShard)
+        {
+            outShardIndex    = ref.shardIndex;
+            hasRequiredShard = true;
+        }
+
+        // Cross-shard payload relocations make this a placement preference for the allocation.
+        return true;
     }
 
     bool resolveClosureStaticPayloadRequiredShardIndex(uint32_t& outShardIndex, bool& hasRequiredShard, Sema& sema, std::span<const std::byte> payload)
@@ -499,7 +506,7 @@ uint64_t ConstantHelpers::materializeConstantStorageAndGetAddress(Sema& sema, co
 
     // Preserve alignment and register embedded pointer relocations. Interning raw
     // bytes would leave compiler-process addresses in the native executable.
-    const uint32_t shardIndex = view.cstRef().get() >> ConstantManager::LOCAL_BITS;
+    const uint32_t shardIndex = view.cstRef().get() >> ConstantStorageLayout::LOCAL_BITS;
     DataSegment&   segment    = manager.shardDataSegment(shardIndex);
     uint32_t       offset     = INVALID_REF;
     SWC_INTERNAL_CHECK(ConstantLower::materializeStaticPayload(sema, offset, segment, storageType, storageSpan) == Result::Continue);
@@ -538,7 +545,7 @@ uint32_t ConstantHelpers::staticPayloadPlacementShardIndex(const TaskContext& ct
     valueHash          = Math::hashCombine(valueHash, typeRef.get());
     valueHash          = Math::hashCombine(valueHash, Math::hash(payload));
 
-    return Math::hash(valueHash) & (ConstantManager::SHARD_COUNT - 1);
+    return Math::hash(valueHash) & (ConstantStorageLayout::SHARD_COUNT - 1);
 }
 
 bool ConstantHelpers::resolveStaticPayloadRequiredShardIndex(Sema& sema, uint32_t& outShardIndex, bool& hasRequiredShard, const TypeInfo& typeInfo, std::span<const std::byte> payload)

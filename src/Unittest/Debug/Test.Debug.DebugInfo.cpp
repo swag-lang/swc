@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Support/Report/Assert.h"
 
 #if SWC_HAS_UNITTEST

@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/PointerSet.h"
@@ -233,11 +234,6 @@ public:
         mutable std::shared_mutex runtimeStringMutex;
     };
 
-    static constexpr uint32_t SHARD_BITS  = 4;
-    static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
-    static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
-    static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
-
 private:
     ConstantRef        addConstantSlow(const TaskContext& ctx, const ConstantValue& value);
     ConstantRef        cachedS32(int32_t value) const;
@@ -261,7 +257,7 @@ private:
     static constexpr uint32_t SMALL_INT_TYPE_COUNT   = 11;
     static constexpr uint32_t SMALL_SCALAR_CACHE_LEN = SMALL_INT_TYPE_COUNT * SMALL_INT_RANGE;
 
-    Shard shards_[SHARD_COUNT];
+    Shard shards_[ConstantStorageLayout::SHARD_COUNT];
 
     std::array<std::atomic<uint32_t>, SMALL_SCALAR_CACHE_LEN> smallScalarRefs_;
 

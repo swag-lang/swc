@@ -15,6 +15,7 @@ namespace CodeGenTypeHelpers
     {
         if (typeRef.isInvalid())
             return typeRef;
+
         return typeMgr.unwrapAliasEnum(ctx, typeRef);
     }
 
@@ -22,6 +23,7 @@ namespace CodeGenTypeHelpers
     {
         if (size == 1 || size == 2 || size == 4 || size == 8)
             return microOpBitsFromChunkSize(static_cast<uint32_t>(size));
+
         return MicroOpBits::Zero;
     }
 
@@ -33,8 +35,7 @@ namespace CodeGenTypeHelpers
         if (typeInfo.isIntLike())
             return microOpBitsFromBitWidth(typeInfo.payloadIntLikeBitsOr(64));
 
-        // A simd vector is register-resident like a scalar: one 128-bit value
-        // in a float register.
+        // SIMD vectors occupy one 128-bit floating-point register.
         if (typeInfo.isSimd())
             return MicroOpBits::B128;
 
@@ -45,6 +46,7 @@ namespace CodeGenTypeHelpers
     {
         if (typeInfo.isBool())
             return MicroOpBits::B8;
+
         return numericBits(typeInfo);
     }
 
@@ -53,6 +55,7 @@ namespace CodeGenTypeHelpers
         const MicroOpBits bits = numericBits(typeInfo);
         if (bits != MicroOpBits::Zero)
             return bits;
+
         return MicroOpBits::B64;
     }
 
@@ -61,6 +64,7 @@ namespace CodeGenTypeHelpers
         const MicroOpBits bits = bitsFromStorageSize(typeInfo.sizeOf(ctx));
         if (bits != MicroOpBits::Zero)
             return bits;
+
         return MicroOpBits::B64;
     }
 
@@ -69,6 +73,7 @@ namespace CodeGenTypeHelpers
         const MicroOpBits bits = numericOrBoolBits(typeInfo);
         if (bits != MicroOpBits::Zero)
             return bits;
+
         return conditionBits(typeInfo, ctx);
     }
 
@@ -118,12 +123,14 @@ namespace CodeGenTypeHelpers
                 return isSigned ? MicroOp::DivideSigned : MicroOp::DivideUnsigned;
             case TokenId::SymPercent:
                 return isSigned ? MicroOp::ModuloSigned : MicroOp::ModuloUnsigned;
+
             case TokenId::SymAmpersand:
                 return MicroOp::And;
             case TokenId::SymPipe:
                 return MicroOp::Or;
             case TokenId::SymCircumflex:
                 return MicroOp::Xor;
+
             case TokenId::SymLowerLower:
                 return MicroOp::ShiftLeft;
             case TokenId::SymGreaterGreater:

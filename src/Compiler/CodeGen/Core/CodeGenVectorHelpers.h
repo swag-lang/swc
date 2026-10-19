@@ -10,13 +10,10 @@ class CodeGen;
 class TypeInfo;
 struct CodeGenNodePayload;
 
-// Shared lowering for the '#simd' vector type: operand loads, scalar
-// broadcasts, 16-byte constants, mask building, and the per-lane operation
-// tables. Every routine works on B128 values living in the float register
-// file.
+// Shared SIMD lowering for B128 values in floating-point registers:
+// operand loads, constants, broadcasts, masks and per-lane operations.
 namespace CodeGenVectorHelpers
 {
-    // What one reduction combines its lanes with.
     enum class LaneReduceKind
     {
         Add,
@@ -27,16 +24,13 @@ namespace CodeGenVectorHelpers
         Xor,
     };
 
-    // Loads a vector operand into a float register: an address-backed payload
-    // loads its 16 bytes, a value payload is used in place.
+    // Load address-backed vectors into a float register; reuse value registers.
     MicroReg loadVectorOperand(CodeGen& codeGen, const CodeGenNodePayload& payload);
 
-    // Broadcasts a lane-typed scalar register into every lane of a new vector
-    // register.
+    // Broadcast a lane-typed scalar into every lane of a new vector register.
     MicroReg splatScalarLane(CodeGen& codeGen, MicroReg scalarReg, const TypeInfo& laneType);
 
-    // Materializes a 16-byte constant into a vector register through the
-    // constant segment.
+    // Load a 16-byte constant through the constant segment.
     MicroReg loadVectorConstant(CodeGen& codeGen, TypeRef typeRef, std::span<const std::byte> bytes);
 
     // An all-ones vector, built without a constant from any live register.
@@ -45,8 +39,7 @@ namespace CodeGenVectorHelpers
     // dst = ~src, through an all-ones xor.
     MicroReg bitwiseNot(CodeGen& codeGen, MicroReg srcReg);
 
-    // The packed operation of an element-wise arithmetic or bitwise operator
-    // on the given lanes. Shifts are handled separately.
+    // Select a packed arithmetic or bitwise operation; shifts use separate helpers.
     MicroOp binaryMicroOpForLane(TokenId tokId, const TypeInfo& laneType);
 
     // Emits the low wrapping product for 8- or 64-bit integer lanes, whose
@@ -57,29 +50,23 @@ namespace CodeGenVectorHelpers
     // instruction are synthesized without leaving the register file.
     MicroReg emitVariableShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, MicroReg countVecReg, const TypeInfo& laneType);
 
-    // Shifts every lane by the count the source names, when it names one below
-    // the lane width and the hardware has an immediate form for the shape.
-    // Returns an invalid register otherwise, and the count then travels in a
-    // vector register (emitVariableShift).
+    // Use an immediate shift for constant counts below the lane width when supported.
+    // Otherwise return an invalid register so the caller can use emitVariableShift.
     MicroReg emitConstantShift(CodeGen& codeGen, TokenId tokId, MicroReg valueReg, const TypeInfo& laneType, AstNodeRef countOperandRef);
 
-    // Shifts every lane by a count known here. Byte lanes borrow the word shift
-    // and mask the bits that crossed their boundary, which is what the hardware
-    // leaves out.
+    // Shift by an immediate count. Byte lanes use word shifts and masks
+    // to remove bits that crossed lane boundaries.
     MicroReg emitLaneShiftImm(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, uint32_t count, bool shiftLeft);
 
-    // Rotates every lane, by a count known here or carried in an integer
-    // register. Both reduce the count modulo the lane width, like the scalar
-    // 'Swag.rol' and 'Swag.ror'.
+    // Rotate every lane, reducing immediate or register counts modulo the lane
+    // width to match Swag.rol and Swag.ror.
     MicroReg emitRotateImm(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, uint32_t count, bool rotateLeft);
     MicroReg emitRotateVar(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType, MicroReg countReg, bool rotateLeft);
 
-    // Per-lane population count, through the nibble table every popcount
-    // lowering uses, then a reduction to the lane width.
+    // Count set bits per lane using a nibble table and a reduction to lane width.
     MicroReg emitPopCount(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
 
-    // Per-lane zero counts below the lowest and above the highest set bit. An
-    // all-zero lane answers the lane width, like the scalar intrinsics.
+    // Count leading or trailing zero bits per lane; zero lanes yield the lane width.
     MicroReg emitCountTrailingZeros(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
     MicroReg emitCountLeadingZeros(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& laneType);
 
@@ -114,9 +101,8 @@ namespace CodeGenVectorHelpers
     MicroReg emitConstantShuffle2(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, const TypeInfo& laneType, std::span<const uint8_t> laneIndices);
     MicroReg emitDynamicShuffle2(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, MicroReg patternReg, const TypeInfo& laneType, const TypeInfo& byteLaneType);
 
-    // The half of a lane product that the low product drops: lane 'i' answers
-    // the bits above the lane width of the full product of both lane 'i'
-    // values, read as the lane type is signed or not.
+    // Return the high half of each full lane product, interpreting operands
+    // with the lane type's signedness.
     MicroReg emitMultiplyHigh(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType);
 
     // Sixteen bytes of the concatenation of two vectors, starting at a byte
@@ -124,8 +110,7 @@ namespace CodeGenVectorHelpers
     MicroReg emitConstantAlign(CodeGen& codeGen, MicroReg lowReg, MicroReg highReg, uint32_t count);
     MicroReg emitDynamicAlign(CodeGen& codeGen, MicroReg lowReg, MicroReg highReg, MicroReg countReg, const TypeInfo& byteLaneType);
 
-    // Emits an element-wise compare and returns the mask register (all-ones
-    // lanes where the compare holds).
+    // Return a comparison mask with all bits set in matching lanes.
     MicroReg emitCompare(CodeGen& codeGen, TokenId tokId, MicroReg leftReg, MicroReg rightReg, const TypeInfo& laneType);
 }
 

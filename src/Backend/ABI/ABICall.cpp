@@ -507,7 +507,6 @@ uint32_t ABICall::computeCallStackAdjust(CallConvKind callConvKind, std::span<co
 
 ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind callConvKind, std::span<const PreparedArg> args)
 {
-    // Move lowered argument values into the concrete ABI argument registers/stack slots.
     PreparedCall preparedCall;
     if (args.empty())
         return preparedCall;
@@ -516,9 +515,10 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
     const auto      numPreparedArgs = static_cast<uint32_t>(args.size());
     const auto      argLayouts      = collectArgLayouts(args);
     preparedCall.numPreparedArgs    = numPreparedArgs;
-    const CallArgMasks argMasks     = computeCallArgMasks(conv, argLayouts.span());
-    preparedCall.intArgMask         = argMasks.ints;
-    preparedCall.floatArgMask       = argMasks.floats;
+
+    const CallArgMasks argMasks = computeCallArgMasks(conv, argLayouts.span());
+    preparedCall.intArgMask     = argMasks.ints;
+    preparedCall.floatArgMask   = argMasks.floats;
 
     if (argMasks.hasStackArgs || argMasks.hasRegisterHomeSlot)
     {
@@ -563,6 +563,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                             forbidOtherArgRegs(builder, arg.srcReg, conv.intArgRegs, regIndex);
                         }
                     }
+
                     continue;
                 }
             }
@@ -584,6 +585,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                         {
                             builder.emitLoadMemReg(conv.stackPointer, stackOffset, arg.srcReg, argBits);
                         }
+
                         break;
                     }
 
@@ -617,6 +619,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
             }
         }
 
+        // Fill register lanes after stack stores can no longer clobber them.
         registerState = {};
         for (uint32_t i = 0; i < numPreparedArgs; ++i)
         {
@@ -640,6 +643,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                     else
                         builder.emitLoadRegMem(conv.intArgRegs[regIndex], conv.stackPointer, homeOffset, argBits);
                 }
+
                 continue;
             }
 
@@ -650,6 +654,7 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
                     builder.emitLoadRegMem(conv.floatArgRegs[regIndex], arg.srcReg, 0, preparedArgBits(arg));
                 else
                     builder.emitLoadRegReg(conv.floatArgRegs[regIndex], arg.srcReg, preparedArgBits(arg));
+
                 continue;
             }
 
@@ -674,9 +679,11 @@ ABICall::PreparedCall ABICall::prepareArgs(MicroBuilder& builder, CallConvKind c
         preparedCall.stackAlreadyAdjusted = stackAdjust != 0;
         if (preparedCall.stackAlreadyAdjusted)
             preparedCall.stackAdjust = stackAdjust;
+
         return preparedCall;
     }
 
+    // Without stack or home slots, arguments can go straight to their register lanes.
     ArgRegisterState registerState;
     for (uint32_t i = 0; i < numPreparedArgs; ++i)
     {
@@ -810,10 +817,12 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
     {
         const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
         SWC_ASSERT(retBits != MicroOpBits::Zero);
+
         if (valueIsLValue)
             builder.emitLoadRegMem(conv.floatReturn, valueReg, 0, retBits);
         else
             builder.emitLoadRegReg(conv.floatReturn, valueReg, retBits);
+
         return;
     }
 
@@ -865,6 +874,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
     const uint32_t     stackAdjust = computeCallStackAdjust(callConvKind, argLayouts);
 
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Subtract);
+
     MicroReg   regBase, regTmp;
     const bool hasScratchRegs = conv.tryPickIntScratchRegs(regBase, regTmp);
     SWC_INTERNAL_CHECK(hasScratchRegs);
@@ -872,6 +882,7 @@ void ABICall::callAddress(MicroBuilder& builder, CallConvKind callConvKind, uint
     emitCallArgs(builder, conv, args, regBase, regTmp);
     builder.emitLoadRegPtrImm(regTmp, targetAddress);
     builder.emitCallReg(regTmp, callConvKind, argMasks.ints, argMasks.floats);
+
     emitReturnWriteBack(builder, conv, ret, regBase);
     emitCallStackAdjust(builder, conv, stackAdjust, MicroOp::Add);
 }

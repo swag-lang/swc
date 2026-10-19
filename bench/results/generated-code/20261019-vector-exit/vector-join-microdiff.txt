@@ -1,0 +1,69 @@
+== wordfreq checks 130489, 130489
+== csvagg checks 24828641, 24828641
+  Swag.AtomicValue.add                           12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.add#2                         11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub#2                         13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+== sha256 checks 2503168387, 2503168387
+  Swag.AtomicValue.sub                           13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub#2                         12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+== dijkstra checks 4431000, 4431000
+  Swag.AtomicValue.add                           12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.add#2                         11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub#2                         12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+== raytrace checks 56061776, 56061776
+  Swag.AtomicValue.add                           12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.add#2                         11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+== leven checks 67441, 67441
+  Swag.AtomicValue.load                          2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.load#2                        3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub                           12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub#2                         13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+== chacha checks 633277775, 633277775
+  Chacha.__main_0                                434 instr / 108 mem / 4 calls -> 430 instr / 108 mem / 4 calls
+      loop 1: 51 instr / 0 mem / 0 calls -> 47 instr / 0 mem / 0 calls
+      loop 2: 85 instr / 18 mem / 0 calls -> 81 instr / 18 mem / 0 calls
+  Swag.AtomicValue.load                          2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.load#2                        3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+== nbody checks 169096566666, 169096566666
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+== fannkuch checks 8629030, 8629030
+  Swag.AtomicValue.add                           11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.add#2                         12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub#2                         12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+== binarytrees checks 674478, 674478
+  Swag.AtomicValue.load                          3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.load#2                        2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+== lz77 checks 622942003053, 622942003053
+== sort checks 599499929, 599499929
+  Swag.AtomicValue.add                           12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.add#2                         11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.store                         2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.store#2                       3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls

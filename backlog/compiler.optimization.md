@@ -85,18 +85,6 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.132 — Keep chacha's last loop-carried row in its register
-
-- Evidence: the vectorized double round ends with one move back to a loop-carried register
-  (`movaps xmm3, xmm7`) that copy forwarding cannot remove: the allocator reuses `xmm3` as
-  the scratch of the last diagonal shuffle while `xmm7` still holds the new row, so no
-  rewrite after allocation frees it. The three other end-of-body moves are gone.
-- Next: when allocation assigns a loop-carried value's next definition, prefer the register
-  the value already occupies if its old value is dead there, and give the temporary another
-  free register; check the double round and the other vectorized loops.
-- Done when: chacha's round loop ends without a vector move and no other loop grows.
-- Related: compiler.optimization.016.
-
 ### compiler.optimization.131 — Read a frame byte through an index the stack pointer was added to
 
 - Evidence: csvagg's `writeUInt` copies its digits back with `lea rax, [r10 - 1]; mov r10,

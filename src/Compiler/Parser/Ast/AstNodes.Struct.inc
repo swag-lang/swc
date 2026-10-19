@@ -1,12 +1,10 @@
 #pragma once
 
-// -----------------------------------------------------------------------------
 struct AstInvalid : AstNodeT<AstNodeId::Invalid>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstFile : AstCompoundT<AstNodeId::File>
 {
     SpanRef spanGlobalsRef;
@@ -23,35 +21,36 @@ struct AstFile : AstCompoundT<AstNodeId::File>
     static Result semaPreDeclChild(Sema& sema, const AstNodeRef& childRef);
     static Result semaPreNode(Sema& sema);
     static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstTopLevelBlock : AstCompoundT<AstNodeId::TopLevelBlock>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstEmbeddedBlockFlagsE : AstNode::ParserFlags
 {
     Zero                 = 0,
     ImplicitCodeBlockArg = 1 << 0,
+
     // Sema-synthesized block holding the '#inject' value bindings and the injected code.
     InjectBindings = 1 << 2,
 };
 
 struct AstEmbeddedBlock : AstCompoundT<AstNodeId::EmbeddedBlock, AstEmbeddedBlockFlagsE>
 {
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
     static Result semaPreNode(Sema& sema);
     static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     static Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef);
+
     static Result codeGenPreNode(CodeGen& codeGen);
     static Result codeGenPostNode(CodeGen& codeGen);
 };
 
-// -----------------------------------------------------------------------------
 struct AstImpl : AstCompoundT<AstNodeId::Impl>
 {
     AstNodeRef nodeIdentRef;
@@ -67,26 +66,28 @@ struct AstImpl : AstCompoundT<AstNodeId::Impl>
     Result        semaPostDeclChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     static Result semaPostNode(Sema& sema);
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
-    static void   semaErrorCleanup(Sema& sema, AstNodeRef nodeRef);
+
+    AstNodeRef  semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    static void semaErrorCleanup(Sema& sema, AstNodeRef nodeRef);
 };
 
-// -----------------------------------------------------------------------------
 struct AstNamespaceDecl : AstCompoundT<AstNodeId::NamespaceDecl>
 {
     SpanRef spanNameRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstCompoundT::collectChildren(out, ast); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const { AstCompoundT::collectChildren(out, ast); }
+
     static Result pushNamespace(Sema& sema, const AstNode* node, SpanRef spanNameRef);
     static Result popNamespace(Sema& sema, SpanRef spanNameRef);
-    Result        semaPreDecl(Sema& sema) const;
-    Result        semaPostDecl(Sema& sema) const;
-    Result        semaPreNode(Sema& sema) const;
-    Result        semaPostNode(Sema& sema) const;
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
+    Result semaPreDecl(Sema& sema) const;
+    Result semaPostDecl(Sema& sema) const;
+    Result semaPreNode(Sema& sema) const;
+    Result semaPostNode(Sema& sema) const;
+
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
 {
     AstNodeRef nodeNameRef;
@@ -95,7 +96,6 @@ struct AstUsingNamespaceStmt : AstNodeT<AstNodeId::UsingNamespaceStmt>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
 {
     enum class Mode
@@ -110,11 +110,13 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
         Using,
     };
 
-    Mode       mode;
+    Mode mode;
+
     SpanRef    spanNameRef;
     AstNodeRef nodeModeRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeModeRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeModeRef}); }
+
     Result     semaPreDecl(Sema& sema) const;
     Result     semaPreNode(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -122,7 +124,6 @@ struct AstCompilerGlobal : AstNodeT<AstNodeId::CompilerGlobal>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>
 {
     TokenRef tokModuleNameRef;
@@ -134,32 +135,31 @@ struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerScope : AstNamedNodeT<AstNodeId::CompilerScope>
 {
     AstNodeRef nodeBodyRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
-    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+
     static Result codeGenPreNode(CodeGen& codeGen);
     Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     Result        codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     static Result codeGenPostNode(CodeGen& codeGen);
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerExpression : AstNodeT<AstNodeId::CompilerExpression>
 {
     AstNodeRef nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerDiagnostic : AstCompoundT<AstNodeId::CompilerDiagnostic>
 {
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -167,7 +167,6 @@ struct AstCompilerDiagnostic : AstCompoundT<AstNodeId::CompilerDiagnostic>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerCallOne : AstInternalCallUnaryT<AstNodeId::CompilerCallOne>
 {
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -175,14 +174,12 @@ struct AstCompilerCallOne : AstInternalCallUnaryT<AstNodeId::CompilerCallOne>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerCall : AstCompoundT<AstNodeId::CompilerCall>
 {
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstIntrinsicCall : AstCompoundT<AstNodeId::IntrinsicCall>
 {
     TokenId intrinsicId = TokenId::Invalid;
@@ -193,16 +190,13 @@ struct AstIntrinsicCall : AstCompoundT<AstNodeId::IntrinsicCall>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstIntrinsicCallVariadic : AstCompoundT<AstNodeId::IntrinsicCallVariadic>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
-// Auto-inline cost model. Tokens are a cheap, stable proxy for body size. Leaf helpers use the
-// regular budget without introducing sema dependencies; calls add cost within the much larger
-// single-module-call-site budget, where eliminating the last call does not duplicate the body.
+// Token count estimates body size without semantic dependencies. Calls add cost;
+// a larger budget covers a single module call site, which does not duplicate the body.
 constexpr uint32_t K_AUTO_INLINE_MAX_BODY_TOKENS = 128;
 constexpr uint32_t K_AUTO_INLINE_CALL_PENALTY    = 10;
 constexpr uint32_t K_AUTO_INLINE_LAST_CALL_COST  = 4096;
@@ -216,36 +210,33 @@ enum class AstFunctionFlagsE : AstNode::ParserFlags
     Const    = 1 << 3,
     Impl     = 1 << 4,
     Short    = 1 << 5,
-    // The body's COST qualifies for auto-inlining: the token count plus a penalty for each nested
-    // call fits either the regular budget or the single-module-call-site budget. Local functions
-    // and `#offsetof` remain unsupported by the materializer.
-    //
-    // The parser decides this, and that is the whole point. Sema rewrites body nodes in place, so
-    // the same question asked mid-analysis reads nodes whose id and payload disagree, and asking
-    // it only of already-analysed callees made the answer depend on which thread got there first.
-    // Measured at the time: the same source lost ~1000 inlines per build of the standard library,
-    // varying run to run. Right after parsing, the body is complete and nothing else can touch it.
+
+    // Parsed body cost fits an auto-inline budget; local functions and #offsetof
+    // remain unsupported by materialization. Determine this before semantic analysis
+    // mutates node ids and payloads, or eligibility would depend on worker order.
     AutoInlineBody     = 1 << 6,
     AutoInlineHasCalls = 1 << 7,
 };
 
 struct AstFunctionExpr : AstLambdaExprT<AstNodeId::FunctionExpr, AstFunctionFlagsE>
 {
-    Result     semaPreNode(Sema& sema) const;
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result     semaPostNode(Sema& sema) const;
-    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result semaPreNode(Sema& sema) const;
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNode(Sema& sema) const;
+
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE>
 {
     SpanRef nodeCaptureArgsRef;
-    // The body of a 'parallel for'. One call of it is one partition, so a 'return' written in it
-    // ends that partition instead of the enclosing function and is rejected.
+
+    // Each parallel-for call runs one partition. A return would exit only that
+    // partition rather than the enclosing function, so it is rejected.
     bool parallelBody = false;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
@@ -254,35 +245,36 @@ struct AstClosureExpr : AstLambdaExprT<AstNodeId::ClosureExpr, AstFunctionFlagsE
         AstLambdaExprT::collectChildren(out, ast);
     }
 
-    Result     semaPreNode(Sema& sema) const;
-    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result     semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result     semaPostNode(Sema& sema) const;
-    Result     codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result semaPreNode(Sema& sema) const;
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNode(Sema& sema) const;
+
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl, AstFunctionFlagsE>
 {
     TokenId intrinsicId = TokenId::Invalid;
 
-    // The body declares a `global` or `tls` variable, which owns ONE storage for the whole
-    // program. Inlining clones a body instead of sharing it, so every copy would allocate a
-    // storage of its own and a counter written as a function-local `global` would answer 1 at
-    // every call site. The parser decides this for the same reason it decides the cost.
+    // Inlining must preserve the single storage owned by global and tls locals.
+    // Record this during parsing so cloned bodies cannot allocate separate storage.
     bool ownsStaticStorage = false;
 
     // Immutable parser facts used by module-wide automatic inlining.
     bool autoInlineHasNotNull   = false;
     bool autoInlineRepeatedCall = false;
 
-    uint32_t   autoInlineCost = UINT32_MAX;
+    uint32_t autoInlineCost = UINT32_MAX;
+
     SpanRef    spanGenericParamsRef;
     AstNodeRef nodeParamsRef;
     AstNodeRef nodeReturnTypeRef;
     SpanRef    spanConstraintsRef;
+
     AstNodeRef nodeBodyRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
@@ -293,22 +285,24 @@ struct AstFunctionDecl : AstNamedNodeT<AstNodeId::FunctionDecl, AstFunctionFlags
         AstNode::collectChildren(out, {nodeBodyRef});
     }
 
-    Result        semaPreDecl(Sema& sema) const;
-    Result        semaPreNode(Sema& sema) const;
-    Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
-    Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
-    Result        codeGenPostNode(CodeGen& codeGen) const;
+    Result semaPreDecl(Sema& sema) const;
+    Result semaPreNode(Sema& sema) const;
+    Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+
+    Result codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPostNode(Sema& sema);
 };
 
-// -----------------------------------------------------------------------------
 struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
 {
     AstNodeRef nodeParamsRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeParamsRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeParamsRef}); }
+
     Result        semaPreDecl(Sema& sema) const;
     Result        semaPreNode(Sema& sema) const;
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -316,7 +310,6 @@ struct AstAttrDecl : AstNamedNodeT<AstNodeId::AttrDecl>
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstFunctionParamMeFlagsE : AstNode::ParserFlags
 {
     Zero  = 0,
@@ -329,35 +322,35 @@ struct AstFunctionParamMe : AstNodeT<AstNodeId::FunctionParamMe, AstFunctionPara
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstReturnStmt : AstNodeT<AstNodeId::ReturnStmt>
 {
     AstNodeRef nodeExprRef;
 
-    void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstFunctionBody : AstCompoundT<AstNodeId::FunctionBody>
 {
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPreNodeChild(Sema& sema, const AstNodeRef& childRef);
     static Result semaPostNodeChild(Sema& sema, const AstNodeRef& childRef);
+
     static Result codeGenPreNode(CodeGen& codeGen);
     static Result codeGenPostNode(CodeGen& codeGen);
 };
 
-// -----------------------------------------------------------------------------
 enum class AstLambdaParamFlagsE : AstNode::ParserFlags
 {
     Zero  = 0,
     Named = 1 << 0,
-    // A parameter the compiler synthesized. Its name comes from the token it borrows, which is
-    // not an identifier: a keyword names it precisely because no written name can collide.
+
+    // Synthesized parameters borrow keyword tokens as names, preventing collisions
+    // with identifiers written by users.
     Generated = 1 << 1,
 };
 
@@ -370,13 +363,11 @@ struct AstLambdaParam : AstNodeT<AstNodeId::LambdaParam, AstLambdaParamFlagsE>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstFunctionParamList : AstCompoundT<AstNodeId::FunctionParamList>
 {
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 enum class AstClosureArgumentFlagsE : AstNode::ParserFlags
 {
     Zero    = 0,
@@ -393,7 +384,6 @@ struct AstClosureArgument : AstNodeT<AstNodeId::ClosureArgument, AstClosureArgum
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerFunc : AstNodeT<AstNodeId::CompilerFunc>
 {
     AstNodeRef nodeBodyRef;
@@ -403,11 +393,11 @@ struct AstCompilerFunc : AstNodeT<AstNodeId::CompilerFunc>
     Result        semaPreDecl(Sema& sema);
     static Result semaPreNode(Sema& sema);
     Result        semaPostNode(Sema& sema) const;
+
     Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     static Result codeGenPostNode(CodeGen& codeGen);
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerMessageFunc : AstNodeT<AstNodeId::CompilerMessageFunc>
 {
     AstNodeRef nodeParamRef;
@@ -418,11 +408,11 @@ struct AstCompilerMessageFunc : AstNodeT<AstNodeId::CompilerMessageFunc>
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result        semaPostNode(Sema& sema) const;
+
     Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     static Result codeGenPostNode(CodeGen& codeGen);
 };
 
-// -----------------------------------------------------------------------------
 enum class AstCompilerRunBlockFlagsE : AstNode::ParserFlags
 {
     Immediate = 1 << 0,
@@ -432,34 +422,36 @@ struct AstCompilerRunBlock : AstNodeT<AstNodeId::CompilerRunBlock, AstCompilerRu
 {
     AstNodeRef nodeBodyRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
+
     Result        codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const;
     static Result codeGenPostNode(CodeGen& codeGen);
+
     static Result semaPreNode(Sema& sema);
     static Result semaPostNode(Sema& sema);
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerRunExpr : AstNodeT<AstNodeId::CompilerRunExpr>
 {
     AstNodeRef nodeExprRef;
 
-    void          collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+
     static Result codeGenPreNode(CodeGen& codeGen);
     Result        codeGenPostNode(CodeGen& codeGen) const;
+
     static Result semaPreNode(Sema& sema);
     Result        semaPostNode(Sema& sema) const;
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerCodeBlock : AstNodeT<AstNodeId::CompilerCodeBlock>
 {
     AstNodeRef nodeBodyRef;
     TypeRef    payloadTypeRef = TypeRef::invalid();
-    // Call-site binder names ('#code(a, b) { ... }'), a span of identifier tokens.
-    // They rename the macro's alias slots, like '(|a, b|' call aliases do.
+
+    // Call-site identifier tokens rename the macro's alias slots.
     SpanRef spanBinderNamesRef = SpanRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef}); }
@@ -468,12 +460,12 @@ struct AstCompilerCodeBlock : AstNodeT<AstNodeId::CompilerCodeBlock>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerCodeExpr : AstNodeT<AstNodeId::CompilerCodeExpr>
 {
     AstNodeRef nodeExprRef;
     TypeRef    payloadTypeRef = TypeRef::invalid();
-    // Call-site binder names ('#code(a) => expr'), a span of identifier tokens.
+
+    // Call-site identifier tokens rename the macro's alias slots.
     SpanRef spanBinderNamesRef = SpanRef::invalid();
 
     void       collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
@@ -482,7 +474,6 @@ struct AstCompilerCodeExpr : AstNodeT<AstNodeId::CompilerCodeExpr>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-// -----------------------------------------------------------------------------
 struct AstCompilerShortFunc : AstNodeT<AstNodeId::CompilerShortFunc>
 {
     AstNodeRef nodeBodyRef;  // the statement, or the one expression of '#ast expr'

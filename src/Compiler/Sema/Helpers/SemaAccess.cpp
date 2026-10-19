@@ -17,19 +17,19 @@ namespace
         return owner ? owner->safeCast<SymbolStruct>() : nullptr;
     }
 
-    // The site that must satisfy the rule is where the code was WRITTEN, not where it ends up.
-    // A token keeps its own source view through cloning, so an inlined body, a mixin and
-    // '#inject'ed code all still answer with the file that declares them.
+    // Check where code was written. Tokens retain that source view through
+    // inlining, mixin expansion, and #inject.
     const SourceFile* accessSiteFile(Sema& sema, const SourceViewRef siteViewRef)
     {
         if (const SourceFile* file = sema.compiler().sourceViewFile(siteViewRef))
             return file;
+
         return sema.file();
     }
 
-    // Generated API files are copies of another module's source, so the module they stand for is
-    // not the module being compiled. Comparing that one bit is enough: a generated file only ever
-    // contains code that was already valid inside its own module.
+    // Generated API files represent imported modules, not the current module.
+    // Their source was already valid in its own module, so the imported/local
+    // distinction is enough here.
     bool inDeclaringModule(Sema& sema, const Symbol& sym, const SourceViewRef siteViewRef)
     {
         const SourceFile* declFile = sema.compiler().sourceViewFile(sym);
@@ -52,10 +52,9 @@ namespace
                 return true;
         }
 
-        // Otherwise the answer comes from where the code was WRITTEN: the file that declares the
-        // aggregate, or any file that declares an 'impl' of it. Going through the files instead of
-        // the frame is what keeps an inlined body, a mixin and '#inject'ed code legal at every
-        // expansion site, and what lets a type spread its 'impl' over platform or concern files.
+        // Use the original source file for expanded code. The aggregate's file
+        // and every impl file retain access, allowing implementations to be
+        // split across platform or concern files.
         const SourceFile* siteFile = accessSiteFile(sema, siteViewRef);
         if (!siteFile)
             return false;
@@ -78,9 +77,11 @@ namespace
         Diagnostic diag = SemaError::report(sema, id, at);
         diag.addArgument(Diagnostic::ARG_SYM, field.name(sema.ctx()));
         diag.addArgument(Diagnostic::ARG_TYPE, ownerStruct.getFullScopedName(sema.ctx()));
+
         diag.addNote(DiagnosticId::sema_note_field_access_declared_here);
         diag.last().addArgument(Diagnostic::ARG_SYM, field.name(sema.ctx()));
         diag.last().addSpan(field.codeRange(sema.ctx()));
+
         return diag;
     }
 }
@@ -115,6 +116,7 @@ Result SemaAccess::checkMemberAccess(Sema& sema, const Symbol& sym, const Source
 
     const DiagnosticId id = field->memberAccess() == MemberAccess::Internal ? DiagnosticId::sema_err_field_internal : DiagnosticId::sema_err_field_private;
     buildMemberDiagnostic(sema, id, *field, *ownerStruct, codeRef).report(sema.ctx());
+
     return Result::Error;
 }
 
@@ -135,9 +137,8 @@ void SemaAccess::markUnwritableMemberAccess(Sema& sema, const SymbolVariable& fi
     if (canWriteMember(sema, field, siteViewRef))
         return;
 
-    // Const-ness of an lvalue reaches whatever it addresses, so marking a field that holds an
-    // address would freeze the pointed-to value too. Assigning such a field is still rejected,
-    // by the check that reports it by name.
+    // Const on an address-holding lvalue would freeze its pointee too. Reject
+    // writes to the field separately, preserving access to the pointed-to value.
     if (field.typeRef().isValid())
     {
         const TypeRef unwrappedRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), field.typeRef());
@@ -154,6 +155,7 @@ Result SemaAccess::reportMemberWrite(Sema& sema, const SymbolVariable& field, As
     SWC_ASSERT(ownerStruct);
 
     buildMemberDiagnostic(sema, DiagnosticId::sema_err_field_readonly, field, *ownerStruct, nodeRef).report(sema.ctx());
+
     return Result::Error;
 }
 

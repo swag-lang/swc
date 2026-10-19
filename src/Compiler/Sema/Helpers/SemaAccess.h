@@ -9,28 +9,22 @@ class Symbol;
 class SymbolVariable;
 struct SourceCodeRef;
 
-// Access control for aggregate members. A member belongs to its type, so 'private' grants the
-// file that declares the aggregate plus every 'impl' of that type in the declaring module;
-// 'internal' grants the whole declaring module, and is the default. 'readonly' is not a level of
-// its own: it keeps the reads the level grants and restricts the writes to the declaring type.
+// Members default to internal (module access). Private access covers the type's
+// declaration file and impl files in that module. Readonly preserves read access
+// while restricting writes to the declaring type.
 namespace SemaAccess
 {
-    // Rejects a member the current site cannot name at all ('private', 'internal').
     Result checkMemberAccess(Sema& sema, const Symbol& sym, const SourceCodeRef& codeRef);
 
-    // The silent form of 'checkMemberAccess', for paths that report through their own machinery.
+    // Silent checks let callers provide their own diagnostic context.
     bool canAccessMember(Sema& sema, const SymbolVariable& field, SourceViewRef siteViewRef);
-
-    // True when the site can write 'field'. A 'readonly' field reads wherever its level allows
-    // but writes only from its own type.
     bool canWriteMember(Sema& sema, const SymbolVariable& field, SourceViewRef siteViewRef);
 
-    // Reports the write rejected by 'canWriteMember'.
     Result reportMemberWrite(Sema& sema, const SymbolVariable& field, AstNodeRef nodeRef);
 
-    // Marks a member access the site cannot write, so the const paths reject an assignment, a
-    // mutable address and a mutable by-reference argument. 'readonly' restricts writing the
-    // field itself, so a field that points somewhere else does not freeze what it points to.
+    // Mark unwritable value members so assignments, mutable addresses, and
+    // mutable reference arguments fail. Address-holding fields are checked
+    // separately to avoid freezing their pointees.
     void markUnwritableMemberAccess(Sema& sema, const SymbolVariable& field, AstNodeRef accessRef, SourceViewRef siteViewRef);
 }
 

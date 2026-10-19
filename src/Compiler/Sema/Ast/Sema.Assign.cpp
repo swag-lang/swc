@@ -20,6 +20,7 @@ namespace
     {
         if (leftView.type() && leftView.type()->isReference())
             return leftView.type()->payloadTypeRef();
+
         return leftView.typeRef();
     }
 
@@ -32,6 +33,7 @@ namespace
             targetView.typeRef() = targetTypeRef;
             targetView.type()    = &sema.typeMgr().get(targetTypeRef);
         }
+
         return targetView;
     }
 
@@ -94,11 +96,14 @@ namespace
             return false;
         if (!SemaHelpers::aliasType(sema, targetLeftView).isIntLike() || !SemaHelpers::aliasType(sema, nodeRightView).isIntLike())
             return false;
+
         const TokenId binaryOp = Token::canonicalBinary(op);
+
         // As for the binary form: a runtime shift amount is guarded whatever its sign, a
         // constant one was checked when it folded.
         if (binaryOp == TokenId::SymLowerLower || binaryOp == TokenId::SymGreaterGreater)
             return !nodeRightView.hasConstant();
+
         return SemaHelpers::binaryOpNeedsOverflowSafety(binaryOp, node.modifierFlags);
     }
 
@@ -143,10 +148,12 @@ namespace
     Result tryAssignmentCast(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView, TypeRef srcTypeRef, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None)
     {
         CastRequest castRequest(CastKind::Assignment);
-        castRequest.errorNodeRef    = errorNodeRef.isValid() ? errorNodeRef : leftRef;
+        castRequest.errorNodeRef = errorNodeRef.isValid() ? errorNodeRef : leftRef;
+
         const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
         if (Cast::castAllowed(sema, castRequest, srcTypeRef, targetTypeRef) != Result::Continue)
             return emitAssignmentCastFailure(sema, castRequest, leftRef, noteId);
+
         return Result::Continue;
     }
 
@@ -157,6 +164,7 @@ namespace
 
         const TypeInfo& leftType  = SemaHelpers::aliasEnumType(sema, leftView);
         const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, rightView);
+
         switch (binOp)
         {
             case TokenId::SymPlus:
@@ -189,6 +197,7 @@ namespace
         if (pointerResultTypeRef.isValid())
         {
             SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, pointerResultTypeRef, errorNodeRef, noteId));
+
             if (SemaHelpers::aliasEnumType(sema, targetLeftView).isBlockPointer() && SemaHelpers::aliasType(sema, rightView).isIntLike() && rightView.type()->isScalarNumeric())
             {
                 CastRequest castRequest(CastKind::Assignment);
@@ -196,6 +205,7 @@ namespace
                 if (Cast::castAllowed(sema, castRequest, rightView.typeRef(), sema.typeMgr().typeS64()) != Result::Continue)
                     return emitAssignmentCastFailure(sema, castRequest, leftRef, noteId);
             }
+
             return Result::Continue;
         }
 
@@ -210,8 +220,9 @@ namespace
             return;
 
         const TypeRef valueTypeRef = rightView.type()->payloadTypeRef();
-        rightView.typeRef()        = valueTypeRef;
-        rightView.type()           = &sema.typeMgr().get(valueTypeRef);
+
+        rightView.typeRef() = valueTypeRef;
+        rightView.type()    = &sema.typeMgr().get(valueTypeRef);
     }
 
     void markMoveAssignmentSourceAddressableStorage(AstModifierFlags modifierFlags, const SemaNodeView& rightView)
@@ -227,16 +238,15 @@ namespace
         symVar.markLocalStorageAddressable();
     }
 
-    // 'slot = null' on a 'late' slot releases it. The slot is filled by an assignment and
-    // asked about with '== null', so writing null back completes the pair -- without it a
-    // container could never hand its storage away, and the null a container writes is what
-    // stops a second release from running.
+    // Assigning null releases a late slot so a container can transfer its storage
+    // without dropping the same resource twice.
     bool isLateSlotRelease(Sema& sema, TokenId op, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         if (op != TokenId::SymEqual)
             return false;
         if (!nodeRightView.type() || !nodeRightView.type()->isNull())
             return false;
+
         return SemaHelpers::isLateInitAccess(sema, nodeLeftView.nodeRef());
     }
 
@@ -299,6 +309,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeRightView.nodeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, nodeRightView.typeRef());
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -316,6 +327,7 @@ namespace
             SmallVector<TokenRef> fieldNames;
             sema.ast().appendTokens(fieldNames, assignList.spanFieldNamesRef);
             SWC_ASSERT(fieldNames.size() == leftRefs.size());
+
             SWC_RESULT(SemaHelpers::resolveDestructuringFieldIndices(sema, patternFieldIndices, nodeRightView.typeRef(), assignList.srcViewRef(), fieldNames.span()));
         }
         else
@@ -325,6 +337,7 @@ namespace
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, leftRefs[fieldCount]);
                 diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
 
@@ -333,6 +346,7 @@ namespace
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, leftRefs.empty() ? sema.curNodeRef() : leftRefs.back());
                 diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
 
@@ -403,6 +417,7 @@ namespace
             {
                 SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), leftView.typeRef(), modifierFlags, false));
                 SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, nodeRightView.typeRef(), nodeRightView.nodeRef(), DiagnosticId::sema_note_assignment_target_here));
+
                 SWC_RESULT(SemaEscape::applyAssignment(sema, leftRef, nodeRightView.nodeRef()));
                 SemaHelpers::clearLateFieldReadGuard(sema, leftRef);
             }
@@ -412,7 +427,6 @@ namespace
 
         return Result::Continue;
     }
-
 }
 
 Result AstAssignStmt::semaPreNode(Sema& sema) const
@@ -455,6 +469,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         const auto& assignList = nodeLeftView.node()->cast<AstAssignList>();
         if (assignList.hasFlag(AstAssignListFlagsE::Destructuring))
             return assignDecomposition(sema, tok, assignList, modifierFlags, nodeRightView);
+
         return assignMulti(sema, tok, assignList, modifierFlags, nodeRightView);
     }
 
@@ -465,6 +480,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
 
     SWC_RESULT(SemaCheck::isAssignable(sema, nodeLeftRef, nodeLeftView, true));
     markAssignmentTargetAddressableStorage(nodeLeftView);
+
     SWC_RESULT(SemaSpecOp::tryResolveAssign(sema, *this, nodeLeftView, handled));
     if (handled)
         return Result::Continue;
@@ -484,6 +500,7 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
         SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
         SWC_RESULT(SemaHelpers::readReferenceValue(sema, nodeRightView));
         SWC_RESULT(check(sema, tok.id, sema.curNodeRef(), nodeRightView));
+
         const TokenId binOp          = Token::assignToBinary(tok.id);
         const auto    targetLeftView = assignmentTargetView(sema, nodeLeftView);
         SWC_RESULT(SemaHelpers::checkBinaryOperandTypes(sema, sema.curNodeRef(), binOp, nodeLeftRef, nodeRightRef, targetLeftView, nodeRightView));
@@ -491,19 +508,23 @@ Result AstAssignStmt::semaPostNode(Sema& sema) const
 
     SWC_RESULT(checkIntegerModifiers(sema, *this, nodeLeftView));
     SWC_RESULT(castAndResultType(sema, tok.id, nodeLeftView, nodeRightView));
+
     if (tok.id == TokenId::SymEqual)
     {
         SWC_RESULT(SemaEscape::applyAssignment(sema, nodeLeftRef, nodeRightView.nodeRef()));
+
         // A pure store never reads the target: a 'late' field as assignment
         // target is its initialization, not a guarded read.
         SemaHelpers::clearLateFieldReadGuard(sema, nodeLeftRef);
     }
+
     if (tok.id == TokenId::SymLowerLowerEqual || tok.id == TokenId::SymGreaterGreaterEqual)
     {
         const auto targetLeftView = assignmentTargetView(sema, nodeLeftView);
         if (targetLeftView.type())
             SWC_RESULT(SemaHelpers::checkConstantShiftAmount(sema, sema.curNodeRef(), SemaHelpers::aliasType(sema, targetLeftView), nodeRightView, nodeRightRef));
     }
+
     if (needsAssignOverflowRuntimeSafety(*this, tok.id, nodeLeftView, nodeRightView, sema))
         SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Overflow, codeRef()));
     if (needsAssignDivideRuntimeSafety(sema, tok.id, nodeLeftView, nodeRightView))

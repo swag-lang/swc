@@ -469,6 +469,7 @@ namespace
         sema.pushFramePopOnPostNode(std::move(frame));
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
         sema.curScope().setSymMap(&symFn);
+
         return Result::Continue;
     }
 
@@ -501,22 +502,23 @@ namespace
             symFn->setReturnTypeRef(returnTypeRef);
             symFn->setAttributes(ctx, sema.frame().currentAttributes());
             symFn->setDeclared(ctx);
+
             sema.setSymbol(symRef, symFn);
             storedSym = symFn;
         }
 
-        SemaFrame frame = sema.frame();
-        auto&     symFn = storedSym->cast<SymbolFunction>();
-        // `#run` lowers to a helper function that is executed during sema. The enclosing
-        // runtime function must not keep it as a normal runtime call dependency, or JIT/native
-        // test discovery will try to prepare a compile-time-only helper that never survives
-        // into the final runtime dependency graph.
-
+        // #run executes this helper during sema. Keep it out of the enclosing
+        // function's runtime call dependencies: it does not survive into the
+        // runtime dependency graph used by JIT/native test discovery.
+        SemaFrame frame           = sema.frame();
+        auto&     symFn           = storedSym->cast<SymbolFunction>();
         frame.currentAttributes() = symFn.attributes();
         frame.setEnclosingFunction(sema.currentFunction());
         frame.setCurrentFunction(&symFn);
         frame.addContextFlag(SemaFrameContextFlagsE::RunExpr);
+
         sema.pushFramePopOnPostNode(std::move(frame));
+
         return Result::Continue;
     }
 }
@@ -526,6 +528,7 @@ Result AstCompilerShortFunc::semaPreNodeChild(Sema& sema, const AstNodeRef& chil
     // The generated source of '#ast', whether one expression or several parts, is a constant.
     if (sema.token(codeRef()).id == TokenId::CompilerAst)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
+
     return Result::Continue;
 }
 
@@ -538,14 +541,17 @@ Result AstCompilerShortFunc::semaPostNode(Sema& sema) const
     {
         SmallVector<AstNodeRef> parts;
         sema.ast().appendNodes(parts, spanPartsRef);
+
         Utf8 generated;
         SWC_RESULT(SemaHelpers::appendConstantText(sema, parts.span(), generated));
+
         return substituteCompilerAstString(sema, sema.curNodeRef(), generated.view());
     }
 
     SWC_RESULT(SemaCheck::isConstant(sema, nodeBodyRef));
     SemaNodeView view = sema.viewNodeTypeConstant(nodeBodyRef);
     SWC_RESULT(castCompilerAstResultToString(sema, view));
+
     return substituteCompilerAstString(sema, sema.curNodeRef(), view.cst()->getString());
 }
 
@@ -571,6 +577,7 @@ Result AstCompilerMessageFunc::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 {
     if (childRef == nodeParamRef)
         SemaHelpers::pushConstExprRequirement(sema, childRef);
+
     return Result::Continue;
 }
 
@@ -581,8 +588,10 @@ Result AstCompilerMessageFunc::semaPostNode(Sema& sema) const
         return Result::Continue;
 
     SWC_RESULT(SemaCheck::isConstant(sema, nodeParamRef));
+
     const SemaNodeView finalMaskView = sema.viewConstant(nodeParamRef);
     SWC_ASSERT(finalMaskView.cst() != nullptr);
+
     const ConstantValue* maskValue = finalMaskView.cst();
     if (maskValue->isEnumValue())
         maskValue = &sema.cstMgr().get(maskValue->getEnumValue());
@@ -593,6 +602,7 @@ Result AstCompilerMessageFunc::semaPostNode(Sema& sema) const
     sym.setTyped(sema.ctx());
     sym.setSemaCompleted(sema.ctx());
     sema.compiler().registerCompilerMessageFunction(&sym, sema.curNodeRef(), maskValue->getInt().as64());
+
     return Result::Continue;
 }
 
@@ -611,10 +621,13 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
             auto  diag = SemaError::report(sema, DiagnosticId::sema_err_already_defined, codeRef());
             auto& note = diag.addElement(DiagnosticId::sema_note_other_definition);
             note.setSeverity(DiagnosticSeverity::Note);
+
             const AstCompilerFunc* mainFunc = ctx.compiler().mainFunc();
             const SourceView&      srcView  = mainFunc->srcView(ctx);
+
             note.addSpan(srcView.tokenCodeRange(ctx, mainFunc->tokRef()));
             diag.report(ctx);
+
             return Result::Error;
         }
     }
@@ -626,24 +639,31 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
         case TokenId::CompilerAst:
             name = "run";
             break;
+
         case TokenId::CompilerFuncTest:
             name = "test";
             break;
+
         case TokenId::CompilerFuncInit:
             name = "init";
             break;
+
         case TokenId::CompilerFuncDrop:
             name = "drop";
             break;
+
         case TokenId::CompilerFuncMain:
             name = "main";
             break;
+
         case TokenId::CompilerFuncPreMain:
             name = "premain";
             break;
+
         case TokenId::CompilerFuncMessage:
             name = "message";
             break;
+
         default:
             name = "func";
             break;
@@ -653,6 +673,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
     sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
     sym.setDeclNodeRef(sema.curNodeRef());
     sym.setDeclNodePayloadContext(&sema.currentNodePayloadContext());
+
     if (ignoreCompilerFunc)
     {
         sym.setIgnored(ctx);
@@ -660,6 +681,7 @@ Result AstCompilerFunc::semaPreDecl(Sema& sema)
         sym.setTyped(ctx);
         sym.setSemaCompleted(ctx);
     }
+
     return Result::SkipChildren;
 }
 
@@ -675,6 +697,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
             const Result declResult = sema.curNode().cast<AstCompilerFunc>().semaPreDecl(sema);
             if (declResult == Result::Error || declResult == Result::Pause)
                 return declResult;
+
             declared = sema.viewSymbol(curNodeRef).sym();
         }
 
@@ -688,6 +711,7 @@ Result AstCompilerFunc::semaPreNode(Sema& sema)
 
     auto&         sym           = sema.viewStored(sema.curNodeRef(), SemaNodeViewPartE::Symbol).sym()->cast<SymbolFunction>();
     const TypeRef returnTypeRef = tokenId == TokenId::CompilerAst ? sema.typeMgr().typeString() : sema.typeMgr().typeVoid();
+
     return enterCompilerBodyFunction(sema, sym, returnTypeRef);
 }
 
@@ -716,11 +740,13 @@ Result AstCompilerFunc::semaPostNode(Sema& sema) const
 
         SemaNodeView resultView = sema.viewNodeTypeConstant(sema.curNodeRef());
         SWC_RESULT(castCompilerAstResultToString(sema, resultView));
+
         return substituteCompilerAstString(sema, sema.curNodeRef(), resultView.cst()->getString());
     }
 
     sym.setTyped(sema.ctx());
     sym.setSemaCompleted(sema.ctx());
+
     if (Token::isNativeArtifactCompilerFunc(tokenId))
         sema.compiler().registerNativeCompilerFunction(tokenId, &sym);
 
@@ -749,8 +775,10 @@ Result AstCompilerRunBlock::semaPostNode(Sema& sema)
     sema.setIsValue(sema.curNodeRef());
     sema.unsetIsLValue(sema.curNodeRef());
     finalizeCompilerRunFunction(sema.ctx(), *runExprSymFn, returnTypeRef);
+
     if (node.hasFlag(AstCompilerRunBlockFlagsE::Immediate))
         return SemaJIT::runExprImmediate(sema, *runExprSymFn, sema.curNodeRef());
+
     return SemaJIT::runExpr(sema, *runExprSymFn, sema.curNodeRef());
 }
 
@@ -768,8 +796,10 @@ Result AstCompilerRunExpr::semaPostNode(Sema& sema) const
 
     auto& runExprSymFn = sema.curViewSymbol().sym()->cast<SymbolFunction>();
     finalizeCompilerRunFunction(sema.ctx(), runExprSymFn, view.typeRef());
+
     SWC_RESULT(SemaJIT::runExpr(sema, runExprSymFn, nodeExprRef));
     sema.inheritPayload(sema.curNode(), nodeExprRef);
+
     return Result::Continue;
 }
 

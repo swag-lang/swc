@@ -9,6 +9,7 @@
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
+
 class TypeInfo;
 class Sema;
 class CodeGen;
@@ -18,6 +19,7 @@ class SourceView;
 class TaskContext;
 class ConstantValue;
 struct SourceCodeRange;
+
 struct CloneContext
 {
 };
@@ -32,9 +34,9 @@ enum class AstModifierFlagsE : uint32_t
     Promote = 1 << 4,
     Wrap    = 1 << 5,
     NoDrop  = 1 << 6,
-    // Compiler-internal (no source token): set when flow analysis proves that this is
-    // the first write after a dead default initialization, so codegen skips the
-    // destination drop.
+
+    // Compiler-only: the first write after a dead default initialization can
+    // skip the destination drop.
     FirstInit = 1 << 7,
     Complete  = 1 << 8,
     Move      = 1 << 10,
@@ -63,8 +65,10 @@ struct AstNode
         if (this != &other)
         {
             payloadStorage_.store(other.payloadStorage_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+
             // The side tables keep the entries they hold under this node's reference.
             sideTables_.fetch_or(other.sideTables_.load(std::memory_order_relaxed), std::memory_order_relaxed);
+
             id_          = other.id_;
             parserFlags_ = other.parserFlags_;
             codeRef_     = other.codeRef_;
@@ -225,11 +229,13 @@ struct AstNode
     void updatePayloadBits(uint16_t clearMask, uint16_t setBits)
     {
         uint64_t expected = payloadState();
+
         while (true)
         {
             const uint16_t bits    = payloadBitsFromState(expected);
             const uint16_t newBits = static_cast<uint16_t>((bits & ~clearMask) | setBits);
             const uint64_t desired = makePayloadState(newBits, payloadRefFromState(expected));
+
             if (payloadStorage_.compare_exchange_weak(expected, desired, std::memory_order_release, std::memory_order_acquire))
                 return;
         }
@@ -238,11 +244,13 @@ struct AstNode
     void updatePayloadState(uint16_t clearMask, uint16_t setBits, uint32_t ref)
     {
         uint64_t expected = payloadState();
+
         while (true)
         {
             const uint16_t bits    = payloadBitsFromState(expected);
             const uint16_t newBits = static_cast<uint16_t>((bits & ~clearMask) | setBits);
             const uint64_t desired = makePayloadState(newBits, ref);
+
             if (payloadStorage_.compare_exchange_weak(expected, desired, std::memory_order_release, std::memory_order_acquire))
                 return;
         }
@@ -261,9 +269,8 @@ struct AstNode
     uint16_t payloadBits() const { return payloadBitsFromState(payloadState()); }
     uint32_t payloadRef() const { return payloadRefFromState(payloadState()); }
 
-    // One bit per semantic side table that may hold an entry under this node. A table sets its
-    // bit once the entry is added and never clears it, so a lookup for any other node can answer
-    // from the node alone.
+    // Bits only accumulate as semantic side tables acquire entries for this node.
+    // Absent bits let lookups skip tables without a node entry.
     void markSideTable(uint8_t table) { sideTables_.fetch_or(table, std::memory_order_release); }
     bool maySideTable(uint8_t table) const { return (sideTables_.load(std::memory_order_acquire) & table) != 0; }
 
@@ -274,17 +281,20 @@ struct AstNode
     bool      is(AstNodeId id) const { return id_ == id; }
     bool      isNot(AstNodeId id) const { return id_ != id; }
 
-    const SourceView&    srcView(const TaskContext& ctx) const;
-    const Ast*           sourceAst(const TaskContext& ctx) const;
-    SourceCodeRange      codeRange(const TaskContext& ctx) const;
-    SourceCodeRange      codeRangeWithChildren(const TaskContext& ctx, const Ast& ast) const;
-    SourceCodeRange      codeRangeWithChildren(const TaskContext& ctx, const Ast& ast, const SourceView& view) const;
+    const SourceView& srcView(const TaskContext& ctx) const;
+    const Ast*        sourceAst(const TaskContext& ctx) const;
+
+    SourceCodeRange codeRange(const TaskContext& ctx) const;
+    SourceCodeRange codeRangeWithChildren(const TaskContext& ctx, const Ast& ast) const;
+    SourceCodeRange codeRangeWithChildren(const TaskContext& ctx, const Ast& ast, const SourceView& view) const;
+
     const SourceCodeRef& codeRef() const { return codeRef_; }
     void                 setCodeRef(const SourceCodeRef& codeRef) { codeRef_ = codeRef; }
     SourceViewRef        srcViewRef() const { return codeRef_.srcViewRef; }
     TokenRef             tokRef() const { return codeRef_.tokRef; }
     TokenRef             tokRefEnd(const Ast& ast) const;
-    AstNodeRef           nodeRef(const Ast& ast) const;
+
+    AstNodeRef nodeRef(const Ast& ast) const;
 
     template<typename T>
     T& cast()
@@ -305,6 +315,7 @@ struct AstNode
     {
         if (!is(T::ID))
             return nullptr;
+
         return reinterpret_cast<T*>(this);
     }
 
@@ -313,6 +324,7 @@ struct AstNode
     {
         if (!is(T::ID))
             return nullptr;
+
         return reinterpret_cast<const T*>(this);
     }
 
@@ -332,8 +344,9 @@ template<AstNodeId I, typename E = void>
 struct AstNodeT : AstNode
 {
     static constexpr AstNodeId ID = I;
-    using FlagsE                  = E;
-    using FlagsType               = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
+
+    using FlagsE    = E;
+    using FlagsType = std::conditional_t<std::is_void_v<E>, uint8_t, EnumFlags<E>>;
 
     AstNodeT() :
         AstNode(I, SourceCodeRef::invalid())
@@ -366,6 +379,7 @@ struct AstNodeT : AstNode
     {
         if constexpr (!std::is_void_v<E>)
             return flags().has(flag);
+
         return false;
     }
 

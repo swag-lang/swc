@@ -12,10 +12,12 @@ AstNodeRef AstSwitchCaseStmt::conditionBindingRef(const Ast& ast) const
 {
     if (!spanExprRef.isValid())
         return AstNodeRef::invalid();
+
     const AstNodeRef first = ast.nthNode(spanExprRef, 0);
     const AstNode&   node  = ast.node(first);
     if (node.is(AstNodeId::SingleVarDecl) || node.is(AstNodeId::MultiVarDecl) || node.is(AstNodeId::VarDeclList))
         return first;
+
     return AstNodeRef::invalid();
 }
 
@@ -25,6 +27,7 @@ namespace
     {
         SmallVector<AstNodeRef> children;
         const AstNode*          current = &root;
+
         while (true)
         {
             children.clear();
@@ -124,7 +127,9 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
     const uint32_t startOff = startLoc.offset;
     const uint32_t endByte  = endLoc.offset + endLoc.len;
     const uint32_t spanLen  = endByte > startOff ? (endByte - startOff) : 1u;
+
     codeRange.fromOffset(ctx, view, startOff, spanLen);
+
     return codeRange;
 }
 
@@ -142,6 +147,7 @@ const Ast* AstNode::sourceAst(const TaskContext& ctx) const
 
     if (!sourceFile->ast().hasSourceView())
         return nullptr;
+
     return &sourceFile->ast();
 }
 
@@ -152,10 +158,10 @@ TokenRef AstNode::tokRefEnd(const Ast& ast) const
     SmallVector<AstNodeRef> children;
     info.collectChildren(children, ast, *this);
 
-    // Most nodes begin at their own token and end at their final child. A postfix node is the
-    // inverse: its token follows its child (for example the '?' of a nullable type). Return the
-    // latest source token across both instead of losing that suffix while slicing declarations.
+    // Postfix tokens follow their children (for example, a nullable type's '?').
+    // Include both the node token and its descendants when slicing declarations.
     TokenRef endRef = codeRef_.tokRef;
+
     for (const AstNodeRef childRef : children)
     {
         if (!childRef.isValid())

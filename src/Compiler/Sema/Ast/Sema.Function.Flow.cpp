@@ -476,7 +476,8 @@ namespace
         const AstNodeRef resolvedChildRef = sema.resolvedNodeRef(managedChildRef);
         SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
 
-        auto& codeGenPayload         = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+        auto& codeGenPayload = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
+
         codeGenPayload.notNullUnwrap = true;
 
         // Every conditional operand has its own frame, so the proof lasts only for the region
@@ -508,6 +509,7 @@ namespace
 
         if (!ownerSym)
             ownerSym = &SemaHelpers::registerUniqueRuntimeStorageSymbol(sema, node, "__catch_owner");
+
         return SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *ownerSym, parameterType.payloadTypeRef());
     }
 
@@ -515,9 +517,8 @@ namespace
     // payload alive across later failures and releases it through ordinary lexical cleanup.
     Result registerCatchErrCapture(Sema& sema, const AstNode& node, TokenRef errNameTokRef)
     {
-        // Sema nodes can be re-entered after a pause (the dependency waits below yield), so the
-        // registration must be idempotent: create the symbol once, cache it on the lowering payload
-        // BEFORE any yield, and re-run only the idempotent storage/dependency steps on resume.
+        // Dependency waits may pause this node. Cache its symbol before any yield,
+        // then repeat only the idempotent storage and dependency steps on resume.
         auto&           lowering = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
         SymbolVariable* errSym   = lowering.errBindingSym;
         if (!errSym)
@@ -525,15 +526,15 @@ namespace
             // A fresh lexical local in the enclosing scope: clear any caller lookup override.
             errSym = &SemaHelpers::withoutLookupOverride(sema, [&]() -> SymbolVariable& { return SemaHelpers::registerSymbol<SymbolVariable>(sema, node, errNameTokRef); });
 
-            // 'registerSymbol' bound 'err' onto the current node as its single symbol; left as-is,
-            // the node's type view would fall back to 'err' (nullable any). Name lookup for 'err' goes
-            // through the enclosing scope, not this node payload, so clear the node symbol entirely.
+            // registerSymbol attaches err to this node, which would leak nullable any
+            // into its type view. Name lookup uses scope storage, so detach the symbol.
             sema.setSymbolList(sema.curNodeRef(), std::span<Symbol*>{});
             lowering.errBindingSym = errSym;
         }
 
         TypeInfo nullableAny = sema.typeMgr().get(sema.typeMgr().typeAny());
         nullableAny.addFlag(TypeInfoFlagsE::Nullable);
+
         const TypeRef errTypeRef = sema.typeMgr().addType(nullableAny);
         SWC_RESULT(SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(sema, *errSym, errTypeRef));
 
@@ -541,6 +542,7 @@ namespace
 
         SemaEscapeInfo borrow;
         borrow.kind = SemaEscapeKind::Local;
+
         // The visible binding has exactly the hidden owner's lexical lifetime. Use its name
         // and source token in diagnostics rather than exposing compiler-generated storage.
         borrow.sourceVar        = errSym;
@@ -548,6 +550,7 @@ namespace
         borrow.typeRef          = errTypeRef;
         borrow.viaOwnedPayload  = true;
         borrow.viaErasedPayload = true;
+
         sema.setVariableEscapeInfo(*errSym, borrow);
 
         return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::ClearErr, node.codeRef());
@@ -568,18 +571,13 @@ namespace
 
         frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(tokenId));
         sema.pushFramePopOnPostChild(std::move(frame), childRef);
+
         return Result::Continue;
     }
 
-    // A '!' on an operand that is already non-null buys nothing: it costs a runtime guard
-    // that can never fire, and it hides whatever really proves the value present. Say so --
-    // but only where the source itself is redundant.
-    //
-    // A generic body is written once and analyzed per instantiation: 'value!' is dead for
-    // 'T = *Node' and needed for 'T = *Node?', and the author cannot write both. An inlined
-    // clone and a macro expansion have the same property, judged at a call site the body did
-    // not choose. This is the distinction 'orelse' already draws, on what the type can be
-    // rather than on what the flow proves at one site.
+    // Report a redundant assertion only in its original source context. Generic
+    // instances, inline clones and macro expansions may become non-null at a call
+    // site even when the source needs the assertion.
     Result reportNotNullAlreadyProven(Sema& sema, AstNodeRef operandRef, const SemaNodeView& operandView)
     {
         // An argument clone can deliberately restore the caller's non-inline lookup
@@ -596,6 +594,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_notnull_already_proven, operandRef);
         diag.addArgument(Diagnostic::ARG_TYPE, operandView.typeRef());
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -610,19 +609,16 @@ namespace
         if (tok.id == TokenId::KwdTry)
             reportRedundantTry(sema);
 
-        // `notnull` asserts a non-nullity invariant: unwrap `nullable T` to `T` (panicking
-        // under safety when the value IS null). On an operand that is already non-null
-        // (flow narrowing, generic instantiations) it is a tolerated pass-through. It
-        // never handles errors: a fallible operand must spell its own `try`/`catch`/`expect`.
+        // notnull unwraps nullable values and installs a safety panic for null.
+        // It preserves the surrounding error context, so fallible operands still
+        // need their own handler.
         if (tokenId == TokenId::SymBang)
         {
             if (notNullUnwrappedTypeRef(sema, managedChildRef).isValid())
             {
-                // The DECLARED type is nullable, which is what makes the unwrap real. The live
-                // view applies the facts in scope on top of it: when those already relabelled
-                // the value non-null, the assertion adds a guard that cannot fire, on a value
-                // the compiler would let through without it. Judge that once: on a re-entered
-                // node the only new fact in scope is the one this very '!' recorded.
+                // The declared type permits unwrapping, but live flow facts may
+                // already prove non-null. Check once: on re-entry the proof may
+                // come from this assertion itself.
                 const AstNodeRef narrowedRef = payload.notNullProofRecorded ? AstNodeRef::invalid() : sema.resolvedNodeRef(managedChildRef);
                 if (narrowedRef.isValid())
                 {
@@ -631,6 +627,7 @@ namespace
                     if (liveRef.isValid() && !sema.typeMgr().get(liveRef).isNullable())
                         SWC_RESULT(reportNotNullAlreadyProven(sema, narrowedRef, liveView));
                 }
+
                 return setupNotNullUnwrap(sema, managedChildRef, payload);
             }
 
@@ -642,7 +639,9 @@ namespace
                 {
                     SWC_RESULT(SemaCheck::isValue(sema, resolvedChildRef));
                     SWC_RESULT(reportNotNullAlreadyProven(sema, resolvedChildRef, childView));
+
                     SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).notNullUnwrap = true;
+
                     return Result::Continue;
                 }
             }
@@ -669,12 +668,14 @@ namespace
                 auto& lowering = SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef());
                 SWC_RESULT(registerCatchOwner(sema, sema.curNode(), lowering.errHandlerOwnerSym, IdentifierManager::RuntimeFunctionKind::CatchErr, 0));
                 SWC_RESULT(SemaHelpers::requireRuntimeCatchScopeDependencies(sema, sema.curNode().codeRef()));
+
                 break;
             }
 
             case TokenId::KwdAssume:
                 if (!sema.frame().currentAttributes().hasRuntimeSafety(sema.runtimeSafetyGuards(), Runtime::SafetyWhat::Assume))
                     break;
+
                 SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).addRuntimeSafety(Runtime::SafetyWhat::Assume);
                 [[fallthrough]];
             case TokenId::KwdExpect:
@@ -687,9 +688,9 @@ namespace
         }
 
         attachFallibleWrapperToManagedChild(sema, sema.curNodeRef(), managedChildRef, tokenId);
+
         return Result::Continue;
     }
-
 }
 
 namespace
@@ -706,6 +707,7 @@ namespace
             return resolveCalledFunction(sema, const_cast<Symbol*>(sym->cast<SymbolAlias>().aliasedSymbol()));
         if (sym->isVariable())
             return SemaHelpers::callableTypeFunction(sema.ctx(), sym->typeRef());
+
         return nullptr;
     }
 

@@ -34,6 +34,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_ARG, rawTag);
         if (!error.type.empty())
             diag.addArgument(Diagnostic::ARG_TYPE, error.type);
+
         diag.report(ctx);
         return Result::Error;
     }
@@ -42,6 +43,7 @@ namespace
     {
         outValue = {};
         outError = {};
+
         rawValue = Utf8Helper::trim(rawValue);
         if (rawValue.empty())
         {
@@ -81,6 +83,7 @@ namespace
 
         bool     hasDigit = false;
         uint64_t value    = 0;
+
         for (const char c : rawValue)
         {
             if (c == '_')
@@ -106,6 +109,7 @@ namespace
             }
 
             hasDigit = true;
+
             if (value > (std::numeric_limits<uint64_t>::max() - digit) / base)
             {
                 outError.id = DiagnosticId::cmd_err_tag_int_too_large;
@@ -186,6 +190,7 @@ namespace
         {
             const int64_t minValue = -(int64_t{1} << (bits - 1));
             const int64_t maxValue = (int64_t{1} << (bits - 1)) - 1;
+
             if (signedValue < minValue || signedValue > maxValue)
             {
                 outError.id   = DiagnosticId::cmd_err_tag_int_out_of_range;
@@ -213,6 +218,7 @@ namespace
 
         std::string normalized;
         normalized.reserve(rawValue.size());
+
         for (const char c : rawValue)
         {
             if (c != '_')
@@ -227,6 +233,7 @@ namespace
 
         char* endPtr = nullptr;
         errno        = 0;
+
         if (typeRef == ctx.typeMgr().typeF32())
         {
             const float value = std::strtof(normalized.c_str(), &endPtr);
@@ -296,6 +303,7 @@ namespace
 
         if (type.isInt())
             return makeCompilerTagInteger(ctx, typeRef, rawValue, outCstRef, outError);
+
         if (type.isFloat())
             return makeCompilerTagFloat(ctx, typeRef, rawValue, outCstRef, outError);
 
@@ -335,6 +343,7 @@ namespace
 
         const std::string_view leftPart  = Utf8Helper::trim(rawTag.substr(0, equalPos));
         const std::string_view rightPart = Utf8Helper::trim(rawTag.substr(equalPos + 1));
+
         if (leftPart.empty())
         {
             CompilerTagError error;
@@ -392,6 +401,7 @@ namespace
                 {
                     error.id = DiagnosticId::cmd_err_tag_untyped_value_invalid;
                 }
+
                 return reportCompilerTagError(ctx, rawTag, error);
             }
 
@@ -469,6 +479,7 @@ namespace
             testTag.name   = SWAG_TEST_RUN_ARG;
             testTag.source = "<internal>";
             testTag.cstRef = ctx.cstMgr().addConstant(ctx, ConstantValue::makeBool(ctx, true));
+
             outTags.push_back(std::move(testTag));
         }
 
@@ -482,6 +493,7 @@ namespace
                 capability.name   = name;
                 capability.source = "<internal>";
                 capability.cstRef = ctx.cstMgr().cstTrue();
+
                 outTags.push_back(std::move(capability));
             }
         }
@@ -497,9 +509,11 @@ bool CompilerTagRegistry::hasAllocatorCapability(const CommandLine& cmdLine, con
         const size_t           equalPos = text.find('=');
         const std::string_view left     = Utf8Helper::trim(text.substr(0, equalPos));
         const std::string_view tagName  = equalPos == std::string_view::npos ? left : Utf8Helper::trim(left.substr(0, left.find(':')));
+
         if (tagName == name)
             enabled = equalPos == std::string_view::npos || Utf8Helper::trim(text.substr(equalPos + 1)) != "false";
     }
+
     return enabled;
 }
 
@@ -513,6 +527,7 @@ Result CompilerTagRegistry::setup(TaskContext& ctx)
     {
         CompilerTag tag;
         SWC_RESULT(parseOneCompilerTag(ctx, rawTag.view(), tag));
+
         if (tag.name == "Swag.AllocatorSafety" || tag.name == "Swag.AllocatorDiagnostics")
         {
             const ConstantValue& value = ctx.cstMgr().get(tag.cstRef);
@@ -523,8 +538,10 @@ Result CompilerTagRegistry::setup(TaskContext& ctx)
                 diag.report(ctx);
                 return Result::Error;
             }
+
             continue;
         }
+
         tags_.push_back(std::move(tag));
     }
 

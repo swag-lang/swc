@@ -15,12 +15,14 @@ AstNodeRef Parser::parseEnumValue()
         case TokenId::CompilerWarning:
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
+
         case TokenId::CompilerStatic:
             return parseCompilerStatic<AstNodeId::EnumBody>();
 
         case TokenId::Identifier:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumValue>(consume());
+
             if (consumeIf(TokenId::SymEqual).isValid())
             {
                 nodePtr->nodeInitRef = parseExpression();
@@ -29,6 +31,7 @@ AstNodeRef Parser::parseEnumValue()
             }
             else
                 nodePtr->nodeInitRef.setInvalid();
+
             return nodeRef;
         }
 
@@ -48,17 +51,16 @@ AstNodeRef Parser::parseEnumDecl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::EnumDecl>(consume());
 
-    // Name
     nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     if (nodePtr->tokNameRef.isInvalid())
         skipTo({TokenId::SymLeftCurly, TokenId::SymColon});
 
-    // Type
     if (consumeIf(TokenId::SymColon).isValid())
     {
         if (is(TokenId::SymLeftCurly))
         {
             nodePtr->nodeTypeRef.setInvalid();
+
             Diagnostic diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
             diag.addArgument(Diagnostic::ARG_EXPECT_A_TOK_FAM, Utf8Helper::addArticleAAn(Token::toFamily(TokenId::TypeBool)));
             diag.report(*ctx_);
@@ -73,7 +75,6 @@ AstNodeRef Parser::parseEnumDecl()
     else
         nodePtr->nodeTypeRef.setInvalid();
 
-    // Content
     nodePtr->nodeBodyRef = parseCompound<AstNodeId::EnumBody>(TokenId::SymLeftCurly);
 
     return nodeRef;

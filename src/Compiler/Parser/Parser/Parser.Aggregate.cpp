@@ -8,12 +8,10 @@ AstNodeRef Parser::parseImpl()
     const TokenRef tokImpl = ref();
     consume();
 
-    // Name
     const AstNodeRef nodeIdent = parseQualifiedIdentifier();
     if (nodeIdent.isInvalid())
         skipTo({TokenId::SymLeftCurly, TokenId::KwdFor});
 
-    // For
     AstNodeRef nodeFor = AstNodeRef::invalid();
     if (consumeIf(TokenId::KwdFor).isValid())
     {
@@ -22,10 +20,12 @@ AstNodeRef Parser::parseImpl()
             skipTo({TokenId::SymLeftCurly});
     }
 
-    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::Impl>(tokImpl);
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::Impl>(tokImpl);
+
     nodePtr->nodeIdentRef    = nodeIdent;
     nodePtr->nodeForRef      = nodeFor;
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::TopLevelBlock, TokenId::SymLeftCurly);
+
     return nodeRef;
 }
 
@@ -33,12 +33,13 @@ AstNodeRef Parser::parseAggregateAccessModifier()
 {
     const TokenId  modifierId  = id();
     const TokenRef tokModifier = consume();
-    auto [nodeRef, nodePtr]    = ast_->makeNode<AstNodeId::AccessModifier>(tokModifier);
+
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AccessModifier>(tokModifier);
+
     nodePtr->addFlag(AstAccessModifierFlagsE::Member);
 
-    // 'readonly' is not a level: it rides on the one written before it, and on the default when
-    // written alone. It is therefore the one modifier that may follow another, and it comes last
-    // so the pair reads the way the access table does.
+    // readonly restricts writes without changing the access level. Accept it
+    // alone or after one level, and require it to be last.
     TokenRef tokReadOnly = TokenRef::invalid();
     if (modifierId == TokenId::KwdReadOnly)
     {
@@ -71,15 +72,15 @@ AstNodeRef Parser::parseAggregateAccessModifier()
         case TokenId::KwdPrivate:
         case TokenId::KwdReadOnly:
         {
-            // A level after 'readonly' is the pair written the wrong way round, not two levels,
-            // so name the order instead of reporting a conflict the author did not make.
+            // Diagnose reversed readonly/access order separately from conflicting levels.
             if (modifierId == TokenId::KwdReadOnly && !is(TokenId::KwdReadOnly))
                 raiseError(DiagnosticId::parser_err_readonly_before_access, ref());
             else
             {
                 const bool         repeatsReadOnly = is(TokenId::KwdReadOnly) && tokReadOnly.isValid();
                 const DiagnosticId diagId          = id() == modifierId || repeatsReadOnly ? DiagnosticId::parser_err_duplicated_modifier : DiagnosticId::parser_err_duplicate_modifier;
-                const Diagnostic   diag            = reportError(diagId, ref());
+
+                const Diagnostic diag = reportError(diagId, ref());
                 diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, tokModifier), DiagnosticId::parser_note_other_def, DiagnosticSeverity::Note);
                 diag.report(*ctx_);
             }
@@ -87,18 +88,23 @@ AstNodeRef Parser::parseAggregateAccessModifier()
             skipTo({TokenId::SymSemiColon, TokenId::SymRightCurly}, SkipUntilFlagsE::EolBefore);
             return AstNodeRef::invalid();
         }
+
         default:
             break;
     }
 
     const TokenRef savedAccessModifierRef = aggregateAccessModifierRef_;
     const TokenRef savedReadOnlyRef       = aggregateReadOnlyRef_;
-    aggregateAccessModifierRef_           = tokModifier;
+
+    aggregateAccessModifierRef_ = tokModifier;
     if (tokReadOnly.isValid())
         aggregateReadOnlyRef_ = tokReadOnly;
-    nodePtr->nodeWhatRef        = parseAggregateValue();
+
+    nodePtr->nodeWhatRef = parseAggregateValue();
+
     aggregateAccessModifierRef_ = savedAccessModifierRef;
     aggregateReadOnlyRef_       = savedReadOnlyRef;
+
     return nodeRef;
 }
 
@@ -111,6 +117,7 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::CompilerWarning:
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
+
         case TokenId::CompilerStatic:
             return parseCompilerStatic<AstNodeId::AggregateBody>();
 
@@ -119,8 +126,10 @@ AstNodeRef Parser::parseAggregateValue()
 
         case TokenId::KwdStruct:
             return parseStructDecl();
+
         case TokenId::KwdUnion:
             return parseUnionDecl();
+
         case TokenId::KwdEnum:
             return parseEnumDecl();
 
@@ -142,17 +151,17 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::KwdTls:
         case TokenId::KwdGlobal:
         {
-            // A storage modifier directly before a field belongs to that field's
-            // declaration span. Besides preserving the AST source range, this lets the
-            // formatter keep `late field: T` as one declaration. Only a block or access
-            // modifier needs the scoped aggregate state below.
+            // A field's storage modifier belongs to its declaration span, including
+            // for formatting. Only blocks and access modifiers need scoped aggregate state.
             if (!nextIsAny(TokenId::KwdPublic, TokenId::KwdInternal, TokenId::KwdPrivate, TokenId::KwdReadOnly, TokenId::SymLeftCurly))
                 return parseVarDecl();
 
             const EnumFlags<AstVarStorageFlagsE> storageFlags = parseStorageModifiers();
 
             const EnumFlags<AstVarStorageFlagsE> savedStorageFlags = aggregateStorageFlags_;
+
             aggregateStorageFlags_.add(storageFlags);
+
             AstNodeRef nodeRef;
             if (isAny(TokenId::KwdPublic, TokenId::KwdInternal, TokenId::KwdPrivate, TokenId::KwdReadOnly))
                 nodeRef = parseAggregateAccessModifier();
@@ -160,7 +169,9 @@ AstNodeRef Parser::parseAggregateValue()
                 nodeRef = parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
             else
                 nodeRef = parseVarDecl();
+
             aggregateStorageFlags_ = savedStorageFlags;
+
             return nodeRef;
         }
 
@@ -173,6 +184,7 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::Identifier:
             if (nextIs(TokenId::SymLeftParen) || nextIs(TokenId::SymDot))
                 return parseTopLevelStmt();
+
             return parseVarDecl();
 
         case TokenId::KwdAlias:
@@ -181,6 +193,7 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::KwdUsing:
         {
             consume();
+
             const PushContextFlags _{this, ParserContextFlagsE::InUsingMemberDecl};
             return parseVarDecl();
         }
@@ -205,7 +218,6 @@ AstNodeRef Parser::parseAggregateDecl()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<ID>(consume());
 
-    // Generic types
     if (is(TokenId::SymLeftParen))
     {
         nodePtr->spanGenericParamsRef = parseCompoundContent(AstNodeId::GenericParamList, TokenId::SymLeftParen);
@@ -215,18 +227,15 @@ AstNodeRef Parser::parseAggregateDecl()
     else
         nodePtr->spanGenericParamsRef.setInvalid();
 
-    // Name
     nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     if (nodePtr->tokNameRef.isInvalid())
         skipTo({TokenId::SymLeftCurly});
 
-    // Where
     SmallVector<AstNodeRef> whereRefs;
     parseConstraintList(whereRefs);
 
     nodePtr->spanWhereRef = whereRefs.empty() ? SpanRef::invalid() : ast_->pushSpan(whereRefs.span());
 
-    // Content
     if constexpr (ID == AstNodeId::InterfaceDecl)
         nodePtr->nodeBodyRef = parseCompound<AstNodeId::InterfaceBody>(TokenId::SymLeftCurly);
     else
@@ -237,19 +246,24 @@ AstNodeRef Parser::parseAggregateDecl()
 
 AstNodeRef Parser::parseAggregateBody()
 {
-    const TokenRef                       savedAccessModifierRef    = aggregateAccessModifierRef_;
-    const TokenRef                       savedReadOnlyRef          = aggregateReadOnlyRef_;
+    const TokenRef savedAccessModifierRef = aggregateAccessModifierRef_;
+    const TokenRef savedReadOnlyRef       = aggregateReadOnlyRef_;
+
     const EnumFlags<AstVarStorageFlagsE> savedTopLevelStorageFlags = topLevelStorageFlags_;
     const EnumFlags<AstVarStorageFlagsE> savedStorageFlags         = aggregateStorageFlags_;
+
     aggregateAccessModifierRef_.setInvalid();
     aggregateReadOnlyRef_.setInvalid();
     topLevelStorageFlags_.clear();
     aggregateStorageFlags_.clear();
-    const AstNodeRef result     = parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
+
+    const AstNodeRef result = parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
+
     aggregateAccessModifierRef_ = savedAccessModifierRef;
     aggregateReadOnlyRef_       = savedReadOnlyRef;
     topLevelStorageFlags_       = savedTopLevelStorageFlags;
     aggregateStorageFlags_      = savedStorageFlags;
+
     return result;
 }
 
@@ -262,6 +276,7 @@ AstNodeRef Parser::parseInterfaceValue()
         case TokenId::CompilerWarning:
         case TokenId::CompilerPrint:
             return parseCompilerDiagnostic();
+
         case TokenId::CompilerStatic:
             return parseCompilerStatic<AstNodeId::InterfaceBody>();
 

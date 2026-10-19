@@ -23,6 +23,7 @@ namespace
     {
         if (!function || !function->isGenericInstance())
             return nullptr;
+
         return function;
     }
 }
@@ -44,6 +45,7 @@ namespace SemaGeneric
             const AstNode* decl = root.decl();
             if (decl->is(AstNodeId::StructDecl) || decl->is(AstNodeId::UnionDecl))
                 return decl;
+
             return nullptr;
         }
 
@@ -55,6 +57,7 @@ namespace SemaGeneric
 
             if (const auto* structDecl = decl->safeCast<AstStructDecl>())
                 return structDecl->spanGenericParamsRef;
+
             return decl->cast<AstUnionDecl>().spanGenericParamsRef;
         }
 
@@ -62,6 +65,7 @@ namespace SemaGeneric
         {
             if (const auto* function = root.safeCast<SymbolFunction>())
                 return function->declNodeRef();
+
             return root.cast<SymbolStruct>().declNodeRef();
         }
 
@@ -85,13 +89,16 @@ namespace SemaGeneric
 
             if (!instance.tryGetGenericInstanceArgs(outArgs))
                 return false;
+
             if (outArgs.size() < outParams.size())
                 return false;
+
             // Instance keys can carry bookkeeping beyond the user-declared generic
             // parameters. Diagnostics and ambient binding lookup must line up with
             // the declaration order, so trim the extra tail before pairing.
             if (outArgs.size() > outParams.size())
                 outArgs.resize(outParams.size());
+
             return true;
         }
 
@@ -114,10 +121,13 @@ namespace SemaGeneric
 
             if (!function.tryGetGenericInstanceArgs(sema.ctx(), outArgs))
                 return false;
+
             if (outArgs.size() < outParams.size())
                 return false;
+
             if (outArgs.size() > outParams.size())
                 outArgs.resize(outParams.size());
+
             return true;
         }
 
@@ -134,6 +144,7 @@ namespace SemaGeneric
         {
             // One function per enclosing generic instance, so the list itself is the seen set.
             outFunctions.clear();
+
             const auto appendUnique = [&outFunctions](const SymbolFunction* function) {
                 if (std::ranges::find(outFunctions, function) == outFunctions.end())
                     outFunctions.push_back(function);
@@ -145,6 +156,7 @@ namespace SemaGeneric
             SemaHelpers::visitFrameInlinePayloads(sema, [&](const SemaInlinePayload& inlinePayload) {
                 if (const SymbolFunction* function = genericFunctionInstanceOrNull(inlinePayload.sourceFunction))
                     appendUnique(function);
+
                 return false;
             });
 
@@ -156,8 +168,10 @@ namespace SemaGeneric
         {
             if (arg.cstRef.isValid())
                 return sema.cstMgr().get(arg.cstRef).toString(sema.ctx());
+
             if (arg.typeRef.isValid())
                 return sema.typeMgr().get(arg.typeRef).toName(sema.ctx());
+
             return "?";
         }
 
@@ -165,8 +179,10 @@ namespace SemaGeneric
         {
             if (key.typeRef.isValid())
                 return sema.typeMgr().get(key.typeRef).toName(sema.ctx());
+
             if (key.cstRef.isValid())
                 return sema.cstMgr().get(key.cstRef).toString(sema.ctx());
+
             return "?";
         }
 
@@ -291,6 +307,7 @@ namespace SemaGeneric
         {
             outBindings.clear();
             outBindings.reserve(params.size());
+
             for (size_t i = 0; i < params.size(); ++i)
                 appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
         }
@@ -311,8 +328,10 @@ namespace SemaGeneric
                 resolvedArg.present = args[i].typeRef.isValid() || args[i].cstRef.isValid();
                 resolvedArg.typeRef = args[i].typeRef;
                 resolvedArg.cstRef  = args[i].cstRef;
+
                 if (resolvedArg.cstRef.isValid() && !resolvedArg.typeRef.isValid())
                     resolvedArg.typeRef = sema.cstMgr().get(resolvedArg.cstRef).typeRef();
+
                 appendResolvedGenericBinding(params[i], resolvedArg, outBindings);
             }
         }
@@ -337,11 +356,11 @@ namespace SemaGeneric
             else
             {
                 prepareGenericInstantiationContext(child, const_cast<SymbolMap*>(root.ownerSymMap()), nullptr, nullptr, root.attributes());
+
                 if (root.isPublic())
                     child.frame().setCurrentAccess(SymbolAccess::Public);
             }
         }
-
     }
 
     namespace Internal
@@ -387,6 +406,7 @@ namespace SemaGeneric
                 size_t hash = std::hash<const TaskContext*>{}(key.ctx);
                 hash ^= std::hash<const Ast*>{}(key.ownerAst) + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
                 hash ^= std::hash<uint32_t>{}(key.nodeRef) + 0x9e3779b97f4a7c15ull + (hash << 6) + (hash >> 2);
+
                 return hash;
             }
         };
@@ -439,18 +459,19 @@ namespace SemaGeneric
             {
                 size_t hash = std::hash<const TaskContext*>{}(key.ctx);
                 hash        = combineHash(hash, std::hash<const SymbolImpl*>{}(key.impl));
+
                 return combineHash(hash, std::hash<bool>{}(key.declPass));
             }
         };
 
-        // The three paused-child run caches live on the TaskContext rather than behind a
-        // process-wide mutex: a TaskContext is job-owned, and only one worker executes a given job
-        // at a time, so a lookup never has to be serialized against another worker.
+        // Each task context belongs to one job, executed by one worker at a time.
+        // Its paused-child caches therefore need no process-wide synchronization.
         template<typename MAP>
         MAP& taskLocalRunCache(std::shared_ptr<void>& cache)
         {
             if (!cache)
                 cache = std::make_shared<MAP>();
+
             return *static_cast<MAP*>(cache.get());
         }
 
@@ -473,6 +494,7 @@ namespace SemaGeneric
             auto& run = runs[key];
             if (!run.sema)
                 run.sema = initRun();
+
             if (run.running)
             {
                 // These caches live on the task context, so a running entry can only be
@@ -482,13 +504,16 @@ namespace SemaGeneric
             }
 
             run.running = true;
+
             Sema* child = run.sema.get();
             SWC_ASSERT(child);
 
             const Result result = child->execResult();
             run.running         = false;
+
             if (result != Result::Pause)
                 runs.erase(key);
+
             return result;
         }
 
@@ -508,6 +533,7 @@ namespace SemaGeneric
             {
                 SWC_ASSERT(sema != nullptr);
                 SWC_ASSERT(root != nullptr);
+
                 auto child = std::make_unique<Sema>(sema->ctx(), *sema, nodeRef);
                 prepareGenericNodeRunContext(*child, *sema, *root);
                 return child;
@@ -520,9 +546,9 @@ namespace SemaGeneric
 
             const GenericNodeRunKey         key{&sema.ctx(), &sema.ast(), nodeRef.get()};
             const GenericNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
+
             return runCachedSema(sema, genericNodeRuns(sema.ctx()), key, root, initRun);
         }
-
     }
 
     namespace Internal
@@ -537,6 +563,7 @@ namespace SemaGeneric
 
             const GenericInstanceNodeRunKey key{&sema.ctx(), &instance};
             const GenericNodeRunInitializer initRun{.sema = &sema, .root = &root, .nodeRef = nodeRef};
+
             return runCachedSema(sema, genericInstanceNodeRuns(sema.ctx()), key, instance, initRun);
         }
     }

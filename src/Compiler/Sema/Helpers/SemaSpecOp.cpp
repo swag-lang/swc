@@ -32,28 +32,34 @@ namespace
                 return "mtd opPostCopy() -> void";
             case SpecOpKind::OpPostMove:
                 return "mtd opPostMove() -> void";
+
             case SpecOpKind::OpCount:
                 return "mtd opCount() -> u64";
             case SpecOpKind::OpData:
                 return "mtd opData() -> *<type>";
+
             case SpecOpKind::OpCast:
                 return "mtd opCast() -> <type>";
+
             case SpecOpKind::OpEquals:
                 return "mtd opEquals(value: <type>) -> bool";
             case SpecOpKind::OpCompare:
                 return "mtd opCompare(value: <type>) -> s32";
+
             case SpecOpKind::OpBinary:
                 return "mtd(op: Swag.Operator) const opBinary(other: <type>) -> <struct>";
             case SpecOpKind::OpBinaryRight:
                 return "mtd(op: Swag.Operator) const opBinaryRight(other: <type>) -> <struct>";
             case SpecOpKind::OpUnary:
                 return "mtd(op: Swag.Operator) const opUnary() -> <struct>";
+
             case SpecOpKind::OpAssign:
                 return "mtd(op: Swag.Operator) opAssign(value: <type>) -> void";
             case SpecOpKind::OpSet:
                 return "mtd opSet(value: <type>) -> void";
             case SpecOpKind::OpSetLiteral:
                 return "mtd(suffix: string) opSetLiteral(value: <type>) -> void";
+
             case SpecOpKind::OpSlice:
                 return "mtd opSlice(low: u64, up: u64) -> <string or slice>";
             case SpecOpKind::OpIndex:
@@ -64,8 +70,10 @@ namespace
                 return "mtd opIndexSet(index: <type>[, index: <same type>...], value: <type>) -> void";
             case SpecOpKind::OpIndexPtr:
                 return "mtd opIndexPtr(index: <type>[, index: <same type>...]) -> *<type>";
+
             case SpecOpKind::OpVisit:
                 return "mtd(ptr: bool) opVisit(stmt: #code) -> void";
+
             case SpecOpKind::None:
             case SpecOpKind::Invalid:
             default:
@@ -78,6 +86,7 @@ namespace
         const TypeInfo* type = &ctx.typeMgr().get(typeRef);
         if (type->isPointerOrReference())
             type = &ctx.typeMgr().get(type->payloadTypeRef());
+
         return type->unwrapAliasTypeOrSelf(ctx);
     }
 
@@ -103,6 +112,7 @@ namespace
         SWC_ASSERT(params[firstIndex] != nullptr);
 
         const TypeRef firstTypeRef = ctx.typeMgr().unwrapAlias(ctx, params[firstIndex]->typeRef());
+
         for (size_t i = firstIndex + 1; i < endIndex; ++i)
         {
             SWC_ASSERT(params[i] != nullptr);
@@ -155,18 +165,15 @@ namespace
         return root->declAs<AstFunctionDecl>();
     }
 
-    // 'Swag.Operator' is a named type, so it cannot be recognized by a token like the builtin
-    // types. Matching the trailing identifier is enough here: this is only the declaration-shape
-    // guard, and a same-named enum from another namespace still fails when the compiler passes
-    // its own 'Swag.Operator' constant to the overload match.
+    // This shape check matches the final identifier of named Swag.Operator types.
+    // Overload matching later rejects a same-named enum from another namespace.
     bool hasSpecOpOperatorType(const Sema& sema, const Ast& ast, const AstNode& typeNode)
     {
         const auto* namedType = typeNode.safeCast<AstNamedType>();
         if (!namedType || namedType->nodeIdentRef.isInvalid())
             return false;
 
-        // A qualified name is a left-leaning chain of member accesses, so the type name is the
-        // rightmost identifier of 'Swag.Operator'.
+        // Qualified names form left-leaning member chains; the type name is on the right.
         AstNodeRef nameRef = namedType->nodeIdentRef;
         while (const auto* memberAccess = ast.node(nameRef).safeCast<AstMemberAccessExpr>())
             nameRef = memberAccess->nodeRightRef;
@@ -256,6 +263,7 @@ namespace
         SemaError::setReportArguments(sema, diag, &sym);
         diag.addNote(DiagnosticId::sema_note_expected_signature);
         diag.last().addArgument(Diagnostic::ARG_VALUE, specOpSignatureHint(kind));
+
         diag.report(sema.ctx());
         return Result::Continue;
     }
@@ -278,19 +286,21 @@ namespace
         if (sym.returnTypeRef().isInvalid())
             return reportSpecOpError(sema, sym, kind);
 
-        const TypeInfo& declaredReturnType  = typeMgr.get(sym.returnTypeRef());
-        const TypeInfo& returnType          = declaredReturnType.unwrapAliasTypeOrSelf(ctx);
-        const TypeRef   returnTypeRef       = returnType.typeRef();
+        const TypeInfo& declaredReturnType = typeMgr.get(sym.returnTypeRef());
+        const TypeInfo& returnType         = declaredReturnType.unwrapAliasTypeOrSelf(ctx);
+        const TypeRef   returnTypeRef      = returnType.typeRef();
 
-        const bool    receiverIsConst  = params[0]->type(ctx).isConst();
-        const bool    returnIsVoid     = returnType.isVoid();
-        const bool    returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
-        const bool    returnIsPointer  = returnType.isAnyPointer();
-        const bool    returnIsNotVoid  = !returnIsVoid;
-        const bool    returnIsStrSlice = returnType.isStringOrSlice();
-        const TypeRef u64TypeRef       = typeMgr.typeU64();
-        const TypeRef boolTypeRef      = typeMgr.typeBool();
-        const TypeRef s32TypeRef       = typeMgr.typeS32();
+        const bool receiverIsConst  = params[0]->type(ctx).isConst();
+        const bool returnIsVoid     = returnType.isVoid();
+        const bool returnIsStruct   = returnType.isStruct() && &returnType.payloadSymStruct() == &owner;
+        const bool returnIsPointer  = returnType.isAnyPointer();
+        const bool returnIsNotVoid  = !returnIsVoid;
+        const bool returnIsStrSlice = returnType.isStringOrSlice();
+
+        const TypeRef u64TypeRef  = typeMgr.typeU64();
+        const TypeRef boolTypeRef = typeMgr.typeBool();
+        const TypeRef s32TypeRef  = typeMgr.typeS32();
+
         switch (kind)
         {
             case SpecOpKind::None:
@@ -371,8 +381,7 @@ namespace
                     return reportSpecOpError(sema, sym, kind);
                 break;
 
-            // The returned pointer is the element's address, so the indexed expression can be an
-            // lvalue: a non-null single-value pointer is the whole contract.
+            // A non-null single-value pointer exposes the element's address as an lvalue.
             case SpecOpKind::OpIndexPtr:
                 if (params.size() < 2 || !returnType.isNonNullValuePointer() || !indexParametersHaveSameType(ctx, params, 1, params.size()))
                     return reportSpecOpError(sema, sym, kind);
@@ -405,6 +414,7 @@ namespace
             case SpecOpKind::OpIndexSet:
             case SpecOpKind::OpIndexPtr:
                 return true;
+
             default:
                 return false;
         }
@@ -412,9 +422,8 @@ namespace
 
 }
 
-// A special operator names its own struct in its receiver, and often in the value it takes as
-// well. Both spellings reach here: the pointer the receiver always is, and the alias or the
-// sibling generic instance a hand-written parameter may name instead.
+// Match the owner through receiver pointers, aliases and sibling generic instances
+// that a hand-written special-operator parameter may name.
 bool SemaSpecOp::isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef)
 {
     if (!typeRef.isValid())
@@ -448,28 +457,34 @@ std::string_view SemaSpecOp::specOpFunctionName(const SpecOpKind kind)
             return "opPostCopy";
         case SpecOpKind::OpPostMove:
             return "opPostMove";
+
         case SpecOpKind::OpCount:
             return "opCount";
         case SpecOpKind::OpData:
             return "opData";
+
         case SpecOpKind::OpCast:
             return "opCast";
+
         case SpecOpKind::OpEquals:
             return "opEquals";
         case SpecOpKind::OpCompare:
             return "opCompare";
+
         case SpecOpKind::OpBinary:
             return "opBinary";
         case SpecOpKind::OpBinaryRight:
             return "opBinaryRight";
         case SpecOpKind::OpUnary:
             return "opUnary";
+
         case SpecOpKind::OpAssign:
             return "opAssign";
         case SpecOpKind::OpSet:
             return "opSet";
         case SpecOpKind::OpSetLiteral:
             return "opSetLiteral";
+
         case SpecOpKind::OpSlice:
             return "opSlice";
         case SpecOpKind::OpIndex:
@@ -480,8 +495,10 @@ std::string_view SemaSpecOp::specOpFunctionName(const SpecOpKind kind)
             return "opIndexSet";
         case SpecOpKind::OpIndexPtr:
             return "opIndexPtr";
+
         case SpecOpKind::OpVisit:
             return "opVisit";
+
         case SpecOpKind::None:
         case SpecOpKind::Invalid:
         default:
@@ -520,17 +537,21 @@ Result SemaSpecOp::validateSymbol(Sema& sema, SymbolFunction& sym)
     const SymbolStruct* ownerStruct = sym.ownerStruct();
     if (!ownerStruct)
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_outside_impl, sym);
+
     const SymbolMap* ownerMap = sym.ownerSymMap();
     if (ownerMap && ownerMap->isImpl() && ownerMap->cast<SymbolImpl>().isForInterface())
         return SemaError::raise(sema, DiagnosticId::sema_err_spec_op_in_impl_for, sym);
+
     if ((sym.isGenericRoot() && !sym.isGenericInstance()) || (ownerStruct->isGenericRoot() && !ownerStruct->isGenericInstance()))
     {
         if (!hasSpecOpGenericSignature(sema, sym, kind))
         {
             if (kind == SpecOpKind::OpVisit)
                 return Result::Continue;
+
             return reportSpecOpError(sema, sym, kind);
         }
+
         return Result::Continue;
     }
 
@@ -576,6 +597,7 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
 
     auto kind = SpecOpKind::Invalid;
     using Pn  = IdentifierManager::PredefinedName;
+
     struct Entry
     {
         Pn         pn;
@@ -589,16 +611,21 @@ SpecOpKind SemaSpecOp::computeSymbolKind(const Sema& sema, const SymbolFunction&
         {Pn::OpUnary, SpecOpKind::OpUnary},
         {Pn::OpAssign, SpecOpKind::OpAssign},
         {Pn::OpIndexAssign, SpecOpKind::OpIndexAssign},
+
         {Pn::OpCast, SpecOpKind::OpCast},
         {Pn::OpEquals, SpecOpKind::OpEquals},
         {Pn::OpCompare, SpecOpKind::OpCompare},
+
         {Pn::OpPostCopy, SpecOpKind::OpPostCopy},
         {Pn::OpPostMove, SpecOpKind::OpPostMove},
         {Pn::OpDrop, SpecOpKind::OpDrop},
+
         {Pn::OpCount, SpecOpKind::OpCount},
         {Pn::OpData, SpecOpKind::OpData},
+
         {Pn::OpSet, SpecOpKind::OpSet},
         {Pn::OpSetLiteral, SpecOpKind::OpSetLiteral},
+
         {Pn::OpSlice, SpecOpKind::OpSlice},
         {Pn::OpIndex, SpecOpKind::OpIndex},
         {Pn::OpIndexSet, SpecOpKind::OpIndexSet},

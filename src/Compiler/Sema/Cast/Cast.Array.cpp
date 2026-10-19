@@ -45,6 +45,7 @@ namespace
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_num_dims, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
         args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint64_t>(dstCount));
+
         return res;
     }
 
@@ -53,12 +54,14 @@ namespace
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_dim_mismatch, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_LEFT, srcDim);
         args.castRequest->failure.addArgument(Diagnostic::ARG_RIGHT, dstDim);
+
         return res;
     }
 
     bool aggregateArraySourceHasNestedArrays(const CastAggregateArgs& args)
     {
         const auto& srcTypes = args.srcType->payloadAggregate().types;
+
         for (const TypeRef srcElemTypeRef : srcTypes)
         {
             const TypeInfo& srcElemType = args.sema->typeMgr().get(srcElemTypeRef);
@@ -74,6 +77,7 @@ namespace
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_too_many_values, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
         args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, dstCount);
+
         return res;
     }
 
@@ -109,6 +113,7 @@ namespace
         CastRequest elemCtx(args.castRequest->kind);
         elemCtx.flags   = args.castRequest->flags;
         elemCtx.probing = args.castRequest->probing;
+
         if (location.nodeRef.isValid())
         {
             elemCtx.errorNodeRef = location.nodeRef;
@@ -119,6 +124,7 @@ namespace
             elemCtx.errorNodeRef = args.castRequest->errorNodeRef;
             elemCtx.errorCodeRef = args.castRequest->errorCodeRef;
         }
+
         elemCtx.applyAutoCast(*args.sema, arrayElemValueNodeRef(*args.sema, location.nodeRef));
         return elemCtx;
     }
@@ -128,6 +134,7 @@ namespace
         CastRequest elemCtx = makeElemCastRequest(args, location);
         if (valueRef.isValid())
             elemCtx.setConstantFoldingSrc(valueRef);
+
         const Result res = CastElementHelpers::allowed(*args.sema, *args.castRequest, elemCtx, srcElemType, dstElemType);
         if (res != Result::Continue)
             return res;
@@ -152,20 +159,27 @@ namespace
     {
         TaskContext&   ctx       = args.sema->ctx();
         const uint64_t arraySize = args.dstType->sizeOf(ctx);
+
         if (ConstantHelpers::typeHasUnionStorage(ctx, *args.dstType))
         {
-            const TypeRef                                      elementType = args.dstType->payloadArrayElemTypeRef();
-            const uint64_t                                     elementSize = args.sema->typeMgr().get(elementType).sizeOf(ctx);
+            const TypeRef  elementType = args.dstType->payloadArrayElemTypeRef();
+            const uint64_t elementSize = args.sema->typeMgr().get(elementType).sizeOf(ctx);
+
             SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
+
             for (size_t i = 0; i < values.size(); ++i)
                 writes.push_back({.offset = i * elementSize, .typeRef = elementType, .valueRef = values[i]});
+
             return ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, writes.span());
         }
+
         ByteArray buffer(arraySize);
         SWC_INTERNAL_CHECK(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, buffer.span(), args.dstTypeRef) == Result::Continue);
         SWC_INTERNAL_CHECK(ConstantLower::lowerAggregateArrayToBytes(*args.sema, buffer.span(), *args.dstType, values) == Result::Continue);
+
         const ConstantRef result = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
         SWC_ASSERT(result.isValid());
+
         return result;
     }
 
@@ -226,10 +240,12 @@ namespace
                 args.castRequest->outConstRef = ConstantRef::invalid();
                 return Result::Continue;
             }
+
             newValues.push_back(castedRef);
         }
 
         args.castRequest->outConstRef = makeArrayConstantFromValues(args, newValues);
+
         return Result::Continue;
     }
 
@@ -246,7 +262,6 @@ namespace
         SWC_RESULT(getAggregateConstantValues(args, srcValues));
 
         const bool hasNestedSource = dstDims.size() > 1 && aggregateArraySourceHasNestedArrays(args);
-
         if (hasNestedSource)
         {
             const uint64_t dstTopDim = dstDims[0];
@@ -267,20 +282,25 @@ namespace
 
             if (!args.castRequest->materializeConstantResult())
                 return Result::Continue;
+
             if (srcTypes.size() < dstTopDim && SymbolStruct::typeHasRuntimeImplicitDefault(*args.sema, dstSubArrayType))
             {
                 args.castRequest->outConstRef = ConstantRef::invalid();
                 return Result::Continue;
             }
 
-            TaskContext&                                       ctx       = args.sema->ctx();
-            const uint64_t                                     arraySize = args.dstType->sizeOf(ctx);
-            ByteArray                                          buffer(arraySize);
-            const std::span<std::byte>                         bytes           = buffer.span();
-            const TypeInfo&                                    subArrayType    = typeMgr.get(dstSubArrayType);
-            const uint64_t                                     subArraySize    = subArrayType.sizeOf(ctx);
-            const bool                                         hasUnionStorage = ConstantHelpers::typeHasUnionStorage(ctx, *args.dstType);
+            TaskContext&               ctx       = args.sema->ctx();
+            const uint64_t             arraySize = args.dstType->sizeOf(ctx);
+            ByteArray                  buffer(arraySize);
+            const std::span<std::byte> bytes = buffer.span();
+
+            const TypeInfo& subArrayType = typeMgr.get(dstSubArrayType);
+            const uint64_t  subArraySize = subArrayType.sizeOf(ctx);
+
+            const bool hasUnionStorage = ConstantHelpers::typeHasUnionStorage(ctx, *args.dstType);
+
             SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
+
             SWC_RESULT(SymbolStruct::lowerTypeImplicitDefaultBytes(*args.sema, bytes, args.dstTypeRef));
 
             for (size_t i = 0; i < srcValues->size(); ++i)
@@ -293,8 +313,10 @@ namespace
                     args.castRequest->outConstRef = ConstantRef::invalid();
                     return Result::Continue;
                 }
+
                 const std::span dstChunk{bytes.data() + (i * subArraySize), subArraySize};
                 SWC_RESULT(ConstantLower::lowerToBytes(*args.sema, dstChunk, castedRef, subArrayType));
+
                 if (hasUnionStorage)
                     writes.push_back({.offset = i * subArraySize, .typeRef = dstSubArrayType, .valueRef = castedRef});
             }
@@ -302,11 +324,11 @@ namespace
             args.castRequest->outConstRef = hasUnionStorage ? ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, writes.span())
                                                             : ConstantHelpers::materializeStaticPayloadConstant(*args.sema, args.dstTypeRef, buffer.span());
             SWC_ASSERT(args.castRequest->outConstRef.isValid());
+
             return Result::Continue;
         }
 
         uint64_t totalCount = args.dstType->arrayTotalElementCount();
-
         if (srcTypes.size() > totalCount)
             return failArrayTooManyValues(args, srcTypes.size(), totalCount);
         if (srcTypes.size() < totalCount && SymbolStruct::typeRequiresExplicitInitialization(*args.sema, dstElemTypeRef))
@@ -321,6 +343,7 @@ namespace
 
         if (!args.castRequest->materializeConstantResult())
             return Result::Continue;
+
         if (srcTypes.size() < totalCount && SymbolStruct::typeHasRuntimeImplicitDefault(*args.sema, dstElemTypeRef))
         {
             args.castRequest->outConstRef = ConstantRef::invalid();
@@ -340,16 +363,16 @@ namespace
                 args.castRequest->outConstRef = ConstantRef::invalid();
                 return Result::Continue;
             }
+
             newValues.push_back(castedRef);
         }
 
         args.castRequest->outConstRef = makeArrayConstantFromValues(args, newValues);
+
         return Result::Continue;
     }
 
-    // Single value initialization: fill an entire array with one scalar value.
-    // Single value initialization: validate that the scalar can be cast to
-    // the array's leaf element type, and produce a fill constant.
+    // Convert the scalar to the leaf type before filling the entire array.
     Result castScalarToArray(const CastAggregateArgs& args)
     {
         TypeRef leafTypeRef = args.dstType->payloadArrayElemTypeRef();
@@ -381,7 +404,9 @@ namespace
         }
 
         const std::vector values(totalCount, elemRef);
+
         args.castRequest->outConstRef = makeArrayConstantFromValues(args, values);
+
         return Result::Continue;
     }
 }
@@ -421,6 +446,7 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
     {
         if (srcType.payloadSimdLaneTypeRef() == laneTypeRef && srcType.payloadSimdLaneCount() == laneCount)
             return castIdentity(sema, castRequest, srcTypeRef, dstTypeRef);
+
         return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
     }
 
@@ -434,6 +460,7 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
             const Result res = castRequest.fail(DiagnosticId::sema_err_simd_lane_count, srcTypeRef, dstTypeRef);
             castRequest.failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint64_t>(laneCount));
             castRequest.failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcTypes.size()));
+
             return res;
         }
 
@@ -452,6 +479,7 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
 
         ByteArray                  buffer(16);
         const std::span<std::byte> bytes = buffer.span();
+
         for (size_t i = 0; i < srcValues->size(); ++i)
         {
             const ArrayElemLocation location = arrayElemLocation(args, i);
@@ -462,12 +490,14 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
                 castRequest.outConstRef = ConstantRef::invalid();
                 return Result::Continue;
             }
+
             const std::span dstChunk{bytes.data() + (i * laneBytes), laneBytes};
             SWC_RESULT(ConstantLower::lowerToBytes(sema, dstChunk, castedRef, typeMgr.get(laneTypeRef)));
         }
 
         castRequest.outConstRef = ConstantHelpers::materializeStaticPayloadConstant(sema, dstTypeRef, bytes);
         SWC_ASSERT(castRequest.outConstRef.isValid());
+
         return Result::Continue;
     }
 
@@ -486,8 +516,7 @@ Result Cast::castToSimd(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef
         return Result::Continue;
     }
 
-    // A scalar filling every lane is a broadcast, not a conversion, and 'Swag.vecSplat' is
-    // the operation that says so.
+    // Scalar broadcasts use Swag.vecSplat rather than a cast.
     if (srcType.unwrapAliasEnumTypeOrSelf(sema.ctx()).isScalarNumeric())
         return castRequest.fail(DiagnosticId::sema_err_simd_scalar_cast, srcTypeRef, dstTypeRef);
 

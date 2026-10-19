@@ -9,10 +9,12 @@ struct CastRequest;
 
 struct CastAggregateArgs
 {
-    Sema*           sema;
-    CastRequest*    castRequest;
-    TypeRef         srcTypeRef;
-    TypeRef         dstTypeRef;
+    Sema*        sema;
+    CastRequest* castRequest;
+
+    TypeRef srcTypeRef;
+    TypeRef dstTypeRef;
+
     const TypeInfo* srcType;
     const TypeInfo* dstType;
 };

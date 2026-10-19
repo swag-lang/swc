@@ -464,6 +464,7 @@ public:
         SWC_ASSERT(isArray());
         if (payloadArray_.indexTypeRefs.empty())
             return TypeRef::invalid();
+
         SWC_ASSERT(dimension < payloadArray_.indexTypeRefs.size());
         return payloadArray_.indexTypeRefs[dimension];
     }
@@ -492,9 +493,11 @@ public:
         return payloadSimd_.laneCount;
     }
 
-    bool    tryGetAggregateMemberIndexByName(size_t& outIndex, const TaskContext& ctx, IdentifierRef name) const noexcept;
+    bool tryGetAggregateMemberIndexByName(size_t& outIndex, const TaskContext& ctx, IdentifierRef name) const noexcept;
+
     TypeRef unwrapAliasEnum(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid()) const noexcept;
     TypeRef unwrap(const TaskContext& ctx, TypeRef defaultTypeRef = TypeRef::invalid(), TypeExpand expandFlags = TypeExpandE::All) const noexcept;
+
     TypeRef payloadTypeRef() const noexcept;
     TypeRef dereferenceTypeRef(const TaskContext& ctx) const;
 
@@ -538,24 +541,27 @@ public:
     static TypeInfo makeNull();
     static TypeInfo makeCString(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeTypeInfo(TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+
     static TypeInfo makeEnum(SymbolEnum* sym);
     static TypeInfo makeStruct(SymbolStruct* sym);
     static TypeInfo makeInterface(SymbolInterface* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeAlias(SymbolAlias* sym);
+
     static TypeInfo makeValuePointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeBlockPointer(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeMoveReference(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeSlice(TypeRef pointeeTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
-    static TypeInfo makeArray(const std::span<const uint64_t>& dims,
-                              TypeRef                          elementTypeRef,
-                              TypeInfoFlags                    flags         = TypeInfoFlagsE::Zero,
-                              const std::span<const TypeRef>&  indexTypeRefs = {});
+
+    static TypeInfo makeArray(const std::span<const uint64_t>& dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero, const std::span<const TypeRef>& indexTypeRefs = {});
+
     static TypeInfo makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types);
     static TypeInfo makeAggregateArray(const std::span<const TypeRef>& types);
+
     static TypeInfo makeFunction(SymbolFunction* sym, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
     static TypeInfo makeVariadic();
     static TypeInfo makeTypedVariadic(TypeRef typeRef);
     static TypeInfo makeCodeBlock(TypeRef typeRef);
+
     static TypeInfo makeSimd(TypeRef laneTypeRef, uint32_t laneCount, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
 
     uint32_t hash() const;
@@ -568,20 +574,22 @@ public:
     uint64_t sizeOf(TaskContext& ctx) const;
     uint32_t alignOf(TaskContext& ctx) const;
     bool     isCompleted(TaskContext& ctx) const;
-    Symbol*  getSymbol() const;
-    Symbol*  getNotCompletedSymbol(TaskContext& ctx) const;
+
+    Symbol* getSymbol() const;
+    Symbol* getNotCompletedSymbol(TaskContext& ctx) const;
 
 private:
     explicit TypeInfo(TypeInfoKind kind, TypeInfoFlags flags = TypeInfoFlagsE::Zero);
+
     bool hasKindFlag(TypeInfoKindFlagsE flag) const noexcept
     {
         return TypeInfoKindFlagsDetail::BY_KIND[static_cast<size_t>(kind_)].has(flag);
     }
+
     template<bool IncludeEnum>
     const TypeInfo* resolveAliasType(const TaskContext& ctx) const noexcept;
 
-    // The parts of hash() that an array or aggregate payload contributes, so a type can be hashed
-    // from its parts before one is built.
+    // Hash array and aggregate parts without constructing a temporary TypeInfo payload.
     static uint32_t hashHeader(TypeInfoKind kind, TypeInfoFlags flags);
     static uint32_t hashArrayPayload(uint32_t h, std::span<const uint64_t> dims, TypeRef elementTypeRef, std::span<const TypeRef> indexTypeRefs);
     static uint32_t hashAggregatePayload(uint32_t h, TypeInfoKind kind, std::span<const TypeRef> types, std::span<const IdentifierRef> names);
@@ -632,7 +640,8 @@ private:
         {
             std::vector<uint64_t> dims;
             std::vector<TypeRef>  indexTypeRefs;
-            TypeRef               typeRef;
+
+            TypeRef typeRef;
         } payloadArray_;
 
         struct

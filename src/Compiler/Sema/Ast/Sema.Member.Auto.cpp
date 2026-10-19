@@ -580,6 +580,7 @@ namespace
                         (outCandidates[j].precedence == outCandidates[i].precedence &&
                          candidateSpecificity(outCandidates[j]) > candidateSpecificity(outCandidates[i])))
                         outCandidates[i] = outCandidates[j];
+
                     outCandidates.erase(outCandidates.begin() + j);
                 }
                 else
@@ -592,9 +593,8 @@ namespace
         return Result::Continue;
     }
 
-    // The innermost subject answers. A leading dot that reached past it did so only because
-    // that subject lacks the name, which is the classic 'with' defect: the block silently
-    // hands the access to the enclosing receiver. Reject it, and let the source name a subject.
+    // A leading dot must use the innermost subject. Falling through because
+    // that subject lacks the name would silently access an enclosing receiver.
     Result checkAutoScopeIsInnermost(Sema& sema, AstNodeRef nodeRef, IdentifierRef idRef, std::span<const AutoMemberCandidate> candidates, const AutoMemberCandidate& selected)
     {
         if (selected.plane != AutoMemberPlane::Subject || selected.typeRef.isInvalid())
@@ -612,11 +612,9 @@ namespace
         if (!innermost || innermost->precedence == selected.precedence || innermost->typeRef.isInvalid())
             return Result::Continue;
 
-        // Inside an inlined body or an expanded macro two functions' subjects are live at once, and
-        // which of them is nearer is a property of the expansion rather than of anything a reader
-        // wrote. The rule is enforced on the source as written: the same body is analyzed with its
-        // own receiver innermost and no caller in scope. Asked last: finding the expansion walks
-        // the visit path, and an innermost selection never needs it.
+        // Enforce this on source bodies, where the receiver is innermost. Expanded
+        // bodies also see caller subjects ranked by expansion. Check that context
+        // last to avoid an unnecessary visit-path search for innermost selections.
         if (nearestInlineReceiverPayload(sema))
             return Result::Continue;
 
@@ -626,6 +624,7 @@ namespace
         diag.addNote(DiagnosticId::sema_note_auto_scope_hint);
         diag.last().addArgument(Diagnostic::ARG_TYPE, selected.typeRef);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -656,9 +655,11 @@ namespace
                 // Missing candidates can still gain a member from another impl. Settle that
                 // publication before choosing a different scope or reporting no match.
                 SWC_RESULT(candidate.symMap->cast<SymbolStruct>().waitPendingImplMembers(sema, codeRef));
+
                 // Completion may have raced the first lookup without requiring a pause.
                 SWC_RESULT(Match::match(sema, lookUpCxt, idRef));
             }
+
             if (!lookUpCxt.empty())
             {
                 AutoMemberMatch m;
@@ -684,6 +685,7 @@ namespace
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_cannot_compute_auto_scope, autoMemberRef);
         diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(idRef).name);
+
         return diag;
     }
 
@@ -691,6 +693,7 @@ namespace
     {
         const auto diag = reportCannotComputeAutoScopeMember(sema, autoMemberRef, idRef);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -772,10 +775,12 @@ namespace
 
         AstMemberAccessExpr* memberNode = nullptr;
         const AstNodeRef     memberRef  = makeAutoMemberAccessExpr(sema, tokRef, autoMemberCodeRef, {.baseExprRef = leftRef}, rightRef, memberNode);
+
         sema.setSymbolList(memberRef, callableSymbols);
         sema.setSymbolList(rightRef, callableSymbols);
         sema.setSymbolList(memberNode->nodeRightRef, callableSymbols);
         sema.setIsValue(*memberNode);
+
         return memberRef;
     }
 
@@ -808,6 +813,7 @@ namespace
 
         sema.setSubstitute(sema.curNodeRef(), nodeRef);
         outHandled = true;
+
         return Result::Continue;
     }
 }
@@ -815,12 +821,12 @@ namespace
 Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
     SWC_UNUSED(childRef);
+
     const AstNodeRef currentRef  = sema.curNodeRef();
     const AstNodeRef resolvedRef = sema.resolvedNodeRef(currentRef);
     if (resolvedRef.isValid() && resolvedRef != currentRef)
         return Result::SkipChildren;
 
-    // Parser tags the callee expression when building a call: `.foo()`.
     const bool     allowOverloadSet = hasFlag(AstAutoMemberAccessExprFlagsE::CallCallee);
     const AstNode& rightNode        = sema.node(nodeIdentRef);
     SWC_ASSERT(rightNode.is(AstNodeId::Identifier));
@@ -829,18 +835,17 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     const IdentifierRef idRef             = sema.idMgr().addIdentifier(sema.ctx(), rightCodeRef);
 
     SmallVector4<AutoMemberCandidate> candidates;
-    const bool                        deferCallArgument  = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
-    const bool                        preferBindingTypes = deferCallArgument || hasFlag(AstAutoMemberAccessExprFlagsE::PreferBindingType);
+
+    const bool deferCallArgument  = hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument);
+    const bool preferBindingTypes = deferCallArgument || hasFlag(AstAutoMemberAccessExprFlagsE::PreferBindingType);
     SWC_RESULT(collectAutoMemberCandidates(sema, candidates, preferBindingTypes));
     if (candidates.empty())
     {
-        // In a call-argument position, `.EnumValue` might need the selected overload's
-        // parameter type (enum scope) to be resolved. Defer resolution until overload
-        // resolution can provide that context. Even if another contextual binding type
-        // is active, an empty candidate set means that binding cannot resolve this
-        // auto-member right now.
+        // An argument's enum scope may come from the selected overload. With no
+        // usable candidate yet, defer until overload resolution supplies that context.
         if (hasFlag(AstAutoMemberAccessExprFlagsE::CallArgument))
             return Result::SkipChildren;
+
         return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
     }
 
@@ -848,7 +853,6 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     SmallVector2<AutoMemberMatch> matches;
     SWC_RESULT(probeAutoMemberCandidates(sema, rightCodeRef, idRef, candidates, matches));
 
-    // If nothing matched, report a smart error.
     if (matches.empty())
     {
         bool localCallableHandled = false;
@@ -858,9 +862,8 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
         if (deferCallArgument)
         {
-            // If we have candidates but none matched, we still want to try to defer if this is a function argument.
-            // This is because another candidate (the function argument type itself) might be available later
-            // during overload resolution.
+            // The selected overload may add a parameter-type candidate later, even
+            // when the currently visible candidates do not match.
             return Result::SkipChildren;
         }
 
@@ -870,12 +873,9 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             if (!candidate.typeRef.isValid())
                 return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
 
-            // One candidate means the scope is settled, so `.member` is the qualified access
-            // written short and must wait like it. The probe above cannot wait — with several
-            // candidates it has to step over the ones that legitimately lack the name — so an
-            // empty result there says "not published yet" and "not there" with one voice. Park
-            // on the name instead: a member minted by a mixin in another `impl` block of the
-            // same type arrives after that block runs, and only a stalled wait proves absence.
+            // With one candidate, .member is a qualified access and must wait for
+            // pending member publication. The non-blocking probe cannot distinguish
+            // absence from a member generated later by a mixin in another impl.
             if (candidate.symMap)
                 return sema.waitAutoScopeMember(idRef, candidate.typeRef, rightCodeRef);
 
@@ -907,6 +907,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
                 }
             }
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -919,6 +920,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
             diag.last().addArgument(Diagnostic::ARG_TYPE, candidate.typeRef);
         }
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -948,6 +950,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         mergeAutoMemberMatches(matches, all);
         if (!all.empty())
             return SemaError::raiseAmbiguousSymbol(sema, sema.curNodeRef(), all);
+
         return raiseCannotComputeAutoScopeMember(sema, sema.curNodeRef(), idRef);
     }
 
@@ -968,6 +971,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         AstMemberAccessExpr*     substituteNode = nullptr;
         const AstNodeRef         nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), autoMemberCodeRef, selected, nodeIdentRef, substituteNode);
         const std::span<Symbol*> symbols        = sema.curViewSymbol().symList();
+
         sema.setSymbolList(nodeRef, symbols);
         sema.setSymbolList(nodeIdentRef, symbols);
         sema.setSymbolList(substituteNode->nodeRightRef, symbols);
@@ -981,13 +985,14 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         AstNodeRef substituteRef = nodeRef;
         if (selected.resultTypeRef.isValid())
             substituteRef = Cast::createCastNode(sema, selected.resultTypeRef, nodeRef);
+
         sema.setSubstitute(sema.curNodeRef(), substituteRef);
 
-        // '.IThing' names the subject's implementation of an interface: a scope that
-        // qualifies the member after it, exactly as 'subject.IThing' does, never a value.
-        // The receiver of '.IThing.method()' is the subject, not that scope.
+        // .IThing names an implementation scope, so .IThing.method() receives
+        // the original subject and never the scope as a value.
         if (!std::ranges::all_of(symbols, [](const Symbol* symbol) { return symbol->isSymMap(); }))
             sema.setIsValue(*substituteNode);
+
         return Result::SkipChildren;
     }
 
@@ -1000,6 +1005,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
     AstNodeRef substituteRef = nodeRef;
     if (selected.resultTypeRef.isValid())
         substituteRef = Cast::createCastNode(sema, selected.resultTypeRef, nodeRef);
+
     sema.setSubstitute(sema.curNodeRef(), substituteRef);
     return Result::SkipChildren;
 }

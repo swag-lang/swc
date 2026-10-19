@@ -47,8 +47,8 @@ struct DataOfSpecOpPayload
 struct RelationalSpecOpPayload
 {
     SymbolFunction* calledFn = nullptr;
-    // Special relation nodes keep their own semantic type; the inlined call body
-    // is only used later by codegen.
+
+    // Keep the relation node's semantic type; use the inline substitute only in codegen.
     AstNodeRef inlineSubstituteRef = AstNodeRef::invalid();
 };
 
@@ -79,6 +79,7 @@ enum class SpecOperator : int32_t
     Mul,
     Div,
     Mod,
+
     BitAnd,
     BitOr,
     BitXor,
@@ -95,6 +96,7 @@ enum class SpecOperator : int32_t
     MulAssign,
     DivAssign,
     ModAssign,
+
     BitAndAssign,
     BitOrAssign,
     BitXorAssign,
@@ -109,33 +111,45 @@ namespace SemaSpecOp
     std::string_view generatedInitWrapperName();
     std::string_view generatedSelfTypeName();
     bool             isGeneratedLifecycleWrapperName(std::string_view name);
-    SpecOpKind       computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
-    void             addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);
-    bool             typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind);
-    Result           addLifecycleCallDependencies(Sema& sema, TypeRef typeRef, SpecOpKind kind);
-    Result           addImplicitLifecycleCallDependencies(Sema& sema, const SymbolFunction& function);
-    Result           addValueTransferCallDependencies(Sema& sema, AstNodeRef sourceRef, TypeRef destinationTypeRef, AstModifierFlags modifiers, bool destinationBindsReference);
-    Result           addDefaultInitCallDependencies(Sema& sema, TypeRef typeRef);
-    bool             isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef);
-    Result           typeCompareNeedsContentHelper(Sema& sema, bool& outResult, TypeRef typeRef);
-    Result           ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct);
-    Result           ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct);
-    Result           ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct);
-    Result           validateSymbol(Sema& sema, SymbolFunction& sym);
-    Result           registerSymbol(Sema& sema, SymbolFunction& sym);
-    Result           collectSetCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates);
-    Result           resolveAssignLambdaBindingType(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, TypeRef& outBindingTypeRef);
-    Result           canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched);
+
+    SpecOpKind computeSymbolKind(const Sema& sema, const SymbolFunction& sym);
+    void       addMissingDeclarationHelp(Sema& sema, Diagnostic& diag, const SymbolStruct& ownerStruct, SpecOpKind kind);
+
+    bool   typeHasLifecycle(TaskContext& ctx, TypeRef typeRef, SpecOpKind kind);
+    Result addLifecycleCallDependencies(Sema& sema, TypeRef typeRef, SpecOpKind kind);
+    Result addImplicitLifecycleCallDependencies(Sema& sema, const SymbolFunction& function);
+    Result addValueTransferCallDependencies(Sema& sema, AstNodeRef sourceRef, TypeRef destinationTypeRef, AstModifierFlags modifiers, bool destinationBindsReference);
+    Result addDefaultInitCallDependencies(Sema& sema, TypeRef typeRef);
+
+    bool   isOwnerStructType(TaskContext& ctx, const SymbolStruct& owner, TypeRef typeRef);
+    Result typeCompareNeedsContentHelper(Sema& sema, bool& outResult, TypeRef typeRef);
+
+    Result ensureGeneratedOperators(Sema& sema, SymbolStruct& ownerStruct);
+    Result ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct);
+    Result ensureGeneratedLifecycleFunctions(Sema& sema, SymbolStruct& ownerStruct);
+
+    Result validateSymbol(Sema& sema, SymbolFunction& sym);
+    Result registerSymbol(Sema& sema, SymbolFunction& sym);
+
+    Result collectSetCandidates(Sema& sema, const SymbolStruct& ownerStruct, const SourceCodeRef& codeRef, AstNodeRef valueRef, SmallVector<Symbol*>& outCandidates);
+    Result resolveAssignLambdaBindingType(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, TypeRef& outBindingTypeRef);
+
+    Result canResolveVisit(Sema& sema, const AstForeachStmt& node, bool& outMatched);
 
     Result tryResolveVarInitSet(Sema& sema, AstNodeRef receiverRef, AstNodeRef valueRef, bool& outHandled);
+
     Result tryResolveCountOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
     Result tryResolveDataOf(Sema& sema, AstNodeRef exprRef, SymbolFunction*& outCalledFn, bool& outHandled);
+
     Result tryResolveVisit(Sema& sema, const AstForeachStmt& node, SymbolFunction*& outCalledFn, bool& outHandled);
+
     Result tryResolveSlice(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result tryResolveIndex(Sema& sema, const AstIndexExpr& node, const SemaNodeView& indexedView, bool& outHandled);
     Result tryResolveIndex(Sema& sema, const AstIndexListExpr& node, const SemaNodeView& indexedView, bool& outHandled);
+
     Result tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, bool& outHandled);
     Result tryResolveAssign(Sema& sema, const AstAssignStmt& node, const SemaNodeView& leftView, bool& outHandled);
+
     Result tryResolveBinary(Sema& sema, const AstBinaryExpr& node, const SemaNodeView& leftView, const SemaNodeView& rightView, bool& outHandled);
     Result tryResolveRelational(Sema& sema, const AstRelationalExpr& node, const SemaNodeView& leftView, bool& outHandled);
     Result tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const SemaNodeView& operandView, bool& outHandled);

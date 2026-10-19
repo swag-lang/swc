@@ -127,6 +127,7 @@ namespace
         const SymbolStruct* owner    = sym.ownerStruct();
         if (!owner && ownerMap && declImpl && declImpl->isForStruct())
             owner = declImpl->symStruct();
+
         if (!owner && ownerMap && declImpl)
         {
             MatchContext context;
@@ -193,9 +194,11 @@ namespace
     {
         if (sym.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
+
         const SourceFile* file = sema.file();
         if (!file)
             return false;
+
         // Imported methods need the receiver binding created while walking their declaration
         // scope. Replaying only the function body cannot currently reconstruct that binding.
         const bool delayImported = file->isImportedApi() && !sym.isMethod();
@@ -211,6 +214,7 @@ namespace
             return false;
         if (functionSignatureNeedsBody(node))
             return false;
+
         return node.nodeBodyRef.isValid();
     }
 
@@ -227,8 +231,9 @@ namespace
 
     struct LazyBodyRun
     {
-        const TaskContext*    ownerCtx = nullptr;
-        bool                  running  = false;
+        const TaskContext* ownerCtx = nullptr;
+        bool               running  = false;
+
         std::unique_ptr<Sema> sema;
     };
 
@@ -240,10 +245,8 @@ namespace
         if (sema.usesLocalLoweringPayloads())
             return false;
 
-        // Semantic analysis can legitimately re-enter another lazy body owned by the same
-        // task while generic dependencies are still being wired. Codegen uses a dedicated
-        // Sema with local lowering mirrors, so it must never observe this "running means
-        // good enough" shortcut.
+        // The same task may re-enter a lazy body while wiring generic dependencies.
+        // Codegen uses local lowering mirrors and must not use this same-task shortcut.
         if (run.ownerCtx == &sema.ctx())
             return true;
 
@@ -272,6 +275,7 @@ namespace
 
         auto* run = static_cast<LazyBodyRun*>(state.get());
         SWC_ASSERT(run != nullptr);
+
         return *run;
     }
 
@@ -285,18 +289,16 @@ namespace
         return run->sema.get() == &sema;
     }
 
-    // Whether the body of 'symbol' was handed to a lazy run that 'sema' is not driving.
-    //
-    // The runner clears 'LazyBody' just before it marks the function completed, and drops the run
-    // state only after that. Reading the flag first, then the run state, closes every window: a
-    // cleared flag seen here means the run state is either still present, or already dropped, in
-    // which case the completion is visible to the caller's next read.
+    // Read LazyBody before the run state: completion clears the flag first and
+    // removes the run only after publication. If the run is already gone, the
+    // caller's next completion read must see the finished body.
     bool isLazyBodyOwnedByAnotherWalk(const Sema& sema, const SymbolFunction& symbol)
     {
         const bool             lazyBody = symbol.hasExtraFlag(SymbolFunctionFlagsE::LazyBody);
         const std::scoped_lock lock(symbol.lazyBodyRunMutex());
         if (const auto* run = lazyBodyRun(symbol))
             return run->sema.get() != &sema;
+
         return lazyBody;
     }
 
@@ -332,18 +334,19 @@ namespace
         }
 
         SemaGeneric::prepareGenericInstantiationContext(*child, lazyFunctionStartSymMap(calledFn), functionDeclImplContext(sema, &calledFn), functionDeclInterfaceContext(sema, &calledFn), calledFn.attributes());
+
         return child;
     }
 
     void finishLazyBodyRun(SymbolFunction& calledFn, Result result)
     {
         const std::scoped_lock lock(calledFn.lazyBodyRunMutex());
-        // Reset both run.running and LazyBodyRunning atomically under the same
-        // lock to prevent another task from seeing LazyBodyRunning=false while
-        // run.running is still true, which would cause it to wait on calledFn instead
-        // of taking over the paused body — potentially deadlocking if that task is the
-        // owner of a generic instance that calledFn's body is waiting for.
+
+        // Clear both running markers under the same lock so another task can take
+        // over a paused body. A partial update could make a generic-instance owner
+        // wait on the body that is waiting for that owner.
         calledFn.removeExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
+
         auto* state = calledFn.lazyBodyRunState();
         if (!state || !(*state))
             return;
@@ -369,6 +372,7 @@ namespace
             const auto*            run = lazyBodyRun(calledFn);
             if (run && run->running && isReentrantLazyBodyRun(sema, calledFn, *run))
                 return Result::Continue;
+
             return sema.waitSemaCompletedNoLazy(&calledFn, calledFn.codeRef());
         }
 
@@ -387,9 +391,8 @@ namespace
 
                 if (run.ownerCtx != &sema.ctx())
                 {
-                    // A paused child Sema carries the in-flight walk state for this lazy
-                    // body. Transfer that state to the next waiting task instead of
-                    // replaying the body on the shared AST and payload context.
+                    // Transfer the paused walk to the next task; replaying the shared
+                    // AST and payload would duplicate in-flight analysis.
                     run.ownerCtx = &sema.ctx();
                     run.sema->rebindTaskContext(sema.ctx());
                 }
@@ -406,8 +409,10 @@ namespace
 
         SWC_ASSERT(child);
         calledFn.addExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
+
         const Result result = child->execResult();
         finishLazyBodyRun(calledFn, result);
+
         return result;
     }
 
@@ -1468,8 +1473,8 @@ namespace
             // only types without lifecycle operations can be captured by value.
             if (!captureByRef && !typeInfo.isAnyVariadic())
             {
-                const TypeInfo& checkType     = typeInfo.unwrapAliasEnumTypeOrSelf(ctx);
-                const TypeRef   checkTypeRef  = checkType.typeRef();
+                const TypeInfo& checkType    = typeInfo.unwrapAliasEnumTypeOrSelf(ctx);
+                const TypeRef   checkTypeRef = checkType.typeRef();
                 SWC_RESULT(sema.waitSemaCompleted(&checkType, captureArg.nodeIdentifierRef));
 
                 const TypeGen::LifecycleFlags lifecycle = TypeGen::lifecycleFlagsOfTypeRef(ctx, checkTypeRef);

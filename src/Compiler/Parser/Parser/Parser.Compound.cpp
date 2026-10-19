@@ -26,8 +26,10 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 
         case AstNodeId::EnumBody:
             return parseEnumValue();
+
         case AstNodeId::AggregateBody:
             return parseAggregateValue();
+
         case AstNodeId::InterfaceBody:
             return parseInterfaceValue();
 
@@ -36,17 +38,22 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
 
         case AstNodeId::UnnamedArgumentList:
             return parseExpression();
+
         case AstNodeId::NamedArgumentList:
             return parseNamedArg();
+
         case AstNodeId::GenericParamList:
             return parseGenericParam();
 
         case AstNodeId::ClosureExpr:
             return parseClosureArg();
+
         case AstNodeId::FunctionExpr:
             return parseLambdaArgumentExpr();
+
         case AstNodeId::LambdaType:
             return parseLambdaParam();
+
         case AstNodeId::FunctionParamList:
             return parseFunctionParam();
 
@@ -66,19 +73,20 @@ Result Parser::parseCompoundSeparator(AstNodeId blockNodeId, TokenId tokenEndId)
 
 Result Parser::parseCompoundSeparatorUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds)
 {
-    // Where to resume after a missing separator. Only the error paths ask, and nothing they do
-    // before asking consumes a token or moves a nesting depth, so the list is built there
-    // instead of once per element of every list parsed.
+    // On error paths, token position and nesting still match entry state. Build
+    // recovery tokens here so successful list elements pay no construction cost.
     const auto skipToRecoveryPoint = [&] {
         SmallVector skipTokens = {TokenId::SymComma};
         for (const TokenId tokenEndId : tokenEndIds)
             skipTokens.push_back(tokenEndId);
+
         if (depthParen_)
             skipTokens.push_back(TokenId::SymRightParen);
         if (depthBracket_)
             skipTokens.push_back(TokenId::SymRightBracket);
         if (depthCurly_)
             skipTokens.push_back(TokenId::SymRightCurly);
+
         skipTo(skipTokens);
     };
 
@@ -150,6 +158,7 @@ SpanRef Parser::parseCompoundContent(AstNodeId blockNodeId, TokenId tokenStartId
         {
             if (!skipTo({tokenStartId}))
                 return SpanRef::invalid();
+
             consume();
         }
     }
@@ -161,7 +170,8 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
 {
     const TokenId    tokenEndId  = Token::toRelated(tokenStartId);
     const std::array tokenEndIds = {tokenEndId};
-    const SpanRef    result      = parseCompoundContentUntil(blockNodeId, tokenEndIds);
+
+    const SpanRef result = parseCompoundContentUntil(blockNodeId, tokenEndIds);
 
     if (consumeIf(tokenEndId).isInvalid() && tokenEndId != TokenId::Invalid)
         raiseExpected(DiagnosticId::parser_err_expected_closing, openTokRef, Token::toRelated(tokenStartId));
@@ -171,28 +181,28 @@ SpanRef Parser::parseCompoundContentInside(AstNodeId blockNodeId, TokenRef openT
 
 SpanRef Parser::parseCompoundContentUntil(AstNodeId blockNodeId, std::span<const TokenId> tokenEndIds)
 {
-    // Only blocks whose elements are declarations/statements can host a function
-    // declaration, and thus a '#fwd' dual parse. Other compounds (parameter lists,
-    // argument lists…) must not disturb the current '#fwd' pass state.
+    // Only declaration and statement blocks can contain #fwd functions.
+    // Parameter and argument lists must preserve the surrounding parse mode.
     const bool isStatementBlock = blockNodeId == AstNodeId::TopLevelBlock ||
                                   blockNodeId == AstNodeId::EmbeddedBlock ||
                                   blockNodeId == AstNodeId::AggregateBody ||
                                   blockNodeId == AstNodeId::InterfaceBody;
 
     SmallVector<AstNodeRef> childrenRefs;
+
     while (!atEnd() && !containsTokenId(tokenEndIds, id()))
     {
         const Token* loopStartToken = curToken_;
 
-        // One block element. A statement declaring a function with a '#fwd' parameter is
-        // parsed twice: the first pass emits the copy variant ('#fwd' erased), the second
-        // pass re-parses the same tokens to emit the move variant ('#fwd' behaves like
-        // '#move'). Both variants become ordinary overloads.
-        const uint32_t     savedDepthParen   = depthParen_;
-        const uint32_t     savedDepthBracket = depthBracket_;
-        const uint32_t     savedDepthCurly   = depthCurly_;
-        const FwdParseMode savedPassMode     = fwdPassMode_;
-        const bool         savedStmtTrigger  = fwdStmtTrigger_;
+        // Parse #fwd functions twice: erase #fwd for the copy overload, then replay
+        // its tokens with move semantics for the move overload.
+        const uint32_t savedDepthParen   = depthParen_;
+        const uint32_t savedDepthBracket = depthBracket_;
+        const uint32_t savedDepthCurly   = depthCurly_;
+
+        const FwdParseMode savedPassMode    = fwdPassMode_;
+        const bool         savedStmtTrigger = fwdStmtTrigger_;
+
         if (isStatementBlock)
         {
             fwdPassMode_    = FwdParseMode::Copy;
@@ -220,6 +230,7 @@ SpanRef Parser::parseCompoundContentUntil(AstNodeId blockNodeId, std::span<const
             ++fwdReparseDepth_;
             const AstNodeRef moveVariantRef = parseCompoundValue(blockNodeId);
             --fwdReparseDepth_;
+
             if (moveVariantRef.isValid())
                 childrenRefs.push_back(moveVariantRef);
 
@@ -239,7 +250,6 @@ SpanRef Parser::parseCompoundContentUntil(AstNodeId blockNodeId, std::span<const
             fwdStmtTrigger_ = savedStmtTrigger;
         }
 
-        // Separator between statements
         if (parseCompoundSeparatorUntil(blockNodeId, tokenEndIds) == Result::Error)
         {
             if (isRecoveryClosingDelimiter())

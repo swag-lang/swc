@@ -15,16 +15,15 @@ namespace
     }
 }
 
-// '#raw' only qualifies how the lexer read the literal that follows, so the node is the plain
-// string literal and the modifier leaves no trace in the AST.
+// The lexer already applied #raw, so the modifier needs no AST node.
 AstNodeRef Parser::parseRawStringLiteral()
 {
     consume();
 
     if (isNot(TokenId::StringLine) && isNot(TokenId::StringMultiLine))
     {
-        // Parse the operand anyway: the modifier is what is wrong, not the expression, so the
-        // rest of the statement must not produce a second error.
+        // Parse the operand after diagnosing the modifier to avoid a second error
+        // for the remaining statement.
         raiseError(DiagnosticId::parser_err_raw_needs_string, ref());
         return parsePrimaryExpression();
     }
@@ -86,6 +85,7 @@ AstNodeRef Parser::parseLiteral()
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::NullLiteral>(consume());
             return nodeRef;
         }
+
         case TokenId::CompilerFile:
         case TokenId::CompilerModule:
         case TokenId::CompilerLine:
@@ -121,8 +121,7 @@ AstNodeRef Parser::parseLiteralExpression()
     TokenRef suffixTknRef = TokenRef::invalid();
     TokenRef quoteTknRef  = TokenRef::invalid();
 
-    // Blanks and comments between the literal and its quote are transparent, but a line
-    // break is not: a statement ends at the end of a line, so the suffix stays on it.
+    // Blanks and comments do not split a literal suffix; a line ending does.
     if (is(TokenId::SymSingleQuote) && !tok().flags.has(TokenFlagsE::EolBefore))
     {
         quoteTknRef  = ref();
@@ -141,7 +140,8 @@ AstNodeRef Parser::parseLiteralExpression()
         return literal;
 
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::SuffixLiteral>(suffixTknRef);
-    nodePtr->nodeLiteralRef       = literal;
+
+    nodePtr->nodeLiteralRef = literal;
     nodePtr->nodeSuffixRef.setInvalid();
 
     switch (id())
@@ -183,15 +183,19 @@ AstNodeRef Parser::parseLiteralExpression()
 
 AstNodeRef Parser::parseLiteralArray()
 {
-    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::ArrayLiteral>(ref());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ArrayLiteral>(ref());
+
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::UnnamedArgumentList, TokenId::SymLeftBracket);
+
     return nodeRef;
 }
 
 AstNodeRef Parser::parseLiteralStruct()
 {
-    auto [nodeRef, nodePtr]  = ast_->makeNode<AstNodeId::StructLiteral>(ref());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructLiteral>(ref());
+
     nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
+
     return nodeRef;
 }
 

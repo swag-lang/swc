@@ -50,6 +50,7 @@ public:
                 if (sameArgs(entry.args.span(), args))
                     return entry.symbol;
             }
+
             return nullptr;
         }
 
@@ -60,6 +61,7 @@ public:
             if (sameArgs(entry.args.span(), args))
                 return entry.symbol;
         }
+
         return nullptr;
     }
 
@@ -76,7 +78,8 @@ public:
             genericInstanceIndices_->emplace(instance, index);
 
         GenericInstanceEntry& entry = genericInstances_.emplace_back();
-        entry.symbol                = instance;
+
+        entry.symbol = instance;
         entry.args.assign(args.begin(), args.end());
 
         if (genericArgumentIndices_)
@@ -87,22 +90,25 @@ public:
             // large families need an argument index to avoid quadratic instantiation searches.
             genericArgumentIndices_ = std::make_unique<ArgumentIndices>();
             genericArgumentIndices_->reserve(genericInstances_.size() * 2);
+
             genericInstanceIndices_ = std::make_unique<InstanceIndices>();
             genericInstanceIndices_->reserve(genericInstances_.size() * 2);
+
             for (size_t i = 0; i < genericInstances_.size(); ++i)
             {
                 genericArgumentIndices_->emplace(hashArgs(genericInstances_[i].args.span()), i);
                 genericInstanceIndices_->emplace(genericInstances_[i].symbol, i);
             }
         }
+
         return instance;
     }
 
 private:
     static constexpr size_t K_NOT_FOUND = std::numeric_limits<size_t>::max();
 
-    // An instance appears once in the list, so the first match is the only one, as the index
-    // would find it. Like the argument index, this one exists only past the linear limit.
+    // Instances are unique, so the first linear match agrees with the optional index.
+    // Both indexes are allocated only after the linear lookup limit.
     size_t findInstanceIndexNoLock(const Symbol* instance) const
     {
         if (genericInstanceIndices_)
@@ -133,17 +139,20 @@ private:
             hash = Math::hashCombine(hash, arg.typeRef.get());
             hash = Math::hashCombine(hash, arg.cstRef.get());
         }
+
         return Math::hash(hash);
     }
 
     static constexpr size_t LINEAR_LOOKUP_LIMIT = 8;
-    using ArgumentIndices                       = std::unordered_multimap<uint32_t, size_t>;
-    using InstanceIndices                       = std::unordered_map<const Symbol*, size_t>;
+
+    using ArgumentIndices = std::unordered_multimap<uint32_t, size_t>;
+    using InstanceIndices = std::unordered_map<const Symbol*, size_t>;
 
     mutable std::shared_mutex         genericMutex_;
     std::vector<GenericInstanceEntry> genericInstances_;
-    std::unique_ptr<InstanceIndices>  genericInstanceIndices_;
-    std::unique_ptr<ArgumentIndices>  genericArgumentIndices_;
+
+    std::unique_ptr<InstanceIndices> genericInstanceIndices_;
+    std::unique_ptr<ArgumentIndices> genericArgumentIndices_;
 };
 
 SWC_END_NAMESPACE();

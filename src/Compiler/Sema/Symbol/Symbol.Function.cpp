@@ -29,21 +29,20 @@ namespace
         return std::isalnum(static_cast<unsigned char>(c)) != 0;
     }
 
-    // Separates two source identifiers; a single underscore separates two words inside
-    // one identifier. Keeping the two apart is what makes the flattened name injective:
-    // with one separator for both, 'Input.Mouse.position' and 'Input.mousePosition' both
-    // become 'input_mouse_position' and the linker silently binds one call to the other.
+    // Separate source identifiers with __ and words within an identifier with _.
+    // Otherwise Input.Mouse.position and Input.mousePosition both flatten to
+    // input_mouse_position, causing linker collisions.
     constexpr std::string_view PUBLIC_API_IDENTIFIER_SEPARATOR = "__";
 
     void appendPublicApiSymbolFragment(Utf8& out, const std::string_view text)
     {
-        // Public API names are exported outside the compiler. Normalize every
-        // fragment to a stable, linker-friendly snake_case token independent of
-        // punctuation in source-level names.
+        // Normalize exported fragments to stable, linker-friendly snake_case regardless
+        // of punctuation in source names.
         const size_t fragmentStart           = out.size();
         bool         fragmentStarted         = false;
         bool         lastWasUnderscore       = true;
         bool         previousWasLowerOrDigit = false;
+
         for (const char c : text)
         {
             const auto uc = static_cast<unsigned char>(c);
@@ -53,6 +52,7 @@ namespace
                 {
                     if (!out.empty())
                         out += PUBLIC_API_IDENTIFIER_SEPARATOR;
+
                     fragmentStarted = true;
                 }
 
@@ -63,6 +63,7 @@ namespace
                     out += '_';
 
                 out += static_cast<char>(std::tolower(uc));
+
                 lastWasUnderscore       = false;
                 previousWasLowerOrDigit = isLower || isDigit;
                 continue;
@@ -85,12 +86,9 @@ namespace
 
     void appendPublicApiTypeFragment(Utf8& out, const TaskContext& ctx, TypeRef typeRef);
 
-    // The module namespace is the public boundary: paths above it are local to the
-    // build/import context and must not leak into exported symbol names. The module
-    // being compiled owns its namespace directly, while an imported module API
-    // re-declares that same namespace under the import root. Recognizing both shapes
-    // is what makes an importer flatten a name exactly as its exporter did, so a
-    // generated module API can leave the flattened name out of 'Swag.Foreign'.
+    // Stop exported paths at the module namespace; higher scopes depend on the local
+    // build/import context. The exporter owns this namespace directly, while imported
+    // APIs place it under the import root. Both must produce the same flattened name.
     bool isPublicApiModuleRootNamespace(const TaskContext& ctx, const SymbolMap& scope)
     {
         if (!scope.isNamespace())
@@ -99,6 +97,7 @@ namespace
         const SymbolMap* owner = scope.ownerSymMap();
         if (!owner || owner->isModule())
             return true;
+
         return owner == ctx.compiler().importRootNamespace();
     }
 
@@ -113,6 +112,7 @@ namespace
         {
             if (!scope->isModule() && !scope->isImpl() && !isPublicApiModuleRootNamespace(ctx, *scope))
                 scopeChain.push_back(scope);
+
             scope = scope->ownerSymMap();
         }
 
@@ -120,6 +120,7 @@ namespace
         {
             if (!current)
                 continue;
+
             appendPublicApiSymbolFragment(out, current->name(ctx));
         }
     }
@@ -131,14 +132,14 @@ namespace
 
     bool isFunctionNestedInFunctionScope(const SymbolFunction& symbol)
     {
-        // Nested functions are implementation details. They may capture locals or be
-        // cloned during inlining/generic expansion, so they cannot form a stable
-        // public API surface.
+        // Nested functions may capture locals or be cloned during expansion.
+        // Their identities are unstable, so they cannot be exported as public API.
         const SymbolMap* scope = symbol.ownerSymMap();
         while (scope)
         {
             if (scope->isFunction())
                 return true;
+
             scope = scope->ownerSymMap();
         }
 
@@ -212,6 +213,7 @@ namespace
             case TypeInfoKind::CString:
                 appendPublicApiSymbolFragment(out, "cstring");
                 return;
+
             case TypeInfoKind::CodeBlock:
                 appendPublicApiSymbolFragment(out, "code");
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
@@ -219,12 +221,14 @@ namespace
             case TypeInfoKind::TypeInfo:
                 appendPublicApiSymbolFragment(out, "typeinfo");
                 return;
+
             case TypeInfoKind::AggregateStruct:
                 appendPublicApiSymbolFragment(out, "struct_literal");
                 return;
             case TypeInfoKind::AggregateArray:
                 appendPublicApiSymbolFragment(out, "array_literal");
                 return;
+
             case TypeInfoKind::Enum:
                 appendPublicApiSymbolFragment(out, typeInfo.payloadSymEnum().getFullScopedName(ctx).view());
                 return;
@@ -233,17 +237,21 @@ namespace
                 const SymbolStruct& instance = typeInfo.payloadSymStruct();
                 const SymbolStruct* root     = instance.genericRootOrSelf();
                 SWC_ASSERT(root != nullptr);
+
                 appendPublicApiSymbolFragment(out, root->getFullScopedName(ctx).view());
                 if (instance.isGenericInstance())
                     appendPublicApiGenericStructArgs(out, ctx, instance);
+
                 return;
             }
+
             case TypeInfoKind::Interface:
                 appendPublicApiSymbolFragment(out, typeInfo.payloadSymInterface().getFullScopedName(ctx).view());
                 return;
             case TypeInfoKind::Alias:
                 appendPublicApiSymbolFragment(out, typeInfo.payloadSymAlias().getFullScopedName(ctx).view());
                 return;
+
             case TypeInfoKind::TypeValue:
                 appendPublicApiSymbolFragment(out, "typeinfo");
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
@@ -260,12 +268,18 @@ namespace
                 appendPublicApiSymbolFragment(out, "move_ref");
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
                 return;
+
             case TypeInfoKind::Int:
             {
                 if (typeInfo.payloadIntBits() == 0)
                 {
-                    appendPublicApiSymbolFragment(out, typeInfo.payloadIntSign() == TypeInfo::Sign::Unsigned ? "uint" : typeInfo.payloadIntSign() == TypeInfo::Sign::Signed ? "sint"
-                                                                                                                                                                            : "int");
+                    appendPublicApiSymbolFragment(
+                        out,
+                        typeInfo.payloadIntSign() == TypeInfo::Sign::Unsigned
+                            ? "uint"
+                        : typeInfo.payloadIntSign() == TypeInfo::Sign::Signed
+                            ? "sint"
+                            : "int");
                     return;
                 }
 
@@ -273,6 +287,7 @@ namespace
                 appendPublicApiSymbolFragment(out, intName);
                 return;
             }
+
             case TypeInfoKind::Float:
             {
                 if (typeInfo.payloadFloatBits() == 0)
@@ -282,8 +297,10 @@ namespace
                     const auto floatName = std::format("f{}", typeInfo.payloadFloatBits());
                     appendPublicApiSymbolFragment(out, floatName);
                 }
+
                 return;
             }
+
             case TypeInfoKind::Slice:
                 appendPublicApiSymbolFragment(out, "slice");
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadTypeRef());
@@ -316,6 +333,7 @@ namespace
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadArrayElemTypeRef());
                 return;
             }
+
             case TypeInfoKind::Variadic:
                 appendPublicApiSymbolFragment(out, "variadic");
                 return;
@@ -326,17 +344,20 @@ namespace
             case TypeInfoKind::Simd:
             {
                 appendPublicApiSymbolFragment(out, "simd");
+
                 const auto laneCountText = std::to_string(typeInfo.payloadSimdLaneCount());
                 appendPublicApiSymbolFragment(out, laneCountText);
                 appendPublicApiTypeFragment(out, ctx, typeInfo.payloadSimdLaneTypeRef());
                 return;
             }
+
             case TypeInfoKind::Function:
             {
                 const SymbolFunction& function = typeInfo.payloadSymFunction();
                 appendPublicApiSymbolFragment(out, function.isMethod() ? "mtd" : "func");
                 if (function.isClosure())
                     appendPublicApiSymbolFragment(out, "closure");
+
                 if (function.parameters().empty())
                     appendPublicApiSymbolFragment(out, "void");
                 else

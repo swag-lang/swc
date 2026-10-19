@@ -3281,25 +3281,22 @@ namespace
                symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal);
     }
 
-    // The storage variable an expression ultimately designates. Resolves the syntactic
-    // root first (identifier, member/index access, cast operand, borrowing dereference);
-    // when the root is produced by an implicit carrier conversion (an array decaying to a
-    // slice for iteration), falls back to the borrow analysis, which sees through the
-    // opCast to the backing variable. Used to match a loop's iterated storage against a
-    // mutating call's receiver, so both sides must resolve the same way.
+    // Match iterated storage and mutating receivers through the same root rules.
+    // Resolve syntax first, then borrow provenance for implicit carrier conversions
+    // such as array-to-slice decay or opCast.
     const SymbolVariable* rootStorageOf(Sema& sema, AstNodeRef exprRef)
     {
         bool whole = false;
         if (const SymbolVariable* var = storageRootVariable(sema, exprRef, false, whole))
         {
-            // A whole pointer/reference variable that itself borrows a tracked local
-            // designates that local's storage: follow it so a mutation through an alias
-            // ('let p = &v; p.add()') roots at the same variable the loop iterates.
+            // Follow whole-variable aliases so 'p = &v; p.add()' mutates the same root
+            // as an iteration over v.
             if (whole)
             {
                 if (const SemaEscapeInfo* varInfo = sema.variableEscapeInfo(*var); varInfo && varInfo->isLocalBorrow() && varInfo->sourceVar)
                     return varInfo->sourceVar;
             }
+
             return var;
         }
 
@@ -3307,14 +3304,13 @@ namespace
         SemaEscapeInfo info   = expressionEscapeInfoRec(sema, exprRef, budget);
         if (!info.hasBorrow() && expressionMayExposeStorageBorrow(sema, exprRef))
             info = storageBorrowInfo(sema, exprRef, TypeRef::invalid());
+
         return info.hasBorrow() ? info.sourceVar : nullptr;
     }
 
-    // The storage designation (root + field/index path) of an expression. Mirrors
-    // 'storageRootVariableAt' but records the path, and - unlike the shared
-    // 'storageProjection' - it sees through the implicit cast that a mutable-receiver
-    // method inserts ('holder.other.add' wraps 'holder.other' in a receiver cast), so the
-    // field path survives. 'ok' is false when no whole-storage path applies.
+    // Record a storage root and field/index path, looking through mutable-receiver
+    // casts so 'holder.other.add' retains the 'other' field. ok is false when no
+    // whole-storage path can be recovered.
     void iterationProjectionAt(Sema& sema, AstNodeRef resolvedRef, SemaEscapeProjection& out, bool& ok, uint32_t depth);
 
     void iterationProjection(Sema& sema, AstNodeRef nodeRef, SemaEscapeProjection& out, bool& ok, uint32_t depth = 0)
@@ -3322,9 +3318,11 @@ namespace
         ok = false;
         if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
             return;
+
         const AstNodeRef resolvedRef = sema.resolvedNodeRef(nodeRef);
         if (resolvedRef.isInvalid())
             return;
+
         iterationProjectionAt(sema, resolvedRef, out, ok, depth + 1);
     }
 
@@ -3341,12 +3339,15 @@ namespace
             case AstNodeId::ParenExpr:
                 iterationProjection(sema, node.cast<AstParenExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
+
             case AstNodeId::InitializerExpr:
                 iterationProjection(sema, node.cast<AstInitializerExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
+
             case AstNodeId::AutoCastExpr:
                 iterationProjection(sema, node.cast<AstAutoCastExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
+
             case AstNodeId::AsCastExpr:
                 iterationProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, out, ok, depth + 1);
                 return;
@@ -3358,6 +3359,7 @@ namespace
                     iterationProjectionAt(sema, operandRef, out, ok, depth + 1);
                 else
                     iterationProjection(sema, operandRef, out, ok, depth + 1);
+
                 return;
             }
 
@@ -3366,12 +3368,14 @@ namespace
                 iterationProjection(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, out, ok, depth + 1);
                 if (!ok)
                     return;
+
                 const SymbolVariable* field = identifierVariable(sema, resolvedRef);
                 if (!field || field == out.root)
                 {
                     ok = false;
                     return;
                 }
+
                 out.components.push_back({.kind = SemaEscapeProjectionKind::Field, .field = field});
                 return;
             }
@@ -3382,11 +3386,13 @@ namespace
                 iterationProjection(sema, index.nodeExprRef, out, ok, depth + 1);
                 if (!ok)
                     return;
+
                 const SemaNodeView indexView = sema.viewConstant(index.nodeArgRef);
                 if (indexView.hasConstant() && indexView.cst()->isInt() && indexView.cst()->getInt().fits64() && !indexView.cst()->getInt().isNegative())
                     out.components.push_back({.kind = SemaEscapeProjectionKind::ConstantIndex, .index = static_cast<uint64_t>(indexView.cst()->getInt().asI64())});
                 else
                     out.components.push_back({.kind = SemaEscapeProjectionKind::AnyIndex});
+
                 return;
             }
 
@@ -3395,11 +3401,9 @@ namespace
         }
     }
 
-    // The storage an expression designates as a root plus a field/index path, following a
-    // whole-variable alias at the base ('let p = &v' resolves 'p.x' to 'v.x'). When no
-    // syntactic path applies (an array decaying to a slice for iteration), keeps just the
-    // storage root with an empty, EXACT-cleared path; 'outExact' says whether the field
-    // path is reliable, so an ambiguous empty path is not mistaken for "the whole owner".
+    // Follow whole-variable aliases in the storage path. If syntax cannot provide
+    // a path, retain only the root and clear outExact: an ambiguous empty path must
+    // not be mistaken for a proven whole-owner access.
     void resolveIterationProjection(Sema& sema, AstNodeRef exprRef, SemaEscapeProjection& out, bool& outExact)
     {
         out.root = nullptr;
@@ -3419,31 +3423,22 @@ namespace
             out.root = varInfo->sourceVar;
     }
 
-    // True when the mutation 'receiver' targets the iterated 'source' storage itself or
-    // something nested inside it: the source path must be a prefix of the receiver path
-    // (equal, or the receiver reaches deeper). A broader mutation of a shared owner - the
-    // receiver being an ancestor of the source, e.g. a method on the whole struct while
-    // one of its fields is iterated - is NOT flagged: such a method usually manages
-    // unrelated state, and flagging it would drown the genuine same-collection bugs in
-    // false alarms on ordinary code.
+    // Flag mutations at or below the iterated path. Mutating a broader shared owner
+    // may touch unrelated state, so an ancestor receiver does not establish that
+    // this collection changed and would produce false positives.
     bool iterationMutationHitsSource(const SemaEscapeProjection& source, bool sourceExact, const SemaEscapeProjection& receiver, bool receiverExact)
     {
         if (!source.root || source.root != receiver.root)
             return false;
 
-        // Iterating the whole variable: a mutation of that variable hits the snapshot (the
-        // classic 'for x in arr { arr.add() }'). A receiver that reaches INSIDE the storage
-        // changes one element's own state, which the snapshot survives - the same reasoning
-        // the callee-owner test below applies to a collection struct, and which a raw array
-        // needs too. An unknown receiver path stays flagged rather than guessed silent.
+        // Whole-variable iteration survives mutations inside individual elements, but
+        // not a mutation of the collection itself. An unknown receiver path remains
+        // conservatively flagged.
         if (source.components.empty())
             return !receiverExact || receiver.components.empty();
 
-        // Iterating a SPECIFIC field: the mutation must provably reach that field or
-        // something nested in it. Without a reliable field path on both sides we cannot
-        // prove that - and must not guess, or an unrelated call whose receiver merely
-        // roots at the same owner ('for v in me.list { me.getApp().setIcon(...) }') would
-        // be falsely flagged. Stay silent when either path is unknown.
+        // For a specific field, require reliable paths on both sides. Sharing an owner
+        // does not prove that an unrelated receiver mutates the iterated collection.
         if (!sourceExact || !receiverExact)
             return false;
 
@@ -3459,18 +3454,16 @@ namespace
             if (cs != cr)
                 return false;
         }
+
         return true;
     }
 
-    // The syntactic receiver of a method call ('holder.items.add(x)' -> 'holder.items'):
-    // the callee is a member access whose left is the receiver. Used for projection
-    // matching, since the resolved receiver argument may be a materialized address whose
-    // field path is lost. Invalid for a non-method (UFCS/free function) call shape.
+    // Use parsed receiver syntax for field-path matching: resolved arguments may be
+    // materialized addresses that lose the path. Invalid for non-method call shapes.
     AstNodeRef syntacticMethodReceiverRef(Sema& sema, AstNodeRef callRef)
     {
-        // Read the raw AST: resolution attaches symbols/types but keeps the node ids, so
-        // the call's callee stays the parsed 'holder.items.add' member access. Following
-        // 'viewZero' here would substitute it and lose the receiver's field path.
+        // Raw AST ids preserve the parsed member access. viewZero would substitute
+        // the callee and lose the receiver's field path.
         const AstNode& callNode = sema.node(callRef);
         if (!callNode.is(AstNodeId::CallExpr))
             return AstNodeRef::invalid();
@@ -3482,35 +3475,21 @@ namespace
         const AstNode& calleeNode = sema.node(calleeRef);
         if (calleeNode.is(AstNodeId::MemberAccessExpr))
             return calleeNode.cast<AstMemberAccessExpr>().nodeLeftRef;
+
         return AstNodeRef::invalid();
     }
 
-    // The common safe pattern: the mutation is followed by an unconditional loop exit, so
-    // the loop never reads the collection again after mutating it
-    // ('for it in c { if hit { c.removeAt(i); return it } }'). Approximated by a loop-exit
-    // statement (return/break/unreachable) placed after the mutation within the loop body.
-    // Uses source order rather than AST structure so it survives the opVisit macro
-    // expansion, which reparents the body but keeps the user code's source ranges.
-    //
-    // Walked with an explicit worklist, not recursion: an expanded/substituted body can be
-    // deep or self-referential, and a recursive descent would overflow the stack. The
-    // budget bounds total work so a substitution cycle terminates instead of spinning.
-    // The declaration of the function being analyzed, so a check can look at what comes
-    // AFTER the node it fired on. The whole declaration is the scan root rather than the
-    // body alone: a '#test' block, an init/drop block and a plain function are all
-    // different node kinds, and nothing before a body mentions its locals.
+    // Scan the whole declaration to include code after the current node and support
+    // functions, test blocks and init/drop blocks through the same root.
     AstNodeRef currentFunctionDeclRef(Sema& sema)
     {
         const SymbolFunction* fn = sema.currentFunction();
         return fn ? fn->declNodeRef() : AstNodeRef::invalid();
     }
 
-    // The smallest complete body around the node being judged. An inline expansion is
-    // materialized below the caller's function declaration, so scanning that declaration
-    // depends on how much of its substituted tree happens to exist already. Its inline root
-    // is complete by construction. A local function encountered before that root still owns
-    // its own lifetime boundary and must win, or a restore/read in its enclosing expansion
-    // could hide a fault in the nested function.
+    // Use the smallest complete body: inline roots are complete before the caller's
+    // substituted tree is. A nested function has its own lifetime boundary and must
+    // take precedence over an enclosing expansion's restores and reads.
     AstNodeRef currentAnalysisBodyRef(Sema& sema)
     {
         const AstNodeRef currentDeclRef = currentFunctionDeclRef(sema);
@@ -3530,10 +3509,8 @@ namespace
         return inlinePayload->inlineRootRef;
     }
 
-    // Does this call structurally change its receiver? Only a method can, a 'const' one
-    // cannot, and the lifecycle hooks the compiler inserts on its own (copy, move, drop)
-    // are not a change the program wrote. Every other non-const method is taken as one:
-    // 'add', 'clear', 'reserve', 'opSet' and friends can all move or free the storage.
+    // Treat non-const methods as structural mutations, excluding lifecycle and opVisit
+    // hooks inserted by the compiler. Other methods may move or free receiver storage.
     bool isStructuralMutationCallee(Sema& sema, const SymbolFunction& calledFn)
     {
         if (!calledFn.isMethod() || calledFn.isConst())
@@ -3543,12 +3520,9 @@ namespace
         return view != "opPostCopy" && view != "opPostMove" && view != "opDrop" && view != "opVisit";
     }
 
-    // Does this view point at the VARIABLE rather than into what the variable owns? An
-    // interface object, a pointer or a reference to the value itself keeps addressing
-    // the same frame slot however much its payload is reallocated - it is the handle
-    // through which the change is made, not something the change invalidates. A view of
-    // a different type ('string' of a 'String', '*u8' into an array's buffer) points
-    // into the payload, and that is what moves.
+    // Views of the variable's own slot survive payload reallocation. A view into
+    // storage of a different type (for example, string from String or *u8 from an
+    // array buffer) follows the payload instead.
     bool viewAliasesVariableItself(Sema& sema, const SymbolVariable& viewVar, const SymbolVariable& sourceVar)
     {
         const TypeRef viewTypeRef = viewVar.typeRef();
@@ -3567,10 +3541,8 @@ namespace
         return pointeeTypeRef.isValid() && pointeeTypeRef == sourceTypeRef;
     }
 
-    // Whose payload this body can judge a structural change of. Locals and globals are
-    // direct. A parameter is also judgeable for views created INSIDE this body: their
-    // precise owned-field projection is known here, so caller ownership is irrelevant.
-    // Views held only by the caller are absent from the flow state and cannot be invented.
+    // Judge local/global owners and parameter views created in this body, where
+    // owned-field projections are known. Caller-only views are absent from flow state.
     bool isInvalidationJudgeableOwner(Sema& sema, const SymbolVariable& symVar)
     {
         return isLocalVariableStorage(sema, symVar) ||
@@ -3592,10 +3564,12 @@ namespace
             {
                 if (arg.passKind == CallArgumentPassKind::InterfaceObject)
                     continue;
+
                 projectedRef = argumentValueRef(sema, arg.argRef);
                 break;
             }
         }
+
         if (projectedRef.isInvalid())
             return false;
 
@@ -3636,6 +3610,7 @@ namespace
     {
         children.clear();
         node.collectChildrenFromAst(children, sema.ast());
+
         for (const AstNodeRef childRef : children)
         {
             if (childRef.isValid())
@@ -3643,10 +3618,8 @@ namespace
         }
     }
 
-    // The whole source extent of a subtree. 'codeRangeWithChildren' cannot answer this:
-    // it never leaves the node's own line, because it exists to underline one expression
-    // in a diagnostic. Where a block ENDS is a different question, and the only source of
-    // truth for it is the furthest token any descendant carries.
+    // Diagnostic codeRangeWithChildren stays on one line. To find a block's full
+    // extent, inspect the furthest token carried by any descendant.
     SourceCodeRange subtreeRange(Sema& sema, AstNodeRef nodeRef)
     {
         SourceCodeRange result = sema.node(nodeRef).codeRange(sema.ctx());
@@ -3682,6 +3655,7 @@ namespace
 
         result.offset = first;
         result.len    = last > first ? last - first : result.len;
+
         return result;
     }
 
@@ -3730,9 +3704,7 @@ namespace
         std::ranges::sort(outLoops, [](const BackEdgeLoop& a, const BackEdgeLoop& b) { return a.range.len < b.range.len; });
     }
 
-    // Collects the alternatives of a branch statement: the two blocks of an 'if', the
-    // cases of a 'switch'. The condition is NOT one of them - a position inside it runs
-    // before every arm.
+    // Branch arms exclude the condition, which executes before every alternative.
     void collectBranchArms(Sema& sema, AstNodeRef nodeRef, SmallVector<SourceCodeRange>& outArms)
     {
         outArms.clear();
@@ -3763,6 +3735,7 @@ namespace
         {
             SmallVector<AstNodeRef> children;
             node.collectChildrenFromAst(children, sema.ast());
+
             for (const AstNodeRef childRef : children)
             {
                 if (childRef.isValid() && sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
@@ -3771,12 +3744,8 @@ namespace
         }
     }
 
-    // Do these two positions sit on paths that exclude each other? The arms of one 'if'
-    // and the cases of one 'switch' never both run, so a read standing in one of them is
-    // not a read of storage the other one moved - however the source orders the two.
-    //
-    // A branch INSIDE a loop is deliberately not exempted: there, one iteration takes one
-    // arm and the next takes the other, so the read really does follow the change.
+    // Sibling if/switch arms cannot read storage changed by each other in one pass.
+    // Inside a loop, later iterations can connect those paths, so do not exempt them.
     bool positionsExcludeEachOther(Sema& sema, AstNodeRef bodyRef, const SourceCodeRange& mutationRange, const SourceCodeRange& readRange)
     {
         struct Pending
@@ -3791,6 +3760,7 @@ namespace
         uint32_t                     budget = 8192;
         SmallVector<AstNodeRef>      children;
         SmallVector<SourceCodeRange> arms;
+
         while (!worklist.empty() && budget != 0)
         {
             budget--;
@@ -3840,6 +3810,7 @@ namespace
         SourceCodeRange              innermostLoop;
         SourceCodeRange              innermostBreakable;
         const SourceCodeRange        declarationRange = viewVar.codeRange(sema.ctx());
+
         while (!worklist.empty() && budget != 0)
         {
             budget--;
@@ -4223,6 +4194,8 @@ namespace
         return false;
     }
 
+    // Approximate a safe post-mutation exit by source order, which survives opVisit
+    // expansion. A bounded worklist avoids deep recursion and substitution cycles.
     bool mutationFollowedByLoopExit(Sema& sema, AstNodeRef bodyRef, AstNodeRef callRef)
     {
         if (bodyRef.isInvalid() || callRef.isInvalid())

@@ -5556,22 +5556,24 @@ namespace SemaEscape
         return Result::Error;
     }
 
-    // Hands each ready release on to its caller until nothing moves. The edges still waiting on a
-    // completion are compacted at the front, and their count is returned.
+    // Propagate ready releases to a fixpoint. Compact pending edges at the front
+    // and return their remaining count.
     size_t applyFreesForwardings(std::span<SemaEscapeFreesForwarding> forwardings)
     {
         bool   changed      = true;
         size_t pendingCount = forwardings.size();
+
         while (changed)
         {
             changed                 = false;
             size_t nextPendingCount = 0;
+
             for (size_t i = 0; i < pendingCount; ++i)
             {
                 const SemaEscapeFreesForwarding edge = forwardings[i];
 
-                // Completion may still advance on another worker. Keep this live readiness
-                // check inside the fixpoint, as before filtering the edges.
+                // Another worker can complete a function during propagation. Recheck
+                // readiness inside the fixpoint rather than filtering edges once.
                 bool applied = false;
                 if (edge.caller->isSemaCompleted() && edge.callee->isSemaCompleted())
                 {
@@ -5592,6 +5594,7 @@ namespace SemaEscape
                 if (!applied)
                     forwardings[nextPendingCount++] = edge;
             }
+
             pendingCount = nextPendingCount;
         }
 
@@ -5603,11 +5606,9 @@ namespace SemaEscape
         if (ctx.compiler().freeForwardingEdgeCount() == 0)
             return;
 
-        // What this pass concludes is a function of three things: the summary edges recorded so far,
-        // the release masks they propagate, and — for a guarded edge only — the call graph it is
-        // handed. A compile-time call that finds those unchanged would close exactly the same
-        // fixpoint again, and a module makes thousands of such calls over a graph that has stopped
-        // moving.
+        // Cache the fixpoint by edge/release versions and semantic-completion count.
+        // Guarded propagation also depends on the supplied call graph. Reuse avoids
+        // thousands of repeated walks once a module's graph has stabilized.
         const bool needsReturnSummaries = ctx.compiler().freesPropagationNeedsReturnSummaries();
 
         uint64_t signature = ctx.compiler().escapeSummaryEdgesVersion();
@@ -5628,8 +5629,7 @@ namespace SemaEscape
         if (ctx.compiler().freesPropagationAlreadyDone(signature))
             return;
 
-        // Without a guard to judge, the closure is the module's own: it is kept across calls, and
-        // an edge that has already handed its release on is never looked at again.
+        // Unguarded propagation uses persistent module state; applied edges need no revisit.
         if (!needsReturnSummaries)
         {
             ctx.compiler().withFreesForwardings(applyFreesForwardings);
@@ -5644,45 +5644,46 @@ namespace SemaEscape
 
         struct ReturnSummary
         {
-            uint64_t borrows          = 0;
-            uint64_t storage          = 0;
-            uint64_t payload          = 0;
-            bool     complete         = true;
-            bool     hasRelevantEdges = false;
+            uint64_t borrows = 0;
+            uint64_t storage = 0;
+            uint64_t payload = 0;
+
+            bool complete         = true;
+            bool hasRelevantEdges = false;
         };
+
         struct ReturnEntry
         {
             const SymbolFunction* function = nullptr;
             ReturnSummary         summary;
-            size_t                edgeBegin = 0;
-            size_t                edgeEnd   = 0;
+
+            size_t edgeBegin = 0;
+            size_t edgeEnd   = 0;
         };
 
-        // These functions completed before the edge snapshot is taken, so all their
-        // return edges are present. Keep the fixpoint local: sema workers may still
-        // read the published, non-atomic return masks of completed functions.
-        // The summaries sit in a vector, found by function through a flat table. Completeness only
-        // drops and masks only grow, so traversal order changes the work, never the result.
+        // Completed functions have published all return edges before the snapshot. Keep
+        // this fixpoint local because workers may read their non-atomic published masks.
+        // Completeness only falls and masks only grow, making results independent of order.
         std::vector<ReturnEntry>                  returnEntries;
         std::vector<const SemaEscapeSummaryEdge*> returnEdges;
         PointerMap<SymbolFunction, ReturnEntry>   returns;
         returnEntries.reserve(completedFunctions.size());
         returns.reserve(completedFunctions.size());
+
         for (const SymbolFunction* fn : completedFunctions)
         {
             // Both production callers pass an order deduplicated by the JIT-order walk.
             if (!fn->isSemaCompleted())
                 continue;
+
             returnEntries.push_back({fn, ReturnSummary{fn->returnBorrowsParamsMask(), fn->returnsStorageParamsMask(), fn->returnsPayloadParamsMask()}});
             returns.set(fn, &returnEntries.back());
         }
 
         ctx.compiler().withReturnEdgesByCaller([&](auto&& edgesOf) {
-            // Code generation may have removed a call whose semantic return edge still
-            // exists. An unresolved route can later reveal an owned payload, so absence
-            // of a payload bit is not an alias proof until every return dependency closes.
-            // Snapshot each caller's edges once: the table stays stable under this shared lock,
-            // and both worklists use these ranges to build their reverse dependencies.
+            // Missing payload bits prove no alias only after all return dependencies close;
+            // codegen can remove calls whose semantic edges remain. Snapshot each caller's
+            // edges under this shared lock for both reverse-dependency worklists.
             for (ReturnEntry& returnEntry : returnEntries)
             {
                 returnEntry.edgeBegin = returnEdges.size();
@@ -5730,9 +5731,11 @@ namespace SemaEscape
                                 caller.summary.complete = false;
                         });
                     });
+
                     if (!caller.summary.complete)
                         incompleteWorklist.push_back(callerIndex);
                 }
+
                 // With no missing dependency, every summary is complete already.
                 if (!incompleteWorklist.empty())
                 {
@@ -5751,7 +5754,8 @@ namespace SemaEscape
                             visitCompletionDependencies(edge, [&](const SymbolFunction* function) {
                                 if (const ReturnEntry* dependency = returns.find(function))
                                 {
-                                    const size_t dependencyIndex                              = static_cast<size_t>(dependency - returnEntries.data());
+                                    const size_t dependencyIndex = static_cast<size_t>(dependency - returnEntries.data());
+
                                     completionDependents[completionCursor[dependencyIndex]++] = callerIndex;
                                 }
                             });
@@ -5769,6 +5773,7 @@ namespace SemaEscape
                             if (caller.complete)
                             {
                                 caller.complete = false;
+
                                 // Only the transition to incomplete enqueues a caller, so it enters once.
                                 incompleteWorklist.push_back(callerIndex);
                             }
@@ -5790,6 +5795,7 @@ namespace SemaEscape
                 {
                     if (guard.indirect)
                         continue;
+
                     if (const ReturnEntry* source = returns.find(guard.callee))
                         visit(static_cast<size_t>(source - returnEntries.data()));
                 }
@@ -5808,6 +5814,7 @@ namespace SemaEscape
                     visitDependencies(edge, [&](size_t dependencyIndex) { ++dependentOffsets[dependencyIndex + 1]; });
                 });
             }
+
             for (size_t i = 1; i < dependentOffsets.size(); ++i)
                 dependentOffsets[i] += dependentOffsets[i - 1];
 
@@ -5830,10 +5837,12 @@ namespace SemaEscape
 
             std::vector<uint8_t> queued(returnEntries.size(), 0);
             std::vector<size_t>  worklist(returnEntries.size());
-            size_t               worklistHead  = 0;
-            size_t               worklistTail  = 0;
-            size_t               worklistCount = 0;
-            const auto           enqueue       = [&](const size_t index) {
+
+            size_t worklistHead  = 0;
+            size_t worklistTail  = 0;
+            size_t worklistCount = 0;
+
+            const auto enqueue = [&](const size_t index) {
                 SWC_ASSERT(worklistCount < worklist.size());
                 worklist[worklistTail] = index;
                 if (++worklistTail == worklist.size())
@@ -5841,6 +5850,7 @@ namespace SemaEscape
                 ++worklistCount;
                 queued[index] = 1;
             };
+
             for (size_t i = 0; i < returnEntries.size(); ++i)
             {
                 if (returnEntries[i].summary.complete)
@@ -5854,17 +5864,21 @@ namespace SemaEscape
                     worklistHead = 0;
                 --worklistCount;
                 queued[dependencyIndex] = 0;
+
                 for (size_t dependentIndex = dependentOffsets[dependencyIndex]; dependentIndex < dependentOffsets[dependencyIndex + 1]; ++dependentIndex)
                 {
                     const DependentReturnEdge&   dependent = dependentEdges[dependentIndex];
                     const SemaEscapeSummaryEdge& edge      = *returnEdges[dependent.edgeIndex];
                     ReturnSummary&               summary   = returnEntries[dependent.callerIndex].summary;
                     const ReturnEntry&           callee    = *returns.find(edge.callee);
-                    const uint64_t               calleeBit = 1ULL << edge.calleeParamIndex;
-                    const uint64_t               callerBit = 1ULL << edge.callerParamIndex;
-                    bool                         borrows   = true;
-                    bool                         storage   = true;
-                    bool                         payload   = edge.viaOwnedPayload;
+
+                    const uint64_t calleeBit = 1ULL << edge.calleeParamIndex;
+                    const uint64_t callerBit = 1ULL << edge.callerParamIndex;
+
+                    bool borrows = true;
+                    bool storage = true;
+                    bool payload = edge.viaOwnedPayload;
+
                     for (const SemaEscapeDeferredGuard& guard : edge.returnGuards)
                     {
                         if (guard.indirect)
@@ -5873,6 +5887,7 @@ namespace SemaEscape
                             storage = false;
                             continue;
                         }
+
                         const ReturnSummary& source = returns.find(guard.callee)->summary;
                         const uint64_t       bit    = 1ULL << guard.paramIndex;
                         borrows &= (source.borrows & bit) != 0;
@@ -5886,6 +5901,7 @@ namespace SemaEscape
                         summary.borrows |= callerBit;
                         changed = true;
                     }
+
                     if (borrows && storage && !edge.viaStoredField)
                     {
                         if ((callee.summary.storage & calleeBit) && !(summary.storage & callerBit))
@@ -5893,6 +5909,7 @@ namespace SemaEscape
                             summary.storage |= callerBit;
                             changed = true;
                         }
+
                         if (((callee.summary.payload & calleeBit) || (payload && (callee.summary.storage & calleeBit))) && !(summary.payload & callerBit))
                         {
                             summary.payload |= callerBit;
@@ -5912,9 +5929,11 @@ namespace SemaEscape
             const bool ineligible = std::ranges::any_of(edge.returnGuards, [&returns](const SemaEscapeDeferredGuard& guard) {
                 if (guard.indirect)
                     return true;
+
                 const ReturnEntry* source = returns.find(guard.callee);
                 if (!source || !source->summary.complete)
                     return true;
+
                 const uint64_t bit = 1ULL << guard.paramIndex;
                 return !(source->summary.borrows & bit) || !(source->summary.storage & bit) || (source->summary.payload & bit);
             });

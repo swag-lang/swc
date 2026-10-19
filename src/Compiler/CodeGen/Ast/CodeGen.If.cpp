@@ -13,9 +13,10 @@ namespace
 {
     struct IfStmtCodeGenPayload
     {
-        MicroLabelRef falseLabel   = MicroLabelRef::invalid();
-        MicroLabelRef doneLabel    = MicroLabelRef::invalid();
-        bool          hasElseBlock = false;
+        MicroLabelRef falseLabel = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel  = MicroLabelRef::invalid();
+
+        bool hasElseBlock = false;
     };
 
     void emitIfStmtCondition(CodeGen& codeGen, AstNodeRef ifRef, const CodeGenNodePayload& conditionPayload, TypeRef conditionTypeRef, bool hasElseBlock)
@@ -29,8 +30,7 @@ namespace
             s.doneLabel                  = builder.createLabel();
             s.hasElseBlock               = hasElseBlock;
 
-            // The branch bodies are emitted in later child callbacks, so keep their labels attached to the
-            // `if` node until those callbacks run.
+            // Later child callbacks emit the branch bodies and need these labels.
             state = &codeGen.setNodePayload(ifRef, s);
         }
         else
@@ -61,6 +61,7 @@ namespace
     {
         if (codeGen.resolvedNodeRef(childRef) == codeGen.resolvedNodeRef(nodeBodyRef))
             return codeGen.popDeferScope();
+
         return Result::Continue;
     }
 
@@ -135,15 +136,15 @@ Result AstIfVarDecl::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     const AstNodeRef resolvedWhereRef     = codeGen.resolvedNodeRef(nodeWhereRef);
     const AstNodeRef resolvedElseBlockRef = codeGen.resolvedNodeRef(nodeElseBlockRef);
     const AstNodeRef resolvedChildRef     = codeGen.resolvedNodeRef(childRef);
-    const auto*      loweringPayload      = codeGen.loweringPayload(ifRef);
-    const bool       gateWhereWithBinding = resolvedWhereRef.isInvalid() || (loweringPayload && loweringPayload->ifVarDeclWhereUsesConditionBinding);
+
+    const auto* loweringPayload      = codeGen.loweringPayload(ifRef);
+    const bool  gateWhereWithBinding = resolvedWhereRef.isInvalid() || (loweringPayload && loweringPayload->ifVarDeclWhereUsesConditionBinding);
 
     if (gateWhereWithBinding && resolvedVarRef.isValid() && resolvedChildRef == resolvedVarRef)
     {
         TypeRef     conditionTypeRef = TypeRef::invalid();
         const auto& conditionPayload = codeGen.conditionBindingPayload(conditionTypeRef, resolvedVarRef);
         emitIfStmtCondition(codeGen, ifRef, conditionPayload, conditionTypeRef, resolvedElseBlockRef.isValid());
-
         return Result::Continue;
     }
 

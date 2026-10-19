@@ -50,6 +50,7 @@ namespace
             info.storageTypeRef  = storageType->typeRef();
             info.storageTypeInfo = storageType;
         }
+
         info.resultTypeRef = codeGen.curViewType().typeRef();
         info.opBits        = CodeGenTypeHelpers::compareBits(*info.storageTypeInfo, codeGen.ctx());
         SWC_ASSERT(info.opBits != MicroOpBits::Zero);
@@ -79,6 +80,7 @@ namespace
             const TypeInfo& laneType = codeGen.typeMgr().get(info.storageTypeInfo->payloadSimdLaneTypeRef());
             const MicroReg  zeroReg  = codeGen.nextVirtualFloatRegister();
             builder.emitOpBinaryRegRegReg(zeroReg, resultPayload.reg, resultPayload.reg, MicroOp::VecXor, MicroOpBits::B128);
+
             const MicroReg negReg = codeGen.nextVirtualFloatRegister();
             builder.emitOpBinaryRegRegReg(negReg, zeroReg, resultPayload.reg, CodeGenVectorHelpers::binaryMicroOpForLane(TokenId::SymMinus, laneType), MicroOpBits::B128);
             resultPayload.reg = negReg;
@@ -111,6 +113,7 @@ namespace
             const auto& node = codeGen.node(codeGen.curNodeRef()).cast<AstUnaryExpr>();
             SWC_RESULT(CodeGenSafety::emitOverflowTrapOnFailure(codeGen, node, MicroCond::NotOverflow));
         }
+
         return Result::Continue;
     }
 
@@ -132,11 +135,13 @@ namespace
 
         CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), info.resultTypeRef);
         loadOperandToRegister(resultPayload.reg, codeGen, *info.childPayload, info.storageTypeRef, info.opBits);
+
         if (info.storageTypeInfo->isSimd())
         {
             resultPayload.reg = CodeGenVectorHelpers::bitwiseNot(codeGen, resultPayload.reg);
             return Result::Continue;
         }
+
         codeGen.builder().emitOpUnaryReg(resultPayload.reg, MicroOp::BitwiseNot, info.opBits);
         return Result::Continue;
     }
@@ -147,9 +152,8 @@ namespace
         const SemaNodeView childView = codeGen.viewType(nodeExprRef);
         SWC_ASSERT(childView.type());
 
-        // A reference bound to a pointer slot dereferences the pointer it names, so the
-        // reference layers are resolved down to the slot's address first. Sema settled that
-        // the operand ends up a pointer, so this leaves exactly one indirection to emit.
+        // Resolve references to the pointer slot first. Sema guarantees a pointer
+        // operand, leaving exactly one indirection to emit.
         CodeGenNodePayload childPayload   = codeGen.payload(nodeExprRef);
         TypeRef            operandTypeRef = childView.typeRef();
         const TypeInfo*    operandType    = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, childPayload, operandTypeRef);
@@ -161,6 +165,7 @@ namespace
             builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
         else
             builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
+
         return Result::Continue;
     }
 
@@ -172,8 +177,7 @@ namespace
         const CodeGenNodePayload* childPayloadMaybe = codeGen.safePayload(nodeExprRef);
         if (childView.sym() && childView.sym()->isFunction() && (!childPayloadMaybe || !childPayloadMaybe->reg.isValid()))
         {
-            // Function symbols do not materialize an lvalue payload, so taking their address loads the
-            // code pointer directly.
+            // Function symbols lack lvalue storage; load their code address directly.
             const auto& symFunc = childView.sym()->cast<SymbolFunction>();
             codeGen.builder().emitLoadRegPtrReloc(payload.reg, 0, ConstantRef::invalid(), &symFunc);
             return Result::Continue;
@@ -189,6 +193,7 @@ namespace
         }
         else
             codeGen.builder().emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
+
         return Result::Continue;
     }
 
@@ -201,13 +206,14 @@ namespace
         const SemaNodeView        view    = codeGen.curViewType();
         const CodeGenNodePayload& payload = codeGen.setPayloadValue(codeGen.curNodeRef(), view.typeRef());
 
-        // A reference operand holds the target address in its storage: load it.
-        // A value lvalue operand: its address IS the move reference.
+        // Reference storage holds the target address; an ordinary lvalue's
+        // address already is the move reference.
         const bool childIsRef = childView.type() && childView.type()->isReference();
         if (childIsRef && childPayload.isAddress())
             builder.emitLoadRegMem(payload.reg, childPayload.reg, 0, MicroOpBits::B64);
         else
             builder.emitLoadRegReg(payload.reg, childPayload.reg, MicroOpBits::B64);
+
         return Result::Continue;
     }
 }
@@ -240,13 +246,17 @@ Result AstUnaryExpr::codeGenPostNode(CodeGen& codeGen) const
             const TypeRef  typeRef     = codeGen.curViewType().typeRef();
             const MicroReg destination = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
             const auto&    source      = codeGen.payload(nodeExprRef);
+
             CodeGenMemoryHelpers::storePayloadToAddress(codeGen, destination, source, static_cast<uint32_t>(codeGen.typeMgr().get(typeRef).sizeOf(codeGen.ctx())));
             SWC_RESULT(codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::PostCopy, destination));
             codeGen.setPayloadAddressReg(codeGen.curNodeRef(), destination, typeRef).ownsValue = true;
+
             if (codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
                 codeGen.registerTemporaryDrop(codeGen.curNodeRef(), typeRef, *codeGen.runtimeStorageSymbol(codeGen.curNodeRef()));
+
             return Result::Continue;
         }
+
         case TokenId::SymPlus:
             return codeGenUnaryPlus(codeGen, nodeExprRef);
         case TokenId::SymMinus:

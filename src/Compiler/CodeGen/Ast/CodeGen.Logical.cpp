@@ -54,6 +54,7 @@ namespace
         // Reuse the lhs result register so both control-flow paths converge on a single payload.
         if (state->reg != rightReg)
             codeGen.builder().emitLoadRegReg(state->reg, rightReg, MicroOpBits::B8);
+
         codeGen.builder().placeLabel(state->doneLabel);
         state->doneLabel = MicroLabelRef::invalid();
         return true;
@@ -66,8 +67,7 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
     const auto*      logicalState     = codeGen.safeNodePayload<LogicalExprCodeGenPayload>(codeGen.curNodeRef());
 
-    // Some semantic rewrites can substitute the lhs through helper nodes that no longer compare
-    // equal by ref at codegen time. The first callback for a logical expression is still the lhs.
+    // Rewrites can change the lhs reference; the first callback is still the lhs.
     if ((resolvedLeftRef.isValid() && resolvedChildRef == resolvedLeftRef) || logicalState == nullptr)
     {
         const CodeGenNodePayload& leftPayload = codeGen.payload(nodeLeftRef);
@@ -78,22 +78,22 @@ Result AstLogicalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& 
 
         LogicalExprCodeGenPayload& state   = codeGen.ensureNodePayload<LogicalExprCodeGenPayload>(codeGen.curNodeRef());
         MicroBuilder&              builder = codeGen.builder();
-        // 'state.reg' becomes the result register, which the rhs branch overwrites. When the lhs
-        // operand is a bool value that materialized to a live storage register (a parameter or
-        // local), reusing it directly would clobber that variable — copy into a fresh register.
+
+        // The rhs overwrites state.reg. Copy a bool held in a parameter/local
+        // register so short-circuit evaluation cannot clobber that variable.
         if (leftReg == leftPayload.reg)
         {
             const MicroReg resultReg = codeGen.nextVirtualIntRegister();
             builder.emitLoadRegReg(resultReg, leftReg, MicroOpBits::B8);
             leftReg = resultReg;
         }
+
         state.reg     = leftReg;
         state.typeRef = codeGen.curViewType().typeRef();
         state.setIsValue();
         state.doneLabel = builder.createLabel();
 
-        // Short-circuit by keeping the lhs boolean as the provisional result and only evaluating rhs when
-        // the operator still needs it.
+        // Keep the lhs result and evaluate the rhs only when required.
         builder.emitCmpRegImm(state.reg, ApInt(0, 64), MicroOpBits::B8);
         const Token& tok = codeGen.token(codeRef());
         if (tok.id == TokenId::KwdAnd)

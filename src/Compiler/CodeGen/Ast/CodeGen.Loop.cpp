@@ -37,7 +37,8 @@ namespace
 
 Result AstWhileStmt::codeGenPreNode(CodeGen& codeGen)
 {
-    MicroBuilder&          builder = codeGen.builder();
+    MicroBuilder& builder = codeGen.builder();
+
     LoopStmtCodeGenPayload loopState;
     loopState.continueLabel = builder.createLabel();
     loopState.doneLabel     = builder.createLabel();
@@ -71,8 +72,7 @@ Result AstWhileStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& chi
 
 namespace
 {
-    // Reads one bound of a parallel range into a register this statement owns, so adjusting it
-    // cannot disturb the value the operand node published.
+    // Copy bounds into statement-owned registers so adjustments leave operands intact.
     MicroReg materializeParallelBound(CodeGen& codeGen, AstNodeRef nodeRef)
     {
         const CodeGenNodePayload& payload = codeGen.payload(codeGen.resolvedNodeRef(nodeRef));
@@ -81,12 +81,12 @@ namespace
             codeGen.builder().emitLoadRegMem(outReg, payload.reg, 0, MicroOpBits::B64);
         else
             codeGen.builder().emitLoadRegReg(outReg, payload.reg, MicroOpBits::B64);
+
         return outReg;
     }
 }
 
-// The statement is one call: the runtime splits the range and runs the closure once per
-// partition, on its worker pool, and returns when every partition has finished.
+// The runtime partitions the range across workers and waits for every partition.
 Result AstParallelForStmt::codeGenPostNode(CodeGen& codeGen) const
 {
     const bool          fallible    = hasFlag(AstParallelForStmtFlagsE::Fallible);
@@ -119,8 +119,10 @@ Result AstParallelForStmt::codeGenPostNode(CodeGen& codeGen) const
     const CodeGenNodePayload& closurePayload = codeGen.payload(codeGen.resolvedNodeRef(nodeClosureRef));
     const MicroReg            args[]         = {beginReg, endReg, closurePayload.reg};
     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *parallelFn, args));
+
     if (fallible)
         SWC_RESULT(CodeGenCallHelpers::emitFallibleFailureJumpIfHasError(codeGen));
+
     return Result::Continue;
 }
 
@@ -143,9 +145,11 @@ Result AstWhileStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& ch
     if (childRef == bodyRef)
     {
         SWC_RESULT(codeGen.popDeferScope());
+
         MicroBuilder&           builder = codeGen.builder();
         const ScopedDebugNoStep noStep(builder, true);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->continueLabel);
+
         codeGen.popFrame();
     }
 
@@ -159,7 +163,8 @@ Result AstWhileStmt::codeGenPostNode(CodeGen& codeGen)
 
 Result AstInfiniteLoopStmt::codeGenPreNode(CodeGen& codeGen)
 {
-    MicroBuilder&          builder = codeGen.builder();
+    MicroBuilder& builder = codeGen.builder();
+
     LoopStmtCodeGenPayload loopState;
     loopState.bodyLabel     = builder.createLabel();
     loopState.continueLabel = builder.createLabel();
@@ -193,9 +198,11 @@ Result AstInfiniteLoopStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNode
     SWC_ASSERT(loopState != nullptr);
 
     SWC_RESULT(codeGen.popDeferScope());
+
     MicroBuilder&           builder = codeGen.builder();
     const ScopedDebugNoStep noStep(builder, true);
     builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, loopState->bodyLabel);
+
     codeGen.popFrame();
     return Result::Continue;
 }

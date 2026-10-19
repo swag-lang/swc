@@ -7,9 +7,7 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // A mixin body is transparent: its defers belong to the caller's scope, not
-    // an isolated scope of their own.  Returns true when the current node is
-    // the inline root of a mixin expansion.
+    // A mixin body shares the caller's scope, so its defers must stay there.
     bool isMixinBody(CodeGen& codeGen)
     {
         const SemaInlinePayload* inlinePayload = codeGen.sema().inlinePayload(codeGen.curNodeRef());
@@ -34,6 +32,7 @@ Result AstFunctionBody::codeGenPreNode(CodeGen& codeGen)
 {
     if (isMixinBody(codeGen))
         return Result::Continue;
+
     codeGen.pushDeferScope(codeGen.curNodeRef());
     return Result::Continue;
 }
@@ -42,6 +41,7 @@ Result AstFunctionBody::codeGenPostNode(CodeGen& codeGen)
 {
     if (isMixinBody(codeGen))
         return Result::Continue;
+
     return codeGen.popDeferScope();
 }
 
@@ -54,14 +54,12 @@ Result AstDeferStmt::codeGenPreNode(CodeGen& codeGen)
 
 Result AstParenExpr::codeGenPostNode(CodeGen& codeGen) const
 {
-    // Parentheses are transparent at codegen time; only the wrapped expression carries the runtime payload.
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeExprRef, codeGen.transparentPayloadTypeRef());
     return Result::Continue;
 }
 
 Result AstNamedArgument::codeGenPostNode(CodeGen& codeGen) const
 {
-    // Named arguments only affect call matching earlier in the pipeline, not the lowered runtime value.
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeArgRef, codeGen.transparentPayloadTypeRef());
     return Result::Continue;
 }

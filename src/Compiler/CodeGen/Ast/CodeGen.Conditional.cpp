@@ -25,9 +25,10 @@ namespace
 
     struct ConditionalExprCodeGenPayload : CodeGenNodePayload
     {
-        MicroLabelRef        falseLabel = MicroLabelRef::invalid();
-        MicroLabelRef        doneLabel  = MicroLabelRef::invalid();
-        ConditionalExprStage stage      = ConditionalExprStage::TrueBranch;
+        MicroLabelRef falseLabel = MicroLabelRef::invalid();
+        MicroLabelRef doneLabel  = MicroLabelRef::invalid();
+
+        ConditionalExprStage stage = ConditionalExprStage::TrueBranch;
     };
 
     struct NullCoalescingCodeGenPayload : CodeGenNodePayload
@@ -64,14 +65,14 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
 
     SWC_ASSERT(codeGen.curViewType().type() != nullptr);
 
-    // When the conditional was wrapped by an implicit cast, the wrapper's type shows
-    // through the resolved view. The selection must produce its own stored type; the
-    // wrapping cast then converts the joined value.
-    const TypeRef                  resultTypeRef = codeGen.transparentPayloadTypeRef();
-    const auto*                    lowering      = codeGen.loweringPayload(codeGen.curNodeRef());
-    const bool                     ownsValue     = lowering && lowering->ownsValue;
-    MicroBuilder&                  builder       = codeGen.builder();
-    ConditionalExprCodeGenPayload* state         = codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef());
+    // Select in the stored type. The resolved view can already expose an implicit
+    // wrapper's type, but that cast converts the value after the branches join.
+    const TypeRef resultTypeRef = codeGen.transparentPayloadTypeRef();
+    const auto*   lowering      = codeGen.loweringPayload(codeGen.curNodeRef());
+    const bool    ownsValue     = lowering && lowering->ownsValue;
+    MicroBuilder& builder       = codeGen.builder();
+
+    ConditionalExprCodeGenPayload* state = codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef());
 
     // Qualification casts can rewrite a direct child to a different resolved reference.
     // Child callbacks still arrive in source order, so track the lowering stage explicitly.
@@ -108,16 +109,19 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     if (ownsValue)
     {
         const CodeGenNodePayload& branch = codeGen.payload(resolvedChildRef);
-        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, state->reg, branch,
-                                                    CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(resultTypeRef)));
+        CodeGenMemoryHelpers::storePayloadToAddress(codeGen, state->reg, branch, CodeGenFunctionHelpers::checkedTypeSizeInBytes(codeGen, codeGen.typeMgr().get(resultTypeRef)));
         SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, resultTypeRef, state->reg));
+
         const bool copiesBranch = !branch.ownsValue && SemaHelpers::expressionBorrowsStorage(codeGen.sema(), resolvedChildRef);
         const auto postKind     = copiesBranch ? CodeGen::LifecycleKind::PostCopy : CodeGen::LifecycleKind::PostMove;
         if (codeGen.hasLifecycle(resultTypeRef, postKind))
             SWC_RESULT(codeGen.emitLifecycle(resultTypeRef, postKind, state->reg));
+
         if (branch.ownsValue && branch.runtimeStorageSym)
             codeGen.cancelTemporaryDrop(*branch.runtimeStorageSym);
+
         SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
+
         if (state->stage == ConditionalExprStage::TrueBranch)
         {
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, state->doneLabel);
@@ -129,6 +133,7 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
             builder.placeLabel(state->doneLabel);
             resetConditionalLabels(*state);
         }
+
         return Result::Continue;
     }
 
@@ -137,8 +142,8 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
     if (state->stage == ConditionalExprStage::TrueBranch)
     {
         const CodeGenNodePayload& truePayload = codeGen.payload(resolvedChildRef);
-        // The first selected branch allocates the destination payload; the other branch writes into that
-        // same storage after the join label.
+
+        // The false branch reuses the destination payload created here.
         if (addressBacked)
         {
             const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), resultTypeRef);
@@ -148,9 +153,9 @@ Result AstConditionalExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeR
         {
             const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-            // The join register must match the result type's register class: a float
-            // selection materialized in an integer register would turn the branch
-            // moves into bit reinterprets and break every float consumer downstream.
+
+            // Match the result register class: integer-register moves would
+            // reinterpret a float selection's bits.
             resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
             emitSelectedOperand(codeGen, resultPayload, truePayload, resultBits);
         }
@@ -186,19 +191,19 @@ Result AstConditionalExpr::codeGenPostNode(CodeGen& codeGen)
 {
     if (auto* state = codeGen.safeNodePayload<ConditionalExprCodeGenPayload>(codeGen.curNodeRef()))
         resetConditionalLabels(*state);
+
     const auto*   lowering = codeGen.loweringPayload(codeGen.curNodeRef());
     const TypeRef typeRef  = codeGen.transparentPayloadTypeRef();
     if (lowering && lowering->ownsValue && lowering->runtimeStorageSym->hasExtraFlag(SymbolVariableFlagsE::RuntimeStorage) &&
         codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
         codeGen.registerTemporaryDrop(codeGen.curNodeRef(), typeRef, *lowering->runtimeStorageSym);
+
     return Result::Continue;
 }
 
 namespace
 {
-    // Emit the lhs-selected value of a null-coalescing and fall through to the false
-    // label where the rhs will be produced. Shared by the truthiness-tested path and
-    // the fused '?.'-chain path.
+    // Both truthiness tests and fused optional chains share this left-branch exit.
     void emitNullCoalescingSelectedLeft(CodeGen& codeGen, const NullCoalescingCodeGenPayload& state, const CodeGenNodePayload& leftPayload, const TypeInfo& resultType, bool addressBacked)
     {
         const TypeRef resultTypeRef = resultType.typeRef();
@@ -212,9 +217,9 @@ namespace
         {
             const MicroOpBits   resultBits    = CodeGenTypeHelpers::compareBits(resultType, codeGen.ctx());
             CodeGenNodePayload& resultPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), resultTypeRef);
-            // The join register must match the result type's register class: a float
-            // selection materialized in an integer register would turn the branch
-            // moves into bit reinterprets and break every float consumer downstream.
+
+            // Match the result register class: integer-register moves would
+            // reinterpret a float selection's bits.
             resultPayload.reg = codeGen.nextVirtualRegisterForType(resultTypeRef, resultType);
             emitSelectedOperand(codeGen, resultPayload, leftPayload, resultBits);
         }
@@ -230,15 +235,15 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
     SWC_ASSERT(resolvedChildRef.isValid());
 
     // Same stored-type rule as the conditional expression above.
-    const TypeRef                 resultTypeRef = codeGen.transparentPayloadTypeRef();
-    const TypeInfo&               resultType    = codeGen.typeMgr().get(resultTypeRef);
-    const bool                    addressBacked = usesAddressBackedSelection(codeGen, resultType);
-    MicroBuilder&                 builder       = codeGen.builder();
-    NullCoalescingCodeGenPayload* state         = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
+    const TypeRef   resultTypeRef = codeGen.transparentPayloadTypeRef();
+    const TypeInfo& resultType    = codeGen.typeMgr().get(resultTypeRef);
+    const bool      addressBacked = usesAddressBackedSelection(codeGen, resultType);
+    MicroBuilder&   builder       = codeGen.builder();
 
-    // Qualification casts can also rewrite either coalescing operand. The first direct
-    // callback is the lhs; an active join label identifies the rhs callback. The payload
-    // itself survives when a deferred body is emitted again for another exit.
+    NullCoalescingCodeGenPayload* state = codeGen.safeNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
+
+    // Rewrites can change operand references; callback order still identifies
+    // lhs then rhs. Deferred bodies reuse the payload after labels are cleared.
     if (state == nullptr || state->doneLabel.isInvalid())
     {
         // Fused '?.' chain: the chain's null exit doubles as this coalescing's false
@@ -247,6 +252,7 @@ Result AstNullCoalescingExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNo
         OptionalChainCodeGenPayload* chainState = nullptr;
         if (codeGen.node(resolvedChildRef).is(AstNodeId::OptionalChainExpr))
             chainState = codeGen.safeNodePayload<OptionalChainCodeGenPayload>(resolvedChildRef);
+
         if (chainState != nullptr && chainState->falseLabel.isValid())
         {
             NullCoalescingCodeGenPayload& newState = codeGen.ensureNodePayload<NullCoalescingCodeGenPayload>(codeGen.curNodeRef());
@@ -320,6 +326,7 @@ Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
     MicroBuilder&                builder = codeGen.builder();
     OptionalChainCodeGenPayload* state   = codeGen.safeNodePayload<OptionalChainCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(state != nullptr && state->falseLabel.isValid());
+
     const MicroLabelRef falseLabel = state->falseLabel;
     const MicroLabelRef doneLabel  = state->doneLabel;
 
@@ -336,9 +343,8 @@ Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
         return Result::Continue;
     }
 
-    // Fused with 'orelse' (result type cannot carry the null outcome): forward the
-    // chain value untouched and leave the labels valid for the enclosing coalescing
-    // to adopt (see AstNullCoalescingExpr::codeGenPostNodeChild).
+    // A fused orelse adopts these labels and the unchanged value because the
+    // chain's result type cannot represent the null outcome.
     if (!chainType.isNullable())
     {
         codeGen.inheritPayload(codeGen.curNodeRef(), resolvedChildRef, chainTypeRef);
@@ -351,13 +357,16 @@ Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
     {
         const uint64_t chainSize = chainType.sizeOf(codeGen.ctx());
         SWC_ASSERT(chainSize % 8 == 0);
+
         const CodeGenNodePayload& resultPayload = codeGen.setPayloadAddress(codeGen.curNodeRef(), chainTypeRef);
         builder.emitLoadRegReg(resultPayload.reg, childPayload.reg, MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
         builder.placeLabel(falseLabel);
         const MicroReg storageReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
         for (uint64_t offset = 0; offset < chainSize; offset += 8)
             builder.emitLoadMemImm(storageReg, offset, ApInt(0, 64), MicroOpBits::B64);
+
         builder.emitLoadRegReg(resultPayload.reg, storageReg, MicroOpBits::B64);
         builder.placeLabel(doneLabel);
     }
@@ -368,6 +377,7 @@ Result AstOptionalChainExpr::codeGenPostNodeChild(CodeGen& codeGen, const AstNod
         resultPayload.reg                 = codeGen.nextVirtualRegisterForType(chainTypeRef, chainType);
         emitSelectedOperand(codeGen, resultPayload, childPayload, resultBits);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, doneLabel);
+
         builder.placeLabel(falseLabel);
         builder.emitClearReg(resultPayload.reg, resultBits);
         builder.placeLabel(doneLabel);

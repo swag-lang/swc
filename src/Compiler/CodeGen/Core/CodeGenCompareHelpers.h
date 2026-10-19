@@ -118,12 +118,9 @@ namespace CodeGenCompareHelpers
         emitConditionBool(codeGen, dstReg, compareType, truthyCondition(compareType));
     }
 
-    // Jumps to 'equalLabel' when both registers name the same type, to 'notEqualLabel' otherwise.
-    //
-    // Type identity is the runtime hash, not the address of the descriptor: a qualified form such
-    // as 'nullable string' gets its own typeinfo but shares the hash of 'string', which is the rule
-    // 'Swag.typeCmp' applies. Comparing the pointers alone would report those as different types, so
-    // every construct that matches a type against another one has to come through here.
+    // Jump by type identity using the runtime hash, as Swag.typeCmp does.
+    // Qualified forms such as nullable string have distinct descriptors but
+    // share the underlying type's hash. Reuse this path for runtime type matches.
     inline void emitTypeInfoEqualJump(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, MicroLabelRef equalLabel, MicroLabelRef notEqualLabel)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -133,6 +130,7 @@ namespace CodeGenCompareHelpers
         // A null descriptor carries no hash to read, so it only ever matches the very same pointer.
         builder.emitCmpRegImm(leftReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, notEqualLabel);
+
         builder.emitCmpRegImm(rightReg, ApInt(0, 64), MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, notEqualLabel);
 
@@ -140,6 +138,7 @@ namespace CodeGenCompareHelpers
         const MicroReg rightCrcReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(leftCrcReg, leftReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
         builder.emitLoadRegMem(rightCrcReg, rightReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
+
         builder.emitCmpRegReg(leftCrcReg, rightCrcReg, MicroOpBits::B32);
         builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, equalLabel);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, notEqualLabel);
@@ -157,6 +156,7 @@ namespace CodeGenCompareHelpers
         }
         else
             codeGen.builder().emitLoadRegReg(resultReg, payload.reg, bits);
+
         return resultReg;
     }
 

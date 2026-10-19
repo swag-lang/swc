@@ -12,8 +12,9 @@ namespace CodeGenParameterReg
 {
     struct RegisterParameterPayload
     {
-        const SymbolVariable*                         symVar    = nullptr;
-        CodeGenNodePayload                            payload   = {};
+        const SymbolVariable* symVar  = nullptr;
+        CodeGenNodePayload    payload = {};
+
         CodeGenFunctionHelpers::FunctionParameterInfo paramInfo = {};
     };
 
@@ -32,6 +33,7 @@ namespace CodeGenParameterReg
     inline void appendRegisterParameterIndices(SmallVector<uint32_t>& outIndices, const std::vector<SymbolVariable*>& params, std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos)
     {
         SWC_ASSERT(paramInfos.size() == params.size());
+
         // Register parameters fit the inline buffer for the supported conventions.
         // Reserving for every parameter would also allocate for the stack-only tail.
         for (size_t i = 0; i < params.size(); ++i)
@@ -67,6 +69,7 @@ namespace CodeGenParameterReg
         builder.addVirtualRegForbiddenPhysRegs(symbolPayload.reg, futureSourceRegs.span());
         if (!futureSourceRegs.empty())
             builder.preserveVirtualCopy(symbolPayload.reg);
+
         CodeGenFunctionHelpers::emitLoadFunctionParameterToReg(codeGen, symbolFunc, paramInfo, symbolPayload.reg);
         CodeGenFunctionHelpers::markImmutableIndirectParameter(codeGen, symVar, paramInfo, symbolPayload.reg);
         symbolPayload.setValueOrAddress(paramInfo.isIndirect);
@@ -108,6 +111,7 @@ namespace CodeGenParameterReg
 
         SmallVector<uint32_t> registerParamIndices;
         appendRegisterParameterIndices(registerParamIndices, params, paramInfos);
+
         SmallVector<RegisterParameterPayload> registerPayloads;
         registerPayloads.reserve(registerParamIndices.size());
 

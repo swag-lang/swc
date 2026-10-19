@@ -24,6 +24,7 @@ namespace CodeGenIntegerConversion
             builder.emitLoadSignedExtendRegReg(dstReg, outReg, dstBits, srcBits);
         else
             builder.emitLoadZeroExtendRegReg(dstReg, outReg, dstBits, srcBits);
+
         outReg = dstReg;
     }
 
@@ -41,7 +42,8 @@ namespace CodeGenIntegerConversion
         const TypeInfo&   dstType = *dst.type;
         const MicroOpBits srcBits = src.bits;
         const MicroOpBits dstBits = dst.bits;
-        MicroBuilder&     builder = codeGen.builder();
+
+        MicroBuilder& builder = codeGen.builder();
 
         if (srcType.isIntLike() && dstType.isIntLike())
         {

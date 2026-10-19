@@ -516,6 +516,7 @@ namespace
         const uint64_t             firstIncomingArgOffset = ABICall::incomingArgFrameOffset(conv, conv.numArgRegisterSlots());
         SmallVector<MicroInstrRef> accesses;
         auto&                      operands = *context.operands;
+
         for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
         {
             MicroInstr*          inst = context.instructions->ptr(it.current);
@@ -532,11 +533,14 @@ namespace
                 {
                     if (modes[i] == MicroInstrRegMode::None)
                         continue;
+
                     const bool defines = modes[i] == MicroInstrRegMode::Def || modes[i] == MicroInstrRegMode::UseDef;
                     if (defines && ops[i].reg == conv.stackPointer)
                         return false;
+
                     if (ops[i].reg != conv.framePointer)
                         continue;
+
                     namesFramePointer = true;
                     if (defines || !info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) || i != info.memBaseOperandIndex)
                         return false;
@@ -545,9 +549,11 @@ namespace
 
             if (!namesFramePointer)
                 continue;
+
             if (ops[info.memBaseOperandIndex].reg != conv.framePointer ||
                 ops[info.memOffsetOperandIndex].valueU64 < firstIncomingArgOffset)
                 return false;
+
             accesses.push_back(it.current);
         }
 
@@ -556,12 +562,14 @@ namespace
 
         for (const MicroInstrRef ref : accesses)
         {
-            MicroInstr*          inst         = context.instructions->ptr(ref);
-            MicroInstrOperand*   ops          = inst->ops(operands);
-            const MicroInstrDef& info         = MicroInstr::info(inst->op);
+            MicroInstr*          inst = context.instructions->ptr(ref);
+            MicroInstrOperand*   ops  = inst->ops(operands);
+            const MicroInstrDef& info = MicroInstr::info(inst->op);
+
             ops[info.memBaseOperandIndex].reg = conv.stackPointer;
             ops[info.memOffsetOperandIndex].valueU64 -= sizeof(void*);
         }
+
         return true;
     }
 }
@@ -584,6 +592,7 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
     const CallConv& conv                              = CallConv::get(context.callConvKind);
     const bool      containsCall                      = hasCallInstruction(context);
     const bool      remappedPersistentRegsToTransient = remapPersistentIntRegsToUnusedTransient(context, conv, containsCall);
+
     buildSavedRegsPlan(context, conv);
     bool rewroteIncomingArgs = false;
     if (useFramePointer_ && pushedRegs_.empty() && savedRegSlots_.empty())
@@ -592,6 +601,7 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
         if (rewroteIncomingArgs)
             buildSavedRegsPlan(context, conv);
     }
+
     if (pushedRegs_.empty() && !savedRegsStackSubSize_ && !useFramePointer_)
     {
         context.passChanged = remappedPersistentRegsToTransient || rewroteIncomingArgs;
@@ -606,6 +616,7 @@ Result MicroPrologEpilogPass::run(MicroPassContext& context)
         for (const SavedRegSlot& slot : savedRegSlots_)
             if (slot.reg.isFloat() && slot.reg.index() < 32)
                 context.savedFloatRegMask |= 1u << slot.reg.index();
+
         // Insertions before a Ret preserve its successor. Walk from the
         // original first instruction to skip the newly inserted prologue.
         for (auto it = beginIt; it != endIt; ++it)
@@ -647,12 +658,12 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
 
     pushedRegs_.clear();
     savedRegSlots_.clear();
-    savedRegsStackSubSize_     = 0;
-    useFramePointer_           = context.forceFramePointer;
+    savedRegsStackSubSize_ = 0;
+    useFramePointer_       = context.forceFramePointer;
+
     bool     framePointerNamed = false;
     uint64_t classifiedRegs    = 0;
 
-    // Scan concrete register operands and collect only ABI-persistent regs that are used.
     const auto& storeOps = *context.operands;
     for (const auto& inst : context.instructions->view())
     {
@@ -669,8 +680,10 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
                     useFramePointer_  = true;
                     framePointerNamed = true;
                 }
+
                 return;
             }
+
             if (mode != MicroInstrRegMode::Def && mode != MicroInstrRegMode::UseDef)
                 return;
 
@@ -680,6 +693,7 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
                 const uint64_t mask = 1ull << bit;
                 if (classifiedRegs & mask)
                     return;
+
                 classifiedRegs |= mask;
             }
 
@@ -787,7 +801,6 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         instructions.insertSyntheticBefore(operands, insertBeforeRef, MicroInstrOpcode::LoadRegReg, setFrameOps);
     }
 
-    // Integer persistent regs are saved with push/pop.
     for (const MicroReg pushedReg : pushedRegs_)
     {
         MicroInstrOperand pushOps[1];
@@ -795,15 +808,10 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
         instructions.insertSyntheticBefore(operands, insertBeforeRef, MicroInstrOpcode::Push, pushOps);
     }
 
-    // The saved area gets its own allocation, in front of everything the body
-    // does with the stack pointer. The slots sit at [sp+0..], each 16-aligned
-    // so UWOP_SAVE_XMM128 can describe the stores, and the frame pointer is
-    // anchored right after them (see the sanitize pass): the unwinder then
-    // recovers the stack pointer from the frame register, so the body's own
-    // later allocations — its frame, its spill area, its call adjusts — never
-    // need to appear in the unwind description at all.
-    // Merged: the body's own subtract at entry grows to cover the saved area,
-    // and the saves follow it. Otherwise the area takes its own allocation here.
+    // A separate saved area keeps float slots 16-byte aligned for UWOP_SAVE_XMM128.
+    // The sanitize pass anchors the frame register after these saves, allowing the
+    // unwinder to recover SP despite later stack motion in the body.
+    // When merged, enlarge the body's entry allocation and emit saves after it.
     MicroInstrRef saveInsertBeforeRef = insertBeforeRef;
     if (mergedIntoBodyAllocation_)
     {
@@ -822,10 +830,13 @@ void MicroPrologEpilogPass::insertSavedRegsPrologue(const MicroPassContext& cont
             const MicroInstr* inst = &*walker;
             if (inst->op == MicroInstrOpcode::Nop)
                 continue;
+
             if (!isStackPointerAdjust(*inst, inst->ops(operands), conv.stackPointer, MicroOp::Subtract))
                 break;
+
             lastSub = walker.current;
         }
+
         saveInsertBeforeRef = instructions.findNextInstructionRef(lastSub);
     }
     else if (savedRegsStackSubSize_)
@@ -854,14 +865,9 @@ void MicroPrologEpilogPass::insertSavedRegsEpilogue(const MicroPassContext& cont
     auto& instructions = *context.instructions;
     auto& operands     = *context.operands;
 
-    // Restore in reverse: load slot-backed regs, undo the saved-area
-    // allocation, then pop integer regs. At every return the body has undone
-    // its own stack motion, so the stack pointer addresses the saved area
-    // directly, at the same [sp+0..] offsets the prologue stored to.
-    // Merged: the reloads must read the slots before the body's add releases
-    // them, and that add grows to release the saved area too. The run of adds
-    // in front of a return is what the plan matched, so the first of them is
-    // where the reloads go.
+    // Reload float slots before releasing the saved area, then pop integer registers.
+    // The body has already undone its stack motion unless its allocation was merged;
+    // in that case, reload before the first epilogue add and enlarge that release.
     MicroInstrRef reloadBeforeRef = insertBeforeRef;
     if (mergedIntoBodyAllocation_)
     {

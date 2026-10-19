@@ -30,6 +30,7 @@ public:
         bind();
         if (!set_.insert(&symImpl))
             return false;
+
         publish(ctx, symImpl);
         return true;
     }
@@ -54,8 +55,9 @@ private:
 
     std::atomic<const Link*> head_ = nullptr;
     Link*                    tail_ = nullptr;
-    PointerSet<SymbolImpl>   set_;
-    std::mutex               mutex_;
+
+    PointerSet<SymbolImpl> set_;
+    std::mutex             mutex_;
 };
 
 class SymbolMap : public Symbol
@@ -71,16 +73,20 @@ public:
 
     explicit SymbolMap(const AstNode* decl, TokenRef tokRef, SymbolKind kind, IdentifierRef idRef, const SymbolFlags& flags);
 
-    Symbol*       addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
-    Symbol*       addSingleSymbol(TaskContext& ctx, Symbol* symbol);
-    Symbol*       addSingleSymbolOrError(Sema& sema, Symbol* symbol);
-    void          addUsingSymMap(TaskContext& ctx, SymbolMap* symMap, SourceRevision sourceRevision = {});
-    void          copyUsingSymMaps(SmallVector<const SymbolMap*>& out, const CompilerInstance* compiler = nullptr) const;
+    Symbol* addSymbol(TaskContext& ctx, Symbol* symbol, bool acceptHomonyms);
+    Symbol* addSingleSymbol(TaskContext& ctx, Symbol* symbol);
+    Symbol* addSingleSymbolOrError(Sema& sema, Symbol* symbol);
+
+    void addUsingSymMap(TaskContext& ctx, SymbolMap* symMap, SourceRevision sourceRevision = {});
+    void copyUsingSymMaps(SmallVector<const SymbolMap*>& out, const CompilerInstance* compiler = nullptr) const;
+
     const Symbol* findFirstSymbol(IdentifierRef idRef, bool includeIgnored = false) const;
     const Symbol* findFirstNamespace(IdentifierRef idRef) const;
     void          lookupAppend(IdentifierRef idRef, MatchContext& lookUpCxt) const;
-    void          getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
-    void          getAllFunctions(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
+
+    void getAllSymbols(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
+    void getAllFunctions(std::vector<const Symbol*>& out, bool includeIgnored = false) const;
+
     template<typename F>
     void forEachSymbolById(IdentifierRef idRef, bool includeIgnored, const F& fn) const
     {
@@ -107,16 +113,16 @@ protected:
         IdentifierRef        key  = IdentifierRef::invalid();
     };
 
-    // Open-addressed and append-only: a key slot, once filled, never changes, and a head only
-    // moves to another symbol of the same name. Readers probe it without any lock; writers fill
-    // it under the owning mutex and publish a key after its head. Growing allocates a new table
-    // and publishes it whole, leaving the old one (arena memory) valid for readers still on it.
+    // Append-only keys never change, and heads only move between homonyms.
+    // Publish a key after its head so readers can probe without locking.
+    // Older arena tables remain valid when a larger generation is published.
     struct HeadTable
     {
-        std::atomic<uint64_t>* keys     = nullptr; // identifier reference + 1; zero marks an empty slot
-        std::atomic<Symbol*>*  heads    = nullptr;
-        uint32_t               capacity = 0; // power of two
-        uint32_t               size     = 0; // writer-only
+        std::atomic<uint64_t>* keys  = nullptr; // identifier reference + 1; zero marks an empty slot
+        std::atomic<Symbol*>*  heads = nullptr;
+
+        uint32_t capacity = 0; // power of two
+        uint32_t size     = 0; // writer-only
     };
 
     // Every worker reads the module-level maps, so a lookup must not write a shared lock word.
@@ -144,12 +150,16 @@ protected:
     std::array<Entry, SMALL_CAP> small_;
     std::atomic<HeadTable*>      bigTable_ = nullptr;
     std::atomic<Shard*>          shards_   = nullptr;
+
     // Serializes writers until the map is sharded. Lookups never take it.
     mutable std::shared_mutex mutex_;
+
     // Entries are immutable after publication and live in the compiler's arena.
     // Readers keep a stable prefix while writers append under mutex_.
     std::atomic<const UsingSymMap*> usingSymMaps_ = nullptr;
-    std::atomic<uint32_t>           smallSize_    = 0;
+
+    std::atomic<uint32_t> smallSize_ = 0;
+
     // Different shards publish symbols concurrently; their locks do not protect this total.
     std::atomic<uint32_t> count_ = 0;
 
@@ -165,10 +175,13 @@ private:
     static Symbol*  tableFindHead(const HeadTable* table, IdentifierRef idRef, uint32_t hash) noexcept;
     static void     tablePlace(HeadTable& table, uint32_t slot, uint64_t key, Symbol* head) noexcept;
     static void     tableReserve(TaskContext& ctx, std::atomic<HeadTable*>& published, uint32_t minSize);
+
     template<typename F>
     static void forEachHead(const HeadTable* table, const F& fn);
+
     template<typename F>
-    void        forEachPublishedHead(const F& fn) const;
+    void forEachPublishedHead(const F& fn) const;
+
     static void notifyInserted(TaskContext& ctx, IdentifierRef idRef);
     Symbol*     tableInsert(TaskContext& ctx, std::atomic<HeadTable*>& published, IdentifierRef idRef, uint32_t hash, Symbol* symbol, bool acceptHomonyms);
     void        upgradeToSharded(TaskContext& ctx);

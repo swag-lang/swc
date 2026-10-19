@@ -22,17 +22,20 @@ namespace SymbolInternal
     {
         IdentifierRef idRef;
         AstNodeRef    exprRef;
-        TypeRef       typeRef = TypeRef::invalid();
-        ConstantRef   cstRef  = ConstantRef::invalid();
+
+        TypeRef     typeRef = TypeRef::invalid();
+        ConstantRef cstRef  = ConstantRef::invalid();
     };
 
     struct GenericEvalEntry
     {
-        const NodePayload*                 payloadContext = nullptr;
-        const Ast*                         ownerAst       = nullptr;
-        AstNodeRef                         sourceRef      = AstNodeRef::invalid();
+        const NodePayload* payloadContext = nullptr;
+        const Ast*         ownerAst       = nullptr;
+        AstNodeRef         sourceRef      = AstNodeRef::invalid();
+
         std::vector<GenericEvalBindingKey> bindings;
-        AstNodeRef                         evalRef = AstNodeRef::invalid();
+
+        AstNodeRef evalRef = AstNodeRef::invalid();
     };
 
     bool       sameGenericEvalBindings(std::span<const GenericEvalBindingKey> lhs, std::span<const SemaClone::ParamBinding> rhs);
@@ -49,13 +52,10 @@ enum class SymbolAccess : uint8_t
     Private,  // Visible only in the file it is declared
 };
 
-// Access declared on an aggregate member. The three levels are the ones a top-level declaration
-// uses, with the same default, so the words never change meaning: a member is 'internal' unless
-// it says otherwise. What changes is who "the owner" is. A top-level declaration belongs to its
-// file, so 'private' there means "this file"; a member belongs to its type, so 'private' here
-// means "the type's own bodies": the aggregate declaration and every 'impl' of it, in the module
-// that declares the type. 'readonly' is not a level: it rides on top of one, restricting writes
-// to the declaring type while leaving reads at the declared level.
+// Member access defaults to internal, as top-level access does. Private ownership
+// changes from the source file to the declaring type: its declaration and impl
+// bodies in the declaring module. Readonly restricts writes to that type while
+// preserving the declared read access.
 enum class MemberAccess : uint8_t
 {
     Public,   // Reached from anywhere
@@ -63,8 +63,7 @@ enum class MemberAccess : uint8_t
     Private,  // Reached only by the declaring type
 };
 
-// What an access modifier written in an aggregate body says, carried as one value because
-// 'readonly' and the level it rides on are written together and apply together.
+// Carry the access level and readonly restriction together because they apply as one modifier.
 struct MemberAccessSpec
 {
     MemberAccess access   = MemberAccess::Internal;
@@ -120,18 +119,21 @@ public:
     {
     }
 
-    SymbolKind      kind() const noexcept { return kind_; }
-    IdentifierRef   idRef() const noexcept { return idRef_; }
-    void            setIdRef(IdentifierRef idRef) noexcept { idRef_ = idRef; }
+    SymbolKind    kind() const noexcept { return kind_; }
+    IdentifierRef idRef() const noexcept { return idRef_; }
+    void          setIdRef(IdentifierRef idRef) noexcept { idRef_ = idRef; }
+
     TypeRef         typeRef() const noexcept { return typeRef_; }
     void            setTypeRef(TypeRef typeRef) noexcept { typeRef_ = typeRef; }
     const TypeInfo& type(TaskContext& ctx) const { return ctx.typeMgr().get(typeRef_); }
+
     const AstNode*  decl() const noexcept { return decl_; }
     SourceCodeRef   codeRef() const noexcept { return SourceCodeRef{decl_->srcViewRef(), tokRef_}; }
     SourceCodeRange codeRange(TaskContext& ctx) const noexcept;
     SourceViewRef   srcViewRef() const noexcept { return decl_->srcViewRef(); }
     TokenRef        tokRef() const noexcept { return tokRef_; }
-    Utf8            toFamily() const;
+
+    Utf8 toFamily() const;
 
     // The declaration node as a 'T', or null when it is missing or of another kind.
     template<typename T>
@@ -143,8 +145,9 @@ public:
     SymbolFlags flags() const noexcept { return flags_; }
     bool        hasFlag(SymbolFlagsE flag) const noexcept { return flags_.has(flag); }
     void        addFlag(SymbolFlagsE fl) { flags_.add(fl); }
-    bool        isPublic() const noexcept { return flags_.has(SymbolFlagsE::Public); }
-    bool        isPrivate() const noexcept { return flags_.has(SymbolFlagsE::Private); }
+
+    bool isPublic() const noexcept { return flags_.has(SymbolFlagsE::Public); }
+    bool isPrivate() const noexcept { return flags_.has(SymbolFlagsE::Private); }
 
     bool isWaitSatisfied(TaskStateKind kind) const noexcept;
 
@@ -154,12 +157,15 @@ public:
     void setConstraintsResolved(TaskContext& ctx);
     bool isSemaCompleted() const noexcept { return flags_.has(SymbolFlagsE::SemaCompleted); }
     void setSemaCompleted(TaskContext& ctx);
+
     bool isCodeGenCompleted() const noexcept { return flags_.has(SymbolFlagsE::CodeGenCompleted); }
     void setCodeGenCompleted(TaskContext& ctx);
     bool isCodeGenPreSolved() const noexcept { return flags_.has(SymbolFlagsE::CodeGenPreSolved); }
     void setCodeGenPreSolved(TaskContext& ctx);
+
     bool isDeclared() const noexcept { return flags_.has(SymbolFlagsE::Declared); }
     void setDeclared(TaskContext& ctx);
+
     bool isIgnored() const noexcept { return flags_.has(SymbolFlagsE::Ignored); }
     bool isEditorRetired() const noexcept { return flags_.has(SymbolFlagsE::EditorRetired); }
     void setIgnored(TaskContext& ctx) noexcept;
@@ -212,12 +218,12 @@ public:
     Utf8             getFullScopedName(const TaskContext& ctx) const;
     void             appendFullScopedName(const TaskContext& ctx, Utf8& out) const;
 
-    // Hash of the fully scoped name, memoized. The scoped name is immutable once the
-    // symbol and its owner chain are established, so this avoids rebuilding (and heap
-    // allocating) the name string on every stable type hash / addType call.
+    // The scoped name is immutable once the symbol and its owner chain are established.
+    // Memoize its hash to avoid rebuilding the name for each type hash or addType call.
     uint32_t scopedNameHash(const TaskContext& ctx) const;
 
     const TypeInfo& typeInfo(const TaskContext& ctx) const;
+
     template<typename T>
     T* safeCast()
     {
@@ -262,20 +268,24 @@ public:
         T* symbol = ctx.allocate<T>(decl, tokRef, idRef, flags);
         if (ctx.isEditorService())
             symbol->registerEditorSourceRevision(ctx);
+
         return symbol;
     }
 
 protected:
-    std::atomic<const AttributeList*>    attributes_  = nullptr;
-    std::atomic<Symbol*>                 nextHomonym_ = nullptr;
-    SymbolMap*                           ownerSymMap_ = nullptr;
-    const AstNode*                       decl_        = nullptr;
-    IdentifierRef                        idRef_       = IdentifierRef::invalid();
-    TypeRef                              typeRef_     = TypeRef::invalid();
-    TokenRef                             tokRef_      = TokenRef::invalid();
-    SymbolKind                           kind_        = SymbolKind::Invalid;
-    mutable SymbolFlags                  flags_       = SymbolFlagsE::Zero;
-    std::atomic<SymbolExtraFlagsStorage> extraFlags_  = 0;
+    std::atomic<const AttributeList*> attributes_  = nullptr;
+    std::atomic<Symbol*>              nextHomonym_ = nullptr;
+
+    SymbolMap*     ownerSymMap_ = nullptr;
+    const AstNode* decl_        = nullptr;
+
+    IdentifierRef idRef_   = IdentifierRef::invalid();
+    TypeRef       typeRef_ = TypeRef::invalid();
+    TokenRef      tokRef_  = TokenRef::invalid();
+    SymbolKind    kind_    = SymbolKind::Invalid;
+
+    mutable SymbolFlags                  flags_      = SymbolFlagsE::Zero;
+    std::atomic<SymbolExtraFlagsStorage> extraFlags_ = 0;
 
     // Memoized hash of getFullScopedName(). 0 means "not computed yet"; a real hash that
     // happens to be 0 is stored as 1 so the sentinel stays unambiguous.
@@ -317,6 +327,7 @@ struct SymbolExtraFlagsT : BASE
     {
         if constexpr (!std::is_void_v<E>)
             return extraFlags().has(flag);
+
         return false;
     }
 

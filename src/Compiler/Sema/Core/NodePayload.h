@@ -52,15 +52,18 @@ enum class CallArgumentDefaultKind : uint8_t
 
 struct ResolvedCallArgument
 {
-    AstNodeRef              argRef                   = AstNodeRef::invalid();
-    CallArgumentPassKind    passKind                 = CallArgumentPassKind::Direct;
-    CallArgumentDefaultKind defaultKind              = CallArgumentDefaultKind::None;
-    bool                    bindsReferenceToValue    = false;
-    bool                    movesValueToParam        = false;
-    bool                    passUfcsAddressAsPointer = false;
-    bool                    isUfcsReceiver           = false;
-    ConstantRef             typeInfoCstRef           = ConstantRef::invalid();
-    ConstantRef             defaultCstRef            = ConstantRef::invalid();
+    AstNodeRef argRef = AstNodeRef::invalid();
+
+    CallArgumentPassKind    passKind    = CallArgumentPassKind::Direct;
+    CallArgumentDefaultKind defaultKind = CallArgumentDefaultKind::None;
+
+    bool bindsReferenceToValue    = false;
+    bool movesValueToParam        = false;
+    bool passUfcsAddressAsPointer = false;
+    bool isUfcsReceiver           = false;
+
+    ConstantRef typeInfoCstRef = ConstantRef::invalid();
+    ConstantRef defaultCstRef  = ConstantRef::invalid();
 };
 
 class NodePayload
@@ -72,20 +75,19 @@ class NodePayload
 public:
     struct StoredView
     {
-        TypeRef                  typeRef       = TypeRef::invalid();
-        ConstantRef              cstRef        = ConstantRef::invalid();
-        const Symbol*            sym           = nullptr;
-        std::span<const Symbol*> symList       = {};
-        bool                     hasSymbol     = false;
-        bool                     hasSymbolList = false;
-        NodePayloadFlags         flags         = static_cast<NodePayloadFlags>(0);
+        TypeRef                  typeRef = TypeRef::invalid();
+        ConstantRef              cstRef  = ConstantRef::invalid();
+        const Symbol*            sym     = nullptr;
+        std::span<const Symbol*> symList = {};
+
+        bool             hasSymbol     = false;
+        bool             hasSymbolList = false;
+        NodePayloadFlags flags         = static_cast<NodePayloadFlags>(0);
     };
 
-    // Resolved symbol payload read from a single payload snapshot. Reading the symbol(s)
-    // from one snapshot (rather than a hasSymbol()/getSymbol() pair of separate atomic
-    // loads) is mandatory for nodes that can be mutated concurrently (shared generic eval
-    // nodes): a kind transition between the two reads would otherwise reinterpret a
-    // ConstantRef/TypeRef value as a PagedStore offset and index past the store's pages.
+    // Read symbols from one payload snapshot. On shared generic-evaluation nodes,
+    // separate kind and value reads can race with payload replacement, treating
+    // a ConstantRef or TypeRef as a PagedStore offset.
     struct ResolvedSymbols
     {
         std::span<const Symbol* const> symbols      = {};
@@ -94,15 +96,15 @@ public:
 
     NodePayload() = default;
     ~NodePayload();
+
     bool            hasResolvedCallArguments(AstNodeRef nodeRef) const;
     StoredView      viewStored(const TaskContext& ctx, AstNodeRef nodeRef) const;
     ResolvedSymbols resolveSymbols(AstNodeRef nodeRef) const;
 
-    // The value a node named before a conversion retyped or folded it in place. Both replace
-    // the symbol payload, but the source text still names the symbol, so whoever republishes
-    // that text (an exported function body) must still see the dependency. Only symbols that
-    // an export can hide, those not public or owned by a type, are remembered by default.
-    // Editor snapshots also retain public names and selected calls before folding/inlining.
+    // Retain the source symbol when conversion or folding replaces its payload,
+    // so exported bodies still expose dependencies named in the source. By default,
+    // keep symbols an export can hide (non-public or type-owned). Editor snapshots
+    // additionally retain public names and selected calls before folding/inlining.
     const Symbol* foldedSourceSymbol(AstNodeRef nodeRef) const;
     void          retainEditorSymbols() { retainEditorSymbols_ = true; }
 
@@ -118,10 +120,11 @@ protected:
     static uint32_t         payloadShard(const AstNode& node) { return (node.payloadBits() & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT; }
     static bool             hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
     static NodePayloadFlags payloadFlags(const AstNode& node) { return static_cast<NodePayloadFlags>(node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK); }
-    static void             setPayloadKind(AstNode& node, NodePayloadKind value);
-    static void             setPayloadShard(AstNode& node, uint32_t shard);
-    static void             addPayloadFlags(AstNode& node, NodePayloadFlags value);
-    static void             removePayloadFlags(AstNode& node, NodePayloadFlags value);
+
+    static void setPayloadKind(AstNode& node, NodePayloadKind value);
+    static void setPayloadShard(AstNode& node, uint32_t shard);
+    static void addPayloadFlags(AstNode& node, NodePayloadFlags value);
+    static void removePayloadFlags(AstNode& node, NodePayloadFlags value);
 
     const SymbolNamespace& moduleNamespace() const { return *(moduleNamespace_); }
     SymbolNamespace&       moduleNamespace() { return *(moduleNamespace_); }
@@ -140,17 +143,12 @@ protected:
     bool hasSubstitute(AstNodeRef nodeRef) const;
     void setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef);
 
-    /*
-    The node a reference now stands for, following whatever replaced it.
-
-    Every semantic view of a node starts here, so this is one of the most executed reads of the
-    whole pass, and a node that was never substituted — which is nearly all of them outside
-    generic evaluation — has to answer without a call. Only the replaced node walks its chain.
-
-    The kind comes out of one payload state read rather than a `payloadBits()` accessor because a
-    node shared by concurrent generic evaluation can change kind between two loads, and a second
-    read could then take a constant or a type reference for a store offset.
-    */
+    // Resolve substitutions while keeping the common unchanged-node path inline.
+    // Every semantic view uses this lookup; only substituted nodes walk the chain.
+    //
+    // Inspect kind from a single payload snapshot. Concurrent generic evaluation
+    // can replace the payload; a second read could misinterpret a constant/type
+    // reference as a store offset.
     AstNodeRef getSubstituteRef(AstNodeRef nodeRef) const
     {
         if (nodeRef.isInvalid())
@@ -187,26 +185,33 @@ protected:
     void copyResolvedCallArguments(AstNodeRef dstNodeRef, AstNodeRef srcNodeRef);
     void setResolvedCallArguments(AstNodeRef nodeRef, std::span<const ResolvedCallArgument> args);
     void appendResolvedCallArguments(AstNodeRef nodeRef, SmallVector<ResolvedCallArgument>& out) const;
+
     // Copy an existing argument under the shard lock; no view escapes payload replacement.
     ResolvedCallArgument getResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const;
+
     // Missing payloads and out-of-range indices yield no argument.
     std::optional<ResolvedCallArgument> tryGetResolvedCallArgument(AstNodeRef nodeRef, uint32_t index) const;
-    bool                                hasLoweringPayload(AstNodeRef nodeRef) const;
-    void                                setLoweringPayload(AstNodeRef nodeRef, void* payload);
-    void*                               getLoweringPayload(AstNodeRef nodeRef) const;
-    bool                                hasInlinePayload(AstNodeRef nodeRef) const;
-    void                                setInlinePayload(AstNodeRef nodeRef, void* payload);
-    void*                               getInlinePayload(AstNodeRef nodeRef) const;
-    bool                                hasInlineContextOverride(AstNodeRef nodeRef) const;
-    void                                setInlineContextOverride(AstNodeRef nodeRef, void* payload);
-    void*                               getInlineContextOverride(AstNodeRef nodeRef) const;
-    void                                getInlineContext(AstNodeRef nodeRef, void*& outPayload, void*& outOverride) const;
-    bool                                hasSemaPayload(AstNodeRef nodeRef) const;
-    void                                setSemaPayload(AstNodeRef nodeRef, void* payload);
-    void*                               getSemaPayload(AstNodeRef nodeRef) const;
-    void                                clearSemaPayload(AstNodeRef nodeRef);
-    void                                setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam);
-    const SymbolVariable*               getConstAssignSourceParameter(AstNodeRef nodeRef) const;
+
+    bool  hasLoweringPayload(AstNodeRef nodeRef) const;
+    void  setLoweringPayload(AstNodeRef nodeRef, void* payload);
+    void* getLoweringPayload(AstNodeRef nodeRef) const;
+
+    bool  hasInlinePayload(AstNodeRef nodeRef) const;
+    void  setInlinePayload(AstNodeRef nodeRef, void* payload);
+    void* getInlinePayload(AstNodeRef nodeRef) const;
+
+    bool  hasInlineContextOverride(AstNodeRef nodeRef) const;
+    void  setInlineContextOverride(AstNodeRef nodeRef, void* payload);
+    void* getInlineContextOverride(AstNodeRef nodeRef) const;
+    void  getInlineContext(AstNodeRef nodeRef, void*& outPayload, void*& outOverride) const;
+
+    bool  hasSemaPayload(AstNodeRef nodeRef) const;
+    void  setSemaPayload(AstNodeRef nodeRef, void* payload);
+    void* getSemaPayload(AstNodeRef nodeRef) const;
+    void  clearSemaPayload(AstNodeRef nodeRef);
+
+    void                  setConstAssignSourceParameter(AstNodeRef nodeRef, const SymbolVariable* sourceParam);
+    const SymbolVariable* getConstAssignSourceParameter(AstNodeRef nodeRef) const;
 
     static void propagatePayloadFlags(AstNode& nodeDst, const AstNode& nodeSrc, uint16_t mask, bool merge);
     static void inheritPayloadKindRef(AstNode& nodeDst, const AstNode& nodeSrc);
@@ -237,16 +242,19 @@ private:
     void                           recordImplicitPropagation(AstNodeRef nodeRef);
     void                           setSymbolListImpl(AstNodeRef nodeRef, std::span<const Symbol* const> symbols);
     static void                    updatePayloadFlags(AstNode& node, std::span<const Symbol*> symbols);
+
     static void                    storePayload(AstNode& node, uint16_t bits, uint32_t ref);
     static uint16_t                applySymbolPayloadFlags(uint16_t bits, std::span<const Symbol* const> symbols);
     PayloadInfo                    payloadInfo(const AstNode& node) const;
     std::span<const Symbol* const> symbolsFromInfo(const PayloadInfo& info) const;
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
-    SubstituteStorage*             substituteStorage(const AstNode& node);
-    const SubstituteStorage*       substituteStorage(const AstNode& node) const;
-    Shard*                         ensureShard(uint32_t shardIdx);
-    Shard*                         tryGetShard(uint32_t shardIdx);
-    const Shard*                   tryGetShard(uint32_t shardIdx) const;
+
+    SubstituteStorage*       substituteStorage(const AstNode& node);
+    const SubstituteStorage* substituteStorage(const AstNode& node) const;
+
+    Shard*       ensureShard(uint32_t shardIdx);
+    Shard*       tryGetShard(uint32_t shardIdx);
+    const Shard* tryGetShard(uint32_t shardIdx) const;
 
     Ast              ast_;
     SymbolNamespace* moduleNamespace_     = nullptr;
@@ -258,28 +266,28 @@ private:
 
     struct Shard
     {
-        mutable std::mutex                              storeMutex;
-        mutable std::shared_mutex                       loweringPayloadsMutex;
-        mutable std::shared_mutex                       inlinePayloadsMutex;
-        mutable std::shared_mutex                       inlineContextOverridesMutex;
-        mutable std::shared_mutex                       semaPayloadsMutex;
-        mutable std::shared_mutex                       constAssignSourceParametersMutex;
-        mutable std::shared_mutex                       foldedSourceSymbolsMutex;
-        mutable std::shared_mutex                       resolvedCallArgsMutex;
-        PagedStore                                      store;
-        RefPointerMap<AstNodeRef>                       loweringPayloads;
-        RefPointerMap<AstNodeRef>                       inlinePayloads;
-        RefPointerMap<AstNodeRef>                       inlineContextOverrides;
-        RefPointerMap<AstNodeRef>                       semaPayloads;
+        mutable std::mutex        storeMutex;
+        mutable std::shared_mutex loweringPayloadsMutex;
+        mutable std::shared_mutex inlinePayloadsMutex;
+        mutable std::shared_mutex inlineContextOverridesMutex;
+        mutable std::shared_mutex semaPayloadsMutex;
+        mutable std::shared_mutex constAssignSourceParametersMutex;
+        mutable std::shared_mutex foldedSourceSymbolsMutex;
+        mutable std::shared_mutex resolvedCallArgsMutex;
+
+        PagedStore store;
+
+        RefPointerMap<AstNodeRef> loweringPayloads;
+        RefPointerMap<AstNodeRef> inlinePayloads;
+        RefPointerMap<AstNodeRef> inlineContextOverrides;
+        RefPointerMap<AstNodeRef> semaPayloads;
+
         RefPointerMap<AstNodeRef, const SymbolVariable> constAssignSourceParameters;
         RefPointerMap<AstNodeRef, const Symbol>         foldedSourceSymbols;
 
-        // Each side table above is read on the hot path and written almost never: inlining,
-        // lowering, and const-assign tracking touch a handful of nodes out of the hundreds of
-        // thousands a module walks. Publishing the entry count lets a reader answer "nothing
-        // here" without taking the lock at all. A count is written inside the same critical
-        // section as the entry it describes, so a reader that could legitimately observe the
-        // entry observes the count too, and never answers "nothing" for one it had to find.
+        // Publish side-table counts so empty tables can be queried without locking.
+        // Update a count under its entry's lock: readers that must observe an entry
+        // must also observe the nonzero count.
         std::atomic<uint32_t> loweringPayloadsCount{0};
         std::atomic<uint32_t> inlinePayloadsCount{0};
         std::atomic<uint32_t> inlineContextOverridesCount{0};
@@ -288,9 +296,8 @@ private:
         std::atomic<uint32_t> foldedSourceSymbolsCount{0};
         std::atomic<uint32_t> resolvedCallArgsCount{0};
 
-        // Resolved call arguments are stored inline (not in `store`) so writing them only
-        // contends on `resolvedCallArgsMutex`, never on the hot `storeMutex` shared with the
-        // symbol/substitute payload writers.
+        // Store call arguments inline so writers need only resolvedCallArgsMutex,
+        // avoiding contention on the store shared with symbol/substitute payloads.
         std::unordered_map<AstNodeRef, SmallVector<ResolvedCallArgument, 4>> resolvedCallArgsByNode;
     };
 

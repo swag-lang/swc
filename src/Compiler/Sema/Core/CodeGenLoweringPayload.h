@@ -13,31 +13,39 @@ struct CodeGenLoweringPayload
 {
     TypeRef         runtimeArrayFillTypeRef = TypeRef::invalid();
     SymbolVariable* runtimeStorageSym       = nullptr;
-    // The storage this node registered itself. A cast that folds to a constant detaches it,
-    // and sema may run the node again after a pause: the next request reattaches this one
-    // instead of reserving another frame slot on every rerun.
-    SymbolVariable* registeredRuntimeStorageSym        = nullptr;
-    SymbolVariable* errBindingSym                      = nullptr; // 'catch e as err': the captured-error local
-    SymbolVariable* errOwnerSym                        = nullptr; // lexical owner of the captured error view
-    SymbolVariable* errHandlerOwnerSym                 = nullptr; // owner while a catch handler is active
-    SymbolFunction* runtimeFunctionSymbol              = nullptr;
-    ConstantRef     runtimeArrayFillCstRef             = ConstantRef::invalid();
-    uint16_t        runtimeSafetyMask                  = 0;
-    AstNodeRef      fallibleWrapperOwnerRef            = AstNodeRef::invalid();
-    TokenId         fallibleWrapperTokenId             = TokenId::Invalid;
-    int8_t          valueBorrowSafetyOverride          = -1; // Local override; otherwise use the function or inline body.
-    bool            ifVarDeclWhereUsesConditionBinding = false;
-    bool            notNullUnwrap                      = false;
-    // A UFCS receiver cast to a pointer parameter: the receiver's ADDRESS becomes the
-    // pointer value, never a numeric conversion of the receiver's bits.
+
+    // Reattach this node's original storage after a folded cast or a sema pause,
+    // avoiding a fresh frame slot on every rerun.
+    SymbolVariable* registeredRuntimeStorageSym = nullptr;
+
+    SymbolVariable* errBindingSym      = nullptr; // 'catch e as err': the captured-error local
+    SymbolVariable* errOwnerSym        = nullptr; // lexical owner of the captured error view
+    SymbolVariable* errHandlerOwnerSym = nullptr; // owner while a catch handler is active
+
+    SymbolFunction* runtimeFunctionSymbol  = nullptr;
+    ConstantRef     runtimeArrayFillCstRef = ConstantRef::invalid();
+
+    uint16_t runtimeSafetyMask = 0;
+
+    AstNodeRef fallibleWrapperOwnerRef = AstNodeRef::invalid();
+    TokenId    fallibleWrapperTokenId  = TokenId::Invalid;
+
+    int8_t valueBorrowSafetyOverride          = -1; // Local override; otherwise use the function or inline body.
+    bool   ifVarDeclWhereUsesConditionBinding = false;
+    bool   notNullUnwrap                      = false;
+
+    // A UFCS pointer parameter receives the receiver's address as its value;
+    // the receiver's bits are never converted numerically.
     bool ufcsReceiverAddress = false;
+
     bool dynamicCast         = false;
     bool assumedDynamicCast  = false;
     bool fallibleDynamicCast = false;
     bool runtimeTypeCast     = false;
     bool runtimeValueCast    = false;
-    bool moveValue           = false;
-    bool ownsValue           = false;
+
+    bool moveValue = false;
+    bool ownsValue = false;
 
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {

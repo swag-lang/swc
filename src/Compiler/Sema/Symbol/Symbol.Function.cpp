@@ -863,9 +863,8 @@ Utf8 SymbolFunction::resolveForeignFunctionName(const TaskContext& ctx) const
     if (!foreignFunctionName().empty())
         return Utf8{foreignFunctionName()};
 
-    // An entry of a generated module API links against the flattened public API name
-    // its exporter emitted, and both sides compute it the same way. A foreign function
-    // from a native library keeps the name it is declared with.
+    // Generated module APIs use the exporter's flattened name. Native-library
+    // functions keep their declared name.
     if (foreignModuleName().empty())
         return computePublicApiBaseSymbolName(ctx);
 
@@ -902,8 +901,10 @@ bool SymbolFunction::observesExternalBorrows() const noexcept
     const AttributeList* attrs = attributesIfAny();
     if (observesExternalBorrows_ || (attrs && attrs->observesExternalBorrows.value_or(false)))
         return true;
+
     if (isForeign())
         return !attrs || attrs->observesExternalBorrows.value_or(true);
+
     return !borrowEffectsComputed_;
 }
 
@@ -929,11 +930,13 @@ uint64_t SymbolFunction::storesIndirectIntoParamPairs() const noexcept
 {
     const AttributeList* attrs = attributesIfAny();
     uint64_t             pairs = storesIndirectIntoParamPairs_ | (attrs ? attrs->storesIndirectIntoParamPairs : 0);
+
     for (const PendingBorrowStore& store : pendingBorrowStores_)
     {
         if (store.indirect)
             pairs |= 1ULL << (store.intoIndex * 8 + store.storedIndex);
     }
+
     return pairs;
 }
 
@@ -947,6 +950,7 @@ uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
 {
     const AttributeList* attrs = attributesIfAny();
     uint64_t             pairs = storesIntoParamPairs_ | (attrs ? attrs->storesIntoParamPairs : 0);
+
     // Bodies synthesized outside ordinary function completion still expose the
     // conservative store until their retention proof has actually run.
     for (const PendingBorrowStore& store : pendingBorrowStores_)
@@ -954,6 +958,7 @@ uint64_t SymbolFunction::storesIntoParamPairs() const noexcept
         if (!store.indirect)
             pairs |= 1ULL << (store.intoIndex * 8 + store.storedIndex);
     }
+
     return pairs;
 }
 
@@ -1038,6 +1043,7 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
         return;
 
     localVariables_.push_back(sym);
+
     while (numComputedLocals_ < localVariables_.size())
     {
         SymbolVariable* local = localVariables_[numComputedLocals_];
@@ -1046,6 +1052,7 @@ void SymbolFunction::addLocalVariable(TaskContext& ctx, SymbolVariable* sym)
         const TypeRef typeRef = local->typeRef();
         if (!isLocalLayoutReady(ctx, typeRef))
             return;
+
         if (SemaHelpers::usesCallerReturnStorage(ctx, *this, *local))
         {
             local->setOffset(0);
@@ -1080,6 +1087,7 @@ void SymbolFunction::addCallDependency(const SymbolFunction* sym)
     const std::unique_lock lock(callDependenciesMutex_);
     if (!callDependencySet_.insert(mutableSym))
         return;
+
     // The epoch moves before the edge exists, both under the lock: a walk that read the old epoch
     // and then this list either misses the edge and is caught by the epoch, or holds it already.
     noteOwnCallGraphChanged();
@@ -1097,16 +1105,20 @@ void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym, const boo
 {
     if (!sym || sym == this)
         return;
+
     auto* const            mutableSym = const_cast<SymbolFunction*>(sym);
     const std::unique_lock lock(callDependenciesMutex_);
     if (!lifecycleDependencies_)
         lifecycleDependencies_ = std::make_unique<std::vector<SymbolFunction*>>();
+
     if (std::ranges::find(*lifecycleDependencies_, mutableSym) == lifecycleDependencies_->end())
         lifecycleDependencies_->push_back(mutableSym);
+
     if (observesEffects)
     {
         if (!lifecycleEffectDependencies_)
             lifecycleEffectDependencies_ = std::make_unique<std::vector<SymbolFunction*>>();
+
         if (std::ranges::find(*lifecycleEffectDependencies_, mutableSym) == lifecycleEffectDependencies_->end())
             lifecycleEffectDependencies_->push_back(mutableSym);
     }
@@ -1117,6 +1129,7 @@ void SymbolFunction::appendLifecycleDependencies(SmallVector<SymbolFunction*>& o
     const std::shared_lock lock(callDependenciesMutex_);
     if (!lifecycleDependencies_)
         return;
+
     out.append(lifecycleDependencies_->data(), lifecycleDependencies_->size());
 }
 
@@ -1216,8 +1229,10 @@ bool SymbolFunction::isGenericCompletionActive(const TaskContext& ctx) const noe
 bool SymbolFunction::tryStartGenericCompletion(const TaskContext& ctx) const noexcept
 {
     SWC_ASSERT(isGenericCompletionOwner(ctx));
+
     const auto* data = genericData();
     SWC_ASSERT(data != nullptr);
+
     const auto previousDepth = data->completionDepth.fetch_add(1, std::memory_order_acq_rel);
     if (previousDepth != 0)
     {
@@ -1232,6 +1247,7 @@ void SymbolFunction::finishGenericCompletion() const noexcept
 {
     const auto* data = genericData();
     SWC_ASSERT(data != nullptr);
+
     const auto previousDepth = data->completionDepth.fetch_sub(1, std::memory_order_acq_rel);
     SWC_ASSERT(previousDepth != 0);
 }
@@ -1268,6 +1284,7 @@ void SymbolFunction::setGenericInstance(const TaskContext& ctx, SymbolFunction* 
     if (root)
     {
         addExtraFlag(SymbolFunctionFlagsE::GenericInstance);
+
         auto& data   = ensureGenericData(ctx);
         data.rootSym = root;
         data.origin  = origin;
@@ -1275,6 +1292,7 @@ void SymbolFunction::setGenericInstance(const TaskContext& ctx, SymbolFunction* 
     else
     {
         removeExtraFlag(SymbolFunctionFlagsE::GenericInstance);
+
         if (auto* data = genericData())
             data->rootSym = nullptr;
     }
@@ -1284,6 +1302,7 @@ bool SymbolFunction::hasUnmaterializedGenericBody() const noexcept
 {
     if (isGenericRoot() && !isGenericInstance())
         return true;
+
     if (isGenericInstance())
         return false;
 
@@ -1322,6 +1341,7 @@ SymbolFunction* SymbolFunction::genericRootSym() noexcept
 {
     if (const auto* data = genericData())
         return data->rootSym;
+
     return nullptr;
 }
 
@@ -1329,6 +1349,7 @@ const SymbolFunction* SymbolFunction::genericRootSym() const noexcept
 {
     if (const auto* data = genericData())
         return data->rootSym;
+
     return nullptr;
 }
 
@@ -1340,6 +1361,7 @@ const SymbolImpl* SymbolFunction::declImplContext() const noexcept
     {
         if (symMap->isImpl())
             return &symMap->cast<SymbolImpl>();
+
         symMap = symMap->ownerSymMap();
     }
 
@@ -1393,8 +1415,10 @@ SymbolStruct* SymbolFunction::ownerStruct()
             const auto& symImpl = symMap->cast<SymbolImpl>();
             if (symImpl.isForStruct())
                 return symImpl.symStruct();
+
             return nullptr;
         }
+
         if (symMap->isStruct())
             return &symMap->cast<SymbolStruct>();
     }
@@ -1411,8 +1435,10 @@ const SymbolStruct* SymbolFunction::ownerStruct() const
             const auto& symImpl = symMap->cast<SymbolImpl>();
             if (symImpl.isForStruct())
                 return symImpl.symStruct();
+
             return nullptr;
         }
+
         if (symMap->isStruct())
             return &symMap->cast<SymbolStruct>();
     }

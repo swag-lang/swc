@@ -34,22 +34,21 @@ MicroReg CodeGenVectorHelpers::splatScalarLane(CodeGen& codeGen, MicroReg scalar
     const uint32_t laneBits = laneBitsOf(laneType);
     const MicroReg dstReg   = codeGen.nextVirtualFloatRegister();
 
-    // Floats already sit in lane zero of a float register: one four-lane
-    // permute broadcasts them.
+    // Floats already occupy lane zero; one shuffle broadcasts them.
     if (laneType.isFloat())
     {
         builder.emitVecShuffleRegRegImm(dstReg, scalarReg, laneBits == 32 ? 0x00 : 0x44, MicroOpBits::B128);
         return dstReg;
     }
 
-    // Narrow integers are repeated into one 32-bit scalar before movd. Keeping
-    // the replication in the integer register file avoids depending on a chain
-    // of self-interleaves whose first result can be coalesced away.
+    // Replicate narrow integers into 32 scalar bits before movd. This avoids
+    // a self-interleave chain whose first result can be coalesced away.
     MicroReg packedScalarReg = scalarReg;
     if (laneBits == 8 || laneBits == 16)
     {
         packedScalarReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegReg(packedScalarReg, scalarReg, MicroOpBits::B32);
+
         const uint64_t laneMask   = laneBits == 8 ? 0xFF : 0xFFFF;
         const uint64_t multiplier = laneBits == 8 ? 0x01010101 : 0x00010001;
         builder.emitOpBinaryRegImm(packedScalarReg, ApInt(laneMask, 64), MicroOp::And, MicroOpBits::B32);
@@ -87,8 +86,7 @@ MicroReg CodeGenVectorHelpers::loadVectorConstant(CodeGen& codeGen, TypeRef type
 
 MicroReg CodeGenVectorHelpers::allOnes(CodeGen& codeGen, MicroReg anyVecReg)
 {
-    // A bitwise self-equality holds in every lane whatever the register
-    // carries, NaN payloads included.
+    // Bitwise self-equality fills every lane, including those carrying NaN bits.
     const MicroReg resultReg = codeGen.nextVirtualFloatRegister();
     codeGen.builder().emitOpBinaryRegRegReg(resultReg, anyVecReg, anyVecReg, MicroOp::VecCmpEq32, MicroOpBits::B128);
     return resultReg;
@@ -132,6 +130,7 @@ MicroOp CodeGenVectorHelpers::binaryMicroOpForLane(TokenId tokId, const TypeInfo
                 case 32: return MicroOp::VecAdd32;
                 default: return MicroOp::VecAdd64;
             }
+
         case TokenId::SymMinus:
             switch (laneBits)
             {
@@ -140,6 +139,7 @@ MicroOp CodeGenVectorHelpers::binaryMicroOpForLane(TokenId tokId, const TypeInfo
                 case 32: return MicroOp::VecSub32;
                 default: return MicroOp::VecSub64;
             }
+
         case TokenId::SymAsterisk:
             return laneBits == 16 ? MicroOp::VecMul16 : MicroOp::VecMul32;
         case TokenId::SymAmpersand:
@@ -185,6 +185,7 @@ MicroReg CodeGenVectorHelpers::emitDecomposedMultiply(CodeGen& codeGen, MicroReg
         const MicroReg onesReg     = allOnes(codeGen, leftReg);
         const MicroReg byteMaskReg = codeGen.nextVirtualFloatRegister();
         builder.emitOpBinaryRegRegImm(byteMaskReg, onesReg, ApInt(8, 8), MicroOp::VecShiftRight16, MicroOpBits::B128);
+
         const MicroReg maskedLowReg  = codeGen.nextVirtualFloatRegister();
         const MicroReg maskedHighReg = codeGen.nextVirtualFloatRegister();
         builder.emitOpBinaryRegRegReg(maskedLowReg, lowProductReg, byteMaskReg, MicroOp::VecAnd, MicroOpBits::B128);
@@ -211,6 +212,7 @@ MicroReg CodeGenVectorHelpers::emitDecomposedMultiply(CodeGen& codeGen, MicroReg
 
     const MicroReg crossSumReg = codeGen.nextVirtualFloatRegister();
     builder.emitOpBinaryRegRegReg(crossSumReg, cross1Reg, cross2Reg, MicroOp::VecAdd64, MicroOpBits::B128);
+
     const MicroReg shiftedCrossReg = codeGen.nextVirtualFloatRegister();
     builder.emitOpBinaryRegRegImm(shiftedCrossReg, crossSumReg, ApInt(32, 8), MicroOp::VecShiftLeft64, MicroOpBits::B128);
 
@@ -228,9 +230,8 @@ MicroReg CodeGenVectorHelpers::emitVariableShift(CodeGen& codeGen, TokenId tokId
 
     if (laneBits == 8)
     {
-        // Widen each byte half to words, shift there, then narrow the halves
-        // back together. Left shifts mask to eight bits before the saturating
-        // pack so they preserve wrapping shift semantics.
+        // Shift byte halves as words, then pack them back. Mask left-shift results
+        // to eight bits before packing to preserve wrapping semantics.
         const bool    arithmeticRight = !shiftLeft && laneType.isIntSigned();
         const MicroOp widenOp         = arithmeticRight ? MicroOp::VecWidenLoS8 : MicroOp::VecWidenLoU8;
         const MicroOp shiftOp         = shiftLeft ? MicroOp::VecShiftLeftV16 : arithmeticRight ? MicroOp::VecShiftRightAV16
@@ -270,9 +271,8 @@ MicroReg CodeGenVectorHelpers::emitVariableShift(CodeGen& codeGen, TokenId tokId
 
     if (!shiftLeft && laneBits == 64 && laneType.isIntSigned())
     {
-        // Arithmetic right shift is a logical shift plus the high sign fill.
-        // Shifting an all-ones vector also makes counts >= 64 naturally select
-        // a complete sign fill, as required by the language.
+        // Add sign fill to a logical shift. Shifting all-ones also gives complete
+        // sign fill for counts >= 64, as required by the language.
         const MicroReg logicalReg = codeGen.nextVirtualFloatRegister();
         builder.emitOpBinaryRegRegReg(logicalReg, valueReg, countVecReg, MicroOp::VecShiftRightV64, MicroOpBits::B128);
 
@@ -283,6 +283,7 @@ MicroReg CodeGenVectorHelpers::emitVariableShift(CodeGen& codeGen, TokenId tokId
         const MicroReg onesReg      = allOnes(codeGen, valueReg);
         const MicroReg preservedReg = codeGen.nextVirtualFloatRegister();
         builder.emitOpBinaryRegRegReg(preservedReg, onesReg, countVecReg, MicroOp::VecShiftRightV64, MicroOpBits::B128);
+
         const MicroReg fillReg = codeGen.nextVirtualFloatRegister();
         builder.emitOpBinaryRegRegReg(fillReg, preservedReg, signReg, MicroOp::VecAndNot, MicroOpBits::B128);
 
@@ -403,10 +404,12 @@ MicroReg CodeGenVectorHelpers::emitCompare(CodeGen& codeGen, TokenId tokId, Micr
 
         const TypeRef  biasTypeRef = codeGen.typeMgr().addType(TypeInfo::makeSimd(laneType.typeRef(), 16 / laneBytes));
         const MicroReg biasReg     = loadVectorConstant(codeGen, biasTypeRef, {bias.data(), bias.size()});
-        const MicroReg biasedLhs   = codeGen.nextVirtualFloatRegister();
-        const MicroReg biasedRhs   = codeGen.nextVirtualFloatRegister();
+
+        const MicroReg biasedLhs = codeGen.nextVirtualFloatRegister();
+        const MicroReg biasedRhs = codeGen.nextVirtualFloatRegister();
         builder.emitOpBinaryRegRegReg(biasedLhs, leftReg, biasReg, MicroOp::VecXor, MicroOpBits::B128);
         builder.emitOpBinaryRegRegReg(biasedRhs, rightReg, biasReg, MicroOp::VecXor, MicroOpBits::B128);
+
         lhs = biasedLhs;
         rhs = biasedRhs;
     }
@@ -435,9 +438,8 @@ MicroReg CodeGenVectorHelpers::emitCompare(CodeGen& codeGen, TokenId tokId, Micr
 
 namespace
 {
-    // A 16-byte constant repeating one little-endian pattern every
-    // 'patternBytes'. The lane masks and the small tables below all have this
-    // shape, and the constant segment holds one copy per distinct pattern.
+    // Repeat a little-endian pattern across 16 bytes. The constant segment
+    // deduplicates the lane masks and small tables that share each pattern.
     MicroReg repeatedConstant(CodeGen& codeGen, uint32_t patternBytes, uint64_t pattern)
     {
         SWC_ASSERT(patternBytes == 1 || patternBytes == 2 || patternBytes == 4 || patternBytes == 8);
@@ -459,8 +461,6 @@ namespace
         return CodeGenVectorHelpers::loadVectorConstant(codeGen, vecTypeRef, {bytes.data(), bytes.size()});
     }
 
-    // A 16-byte constant naming one source byte per result byte, for the
-    // dynamic byte permute.
     MicroReg byteTableConstant(CodeGen& codeGen, const std::array<uint8_t, 16>& tableBytes)
     {
         const TypeRef vecTypeRef = codeGen.typeMgr().addType(TypeInfo::makeSimd(codeGen.typeMgr().typeU8(), 16));
@@ -481,8 +481,7 @@ namespace
         return resultReg;
     }
 
-    // Population count of every byte, the nibble-table sequence every packed
-    // popcount is built on.
+    // Packed popcounts start with a lookup for each low and high nibble.
     MicroReg emitBytePopCount(CodeGen& codeGen, MicroReg valueReg)
     {
         constexpr std::array<uint8_t, 16> NibbleCounts = {0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4};
@@ -490,8 +489,7 @@ namespace
         const MicroReg tableReg   = byteTableConstant(codeGen, NibbleCounts);
         const MicroReg lowMaskReg = repeatedConstant(codeGen, 1, 0x0F);
 
-        // The word shift drags four bits of the neighbouring byte in; the low
-        // nibble mask is exactly what drops them again.
+        // Mask off the neighbouring byte's bits dragged in by the word shift.
         const MicroReg lowReg     = emitVecBinary(codeGen, valueReg, lowMaskReg, MicroOp::VecAnd);
         const MicroReg shiftedReg = emitVecBinaryImm(codeGen, valueReg, 4, MicroOp::VecShiftRight16);
         const MicroReg highReg    = emitVecBinary(codeGen, shiftedReg, lowMaskReg, MicroOp::VecAnd);
@@ -545,23 +543,24 @@ MicroReg CodeGenVectorHelpers::emitConstantShift(CodeGen& codeGen, TokenId tokId
     const SemaNodeView countView = codeGen.viewConstant(countOperandRef);
     if (!countView.hasConstant())
         return MicroReg::invalid();
+
     const ConstantValue& countConst = *countView.cst();
     if (!countConst.isInt())
         return MicroReg::invalid();
 
-    // A count of zero or one at or above the lane width keeps the vector
-    // register form, which is where the language defines those cases.
+    // Keep zero and out-of-range counts on the vector-register path, which
+    // implements their language-defined behavior.
     const ApsInt&  amount   = countConst.getInt();
     const uint32_t laneBits = laneBitsOf(laneType);
     if (amount.isNegative() || !amount.fits64() || amount.as64() == 0 || amount.as64() >= laneBits)
         return MicroReg::invalid();
+
     const auto count = static_cast<uint32_t>(amount.as64());
 
     if (shiftLeft || !laneType.isIntSigned())
         return emitLaneShiftImm(codeGen, valueReg, laneType, count, shiftLeft);
 
-    // The arithmetic right shift has an immediate form for word and dword
-    // lanes only.
+    // Only word and dword lanes have an immediate arithmetic right shift.
     switch (laneBits)
     {
         case 16: return emitVecBinaryImm(codeGen, valueReg, count, MicroOp::VecShiftRightA16);
@@ -577,8 +576,7 @@ MicroReg CodeGenVectorHelpers::emitRotateImm(CodeGen& codeGen, MicroReg valueReg
     const uint32_t leftCount = rotateLeft ? reduced : (laneBits - reduced) % laneBits;
     if (!leftCount)
     {
-        // A rotation by zero still owns a register of its own: the caller
-        // publishes it as the result of the expression.
+        // Even a zero rotation publishes a result register separate from the input.
         const MicroReg copyReg = codeGen.nextVirtualFloatRegister();
         codeGen.builder().emitLoadRegReg(copyReg, valueReg, MicroOpBits::B128);
         return copyReg;
@@ -601,14 +599,16 @@ MicroReg CodeGenVectorHelpers::emitRotateImm(CodeGen& codeGen, MicroReg valueReg
 
     if (leftCount % 8 == 0)
     {
-        const uint32_t          laneBytes  = laneBits / 8;
-        const uint32_t          shiftBytes = leftCount / 8;
+        const uint32_t laneBytes  = laneBits / 8;
+        const uint32_t shiftBytes = leftCount / 8;
+
         std::array<uint8_t, 16> indices{};
         for (uint32_t index = 0; index < 16; ++index)
         {
             const uint32_t lane = index / laneBytes;
             indices[index]      = static_cast<uint8_t>(lane * laneBytes + (index % laneBytes + laneBytes - shiftBytes) % laneBytes);
         }
+
         return emitVecBinary(codeGen, valueReg, byteTableConstant(codeGen, indices), MicroOp::VecPermB);
     }
 
@@ -678,9 +678,8 @@ MicroReg CodeGenVectorHelpers::emitCountTrailingZeros(CodeGen& codeGen, MicroReg
                                                              : laneBits == 32   ? MicroOp::VecSub32
                                                                                 : MicroOp::VecSub64;
 
-    // popcount((x & -x) - 1) counts the zeros below the lowest set bit, and an
-    // empty lane borrows to all-ones, which is the lane width the language
-    // asks for.
+    // popcount((x & -x) - 1) counts bits below the lowest set bit. For zero,
+    // subtraction yields all-ones and therefore the full lane width.
     const MicroReg zeroReg    = emitVecBinary(codeGen, valueReg, valueReg, MicroOp::VecXor);
     const MicroReg negatedReg = emitVecBinary(codeGen, zeroReg, valueReg, subOp);
     const MicroReg lowestReg  = emitVecBinary(codeGen, valueReg, negatedReg, MicroOp::VecAnd);
@@ -738,9 +737,8 @@ MicroReg CodeGenVectorHelpers::emitMinMax(CodeGen& codeGen, MicroReg leftReg, Mi
 
     if (!laneType.isFloat() && laneBits == 64)
     {
-        // Build packed 64-bit integer min/max from a comparison mask and byte blend.
-        // The blend keeps its destination where the mask is clear, so copy right
-        // there before selecting left where the mask is set.
+        // Build 64-bit integer min/max with a comparison mask and byte blend.
+        // Seed the destination with right; set mask bytes select left.
         const TokenId  cmpTokId = wantMin ? TokenId::SymLess : TokenId::SymGreater;
         const MicroReg maskReg  = emitCompare(codeGen, cmpTokId, leftReg, rightReg, laneType);
         const MicroReg dstReg   = codeGen.nextVirtualFloatRegister();
@@ -769,10 +767,8 @@ MicroReg CodeGenVectorHelpers::emitLaneReduction(CodeGen& codeGen, MicroReg valu
     MicroBuilder&  builder   = codeGen.builder();
     const uint32_t laneBytes = laneBitsOf(laneType) / 8;
 
-    // Fold the vector in half at every step: the byte shift brings the upper
-    // half down over the lower one, and a single element-wise operation
-    // combines them, so the whole reduction stays in the register file and the
-    // combining order is a balanced tree over the lane index.
+    // Fold upper halves into lower halves with byte shifts and lane operations.
+    // This keeps the balanced reduction tree entirely in registers.
     MicroReg accReg = valueReg;
     for (uint32_t distance = 8; distance >= laneBytes; distance /= 2)
     {
@@ -812,9 +808,8 @@ MicroReg CodeGenVectorHelpers::emitExtractLaneZero(CodeGen& codeGen, MicroReg ve
     const uint32_t laneBits = laneBitsOf(laneType);
     const bool     isSigned = laneType.isIntSigned();
 
-    // A narrow lane widens inside the register file first: the move out of the
-    // float file reads 32 bits, and the lanes above the first would otherwise
-    // ride along.
+    // The move out of the float register file reads 32 bits. Widen narrower
+    // lanes first so bits from neighbouring lanes cannot ride along.
     MicroReg srcReg = vectorReg;
     if (laneBits == 8)
     {
@@ -861,8 +856,6 @@ MicroReg CodeGenVectorHelpers::emitSumAbsoluteDifferences(CodeGen& codeGen, Micr
 
 namespace
 {
-    // The byte a lane index turns into: lane 'index' of a vector starts at
-    // 'index * laneBytes', and the bytes of a lane follow in order.
     void fillLaneByteTable(std::array<uint8_t, 16>& outTable, std::span<const uint8_t> laneIndices, uint32_t laneBytes)
     {
         for (uint32_t lane = 0; lane < laneIndices.size(); ++lane)
@@ -872,8 +865,7 @@ namespace
         }
     }
 
-    // True when a byte table is exactly a permutation of 32-bit lanes, which
-    // one immediate 'pshufd' performs.
+    // One pshufd suffices when the byte table permutes whole 32-bit lanes.
     bool tryFourLaneControl(std::span<const uint8_t> table, uint8_t& outControl)
     {
         uint8_t control = 0;
@@ -882,6 +874,7 @@ namespace
             const uint32_t first = table[lane * 4];
             if (first % 4 != 0 || first >= 16)
                 return false;
+
             for (uint32_t byteIndex = 1; byteIndex < 4; ++byteIndex)
             {
                 if (table[lane * 4 + byteIndex] != first + byteIndex)
@@ -895,9 +888,8 @@ namespace
         return true;
     }
 
-    // Expands a runtime vector of lane indices into the byte table the dynamic
-    // permute reads: mask the index into range, scale it to bytes, spread each
-    // lane's low byte over the lane, and number the bytes inside it.
+    // Map lane indices to source bytes: mask to range, scale by lane size,
+    // spread each lane's low byte, then add its internal byte offsets.
     MicroReg emitLaneIndexByteTable(CodeGen& codeGen, MicroReg patternReg, const TypeInfo& laneType, uint32_t laneCountMask)
     {
         const uint32_t laneBytes = laneBitsOf(laneType) / 8;
@@ -921,9 +913,8 @@ namespace
         return emitVecBinary(codeGen, spreadReg, byteTableConstant(codeGen, offsets), MicroOp::VecAdd8);
     }
 
-    // Selects bytes out of two vectors through one runtime byte table: an index
-    // below sixteen reads the first vector, one below thirty-two the second,
-    // and anything above answers zero.
+    // Select from the first vector for indices < 16 and the second for < 32.
+    // Larger indices produce zero.
     MicroReg emitTwoSourceByteSelect(CodeGen& codeGen, MicroReg firstReg, MicroReg secondReg, MicroReg tableReg, const TypeInfo& byteLaneType)
     {
         const MicroReg signBitReg = repeatedConstant(codeGen, 1, 0x80);
@@ -933,7 +924,8 @@ namespace
         const MicroReg fromSecondReg = CodeGenVectorHelpers::emitCompare(codeGen, TokenId::SymGreater, tableReg, lowLimit, byteLaneType);
         const MicroReg outOfRangeReg = CodeGenVectorHelpers::emitCompare(codeGen, TokenId::SymGreater, tableReg, highLimit, byteLaneType);
 
-        const MicroReg firstTableReg    = emitVecBinary(codeGen, tableReg, emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAnd), MicroOp::VecOr);
+        const MicroReg firstTableReg = emitVecBinary(codeGen, tableReg, emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAnd), MicroOp::VecOr);
+
         const MicroReg loweredReg       = emitVecBinary(codeGen, tableReg, repeatedConstant(codeGen, 1, 16), MicroOp::VecSub8);
         const MicroReg fromFirstReg     = emitVecBinary(codeGen, fromSecondReg, signBitReg, MicroOp::VecAndNot);
         const MicroReg outOfRangeBitReg = emitVecBinary(codeGen, outOfRangeReg, signBitReg, MicroOp::VecAnd);
@@ -976,8 +968,7 @@ MicroReg CodeGenVectorHelpers::emitConstantShuffle2(CodeGen& codeGen, MicroReg f
     const uint32_t laneBytes = laneBitsOf(laneType) / 8;
     const uint32_t laneCount = 16 / laneBytes;
 
-    // A pattern that never crosses into the other vector is a one-source
-    // permutation, and the second source never has to be read.
+    // A pattern confined to one source needs only that source's permutation.
     bool usesFirst  = false;
     bool usesSecond = false;
     for (uint32_t lane = 0; lane < laneCount; ++lane)
@@ -997,8 +988,7 @@ MicroReg CodeGenVectorHelpers::emitConstantShuffle2(CodeGen& codeGen, MicroReg f
     if (!usesFirst)
         return emitConstantShuffle(codeGen, secondReg, laneType, {lowered.data(), laneCount});
 
-    // Four 32-bit lanes taking their low half from one vector and their high
-    // half from the other is exactly what 'shufps' does.
+    // shufps fills the result's low half from the first source and high half from the second.
     if (laneBytes == 4 && laneIndices[0] < 4 && laneIndices[1] < 4 && laneIndices[2] >= 4 && laneIndices[3] >= 4)
     {
         const uint8_t  control = static_cast<uint8_t>(laneIndices[0] | (laneIndices[1] << 2) | ((laneIndices[2] - 4) << 4) | ((laneIndices[3] - 4) << 6));
@@ -1051,8 +1041,7 @@ MicroReg CodeGenVectorHelpers::emitConstantAlign(CodeGen& codeGen, MicroReg lowR
         return zeroReg;
     }
 
-    // 'palignr' concatenates its first source above its second and slides the
-    // window down, which is the whole operation.
+    // palignr places the first source above the second and slides the window down.
     const MicroReg dstReg = codeGen.nextVirtualFloatRegister();
     builder.emitOpTernaryRegRegRegImm(dstReg, highReg, lowReg, static_cast<uint8_t>(count), MicroOp::VecAlignR, MicroOpBits::B128);
     return dstReg;
@@ -1060,9 +1049,8 @@ MicroReg CodeGenVectorHelpers::emitConstantAlign(CodeGen& codeGen, MicroReg lowR
 
 MicroReg CodeGenVectorHelpers::emitDynamicAlign(CodeGen& codeGen, MicroReg lowReg, MicroReg highReg, MicroReg countReg, const TypeInfo& byteLaneType)
 {
-    // The window starts at 'count' and numbers sixteen bytes from there. The
-    // saturating add keeps a large count out of range instead of wrapping it
-    // back into the window.
+    // Number 16 bytes starting at count. Saturating addition keeps large counts
+    // out of range instead of wrapping them back into the window.
     const MicroReg countVecReg = splatScalarLane(codeGen, countReg, byteLaneType);
 
     std::array<uint8_t, 16> offsets{};
@@ -1075,10 +1063,8 @@ MicroReg CodeGenVectorHelpers::emitDynamicAlign(CodeGen& codeGen, MicroReg lowRe
 
 namespace
 {
-    // The high byte of an 8-bit lane product. Both halves widen to 16-bit
-    // lanes, where the product is exact, and the byte above the low one comes
-    // back down; the shifted lanes never exceed 255, so the pack that rejoins
-    // them cannot saturate.
+    // Widen both byte halves to exact 16-bit products, then retain their high
+    // bytes. Those shifted lanes fit in 0..255, so packing cannot saturate.
     MicroReg emitMultiplyHigh8(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, bool isSigned)
     {
         MicroBuilder& builder = codeGen.builder();
@@ -1098,19 +1084,20 @@ namespace
 
         const MicroReg lowProductReg  = emitVecBinary(codeGen, leftLowWideReg, rightLowWideReg, MicroOp::VecMul16);
         const MicroReg highProductReg = emitVecBinary(codeGen, leftHighWideReg, rightHighWideReg, MicroOp::VecMul16);
+
         const MicroReg lowShiftedReg  = emitVecBinaryImm(codeGen, lowProductReg, 8, MicroOp::VecShiftRight16);
         const MicroReg highShiftedReg = emitVecBinaryImm(codeGen, highProductReg, 8, MicroOp::VecShiftRight16);
         return emitVecBinary(codeGen, lowShiftedReg, highShiftedReg, MicroOp::VecPackUS16);
     }
 
-    // The high half of a 32-bit lane product. The widening products answer the
-    // full 64 bits of the even lanes only, so the odd lanes take a second
-    // product on the shifted operands, and the four high halves - all sitting
-    // in odd 32-bit lanes - gather and return to the order they came from.
+    // Widening multiplication covers even lanes only; shift operands for the
+    // odd products. Their high halves occupy odd 32-bit lanes, so gather and
+    // reorder those halves to restore the original lane order.
     MicroReg emitMultiplyHigh32(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, bool isSigned)
     {
-        MicroBuilder&  builder     = codeGen.builder();
-        const MicroOp  wideOp      = isSigned ? MicroOp::VecMulS32Wide : MicroOp::VecMulU32Wide;
+        MicroBuilder& builder = codeGen.builder();
+        const MicroOp wideOp  = isSigned ? MicroOp::VecMulS32Wide : MicroOp::VecMulU32Wide;
+
         const MicroReg evenReg     = emitVecBinary(codeGen, leftReg, rightReg, wideOp);
         const MicroReg leftOddReg  = emitVecBinaryImm(codeGen, leftReg, 32, MicroOp::VecShiftRight64);
         const MicroReg rightOddReg = emitVecBinaryImm(codeGen, rightReg, 32, MicroOp::VecShiftRight64);
@@ -1124,9 +1111,8 @@ namespace
         return resultReg;
     }
 
-    // The high 64 bits of a 64-bit lane product, assembled from the four
-    // 32x32 partial products. The middle column is summed on its own because
-    // its carry out of bit 63 belongs to the result.
+    // Assemble high 64-bit products from four 32x32 partial products. Sum the
+    // middle column separately to preserve its carry out of bit 63.
     MicroReg emitMultiplyHigh64(CodeGen& codeGen, MicroReg leftReg, MicroReg rightReg, bool isSigned)
     {
         const MicroReg leftHighReg  = emitVecBinaryImm(codeGen, leftReg, 32, MicroOp::VecShiftRight64);
@@ -1156,14 +1142,14 @@ namespace
         if (!isSigned)
             return resultReg;
 
-        // Read as unsigned, a negative operand carries an extra 2^64 that
-        // multiplies the other operand into the high half, so each negative
-        // operand subtracts the other one back out.
+        // Unsigned interpretation adds 2^64 to each negative operand. Correct the
+        // high half by subtracting the other operand for each negative input.
         const MicroReg zeroReg      = emitVecBinary(codeGen, leftReg, leftReg, MicroOp::VecXor);
         const MicroReg leftSignReg  = emitVecBinary(codeGen, zeroReg, leftReg, MicroOp::VecCmpGtS64);
         const MicroReg rightSignReg = emitVecBinary(codeGen, zeroReg, rightReg, MicroOp::VecCmpGtS64);
-        resultReg                   = emitVecBinary(codeGen, resultReg, emitVecBinary(codeGen, leftSignReg, rightReg, MicroOp::VecAnd), MicroOp::VecSub64);
-        resultReg                   = emitVecBinary(codeGen, resultReg, emitVecBinary(codeGen, rightSignReg, leftReg, MicroOp::VecAnd), MicroOp::VecSub64);
+
+        resultReg = emitVecBinary(codeGen, resultReg, emitVecBinary(codeGen, leftSignReg, rightReg, MicroOp::VecAnd), MicroOp::VecSub64);
+        resultReg = emitVecBinary(codeGen, resultReg, emitVecBinary(codeGen, rightSignReg, leftReg, MicroOp::VecAnd), MicroOp::VecSub64);
         return resultReg;
     }
 }

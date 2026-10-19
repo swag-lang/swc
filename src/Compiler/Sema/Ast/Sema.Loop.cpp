@@ -433,8 +433,10 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         TypeRef            valueTypeRef      = TypeRef::invalid();
         TypeRef            indexTypeRef      = TypeRef::invalid();
         bool               bindsValueAddress = false;
-        auto&              pl                = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
+
+        auto& pl = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
         SWC_RESULT(foreachElementTypes(sema, *this, exprView, valueTypeRef, indexTypeRef, bindsValueAddress));
+
         pl.indexTypeRef = indexTypeRef;
         if (bindsValueAddress)
             sema.node(sema.curNodeRef()).cast<AstForeachStmt>().addFlag(AstForeachStmtFlagsE::BindsValueAddress);
@@ -444,6 +446,7 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         const SymbolVariable* iterationRoot = SemaEscape::iterationSourceRoot(sema, nodeExprRef);
         pushLoopFrame(sema, sema.curNodeRef(), iterationRoot, nodeExprRef, nodeBodyRef);
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+
         SmallVector<Symbol*> symbols;
         symbols.reserve(4);
         SWC_RESULT(appendForeachAliasSymbols(sema, symbols, pl, *this, valueTypeRef, indexTypeRef));
@@ -455,10 +458,8 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
             auto& valueVar = symbols.front()->cast<SymbolVariable>();
             if (hasFlag(AstForeachStmtFlagsE::ByAddress) || bindsValueAddress || sema.typeMgr().get(valueVar.typeRef()).isReference())
             {
-                // The alias is an immutable binding: reassigning the slot would silently
-                // retarget the alias rather than write the element, exactly what the
-                // 'let' rule exists to refuse. Element writes go through '[]'. The
-                // custom-visit path already behaves this way ('#inject' let aliases).
+                // Keep the address alias immutable: assigning its slot would retarget
+                // it instead of modifying an element. Use [] for element writes.
                 valueVar.addExtraFlag(SymbolVariableFlagsE::Let);
                 SemaEscape::bindForeachAddressAlias(sema, valueVar, nodeExprRef);
             }
@@ -497,12 +498,9 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
         {
             sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef()).usesCustomVisit = true;
 
-            // A '#[Macro] opVisit' expands the user loop body inside its own iteration.
-            // The native path pushes the iteration borrow in 'pushLoopFrame', but a custom
-            // visit skips the body children here: register the borrow on a frame that stays
-            // live through this node's postNode (where the macro is expanded and the
-            // injected body analyzed) and is popped by the framework afterwards - no manual
-            // restore, and safe on error unwinding.
+            // Custom opVisit skips these children and expands the body in postNode.
+            // Keep the iteration borrow on a frame that survives through expansion;
+            // the normal frame pop also handles errors.
             const SymbolVariable* iterationRoot = SemaEscape::iterationSourceRoot(sema, nodeExprRef);
             if (iterationRoot)
             {
@@ -510,6 +508,7 @@ Result AstForeachStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
                 frame.pushIterationBorrow({iterationRoot, nodeExprRef, nodeBodyRef});
                 sema.pushFramePopOnPostNode(std::move(frame));
             }
+
             return Result::Continue;
         }
 
@@ -557,13 +556,14 @@ Result AstForeachStmt::semaPostNode(Sema& sema) const
     SWC_RESULT(SemaSpecOp::tryResolveVisit(sema, *this, visitFn, handled));
     SWC_ASSERT(handled);
     SWC_ASSERT(visitFn != nullptr);
+
     sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef()).visitFn = visitFn;
+
     return Result::Continue;
 }
 
 Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    // Body has its own local scope.
     if (childRef == nodeWhereRef || (childRef == nodeBodyRef && nodeWhereRef.isInvalid()))
     {
         TypeRef indexTypeRef = TypeRef::invalid();
@@ -572,7 +572,6 @@ Result AstForStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) cons
         pushLoopFrame(sema, sema.curNodeRef());
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
 
-        // Create a variable
         const TokenRef tokNameRef = forStmtNameRef(sema, *this);
         if (tokNameRef.isValid())
         {
@@ -607,7 +606,8 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
             SWC_RESULT(sema.waitSemaCompleted(symEnum, view.node()->codeRef()));
 
-            auto& payload        = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
+            auto& payload = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
+
             payload.indexTypeRef = sema.typeMgr().typeU64();
             payload.countCstRef  = sema.cstMgr().addInt(sema.ctx(), symEnum->countSymbols(SymbolKind::EnumValue));
         }
@@ -626,7 +626,9 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
             {
                 SemaHelpers::CountOfResultInfo countResult;
                 SWC_RESULT(SemaHelpers::resolveCountOfResult(sema, countResult, nodeExprRef));
-                auto& payload        = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
+
+                auto& payload = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
+
                 payload.indexTypeRef = countResult.typeRef;
                 payload.countCstRef  = countResult.cstRef;
                 payload.countFn      = countResult.calledFn;
@@ -648,12 +650,14 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
                 auto diag = SemaError::report(sema, DiagnosticId::sema_err_invalid_countof_type, view.nodeRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
             else
             {
                 const auto& rangeExpr = sema.node(nodeExprRef).cast<AstRangeExpr>();
                 auto&       payload   = sema.ensureSemaPayload<LoopSemaPayload>(sema.curNodeRef());
+
                 payload.isRangeLoop   = true;
                 payload.indexTypeRef  = view.typeRef();
                 payload.inclusive     = rangeExpr.hasFlag(AstRangeExprFlagsE::Inclusive);
@@ -677,7 +681,6 @@ Result AstForStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) con
 
 Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    // Body has its own local scope.
     if (childRef == nodeBodyRef)
     {
         SemaFrame frame = sema.frame();
@@ -686,6 +689,7 @@ Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
         // The condition re-establishes its narrowing facts at each iteration, but facts
         // coming from outside the loop must not survive a body that reassigns their root.
         SemaHelpers::killNarrowFactsForLoopBody(sema, nodeBodyRef, frame);
+
         SemaHelpers::NarrowGuards guards;
         SemaHelpers::collectNarrowGuards(sema, nodeExprRef, guards);
         SemaHelpers::addNarrowFacts(frame, {guards.whenTrue.data(), guards.whenTrue.size()});
@@ -700,12 +704,12 @@ Result AstWhileStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 
 Result AstInfiniteLoopStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    // Body has its own local scope.
     if (childRef == nodeBodyRef)
     {
         SemaFrame frame = sema.frame();
         frame.setCurrentBreakContent(sema.curNodeRef(), SemaFrame::BreakContextKind::Loop);
         SemaHelpers::killNarrowFactsForLoopBody(sema, nodeBodyRef, frame);
+
         sema.pushFramePopOnPostChild(std::move(frame), childRef);
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
         sema.pushEscapeBranch();
@@ -725,7 +729,6 @@ Result AstInfiniteLoopStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& chil
 
 Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    // Ensure while condition is `bool` (or castable to it).
     if (childRef == nodeExprRef)
     {
         SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
@@ -765,6 +768,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_control_flow_leaves_defer, sema.curNodeRef());
         diag.addArgument(Diagnostic::ARG_TOK, Token::toName(sema.token(sema.curNode().codeRef()).id));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 }

@@ -703,6 +703,7 @@ namespace
         const SemaNodeView exprView = sema.viewConstant(exprRef);
         if (exprView.cstRef().isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_switch_case_not_const, exprRef);
+
         return Result::Continue;
     }
 
@@ -732,8 +733,7 @@ namespace
 
     Result checkDuplicateConstCaseValue(Sema& sema, AstNodeRef switchRef, AstNodeRef caseExprRef, AstNodeRef whereRef)
     {
-        // A case expression with a 'where' clause is not tested for duplicates, except
-        // if the where clause if a 'true' constant.
+        // Only unconditional cases participate in duplicate detection.
         if (!whereClauseIsUnconditionalTrue(sema, whereRef))
             return Result::Continue;
 
@@ -754,6 +754,7 @@ namespace
         const auto* switchPayload = sema.semaPayload<SwitchPayload>(switchRef);
         if (switchPayload->exprTypeRef.isInvalid())
             return Result::Continue;
+
         const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
         if (!caseStmt.nodeWhereRef.isValid() || !whereClauseIsUnconditionalTrue(sema, caseStmt.nodeWhereRef))
             return Result::Continue;
@@ -770,8 +771,10 @@ namespace
                 {
                     if (sema.node(expr.caseExprRef).isNot(AstNodeId::RangeExpr))
                         SWC_RESULT(checkDuplicateConstCaseValue(sema, switchRef, expr.caseExprRef, caseStmt.nodeWhereRef));
+
                     continue;
                 }
+
                 const TypeRef targetTypeRef = sema.viewType(expr.typeExprRef).typeRef();
                 SWC_ASSERT(targetTypeRef.isValid());
 
@@ -799,9 +802,11 @@ namespace
 
     Result validateFallthroughStatementPosition(Sema& sema, AstNodeRef caseRef, AstNodeRef stmtRef)
     {
-        const auto& caseStmt   = sema.node(caseRef).cast<AstSwitchCaseStmt>();
-        const auto& caseBody   = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
-        AstNodeRef  currentRef = stmtRef;
+        const auto& caseStmt = sema.node(caseRef).cast<AstSwitchCaseStmt>();
+        const auto& caseBody = sema.node(caseStmt.nodeBodyRef).cast<AstSwitchCaseBody>();
+
+        AstNodeRef currentRef = stmtRef;
+
         for (size_t up = 0;; ++up)
         {
             const AstNodeRef parentRef = sema.visit().parentNodeRef(up);
@@ -813,8 +818,10 @@ namespace
                 const auto nodeIndex = sema.ast().findNodeIndex(caseBody.spanChildrenRef, currentRef);
                 if (!nodeIndex)
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
+
                 if (sema.ast().nthNode(caseBody.spanChildrenRef, *nodeIndex + 1).isValid())
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
+
                 return Result::Continue;
             }
 
@@ -825,8 +832,10 @@ namespace
                 const auto nodeIndex = sema.ast().findNodeIndex(spanRef, currentRef);
                 if (!nodeIndex)
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
+
                 if (sema.ast().nthNode(spanRef, *nodeIndex + 1).isValid())
                     return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_not_last_stmt, stmtRef);
+
                 currentRef = parentRef;
                 continue;
             }
@@ -847,6 +856,7 @@ namespace
         const auto  nodeIndex  = sema.ast().findNodeIndex(switchStmt.spanChildrenRef, caseRef);
         if (!nodeIndex)
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, stmtRef);
+
         if (sema.ast().nthNode(switchStmt.spanChildrenRef, *nodeIndex + 1).isInvalid())
             return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_in_last_case, stmtRef);
 
@@ -863,12 +873,13 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
 
         const AstNodeRef switchRef = sema.frame().currentSwitch();
         SWC_ASSERT(switchRef.isValid());
+
         return checkDuplicateCaseValuesAfterWhere(sema, switchRef, sema.curNodeRef());
     }
 
-    // Be sure this is a case expression
     if (!spanExprRef.isValid())
         return Result::Continue;
+
     const bool isExprChild = childRef != nodeWhereRef && childRef != nodeBodyRef;
     if (!isExprChild)
         return Result::Continue;
@@ -879,37 +890,40 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     const SwitchPayload* payload       = sema.semaPayload<SwitchPayload>(switchRef);
     const TypeRef        switchTypeRef = payload->exprTypeRef;
 
-    // This is a switch without an expression
     if (switchTypeRef.isInvalid())
     {
         if (childRef == conditionBindingRef(sema.ast()))
             return SemaCheck::conditionBinding(sema, childRef);
+
         SemaNodeView view = sema.viewNodeTypeConstant(childRef);
         SWC_RESULT(SemaCheck::castToBool(sema, view));
+
         return Result::Continue;
     }
 
     const bool dynamicSwitch = isDynamicStructSwitchCase(sema, switchRef);
     const bool rangeCase     = sema.node(childRef).is(AstNodeId::RangeExpr);
+
     if (dynamicSwitch)
     {
         const TypeInfo& originalType = sema.typeMgr().get(switchTypeRef);
         const TypeInfo& switchType   = originalType.unwrapAliasTypeOrSelf(sema.ctx());
+
         // Dynamic pointers keep ordinary pointer comparisons alongside type patterns.
         if (!switchType.isValuePointer() || sema.node(childRef).is(AstNodeId::AsCastExpr) || (!rangeCase && !sema.isValue(childRef)))
             return validateDynamicStructCaseExpr(sema, switchRef, sema.curNodeRef(), childRef);
     }
 
-    // Range expression
     if (rangeCase)
     {
         SWC_RESULT(handleRangeCaseExpr(sema, childRef, switchTypeRef));
+
         if (dynamicSwitch)
             registerDynamicStructSwitchCaseExpr(sema, sema.curNodeRef(), childRef, AstNodeRef::invalid());
+
         return Result::Continue;
     }
 
-    // Be sure it's a value
     SemaNodeView exprView = sema.viewTypeConstant(childRef);
     SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, exprView));
 
@@ -919,6 +933,7 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     SWC_RESULT(castCaseToSwitch(sema, childRef, switchTypeRef));
     SWC_RESULT(checkCaseExprIsConst(sema, childRef));
     SWC_RESULT(checkDuplicateConstCaseValue(sema, switchRef, childRef, nodeWhereRef));
+
     if (dynamicSwitch)
         registerDynamicStructSwitchCaseExpr(sema, sema.curNodeRef(), childRef, AstNodeRef::invalid());
 
@@ -933,12 +948,14 @@ Result AstFallThroughStmt::semaPreNode(Sema& sema)
     const AstNodeRef caseRef = sema.frame().currentSwitchCase();
     if (caseRef.isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
+
     SWC_RESULT(validateFallthroughStatementPosition(sema, caseRef, sema.curNodeRef()));
 
     const AstNodeRef     switchRef  = sema.frame().currentSwitch();
     const AstSwitchStmt& switchStmt = sema.node(switchRef).cast<AstSwitchStmt>();
     if (!switchStmt.spanChildrenRef.isValid())
         return SemaError::raise(sema, DiagnosticId::sema_err_fallthrough_outside_switch_case, sema.curNodeRef());
+
     return validateFallthroughHasNextCase(sema, switchRef, caseRef, sema.curNodeRef());
 }
 

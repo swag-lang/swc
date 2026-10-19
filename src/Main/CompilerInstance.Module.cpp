@@ -104,38 +104,46 @@ namespace
     void visitBuildCfgStrings(Runtime::BuildCfg& buildCfg, Visit&& visit)
     {
         visit(buildCfg.moduleNamespace);
+
         visit(buildCfg.warnings.asErrors);
         visit(buildCfg.warnings.asWarnings);
         visit(buildCfg.warnings.disabled);
+
         visit(buildCfg.name);
         visit(buildCfg.outDir);
         visit(buildCfg.workDir);
         visit(buildCfg.repoPath);
+
         visit(buildCfg.resAppIcoFileName);
         visit(buildCfg.resAppName);
         visit(buildCfg.resAppDescription);
         visit(buildCfg.resAppCompany);
         visit(buildCfg.resAppCopyright);
+
         visit(buildCfg.genDoc.outputName);
         visit(buildCfg.genDoc.titleToc);
         visit(buildCfg.genDoc.titleContent);
         visit(buildCfg.genDoc.css);
         visit(buildCfg.genDoc.icon);
         visit(buildCfg.genDoc.morePages);
+
         visit(buildCfg.genDoc.quoteIconNote);
         visit(buildCfg.genDoc.quoteIconTip);
         visit(buildCfg.genDoc.quoteIconWarning);
         visit(buildCfg.genDoc.quoteIconAttention);
         visit(buildCfg.genDoc.quoteIconExample);
+
         visit(buildCfg.genDoc.quoteTitleNote);
         visit(buildCfg.genDoc.quoteTitleTip);
         visit(buildCfg.genDoc.quoteTitleWarning);
         visit(buildCfg.genDoc.quoteTitleAttention);
         visit(buildCfg.genDoc.quoteTitleExample);
+
         visit(buildCfg.genDoc.brandName);
         visit(buildCfg.genDoc.brandUrl);
         visit(buildCfg.genDoc.navLinks);
         visit(buildCfg.genDoc.footer);
+
         visit(buildCfg.registeredConfigs);
     }
 
@@ -792,6 +800,7 @@ namespace
     Result captureModuleApiSources(TaskContext& ctx, std::vector<ModuleApi::SourceSnapshot>& outFiles, const fs::path& directory)
     {
         std::vector<fs::path> paths;
+
         // An unreadable entry cannot be skipped: that would publish an incomplete snapshot
         // as a complete API even though the exporter itself finished successfully.
         std::error_code ec;
@@ -799,18 +808,23 @@ namespace
         {
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
+
             const bool regular = it->is_regular_file(ec);
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
             if (!regular)
                 continue;
+
             if (ModuleApi::isPublishedFile(it->path()))
                 paths.push_back(it->path());
         }
+
         if (ec)
             return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::normalizeSystemMessage(ec));
+
         std::ranges::sort(paths);
         outFiles.reserve(paths.size());
+
         for (const fs::path& path : paths)
         {
             ModuleApi::SourceSnapshot source;
@@ -818,13 +832,16 @@ namespace
             source.writeTime = fs::last_write_time(path, ec);
             if (ec)
                 return FileSystem::reportInvalidFolder(ctx, path, FileSystem::normalizeSystemMessage(ec));
+
             FileSystem::IoErrorInfo ioError;
             std::vector<char8_t>    bytes;
             if (FileSystem::readBinaryFile(path, bytes, ioError, SourceContent::TRAILING_0) != Result::Continue)
                 return FileSystem::reportInvalidFolder(ctx, directory, FileSystem::describeIoFailure(ioError));
+
             source.content = std::make_shared<const SourceContent>(std::move(bytes));
             outFiles.push_back(std::move(source));
         }
+
         return Result::Continue;
     }
 
@@ -2786,6 +2803,7 @@ static bool tryCaptureLiteralModuleImports(const fs::path& depsFile, std::vector
         constexpr std::string_view prefix = "#import(";
         if (!line.substr(pos).starts_with(prefix))
             return false;
+
         pos += prefix.size();
         if (!readQuoted(importRequest.moduleName, line, pos))
             return false;
@@ -2800,6 +2818,7 @@ static bool tryCaptureLiteralModuleImports(const fs::path& depsFile, std::vector
             }
             if (pos >= line.size() || line[pos++] != ',')
                 return false;
+
             skipSpaces(line, pos);
 
             Utf8* target = nullptr;
@@ -2820,12 +2839,14 @@ static bool tryCaptureLiteralModuleImports(const fs::path& depsFile, std::vector
                 skipSpaces(line, pos);
                 if (!readQuoted(link, line, pos))
                     return false;
+
                 if (link == backendKindName(Runtime::BuildCfgBackendKind::SharedLibrary))
                     importRequest.linkBackendKind = Runtime::BuildCfgBackendKind::SharedLibrary;
                 else if (link == backendKindName(Runtime::BuildCfgBackendKind::StaticLibrary))
                     importRequest.linkBackendKind = Runtime::BuildCfgBackendKind::StaticLibrary;
                 else
                     return false;
+
                 continue;
             }
             else
@@ -2841,6 +2862,7 @@ static bool tryCaptureLiteralModuleImports(const fs::path& depsFile, std::vector
         skipSpaces(line, pos);
         if (pos != line.size() || importRequest.moduleName.empty())
             return false;
+
         importRequest.baseDir = depsFile.parent_path();
         outImports.push_back(std::move(importRequest));
     }
@@ -3015,30 +3037,37 @@ Result CompilerInstance::prepareDependencyPlan(TaskContext& ctx, DependencyPlan&
         stdCmdLine.sourceDrivenTest         = false;
         stdCmdLine.workspaceDependencyBuild = true;
         stdCmdLine.workspacePath            = workspacePath;
+
         stdCmdLine.workspaceModuleFilter.clear();
         stdCmdLine.workspaceModuleSelection = std::move(stdModules);
+
         stdCmdLine.moduleFilePath.clear();
         stdCmdLine.modulePath.clear();
         stdCmdLine.directories.clear();
         stdCmdLine.files.clear();
+
         stdCmdLine.importApiModules.clear();
         stdCmdLine.importApiDirs.clear();
         stdCmdLine.importApiFiles.clear();
         stdCmdLine.exportApiDir.clear();
+
         stdCmdLine.outDir.clear();
         stdCmdLine.workDir.clear();
         stdCmdLine.outDirStorage.clear();
         stdCmdLine.workDirStorage.clear();
         stdCmdLine.outDirExplicit  = false;
         stdCmdLine.workDirExplicit = false;
+
         stdCmdLine.name.clear();
         stdCmdLine.artifactNameExplicit = false;
         stdCmdLine.backendKind          = Runtime::BuildCfgBackendKind::Executable;
         stdCmdLine.artifactKindExplicit = false;
+
         stdCmdLine.moduleNamespace.clear();
         stdCmdLine.moduleNamespaceStorage.clear();
         stdCmdLine.moduleNamespaceExplicit = false;
-        stdCmdLine.runArgs                 = effectiveGeneratedArtifactRunArgs(cmdLine());
+
+        stdCmdLine.runArgs = effectiveGeneratedArtifactRunArgs(cmdLine());
         CommandLineParser::refreshBuildCfg(stdCmdLine);
 
         CompilerInstance stdCompiler(global(), stdCmdLine);
@@ -3700,8 +3729,10 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
         std::vector<fs::path> requiredArtifacts;
         fs::path              testArtifactPath;
         fs::path              unexpectedPdbPath;
-        const bool            needsRequiredArtifact  = moduleCmdLine.command == CommandKind::Build || isRunLikeCommand(moduleCmdLine.command);
-        const bool            needsTestArtifactProbe = moduleCmdLine.command == CommandKind::Test && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
+
+        const bool needsRequiredArtifact  = moduleCmdLine.command == CommandKind::Build || isRunLikeCommand(moduleCmdLine.command);
+        const bool needsTestArtifactProbe = moduleCmdLine.command == CommandKind::Test && probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
+
         if ((needsRequiredArtifact || needsTestArtifactProbe) &&
             Runtime::backendKindProducesNativeArtifact(probeCompiler.buildCfg().backendKind))
         {
@@ -3709,19 +3740,23 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
             const NativeArtifactBuilder artifactProbeBuilder(nativeProbeBuilder);
             NativeArtifactPaths         artifactPaths;
             artifactProbeBuilder.queryPaths(artifactPaths);
+
             if (!probeCompiler.buildCfg().backend.debugInfo &&
                 (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
                  probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
                 unexpectedPdbPath = artifactPaths.pdbPath;
+
             if (needsRequiredArtifact)
             {
                 requiredArtifacts.push_back(artifactPaths.artifactPath);
                 if (!artifactPaths.staticLibraryPath.empty())
                     requiredArtifacts.push_back(artifactPaths.staticLibraryPath);
+
                 if (probeCompiler.buildCfg().backend.debugInfo &&
                     (probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable ||
                      probeCompiler.buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary))
                     requiredArtifacts.push_back(artifactPaths.pdbPath);
+
                 probeCompiler.setLastArtifactLabel(artifactPaths.artifactLabel());
             }
             else

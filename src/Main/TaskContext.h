@@ -12,6 +12,7 @@ class SourceFile;
 class TypeManager;
 class TypeGen;
 struct CommandLine;
+
 class TaskContext
 {
 public:
@@ -45,6 +46,7 @@ public:
         SWC_ASSERT(pendingJitItems_ != 0);
         --pendingJitItems_;
     }
+
     ConstantManager&         cstMgr();
     const ConstantManager&   cstMgr() const;
     TypeManager&             typeMgr();
@@ -53,8 +55,9 @@ public:
     const TypeGen&           typeGen() const;
     IdentifierManager&       idMgr();
     const IdentifierManager& idMgr() const;
-    void*                    allocate(size_t size, size_t alignment);
-    void                     notifyAlive();
+
+    void* allocate(size_t size, size_t alignment);
+    void  notifyAlive();
 
     template<typename T, typename... ARGS>
     T* allocate(ARGS&&... args)
@@ -63,42 +66,48 @@ public:
         return new (mem) T(std::forward<ARGS>(args)...);
     }
 
-    bool                         silentDiagnostic() const { return silentDiagnostic_; }
-    void                         setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
-    bool                         reportToStats() const { return reportToStats_; }
-    void                         setReportToStats(bool reportToStats) { reportToStats_ = reportToStats; }
-    bool                         muteOutput() const { return muteOutput_; }
-    void                         setMuteOutput(bool mute) { muteOutput_ = mute; }
-    void                         setHasError() { hasError_ = true; }
-    void                         setHasWarning() { hasWarning_ = true; }
-    bool                         hasError() const { return hasError_; }
-    bool                         hasWarning() const { return hasWarning_; }
+    bool silentDiagnostic() const { return silentDiagnostic_; }
+    void setSilentDiagnostic(bool silent) { silentDiagnostic_ = silent; }
+    bool reportToStats() const { return reportToStats_; }
+    void setReportToStats(bool reportToStats) { reportToStats_ = reportToStats; }
+    bool muteOutput() const { return muteOutput_; }
+    void setMuteOutput(bool mute) { muteOutput_ = mute; }
+    void setHasError() { hasError_ = true; }
+    void setHasWarning() { hasWarning_ = true; }
+    bool hasError() const { return hasError_; }
+    bool hasWarning() const { return hasWarning_; }
+
     std::shared_ptr<void>&       genericNodeRunCache() { return genericNodeRunCache_; }
     const std::shared_ptr<void>& genericNodeRunCache() const { return genericNodeRunCache_; }
     std::shared_ptr<void>&       genericInstanceNodeRunCache() { return genericInstanceNodeRunCache_; }
     const std::shared_ptr<void>& genericInstanceNodeRunCache() const { return genericInstanceNodeRunCache_; }
     std::shared_ptr<void>&       genericImplBlockRunCache() { return genericImplBlockRunCache_; }
     const std::shared_ptr<void>& genericImplBlockRunCache() const { return genericImplBlockRunCache_; }
-    static const TaskContext*    current() noexcept { return current_; }
-    static const TaskContext*    setCurrent(const TaskContext* ctx) noexcept;
+
+    static const TaskContext* current() noexcept { return current_; }
+    static const TaskContext* setCurrent(const TaskContext* ctx) noexcept;
 
 private:
     friend class TaskScopedContext;
 
-    const Global*                                 global_           = nullptr;
-    const CommandLine*                            cmdLine_          = nullptr;
-    CompilerInstance*                             compilerInstance_ = nullptr;
-    bool                                          silentDiagnostic_ = false;
-    bool                                          reportToStats_    = true;
-    bool                                          muteOutput_       = false;
-    bool                                          hasError_         = false;
-    bool                                          hasWarning_       = false;
-    bool                                          editorService_    = false;
-    uint32_t                                      pendingJitItems_  = 0;
-    TaskState                                     state_;
-    std::shared_ptr<void>                         genericNodeRunCache_;
-    std::shared_ptr<void>                         genericInstanceNodeRunCache_;
-    std::shared_ptr<void>                         genericImplBlockRunCache_;
+    const Global*      global_           = nullptr;
+    const CommandLine* cmdLine_          = nullptr;
+    CompilerInstance*  compilerInstance_ = nullptr;
+
+    bool silentDiagnostic_ = false;
+    bool reportToStats_    = true;
+    bool muteOutput_       = false;
+    bool hasError_         = false;
+    bool hasWarning_       = false;
+    bool editorService_    = false;
+
+    uint32_t  pendingJitItems_ = 0;
+    TaskState state_;
+
+    std::shared_ptr<void> genericNodeRunCache_;
+    std::shared_ptr<void> genericInstanceNodeRunCache_;
+    std::shared_ptr<void> genericImplBlockRunCache_;
+
     inline static thread_local const TaskContext* current_ = nullptr;
 };
 

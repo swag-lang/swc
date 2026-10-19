@@ -61,6 +61,7 @@ namespace
     {
         if (lhs.key != rhs.key)
             return lhs.key < rhs.key;
+
         return static_cast<uint32_t>(lhs.kind) < static_cast<uint32_t>(rhs.kind);
     }
 
@@ -94,10 +95,11 @@ namespace
     {
         explicit ScopedCompilerMessageDispatchState(const CompilerInstance& compiler, const SymbolNamespace* moduleNamespace, std::vector<DeferredCompilerGeneratedSource>& generatedSources)
         {
-            previous_                      = g_CompilerMessageDispatchState;
-            state_.compiler                = &compiler;
-            state_.moduleNamespace         = moduleNamespace;
-            state_.generatedSources        = &generatedSources;
+            previous_               = g_CompilerMessageDispatchState;
+            state_.compiler         = &compiler;
+            state_.moduleNamespace  = moduleNamespace;
+            state_.generatedSources = &generatedSources;
+
             g_CompilerMessageDispatchState = &state_;
         }
 
@@ -147,8 +149,9 @@ namespace
         state.listenerIndex = dispatch.listenerIndex;
         state.file          = listenerFile;
         state.sema          = std::make_unique<Sema>(ctx, const_cast<SourceFile*>(listenerFile)->nodePayloadContext(), false);
-        outFile             = listenerFile;
-        outSema             = state.sema.get();
+
+        outFile = listenerFile;
+        outSema = state.sema.get();
         return Result::Continue;
     }
 
@@ -214,6 +217,7 @@ namespace
             return false;
         if (!isCompilerMessageEligibleFunction(symbol))
             return false;
+
         return isOwnModuleLevelSymbol(compiler, symbol);
     }
 
@@ -225,6 +229,7 @@ namespace
             return false;
         if (!symbol.idRef().isValid())
             return false;
+
         return isOwnModuleLevelSymbol(compiler, symbol);
     }
 
@@ -234,6 +239,7 @@ namespace
             return false;
         if (!symbol.hasGlobalStorage() || symbol.globalStorageKind() == DataSegmentKind::Compiler)
             return false;
+
         return isOwnModuleLevelSymbol(compiler, symbol);
     }
 

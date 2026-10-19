@@ -13,6 +13,7 @@ namespace
     {
         if (!lineNo)
             return FileSystem::formatDiagnosticPath(&ctx, sourcePath);
+
         return FileSystem::formatFileLocation(&ctx, sourcePath, lineNo);
     }
 
@@ -61,6 +62,7 @@ Utf8 StructConfigEntry::valueText() const
         // value keep its blanks or an inline `#`.
         if ((*value)->find_first_of(" #") != std::string::npos)
             return "\"" + **value + "\"";
+
         return **value;
     }
 
@@ -71,6 +73,7 @@ Utf8 StructConfigEntry::valueText() const
     {
         if (!(*value)->has_value())
             return "preserve";
+
         return (*value)->value() ? "true" : "false";
     }
 
@@ -259,6 +262,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
         bool parsedValue = false;
         if (!parseBool(value.view(), parsedValue))
             return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_bool, entry, sourcePath, lineNo, value);
+
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -269,6 +273,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
         int parsedValue = 0;
         if (!Utf8Helper::parseIntegerValue(value, parsedValue))
             return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_int, entry, sourcePath, lineNo, value);
+
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -279,6 +284,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
         uint32_t parsedValue = 0;
         if (!Utf8Helper::parseIntegerValue(value, parsedValue))
             return reportInvalidScalarValue(ctx, DiagnosticId::cmd_err_config_invalid_int, entry, sourcePath, lineNo, value);
+
         **target = parsedValue;
         entry.afterSet.invoke();
         return true;
@@ -338,6 +344,7 @@ bool StructConfigReader::applyEntry(TaskContext& ctx, const StructConfigEntry& e
     {
         Utf8 normalized = value;
         normalized.make_lower();
+
         if (normalized == "preserve")
         {
             **target = std::nullopt;

@@ -16,9 +16,11 @@ void CommandLineParser::registerCommands()
             size_t end = registeredBuildCfgs.find('|', start);
             if (end == std::string_view::npos)
                 end = registeredBuildCfgs.size();
+
             buildCfgChoices.emplace_back(registeredBuildCfgs.substr(start, end - start));
             if (end == registeredBuildCfgs.size())
                 break;
+
             start = end + 1;
         }
     }
@@ -47,6 +49,7 @@ void CommandLineParser::registerCommands()
         &cmdLine_->configFile,
         "Read options from a config file before applying explicit CLI flags; resolve its relative paths from the config file directory",
         false);
+
     add(HelpOptionGroup::Input, "all", "--directory", "-d",
         &cmdLine_->directories,
         "Process one or more directories recursively for input files; with --module or --module-file, resolve relative paths from the module root");
@@ -56,18 +59,21 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "all", "--file-filter", "-ff",
         &cmdLine_->fileFilter,
         "Keep input paths that contain this substring");
+
     add(HelpOptionGroup::Input, "all", "--module", "-mf",
         &cmdLine_->modulePath,
         "Compile this module directory: run module.swg as setup and include src when present; resolve relative input paths from this directory");
     add(HelpOptionGroup::Input, "all", "--module-file", nullptr,
         &cmdLine_->moduleFilePath,
         "Run this module setup file before compiling the rest of the module; derive the module root and relative input paths from its parent directory");
+
     add(HelpOptionGroup::Input, "new clean sema service doc test build run smoke", "--workspace", "-w",
         &cmdLine_->workspacePath,
         "Use a workspace containing modules/<module>/module.swg and modules/<module>/src; new creates the workspace when absent, while compilation owns its .output and .tmp directories and excludes --module, --module-file, --directory, and --file");
     add(HelpOptionGroup::Input, "clean sema service doc test build run smoke", "--workspace-module", "-m",
         &cmdLine_->workspaceModuleFilter,
         "With --workspace, compile only this module and its internal workspace dependencies");
+
     add(HelpOptionGroup::Input, "sema service doc test build run smoke", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,
         "Resolve a generated public API dependency by module name through <compiler-root>/std/.output/<module>/<matching-config>");
@@ -80,18 +86,21 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "sema service doc build run smoke", "--export-api-dir", nullptr,
         &cmdLine_->exportApiDir,
         "Write the module public API to this directory after a successful semantic pass");
+
     add(HelpOptionGroup::Target, "sema service", "--editor-index", nullptr,
         &cmdLine_->editorIndex,
         "Write resolved source symbols and types as a versioned JSON editor snapshot");
     add(HelpOptionGroup::Input, "sema service", "--editor-overlay", nullptr,
         &cmdLine_->editorOverlay,
         "Read unsaved source buffers from a versioned editor overlay file");
+
     addEnum(HelpOptionGroup::Target, "sema service doc test build run smoke", "--arch", "-a",
             &cmdLine_->targetArch,
             {
                 {"x86_64", Runtime::TargetArch::X86_64},
             },
             "Set the target architecture used by #arch and compiler target queries");
+
     addEnum(HelpOptionGroup::Target, "sema service doc test build run smoke", "--build-cfg", "-bc",
             &cmdLine_->buildCfg,
             std::move(buildCfgChoices),
@@ -107,21 +116,25 @@ void CommandLineParser::registerCommands()
             "Select the backend kind exposed through Swag.compiler().getBuildCfg(); export builds produce dependency and API output without a native artifact",
             true,
             {&StructConfigAssignHook::setBoolTrue, &cmdLine_->artifactKindExplicit});
+
     add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--cpu", "-cpu",
         &cmdLine_->targetCpu,
         "Set the target CPU string used by #cpu and compiler target queries");
+
     add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--artifact-name", "-n",
         &cmdLine_->name,
         "Set the artifact name exposed through Swag.compiler().getBuildCfg() and used for native outputs");
     add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--module-namespace", nullptr,
         &cmdLine_->moduleNamespace,
         "Override the module namespace exposed through Swag.compiler().getBuildCfg() and used as the semantic module root");
+
     add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--out-dir", "-od",
         &cmdLine_->outDir,
         "Set the artifact output directory exposed through Swag.compiler().getBuildCfg()");
     add(HelpOptionGroup::Target, "sema service doc test build run smoke", "--work-dir", "-wd",
         &cmdLine_->workDir,
         "Set the work directory exposed through Swag.compiler().getBuildCfg()");
+
     addEnum(HelpOptionGroup::Target, "sema service doc test build run smoke", "--optim-level", "-O",
             &cmdLine_->optimLevel,
             {
@@ -135,6 +148,7 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Target, "test build run smoke", "--debug", nullptr,
         &cmdLine_->debugInfo,
         "Emit debug information for native artifacts and every dependency they take in, kept under '<config>-debug' output directories");
+
     add(HelpOptionGroup::Target, "doc", "--doc-output-dir", nullptr,
         &cmdLine_->docOutputDir,
         "Write generated documentation to this directory");
@@ -148,6 +162,7 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "sema service doc test build run smoke", "--tag", nullptr,
         &cmdLine_->tags,
         "Register a compiler tag for #hastag and #gettag; use Name, Name = value, or Name: type = value; use false to remove an allocator capability tag");
+
     add(HelpOptionGroup::Compiler, "test run smoke", "--run-arg", nullptr,
         &cmdLine_->runArgs,
         "Append one argument to every emitted executable launched by test, run, or smoke; repeat the option to append more");
@@ -157,15 +172,18 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Compiler, "test smoke", "--run-timeout", nullptr,
         &cmdLine_->runTimeoutSeconds,
         "Fail a test or smoke run whose executable has not finished after this many seconds");
+
     add(HelpOptionGroup::Compiler, "sema service doc test build run smoke", "--rebuild", nullptr,
         &cmdLine_->rebuild,
         "Recompile every selected module even when all generated outputs are up to date, and rebuild the standard-library modules a script imports");
+
     add(HelpOptionGroup::Input, "clean", "--cache", nullptr,
         &cmdLine_->cleanCache,
         "Remove the dependency copies the compiler keeps outside any workspace, one per build of a dependency a script imported");
     add(HelpOptionGroup::Input, "clean", "--cache-days", nullptr,
         &cmdLine_->cleanCacheDays,
         "Restrict --cache to the copies no run has used for at least this many days");
+
     add(HelpOptionGroup::Compiler, "doc", "--output-doc", nullptr,
         &cmdLine_->outputDoc,
         "Write generated documentation files; use --no-output-doc to validate without writing");

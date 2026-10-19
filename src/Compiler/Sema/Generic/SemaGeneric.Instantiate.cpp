@@ -150,9 +150,8 @@ namespace SemaGeneric
                     outFunctions.push_back(function);
             };
 
-            // Inline expansion can nest generic instances inside other generic
-            // instances. Walk from the innermost frame outward so value/type
-            // bindings prefer the most local instantiation context.
+            // Visit nested inline instances from the inside out so bindings prefer
+            // the most local instantiation context.
             SemaHelpers::visitFrameInlinePayloads(sema, [&](const SemaInlinePayload& inlinePayload) {
                 if (const SymbolFunction* function = genericFunctionInstanceOrNull(inlinePayload.sourceFunction))
                     appendUnique(function);
@@ -253,9 +252,8 @@ namespace SemaGeneric
 
         const SymbolImpl* functionDeclImplContext(Sema& sema, const SymbolFunction& function)
         {
-            // Lazy and instantiated functions can be resolved outside their original
-            // declaration frame. Prefer the stored declaration context, then fall
-            // back through the active sema frame/symbol-map stack.
+            // Lazy and instantiated functions may resolve outside their declaration frame.
+            // Prefer the stored context before searching the active frames and symbol maps.
             if (const SymbolImpl* symImpl = function.declImplContext())
                 return symImpl;
 
@@ -580,6 +578,7 @@ namespace SemaGeneric
         {
             SmallVector<const SymbolFunction*> functions;
             collectAmbientGenericFunctions(sema, functions);
+
             for (const SymbolFunction* function : functions)
                 appendFunctionContextCloneBindings(sema, *function, outBindings);
         }
@@ -635,6 +634,7 @@ namespace SemaGeneric
             const NodePayload* payloadContext = &sema.currentNodePayloadContext();
             if (const auto* function = root.safeCast<SymbolFunction>())
                 return function->findGenericEvalNode(sema.ctx(), payloadContext, sema.ast(), sourceRef, bindings);
+
             return root.cast<SymbolStruct>().findGenericEvalNode(payloadContext, sema.ast(), sourceRef, bindings);
         }
 
@@ -671,6 +671,7 @@ namespace SemaGeneric
         {
             if (const auto* function = root.safeCast<SymbolFunction>())
                 return function->genericEvalRunMutex(sema.ctx());
+
             return root.cast<SymbolStruct>().genericEvalRunMutex();
         }
 
@@ -724,9 +725,9 @@ namespace SemaGeneric
 
             for (const SymbolFunction* ambientFunction : ambientFunctions)
                 appendFunctionContextBindingText(sema, *ambientFunction, seenIds, out);
+
             return out;
         }
-
     }
 
     namespace Internal
@@ -743,6 +744,7 @@ namespace SemaGeneric
             params_       = params;
             resolvedArgs_ = resolvedArgs;
             formatted_    = false;
+
             collectAmbientGenericFunctions(sema, ambientFunctions_);
         }
 
@@ -752,6 +754,7 @@ namespace SemaGeneric
             {
                 if (function_)
                     text_ = formatFunctionWhereBindings(sema, *function_, params_, resolvedArgs_, ambientFunctions_.span());
+
                 formatted_ = true;
             }
 
@@ -781,6 +784,7 @@ namespace SemaGeneric
 
             SmallVector<AstNodeRef> clonedChildren;
             clonedChildren.reserve(chunk.total);
+
             const SemaClone::CloneContext cloneContext{bindings};
             for (; chunk != sourceChildren.chunksEnd(); ++chunk)
             {
@@ -789,6 +793,7 @@ namespace SemaGeneric
                     const AstNodeRef clonedChildRef = SemaClone::cloneAst(sema, childRef, cloneContext);
                     if (clonedChildRef.isInvalid())
                         return AstNodeRef::invalid();
+
                     clonedChildren.push_back(clonedChildRef);
                 }
             }
@@ -803,6 +808,7 @@ namespace SemaGeneric
             auto [runRef, runPtr] = sema.ast().makeNode<AstNodeId::CompilerRunBlock>(constraintBlock.tokRef());
             runPtr->nodeBodyRef   = bodyRef;
             runPtr->addFlag(AstCompilerRunBlockFlagsE::Immediate);
+
             return runRef;
         }
     }
@@ -820,6 +826,7 @@ namespace SemaGeneric
                 outEvalRef = findCachedGenericEvalNode(sema, root, constraintExpr->nodeExprRef, bindings);
                 if (hasCachedGenericEvalResult(sema, outEvalRef, GenericEvalReadyKind::Constant))
                     return Result::Continue;
+
                 return evalGenericClonedNode(sema, root, constraintExpr->nodeExprRef, bindings, GenericEvalReadyKind::Constant, outEvalRef);
             }
 
@@ -850,18 +857,21 @@ namespace SemaGeneric
     {
         struct GenericImplBlockRunInitializer
         {
-            Sema*                  sema = nullptr;
-            AstNodeRef             blockRef;
-            SymbolImpl*            impl     = nullptr;
-            const SymbolInterface* itf      = nullptr;
-            const AttributeList*   attrs    = nullptr;
-            bool                   declPass = false;
+            Sema*      sema = nullptr;
+            AstNodeRef blockRef;
+
+            SymbolImpl*            impl  = nullptr;
+            const SymbolInterface* itf   = nullptr;
+            const AttributeList*   attrs = nullptr;
+
+            bool declPass = false;
 
             std::unique_ptr<Sema> operator()() const
             {
                 SWC_ASSERT(sema != nullptr);
                 SWC_ASSERT(impl != nullptr);
                 SWC_ASSERT(attrs != nullptr);
+
                 auto child = std::make_unique<Sema>(sema->ctx(), *sema, blockRef, declPass);
                 prepareGenericInstantiationContext(*child, impl->asSymMap(), impl, itf, *attrs);
                 return child;
@@ -872,6 +882,7 @@ namespace SemaGeneric
         {
             const GenericImplBlockRunKey         key{&sema.ctx(), &impl, declPass};
             const GenericImplBlockRunInitializer initRun{.sema = &sema, .blockRef = blockRef, .impl = &impl, .itf = itf, .attrs = &attrs, .declPass = declPass};
+
             return runCachedSema(sema, genericImplBlockRuns(sema.ctx()), key, impl, initRun);
         }
 
@@ -891,6 +902,7 @@ namespace SemaGeneric
 
             SmallVector<AstNodeRef> clonedChildren;
             clonedChildren.reserve(chunk.total);
+
             const SemaClone::CloneContext cloneContext{bindings, {}, true};
             for (; chunk != children.chunksEnd(); ++chunk)
             {
@@ -906,6 +918,7 @@ namespace SemaGeneric
 
             auto [blockRef, blockPtr] = sema.ast().makeNode<AstNodeId::TopLevelBlock>(implDecl.tokRef());
             blockPtr->spanChildrenRef = sema.ast().pushSpan(clonedChildren.span());
+
             return blockRef;
         }
 
@@ -919,8 +932,9 @@ namespace SemaGeneric
             if (!implDecl)
                 return Result::Error;
 
-            outBlockRef      = cloneGenericImplBlock(sema, *implDecl, bindings);
-            outClone         = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), Internal::clonedGenericSymbolFlags(sourceImpl));
+            outBlockRef = cloneGenericImplBlock(sema, *implDecl, bindings);
+            outClone    = Symbol::make<SymbolImpl>(sema.ctx(), sourceImpl.decl(), sourceImpl.tokRef(), sourceImpl.idRef(), Internal::clonedGenericSymbolFlags(sourceImpl));
+
             auto ownerSymMap = const_cast<SymbolMap*>(sourceImpl.ownerSymMap());
             if (!ownerSymMap)
             {
@@ -929,6 +943,7 @@ namespace SemaGeneric
                 else if (sourceImpl.isForEnum())
                     ownerSymMap = sourceImpl.symEnum()->ownerSymMap();
             }
+
             outClone->setOwnerSymMap(ownerSymMap);
             outClone->setGenericBlockRef(outBlockRef);
             return Result::Continue;
@@ -940,6 +955,7 @@ namespace SemaGeneric
             {
                 if (!implClone || implClone->isIgnored() || implClone->decl() != sourceImpl.decl())
                     continue;
+
                 return implClone;
             }
 
@@ -986,6 +1002,7 @@ namespace SemaGeneric
             const Result result = runGenericImplClonePasses(sema, *implClone, sourceImpl, instance.attributes());
             if (result == Result::Error && created && !implClone->isSemaCompleted())
                 implClone->setIgnored(sema.ctx());
+
             return result;
         }
 
@@ -996,10 +1013,12 @@ namespace SemaGeneric
             {
                 AstNodeRef blockRef = AstNodeRef::invalid();
                 SWC_RESULT(createGenericImplClone(sema, implClone, blockRef, sourceImpl, bindings));
+
                 implClone->setSymStruct(&instance);
                 implClone->addExtraFlag(SymbolImplFlagsE::ForInterface);
                 implClone->setSymInterface(sourceImpl.symInterface());
                 implClone->setTypeRef(sourceImpl.typeRef());
+
                 SWC_RESULT(runGenericImplClonePasses(sema, *implClone, sourceImpl, instance.attributes()));
                 SWC_RESULT(instance.addInterface(sema, *implClone));
                 return Result::Continue;
@@ -1031,6 +1050,7 @@ namespace SemaGeneric
                 Sema*                 implSema = tryCreateSemaForSymbolDecl(sema, *sourceImpl, implSemaHolder);
                 if (!implSema)
                     implSema = &sema;
+
                 SWC_RESULT(instantiateGenericStructImpl(*implSema, *sourceImpl, instance, bindings.span()));
             }
 
@@ -1043,6 +1063,7 @@ namespace SemaGeneric
                 Sema*                 implSema = tryCreateSemaForSymbolDecl(sema, *sourceImpl, implSemaHolder);
                 if (!implSema)
                     implSema = &sema;
+
                 SWC_RESULT(instantiateGenericStructInterface(*implSema, *sourceImpl, instance, bindings.span()));
             }
 

@@ -22,13 +22,13 @@ enum class TokenIdKindE : uint32_t
     Literal   = 1 << 9,
     Modifier  = 1 << 10,
     Reserved  = 1 << 11,
-    // An intrinsic that computes its result from its operands alone. It reads no state the
-    // module it is compiled into owns, so a body using it means the same thing when a
-    // generated module API re-emits it in a consumer. An atomic, a context query, or a
-    // report about the running program does not, and carries no such mark.
+
+    // Operand-only intrinsics retain their meaning when module APIs re-emit a body
+    // in a consumer. Module state and runtime queries do not.
     Portable            = 1 << 12,
     ArgumentStorageOnly = 1 << 21, // Intrinsic cannot observe application storage outside its operands.
-    Uniq                = 1 << 13,
+
+    Uniq = 1 << 13,
 
     // Operator families. '++' is deliberately absent: concatenation shares no operand rule
     // with the numeric operators, and every site that accepts it handles it on its own.
@@ -74,21 +74,22 @@ enum class TokenFlagsE : uint16_t
     EolAfter    = 1 << 3,
     EolInside   = 1 << 4,
     Escaped     = 1 << 5,
-    // Set on a string literal introduced by '#raw': the content is taken verbatim, so no
-    // escape sequence is recognized and no end-of-line is folded.
+
+    // Strings introduced by #raw preserve backslashes and line endings verbatim.
     Raw = 1 << 6,
 };
 using TokenFlags = EnumFlags<TokenFlagsE>;
 
 struct Token
 {
-    uint32_t byteStart  = 0; // Byte offset in the source file buffer
-    uint32_t byteLength = 0; // Length in bytes
+    uint32_t byteStart  = 0; // Source offset, or an identifier-table index.
+    uint32_t byteLength = 0;
 
     TokenId    id    = TokenId::Invalid;
     TokenFlags flags = TokenFlagsE::Zero;
 
     bool is(TokenId id) const { return this->id == id; }
+
     bool isAny(std::initializer_list<TokenId> list) const
     {
         for (const TokenId candidate : list)
@@ -96,23 +97,28 @@ struct Token
             if (this->id == candidate)
                 return true;
         }
+
         return false;
     }
 
-    bool             isNot(TokenId id) const { return this->id != id; }
+    bool isNot(TokenId id) const { return this->id != id; }
+
     std::string_view string(const SourceView& srcView) const;
     uint32_t         crc(const SourceView& srcView) const;
     SourceCodeRange  codeRange(const TaskContext& ctx, const SourceView& srcView) const;
-    bool             hasFlag(TokenFlags flag) const { return flags.has(flag); }
+
+    bool hasFlag(TokenFlags flag) const { return flags.has(flag); }
 
     static TokenIdKind      toKind(TokenId id) { return TOKEN_ID_INFOS[static_cast<size_t>(id)].kind; }
     static std::string_view toName(TokenId id);
     static std::string_view toFamily(TokenId id);
+
     static std::string_view intrinsicName(TokenId id);
     static TokenId          intrinsicFromName(std::string_view name);
-    static TokenId          toRelated(TokenId id);
-    static TokenId          assignToBinary(TokenId op);
-    static TokenId          canonicalBinary(TokenId op);
+
+    static TokenId toRelated(TokenId id);
+    static TokenId assignToBinary(TokenId op);
+    static TokenId canonicalBinary(TokenId op);
 
     bool startsLine() const { return flags.has(TokenFlagsE::EolBefore); }
 
@@ -121,20 +127,24 @@ struct Token
     static bool isSymbol(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Symbol); }
     static bool isKeywordLogic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Keyword | TokenIdKindE::Logic); }
     static bool isKeyword(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Keyword); }
+
     static bool isCompilerIntrinsicReturn(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Intrinsic | TokenIdKindE::Return); }
     static bool isCompilerIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Intrinsic); }
     static bool isCompilerFunc(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Func); }
     static bool isCompilerUniq(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler | TokenIdKindE::Uniq); }
     static bool isCompiler(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Compiler); }
+
     static bool isIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic); }
     static bool isIntrinsicReturn(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Return); }
     static bool isPortableIntrinsic(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Intrinsic | TokenIdKindE::Portable); }
     static bool intrinsicObservesExternalBorrows(TokenId id) { return !isPortableIntrinsic(id) && !toKind(id).has(TokenIdKindE::ArgumentStorageOnly); }
+
     static bool isType(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Type); }
     static bool isModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Modifier); }
     static bool isStorageModifier(TokenId id) { return toKind(id).hasAll(TokenIdKindE::StorageModifier); }
     static bool isSpecialWord(TokenId id) { return isKeyword(id) || isCompiler(id) || isIntrinsic(id) || isType(id) || isModifier(id); }
     static bool isReserved(TokenId id) { return toKind(id).hasAll(TokenIdKindE::Reserved); }
+
     // The compiler function blocks that turn into a symbol in the native artifact, as opposed
     // to the ones the compiler consumes itself ('#run', '#ast', '#message').
     static bool isNativeArtifactCompilerFunc(TokenId id)
@@ -158,9 +168,10 @@ struct Token
     static bool isOpArithmeticOrBitwise(TokenId id) { return toKind(id).hasAny(TokenIdKindE::OpArithmetic | TokenIdKindE::OpBitwise); }
     static bool isOpEquality(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpEquality); }
     static bool isOpOrdering(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpOrdering); }
-    // The operator token of a dereference unary node: the '[' carried by the postfix
-    // place-deref 'expr[]'.
+
+    // The postfix expr[] dereference uses the '[' token.
     static bool isDeref(TokenId id) { return id == TokenId::SymLeftBracket; }
+
     static bool isOpRelational(TokenId id) { return toKind(id).hasAny(TokenIdKindE::OpEquality | TokenIdKindE::OpOrdering); }
     static bool isOpLogical(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpLogical); }
     static bool isOpAssign(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpAssign); }

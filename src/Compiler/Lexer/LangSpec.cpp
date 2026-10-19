@@ -33,7 +33,6 @@ void LangSpec::setupKeywords()
 
 void LangSpec::setupCharFlags()
 {
-    // Initialize all flags to 0
     for (auto& charFlag : charFlags_)
         charFlag = CharFlagsE::Zero;
 
@@ -46,6 +45,7 @@ void LangSpec::setupCharFlags()
     charFlags_['\t'].add(CharFlagsE::Blank); // Horizontal tab (0x09)
     charFlags_['\f'].add(CharFlagsE::Blank); // Form feed (0x0C)
     charFlags_['\v'].add(CharFlagsE::Blank); // Vertical tab (0x0B)
+
     charFlags_['\r'].add(CharFlagsE::Eol);
     charFlags_['\n'].add(CharFlagsE::Eol);
 
@@ -68,8 +68,10 @@ void LangSpec::setupCharFlags()
     // Hexadecimal number
     for (char8_t c = '0'; c <= '9'; c++)
         charFlags_[c].add(CharFlagsE::HexNumber);
+
     for (char8_t c = 'a'; c <= 'f'; c++)
         charFlags_[c].add(CharFlagsE::HexNumber);
+
     for (char8_t c = 'A'; c <= 'F'; c++)
         charFlags_[c].add(CharFlagsE::HexNumber);
 
@@ -122,6 +124,7 @@ TokenId LangSpec::keyword(std::string_view name, uint32_t hash) const
     const auto* ptr = keywordMap_.find(name, hash);
     if (!ptr)
         return TokenId::Identifier;
+
     return *ptr;
 }
 
@@ -134,6 +137,7 @@ bool LangSpec::isReservedNamespace(std::string_view ns)
 {
     Utf8 name = ns;
     name.make_lower();
+
     return name == "swag";
 }
 
@@ -141,8 +145,10 @@ bool LangSpec::isSpecOpName(std::string_view name)
 {
     if (name.size() < 3)
         return false;
+
     if (name[0] != 'o' || name[1] != 'p')
         return false;
+
     return std::isupper(static_cast<unsigned char>(name[2])) != 0;
 }
 

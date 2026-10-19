@@ -21,8 +21,10 @@ uint32_t Token::crc(const SourceView& srcView) const
 SourceCodeRange Token::codeRange(const TaskContext& ctx, const SourceView& srcView) const
 {
     SourceCodeRange codeRange;
+
     // The lexer gives its EOF sentinel a byte, but that byte is outside the source.
     codeRange.fromOffset(ctx, srcView, srcView.tokenByteStart(*this), id == TokenId::EndOfFile ? 0 : byteLength);
+
     return codeRange;
 }
 
@@ -65,17 +67,17 @@ std::string_view Token::intrinsicName(const TokenId id)
     constexpr auto   prefix = std::string_view{"Swag."};
     if (!name.starts_with(prefix))
         return {};
+
     name.remove_prefix(prefix.size());
     return name;
 }
 
 TokenId Token::intrinsicFromName(const std::string_view name)
 {
-    // The parser asks twice per intrinsic call and the formatter once per candidate piece, so
-    // walking every token id with a string compare each time was 9 percent of a formatting
-    // pass. The table is built once, from the same names.
+    // Parser and formatter queries share a table built once from the token names.
     static const std::unordered_map<std::string_view, TokenId> intrinsics = [] {
         std::unordered_map<std::string_view, TokenId> table;
+
         for (uint32_t i = 0; i < static_cast<uint32_t>(TokenId::Count); ++i)
         {
             const auto             id        = static_cast<TokenId>(i);
@@ -83,6 +85,7 @@ TokenId Token::intrinsicFromName(const std::string_view name)
             if (!intrinsic.empty())
                 table.emplace(intrinsic, id);
         }
+
         return table;
     }();
 
@@ -131,26 +134,37 @@ TokenId Token::assignToBinary(TokenId op)
     {
         case TokenId::SymPlusEqual:
             return TokenId::SymPlus;
+
         case TokenId::SymMinusEqual:
             return TokenId::SymMinus;
+
         case TokenId::SymAsteriskEqual:
             return TokenId::SymAsterisk;
+
         case TokenId::SymSlashEqual:
             return TokenId::SymSlash;
+
         case TokenId::SymAmpersandEqual:
             return TokenId::SymAmpersand;
+
         case TokenId::SymPipeEqual:
             return TokenId::SymPipe;
+
         case TokenId::SymCircumflexEqual:
             return TokenId::SymCircumflex;
+
         case TokenId::SymPercentEqual:
             return TokenId::SymPercent;
+
         case TokenId::SymLowerLowerEqual:
             return TokenId::SymLowerLower;
+
         case TokenId::SymGreaterGreaterEqual:
             return TokenId::SymGreaterGreater;
+
         case TokenId::SymEqual:
             return TokenId::SymEqual;
+
         default:
             break;
     }

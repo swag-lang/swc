@@ -31,21 +31,25 @@ namespace SemaGeneric
 
     struct GenericParamDesc
     {
-        GenericParamKind kind         = GenericParamKind::Type;
-        AstNodeRef       paramRef     = AstNodeRef::invalid();
-        AstNodeRef       explicitType = AstNodeRef::invalid();
-        AstNodeRef       defaultRef   = AstNodeRef::invalid();
-        IdentifierRef    idRef        = IdentifierRef::invalid();
+        GenericParamKind kind = GenericParamKind::Type;
+
+        AstNodeRef paramRef     = AstNodeRef::invalid();
+        AstNodeRef explicitType = AstNodeRef::invalid();
+        AstNodeRef defaultRef   = AstNodeRef::invalid();
+
+        IdentifierRef idRef = IdentifierRef::invalid();
     };
 
     struct GenericResolvedArg
     {
-        AstNodeRef  exprRef      = AstNodeRef::invalid();
-        AstNodeRef  diagRef      = AstNodeRef::invalid();
-        TypeRef     typeRef      = TypeRef::invalid();
-        ConstantRef cstRef       = ConstantRef::invalid();
-        uint32_t    callArgIndex = UINT32_MAX;
-        bool        present      = false;
+        AstNodeRef exprRef = AstNodeRef::invalid();
+        AstNodeRef diagRef = AstNodeRef::invalid();
+
+        TypeRef     typeRef = TypeRef::invalid();
+        ConstantRef cstRef  = ConstantRef::invalid();
+
+        uint32_t callArgIndex = UINT32_MAX;
+        bool     present      = false;
     };
 
     struct GenericFunctionParamDesc
@@ -54,15 +58,17 @@ namespace SemaGeneric
         AstNodeRef    typeRef         = AstNodeRef::invalid();
         TypeRef       resolvedTypeRef = TypeRef::invalid();
         AstNodeRef    defaultRef      = AstNodeRef::invalid();
-        bool          isVariadic      = false;
-        bool          hasExplicitType = false;
+
+        bool isVariadic      = false;
+        bool hasExplicitType = false;
     };
 
     struct GenericCallArgEntry
     {
-        AstNodeRef argRef                      = AstNodeRef::invalid();
-        uint32_t   callArgIndex                = 0;
-        bool       allowImplicitAddressBinding = false;
+        AstNodeRef argRef       = AstNodeRef::invalid();
+        uint32_t   callArgIndex = 0;
+
+        bool allowImplicitAddressBinding = false;
     };
 
     TypeRef unwrapGenericDeductionType(TaskContext& ctx, TypeRef typeRef);
@@ -81,11 +87,15 @@ namespace SemaGeneric
 
     Result evalGenericFunctionParamDefault(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, AstNodeRef defaultRef, AstNodeRef& outClonedRef);
     void   collectFunctionParamDescs(Sema& sema, const SymbolFunction& function, SmallVector<GenericFunctionParamDesc>& outParams);
+
     Result deduceGenericFunctionArgs(Sema& sema, const SymbolFunction& root, std::span<const GenericParamDesc> genericParams, SmallVector<GenericResolvedArg>& ioResolvedArgs, std::span<AstNodeRef> args, AstNodeRef ufcsArg, CastFailure* outFailure = nullptr, uint32_t* outFailureArgIndex = nullptr);
     Result resolveFunctionCallParamType(Sema& sema, const SymbolFunction& function, AstNodeRef calleeRef, std::span<AstNodeRef> args, AstNodeRef ufcsArg, AstNodeRef childRef, TypeRef& outTypeRef, bool requireCompleteGenericArgs = false);
+
     Result evaluateFunctionWhereConstraints(Sema& sema, bool& outSatisfied, const SymbolFunction& function, CastFailure* outFailure = nullptr);
+
     Result instantiateFunctionExplicit(Sema& sema, SymbolFunction& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolFunction*& outInstance, CastFailure* outWhereFailure = nullptr);
     Result instantiateFunctionFromCall(Sema& sema, SymbolFunction& genericRoot, std::span<AstNodeRef> args, AstNodeRef ufcsArg, std::span<const AstNodeRef> explicitGenericArgNodes, SymbolFunction*& outInstance, CastFailure* outFailure = nullptr, uint32_t* outFailureArgIndex = nullptr);
+
     Result instantiateStructExplicit(Sema& sema, SymbolStruct& genericRoot, std::span<const AstNodeRef> genericArgNodes, SymbolStruct*& outInstance, bool reportFailure = false);
     Result instantiateStructFromContext(Sema& sema, SymbolStruct& genericRoot, SymbolStruct*& outInstance);
 
@@ -103,10 +113,8 @@ namespace SemaGeneric
             std::span<const GenericResolvedArg> resolvedArgs;
         };
 
-        // The instantiation a where failure names. Formatting it reads type and constant names that
-        // only a failure prints, so it is put together on the first read. The enclosing generic
-        // instances it also names are taken when the inputs are built, so the text does not depend
-        // on when it is read.
+        // Format diagnostic bindings on first use to avoid resolving unused names.
+        // Capture enclosing instances up front so deferred formatting sees the same context.
         class WhereBindingText
         {
         public:
@@ -120,9 +128,11 @@ namespace SemaGeneric
             const SymbolFunction*               function_ = nullptr;
             std::span<const GenericParamDesc>   params_;
             std::span<const GenericResolvedArg> resolvedArgs_;
-            SmallVector<const SymbolFunction*>  ambientFunctions_;
-            mutable Utf8                        text_;
-            mutable bool                        formatted_ = false;
+
+            SmallVector<const SymbolFunction*> ambientFunctions_;
+
+            mutable Utf8 text_;
+            mutable bool formatted_ = false;
         };
 
         struct FunctionWhereInputs
@@ -139,18 +149,22 @@ namespace SemaGeneric
 
         const AstFunctionDecl* genericFunctionDecl(const SymbolFunction& root);
         bool                   hasFunctionWhereConstraints(const SymbolFunction& root);
-        const AstNode*         genericStructDeclNode(const SymbolStruct& root);
-        SpanRef                genericStructParamSpan(const SymbolStruct& root);
-        bool                   loadStructInstanceGenericArgs(Sema& sema, const SymbolStruct& instance, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
-        AstNodeRef             genericDeclNodeRef(const Symbol& root);
-        bool                   loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
-        bool                   loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
-        void                   collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions);
-        Utf8                   formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg);
-        Utf8                   formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key);
-        void                   appendFormattedBinding(Utf8& out, std::string_view name, const Utf8& value);
-        Utf8                   formatResolvedGenericBindings(Sema& sema, const ResolvedGenericBindingSource& source);
-        Utf8                   formatGenericInstanceBindings(Sema& sema, std::span<const GenericParamDesc> params, std::span<const GenericInstanceKey> args);
+
+        const AstNode* genericStructDeclNode(const SymbolStruct& root);
+        SpanRef        genericStructParamSpan(const SymbolStruct& root);
+
+        bool       loadStructInstanceGenericArgs(Sema& sema, const SymbolStruct& instance, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
+        AstNodeRef genericDeclNodeRef(const Symbol& root);
+        bool       loadFunctionInstanceGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
+        bool       loadOwnerStructGenericArgs(Sema& sema, const SymbolFunction& function, SmallVector<GenericParamDesc>& outParams, SmallVector<GenericInstanceKey>& outArgs);
+        void       collectAmbientGenericFunctions(const Sema& sema, SmallVector<const SymbolFunction*>& outFunctions);
+
+        Utf8 formatResolvedGenericArg(Sema& sema, const GenericResolvedArg& arg);
+        Utf8 formatGenericInstanceKey(Sema& sema, const GenericInstanceKey& key);
+
+        void appendFormattedBinding(Utf8& out, std::string_view name, const Utf8& value);
+        Utf8 formatResolvedGenericBindings(Sema& sema, const ResolvedGenericBindingSource& source);
+        Utf8 formatGenericInstanceBindings(Sema& sema, std::span<const GenericParamDesc> params, std::span<const GenericInstanceKey> args);
 
         Sema* tryCreateSemaForGenericDecl(Sema& sema, const Symbol& root, std::unique_ptr<Sema>& ownedSema);
 

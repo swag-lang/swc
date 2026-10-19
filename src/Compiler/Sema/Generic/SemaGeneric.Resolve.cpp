@@ -32,6 +32,7 @@ namespace
             const TypeRef representedTypeRef = representedType->payloadTypeRef();
             if (representedTypeRef.isInvalid())
                 return nullptr;
+
             representedType = &sema.typeMgr().get(representedTypeRef);
         }
         else if (!representedType->isStruct())
@@ -58,6 +59,7 @@ namespace
             ioTypeRef = specializedTypeRef;
             sema.setSymbol(nodeRef, instance);
         }
+
         return Result::Continue;
     }
 
@@ -87,6 +89,7 @@ namespace
             const SymbolMap* owner = current->ownerSymMap();
             if (current->isNamespace() && (!owner || !owner->isModule()))
                 outPath.push_back(current->idRef());
+
             if (current->isModule())
                 access = SymbolAccess::Internal;
 
@@ -113,9 +116,10 @@ namespace
         else
         {
             const auto& nodeValue = paramNode.cast<AstGenericParamValue>();
-            desc.kind             = SemaGeneric::GenericParamKind::Value;
-            desc.explicitType     = nodeValue.nodeTypeRef;
-            desc.defaultRef       = nodeValue.nodeAssignRef;
+
+            desc.kind         = SemaGeneric::GenericParamKind::Value;
+            desc.explicitType = nodeValue.nodeTypeRef;
+            desc.defaultRef   = nodeValue.nodeAssignRef;
         }
 
         outParams.push_back(desc);
@@ -124,7 +128,6 @@ namespace
 
 namespace SemaGeneric
 {
-
     void appendGenericParams(Sema& sema, const AstNode& declNode, SpanRef spanRef, SmallVector<GenericParamDesc>& outParams)
     {
         if (spanRef.isInvalid())
@@ -176,6 +179,7 @@ namespace SemaGeneric
             nsPath.append(scopePath.data(), scopePath.size());
             access = sema.frame().currentAccess();
         }
+
         const bool globalCompilerIfEnabled = sema.frame().globalCompilerIfEnabled();
 
         sema.scopes_.clear();
@@ -189,8 +193,10 @@ namespace SemaGeneric
 
         sema.frames_.clear();
         sema.pushFrame({});
+
         for (const IdentifierRef idRef : nsPath)
             sema.frame().pushNs(idRef);
+
         sema.frame().setCurrentAccess(access);
         sema.frame().setGlobalCompilerIfEnabled(globalCompilerIfEnabled);
         sema.frame().setCurrentImpl(impl);
@@ -211,6 +217,7 @@ namespace SemaGeneric
         const auto params = sema.ast().nodeSpan(spanRef);
         auto       chunk  = params.chunksBegin();
         outParams.reserve(outParams.size() + chunk.total);
+
         for (; chunk != params.chunksEnd(); ++chunk)
         {
             for (const AstNodeRef paramRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
@@ -245,6 +252,7 @@ namespace SemaGeneric
     {
         const size_t n = std::min(count, params.size());
         outBindings.reserve(outBindings.size() + n);
+
         for (size_t i = 0; i < n; ++i)
             appendResolvedGenericBinding(params[i], resolvedArgs[i], outBindings);
     }
@@ -258,6 +266,7 @@ namespace SemaGeneric
         {
             TypeRef representedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typedView);
             SWC_RESULT(specializeExplicitGenericTypeArgFromContext(sema, nodeRef, representedTypeRef));
+
             if (representedTypeRef.isValid())
             {
                 outArg.typeRef = representedTypeRef;
@@ -271,6 +280,7 @@ namespace SemaGeneric
         {
             TypeRef typeRef = typeView.typeRef();
             SWC_RESULT(specializeExplicitGenericTypeArgFromContext(sema, nodeRef, typeRef));
+
             if (!sema.isValue(nodeRef) || sema.typeMgr().get(typeRef).isAggregate())
             {
                 // Explicit type arguments only need the resolved type. Avoid forcing symbol payload
@@ -288,8 +298,10 @@ namespace SemaGeneric
             TypeRef typeRef = view.typeRef();
             if (!typeRef.isValid())
                 typeRef = view.sym()->typeRef();
+
             if (!typeRef.isValid())
                 return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
+
             SWC_RESULT(specializeExplicitGenericTypeArgFromContext(sema, nodeRef, typeRef));
 
             outArg.typeRef = typeRef;
@@ -306,7 +318,8 @@ namespace SemaGeneric
         if (!view.cstRef().isValid())
             return SemaError::raiseExprNotConst(sema, nodeRef);
 
-        outArg         = {};
+        outArg = {};
+
         outArg.exprRef = nodeRef;
         outArg.typeRef = view.typeRef();
         outArg.cstRef  = view.cstRef();
@@ -319,6 +332,7 @@ namespace SemaGeneric
             {
                 ConstantRef newCstRef = ConstantRef::invalid();
                 SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, nodeRef, outArg.cstRef, TypeInfo::Sign::Unknown));
+
                 if (newCstRef.isValid())
                 {
                     sema.setConstant(nodeRef, newCstRef);
@@ -335,6 +349,7 @@ namespace SemaGeneric
     {
         if (param.kind == GenericParamKind::Type)
             return resolveGenericTypeArg(sema, nodeRef, outArg);
+
         return normalizeGenericConstantArg(sema, nodeRef, outArg);
     }
 

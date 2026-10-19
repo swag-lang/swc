@@ -27,6 +27,7 @@ namespace
             return;
 
         out += "'(";
+
         for (size_t i = 0; i < args.size(); ++i)
         {
             if (i != 0)
@@ -46,6 +47,7 @@ namespace
                 out += "?";
             }
         }
+
         out += ")";
     }
 
@@ -53,6 +55,7 @@ namespace
     {
         if (!tr.isValid())
             return nullptr;
+
         return ctx.typeMgr().get(tr).getNotCompletedSymbol(ctx);
     }
 
@@ -60,14 +63,14 @@ namespace
     {
         if (!sym || sym->isSemaCompleted())
             return nullptr;
+
         return sym;
     }
 
     bool sameFunctionTypeInfoSignature(const SymbolFunction& lhs, const SymbolFunction& rhs) noexcept
     {
-        // Most function types are symbol-identity based. Structural identity is only
-        // used for synthesized signatures, where parameter names are part of the
-        // user-visible type shape and must match as well.
+        // Function types normally use symbol identity. Synthesized signatures use
+        // structural identity, including parameter names in their visible type shape.
         if (!lhs.usesStructuralTypeIdentity() || !rhs.usesStructuralTypeIdentity())
             return &lhs == &rhs;
 
@@ -76,6 +79,7 @@ namespace
 
         const auto& lhsParams = lhs.parameters();
         const auto& rhsParams = rhs.parameters();
+
         for (uint32_t i = 0; i < lhsParams.size(); ++i)
         {
             SWC_ASSERT(lhsParams[i] != nullptr);
@@ -108,6 +112,7 @@ namespace
             const size_t digit = static_cast<size_t>(c - '0');
             if (index > (std::numeric_limits<size_t>::max() - digit) / 10)
                 return false;
+
             index = index * 10 + digit;
         }
 
@@ -163,12 +168,15 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
         case TypeInfoKind::Enum:
             payloadEnum_ = other.payloadEnum_;
             break;
+
         case TypeInfoKind::Struct:
             payloadStruct_ = other.payloadStruct_;
             break;
+
         case TypeInfoKind::Interface:
             payloadInterface_ = other.payloadInterface_;
             break;
+
         case TypeInfoKind::Alias:
             payloadAlias_ = other.payloadAlias_;
             break;
@@ -178,9 +186,11 @@ TypeInfo::TypeInfo(const TypeInfo& other) :
             std::construct_at(&payloadArray_.indexTypeRefs, other.payloadArray_.indexTypeRefs);
             payloadArray_.typeRef = other.payloadArray_.typeRef;
             break;
+
         case TypeInfoKind::Function:
             payloadFunction_ = other.payloadFunction_;
             break;
+
         case TypeInfoKind::Simd:
             payloadSimd_ = other.payloadSimd_;
             break;
@@ -235,12 +245,15 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
         case TypeInfoKind::Enum:
             payloadEnum_ = other.payloadEnum_;
             break;
+
         case TypeInfoKind::Struct:
             payloadStruct_ = other.payloadStruct_;
             break;
+
         case TypeInfoKind::Interface:
             payloadInterface_ = other.payloadInterface_;
             break;
+
         case TypeInfoKind::Alias:
             payloadAlias_ = other.payloadAlias_;
             break;
@@ -250,9 +263,11 @@ TypeInfo::TypeInfo(TypeInfo&& other) noexcept :
             std::construct_at(&payloadArray_.indexTypeRefs, std::move(other.payloadArray_.indexTypeRefs));
             payloadArray_.typeRef = other.payloadArray_.typeRef;
             break;
+
         case TypeInfoKind::Function:
             payloadFunction_ = other.payloadFunction_;
             break;
+
         case TypeInfoKind::Simd:
             payloadSimd_ = other.payloadSimd_;
             break;
@@ -266,6 +281,7 @@ TypeInfo& TypeInfo::operator=(const TypeInfo& other)
 {
     if (this == &other)
         return *this;
+
     this->~TypeInfo();
     new (this) TypeInfo(other);
     return *this;
@@ -275,6 +291,7 @@ TypeInfo& TypeInfo::operator=(TypeInfo&& other) noexcept
 {
     if (this == &other)
         return *this;
+
     this->~TypeInfo();
     new (this) TypeInfo(std::move(other));
     return *this;
@@ -288,11 +305,13 @@ TypeInfo::~TypeInfo()
             std::destroy_at(&payloadArray_.dims);
             std::destroy_at(&payloadArray_.indexTypeRefs);
             break;
+
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
             std::destroy_at(&payloadAggregate_.types);
             std::destroy_at(&payloadAggregate_.names);
             break;
+
         default:
             break;
     }
@@ -304,6 +323,7 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
         return false;
     if (flags_ != other.flags_)
         return false;
+
     switch (kind_)
     {
         case TypeInfoKind::Bool:
@@ -337,17 +357,22 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                 return false;
             if (payloadAggregate_.names.size() != other.payloadAggregate_.names.size())
                 return false;
+
             for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
                 if (payloadAggregate_.types[i] != other.payloadAggregate_.types[i] ||
                     payloadAggregate_.names[i] != other.payloadAggregate_.names[i])
                     return false;
+
             return true;
+
         case TypeInfoKind::AggregateArray:
             if (payloadAggregate_.types.size() != other.payloadAggregate_.types.size())
                 return false;
+
             for (uint32_t i = 0; i < payloadAggregate_.types.size(); ++i)
                 if (payloadAggregate_.types[i] != other.payloadAggregate_.types[i])
                     return false;
+
             return true;
 
         case TypeInfoKind::Enum:
@@ -368,9 +393,11 @@ bool TypeInfo::operator==(const TypeInfo& other) const noexcept
                 return false;
             if (payloadArray_.typeRef != other.payloadArray_.typeRef)
                 return false;
+
             for (uint32_t i = 0; i < payloadArray_.dims.size(); ++i)
                 if (payloadArray_.dims[i] != other.payloadArray_.dims[i])
                     return false;
+
             return true;
 
         case TypeInfoKind::Simd:
@@ -386,6 +413,7 @@ TypeRef TypeInfo::payloadTypeRef() const noexcept
     SWC_ASSERT(hasDirectPayloadTypeRef() || isAlias());
     if (isAlias())
         return payloadAlias_.sym->underlyingTypeRef();
+
     return payloadTypeRef_.typeRef;
 }
 

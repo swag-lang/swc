@@ -467,6 +467,7 @@ const TypeInfo* TypeInfo::resolveAliasType(const TaskContext& ctx) const noexcep
 
         if (sub.isInvalid())
             break;
+
         result = sub;
         type   = &ctx.typeMgr().get(sub);
     }
@@ -486,12 +487,14 @@ uint32_t TypeInfo::hashHeader(const TypeInfoKind kind, const TypeInfoFlags flags
 uint32_t TypeInfo::hashArrayPayload(uint32_t h, const std::span<const uint64_t> dims, const TypeRef elementTypeRef, const std::span<const TypeRef> indexTypeRefs)
 {
     h = Math::hashCombine(h, elementTypeRef.get());
+
     for (size_t i = 0; i < dims.size(); ++i)
     {
         h = Math::hashCombine(h, static_cast<uint32_t>(dims[i]));
         if (!indexTypeRefs.empty())
             h = Math::hashCombine(h, indexTypeRefs[i].get());
     }
+
     return h;
 }
 
@@ -501,11 +504,13 @@ uint32_t TypeInfo::hashAggregatePayload(uint32_t h, const TypeInfoKind kind, con
     {
         h = Math::hashCombine(h, static_cast<uint32_t>(types.size()));
         h = Math::hashCombine(h, static_cast<uint32_t>(names.size()));
+
         for (size_t i = 0; i < types.size(); ++i)
         {
             h = Math::hashCombine(h, types[i].get());
             h = Math::hashCombine(h, names[i].get());
         }
+
         return h;
     }
 
@@ -513,6 +518,7 @@ uint32_t TypeInfo::hashAggregatePayload(uint32_t h, const TypeInfoKind kind, con
     h = Math::hashCombine(h, static_cast<uint32_t>(types.size()));
     for (const TypeRef typeRef : types)
         h = Math::hashCombine(h, typeRef.get());
+
     return h;
 }
 
@@ -538,9 +544,11 @@ uint32_t TypeInfo::hash() const
             h = Math::hashCombine(h, payloadInt_.bits);
             h = Math::hashCombine(h, static_cast<uint32_t>(payloadInt_.sign));
             return h;
+
         case TypeInfoKind::Float:
             h = Math::hashCombine(h, payloadFloat_.bits);
             return h;
+
         case TypeInfoKind::ValuePointer:
         case TypeInfoKind::BlockPointer:
         case TypeInfoKind::MoveReference:
@@ -554,21 +562,27 @@ uint32_t TypeInfo::hash() const
         case TypeInfoKind::AggregateStruct:
         case TypeInfoKind::AggregateArray:
             return hashAggregatePayload(h, kind_, payloadAggregate_.types, payloadAggregate_.names);
+
         case TypeInfoKind::Enum:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadEnum_.sym));
             return h;
+
         case TypeInfoKind::Struct:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadStruct_.sym));
             return h;
+
         case TypeInfoKind::Interface:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadInterface_.sym));
             return h;
+
         case TypeInfoKind::Alias:
             h = Math::hashCombine(h, reinterpret_cast<uintptr_t>(payloadAlias_.sym));
             return h;
+
         case TypeInfoKind::Function:
             h = Math::hashCombine(h, payloadFunction_.sym->typeSignatureHash());
             return h;
+
         case TypeInfoKind::Array:
             return hashArrayPayload(h, payloadArray_.dims, payloadArray_.typeRef, payloadArray_.indexTypeRefs);
 
@@ -633,9 +647,11 @@ namespace
 
                 break;
             }
+
             case TypeInfoKind::TypeInfo:
                 out += "typeinfo";
                 break;
+
             case TypeInfoKind::AggregateStruct:
                 out.resize(start);
                 out += "struct literal";
@@ -675,6 +691,7 @@ namespace
                 else
                     out += typeInfo.payloadSymInterface().name(ctx);
                 break;
+
             case TypeInfoKind::Alias:
                 if (mode == TypeNameMode::Full)
                     out += typeInfo.payloadSymAlias().getFullScopedName(ctx);
@@ -728,6 +745,7 @@ namespace
                     appendTypeName(ctx, out, type, mode);
                     return;
                 }
+
                 out += "typeinfo(";
                 appendTypeName(ctx, out, type, mode);
                 out += ")";
@@ -746,6 +764,7 @@ namespace
                 }
                 else
                     appendTypeName(ctx, out, type, mode);
+
                 break;
             }
 
@@ -761,6 +780,7 @@ namespace
                 }
                 else
                     appendTypeName(ctx, out, type, mode);
+
                 break;
             }
 
@@ -776,6 +796,7 @@ namespace
                 }
                 else
                     appendTypeName(ctx, out, type, mode);
+
                 break;
             }
 
@@ -819,6 +840,7 @@ namespace
                 }
                 else
                     appendTypeName(ctx, out, type, mode);
+
                 break;
             }
 
@@ -829,22 +851,26 @@ namespace
                 else
                 {
                     out += "[";
+
                     for (size_t i = 0; i < typeInfo.payloadArrayDims().size(); ++i)
                     {
                         if (i != 0)
                             out += ", ";
+
                         const TypeRef indexTypeRef = typeInfo.payloadArrayIndexTypeRef(i);
                         if (indexTypeRef.isValid())
                             appendTypeName(ctx, out, ctx.typeMgr().get(indexTypeRef), mode);
                         else
                             out += std::to_string(typeInfo.payloadArrayDims()[i]);
                     }
+
                     out += "]";
                 }
 
                 const TypeInfo& elemType = ctx.typeMgr().get(typeInfo.payloadArrayElemTypeRef());
                 if (!elemType.isArray())
                     out += " ";
+
                 if (elemType.isNullable())
                 {
                     out += "(";
@@ -853,12 +879,14 @@ namespace
                 }
                 else
                     appendTypeName(ctx, out, elemType, mode);
+
                 break;
             }
 
             case TypeInfoKind::Variadic:
                 out += "...";
                 break;
+
             case TypeInfoKind::TypedVariadic:
             {
                 const TypeInfo& type = ctx.typeMgr().get(typeInfo.payloadTypeRef());

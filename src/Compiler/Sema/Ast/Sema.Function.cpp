@@ -432,10 +432,8 @@ namespace
         sema.compiler().registerRuntimeFunctionSymbol(sym.idRef(), &sym);
     }
 
-    // A detached copy of an analysed function literal, as the home of an inline
-    // binding, inherits the source's completed function. Analysing the copy's
-    // body again would make a second function sharing the source's locals, and
-    // the two would race on their stack placement in codegen.
+    // Detached function-literal copies inherit the completed source function.
+    // Reanalysis would share locals across functions and race in codegen.
     SymbolFunction* inheritedFunctionExprSymbol(Sema& sema)
     {
         Symbol* sym = sema.curViewSymbol().sym();
@@ -445,6 +443,7 @@ namespace
         auto& symFunc = sym->cast<SymbolFunction>();
         if (symFunc.declNodeRef() == sema.curNodeRef() || !symFunc.isSemaCompleted())
             return nullptr;
+
         return &symFunc;
     }
 
@@ -462,12 +461,12 @@ namespace
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_propagate_needs_fail, sym);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
-    // 'Swag.Propagate' governs the calls written in its own body. A function declared inside
-    // that body spells its own error handling, so the attribute must not reach it through
-    // the body's attributes the way scope attributes do.
+    // Swag.Propagate belongs to calls in this body. Remove it from inherited
+    // attributes so nested functions choose their own error handling.
     void keepPropagateOutOfNestedDeclarations(AttributeList& bodyAttributes)
     {
         if (!bodyAttributes.hasRtFlag(RtAttributeFlagsE::Propagate))
@@ -482,8 +481,7 @@ namespace
         }
     }
 
-    // Pushes 'frame' as the frame of the body of 'sym': the body starts outside any inline
-    // expansion and error context.
+    // A new function body starts outside its parent's inline and error contexts.
     void pushFunctionBodyFrame(Sema& sema, SemaFrame frame, SymbolFunction& sym)
     {
         frame.setEnclosingFunction(sema.currentFunction());
@@ -491,14 +489,15 @@ namespace
         frame.setCurrentInlinePayload(nullptr);
         frame.setInlineContextRootRef(AstNodeRef::invalid());
         frame.setCurrentErrorContext(AstNodeRef::invalid(), SemaFrame::ErrorContextMode::None);
+
         // A nested function body must not inherit the enclosing body's flow-narrowing facts.
         frame.clearNarrowFacts();
+
         sema.pushFramePopOnPostNode(std::move(frame));
     }
 
-    // Enters a function literal: declares its function, named after 'namePrefix', on first entry,
-    // and pushes the frame of its body. Returns the completed function a detached copy inherits,
-    // if any.
+    // Detached copies reuse the completed source function; first entry declares
+    // a new function symbol and installs its body frame.
     template<typename T>
     const SymbolFunction* enterFunctionExpr(Sema& sema, const T& node, std::string_view namePrefix)
     {
@@ -513,6 +512,7 @@ namespace
             auto*        sym = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), SemaHelpers::getUniqueIdentifier(sema, namePrefix), sema.frame().flagsForCurrentAccess());
             SymbolMap*   map = SemaFrame::currentSymMap(sema);
             SWC_ASSERT(map != nullptr);
+
             map->addSymbol(ctx, sym, true);
 
             sym->setExtraFlags(node.flags());
@@ -520,6 +520,7 @@ namespace
             sym->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
             sym->setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, *sym));
             sym->setDeclared(ctx);
+
             sema.setSymbol(sema.curNodeRef(), sym);
 
             SemaHelpers::addCurrentFunctionCallDependency(sema, sym);
@@ -527,6 +528,7 @@ namespace
 
         auto& sym = sema.curViewSymbol().sym()->cast<SymbolFunction>();
         pushFunctionBodyFrame(sema, sema.frame(), sym);
+
         return inherited;
     }
 }
@@ -604,6 +606,7 @@ Result AstFunctionDecl::semaPreDecl(Sema& sema) const
     sym.setGenericRoot(spanGenericParamsRef.isValid());
     if (nodeBodyRef.isInvalid())
         sym.addExtraFlag(SymbolFunctionFlagsE::Empty);
+
     registerRuntimeFunctionSymbol(sema, sym);
 
     return Result::SkipChildren;
@@ -649,6 +652,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     {
         SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
         sym.setSemaCompleted(sema.ctx());
+
         return Result::SkipChildren;
     }
 
@@ -656,6 +660,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     {
         SWC_RESULT(SemaSpecOp::validateSymbol(sema, sym));
         sym.setSemaCompleted(sema.ctx());
+
         return Result::SkipChildren;
     }
 
@@ -667,6 +672,7 @@ Result AstFunctionDecl::semaPreNode(Sema& sema) const
     frame.setCurrentImpl(declImpl);
     frame.setCurrentInterface(declItf);
     pushFunctionBodyFrame(sema, std::move(frame), sym);
+
     return Result::Continue;
 }
 
@@ -684,7 +690,6 @@ Result AstClosureExpr::semaPreNode(Sema& sema) const
 
 namespace
 {
-
     SymbolFunction& functionExprSymbol(Sema& sema, AstNodeRef nodeRef)
     {
         if (Symbol* sym = sema.viewSymbol(nodeRef).sym())
@@ -694,6 +699,7 @@ namespace
         SWC_ASSERT(typeRef.isValid());
         const TypeInfo& typeInfo = sema.typeMgr().get(typeRef);
         SWC_ASSERT(typeInfo.isFunction());
+
         return typeInfo.payloadSymFunction();
     }
 
@@ -728,7 +734,8 @@ namespace
 
                 CastRequest castRequest(CastKind::Implicit);
                 castRequest.errorNodeRef = exprRef;
-                const Result castResult  = Cast::castAllowed(sema, castRequest, exprView.typeRef(), bindingTypeRef);
+
+                const Result castResult = Cast::castAllowed(sema, castRequest, exprView.typeRef(), bindingTypeRef);
                 if (castResult == Result::Pause)
                     return Result::Pause;
                 if (castResult != Result::Continue)

@@ -24,10 +24,13 @@ bool SemaSwitch::isDynamicType(Sema& sema, const TypeInfo& originalType)
     const TypeInfo& type = originalType.unwrapAliasTypeOrSelf(sema.ctx());
     if (type.isInterface() || type.isAny())
         return true;
+
     if (!type.isValuePointer())
         return false;
-    const TypeInfo& originalPointee  = sema.typeMgr().get(type.payloadTypeRef());
-    const TypeInfo& pointee          = originalPointee.unwrapAliasTypeOrSelf(sema.ctx());
+
+    const TypeInfo& originalPointee = sema.typeMgr().get(type.payloadTypeRef());
+    const TypeInfo& pointee         = originalPointee.unwrapAliasTypeOrSelf(sema.ctx());
+
     return pointee.isStruct() && pointee.payloadSymStruct().isDynamic();
 }
 
@@ -47,6 +50,7 @@ namespace
         SymbolFunction* panicFn = nullptr;
         SWC_RESULT(SemaHelpers::requireRuntimeSafetyPanicDependency(panicFn, sema, codeRef));
         payload.runtimePanicSymbol = panicFn;
+
         return Result::Continue;
     }
 
@@ -63,11 +67,11 @@ namespace
 
         SWC_RESULT(ensureSwitchRuntimePanicSymbol(sema, payload, codeRef));
 
-        // Only expose runtime switch safety to codegen once the panic helper is
-        // attached. This avoids leaving a partially initialized payload behind
-        // when semantic analysis pauses on the runtime dependency.
+        // Publish runtime safety only after the panic dependency is attached;
+        // semantic analysis may pause while resolving it.
         SWC_ASSERT(payload.runtimePanicSymbol != nullptr);
         payload.hasRuntimeSwitchSafety = true;
+
         return Result::Continue;
     }
 
@@ -140,14 +144,9 @@ namespace
         if (!whereRef.isValid())
             return true;
 
-        // Duplicate-case detection is a source-level check, but it is re-run when a callee's body
-        // is materialized inline. Inlining substitutes the callee parameters with the call-site
-        // arguments, so a runtime `case <v> where <param>` clause can fold to a constant `true`
-        // (e.g. `#run f(1, true)` makes `where takeFirst` look unconditional) even though the
-        // source clause is conditional. The canonical body was already validated before being
-        // materialized, so inside an inline context a `where` clause must keep its source meaning
-        // (conditional) and never be treated as unconditional, otherwise a later same-value case is
-        // falsely reported as a duplicate.
+        // Inlining can fold a parameter-dependent where clause to true. Keep it
+        // conditional for duplicate detection: the source body was already checked,
+        // and a call-site constant must not change which source cases are duplicates.
         if (sema.frame().currentInlinePayload() != nullptr)
             return false;
 
@@ -159,6 +158,7 @@ namespace
     {
         if (spanRef.isInvalid())
             return 0;
+
         return ast.spanSize(spanRef);
     }
 
@@ -170,6 +170,7 @@ namespace
             return elseStmt->spanChildrenRef;
         if (const auto* elseIfStmt = node.safeCast<AstElseIfStmt>())
             return elseIfStmt->spanChildrenRef;
+
         return SpanRef::invalid();
     }
 
@@ -179,6 +180,7 @@ namespace
             return childRef == ifStmt->nodeIfBlockRef || childRef == ifStmt->nodeElseBlockRef;
         if (const auto* ifVarDecl = node.safeCast<AstIfVarDecl>())
             return childRef == ifVarDecl->nodeIfBlockRef || childRef == ifVarDecl->nodeElseBlockRef;
+
         return false;
     }
 
@@ -197,6 +199,7 @@ namespace
     void registerDynamicStructSwitchCaseExpr(Sema& sema, AstNodeRef caseRef, AstNodeRef caseExprRef, AstNodeRef typeExprRef)
     {
         auto& payload = sema.ensureSemaPayload<DynamicStructSwitchCasePayload>(caseRef);
+
         for (auto& expr : payload.expressions)
         {
             if (expr.caseExprRef != caseExprRef)
@@ -224,6 +227,7 @@ namespace
         const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
 
         auto* sym = Symbol::make<SymbolVariable>(ctx, &sema.node(caseRef), identNode.tokRef(), idRef, flags);
+
         if (SemaHelpers::currentLocalSymbolScope(sema))
             SemaHelpers::addCurrentScopeSymbol(sema, sym);
         else
@@ -239,10 +243,12 @@ namespace
         sym->addExtraFlag(SymbolVariableFlagsE::Let);
         sym->setTypeRef(bindingTypeRef);
         SWC_RESULT(SemaHelpers::addCurrentFunctionLocalVariable(sema, *sym, bindingTypeRef));
+
         sym->setTyped(ctx);
         sym->setSemaCompleted(ctx);
 
         payload.bindingSymbol = sym;
+
         return Result::Continue;
     }
 
@@ -269,14 +275,16 @@ namespace
 
         AstNodeRef typeExprRef     = caseExprRef;
         AstNodeRef bindingIdentRef = AstNodeRef::invalid();
+
         if (sema.node(caseExprRef).is(AstNodeId::AsCastExpr))
         {
             if (switchSpanNodeCount(sema.ast(), caseStmt.spanExprRef) != 1)
                 return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
 
             const auto& asExpr = sema.node(caseExprRef).cast<AstAsCastExpr>();
-            typeExprRef        = asExpr.nodeExprRef;
-            bindingIdentRef    = dynamicStructSwitchBindingIdentRef(sema, asExpr.nodeTypeRef);
+
+            typeExprRef     = asExpr.nodeExprRef;
+            bindingIdentRef = dynamicStructSwitchBindingIdentRef(sema, asExpr.nodeTypeRef);
             if (!bindingIdentRef.isValid())
                 return raiseDynamicStructSwitchCaseSyntaxError(sema, caseExprRef);
         }
@@ -293,28 +301,34 @@ namespace
         const TypeRef   targetTypeRef = typeView.typeRef();
         const TypeInfo& targetType    = typeView.type()->unwrapAliasTypeOrSelf(sema.ctx());
         const TypeInfo& sourceType    = sema.typeMgr().get(switchTypeRef);
-        TypeInfoFlags   flags         = sourceType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero;
-        TypeInfo        destination   = targetType.isInterface() ? targetType : TypeInfo::makeValuePointer(targetTypeRef, flags);
+
+        TypeInfoFlags flags       = sourceType.isConst() ? TypeInfoFlagsE::Const : TypeInfoFlagsE::Zero;
+        TypeInfo      destination = targetType.isInterface() ? targetType : TypeInfo::makeValuePointer(targetTypeRef, flags);
         if (sourceType.isConst())
             destination.addFlag(TypeInfoFlagsE::Const);
 
         // Validate through the same cast as 'is' and '#try', including dynamic metadata
         // requirements and constness. Keep its storage for interface views in codegen.
         auto [castRef, castNode] = sema.ast().makeNode<AstNodeId::CastExpr>(sema.node(caseExprRef).tokRef());
-        castNode->nodeExprRef    = sema.node(switchRef).cast<AstSwitchStmt>().nodeExprRef;
+
+        castNode->nodeExprRef = sema.node(switchRef).cast<AstSwitchStmt>().nodeExprRef;
         sema.setType(castRef, switchTypeRef);
+
         SemaNodeView castView = sema.viewNodeTypeConstant(castRef);
         SWC_RESULT(Cast::castDynamic(sema, castView, sema.typeMgr().addType(destination), CastFlagsE::Try));
 
         registerDynamicStructSwitchCaseExpr(sema, caseRef, caseExprRef, typeExprRef);
+
         auto& casePayload = sema.ensureSemaPayload<DynamicStructSwitchCasePayload>(caseRef);
         for (auto& expr : casePayload.expressions)
             if (expr.caseExprRef == caseExprRef)
                 expr.castRef = castRef;
+
         if (bindingIdentRef.isValid())
         {
             TypeInfo bindingType = *castView.type();
             bindingType.removeFlag(TypeInfoFlagsE::Nullable);
+
             SWC_RESULT(registerDynamicStructSwitchBinding(sema, caseRef, caseExprRef, bindingIdentRef, sema.typeMgr().addType(bindingType)));
             SWC_RESULT(SemaEscape::checkVariableInitializer(sema, *casePayload.bindingSymbol, castRef, casePayload.bindingSymbol->typeRef()));
         }
@@ -405,8 +419,8 @@ Result SemaSwitch::validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef expr
     const TypeInfo& finalType = originalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
     if (finalType.isValuePointer())
     {
-        const TypeInfo& originalPointee  = sema.typeMgr().get(finalType.payloadTypeRef());
-        const TypeInfo& pointee          = originalPointee.unwrapAliasTypeOrSelf(sema.ctx());
+        const TypeInfo& originalPointee = sema.typeMgr().get(finalType.payloadTypeRef());
+        const TypeInfo& pointee         = originalPointee.unwrapAliasTypeOrSelf(sema.ctx());
         // The dynamic marker belongs to the struct's attributes, which may still
         // be under analysis when a function first switches on its pointer.
         if (pointee.isStruct())
@@ -656,8 +670,8 @@ namespace
         if (!sourceTypeRef.isValid())
             return Result::Continue;
 
-        const TypeInfo& sourceType           = sourceView.type()->unwrapAliasEnumTypeOrSelf(sema.ctx());
-        const TypeInfo& switchType           = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), switchTypeRef);
+        const TypeInfo& sourceType = sourceView.type()->unwrapAliasEnumTypeOrSelf(sema.ctx());
+        const TypeInfo& switchType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), switchTypeRef);
 
         if (sourceType.isNull())
             return Result::Continue;
@@ -866,8 +880,8 @@ Result AstSwitchCaseStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childR
     const bool rangeCase     = sema.node(childRef).is(AstNodeId::RangeExpr);
     if (dynamicSwitch)
     {
-        const TypeInfo& originalType  = sema.typeMgr().get(switchTypeRef);
-        const TypeInfo& switchType    = originalType.unwrapAliasTypeOrSelf(sema.ctx());
+        const TypeInfo& originalType = sema.typeMgr().get(switchTypeRef);
+        const TypeInfo& switchType   = originalType.unwrapAliasTypeOrSelf(sema.ctx());
         // Dynamic pointers keep ordinary pointer comparisons alongside type patterns.
         if (!switchType.isValuePointer() || sema.node(childRef).is(AstNodeId::AsCastExpr) || (!rangeCase && !sema.isValue(childRef)))
             return validateDynamicStructCaseExpr(sema, switchRef, sema.curNodeRef(), childRef);

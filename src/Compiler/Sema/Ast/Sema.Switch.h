@@ -13,9 +13,8 @@ class TypeInfo;
 struct AstSwitchStmt;
 struct SemaNodeView;
 
-// Case constant -> the node that introduced it. Shared by the runtime 'switch' and the
-// compile-time '#static switch', which both check exhaustiveness the same way. A switch records a
-// handful of keys, so they sit in one flat table that owns nothing until the first case.
+// Records the originating node for each case constant in runtime and static switches.
+// Cases share a flat table, which allocates only when the first key is inserted.
 template<typename K>
 class SwitchCaseOrigins
 {
@@ -25,6 +24,7 @@ public:
     {
         if (const AstNodeRef* previous = origins_.find(key.get()))
             return previous;
+
         origins_.emplace(key.get(), nodeRef);
         return nullptr;
     }
@@ -45,10 +45,9 @@ namespace SemaSwitch
     Result          normalizeExprTypeInfoIfNeeded(Sema& sema, AstNodeRef exprRef, SemaNodeView& exprView);
     Result          validateExprType(Sema& sema, AstNodeRef exprRef, TypeRef exprTypeRef);
     Result          checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, TypeRef exprTypeRef, AstNodeRef errorRef);
-    // Whether some case always matches: '#complete' promises it for an enum, and a 'default'
-    // arm provides it for anything. The payload only records the default of a switch that has
-    // an expression, so the expressionless form - a case with neither a match expression nor a
-    // 'where' guard - is recognized structurally.
+
+    // An enum's #complete or a default arm guarantees a match. Expressionless
+    // switches do not record firstDefaultRef, so inspect their unguarded cases.
     bool alwaysMatchesACase(Sema& sema, AstNodeRef switchRef, const AstSwitchStmt& switchStmt);
 }
 
@@ -57,12 +56,14 @@ struct SwitchPayload
     SwitchSeenCases            seen;
     SwitchCaseOrigins<TypeRef> seenDynamicTypes;
 
-    TypeRef         exprTypeRef            = TypeRef::invalid();
-    AstNodeRef      firstDefaultRef        = AstNodeRef::invalid();
-    SymbolFunction* runtimePanicSymbol     = nullptr;
-    bool            isComplete             = false;
-    bool            hasRuntimeSwitchSafety = false;
-    bool            escapeBranchPushed     = false;
+    TypeRef         exprTypeRef        = TypeRef::invalid();
+    AstNodeRef      firstDefaultRef    = AstNodeRef::invalid();
+    SymbolFunction* runtimePanicSymbol = nullptr;
+
+    bool isComplete             = false;
+    bool hasRuntimeSwitchSafety = false;
+
+    bool escapeBranchPushed = false;
 };
 
 struct DynamicStructSwitchCaseExpr
@@ -75,7 +76,8 @@ struct DynamicStructSwitchCaseExpr
 struct DynamicStructSwitchCasePayload
 {
     SmallVector<DynamicStructSwitchCaseExpr, 2> expressions;
-    SymbolVariable*                             bindingSymbol = nullptr;
+
+    SymbolVariable* bindingSymbol = nullptr;
 };
 
 struct DynamicStructSwitchAsCastPayload

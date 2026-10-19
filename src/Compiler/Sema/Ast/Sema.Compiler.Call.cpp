@@ -1192,6 +1192,7 @@ namespace
 
             const ConstantValue& typeInfoCst = sema.cstMgr().get(typeInfoCstRef);
             const ConstantRef    cstRef      = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeTypeValue(sema.ctx(), typeInfoCst.typeRef()));
+
             sema.setConstant(sema.curNodeRef(), cstRef);
             return Result::Continue;
         }
@@ -1225,6 +1226,7 @@ namespace
         const AstNodeRef childRef = node.nodeArgRef;
         SemaNodeView     view     = sema.viewTypeConstant(childRef);
         unNarrowIntrospectionView(sema, childRef, view);
+
         TypeRef typeRef = TypeRef::invalid();
         SWC_RESULT(resolveCompilerOperandConcreteType(sema, view, childRef, typeRef));
 
@@ -1232,8 +1234,6 @@ namespace
         return Result::Continue;
     }
 
-    // '#sizeof' and '#alignof' differ only in the layout number they read; the operand has to
-    // clear the very same generic and completeness hurdles first.
     Result semaCompilerLayoutQuery(Sema& sema, const AstCompilerCallOne& node, DiagnosticId invalidOperandId, bool wantAlignment)
     {
         const AstNodeRef childRef = node.nodeArgRef;
@@ -1255,8 +1255,10 @@ namespace
 
         assertConcreteStructCompilerSizeOperand(typeInfo);
         SWC_RESULT(sema.waitSemaCompleted(&typeInfo, childRef));
+
         const uint64_t value = wantAlignment ? typeInfo.alignOf(sema.ctx()) : typeInfo.sizeOf(sema.ctx());
         assertConcreteStructCompilerSizeValue(typeInfo, value);
+
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), value));
         return Result::Continue;
     }
@@ -1278,6 +1280,7 @@ namespace
 
         const SymbolVariable& symVar = view.sym()->cast<SymbolVariable>();
         SWC_RESULT(ensureCompilerOffsetOperandReady(sema, symVar, childRef));
+
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addInt(sema.ctx(), symVar.offset()));
         return Result::Continue;
     }
@@ -1299,6 +1302,7 @@ namespace
 
         SemaNodeView typeView = sema.viewTypeConstant(childRef);
         SWC_RESULT(SemaCheck::isValueOrType(sema, typeView));
+
         const TypeRef resolvedTypeRef = SemaHelpers::resolveRepresentedTypeRef(sema, typeView);
         if (resolvedTypeRef.isValid())
         {
@@ -1322,6 +1326,7 @@ namespace
         if (typeView.typeRef().isValid())
             diag.addArgument(Diagnostic::ARG_TYPE, typeView.typeRef());
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -1329,6 +1334,7 @@ namespace
     {
         Utf8 name;
         SWC_RESULT(resolveCompilerNameOf(sema, node.nodeArgRef, name));
+
         const ConstantValue value = ConstantValue::makeString(sema.ctx(), name);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
         return Result::Continue;
@@ -1348,6 +1354,7 @@ namespace
         {
             const Utf8          name  = view.sym()->getFullScopedName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
+
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
         }
@@ -1358,6 +1365,7 @@ namespace
         {
             const Utf8          name  = compilerTypeFullName(sema, resolvedTypeRef);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
+
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
         }
@@ -1366,6 +1374,7 @@ namespace
         {
             const Utf8          name  = compilerTypeFullName(sema, typedView.typeRef());
             const ConstantValue value = ConstantValue::makeString(ctx, name);
+
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
         }
@@ -1374,6 +1383,7 @@ namespace
         {
             const Utf8          name  = view.sym()->getFullScopedName(ctx);
             const ConstantValue value = ConstantValue::makeString(ctx, name);
+
             sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
             return Result::Continue;
         }
@@ -1416,6 +1426,7 @@ namespace
 
         const ConstantValue value = ConstantValue::makeString(sema.ctx(), text);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
+
         return Result::Continue;
     }
 
@@ -1427,23 +1438,24 @@ namespace
 
         const bool          isDefined = view.sym() != nullptr || (view.hasSymbolList() && !view.symList().empty());
         const ConstantValue value     = ConstantValue::makeBool(ctx, isDefined);
+
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
 
     Result semaCompilerIsConstExpr(Sema& sema, const AstCompilerCallOne& node)
     {
-        const TaskContext&  ctx      = sema.ctx();
-        const AstNodeRef    childRef = node.nodeArgRef;
-        const SemaNodeView  view     = sema.viewConstant(childRef);
-        const bool          result   = view.hasConstant() || sema.isFoldedTypedConst(childRef);
-        const ConstantValue value    = ConstantValue::makeBool(ctx, result);
+        const TaskContext& ctx      = sema.ctx();
+        const AstNodeRef   childRef = node.nodeArgRef;
+        const SemaNodeView view     = sema.viewConstant(childRef);
+
+        const bool          result = view.hasConstant() || sema.isFoldedTypedConst(childRef);
+        const ConstantValue value  = ConstantValue::makeBool(ctx, result);
+
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }
 
-    // '#safety' and '#sanity' both answer "is this guard on right here", against their own
-    // build-configuration set.
     Result semaCompilerGuardQuery(Sema& sema, const AstCompilerCallOne& node, bool wantSanity)
     {
         const TaskContext& ctx      = sema.ctx();
@@ -1460,10 +1472,12 @@ namespace
         SWC_ASSERT(constant->isInt());
         SWC_ASSERT(constant->getInt().fits64());
 
-        const auto          requested  = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
-        const auto&         attributes = sema.frame().currentAttributes();
-        const bool          enabled    = wantSanity ? attributes.hasSanity(sema.buildCfg().sanityGuards, requested) : attributes.hasRuntimeSafety(sema.runtimeSafetyGuards(), requested);
-        const ConstantValue value      = ConstantValue::makeBool(ctx, enabled);
+        const auto  requested  = static_cast<Runtime::SafetyWhat>(constant->getInt().asI64());
+        const auto& attributes = sema.frame().currentAttributes();
+        const bool  enabled    = wantSanity ? attributes.hasSanity(sema.buildCfg().sanityGuards, requested) : attributes.hasRuntimeSafety(sema.runtimeSafetyGuards(), requested);
+
+        const ConstantValue value = ConstantValue::makeBool(ctx, enabled);
+
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, value));
         return Result::Continue;
     }

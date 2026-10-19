@@ -56,10 +56,13 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::Opaque, .str = "Opaque"},
         {.name = PredefinedName::NoDoc, .str = "NoDoc"},
         {.name = PredefinedName::Strict, .str = "Strict"},
+
         {.name = PredefinedName::Me, .str = "me"},
+
         {.name = PredefinedName::TargetOs, .str = "TargetOs"},
         {.name = PredefinedName::TargetArch, .str = "TargetArch"},
         {.name = PredefinedName::CompilerCommand, .str = "CompilerCommand"},
+
         {.name = PredefinedName::Operator, .str = "Operator"},
         {.name = PredefinedName::OpBinary, .str = "opBinary"},
         {.name = PredefinedName::OpBinaryRight, .str = "opBinaryRight"},
@@ -81,6 +84,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::OpIndexSet, .str = "opIndexSet"},
         {.name = PredefinedName::OpIndexPtr, .str = "opIndexPtr"},
         {.name = PredefinedName::OpVisit, .str = "opVisit"},
+
         {.name = PredefinedName::TypeInfo, .str = "TypeInfo"},
         {.name = PredefinedName::TypeInfoNative, .str = "TypeInfoNative"},
         {.name = PredefinedName::TypeInfoPointer, .str = "TypeInfoPointer"},
@@ -98,11 +102,14 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::TypeInfoKind, .str = "TypeInfoKind"},
         {.name = PredefinedName::TypeInfoNativeKind, .str = "TypeInfoNativeKind"},
         {.name = PredefinedName::TypeInfoFlags, .str = "TypeInfoFlags"},
+
         {.name = PredefinedName::TypeValue, .str = "TypeValue"},
         {.name = PredefinedName::TypeValueFlags, .str = "TypeValueFlags"},
+
         {.name = PredefinedName::Attribute, .str = "Attribute"},
         {.name = PredefinedName::AttributeParam, .str = "AttributeParam"},
         {.name = PredefinedName::Interface, .str = "Interface"},
+
         {.name = PredefinedName::SourceCodeLocation, .str = "SourceCodeLocation"},
         {.name = PredefinedName::ErrorValue, .str = "ErrorValue"},
         {.name = PredefinedName::ScratchAllocator, .str = "ScratchAllocator"},
@@ -112,11 +119,13 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::ProcessInfo, .str = "ProcessInfo"},
         {.name = PredefinedName::GlobalToDrop, .str = "GlobalToDrop"},
         {.name = PredefinedName::BuildCfg, .str = "BuildCfg"},
+
         {.name = PredefinedName::RuntimeExit, .str = "__exit"},
         {.name = PredefinedName::RuntimeEnsureRuntimeAllocator, .str = "__ensureRuntimeAllocator"},
         {.name = PredefinedName::RuntimeSetupRuntime, .str = "__setupRuntime"},
         {.name = PredefinedName::RuntimeReleaseRuntime, .str = "__releaseRuntime"},
         {.name = PredefinedName::RuntimeCloseRuntime, .str = "__closeRuntime"},
+
         {.name = PredefinedName::RuntimeHasErr, .str = "__hasErr"},
         {.name = PredefinedName::RuntimeIsErrContext, .str = "__isErrContext"},
         {.name = PredefinedName::RuntimeSetErrRaw, .str = "__setErrRaw"},
@@ -126,29 +135,38 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeEndErr, .str = "__endErr"},
         {.name = PredefinedName::RuntimeBindErr, .str = "__bindErr"},
         {.name = PredefinedName::RuntimeClearErr, .str = "__clearErr"},
+
         {.name = PredefinedName::RuntimeFailedExpect, .str = "__failedExpect"},
         {.name = PredefinedName::RuntimeFailedCast, .str = "__failedCast"},
         {.name = PredefinedName::RuntimePanic, .str = "Swag.panic"},
+
         {.name = PredefinedName::RuntimeValueBorrowEnter, .str = "__valueBorrowEnter"},
         {.name = PredefinedName::RuntimeValueBorrowLeave, .str = "__valueBorrowLeave"},
         {.name = PredefinedName::RuntimeValueBorrowWrite, .str = "__valueBorrowWrite"},
+
         {.name = PredefinedName::RuntimeSafetyPanic, .str = "Swag.safetyPanic"},
+
         {.name = PredefinedName::RuntimeAs, .str = "__borrowAnyValue"},
         {.name = PredefinedName::RuntimeDynamicCast, .str = "__dynamicCast"},
         {.name = PredefinedName::RuntimeTypeCast, .str = "__runtimeTypeCast"},
         {.name = PredefinedName::RuntimeValueCast, .str = "__runtimeValueCast"},
         {.name = PredefinedName::RuntimeIs, .str = "__typeCompatible"},
         {.name = PredefinedName::RuntimeTypeCmp, .str = "Swag.typeCmp"},
+
         {.name = PredefinedName::RuntimeStringCmp, .str = "Swag.stringCmp"},
         {.name = PredefinedName::RuntimeSliceCmp, .str = "__sliceCmp"},
+
         {.name = PredefinedName::RuntimeTlsAlloc, .str = "__tlsAlloc"},
         {.name = PredefinedName::RuntimeTlsSetValue, .str = "__tlsSetValue"},
         {.name = PredefinedName::RuntimeTlsGetPtr, .str = "__tlsGetPtr"},
         {.name = PredefinedName::RuntimeTlsGetValue, .str = "__tlsGetValue"},
         {.name = PredefinedName::RuntimeTlsVarPtr, .str = "__tlsVarPtr"},
+
         {.name = PredefinedName::RuntimeRaiseException, .str = "__raiseException666"},
+
         {.name = PredefinedName::RuntimeRunTest, .str = "__runTest"},
         {.name = PredefinedName::RuntimeTestsDone, .str = "__testsDone"},
+
         {.name = PredefinedName::RuntimeParallelRange, .str = "__parallelRange"},
         {.name = PredefinedName::RuntimeParallelRangeFallible, .str = "__parallelRangeFallible"},
     };
@@ -161,40 +179,50 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetupRuntime)]           = predefined(PredefinedName::RuntimeSetupRuntime);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ReleaseRuntime)]         = predefined(PredefinedName::RuntimeReleaseRuntime);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CloseRuntime)]           = predefined(PredefinedName::RuntimeCloseRuntime);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HasErr)]                 = predefined(PredefinedName::RuntimeHasErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::IsErrContext)]           = predefined(PredefinedName::RuntimeIsErrContext);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetErrRaw)]              = predefined(PredefinedName::RuntimeSetErrRaw);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PushErr)]                = predefined(PredefinedName::RuntimePushErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PopErr)]                 = predefined(PredefinedName::RuntimePopErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CatchErr)]               = predefined(PredefinedName::RuntimeCatchErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::EndErr)]                 = predefined(PredefinedName::RuntimeEndErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::BindErr)]                = predefined(PredefinedName::RuntimeBindErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ClearErr)]               = predefined(PredefinedName::RuntimeClearErr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedExpect)]           = predefined(PredefinedName::RuntimeFailedExpect);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedCast)]             = predefined(PredefinedName::RuntimeFailedCast);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]                  = predefined(PredefinedName::RuntimePanic);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowEnter)]       = predefined(PredefinedName::RuntimeValueBorrowEnter);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowLeave)]       = predefined(PredefinedName::RuntimeValueBorrowLeave);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowWrite)]       = predefined(PredefinedName::RuntimeValueBorrowWrite);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)]            = predefined(PredefinedName::RuntimeSafetyPanic);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]                     = predefined(PredefinedName::RuntimeAs);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::DynamicCast)]            = predefined(PredefinedName::RuntimeDynamicCast);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RuntimeTypeCast)]        = predefined(PredefinedName::RuntimeTypeCast);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RuntimeValueCast)]       = predefined(PredefinedName::RuntimeValueCast);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]                     = predefined(PredefinedName::RuntimeIs);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TypeCmp)]                = predefined(PredefinedName::RuntimeTypeCmp);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]               = predefined(PredefinedName::RuntimeTlsAlloc);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsSetValue)]            = predefined(PredefinedName::RuntimeTlsSetValue);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]              = predefined(PredefinedName::RuntimeTlsGetPtr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)]            = predefined(PredefinedName::RuntimeTlsGetValue);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsVarPtr)]              = predefined(PredefinedName::RuntimeTlsVarPtr);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)]         = predefined(PredefinedName::RuntimeRaiseException);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::StringCmp)]              = predefined(PredefinedName::RuntimeStringCmp);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SliceCmp)]               = predefined(PredefinedName::RuntimeSliceCmp);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RunTest)]                = predefined(PredefinedName::RuntimeRunTest);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestsDone)]              = predefined(PredefinedName::RuntimeTestsDone);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ParallelRange)]          = predefined(PredefinedName::RuntimeParallelRange);
-    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ParallelRangeFallible)]  = predefined(PredefinedName::RuntimeParallelRangeFallible);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::HasErr)]       = predefined(PredefinedName::RuntimeHasErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::IsErrContext)] = predefined(PredefinedName::RuntimeIsErrContext);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SetErrRaw)]    = predefined(PredefinedName::RuntimeSetErrRaw);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PushErr)]      = predefined(PredefinedName::RuntimePushErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::PopErr)]       = predefined(PredefinedName::RuntimePopErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::CatchErr)]     = predefined(PredefinedName::RuntimeCatchErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::EndErr)]       = predefined(PredefinedName::RuntimeEndErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::BindErr)]      = predefined(PredefinedName::RuntimeBindErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ClearErr)]     = predefined(PredefinedName::RuntimeClearErr);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedExpect)] = predefined(PredefinedName::RuntimeFailedExpect);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedCast)]   = predefined(PredefinedName::RuntimeFailedCast);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Panic)]        = predefined(PredefinedName::RuntimePanic);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowEnter)] = predefined(PredefinedName::RuntimeValueBorrowEnter);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowLeave)] = predefined(PredefinedName::RuntimeValueBorrowLeave);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ValueBorrowWrite)] = predefined(PredefinedName::RuntimeValueBorrowWrite);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SafetyPanic)] = predefined(PredefinedName::RuntimeSafetyPanic);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::As)]               = predefined(PredefinedName::RuntimeAs);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::DynamicCast)]      = predefined(PredefinedName::RuntimeDynamicCast);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RuntimeTypeCast)]  = predefined(PredefinedName::RuntimeTypeCast);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RuntimeValueCast)] = predefined(PredefinedName::RuntimeValueCast);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::Is)]               = predefined(PredefinedName::RuntimeIs);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TypeCmp)]          = predefined(PredefinedName::RuntimeTypeCmp);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsAlloc)]    = predefined(PredefinedName::RuntimeTlsAlloc);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsSetValue)] = predefined(PredefinedName::RuntimeTlsSetValue);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetPtr)]   = predefined(PredefinedName::RuntimeTlsGetPtr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsGetValue)] = predefined(PredefinedName::RuntimeTlsGetValue);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TlsVarPtr)]   = predefined(PredefinedName::RuntimeTlsVarPtr);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RaiseException)] = predefined(PredefinedName::RuntimeRaiseException);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::StringCmp)] = predefined(PredefinedName::RuntimeStringCmp);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::SliceCmp)]  = predefined(PredefinedName::RuntimeSliceCmp);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::RunTest)]   = predefined(PredefinedName::RuntimeRunTest);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::TestsDone)] = predefined(PredefinedName::RuntimeTestsDone);
+
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ParallelRange)]         = predefined(PredefinedName::RuntimeParallelRange);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ParallelRangeFallible)] = predefined(PredefinedName::RuntimeParallelRangeFallible);
 }
 
 IdentifierRef IdentifierManager::addIdentifier(const TaskContext& ctx, const SourceCodeRef& codeRef)

@@ -309,6 +309,7 @@ namespace
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeTypeInfo());
         sema.setIsValue(node);
+
         return Result::Continue;
     }
 
@@ -322,6 +323,7 @@ namespace
     {
         if (view.type() && (view.type()->isAnyTypeInfo(sema.ctx()) || view.type()->isTypeValue()))
             return true;
+
         return SemaHelpers::resolveRepresentedTypeRef(sema, view).isValid();
     }
 
@@ -340,7 +342,7 @@ namespace
         if (!isTypeInfoOperand(sema, viewType))
             return SemaError::raiseRequestedTypeFam(sema, viewType.nodeRef(), viewType.typeRef(), sema.typeMgr().typeTypeInfo());
 
-        // Check if the pointer is void or a pointer to the type defined in the right expression
+        // A void pointer may describe any type; a concrete pointee must match.
         const TypeRef typeRefPointee  = ptrType.payloadTypeRef();
         const TypeRef typeRefTypeInfo = SemaHelpers::resolveRepresentedTypeRef(sema, viewType);
         if (!sema.typeMgr().get(typeRefPointee).isVoid() && typeRefTypeInfo.isValid())
@@ -351,6 +353,7 @@ namespace
                 diag.addArgument(Diagnostic::ARG_TYPE, nodeViewPtr.typeRef());
                 diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, typeRefTypeInfo);
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
         }
@@ -397,6 +400,7 @@ namespace
             TypeInfo      ty             = TypeInfo::makeSlice(elementTypeRef);
             if (ptrType.isConst() || ptrIsCString)
                 ty.addFlag(TypeInfoFlagsE::Const);
+
             typeRef = sema.typeMgr().addType(ty);
         }
 
@@ -419,7 +423,9 @@ namespace
         }
 
         constexpr uint64_t interfaceStorageSize = sizeof(Runtime::Interface);
-        const std::array   dims                 = {interfaceStorageSize + objectStorageSize};
+
+        const std::array dims = {interfaceStorageSize + objectStorageSize};
+
         return sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
     }
 
@@ -473,13 +479,13 @@ namespace
                 diag.addArgument(Diagnostic::ARG_TYPE, objectTypeRef);
                 diag.addArgument(Diagnostic::ARG_REQUESTED_TYPE, interfaceTypeRef);
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
         }
 
-        // A statically resolved struct was checked above and always carries the table. Every
-        // other form resolves it at run time from a 'typeinfo', and a type that does not
-        // implement the interface answers with a null table, so that result carries absence.
+        // Static struct operands have a checked interface table. Dynamic typeinfo
+        // lookup can return no table, so those results must be nullable.
         TypeInfoFlags resultFlags = TypeInfoFlagsE::Zero;
         if (makeInterfaceObjectIsConst(sema, objectView))
             resultFlags.add(TypeInfoFlagsE::Const);
@@ -520,6 +526,7 @@ namespace
 
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeValuePtrVoid());
         sema.setIsValue(node);
+
         return Result::Continue;
     }
 }
@@ -537,12 +544,14 @@ Result AstIntrinsicCall::semaPostNode(Sema& sema)
             return semaIntrinsicKindOf(sema, *this, children);
         case TokenId::IntrinsicCountOf:
             return semaIntrinsicCountOf(sema, *this, children);
+
         case TokenId::IntrinsicMakeAny:
             return semaIntrinsicMakeAny(sema, *this, children);
         case TokenId::IntrinsicMakeSlice:
             return semaIntrinsicMakeSlice(sema, *this, children, false);
         case TokenId::IntrinsicMakeString:
             return semaIntrinsicMakeSlice(sema, *this, children, true);
+
         case TokenId::IntrinsicMakeInterface:
             return semaIntrinsicMakeInterface(sema, *this, children);
         case TokenId::IntrinsicTableOf:

@@ -1506,17 +1506,18 @@ namespace
             if (ref.isValid())
                 diag.addArgument(Diagnostic::ARG_TYPE, ref);
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
         const SourceCodeRange codeRange = view.sym()->codeRange(sema.ctx());
         ConstantRef           cstRef    = ConstantRef::invalid();
         SWC_RESULT(ConstantHelpers::makeSourceCodeLocation(sema, cstRef, codeRange, view.sym()->safeCast<SymbolFunction>()));
+
         sema.setConstant(sema.curNodeRef(), cstRef);
         return Result::Continue;
     }
 
-    // Reads the string constant 'nodeRef' holds; raises when its constant has another type.
     Result stringConstant(Sema& sema, AstNodeRef nodeRef, std::string_view& outStr)
     {
         const SemaNodeView view = sema.viewConstant(nodeRef);
@@ -1535,6 +1536,7 @@ namespace
 
         std::string_view libName;
         SWC_RESULT(stringConstant(sema, childRef, libName));
+
         sema.compiler().registerForeignLib(libName);
         return Result::Continue;
     }
@@ -1551,7 +1553,8 @@ namespace
 
     Result resolveCompilerTagRequestedType(Sema& sema, AstNodeRef nodeRef, TypeRef& outTypeRef)
     {
-        outTypeRef            = TypeRef::invalid();
+        outTypeRef = TypeRef::invalid();
+
         SemaNodeView typeView = sema.viewTypeConstant(nodeRef);
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, typeView));
 
@@ -1559,6 +1562,7 @@ namespace
 
         if (!outTypeRef.isValid())
             return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeRef);
+
         return Result::Continue;
     }
 
@@ -1592,18 +1596,22 @@ namespace
         SWC_RESULT(tryFoldCompilerTagConstExpr(sema, defaultValueRef));
         SWC_RESULT(SemaCheck::isConstant(sema, defaultValueRef));
         SWC_RESULT(requireCompilerTagConstExpr(sema, defaultValueRef));
+
         SemaNodeView defaultView = sema.viewNodeTypeConstant(defaultValueRef);
         SWC_ASSERT(defaultView.cstRef().isValid());
         SWC_RESULT(Cast::cast(sema, defaultView, requestedTypeRef, CastKind::Initialization));
+
         const ConstantRef typedDefaultRef = defaultView.cstRef();
         SWC_ASSERT(typedDefaultRef.isValid());
 
         if (const auto* tag = sema.compiler().findCompilerTag(tagName))
         {
             const TypeRef tagTypeRef = sema.cstMgr().get(tag->cstRef).typeRef();
-            CastRequest   castRequest(CastKind::Implicit);
+
+            CastRequest castRequest(CastKind::Implicit);
             castRequest.errorNodeRef = typeNodeRef;
             castRequest.setConstantFoldingSrc(tag->cstRef);
+
             const Result castResult = Cast::castAllowed(sema, castRequest, tagTypeRef, requestedTypeRef);
             if (castResult == Result::Pause)
                 return Result::Pause;

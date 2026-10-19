@@ -7,6 +7,7 @@
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
@@ -63,7 +64,7 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     if (description.rdataAllocationCount)
     {
         SWC_ASSERT(!description.includeMergedRData);
-        SWC_ASSERT(description.rdataShardIndex < ConstantManager::SHARD_COUNT);
+        SWC_ASSERT(description.rdataShardIndex < ConstantStorageLayout::SHARD_COUNT);
 
         const auto& mappings = builder_->rdataAllocationMap[description.rdataShardIndex];
         SWC_ASSERT(description.rdataAllocationIndex + description.rdataAllocationCount <= mappings.size());

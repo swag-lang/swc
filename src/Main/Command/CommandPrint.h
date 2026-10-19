@@ -124,7 +124,8 @@ namespace CommandPrint
         addInfoEntry(entries, label, enabled ? "on" : "off", enabled ? LogColor::BrightGreen : LogColor::Gray);
     }
 
-    inline void addUtf8Set(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::set<Utf8>& values)
+    template<typename T>
+    inline void addSetEntries(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::set<T>& values)
     {
         if (values.empty())
         {
@@ -134,23 +135,10 @@ namespace CommandPrint
 
         addInfoEntry(entries, label, Utf8Helper::countWithLabel(values.size(), "entry"));
         uint32_t index = 0;
-        for (const Utf8& value : values)
+        for (const T& value : values)
             addInfoEntry(entries, std::format("[{}]", index++), value, LogColor::White, 1);
     }
 
-    inline void addPathSet(std::vector<Logger::FieldEntry>& entries, const std::string_view label, const std::set<fs::path>& values)
-    {
-        if (values.empty())
-        {
-            addInfoEntry(entries, label, "<empty>", LogColor::Gray);
-            return;
-        }
-
-        addInfoEntry(entries, label, Utf8Helper::countWithLabel(values.size(), "entry"));
-        uint32_t index = 0;
-        for (const fs::path& value : values)
-            addInfoEntry(entries, std::format("[{}]", index++), value, LogColor::White, 1);
-    }
 }
 
 SWC_END_NAMESPACE();

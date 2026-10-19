@@ -6,6 +6,7 @@
 #include "Backend/Micro/MicroStorage.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Main/CompilerInstance.h"
 #include "Main/TaskContext.h"
 
@@ -900,7 +901,7 @@ namespace InstructionCombine
         uint32_t constantAccessOffset = INVALID_REF;
         if (isConstant)
         {
-            if (sourceReloc->constantShard >= ConstantManager::SHARD_COUNT)
+            if (sourceReloc->constantShard >= ConstantStorageLayout::SHARD_COUNT)
                 return false;
 
             const uint64_t offsetU64 = static_cast<uint64_t>(sourceReloc->constantOffset) + accessOffset;

@@ -7,7 +7,6 @@
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandRun.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"

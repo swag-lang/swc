@@ -8,7 +8,6 @@
 #include "Doc/DocGenerator.h"
 #include "Format/FormatJob.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
 #include "Main/Command/CommandPrint.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -27,8 +26,7 @@ namespace
 {
     using CommandPrint::addInfoEntry;
     using CommandPrint::addInfoEntryParts;
-    using CommandPrint::addPathSet;
-    using CommandPrint::addUtf8Set;
+    using CommandPrint::addSetEntries;
     using CommandPrint::nextInfoGroupStyle;
 
     void addPlanEntry(std::vector<Logger::FieldEntry>& entries, const uint32_t index, const std::string_view status, const LogColor statusColor, Utf8 detail)
@@ -226,11 +224,11 @@ namespace
         if (cmdLine.command == CommandKind::Doc)
             addInfoEntry(entries, "Documentation directory", DocGenerator::outputDirectory(ctx.compiler()));
 
-        addPathSet(entries, "Source directories", cmdLine.directories);
-        addPathSet(entries, "Source files", cmdLine.files);
-        addUtf8Set(entries, "Import API modules", cmdLine.importApiModules);
-        addPathSet(entries, "Import API directories", cmdLine.importApiDirs);
-        addPathSet(entries, "Import API files", cmdLine.importApiFiles);
+        addSetEntries(entries, "Source directories", cmdLine.directories);
+        addSetEntries(entries, "Source files", cmdLine.files);
+        addSetEntries(entries, "Import API modules", cmdLine.importApiModules);
+        addSetEntries(entries, "Import API directories", cmdLine.importApiDirs);
+        addSetEntries(entries, "Import API files", cmdLine.importApiFiles);
 
         Logger::printFieldGroup(ctx, "Resolved Inputs", entries, nextInfoGroupStyle(hasPrintedGroup, 24));
     }

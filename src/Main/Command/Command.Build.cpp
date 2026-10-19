@@ -4,7 +4,7 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/SymbolSort.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
-#include "Main/Command/CommandLineParser.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandRun.h"
 #include "Main/CompilerInstance.h"
 #include "Main/ExternalModuleManager.h"

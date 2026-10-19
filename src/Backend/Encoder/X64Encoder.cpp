@@ -1030,6 +1030,67 @@ namespace
     {
         emitSpecB8(store, op, opBits);
     }
+
+    template<ModRmMode Mode>
+    __forceinline void emitImmediateOperand(PagedStore& store, MicroReg reg, uint64_t memOffset, uint8_t group)
+    {
+        if constexpr (Mode == ModRmMode::Memory)
+            emitMemoryOperand(store, memOffset, group, reg);
+        else
+            emitModRm(store, group, reg);
+    }
+
+    template<ModRmMode Mode>
+    __forceinline void emitGroup1Immediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
+    {
+        if (opBits == MicroOpBits::B8)
+        {
+            emitRex(store, opBits, MicroReg{}, reg);
+            emitCpuOp(store, 0x80);
+            emitImmediateOperand<Mode>(store, reg, memOffset, group);
+            emitValue(store, value, MicroOpBits::B8);
+        }
+        else if (canEncode8(value, opBits))
+        {
+            emitRex(store, opBits, MicroReg{}, reg);
+            emitCpuOp(store, 0x83);
+            emitImmediateOperand<Mode>(store, reg, memOffset, group);
+            emitValue(store, value, MicroOpBits::B8);
+        }
+        else if (canEncodeOpImmediate(value, opBits))
+        {
+            emitRex(store, opBits, MicroReg{}, reg);
+            emitCpuOp(store, 0x81);
+            emitImmediateOperand<Mode>(store, reg, memOffset, group);
+            emitValue(store, value, std::min(opBits, MicroOpBits::B32));
+        }
+        else
+        {
+            SWC_INTERNAL_ERROR();
+        }
+    }
+
+    template<ModRmMode Mode>
+    __forceinline void emitShiftImmediate(PagedStore& store, MicroReg reg, uint64_t memOffset, uint64_t value, MicroOpBits opBits, uint8_t group)
+    {
+        if constexpr (Mode == ModRmMode::Register)
+            SWC_ASSERT(value <= 0x7F);
+        if (value == 1)
+        {
+            emitRex(store, opBits, MicroReg{}, reg);
+            emitSpecCpuOp(store, 0xD1, opBits);
+            emitImmediateOperand<Mode>(store, reg, memOffset, group);
+        }
+        else
+        {
+            if constexpr (Mode == ModRmMode::Memory)
+                SWC_ASSERT(value <= 0x7F);
+            emitRex(store, opBits, MicroReg{}, reg);
+            emitSpecCpuOp(store, 0xC1, opBits);
+            emitImmediateOperand<Mode>(store, reg, memOffset, group);
+            emitValue(store, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
+        }
+    }
 }
 
 // ============================================================================
@@ -3047,43 +3108,7 @@ void X64Encoder::encodeOpBinaryRegMem(MicroReg regDst, MicroReg memReg, uint64_t
 
     ///////////////////////////////////////////
 
-    else if (op == MicroOp::Add)
-    {
-        emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitMemoryOperand(store_, memOffset, encodeReg(regDst), memReg);
-    }
-
-    ///////////////////////////////////////////
-
-    else if (op == MicroOp::Subtract)
-    {
-        emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitMemoryOperand(store_, memOffset, encodeReg(regDst), memReg);
-    }
-
-    ///////////////////////////////////////////
-
-    else if (op == MicroOp::And)
-    {
-        emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitMemoryOperand(store_, memOffset, encodeReg(regDst), memReg);
-    }
-
-    ///////////////////////////////////////////
-
-    else if (op == MicroOp::Or)
-    {
-        emitRex(store_, opBits, regDst, memReg);
-        emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
-        emitMemoryOperand(store_, memOffset, encodeReg(regDst), memReg);
-    }
-
-    ///////////////////////////////////////////
-
-    else if (op == MicroOp::Xor)
+    else if (op == MicroOp::Add || op == MicroOp::Subtract || op == MicroOp::And || op == MicroOp::Or || op == MicroOp::Xor)
     {
         emitRex(store_, opBits, regDst, memReg);
         emitSpecCpuOp(store_, getX64RegMemOpCode(op), opBits);
@@ -3466,157 +3491,27 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
     ///////////////////////////////////////////
 
     else if (op == MicroOp::Xor)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x80);
-            emitModRm(store_, MODRM_REG_6, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x83);
-            emitModRm(store_, MODRM_REG_6, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x81);
-            emitModRm(store_, MODRM_REG_6, reg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_6);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::Or)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x80);
-            emitModRm(store_, MODRM_REG_1, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x83);
-            emitModRm(store_, MODRM_REG_1, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x81);
-            emitModRm(store_, MODRM_REG_1, reg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_1);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::And)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x80);
-            emitModRm(store_, MODRM_REG_4, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x83);
-            emitModRm(store_, MODRM_REG_4, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x81);
-            emitModRm(store_, MODRM_REG_4, reg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_4);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::Add)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x80);
-            emitModRm(store_, MODRM_REG_0, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x83);
-            emitModRm(store_, MODRM_REG_0, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x81);
-            emitModRm(store_, MODRM_REG_0, reg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_0);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::Subtract)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x80);
-            emitModRm(store_, MODRM_REG_5, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x83);
-            emitModRm(store_, MODRM_REG_5, reg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitCpuOp(store_, 0x81);
-            emitModRm(store_, MODRM_REG_5, reg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_5);
 
     ///////////////////////////////////////////
 
@@ -3673,122 +3568,32 @@ void X64Encoder::encodeOpBinaryRegImm(MicroReg reg, const ApInt& valueInt, Micro
     ///////////////////////////////////////////
 
     else if (op == MicroOp::ShiftLeft)
-    {
-        SWC_ASSERT(value <= 0x7F);
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitModRm(store_, MODRM_REG_4, reg);
-        }
-        else
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitModRm(store_, MODRM_REG_4, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_4);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::ShiftArithmeticLeft)
-    {
-        SWC_ASSERT(value <= 0x7F);
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitModRm(store_, MODRM_REG_4, reg);
-        }
-        else
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitModRm(store_, MODRM_REG_4, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_4);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::ShiftRight)
-    {
-        SWC_ASSERT(value <= 0x7F);
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitModRm(store_, MODRM_REG_5, reg);
-        }
-        else
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitModRm(store_, MODRM_REG_5, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_5);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::RotateLeft)
-    {
-        SWC_ASSERT(value <= 0x7F);
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitModRm(store_, MODRM_REG_0, reg);
-        }
-        else
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitModRm(store_, MODRM_REG_0, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_0);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::RotateRight)
-    {
-        SWC_ASSERT(value <= 0x7F);
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitModRm(store_, MODRM_REG_1, reg);
-        }
-        else
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitModRm(store_, MODRM_REG_1, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_1);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::ShiftArithmeticRight)
-    {
-        SWC_ASSERT(value <= 0x7F);
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitModRm(store_, MODRM_REG_7, reg);
-        }
-        else
-        {
-            emitRex(store_, opBits, MicroReg{}, reg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitModRm(store_, MODRM_REG_7, reg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Register>(store_, reg, 0, value, opBits, MODRM_REG_7);
 
     ///////////////////////////////////////////
 
@@ -3807,277 +3612,57 @@ void X64Encoder::encodeOpBinaryMemImm(MicroReg memReg, uint64_t memOffset, const
 
     ///////////////////////////////////////////
     if (op == MicroOp::ShiftArithmeticRight)
-    {
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_7, memReg);
-        }
-        else
-        {
-            SWC_ASSERT(value <= 0x7F);
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_7, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_7);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::ShiftArithmeticLeft)
-    {
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_4, memReg);
-        }
-        else
-        {
-            SWC_ASSERT(value <= 0x7F);
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_4, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_4);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::ShiftRight)
-    {
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_5, memReg);
-        }
-        else
-        {
-            SWC_ASSERT(value <= 0x7F);
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_5, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_5);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::RotateLeft)
-    {
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_0, memReg);
-        }
-        else
-        {
-            SWC_ASSERT(value <= 0x7F);
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_0, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_0);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::RotateRight)
-    {
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_1, memReg);
-        }
-        else
-        {
-            SWC_ASSERT(value <= 0x7F);
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_1, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_1);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::ShiftLeft)
-    {
-        if (value == 1)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xD1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_4, memReg);
-        }
-        else
-        {
-            SWC_ASSERT(value <= 0x7F);
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitSpecCpuOp(store_, 0xC1, opBits);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_4, memReg);
-            emitValue(store_, std::min(static_cast<uint32_t>(value), getNumBits(opBits) - 1), MicroOpBits::B8);
-        }
-    }
+        emitShiftImmediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_4);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::Add)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x80);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_0, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x83);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_0, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x81);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_0, memReg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_0);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::Subtract)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x80);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_5, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x83);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_5, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x81);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_5, memReg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_5);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::Or)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x80);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_1, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x83);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_1, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x81);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_1, memReg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_1);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::And)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x80);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_4, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x83);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_4, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x81);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_4, memReg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_4);
 
     ///////////////////////////////////////////
 
     else if (op == MicroOp::Xor)
-    {
-        if (opBits == MicroOpBits::B8)
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x80);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_6, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncode8(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x83);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_6, memReg);
-            emitValue(store_, value, MicroOpBits::B8);
-        }
-        else if (canEncodeOpImmediate(value, opBits))
-        {
-            emitRex(store_, opBits, MicroReg{}, memReg);
-            emitCpuOp(store_, 0x81);
-            emitMemoryOperand(store_, memOffset, MODRM_REG_6, memReg);
-            emitValue(store_, value, std::min(opBits, MicroOpBits::B32));
-        }
-        else
-        {
-            SWC_INTERNAL_ERROR();
-        }
-    }
+        emitGroup1Immediate<ModRmMode::Memory>(store_, memReg, memOffset, value, opBits, MODRM_REG_6);
 
     ///////////////////////////////////////////
 

@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Support/Report/Assert.h"
 
 #if SWC_HAS_UNITTEST
@@ -1183,7 +1184,7 @@ SWC_TEST_BEGIN(JIT_ConstantRelocationResolvesSegmentSource)
         return Result::Error;
 
     auto invalidRelocations                  = loweredCode.codeRelocations;
-    invalidRelocations.front().constantShard = ConstantManager::SHARD_COUNT;
+    invalidRelocations.front().constantShard = ConstantStorageLayout::SHARD_COUNT;
     JITMemory invalidMemory;
     JIT::prepare(ctx, invalidMemory, loweredCode.bytes, loweredCode.unwindInfo, invalidRelocations);
     if (JIT::patch(ctx, invalidMemory, invalidRelocations) != Result::Error)

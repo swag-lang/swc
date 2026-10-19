@@ -2,6 +2,8 @@
 #include "Backend/Native/NativeValidate.h"
 #include "Backend/Micro/MachineCode.h"
 #include "Backend/Native/NativeBackendBuilder.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -172,7 +174,7 @@ void NativeValidate::validateConstantRelocation(const MicroRelocation& relocatio
     }
 
     SWC_ASSERT(baseOffset != INVALID_REF);
-    SWC_ASSERT(shardIndex < ConstantManager::SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
 
     const DataSegment& segment = builder_->compiler().cstMgr().shardDataSegment(shardIndex);
 

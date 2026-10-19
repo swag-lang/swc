@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/MicroVerify.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 
 #if SWC_HAS_VALIDATE_MICRO
 
@@ -7,7 +8,6 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Main/Command/CommandLine.h"
 #include "Support/Report/Logger.h"
@@ -449,7 +449,7 @@ namespace
                 return reportError(context, phase, std::format("relocation #{} has constant payload but kind {}", relocationIndex, static_cast<uint32_t>(relocation.kind)));
             }
 
-            if (relocation.hasConstantSource() && relocation.constantShard >= ConstantManager::SHARD_COUNT)
+            if (relocation.hasConstantSource() && relocation.constantShard >= ConstantStorageLayout::SHARD_COUNT)
             {
                 return reportError(context, phase, std::format("relocation #{} stores out-of-range constant shard {}", relocationIndex, relocation.constantShard));
             }
@@ -464,7 +464,7 @@ namespace
                 return reportError(context, phase, std::format("relocation #{} names a constant segment location but kind {}", relocationIndex, static_cast<uint32_t>(relocation.kind)));
             }
 
-            if (relocation.constantShard >= ConstantManager::SHARD_COUNT)
+            if (relocation.constantShard >= ConstantStorageLayout::SHARD_COUNT)
             {
                 return reportError(context, phase, std::format("relocation #{} stores out-of-range constant shard {}", relocationIndex, relocation.constantShard));
             }

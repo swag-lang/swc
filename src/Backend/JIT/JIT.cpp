@@ -14,6 +14,7 @@
 #include "Compiler/Lexer/SourceView.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -843,7 +844,7 @@ namespace
                 // patch time, matching native lowering rather than the raw target.
                 if (reloc.hasConstantSource())
                 {
-                    if (reloc.constantShard >= ConstantManager::SHARD_COUNT)
+                    if (reloc.constantShard >= ConstantStorageLayout::SHARD_COUNT)
                         return Result::Error;
 
                     const auto* storage = ctx.compiler().cstMgr().shardDataSegment(reloc.constantShard).ptr<std::byte>(reloc.constantOffset);

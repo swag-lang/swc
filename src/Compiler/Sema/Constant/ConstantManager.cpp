@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Type/TypeGen.h"
@@ -16,14 +17,14 @@ namespace
 {
     ConstantManager::InternStripe& internStripe(ConstantManager::Shard& shard, uint32_t routingHash)
     {
-        const uint32_t index = (routingHash >> ConstantManager::SHARD_BITS) & (ConstantManager::INTERN_STRIPE_COUNT - 1);
+        const uint32_t index = (routingHash >> ConstantStorageLayout::SHARD_BITS) & (ConstantManager::INTERN_STRIPE_COUNT - 1);
         return shard.internStripes[index];
     }
 
     uint32_t internSlot(uint32_t hash, uint32_t capacity)
     {
         // The low bits already chose the shard and the stripe.
-        return (hash >> (ConstantManager::SHARD_BITS + ConstantManager::INTERN_STRIPE_BITS)) & (capacity - 1);
+        return (hash >> (ConstantStorageLayout::SHARD_BITS + ConstantManager::INTERN_STRIPE_BITS)) & (capacity - 1);
     }
 
     // Every worker folds literals and asks for the same common constants, so the lookup of an
@@ -189,8 +190,8 @@ ConstantRef ConstantManager::addZeroPayloadConstant(TaskContext& ctx, const Type
 std::string_view ConstantManager::addString(const TaskContext& ctx, std::string_view str)
 {
     SWC_UNUSED(ctx);
-    const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (SHARD_COUNT - 1);
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    const uint32_t shardIndex = std::hash<std::string_view>{}(str) & (ConstantStorageLayout::SHARD_COUNT - 1);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
     return shard.dataSegment.addString(str).first;
 }
@@ -266,7 +267,7 @@ namespace
         if (existing.isValid())
             return existing;
 
-        const uint32_t shardIndex = routingHash & (ConstantManager::SHARD_COUNT - 1);
+        const uint32_t shardIndex = routingHash & (ConstantStorageLayout::SHARD_COUNT - 1);
         if (value.isStruct())
         {
             const auto [view, ref] = shard.dataSegment.addSpan(value.getStruct());
@@ -289,8 +290,8 @@ namespace
 
         localIndex = shard.dataSegment.add(stored);
         ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
-        SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-        result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+        SWC_ASSERT(localIndex < ConstantStorageLayout::LOCAL_MASK);
+        result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantStorageLayout::LOCAL_BITS) | localIndex});
         return publishInterned(stripe, std::move(canonical), result, routingHash);
     }
 
@@ -321,7 +322,7 @@ namespace
                     return normalized;
             }
 
-            const uint32_t                         shardIndex = routingHash & (ConstantManager::SHARD_COUNT - 1);
+            const uint32_t                         shardIndex = routingHash & (ConstantStorageLayout::SHARD_COUNT - 1);
             const std::pair<std::string_view, Ref> res        = shard.dataSegment.addString(value.getString());
             ConstantValue                          strValue   = ConstantValue::makeString(ctx, res.first);
             if (preserveType)
@@ -329,8 +330,8 @@ namespace
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
             localIndex = shard.dataSegment.add(strValue);
             ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
-            SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
-            result                    = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+            SWC_ASSERT(localIndex < ConstantStorageLayout::LOCAL_MASK);
+            result                    = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantStorageLayout::LOCAL_BITS) | localIndex});
             const uint32_t storedHash = Math::hash(canonical->hash());
             result                    = publishInterned(stripe, std::move(canonical), result, storedHash);
         }
@@ -343,7 +344,7 @@ namespace
         if (ref.isInvalid())
             return;
 
-        const uint32_t localIndex = cstRef.get() & ConstantManager::LOCAL_MASK;
+        const uint32_t localIndex = cstRef.get() & ConstantStorageLayout::LOCAL_MASK;
         ConstantValue* stored     = shard.dataSegment.ptr<ConstantValue>(localIndex);
         SWC_ASSERT(stored != nullptr);
         if (!stored)
@@ -430,17 +431,17 @@ namespace
 
                 localIndex = shard.dataSegment.add(stored);
                 ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
-                SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+                SWC_ASSERT(localIndex < ConstantStorageLayout::LOCAL_MASK);
                 canonical->setDataSegmentRef(dataRef);
-                result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex});
+                result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantStorageLayout::LOCAL_BITS) | localIndex});
                 return publishInterned(*stripe, std::move(canonical), result, routingHash);
             }
             else
             {
                 localIndex = shard.dataSegment.add(stored);
-                SWC_ASSERT(localIndex < ConstantManager::LOCAL_MASK);
+                SWC_ASSERT(localIndex < ConstantStorageLayout::LOCAL_MASK);
                 shard.dataSegment.ptr<ConstantValue>(localIndex)->setDataSegmentRef(dataRef);
-                result = ConstantRef{(shardIndex << ConstantManager::LOCAL_BITS) | localIndex};
+                result = ConstantRef{(shardIndex << ConstantStorageLayout::LOCAL_BITS) | localIndex};
             }
         }
 
@@ -534,21 +535,21 @@ ConstantRef ConstantManager::addConstant(const TaskContext& ctx, const ConstantV
 ConstantRef ConstantManager::addConstantSlow(const TaskContext& ctx, const ConstantValue& value)
 {
     const uint32_t routingHash = Math::hash(value.hash());
-    const uint32_t shardIndex  = routingHash & (SHARD_COUNT - 1);
+    const uint32_t shardIndex  = routingHash & (ConstantStorageLayout::SHARD_COUNT - 1);
     const bool     isSpanValue = value.isSpanPayload();
     if (isSpanValue && value.isPayloadBorrowed())
     {
         DataSegmentRef payloadRef;
         if (resolveBorrowedPayloadRef(payloadRef, *this, value))
         {
-            SWC_ASSERT(payloadRef.shardIndex < SHARD_COUNT);
+            SWC_ASSERT(payloadRef.shardIndex < ConstantStorageLayout::SHARD_COUNT);
             ConstantValue valueToAdd = value;
             valueToAdd.setDataSegmentRef(payloadRef);
             return addCstOther(*this, shards_[payloadRef.shardIndex], payloadRef.shardIndex, valueToAdd);
         }
     }
 
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
 
     if (isSpanValue)
@@ -570,7 +571,7 @@ namespace
 
         const DataSegmentRef dataRef = value.dataSegmentRef();
         SWC_ASSERT(dataRef.isValid());
-        SWC_ASSERT(dataRef.shardIndex < ConstantManager::SHARD_COUNT);
+        SWC_ASSERT(dataRef.shardIndex < ConstantStorageLayout::SHARD_COUNT);
         return dataRef;
     }
 }
@@ -587,8 +588,8 @@ ConstantRef ConstantManager::addUniqueMaterializedPayloadConstant(const Constant
     const DataSegmentRef dataRef    = materializedPayloadDataRef(value);
     Shard&               shard      = shards_[dataRef.shardIndex];
     const uint32_t       localIndex = shard.dataSegment.add(value);
-    SWC_ASSERT(localIndex < LOCAL_MASK);
-    const auto result = ConstantRef{(dataRef.shardIndex << LOCAL_BITS) | localIndex};
+    SWC_ASSERT(localIndex < ConstantStorageLayout::LOCAL_MASK);
+    const auto result = ConstantRef{(dataRef.shardIndex << ConstantStorageLayout::LOCAL_BITS) | localIndex};
 
     return addCstFinalize(*this, result);
 }
@@ -609,7 +610,7 @@ ConstantRef ConstantManager::addSourceCodeLocation(const TaskContext& ctx, TypeR
     hash                              = Math::hashCombine(hash, location.lineStart);
     hash                              = Math::hashCombine(hash, location.colStart);
     hash                              = Math::hashCombine(hash, location.colEnd - location.colStart);
-    const uint32_t shardIndex         = hash & (SHARD_COUNT - 1);
+    const uint32_t shardIndex         = hash & (ConstantStorageLayout::SHARD_COUNT - 1);
     Shard&         shard              = shards_[shardIndex];
     auto&          segment            = shard.dataSegment;
     const auto [fileView, fileOffset] = segment.addString(fileName);
@@ -735,12 +736,12 @@ ConstantRef ConstantManager::tryGetTypeInfoCache(const Shard& shard, const TypeR
 uint32_t ConstantManager::zeroPayloadConstantCacheShard(const TypeRef typeRef)
 {
     SWC_ASSERT(typeRef.isValid());
-    return typeRef.get() & (SHARD_COUNT - 1);
+    return typeRef.get() & (ConstantStorageLayout::SHARD_COUNT - 1);
 }
 
 ConstantRef ConstantManager::findZeroPayloadConstant(const uint32_t shardIndex, const TypeRef typeRef) const
 {
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     SWC_ASSERT(typeRef.isValid());
 
     const Shard&           shard = shards_[shardIndex];
@@ -751,7 +752,7 @@ ConstantRef ConstantManager::findZeroPayloadConstant(const uint32_t shardIndex, 
 
 ConstantRef ConstantManager::publishZeroPayloadConstant(const uint32_t shardIndex, const TypeRef typeRef, const ConstantRef cstRef)
 {
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     SWC_ASSERT(typeRef.isValid());
     SWC_ASSERT(cstRef.isValid());
 
@@ -854,8 +855,8 @@ uint32_t ConstantManager::smallIntTypeIndex(const TaskContext& ctx, TypeRef type
 
 std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef)
 {
-    const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (ConstantStorageLayout::SHARD_COUNT - 1);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     Shard& shard           = shards_[shardIndex];
     const auto [view, ref] = shard.dataSegment.addString(payload);
     const DataSegmentRef dataRef{.shardIndex = shardIndex, .offset = ref};
@@ -866,8 +867,8 @@ std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, Dat
 
 std::string_view ConstantManager::addPayloadBuffer(std::string_view payload, DataSegmentRef* outRef, uint32_t align)
 {
-    const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (SHARD_COUNT - 1);
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    const uint32_t shardIndex = std::hash<std::string_view>{}(payload) & (ConstantStorageLayout::SHARD_COUNT - 1);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     Shard& shard           = shards_[shardIndex];
     const auto [span, ref] = shard.dataSegment.addSpan(std::span{reinterpret_cast<const std::byte*>(payload.data()), payload.size()}, align);
     if (outRef)
@@ -901,9 +902,9 @@ ConstantRef ConstantManager::cstS32(int32_t value) const
 const ConstantValue& ConstantManager::get(ConstantRef constantRef) const
 {
     SWC_ASSERT(constantRef.isValid());
-    const uint32_t shardIndex = constantRef.get() >> LOCAL_BITS;
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
-    const uint32_t localIndex = constantRef.get() & LOCAL_MASK;
+    const uint32_t shardIndex = constantRef.get() >> ConstantStorageLayout::LOCAL_BITS;
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
+    const uint32_t localIndex = constantRef.get() & ConstantStorageLayout::LOCAL_MASK;
     return *(shards_[shardIndex].dataSegment.ptr<ConstantValue>(localIndex));
 }
 
@@ -914,7 +915,7 @@ Result ConstantManager::makeTypeInfo(Sema& sema, ConstantRef& outRef, TypeRef ty
     // Type-info graphs share dependencies. Keep them in one cache so a type and
     // its interface tables retain one identity regardless of the requesting root.
     constexpr uint32_t shardIndex = 0;
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     Shard& shard = shards_[shardIndex];
 
     const ConstantRef cachedBeforeBuild = tryGetTypeInfoCache(shard, typeRef);
@@ -969,13 +970,13 @@ TypeRef ConstantManager::makeTypeValue(Sema& sema, ConstantRef cstRef) const
 
 DataSegment& ConstantManager::shardDataSegment(const uint32_t index)
 {
-    SWC_ASSERT(index < SHARD_COUNT);
+    SWC_ASSERT(index < ConstantStorageLayout::SHARD_COUNT);
     return shards_[index].dataSegment;
 }
 
 const DataSegment& ConstantManager::shardDataSegment(const uint32_t index) const
 {
-    SWC_ASSERT(index < SHARD_COUNT);
+    SWC_ASSERT(index < ConstantStorageLayout::SHARD_COUNT);
     return shards_[index].dataSegment;
 }
 
@@ -993,7 +994,7 @@ bool ConstantManager::resolveDataSegmentRef(DataSegmentRef& outRef, const void* 
     if (!ptr)
         return false;
 
-    for (uint32_t shardIndex = 0; shardIndex < SHARD_COUNT; ++shardIndex)
+    for (uint32_t shardIndex = 0; shardIndex < ConstantStorageLayout::SHARD_COUNT; ++shardIndex)
     {
         const Ref ref = shards_[shardIndex].dataSegment.findRef(ptr);
         if (ref == INVALID_REF)
@@ -1155,7 +1156,7 @@ bool ConstantManager::resolveConstantDataSegmentRef(DataSegmentRef& outRef, cons
         const ConstantValue& cst = get(cstRef);
         if (cst.resolveDataSegmentRef(outRef, ptr))
         {
-            if (outRef.shardIndex < SHARD_COUNT && shards_[outRef.shardIndex].dataSegment.findRef(ptr) == outRef.offset)
+            if (outRef.shardIndex < ConstantStorageLayout::SHARD_COUNT && shards_[outRef.shardIndex].dataSegment.findRef(ptr) == outRef.offset)
                 return true;
         }
     }
@@ -1167,7 +1168,7 @@ DataSegmentRef ConstantManager::findConstantStorage(const ConstantRef cstRef, co
 {
     SWC_ASSERT(cstRef.isValid() && storageTypeRef.isValid());
     const uint64_t         key   = (static_cast<uint64_t>(cstRef.get()) << 32) | storageTypeRef.get();
-    const Shard&           shard = shards_[cstRef.get() >> LOCAL_BITS];
+    const Shard&           shard = shards_[cstRef.get() >> ConstantStorageLayout::LOCAL_BITS];
     const std::shared_lock lock(shard.constantStorageMutex);
     const DataSegmentRef*  found = shard.constantStorageMap.find(key);
     return found ? *found : DataSegmentRef{};
@@ -1177,7 +1178,7 @@ DataSegmentRef ConstantManager::publishConstantStorage(const ConstantRef cstRef,
 {
     SWC_ASSERT(cstRef.isValid() && storageTypeRef.isValid() && dataRef.isValid());
     const uint64_t         key   = (static_cast<uint64_t>(cstRef.get()) << 32) | storageTypeRef.get();
-    Shard&                 shard = shards_[cstRef.get() >> LOCAL_BITS];
+    Shard&                 shard = shards_[cstRef.get() >> ConstantStorageLayout::LOCAL_BITS];
     const std::unique_lock lock(shard.constantStorageMutex);
     // Materialization happens outside the cache lock. Concurrent callers all use
     // the first fully materialized allocation, preserving constant address identity.
@@ -1194,12 +1195,12 @@ uint32_t ConstantManager::runtimeBufferConstantCacheShard(const TypeRef typeRef,
         .targetPtr = reinterpret_cast<uintptr_t>(targetPtr),
         .count     = count,
     };
-    return static_cast<uint32_t>(RuntimeBufferConstantCacheKeyHash{}(key)) & (SHARD_COUNT - 1);
+    return static_cast<uint32_t>(RuntimeBufferConstantCacheKeyHash{}(key)) & (ConstantStorageLayout::SHARD_COUNT - 1);
 }
 
 ConstantRef ConstantManager::findRuntimeBufferConstant(const uint32_t shardIndex, const TypeRef typeRef, const void* targetPtr, const uint64_t count) const
 {
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     const RuntimeBufferConstantCacheKey key{
         .typeRef   = typeRef,
         .targetPtr = reinterpret_cast<uintptr_t>(targetPtr),
@@ -1216,7 +1217,7 @@ ConstantRef ConstantManager::findRuntimeBufferConstant(const uint32_t shardIndex
 
 ConstantRef ConstantManager::publishRuntimeBufferConstant(const uint32_t shardIndex, const TypeRef typeRef, const void* targetPtr, const uint64_t count, const ConstantRef cstRef)
 {
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     SWC_ASSERT(cstRef.isValid());
     const RuntimeBufferConstantCacheKey key{
         .typeRef   = typeRef,
@@ -1236,12 +1237,12 @@ uint32_t ConstantManager::runtimeStringConstantCacheShard(const TypeRef typeRef,
         .typeRef = typeRef,
         .value   = value,
     };
-    return static_cast<uint32_t>(RuntimeStringConstantCacheKeyHash{}(key)) & (SHARD_COUNT - 1);
+    return static_cast<uint32_t>(RuntimeStringConstantCacheKeyHash{}(key)) & (ConstantStorageLayout::SHARD_COUNT - 1);
 }
 
 ConstantRef ConstantManager::findRuntimeStringConstant(const uint32_t shardIndex, const TypeRef typeRef, const std::string_view value) const
 {
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     const RuntimeStringConstantCacheLookupKey key{
         .typeRef = typeRef,
         .value   = value,
@@ -1257,7 +1258,7 @@ ConstantRef ConstantManager::findRuntimeStringConstant(const uint32_t shardIndex
 
 ConstantRef ConstantManager::publishRuntimeStringConstant(const uint32_t shardIndex, const TypeRef typeRef, const std::string_view value, const ConstantRef cstRef)
 {
-    SWC_ASSERT(shardIndex < SHARD_COUNT);
+    SWC_ASSERT(shardIndex < ConstantStorageLayout::SHARD_COUNT);
     SWC_ASSERT(cstRef.isValid());
     RuntimeStringConstantCacheKey key;
     key.typeRef = typeRef;

@@ -14,6 +14,8 @@
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
 #include "Compiler/ModuleApi/ModuleApi.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
@@ -21,7 +23,6 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
-#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
@@ -1210,7 +1211,7 @@ bool NativeBackendBuilder::tryResolveConstantSourceRef(DataSegmentRef& outSource
     SWC_ASSERT(relocation.kind == MicroRelocation::Kind::ConstantAddress);
     if (relocation.hasConstantSource())
     {
-        if (relocation.constantShard >= ConstantManager::SHARD_COUNT)
+        if (relocation.constantShard >= ConstantStorageLayout::SHARD_COUNT)
             return false;
 
         outSourceRef = {
@@ -1368,7 +1369,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
 
 const NativeRDataAllocationMapEntry* NativeBackendBuilder::tryFindRDataSourceAllocation(const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
 {
-    if (shardIndex >= ConstantManager::SHARD_COUNT)
+    if (shardIndex >= ConstantStorageLayout::SHARD_COUNT)
         return nullptr;
 
     const auto& entries = rdataAllocationMap[shardIndex];

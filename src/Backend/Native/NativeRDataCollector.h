@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Micro/MicroRelocation.h"
-#include "Compiler/Sema/Constant/ConstantManager.h"
+#include "Compiler/Sema/Constant/ConstantStorageLayout.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Core/Result.h"
 #include "Support/Core/Utf8.h"
 
@@ -45,7 +46,7 @@ private:
 
     NativeBackendBuilder* builder_ = nullptr;
     // Map values remain stable across rehashes; work lists borrow them until emission ends.
-    std::array<std::unordered_map<uint32_t, ReachableRDataAllocation>, ConstantManager::SHARD_COUNT> allocations_;
+    std::array<std::unordered_map<uint32_t, ReachableRDataAllocation>, ConstantStorageLayout::SHARD_COUNT> allocations_;
     // Every reached allocation, in the order the roots reached it, which is the emission order.
     std::vector<PendingRDataAllocation> reachableAllocations_;
     std::vector<PendingRDataAllocation> pending_;

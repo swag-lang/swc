@@ -29,8 +29,9 @@ forwarded to the compiler.
 
 `release.bat` is the owner-only full-machine entry point for producing `swc.exe`. Release enables
 aggressive inlining, global-data optimization, reference elimination, identical COMDAT folding,
-AVX2 code generation, whole-program optimization, and link-time code generation (LTO). An
-early CPU guard remains at the x64 baseline and runs before CRT, mimalloc, and C++ initialization.
+and AVX2 code generation. Whole-program optimization and link-time code generation (LTO) are
+currently disabled. An early CPU guard remains at the x64 baseline and runs before CRT, mimalloc,
+and C++ initialization.
 Agents and routine validation use DevMode whenever its stronger checks cover the changed path. A
 rare required Release validation invokes MSBuild directly with the repository's CPU bound instead
 of using `release.bat`.

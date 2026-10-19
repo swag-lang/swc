@@ -56,10 +56,8 @@ namespace
             mergeFileEntry(outEntries[srcViewRef], threadEntry);
     }
 
-    // True for an `impl Interface for Struct {}` block that has no member functions (a
-    // marker interface, or one whose methods are all defaulted) and where both the struct
-    // and the interface are public. Such impls are not reconstructed from member entries,
-    // so they must be emitted on their own to preserve the implementation relationship.
+    // Empty interface impls cannot be reconstructed from member entries.
+    // Export the relationship separately when both participating types are public.
     bool isEmptyExportableInterfaceImpl(const Symbol& symbol)
     {
         if (!symbol.isImpl())
@@ -83,15 +81,15 @@ namespace
         diag.last().addSpan(symbol.codeRange(ctx), "", DiagnosticSeverity::Error);
         diag.addArgument(Diagnostic::ARG_SYM, symbol.name(ctx));
         diag.report(ctx);
+
         return Result::Error;
     }
 }
 
 namespace
 {
-    // AST-dependent classification of a candidate symbol. Must only run once sema is
-    // fully done for the module: it walks whole file ASTs, which other sema jobs mutate
-    // in place (node id flips, child span rewrites) while they are still running.
+    // Run only after semantic analysis: classification walks complete ASTs,
+    // which semantic workers can mutate in place.
     Result resolvePendingSymbol(TaskContext& ctx, const Symbol& symbol, ModuleApiFileEntry& fileEntry, const bool diagnosticsOnly)
     {
         if (diagnosticsOnly && !symbol.isVariable())
@@ -101,12 +99,14 @@ namespace
         const SourceFile* astFile    = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
         if (!astFile)
             astFile = sourceFile;
+
         if (!sourceFile || !astFile)
             return Result::Continue;
 
         const AstNodeRef declRef = ModuleApi::findSymbolDeclRef(astFile->ast(), symbol);
         if (declRef.isInvalid())
             return Result::Continue;
+
         if (!ModuleApi::isExportedPublicDeclScope(*astFile, declRef, symbol))
             return Result::Continue;
 
@@ -114,6 +114,7 @@ namespace
         {
             if (ModuleApi::hasExplicitPublicAccessModifier(*astFile, declRef))
                 return reportModuleApiPublicGlobalVariable(ctx, symbol);
+
             return Result::Continue;
         }
 
@@ -135,16 +136,11 @@ namespace ModuleApi
 {
     void onSymbolSemaCompleted(ModuleApiPerThreadData& state, TaskContext& ctx, const Symbol& symbol)
     {
-        // This callback fires while sema jobs are still mutating ASTs on other threads,
-        // so it must not walk any AST. Apply the symbol-only filters here and defer the
-        // AST-dependent classification to resolvePendingEntries(), which runs post-sema.
+        // Other semantic workers still mutate ASTs here. Filter symbols only and defer
+        // AST traversal to resolvePendingEntries after semantic analysis completes.
         //
-        // An interface impl carries no Public flag of its own; it is exported only through
-        // its public member functions. A marker / default-only interface impl has none, so
-        // it would vanish from the generated module API -- losing the struct<->interface
-        // relationship across the module boundary and breaking `is`/interface casts on the
-        // consumer side. Resurrect such empty interface impls when both the implementing
-        // struct and the interface are themselves public.
+        // Empty interface impls have no public members to register them. Include them
+        // when both types are public, preserving interface casts and is tests in importers.
         const bool isEmptyPublicInterfaceImpl = isEmptyExportableInterfaceImpl(symbol);
         if (!symbol.isPublic() && !isEmptyPublicInterfaceImpl)
             return;
@@ -153,18 +149,23 @@ namespace ModuleApi
         const SourceFile* astFile    = ctx.compiler().ownerSourceFile(symbol.srcViewRef());
         if (!astFile)
             astFile = sourceFile;
+
         if (!sourceFile || !astFile)
             return;
         if (!isCurrentModuleSourceFile(*sourceFile) && !isCurrentModuleSourceFile(*astFile))
             return;
+
         if (!symbol.decl())
             return;
+
         if (symbol.isFunction() && symbol.decl()->isNot(AstNodeId::FunctionDecl) && symbol.decl()->isNot(AstNodeId::AttrDecl))
             return;
         if (symbol.isFunction() && symbol.attributes().hasRtFlag(RtAttributeFlagsE::PlaceHolder))
             return;
+
         if (symbol.isImpl() && !isEmptyPublicInterfaceImpl)
             return;
+
         if (!symbol.srcViewRef().isValid())
             return;
 
@@ -174,6 +175,7 @@ namespace ModuleApi
     Result collectPublicEntries(TaskContext& ctx, ModuleApiFileEntries& outEntries, const bool diagnosticsOnly)
     {
         outEntries.clear();
+
         const CompilerInstance& compiler = ctx.compiler();
         for (size_t i = 0; i < compiler.numPerThreadData(); ++i)
             mergeThreadData(outEntries, compiler.moduleApiPerThreadData(i));
@@ -185,6 +187,7 @@ namespace ModuleApi
     {
         std::vector<ModuleApiFileEntry*> fileEntries;
         fileEntries.reserve(entries.size());
+
         for (auto& entry : entries | std::views::values)
         {
             if (!entry.pendingSymbols.empty())
@@ -193,14 +196,21 @@ namespace ModuleApi
 
         std::vector results(fileEntries.size(), Result::Continue);
         JobManager& jobMgr = ctx.global().jobMgr();
-        jobMgr.parallelForIndexed(ctx, static_cast<uint32_t>(fileEntries.size()), JobKind::ModuleApiExport, ctx.compiler().jobClientId(), [&](TaskContext& workerCtx, uint32_t i) {
-            ModuleApiFileEntry& fileEntry = *fileEntries[i];
-            for (const Symbol* symbol : fileEntry.pendingSymbols)
-            {
-                if (resolvePendingSymbol(workerCtx, *symbol, fileEntry, diagnosticsOnly) == Result::Error)
-                    results[i] = Result::Error;
-            }
-        });
+
+        jobMgr.parallelForIndexed(
+            ctx,
+            static_cast<uint32_t>(fileEntries.size()),
+            JobKind::ModuleApiExport,
+            ctx.compiler().jobClientId(),
+            [&](TaskContext& workerCtx, uint32_t i) {
+                ModuleApiFileEntry& fileEntry = *fileEntries[i];
+
+                for (const Symbol* symbol : fileEntry.pendingSymbols)
+                {
+                    if (resolvePendingSymbol(workerCtx, *symbol, fileEntry, diagnosticsOnly) == Result::Error)
+                        results[i] = Result::Error;
+                }
+            });
 
         for (const Result r : results)
         {

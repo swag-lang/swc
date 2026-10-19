@@ -41,12 +41,14 @@ namespace
                 outPath.clear();
                 return false;
             }
+
             if (traversal == NodePathTraversal::Declarations && nodeRef != targetRef && ast.node(nodeRef).is(AstNodeId::FunctionBody))
             {
                 outPath.clear();
                 return false;
             }
         }
+
         return true;
     }
 
@@ -115,6 +117,7 @@ namespace
     {
         SmallVector<TokenRef> nameRefs;
         ast.appendTokens(nameRefs, spanNameRef);
+
         for (const TokenRef nameRef : nameRefs)
         {
             if (!nameRef.isValid())
@@ -135,6 +138,7 @@ namespace
     bool extractLexicalNamespacePath(TaskContext& ctx, const SourceFile& file, AstNodeRef declRef, std::vector<IdentifierRef>& outNamespacePath)
     {
         outNamespacePath.clear();
+
         const AstNodeRef rootRef = file.ast().root();
         if (rootRef.isInvalid())
             return false;
@@ -152,6 +156,7 @@ namespace
         {
             SmallVector<AstNodeRef> globalRefs;
             file.ast().appendNodes(globalRefs, rootNode.cast<AstFile>().spanGlobalsRef);
+
             for (const AstNodeRef globalRef : globalRefs)
             {
                 if (globalRef.isInvalid())
@@ -186,7 +191,6 @@ namespace
         const SymbolMap* targetSymMap = symImpl->targetSymbolMap();
         return targetSymMap && !ModuleApi::isCurrentModuleSymbol(ctx.compiler(), *targetSymMap);
     }
-
 }
 
 namespace ModuleApi
@@ -230,15 +234,17 @@ namespace ModuleApi
         return outNodeRef.isValid();
     }
 
-    // The node declaring 'symbol' in 'ast': the reachable one, else, for a symbol that comes from
-    // another source view, whichever node holds its declaration.
+    // Prefer the reachable declaration. Symbols from another source view can
+    // still reference a declaration stored outside the reachable tree.
     AstNodeRef findSymbolDeclRef(const Ast& ast, const Symbol& symbol)
     {
         AstNodeRef declRef;
         if (tryFindReachableNodeRef(ast, symbol.decl(), declRef))
             return declRef;
+
         if (ast.hasSourceView() && symbol.srcViewRef() != ast.srcView().ref())
             return ast.tryFindNodeRef(symbol.decl());
+
         return AstNodeRef::invalid();
     }
 
@@ -247,6 +253,7 @@ namespace ModuleApi
         const AstNodeRef rootRef = file.ast().root();
         if (rootRef.isInvalid())
             return AstNodeRef::invalid();
+
         if (isGeneratedSourceDecl(file, declRef))
             return declRef;
 
@@ -317,6 +324,7 @@ namespace ModuleApi
         const AstNodeRef rootRef = file.ast().root();
         if (rootRef.isInvalid())
             return false;
+
         if (isGeneratedSourceDecl(file, declRef))
             return true;
 
@@ -331,6 +339,7 @@ namespace ModuleApi
             {
                 if (symbol.isFunction() || symbol.isConstant() || symbol.isAlias() || symbol.isStruct() || symbol.isEnum() || symbol.isInterface())
                     continue;
+
                 return false;
             }
 

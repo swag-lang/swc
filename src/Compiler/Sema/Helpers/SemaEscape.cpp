@@ -3804,12 +3804,15 @@ namespace
         SmallVector<AstNodeRef> worklist;
         worklist.push_back(bodyRef);
 
-        uint32_t                     budget = 8192;
+        uint32_t budget = 8192;
+
         SmallVector<AstNodeRef>      children;
         SmallVector<SourceCodeRange> arms;
-        SourceCodeRange              innermostLoop;
-        SourceCodeRange              innermostBreakable;
-        const SourceCodeRange        declarationRange = viewVar.codeRange(sema.ctx());
+
+        SourceCodeRange innermostLoop;
+        SourceCodeRange innermostBreakable;
+
+        const SourceCodeRange declarationRange = viewVar.codeRange(sema.ctx());
 
         while (!worklist.empty() && budget != 0)
         {
@@ -3842,6 +3845,7 @@ namespace
         worklist.clear();
         worklist.push_back(bodyRef);
         budget = 8192;
+
         while (!worklist.empty() && budget != 0)
         {
             budget--;
@@ -3868,6 +3872,7 @@ namespace
                         break;
                     }
                 }
+
                 if (armRef.isInvalid())
                     continue;
 
@@ -3877,6 +3882,7 @@ namespace
                 {
                     if (statementRef.isInvalid())
                         continue;
+
                     const SourceCodeRange statementRange = subtreeRange(sema, statementRef);
                     if (statementRange.srcView != mutationRange.srcView || statementRange.offset <= mutationRange.offset)
                         continue;
@@ -3886,6 +3892,7 @@ namespace
                         return true;
                     if (statement.is(AstNodeId::ContinueStmt) && loopRebuildsView)
                         return true;
+
                     // A break skips later reads inside its target, but a borrow may
                     // still be read after that loop or switch has ended.
                     if (statement.is(AstNodeId::BreakStmt) && sourceRangeContains(innermostBreakable, readRange))
@@ -3899,16 +3906,6 @@ namespace
         return false;
     }
 
-    // The first READ of 'symVar' written at or after 'afterOffset', or invalid when the
-    // next thing that happens to it is a write - reassigning a view refreshes it, so what
-    // follows reads the new one. 'afterRange' only names the file; the offset is separate
-    // because the mutation's own arguments run before it and must not count.
-    //
-    // Source order stands in for execution order within each phase: first the rest of the
-    // current iteration, then each enclosing loop's back edge from inner to outer. A view
-    // declared inside a loop is rebuilt on each pass, and a loop exited after the mutation
-    // takes no back edge. An occurrence standing in a sibling arm of the change is skipped
-    // outright when no loop can join the paths on another iteration.
     bool mutationFollowedByLoopExit(Sema& sema, AstNodeRef bodyRef, AstNodeRef callRef);
 
     // Whether 'targetRef' sits in the subtree under 'rootRef'.
@@ -3916,9 +3913,11 @@ namespace
     {
         if (rootRef.isInvalid() || targetRef.isInvalid())
             return false;
+
         SmallVector<AstNodeRef> worklist;
         SmallVector<AstNodeRef> children;
         worklist.push_back(rootRef);
+
         uint32_t budget = 4096;
         while (!worklist.empty() && budget != 0)
         {
@@ -3929,14 +3928,20 @@ namespace
                 return true;
             if (nodeRef.isInvalid())
                 continue;
+
             children.clear();
             sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
             for (const AstNodeRef childRef : children)
                 worklist.push_back(childRef);
         }
+
         return false;
     }
 
+    // Find the first read after a mutation; a preceding write refreshes the view.
+    // afterRange identifies the file, while afterOffset excludes the call's arguments.
+    // Scan the current iteration, then enclosing back edges from inner to outer.
+    // Skip sibling arms unless another loop iteration can connect their paths.
     AstNodeRef firstReadAfter(Sema& sema, AstNodeRef bodyRef, AstNodeRef mutationRef, const SourceCodeRange& afterRange, uint32_t afterOffset, const SymbolVariable& symVar)
     {
         struct Occurrence
@@ -3955,8 +3960,10 @@ namespace
         SmallVector<std::pair<AstNodeRef, AstNodeRef>> worklist;
         worklist.push_back({bodyRef, AstNodeRef::invalid()});
 
-        uint32_t                budget = 16384;
+        uint32_t budget = 16384;
+
         SmallVector<AstNodeRef> children;
+
         while (!worklist.empty() && budget != 0)
         {
             budget--;
@@ -3975,10 +3982,8 @@ namespace
                     bool     candidate = range.offset >= afterOffset;
                     uint32_t offset    = range.offset;
 
-                    // The destination of the assignment the change is evaluated FOR
-                    // ('view = list.add(x)') is written once the call returns: it
-                    // refreshes the view right after the change, wherever its name
-                    // sits in the text.
+                    // Assigning a mutation's result refreshes the view after the call,
+                    // regardless of where the destination name appears in the source.
                     bool assignedFromMutation = false;
                     if (parentRef.isValid())
                     {
@@ -4041,35 +4046,28 @@ namespace
         std::ranges::sort(found, [](const Occurrence& a, const Occurrence& b) {
             if (a.phase != b.phase)
                 return a.phase < b.phase;
+
             return a.offset < b.offset;
         });
 
-        // An occurrence no path reaches from the change decides nothing - neither that the
-        // view is read stale, nor that it was refreshed first.
+        // Unreachable occurrences establish neither a stale read nor a prior refresh.
         for (const Occurrence& occurrence : found)
         {
             if (positionsExcludeEachOther(sema, bodyRef, afterRange, occurrence.range))
                 continue;
             if (occurrence.phase == 0 && mutationArmExitsBeforeRead(sema, bodyRef, afterRange, occurrence.range, symVar))
                 continue;
+
             return occurrence.isWrite ? AstNodeRef::invalid() : occurrence.nodeRef;
         }
 
         return AstNodeRef::invalid();
     }
 
-    // Is this local a view INTO what 'root' owns, and under what condition? A view taken
-    // straight out of the storage ('let v = buf.data') is one unconditionally. A view
-    // handed back by a call ('let v = buf.view()') is one exactly when that call's result
-    // reads the payload of the argument 'root' was passed as - which only the callee's
-    // final summary can say, so the condition travels as a guard instead of being decided
-    // here. The guard asks the PAYLOAD question, not the weaker "may borrow" one: a
-    // factory returning a fresh object that keeps a pointer to its receiver borrows it,
-    // but reallocating the receiver's payload leaves that object perfectly valid.
-    //
-    // Reading the captured call snapshot is what makes the most common spelling of "take
-    // a view into a container" a candidate at all: an accessor result is bound as a
-    // DeferredCall, never as a plain local borrow.
+    // Direct payload views route to their owner unconditionally. Accessor results are
+    // DeferredCall snapshots: retain guards until final summaries prove they read the
+    // owner's payload. A weaker may-borrow summary also includes independent objects
+    // holding back-references, which remain valid after the receiver reallocates.
     bool viewRoutesToStorage(Sema& sema, const SemaEscapeInfo& info, const SemaEscapeProjection& mutation, SmallVector4<SemaEscapeDeferredGuard>& outGuards, const SymbolVariable*& outBorrowedField)
     {
         SWC_ASSERT(mutation.root);
@@ -4081,11 +4079,9 @@ namespace
         if (info.kind == SemaEscapeKind::Local || info.kind == SemaEscapeKind::Static)
             return info.sourceVar == &root;
 
-        // A method receiver/parameter is caller-owned, but a view created in this body
-        // has a fully inferred path back into it. Match the mutation against that path;
-        // this catches `view = .data; .reserve(); use(view)` without treating every field
-        // of `me` as the same allocation. A carrier replacement clears viaOwnedPayload,
-        // so an old-buffer copy no longer follows the receiver's new allocation.
+        // Views created here have exact paths into caller-owned receivers/parameters.
+        // Match that path rather than all fields of 'me'. Replacing the carrier clears
+        // viaOwnedPayload, detaching old-buffer copies from the new allocation.
         if (info.kind == SemaEscapeKind::Parameter)
         {
             if (info.sourceVar != &root || !info.viaOwnedPayload)
@@ -4094,6 +4090,7 @@ namespace
             SemaEscapeProjection source;
             if (!ownedPayloadProjection(sema, info, source) || !projectionIsPrefixOf(mutation, source))
                 return false;
+
             outBorrowedField = firstProjectionField(source);
             return true;
         }
@@ -4110,6 +4107,7 @@ namespace
             {
                 if (check.borrowedVar != &root || !check.callee || check.indirect || check.viaStoredField)
                     continue;
+
                 const SymbolVariable* mutationField = firstProjectionField(mutation);
                 if (mutationField && check.borrowedPayloadField && mutationField != check.borrowedPayloadField)
                     continue;
@@ -4119,6 +4117,7 @@ namespace
                 // this route, once every callee summary has converged.
                 for (const SemaEscapeDeferredGuard& guard : check.guards)
                     outGuards.push_back({guard.callee, guard.paramIndex, true, guard.indirect});
+
                 outGuards.push_back({check.callee, check.paramIndex, true});
                 outBorrowedField = check.borrowedPayloadField;
                 return true;
@@ -4128,13 +4127,9 @@ namespace
         return false;
     }
 
-    // Would this 'Swag.setContext' argument install storage belonging to THIS frame? The
-    // intrinsic takes a pointer, so the answer is decided by the spelling. A context VALUE
-    // is handed over by an implicit address-of, which makes the frame slot the installed
-    // address. A POINTER hands over what it already points at, and the pointer local
-    // 'let prev = Swag.getContext()' points at storage the runtime owns - rooting the
-    // judgement at the variable instead of at what it addresses would report the restore
-    // in every scoped use.
+    // A context value binds by implicit address-of and installs frame storage. Pointer
+    // arguments install their pointee instead: a saved Swag.getContext() pointer names
+    // runtime storage, so restoring it must not borrow the local pointer's slot.
     bool setContextInstallsFrameStorage(Sema& sema, AstNodeRef argRef)
     {
         if (argRef.isInvalid())
@@ -4153,16 +4148,9 @@ namespace
         return !rootType.isPointerOrReference();
     }
 
-    // Does this body put another context back? The scoped idiom spells that as a 'defer'
-    // ('Core.withAllocator' is built on exactly that) and the compiler suites spell it as
-    // a plain call at the end of the block; both restore something that outlives the
-    // frame, and both are correct.
-    //
-    // The test is deliberately structural rather than a proof that the RIGHT context is
-    // restored on every path. What is left to report is the shape that has no answer at
-    // all: a body that installs its own stack and then walks away from it. Insisting on
-    // more would reject every correct spelling that exists today, and a check that rejects
-    // the standard idiom is a check that gets turned off.
+    // Recognize a restoring setContext call, including deferred and end-of-block forms.
+    // This structural check reports bodies that install frame storage without any
+    // restore; it does not prove the correct context is restored on every path.
     bool functionRestoresContext(Sema& sema, AstNodeRef declRef, AstNodeRef exceptRef)
     {
         if (declRef.isInvalid())
@@ -4173,6 +4161,7 @@ namespace
 
         uint32_t                budget = 8192;
         SmallVector<AstNodeRef> children;
+
         while (!worklist.empty() && budget != 0)
         {
             budget--;
@@ -4216,6 +4205,7 @@ namespace
 
         uint32_t                budget = 8192;
         SmallVector<AstNodeRef> children;
+
         while (!worklist.empty() && budget != 0)
         {
             budget--;
@@ -4245,6 +4235,7 @@ namespace
                     worklist.push_back({childRef, insideNestedBreakable});
             }
         }
+
         return false;
     }
 
@@ -4256,14 +4247,14 @@ namespace
         edge.kind                 = kind;
         edge.callerIntoParamIndex = intoIndex;
         edge.callerParamIndex     = storedIndex;
+
         sema.compiler().addEscapeSummaryEdge(edge);
     }
 
     bool hasUnmodeledBorrowHook(Sema& sema, AstNodeRef ref, const AstNode& node)
     {
-        // These node payloads describe user-defined operations. Do not infer a
-        // native operator's effects from the call dependency list: that list
-        // intentionally excludes foreign functions.
+        // User-defined operations may call foreign functions omitted from dependency
+        // lists. Inspect their payloads rather than infer native operator effects.
         switch (node.id())
         {
             case AstNodeId::AssignStmt:
@@ -4279,6 +4270,7 @@ namespace
             case AstNodeId::IndexListExpr:
             case AstNodeId::IntrinsicCallExpr:
                 return sema.hasSemaPayload(ref);
+
             default:
                 return false;
         }
@@ -4291,12 +4283,12 @@ namespace
 
         fn.markBorrowEffectsComputed();
 
-        // Include implicit lifecycle/operator calls as well as source-level calls.
-        // Callee effects are read only at the module fixpoint, never while another
-        // semantic worker may still be computing them.
+        // Include implicit lifecycle/operator calls. Read callee effects only at the
+        // module fixpoint, after semantic workers finish computing their summaries.
         SmallVector<SymbolFunction*> dependencies;
         fn.appendCallDependencies(dependencies);
         fn.appendLifecycleEffectDependencies(dependencies);
+
         for (const SymbolFunction* callee : dependencies)
         {
             if (callee && callee != &fn)
@@ -4305,7 +4297,9 @@ namespace
 
         SmallVector<AstNodeRef> pending;
         pending.push_back(bodyRef);
+
         uint32_t budget = 16384;
+
         while (!pending.empty() && budget--)
         {
             const AstNodeRef ref = pending.back();

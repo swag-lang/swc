@@ -40,14 +40,13 @@ namespace
         return Result::Error;
     }
 
-    // ----------------------------------------------------------------------------
-    // Data model for one pending JIT evaluation
-    // ----------------------------------------------------------------------------
+    // State retained across a pending JIT evaluation.
 
     struct JITCallResultMeta
     {
-        TypeRef                          exprTypeRef;
-        TypeRef                          storageTypeRef;
+        TypeRef exprTypeRef;
+        TypeRef storageTypeRef;
+
         ABITypeNormalize::NormalizedType normalizedRet;
         uint64_t                         resultSize = 0;
     };
@@ -71,10 +70,8 @@ namespace
 
     using ConstCallCache = std::unordered_map<ConstCallCacheKey, ConstantRef, ConstCallCacheKeyHash>;
 
-    // Owns all buffers needed by a JIT request until completion. The executor
-    // receives raw pointers into these vectors, so the pending entry that holds
-    // them is the lifetime boundary between a paused sema node and the
-    // main-thread JIT run.
+    // Own request buffers until completion: the executor holds raw pointers into them
+    // while the sema node is paused and the main thread runs the JIT.
     struct JITNodePayload
     {
         SmallVector<SmallVector<std::byte>> argStorage;
@@ -83,15 +80,14 @@ namespace
         std::optional<ConstCallCacheKey>    constCallCacheKey;
     };
 
-    // Pending execution data associated with one JIT submission. It carries the
-    // buffers and the ABI/storage metadata needed to turn the returned bytes back
-    // into a compiler constant when the sema node resumes. One allocation holds
-    // both: the entry is the only owner the payload ever had.
+    // Keep request buffers and result metadata in one owned allocation until the
+    // resumed sema node converts the returned bytes into a compiler constant.
     struct JITPendingNodeData
     {
         JITNodePayload    payload;
         JITCallResultMeta resultMeta;
-        bool              setFoldedTypedConst = false;
+
+        bool setFoldedTypedConst = false;
     };
 
     struct ConstCallCacheStorage
@@ -112,9 +108,8 @@ namespace
         const JobClientId clientId = ctx.compiler().jobClientId();
         if (storage.clientId != clientId)
         {
-            // Pure-call folding is only a cache hint. Keep it local to the worker
-            // thread and current compiler client instead of serializing all jobs on
-            // one shared cache.
+            // Pure-call folding is a cache hint. Keep it per worker and compiler client
+            // to avoid serializing semantic jobs on a shared cache.
             storage.clientId = clientId;
             storage.entries.clear();
         }
@@ -130,12 +125,15 @@ namespace
             const TypeInfo& type = sema.typeMgr().get(arg.typeRef);
             if (!type.isAnyTypeInfo(sema.ctx()) && !type.isPointerOrReference())
                 continue;
+
             const void* ptr = nullptr;
             std::memcpy(&ptr, arg.valuePtr, sizeof(ptr));
+
             DataSegmentRef root;
             if (sema.cstMgr().resolveDataSegmentRef(root, ptr))
                 roots.push_back(root);
         }
+
         return sema.cstMgr().hasUnpublishedFunctionRelocations(roots.span());
     }
 
@@ -151,6 +149,7 @@ namespace
                 return;
             if (called->isForeignOrEmptyOrAttribute())
                 return;
+
             if (!called->jitEntryAddress())
             {
                 unpublished = true;
@@ -162,11 +161,14 @@ namespace
             {
                 if (relocation.kind != MicroRelocation::Kind::ConstantAddress)
                     continue;
+
                 if (relocation.hasConstantSource())
                 {
                     if (checkedConstantSources)
                         continue;
+
                     checkedConstantSources = true;
+
                     // Preparation already discovers these targets. Reuse its versioned
                     // closure, but recheck publication: JIT entries change independently
                     // of the constant graph, including targets allowed to remain unresolved.
@@ -203,8 +205,8 @@ namespace
         TaskContext& ctx = sema.ctx();
         outKey           = {};
         outKey.function  = &function;
-        // One owned byte buffer keeps the key alive across a paused JIT call.
-        // Lengths and type identities preserve the old per-argument equality.
+
+        // Own the key bytes across a paused call. Lengths and type identities distinguish arguments.
         outKey.arguments.reserve(args.size() * 16);
 
         for (size_t i = 0; i < args.size(); ++i)
@@ -217,10 +219,8 @@ namespace
             uint64_t        byteSize  = argType.sizeOf(ctx);
             const void*     sourcePtr = arg.valuePtr;
 
-            // Pointer-like arguments can denote either a real pointer constant or
-            // compiler-owned storage materialized for a reference/value receiver.
-            // The latter address is transient and can be recycled between folds,
-            // so such calls are not safe cache candidates.
+            // Pointer-like arguments may name transient receiver storage whose address
+            // can be recycled between folds, so they cannot safely identify cached calls.
             if (argType.isPointerOrReference())
                 return false;
 
@@ -264,10 +264,11 @@ namespace
 
     ConstantValue makeRunExprConstant(Sema& sema, const TypeInfo& exprType, const TypeInfo& storageType, const std::byte* storagePtr)
     {
-        TaskContext&    ctx            = sema.ctx();
-        const TypeRef   exprTypeRef    = exprType.typeRef();
-        const TypeRef   storageTypeRef = storageType.typeRef();
-        const TypeInfo* enumType       = &exprType;
+        TaskContext&  ctx            = sema.ctx();
+        const TypeRef exprTypeRef    = exprType.typeRef();
+        const TypeRef storageTypeRef = storageType.typeRef();
+
+        const TypeInfo* enumType = &exprType;
         // JIT returns normalized storage bytes. Re-wrap them as the expression
         // type so aliases/enums preserve their source-level identity in constants.
         if (!enumType->isEnum() && exprType.isAlias())
@@ -294,6 +295,7 @@ namespace
                     nullValue.setTypeRef(exprTypeRef);
                 else
                     nullValue.setTypeRef(storageTypeRef);
+
                 return nullValue;
             }
         }
@@ -301,8 +303,10 @@ namespace
         ConstantValue result = ConstantValue::make(ctx, storagePtr, exprTypeRef);
         if (!result.isValid() && storageTypeRef != exprTypeRef)
             result = ConstantValue::make(ctx, storagePtr, storageTypeRef);
+
         if (exprType.isAlias())
             result.setTypeRef(exprTypeRef);
+
         return result;
     }
 
@@ -330,13 +334,13 @@ namespace
         if (pendingEntry.setFoldedTypedConst)
             sema.setFoldedTypedConst(nodeRef);
         sema.setConstant(nodeRef, cstRef);
+
         if (pendingEntry.payload.constCallCacheKey)
             cacheConstCallResult(sema, std::move(*pendingEntry.payload.constCallCacheKey), cstRef);
     }
 
-    // Appends a root's order to `out`, skipping what the order already holds. A root's own
-    // order already contains the order of everything it reaches, so a root the walk has
-    // already taken in contributes nothing and is not read at all.
+    // A root's order includes everything it reaches. Skip roots already encountered
+    // to avoid traversing the same closure again.
     void appendJitOrderDeduplicated(const SymbolFunction& root, SmallVector<SymbolFunction*>& out, PointerSet<SymbolFunction>& seen)
     {
         if (seen.contains(&root))
@@ -378,37 +382,37 @@ namespace
             return false;
         if (fn.hasExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning))
             return false;
+
         return fn.isSemaCompleted() || fn.hasExtraFlag(SymbolFunctionFlagsE::LazyBody);
     }
 
     bool isIncludableOptionalConstantJitRoot(const SymbolFunction& root)
     {
-        // A metadata pointer may remain unpublished while its runtime call graph is
-        // still being analyzed. Pulling a completed interface method into #ast can
-        // otherwise wait on the enclosing function that needs that #ast to finish.
-        // One dependency that is not includable settles the verdict, so the walk stops
-        // there rather than reading the rest of a closure whose answer cannot change.
+        // Metadata may remain unpublished while the runtime call graph is incomplete.
+        // Pulling an interface method into #ast could wait on the function containing
+        // that #ast. Stop at the first dependency that cannot yet be included.
         return root.allInJitOrder([](const SymbolFunction* dependency) {
             if (dependency->isForeignOrEmptyOrAttribute())
                 return true;
             if (dependency->attributes().hasMacroOrMixin())
                 return true;
+
             return isIncludableConstantJitDependency(*dependency);
         });
     }
 
-    // One walk of the constant graph: what it has found, which shards it read, and what it has
-    // already been through. Kept together so the walk carries one parameter instead of five, and
-    // reused by the worker that runs it: the tables a walk needs are the same ones the next walk
-    // needs, and a module runs thousands of them.
+    // Reuse traversal tables per worker: a module performs thousands of constant-graph walks.
+    // Keep discovered targets, shard versions and visited nodes in one traversal state.
     struct ConstantJitTargetWalk
     {
         SymbolFunction::ConstantJitTargetList         targets;
         SmallVector<std::pair<uint32_t, uint64_t>, 2> shardVersions;
-        StampedKeySet                                 visitedAllocations;
-        PointerSet<SymbolFunction>                    seenStrictTargets;
-        PointerSet<SymbolFunction>                    seenOptionalTargets;
-        uint32_t                                      seenShardMask = 0;
+
+        StampedKeySet              visitedAllocations;
+        PointerSet<SymbolFunction> seenStrictTargets;
+        PointerSet<SymbolFunction> seenOptionalTargets;
+
+        uint32_t seenShardMask = 0;
 
         void reset()
         {
@@ -421,22 +425,21 @@ namespace
         }
     };
 
-    // Walks the constant graph from one offset, collecting every function the data can name.
-    // Traversal follows data-to-data relocations transitively; which of the collected functions
-    // a compile-time call may actually pull in is decided by its caller, against the state the
-    // symbols are in at that moment.
+    // Follow data relocations transitively to collect function targets. The caller
+    // decides which targets can be included using their current semantic state.
     void collectConstantJitTargets(Sema& sema, ConstantJitTargetWalk& walk, uint32_t shardIndex, uint32_t sourceOffset)
     {
         SmallVector<DataSegmentRef> pending{{.shardIndex = shardIndex, .offset = sourceOffset}};
+
         while (!pending.empty())
         {
             const DataSegmentRef current = pending.back();
             pending.pop_back();
+
             const DataSegment& segment = sema.cstMgr().shardDataSegment(current.shardIndex);
 
-            // The answer is reusable only while every shard it read is still at the version it
-            // was read at, so each one is recorded as the walk reaches it, before its
-            // allocations are read.
+            // Record a shard's version before reading its allocations: cached results
+            // remain valid only while every visited shard keeps that version.
             SWC_ASSERT(current.shardIndex < ConstantManager::SHARD_COUNT);
             const uint32_t shardBit = 1u << current.shardIndex;
             if (!(walk.seenShardMask & shardBit))
@@ -470,9 +473,8 @@ namespace
                     if (!target)
                         continue;
 
-                    // A target reached both through a relocation that tolerates an unresolved
-                    // function and through one that does not is two different questions, so both
-                    // spellings are kept; the same spelling twice is not.
+                    // Strict and optional relocations impose different requirements.
+                    // Retain each kind once, even when both reach the same target.
                     PointerSet<SymbolFunction>& seen = relocation.allowUnresolvedFunction ? walk.seenOptionalTargets : walk.seenStrictTargets;
                     if (!seen.insert(target))
                         continue;
@@ -507,10 +509,8 @@ namespace
         return true;
     }
 
-    // The constant targets of one function, walked once per state of the constant graph. Each
-    // compile-time call scans the whole call graph it is about to run, and without this the same
-    // few thousand functions are walked again for every one of them. A function whose code has
-    // not been lowered yet has nothing to remember: its relocations do not exist.
+    // Cache each function's targets by constant-graph version to avoid repeated walks
+    // for every compile-time call. Unlowered code has no relocations to cache yet.
     std::shared_ptr<const SymbolFunction::ConstantJitTargetList> constantJitTargetsOf(Sema& sema, const SymbolFunction& function)
     {
         const bool remembers = function.hasLoweredCode();
@@ -526,6 +526,7 @@ namespace
         static thread_local ConstantJitTargetWalk walk;
         walk.reset();
         walkConstantJitTargets(sema, walk, function);
+
         auto targets = std::make_shared<SymbolFunction::ConstantJitTargetList>(std::move(walk.targets));
         if (!remembers)
             return targets;
@@ -534,18 +535,18 @@ namespace
         auto&                  cache = function.constantJitTargets();
         cache.targets                = targets;
         cache.shardVersions          = walk.shardVersions;
+
         return targets;
     }
 
     bool appendConstantFunctionJitRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& roots, std::span<SymbolFunction* const> functions)
     {
-        // Everything the run already reaches, so a constant that names one of them adds nothing.
-        // The set holds the whole call graph of the run and is built once per compile-time call,
-        // which is thousands of times over a module: it is a flat table the worker reuses rather
-        // than a node per function.
+        // Targets already in the run's call graph add no roots. Reuse a flat table
+        // per worker because each module performs thousands of compile-time calls.
         static thread_local PointerSet<SymbolFunction> seenFunctions;
         seenFunctions.clear();
         seenFunctions.reserve(roots.size() + functions.size() + 1);
+
         for (SymbolFunction* root : roots)
         {
             if (root)
@@ -563,6 +564,7 @@ namespace
         // another verdict cache; a strict relocation must still be allowed to include them.
         static thread_local PointerSet<SymbolFunction> rejectedOptionalRoots;
         rejectedOptionalRoots.clear();
+
         bool changed = false;
         for (const SymbolFunction* function : functions)
         {
@@ -576,10 +578,12 @@ namespace
                     continue;
                 if (!isIncludableConstantJitDependency(*target))
                     continue;
+
                 if (allowUnresolved)
                 {
                     if (rejectedOptionalRoots.contains(target))
                         continue;
+
                     if (!isIncludableOptionalConstantJitRoot(*target))
                     {
                         rejectedOptionalRoots.insert(target);
@@ -599,11 +603,8 @@ namespace
 
     void buildJitOrderWithNativeRoots(Sema& sema, const SymbolFunction& symFn, SmallVector<SymbolFunction*>& out, std::span<SymbolFunction* const> extraRoots = {})
     {
-        // One root's order is already a set: its walk visits every function once. Concatenating
-        // several of them and deduplicating afterwards is the same answer reached through every
-        // repeated element, and the metadata roots a compile-time call collects from constant
-        // data reach almost the same closure as one another. The membership set is therefore
-        // built while the order is, and a root the order already holds is never read.
+        // Each root's order is already unique, but roots often share most dependencies.
+        // Build membership alongside the output so previously reached roots need no walk.
         const bool mayRepeat = !extraRoots.empty() || SemaRuntime::isRuntimeArtifactFunction(sema.compiler(), symFn);
         if (!mayRepeat)
         {
@@ -643,6 +644,7 @@ namespace
         const auto mix         = [&fingerprint](const uint64_t value) {
             fingerprint = (fingerprint ^ value) * 1099511628211ULL;
         };
+
         mix(reinterpret_cast<uintptr_t>(&symFn));
         mix(callGraphVersion);
         mix(targetsVersion);
@@ -655,6 +657,7 @@ namespace
         for (uint32_t shardIndex = 0; shardIndex < ConstantManager::SHARD_COUNT; ++shardIndex)
             mix(sema.cstMgr().shardDataSegment(shardIndex).relocationVersion());
         mix(sema.compiler().globalInitSegment().relocationVersion());
+
         return fingerprint ? fingerprint : 1;
     }
 
@@ -664,6 +667,7 @@ namespace
             return false;
         if (!symFn.srcViewRef().isValid())
             return true;
+
         return !sema.compiler().srcView(symFn.srcViewRef()).isRuntimeFile();
     }
 
@@ -698,6 +702,7 @@ namespace
     Result prepareJitFunction(Sema& sema, SymbolFunction& symFn)
     {
         TaskContext& ctx = sema.ctx();
+
         // This version is published only after the runtime setup and this root's
         // entire preparation succeed. A ready root needs neither walk repeated.
         if (symFn.jitEntryAddress() && symFn.jitReadyVersion() == sema.compiler().nativeGlobalFunctionInitTargetsVersion())
@@ -708,28 +713,27 @@ namespace
 
         SWC_RESULT(prepareJitSetupRuntimeFunction(sema, symFn));
         ctx.state().jitEmissionError = false;
+
         // Setup can publish new global targets or finish a concurrent preparation.
         // Only its resulting version describes the work this preparation closes.
         const uint64_t initTargetsVersion = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
         if (symFn.jitEntryAddress() && symFn.jitReadyVersion() == initTargetsVersion)
             return Result::Continue;
 
-        // A codegen job emits its function before reporting completion. Publish the
-        // release summaries before scheduling that job, while its sanity pass can
-        // still reject a stale read. Waiting only on sema permits recursive calls.
-        //
-        // The order the semantic wait completed, with the versions it was read at. The first
-        // code-generation round below asks for the same order when nothing it is built from has
-        // moved since, and then reads this one instead of walking the closure again.
+        // Publish release summaries before scheduling codegen, which emits before completion
+        // and can reject stale reads in its sanity pass. Waiting only on sema allows recursion.
+        // Keep the completed order and its versions for reuse in the first codegen round.
         SmallVector<SymbolFunction*> semaOrder;
         uint64_t                     semaOrderCallGraphVersion = 0;
         uint64_t                     semaOrderTargetsVersion   = 0;
+
         while (true)
         {
             semaOrderCallGraphVersion = SymbolFunction::callGraphVersion();
             semaOrderTargetsVersion   = sema.compiler().nativeGlobalFunctionInitTargetsVersion();
             semaOrder.clear();
             buildJitOrderWithNativeRoots(sema, symFn, semaOrder);
+
             for (const SymbolFunction* function : semaOrder)
                 SWC_RESULT(sema.waitSemaCompleted(function, function->codeRef()));
 
@@ -749,17 +753,16 @@ namespace
         if (ctx.state().jitEmissionError)
             return reportJitEvaluationFailure(sema, symFn);
 
-        // Dependency-closure loop: keep scheduling CodeGen for newly discovered dependencies until
-        // the set stabilises. What the order is built from is the call graph and the registered
-        // native-global-function init targets, and both say when they last moved. Reading that is
-        // how the loop recognizes a stable order, instead of building the order a second time and
-        // comparing membership of a set that holds every function the run can reach.
+        // Schedule newly discovered dependencies until the closure stabilizes. Call-graph
+        // and native-root versions detect stability without rebuilding the membership set.
         SmallVector<SymbolFunction*> constantRoots;
         SmallVector<SymbolFunction*> stableJitOrder;
+
         while (true)
         {
             uint64_t stableCallGraphVersion = 0;
             uint64_t stableTargetsVersion   = 0;
+
             while (true)
             {
                 const uint64_t orderCallGraphVersion = SymbolFunction::callGraphVersion();
@@ -770,6 +773,7 @@ namespace
                     jitOrder = std::move(semaOrder);
                 else
                     buildJitOrderWithNativeRoots(sema, symFn, jitOrder, constantRoots.span());
+
                 // Read once at most: a later round rebuilds from the roots it has by then.
                 semaOrder.clear();
 
@@ -784,9 +788,8 @@ namespace
                 if (SymbolFunction::callGraphVersion() == orderCallGraphVersion &&
                     sema.compiler().nativeGlobalFunctionInitTargetsVersion() == orderTargetsVersion)
                 {
-                    // Stable: nothing the order is derived from moved while its functions were
-                    // waited on, so this snapshot is the definitive order and every function in it
-                    // has had waitCodeGenPreSolved called.
+                    // Both versions stayed unchanged while waiting: this order is stable,
+                    // and every function has completed waitCodeGenPreSolved.
                     stableJitOrder         = std::move(jitOrder);
                     stableCallGraphVersion = orderCallGraphVersion;
                     stableTargetsVersion   = orderTargetsVersion;
@@ -799,6 +802,7 @@ namespace
             // so the static lifecycle pass sees the same facts as ordinary code generation.
             const uint64_t orderFingerprint = jitOrderFingerprint(sema, symFn, constantRoots.span(), stableCallGraphVersion, stableTargetsVersion);
             SemaEscape::propagateCompletedFreesSummaries(ctx, stableJitOrder.span(), orderFingerprint);
+
             for (SymbolFunction* function : stableJitOrder)
             {
                 SWC_RESULT(function->emit(ctx));
@@ -824,8 +828,9 @@ namespace
 
     JITCallResultMeta computeJitCallResultMeta(Sema& sema, TypeRef exprTypeRef)
     {
-        TaskContext&                           ctx           = sema.ctx();
-        const TypeInfo&                        storageType   = sema.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, exprTypeRef);
+        TaskContext&    ctx         = sema.ctx();
+        const TypeInfo& storageType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(ctx, exprTypeRef);
+
         const ABITypeNormalize::NormalizedType normalizedRet = ABITypeNormalize::normalize(ctx, CallConv::swag(), storageType, ABITypeNormalize::Usage::Return);
         SWC_ASSERT(!storageType.isVoid());
 
@@ -1399,7 +1404,7 @@ Result SemaJIT::runExpr(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeExprRe
     payload.resultStorage.resize(resultMeta.resultSize);
 
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeExprRef, false);
-    request.arg0         = reinterpret_cast<uint64_t>(payload.resultStorage.data());
+    request.arg0                    = reinterpret_cast<uint64_t>(payload.resultStorage.data());
     request.hasArg0                 = true;
 
     return submitJitNode(sema, nodeExprRef, request, pendingEntry, resultMeta, false);
@@ -1423,7 +1428,7 @@ Result SemaJIT::runExprImmediate(Sema& sema, SymbolFunction& symFn, AstNodeRef n
     resultStorage.resize(resultMeta.resultSize);
 
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeExprRef, true);
-    request.arg0         = reinterpret_cast<uint64_t>(resultStorage.data());
+    request.arg0                    = reinterpret_cast<uint64_t>(resultStorage.data());
     request.hasArg0                 = true;
 
     const Result jitResult = sema.compiler().jitExecMgr().submit(sema.ctx(), request);
@@ -1460,7 +1465,7 @@ Result SemaJIT::runFunctionResult(Sema& sema, SymbolFunction& symFn, AstNodeRef 
     payload.resultStorage.resize(resultMeta.resultSize);
 
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, false);
-    request.jitReturn    = JITReturn{.typeRef = symFn.returnTypeRef(), .valuePtr = payload.resultStorage.data()};
+    request.jitReturn               = JITReturn{.typeRef = symFn.returnTypeRef(), .valuePtr = payload.resultStorage.data()};
     request.hasJitReturn            = true;
 
     return submitJitNode(sema, nodeRef, request, pendingEntry, resultMeta, false);
@@ -1571,8 +1576,8 @@ Result SemaJIT::tryRunConstCall(Sema& sema, SymbolFunction& calledFn, AstNodeRef
     }
 
     JITExecManager::Request request = jitNodeRequest(sema, calledFn, callRef, false);
-    request.jitArgs      = payload.jitArgs.span();
-    request.jitReturn    = JITReturn{.typeRef = exprTypeRef, .valuePtr = payload.resultStorage.data()};
+    request.jitArgs                 = payload.jitArgs.span();
+    request.jitReturn               = JITReturn{.typeRef = exprTypeRef, .valuePtr = payload.resultStorage.data()};
     request.hasJitReturn            = true;
 
     return submitJitNode(sema, callRef, request, pendingEntry, resultMeta, true);
@@ -1626,8 +1631,8 @@ Result SemaJIT::tryRunConstSetCall(Sema& sema, SymbolFunction& calledFn, AstNode
     SWC_RESULT(prepareJitFunction(sema, calledFn));
 
     JITExecManager::Request request = jitNodeRequest(sema, calledFn, callRef, true);
-    request.jitArgs      = jitArgs.span();
-    request.jitReturn    = JITReturn{.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr};
+    request.jitArgs                 = jitArgs.span();
+    request.jitReturn               = JITReturn{.typeRef = sema.typeMgr().typeVoid(), .valuePtr = nullptr};
     request.hasJitReturn            = true;
 
     const Result jitResult = sema.compiler().jitExecMgr().submit(sema.ctx(), request);
@@ -1655,7 +1660,7 @@ Result SemaJIT::runStatement(Sema& sema, SymbolFunction& symFn, AstNodeRef nodeR
 
     ///////////////////////////////////////////
     // Submit statement execution to the JIT manager.
-    TaskContext&            ctx = sema.ctx();
+    TaskContext&            ctx     = sema.ctx();
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, false);
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }
@@ -1676,7 +1681,7 @@ Result SemaJIT::runStatementImmediate(Sema& sema, SymbolFunction& symFn, AstNode
 {
     SWC_RESULT(prepareFunction(sema, symFn));
 
-    TaskContext&            ctx = sema.ctx();
+    TaskContext&            ctx     = sema.ctx();
     JITExecManager::Request request = jitNodeRequest(sema, symFn, nodeRef, true);
     return sema.compiler().jitExecMgr().submit(ctx, request);
 }

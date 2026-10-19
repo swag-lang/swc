@@ -27,14 +27,16 @@ enum class AstVisitMode : uint8_t
 class AstVisit
 {
 public:
-    void           start(Ast& ast, AstNodeRef root);
-    void           restartCurrentNode(AstNodeRef nodeRef);
-    void           setMode(AstVisitMode mode) { mode_ = mode; }
-    void           setNodeRefResolver(const std::function<AstNodeRef(AstNodeRef)>& resolver) { nodeRefResolver_ = resolver; }
-    void           setPreNodeVisitor(const std::function<Result(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
-    void           setPostNodeVisitor(const std::function<Result(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
-    void           setPreChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
-    void           setPostChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { postChildVisitor_ = visitor; }
+    void start(Ast& ast, AstNodeRef root);
+    void restartCurrentNode(AstNodeRef nodeRef);
+    void setMode(AstVisitMode mode) { mode_ = mode; }
+    void setNodeRefResolver(const std::function<AstNodeRef(AstNodeRef)>& resolver) { nodeRefResolver_ = resolver; }
+
+    void setPreNodeVisitor(const std::function<Result(AstNode&)>& visitor) { preNodeVisitor_ = visitor; }
+    void setPostNodeVisitor(const std::function<Result(AstNode&)>& visitor) { postNodeVisitor_ = visitor; }
+    void setPreChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { preChildVisitor_ = visitor; }
+    void setPostChildVisitor(const std::function<Result(AstNode&, AstNodeRef&)>& visitor) { postChildVisitor_ = visitor; }
+
     AstVisitResult step(const TaskContext& ctx);
 
     AstNode*       parentNode(size_t up = 0) { return parentNodeInternal(up); }
@@ -48,10 +50,12 @@ public:
 
     // The view remains valid only until traversal advances or the current node restarts.
     std::span<const AstNodeRef> currentChildren() const { return children_.span().subspan(stack_.back().firstChildIx, stack_.back().numChildren); }
-    uint32_t                    preChildIndex() const
+
+    uint32_t preChildIndex() const
     {
         const Frame& frame = stack_.back();
         SWC_ASSERT(frame.stage == Frame::Stage::Children && !frame.pendingPostChild && frame.nextChildIx < frame.numChildren);
+
         return frame.nextChildIx;
     }
 
@@ -83,10 +87,12 @@ private:
             Post
         };
 
-        AstNode*   node         = nullptr;
-        uint32_t   nextChildIx  = 0; // index within this frame's child range
-        uint32_t   firstChildIx = 0; // offset into AstVisit::children_
-        uint32_t   numChildren  = 0; // number of children in that range
+        AstNode* node = nullptr;
+
+        uint32_t nextChildIx  = 0; // index within this frame's child range
+        uint32_t firstChildIx = 0; // offset into AstVisit::children_
+        uint32_t numChildren  = 0; // number of children in that range
+
         AstNodeRef nodeRef;
         Stage      stage = Stage::Pre;
 
@@ -96,22 +102,27 @@ private:
             Paused,
             Done
         };
-        CallState preNodeState     = CallState::NotCalled;
-        CallState postNodeState    = CallState::NotCalled;
-        CallState preChildState    = CallState::NotCalled;
-        CallState postChildState   = CallState::NotCalled;
-        bool      pendingPostChild = false;
-        bool      firstPass        = true;
+
+        CallState preNodeState   = CallState::NotCalled;
+        CallState postNodeState  = CallState::NotCalled;
+        CallState preChildState  = CallState::NotCalled;
+        CallState postChildState = CallState::NotCalled;
+
+        bool pendingPostChild = false;
+        bool firstPass        = true;
     };
 
-    Ast*                                         ast_     = nullptr;
-    AstNodeRef                                   rootRef_ = AstNodeRef::invalid();
+    Ast*       ast_     = nullptr;
+    AstNodeRef rootRef_ = AstNodeRef::invalid();
+
     std::function<Result(AstNode&)>              preNodeVisitor_;
     std::function<Result(AstNode&)>              postNodeVisitor_;
     std::function<Result(AstNode&, AstNodeRef&)> preChildVisitor_;
     std::function<Result(AstNode&, AstNodeRef&)> postChildVisitor_;
-    AstVisitMode                                 mode_ = AstVisitMode::Default;
-    std::function<AstNodeRef(AstNodeRef)>        nodeRefResolver_;
+
+    AstVisitMode mode_ = AstVisitMode::Default;
+
+    std::function<AstNodeRef(AstNodeRef)> nodeRefResolver_;
 
     SmallVector<Frame, 64>  stack_;
     SmallVector<AstNodeRef> children_;

@@ -24,9 +24,11 @@ void AstVisit::restartCurrentNode(AstNodeRef nodeRef)
 {
     SWC_ASSERT(nodeRef.isValid());
     SWC_ASSERT(!stack_.empty());
+
     const Frame& frame = stack_.back();
     if (frame.numChildren)
         children_.resize(frame.firstChildIx);
+
     stack_.back() = Frame(nodeRef);
 }
 
@@ -52,11 +54,13 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
         CompilerInstance::ResolvedSourceLocation resolvedLocation;
         if (ctx.compiler().tryResolveSourceLocation(ctx, resolvedLocation, dbgNode->codeRef()))
         {
-            dbgSrcFile                = resolvedLocation.sourceFile;
-            dbgLoc                    = resolvedLocation.codeRange;
+            dbgSrcFile = resolvedLocation.sourceFile;
+            dbgLoc     = resolvedLocation.codeRange;
+
             const SourceView& dbgView = *resolvedLocation.codeRange.srcView;
-            dbgTok                    = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
-            dbgTokView                = dbgTok ? dbgTok->string(dbgView) : "";
+
+            dbgTok     = dbgTokRef.isValid() ? &dbgView.token(dbgTokRef) : nullptr;
+            dbgTokView = dbgTok ? dbgTok->string(dbgView) : "";
         }
     }
 #endif
@@ -65,8 +69,10 @@ AstVisitResult AstVisit::step(const TaskContext& ctx)
     {
         case Frame::Stage::Pre:
             return stepPreStage(frame);
+
         case Frame::Stage::Children:
             return stepChildrenStage(frame);
+
         case Frame::Stage::Post:
             return stepPostStage(frame);
     }
@@ -87,17 +93,21 @@ AstVisitResult AstVisit::stepPreStage(Frame& frame)
     if (preNodeVisitor_ && frame.preNodeState != Frame::CallState::Done)
     {
         const AstNodeRef initialNodeRef = frame.nodeRef;
-        frame.firstPass                 = (frame.preNodeState == Frame::CallState::NotCalled);
-        const Result result             = preNodeVisitor_(*frame.node);
+
+        frame.firstPass = (frame.preNodeState == Frame::CallState::NotCalled);
+
+        const Result result = preNodeVisitor_(*frame.node);
 
         if (result == Result::Error)
             return AstVisitResult::Error;
+
         if (result == Result::Pause)
         {
             frame.preNodeState = Frame::CallState::Paused;
             return AstVisitResult::Pause;
         }
 
+        // The callback may have replaced or restarted the current node.
         if (frame.node == nullptr || frame.nodeRef != initialNodeRef || frame.stage != Frame::Stage::Pre)
             return AstVisitResult::Continue;
 
@@ -125,6 +135,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
     if (!preChildVisitor_ && !postChildVisitor_)
     {
         frame.preChildState = Frame::CallState::NotCalled;
+
         if (frame.pendingPostChild)
         {
             frame.pendingPostChild = false;
@@ -154,13 +165,16 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
             if (postChildVisitor_ && frame.postChildState != Frame::CallState::Done)
             {
                 SWC_ASSERT(frame.nextChildIx > 0);
+
                 AstNodeRef callbackRef = children_[frame.firstChildIx + frame.nextChildIx - 1];
 
-                frame.firstPass     = (frame.postChildState == Frame::CallState::NotCalled);
+                frame.firstPass = (frame.postChildState == Frame::CallState::NotCalled);
+
                 const Result result = postChildVisitor_(*frame.node, callbackRef);
 
                 if (result == Result::Error)
                     return AstVisitResult::Error;
+
                 if (result == Result::Pause)
                 {
                     frame.postChildState = Frame::CallState::Paused;
@@ -172,6 +186,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
 
             frame.pendingPostChild = false;
             frame.postChildState   = Frame::CallState::NotCalled;
+
             continue;
         }
 
@@ -185,11 +200,13 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
 
         if (preChildVisitor_ && frame.preChildState != Frame::CallState::Done)
         {
-            frame.firstPass     = (frame.preChildState == Frame::CallState::NotCalled);
+            frame.firstPass = (frame.preChildState == Frame::CallState::NotCalled);
+
             const Result result = preChildVisitor_(*frame.node, childRef);
 
             if (result == Result::Error)
                 return AstVisitResult::Error;
+
             if (result == Result::Pause)
             {
                 frame.preChildState = Frame::CallState::Paused;
@@ -217,6 +234,7 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
         frame.pendingPostChild = true;
         frame.postChildState   = Frame::CallState::NotCalled;
         frame.preChildState    = Frame::CallState::NotCalled;
+
         // Finish parent updates before growth can invalidate its reference.
         stack_.emplace_back(std::as_const(childRef));
 
@@ -231,7 +249,8 @@ AstVisitResult AstVisit::stepPostStage(Frame& frame)
 {
     if (postNodeVisitor_ && frame.postNodeState != Frame::CallState::Done)
     {
-        frame.firstPass     = (frame.postNodeState == Frame::CallState::NotCalled);
+        frame.firstPass = (frame.postNodeState == Frame::CallState::NotCalled);
+
         const Result result = postNodeVisitor_(*frame.node);
 
         if (result == Result::Error)
@@ -256,6 +275,7 @@ AstVisitResult AstVisit::stepPostStage(Frame& frame)
     // Only collected, nonempty frames own a suffix; SkipChildren leaves firstChildIx at zero.
     if (frame.numChildren)
         children_.resize(frame.firstChildIx);
+
     stack_.pop_back();
     if (stack_.empty())
         return AstVisitResult::Stop;
@@ -266,7 +286,8 @@ AstVisitResult AstVisit::stepPostStage(Frame& frame)
 void AstVisit::collectChildren(Frame& frame)
 {
     const AstNodeIdInfo& info = Ast::nodeIdInfos(frame.node->id());
-    frame.firstChildIx        = children_.size32();
+
+    frame.firstChildIx = children_.size32();
     info.collectChildren(children_, *ast_, *frame.node);
     frame.numChildren = children_.size32() - frame.firstChildIx;
     frame.nextChildIx = 0;
@@ -276,6 +297,7 @@ void AstVisit::collectChildren(Frame& frame)
 
     const uint32_t childStart = frame.firstChildIx;
     const uint32_t childEnd   = frame.firstChildIx + frame.numChildren;
+
     for (uint32_t i = childStart; i < childEnd; i++)
     {
         const AstNodeRef childRef = children_[i];
@@ -287,6 +309,7 @@ void AstVisit::collectChildren(Frame& frame)
             continue;
 
         bool resolvesToActiveFrame = false;
+
         for (const Frame& activeFrame : stack_)
         {
             if (resolvedRef == activeFrame.nodeRef)

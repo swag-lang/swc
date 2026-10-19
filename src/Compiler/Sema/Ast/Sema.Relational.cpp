@@ -691,9 +691,8 @@ namespace
         }
     }
 
-    // Comparisons never write through their operands, so a bare (non-null) operand can
-    // always be compared against a nullable one: widen the bare side to nullable and let
-    // the regular promotion unify the base types.
+    // Comparisons never write through operands. Widen the non-null side before
+    // promotion so it can compare against a nullable operand.
     Result widenNullableCompareOperand(Sema& sema, SemaNodeView& bareView, const SemaNodeView& nullableView)
     {
         if (!bareView.type() || !nullableView.type())
@@ -721,6 +720,7 @@ namespace
                                     op == TokenId::SymGreater ||
                                     op == TokenId::SymGreaterEqual ||
                                     op == TokenId::SymLessEqualGreater;
+
         const bool readScalarReference = orderedCompare &&
                                          (scalarReferencePayloadType(sema, nodeLeftView) ||
                                           scalarReferencePayloadType(sema, nodeRightView));
@@ -742,15 +742,20 @@ namespace
         {
             SWC_RESULT(structReferenceForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(structReferenceForEquality(sema, nodeRightView, nodeLeftView));
+
             enumForEquality(sema, nodeLeftView, nodeRightView);
             enumForEquality(sema, nodeRightView, nodeLeftView);
+
             nullForEquality(sema, nodeLeftView, nodeRightView);
             nullForEquality(sema, nodeRightView, nodeLeftView);
+
             SWC_RESULT(typeInfoForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(typeInfoForEquality(sema, nodeRightView, nodeLeftView));
+
             SWC_RESULT(aggregateLiteralForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(aggregateLiteralForEquality(sema, nodeRightView, nodeLeftView));
             SWC_RESULT(aggregateForEquality(sema, nodeLeftView, nodeRightView));
+
             SWC_RESULT(pointerReferenceForEquality(sema, nodeLeftView, nodeRightView));
             SWC_RESULT(pointerReferenceForEquality(sema, nodeRightView, nodeLeftView));
         }
@@ -776,6 +781,7 @@ namespace
             diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
             diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -823,10 +829,8 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     SemaHelpers::normalizeTypeOperandToConstant(sema, nodeRightView);
     sema.setIsValue(*this);
 
-    // A `late` slot exposes a non-null type, but its backing storage is deliberately
-    // zero until setup assigns it. Comparing that storage to `null` is a presence test,
-    // not a value read, so it must bypass the late-read safety guard. This keeps the
-    // lifecycle query in ordinary syntax and avoids a dedicated presence intrinsic.
+    // A late slot's exposed type is non-null while its storage starts at zero.
+    // Null comparison tests presence and must bypass the late-read guard.
     if (tok.id == TokenId::SymEqualEqual || tok.id == TokenId::SymBangEqual)
     {
         if (nodeLeftView.type() && nodeLeftView.type()->isNull())
@@ -840,15 +844,12 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     if (handledSpecialOp)
         return Result::Continue;
 
-    // Force types
     SWC_RESULT(promote(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
-    // Type-check
     SWC_RESULT(check(sema, tok.id, *this, nodeLeftView, nodeRightView));
 
-    // An element-wise simd compare produces a mask vector of the same
-    // geometry: unsigned lanes, all-ones where the compare holds. Masks never
-    // fold at compile time.
+    // SIMD comparisons produce unsigned all-ones mask lanes where they hold.
+    // The mask keeps the input shape and does not fold to a constant.
     {
         const TypeInfo& leftCmpType = SemaHelpers::aliasType(sema, nodeLeftView);
         if (leftCmpType.isSimd())
@@ -856,23 +857,23 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
             const TypeInfo& laneType = sema.typeMgr().get(leftCmpType.payloadSimdLaneTypeRef());
             const uint32_t  laneBits = laneType.isFloat() ? laneType.payloadFloatBits() : laneType.payloadIntBits();
             const TypeRef   maskLane = sema.typeMgr().typeInt(laneBits, TypeInfo::Sign::Unsigned);
+
             sema.setType(sema.curNodeRef(), sema.typeMgr().addType(TypeInfo::makeSimd(maskLane, leftCmpType.payloadSimdLaneCount())));
             return Result::Continue;
         }
     }
 
-    // Set the result type
     if (tok.id == TokenId::SymLessEqualGreater)
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeInt(32, TypeInfo::Sign::Signed));
     else
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
-    // Constant folding
     const bool canConstantFold = nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid();
     if (canConstantFold)
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
+
         sema.setConstant(sema.curNodeRef(), result);
     }
 
@@ -884,6 +885,7 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
         {
             const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, nodeLeftView);
             const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, nodeRightView);
+
             // Type checking has already unified slice element types and sizes.
             if (compareLeftType.isString() && compareRightType.isString())
                 SWC_RESULT(SemaHelpers::attachRuntimeStringCmpFunctionToNode(sema, sema.curNodeRef(), codeRef()));

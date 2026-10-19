@@ -40,7 +40,6 @@ namespace
         return false;
     }
 
-    // Both operands are constant pointers; returns their addresses.
     std::pair<uint64_t, uint64_t> constantPointerAddresses(const SemaNodeView& leftView, const SemaNodeView& rightView)
     {
         uint64_t   leftAddress     = 0;
@@ -48,16 +47,13 @@ namespace
         const bool hasLeftAddress  = constantPointerAddress(leftAddress, *leftView.cst());
         const bool hasRightAddress = constantPointerAddress(rightAddress, *rightView.cst());
         SWC_ASSERT(hasLeftAddress && hasRightAddress);
+
         return {leftAddress, rightAddress};
     }
 
-    // Two 'typeinfo' values name the same type when their runtime hashes match. That hash is what
-    // the generated code compares — reflection exports it as 'TypeInfo.crc', and both
-    // 'CodeGenCompareHelpers::emitTypeInfoEqualJump' and 'Swag.typeCmp' answer from it — so folding the
-    // comparison on anything stricter would let one expression report 'false' where the same
-    // expression reports 'true' at run time. The hash deliberately ignores the 'nullable' qualifier at
-    // every nesting depth, which is exactly the pair that used to disagree: 'nullable string' against
-    // 'string'.
+    // Fold type values using the runtime hash exported as TypeInfo.crc. A stricter
+    // identity check would disagree with generated comparisons and Swag.typeCmp.
+    // This hash ignores nullable qualifiers at every nesting depth.
     bool sameTypeValuePayload(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef)
     {
         if (leftTypeRef == rightTypeRef)
@@ -109,6 +105,7 @@ namespace
 
         const ConstantValue valueCst = ConstantValue::make(sema.ctx(), reinterpret_cast<const void*>(refCst.getValuePointer()), payloadTypeRef, ConstantValue::PayloadOwnership::Borrowed);
         SWC_ASSERT(valueCst.isValid());
+
         return sema.cstMgr().addConstant(sema.ctx(), valueCst);
     }
 
@@ -118,10 +115,12 @@ namespace
         if (!payloadType)
             return view;
 
-        const TypeRef payloadTypeRef   = payloadType->typeRef();
-        SemaNodeView  result           = view;
-        result.typeRef()               = payloadTypeRef;
-        result.type()                  = payloadType;
+        const TypeRef payloadTypeRef = payloadType->typeRef();
+        SemaNodeView  result         = view;
+
+        result.typeRef() = payloadTypeRef;
+        result.type()    = payloadType;
+
         const ConstantRef scalarCstRef = readScalarReferenceConstant(sema, view.cstRef(), payloadTypeRef);
         if (scalarCstRef.isValid())
         {
@@ -149,6 +148,7 @@ namespace
             const TypeRef typeRef = type->payloadTypeRef();
             if (!typeRef.isValid())
                 return nullptr;
+
             type = &sema.typeMgr().get(typeRef);
         }
 
@@ -177,9 +177,8 @@ namespace
         return leftType.isString() && rightType.isString();
     }
 
-    // An aggregate is compared part by part, and a 'string' or a slice among those parts asks
-    // '__sliceCmp' the same question a bare slice does. The helper has to be a dependency of this
-    // function before lowering can call it.
+    // Aggregate comparisons may call __sliceCmp for string or slice fields.
+    // Register that helper before lowering emits the content comparison.
     Result attachAggregateContentCompareHelper(Sema& sema, const TypeInfo& compareType, const SourceCodeRef& codeRef)
     {
         if (!SemaHelpers::isByValueAggregateType(compareType))
@@ -212,6 +211,7 @@ namespace
             return true;
         if (nodeRightView.cst() && nodeRightView.cst()->isNullValue(sema.ctx()))
             return true;
+
         return false;
     }
 
@@ -226,6 +226,7 @@ namespace
         {
             SWC_ASSERT(compareLeftView.cst() != nullptr);
             SWC_ASSERT(compareRightView.cst() != nullptr);
+
             result = sema.cstMgr().cstBool(sameTypeValuePayload(sema, compareLeftView.cst()->getTypeValue(), compareRightView.cst()->getTypeValue()));
             return Result::Continue;
         }
@@ -242,9 +243,8 @@ namespace
             return Result::Continue;
         }
 
-        // A slice constant carries its elements, so folding answers the same content question the
-        // runtime call answers. A 'null' operand is not a slice constant and keeps falling through
-        // to the null comparison below.
+        // Fold slice constants by content, as runtime comparison does. A null
+        // operand carries no slice payload and falls through to the null case.
         if (compareLeftType.isSlice() && compareRightType.isSlice() && compareLeftView.cst()->isSlice() && compareRightView.cst()->isSlice())
         {
             result = sema.cstMgr().cstBool(sameSliceContent(*compareLeftView.cst(), *compareRightView.cst()));
@@ -261,6 +261,7 @@ namespace
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
             const auto [leftAddress, rightAddress] = constantPointerAddresses(compareLeftView, compareRightView);
+
             result = sema.cstMgr().cstBool(leftAddress == rightAddress);
             return Result::Continue;
         }
@@ -270,14 +271,14 @@ namespace
         if (!hasAliasOperand(compareLeftView, compareRightView))
             SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
 
-        // For float, we need to compare by values, because two different constants
-        // can still have the same value. For example, 0.0 and -0.0 are two different
-        // constants but have equal values.
+        // Compare float values rather than constant identities: +0.0 and -0.0
+        // are distinct constants with equal values.
         const ConstantValue& left = sema.cstMgr().get(leftCstRef);
         if (left.isFloat())
         {
             const ConstantValue& right = sema.cstMgr().get(rightCstRef);
-            result                     = sema.cstMgr().cstBool(left.eq(right));
+
+            result = sema.cstMgr().cstBool(left.eq(right));
             return Result::Continue;
         }
 
@@ -318,6 +319,7 @@ namespace
                 case OrderedCompareOp::Greater: cmpResult = leftAddress > rightAddress; break;
                 case OrderedCompareOp::GreaterEqual: cmpResult = leftAddress >= rightAddress; break;
             }
+
             result = sema.cstMgr().cstBool(cmpResult);
             return Result::Continue;
         }
@@ -335,7 +337,8 @@ namespace
         if (!leftCst.isFloat() && leftCstRef == rightCstRef)
         {
             const bool equalCaseValue = op == OrderedCompareOp::LessEqual || op == OrderedCompareOp::GreaterEqual;
-            result                    = sema.cstMgr().cstBool(equalCaseValue);
+
+            result = sema.cstMgr().cstBool(equalCaseValue);
             return Result::Continue;
         }
 
@@ -347,6 +350,7 @@ namespace
             case OrderedCompareOp::Greater: cmpResult = leftCst.gt(rightCst); break;
             case OrderedCompareOp::GreaterEqual: cmpResult = leftCst.ge(rightCst); break;
         }
+
         result = sema.cstMgr().cstBool(cmpResult);
         return Result::Continue;
     }
@@ -381,9 +385,11 @@ namespace
         if (compareLeftType.isAnyPointer() && compareRightType.isAnyPointer())
         {
             const auto [leftAddress, rightAddress] = constantPointerAddresses(compareLeftView, compareRightView);
+
             const int compareResult = leftAddress < rightAddress ? -1 : leftAddress > rightAddress ? 1
                                                                                                    : 0;
-            result                  = sema.cstMgr().cstS32(compareResult);
+
+            result = sema.cstMgr().cstS32(compareResult);
             return Result::Continue;
         }
 
@@ -391,6 +397,7 @@ namespace
         ConstantRef rightCstRef = compareRightView.cstRef();
         if (!hasAliasOperand(compareLeftView, compareRightView))
             SWC_RESULT(Cast::promoteConstants(sema, compareLeftView, compareRightView, leftCstRef, rightCstRef));
+
         const ConstantValue& left  = sema.cstMgr().get(leftCstRef);
         const ConstantValue& right = sema.cstMgr().get(rightCstRef);
 

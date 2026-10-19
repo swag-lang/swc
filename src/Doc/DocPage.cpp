@@ -1415,17 +1415,18 @@ namespace
                 break;
             start = end + 1;
         }
+
         return result;
     }
 
-    // A vector icon stays crisp at every tab and bookmark size, so it is worth naming its
-    // own type rather than declaring everything as the legacy raster format.
+    // Declare SVG and PNG icons with their own MIME types for browser support.
     const char* iconMimeType(const std::string_view path)
     {
         if (path.ends_with(".svg"))
             return "image/svg+xml";
         if (path.ends_with(".png"))
             return "image/png";
+
         return "image/x-icon";
     }
 
@@ -1440,6 +1441,7 @@ namespace
             case Runtime::BuildCfgDocTheme::Auto:
                 return "";
         }
+
         SWC_UNREACHABLE();
     }
 
@@ -1448,6 +1450,7 @@ namespace
         Utf8 result = std::format("--swag-code-default: #{:06x}", options.syntaxDefaultColor & 0x00FFFFFF);
         if (options.accentColor)
             result.append(std::format("; --swag-accent: #{:06x}", options.accentColor & 0x00FFFFFF));
+
         return result;
     }
 }
@@ -1456,6 +1459,7 @@ Utf8 DocPage::construct(const DocPageOptions& options, const DocPageContent& con
 {
     Utf8 result = std::format("<!DOCTYPE html>\n<html lang=\"en\"{} style=\"{}\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n", themeAttribute(options.theme), rootStyle(options));
     result.reserve(content.toc.size() + content.article.size() + content.searchEntries.size() * 128 + 4096);
+
     if (!options.titleContent.empty())
         result.append(std::format("<title>{}</title>\n", Utf8Helper::escapeHtml(options.titleContent)));
     if (!options.icon.empty())
@@ -1469,6 +1473,7 @@ Utf8 DocPage::construct(const DocPageOptions& options, const DocPageContent& con
     result += "<a class=\"skip-link\" href=\"#content\">Skip to content</a>\n";
     result += "<header class=\"site-header\">\n<nav class=\"site-nav\" aria-label=\"Main navigation\">\n";
     result.append(std::format("<a class=\"site-brand\" href=\"{}\">{}</a>\n", Utf8Helper::escapeHtml(brandUrl, true), Utf8Helper::escapeHtml(brandName)));
+
     result += "<div class=\"site-links\">\n";
     for (const NavLink& link : parseNavLinks(options.navLinks.empty() ? DEFAULT_NAV_LINKS : options.navLinks.view()))
         result.append(std::format("<a href=\"{}\">{}</a>\n", Utf8Helper::escapeHtml(link.url, true), Utf8Helper::escapeHtml(link.label)));
@@ -1481,6 +1486,7 @@ Utf8 DocPage::construct(const DocPageOptions& options, const DocPageContent& con
         result.append(content.toc);
         result += "</nav></aside>\n";
     }
+
     result += "<section class=\"right\"><article class=\"right-page\" id=\"content\">\n";
     result.append(content.article);
     result += "</article>\n";
@@ -1498,6 +1504,8 @@ Utf8 DocPage::construct(const DocPageOptions& options, const DocPageContent& con
     result += "</section>\n</main>\n";
     result += DocSearch::script(options, content.searchEntries);
     result += "</body>\n</html>\n";
+
     return result;
 }
+
 SWC_END_NAMESPACE();

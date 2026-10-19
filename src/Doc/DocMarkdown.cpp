@@ -18,10 +18,12 @@ Utf8 DocMarkdown::makeAnchor(const std::string_view value)
         else
             result += '_';
     }
+
     if (result.empty())
         result = "_";
     if (std::isdigit(static_cast<unsigned char>(result.front())))
         result.insert(result.begin(), '_');
+
     return result;
 }
 
@@ -97,6 +99,7 @@ namespace
             if (it != renderCtx.externalModules->end())
                 return std::format("<a href=\"{}#{}\">{}</a>", Utf8Helper::escapeHtml(it->second, true), DocMarkdown::makeAnchor(name), Utf8Helper::escapeHtml(name));
         }
+
         return {};
     }
 }
@@ -123,6 +126,7 @@ Utf8 DocMarkdown::renderTypeName(const DocRenderContext& renderCtx, const std::s
                 break;
             end++;
         }
+
         while (end > pos && typeName[end - 1] == '.')
             end--;
 
@@ -131,8 +135,10 @@ Utf8 DocMarkdown::renderTypeName(const DocRenderContext& renderCtx, const std::s
         result += reference.empty() ? Utf8Helper::escapeHtml(token) : reference;
         pos = end;
     }
+
     return result;
 }
+
 namespace
 {
     Utf8 renderInline(const DocRenderContext& renderCtx, std::string_view text);
@@ -147,8 +153,10 @@ namespace
         size_t end = 0;
         while (end < text.size() && !std::isspace(static_cast<unsigned char>(text[end])) && text[end] != '<' && text[end] != '"' && text[end] != ')')
             end++;
+
         while (end && (text[end - 1] == '.' || text[end - 1] == ',' || text[end - 1] == ';' || text[end - 1] == ':' || text[end - 1] == '!' || text[end - 1] == '?'))
             end--;
+
         return end > 8 ? end : 0;
     }
 
@@ -224,6 +232,8 @@ namespace
                 std::string_view htmlClose;
                 bool             nested;
             };
+
+            // Try longer markers before their prefixes.
             constexpr Marker markers[] = {
                 {"***", "***", "<b><i>", "</i></b>", true},
                 {"**", "**", "<b>", "</b>", true},
@@ -236,6 +246,7 @@ namespace
             {
                 if (!text.substr(pos).starts_with(marker.open))
                     continue;
+
                 const size_t end = text.find(marker.close, pos + marker.open.size());
                 if (end == std::string_view::npos)
                     continue;
@@ -248,6 +259,7 @@ namespace
                 matched = true;
                 break;
             }
+
             if (matched)
                 continue;
 
@@ -291,6 +303,7 @@ namespace
             result += Utf8Helper::escapeHtml(text.substr(pos, 1));
             pos++;
         }
+
         return result;
     }
 
@@ -299,8 +312,7 @@ namespace
 
 Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view code, const bool swagSyntax, const DocRenderContext* renderCtx)
 {
-    // A source file that opens or closes on a documentation comment produces an empty
-    // segment on each side of it; an empty frame on the page would only be noise.
+    // Boundary documentation comments can leave empty code segments; omit their frames.
     const std::string_view trimmedCode = trimCodeBoundaryLines(code);
     if (trimmedCode.empty())
         return {};
@@ -318,8 +330,10 @@ Utf8 DocMarkdown::renderCodeBlock(const TaskContext& ctx, const std::string_view
     }
     else
         rendered = std::format("<span class=\"{}\">{}</span>", SYN_CODE, escaped);
+
     return std::format("<div class=\"code-block\">{}</div>\n", rendered);
 }
+
 namespace
 {
     struct ListMarker
@@ -342,6 +356,7 @@ namespace
             else
                 break;
         }
+
         return result;
     }
 
@@ -390,6 +405,7 @@ namespace
             removed += line[offset] == '\t' ? 4 : 1;
             offset++;
         }
+
         return line.substr(offset);
     }
 
@@ -426,6 +442,7 @@ namespace
             cell.remove_prefix(1);
         if (trailing && !cell.empty())
             cell.remove_suffix(1);
+
         if (cell.size() < 3 || !std::ranges::all_of(cell, [](const char c) { return c == '-'; }))
             return false;
 
@@ -437,6 +454,7 @@ namespace
             outAlign = TableAlign::Left;
         else
             outAlign = TableAlign::Default;
+
         return true;
     }
 
@@ -455,11 +473,13 @@ namespace
             size_t end = line.find('|', start);
             if (end == std::string_view::npos)
                 end = line.size();
+
             cells.emplace_back(Utf8Helper::trim(line.substr(start, end - start)));
             if (end == line.size())
                 break;
             start = end + 1;
         }
+
         return cells;
     }
 
@@ -469,6 +489,7 @@ namespace
             return true;
         if (line.starts_with("+ ") || line.starts_with("<html>"))
             return true;
+
         return line.starts_with("|");
     }
 
@@ -480,6 +501,7 @@ namespace
             return true;
         if (raw.starts_with("    ") || raw.starts_with("\t"))
             return true;
+
         ListMarker marker;
         return tryReadListMarker(raw, marker);
     }
@@ -528,6 +550,7 @@ namespace
                     itemLines.emplace_back(removeLeadingIndent(raw, marker.contentIndent));
                 else
                     itemLines.emplace_back(line);
+
                 followsBlankLine = false;
                 index++;
             }
@@ -540,8 +563,10 @@ namespace
                 if (paragraphEnd != Utf8::npos)
                     item.erase(paragraphEnd, paragraphEnd + 5 == item.size() ? 5 : 4);
             }
+
             result.append(std::format("<li>{}</li>\n", item));
         }
+
         result += firstMarker.ordered ? "</ol>\n" : "</ul>\n";
         return result;
     }
@@ -580,9 +605,11 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                     result += "\n";
                     break;
                 }
+
                 result.append(rawLine);
                 result += "\n";
             }
+
             continue;
         }
 
@@ -590,6 +617,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
         {
             const bool swagSyntax = line == "```swag";
             index++;
+
             Utf8 code;
             while (index < lines.size() && !Utf8Helper::trim(lines[index]).starts_with("```"))
             {
@@ -598,6 +626,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
             }
             if (index < lines.size())
                 index++;
+
             result += renderCodeBlock(*renderCtx.ctx, code, swagSyntax, &renderCtx);
             continue;
         }
@@ -614,10 +643,12 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                     codeLine.remove_prefix(1);
                 else
                     break;
+
                 code.append(codeLine);
                 code += "\n";
                 index++;
             }
+
             result += renderCodeBlock(*renderCtx.ctx, code, false);
             continue;
         }
@@ -634,6 +665,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
             size_t level = 0;
             while (level < line.size() && line[level] == '#')
                 level++;
+
             if (level < line.size() && line[level] == ' ')
             {
                 const std::string_view title     = Utf8Helper::trim(line.substr(level + 1));
@@ -641,6 +673,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                 Utf8                   anchor    = makeAnchor(title);
                 if (!renderCtx.headingAnchorPrefix.empty())
                     anchor = std::format("{}_{}", renderCtx.headingAnchorPrefix, anchor);
+
                 result.append(std::format("<h{} id=\"{}\">{}</h{}>\n", htmlLevel, anchor, renderInline(renderCtx, title), htmlLevel));
                 index++;
                 continue;
@@ -720,6 +753,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                 }
                 result.append(std::format("<span class=\"blockquote-title\">{}</span></div>\n", Utf8Helper::escapeHtml(title)));
             }
+
             result += renderLines(renderCtx, quoteLines, headingOffset);
             result += "</div>\n";
             continue;
@@ -731,9 +765,8 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
             while (index < lines.size() && Utf8Helper::trim(lines[index]).starts_with("|"))
                 rows.push_back(splitTableRow(lines[index++]));
 
-            // A separator on the second line promotes the first row to a header and fixes
-            // the column alignments. Without one the run is still a table, simply without
-            // a header row; that headerless form is a long-standing Swag spelling.
+            // A separator in the second row defines a header and column alignments.
+            // Swag also accepts tables without a header or separator row.
             std::vector<TableAlign> aligns;
             bool                    hasHeader = rows.size() > 1;
             if (hasHeader)
@@ -746,10 +779,13 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                         hasHeader = false;
                         break;
                     }
+
                     aligns.push_back(align);
                 }
+
                 hasHeader &= aligns.size() == rows.front().size();
             }
+
             if (!hasHeader)
                 aligns.clear();
 
@@ -765,6 +801,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                     const Utf8 cell = column < row.size() ? row[column] : Utf8();
                     result.append(std::format("<{}{}>{}</{}>", tag, tableAlignClass(aligns[column]), renderInline(renderCtx, cell), tag));
                 }
+
                 result += "</tr>\n";
             };
 
@@ -777,6 +814,7 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                 result += "</thead>\n";
                 firstBodyRow = 2;
             }
+
             result += "<tbody>\n";
             for (size_t row = firstBodyRow; row < rows.size(); ++row)
                 appendRow(rows[row], "td");
@@ -810,10 +848,12 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
                         descriptionLine.remove_prefix(1);
                     description.emplace_back(descriptionLine);
                 }
+
                 result += "<div class=\"description-list-block\">\n";
                 result += renderLines(renderCtx, description, headingOffset);
                 result += "</div>\n";
             }
+
             continue;
         }
 
@@ -822,21 +862,26 @@ Utf8 DocMarkdown::renderLines(const DocRenderContext& renderCtx, std::span<const
         {
             if (!paragraph.empty() && isMarkdownBlockStart(lines, index))
                 break;
+
             const std::string_view paragraphLine = Utf8Helper::trim(lines[index]);
             if (paragraphLine.empty())
                 break;
+
             if (!paragraph.empty())
                 paragraph += " ";
             paragraph.append(paragraphLine);
             index++;
         }
+
         if (!paragraph.empty())
             result.append(std::format("<p>{}</p>\n", renderInline(renderCtx, paragraph)));
         else
             index++;
     }
+
     return result;
 }
+
 namespace
 {
     void linkSyntaxClass(Utf8& html, const DocRenderContext& renderCtx, const std::string_view cssClass)
@@ -861,6 +906,7 @@ namespace
                     continue;
                 }
             }
+
             pos = textEnd + 7;
         }
     }

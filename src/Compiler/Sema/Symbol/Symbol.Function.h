@@ -66,33 +66,36 @@ public:
     {
     }
 
-    TypeRef       returnTypeRef() const { return returnType_; }
+    TypeRef returnTypeRef() const { return returnType_; }
+
     SourceCodeRef codeRefIfDeclared() const noexcept
     {
         if (!decl())
             return SourceCodeRef::invalid();
+
         return codeRef();
     }
+
     TokenId intrinsicId() const
     {
         const auto* fnDecl = decl() ? decl()->safeCast<AstFunctionDecl>() : nullptr;
         return fnDecl ? fnDecl->intrinsicId : TokenId::Invalid;
     }
-    void                                setReturnTypeRef(TypeRef typeRef) { returnType_ = typeRef; }
-    RtAttributeFlags                    rtAttributeFlags() const;
-    void                                setRtAttributeFlags(RtAttributeFlags attr);
+
+    void setReturnTypeRef(TypeRef typeRef) { returnType_ = typeRef; }
+
+    RtAttributeFlags rtAttributeFlags() const;
+    void             setRtAttributeFlags(RtAttributeFlags attr);
+
     const std::vector<SymbolVariable*>& parameters() const { return parameters_; }
     std::vector<SymbolVariable*>&       parameters() { return parameters_; }
 
-    // Per-function borrow summaries. Bit i of the RETURN mask = the returned value may
-    // borrow parameter #i; bit i of the STORES mask = parameter #i may be stored into
-    // storage that outlives the call (a global). Written during the body sema (before
-    // setSemaCompleted); callers must gate reads on isSemaCompleted(). Grown once more
-    // after the final sema drain by the summary fixpoint in
-    // SemaEscape::reportDeferredChecks (transitivity across opaque-call chains).
-    // Imported functions carry their summaries through the generated
-    // 'Swag.BorrowSummary' attribute, OR-ed in by the getters.
+    // RETURN bit i means the result may borrow parameter i; STORES means parameter i
+    // may enter longer-lived storage. Body sema writes these before setSemaCompleted;
+    // readers must wait for completion. SemaEscape::reportDeferredChecks closes opaque-call
+    // chains after the final drain. Getters merge imported Swag.BorrowSummary attributes.
     uint64_t returnBorrowsParamsMask() const noexcept;
+
     // The result aliases the parameter's storage, rather than carrying a reference
     // to it in a separate allocation. Only this route can make freeing a returned
     // pointer release the argument's storage.
@@ -102,23 +105,28 @@ public:
         if (paramIndex < 64)
             returnsStorageParamsMask_ |= 1ULL << paramIndex;
     }
+
     // Whether a call can observe application borrows through ambient storage or
     // unproven callbacks. Independent of explicit parameter retention effects.
-    bool     observesExternalBorrows() const noexcept;
-    void     markExternalBorrowObservation() noexcept { observesExternalBorrows_ = true; }
-    void     markBorrowEffectsComputed() noexcept { borrowEffectsComputed_ = true; }
+    bool observesExternalBorrows() const noexcept;
+    void markExternalBorrowObservation() noexcept { observesExternalBorrows_ = true; }
+    void markBorrowEffectsComputed() noexcept { borrowEffectsComputed_ = true; }
+
     uint64_t storesParamsMask() const noexcept;
     bool     isAllocatorRelease(const TaskContext& ctx) const;
+
     // One-level aggregate contents reached through a pointer parameter. These
     // masks do not assert that the pointed-to aggregate slot itself is retained.
     uint64_t returnsIndirectParamsMask() const noexcept;
     uint64_t storesIndirectParamsMask() const noexcept;
     uint64_t storesIndirectIntoParamPairs() const noexcept;
-    void     addReturnBorrowsParam(size_t paramIndex, bool indirect = false) noexcept
+
+    void addReturnBorrowsParam(size_t paramIndex, bool indirect = false) noexcept
     {
         if (paramIndex < 64)
             (indirect ? returnsIndirectParamsMask_ : returnBorrowsParamsMask_) |= 1ULL << paramIndex;
     }
+
     void addStoresParam(size_t paramIndex, bool indirect = false) noexcept
     {
         if (paramIndex < 64)
@@ -139,22 +147,20 @@ public:
     {
         if (paramIndex >= 64)
             return;
+
         const uint64_t bit  = 1ULL << paramIndex;
         auto&          mask = indirect ? freesIndirectParamsMask_ : freesParamsMask_;
         if (!(mask.fetch_or(bit, std::memory_order_release) & bit))
             s_freesMaskVersion.fetch_add(1, std::memory_order_release);
     }
 
-    // Moves whenever a release summary gains a parameter. The frees propagation reads it to
-    // recognize a call graph whose summaries it has already closed, instead of closing the same
-    // fixpoint again for every compile-time call in the module.
+    // Version release-summary growth to avoid recomputing the same call-graph
+    // fixpoint for every compile-time call.
     static uint64_t freesMaskVersion() noexcept { return s_freesMaskVersion.load(std::memory_order_acquire); }
 
-    // Bit i set = the returned value is a view INTO the heap payload parameter #i owns,
-    // not merely a value that can reach that parameter. 'String.toString' sets it;
-    // 'Wnd.addTimer', which hands back a fresh object holding a pointer to its receiver,
-    // does not. The RETURN mask cannot tell the two apart, and only this one says whether
-    // reallocating the payload leaves the result pointing at freed bytes.
+    // Bit i means the result views parameter i's owned heap payload, so moving that
+    // payload invalidates the result (String.toString). Fresh objects that merely hold
+    // a pointer to the parameter (Wnd.addTimer) do not count; the RETURN mask tracks both.
     uint64_t returnsPayloadParamsMask() const noexcept;
     void     addReturnsPayloadParam(size_t paramIndex) noexcept
     {
@@ -164,33 +170,36 @@ public:
             returnsPayloadUnknownProjectionParamsMask_ |= 1ULL << paramIndex;
         }
     }
+
     void addReturnsPayloadParamField(size_t paramIndex, const SymbolVariable& field)
     {
         if (paramIndex >= 64)
             return;
 
         returnsPayloadParamsMask_ |= 1ULL << paramIndex;
+
         const ParamField entry{static_cast<uint8_t>(paramIndex), &field};
         if (std::ranges::find(returnedPayloadParamFields_, entry) == returnedPayloadParamFields_.end())
             returnedPayloadParamFields_.push_back(entry);
     }
+
     std::span<const ParamField> returnedPayloadParamFields() const noexcept { return returnedPayloadParamFields_.span(); }
     bool                        returnsPayloadParamProjectionUnknown(size_t paramIndex) const noexcept
     {
         if (paramIndex >= 64)
             return true;
+
         const uint64_t bit = 1ULL << paramIndex;
         if (returnsPayloadUnknownProjectionParamsMask_ & bit)
             return true;
+
         const AttributeList* attrs = attributesIfAny();
         return attrs && (attrs->returnsPayloadParamsMask & bit);
     }
 
-    // Bit i set = the call may MOVE OR RELEASE the heap payload that parameter #i owns
-    // (it reaches an 'IAllocator.free/realloc' with that payload as the request
-    // address). Legitimate in itself - that is what 'append', 'reserve' and 'clear' are
-    // for - but it tells every view into that payload apart from every other method
-    // call, which is what the invalidation check needs.
+    // Bit i means the call may move or release parameter i's owned heap payload through
+    // IAllocator.free/realloc. Operations such as append, reserve, and clear are valid,
+    // but their summaries distinguish calls that can invalidate existing payload views.
     uint64_t reallocatesParamsMask() const noexcept;
     void     addReallocatesParam(size_t paramIndex) noexcept
     {
@@ -200,24 +209,29 @@ public:
             reallocatesUnknownProjectionParamsMask_ |= 1ULL << paramIndex;
         }
     }
+
     void addReallocatesParamField(size_t paramIndex, const SymbolVariable& field)
     {
         if (paramIndex >= 64)
             return;
 
         reallocatesParamsMask_ |= 1ULL << paramIndex;
+
         const ParamField entry{static_cast<uint8_t>(paramIndex), &field};
         if (std::ranges::find(reallocatedParamFields_, entry) == reallocatedParamFields_.end())
             reallocatedParamFields_.push_back(entry);
     }
+
     std::span<const ParamField> reallocatedParamFields() const noexcept { return reallocatedParamFields_.span(); }
     bool                        reallocatesParamProjectionUnknown(size_t paramIndex) const noexcept
     {
         if (paramIndex >= 64)
             return true;
+
         const uint64_t bit = 1ULL << paramIndex;
         if (reallocatesUnknownProjectionParamsMask_ & bit)
             return true;
+
         const AttributeList* attrs = attributesIfAny();
         return attrs && (attrs->reallocatesParamsMask & bit);
     }
@@ -232,10 +246,12 @@ public:
         if (intoIndex < 8 && storedIndex < 8)
             (indirect ? storesIndirectIntoParamPairs_ : storesIntoParamPairs_) |= 1ULL << (intoIndex * 8 + storedIndex);
     }
+
     static bool hasStoresIntoPair(uint64_t pairs, size_t intoIndex, size_t storedIndex) noexcept
     {
         return intoIndex < 8 && storedIndex < 8 && (pairs & (1ULL << (intoIndex * 8 + storedIndex))) != 0;
     }
+
     struct PendingBorrowStore
     {
         AstNodeRef nodeRef;
@@ -243,17 +259,22 @@ public:
         uint8_t    intoIndex;
         uint8_t    storedIndex;
         bool       indirect;
-        bool       operator==(const PendingBorrowStore&) const noexcept = default;
+
+        bool operator==(const PendingBorrowStore&) const noexcept = default;
     };
+
     void addPendingBorrowStore(AstNodeRef nodeRef, AstNodeRef leftRef, size_t intoIndex, size_t storedIndex, bool indirect = false)
     {
         if (intoIndex >= 8 || storedIndex >= 8)
             return;
+
         const PendingBorrowStore store{nodeRef, leftRef, static_cast<uint8_t>(intoIndex), static_cast<uint8_t>(storedIndex), indirect};
         if (std::ranges::find(pendingBorrowStores_, store) == pendingBorrowStores_.end())
             pendingBorrowStores_.push_back(store);
     }
-    std::vector<PendingBorrowStore>     takePendingBorrowStores() { return std::exchange(pendingBorrowStores_, {}); }
+
+    std::vector<PendingBorrowStore> takePendingBorrowStores() { return std::exchange(pendingBorrowStores_, {}); }
+
     const std::vector<SymbolVariable*>& localVariables() const { return localVariables_; }
     bool                                containsLocalVariable(const SymbolVariable& var) const noexcept { return localVariableSet_.contains(&var); }
     bool                                ownsVariable(const SymbolVariable& var) const
@@ -267,25 +288,33 @@ public:
         const auto  index  = var.parameterIndex();
         if (index < params.size() && params[index] == &var)
             return true;
+
         return std::ranges::find(params, &var) != params.end();
     }
-    void                addParameter(SymbolVariable* sym);
-    bool                tryGetParameterIndexByName(size_t& outIndex, IdentifierRef name, size_t startIndex = 0) const noexcept;
-    void                setVariadicParamFlag(TaskContext& ctx);
-    void                addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
-    Utf8                computeName(const TaskContext& ctx) const;
-    Utf8                computePublicApiBaseSymbolName(const TaskContext& ctx) const;
-    Utf8                computePublicApiSymbolName(const TaskContext& ctx) const;
-    bool                supportsGeneratedModuleApiExport() const noexcept;
-    bool                supportsPublicApiForeignExport() const noexcept;
-    bool                usesStructuralTypeIdentity() const noexcept;
-    uint32_t            typeSignatureHash() const noexcept;
-    bool                sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
-    bool                sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept;
-    bool                deepCompare(const SymbolFunction& otherFunc) const noexcept;
+
+    void addParameter(SymbolVariable* sym);
+    bool tryGetParameterIndexByName(size_t& outIndex, IdentifierRef name, size_t startIndex = 0) const noexcept;
+    void setVariadicParamFlag(TaskContext& ctx);
+    void addLocalVariable(TaskContext& ctx, SymbolVariable* sym);
+
+    Utf8 computeName(const TaskContext& ctx) const;
+    Utf8 computePublicApiBaseSymbolName(const TaskContext& ctx) const;
+    Utf8 computePublicApiSymbolName(const TaskContext& ctx) const;
+
+    bool supportsGeneratedModuleApiExport() const noexcept;
+    bool supportsPublicApiForeignExport() const noexcept;
+
+    bool     usesStructuralTypeIdentity() const noexcept;
+    uint32_t typeSignatureHash() const noexcept;
+    bool     sameTypeSignature(const SymbolFunction& otherFunc) const noexcept;
+    bool     sameTypeSignatureIgnoringClosure(const SymbolFunction& otherFunc) const noexcept;
+    bool     deepCompare(const SymbolFunction& otherFunc) const noexcept;
+
     SymbolFunctionFlags semanticFlags() const noexcept { return extraFlags().mask(K_SEMANTIC_FLAGS); }
+
     SymbolStruct*       ownerStruct();
     const SymbolStruct* ownerStruct() const;
+
     // The nearest enclosing function in the lexical chain, for a local or nested function.
     const SymbolFunction* parentLexicalFunction() const;
 

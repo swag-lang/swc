@@ -270,6 +270,50 @@ SWC_TEST_BEGIN(VecLoopPromote_StackPointerDefinitionInBody_Blocks)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(VecLoopPromote_ScalarLaneReadsKeepZeroUpperHalves)
+{
+    for (uint32_t lane = 0; lane < 2; ++lane)
+    {
+        MicroBuilder   builder(ctx);
+        const MicroReg sp      = CallConv::get(CallConvKind::Swag).stackPointer;
+        const MicroReg counter = MicroReg::virtualIntReg(1);
+        const MicroReg packed  = MicroReg::virtualFloatReg(1);
+        const MicroReg scalar  = MicroReg::virtualFloatReg(2);
+        const auto     header  = builder.createLabel();
+        builder.emitLoadRegImm(counter, ApInt(0, 64), MicroOpBits::B64);
+        builder.placeLabel(header);
+        builder.emitLoadVecRegMem(packed, sp, 0x40, MicroOpBits::B128);
+        builder.emitLoadRegMem(scalar, sp, 0x40 + lane * 8, MicroOpBits::B64);
+        builder.emitStoreVecMemReg(sp, 0x80, scalar, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(sp, 0x40, packed, MicroOpBits::B128);
+        builder.emitOpBinaryRegImm(counter, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(counter, ApInt(10, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Less, MicroOpBits::B64, header);
+        builder.emitRet();
+        SWC_RESULT(runVecLoopPromotePass(builder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem))
+            return Result::Error;
+        bool          extracted = false;
+        MicroInstrRef previous  = MicroInstrRef::invalid();
+        for (auto it = builder.instructions().view().begin(); it != builder.instructions().view().end(); ++it)
+        {
+            const auto* ops = it->ops(builder.operands());
+            if (lane == 0 && it->op == MicroInstrOpcode::LoadRegReg && ops[0].reg == scalar)
+            {
+                const auto* clear = builder.instructions().ptr(previous);
+                extracted         = ops[2].opBits == MicroOpBits::B64 && clear && clear->op == MicroInstrOpcode::ClearReg && clear->ops(builder.operands())[0].reg == scalar;
+            }
+            if (lane == 1 && it->op == MicroInstrOpcode::OpBinaryRegRegImm && ops[0].reg == scalar)
+                extracted = ops[2].opBits == MicroOpBits::B128 && ops[3].microOp == MicroOp::VecShiftRightBytes && ops[4].valueU64 == 8;
+            previous = it.current;
+        }
+        if (!extracted)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

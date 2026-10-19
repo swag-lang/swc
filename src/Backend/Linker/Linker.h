@@ -33,16 +33,16 @@ public:
 
     virtual Result prepareLink(LinkJob& outJob)                                                                                                             = 0;
     virtual Result tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames) = 0;
-    static void    executeLink(LinkJob& job);
-    Result         finishLink(const LinkJob& job) const;
+
+    static void executeLink(LinkJob& job);
+    Result      finishLink(const LinkJob& job) const;
 
 protected:
     NativeBackendBuilder* builder_ = nullptr;
 };
 
-// Runs executeLink() as a normal job on the shared JobManager, so a module's link overlaps the next
-// module's compilation instead of riding a one-off std::async thread. Self-contained: it only touches
-// the LinkJob, never compiler state, so it is safe on any worker thread (mirrors executeLink's contract).
+// Schedule a prepared link on the shared JobManager so it can overlap later
+// module compilation. Like executeLink(), it touches only the prepared LinkJob.
 class NativeLinkJob final : public Job
 {
 public:

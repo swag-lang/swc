@@ -24,22 +24,26 @@ struct NativeFunctionInfo
 {
     SymbolFunction*    symbol      = nullptr;
     const MachineCode* machineCode = nullptr;
-    Utf8               sortKey;
-    Utf8               symbolName;
-    Utf8               exportName;
-    Utf8               debugName;
-    uint32_t           jobIndex   = 0;
-    uint32_t           textOffset = 0;
-    bool               exported   = false;
-    bool               compilerFn = false;
-    bool               cacheHit   = false;
+
+    Utf8 sortKey;
+    Utf8 symbolName;
+    Utf8 exportName;
+    Utf8 debugName;
+
+    uint32_t jobIndex   = 0;
+    uint32_t textOffset = 0;
+
+    bool exported   = false;
+    bool compilerFn = false;
+    bool cacheHit   = false;
 };
 
 struct NativeFunctionCacheRecord
 {
-    Utf8      key;
-    Utf8      fingerprint;
-    Utf8      symbolName;
+    Utf8 key;
+    Utf8 fingerprint;
+    Utf8 symbolName;
+
     ByteArray objectBytes;
     bool      hit = false;
 };
@@ -54,9 +58,10 @@ struct NativeStartupInfo
 
 struct NativeRuntimeDependency
 {
-    Utf8              moduleName;
-    Utf8              linkModuleName;
-    Utf8              hookSymbolName;
+    Utf8 moduleName;
+    Utf8 linkModuleName;
+    Utf8 hookSymbolName;
+
     std::vector<Utf8> transitiveImports;
     SymbolFunction*   hookSymbol = nullptr;
 };
@@ -69,26 +74,30 @@ struct NativeRDataAllocationMapEntry
     uint32_t align         = 1;
     uint32_t emittedOffset = 0;
     bool     zeroFilled    = false;
-    // The allocation's own symbol in an archive, where every reference to it names that symbol.
-    // Formatted once when the archive is partitioned; empty in the other artifact layouts, which
-    // never ask for it.
+
+    // Cached during archive partitioning, when relocations name each allocation.
+    // Other layouts leave this empty and compute the name when needed.
     Utf8 symbolName;
 };
 
 struct NativeObjDescription
 {
-    uint32_t                         index = 0;
-    fs::path                         objPath;
-    ByteArray                        objBytes;
+    uint32_t  index = 0;
+    fs::path  objPath;
+    ByteArray objBytes;
+
     std::vector<NativeFunctionInfo*> functions;
-    NativeStartupInfo*               startup                = nullptr;
-    bool                             includeData            = false;
-    bool                             includeMergedRData     = false;
-    bool                             splitRDataReferences   = false;
-    uint16_t                         rdataShardIndex        = 0;
-    uint16_t                         rdataAllocationCount   = 0;
-    uint32_t                         rdataAllocationIndex   = INVALID_REF;
-    bool                             allowUnresolvedSymbols = false;
+    NativeStartupInfo*               startup = nullptr;
+
+    bool includeData          = false;
+    bool includeMergedRData   = false;
+    bool splitRDataReferences = false;
+
+    uint16_t rdataShardIndex      = 0;
+    uint16_t rdataAllocationCount = 0;
+    uint32_t rdataAllocationIndex = INVALID_REF;
+
+    bool allowUnresolvedSymbols = false;
 };
 
 class NativeBackendBuilder
@@ -114,33 +123,40 @@ public:
     NativeBackendBuilder(CompilerInstance& compiler, bool runArtifact);
     ~NativeBackendBuilder();
 
-    TaskContext&                         ctx();
-    const TaskContext&                   ctx() const;
-    CompilerInstance&                    compiler();
-    const CompilerInstance&              compiler() const;
-    bool                                 tryResolveConstantSourceRef(DataSegmentRef& outSourceRef, const MicroRelocation& relocation) const noexcept;
-    Result                               resolveConstantSourceRef(DataSegmentRef& outSourceRef, const Utf8& ownerName, const MicroRelocation& relocation);
-    const NativeFunctionInfo*            tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
-    Result                               resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
+    TaskContext&            ctx();
+    const TaskContext&      ctx() const;
+    CompilerInstance&       compiler();
+    const CompilerInstance& compiler() const;
+
+    bool   tryResolveConstantSourceRef(DataSegmentRef& outSourceRef, const MicroRelocation& relocation) const noexcept;
+    Result resolveConstantSourceRef(DataSegmentRef& outSourceRef, const Utf8& ownerName, const MicroRelocation& relocation);
+
+    const NativeFunctionInfo* tryFindFunctionInfo(const SymbolFunction& targetFunction) const noexcept;
+    Result                    resolveFunctionSymbolName(Utf8& outName, const SymbolFunction* targetFunction, bool allowUnresolvedSymbols = false);
+
     const NativeRDataAllocationMapEntry* tryFindRDataSourceAllocation(uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
     // The symbol an archive gives this allocation: the one formatted at partition time, or the
     // same name formatted now for a layout that did not record it.
     Utf8                                 rdataAllocationSymbol(const NativeRDataAllocationMapEntry& allocation) const;
     const NativeRDataAllocationMapEntry* tryFindRDataEmittedAllocation(uint32_t emittedOffset) const noexcept;
     bool                                 tryMapRDataSourceOffset(uint32_t& outOffset, uint32_t shardIndex, uint32_t sourceOffset) const noexcept;
-    Result                               appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
-    bool                                 tryReuseFunction(SymbolFunction& function);
-    Result                               finalizeFunctionCacheHit(bool& outHit, SymbolFunction& function, const Utf8& symbolName);
-    const NativeFunctionCacheRecord*     functionCacheRecord(const SymbolFunction& function) const;
-    bool                                 functionCacheEnabled() const { return functionCacheEnabled_; }
-    const fs::path&                      functionCacheArchivePath() const { return functionCacheArchivePath_; }
-    const fs::path&                      functionCacheIndexPath() const { return functionCacheIndexPath_; }
-    DiagnosticId                         lastErrorId() const { return lastErrorId_; }
-    bool                                 artifactLinked() const { return artifactLinked_; }
 
-    Result                       run();
-    Result                       runExistingArtifact(ArtifactRunReport* report = nullptr);
-    Result                       prepare();
+    Result appendCodeRelocation(const NativeCodeRelocationTarget& target, const Utf8& ownerName, const MicroRelocation& relocation);
+
+    bool                             tryReuseFunction(SymbolFunction& function);
+    Result                           finalizeFunctionCacheHit(bool& outHit, SymbolFunction& function, const Utf8& symbolName);
+    const NativeFunctionCacheRecord* functionCacheRecord(const SymbolFunction& function) const;
+    bool                             functionCacheEnabled() const { return functionCacheEnabled_; }
+    const fs::path&                  functionCacheArchivePath() const { return functionCacheArchivePath_; }
+    const fs::path&                  functionCacheIndexPath() const { return functionCacheIndexPath_; }
+
+    DiagnosticId lastErrorId() const { return lastErrorId_; }
+    bool         artifactLinked() const { return artifactLinked_; }
+
+    Result run();
+    Result runExistingArtifact(ArtifactRunReport* report = nullptr);
+    Result prepare();
+
     std::vector<SymbolFunction*> collectPreparedFunctions() const
     {
         std::vector<SymbolFunction*> result;
@@ -153,20 +169,19 @@ public:
 
         return result;
     }
+
     Result buildObject(uint32_t objIndex);
 
-    // Serialises the current object partition into COFF bytes. buildObjects() calls it for a static
-    // library; the shared-library path calls it again, on a finer partition, for the archive it
-    // publishes beside its DLL.
+    // Serialize the current partition into COFF bytes, including the finer
+    // partition used for a shared library's companion static archive.
     Result buildObjectBytes();
+
     Result publishExistingArtifact();
     Result publishExecutableDependencies();
 
-    // Deferred (workspace async-link) path. prepareForLink runs the full build up to but not
-    // including the link, leaving a prepared LinkJob in deferredToolRun(). The caller then runs
-    // Linker::executeLink(deferredToolRun()) on a background thread, and finally calls
-    // finishDeferredLink() back on the foreground thread to report results and, for an executable run,
-    // launch the artifact.
+    // Deferred linking: prepareForLink() captures a LinkJob in deferredToolRun().
+    // Run Linker::executeLink() on a background thread, then finishDeferredLink()
+    // on the foreground thread to report results and launch executable runs.
     Result   prepareForLink();
     Result   tryPrepareIncrementalLink(bool& outPrepared, std::span<const fs::path> objectPaths, std::span<const Utf8> libraryNames);
     Result   finishDeferredLink();
@@ -192,29 +207,36 @@ public:
         return reportError(std::move(diag));
     }
 
-    std::vector<SymbolFunction*>                                                         testFunctions;
-    std::vector<SymbolFunction*>                                                         initFunctions;
-    std::vector<SymbolFunction*>                                                         preMainFunctions;
-    std::vector<SymbolFunction*>                                                         dropFunctions;
-    std::vector<SymbolFunction*>                                                         mainFunctions;
-    std::vector<SymbolVariable*>                                                         regularGlobals;
-    std::vector<NativeRuntimeDependency>                                                 runtimeDependencies;
-    std::vector<uint32_t>                                                                runtimeDependencyInitOrder;
-    std::vector<uint32_t>                                                                runtimeDependencyDropOrder;
-    std::vector<NativeFunctionInfo>                                                      functionInfos;
-    PointerMap<SymbolFunction, const NativeFunctionInfo>                                 functionBySymbol;
-    std::vector<std::unique_ptr<MachineCode>>                                            generatedMachineCodes;
-    std::unique_ptr<NativeStartupInfo>                                                   startup;
-    NativeSectionData                                                                    mergedRData;
-    NativeSectionData                                                                    mergedData;
-    NativeSectionData                                                                    mergedBss;
+    std::vector<SymbolFunction*> testFunctions;
+    std::vector<SymbolFunction*> initFunctions;
+    std::vector<SymbolFunction*> preMainFunctions;
+    std::vector<SymbolFunction*> dropFunctions;
+    std::vector<SymbolFunction*> mainFunctions;
+    std::vector<SymbolVariable*> regularGlobals;
+
+    std::vector<NativeRuntimeDependency> runtimeDependencies;
+    std::vector<uint32_t>                runtimeDependencyInitOrder;
+    std::vector<uint32_t>                runtimeDependencyDropOrder;
+
+    std::vector<NativeFunctionInfo>                      functionInfos;
+    PointerMap<SymbolFunction, const NativeFunctionInfo> functionBySymbol;
+    std::vector<std::unique_ptr<MachineCode>>            generatedMachineCodes;
+    std::unique_ptr<NativeStartupInfo>                   startup;
+
+    NativeSectionData mergedRData;
+    NativeSectionData mergedData;
+    NativeSectionData mergedBss;
+
     std::array<std::vector<NativeRDataAllocationMapEntry>, ConstantManager::SHARD_COUNT> rdataAllocationMap;
     std::vector<NativeRDataAllocationMapEntry>                                           rdataAllocations;
-    std::vector<NativeObjDescription>                                                    objectDescriptions;
-    fs::path                                                                             buildDir;
-    fs::path                                                                             artifactPath;
-    fs::path                                                                             pdbPath;
-    std::atomic<bool>                                                                    objBuildFailed = false;
+
+    std::vector<NativeObjDescription> objectDescriptions;
+
+    fs::path buildDir;
+    fs::path artifactPath;
+    fs::path pdbPath;
+
+    std::atomic<bool> objBuildFailed = false;
 
     // Test tally parsed from the generated executable's "[swag.test]" marker line
     // (see the runtime's __testsDone). Valid when hasNativeTestSummary is true.
@@ -224,9 +246,8 @@ public:
 
     static bool parseNativeTestProgressEvent(NativeTestProgressEvent& outEvent, std::string_view line);
 
-    // What every data relocation names: the three section base symbols and the scope hash an
-    // allocation symbol is built from. They depend only on the artifact's scope name, which is
-    // fixed for the whole back end, so they are formatted once instead of once per relocation.
+    // Section bases and allocation-name scope depend only on the artifact.
+    // Cache them once to avoid formatting them for every data relocation.
     struct ScopedSymbolNames
     {
         Utf8     rdataBase;
@@ -252,22 +273,26 @@ private:
     Result      runGeneratedArtifact(ArtifactRunReport* report = nullptr);
     Result      runAfterLink();
 
-    mutable std::once_flag                                               scopedSymbolNamesOnce_;
-    mutable ScopedSymbolNames                                            scopedSymbolNames_;
-    TaskContext                                                          ctx_;
-    CompilerInstance*                                                    compiler_       = nullptr;
-    bool                                                                 runArtifact_    = false;
-    bool                                                                 artifactLinked_ = false;
-    DiagnosticId                                                         lastErrorId_    = DiagnosticId::None;
-    std::unique_ptr<Linker>                                              deferredLinker_;
-    LinkJob                                                              deferredToolRun_;
+    mutable std::once_flag    scopedSymbolNamesOnce_;
+    mutable ScopedSymbolNames scopedSymbolNames_;
+
+    TaskContext       ctx_;
+    CompilerInstance* compiler_       = nullptr;
+    bool              runArtifact_    = false;
+    bool              artifactLinked_ = false;
+    DiagnosticId      lastErrorId_    = DiagnosticId::None;
+
+    std::unique_ptr<Linker> deferredLinker_;
+    LinkJob                 deferredToolRun_;
+
     std::unique_ptr<Archive>                                             existingFunctionCacheArchive_;
     std::unordered_map<Utf8, std::pair<Utf8, Utf8>>                      existingFunctionCacheEntries_;
     std::unordered_map<const SymbolFunction*, NativeFunctionCacheRecord> functionCacheRecords_;
     mutable std::mutex                                                   functionCacheMutex_;
-    fs::path                                                             functionCacheArchivePath_;
-    fs::path                                                             functionCacheIndexPath_;
-    bool                                                                 functionCacheEnabled_ = false;
+
+    fs::path functionCacheArchivePath_;
+    fs::path functionCacheIndexPath_;
+    bool     functionCacheEnabled_ = false;
 };
 
 SWC_END_NAMESPACE();

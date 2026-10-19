@@ -617,6 +617,7 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
 {
     const CommandLine& cmdLine = builder_->ctx().cmdLine();
     Utf8               key;
+
     key += std::format("cmd={};os={};arch={};backend={};sub={};name={};", static_cast<int>(cmdLine.command), static_cast<int>(cmdLine.targetOs), static_cast<int>(cmdLine.targetArch), static_cast<int>(builder_->compiler().buildCfg().backendKind), static_cast<int>(builder_->compiler().buildCfg().backendSubKind), name);
 
     if (!cmdLine.modulePath.empty())

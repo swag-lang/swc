@@ -21,10 +21,12 @@ enum class RuntimeTypeKind : uint32_t
     TargetArch,
     CompilerCommand,
     Operator,
+
     TypeInfoKind,
     TypeInfoNativeKind,
     TypeInfoFlags,
     TypeValueFlags,
+
     TypeInfo,
     TypeInfoNative,
     TypeInfoPointer,
@@ -39,10 +41,13 @@ enum class RuntimeTypeKind : uint32_t
     TypeInfoNamespace,
     TypeInfoCodeBlock,
     TypeInfoSimd,
+
     TypeValue,
+
     Attribute,
     AttributeParam,
     Interface,
+
     SourceCodeLocation,
     ErrorValue,
     ScratchAllocator,
@@ -52,6 +57,7 @@ enum class RuntimeTypeKind : uint32_t
     ProcessInfo,
     GlobalToDrop,
     BuildCfg,
+
     Count
 };
 
@@ -75,6 +81,7 @@ public:
     TypeRef typeConstBlockPtrVoid() const { return typeConstBlockPtrVoid_; }
     TypeRef typeBlockPtrU8() const { return typeBlockPtrU8_; }
     TypeRef typeConstBlockPtrU8() const { return typeConstBlockPtrU8_; }
+
     TypeRef typeValuePtrVoid() const { return typeValuePtrVoid_; }
     TypeRef typeConstValuePtrVoid() const { return typeConstValuePtrVoid_; }
     TypeRef typeValuePtrU8() const { return typeValuePtrU8_; }
@@ -87,9 +94,11 @@ public:
     TypeRef typeInt() const { return typeInt_; }
     TypeRef typeIntSigned() const { return typeIntSigned_; }
     TypeRef typeIntUnsigned() const { return typeIntUnsigned_; }
+
     TypeRef typeFloat(uint32_t bits) const;
     TypeRef typeF32() const { return typeF32_; }
     TypeRef typeF64() const { return typeF64_; }
+
     TypeRef typeS8() const { return typeS8_; }
     TypeRef typeU8() const { return typeU8_; }
     TypeRef typeS16() const { return typeS16_; }
@@ -100,6 +109,7 @@ public:
     TypeRef typeU64() const { return typeU64_; }
 
     TypeRef addType(const TypeInfo& typeInfo);
+
     // Intern an array or aggregate type from its parts, like addType of the matching
     // TypeInfo::make*. A type that already exists is found without building its payload.
     TypeRef addArrayType(std::span<const uint64_t> dims, TypeRef elementTypeRef, TypeInfoFlags flags = TypeInfoFlagsE::Zero, std::span<const TypeRef> indexTypeRefs = {});
@@ -108,23 +118,28 @@ public:
     // The type reached by one array index, retaining the remaining dimensions.
     TypeRef arrayElementTypeRef(const TypeInfo& arrayType);
 
-    TypeRef         addAggregateStructType(std::span<const IdentifierRef> names, std::span<const TypeRef> types);
-    TypeRef         addAggregateArrayType(std::span<const TypeRef> types);
+    TypeRef addAggregateStructType(std::span<const IdentifierRef> names, std::span<const TypeRef> types);
+    TypeRef addAggregateArrayType(std::span<const TypeRef> types);
+
     const TypeInfo& get(TypeRef typeRef) const;
-    TypeRef         unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) const;
-    TypeRef         unwrapNonStrictAlias(TypeRef typeRef) const;
+
+    TypeRef unwrapAliasEnum(const TaskContext& ctx, TypeRef typeRef) const;
+    TypeRef unwrapNonStrictAlias(TypeRef typeRef) const;
+
     TypeRef         promote(TypeRef lhs, TypeRef rhs, bool force32BitInts) const;
     static uint32_t chooseConcreteScalarWidth(uint32_t minRequiredBits, bool& overflow);
 
-    // Strips aliases only, leaving an enum wrapper in place; an invalid reference is handed
-    // straight back. Inline because operator-overload resolution asks it of every operand.
+    // Strip aliases while preserving enum wrappers and invalid references.
+    // Inline because operator resolution calls this for every operand.
     TypeRef unwrapAlias(const TaskContext& ctx, TypeRef typeRef) const
     {
         if (typeRef.isInvalid())
             return typeRef;
+
         const TypeInfo& typeInfo = get(typeRef);
         if (!typeInfo.isAlias())
             return typeRef;
+
         return typeInfo.unwrap(ctx, typeRef, TypeExpandE::Alias);
     }
 
@@ -149,14 +164,13 @@ public:
     // Selects one of 'SymbolStruct::opDrop', 'opPostCopy' or 'opPostMove'.
     using LifecycleOperator = const SymbolFunction* (SymbolStruct::*) () const;
 
-    // True when the type, or anything inside it, declares that lifecycle operator directly.
-    // Aliases and array element types are transparent, and a struct is also reached through
-    // its fields. Generated wrappers are deliberately not consulted, so the answer never
-    // depends on when they were built.
+    // Search explicit lifecycle operators through aliases, arrays, and struct fields.
+    // Ignore generated wrappers so the answer does not depend on when they are built.
     bool hasLifecycleOperator(const TaskContext& ctx, TypeRef typeRef, LifecycleOperator lifecycleOperator) const;
 
-    bool    isTypeInfoRuntimeStruct(IdentifierRef idRef) const;
-    bool    isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeRef) const;
+    bool isTypeInfoRuntimeStruct(IdentifierRef idRef) const;
+    bool isRuntimeTypeInfoPointer(const TaskContext& ctx, TypeRef typeRef) const;
+
     void    registerRuntimeType(IdentifierRef idRef, TypeRef typeRef);
     TypeRef runtimeType(RuntimeTypeKind kind) const;
     TypeRef runtimeType(IdentifierManager::PredefinedName name) const;
@@ -174,10 +188,13 @@ public:
     TypeRef structTypeInfoGeneric() const { return runtimeType(RuntimeTypeKind::TypeInfoGeneric); }
     TypeRef structTypeInfoNamespace() const { return runtimeType(RuntimeTypeKind::TypeInfoNamespace); }
     TypeRef structTypeInfoCodeBlock() const { return runtimeType(RuntimeTypeKind::TypeInfoCodeBlock); }
+
     TypeRef structTypeValue() const { return runtimeType(RuntimeTypeKind::TypeValue); }
+
     TypeRef structAttribute() const { return runtimeType(RuntimeTypeKind::Attribute); }
     TypeRef structAttributeParam() const { return runtimeType(RuntimeTypeKind::AttributeParam); }
     TypeRef structInterface() const { return runtimeType(RuntimeTypeKind::Interface); }
+
     TypeRef structSourceCodeLocation() const { return runtimeType(RuntimeTypeKind::SourceCodeLocation); }
     TypeRef structErrorValue() const { return runtimeType(RuntimeTypeKind::ErrorValue); }
     TypeRef structScratchAllocator() const { return runtimeType(RuntimeTypeKind::ScratchAllocator); }
@@ -192,6 +209,7 @@ public:
     TypeRef enumTargetArch() const { return runtimeType(RuntimeTypeKind::TargetArch); }
     TypeRef enumCompilerCommand() const { return runtimeType(RuntimeTypeKind::CompilerCommand); }
     TypeRef enumOperator() const { return runtimeType(RuntimeTypeKind::Operator); }
+
     TypeRef enumTypeInfoKind() const { return runtimeType(RuntimeTypeKind::TypeInfoKind); }
     TypeRef enumTypeInfoNativeKind() const { return runtimeType(RuntimeTypeKind::TypeInfoNativeKind); }
     TypeRef enumTypeInfoFlags() const { return runtimeType(RuntimeTypeKind::TypeInfoFlags); }
@@ -206,6 +224,7 @@ private:
         // The shard owns the bytes; the intern table owns the payload's lifetime.
         void operator()(TypeInfo* type) const noexcept { std::destroy_at(type); }
     };
+
     using StoredType = std::unique_ptr<TypeInfo, StoredTypeDeleter>;
 
     // Open-addressed and append-only: a slot, once filled, keeps its type. Readers probe it
@@ -214,81 +233,96 @@ private:
     {
         std::unique_ptr<std::atomic<const TypeInfo*>[]> types;
         std::unique_ptr<std::atomic<size_t>[]>          hashes;
-        uint32_t                                        capacity = 0; // power of two
-        uint32_t                                        size     = 0; // writer-only
+
+        uint32_t capacity = 0; // power of two
+        uint32_t size     = 0; // writer-only
     };
 
-    // Each stripe owns its cache line: neighbours locked by other workers must not share it.
-    // 'owned' keeps the interned payloads alive; 'table' answers every lookup, without a lock
-    // for readers and under the mutex for writers. Every table generation stays alive with the
-    // stripe, for readers still probing an older one.
+    // Each stripe owns its cache line so writers do not disturb neighbouring stripes.
+    // owned retains payloads, and tables retains older table generations for readers
+    // that still probe them.
     struct alignas(64) InternStripe
     {
         std::vector<StoredType>                   owned;
         std::atomic<InternTable*>                 table = nullptr;
         std::vector<std::unique_ptr<InternTable>> tables;
-        std::mutex                                mutex; // writers only
+
+        std::mutex mutex; // writers only
     };
 
     struct Shard
     {
         // Keep storage alive until all interned payloads have been destroyed.
-        PagedStore                                    store;
+        PagedStore store;
+
         std::array<InternStripe, INTERN_STRIPE_COUNT> internStripes;
-        mutable std::mutex                            storeMutex;
+
+        mutable std::mutex storeMutex;
     };
 
     static constexpr uint32_t SHARD_BITS  = 3;
     static constexpr uint32_t SHARD_COUNT = 1u << SHARD_BITS;
     static constexpr uint32_t LOCAL_BITS  = 32 - SHARD_BITS;
     static constexpr uint32_t LOCAL_MASK  = (1u << LOCAL_BITS) - 1;
-    CompilerInstance*         compiler_   = nullptr;
-    Shard                     shards_[SHARD_COUNT];
+
+    CompilerInstance* compiler_ = nullptr;
+    Shard             shards_[SHARD_COUNT];
 
     static TypeRef findInterned(const InternTable* table, const TypeInfo& typeInfo, size_t hash) noexcept;
+
     template<typename Matches>
-    static TypeRef     findInternedIf(const InternTable* table, size_t hash, const Matches& matches) noexcept;
+    static TypeRef findInternedIf(const InternTable* table, size_t hash, const Matches& matches) noexcept;
+
     const InternTable* publishedInternTable(uint32_t stableHash) const noexcept;
     static void        publishInterned(InternStripe& stripe, const TypeInfo* type, size_t hash);
     TypeRef            addTypeAfterMiss(const TypeInfo& typeInfo, uint32_t hash, uint32_t stableHash);
 
     // Runtime types
-    FlatKeyMap<RuntimeTypeKind>                                                      mapRtKind_;
+    FlatKeyMap<RuntimeTypeKind> mapRtKind_;
+
     std::array<std::atomic<uint32_t>, static_cast<uint32_t>(RuntimeTypeKind::Count)> runtimeTypeRefs_{};
 
     // Predefined types
-    TypeRef typeBool_              = TypeRef::invalid();
-    TypeRef typeChar_              = TypeRef::invalid();
-    TypeRef typeString_            = TypeRef::invalid();
-    TypeRef typeIntUnsigned_       = TypeRef::invalid();
-    TypeRef typeIntSigned_         = TypeRef::invalid();
-    TypeRef typeInt_               = TypeRef::invalid();
-    TypeRef typeFloat_             = TypeRef::invalid();
-    TypeRef typeU8_                = TypeRef::invalid();
-    TypeRef typeU16_               = TypeRef::invalid();
-    TypeRef typeU32_               = TypeRef::invalid();
-    TypeRef typeU64_               = TypeRef::invalid();
-    TypeRef typeS8_                = TypeRef::invalid();
-    TypeRef typeS16_               = TypeRef::invalid();
-    TypeRef typeS32_               = TypeRef::invalid();
-    TypeRef typeS64_               = TypeRef::invalid();
-    TypeRef typeF32_               = TypeRef::invalid();
-    TypeRef typeF64_               = TypeRef::invalid();
-    TypeRef typeAny_               = TypeRef::invalid();
-    TypeRef typeVoid_              = TypeRef::invalid();
-    TypeRef typeNull_              = TypeRef::invalid();
-    TypeRef typeRune_              = TypeRef::invalid();
-    TypeRef typeCString_           = TypeRef::invalid();
+    TypeRef typeBool_   = TypeRef::invalid();
+    TypeRef typeChar_   = TypeRef::invalid();
+    TypeRef typeString_ = TypeRef::invalid();
+
+    TypeRef typeIntUnsigned_ = TypeRef::invalid();
+    TypeRef typeIntSigned_   = TypeRef::invalid();
+    TypeRef typeInt_         = TypeRef::invalid();
+    TypeRef typeFloat_       = TypeRef::invalid();
+
+    TypeRef typeU8_  = TypeRef::invalid();
+    TypeRef typeU16_ = TypeRef::invalid();
+    TypeRef typeU32_ = TypeRef::invalid();
+    TypeRef typeU64_ = TypeRef::invalid();
+
+    TypeRef typeS8_  = TypeRef::invalid();
+    TypeRef typeS16_ = TypeRef::invalid();
+    TypeRef typeS32_ = TypeRef::invalid();
+    TypeRef typeS64_ = TypeRef::invalid();
+
+    TypeRef typeF32_ = TypeRef::invalid();
+    TypeRef typeF64_ = TypeRef::invalid();
+
+    TypeRef typeAny_     = TypeRef::invalid();
+    TypeRef typeVoid_    = TypeRef::invalid();
+    TypeRef typeNull_    = TypeRef::invalid();
+    TypeRef typeRune_    = TypeRef::invalid();
+    TypeRef typeCString_ = TypeRef::invalid();
+
     TypeRef typeBlockPtrVoid_      = TypeRef::invalid();
     TypeRef typeConstBlockPtrVoid_ = TypeRef::invalid();
     TypeRef typeBlockPtrU8_        = TypeRef::invalid();
     TypeRef typeConstBlockPtrU8_   = TypeRef::invalid();
+
     TypeRef typeValuePtrVoid_      = TypeRef::invalid();
     TypeRef typeConstValuePtrVoid_ = TypeRef::invalid();
     TypeRef typeValuePtrU8_        = TypeRef::invalid();
     TypeRef typeConstValuePtrU8_   = TypeRef::invalid();
-    TypeRef typeVariadic_          = TypeRef::invalid();
-    TypeRef typeTypeInfo_          = TypeRef::invalid();
+
+    TypeRef typeVariadic_ = TypeRef::invalid();
+    TypeRef typeTypeInfo_ = TypeRef::invalid();
 
     static constexpr uint32_t PROMOTE_TYPE_COUNT = 16;
 

@@ -1052,6 +1052,7 @@ namespace
             const AstNodeRef resolvedRef = resolve(ref);
             if (resolvedRef != parentRef)
                 ref = resolvedRef;
+
             const AstNode& node = sema_->node(ref);
             if (node.is(AstNodeId::Identifier))
             {
@@ -1064,13 +1065,17 @@ namespace
                     else
                         state.set(idx, state.getMust(idx) | (vars_[idx].fullMask & ~vars_[idx].lateMask), vars_[idx].fullMask);
                 }
+
                 const int32_t localIdx = indexOfVariable(nullableLocals_, symVar);
                 if (localIdx >= 0)
                     nullableLocals_[localIdx].keepNull = true;
+
                 return;
             }
+
             SmallVector<AstNodeRef> children;
             collectChildren(node, children);
+
             for (const AstNodeRef childRef : children)
             {
                 if (childRef.isValid())
@@ -1084,36 +1089,34 @@ namespace
         {
             if (ref.isInvalid() || aborted_)
                 return FlowExit::Normal;
+
             if (++nodeCount_ > K_MAX_NODES)
             {
                 aborted_ = true;
                 return FlowExit::Normal;
             }
 
-            // A child ref can resolve back to an ancestor through the substitution
-            // table (self-substituted casts): in that case walk the RAW node instead,
-            // like AstVisit's resolvesToActiveFrame guard.
+            // Substitutions can resolve a child back to an active ancestor. Walk the raw
+            // node instead, as in AstVisit's resolvesToActiveFrame guard.
             const AstNodeRef rawRef = ref;
             ref                     = resolve(ref);
             if (isActiveRef(ref))
             {
                 if (ref == rawRef || isActiveRef(rawRef))
                     return FlowExit::Normal;
+
                 ref = rawRef;
             }
+
             const AstNode& node = sema_->node(ref);
 
-            // A subtree folded to a compile-time constant performs no runtime access:
-            // '#typeof(v.field)', '#assert(...)' operands and friends read types, not
-            // storage.
+            // Folded constants perform no runtime access, even if their syntax names locals.
             const SemaNodeView cstView = sema_->viewConstant(ref);
             if (cstView.hasConstant() && cstView.cst())
                 return FlowExit::Normal;
 
-            // An inlined call substitutes to its expansion block, whose branches embed
-            // the argument expressions at their use sites. The address of an out
-            // parameter is taken AT THE CALL, unconditionally: apply the argument
-            // effects on the pre-call state before walking the expansion.
+            // Apply argument effects before walking an inline expansion: an output argument
+            // takes the address unconditionally, even when the expanded body does not use it.
             if (rawRef != ref)
             {
                 const AstNode& rawNode = sema_->node(rawRef);
@@ -1138,6 +1141,7 @@ namespace
                 if (exit == FlowExit::Jumped)
                     exit = FlowExit::Normal;
             }
+
             return exit;
         }
 
@@ -1161,6 +1165,7 @@ namespace
                     const auto* varBase = node.is(AstNodeId::SingleVarDecl) ? static_cast<const AstVarDeclBase*>(&node.cast<AstSingleVarDecl>()) : static_cast<const AstVarDeclBase*>(&node.cast<AstMultiVarDecl>());
                     if (varBase->nodeInitRef.isValid())
                         walk(varBase->nodeInitRef, state);
+
                     trackDeclNode(state, ref, varBase->nodeInitRef.isValid());
                     trackNullableLocals(ref, varBase);
                     return FlowExit::Normal;
@@ -1171,6 +1176,7 @@ namespace
                     const auto& decl = node.cast<AstVarDeclDestructuring>();
                     if (decl.nodeInitRef.isValid())
                         walk(decl.nodeInitRef, state);
+
                     return FlowExit::Normal;
                 }
 
@@ -1181,6 +1187,7 @@ namespace
                 {
                     const auto& ifStmt = node.cast<AstIfStmt>();
                     walk(ifStmt.nodeConditionRef, state);
+
                     return walkBranches(ifStmt.nodeIfBlockRef, ifStmt.nodeElseBlockRef, state);
                 }
 
@@ -1189,6 +1196,7 @@ namespace
                     const auto& ifStmt = node.cast<AstIfVarDecl>();
                     walk(ifStmt.nodeVarRef, state);
                     walk(ifStmt.nodeWhereRef, state);
+
                     return walkBranches(ifStmt.nodeIfBlockRef, ifStmt.nodeElseBlockRef, state);
                 }
 
@@ -1197,6 +1205,7 @@ namespace
                     const auto& whileStmt = node.cast<AstWhileStmt>();
                     walk(whileStmt.nodeExprRef, state);
                     walkLoopBody(whileStmt.nodeBodyRef, state, /*maySkip*/ true);
+
                     return FlowExit::Normal;
                 }
 
@@ -1206,6 +1215,7 @@ namespace
                     walk(forStmt.nodeVarDeclRef, state);
                     walk(forStmt.nodeExprRef, state);
                     walkLoopBody(forStmt.nodeBodyRef, state, /*maySkip*/ true, forStmt.nodePostStmtRef);
+
                     return FlowExit::Normal;
                 }
 
@@ -1228,9 +1238,11 @@ namespace
                         whereRef            = forStmt.nodeWhereRef;
                         loopBodyRef         = forStmt.nodeBodyRef;
                     }
+
                     walk(exprRef, state);
                     walk(whereRef, state);
                     walkLoopBody(loopBodyRef, state, /*maySkip*/ true);
+
                     return FlowExit::Normal;
                 }
 
@@ -1250,6 +1262,7 @@ namespace
                     deferDepth_++;
                     walk(node.cast<AstDeferStmt>().nodeBodyRef, state);
                     deferDepth_--;
+
                     return FlowExit::Normal;
                 }
 
@@ -1258,6 +1271,7 @@ namespace
                     const auto& returnStmt = node.cast<AstReturnStmt>();
                     walk(returnStmt.nodeExprRef, state);
                     checkFullInitExit(state);
+
                     // A return inside an inline/mixin expansion only exits the
                     // expansion: the caller's locals are not dropped.
                     if (inlineDepth_ == 0)
@@ -1265,6 +1279,7 @@ namespace
                         checkDropsOnExit(state, ref, 0);
                         noteReturnValue(returnStmt.nodeExprRef);
                     }
+
                     return FlowExit::Jumped;
                 }
 
@@ -1288,6 +1303,7 @@ namespace
                                 ctx->breakStates.push_back(state);
                         }
                     }
+
                     return FlowExit::Jumped;
                 }
 
@@ -1301,6 +1317,7 @@ namespace
                             break;
                         }
                     }
+
                     return FlowExit::Jumped;
                 }
 
@@ -1315,6 +1332,7 @@ namespace
                     walk(node.cast<AstFailExpr>().nodeExprRef, state);
                     if (handledDepth_ == 0)
                         checkDropsOnExit(state, ref, 0);
+
                     return FlowExit::Jumped;
                 }
 
@@ -1326,14 +1344,18 @@ namespace
                     if (tokenId == TokenId::KwdTry)
                     {
                         const FlowExit exit = walk(innerRef, state);
+
                         // The wrapped call may unwind out of the function: whatever is
                         // registered for an implicit drop must be safe to drop.
                         checkDropsOnExit(state, ref, 0);
+
                         return exit;
                     }
+
                     handledDepth_++;
                     const FlowExit exit = walk(innerRef, state);
                     handledDepth_--;
+
                     return exit;
                 }
 
@@ -1353,16 +1375,15 @@ namespace
                     const TokenId op         = tokenIdOf(node, TokenId::Invalid);
                     if (op == TokenId::SymEqualEqual || op == TokenId::SymBangEqual)
                     {
-                        // Promotion casts the null literal to its counterpart's type before
-                        // this flow pass runs, so inspect the syntax rather than its final
-                        // semantic type. A `late` slot compared to literal null is a presence
-                        // query, never a read of that slot.
+                        // Promotion has already retyped null literals, so inspect their syntax.
+                        // Comparing a late slot to literal null queries presence without reading it.
                         const bool leftIsNull  = sema_->node(relational.nodeLeftRef).is(AstNodeId::NullLiteral);
                         const bool rightIsNull = sema_->node(relational.nodeRightRef).is(AstNodeId::NullLiteral);
                         if ((leftIsNull && SemaHelpers::isLateInitAccess(*sema_, relational.nodeRightRef)) ||
                             (rightIsNull && SemaHelpers::isLateInitAccess(*sema_, relational.nodeLeftRef)))
                             return FlowExit::Normal;
                     }
+
                     return walkChildren(node, state);
                 }
 
@@ -1371,6 +1392,7 @@ namespace
                     AccessPath path;
                     if (accessPath(ref, path))
                         checkRead(state, ref, path);
+
                     return FlowExit::Normal;
                 }
 
@@ -1382,11 +1404,14 @@ namespace
                     if (accessPath(ref, path))
                     {
                         checkRead(state, ref, path);
+
                         // Still walk index expressions for their own reads.
                         if (node.is(AstNodeId::IndexExpr))
                             walk(node.cast<AstIndexExpr>().nodeArgRef, state);
+
                         return FlowExit::Normal;
                     }
+
                     return walkChildren(node, state);
                 }
 
@@ -1397,6 +1422,7 @@ namespace
                     if (tokenId == TokenId::SymAmpersand)
                     {
                         noteNullableLocalWrite(unary.nodeExprRef, AstNodeRef::invalid(), true);
+
                         AccessPath path;
                         if (accessPath(unary.nodeExprRef, path))
                         {
@@ -1404,6 +1430,7 @@ namespace
                             return FlowExit::Normal;
                         }
                     }
+
                     return walkChildren(node, state);
                 }
 
@@ -1411,11 +1438,14 @@ namespace
                 {
                     const auto& withStmt = node.cast<AstWithStmt>();
                     walk(withStmt.nodeExprRef, state);
+
                     AccessPath path;
                     const bool tracked = accessPath(withStmt.nodeExprRef, path) && path.fieldIndex < 0;
                     withTargets_.push_back(tracked ? path.varIndex : -1);
+
                     const FlowExit exit = walk(withStmt.nodeBodyRef, state);
                     withTargets_.pop_back();
+
                     return exit;
                 }
 
@@ -1423,11 +1453,14 @@ namespace
                 {
                     const auto& withStmt = node.cast<AstWithVarDecl>();
                     walk(withStmt.nodeVarRef, state);
+
                     AccessPath path;
                     const bool tracked = accessPath(withStmt.nodeVarRef, path) && path.fieldIndex < 0;
                     withTargets_.push_back(tracked ? path.varIndex : -1);
+
                     const FlowExit exit = walk(withStmt.nodeBodyRef, state);
                     withTargets_.pop_back();
+
                     return exit;
                 }
 
@@ -1435,8 +1468,7 @@ namespace
                 case AstNodeId::ClosureExpr:
                 case AstNodeId::FunctionDecl:
                 {
-                    // Nested function: analyzed on its own completion. Captured
-                    // tracked variables escape here.
+                    // Nested functions are analyzed separately; their captured locals escape here.
                     escapeSubtree(state, ref);
                     return FlowExit::Normal;
                 }
@@ -1450,15 +1482,18 @@ namespace
         {
             SmallVector<AstNodeRef> children;
             collectChildren(node, children);
+
             auto exit = FlowExit::Normal;
             for (const AstNodeRef childRef : children)
             {
                 if (childRef.isInvalid())
                     continue;
+
                 exit = walk(childRef, state);
                 if (exit != FlowExit::Normal)
                     break;
             }
+
             return exit;
         }
 
@@ -1469,11 +1504,13 @@ namespace
 
             SmallVector<AstNodeRef> children;
             collectChildren(node, children);
+
             auto exit = FlowExit::Normal;
             for (const AstNodeRef childRef : children)
             {
                 if (childRef.isInvalid())
                     continue;
+
                 exit = walk(childRef, state);
                 if (exit != FlowExit::Normal)
                     break;
@@ -1513,16 +1550,19 @@ namespace
                 state = std::move(thenState);
                 return FlowExit::Normal;
             }
+
             if (thenFlows)
             {
                 state = std::move(thenState);
                 return FlowExit::Normal;
             }
+
             if (elseFlows)
             {
                 state = std::move(elseState);
                 return FlowExit::Normal;
             }
+
             return FlowExit::Jumped;
         }
 
@@ -1551,15 +1591,18 @@ namespace
                     if (i < bodyState.may.size())
                         state.set(i, state.getMust(i), state.getMay(i) | bodyState.getMay(i));
                 }
+
                 return FlowExit::Normal;
             }
 
             // Infinite loop: the only way out is a break.
             if (ctx.breakStates.empty())
                 return FlowExit::Jumped;
+
             FlowState& after = ctx.breakStates[0];
             for (uint32_t i = 1; i < ctx.breakStates.size(); i++)
                 joinInto(after, ctx.breakStates[i]);
+
             state = std::move(after);
             return FlowExit::Normal;
         }
@@ -1586,6 +1629,7 @@ namespace
             {
                 if (childRef.isInvalid())
                     continue;
+
                 const AstNodeRef caseRef = resolve(childRef);
                 if (sema_->node(caseRef).isNot(AstNodeId::SwitchCaseStmt))
                     continue;
@@ -1602,11 +1646,13 @@ namespace
                 // Case match expressions and 'where' run with the dispatch state.
                 SmallVector<AstNodeRef> caseChildren;
                 collectChildren(caseStmt, caseChildren);
+
                 auto exit = FlowExit::Normal;
                 for (const AstNodeRef caseChildRef : caseChildren)
                 {
                     if (caseChildRef.isInvalid())
                         continue;
+
                     exit = walk(caseChildRef, caseState);
                     if (exit != FlowExit::Normal)
                         break;
@@ -1625,6 +1671,7 @@ namespace
 
             for (FlowState& breakState : ctx.breakStates)
                 exitStates.push_back(std::move(breakState));
+
             if (!exhaustive)
                 exitStates.push_back(std::move(state));
             if (hasFellState)
@@ -1636,6 +1683,7 @@ namespace
             FlowState& after = exitStates[0];
             for (uint32_t i = 1; i < exitStates.size(); i++)
                 joinInto(after, exitStates[i]);
+
             state = std::move(after);
             return FlowExit::Normal;
         }
@@ -1664,6 +1712,7 @@ namespace
                     const AstNodeRef resolvedRef = resolve(elementRef);
                     if (resolvedRef.isInvalid() || sema_->node(resolvedRef).is(AstNodeId::AssignIgnore))
                         continue;
+
                     AccessPath path;
                     if (accessPath(resolvedRef, path))
                         markInit(state, path);
@@ -1673,6 +1722,7 @@ namespace
                         walk(resolvedRef, state);
                     }
                 }
+
                 return FlowExit::Normal;
             }
 
@@ -1693,10 +1743,9 @@ namespace
             if (leftNode.is(AstNodeId::IndexExpr))
                 walk(leftNode.cast<AstIndexExpr>().nodeArgRef, state);
 
-            // Writing THROUGH a field ('b.item.value = x', 'b.name[i] = c') dereferences it:
-            // a read of that field, never an initialization of the variable. A 'late'
-            // field answers the same way even when its own type is not pointer-like, because
-            // its storage is the null sentinel until it is set.
+            // Nested or indexed writes through pointer-like fields read the field rather
+            // than initialize it. Late fields also require this check: their storage holds
+            // a null sentinel until the first write, even for a non-pointer field type.
             if (path.fieldIndex >= 0 && (path.nestedField || path.indexed) &&
                 ((vars_[path.varIndex].lateMask & (1ull << path.fieldIndex)) ||
                  writesThroughField(vars_[path.varIndex], path.fieldIndex)))
@@ -1729,20 +1778,17 @@ namespace
 
                 if (path.indexed || path.nestedField)
                 {
-                    // A partial write reaches one element or one member through storage that
-                    // has no implicit default of its own. It is therefore never a proof of
-                    // initialization, but it is also not a use of uninitialized storage once
-                    // every path has already initialized the variable it reaches through.
+                    // Partial writes cannot prove initialization of storage without a default.
+                    // They are safe only after every path initialized the containing variable.
                     if ((mustBits & var.fullMask) != var.fullMask)
                         reportDefiniteInitUse(assignRef, var, path.fieldIndex);
+
                     state.set(path.varIndex, var.fullMask, var.fullMask);
                     return FlowExit::Normal;
                 }
 
-                // A destination drop is safe to bypass only when no path has ever
-                // initialized it and this is its first loop iteration. The generated
-                // assignment then carries FirstInit so codegen emits construction,
-                // not replacement.
+                // Bypass the destination drop only if no path initialized it and this is
+                // its first loop iteration. FirstInit makes codegen construct the value.
                 const bool sameLoop = loopDepth_ == var.loopDepth;
                 if (path.fieldIndex >= 0)
                 {
@@ -1757,6 +1803,7 @@ namespace
                                 reportDefiniteInitDrop(assignRef, var);
                         }
                     }
+
                     markInit(state, path);
                     return FlowExit::Normal;
                 }
@@ -1768,6 +1815,7 @@ namespace
                     else
                         reportDefiniteInitDrop(assignRef, var);
                 }
+
                 markInit(state, path);
                 return FlowExit::Normal;
             }
@@ -1778,10 +1826,8 @@ namespace
                 return FlowExit::Normal;
             }
 
-            // A custom setter gets the destination address. It can construct raw
-            // storage only when its own body was proved to initialize every field.
-            // Otherwise its contract may inspect the ordinary default before
-            // replacing it, so the default remains materialized.
+            // A custom setter can construct raw storage only if its body initializes every
+            // field. Otherwise it may inspect the ordinary default, which must remain present.
             if (const auto* payload = sema_->semaPayload<AssignSpecOpPayload>(assignRef);
                 payload && payload->calledFn && !isFullInitializationSetter(payload->calledFn))
             {
@@ -1791,9 +1837,7 @@ namespace
 
             if (path.indexed || path.nestedField)
             {
-                // Partial coverage cannot prove that the aggregate default is dead: an
-                // indexed write reaches one element, and a nested write reaches one member
-                // of a field whose other members still come from that default.
+                // One element or nested member cannot prove that the aggregate default is dead.
                 disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
                 return FlowExit::Normal;
             }
@@ -1811,8 +1855,10 @@ namespace
                         disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
                         return FlowExit::Normal;
                     }
+
                     var.firstInitAssignRefs.push_back(assignRef);
                 }
+
                 markInit(state, path);
                 return FlowExit::Normal;
             }
@@ -1825,8 +1871,10 @@ namespace
                     disqualifyDefaultInitElision(state, static_cast<uint32_t>(path.varIndex));
                     return FlowExit::Normal;
                 }
+
                 var.firstInitAssignRefs.push_back(assignRef);
             }
+
             markInit(state, path);
             return FlowExit::Normal;
         }
@@ -1846,6 +1894,7 @@ namespace
                 Symbol*            sym  = view.hasSymbol() ? view.singleSymbol() : nullptr;
                 if (sym && sym->isFunction())
                     calledFn = &sym->cast<SymbolFunction>();
+
                 if (!calledFn)
                 {
                     const AstNodeRef   calleeRef  = node.is(AstNodeId::CallExpr) ? node.cast<AstCallExpr>().nodeExprRef : node.cast<AstIntrinsicCallExpr>().nodeExprRef;
@@ -1890,6 +1939,7 @@ namespace
                         if (param && param->typeRef().isValid())
                         {
                             const TypeInfo& paramType = sema_->typeMgr().get(param->typeRef());
+
                             // Arrays and slices are passed by address: the callee can
                             // fill them (out-parameter shape).
                             takesAddress = paramType.isPointerOrReference() || paramType.isArrayOrSlice();
@@ -1935,13 +1985,12 @@ namespace
         {
             if (!applyCallArguments(callRef, node, state))
                 walkChildren(node, state);
+
             return FlowExit::Normal;
         }
 
-        // 'Swag.init' is the language's explicit construction primitive. Its target
-        // is storage, not a value read, and a whole local target is a complete proof
-        // for a type that has no safe implicit default. In particular this keeps the
-        // raw lifecycle API usable without an 'undefined' escape hatch.
+        // Swag.init constructs storage without reading it. A whole local target proves
+        // initialization even when its type has no safe implicit default.
         FlowExit walkIntrinsicInit(const AstIntrinsicInit& init, FlowState& state)
         {
             AstNodeRef targetRef = unwrap(init.nodeWhatRef);
@@ -1966,8 +2015,10 @@ namespace
             {
                 if (childRef.isInvalid() || childRef == init.nodeWhatRef || childRef == init.nodeCountRef)
                     continue;
+
                 walk(childRef, state);
             }
+
             return FlowExit::Normal;
         }
     };
@@ -1975,10 +2026,8 @@ namespace
 
 namespace
 {
-    // The analysis needs final lifecycle facts (opDrop) for the types of the tracked
-    // locals, but a function can complete before the impl blocks of those types have
-    // been sema'd by their own jobs. Pre-scan the declarations and wait (pausing the
-    // job) until every relevant struct is completed; the walk itself never pauses.
+    // Lifecycle facts may depend on impl jobs that outlive the function's semantic pass.
+    // Wait for tracked structs before starting the flow walk, which must never pause.
     Result waitTrackedTypes(Sema& sema, AstNodeRef ref, uint32_t depth)
     {
         if (ref.isInvalid() || depth > 512)
@@ -1993,14 +2042,13 @@ namespace
         {
             case AstNodeId::AssignStmt:
             {
-                // Inference of a callee's complete construction is a body fact.
-                // Wait for that body before this caller decides whether its first
-                // assignment may use raw storage. Self-recursive setters stay
-                // conservative instead of introducing a semantic wait cycle.
+                // A setter's full-construction contract depends on its completed body.
+                // Skip self-recursive waits to avoid a cycle and remain conservative.
                 const auto* payload = sema.semaPayload<AssignSpecOpPayload>(ref);
                 if (payload && payload->calledFn && payload->calledFn != sema.currentFunction() &&
                     (payload->calledFn->specOpKind() == SpecOpKind::OpSet || payload->calledFn->specOpKind() == SpecOpKind::OpSetLiteral))
                     SWC_RESULT(sema.waitSemaCompleted(payload->calledFn, node.codeRef()));
+
                 break;
             }
 
@@ -2016,6 +2064,7 @@ namespace
                 const auto*    varBase  = declNode.is(AstNodeId::SingleVarDecl)
                                               ? static_cast<const AstVarDeclBase*>(&declNode.cast<AstSingleVarDecl>())
                                               : static_cast<const AstVarDeclBase*>(&declNode.cast<AstMultiVarDecl>());
+
                 // Only declarations without an initializer can lose their default
                 // construction and therefore need final lifecycle facts here.
                 if (varBase->nodeInitRef.isValid())
@@ -2024,10 +2073,12 @@ namespace
                 const SemaNodeView view = sema.viewSymbol(ref);
                 if (!view.hasSymbol())
                     return Result::Continue;
+
                 for (Symbol* sym : view.symbols())
                 {
                     if (!sym || !sym->isVariable())
                         continue;
+
                     const auto& symVar  = sym->cast<SymbolVariable>();
                     TypeRef     typeRef = symVar.typeRef();
                     for (uint32_t guard = 0; guard < 8 && typeRef.isValid(); guard++)
@@ -2038,16 +2089,20 @@ namespace
                             typeRef = unwrapped;
                             continue;
                         }
+
                         if (type.isArray())
                         {
                             typeRef = type.payloadArrayElemTypeRef();
                             continue;
                         }
+
                         if (type.isStruct())
                             SWC_RESULT(sema.waitSemaCompleted(&type, ref));
+
                         break;
                     }
                 }
+
                 return Result::Continue;
             }
 
@@ -2062,6 +2117,7 @@ namespace
             if (childRef.isValid() && childRef != ref)
                 SWC_RESULT(waitTrackedTypes(sema, childRef, depth + 1));
         }
+
         return Result::Continue;
     }
 }

@@ -22,9 +22,9 @@ namespace
 
     // ---- CodeView / PDB constants -------------------------------------------------------------------
 
-    constexpr uint16_t K_S_GPROC32   = 0x1110;
-    constexpr uint16_t K_S_PUB32     = 0x110E;
-    constexpr uint16_t K_S_PROCREF   = 0x1125;
+    constexpr uint16_t K_S_GPROC32 = 0x1110;
+    constexpr uint16_t K_S_PUB32   = 0x110E;
+    constexpr uint16_t K_S_PROCREF = 0x1125;
 
     constexpr uint32_t K_CV_LINE_STATEMENT = 0x80000000u;
 
@@ -754,14 +754,14 @@ void PdbWriter::build(ByteArray&                         outBytes,
             Bytes payload;
             payload.appendLe32(CodeViewRecords::K_CV_CFL_CXX);   // flags (low byte = language: C++)
             payload.appendLe16(CodeViewRecords::K_CV_CFL_AMD64); // machine
-            payload.appendLe16(major);          // frontend major (producer/compiler version)
-            payload.appendLe16(minor);          // frontend minor
-            payload.appendLe16(build);          // frontend build
-            payload.appendLe16(0);              // frontend QFE
-            payload.appendLe16(major);          // backend major
-            payload.appendLe16(minor);          // backend minor
-            payload.appendLe16(build);          // backend build
-            payload.appendLe16(0);              // backend QFE
+            payload.appendLe16(major);                           // frontend major (producer/compiler version)
+            payload.appendLe16(minor);                           // frontend minor
+            payload.appendLe16(build);                           // frontend build
+            payload.appendLe16(0);                               // frontend QFE
+            payload.appendLe16(major);                           // backend major
+            payload.appendLe16(minor);                           // backend minor
+            payload.appendLe16(build);                           // backend build
+            payload.appendLe16(0);                               // backend QFE
             payload.appendCString(version.view());
             appendSymbol(moduleSymbols, CodeViewRecords::K_S_COMPILE3, payload);
         }
@@ -943,6 +943,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
                 const PdbSymbolAddress addr = resolver.resolve(fn->symbolName);
                 if (!addr.found || !fn->codeSize)
                     continue;
+
                 sectionContribs.push_back({addr.segment, addr.offset, fn->codeSize, module.codeChars, static_cast<uint16_t>(i)});
             }
         }
@@ -954,6 +955,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
                 return a.offset < b.offset;
             if (a.size != b.size)
                 return a.size < b.size;
+
             return a.moduleIndex < b.moduleIndex;
         });
 
@@ -967,6 +969,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
         const auto count = static_cast<uint16_t>(sections.size() + 1);
         secMap.appendLe16(count);
         secMap.appendLe16(count);
+
         for (size_t i = 0; i < sections.size(); ++i)
         {
             const uint32_t ch    = sections[i].characteristics;
@@ -977,6 +980,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
                 flags |= 0x2;
             if (ch & K_SCN_MEM_EXECUTE)
                 flags |= 0x4;
+
             secMap.appendLe16(flags);
             secMap.appendLe16(0);                            // Ovl
             secMap.appendLe16(0);                            // Group
@@ -986,6 +990,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
             secMap.appendLe32(0);                            // Offset
             secMap.appendLe32(sections[i].virtualSize);      // SectionLength
         }
+
         // Trailing absolute section descriptor.
         secMap.appendLe16(0x208);
         secMap.appendLe16(0);
@@ -1001,12 +1006,14 @@ void PdbWriter::build(ByteArray&                         outBytes,
     {
         sourceInfo.appendLe16(static_cast<uint16_t>(modules.size()));     // NumModules
         sourceInfo.appendLe16(static_cast<uint16_t>(sourceFileRefCount)); // NumSourceFiles
+
         uint16_t sourceFileBase = 0;
         for (const PdbModuleBuild& module : modules)
         {
             sourceInfo.appendLe16(sourceFileBase);
             sourceFileBase = static_cast<uint16_t>(sourceFileBase + module.fileIndices.size());
         }
+
         for (const PdbModuleBuild& module : modules)
             sourceInfo.appendLe16(static_cast<uint16_t>(module.fileIndices.size()));
 
@@ -1075,6 +1082,7 @@ void PdbWriter::build(ByteArray&                         outBytes,
         dbi.appendLe16(0);      // Flags
         dbi.appendLe16(0x8664); // Machine (AMD64)
         dbi.appendLe32(0);      // Reserved
+
         dbi.append(modInfo);
         dbi.append(secContr);
         dbi.append(secMap);

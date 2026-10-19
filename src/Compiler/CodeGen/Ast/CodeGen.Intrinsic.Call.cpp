@@ -153,8 +153,8 @@ namespace
 
     void materializeIntrinsicNumericOperand(MicroReg& outReg, CodeGen& codeGen, const CodeGenNodePayload& operandPayload, TypeRef operandTypeRef, TypeRef resultTypeRef)
     {
-        const TypeInfo&   operandType   = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), operandTypeRef);
-        const MicroOpBits operandBits   = loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, operandType);
+        const TypeInfo&   operandType = codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), operandTypeRef);
+        const MicroOpBits operandBits = loadIntrinsicNumericOperand(codeGen, outReg, operandPayload, operandType);
         if (operandTypeRef != resultTypeRef)
             convertIntrinsicNumericOperand(codeGen, outReg, operandType, operandBits, resultTypeRef);
     }
@@ -1941,8 +1941,8 @@ namespace
     // the argument already has that exact type, so nothing converts here.
     Result codeGenVectorSplat(CodeGen& codeGen, AstNodeRef srcNodeRef, bool& outHandled)
     {
-        const SemaNodeView resultView    = codeGen.curViewType();
-        const TypeInfo&    resultType    = resultView.type()->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        const SemaNodeView resultView = codeGen.curViewType();
+        const TypeInfo&    resultType = resultView.type()->unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         if (!resultType.isSimd())
             return Result::Continue;
 
@@ -2015,9 +2015,9 @@ namespace
             return Result::Continue;
         }
 
-        const CodeGenNodePayload& firstPayload  = codeGen.payload(children[0]);
-        const TypeInfo&           declaredType  = firstPayload.typeRef.isValid() ? codeGen.typeMgr().get(firstPayload.typeRef) : *codeGen.viewType(children[0]).type();
-        const TypeInfo&           firstType     = declaredType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
+        const CodeGenNodePayload& firstPayload = codeGen.payload(children[0]);
+        const TypeInfo&           declaredType = firstPayload.typeRef.isValid() ? codeGen.typeMgr().get(firstPayload.typeRef) : *codeGen.viewType(children[0]).type();
+        const TypeInfo&           firstType    = declaredType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         if (!firstType.isSimd())
             return Result::Continue;
 
@@ -2330,6 +2330,7 @@ namespace
         bool    isRound   = false;
         bool    isSelect  = false;
         bool    isMulAdd  = false;
+
         switch (tokId)
         {
             case TokenId::IntrinsicAbs:
@@ -2346,9 +2347,11 @@ namespace
                 op      = MicroOp::VecTruncF32ToS32;
                 isUnary = true;
                 break;
+
             case TokenId::IntrinsicMulAdd:
                 isMulAdd = true;
                 break;
+
             case TokenId::IntrinsicFloor:
                 isRound   = true;
                 roundMode = 9;
@@ -2361,6 +2364,7 @@ namespace
                 isRound   = true;
                 roundMode = 11;
                 break;
+
             case TokenId::IntrinsicVecSatAdd:
                 if (laneBits == 8)
                     op = signedLanes ? MicroOp::VecSatAddS8 : MicroOp::VecSatAddU8;
@@ -2373,12 +2377,14 @@ namespace
                 else
                     op = signedLanes ? MicroOp::VecSatSubS16 : MicroOp::VecSatSubU16;
                 break;
+
             case TokenId::IntrinsicVecPackUS:
                 op = laneBits == 16 ? MicroOp::VecPackUS16 : MicroOp::VecPackUS32;
                 break;
             case TokenId::IntrinsicVecPackSS:
                 op = laneBits == 16 ? MicroOp::VecPackSS16 : MicroOp::VecPackSS32;
                 break;
+
             case TokenId::IntrinsicVecInterleaveLo:
                 op = laneBits == 8 ? MicroOp::VecUnpackLo8 : laneBits == 16 ? MicroOp::VecUnpackLo16
                                                          : laneBits == 32   ? MicroOp::VecUnpackLo32
@@ -2389,6 +2395,7 @@ namespace
                                                          : laneBits == 32   ? MicroOp::VecUnpackHi32
                                                                             : MicroOp::VecUnpackHi64;
                 break;
+
             case TokenId::IntrinsicVecWidenHi:
                 isWidenHi = true;
                 [[fallthrough]];
@@ -2399,8 +2406,10 @@ namespace
                     op = signedLanes ? MicroOp::VecWidenLoS16 : MicroOp::VecWidenLoU16;
                 else
                     op = signedLanes ? MicroOp::VecWidenLoS32 : MicroOp::VecWidenLoU32;
+
                 isUnary = true;
                 break;
+
             case TokenId::IntrinsicVecAvgR:
                 op = laneBits == 8 ? MicroOp::VecAvgU8 : MicroOp::VecAvgU16;
                 break;
@@ -2410,12 +2419,15 @@ namespace
             case TokenId::IntrinsicVecMaddUBS:
                 op = MicroOp::VecMaddUBS16;
                 break;
+
             case TokenId::IntrinsicVecPerm:
                 op = MicroOp::VecPermB;
                 break;
+
             case TokenId::IntrinsicVecSelect:
                 isSelect = true;
                 break;
+
             default:
                 return Result::Continue;
         }
@@ -2554,6 +2566,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
         const auto* payload = codeGen.loweringPayload(codeGen.curNodeRef());
         if (!payload || !payload->hasRuntimeSafety(Runtime::SafetyWhat::Assert))
             return Result::Continue;
+
         return codeGenAssert(codeGen, *this);
     }
 
@@ -2578,12 +2591,14 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return CodeGenSafety::emitUnaryMathIntrinsicCall(codeGen, *this, Math::FoldIntrinsicUnaryFloatOp::Log10, materializeIntrinsicNumericOperand);
         case TokenId::IntrinsicPow:
             return CodeGenSafety::emitPowIntrinsicCall(codeGen, *this, loadIntrinsicNumericOperand);
+
         case TokenId::IntrinsicAbs:
             return codeGenAbs(codeGen, *this);
         case TokenId::IntrinsicMin:
             return codeGenMinMax(codeGen, *this, true);
         case TokenId::IntrinsicMax:
             return codeGenMinMax(codeGen, *this, false);
+
         case TokenId::IntrinsicRol:
             return codeGenRotate(codeGen, *this, MicroOp::RotateLeft);
         case TokenId::IntrinsicRor:
@@ -2596,8 +2611,10 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenBitCount(codeGen, *this, BitCountKind::Tz);
         case TokenId::IntrinsicLeadingZeros:
             return codeGenBitCount(codeGen, *this, BitCountKind::Lz);
+
         case TokenId::IntrinsicMulAdd:
             return codeGenMulAdd(codeGen, *this);
+
         case TokenId::IntrinsicFloor:
             return codeGenFloatRoundIntrinsic(codeGen, *this, FloatRoundKind::Floor);
         case TokenId::IntrinsicCeil:
@@ -2606,6 +2623,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenFloatRoundIntrinsic(codeGen, *this, FloatRoundKind::Trunc);
         case TokenId::IntrinsicRound:
             return codeGenRoundAwayFromZero(codeGen, *this);
+
         case TokenId::IntrinsicMemCpy:
             return codeGenMemBlockIntrinsic(codeGen, *this, false);
         case TokenId::IntrinsicMemSet:
@@ -2616,6 +2634,7 @@ Result AstIntrinsicCallExpr::codeGenPostNode(CodeGen& codeGen) const
             return codeGenMemCmpIntrinsic(codeGen, *this);
         case TokenId::IntrinsicPrefetch:
             return codeGenPrefetch(codeGen, *this);
+
         case TokenId::IntrinsicAtomicAdd:
             return codeGenAtomicBinaryRmw(codeGen, *this, MicroOp::Add);
         case TokenId::IntrinsicAtomicAnd:

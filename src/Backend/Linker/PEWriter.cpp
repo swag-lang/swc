@@ -834,6 +834,7 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
     opt.DllCharacteristics          = IMAGE_DLLCHARACTERISTICS_HIGH_ENTROPY_VA | IMAGE_DLLCHARACTERISTICS_NX_COMPAT | IMAGE_DLLCHARACTERISTICS_TERMINAL_SERVER_AWARE;
     if (!baseRelocSites_.empty())
         opt.DllCharacteristics |= IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE;
+
     opt.SizeOfStackReserve  = image_->stackReserve ? image_->stackReserve : 0x100000;
     opt.SizeOfStackCommit   = image_->stackCommit ? image_->stackCommit : 0x1000;
     opt.SizeOfHeapReserve   = 0x100000;
@@ -864,6 +865,7 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].VirtualAddress    = iatRva_;
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_IAT].Size              = iatSize_;
     }
+
     for (const OutSection& section : sections_)
     {
         if (section.name == ".pdata")
@@ -877,16 +879,19 @@ bool PEWriter::emit(ByteArray& outBytes, Diagnostic& outDiag)
             opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_EXPORT].Size           = section.virtualSize;
         }
     }
+
     if (relocIndex_ >= 0)
     {
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress = sections_[relocIndex_].rva;
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size           = sections_[relocIndex_].virtualSize;
     }
+
     if (debugDirSize_ > 0)
     {
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress = debugDirRva_;
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size           = debugDirSize_;
     }
+
     if (rsrcIndex_ >= 0)
     {
         opt.DataDirectory[IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress = sections_[rsrcIndex_].rva;

@@ -349,10 +349,10 @@ namespace
 
         if (argPayload.typeRef.isValid() && dstType.isFloat())
         {
-            const TypeInfo& srcTypeInfo      = typeMgr.get(argPayload.typeRef);
-            const TypeInfo& srcType          = srcTypeInfo.unwrapAliasTypeOrSelf(ctx);
-            const auto      srcBits          = CodeGenTypeHelpers::numericOrBoolBits(srcType);
-            const auto      dstBits          = CodeGenTypeHelpers::numericOrBoolBits(dstType);
+            const TypeInfo& srcTypeInfo = typeMgr.get(argPayload.typeRef);
+            const TypeInfo& srcType     = srcTypeInfo.unwrapAliasTypeOrSelf(ctx);
+            const auto      srcBits     = CodeGenTypeHelpers::numericOrBoolBits(srcType);
+            const auto      dstBits     = CodeGenTypeHelpers::numericOrBoolBits(dstType);
 
             if (srcType.isIntLike() && srcBits != MicroOpBits::Zero && dstBits != MicroOpBits::Zero)
             {
@@ -1562,6 +1562,7 @@ Result CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(CodeGen& codeGen, const
     emitPreparedCall(codeGen, runtimeFunction, callConv, preparedArgs);
     return Result::Continue;
 }
+
 SymbolFunction* CodeGenCallHelpers::selectedCallFunction(CodeGen& codeGen, AstNodeRef callRef)
 {
     if (auto* function = CodeGenExprView::singleFunction(codeGen.viewSymbol(callRef)))
@@ -1587,14 +1588,17 @@ SymbolFunction* CodeGenCallHelpers::selectedCallFunction(CodeGen& codeGen, AstNo
             if (const auto* payload = codeGen.sema().semaPayload<AssignSpecOpPayload>(callRef))
                 return payload->calledFn;
             break;
+
         case AstNodeId::SingleVarDecl:
             if (const auto* payload = codeGen.sema().semaPayload<VarInitSpecOpPayload>(callRef))
                 return payload->calledFn;
             break;
+
         case AstNodeId::CountOfExpr:
             if (const auto* payload = codeGen.sema().semaPayload<CountOfSpecOpPayload>(callRef))
                 return payload->calledFn;
             break;
+
         case AstNodeId::IntrinsicCall:
             if (codeGen.token(codeGen.node(callRef).codeRef()).id == TokenId::IntrinsicDataOf)
             {
@@ -1602,6 +1606,7 @@ SymbolFunction* CodeGenCallHelpers::selectedCallFunction(CodeGen& codeGen, AstNo
                     return payload->calledFn;
             }
             break;
+
         case AstNodeId::IndexExpr:
         case AstNodeId::IndexListExpr:
             if (const auto* payload = codeGen.sema().semaPayload<IndexSpecOpPayloadBase>(callRef))
@@ -1612,18 +1617,22 @@ SymbolFunction* CodeGenCallHelpers::selectedCallFunction(CodeGen& codeGen, AstNo
                     return static_cast<const SliceSpecOpSemaPayload*>(payload)->calledFn;
             }
             break;
+
         case AstNodeId::CastExpr:
         case AstNodeId::AutoCastExpr:
             if (const auto* payload = codeGen.sema().semaPayload<CastSpecOpPayload>(callRef))
             {
                 if (payload->kind == CastSpecialOpPayloadKind::OpCast)
                     return payload->calledFn;
+
                 return codeGen.sema().semaPayload<CastSetPayload>(callRef)->calledFn;
             }
             break;
+
         default:
             break;
     }
+
     return nullptr;
 }
 
@@ -1633,9 +1642,11 @@ Result CodeGenCallHelpers::codeGenCallExprCommon(CodeGen& codeGen, AstNodeRef ca
     SymbolFunction* calledFunction = nullptr;
     SWC_RESULT(resolveSelectedCallFunction(codeGen, calleeRef, selectedFunction, calledFunction));
     SWC_ASSERT(calledFunction != nullptr);
+
     TypeRef nodePayloadTypeRef = calledFunction->returnTypeRef();
     if (!nodePayloadTypeRef.isValid())
         nodePayloadTypeRef = codeGen.curViewType().typeRef();
+
     const CallConvKind callConvKind = calledFunction->callConvKind();
     const CallConv&    callConv     = CallConv::get(callConvKind);
     // ABI return lowering must follow the callee signature. The expression type can be a

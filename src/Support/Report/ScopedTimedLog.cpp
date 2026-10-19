@@ -42,8 +42,10 @@ namespace
     {
         if (value == 1)
             return Utf8{singular};
+
         if (plural)
             return Utf8{plural};
+
         return Utf8{singular} + "s";
     }
 
@@ -73,6 +75,7 @@ namespace
             case Stage::Verify: return {"verifying", "verified"};
             case Stage::Unittest: return {"testing", "tested"};
         }
+
         SWC_UNREACHABLE();
     }
 
@@ -88,6 +91,7 @@ namespace
             case ScopedTimedLog::StageOutcome::Warning: return "passed";
             case ScopedTimedLog::StageOutcome::Error: return "stopped";
         }
+
         SWC_UNREACHABLE();
     }
 
@@ -95,10 +99,13 @@ namespace
     {
         if (outcome == ScopedTimedLog::StageOutcome::Error)
             return {.glyphColor = LogColor::BrightRed, .glyph = LogSymbol::Error};
+
         if (outcome == ScopedTimedLog::StageOutcome::Warning)
             return {.glyphColor = LogColorHelper::diagnosticSeverityColor(DiagnosticSeverity::Warning), .glyph = LogSymbol::Warning};
+
         if (upToDate)
             return {.glyphColor = LogColor::BrightBlue, .glyph = LogSymbol::UpToDate};
+
         return {.glyphColor = LogColor::BrightGreen, .glyph = LogSymbol::Check};
     }
 
@@ -112,10 +119,13 @@ namespace
                 fs::path scriptPath = cmd.newScriptPath.empty() ? fs::path{"hello.swgs"} : cmd.newScriptPath;
                 if (scriptPath.extension().empty())
                     scriptPath += ".swgs";
+
                 return Utf8{scriptPath.string()};
             }
+
             if (!cmd.workspacePath.empty())
                 return Utf8{cmd.workspacePath.filename().string()};
+
             return cmd.newProjectName;
         }
 
@@ -128,10 +138,13 @@ namespace
                 name += " [" + *cmd.workspaceModuleSelection.begin() + "]";
             else if (!cmd.workspaceModuleSelection.empty())
                 name += std::format(" [{} roots]", cmd.workspaceModuleSelection.size());
+
             return name;
         }
+
         if (!cmd.modulePath.empty())
             return Utf8{cmd.modulePath.filename().string()};
+
         if (!cmd.moduleFilePath.empty())
             return Utf8{cmd.moduleFilePath.parent_path().filename().string()};
 
@@ -140,10 +153,13 @@ namespace
             const fs::path  rel = fs::relative(path, fs::current_path(ec), ec);
             return Utf8{(!ec && !rel.empty() ? rel : path).generic_string()};
         };
+
         if (!cmd.directories.empty())
             return cmd.directories.size() == 1 ? relative(*cmd.directories.begin()) : Utf8{std::format("{} locations", cmd.directories.size())};
+
         if (!cmd.files.empty())
             return cmd.files.size() == 1 ? relative(*cmd.files.begin()) : Utf8{std::format("{} files", cmd.files.size())};
+
         return "sources";
     }
 
@@ -163,10 +179,12 @@ namespace
 
         const Utf8 bullet = colorize(ctx, LogColor::Gray, LogSymbolHelper::toString(ctx, LogSymbol::DotList));
         bool       first  = true;
+
         for (const Utf8& part : parts)
         {
             if (part.empty())
                 continue;
+
             if (!first)
                 line += " " + bullet + " ";
             line += part;
@@ -184,6 +202,7 @@ namespace
 
         Utf8 line = formatLine(ctx, prefix, label, parts);
         line += "\n";
+
         const Logger::ScopedLock lock(ctx.global().logger());
         std::cout << line << std::flush;
     }
@@ -206,6 +225,7 @@ namespace
                 result[i] += " " + colorize(ctx, LogColor::Gray, LogSymbolHelper::toString(ctx, LogSymbol::DotList)) + " ";
             result[i] += LogColorHelper::toAnsi(ctx, LogColor::Gray);
         }
+
         return result;
     }
 }
@@ -233,6 +253,7 @@ void ScopedTimedLog::appendTestStats(const TaskContext& ctx, std::vector<Utf8>& 
         parts.push_back(formatStatCount(ctx, 0, "test"));
     else
         parts.push_back(colorize(ctx, LogColor::Gray, Utf8Helper::toNiceBigNumber(executed - std::min(executed, failed)) + " passed"));
+
     if (failed)
         parts.push_back(colorize(ctx, LogColor::BrightRed, Utf8Helper::toNiceBigNumber(failed) + " did not pass"));
 }
@@ -259,6 +280,7 @@ Utf8 ScopedTimedLog::formatTestProgress(const TaskContext& ctx, const size_t exe
         parts.push_back(colorize(ctx, LogColor::BrightRed, Utf8Helper::toNiceBigNumber(failed) + " did not pass"));
     if (!current.empty())
         parts.push_back(formatStatName(ctx, current));
+
     return joinStatItems(ctx, parts);
 }
 
@@ -282,15 +304,18 @@ Utf8 ScopedTimedLog::joinStatItems(const TaskContext& ctx, const std::vector<Utf
     const Utf8 bullet = colorize(ctx, LogColor::Gray, LogSymbolHelper::toString(ctx, LogSymbol::DotList));
     Utf8       result;
     bool       first = true;
+
     for (const Utf8& item : items)
     {
         if (item.empty())
             continue;
+
         if (!first)
             result += " " + bullet + " ";
         result += item;
         first = false;
     }
+
     return result;
 }
 
@@ -338,6 +363,7 @@ ScopedTimedLog::~ScopedTimedLog()
         outcome = StageOutcome::Error;
     else if (d.numWarnings)
         outcome = StageOutcome::Warning;
+
     if (forcedOutcome_ && static_cast<int>(*forcedOutcome_) > static_cast<int>(outcome))
         outcome = *forcedOutcome_;
 
@@ -360,6 +386,7 @@ ScopedTimedLog::~ScopedTimedLog()
     const std::string_view label = outcome == StageOutcome::Error ? stageActiveLabel(stage_) : stageDoneLabel(stage_);
     Utf8                   line  = formatLine(*ctx_, stageOutcomePrefix(outcome, upToDate_), label, {detail_, stat_, testStat, time});
     line += "\n";
+
     if (progressId_)
         ctx_->global().logger().endProgress(progressId_, line);
     else
@@ -384,6 +411,7 @@ void ScopedTimedLog::dismiss()
 {
     if (progressId_)
         ctx_->global().logger().cancelProgress(progressId_);
+
     progressId_   = 0;
     printEnabled_ = false;
 }
@@ -404,6 +432,7 @@ void ScopedTimedLog::stopProgress()
 {
     if (!progressId_)
         return;
+
     ctx_->global().logger().cancelProgress(progressId_);
     progressId_ = 0;
 }

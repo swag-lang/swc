@@ -431,6 +431,7 @@ namespace
                     });
                 }
             };
+
             appendOverloads(ownerStruct->impls());
             appendOverloads(ownerStruct->interfaces());
 
@@ -462,16 +463,18 @@ namespace
                 if (candidate && isPublicApiExportedOverload(*candidate))
                     outOverloads.push_back(candidate);
             });
+
             return;
         }
 
         for (const SymbolMap* ownerMap : ownerMaps)
         {
-            // Homonym chains already have declaration order. Query this name under the map's
-            // lock instead of collecting and sorting every declaration for each exported function.
+            // Homonym chains already follow declaration order. Query this name directly
+            // instead of collecting and sorting all declarations for each export.
             MatchContext lookup;
             lookup.beginSymMapLookup({});
             ownerMap->lookupAppend(symbol.idRef(), lookup);
+
             for (const Symbol* candidateBase : lookup.symbols())
             {
                 const auto* candidate = candidateBase->safeCast<SymbolFunction>();
@@ -485,6 +488,7 @@ namespace
     {
         Utf8 result;
         bool hasExplicitParam = false;
+
         for (const SymbolVariable* param : symbol.parameters())
         {
             SWC_ASSERT(param != nullptr);
@@ -497,6 +501,7 @@ namespace
 
         if (!hasExplicitParam)
             appendPublicApiSymbolFragment(result, "void");
+
         return result;
     }
 
@@ -581,6 +586,7 @@ namespace
         {
             if (typeInfo.payloadArrayDims().empty())
                 return false;
+
             return isLocalLayoutReady(ctx, typeInfo.payloadArrayElemTypeRef());
         }
 
@@ -589,6 +595,7 @@ namespace
             const auto& aggregateTypes = typeInfo.payloadAggregate().types;
             if (aggregateTypes.empty())
                 return false;
+
             for (const TypeRef elemTypeRef : aggregateTypes)
             {
                 if (!isLocalLayoutReady(ctx, elemTypeRef))
@@ -607,18 +614,20 @@ namespace
 
         return true;
     }
-
 }
 
 struct SymbolFunction::GenericData
 {
-    GenericInstanceOrigin                         origin;
-    GenericInstanceStorage                        instances;
-    std::atomic<const TaskContext*>               completionOwner = nullptr;
-    mutable std::atomic<uint32_t>                 completionDepth = 0;
-    mutable std::atomic<bool>                     nodeCompleted   = false;
-    SymbolFunction*                               rootSym         = nullptr;
-    std::shared_ptr<void>                         lazyBodyRun;
+    GenericInstanceOrigin  origin;
+    GenericInstanceStorage instances;
+
+    std::atomic<const TaskContext*> completionOwner = nullptr;
+    mutable std::atomic<uint32_t>   completionDepth = 0;
+    mutable std::atomic<bool>       nodeCompleted   = false;
+
+    SymbolFunction*       rootSym = nullptr;
+    std::shared_ptr<void> lazyBodyRun;
+
     mutable std::recursive_mutex                  evalRunMutex;
     mutable std::shared_mutex                     evalCacheMutex;
     std::vector<SymbolInternal::GenericEvalEntry> evalCache;
@@ -659,6 +668,7 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     out += hasExtraFlag(SymbolFunctionFlagsE::Method) ? "mtd" : "func";
     out += hasExtraFlag(SymbolFunctionFlagsE::Closure) ? "||" : "";
     out += "(";
+
     for (size_t i = 0; i < parameters_.size(); ++i)
     {
         if (i != 0)
@@ -673,6 +683,7 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
         const TypeInfo& paramType = ctx.typeMgr().get(parameters_[i]->typeRef());
         out += paramType.toName(ctx);
     }
+
     out += ")";
 
     if (returnType_ != ctx.typeMgr().typeVoid())
@@ -683,6 +694,7 @@ Utf8 SymbolFunction::computeName(const TaskContext& ctx) const
     }
 
     out += hasExtraFlag(SymbolFunctionFlagsE::Fallible) ? " fail" : "";
+
     return out;
 }
 
@@ -694,16 +706,19 @@ Utf8 SymbolFunction::computePublicApiBaseSymbolName(const TaskContext& ctx) cons
 
     if (apiName.empty())
         apiName = "fn";
+
     return apiName;
 }
 
 Utf8 SymbolFunction::computePublicApiSymbolName(const TaskContext& ctx) const
 {
-    Utf8                                  apiName = computePublicApiBaseSymbolName(ctx);
+    Utf8 apiName = computePublicApiBaseSymbolName(ctx);
+
     SmallVector<const SymbolFunction*, 4> overloads;
     collectPublicApiOverloads(*this, overloads);
     if (overloads.size() > 1)
         appendPublicApiOverloadSuffix(apiName, ctx, *this, overloads.span());
+
     return apiName;
 }
 
@@ -717,6 +732,7 @@ bool SymbolFunction::supportsGeneratedModuleApiExport() const noexcept
         return false;
     if (isFunctionNestedInFunctionScope(*this))
         return false;
+
     const AttributeList& attrs = attributes();
     if (attrs.hasRtFlag(RtAttributeFlagsE::Compiler | RtAttributeFlagsE::Implicit))
         return false;
@@ -763,6 +779,7 @@ uint32_t SymbolFunction::typeSignatureHash() const noexcept
     h          = Math::hashCombine(h, isConst() ? 1u : 0u);
     h          = Math::hashCombine(h, hasVariadicParam() ? 1u : 0u);
     h          = Math::hashCombine(h, static_cast<uint32_t>(parameters_.size()));
+
     for (const SymbolVariable* param : parameters_)
     {
         SWC_ASSERT(param != nullptr);
@@ -777,6 +794,7 @@ bool SymbolFunction::sameTypeSignature(const SymbolFunction& otherFunc) const no
 {
     if (this == &otherFunc)
         return true;
+
     return isClosure() == otherFunc.isClosure() && sameTypeSignatureIgnoringClosure(otherFunc);
 }
 
@@ -789,6 +807,7 @@ bool SymbolFunction::sameTypeSignatureIgnoringClosure(const SymbolFunction& othe
         return false;
     if (callConvKind() != otherFunc.callConvKind())
         return false;
+
     if (isMethod() != otherFunc.isMethod())
         return false;
     if (isFallible() != otherFunc.isFallible())

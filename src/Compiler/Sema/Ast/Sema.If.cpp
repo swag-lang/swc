@@ -298,7 +298,6 @@ namespace
         }
     }
 
-    // Drop every candidate the other path does not prove as well.
     void filterBranchNarrowCandidates(const SmallVector2<SemaNarrowFact>& otherFacts, SmallVector2<SemaNarrowFact>& candidates)
     {
         SmallVector2<SemaNarrowFact> kept;
@@ -310,7 +309,6 @@ namespace
 
         candidates = std::move(kept);
     }
-
 }
 
 Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
@@ -324,11 +322,8 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
         SemaHelpers::collectNarrowGuards(sema, nodeConditionRef, guards);
         const auto& facts = childRef == nodeIfBlockRef ? guards.whenTrue : guards.whenFalse;
 
-        // A branch is also a narrowing region for the facts its own body proves: an assignment
-        // inside it holds only while that branch runs, because the other path never made it. A
-        // braced body already owns the frame every block gets at node entry; a "do" body is a
-        // bare statement, so the region frame is pushed here, or its fact outlives the branch
-        // and narrows code the other path reaches.
+        // A bare do body needs a branch frame to contain the facts it proves.
+        // Braced bodies already own a frame; without one, facts leak across paths.
         const bool bodyOwnsFrame = sema.node(childRef).is(AstNodeId::EmbeddedBlock);
 
         // The false branch starts from the facts that held before the true one, without the kills
@@ -348,10 +343,8 @@ Result AstIfStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
             sema.pushFramePopOnPostChild(std::move(frame), childRef);
         }
 
-        // What this branch proves at its end is one half of what holds after the 'if'. A braced
-        // body proves it in the frame that block owns, which is popped before the branch comes
-        // back to semaPostNodeChild, so the set is snapshotted at the block's own post-node; a
-        // "do" body proves it in the region frame just pushed, still current at that point.
+        // Capture braced bodies before their own frame disappears. A do body's
+        // branch frame remains active until semaPostNodeChild captures it.
         if (bodyOwnsFrame)
             sema.armNarrowFactCapture(childRef);
     }
@@ -371,10 +364,8 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
     sema.takeNarrowFactCapture(nodeIfBlockRef, thenFacts);
     sema.takeNarrowFactCapture(nodeElseBlockRef, elseFacts);
 
-    // What holds after the `if` is what BOTH paths prove. A path that terminates the local flow
-    // is not one of them, which is the guard-style early exit: the surviving path's facts hold
-    // alone for the remainder of the enclosing block. When both terminate, no code after this
-    // statement is reachable and there is nothing to publish.
+    // Only paths that reach the join contribute facts. Intersect surviving paths,
+    // or retain the remaining path's facts when the other exits early.
     const bool thenStops = SemaHelpers::stopsLocalFlow(sema, nodeIfBlockRef);
     const bool elseStops = nodeElseBlockRef.isValid() && SemaHelpers::stopsLocalFlow(sema, nodeElseBlockRef);
     if (thenStops && elseStops)
@@ -392,16 +383,15 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
     {
         if (nodeElseBlockRef.isInvalid())
             collectMissingElseNarrowFacts(sema, nodeConditionRef, elseFacts);
+
         filterBranchNarrowCandidates(elseFacts, merged);
         if (merged.empty())
             return Result::Continue;
     }
 
-    // Mutate the current frame instead of pushing one anchored at the parent: an `elif` is an
-    // `if` in the else slot of another, so its publication would sit on top of the enclosing
-    // branch's region frame and keep that frame from popping on schedule. The frame reached
-    // here is the one the statement started in, and it already ends where the facts stop
-    // holding â€” the enclosing block, or the branch region of the `if` this one chains from.
+    // Publish in the existing frame: pushing a new one for an elif would block
+    // the enclosing branch's region frame from popping. This frame already ends
+    // at the enclosing block or branch region that bounds the facts.
     SemaHelpers::addNarrowFacts(sema.frame(), {merged.data(), merged.size()});
     return Result::Continue;
 }
@@ -437,12 +427,14 @@ Result AstIfStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) cons
 Result AstIfVarDecl::semaPreNode(Sema& sema)
 {
     const auto& node = sema.node(sema.curNodeRef()).cast<AstIfVarDecl>();
+
     // A type-pattern name exists only after the match. Ordinary 'if let' keeps
     // its existing nullable binding in the else branch.
     if (sema.token(sema.node(node.nodeVarRef).codeRef()).is(TokenId::KwdIs))
         sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, node.nodeIfBlockRef);
     else
         sema.pushScopePopOnPostNode(SemaScopeFlagsE::Local);
+
     return Result::Continue;
 }
 
@@ -465,8 +457,9 @@ Result AstIfVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) co
 
             if (bindingTypeRef.isValid() && sema.typeMgr().get(bindingTypeRef).isNullable())
             {
-                const std::array<const Symbol*, 1> path  = {conditionSym};
-                SemaFrame                          frame = sema.frame();
+                const std::array<const Symbol*, 1> path = {conditionSym};
+
+                SemaFrame frame = sema.frame();
                 frame.addNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull);
                 sema.pushFramePopOnPostChild(std::move(frame), childRef);
             }
@@ -481,7 +474,9 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     if (childRef == nodeVarRef)
     {
         SWC_RESULT(SemaCheck::conditionBinding(sema, nodeVarRef));
-        const bool usesConditionBinding                                                                       = nodeWhereRef.isValid() && ifVarDeclNeedsWhereShortCircuit(sema, nodeVarRef);
+
+        const bool usesConditionBinding = nodeWhereRef.isValid() && ifVarDeclNeedsWhereShortCircuit(sema, nodeVarRef);
+
         SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).ifVarDeclWhereUsesConditionBinding = usesConditionBinding;
         if (usesConditionBinding)
         {
@@ -493,6 +488,7 @@ Result AstIfVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) c
     {
         SemaNodeView view   = sema.viewNodeTypeConstant(nodeWhereRef);
         const Result result = SemaCheck::castToBool(sema, view);
+
         restoreMaskedIfVarDeclCondition(sema, sema.curNodeRef());
         return result;
     }
@@ -520,22 +516,20 @@ Result AstWithStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     const AstNodeRef   baseExprRef = withBindingExprRef(sema, nodeExprRef);
     const SemaNodeView exprView    = sema.viewNodeTypeSymbol(baseExprRef);
 
-    // The subject of a 'with' is a value. A namespace, an enum, or a struct type names a scope
-    // instead, and 'using' is what brings a scope into the current context; letting 'with' take
-    // both would give the leading dot a second, unrelated subject to be ranked against.
+    // with requires a value subject. Type and namespace scopes belong to using;
+    // accepting both would give auto-member lookup unrelated subjects to rank.
     const Symbol* subjectSym = exprView.sym();
     if (subjectSym && subjectSym->isSymMap())
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_with_scope_subject, nodeExprRef);
         diag.addArgument(Diagnostic::ARG_SYM, subjectSym->getFullScopedName(sema.ctx()));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
-    // The block reaches the subject by writing it out again for every '.member' it holds. That is
-    // exact for a place â€” a variable, a field, an element â€” and wrong for anything computed: a
-    // call would run once more per member the block touches, on a different value each time, and
-    // the value the statement itself produced would be dropped.
+    // Require an existing place because each .member reuses the subject expression.
+    // A computed subject would run again per member and lose its original value.
     if (baseExprRef.isValid() && !sema.isLValue(baseExprRef))
         return SemaError::raise(sema, DiagnosticId::sema_err_with_needs_a_place, baseExprRef);
 
@@ -543,6 +537,7 @@ Result AstWithStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) con
     SemaScope* bodyScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     SWC_RESULT(configureWithBindings(sema, nodeExprRef, exprView.sym(), exprView.typeRef(), baseExprRef, scopedFrame, *bodyScope));
     sema.pushFramePopOnPostChild(std::move(scopedFrame), childRef);
+
     return Result::Continue;
 }
 
@@ -559,6 +554,7 @@ Result AstWithVarDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
     SemaScope* bodyScope   = sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
     SWC_RESULT(configureWithBindings(sema, nodeVarRef, symVar, symVar->typeRef(), AstNodeRef::invalid(), scopedFrame, *bodyScope));
     sema.pushFramePopOnPostChild(std::move(scopedFrame), childRef);
+
     return Result::Continue;
 }
 

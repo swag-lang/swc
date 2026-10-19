@@ -1906,9 +1906,8 @@ Result AstClosureExpr::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef)
 
 namespace
 {
-    // Two signature types agree when they are the same type, or when both are anonymous structs
-    // ('->{ width, height: s32 }') spelled again with the same field names and types: each spelling
-    // declares a struct of its own.
+    // Repeated anonymous struct spellings create distinct types. Match their
+    // field names and types recursively when comparing function signatures.
     bool sameSignatureType(const Sema& sema, TypeRef left, TypeRef right)
     {
         if (left == right)
@@ -1959,9 +1958,8 @@ namespace
         return sameSignatureType(sema, implMethod.returnTypeRef(), interfaceMethod.returnTypeRef());
     }
 
-    // A method marked 'impl' in 'impl <Interface> for <Struct>' is one of the interface's methods
-    // with the same parameters and return type: the interface table calls it through the interface
-    // signature, so any other signature would be called with the wrong values.
+    // Interface tables call through the prototype's signature; an impl method
+    // with different parameters or return type would violate that call contract.
     Result validateInterfaceImplMethod(Sema& sema, const AstFunctionDecl& node, const SymbolFunction& sym)
     {
         if (!node.hasFlag(AstFunctionFlagsE::Impl) || sym.isGenericInstance())
@@ -1981,6 +1979,7 @@ namespace
                 continue;
             if (interfaceImplSignatureMatches(sema, sym, *interfaceMethod))
                 return Result::Continue;
+
             sameName = interfaceMethod;
         }
 
@@ -1995,11 +1994,10 @@ namespace
             note.addSpan(srcView.tokenCodeRange(sema.ctx(), sameName->tokRef()), "");
         }
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
-    // The checks every function body runs once its walk is complete, shared by
-    // declarations, function expressions and closures.
     Result checkCompletedFunctionBody(Sema& sema, SymbolFunction& sym, AstNodeRef bodyRef, bool checkReturnContract)
     {
         if (SemaInitFlow::wantsCheck(sema, sym))
@@ -2008,8 +2006,10 @@ namespace
         SWC_RESULT(SemaCheck::missingReturn(sema, sym, bodyRef));
         SWC_RESULT(SemaCheck::unusedVariables(sema, sym));
         SWC_RESULT(SemaSpecOp::addImplicitLifecycleCallDependencies(sema, sym));
+
         SemaEscape::finalizeBorrowStores(sema, sym, bodyRef);
         SWC_RESULT(SemaEscape::reportBorrowInvalidations(sema, sema.curNodeRef()));
+
         SemaPurity::computePurityFlag(sema, sym);
         return Result::Continue;
     }
@@ -2038,9 +2038,8 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         std::this_thread::sleep_for(std::chrono::milliseconds(3));
 #endif
 
-    // A body handed to the lazy runner is completed by that runner and by nothing else. This walk
-    // skipped the body, so completing the function here would publish it (and schedule its code
-    // generation) while the runner may still be resolving the body on another thread.
+    // Only the lazy runner may complete a body this walk skipped. Publishing it
+    // here could schedule codegen while another task is still resolving it.
     if (isLazyBodyOwnedByAnotherWalk(sema, sym))
         return Result::Continue;
     if (sym.isSemaCompleted())
@@ -2054,6 +2053,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
         sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBody);
         sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
         sym.setSemaCompleted(sema.ctx());
+
         return Result::Continue;
     }
 
@@ -2069,6 +2069,7 @@ Result AstFunctionDecl::semaPostNode(Sema& sema)
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBody);
     sym.removeExtraFlag(SymbolFunctionFlagsE::LazyBodyRunning);
     publishCompletedFunction(sema, sym);
+
     return Result::Continue;
 }
 
@@ -2082,6 +2083,7 @@ Result AstFunctionExpr::semaPostNode(Sema& sema) const
 
     SWC_RESULT(checkCompletedFunctionBody(sema, sym, nodeBodyRef, false));
     publishCompletedFunction(sema, sym);
+
     return Result::Continue;
 }
 
@@ -2096,6 +2098,7 @@ Result AstClosureExpr::semaPostNode(Sema& sema) const
     SWC_RESULT(attachClosureExprRuntimeStorageIfNeeded(sema, *this, sym));
     SWC_RESULT(checkCompletedFunctionBody(sema, sym, nodeBodyRef, false));
     publishCompletedFunction(sema, sym);
+
     return Result::Continue;
 }
 
@@ -2104,9 +2107,8 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     if (!sema.enteringState())
         return Result::Continue;
 
-    // Generic specialization can pause and restart while walking the signature.
-    // Reuse the receiver symbol already attached to this node instead of
-    // registering a second `me` parameter on resume.
+    // Reuse the attached me symbol after a generic-signature pause, rather than
+    // registering the receiver again when analysis resumes.
     if (sema.curViewSymbol().sym())
         return Result::Continue;
 
@@ -2118,8 +2120,9 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
     const TypeRef       ownerType = symImpl->ownerTypeRef();
     const IdentifierRef idRef     = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
     const SymbolFlags   flags     = sema.frame().flagsForCurrentAccess();
-    auto*               sym       = Symbol::make<SymbolVariable>(ctx, this, tokRef(), idRef, flags);
-    SymbolMap*          symbolMap = SemaFrame::currentSymMap(sema);
+
+    auto*      sym       = Symbol::make<SymbolVariable>(ctx, this, tokRef(), idRef, flags);
+    SymbolMap* symbolMap = SemaFrame::currentSymMap(sema);
     SWC_ASSERT(ownerType.isValid());
 
     if (SemaHelpers::currentLocalSymbolScope(sema))
@@ -2141,12 +2144,9 @@ Result AstFunctionParamMe::semaPreNode(Sema& sema) const
 
 namespace
 {
-    // Whether this 'return' is written in the body of a 'parallel for'. That body is a closure
-    // the parser generated, so a 'return' there ends one partition instead of the enclosing
-    // function, and the other partitions keep running.
-    //
-    // A callee inlined into the body keeps its own return contract: its 'return' belongs to the
-    // function that was written, not to the partition it happens to be expanded in.
+    // A parallel-for body is a generated closure; return would end one partition
+    // while other partitions continue. Inline callees retain their own return
+    // contract and must not be treated as partition exits.
     bool inParallelForBody(Sema& sema)
     {
         if (nearestReturnContextPayload(sema) != nullptr)
@@ -2171,6 +2171,7 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_control_flow_leaves_defer, sema.curNodeRef());
         diag.addArgument(Diagnostic::ARG_TOK, Token::toName(TokenId::KwdReturn));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -2184,11 +2185,13 @@ Result AstReturnStmt::semaPostNode(Sema& sema) const
         else
             diag.addArgument(Diagnostic::ARG_SYM, currentFn->name(sema.ctx()));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
     TypeRef returnTypeRef = TypeRef::invalid();
     SWC_RESULT(resolveReturnTypeRef(sema, nodeExprRef, returnTypeRef));
+
     return validateReturnStatementValue(sema, sema.curNodeRef(), nodeExprRef, returnTypeRef);
 }
 
@@ -2215,6 +2218,7 @@ Result AstReturnStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) c
     frame.pushBindingType(returnTypeRef);
     SWC_RESULT(bindReturnSlotRuntimeStorage(frame, sema, childRef));
     sema.pushFramePopOnPostChild(std::move(frame), childRef);
+
     return Result::Continue;
 }
 

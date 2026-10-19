@@ -55,6 +55,7 @@ const Symbol* SemaHelpers::findPredefinedRuntimeSymbol(const Sema& sema, Identif
     // Runtime files root their top-level symbols under the shared import-root namespace (see
     // topLevelCreationSymMap); without one they fall back to the module namespace.
     const SymbolMap* roots[] = {sema.compiler().importRootNamespace(), &sema.moduleNamespace()};
+
     for (const SymbolMap* root : roots)
     {
         if (!root)
@@ -116,8 +117,8 @@ TypeRef SemaHelpers::borrowedAggregateArgumentRuntimeStorageTypeRef(Sema& sema, 
     if (sema.isGlobalScope() || !paramTypeRef.isValid())
         return TypeRef::invalid();
 
-    const TypeInfo& storageType   = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramTypeRef);
-    const bool      isAggregate   = isByValueAggregateType(storageType) || (storageType.isFunction() && storageType.isLambdaClosure());
+    const TypeInfo& storageType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), paramTypeRef);
+    const bool      isAggregate = isByValueAggregateType(storageType) || (storageType.isFunction() && storageType.isLambdaClosure());
     if (!isAggregate)
         return TypeRef::invalid();
 
@@ -184,6 +185,7 @@ Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadN
 
     auto& storageSym = getOrCreateRuntimeStorageSymbol(sema, payloadNodeRef, storageNode, storageTypeRef, privateName);
     SWC_RESULT(ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, storageTypeRef));
+
     return Result::Continue;
 }
 
@@ -197,7 +199,9 @@ Result SemaHelpers::requireRuntimeFunctionDependency(SymbolFunction*& outRuntime
     outRuntimeFn = nullptr;
     SWC_RESULT(sema.waitRuntimeFunction(kind, outRuntimeFn, codeRef));
     SWC_ASSERT(outRuntimeFn != nullptr);
+
     addCurrentFunctionCallDependency(sema, outRuntimeFn);
+
     return Result::Continue;
 }
 
@@ -264,8 +268,9 @@ Result SemaHelpers::requireRuntimeCatchScopeDependencies(Sema& sema, const Sourc
 {
     SWC_RESULT(requireRuntimePushErrDependency(sema, codeRef));
     SWC_RESULT(requireRuntimeCatchErrDependency(sema, codeRef));
-    // The hidden error owner has an ordinary drop. Failure unwinding parks the active error
-    // while that cleanup runs, so even a catch without written defers needs both helpers.
+
+    // Hidden error owners have ordinary drops. Failure unwinding parks the
+    // active error during cleanup, even when catch has no explicit defer.
     return requireRuntimePopErrDependency(sema, codeRef);
 }
 
@@ -290,7 +295,9 @@ Result SemaHelpers::attachRuntimeFunctionToNode(Sema& sema, AstNodeRef nodeRef, 
 {
     SymbolFunction* runtimeFn = nullptr;
     SWC_RESULT(requireRuntimeFunctionDependency(runtimeFn, sema, kind, codeRef));
+
     ensureCodeGenLoweringPayload(sema, nodeRef).runtimeFunctionSymbol = runtimeFn;
+
     return Result::Continue;
 }
 
@@ -328,6 +335,7 @@ Result SemaHelpers::setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runt
     auto& payload = ensureCodeGenLoweringPayload(sema, nodeRef);
     payload.addRuntimeSafety(safetyKind);
     payload.runtimeFunctionSymbol = panicFn;
+
     return Result::Continue;
 }
 
@@ -339,6 +347,7 @@ bool SemaHelpers::ownsExpressionValue(Sema& sema, AstNodeRef nodeRef)
         const auto* lowering = sema.loweringPayload<CodeGenLoweringPayload>(nodeRef);
         if (lowering && lowering->ownsValue)
             return true;
+
         const AstNode& node = sema.node(nodeRef);
         AstNodeRef     childRef;
         if (node.is(AstNodeId::CastExpr))
@@ -351,8 +360,10 @@ bool SemaHelpers::ownsExpressionValue(Sema& sema, AstNodeRef nodeRef)
             childRef = node.cast<AstNamedArgument>().nodeArgRef;
         else
             return false;
+
         nodeRef = node.is(AstNodeId::CastExpr) ? childRef : sema.resolvedNodeRef(childRef);
     }
+
     return false;
 }
 
@@ -362,8 +373,10 @@ bool SemaHelpers::expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef)
     const auto* inlinePayload = sema.inlinePayload(nodeRef);
     if (inlinePayload && inlinePayload->inlineRootRef == nodeRef && inlinePayload->returnTypeRef.isValid())
         return sema.typeMgr().get(inlinePayload->returnTypeRef).isReference();
+
     if (ownsExpressionValue(sema, nodeRef))
         return false;
+
     const AstNode& node = sema.node(nodeRef);
     if (node.is(AstNodeId::CallExpr))
         return sema.viewType(nodeRef).type()->isReference();
@@ -373,6 +386,7 @@ bool SemaHelpers::expressionBorrowsStorage(Sema& sema, AstNodeRef nodeRef)
         return expressionBorrowsStorage(sema, node.cast<AstInitializerExpr>().nodeExprRef);
     if (node.is(AstNodeId::NamedArgument))
         return expressionBorrowsStorage(sema, node.cast<AstNamedArgument>().nodeArgRef);
+
     return sema.isLValueStored(nodeRef) || node.is(AstNodeId::ConditionalExpr) || node.is(AstNodeId::NullCoalescingExpr);
 }
 
@@ -390,16 +404,20 @@ Result SemaHelpers::materializeMovedValue(Sema& sema, SemaNodeView& view)
     const TypeRef valueTypeRef = view.type()->payloadTypeRef();
     if (view.type()->isConst())
         return SemaError::raiseCannotCast(sema, view.nodeRef(), view.typeRef(), valueTypeRef);
+
     SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, view.nodeRef(), valueTypeRef, AstModifierFlagsE::Move));
 
-    const AstNodeRef castRef   = Cast::createCast(sema, valueTypeRef, view.nodeRef());
-    auto&            lowering  = ensureCodeGenLoweringPayload(sema, castRef);
-    lowering.moveValue         = true;
-    lowering.ownsValue         = true;
+    const AstNodeRef castRef  = Cast::createCast(sema, valueTypeRef, view.nodeRef());
+    auto&            lowering = ensureCodeGenLoweringPayload(sema, castRef);
+    lowering.moveValue        = true;
+    lowering.ownsValue        = true;
+
     auto& storage              = registerUniqueRuntimeStorageSymbol(sema, sema.node(castRef), "__moved_value");
     lowering.runtimeStorageSym = &storage;
     SWC_RESULT(ensureRuntimeStorageDeclaredAndCompleted(sema, storage, valueTypeRef));
+
     view.recompute(sema);
+
     return Result::Continue;
 }
 
@@ -438,6 +456,7 @@ SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNode
     auto& sym                           = registerUniqueRuntimeStorageSymbol(sema, storageNode, privateName);
     payload.runtimeStorageSym           = &sym;
     payload.registeredRuntimeStorageSym = &sym;
+
     return sym;
 }
 
@@ -447,6 +466,7 @@ SymbolVariable& SemaHelpers::registerUniqueRuntimeStorageSymbol(Sema& sema, cons
     const IdentifierRef idRef       = getUniqueIdentifier(sema, privateName);
     const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
     auto* const         symVariable = Symbol::make<SymbolVariable>(ctx, &node, node.tokRef(), idRef, flags);
+
     symVariable->addExtraFlag(SymbolVariableFlagsE::RuntimeStorage);
 
     if (currentLocalSymbolScope(sema))
@@ -457,6 +477,7 @@ SymbolVariable& SemaHelpers::registerUniqueRuntimeStorageSymbol(Sema& sema, cons
     {
         SymbolMap* symMap = SemaFrame::currentSymMap(sema);
         SWC_ASSERT(symMap != nullptr);
+
         symMap->addSymbol(ctx, symVariable, true);
     }
 
@@ -465,8 +486,8 @@ SymbolVariable& SemaHelpers::registerUniqueRuntimeStorageSymbol(Sema& sema, cons
 
 Result SemaHelpers::ensureRuntimeStorageDeclaredAndCompleted(Sema& sema, SymbolVariable& storageSym, TypeRef storageTypeRef)
 {
-    // Skip when this storage is the implicit binding the caller passed in: it's already
-    // owned and finalized by the surrounding context, so re-declaring would double-register.
+    // Caller-bound storage is finalized by the surrounding context. Declaring
+    // it again would register it twice.
     if (&storageSym == currentRuntimeStorage(sema))
         return Result::Continue;
 
@@ -492,8 +513,10 @@ Result SemaHelpers::declareGhostAndCompleteStorage(Sema& sema, SymbolVariable& s
     ensureCurrentLocalScopeSymbol(sema, &symVar);
     symVar.registerAttributes(sema);
     symVar.setDeclared(sema.ctx());
+
     SWC_RESULT(Match::ghosting(sema, symVar));
     SWC_RESULT(completeRuntimeStorageSymbol(sema, symVar, typeRef));
+
     return Result::Continue;
 }
 
@@ -506,11 +529,11 @@ Result SemaHelpers::completeRuntimeStorageSymbol(Sema& sema, SymbolVariable& sym
 
     symVar.setTyped(sema.ctx());
     symVar.setSemaCompleted(sema.ctx());
+
     return Result::Continue;
 }
 
-// Whether the expression names a 'late' slot: a field through a member access, or a bare
-// identifier for a global. Both start as null storage and receive their value later.
+// Late fields and globals begin as null storage and receive their values later.
 bool SemaHelpers::isLateInitAccess(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
@@ -530,19 +553,17 @@ bool SemaHelpers::isLateInitAccess(Sema& sema, AstNodeRef nodeRef)
     return sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
 }
 
-// A 'late' field access requests a null-safety read guard when it resolves
-// (memberStruct). Consumers that never read the field value — pure assignment
-// target, address-of, or a null comparison — call this to cancel the guard.
+// Non-reading consumers (assignment targets, address-of, null comparisons)
+// cancel the read guard on late fields and globals.
 void SemaHelpers::clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef)
 {
     if (nodeRef.isInvalid())
         return;
+
     const SemaNodeView view = sema.viewNode(nodeRef);
-    // A 'late' read guard sits on a field member access or on a bare identifier (a
-    // 'late' global). Both are cleared by a non-reading consumer (assignment target,
-    // address-of, or a null comparison).
     if (!view.node() || (view.node()->isNot(AstNodeId::MemberAccessExpr) && view.node()->isNot(AstNodeId::Identifier)))
         return;
+
     if (auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(view.nodeRef()))
         payload->removeRuntimeSafety(Runtime::SafetyWhat::Null);
 }
@@ -556,6 +577,7 @@ CodeGenLoweringPayload& SemaHelpers::ensureCodeGenLoweringPayload(Sema& sema, As
     payload  = sema.compiler().allocate<CodeGenLoweringPayload>();
     *payload = {};
     sema.setLoweringPayload(nodeRef, payload);
+
     return *payload;
 }
 
@@ -577,6 +599,7 @@ SymbolVariable* SemaHelpers::currentRuntimeStorage(Sema& sema)
 void SemaHelpers::addCurrentFunctionCallDependency(Sema& sema, const SymbolFunction* calleeSym)
 {
     SWC_ASSERT(calleeSym);
+
     SymbolFunction* owner = sema.currentFunction();
     if (!owner || sema.knowsCallDependency(*owner, *calleeSym))
         return;
@@ -590,7 +613,6 @@ void SemaHelpers::addCurrentFunctionCallDependency(Sema& sema, const SymbolFunct
 
 namespace
 {
-    // Whether 'symVar' is written inside the declaration of the function an inline call expands.
     bool isDeclaredByInlineSource(Sema& sema, SemaInlinePayload& payload, const SymbolVariable& symVar)
     {
         const SymbolFunction* source = payload.sourceFunction;
@@ -600,6 +622,7 @@ namespace
             return false;
         if (!payload.sourceEndRef.isValid())
             payload.sourceEndRef = source->decl()->tokRefEnd(sema.ast());
+
         const uint32_t tok = symVar.tokRef().get();
         return tok >= source->decl()->tokRef().get() && tok <= payload.sourceEndRef.get();
     }
@@ -612,6 +635,7 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
 
     const TypeInfo& symType = sema.typeMgr().get(typeRef);
     SWC_RESULT(sema.waitSemaCompleted(&symType, sema.curNodeRef()));
+
     sema.currentFunction()->addLocalVariable(sema.ctx(), &symVar);
     sema.setVariableScopeDepth(symVar, sema.currentScopeDepth());
 
@@ -620,21 +644,22 @@ Result SemaHelpers::addCurrentFunctionLocalVariable(Sema& sema, SymbolVariable& 
         if (std::ranges::find(inlinePayload->localVariables, &symVar) == inlinePayload->localVariables.end())
             inlinePayload->localVariables.push_back(&symVar);
 
-        // An inlined copy is not the declaration: the callee's own body answers for its locals,
-        // except for a name the call site supplied as an alias, and for the code the call site
-        // passed to the callee.
+        // The original callee declaration owns unused-local checks. Caller
+        // aliases and caller-supplied code still belong to the call site.
         symVar.setInlineExpansion();
         for (const SemaInlinePayload* payload = inlinePayload; payload; payload = payload->parentInlinePayload)
         {
             const auto it = std::ranges::find(payload->aliasIdentifiers, symVar.idRef());
             if (it == payload->aliasIdentifiers.end())
                 continue;
+
             const auto slot = static_cast<size_t>(it - payload->aliasIdentifiers.begin());
             if (payload->aliasNameRefs[slot].isValid())
             {
                 symVar.setCallerNameRef(payload->aliasNameRefs[slot]);
                 return Result::Continue;
             }
+
             break;
         }
 
@@ -755,6 +780,7 @@ Result SemaHelpers::currentFunctionUsesIndirectReturnStorage(bool& outUsesIndire
     }
 
     outUsesIndirectReturnStorage = functionUsesIndirectReturnStorage(sema.ctx(), *currentFn);
+
     return Result::Continue;
 }
 
@@ -764,32 +790,25 @@ bool SemaHelpers::usesCallerReturnStorage(TaskContext& ctx, const SymbolFunction
            functionUsesIndirectReturnStorage(ctx, function);
 }
 
-// A returned value that owns resources cannot skip its return copy. The copy is not just a
-// move of bytes: it is followed by 'opPostCopy', which is what gives the caller its own
-// ownership of whatever the fields point at. Dropping the copy also drops that hook, and the
-// caller then shares an allocation with the value the literal was built from — a double free
-// at the second drop. Types with a lifecycle keep the copy.
+// Lifecycle copies run opPostCopy to give the caller independent ownership.
+// Eliding them can share allocations with source fields and double-free at drop.
+// Keep the copy whenever the type has lifecycle hooks.
 bool SemaHelpers::typeHasLifecycle(TaskContext& ctx, TypeRef typeRef)
 {
     if (!typeRef.isValid())
         return false;
 
-    // Asking the struct for its 'effective' lifecycle functions is not usable here: those
-    // resolve through the generated wrappers, which are still being declared and completed
-    // while a caller's body is analysed, so the answer flips with job scheduling. The TypeGen
-    // flags answer from the directly registered operators plus a field walk, which is stable.
+    // Generated lifecycle wrappers may still be completing, making effective
+    // operator lookups depend on scheduling. TypeGen flags use directly
+    // registered operators and field walks for a stable answer.
     const TypeGen::LifecycleFlags flags = TypeGen::lifecycleFlagsOfTypeRef(ctx, typeRef);
     return flags.hasDrop || flags.hasPostCopy || flags.hasPostMove;
 }
 
-// Building a value directly in the caller's return slot assumes nothing the value reads can
-// live in that slot. The slot is private to the function unless an explicit 'var x: retval'
-// gives it a name: from then on an expression can read it, and a second in-place
-// construction would read storage it has already zeroed and overwritten. So once such a
-// local exists, the return slot stops being a legal in-place destination.
-//
-// Compiler-made storages ('__retval_runtime_storage') carry the same 'RetVal' flag but no
-// name, so they cannot be read and never expose the slot.
+// A named retval local exposes the caller's return slot to expressions. Direct
+// construction there could overwrite data it still needs to read, so disable
+// that destination once exposed. Compiler runtime storages share the RetVal
+// flag but have no readable name and do not expose the slot.
 bool SemaHelpers::functionExposesReturnSlot(const SymbolFunction& function, const SymbolVariable* ignoreSym)
 {
     for (const SymbolVariable* local : function.localVariables())

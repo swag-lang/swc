@@ -8,8 +8,8 @@ namespace
 {
     using FormatPassUtil::INVALID_PIECE;
 
-    // Ensures the gap before `pieceIndex` holds at least `newlines` line
-    // breaks (or exactly, when `exact` is true), keeping the line indent.
+    // Adjust existing line breaks while preserving indentation. `exact` chooses
+    // an exact count; otherwise preserve counts already above the minimum.
     void forceGapNewlines(FormatModel& model, const uint32_t pieceIndex, const uint32_t newlines, const bool exact)
     {
         if (!FormatPassUtil::canEditGap(model, pieceIndex))
@@ -40,14 +40,14 @@ namespace
         }
     }
 
-    // A comment between a branch and the `else` or `elif` after it introduces
-    // that branch: the chain is one statement, and a blank line would cut it
-    // in two.
+    // Comments before `else` or `elif` belong to that branch. Keep the
+    // chain together as one statement.
     bool introducesElse(const FormatModel& model, const uint32_t pieceIndex)
     {
         uint32_t next = pieceIndex;
         while (next != INVALID_PIECE && model.piece(next).isComment)
             next = model.nextPiece(next);
+
         return next != INVALID_PIECE && model.piece(next).hasRole(FormatRoleE::ElseKeyword);
     }
 
@@ -71,8 +71,10 @@ namespace
             {
                 if (sawUsing)
                     break;
+
                 continue; // header comments before the using block
             }
+
             if (!sawUsing && piece.is(TokenId::CompilerGlobal))
                 continue; // `#global` header lines before the using block
 
@@ -110,6 +112,7 @@ namespace
             {
                 if (sawGlobal)
                     break;
+
                 continue; // header comments before the directives
             }
 
@@ -136,18 +139,20 @@ namespace
         uint32_t target = declLineStart;
         while (model.gapNewlineCount(target) == 1)
         {
-            // already blank-separated (or same-line): group ends here
             const uint32_t prev = model.prevPiece(target);
             if (prev == INVALID_PIECE)
                 break;
+
             const uint32_t     prevLineStart = model.lineStartOf(prev);
             const FormatPiece& prevPiece     = model.piece(prevLineStart);
             const bool         attrLine      = prevPiece.hasRole(FormatRoleE::AttrOpen);
             const bool         commentLine   = prevPiece.isComment && prevLineStart == prev;
             if (!attrLine && !commentLine)
                 break; // real code (or a trailing comment on a code line)
+
             target = prevLineStart;
         }
+
         return target;
     }
 
@@ -157,6 +162,7 @@ namespace
         const uint32_t prev   = model.prevPiece(target);
         if (prev == INVALID_PIECE)
             return;
+
         // No forced blank line right after an opening brace or before the
         // very first statement of a block.
         if (model.piece(prev).is(TokenId::SymLeftCurly))
@@ -201,6 +207,7 @@ namespace
                 default:
                     break;
             }
+
             if (style == FormatBlankLineStyle::Preserve)
                 continue;
 
@@ -228,8 +235,9 @@ namespace
             const uint32_t prev = model.prevPiece(lineStart);
             if (prev == INVALID_PIECE)
                 continue;
-            const FormatPiece& prevPiece = model.piece(prev);
+
             // Only the first line of a comment block, after real code.
+            const FormatPiece& prevPiece = model.piece(prev);
             if (prevPiece.isComment || prevPiece.is(TokenId::SymLeftCurly) || prevPiece.hasRole(FormatRoleE::TrailingDo))
                 continue;
             if (model.piece(model.lineStartOf(prev)).hasRole(FormatRoleE::AttrOpen))
@@ -273,7 +281,7 @@ namespace
             if (block.kind != FormatBlockKind::Switch)
                 continue;
 
-            // Label lines of THIS switch.
+            // Ignore labels of nested switches by matching this switch's depth.
             std::vector<uint32_t> labels;
             const uint32_t        labelDepth = model.piece(block.openPiece).depth + 1;
             for (uint32_t p = block.openPiece + 1; p < block.closePiece; ++p)
@@ -303,8 +311,6 @@ namespace
                         break;
                     case FormatCaseBlankStyle::MultiLine:
                     {
-                        // Blank when the previous arm or the current one spans
-                        // several lines.
                         const bool     prevMulti = model.lineStartOf(prev) != model.lineStartOf(labels[i - 1]);
                         const uint32_t currEnd   = i + 1 < labels.size() ? model.prevPiece(declGroupStart(model, labels[i + 1])) : model.prevPiece(block.closePiece);
                         const bool     currMulti = currEnd != INVALID_PIECE && model.lineStartOf(currEnd) != model.lineStartOf(labels[i]);
@@ -339,6 +345,7 @@ namespace
             const uint32_t first = model.nextPiece(block.openPiece);
             if (first != INVALID_PIECE && first < block.closePiece)
                 applyBlankLineStyle(model, first, options.blankLineAfterOpeningBrace);
+
             applyBlankLineStyle(model, block.closePiece, options.blankLineBeforeClosingBrace);
         }
     }
@@ -428,15 +435,14 @@ namespace FormatPass
         applyBlankLineAfterUsingBlock(model);
         applyBlankLinesBetweenDefinitions(model);
         applyBlankLinesBeforeComments(model);
+
         applyBlankLinesAtBlockEdges(model);
         applyBlankLinesAtInlineBodyStarts(model);
         applyBlankLinesAroundAccessBlocks(model);
     }
 
-    // `multi-line` airs the arms that span several lines, and how tall an arm is
-    // is only settled once the wrapping pass has laid out the lists inside it.
-    // Deciding earlier writes blank lines around arms that come out on one line,
-    // and the next run of the formatter takes them straight back out.
+    // Case height is final only after wrapping. Apply `multi-line` spacing
+    // here so the next formatting pass does not remove newly added blanks.
     void caseBlanks(FormatModel& model)
     {
         applyBlankLinesBetweenCases(model);

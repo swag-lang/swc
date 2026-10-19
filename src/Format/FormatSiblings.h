@@ -1,25 +1,25 @@
 #pragma once
+
 #include "Format/FormatModel.h"
 
 SWC_BEGIN_NAMESPACE();
 
-// Sibling constructs that read as one pattern: the branches of an `if` chain,
-// consecutive guards, closures assigned or passed side by side, and functions
-// declared one after the other. Grouping them is shared by the rewrite that
-// changes their syntax and by the layout that changes their lines.
+// Shared grouping for syntax rewrites and layout: branch chains, consecutive
+// guards, neighboring functions, and closures in statements or lists.
 namespace FormatSiblings
 {
     // How one body is written, and what it could become without changing meaning.
     struct BodyShape
     {
-        uint32_t first       = FormatPiece::INVALID_INDEX; // first piece of the body content
-        uint32_t last        = FormatPiece::INVALID_INDEX; // last piece of the body content
-        bool     valid       = false;                      // located, and editable from end to end
-        bool     braced      = false;                      // `{ ... }` rather than `do` or `=>`
-        bool     oneLine     = false;                      // the whole body sits on one line
-        bool     compact     = false;                      // a single statement that reads on one line
-        bool     unbraceable = false;                      // compact, and safe to write after `do` or `=>`
-        bool     braceable   = false;                      // safe to wrap in braces
+        uint32_t first = FormatPiece::INVALID_INDEX; // first piece of the body content
+        uint32_t last  = FormatPiece::INVALID_INDEX; // last piece of the body content
+
+        bool valid       = false; // located, and editable from end to end
+        bool braced      = false; // `{ ... }` rather than `do` or `=>`
+        bool oneLine     = false; // the whole body sits on one line
+        bool compact     = false; // a single statement that reads on one line
+        bool unbraceable = false; // compact, and safe to write after `do` or `=>`
+        bool braceable   = false; // safe to wrap in braces
     };
 
     BodyShape branchShape(const FormatModel& model, const FormatBranch& branch);

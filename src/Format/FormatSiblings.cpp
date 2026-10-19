@@ -126,6 +126,7 @@ namespace
             scan.trailingComment = true;
             scan.compact         = false;
         }
+
         return scan;
     }
 
@@ -136,6 +137,7 @@ namespace
             if (model.gapHasNewline(p))
                 return false;
         }
+
         return true;
     }
 
@@ -174,8 +176,10 @@ namespace
                 p = piece.match;
             else if (!piece.isComment && !FormatPassUtil::isAccessModifier(piece))
                 return false;
+
             p = model.nextPiece(p);
         }
+
         return false;
     }
 
@@ -187,6 +191,7 @@ namespace
             if (model.piece(p).depth < depth)
                 return p;
         }
+
         return INVALID_PIECE;
     }
 
@@ -200,6 +205,7 @@ namespace
             const uint32_t name = prevCode(model, before);
             before              = name == INVALID_PIECE ? INVALID_PIECE : prevCode(model, name);
         }
+
         if (before == INVALID_PIECE)
             return INVALID_PIECE;
 
@@ -216,6 +222,7 @@ namespace
             return open;
         if (after != INVALID_PIECE && model.piece(after).is(TokenId::SymComma) && model.piece(after).depth == model.piece(open).depth + 1)
             return open;
+
         return INVALID_PIECE;
     }
 
@@ -229,14 +236,17 @@ namespace
             const uint32_t open = model.piece(close).match;
             if (open == INVALID_PIECE)
                 return true;
+
             for (uint32_t p = open; p <= close; ++p)
             {
                 const std::string_view text = model.piece(p).text;
                 if (text == "Macro" || text == "Mixin")
                     return true;
             }
+
             close = prevCode(model, open);
         }
+
         return false;
     }
 
@@ -247,6 +257,7 @@ namespace
             if (model.piece(p).hasRole(FormatRoleE::WhereKeyword))
                 return true;
         }
+
         return false;
     }
 
@@ -254,6 +265,7 @@ namespace
     {
         if (current.size() >= 2)
             groups.push_back(current);
+
         current.clear();
     }
 }
@@ -283,6 +295,7 @@ namespace FormatSiblings
         {
             if (branch.doPiece == INVALID_PIECE)
                 return shape;
+
             shape.first = model.nextPiece(branch.doPiece);
             shape.last  = branch.lastPiece;
         }
@@ -296,6 +309,7 @@ namespace FormatSiblings
         shape.compact          = scan.compact;
         shape.unbraceable      = scan.compact && scan.scopeFree && scan.elseFree;
         shape.braceable        = scan.scopeFree && !scan.trailingComment;
+
         return shape;
     }
 
@@ -341,6 +355,7 @@ namespace FormatSiblings
         {
             shape.braceable = body.hasReturnType && !scan.trailingComment;
         }
+
         return shape;
     }
 
@@ -372,6 +387,7 @@ namespace FormatSiblings
             if (piece.depth >= depth && !(piece.depth == depth && piece.hasRole(FormatRoleE::StmtStart) && model.gapHasNewline(next)))
                 return INVALID_PIECE;
         }
+
         return start;
     }
 
@@ -389,12 +405,14 @@ namespace FormatSiblings
                 singles.push_back(c);
                 continue;
             }
+
             if (!chains)
                 continue;
 
             std::vector<BranchRef> group;
             for (uint32_t b = 0; b < chain.branches.size(); ++b)
                 group.push_back({c, b});
+
             groups.push_back(std::move(group));
         }
 
@@ -402,6 +420,7 @@ namespace FormatSiblings
             return groups;
 
         std::ranges::sort(singles, [&](const uint32_t a, const uint32_t b) { return all[a].stmtPiece < all[b].stmtPiece; });
+
         std::vector<BranchRef> current;
         for (const uint32_t c : singles)
         {
@@ -410,6 +429,7 @@ namespace FormatSiblings
             {
                 if (current.size() >= 2)
                     groups.push_back(current);
+
                 current.clear();
                 continue;
             }
@@ -421,13 +441,17 @@ namespace FormatSiblings
                 {
                     if (current.size() >= 2)
                         groups.push_back(current);
+
                     current.clear();
                 }
             }
+
             current.push_back({c, 0});
         }
+
         if (current.size() >= 2)
             groups.push_back(current);
+
         return groups;
     }
 
@@ -466,13 +490,16 @@ namespace FormatSiblings
         }
 
         std::ranges::sort(statements, {}, &Statement::start);
+
         std::vector<uint32_t> current;
         for (size_t i = 0; i < statements.size(); ++i)
         {
             if (!current.empty() && !follows(model, statements[i - 1].last, statements[i].start, mode))
                 flushGroup(groups, current);
+
             current.push_back(statements[i].body);
         }
+
         flushGroup(groups, current);
 
         for (auto& [open, members] : lists)
@@ -480,6 +507,7 @@ namespace FormatSiblings
             if (members.size() >= 2)
                 groups.push_back(members);
         }
+
         return groups;
     }
 
@@ -496,6 +524,7 @@ namespace FormatSiblings
             if (!bodies[i].closure && bodies[i].lastPiece != INVALID_PIECE)
                 declarations.push_back(i);
         }
+
         std::ranges::sort(declarations, [&](const uint32_t a, const uint32_t b) { return bodies[a].headPiece < bodies[b].headPiece; });
 
         std::vector<uint32_t> current;
@@ -503,8 +532,10 @@ namespace FormatSiblings
         {
             if (!current.empty() && !follows(model, bodies[current.back()].lastPiece, bodies[i].headPiece, mode))
                 flushGroup(groups, current);
+
             current.push_back(i);
         }
+
         flushGroup(groups, current);
         return groups;
     }

@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Format/FormatModel.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -13,6 +14,7 @@ namespace FormatPassUtil
         uint32_t i = model.nextPiece(pieceIndex);
         while (i != INVALID_PIECE && model.piece(i).isComment)
             i = model.nextPiece(i);
+
         return i;
     }
 
@@ -21,6 +23,7 @@ namespace FormatPassUtil
         uint32_t i = model.prevPiece(pieceIndex);
         while (i != INVALID_PIECE && model.piece(i).isComment)
             i = model.prevPiece(i);
+
         return i;
     }
 
@@ -30,6 +33,7 @@ namespace FormatPassUtil
             return false;
         if (model.piece(pieceIndex).frozen || model.piece(pieceIndex).removed)
             return false;
+
         return true;
     }
 
@@ -52,6 +56,7 @@ namespace FormatPassUtil
         const FormatOptions& options = model.options();
         if (options.indentStyle == FormatIndentStyle::Tabs)
             return "\t";
+
         return Utf8(std::max(options.indentWidth, 1u), ' ');
     }
 
@@ -62,6 +67,7 @@ namespace FormatPassUtil
             result += '\t';
         else
             result += indentUnit(model).view();
+
         return result;
     }
 
@@ -76,6 +82,7 @@ namespace FormatPassUtil
             result.append(columns % width, ' ');
             return result;
         }
+
         return Utf8(columns, ' ');
     }
 
@@ -88,6 +95,7 @@ namespace FormatPassUtil
             const uint32_t next = model.nextPiece(last);
             if (next == INVALID_PIECE || model.gapHasNewline(next))
                 return last;
+
             last = next;
         }
     }
@@ -117,6 +125,7 @@ namespace FormatPassUtil
             const uint32_t next = model.nextPiece(piece);
             if (next == INVALID_PIECE || model.gapHasNewline(next))
                 return column;
+
             column += model.gapColumns(next);
             piece = next;
         }

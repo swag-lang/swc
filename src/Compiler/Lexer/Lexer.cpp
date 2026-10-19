@@ -492,10 +492,9 @@ void Lexer::lexSingleLineStringLiteral()
 
     buffer_++;
 
-    // Safe lookahead: zeros after endBuffer_ will stop the loop
+    // Padding keeps the terminator checks valid when the scan reaches EOF.
     while (buffer_ < endBuffer_ && buffer_[0] != '"' && buffer_[0] != '\n' && buffer_[0] != '\r')
     {
-        // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
             raiseTokenError(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
@@ -503,8 +502,7 @@ void Lexer::lexSingleLineStringLiteral()
             continue;
         }
 
-        // Escaped char. A raw literal takes the backslash verbatim, so it never hides the
-        // closing quote.
+        // Raw backslashes are literal and cannot hide the closing quote.
         if (buffer_[0] == '\\' && !raw)
         {
             token_.flags.add(TokenFlagsE::Escaped);
@@ -515,20 +513,18 @@ void Lexer::lexSingleLineStringLiteral()
         buffer_++;
     }
 
-    // Handle newline in string literal
     if (buffer_[0] == '\n' || buffer_[0] == '\r')
     {
         const auto diag = reportTokenError(DiagnosticId::lex_err_string_eol, static_cast<uint32_t>(buffer_ - startBuffer_));
         if (!diag.elements().empty())
             diag.last().addSpan(srcView_, startTokenOffset_, 1, DiagnosticSeverity::Note, "unterminated string starts here");
+
         diag.report(*ctx_);
     }
 
-    // Handle EOF
     if (buffer_ >= endBuffer_)
         raiseTokenError(DiagnosticId::lex_err_unclosed_string, startTokenOffset_);
 
-    // Consume closing quote if present
     if (buffer_[0] == '"')
         buffer_++;
 
@@ -547,7 +543,6 @@ void Lexer::lexMultiLineStringLiteral()
 
     while (buffer_ < endBuffer_)
     {
-        // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
             raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
@@ -555,7 +550,7 @@ void Lexer::lexMultiLineStringLiteral()
             continue;
         }
 
-        // Track line starts for accurate diagnostics later
+        // Record line starts for later diagnostics.
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             eatOneEol();
@@ -570,7 +565,7 @@ void Lexer::lexMultiLineStringLiteral()
             continue;
         }
 
-        // Closing delimiter - safe to read buffer_[1] and buffer_[2] due to padding after endBuffer_
+        // Padding permits the two-byte lookahead at the closing delimiter.
         if (buffer_[0] == '"' && buffer_[1] == '"' && buffer_[2] == '"')
         {
             buffer_ += 3;
@@ -582,7 +577,6 @@ void Lexer::lexMultiLineStringLiteral()
         buffer_++;
     }
 
-    // EOF before closing delimiter
     raiseTokenError(DiagnosticId::lex_err_unclosed_string, startTokenOffset_, 3);
 
     pushToken();
@@ -593,7 +587,6 @@ void Lexer::lexCharacterLiteral()
     token_.id = TokenId::Character;
     buffer_++;
 
-    // Check for empty character literal
     if (buffer_[0] == '\'')
     {
         raiseTokenError(DiagnosticId::lex_err_empty_char, startTokenOffset_, 2);
@@ -603,9 +596,9 @@ void Lexer::lexCharacterLiteral()
     }
 
     uint32_t charCount = 0;
+
     while (buffer_ < endBuffer_ && buffer_[0] != '\'')
     {
-        // Check for null byte (invalid UTF-8)
         if (buffer_[0] == '\0')
         {
             raiseUtf8Error(DiagnosticId::lex_err_not_utf8, static_cast<uint32_t>(buffer_ - startBuffer_));
@@ -613,7 +606,6 @@ void Lexer::lexCharacterLiteral()
             continue;
         }
 
-        // Check for EOL
         if (buffer_[0] == '\n' || buffer_[0] == '\r')
         {
             raiseTokenError(DiagnosticId::lex_err_unclosed_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
@@ -622,7 +614,6 @@ void Lexer::lexCharacterLiteral()
             return;
         }
 
-        // Handle escape sequence
         if (buffer_[0] == '\\')
         {
             token_.flags.add(TokenFlagsE::Escaped);
@@ -634,15 +625,12 @@ void Lexer::lexCharacterLiteral()
         charCount++;
     }
 
-    // Check for EOF
     if (buffer_ >= endBuffer_)
         raiseTokenError(DiagnosticId::lex_err_unclosed_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
 
-    // Consume closing quote if present
     if (buffer_[0] == '\'')
         buffer_++;
 
-    // Check for too many characters
     if (charCount > 1)
     {
         auto diag = reportTokenError(DiagnosticId::lex_err_too_many_char_char, startTokenOffset_, static_cast<uint32_t>(buffer_ - startToken_));
@@ -653,14 +641,14 @@ void Lexer::lexCharacterLiteral()
     pushToken();
 }
 
-// Consumes a run of digits and number separators, reporting doubled separators, and returns how
-// many digits it read. 'ioLastWasSep' says whether the run ends on a separator. Safe lookahead:
-// the zeros after endBuffer_ fail both checks.
+// Count digits while accepting separators and reporting doubled separators.
+// Padded zero bytes stop the scan; ioLastWasSep preserves the trailing state.
 template<bool (LangSpec::*IsDigit)(uint32_t) const>
 uint32_t Lexer::lexDigitRun(bool& ioLastWasSep)
 {
     const char8_t* sepStart = nullptr;
     uint32_t       digits   = 0;
+
     while (true)
     {
         // All digit classes exclude the numeric separator.
@@ -671,6 +659,7 @@ uint32_t Lexer::lexDigitRun(bool& ioLastWasSep)
             buffer_++;
             continue;
         }
+
         if (!langSpec_->isNumberSep(buffer_[0]))
             break;
 
@@ -678,6 +667,7 @@ uint32_t Lexer::lexDigitRun(bool& ioLastWasSep)
         {
             while (langSpec_->isNumberSep(buffer_[0]))
                 buffer_++;
+
             raiseTokenError(DiagnosticId::lex_err_consecutive_num_sep, static_cast<uint32_t>(sepStart - startBuffer_), static_cast<uint32_t>(buffer_ - sepStart));
             continue;
         }
@@ -698,15 +688,12 @@ void Lexer::lexHexNumber()
     bool           lastWasSep = false;
     const uint32_t digits     = lexDigitRun<&LangSpec::isHexNumber>(lastWasSep);
 
-    // Require at least one digit
     if (digits == 0)
         raiseTokenError(DiagnosticId::lex_err_missing_hex_digit, startTokenOffset_, 2 + (lastWasSep ? 1 : 0));
 
-    // No trailing separator
     if (lastWasSep)
         raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
-    // Letters immediately following the literal
     if (langSpec_->isLetter(buffer_[0]))
         raiseTokenError(DiagnosticId::lex_err_invalid_hex_digit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
 
@@ -721,15 +708,12 @@ void Lexer::lexBinNumber()
     bool           lastWasSep = false;
     const uint32_t digits     = lexDigitRun<&LangSpec::isBinNumber>(lastWasSep);
 
-    // Require at least one digit
     if (digits == 0)
         raiseTokenError(DiagnosticId::lex_err_missing_bin_digit, startTokenOffset_, 2 + (lastWasSep ? 1 : 0));
 
-    // No trailing separator
     if (lastWasSep)
         raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
-    // Letters or stray decimal digits immediately following the literal
     if (langSpec_->isLetter(buffer_[0]) ||
         (langSpec_->isDigit(buffer_[0]) && !langSpec_->isBinNumber(buffer_[0])))
         raiseTokenError(DiagnosticId::lex_err_invalid_bin_digit, static_cast<uint32_t>(buffer_ - startBuffer_), 1);
@@ -768,7 +752,6 @@ void Lexer::lexDecimalNumber()
             token_.id = TokenId::NumberFloat;
     }
 
-    // Final trailing separator check
     if (lastWasSep)
         raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
@@ -778,14 +761,14 @@ void Lexer::lexDecimalNumber()
         hasExp = true;
         buffer_++;
 
-        // Optional sign
         if (buffer_[0] == '+' || buffer_[0] == '-')
             buffer_++;
 
         if (langSpec_->isNumberSep(buffer_[0]))
             raiseTokenError(DiagnosticId::lex_err_leading_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_));
 
-        lastWasSep               = false;
+        lastWasSep = false;
+
         const uint32_t expDigits = lexDigitRun<&LangSpec::isDigit>(lastWasSep);
 
         if (expDigits == 0)
@@ -795,7 +778,6 @@ void Lexer::lexDecimalNumber()
             token_.id = TokenId::NumberFloat;
     }
 
-    // Final trailing separator check
     if (lastWasSep)
         raiseTokenError(DiagnosticId::lex_err_trailing_num_sep, static_cast<uint32_t>(buffer_ - startBuffer_ - 1));
 
@@ -804,19 +786,15 @@ void Lexer::lexDecimalNumber()
 
 void Lexer::lexNumber()
 {
-    // Hexadecimal: 0x or 0X - safe to read buffer_[1] due to padding after endBuffer_
+    // Padding permits one-byte lookahead when selecting the numeric base.
     if (buffer_[0] == '0' && (buffer_[1] == 'x' || buffer_[1] == 'X'))
         lexHexNumber();
-
-    // Binary: 0b or 0B - safe to read buffer_[1] due to padding after endBuffer_
     else if (buffer_[0] == '0' && (buffer_[1] == 'b' || buffer_[1] == 'B'))
         lexBinNumber();
-
-    // Decimal (including floats)
     else
         lexDecimalNumber();
 
-    // Letters immediately following the literal
+    // Report the entire invalid suffix, rather than just its first letter.
     if (langSpec_->isLetter(buffer_[0]))
     {
         const uint32_t suffixOffset = static_cast<uint32_t>(buffer_ - startBuffer_);
@@ -824,6 +802,7 @@ void Lexer::lexNumber()
         const char8_t* suffixEnd    = suffixStart;
         while (langSpec_->isIdentifierPart(suffixEnd[0]))
             suffixEnd++;
+
         raiseTokenError(DiagnosticId::lex_err_invalid_number_suffix, suffixOffset, static_cast<uint32_t>(suffixEnd - suffixStart));
     }
 }
@@ -833,9 +812,8 @@ void Lexer::checkGlobalCompilerIfSkip() const
     if (token_.id != TokenId::CompilerGlobal || lexerFlags_.has(LexerFlagsE::IgnoreGlobalCompilerIfSkip))
         return;
 
-    // Global compiler-if skipping is a lexer-level fast path. It must not consume the
-    // current buffer because the same bytes still need to be tokenized for diagnostics
-    // and for modes that ignore the skip flag.
+    // Inspect with a separate cursor: diagnostics and modes that ignore skipping
+    // still require the current bytes to be tokenized.
     const char8_t* cursor = buffer_;
     skipBlanksRaw(*langSpec_, cursor);
 
@@ -845,7 +823,6 @@ void Lexer::checkGlobalCompilerIfSkip() const
 
 void Lexer::lexIdentifier()
 {
-    // Get identifier name
     buffer_++;
     while (langSpec_->isIdentifierPart(buffer_[0]))
         buffer_++;
@@ -857,9 +834,9 @@ void Lexer::lexIdentifier()
         token_.id = TokenId::Identifier;
     else
     {
-        // Is this a keyword?
         const uint32_t hash32 = Math::hash(name);
-        token_.id             = langSpec_->keyword(name, hash32);
+
+        token_.id = langSpec_->keyword(name, hash32);
         if (token_.id == TokenId::Identifier)
         {
             if (name[0] == '#')
@@ -868,6 +845,7 @@ void Lexer::lexIdentifier()
                      name.size() >= 2 && name[0] == '_' && name[1] == '_')
                 raiseTokenError(DiagnosticId::lex_err_reserved_identifier, startTokenOffset_, static_cast<uint32_t>(name.size()));
 
+            // Identifier tokens store an index; the table keeps their source offset.
             const auto idx = static_cast<uint32_t>(srcView_->identifiers().size());
             srcView_->identifiers().push_back({.crc = hash32, .byteStart = token_.byteStart});
             token_.byteStart = idx;

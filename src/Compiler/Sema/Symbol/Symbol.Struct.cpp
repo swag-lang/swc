@@ -438,6 +438,7 @@ namespace
         {
             if (!dstBytes.empty())
                 std::memset(dstBytes.data(), 0, dstBytes.size());
+
             return Result::Continue;
         }
 
@@ -446,8 +447,10 @@ namespace
         {
             if (!dstBytes.empty())
                 std::memset(dstBytes.data(), 0, dstBytes.size());
+
             return Result::Continue;
         }
+
         if (type.isStruct())
         {
             for (const SymbolVariable* field : type.payloadSymStruct().fields())
@@ -489,11 +492,13 @@ namespace
 
             for (uint64_t idx = 0; idx < totalCount; ++idx)
                 SWC_RESULT(lowerTypeImplicitDefaultBytesRec(sema, dstBytes.subspan(idx * elemSize, elemSize), elemType));
+
             return Result::Continue;
         }
 
         if (!dstBytes.empty())
             std::memset(dstBytes.data(), 0, dstBytes.size());
+
         return Result::Continue;
     }
 
@@ -520,6 +525,7 @@ namespace
                 continue;
 
             symImpl->getAllFunctions(symbols);
+
             for (const Symbol* symbol : symbols)
             {
                 if (!symbol)
@@ -599,8 +605,10 @@ namespace
         {
             if (!candidate)
                 continue;
+
             if (candidate == &field)
                 break;
+
             if (candidate->name(ctx) == targetName)
                 return candidate;
         }
@@ -641,6 +649,7 @@ namespace
             outSteps.push_back({.field = field, .isPointer = usingFieldIsPointer});
             if (usingTargetStruct == &targetStruct || resolveUsingFieldPathRec(ctx, *usingTargetStruct, targetStruct, outSteps, visited))
                 return true;
+
             outSteps.pop_back();
         }
 
@@ -686,6 +695,7 @@ Result SymbolStruct::waitPendingImplMembers(Sema& sema, const SourceCodeRef& cod
     {
         if (!symImpl || symImpl->isIgnored() || symImpl == currentImpl)
             continue;
+
         if (!symImpl->isSemaCompleted())
             return sema.waitSemaCompleted(symImpl, codeRef);
     }
@@ -695,9 +705,8 @@ Result SymbolStruct::waitPendingImplMembers(Sema& sema, const SourceCodeRef& cod
 
 std::vector<SymbolFunction*> SymbolStruct::methods() const
 {
-    // Generic roots are marked sema-complete before their impl methods are specialized.
-    // Exporting runtime method reflection from that state can observe signatures that still
-    // depend on the owner generic context and have no stable runtime function type yet.
+    // A generic root can be sema-complete before its impl methods are specialized.
+    // Their signatures still depend on generic context and cannot be reflected safely.
     if (isGenericRoot() && !isGenericInstance())
         return {};
 
@@ -706,6 +715,7 @@ std::vector<SymbolFunction*> SymbolStruct::methods() const
     {
         if (!symFunc || !isRuntimeReflectedMethod(*symFunc))
             continue;
+
         result.push_back(symFunc);
     }
 
@@ -754,6 +764,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
             if (const SymbolInterface* symInterface = symImpl.symInterface())
                 diag.addArgument(Diagnostic::ARG_SYM, symInterface->getFullScopedName(sema.ctx()));
             diag.addArgument(Diagnostic::ARG_WHAT, name(sema.ctx()));
+
             auto&             note    = diag.addElement(DiagnosticId::sema_note_other_implementation);
             const SourceView& srcView = sema.compiler().srcView(itf->srcViewRef());
             note.setSrcView(&srcView);
@@ -763,8 +774,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
         }
     }
 
-    // Expose the interface implementation scope under the struct symbol map so we can resolve
-    // `StructName.InterfaceName.Symbol`.
+    // Publish the interface scope here so StructName.InterfaceName.Symbol resolves.
     const Symbol* inserted = addSingleSymbol(sema.ctx(), &symImpl);
     if (inserted != &symImpl)
         return SemaError::raiseAlreadyDefined(sema, &symImpl, inserted);
@@ -773,6 +783,7 @@ Result SymbolStruct::addInterface(Sema& sema, SymbolImpl& symImpl)
     interfaces_.push_back(&symImpl);
     interfacesSet_.insert(&symImpl);
     sema.compiler().notifyAlive();
+
     return Result::Continue;
 }
 
@@ -836,10 +847,13 @@ const TypeInfo* SymbolStruct::dynamicStorageLeafType(const TaskContext& ctx, con
     {
         if (const TypeInfo* storageType = type->unwrapAliasEnumType(ctx))
             type = storageType;
+
         if (!type->isArray())
             break;
+
         type = &ctx.typeMgr().get(type->payloadArrayElemTypeRef());
     }
+
     return type->isStruct() && type->payloadSymStruct().hasDynamicStorage() ? type : nullptr;
 }
 
@@ -855,8 +869,10 @@ Result SymbolStruct::prepareDynamicMetadata(Sema& sema, TypeRef typeRef)
         ConstantRef typeInfoRef = ConstantRef::invalid();
         SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoRef, type->typeRef(), sema.curNodeRef()));
     }
+
     for (const SymbolVariable* field : symStruct.fields())
         SWC_RESULT(prepareDynamicMetadata(sema, field->typeRef()));
+
     return Result::Continue;
 }
 
@@ -864,6 +880,7 @@ Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::b
 {
     if (!typeHasDynamicStorage(sema.ctx(), originalType))
         return Result::Continue;
+
     const TypeInfo& type    = originalType.unwrapAliasEnumTypeOrSelf(sema.ctx());
     const TypeRef   typeRef = type.typeRef();
     if (type.isArray())
@@ -872,8 +889,10 @@ Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::b
         const uint64_t  elementSize = elementType.sizeOf(sema.ctx());
         for (size_t offset = 0; elementSize && offset < bytes.size(); offset += elementSize)
             SWC_RESULT(initializeDynamicIdentityBytes(sema, bytes.subspan(offset, elementSize), elementType));
+
         return Result::Continue;
     }
+
     if (!type.isStruct() || !type.payloadSymStruct().hasDynamicStorage())
         return Result::Continue;
 
@@ -884,13 +903,16 @@ Result SymbolStruct::initializeDynamicIdentityBytes(Sema& sema, std::span<std::b
         const uint64_t  fieldSize = fieldType.sizeOf(sema.ctx());
         SWC_RESULT(initializeDynamicIdentityBytes(sema, bytes.subspan(field->offset(), fieldSize), fieldType));
     }
+
     if (symStruct.isDynamic())
     {
         ConstantRef typeInfoRef = ConstantRef::invalid();
         SWC_RESULT(sema.cstMgr().makeTypeInfo(sema, typeInfoRef, typeRef, sema.curNodeRef()));
+
         const auto* runtimeType = reinterpret_cast<const Runtime::TypeInfoStruct*>(sema.cstMgr().get(typeInfoRef).getValuePointer());
         const auto  slots       = symStruct.dynamicSlotOffsets();
         SWC_ASSERT(runtimeType->dynamicSlots.count == slots.size());
+
         for (size_t i = 0; i < slots.size(); ++i)
         {
             const Runtime::DynamicStructInfo* descriptor = runtimeType->dynamicSlots.ptr + i;

@@ -231,6 +231,39 @@ namespace PostRaPeephole
                 return;
             }
 
+            const bool unpackPair   = inst.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[3].opBits == MicroOpBits::B128 && ops[4].microOp == MicroOp::VecUnpackLo64;
+            const bool unpackLegacy = inst.op == MicroInstrOpcode::OpBinaryRegReg && ops[2].opBits == MicroOpBits::B128 && ops[3].microOp == MicroOp::VecUnpackLo64;
+            if (unpackPair || unpackLegacy)
+            {
+                const uint8_t  needed = demand.lanes[ops[0].reg.index()];
+                const MicroReg left   = unpackPair ? ops[1].reg : ops[0].reg;
+                const MicroReg right  = unpackPair ? ops[2].reg : ops[1].reg;
+                demand.clear(ops[0].reg);
+                demand.read(left, needed & 3);
+                demand.read(right, (needed >> 2) & 3);
+                return;
+            }
+            if (inst.op == MicroInstrOpcode::VecShuffleRegRegImm && ops[2].opBits == MicroOpBits::B128)
+            {
+                const uint8_t needed = demand.lanes[ops[0].reg.index()];
+                uint8_t       source = 0;
+                for (uint32_t lane = 0; lane < 4; ++lane)
+                    if (needed & (1u << lane))
+                        source |= 1u << ((ops[3].valueU64 >> (lane * 2)) & 3);
+                demand.clear(ops[0].reg);
+                demand.read(ops[1].reg, source);
+                return;
+            }
+            if (inst.op == MicroInstrOpcode::OpBinaryRegRegImm && ops[2].opBits == MicroOpBits::B128 &&
+                ops[3].microOp == MicroOp::VecShiftRightBytes && ops[4].valueU64 % 4 == 0)
+            {
+                const uint8_t  needed = demand.lanes[ops[0].reg.index()];
+                const uint64_t words  = (ops[4].valueU64 & 0xFF) / 4;
+                demand.clear(ops[0].reg);
+                demand.read(ops[1].reg, words < 4 ? (needed << words) & 15 : 0);
+                return;
+            }
+
             if ((inst.op == MicroInstrOpcode::OpTernaryRegRegReg || inst.op == MicroInstrOpcode::OpTernaryRegRegMem) && isFusedFloatMicroOp(ops[4].microOp))
             {
                 const uint8_t mask = FloatLaneDemand::mask(ops[3].opBits);

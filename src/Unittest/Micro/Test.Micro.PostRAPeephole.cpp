@@ -6947,6 +6947,48 @@ SWC_TEST_BEGIN(PostRAPeephole_PackedContractionRespectsPolicyAndDependencies)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_ScalarClearTracksPackedLaneReads)
+{
+    for (uint32_t variant = 0; variant < 6; ++variant)
+    {
+        std::array<uint64_t, 4> expected{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 4> values = {0x4008000000000000ULL, 0xF123456789ABCDEFULL, 0, 0};
+            MicroBuilder            builder(ctx);
+            const MicroReg          base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+            const MicroReg          source = MicroReg::floatReg(0);
+            const MicroReg          copied = MicroReg::floatReg(1);
+            const MicroReg          result = MicroReg::floatReg(2);
+            builder.emitLoadVecRegMem(source, base, 0, MicroOpBits::B128);
+            builder.emitClearReg(copied, MicroOpBits::B64);
+            builder.emitLoadRegReg(copied, source, MicroOpBits::B64);
+            MicroReg output = result;
+            if (variant == 0)
+                output = copied;
+            else if (variant == 1)
+                builder.emitOpBinaryRegRegReg(result, copied, source, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+            else if (variant == 2 || variant == 5)
+                builder.emitVecShuffleRegRegImm(result, copied, variant == 2 ? 0xEE : 0x44, MicroOpBits::B128);
+            else
+                builder.emitOpBinaryRegRegImm(result, copied, ApInt(uint64_t{variant == 3 ? 8u : variant == 6 ? 256u
+                                                                                                              : 16u},
+                                                                    64),
+                                              MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+            builder.emitStoreVecMemReg(base, 16, output, MicroOpBits::B128);
+            builder.emitClearReg(copied, MicroOpBits::B128);
+            builder.emitClearReg(result, MicroOpBits::B128);
+            builder.emitRet();
+            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+            if (optimize && values != expected)
+                return Result::Error;
+            expected = values;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

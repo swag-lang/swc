@@ -278,7 +278,7 @@ namespace
         }
 
         if (baseReg.isInstructionPointer())
-            return false;
+            return !isWrite;
 
         MicroReg rootReg;
         RootKind rootKind = RootKind::Unknown;
@@ -478,7 +478,12 @@ namespace
                     continue;
                 const bool isChunkAccess = (access.isVecLoad || access.isVecStore) &&
                                            access.offset == chunk.offset && access.size == K_MICRO_128_BIT_BYTES;
-                if (!isChunkAccess)
+                const MicroInstr* reader     = storage.ptr(instrRefs[access.instIndex]);
+                const auto*       readerOps  = reader ? reader->ops(operands) : nullptr;
+                const bool        isLaneRead = !access.isWrite && access.size == 8 &&
+                                        (access.offset == chunk.offset || access.offset == chunk.offset + 8) &&
+                                        reader && reader->op == MicroInstrOpcode::LoadRegMem && readerOps && readerOps[0].reg.isVirtualFloat();
+                if (!isChunkAccess && !isLaneRead)
                 {
                     clean = false;
                     break;
@@ -503,9 +508,7 @@ namespace
 
             for (const MemAccess& access : accesses)
             {
-                if (access.rootReg != fn.stackPointer || access.offset != chunk.offset)
-                    continue;
-                if (!access.isVecLoad && !access.isVecStore)
+                if (access.rootReg != fn.stackPointer || access.offset - chunk.offset >= K_MICRO_128_BIT_BYTES)
                     continue;
 
                 MicroInstr* inst = storage.ptr(instrRefs[access.instIndex]);
@@ -515,7 +518,34 @@ namespace
                 if (!ops)
                     continue;
 
-                if (inst->op == MicroInstrOpcode::LoadVecRegMem)
+                if (inst->op == MicroInstrOpcode::LoadRegMem && access.size == 8)
+                {
+                    const MicroReg destination = ops[0].reg;
+                    if (access.offset == chunk.offset)
+                    {
+                        MicroInstrOperand clear[2];
+                        clear[0].reg    = destination;
+                        clear[1].opBits = MicroOpBits::B64;
+                        storage.insertDerivedBefore(operands, instrRefs[access.instIndex], MicroInstrOpcode::ClearReg, clear);
+                        MicroInstrOperand copy[3];
+                        copy[0].reg    = destination;
+                        copy[1].reg    = promotedReg;
+                        copy[2].opBits = MicroOpBits::B64;
+                        storage.insertDerivedBefore(operands, instrRefs[access.instIndex], MicroInstrOpcode::LoadRegReg, copy);
+                    }
+                    else
+                    {
+                        MicroInstrOperand shift[5];
+                        shift[0].reg     = destination;
+                        shift[1].reg     = promotedReg;
+                        shift[2].opBits  = MicroOpBits::B128;
+                        shift[3].microOp = MicroOp::VecShiftRightBytes;
+                        shift[4].setImmediateValue(ApInt(8, 8));
+                        storage.insertDerivedBefore(operands, instrRefs[access.instIndex], MicroInstrOpcode::OpBinaryRegRegImm, shift);
+                    }
+                    storage.erase(instrRefs[access.instIndex]);
+                }
+                else if (inst->op == MicroInstrOpcode::LoadVecRegMem)
                 {
                     // dst = load [chunk]  ->  dst = copy promotedReg
                     ops[1].reg        = promotedReg;

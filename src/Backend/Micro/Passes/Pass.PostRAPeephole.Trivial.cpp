@@ -904,6 +904,7 @@ namespace PostRaPeephole
             return false;
         const MicroReg reg = ops[0].reg;
 
+        bool needsUpperProof = false;
         switch (inst.op)
         {
             case MicroInstrOpcode::ClearReg:
@@ -914,7 +915,11 @@ namespace PostRaPeephole
                 break;
             case MicroInstrOpcode::LoadRegReg:
                 if (!ops[1].reg.isInt())
-                    return false;
+                {
+                    if (!ops[1].reg.isFloat() || (ops[2].opBits != MicroOpBits::B32 && ops[2].opBits != MicroOpBits::B64))
+                        return false;
+                    needsUpperProof = true;
+                }
                 break;
             default:
                 return false;
@@ -923,7 +928,11 @@ namespace PostRaPeephole
         const MicroInstrRef      clearRef = ctx.previousRef(ref);
         const MicroInstr*        clear    = ctx.instruction(clearRef);
         const MicroInstrOperand* clearOps = clear ? clear->ops(*ctx.operands) : nullptr;
-        if (!clearOps || clear->op != MicroInstrOpcode::ClearReg || clearOps[0].reg != reg || !ctx.claimAll({clearRef, ref}))
+        if (!clearOps || clear->op != MicroInstrOpcode::ClearReg || clearOps[0].reg != reg)
+            return false;
+        if (needsUpperProof && !areFloatUpperLanesDeadAfter(ctx, ref, reg, ops[2].opBits))
+            return false;
+        if (!ctx.claimAll({clearRef, ref}))
             return false;
         ctx.emitErase(clearRef);
 

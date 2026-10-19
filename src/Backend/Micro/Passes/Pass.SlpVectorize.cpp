@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroRelocation.h"
 #include "Backend/Micro/MicroSsaState.h"
+#include "Backend/Micro/Passes/Pass.SlpVectorize.Internal.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/PointerSet.h"
@@ -39,9 +40,9 @@
 // of a ChaCha20 double round into shuffles of the first half's vectors
 // instead of a recomputation.
 //
-// The transformation only deletes stores: the packed computation is inserted
-// at the position of the group's first store, and every scalar store to the
-// vectorized locations is erased. The scalar chain that fed them is left in
+// Packed stores stay at the group's first original store. Their input snapshots
+// precede any clobber, and packed calculations follow their scalar prerequisites.
+// Every scalar store to the vectorized locations is erased. The scalar chain that fed them is left in
 // place - it has become dead code, and the cleanup sweep that follows the
 // pass removes it. Deleting a store is only sound if nothing still reads the
 // location afterwards, so any surviving load of a vectorized location that
@@ -292,12 +293,14 @@ namespace
         enum class Kind : uint8_t
         {
             LoadVec,
+            LoadBroadcast,
             StoreVec,
             Copy,
             BinaryRegReg,
             BinaryRegImm,
             LoadSplat,
             Broadcast,
+            GatherPair,
             RotateBytes,
             // Non-destructive forms: the destination is a register of its own,
             // so the packed value feeding the operation is not overwritten and
@@ -309,15 +312,20 @@ namespace
             Shuffle,
         };
 
-        Kind     kind       = Kind::Copy;
-        uint32_t dst        = 0;
-        uint32_t src        = 0;
-        uint32_t src2       = 0;
-        MicroOp  op         = MicroOp::VecXor;
-        uint64_t imm        = 0;
-        uint32_t rootKey    = K_INVALID_ID;
-        uint64_t baseOffset = 0;
-        MicroReg scalarReg  = MicroReg::invalid();
+        Kind          kind              = Kind::Copy;
+        uint32_t      dst               = 0;
+        uint32_t      src               = 0;
+        uint32_t      src2              = 0;
+        MicroOp       op                = MicroOp::VecXor;
+        uint64_t      imm               = 0;
+        uint32_t      rootKey           = K_INVALID_ID;
+        uint64_t      baseOffset        = 0;
+        MicroReg      scalarReg         = MicroReg::invalid();
+        MicroReg      scalarReg2        = MicroReg::invalid();
+        MicroInstrRef scalarDefinition  = MicroInstrRef::invalid();
+        uint32_t      scalarPosition    = 0;
+        MicroInstrRef scalarDefinition2 = MicroInstrRef::invalid();
+        uint32_t      scalarPosition2   = 0;
     };
 
     struct RegDefInfo
@@ -391,6 +399,17 @@ namespace
         // one register.
         FlatKeyMap<uint32_t> entryValues;
         FlatKeyMap<uint32_t> entryRegByValue;
+        struct AvailableScalar
+        {
+            MicroReg      reg;
+            MicroInstrRef definition;
+            uint32_t      position;
+        };
+        FlatKeyMap<AvailableScalar>                availableScalars;
+        std::vector<std::pair<MicroReg, uint32_t>> scalarDefinitions;
+        std::vector<uint32_t>                      valueUseCounts;
+        MicroInstrRef                              currentInstruction;
+        uint32_t                                   currentPosition = 0;
         // Memory state per (rootKey, offset), lane-aligned slots.
         std::unordered_map<LocationKey, MemLocation, LocationKeyHash> locations;
 
@@ -632,6 +651,13 @@ namespace
     void setValue(BlockScan& scan, MicroReg reg, uint32_t valueId)
     {
         scan.regValues.getOrInsert(reg.packed) = valueId;
+        if (reg.isVirtualFloat())
+        {
+            scan.scalarDefinitions.emplace_back(reg, scan.currentPosition);
+            const auto kind = scan.values.get(valueId).kind;
+            if (kind == SlpValueKind::Unary || kind == SlpValueKind::BinaryRegReg)
+                scan.availableScalars.emplace(valueId, BlockScan::AvailableScalar{reg, scan.currentInstruction, scan.currentPosition});
+        }
     }
 
     void setOpaque(BlockScan& scan, MicroReg reg)
@@ -689,7 +715,8 @@ namespace
             // upper vector lanes are irrelevant to a graph made exclusively
             // from scalar operations, so it is as transparent as an
             // integer lane copy here.
-            if (ops[2].opBits == shape.bits())
+            if (ops[2].opBits == shape.bits() ||
+                (ops[2].opBits == MicroOpBits::B128 && ops[0].reg.isAnyFloat() && ops[1].reg.isAnyFloat()))
                 return true;
             return ops[2].opBits == MicroOpBits::B64 && !ops[0].reg.isAnyFloat() && !ops[1].reg.isAnyFloat();
         }
@@ -939,6 +966,42 @@ namespace
                 return memoIt->second;
             }
 
+            // Shared scalar branches remain necessary outside the packed tree.
+            // Reuse their two results instead of duplicating those computations.
+            if (depth && scan_->shape.bytes == 8 && tuple.ids[0] != tuple.ids[1] &&
+                scan_->valueUseCounts[tuple.ids[0]] > 1 && scan_->valueUseCounts[tuple.ids[1]] > 1)
+            {
+                const auto* left  = scan_->availableScalars.find(tuple.ids[0]);
+                const auto* right = scan_->availableScalars.find(tuple.ids[1]);
+                if (left && right)
+                {
+                    const uint32_t point  = std::max(left->position, right->position) + 1;
+                    bool           stable = true;
+                    for (const auto& [reg, position] : scan_->scalarDefinitions)
+                    {
+                        if ((reg == left->reg && position > left->position && position < point) ||
+                            (reg == right->reg && position > right->position && position < point))
+                            stable = false;
+                    }
+                    if (stable)
+                    {
+                        const uint32_t dstReg = allocReg();
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::GatherPair, .dst = dstReg, .scalarReg = left->reg, .scalarReg2 = right->reg, .scalarDefinition = left->definition, .scalarPosition = left->position, .scalarDefinition2 = right->definition, .scalarPosition2 = right->position});
+                        remember(tuple, sortedKeyOf(tuple), dstReg);
+                        return dstReg;
+                    }
+                }
+            }
+
+            const auto* available = scan_->availableScalars.find(tuple.ids[0]);
+            if (available && std::ranges::all_of(std::span(tuple.ids.data(), scan_->shape.count()), [&](uint32_t id) { return id == tuple.ids[0]; }))
+            {
+                const uint32_t dstReg = allocReg();
+                plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::Broadcast, .dst = dstReg, .scalarReg = available->reg, .scalarDefinition = available->definition, .scalarPosition = available->position});
+                remember(tuple, sortedKeyOf(tuple), dstReg);
+                return dstReg;
+            }
+
             // A permutation of an already-built tuple is one shuffle.
             const TupleKey sorted = sortedKeyOf(tuple);
             const auto     permIt = plan_->firstTupleBySortedKey.find(sorted);
@@ -969,6 +1032,13 @@ namespace
             switch (n0.kind)
             {
                 case SlpValueKind::Load:
+                    if (n0.loadEpoch == 0 && std::ranges::all_of(std::span(tuple.ids.data(), scan_->shape.count()), [&](uint32_t id) { return id == tuple.ids[0]; }))
+                    {
+                        const uint32_t dstReg = allocReg();
+                        plan_->loads.push_back(PlanInstr{.kind = PlanInstr::Kind::LoadBroadcast, .dst = dstReg, .rootKey = n0.loadRootKey, .baseOffset = n0.loadOffset});
+                        remember(tuple, sorted, dstReg);
+                        return dstReg;
+                    }
                     return buildLoad(tuple, sorted);
 
                 case SlpValueKind::Unary:
@@ -1229,6 +1299,23 @@ namespace
                 }
                 case SlpValueKind::Opaque:
                 {
+                    if (scan_->shape.bytes == 8 && tuple.ids[0] != tuple.ids[1])
+                    {
+                        const auto* first  = scan_->entryRegByValue.find(tuple.ids[0]);
+                        const auto* second = scan_->entryRegByValue.find(tuple.ids[1]);
+                        if (!first || !second)
+                            return K_INVALID_ID;
+                        MicroReg left;
+                        MicroReg right;
+                        left.packed  = *first;
+                        right.packed = *second;
+                        if (!left.isVirtualFloat() || !right.isVirtualFloat())
+                            return K_INVALID_ID;
+                        const uint32_t dstReg = allocReg();
+                        plan_->ops.push_back(PlanInstr{.kind = PlanInstr::Kind::GatherPair, .dst = dstReg, .scalarReg = left, .scalarReg2 = right});
+                        remember(tuple, sorted, dstReg);
+                        return dstReg;
+                    }
                     // A scalar live at block entry can feed every packed lane.
                     // Its register must still hold that value at the insertion
                     // point; vectorizeBlock checks that before applying the plan.
@@ -1330,12 +1417,12 @@ namespace
             return dstReg;
         }
 
-        BlockScan*  scan_           = nullptr;
-        VectorPlan* plan_           = nullptr;
-        bool        nonDestructive_ = false;
-        bool        canLoadMask_    = false;
-        uint32_t    maxTreeDepth_;
-        uint32_t    maxPlanInstructions_;
+        BlockScan*                   scan_           = nullptr;
+        VectorPlan*                  plan_           = nullptr;
+        bool                         nonDestructive_ = false;
+        bool                         canLoadMask_    = false;
+        uint32_t                     maxTreeDepth_;
+        uint32_t                     maxPlanInstructions_;
         MicroOptimizerFunctionStats* stats_;
     };
 
@@ -1347,9 +1434,10 @@ namespace
     class DeletionOracle
     {
     public:
-        DeletionOracle(SlpFunctionContext& fn, const std::unordered_set<uint32_t>& deletedStoreRefs) :
+        DeletionOracle(SlpFunctionContext& fn, const std::unordered_set<uint32_t>& deletedStoreRefs, const std::unordered_set<uint32_t>& scalarDefinitions) :
             fn_(&fn),
-            deletedStoreRefs_(&deletedStoreRefs)
+            deletedStoreRefs_(&deletedStoreRefs),
+            scalarDefinitions_(&scalarDefinitions)
         {
         }
 
@@ -1404,6 +1492,8 @@ namespace
 
         bool isInstructionDead(MicroInstrRef instRef)
         {
+            if (scalarDefinitions_->contains(instRef.get()))
+                return false;
             const MicroInstr* inst = fn_->storage->ptr(instRef);
             if (!inst)
                 return false;
@@ -1449,8 +1539,9 @@ namespace
             Live,
         };
 
-        SlpFunctionContext*                 fn_               = nullptr;
-        const std::unordered_set<uint32_t>* deletedStoreRefs_ = nullptr;
+        SlpFunctionContext*                 fn_                = nullptr;
+        const std::unordered_set<uint32_t>* deletedStoreRefs_  = nullptr;
+        const std::unordered_set<uint32_t>* scalarDefinitions_ = nullptr;
         std::unordered_map<uint32_t, State> states_;
     };
 
@@ -1459,6 +1550,8 @@ namespace
 
     void scanInstruction(SlpFunctionContext& fn, BlockScan& scan, const BlockInstr& blockInstr)
     {
+        scan.currentInstruction       = blockInstr.instRef;
+        scan.currentPosition          = blockInstr.pos;
         MicroInstr&              inst = *blockInstr.inst;
         const MicroInstrOperand* ops  = inst.ops(*fn.operands);
 
@@ -1711,13 +1804,16 @@ namespace
             }
 
             case MicroInstrOpcode::OpBinaryRegMem:
+            case MicroInstrOpcode::OpBinaryRegRegMem:
             {
                 // Register op= memory: a read that must be tracked like a
                 // load, folded into the destination's lane value when the
                 // operation and width allow it.
-                const MicroReg baseReg = ops[1].reg;
-                uint64_t       offset  = ops[4].valueU64;
-                uint32_t       rootKey = K_INVALID_ID;
+                const bool     explicitLeft = opcode == MicroInstrOpcode::OpBinaryRegRegMem;
+                const uint32_t shift        = explicitLeft ? 1 : 0;
+                const MicroReg baseReg      = ops[1 + shift].reg;
+                uint64_t       offset       = ops[4 + shift].valueU64;
+                uint32_t       rootKey      = K_INVALID_ID;
                 if (baseReg.isInstructionPointer() || !resolveAddress(baseReg, offset, rootKey))
                 {
                     scan.hasUnresolvedMemRead = true;
@@ -1725,12 +1821,12 @@ namespace
                     return;
                 }
 
-                const uint32_t size = std::max<uint32_t>(getNumBytes(ops[2].opBits), 1);
+                const uint32_t size = std::max<uint32_t>(getNumBytes(ops[2 + shift].opBits), 1);
                 scan.loads.push_back(LoadRecord{.instRef = blockInstr.instRef, .pos = blockInstr.pos, .rootKey = rootKey, .offset = offset, .size = size, .dstReg = ops[0].reg});
 
                 LaneOp laneOp{};
-                if (!laneOpForBinaryRegReg(ops[3].microOp, ops[2].opBits, laneOp, scan.shape) ||
-                    ops[2].opBits != scan.shape.bits() || (offset % scan.shape.bytes) != 0)
+                if (!laneOpForBinaryRegReg(ops[3 + shift].microOp, ops[2 + shift].opBits, laneOp, scan.shape) ||
+                    ops[2 + shift].opBits != scan.shape.bits() || (offset % scan.shape.bytes) != 0)
                 {
                     setOpaque(scan, ops[0].reg);
                     return;
@@ -1752,7 +1848,7 @@ namespace
                 SlpValue v;
                 v.kind = SlpValueKind::BinaryRegReg;
                 v.op   = laneOp;
-                v.lhs  = currentValue(scan, ops[0].reg);
+                v.lhs  = currentValue(scan, ops[explicitLeft ? 1 : 0].reg);
                 v.rhs  = loadedValue;
                 setValue(scan, ops[0].reg, scan.values.intern(v));
                 return;
@@ -1874,10 +1970,12 @@ namespace
 
     struct SeedGroup
     {
-        uint32_t rootKey = K_INVALID_ID;
-        uint64_t offset  = 0;
-        TupleKey tuple;
-        uint32_t planReg = K_INVALID_ID;
+        uint32_t      rootKey = K_INVALID_ID;
+        uint64_t      offset  = 0;
+        TupleKey      tuple;
+        uint32_t      planReg       = K_INVALID_ID;
+        uint32_t      storePosition = K_INVALID_ID;
+        MicroInstrRef storeReference;
     };
 
     // Reads a read-only sixteen-byte constant into `dst`. The allocation owns
@@ -1921,6 +2019,15 @@ namespace
         // registers roots used by later blocks. Each lane needs a store.
         if (scan.stores.size() < fn.shape.count() || scan.hasUnresolvedMemRead || scan.hasUnresolvedMemWrite)
             return false;
+
+        scan.valueUseCounts.resize(scan.values.values.size());
+        for (const SlpValue& value : scan.values.values)
+        {
+            if (value.lhs != K_INVALID_ID)
+                ++scan.valueUseCounts[value.lhs];
+            if (value.rhs != K_INVALID_ID && value.rhs != value.lhs)
+                ++scan.valueUseCounts[value.rhs];
+        }
 
         // Candidate locations: final write is a plain aligned lane-sized store and
         // nothing ever wrote the location any other way.
@@ -2051,7 +2158,7 @@ namespace
                 group.offset     = candidates[index].offset;
                 for (uint32_t lane = 0; lane < fn.shape.count(); ++lane)
                     group.tuple.ids[lane] = candidates[index + lane].valueId;
-                index += fn.shape.count();
+                index++;
             }
         }
 
@@ -2059,11 +2166,17 @@ namespace
             return false;
 
         // Grow the trees; a group that fails simply keeps its scalar stores.
-        size_t retainedGroups = 0;
+        size_t                                           retainedGroups = 0;
+        std::unordered_set<LocationKey, LocationKeyHash> claimedLocations;
         for (size_t groupIndex = 0; groupIndex < vectorized.size(); ++groupIndex)
         {
-            SeedGroup& group = vectorized[groupIndex];
-            group.planReg    = builder.build(group.tuple, 0);
+            SeedGroup& group           = vectorized[groupIndex];
+            bool       overlapsClaimed = false;
+            for (uint32_t lane = 0; lane < fn.shape.count(); ++lane)
+                overlapsClaimed |= claimedLocations.contains(BlockScan::locationKey(group.rootKey, group.offset + lane * fn.shape.bytes));
+            if (overlapsClaimed)
+                continue;
+            group.planReg = builder.build(group.tuple, 0);
             if (fn.context->optimizerStats && fn.context->optimizerStats->activePass)
             {
                 ++fn.context->optimizerStats->activePass->seeds;
@@ -2072,6 +2185,8 @@ namespace
             }
             if (group.planReg != K_INVALID_ID)
             {
+                for (uint32_t lane = 0; lane < fn.shape.count(); ++lane)
+                    claimedLocations.insert(BlockScan::locationKey(group.rootKey, group.offset + lane * fn.shape.bytes));
                 if (retainedGroups != groupIndex)
                     vectorized[retainedGroups] = group;
                 ++retainedGroups;
@@ -2080,6 +2195,57 @@ namespace
         vectorized.resize(retainedGroups);
         if (vectorized.empty())
             return false;
+
+        std::array<uint32_t, 4> rotateUseCounts{};
+        std::vector<uint8_t>    livePlanRegs(plan.nextPlanReg);
+        for (const SeedGroup& group : vectorized)
+            livePlanRegs[group.planReg] = true;
+        // Failed trees leave partial plans. They cannot add leaf loads or
+        // scalar dependencies to the legality proof for retained stores.
+        std::vector<uint8_t> keepOps(plan.ops.size());
+        for (auto it = plan.ops.rbegin(); it != plan.ops.rend(); ++it)
+        {
+            const PlanInstr& planInstr = *it;
+            if (!livePlanRegs[planInstr.dst])
+                continue;
+            keepOps[static_cast<size_t>(std::distance(it, plan.ops.rend()) - 1)] = true;
+            if (planInstr.kind == PlanInstr::Kind::RotateBytes)
+                rotateUseCounts[planInstr.imm / 8]++;
+            livePlanRegs[planInstr.dst] = false;
+            switch (planInstr.kind)
+            {
+                case PlanInstr::Kind::BinaryRegReg:
+                    livePlanRegs[planInstr.dst] = true;
+                    [[fallthrough]];
+                case PlanInstr::Kind::Copy:
+                case PlanInstr::Kind::RotateBytes:
+                case PlanInstr::Kind::BinaryRegRegImm:
+                case PlanInstr::Kind::VecUnary:
+                case PlanInstr::Kind::Shuffle:
+                    livePlanRegs[planInstr.src] = true;
+                    break;
+                case PlanInstr::Kind::BinaryRegImm:
+                    livePlanRegs[planInstr.dst] = true;
+                    break;
+                case PlanInstr::Kind::BinaryRegRegReg:
+                    livePlanRegs[planInstr.src]  = true;
+                    livePlanRegs[planInstr.src2] = true;
+                    break;
+                case PlanInstr::Kind::LoadVec:
+                case PlanInstr::Kind::LoadBroadcast:
+                case PlanInstr::Kind::StoreVec:
+                case PlanInstr::Kind::LoadSplat:
+                case PlanInstr::Kind::Broadcast:
+                case PlanInstr::Kind::GatherPair:
+                    break;
+            }
+        }
+        std::erase_if(plan.loads, [&](const PlanInstr& load) { return !livePlanRegs[load.dst]; });
+        size_t retainedOps = 0;
+        for (size_t i = 0; i < plan.ops.size(); ++i)
+            if (keepOps[i])
+                plan.ops[retainedOps++] = plan.ops[i];
+        plan.ops.resize(retainedOps);
 
         // A zero vector needs one register clear and no constant memory read.
         // Even without arithmetic, packing its stores removes memory operands
@@ -2121,34 +2287,38 @@ namespace
         }
 
         SWC_ASSERT(!deletedStoreRefs.empty() && firstDeletedRef.isValid());
+        for (SeedGroup& group : vectorized)
+            for (const StoreRecord& store : scan.stores)
+                if (store.rootKey == group.rootKey && store.offset - group.offset < K_MICRO_128_BIT_BYTES && store.pos < group.storePosition)
+                {
+                    group.storePosition  = store.pos;
+                    group.storeReference = store.instRef;
+                }
 
-        const auto overlapsVectorized = [&](const uint32_t rootKey, const uint64_t offset, const uint32_t size) {
-            const uint64_t first   = offset & ~static_cast<uint64_t>(fn.shape.bytes - 1);
-            const uint64_t covered = offset - first + size;
-            for (uint64_t delta = 0; delta < covered; delta += fn.shape.bytes)
-            {
-                if (vectorizedLocations.contains(BlockScan::locationKey(rootKey, first + delta)))
-                    return true;
-            }
-            return false;
-        };
-
-        // Packed leaf loads run at the insertion point and must observe
-        // block-entry memory: no surviving store may precede them into any
-        // location they read.
+        // Keep each input snapshot with its first original read. Hoisting every
+        // leaf to one store point unnecessarily extends their packed live ranges.
+        uint32_t                   loadInsertionPos = firstDeletedPos;
+        MicroInstrRef              loadInsertionRef = firstDeletedRef;
+        std::vector<uint32_t>      loadPositions;
+        std::vector<MicroInstrRef> loadPoints;
         for (const PlanInstr& load : plan.loads)
         {
-            for (const StoreRecord& record : scan.stores)
+            const uint32_t size     = load.kind == PlanInstr::Kind::LoadBroadcast ? fn.shape.bytes : K_MICRO_128_BIT_BYTES;
+            uint32_t       position = firstDeletedPos;
+            MicroInstrRef  point    = firstDeletedRef;
+            for (const LoadRecord& original : scan.loads)
+                if (original.pos < position && original.rootKey == load.rootKey &&
+                    (original.offset - load.baseOffset < size || load.baseOffset - original.offset < original.size))
+                {
+                    position = original.pos;
+                    point    = original.instRef;
+                }
+            loadPositions.push_back(position);
+            loadPoints.push_back(point);
+            if (position < loadInsertionPos)
             {
-                // Stores are in instruction order. Before the first deletion,
-                // every store survives; the remaining suffix cannot interfere.
-                if (record.pos >= firstDeletedPos)
-                    break;
-                if (record.rootKey != load.rootKey)
-                    continue;
-                // Subtraction also handles a small range straddling displacement zero.
-                if (record.offset - load.baseOffset < K_MICRO_128_BIT_BYTES || load.baseOffset - record.offset < record.size)
-                    return false;
+                loadInsertionPos = position;
+                loadInsertionRef = point;
             }
         }
 
@@ -2165,12 +2335,20 @@ namespace
             if (!fn.ssa)
                 return false;
         }
-        DeletionOracle oracle(fn, deletedStoreRefs);
+        std::unordered_set<uint32_t> scalarDefinitions;
+        for (const PlanInstr& operation : plan.ops)
+            for (const MicroInstrRef definition : {operation.scalarDefinition, operation.scalarDefinition2})
+                if (definition.isValid())
+                    scalarDefinitions.insert(definition.get());
+        DeletionOracle oracle(fn, deletedStoreRefs, scalarDefinitions);
         for (const LoadRecord& load : scan.loads)
         {
-            if (load.pos <= firstDeletedPos || deletedStoreRefs.contains(load.instRef.get()))
-                continue;
-            if (!overlapsVectorized(load.rootKey, load.offset, load.size))
+            bool readsMovedStore = false;
+            for (const SeedGroup& group : vectorized)
+                if (group.rootKey == load.rootKey && load.pos > group.storePosition &&
+                    (load.offset - group.offset < K_MICRO_128_BIT_BYTES || group.offset - load.offset < load.size))
+                    readsMovedStore = true;
+            if (!readsMovedStore || deletedStoreRefs.contains(load.instRef.get()))
                 continue;
             if (!load.dstReg.isValid())
                 return false;
@@ -2179,7 +2357,9 @@ namespace
             if (!fn.ssa->defValue(load.dstReg, load.instRef, valueId))
                 return false;
             if (!oracle.isValueDead(valueId))
+            {
                 return false;
+            }
         }
 
         // Root registers referenced by the packed code must be defined before
@@ -2199,12 +2379,10 @@ namespace
             const RootInfo& root = fn.roots[rootKey];
             for (const MicroReg reg : {root.reg, root.index})
             {
-                if (!reg.isVirtual())
+                if (!reg.isValid())
                     continue;
                 const RegDefInfo* defIt = fn.regDefs->find(reg.packed);
-                if (!defIt)
-                    continue;
-                if (defIt->defCount != 1)
+                if (!reg.isVirtual() || !defIt || defIt->defCount != 1)
                 {
                     uint32_t lastAccess = 0;
                     for (const auto& load : scan.loads)
@@ -2215,7 +2393,7 @@ namespace
                             lastAccess = std::max(lastAccess, store.pos);
                     for (const BlockInstr& blockInstr : blockInstrs)
                     {
-                        if (blockInstr.pos < firstDeletedPos || blockInstr.pos > lastAccess)
+                        if (blockInstr.pos < loadInsertionPos || blockInstr.pos > lastAccess)
                             continue;
                         const auto useDef = blockInstr.inst->collectUseDef(*fn.operands, fn.encoder);
                         if (std::ranges::find(useDef.defs, reg) != useDef.defs.end())
@@ -2225,27 +2403,74 @@ namespace
                 }
                 for (const BlockInstr& blockInstr : blockInstrs)
                 {
-                    if (blockInstr.instRef == defIt->defRef && blockInstr.pos >= firstDeletedPos)
+                    if (blockInstr.instRef == defIt->defRef && blockInstr.pos >= loadInsertionPos)
                         return false;
                 }
             }
         }
 
-        // A broadcast uses the block-entry scalar, not a later definition of
-        // the same virtual register. Reject before adding any packed code.
+        // Scalar leaves must retain their exact value until the packed computation.
         for (const PlanInstr& operation : plan.ops)
         {
-            if (operation.kind != PlanInstr::Kind::Broadcast)
+            if (operation.kind != PlanInstr::Kind::Broadcast && operation.kind != PlanInstr::Kind::GatherPair)
                 continue;
-            for (const BlockInstr& blockInstr : blockInstrs)
+            if (operation.scalarDefinition.isValid())
+                continue;
+            for (const BlockInstr& instruction : blockInstrs)
             {
-                if (blockInstr.pos >= firstDeletedPos)
+                if (instruction.pos >= firstDeletedPos)
                     break;
-                const auto useDef = blockInstr.inst->collectUseDef(*fn.operands, fn.encoder);
-                if (std::ranges::find(useDef.defs, operation.scalarReg) != useDef.defs.end())
-                    return false;
+                const auto useDef = instruction.inst->collectUseDef(*fn.operands, fn.encoder);
+                for (const MicroReg reg : {operation.scalarReg, operation.scalarReg2})
+                    if (reg.isValid() && std::ranges::find(useDef.defs, reg) != useDef.defs.end() && instruction.instRef != operation.scalarDefinition)
+                        return false;
             }
         }
+
+        // Place each packed operation after its last scalar prerequisite. Capturing a
+        // reused scalar immediately after its definition preserves that exact value.
+        std::vector<uint32_t> readyPositions(plan.nextPlanReg, loadInsertionPos);
+        for (size_t index = 0; index < plan.loads.size(); ++index)
+            readyPositions[plan.loads[index].dst] = loadPositions[index];
+        std::vector<MicroInstrRef> operationPoints;
+        for (const PlanInstr& operation : plan.ops)
+        {
+            uint32_t ready = loadInsertionPos;
+            switch (operation.kind)
+            {
+                case PlanInstr::Kind::Broadcast:
+                case PlanInstr::Kind::GatherPair:
+                    if (operation.scalarDefinition.isValid())
+                        ready = std::max(operation.scalarPosition, operation.scalarPosition2) + 1;
+                    break;
+                case PlanInstr::Kind::BinaryRegReg:
+                    ready = std::max(ready, readyPositions[operation.dst]);
+                    [[fallthrough]];
+                case PlanInstr::Kind::Copy:
+                case PlanInstr::Kind::RotateBytes:
+                case PlanInstr::Kind::BinaryRegRegImm:
+                case PlanInstr::Kind::VecUnary:
+                case PlanInstr::Kind::Shuffle:
+                    ready = std::max(ready, readyPositions[operation.src]);
+                    break;
+                case PlanInstr::Kind::BinaryRegImm:
+                    ready = std::max(ready, readyPositions[operation.dst]);
+                    break;
+                case PlanInstr::Kind::BinaryRegRegReg:
+                    ready = std::max({ready, readyPositions[operation.src], readyPositions[operation.src2]});
+                    break;
+                default:
+                    break;
+            }
+            readyPositions[operation.dst] = ready;
+            const auto point              = std::ranges::lower_bound(blockInstrs, ready, {}, &BlockInstr::pos);
+            if (point == blockInstrs.end())
+                return false;
+            operationPoints.push_back(point->instRef);
+        }
+        for (const SeedGroup& group : vectorized)
+            if (readyPositions[group.planReg] > group.storePosition)
+                return false;
 
         // ----- Materialize.
         if (!fn.nextVirtualFloatRegIndex)
@@ -2257,46 +2482,6 @@ namespace
             planRegs[planReg] = MicroReg::virtualFloatReg(fn.nextVirtualFloatRegIndex++);
         }
 
-        std::array<uint32_t, 4> rotateUseCounts{};
-        std::vector<uint8_t>    livePlanRegs(plan.nextPlanReg);
-        for (const SeedGroup& group : vectorized)
-            livePlanRegs[group.planReg] = true;
-        // A failed seed can leave a partial tree in the plan. Count only the
-        // rotations feeding retained stores when choosing the mask strategy.
-        for (auto it = plan.ops.rbegin(); it != plan.ops.rend(); ++it)
-        {
-            const PlanInstr& planInstr = *it;
-            if (!livePlanRegs[planInstr.dst])
-                continue;
-            if (planInstr.kind == PlanInstr::Kind::RotateBytes)
-                rotateUseCounts[planInstr.imm / 8]++;
-            livePlanRegs[planInstr.dst] = false;
-            switch (planInstr.kind)
-            {
-                case PlanInstr::Kind::BinaryRegReg:
-                    livePlanRegs[planInstr.dst] = true;
-                    [[fallthrough]];
-                case PlanInstr::Kind::Copy:
-                case PlanInstr::Kind::RotateBytes:
-                case PlanInstr::Kind::BinaryRegRegImm:
-                case PlanInstr::Kind::VecUnary:
-                case PlanInstr::Kind::Shuffle:
-                    livePlanRegs[planInstr.src] = true;
-                    break;
-                case PlanInstr::Kind::BinaryRegImm:
-                    livePlanRegs[planInstr.dst] = true;
-                    break;
-                case PlanInstr::Kind::BinaryRegRegReg:
-                    livePlanRegs[planInstr.src]  = true;
-                    livePlanRegs[planInstr.src2] = true;
-                    break;
-                case PlanInstr::Kind::LoadVec:
-                case PlanInstr::Kind::StoreVec:
-                case PlanInstr::Kind::LoadSplat:
-                case PlanInstr::Kind::Broadcast:
-                    break;
-            }
-        }
         std::array<MicroReg, 4> rotateMaskRegs;
         rotateMaskRegs.fill(MicroReg::invalid());
 
@@ -2316,20 +2501,32 @@ namespace
             address[3].opBits            = MicroOpBits::B64;
             address[4].opBits            = MicroOpBits::B64;
             address[5].valueU64          = root.scale;
-            fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadAddrAmcRegMem, address);
+            fn.storage->insertDerivedBefore(*fn.operands, loadInsertionRef, MicroInstrOpcode::LoadAddrAmcRegMem, address);
         }
 
-        const auto emitPlanInstr = [&](const PlanInstr& planInstr) {
+        MicroInstrRef insertionRef  = loadInsertionRef;
+        const auto    emitPlanInstr = [&](const PlanInstr& planInstr) {
             switch (planInstr.kind)
             {
                 case PlanInstr::Kind::LoadVec:
+                case PlanInstr::Kind::LoadBroadcast:
                 {
+                    const bool                       broadcast = planInstr.kind == PlanInstr::Kind::LoadBroadcast;
                     std::array<MicroInstrOperand, 4> ops;
                     ops[0].reg      = planRegs[planInstr.dst];
                     ops[1].reg      = rootRegs[planInstr.rootKey];
-                    ops[2].opBits   = MicroOpBits::B128;
+                    ops[2].opBits   = broadcast ? fn.shape.bits() : MicroOpBits::B128;
                     ops[3].valueU64 = planInstr.baseOffset;
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadVecRegMem, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, broadcast ? MicroInstrOpcode::LoadRegMem : MicroInstrOpcode::LoadVecRegMem, ops);
+                    if (broadcast)
+                    {
+                        MicroInstrOperand shuffle[4];
+                        shuffle[0].reg      = planRegs[planInstr.dst];
+                        shuffle[1].reg      = planRegs[planInstr.dst];
+                        shuffle[2].opBits   = MicroOpBits::B128;
+                        shuffle[3].valueU64 = fn.shape.bytes == 4 ? 0 : 0x44;
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::VecShuffleRegRegImm, shuffle);
+                    }
                     break;
                 }
                 case PlanInstr::Kind::StoreVec:
@@ -2339,7 +2536,7 @@ namespace
                     ops[1].reg      = planRegs[planInstr.src];
                     ops[2].opBits   = MicroOpBits::B128;
                     ops[3].valueU64 = planInstr.baseOffset;
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::StoreVecMemReg, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::StoreVecMemReg, ops);
                     break;
                 }
                 case PlanInstr::Kind::Copy:
@@ -2348,7 +2545,7 @@ namespace
                     ops[0].reg    = planRegs[planInstr.dst];
                     ops[1].reg    = planRegs[planInstr.src];
                     ops[2].opBits = MicroOpBits::B128;
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegReg, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::LoadRegReg, ops);
                     break;
                 }
                 case PlanInstr::Kind::BinaryRegReg:
@@ -2358,7 +2555,7 @@ namespace
                     ops[1].reg     = planRegs[planInstr.src];
                     ops[2].opBits  = MicroOpBits::B128;
                     ops[3].microOp = planInstr.op;
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegReg, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegReg, ops);
                     break;
                 }
                 case PlanInstr::Kind::BinaryRegImm:
@@ -2368,7 +2565,33 @@ namespace
                     ops[1].opBits  = MicroOpBits::B128;
                     ops[2].microOp = planInstr.op;
                     ops[3].setImmediateValue(ApInt(planInstr.imm, 64));
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegImm, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegImm, ops);
+                    break;
+                }
+                case PlanInstr::Kind::GatherPair:
+                {
+                    MicroInstrOperand ops[5];
+                    ops[0].reg     = planRegs[planInstr.dst];
+                    ops[1].reg     = planInstr.scalarReg;
+                    ops[2].reg     = planInstr.scalarReg2;
+                    ops[3].opBits  = MicroOpBits::B128;
+                    ops[4].microOp = MicroOp::VecUnpackLo64;
+                    if (fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary())
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegRegReg, ops);
+                    else
+                    {
+                        MicroInstrOperand copy[3];
+                        copy[0].reg    = planRegs[planInstr.dst];
+                        copy[1].reg    = planInstr.scalarReg;
+                        copy[2].opBits = MicroOpBits::B128;
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::LoadRegReg, copy);
+                        MicroInstrOperand unpack[4];
+                        unpack[0].reg     = planRegs[planInstr.dst];
+                        unpack[1].reg     = planInstr.scalarReg2;
+                        unpack[2].opBits  = MicroOpBits::B128;
+                        unpack[3].microOp = MicroOp::VecUnpackLo64;
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegReg, unpack);
+                    }
                     break;
                 }
                 case PlanInstr::Kind::Broadcast:
@@ -2377,13 +2600,13 @@ namespace
                     copy[0].reg    = planRegs[planInstr.dst];
                     copy[1].reg    = planInstr.scalarReg;
                     copy[2].opBits = fn.shape.bits();
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegReg, copy);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::LoadRegReg, copy);
                     MicroInstrOperand shuffle[4];
                     shuffle[0].reg      = planRegs[planInstr.dst];
                     shuffle[1].reg      = planRegs[planInstr.dst];
                     shuffle[2].opBits   = MicroOpBits::B128;
                     shuffle[3].valueU64 = fn.shape.bytes == 4 ? 0 : 0x44;
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecShuffleRegRegImm, shuffle);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::VecShuffleRegRegImm, shuffle);
                     break;
                 }
                 case PlanInstr::Kind::LoadSplat:
@@ -2393,7 +2616,7 @@ namespace
                         MicroInstrOperand clear[2];
                         clear[0].reg    = planRegs[planInstr.dst];
                         clear[1].opBits = MicroOpBits::B128;
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::ClearReg, clear);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::ClearReg, clear);
                         break;
                     }
                     if (canLoadMask)
@@ -2405,7 +2628,7 @@ namespace
                         const uint64_t                          lane = planInstr.imm;
                         for (uint32_t index = 0; index < fn.shape.count(); ++index)
                             std::memcpy(lanes.data() + index * fn.shape.bytes, &lane, fn.shape.bytes);
-                        emitVectorConstantLoad(fn, firstDeletedRef, planRegs[planInstr.dst], lanes);
+                        emitVectorConstantLoad(fn, insertionRef, planRegs[planInstr.dst], lanes);
                         break;
                     }
 
@@ -2416,14 +2639,14 @@ namespace
                         ops[0].reg    = scalar;
                         ops[1].opBits = fn.shape.bits();
                         ops[2].setImmediateValue(ApInt(planInstr.imm, getNumBits(fn.shape.bits())));
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegImm, ops);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::LoadRegImm, ops);
                     }
                     {
                         std::array<MicroInstrOperand, 3> ops;
                         ops[0].reg    = planRegs[planInstr.dst];
                         ops[1].reg    = scalar;
                         ops[2].opBits = fn.shape.bits();
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegReg, ops);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::LoadRegReg, ops);
                     }
                     {
                         std::array<MicroInstrOperand, 4> ops;
@@ -2431,7 +2654,7 @@ namespace
                         ops[1].reg      = planRegs[planInstr.dst];
                         ops[2].opBits   = MicroOpBits::B128;
                         ops[3].valueU64 = fn.shape.bytes == 4 ? 0 : 0x44;
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecShuffleRegRegImm, ops);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::VecShuffleRegRegImm, ops);
                     }
                     break;
                 }
@@ -2449,10 +2672,10 @@ namespace
                         ops[2].opBits  = MicroOpBits::B128;
                         ops[3].microOp = MicroOp::VecShuffleLow16;
                         ops[4].setImmediateValue(ApInt(0xB1, 64));
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
                         ops[1].reg     = planRegs[planInstr.dst];
                         ops[3].microOp = MicroOp::VecShuffleHigh16;
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
                         break;
                     }
 
@@ -2466,7 +2689,7 @@ namespace
                         // would select every output word's bytes from the first input word.
                         for (uint32_t index = 0; index < K_MICRO_128_BIT_BYTES; ++index)
                             mask[index] = static_cast<char>((index & ~3u) | ((index + 4u - maskIndex) & 3u));
-                        emitVectorConstantLoad(fn, firstDeletedRef, maskReg, mask);
+                        emitVectorConstantLoad(fn, loadInsertionRef, maskReg, mask);
                     }
 
                     if (fn.encoder && fn.encoder->supportsNonDestructiveFloatBinary())
@@ -2477,7 +2700,7 @@ namespace
                         ops[2].reg     = maskReg;
                         ops[3].opBits  = MicroOpBits::B128;
                         ops[4].microOp = MicroOp::VecPermB;
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegReg, ops);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegRegReg, ops);
                     }
                     else
                     {
@@ -2485,13 +2708,13 @@ namespace
                         copyOps[0].reg    = planRegs[planInstr.dst];
                         copyOps[1].reg    = planRegs[planInstr.src];
                         copyOps[2].opBits = MicroOpBits::B128;
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::LoadRegReg, copyOps);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::LoadRegReg, copyOps);
                         std::array<MicroInstrOperand, 4> permOps;
                         permOps[0].reg     = planRegs[planInstr.dst];
                         permOps[1].reg     = maskReg;
                         permOps[2].opBits  = MicroOpBits::B128;
                         permOps[3].microOp = MicroOp::VecPermB;
-                        fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegReg, permOps);
+                        fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegReg, permOps);
                     }
                     break;
                 }
@@ -2503,7 +2726,7 @@ namespace
                     ops[2].reg     = planRegs[planInstr.src2];
                     ops[3].opBits  = MicroOpBits::B128;
                     ops[4].microOp = planInstr.op;
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegReg, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegRegReg, ops);
                     break;
                 }
                 case PlanInstr::Kind::BinaryRegRegImm:
@@ -2514,7 +2737,7 @@ namespace
                     ops[2].opBits  = MicroOpBits::B128;
                     ops[3].microOp = planInstr.op;
                     ops[4].setImmediateValue(ApInt(planInstr.imm, 64));
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::OpBinaryRegRegImm, ops);
                     break;
                 }
                 case PlanInstr::Kind::VecUnary:
@@ -2524,7 +2747,7 @@ namespace
                     ops[1].reg     = planRegs[planInstr.src];
                     ops[2].opBits  = MicroOpBits::B128;
                     ops[3].microOp = planInstr.op;
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecUnaryRegReg, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::VecUnaryRegReg, ops);
                     break;
                 }
                 case PlanInstr::Kind::Shuffle:
@@ -2534,18 +2757,25 @@ namespace
                     ops[1].reg      = planRegs[planInstr.src];
                     ops[2].opBits   = MicroOpBits::B128;
                     ops[3].valueU64 = planInstr.imm;
-                    fn.storage->insertDerivedBefore(*fn.operands, firstDeletedRef, MicroInstrOpcode::VecShuffleRegRegImm, ops);
+                    fn.storage->insertDerivedBefore(*fn.operands, insertionRef, MicroInstrOpcode::VecShuffleRegRegImm, ops);
                     break;
                 }
             }
         };
 
-        for (const PlanInstr& planInstr : plan.loads)
-            emitPlanInstr(planInstr);
-        for (const PlanInstr& planInstr : plan.ops)
-            emitPlanInstr(planInstr);
+        for (size_t index = 0; index < plan.loads.size(); ++index)
+        {
+            insertionRef = loadPoints[index];
+            emitPlanInstr(plan.loads[index]);
+        }
+        for (size_t index = 0; index < plan.ops.size(); ++index)
+        {
+            insertionRef = operationPoints[index];
+            emitPlanInstr(plan.ops[index]);
+        }
         for (const SeedGroup& group : vectorized)
         {
+            insertionRef = group.storeReference;
             PlanInstr store;
             store.kind       = PlanInstr::Kind::StoreVec;
             store.src        = group.planReg;
@@ -2699,6 +2929,7 @@ namespace
 
 Result MicroSlpVectorizePass::run(MicroPassContext& context)
 {
+    const bool        exposedScalarValues = SlpVectorize::exposeScalarValues(context);
     SlpDefinitionScan scan;
     bool              rewrote = false;
     SWC_RESULT(runSlp(context, {4}, scan, rewrote));
@@ -2711,7 +2942,8 @@ Result MicroSlpVectorizePass::run(MicroPassContext& context)
     doubleContext.ssaState         = nullptr;
     doubleContext.passChanged      = false;
     SWC_RESULT(runSlp(doubleContext, {8}, scan, rewrote));
-    context.passChanged = context.passChanged || doubleContext.passChanged;
+    SlpVectorize::packRoots(context);
+    context.passChanged = exposedScalarValues || context.passChanged || doubleContext.passChanged;
     return Result::Continue;
 }
 

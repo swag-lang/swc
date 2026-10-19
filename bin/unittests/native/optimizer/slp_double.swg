@@ -51,3 +51,20 @@ func scaled(values: *[8] f64, scale: f64)
     overlapping(&values)
     Swag.assert(values[1] == 9 and values[2] == 3)
 }
+
+#[Swag.Optimize(true)]
+func snapshotBeforeOverwrite(values: *[8] f64)
+{
+    let left = values[][0]
+    let right = values[][1]
+    values[][0] = -9
+    values[][4] = Swag.sqrt(left)
+    values[][5] = Swag.sqrt(right)
+}
+
+#test
+{
+    var values: [8] f64 = [81, 16, 3, 2, 0, 0, 0, 0]
+    snapshotBeforeOverwrite(&values)
+    Swag.assert(values[0] == -9 and values[4] == 9 and values[5] == 4)
+}

@@ -7,6 +7,7 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
+#include "Backend/Micro/Passes/Pass.SlpVectorize.Internal.h"
 #include "Backend/Micro/Passes/Pass.SlpVectorize.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
@@ -268,6 +269,85 @@ SWC_TEST_BEGIN(SlpVectorize_DoubleBroadcastRequiresLiveEntryValue)
         builder.emitRet();
         SWC_RESULT(runSlpPass(builder, ssa, encoder));
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != (overwrite ? 0 : 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_RepeatedLoadReadsOnlyItsScalarWidth)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (uint32_t variant = 0; variant < 5; ++variant)
+        {
+            MicroBuilder   builder(ctx);
+            X64Encoder     encoder(ctx);
+            MicroSsaState  ssa;
+            const MicroReg sp     = encoder.stackPointerReg();
+            const MicroReg factor = MicroReg::virtualFloatReg(10);
+            const uint32_t bytes  = getNumBytes(bits);
+            if (variant == 4)
+                builder.emitLoadMemImm(sp, 0x20, ApInt(1, 8), MicroOpBits::B8);
+            builder.emitLoadRegMem(factor, sp, 0x20, bits);
+            if (variant && variant != 4)
+            {
+                const uint32_t offset = variant == 1 ? 0x20 : variant == 2 ? 0x20 + bytes
+                                                                           : 0x20 + bytes - 1;
+                builder.emitLoadMemImm(sp, offset, ApInt(1, 8), MicroOpBits::B8);
+            }
+            for (uint32_t lane = 0; lane < 16 / bytes; ++lane)
+            {
+                const MicroReg value = MicroReg::virtualFloatReg(lane + 1);
+                builder.emitLoadRegMem(value, sp, 0x40 + lane * bytes, bits);
+                builder.emitOpBinaryRegReg(value, factor, MicroOp::FloatMultiply, bits);
+                builder.emitLoadMemReg(sp, 0x80 + lane * bytes, value, bits);
+            }
+            builder.emitRet();
+            SWC_RESULT(runSlpPass(builder, ssa, encoder));
+            const bool vectorized = variant != 4;
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != (vectorized ? 1 : 0))
+                return Result::Error;
+            uint32_t factorReads = 0;
+            for (const MicroInstr& inst : builder.instructions().view())
+            {
+                const auto* ops = inst.ops(builder.operands());
+                if ((inst.op == MicroInstrOpcode::LoadRegMem || inst.op == MicroInstrOpcode::LoadVecRegMem) && ops[1].reg == sp && ops[3].valueU64 == 0x20)
+                {
+                    if (ops[2].opBits != bits)
+                        return Result::Error;
+                    ++factorReads;
+                }
+            }
+            if (factorReads != (vectorized ? 2 : 1))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_FullFloatCopiesPreserveScalarLanes)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        MicroBuilder   builder(ctx);
+        X64Encoder     encoder(ctx);
+        MicroSsaState  ssa;
+        const MicroReg sp    = encoder.stackPointerReg();
+        const uint32_t bytes = getNumBytes(bits);
+        for (uint32_t lane = 0; lane < 16 / bytes; ++lane)
+        {
+            const MicroReg input = MicroReg::virtualFloatReg(lane + 1);
+            const MicroReg value = MicroReg::virtualFloatReg(lane + 10);
+            builder.emitLoadRegMem(input, sp, 0x40 + lane * bytes, bits);
+            builder.emitLoadRegReg(value, input, MicroOpBits::B128);
+            builder.emitOpBinaryRegReg(value, value, MicroOp::FloatSqrt, bits);
+            builder.emitLoadMemReg(sp, 0x80 + lane * bytes, value, bits);
+        }
+        builder.emitRet();
+        SWC_RESULT(runSlpPass(builder, ssa, encoder));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1)
             return Result::Error;
     }
     return Result::Continue;
@@ -857,7 +937,7 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(SlpVectorize_SurvivingStoresRespectPackedLoadInsertion)
 {
-    // A preceding store blocks an overlapping load; a later one cannot block it.
+    // Preserve old leaves before an overlapping store; unrelated stores need no snapshot.
     for (uint32_t storeMode = 0; storeMode < 3; ++storeMode)
     {
         MicroBuilder   builder(ctx);
@@ -888,7 +968,7 @@ SWC_TEST_BEGIN(SlpVectorize_SurvivingStoresRespectPackedLoadInsertion)
         builder.emitRet();
 
         SWC_RESULT(runSlpPass(builder, ssa, encoder));
-        const bool vectorized = storeMode != 1;
+        const bool vectorized = true;
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != (vectorized ? 1u : 0u) ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadMemReg) != (vectorized ? 0u : 4u))
             return Result::Error;
@@ -899,7 +979,7 @@ SWC_TEST_BEGIN(SlpVectorize_SurvivingStoresRespectPackedLoadInsertion)
         {
             if (it.current == survivingStore)
                 passedStore = true;
-            if (it->op == MicroInstrOpcode::LoadVecRegMem && passedStore != (storeMode == 0))
+            if (it->op == MicroInstrOpcode::LoadVecRegMem && storeMode == 1 && passedStore)
                 return Result::Error;
         }
     }
@@ -1148,6 +1228,107 @@ SWC_TEST_BEGIN(SlpVectorize_IndexedReadModifyWriteProofs)
         SWC_ASSERT(Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) == (variant == 0 ? 1u : 0u));
         SWC_ASSERT(Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryAmcMemReg) == (variant == 0 ? 0u : 4u));
     }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_IndependentRootsRespectDependenciesAndObservations)
+{
+    for (uint32_t divide = 0; divide < 2; ++divide)
+    {
+        for (uint32_t variant = 0; variant < 12; ++variant)
+        {
+            MicroBuilder             builder(ctx);
+            X64Encoder               encoder(ctx);
+            Runtime::BuildCfgBackend config{};
+            config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+            config.vectorize  = true;
+            config.math.noNaN = variant != 4;
+            config.math.noInf = true;
+            builder.setBackendBuildCfg(config);
+            const MicroReg sp           = encoder.stackPointerReg();
+            const MicroReg firstInput   = MicroReg::virtualFloatReg(1);
+            const MicroReg secondInput  = MicroReg::virtualFloatReg(2);
+            const MicroReg firstResult  = MicroReg::virtualFloatReg(3);
+            const MicroReg secondResult = MicroReg::virtualFloatReg(4);
+            const MicroReg savedFrame   = MicroReg::virtualIntReg(1);
+            if (variant >= 8)
+                builder.emitLoadAddressRegMem(savedFrame, sp, 0, MicroOpBits::B64);
+            builder.emitLoadRegMem(firstInput, sp, 0x40, MicroOpBits::B64);
+            if (variant == 8 || variant == 11)
+                builder.emitOpBinaryRegImm(sp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+            if (variant == 11)
+                builder.emitOpBinaryRegImm(sp, ApInt(16, 64), MicroOp::Add, MicroOpBits::B64);
+            if (variant == 7)
+                builder.emitLoadRegMem(secondInput, variant >= 8 ? savedFrame : sp, 0x48, MicroOpBits::B64);
+            if (divide)
+                builder.emitOpBinaryRegRegReg(firstResult, firstInput, firstInput, MicroOp::FloatDivide, MicroOpBits::B64);
+            else
+                builder.emitOpBinaryRegReg(firstResult, firstInput, MicroOp::FloatSqrt, MicroOpBits::B64);
+            if (variant == 9)
+                builder.emitOpBinaryRegImm(sp, ApInt(16, 64), MicroOp::Subtract, MicroOpBits::B64);
+            if (variant >= 8)
+                builder.emitLoadMemImm(sp, 0x58, ApInt(0, 64), MicroOpBits::B64);
+            if (variant == 1)
+                builder.emitLoadMemImm(sp, 0x48, ApInt(uint64_t{0}, 64), MicroOpBits::B64);
+            if (variant == 3)
+                builder.emitStoreVecMemReg(sp, 0x90, firstResult, MicroOpBits::B128);
+            if (variant == 5)
+                builder.placeLabel(builder.createLabel());
+            if (variant == 6)
+                builder.emitLoadMemReg(MicroReg::intReg(11), 0, firstInput, MicroOpBits::B64);
+            if (variant != 7)
+                builder.emitLoadRegMem(secondInput, variant >= 8 ? savedFrame : sp, 0x48, MicroOpBits::B64);
+            const MicroReg source = variant == 2 ? firstResult : secondInput;
+            if (divide)
+                builder.emitOpBinaryRegRegReg(secondResult, source, source, MicroOp::FloatDivide, MicroOpBits::B64);
+            else
+                builder.emitOpBinaryRegReg(secondResult, source, MicroOp::FloatSqrt, MicroOpBits::B64);
+            builder.emitLoadMemReg(sp, 0x80, firstResult, MicroOpBits::B64);
+            builder.emitLoadMemReg(sp, 0x88, secondResult, MicroOpBits::B64);
+            builder.emitLoadMemReg(sp, 0xA0, secondInput, MicroOpBits::B64);
+            builder.emitRet();
+            MicroPassContext context;
+            context.taskContext  = &ctx;
+            context.builder      = &builder;
+            context.instructions = &builder.instructions();
+            context.operands     = &builder.operands();
+            context.encoder      = &encoder;
+            const bool expected  = variant == 0 || variant == 7 || variant == 10 || variant == 11;
+            if (SlpVectorize::packRoots(context) != expected)
+                return Result::Error;
+            uint32_t packed = 0;
+            for (const auto& instruction : builder.instructions().view())
+            {
+                const auto* ops = instruction.ops(builder.operands());
+                if ((instruction.op == MicroInstrOpcode::VecUnaryRegReg && ops[3].microOp == MicroOp::VecSqrtF64) ||
+                    (instruction.op == MicroInstrOpcode::OpBinaryRegRegReg && ops[4].microOp == MicroOp::VecDivF64))
+                    ++packed;
+            }
+            if (packed != (expected ? 1u : 0u))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_ConstantsStayAfterEntryFrameAllocation)
+{
+    MicroBuilder   builder(ctx);
+    X64Encoder     encoder(ctx);
+    MicroSsaState  ssa;
+    const MicroReg sp = encoder.stackPointerReg();
+    builder.emitOpBinaryRegImm(sp, ApInt(64, 64), MicroOp::Subtract, MicroOpBits::B64);
+    for (uint32_t lane = 0; lane < 4; ++lane)
+        builder.emitLoadMemImm(sp, lane * 4, ApInt(0, 32), MicroOpBits::B32);
+    builder.emitOpBinaryRegImm(sp, ApInt(64, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+    SWC_RESULT(runSlpPass(builder, ssa, encoder));
+    const auto first = builder.instructions().view().begin();
+    if (first->op != MicroInstrOpcode::OpBinaryRegImm || first->ops(builder.operands())[2].microOp != MicroOp::Subtract ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::StoreVecMemReg) != 1)
+        return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

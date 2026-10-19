@@ -19,12 +19,14 @@ struct EnumFlags
     {
     }
 
-    constexpr bool        operator==(const Self& other) const { return flags == other.flags; }
-    constexpr bool        operator!=(const Self& other) const { return !(*this == other); }
-    friend bool           operator<(const EnumFlags& lhs, const EnumFlags& rhs) { return lhs.flags < rhs.flags; }
-    friend bool           operator<=(const EnumFlags& lhs, const EnumFlags& rhs) { return !(rhs < lhs); }
-    friend bool           operator>(const EnumFlags& lhs, const EnumFlags& rhs) { return rhs < lhs; }
-    friend bool           operator>=(const EnumFlags& lhs, const EnumFlags& rhs) { return !(lhs < rhs); }
+    constexpr bool operator==(const Self& other) const { return flags == other.flags; }
+    constexpr bool operator!=(const Self& other) const { return !(*this == other); }
+
+    friend bool operator<(const EnumFlags& lhs, const EnumFlags& rhs) { return lhs.flags < rhs.flags; }
+    friend bool operator<=(const EnumFlags& lhs, const EnumFlags& rhs) { return !(rhs < lhs); }
+    friend bool operator>(const EnumFlags& lhs, const EnumFlags& rhs) { return rhs < lhs; }
+    friend bool operator>=(const EnumFlags& lhs, const EnumFlags& rhs) { return !(lhs < rhs); }
+
     friend constexpr Self operator|(Self a, Self b) { return Self{static_cast<T>(a.flags | b.flags)}; }
     friend constexpr Self operator|(Self a, T b) { return Self{static_cast<T>(a.flags | static_cast<U>(b))}; }
     friend constexpr Self operator|(T a, Self b) { return Self{static_cast<T>(static_cast<U>(a) | b.flags)}; }
@@ -43,6 +45,7 @@ struct EnumFlags
         U mask = 0;
         for (T x : list)
             mask |= static_cast<U>(x);
+
         return (flags & mask) != 0;
     }
 
@@ -51,6 +54,7 @@ struct EnumFlags
         U mask = 0;
         for (Self x : list)
             mask |= x.flags;
+
         return (flags & mask) != 0;
     }
 
@@ -60,11 +64,13 @@ struct EnumFlags
     constexpr Self mask(T fl) const { return Self{static_cast<T>(flags & static_cast<U>(fl))}; }
     constexpr Self maskInvert(Self fl) const { return Self{static_cast<T>(flags & ~fl.flags)}; }
     constexpr Self maskInvert(T fl) const { return Self{static_cast<T>(flags & ~static_cast<U>(fl))}; }
+
     constexpr void add(Self fl) { flags |= fl.flags; }
     constexpr void add(T fl) { flags |= static_cast<U>(fl); }
     constexpr void remove(Self fl) { flags &= ~fl.flags; }
     constexpr void remove(T fl) { flags &= ~static_cast<U>(fl); }
     constexpr void clear() { flags = 0; }
+
     constexpr bool any() const { return flags != 0; }
     constexpr bool none() const { return flags == 0; }
 
@@ -124,6 +130,7 @@ struct AtomicEnumFlags
     {
         if (this != &other)
             flags.store(other.flags.load(std::memory_order_relaxed), std::memory_order_relaxed);
+
         return *this;
     }
 
@@ -182,6 +189,7 @@ struct AtomicEnumFlags
         U mask = 0;
         for (T x : list)
             mask |= static_cast<U>(x);
+
         const U v = flags.load(mo);
         return (v & mask) != 0;
     }
@@ -191,6 +199,7 @@ struct AtomicEnumFlags
         U mask = 0;
         for (const EnumFlags<T> x : list)
             mask |= x.flags;
+
         const U v = flags.load(mo);
         return (v & mask) != 0;
     }
@@ -266,6 +275,7 @@ struct AtomicEnumFlags
         const U v = flags.load(mo);
         return EnumFlags<T>{static_cast<T>(v & static_cast<U>(~fl.flags))};
     }
+
     EnumFlags<T> maskInvert(T fl, std::memory_order mo = std::memory_order_acquire) const noexcept
     {
         const U v = flags.load(mo);
@@ -283,6 +293,7 @@ struct AtomicEnumFlags
         }
     }
 
+    // Iterate one snapshot; concurrent updates do not change the set being visited.
     template<typename FN>
     void forEachSet(FN fn, std::memory_order mo = std::memory_order_acquire) const
     {

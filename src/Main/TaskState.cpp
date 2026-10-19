@@ -122,16 +122,20 @@ void TaskState::setNone()
     runJitFunction           = nullptr;
     codeGenFunction          = nullptr;
     weakJitRelocationBlocker = nullptr;
-    nodeRef                  = AstNodeRef::invalid();
-    codeRef                  = SourceCodeRef::invalid();
-    idRef                    = IdentifierRef::invalid();
-    symbol                   = nullptr;
-    waiterSymbol             = nullptr;
-    jitEmissionError         = false;
-    autoScopeTypeRef         = TypeRef::invalid();
-    memberScope              = nullptr;
-    typeInfoOwner            = nullptr;
-    typeInfoGeneration       = 0;
+
+    nodeRef = AstNodeRef::invalid();
+    codeRef = SourceCodeRef::invalid();
+    idRef   = IdentifierRef::invalid();
+
+    symbol           = nullptr;
+    waiterSymbol     = nullptr;
+    jitEmissionError = false;
+
+    autoScopeTypeRef = TypeRef::invalid();
+    memberScope      = nullptr;
+
+    typeInfoOwner      = nullptr;
+    typeInfoGeneration = 0;
 }
 
 void TaskState::resetActiveLocation(AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
@@ -149,6 +153,7 @@ void TaskState::setRunJit(const SymbolFunction* function, AstNodeRef currentNode
     kind            = TaskStateKind::RunJit;
     runJitFunction  = function;
     codeGenFunction = nullptr;
+
     resetActiveLocation(currentNodeRef, currentCodeRef);
 }
 
@@ -161,12 +166,14 @@ void TaskState::setSemaParsing(AstNodeRef currentNodeRef, const SourceCodeRef& c
             nodeRef = currentNodeRef;
             codeRef = currentCodeRef;
         }
+
         return;
     }
 
-    kind                     = TaskStateKind::SemaParsing;
-    runJitFunction           = nullptr;
-    codeGenFunction          = nullptr;
+    kind            = TaskStateKind::SemaParsing;
+    runJitFunction  = nullptr;
+    codeGenFunction = nullptr;
+
     resetActiveLocation(currentNodeRef, currentCodeRef);
 }
 
@@ -179,20 +186,23 @@ void TaskState::setCodeGenParsing(const SymbolFunction* function, AstNodeRef cur
             nodeRef = currentNodeRef;
             codeRef = currentCodeRef;
         }
+
         return;
     }
 
-    kind                     = TaskStateKind::CodeGenParsing;
-    runJitFunction           = nullptr;
-    codeGenFunction          = function;
+    kind            = TaskStateKind::CodeGenParsing;
+    runJitFunction  = nullptr;
+    codeGenFunction = function;
+
     resetActiveLocation(currentNodeRef, currentCodeRef);
 }
 
 void TaskState::setSemaWaitMainThreadRunJit(const SymbolFunction* function, AstNodeRef currentNodeRef, const SourceCodeRef& currentCodeRef)
 {
-    kind                     = TaskStateKind::SemaWaitMainThreadRunJit;
-    runJitFunction           = function;
-    codeGenFunction          = nullptr;
+    kind            = TaskStateKind::SemaWaitMainThreadRunJit;
+    runJitFunction  = function;
+    codeGenFunction = nullptr;
+
     resetActiveLocation(currentNodeRef, currentCodeRef);
 }
 

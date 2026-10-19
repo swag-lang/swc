@@ -2105,6 +2105,7 @@ namespace
                     indirectInfo.markStoredFieldBorrow();
                 }
             }
+
             for (const bool indirect : {false, true})
             {
                 const SemaEscapeInfo& info = indirect ? indirectInfo : directInfo;
@@ -2112,32 +2113,24 @@ namespace
                     continue;
                 if (!info.hasBorrow())
                 {
-                    // A nested call has no bound local to hold its deferred provenance.
-                    // Snapshot it with the same traversal budget; the guards below still
-                    // wait for final summaries before deciding whether it returns a borrow.
+                    // Nested calls have no local binding for deferred provenance. Snapshot
+                    // them within this budget, then let guards consult final return summaries.
                     SemaEscapeDeferredCallSnapshot nested;
                     if (captureOpaqueCallBorrows(sema, arg.argRef, false, nested, budget))
                         appendGuardedCallBorrows(outCapture, nested, *fn, static_cast<uint32_t>(thisParam), indirect);
                 }
+
                 if (collectPairs && info.hasBorrow())
                     argBorrows.push_back({static_cast<uint32_t>(thisParam), info, indirect});
 
-                // Allocator-interface free: what the call invalidates is the borrow the
-                // REQUEST variable carries (tracked when 'req.address = x' was analyzed).
-                // A caller parameter seeds this function's FREES summary; a frame-local
-                // borrow (non-owner: an owner's payload lives on the heap and freeing it
-                // is legitimate) is a certain fault.
-                // Interface dispatch pairs the request as the sole non-receiver argument
-                // (the runtime receiver object does not consume a slot).
-                // Releasing a payload READ OUT of a parameter ('me.buffer') frees what that
-                // object owns, not the pointer the caller handed over: it is the whole point
-                // of a 'clear' or a destructor, and must not mark the object itself freed.
+                // Allocator release follows the request's address borrow. Caller parameters
+                // seed the frees summary; releasing a non-owning frame borrow is a fault.
+                // An owner's payload is heap storage: releasing it invalidates payload views,
+                // without marking the caller's owner object itself as freed.
                 if (calleeIsAllocFree && collectPairs && !indirect)
                 {
-                    // The request transports every operand of the operation at once. What a
-                    // release invalidates is the block in its ADDRESS field and nothing else:
-                    // merging every projection made 'Memory.free' claim it also releases the
-                    // hint string its report names.
+                    // Only the address field identifies the released block. Merging all fields
+                    // would also mark unrelated borrows, such as the diagnostic hint string, freed.
                     const AstNodeRef      reqValueRef = argumentValueRef(sema, arg.argRef);
                     bool                  reqWhole    = false;
                     const SymbolVariable* reqVar      = reqValueRef.isValid() ? storageRootVariable(sema, reqValueRef, false, reqWhole) : nullptr;
@@ -2145,10 +2138,8 @@ namespace
 
                     if (carried.viaOwnedPayload || carried.detachedOwnedPayload)
                     {
-                        // The owner is releasing its own payload: not a free of the pointer
-                        // the caller handed over, but every view INTO that payload dies here.
-                        // This is what tells 'append', 'reserve' and 'clear' apart from a
-                        // method that only reads or assigns fields.
+                        // Releasing an owner's payload invalidates its views, not the owner
+                        // pointer. Record this separately from ordinary field reads and writes.
                         if (carried.kind == SemaEscapeKind::Parameter)
                         {
                             if (SymbolFunction* callerFn = sema.currentFunction())
@@ -2183,13 +2174,13 @@ namespace
                         fillDeferredCheckDiag(sema, check, carried);
                         check.diagId    = DiagnosticId::sanity_err_free_borrowed;
                         check.siteRange = sema.node(arg.argRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+
                         outCapture.checks.push_back(std::move(check));
                     }
                 }
 
-                // Handing the callee one of the caller's own parameters chains the
-                // summaries: judged by fixpoint, not here - the callee's masks are not
-                // final yet. The edge kind is chosen by the committer.
+                // Forwarded caller parameters chain summaries. Record edges for the fixpoint;
+                // the callee's masks are not final yet, and commit chooses the edge kind.
                 if (info.kind == SemaEscapeKind::Parameter)
                 {
                     SymbolFunction* callerFn = sema.currentFunction();
@@ -2206,10 +2197,12 @@ namespace
                         route.borrowedVar          = info.sourceVar;
                         route.borrowedPayloadField = callerField;
                         route.routeOnly            = true;
+
                         outCapture.checks.push_back(std::move(route));
                     }
 
                     const uint64_t origins = parameterOriginsMask(*callerFn, info);
+
                     for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
                     {
                         const size_t callerParamIndex = std::countr_zero(remainingOrigins);
@@ -2218,6 +2211,7 @@ namespace
                             const uint64_t routeOrigins = callerIndirect ? info.parameterIndirectOriginsMask : directParameterOriginsMask(*callerFn, info);
                             if (!(routeOrigins & (1ULL << callerParamIndex)))
                                 continue;
+
                             SemaEscapeSummaryEdge edge;
                             edge.caller                = callerFn;
                             edge.callee                = fn;
@@ -2229,36 +2223,34 @@ namespace
                             edge.viaStoredField        = info.viaStoredField;
                             edge.viaParameterPointee   = callerIndirect && info.viaParameterPointee;
                             edge.callerProjectionField = callerField;
+
                             outCapture.edges.push_back(edge);
                             parameterMappings.push_back({static_cast<uint32_t>(callerParamIndex), static_cast<uint32_t>(thisParam), callerIndirect, indirect});
                         }
                     }
+
                     continue;
                 }
 
-                // A local bound to another opaque call handed onward ('let p = f(&v);
-                // g(p)'): compose the two summaries. Each borrow captured at 'f' becomes a
-                // GUARDED template - it escapes only if 'f' returns it (the guard) AND
-                // this callee keeps or returns its argument (the main judge). Templates
-                // every wrapper contributes one guard, so chains have no fixed depth limit.
+                // Compose forwarded opaque calls, such as 'p = f(&v); g(p)'. Each wrapper
+                // adds a return guard: the borrow escapes only if f returns it and g keeps
+                // or returns it. Chained guards avoid a fixed wrapper-depth limit.
                 if (info.isDeferredCallBorrow())
                 {
                     for (const auto& snapshot : info.deferredCalls)
                     {
                         if (!snapshot)
                             continue;
+
                         appendGuardedCallBorrows(outCapture, *snapshot, *fn, static_cast<uint32_t>(thisParam), indirect);
                     }
 
                     continue;
                 }
 
-                // A GLOBAL argument makes nothing escape: it outlives every frame, which is
-                // why the escape rules ignore it. The ROUTE still has to be recorded, because
-                // invalidation is a different fault - a result read out of what the global
-                // owns goes stale when that payload moves - and the check has no other way to
-                // learn that this call result came from this global. Never judged
-                // (commitDeferredCallBorrows drops it), so it costs no diagnostic.
+                // Global arguments outlive every frame, but their payloads can be invalidated.
+                // Retain the result's route to its global owner for invalidation checks;
+                // commitDeferredCallBorrows skips escape diagnostics for these records.
                 if (info.kind == SemaEscapeKind::Static && info.sourceVar)
                 {
                     SemaEscapeDeferredCheck check;
@@ -2267,6 +2259,7 @@ namespace
                     check.indirect     = indirect;
                     check.borrowedVar  = info.sourceVar;
                     check.staticSource = true;
+
                     outCapture.checks.push_back(std::move(check));
                     continue;
                 }
@@ -2281,19 +2274,20 @@ namespace
                 check.paramIndex = static_cast<uint32_t>(thisParam);
                 check.indirect   = indirect;
                 fillDeferredCheckDiag(sema, check, info);
+
                 outCapture.checks.push_back(std::move(check));
             }
         }
 
-        // Cross-argument pairs: 'container.add(&local)' escapes when the callee stores
-        // the borrowed argument into storage reachable from the container argument AND
-        // that container outlives what was borrowed (see 'intoArgumentOutlivesStored').
+        // A cross-argument store escapes only if the destination container outlives
+        // the stored borrow, as in 'container.add(&local)'.
         if (collectPairs)
         {
             for (const auto& [callerInto, calleeInto, callerIntoIndirect, calleeIntoIndirect] : parameterMappings)
             {
                 if (callerIntoIndirect || calleeIntoIndirect)
                     continue;
+
                 for (const auto& [callerStored, calleeStored, callerStoredIndirect, calleeStoredIndirect] : parameterMappings)
                 {
                     if (callerInto == callerStored || calleeInto == calleeStored)
@@ -2309,6 +2303,7 @@ namespace
                     edge.callerIndirect       = callerStoredIndirect;
                     edge.calleeIndirect       = calleeStoredIndirect;
                     edge.kind                 = SemaEscapeSummaryEdgeKind::PairToPair;
+
                     outCapture.edges.push_back(edge);
                 }
             }
@@ -2322,36 +2317,46 @@ namespace
                 {
                     if (storedParam == intoParam || storedParam >= 8)
                         continue;
+
                     if (storedInfo.isDeferredCallBorrow())
                     {
                         for (const auto& snapshot : storedInfo.deferredCalls)
                         {
                             if (!snapshot)
                                 continue;
+
                             SemaEscapeDeferredCallSnapshot forwarded;
                             appendGuardedCallBorrows(forwarded, *snapshot, *fn, storedParam, storedIndirect);
                             for (SemaEscapeDeferredCheck& check : forwarded.checks)
                             {
                                 if (check.staticSource || check.routeOnly)
                                     continue;
+
                                 SemaEscapeInfo source;
                                 source.sourceVar = check.borrowedVar;
-                                source.kind      = source.sourceVar ? SemaEscapeKind::Local : check.diagId == DiagnosticId::sanity_err_borrow_temporary ? SemaEscapeKind::Temporary
-                                                                                                                                                        : SemaEscapeKind::Materialized;
+                                source.kind      = source.sourceVar
+                                                       ? SemaEscapeKind::Local
+                                                   : check.diagId == DiagnosticId::sanity_err_borrow_temporary
+                                                       ? SemaEscapeKind::Temporary
+                                                       : SemaEscapeKind::Materialized;
                                 if (!intoArgumentOutlivesStored(sema, intoInfo, source))
                                     continue;
+
                                 check.judgePairs     = true;
                                 check.intoParamIndex = intoParam;
                                 outCapture.checks.push_back(std::move(check));
                             }
+
                             for (const auto& mapping : parameterMappings)
                             {
                                 if (mapping.callee != intoParam || mapping.callerIndirect || mapping.calleeIndirect)
                                     continue;
+
                                 for (const SemaEscapeSummaryEdge& forwardedEdge : forwarded.edges)
                                 {
                                     if (forwardedEdge.callerParamIndex == mapping.caller)
                                         continue;
+
                                     SemaEscapeSummaryEdge edge = forwardedEdge;
                                     edge.kind                  = SemaEscapeSummaryEdgeKind::PairToPair;
                                     edge.callerIntoParamIndex  = mapping.caller;
@@ -2360,8 +2365,10 @@ namespace
                                 }
                             }
                         }
+
                         continue;
                     }
+
                     if (!storedInfo.isLocalBorrow() && !storedInfo.isTemporaryBorrow() && !storedInfo.isMaterializedBorrow())
                         continue;
                     if (!intoArgumentOutlivesStored(sema, intoInfo, storedInfo))
@@ -2374,6 +2381,7 @@ namespace
                     check.intoParamIndex = intoParam;
                     check.indirect       = storedIndirect;
                     fillDeferredCheckDiag(sema, check, storedInfo);
+
                     outCapture.checks.push_back(std::move(check));
                 }
             }
@@ -2382,10 +2390,9 @@ namespace
         return !outCapture.checks.empty() || !outCapture.edges.empty();
     }
 
-    // Stamps the escape site on a capture and hands it to the compiler for the final
-    // judgement. 'judgeStores' selects which callee summary the checks are judged
-    // against; 'edgeKind' selects how caller-parameter arguments propagate (empty =
-    // dropped: the destination does not provably outlive the frame).
+    // Attach the escape site for final checking. judgeStores selects the callee summary;
+    // edgeKind selects propagation of caller parameters. No edge kind means the destination
+    // does not provably outlive this frame, so those edges are dropped.
     void commitDeferredCallBorrows(Sema& sema, const SemaEscapeDeferredCallSnapshot& capture, AstNodeRef atNodeRef, std::string_view what, bool judgeStores, std::optional<SemaEscapeSummaryEdgeKind> edgeKind)
     {
         if (atNodeRef.isInvalid())
@@ -2407,6 +2414,7 @@ namespace
             check.fileRef                 = fileRef;
             if (!check.siteRange.srcView)
                 check.siteRange = siteRange;
+
             sema.ctx().compiler().addDeferredEscapeCheck(std::move(check));
         }
 
@@ -2418,6 +2426,7 @@ namespace
             SemaEscapeSummaryEdge edge = protoEdge;
             if (edge.kind != SemaEscapeSummaryEdgeKind::PairToPair)
                 edge.kind = edgeKind.value();
+
             sema.ctx().compiler().addEscapeSummaryEdge(edge);
         }
     }
@@ -2440,6 +2449,7 @@ namespace
                 std::optional<SemaEscapeSummaryEdgeKind> edgeKind;
                 if (durableDest)
                     edgeKind = SemaEscapeSummaryEdgeKind::ReturnToStores;
+
                 commitDeferredCallBorrows(sema, capture, atNodeRef, what, false, edgeKind);
                 break;
             }
@@ -2463,6 +2473,7 @@ namespace
         info.kind      = SemaEscapeKind::DeferredCall;
         info.sourceRef = exprRef;
         info.deferredCalls.push_back(std::make_shared<const SemaEscapeDeferredCallSnapshot>(std::move(capture)));
+
         return info;
     }
 
@@ -2475,6 +2486,7 @@ namespace
                 sema.clearProjectionEscapeInfo(*projection);
             else
                 sema.clearVariableEscapeInfo(symVar);
+
             return;
         }
 
@@ -2484,9 +2496,8 @@ namespace
             sema.setVariableEscapeInfo(symVar, info);
     }
 
-    // The variable an assignment destination is ultimately reached through, ignoring what
-    // the storage walk can prove about provenance: the innermost identifier of a
-    // member/index/dereference chain. 'table[i].key' gives 'table'.
+    // Follow destination syntax regardless of proven provenance: 'table[i].key' roots
+    // at 'table', the innermost identifier in its member/index/dereference chain.
     const SymbolVariable* destinationBaseVariable(Sema& sema, AstNodeRef nodeRef, uint32_t depth = 0)
     {
         if (nodeRef.isInvalid() || depth > K_STORAGE_WALK_BUDGET)
@@ -2501,42 +2512,53 @@ namespace
         {
             case AstNodeId::Identifier:
                 return identifierVariable(sema, resolvedRef);
+
             case AstNodeId::ParenExpr:
                 return destinationBaseVariable(sema, node.cast<AstParenExpr>().nodeExprRef, depth + 1);
+
             case AstNodeId::InitializerExpr:
                 return destinationBaseVariable(sema, node.cast<AstInitializerExpr>().nodeExprRef, depth + 1);
+
             case AstNodeId::AutoCastExpr:
                 return destinationBaseVariable(sema, node.cast<AstAutoCastExpr>().nodeExprRef, depth + 1);
+
             case AstNodeId::AsCastExpr:
                 return destinationBaseVariable(sema, node.cast<AstAsCastExpr>().nodeExprRef, depth + 1);
+
             case AstNodeId::ErrorManagementExpr:
                 return destinationBaseVariable(sema, node.cast<AstErrorManagementExpr>().nodeExprRef, depth + 1);
+
             case AstNodeId::CastExpr:
             {
                 const AstNodeRef operandRef = node.cast<AstCastExpr>().nodeExprRef;
                 if (castOperandSelfSubstituted(sema, resolvedRef, operandRef))
                     return nullptr;
+
                 return destinationBaseVariable(sema, operandRef, depth + 1);
             }
+
             case AstNodeId::MemberAccessExpr:
                 return destinationBaseVariable(sema, node.cast<AstMemberAccessExpr>().nodeLeftRef, depth + 1);
+
             case AstNodeId::IndexExpr:
                 return destinationBaseVariable(sema, node.cast<AstIndexExpr>().nodeExprRef, depth + 1);
+
             case AstNodeId::IndexListExpr:
                 return destinationBaseVariable(sema, node.cast<AstIndexListExpr>().nodeExprRef, depth + 1);
+
             case AstNodeId::UnaryExpr:
                 if (Token::isDeref(sema.token(node.codeRef()).id))
                     return destinationBaseVariable(sema, node.cast<AstUnaryExpr>().nodeExprRef, depth + 1);
+
                 return nullptr;
+
             default:
                 return nullptr;
         }
     }
 
-    // A parameter borrow stored through a local that an ACCESSOR call handed back
-    // ('let table = .tablePtr(); table[i].key = key'). The store reaches the accessor's
-    // receiver exactly when the accessor returns its storage - a fact only the final
-    // return summary holds, so record an edge for the fixpoint instead of deciding here.
+    // A store through an accessor result reaches its receiver only if the final summary
+    // says it returns that storage. Record the parameter-store edge for the fixpoint.
     void recordAccessorStoreIntoParamPair(Sema& sema, AstNodeRef leftRef, const SemaEscapeInfo& info)
     {
         const SymbolFunction* currentFn = sema.currentFunction();
@@ -2577,11 +2599,13 @@ namespace
                         const uint64_t routeOrigins = indirect ? info.parameterIndirectOriginsMask : directParameterOriginsMask(*currentFn, info);
                         if (!(routeOrigins & (1ULL << storedIndex)))
                             continue;
+
                         SemaEscapeSummaryEdge edge = protoEdge;
                         edge.kind                  = SemaEscapeSummaryEdgeKind::ReturnToPair;
                         edge.callerIntoParamIndex  = protoEdge.callerParamIndex;
                         edge.callerParamIndex      = static_cast<uint32_t>(storedIndex);
                         edge.callerIndirect        = indirect;
+
                         sema.ctx().compiler().addEscapeSummaryEdge(edge);
                     }
                 }
@@ -2589,8 +2613,7 @@ namespace
         }
     }
 
-    // A DeferredCall borrow provably escaping: judge its captured checks and edges at
-    // the escape site.
+    // Attach a deferred borrow's captured checks and edges to its proven escape site.
     void emitDeferredCallEscape(Sema& sema, const SemaEscapeInfo& info, AstNodeRef atNodeRef, std::string_view what, std::optional<SemaEscapeSummaryEdgeKind> edgeKind)
     {
         for (const auto& snapshot : info.deferredCalls)

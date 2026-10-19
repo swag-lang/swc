@@ -467,6 +467,7 @@ namespace
     {
         if (actualAggregate.types.size() > patternFields.size())
             return false;
+
         if (!allowPartial && patternFields.size() != actualAggregate.types.size())
             return false;
 
@@ -505,6 +506,7 @@ namespace
                 const IdentifierRef actualIdRef = nextUnnamedActualIndex < actualAggregate.names.size() ? actualAggregate.names[nextUnnamedActualIndex] : IdentifierRef::invalid();
                 if (!actualIdRef.isValid())
                     break;
+
                 ++nextUnnamedActualIndex;
             }
 
@@ -512,6 +514,7 @@ namespace
             {
                 if (allowPartial)
                     break;
+
                 return false;
             }
 
@@ -541,6 +544,7 @@ namespace
                     desc.defaultRef      = varDecl->nodeInitRef;
                     desc.isVariadic      = SemaHelpers::isVariadicTypeRefOrAlias(sema, symField->typeRef()) || SemaHelpers::isVariadicTypeNode(sema, desc.typeRef);
                     desc.hasExplicitType = varDecl->nodeTypeRef.isValid();
+
                     outFields.push_back(desc);
                 }
             }
@@ -556,6 +560,7 @@ namespace
         SmallVector<AstNodeRef> fields;
         sema.node(bodyRef).collectChildrenFromAst(fields, sema.ast());
         outFields.reserve(fields.size());
+
         for (const AstNodeRef fieldRef : fields)
             appendFunctionParamDesc(sema, fieldRef, outFields);
     }
@@ -573,6 +578,7 @@ namespace
         SmallVector<AstNodeRef> patternArgs;
         bool                    hasPattern = false;
         SWC_RESULT(tryGetStructPatternGenericArgs(sema, namedType.nodeIdentRef, patternRoot, patternRootIdRef, patternArgs, hasPattern));
+
         if (!hasPattern || !patternRoot)
             return Result::Continue;
 
@@ -586,13 +592,15 @@ namespace
             rootSema = &sema;
 
         SmallVector<SemaGeneric::GenericParamDesc> rootParams;
-        const SpanRef                              rootParamSpan = genericStructParamSpan(*rootDecl);
+
+        const SpanRef rootParamSpan = genericStructParamSpan(*rootDecl);
         SemaGeneric::appendGenericParams(*rootSema, *rootDecl, rootParamSpan, rootParams);
         if (rootParams.size() != patternArgs.size())
             return Result::Continue;
 
         SmallVector<SemaGeneric::GenericFunctionParamDesc> rootFields;
         collectStructFieldDescs(*rootSema, *patternRoot, *rootDecl, rootFields);
+
         const auto&         actualAggregate = argType.payloadAggregate();
         SmallVector<size_t> actualFieldOrder;
         if (!buildAggregateFieldOrder(rootFields.span(), actualAggregate, actualFieldOrder, patternRoot->isUnion()))
@@ -600,6 +608,7 @@ namespace
 
         SmallVector<SemaGeneric::GenericResolvedArg> rootResolvedArgs(rootParams.size());
         CastFailure                                  trialFailure{};
+
         for (size_t i = 0; i < rootFields.size(); ++i)
         {
             if (rootFields[i].typeRef.isInvalid())
@@ -608,15 +617,18 @@ namespace
             const size_t actualFieldIndex = actualFieldOrder[i];
             if (actualFieldIndex == SIZE_MAX)
                 continue;
+
             const Result fieldResult = deduceFromTypePattern(*rootSema, rootParams.span(), rootResolvedArgs.span(), rootFields[i].typeRef, actualAggregate.types[actualFieldIndex], argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode);
             if (fieldResult == Result::Pause)
                 return Result::Pause;
+
             if (fieldResult == Result::Error)
                 return Result::Continue;
         }
 
         SmallVector<SemaGeneric::GenericResolvedArg> trialResolvedArgs;
         trialResolvedArgs.assign(resolvedArgs.begin(), resolvedArgs.end());
+
         for (size_t i = 0; i < rootResolvedArgs.size(); ++i)
         {
             const auto& rootArg = rootResolvedArgs[i];
@@ -631,6 +643,7 @@ namespace
 
             if (result == Result::Pause)
                 return Result::Pause;
+
             if (result == Result::Error)
                 return Result::Continue;
         }
@@ -662,20 +675,24 @@ namespace
         const SymbolStruct* actualRoot = argStruct.genericRootSym();
         if (!actualRoot)
             return Result::Continue;
+
         if (patternRoot && actualRoot != patternRoot)
             return Result::Continue;
+
         if (!patternRoot && (!patternRootIdRef.isValid() || actualRoot->idRef() != patternRootIdRef))
             return Result::Continue;
 
         SmallVector<GenericInstanceKey> actualArgs;
         if (!argStruct.tryGetGenericInstanceArgs(actualArgs))
             return Result::Continue;
+
         if (patternArgs.size() != actualArgs.size())
             return Result::Continue;
 
         SmallVector<SemaGeneric::GenericResolvedArg> trialResolvedArgs;
         trialResolvedArgs.assign(resolvedArgs.begin(), resolvedArgs.end());
         CastFailure trialFailure{};
+
         for (size_t i = 0; i < actualArgs.size(); ++i)
         {
             auto result = Result::Continue;
@@ -686,6 +703,7 @@ namespace
 
             if (result == Result::Pause)
                 return Result::Pause;
+
             if (result == Result::Error)
                 return Result::Continue;
         }
@@ -703,6 +721,7 @@ namespace
 
         SmallVector<AstNodeRef> patternParams;
         sema.ast().appendNodes(patternParams, lambdaType.spanParamsRef);
+
         const auto& argParams = argFunction.parameters();
         if (patternParams.size() != argParams.size())
             return Result::Continue;
@@ -716,9 +735,11 @@ namespace
             const AstLambdaParam& patternParam = sema.node(patternParams[i]).cast<AstLambdaParam>();
             if (patternParam.nodeTypeRef.isInvalid())
                 continue;
+
             const Result paramResult = deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternParam.nodeTypeRef, argParams[i]->typeRef(), argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode);
             if (paramResult == Result::Pause)
                 return Result::Pause;
+
             if (paramResult == Result::Error)
                 return Result::Continue;
         }
@@ -728,6 +749,7 @@ namespace
             const Result returnResult = deduceFromTypePattern(sema, params, trialResolvedArgs.span(), lambdaType.nodeReturnTypeRef, argFunction.returnTypeRef(), argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode);
             if (returnResult == Result::Pause)
                 return Result::Pause;
+
             if (returnResult == Result::Error)
                 return Result::Continue;
         }
@@ -744,12 +766,14 @@ namespace
             bodyRef = structDecl->nodeBodyRef;
         else if (const auto* unionDecl = patternNode.safeCast<AstAnonymousUnionDecl>())
             bodyRef = unionDecl->nodeBodyRef;
+
         if (bodyRef.isInvalid())
             return;
 
         SmallVector<AstNodeRef> fields;
         sema.node(bodyRef).collectChildrenFromAst(fields, sema.ast());
         outFields.reserve(fields.size());
+
         for (const AstNodeRef fieldRef : fields)
             appendFunctionParamDesc(sema, fieldRef, outFields);
     }
@@ -771,6 +795,7 @@ namespace
             SmallVector<SemaGeneric::GenericResolvedArg> trialResolvedArgs;
             trialResolvedArgs.assign(resolvedArgs.begin(), resolvedArgs.end());
             CastFailure trialFailure{};
+
             for (size_t i = 0; i < patternFields.size(); ++i)
             {
                 const SymbolVariable* actualField = actualFields[i];
@@ -780,6 +805,7 @@ namespace
                 const Result fieldResult = deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternFields[i].typeRef, actualField->typeRef(), argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode);
                 if (fieldResult == Result::Pause)
                     return Result::Pause;
+
                 if (fieldResult == Result::Error)
                     return Result::Continue;
             }
@@ -800,6 +826,7 @@ namespace
         SmallVector<SemaGeneric::GenericResolvedArg> trialResolvedArgs;
         trialResolvedArgs.assign(resolvedArgs.begin(), resolvedArgs.end());
         CastFailure trialFailure{};
+
         for (size_t i = 0; i < patternFields.size(); ++i)
         {
             if (patternFields[i].typeRef.isInvalid())
@@ -808,9 +835,11 @@ namespace
             const size_t actualFieldIndex = actualFieldOrder[i];
             if (actualFieldIndex == SIZE_MAX)
                 continue;
+
             const Result fieldResult = deduceFromTypePattern(sema, params, trialResolvedArgs.span(), patternFields[i].typeRef, actualAggregate.types[actualFieldIndex], argExprRef, callArgIndex, outFailure ? &trialFailure : nullptr, mode);
             if (fieldResult == Result::Pause)
                 return Result::Pause;
+
             if (fieldResult == Result::Error)
                 return Result::Continue;
         }
@@ -857,7 +886,8 @@ namespace
         {
             const AstNode& elemPattern = sema.node(elemPatternRef);
             const auto*    namedType   = elemPattern.safeCast<AstNamedType>();
-            directTypeBinding          = elemPattern.is(AstNodeId::Identifier) || (namedType && namedType->nodeIdentRef.isValid() && sema.node(namedType->nodeIdentRef).is(AstNodeId::Identifier));
+
+            directTypeBinding = elemPattern.is(AstNodeId::Identifier) || (namedType && namedType->nodeIdentRef.isValid() && sema.node(namedType->nodeIdentRef).is(AstNodeId::Identifier));
         }
 
         TypeRef previousTypeRef = TypeRef::invalid();
@@ -869,6 +899,7 @@ namespace
                 const Result    nestedResult = deduceFromAggregateArrayPatternRec(sema, params, resolvedArgs, dims, dimIndex + 1, elemPatternRef, elemType, argExprRef, callArgIndex, outFailure, mode);
                 if (nestedResult != Result::Continue)
                     return nestedResult;
+
                 continue;
             }
 

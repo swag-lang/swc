@@ -36,6 +36,7 @@ namespace
     {
         if (const auto* runBlock = node.safeCast<AstCompilerRunBlock>())
             return runBlock->nodeBodyRef;
+
         return AstNodeRef::invalid();
     }
 
@@ -47,6 +48,7 @@ namespace
         const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), typeRef, TypeExpandE::Alias | TypeExpandE::Enum);
         if (!unwrappedTypeRef.isValid())
             return false;
+
         return sema.typeMgr().get(unwrappedTypeRef).isString();
     }
 
@@ -73,6 +75,7 @@ namespace
         }
 
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -81,6 +84,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_ast_expansion_too_deep, ownerRef);
         diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(K_COMPILER_AST_MAX_EXPANSION_DEPTH));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -143,9 +147,11 @@ namespace
 
         Utf8 section;
         section.reserve(sourcePath.size() + generatedCode.size() + 64);
+
         section += "// #ast source: ";
         section += sourcePath;
         section += eol;
+
         section += "// #ast line: ";
         section += std::to_string(codeRange.line);
         section += eol;
@@ -314,6 +320,7 @@ namespace
 
         outStartTokRef = findCompilerAstStartTokenRef(srcView, appendResult.codeStartOffset);
         outSrcView     = &srcView;
+
         return Result::Continue;
     }
 
@@ -325,6 +332,7 @@ namespace
         Sema         generatedDeclSema(sema.ctx(), sema, generatedRef, true);
         const Result declResult = generatedDeclSema.execResult();
         SWC_ASSERT(declResult != Result::Pause);
+
         return declResult;
     }
 
@@ -343,7 +351,8 @@ namespace
     Result parseCompilerAstGenerated(Sema& sema, AstNodeRef ownerRef, std::string_view generatedCode, AstNodeRef& outGeneratedRef)
     {
         outGeneratedRef = AstNodeRef::invalid();
-        auto parseMode  = ParserGeneratedMode::Embedded;
+
+        auto parseMode = ParserGeneratedMode::Embedded;
         if (!compilerAstParseModeFromMixinCaller(sema, parseMode))
             parseMode = compilerAstParseMode(sema, ownerRef);
 
@@ -356,6 +365,7 @@ namespace
 
         const uint64_t errorsBefore = Stats::getNumErrors();
         Parser         parser;
+
         outGeneratedRef = parser.parseGenerated(sema.ctx(), sema.ast(), *generatedSrcView, parseMode, generatedStartTokRef);
         if (Stats::getNumErrors() != errorsBefore)
             return Result::Error;
@@ -364,7 +374,9 @@ namespace
 
         if (isCurrentCompilerAstExpansionNode(sema, ownerRef))
             sema.processCurrentPostNodePopsNow();
+
         SWC_RESULT(declareCompilerAstGeneratedTopLevel(sema, outGeneratedRef, parseMode));
+
         return Result::Continue;
     }
 
@@ -374,10 +386,12 @@ namespace
 
         AstNodeRef generatedRef = AstNodeRef::invalid();
         SWC_RESULT(parseCompilerAstGenerated(sema, ownerRef, generatedCode, generatedRef));
+
         pushCompilerAstExpansion(sema, ownerRef, generatedCode);
         sema.deferPostNodeAction(generatedRef, popCompilerAstExpansion);
         sema.setSubstitute(ownerRef, generatedRef);
         sema.restartCurrentNode(generatedRef);
+
         return Result::Continue;
     }
 
@@ -388,6 +402,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, ioView.nodeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().typeVoid());
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -395,7 +410,8 @@ namespace
         {
             CastRequest castRequest(CastKind::Implicit);
             castRequest.flags.add(CastFlagsE::ForceConstEval);
-            castRequest.errorNodeRef       = ioView.nodeRef();
+            castRequest.errorNodeRef = ioView.nodeRef();
+
             const Result castAllowedResult = Cast::castAllowed(sema, castRequest, ioView.typeRef(), sema.typeMgr().typeString());
             if (castAllowedResult == Result::Pause)
                 return Result::Pause;
@@ -406,6 +422,7 @@ namespace
                 auto          diag            = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, ioView.nodeRef());
                 diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(reportedTypeRef).toName(sema.ctx()));
                 diag.report(sema.ctx());
+
                 return Result::Error;
             }
 
@@ -420,6 +437,7 @@ namespace
         auto          diag            = SemaError::report(sema, DiagnosticId::sema_err_ast_requires_string, ioView.nodeRef());
         diag.addArgument(Diagnostic::ARG_TYPE, sema.typeMgr().get(reportedTypeRef).toName(sema.ctx()));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -429,6 +447,7 @@ namespace
         sym.setSpecOpKind(SemaSpecOp::computeSymbolKind(sema, sym));
         sym.setDeclNodeRef(sema.curNodeRef());
         sym.setDeclNodePayloadContext(&sema.currentNodePayloadContext());
+
         return sym;
     }
 

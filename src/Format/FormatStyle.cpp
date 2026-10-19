@@ -5,28 +5,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // The canonical Swag style: the profile the repository's own sources under
-    // `bin/` are written in, promoted to the compiler's built-in default. A Swag
-    // tree therefore needs no configuration file to be formatted the way every
-    // other Swag tree is, and `.swc-format` becomes what it should be — a place
-    // to record a deliberate departure, not a prerequisite.
+    // The built-in Swag style matches the repository's bin/ sources.
+    // Configuration files record deliberate departures from that style.
     //
-    // Two options stay at their `Preserve` default on purpose.
-    //   - `end-of-line-style`: line endings are a property of the checkout and of
-    //     the platform, not of the style. Rewriting them turns every formatted
-    //     file into a whole-file diff on the other operating system.
-    //   - `column-limit`: general wrapping stays with the author, preserving
-    //     hand-laid data tables. The separate operand-chain limits only split
-    //     long, unbroken operand chains.
+    // Keep line endings unchanged to avoid cross-platform whole-file diffs.
+    // Leave general wrapping to the author so hand-laid tables survive; the
+    // separate chain limits split only long, unbroken operand chains.
     void applySwagStyle(FormatOptions& o)
     {
         // File-level whitespace
-        o.preserveBom                          = true;
-        o.preserveTrailingWhitespace           = false;
-        o.insertFinalNewline                   = true;
-        o.trimTrailingNewlines                 = true;
-        o.trimLeadingBlankLines                = true;
-        o.maxConsecutiveEmptyLines             = 1;
+        o.preserveBom                = true;
+        o.preserveTrailingWhitespace = false;
+        o.insertFinalNewline         = true;
+        o.trimTrailingNewlines       = true;
+        o.trimLeadingBlankLines      = true;
+        o.maxConsecutiveEmptyLines   = 1;
+
         o.blankLineAfterOpeningBrace           = FormatBlankLineStyle::Never;
         o.blankLineBeforeClosingBrace          = FormatBlankLineStyle::Never;
         o.blankLineBeforeFunctionDefinition    = FormatBlankLineStyle::Always;
@@ -41,39 +35,44 @@ namespace
         o.indentWidth             = 4;
         o.tabWidth                = 4;
         o.continuationIndentWidth = 4;
-        o.indentNamespaceBody     = true;
-        o.indentImplBody          = true;
-        o.indentStructBody        = true;
-        o.indentEnumBody          = true;
-        o.indentCaseLabels        = false;
-        o.indentCaseBlocks        = true;
-        o.indentAttributes        = true;
-        o.indentInsideParens      = false;
+
+        o.indentNamespaceBody = true;
+        o.indentImplBody      = true;
+        o.indentStructBody    = true;
+        o.indentEnumBody      = true;
+        o.indentCaseLabels    = false;
+        o.indentCaseBlocks    = true;
+        o.indentAttributes    = true;
+        o.indentInsideParens  = false;
 
         // Wrapping
-        o.bitwiseChainColumnLimit              = 100;
-        o.logicalChainColumnLimit              = 100;
-        o.breakBeforeBinaryOperators           = FormatOperatorWrapStyle::After;
-        o.breakBeforeTernaryOperators          = false;
-        o.breakAfterReturnType                 = false;
-        o.breakBeforeDo                        = false;
-        o.breakBeforeElse                      = true;
-        o.breakBeforeWhere                     = true;
-        o.binPackArguments                     = FormatBinPackStyle::OnePerLine;
-        o.binPackParameters                    = FormatBinPackStyle::OnePerLine;
-        o.forceSingleLineArgumentLists         = false;
-        o.forceSingleLineParameterLists        = false;
-        o.sourceSelectsArgumentLayout          = true;
-        o.singleLineArgumentColumnLimit        = 100;
-        o.sourceSelectsParameterLayout         = true;
-        o.argumentListLayout                   = FormatListLayout::HangingAlign;
-        o.parameterListLayout                  = FormatListLayout::HangingAlign;
-        o.hugTrailingBlockArgument             = true;
-        o.hugTrailingBlockItem                 = true;
-        o.binPackLiteralItems                  = FormatBinPackStyle::Preserve;
-        o.forceSingleLineLiteralLists          = false;
-        o.sourceSelectsLiteralLayout           = true;
-        o.literalListLayout                    = FormatListLayout::HangingAlign;
+        o.bitwiseChainColumnLimit = 100;
+        o.logicalChainColumnLimit = 100;
+
+        o.breakBeforeBinaryOperators  = FormatOperatorWrapStyle::After;
+        o.breakBeforeTernaryOperators = false;
+        o.breakAfterReturnType        = false;
+        o.breakBeforeDo               = false;
+        o.breakBeforeElse             = true;
+        o.breakBeforeWhere            = true;
+
+        o.binPackArguments              = FormatBinPackStyle::OnePerLine;
+        o.binPackParameters             = FormatBinPackStyle::OnePerLine;
+        o.forceSingleLineArgumentLists  = false;
+        o.forceSingleLineParameterLists = false;
+        o.sourceSelectsArgumentLayout   = true;
+        o.singleLineArgumentColumnLimit = 100;
+        o.sourceSelectsParameterLayout  = true;
+        o.argumentListLayout            = FormatListLayout::HangingAlign;
+        o.parameterListLayout           = FormatListLayout::HangingAlign;
+        o.hugTrailingBlockArgument      = true;
+        o.hugTrailingBlockItem          = true;
+
+        o.binPackLiteralItems         = FormatBinPackStyle::Preserve;
+        o.forceSingleLineLiteralLists = false;
+        o.sourceSelectsLiteralLayout  = true;
+        o.literalListLayout           = FormatListLayout::HangingAlign;
+
         o.forceSingleLineLogicalExpressions    = false;
         o.sourceSelectsLogicalExpressionLayout = true;
         o.logicalExpressionLayout              = FormatLogicalLayout::HangingAlign;
@@ -100,6 +99,7 @@ namespace
         o.uniformBranchBodies  = true;
         o.uniformGuardBodies   = FormatAlignMode::Consecutive;
         o.uniformClosureBodies = FormatAlignMode::AcrossBlanks;
+
         // A neighbouring accessor is not a reason to collapse an authored function body.
         o.uniformFunctionBodies = FormatAlignMode::None;
 

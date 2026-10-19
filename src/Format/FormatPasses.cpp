@@ -22,6 +22,7 @@ namespace FormatPassUtil
                 break;
             }
         }
+
         if (identity)
             return;
 
@@ -41,6 +42,7 @@ namespace FormatPassUtil
             const PieceRange& range = segments[s];
             SWC_ASSERT(range.first != INVALID_PIECE && range.last >= range.first);
             leadingGaps[s] = model.gapBefore(range.first);
+
             for (uint32_t i = range.first; i <= range.last; ++i)
             {
                 snapshots[s].pieces.push_back(model.piece(i));
@@ -62,6 +64,7 @@ namespace FormatPassUtil
                 model.piece(writeIndex) = segment.pieces[p];
                 if (p != 0)
                     model.gapBefore(writeIndex) = segment.innerGaps[p - 1];
+
                 writeIndex++;
             }
         }
@@ -79,13 +82,16 @@ namespace FormatPass
         attributes(model);
         shortBlocks(model);
         braces(model);
+
         blanks(model);
         spacing(model);
         indent(model);
         wrap(model);
         caseBlanks(model);
+
         redundantSemicolons(model);
         comments(model);
+
         align(model);
     }
 }

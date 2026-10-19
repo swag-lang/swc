@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Compiler/Lexer/Token.h"
 #include "Format/FormatOptions.h"
 #include "Support/Core/Flags.h"
@@ -8,9 +9,8 @@ SWC_BEGIN_NAMESPACE();
 
 class SourceView;
 
-// Semantic roles attached to pieces by the classifier. They tell the formatting
-// passes what a token *means* (a call paren vs a declaration paren, a struct
-// field colon vs a base clause colon, ...) without having to re-query the AST.
+// Classifier roles distinguish token contexts, such as call versus declaration
+// parentheses, without requiring formatting passes to query the AST again.
 enum class FormatRoleE : uint64_t
 {
     Zero                = 0,
@@ -128,10 +128,9 @@ struct FormatBinaryExpression
     uint32_t rootOperatorPiece = 0;
 };
 
-// A continuation line that hangs inside a bracket opened on an earlier line.
-// The indent pass places it relative to that bracket; the alignment pass runs
-// afterwards and can still move the line the bracket sits on, so it replays
-// these anchors to keep the hanging lines under their bracket.
+// A continuation line anchored to a bracket on an earlier line. Alignment can
+// move the bracket after indentation, so it replays these anchors to keep the
+// continuation lines in place relative to it.
 struct FormatHangingLine
 {
     uint32_t lineStart = 0; // first piece of the continuation line
@@ -150,28 +149,29 @@ struct FormatPiece
     uint32_t         depth     = 0;             // bracket nesting depth at this piece
     TokenId          id        = TokenId::Invalid;
     FormatRoles      roles     = FormatRoleE::Zero;
-    bool             isComment = false;
-    bool             frozen    = false; // inside a format-off region
-    bool             removed   = false; // dropped by a pass (renders as nothing)
-    bool             replaced  = false; // text points into the model's owned storage
+
+    bool isComment = false;
+    bool frozen    = false; // inside a format-off region
+    bool removed   = false; // dropped by a pass (renders as nothing)
+    bool replaced  = false; // text points into the model's owned storage
 
     bool is(const TokenId other) const { return id == other; }
     bool isNot(const TokenId other) const { return id != other; }
     bool hasRole(const FormatRoleE role) const { return roles.has(role); }
 };
 
-// The whitespace between two consecutive pieces. When `modified` is false the
-// original text is rendered (through the legacy whitespace options); when true
-// the gap renders as `newlines` line breaks followed by `indent`, or as
-// `spaces` blanks when `newlines` is zero.
+// Unmodified gaps retain source whitespace subject to the legacy options.
+// Modified gaps emit newlines and indentation, or spaces when newlines is zero.
 struct FormatGap
 {
     std::string_view origText;
-    uint32_t         newlines = 0;
-    uint32_t         spaces   = 0;
-    Utf8             indent;
-    bool             modified = false;
-    bool             frozen   = false;
+
+    uint32_t newlines = 0;
+    uint32_t spaces   = 0;
+    Utf8     indent;
+
+    bool modified = false;
+    bool frozen   = false;
 };
 
 class FormatModel
@@ -180,22 +180,27 @@ public:
     void build(const SourceView& srcView, const FormatOptions& options);
     void render(Utf8& output) const;
 
-    std::vector<FormatPiece>&                  pieces() { return pieces_; }
-    const std::vector<FormatPiece>&            pieces() const { return pieces_; }
-    std::vector<FormatBlock>&                  blocks() { return blocks_; }
-    const std::vector<FormatBlock>&            blocks() const { return blocks_; }
-    std::vector<FormatInlineBody>&             inlineBodies() { return inlineBodies_; }
-    const std::vector<FormatInlineBody>&       inlineBodies() const { return inlineBodies_; }
+    std::vector<FormatPiece>&       pieces() { return pieces_; }
+    const std::vector<FormatPiece>& pieces() const { return pieces_; }
+
+    std::vector<FormatBlock>&            blocks() { return blocks_; }
+    const std::vector<FormatBlock>&      blocks() const { return blocks_; }
+    std::vector<FormatInlineBody>&       inlineBodies() { return inlineBodies_; }
+    const std::vector<FormatInlineBody>& inlineBodies() const { return inlineBodies_; }
+
     std::vector<FormatBinaryExpression>&       logicalExpressions() { return logicalExpressions_; }
     const std::vector<FormatBinaryExpression>& logicalExpressions() const { return logicalExpressions_; }
     std::vector<FormatBinaryExpression>&       bitwiseExpressions() { return bitwiseExpressions_; }
     const std::vector<FormatBinaryExpression>& bitwiseExpressions() const { return bitwiseExpressions_; }
-    std::vector<FormatHangingLine>&            hangingLines() { return hangingLines_; }
-    const std::vector<FormatHangingLine>&      hangingLines() const { return hangingLines_; }
-    std::vector<FormatBranchChain>&            branchChains() { return branchChains_; }
-    const std::vector<FormatBranchChain>&      branchChains() const { return branchChains_; }
-    std::vector<FormatFunctionBody>&           functionBodies() { return functionBodies_; }
-    const std::vector<FormatFunctionBody>&     functionBodies() const { return functionBodies_; }
+
+    std::vector<FormatHangingLine>&       hangingLines() { return hangingLines_; }
+    const std::vector<FormatHangingLine>& hangingLines() const { return hangingLines_; }
+
+    std::vector<FormatBranchChain>&       branchChains() { return branchChains_; }
+    const std::vector<FormatBranchChain>& branchChains() const { return branchChains_; }
+
+    std::vector<FormatFunctionBody>&       functionBodies() { return functionBodies_; }
+    const std::vector<FormatFunctionBody>& functionBodies() const { return functionBodies_; }
 
     const SourceView&    srcView() const { return *srcView_; }
     const FormatOptions& options() const { return *options_; }
@@ -221,6 +226,7 @@ public:
     bool     rangeEditable(uint32_t first, uint32_t last) const;
     bool     gapHasNewline(uint32_t pieceIndex) const;
     uint32_t gapNewlineCount(uint32_t pieceIndex) const;
+
     // Visual width of the gap when it stays on a single line.
     uint32_t gapColumns(uint32_t pieceIndex) const;
 
@@ -229,6 +235,7 @@ public:
 
     // First non-removed piece of the line containing `pieceIndex`.
     uint32_t lineStartOf(uint32_t pieceIndex) const;
+
     // Indentation text of the line containing `pieceIndex` (as currently configured).
     std::string_view lineIndentOf(uint32_t pieceIndex) const;
     void             collectLineStarts(std::vector<uint32_t>& out) const;
@@ -254,10 +261,12 @@ private:
     void             appendEol(Utf8& output) const;
     std::string_view resolveFinalNewline(const Utf8& output) const;
 
-    const SourceView*                   srcView_ = nullptr;
-    const FormatOptions*                options_ = nullptr;
-    std::vector<FormatPiece>            pieces_;
-    std::vector<FormatGap>              gaps_; // gaps_[i] precedes pieces_[i]; gaps_.back() trails the last piece
+    const SourceView*    srcView_ = nullptr;
+    const FormatOptions* options_ = nullptr;
+
+    std::vector<FormatPiece> pieces_;
+    std::vector<FormatGap>   gaps_; // gaps_[i] precedes pieces_[i]; gaps_.back() trails the last piece
+
     std::vector<FormatBlock>            blocks_;
     std::vector<FormatInlineBody>       inlineBodies_;
     std::vector<FormatBinaryExpression> logicalExpressions_;
@@ -265,9 +274,12 @@ private:
     std::vector<FormatHangingLine>      hangingLines_;
     std::vector<FormatBranchChain>      branchChains_;
     std::vector<FormatFunctionBody>     functionBodies_;
-    std::vector<uint32_t>               tokenToPiece_;
-    std::deque<Utf8>                    ownedTexts_;
-    std::string_view                    eol_ = "\n";
+
+    std::vector<uint32_t> tokenToPiece_;
+
+    // Deque growth preserves views of replacement text.
+    std::deque<Utf8> ownedTexts_;
+    std::string_view eol_ = "\n";
 };
 
 SWC_END_NAMESPACE();

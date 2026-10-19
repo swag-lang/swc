@@ -28,6 +28,7 @@ namespace
         schema.add("trim-trailing-newlines", &options.trimTrailingNewlines, "Collapse multiple trailing newlines into one");
         schema.add("trim-leading-blank-lines", &options.trimLeadingBlankLines, "Remove blank lines at the very start of the file");
         schema.add("max-consecutive-empty-lines", &options.maxConsecutiveEmptyLines, "Set the maximum consecutive blank lines; use 0 to disable the limit");
+
         addBlankLineStyle(schema, "blank-line-after-opening-brace", &options.blankLineAfterOpeningBrace, "Choose the blank-line policy immediately after a multi-line `{`");
         addBlankLineStyle(schema, "blank-line-before-closing-brace", &options.blankLineBeforeClosingBrace, "Choose the blank-line policy immediately before a multi-line `}`");
         addBlankLineStyle(schema, "blank-line-before-function-definition", &options.blankLineBeforeFunctionDefinition, "Choose the blank-line policy before a multi-line function definition");
@@ -50,6 +51,7 @@ namespace
         schema.add("indent-width", &options.indentWidth, "Set the indentation width when using spaces");
         schema.add("tab-width", &options.tabWidth, "Set the visual width of tab characters");
         schema.add("continuation-indent-width", &options.continuationIndentWidth, "Set the extra indentation for wrapped continuations");
+
         schema.add("indent-namespace-body", &options.indentNamespaceBody, "Indent content inside a `namespace` block");
         schema.add("indent-impl-body", &options.indentImplBody, "Indent content inside an `impl` block");
         schema.add("indent-struct-body", &options.indentStructBody, "Indent content inside a `struct` block");
@@ -96,10 +98,12 @@ namespace
         schema.add("source-selects-parameter-layout", &options.sourceSelectsParameterLayout, "Use the first two declaration parameters' source lines to choose single-line or multiline layout");
         schema.addEnum("argument-list-layout", &options.argumentListLayout, listLayoutChoices, "Choose the layout of multiline call argument lists");
         schema.addEnum("parameter-list-layout", &options.parameterListLayout, listLayoutChoices, "Choose the layout of multiline declaration parameter lists");
+
         schema.addEnum("bin-pack-literal-items", &options.binPackLiteralItems, binPackChoices, "Choose how array and struct literal items span lines");
         schema.add("force-single-line-literal-lists", &options.forceSingleLineLiteralLists, "Place every editable array and struct literal item list on one line, regardless of the column limit");
         schema.add("source-selects-literal-layout", &options.sourceSelectsLiteralLayout, "Use the literal's source shape to choose single-line or multiline layout");
         schema.addEnum("literal-list-layout", &options.literalListLayout, listLayoutChoices, "Choose the layout of multiline array and struct literal item lists");
+
         schema.add("hug-trailing-block-argument", &options.hugTrailingBlockArgument, "Keep the arguments before a trailing multiline block argument on the call line");
         schema.add("hug-trailing-block-item", &options.hugTrailingBlockItem, "Keep the items before a trailing multiline block item on the literal's opening line");
 
@@ -108,17 +112,20 @@ namespace
             {"hanging-indent", FormatLogicalLayout::HangingIndent},
             {"hanging-align", FormatLogicalLayout::HangingAlign},
         };
+
         const std::initializer_list<std::pair<const char*, FormatLogicalPacking>> logicalPackingChoices = {
             {"preserve", FormatLogicalPacking::Preserve},
             {"pack", FormatLogicalPacking::Pack},
             {"by-precedence", FormatLogicalPacking::ByPrecedence},
             {"one-per-line", FormatLogicalPacking::OnePerLine},
         };
+
         const std::initializer_list<std::pair<const char*, FormatOperatorWrapStyle>> logicalBreakChoices = {
             {"preserve", FormatOperatorWrapStyle::Preserve},
             {"before", FormatOperatorWrapStyle::Before},
             {"after", FormatOperatorWrapStyle::After},
         };
+
         schema.add("force-single-line-logical-expressions", &options.forceSingleLineLogicalExpressions, "Place every editable logical expression on one line, regardless of the column limit");
         schema.add("source-selects-logical-expression-layout", &options.sourceSelectsLogicalExpressionLayout, "Use the first two logical operands' source lines to choose single-line or multiline layout");
         schema.addEnum("logical-expression-layout", &options.logicalExpressionLayout, logicalLayoutChoices, "Choose the alignment of multiline logical expressions");
@@ -300,10 +307,8 @@ FormatOptionsLoader::FormatOptionsLoader(TaskContext& ctx, const FormatNamedStyl
 
 Result FormatOptionsLoader::applyConfigFile(FormatOptions& options, const fs::path& configPath) const
 {
-    // `style` rebases the whole option set, so it is resolved before any other
-    // key is applied and its position in the file does not matter. This scan
-    // ignores every other key; anything wrong with one of them is reported by
-    // the full read below, and so is never diagnosed twice.
+    // Resolve `style` first so rebasing does not depend on its position in the file.
+    // Ignore other keys during this scan; the full read below diagnoses them once.
     auto               fileStyle = FormatNamedStyle::Swag;
     bool               hasStyle  = false;
     StructConfigSchema styleSchema;

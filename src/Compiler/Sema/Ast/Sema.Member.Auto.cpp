@@ -325,9 +325,8 @@ namespace
         return false;
     }
 
-    // Adds the inline receiver (`me`) candidate from a single inline payload. Sets outFound when
-    // this payload actually binds `me` (so the caller stops walking the payload chain), regardless
-    // of whether a usable candidate could be produced.
+    // Stop at the first payload that binds me, even when it yields no candidate.
+    // outFound distinguishes that binding from a payload that has no receiver.
     Result addCandidateFromInlineReceiverPayload(Sema& sema, const SemaInlinePayload& inlinePayload, SmallVector4<AutoMemberCandidate>& outCandidates, uint32_t& precedence, bool& outFound)
     {
         outFound = false;
@@ -338,21 +337,18 @@ namespace
             if (binding.idRef != meId || binding.exprRef.isInvalid())
                 continue;
 
-            // This payload owns the receiver: do not look past it into parent payloads even if no
-            // candidate can be derived below.
             outFound = true;
 
-            // Only bind the receiver to the argument's own symbol when a bare identifier
-            // naming it resolves at codegen. A castless receiver expression can carry an
-            // instance field or the macro's own `me` parameter as its stored symbol;
-            // those need the full expression, so fall through to the type-based
-            // candidate that clones it per elided use.
+            // Use a bare variable only when it resolves standalone at codegen. Instance
+            // fields and macro me parameters need their full receiver expression, cloned
+            // for each elided use.
             if (const Symbol* boundSymbol = sema.viewSymbol(binding.exprRef).sym(); boundSymbol && boundSymbol->isVariable())
             {
                 const auto& boundVar = boundSymbol->cast<SymbolVariable>();
                 if (SemaHelpers::bindingSymbolResolvesStandalone(sema, boundVar))
                 {
                     SWC_RESULT(addCandidateFromType(sema, outCandidates, boundVar.typeRef(), &boundVar, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Subject));
+
                     return Result::Continue;
                 }
             }
@@ -372,6 +368,7 @@ namespace
                 continue;
 
             SWC_RESULT(addCandidateFromType(sema, outCandidates, typeRef, nullptr, binding.exprRef, precedence++, AutoMemberPlane::Subject));
+
             return Result::Continue;
         }
 
@@ -380,10 +377,8 @@ namespace
 
     Result addCandidateFromInlineReceiver(Sema& sema, const SemaInlinePayload* effectiveInlinePayload, SmallVector4<AutoMemberCandidate>& outCandidates, uint32_t& precedence)
     {
-        // Walk the inline payload chain. A macro expanded inside an inlined method gets its own
-        // payload, which has no `me` binding; an injected #code argument written in the method body
-        // (e.g. `index < .count`) must still resolve its auto-member against the enclosing method's
-        // receiver, which lives in a parent payload. Use the nearest payload that binds `me`.
+        // Nested macro payloads may have no me binding. Search outward for the
+        // nearest receiver so injected code still sees the enclosing method's me.
         for (const SemaInlinePayload* inlinePayload = effectiveInlinePayload;
              inlinePayload;
              inlinePayload = inlinePayload->parentInlinePayload)
@@ -397,9 +392,8 @@ namespace
         return Result::Continue;
     }
 
-    // The nearest inline payload that binds `me`. Its `callerBindingVars` are the binding vars that
-    // already existed in the caller when this method body was materialized inline — i.e. bindings
-    // the inlined method does not own and that its receiver `me` should outrank.
+    // The caller's bindings predate this inline method and must rank below
+    // its receiver. Find the nearest payload that records that receiver.
     const SemaInlinePayload* nearestInlineReceiverPayload(Sema& sema, const SemaInlinePayload* effectiveInlinePayload)
     {
         const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
@@ -422,15 +416,16 @@ namespace
     {
         if (!inlineReceiverPayload)
             return false;
+
         for (const SymbolVariable* callerVar : inlineReceiverPayload->callerBindingVars)
             if (callerVar == bindingVar)
                 return true;
+
         return false;
     }
 
     Result addCandidatesFromAutoMemberBindings(Sema& sema, SmallVector4<AutoMemberCandidate>& outCandidates, std::span<const SemaScope::AutoMemberBinding> autoMemberBindings, uint32_t& precedence)
     {
-        // Ranked innermost first by the caller, so this reads them in order.
         for (auto& binding : autoMemberBindings)
         {
             if (binding.typeRef.isValid())
@@ -439,7 +434,12 @@ namespace
             }
             else if (binding.symMap)
             {
-                outCandidates.push_back({.symMap = binding.symMap, .symVar = binding.symVar, .baseExprRef = binding.baseExprRef, .precedence = precedence++, .plane = AutoMemberPlane::Subject});
+                outCandidates.push_back(
+                    {.symMap      = binding.symMap,
+                     .symVar      = binding.symVar,
+                     .baseExprRef = binding.baseExprRef,
+                     .precedence  = precedence++,
+                     .plane       = AutoMemberPlane::Subject});
             }
         }
 
@@ -451,7 +451,8 @@ namespace
         SmallVector<const SymbolVariable*>        bindingVars;
         SmallVector<TypeRef>                      bindingTypes;
         SmallVector<SemaScope::AutoMemberBinding> autoMemberBindings;
-        const SemaFrame&                          frame = sema.frame();
+
+        const SemaFrame& frame = sema.frame();
 
         // Frame state is inherited when pushing nested semantic frames, so the
         // current frame already contains the active auto-scope context.
@@ -465,17 +466,19 @@ namespace
                 autoMemberBindings.push_back(binding);
         }
 
-        // Order the subject stack once: the body's own subjects first, innermost of them first.
-        // The scope a binding sits on answers neither question — a 'with' body pushes its scope
-        // before the frame that reads it, so the chain walked above does not arrive in nesting
-        // order, and an inlined body sees the caller's scopes as if they were its own.
+        // Rank this body's subjects first, then by nesting depth. Scope-chain order
+        // is insufficient: with scopes precede their frames, and inline bodies also
+        // inherit the caller's scopes.
         const SemaInlinePayload* currentInlinePayload = frame.currentInlinePayload();
-        const auto               subjectIsOwn         = [currentInlinePayload](const SemaScope::AutoMemberBinding& binding) {
+
+        const auto subjectIsOwn = [currentInlinePayload](const SemaScope::AutoMemberBinding& binding) {
             return binding.inlinePayload == currentInlinePayload;
         };
+
         std::ranges::stable_sort(autoMemberBindings, [&](const SemaScope::AutoMemberBinding& a, const SemaScope::AutoMemberBinding& b) {
             if (subjectIsOwn(a) != subjectIsOwn(b))
                 return subjectIsOwn(a);
+
             return a.order > b.order;
         });
 
@@ -506,31 +509,23 @@ namespace
                 const TypeRef normalizedTypeRef = normalizeAutoMemberBindingType(sema.ctx(), bindingType);
                 if (normalizedTypeRef.isInvalid() || !sema.typeMgr().get(normalizedTypeRef).isEnum())
                     continue;
+
                 SWC_RESULT(addCandidateFromType(sema, outCandidates, bindingType, nullptr, AstNodeRef::invalid(), precedence++, AutoMemberPlane::Type));
             }
         }
 
-        // The inline receiver `me` must rank like a non-inlined method's receiver: its own `with`
-        // targets outrank it, but subjects inherited from the caller's frame (the materialized body
-        // sees the caller's scopes and binding vars) do not — they belong to the caller, not this
-        // method. So the body's own subjects come first, then `me`, then everything the caller owns.
-        // In a non-inlined body there is no inline payload, so every subject counts as "own" and
-        // `me` is one of the binding vars, preserving the original ordering exactly.
-        // The visit path does not move while the candidates are collected: search it for the
-        // inline context once, for the receiver ranking and for the receiver candidate.
+        // Match ordinary method ordering: this body's with subjects, then me, then
+        // caller-owned subjects. Without inlining every subject belongs to this body
+        // and me is a binding variable. Cache the inline context for both receiver
+        // ranking and candidate collection; the visit path stays fixed here.
         const SemaInlinePayload* effectiveInlinePayload = SemaHelpers::effectiveInlinePayload(sema);
         const SemaInlinePayload* inlineReceiverPayload  = nearestInlineReceiverPayload(sema, effectiveInlinePayload);
 
-        // Every `with` subject is an auto-member binding, ranked by how deeply it nests, so this
-        // list is the subject stack from innermost outward. It comes before the binding vars
-        // because those hold the receiver: a `with` target is always nearer than `me`.
         if (!bindingTypesFirst)
             SWC_RESULT(addCandidatesFromAutoMemberBindings(sema, outCandidates, ownBindings, precedence));
 
-        // A binding var that cannot be named standalone at codegen (a macro's own `me`
-        // parameter pushed as the receiver binding) must not produce a bare-symbol
-        // candidate; the inline receiver payload below covers the same elisions with
-        // the receiver expression instead.
+        // A macro's me symbol may not resolve standalone at codegen. Skip such
+        // bare-symbol candidates; the inline receiver below retains its expression.
         for (const auto& bindingVar : std::ranges::reverse_view(bindingVars))
         {
             if (!isCallerInheritedBindingVar(inlineReceiverPayload, bindingVar) && SemaHelpers::bindingSymbolResolvesStandalone(sema, *bindingVar))

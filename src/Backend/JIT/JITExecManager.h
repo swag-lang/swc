@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Backend/JIT/JIT.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/RefTypes.h"
@@ -23,16 +24,19 @@ public:
 
     struct Request
     {
-        const SymbolFunction*        function = nullptr;
-        AstNodeRef                   nodeRef  = AstNodeRef::invalid();
-        SourceCodeRef                codeRef  = SourceCodeRef::invalid();
-        uint64_t                     arg0     = 0;
-        bool                         hasArg0  = false;
+        const SymbolFunction* function = nullptr;
+        AstNodeRef            nodeRef  = AstNodeRef::invalid();
+        SourceCodeRef         codeRef  = SourceCodeRef::invalid();
+
+        uint64_t                     arg0    = 0;
+        bool                         hasArg0 = false;
         std::span<const JITArgument> jitArgs;
         JITReturn                    jitReturn;
-        bool                         hasJitReturn     = false;
-        bool                         runImmediate     = false;
-        JITRuntimeSetupMode          runtimeSetupMode = JITRuntimeSetupMode::FromCompiler;
+        bool                         hasJitReturn = false;
+
+        bool                runImmediate     = false;
+        JITRuntimeSetupMode runtimeSetupMode = JITRuntimeSetupMode::FromCompiler;
+
         // Returned to the caller with consumeCompletion so queued requests can
         // keep companion state without a second global registry.
         std::shared_ptr<void>       completionPayload;
@@ -57,8 +61,9 @@ public:
 
     OwnerWait acquireOwnerWait(const TaskContext& owner);
 
-    void       setStrategy(Strategy strategy) noexcept { strategy_ = strategy; }
-    Strategy   strategy() const noexcept { return strategy_; }
+    void     setStrategy(Strategy strategy) noexcept { strategy_ = strategy; }
+    Strategy strategy() const noexcept { return strategy_; }
+
     Result     submit(TaskContext& ctx, const Request& request);
     Completion consumeCompletion(TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef);
     bool       hasItem(const TaskContext& ctx, AstNodeRef nodeRef, const SourceCodeRef& codeRef) const;
@@ -118,13 +123,15 @@ private:
         }
 
         TaskContext* ownerCtx = nullptr;
+
         // The semantic job can park while its JIT request executes. Its context is
         // therefore not safe to mutate from the execution lane.
         TaskContext executionCtx;
         Request     request;
         TaskState   waitState;
-        Status      status = Status::Pending;
-        Result      result = Result::Continue;
+
+        Status status = Status::Pending;
+        Result result = Result::Continue;
     };
 
     static Result executeItem(Item& item);
@@ -135,10 +142,12 @@ private:
     void          notifyCompletion(const TaskContext* owner);
     Item*         popPendingLocked();
 
-    CompilerInstance*                                               compiler_ = nullptr;
-    mutable std::mutex                                              mutex_;
-    std::mutex                                                      executionMutex_;
+    CompilerInstance*  compiler_ = nullptr;
+    mutable std::mutex mutex_;
+    std::mutex         executionMutex_;
+
     std::unordered_map<ItemKey, std::unique_ptr<Item>, ItemKeyHash> items_;
+
     // Only Pending items are queued. They cannot be consumed until a worker has
     // removed them and published Completed under mutex_.
     std::deque<Item*> pendingItems_;

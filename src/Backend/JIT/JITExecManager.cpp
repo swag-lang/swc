@@ -56,6 +56,7 @@ Result JITExecManager::executeItem(Item& item)
             item.waitState = ctx.state();
         else
             item.waitState.setNone();
+
         return patchResult;
     }
 
@@ -91,6 +92,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     if (request.runImmediate || strategy_ == Strategy::Immediate)
     {
         Item immediateItem(ctx, request);
+
         // Immediate callers share the same execution lock as the background lane.
         // This preserves the JIT runtime's single-threaded global-state contract.
         const std::scoped_lock lock(executionMutex_);
@@ -109,9 +111,9 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
     bool enqueueWorker = false;
     {
         const std::scoped_lock lock(mutex_);
-        // The key is the suspended sema location, not just the function. The same
-        // compile-time function can be requested from multiple nodes with different
-        // completion payloads.
+
+        // Key by suspended semantic location so calls to the same function can
+        // carry independent completion payloads.
         auto& slot = items_[key];
         if (!slot)
         {
@@ -145,6 +147,7 @@ Result JITExecManager::submit(TaskContext& ctx, const Request& request)
 
     if (enqueueWorker)
         this->enqueueWorker();
+
     return Result::Pause;
 }
 
@@ -185,6 +188,7 @@ JITExecManager::Item* JITExecManager::popPendingLocked()
 
     Item* item = pendingItems_.front();
     pendingItems_.pop_front();
+
     SWC_ASSERT(item->status == Status::Pending);
     item->status = Status::Running;
     return item;
@@ -237,6 +241,7 @@ JITExecManager::OwnerWait JITExecManager::acquireOwnerWait(const TaskContext& ct
     const ItemKey key = {.ownerCtx = &ctx, .nodeRef = ctx.state().nodeRef, .codeRef = ctx.state().codeRef};
     const auto    it  = items_.find(key);
     SWC_ASSERT(it != items_.end() && it->second);
+
     const Item& item = *it->second;
     wait.state       = item.status == Status::Waiting ? &item.waitState : &ctx.state();
     wait.completed   = item.status == Status::Completed;
@@ -245,8 +250,8 @@ JITExecManager::OwnerWait JITExecManager::acquireOwnerWait(const TaskContext& ct
 
 JITExecManager::Completion JITExecManager::consumeCompletion(TaskContext& ctx, const AstNodeRef nodeRef, const SourceCodeRef& codeRef)
 {
-    // Every call expression asks on its way in. A job with no submission in flight is told so
-    // by its own count, without the lock every worker shares.
+    // Each call expression checks for a completion. The context's count avoids
+    // the shared queue lock when no request is pending.
     if (!ctx.pendingJitItems())
         return {};
 
@@ -266,6 +271,7 @@ JITExecManager::Completion JITExecManager::consumeCompletion(TaskContext& ctx, c
             // observes either the queued execution or its newly published dependency.
             item.status = Status::Pending;
             pendingItems_.push_back(&item);
+
             if (!workerScheduled_)
             {
                 workerScheduled_ = true;
@@ -286,6 +292,7 @@ JITExecManager::Completion JITExecManager::consumeCompletion(TaskContext& ctx, c
 
     if (enqueueWorker)
         this->enqueueWorker();
+
     return completion;
 }
 
@@ -319,6 +326,7 @@ bool JITExecManager::executePendingMainThread()
         Item* itemToRun = nullptr;
         {
             const std::scoped_lock lock(mutex_);
+
             // Claim one item under the lock, then run it without holding the mutex:
             // JIT execution can re-enter compiler services and would otherwise deadlock
             // producers/consumers of the same queue.
@@ -327,6 +335,7 @@ bool JITExecManager::executePendingMainThread()
 
         if (!itemToRun)
             break;
+
         runClaimedItem(*itemToRun);
         processedAny = true;
     }
@@ -424,6 +433,7 @@ Utf8 JITExecManager::debugDescribeState() const
         }
 
         detail += std::format("jit-item status={} function={}", statusName, item->request.function ? item->request.function->name(*item->ownerCtx) : "<null>");
+
         // The execution lane owns waitState while Running. Waiting publishes it.
         if (item->status == Status::Waiting && item->waitState.hasPauseReason())
         {

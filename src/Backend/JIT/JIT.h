@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroRelocation.h"
 #include "Support/Core/ByteArray.h"
@@ -45,11 +46,14 @@ public:
     static void   finalize(JITMemory& executableMemory);
     static Result emit(TaskContext& ctx, JITMemory& outExecutableMemory, const ByteArray& linearCode, std::span<const MicroRelocation> relocations, const ByteArray& unwindInfo, const SymbolFunction* ownerFunction = nullptr);
     static bool   resolveForeignFunctionAddress(TaskContext& ctx, void*& outFunctionAddress, const SymbolFunction& targetFunction);
+
     // Process-stable Swag entry for a native callback with up to two integer/pointer arguments
     // and a pointer or void result. Aggregate arguments must already be read-only indirect values.
-    static void*  getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, uint32_t numArgs);
+    static void* getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, uint32_t numArgs);
+
     static Result emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArgument> args, const JITReturn& ret, CallConvKind callConvKind = CallConvKind::C);
     static Result call(TaskContext& ctx, void* invoker, const uint64_t* arg0 = nullptr, JITCallErrorKind* outErrorKind = nullptr, JITRuntimeSetupMode setupMode = JITRuntimeSetupMode::FromCompiler);
+
     // Frees every fiber-local slot JIT code allocated whose cleanup callback 'ownsCallback'
     // claims, running the callbacks for the threads that still hold values.
     static void releaseThreadStorage(const std::function<bool(const void*)>& ownsCallback);

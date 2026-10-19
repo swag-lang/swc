@@ -9,14 +9,16 @@
 SWC_BEGIN_NAMESPACE();
 
 class CompilerInstance;
+
 namespace
 {
     uint32_t calculateColumn(const TaskContext& ctx, const char8_t* content, uint32_t lineStart, uint32_t offset)
     {
         const uint32_t tabSize = ctx.cmdLine().tabSize;
         uint32_t       column  = 1; // Columns are 1-based
-        const auto*    ptr     = content + lineStart;
-        const auto*    end     = content + offset;
+
+        const auto* ptr = content + lineStart;
+        const auto* end = content + offset;
 
         while (ptr < end)
         {
@@ -34,6 +36,7 @@ namespace
                     ptr++;
                 else
                     ptr = next;
+
                 column++;
             }
         }
@@ -58,8 +61,7 @@ void SourceCodeRange::fromOffset(const TaskContext& ctx, const SourceView& view,
     if (lines.empty())
         return;
 
-    // Use binary search to find the line containing this offset
-    // upper_bound returns iterator to first element > offset
+    // The preceding line start identifies the line containing this byte offset.
     auto it = std::ranges::upper_bound(lines, inOffset);
 
     if (it == lines.begin())
@@ -70,15 +72,13 @@ void SourceCodeRange::fromOffset(const TaskContext& ctx, const SourceView& view,
     }
     else
     {
-        // Go back one element to get the line start <= offset
         --it;
+
         const size_t   lineIndex       = std::distance(lines.begin(), it);
         const uint32_t lineStartOffset = *it;
 
-        // Line numbers are 1-based
-        line = static_cast<uint32_t>(lineIndex + 1) + view.lineOffset();
-
-        // Column is the offset from the start of the line (1-based)
+        // Lines and columns are one-based.
+        line   = static_cast<uint32_t>(lineIndex + 1) + view.lineOffset();
         column = calculateColumn(ctx, reinterpret_cast<const char8_t*>(view.stringView().data()), lineStartOffset, inOffset);
     }
 }
@@ -90,6 +90,7 @@ uint32_t SourceCodeRange::endLine(const TaskContext& ctx) const
 
     SourceCodeRange endRange;
     endRange.fromOffset(ctx, *srcView, offset + len - 1, 1);
+
     return endRange.line;
 }
 

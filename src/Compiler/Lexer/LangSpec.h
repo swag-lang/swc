@@ -35,26 +35,32 @@ public:
     bool isBlank(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Blank); }
     bool isWhiteSpace(uint32_t c) const { return c < 256 && charFlags_[c].hasAny({CharFlagsE::Blank, CharFlagsE::Eol}); }
     bool isEol(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Eol); }
+
     bool isDigit(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Digit); }
     bool isLetter(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Letter); }
     bool isAscii(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Ascii); }
+
     bool isHexNumber(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::HexNumber); }
     bool isBinNumber(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::BinNumber); }
     bool isNumberSep(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::NumberSep); }
+
     bool isIdentifierStart(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::IdentifierStart); }
     bool isIdentifierPart(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::IdentifierPart); }
+
     bool isEscape(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Escape); }
     bool isOption(uint32_t c) const { return c < 256 && charFlags_[c].has(CharFlagsE::Option); }
 
-    TokenId                           keyword(std::string_view name, uint32_t hash) const;
-    TokenId                           keyword(std::string_view name) const;
+    TokenId keyword(std::string_view name, uint32_t hash) const;
+    TokenId keyword(std::string_view name) const;
+
     static constexpr std::string_view VERIFY_COMMENT_EXPECTED = "swc-expected-";
 
     static bool isReservedNamespace(std::string_view ns);
     static bool isSpecOpName(std::string_view name);
 
 private:
-    CharFlags                                     charFlags_[256];
+    CharFlags charFlags_[256];
+
     StringMap<TokenId>                            keywordMap_;
     std::unordered_map<TokenId, std::string_view> keywordIdMap_;
 

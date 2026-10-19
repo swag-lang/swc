@@ -22,7 +22,6 @@ enum class LexerFlagsE : uint32_t
 };
 using LexerFlags = EnumFlags<LexerFlagsE>;
 
-// Main lexer class - converts source text into tokens
 class Lexer
 {
 public:
@@ -30,60 +29,71 @@ public:
     void tokenize(TaskContext& ctx, SourceView& srcView, LexerFlags flags);
 
 private:
-    Token token_                  = {};
-    bool  prevTokenWasWhitespace_ = false;
-    bool  prevTokenHadEolInside_  = false;
-    // Last token that carries meaning on the current line, blanks and comments excluded.
-    // The quote operator is told apart from a character literal by what precedes it, and
-    // trivia must not change that reading: '5's32' and '5 's32' are the same suffixed
-    // literal. A line break does reset it, because a statement ends at the end of a line.
+    Token token_ = {};
+
+    bool prevTokenWasWhitespace_ = false;
+    bool prevTokenHadEolInside_  = false;
+
+    // Track the last meaningful token on this line to distinguish quotes from
+    // character literals. Trivia preserves it; a line break clears it.
     TokenId prevCodeTokenId_ = TokenId::Invalid;
-    // Armed by '#raw', consumed by the next string literal: the escape rule decides where the
-    // literal ends, so it has to be known before scanning it.
+
+    // #raw must be known before scanning the next string for its closing delimiter.
     bool pendingRawStringLiteral_ = false;
 
-    SourceView*     srcView_          = nullptr;
-    const char8_t*  buffer_           = nullptr;
-    const char8_t*  startBuffer_      = nullptr;
-    const char8_t*  endBuffer_        = nullptr;
-    const char8_t*  startToken_       = nullptr;
-    TaskContext*    ctx_              = nullptr;
-    const LangSpec* langSpec_         = nullptr;
-    LexerFlags      lexerFlags_       = LexerFlagsE::Default;
-    uint32_t        startTokenOffset_ = 0;
-    bool            hasTokenError_    = false;
-    bool            hasFileError_     = false;
-    bool            hasUtf8Error_     = false;
+    SourceView* srcView_ = nullptr;
+
+    const char8_t* buffer_      = nullptr;
+    const char8_t* startBuffer_ = nullptr;
+    const char8_t* endBuffer_   = nullptr;
+    const char8_t* startToken_  = nullptr;
+
+    TaskContext*    ctx_        = nullptr;
+    const LangSpec* langSpec_   = nullptr;
+    LexerFlags      lexerFlags_ = LexerFlagsE::Default;
+
+    uint32_t startTokenOffset_ = 0;
+
+    bool hasTokenError_ = false;
+    bool hasFileError_  = false;
+    bool hasUtf8Error_  = false;
 
     static bool isTerminatorAfterEscapeChar(uint8_t c, TokenId container);
 
-    void       eatOne();
-    void       eatOneEol();
-    void       eatUtf8Char();
-    void       pushToken();
+    void eatOne();
+    void eatOneEol();
+    void eatUtf8Char();
+    void pushToken();
+
     void       raiseUtf8Error(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     Diagnostic reportTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
     void       raiseTokenError(DiagnosticId id, uint32_t offset, uint32_t len = 1);
-    void       checkFormat(uint32_t& startOffset);
-    void       checkGlobalCompilerIfSkip() const;
-    void       lexEscape(TokenId containerToken, bool eatEol);
-    void       buildTriviaIndex() const;
+
+    void checkFormat(uint32_t& startOffset);
+    void checkGlobalCompilerIfSkip() const;
+    void lexEscape(TokenId containerToken, bool eatEol);
+    void buildTriviaIndex() const;
 
     bool isRawMode() const { return lexerFlags_.has(LexerFlagsE::RawMode); }
 
     void lexWhitespace();
+
     void lexSingleLineStringLiteral();
     void lexMultiLineStringLiteral();
     void lexCharacterLiteral();
+
     template<bool (LangSpec::*IsDigit)(uint32_t) const>
     uint32_t lexDigitRun(bool& ioLastWasSep);
     void     lexHexNumber();
-    void lexBinNumber();
-    void lexDecimalNumber();
-    void lexNumber();
+    void     lexBinNumber();
+    void     lexDecimalNumber();
+    void     lexNumber();
+
     void lexSymbol();
     bool canPrecedeQuoteOperator() const;
+
     void lexIdentifier();
+
     void lexSingleLineComment();
     void lexMultiLineComment();
 };

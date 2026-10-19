@@ -60,6 +60,7 @@ Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
     {
         if (buffer[0] == '\t')
             hasTab = true;
+
         buffer++;
     }
 
@@ -67,7 +68,7 @@ Utf8 SourceView::codeLine(const TaskContext& ctx, uint32_t line) const
     if (!hasTab)
         return result;
 
-    // Transform tabulations to blanks in order for columns to match
+    // Expand tabs so diagnostic columns match the displayed source.
     const uint32_t tabSize = ctx.cmdLine().tabSize;
     Utf8           expanded;
     expanded.reserve(result.size());
@@ -101,6 +102,7 @@ std::pair<uint32_t, uint32_t> SourceView::triviaRangeForToken(TokenRef tok) cons
 {
     const uint32_t i = tok.get();
     SWC_ASSERT(i + 1 < triviaStart_.size());
+
     return {triviaStart_[i], triviaStart_[i + 1]};
 }
 
@@ -120,6 +122,7 @@ uint32_t SourceView::clampLine(uint32_t line) const
     line -= lineOffset_;
     if (!line)
         return 1;
+
     return std::min(line, static_cast<uint32_t>(lines_.size()));
 }
 
@@ -129,18 +132,21 @@ std::pair<uint32_t, uint32_t> SourceView::lineBounds(uint32_t line) const
     uint32_t       end   = static_cast<uint32_t>(stringView_.size());
     if (line < lines_.size())
         end = lines_[line];
+
     return {start, std::max(start, end)};
 }
 
 void SourceView::codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runtime::SourceCodeLocation& location, SourceCodeRange& outCodeRange) const
 {
     outCodeRange = {};
+
     SWC_ASSERT(!stringView_.empty());
     SWC_ASSERT(!lines_.empty());
 
     const uint32_t startLine = clampLine(location.lineStart);
     uint32_t       endLine   = clampLine(location.lineEnd);
-    endLine                  = std::max(endLine, startLine);
+
+    endLine = std::max(endLine, startLine);
 
     const auto [startLineOffset, startLineEndOffset] = lineBounds(startLine);
     const auto [endLineOffset, endLineEndOffset]     = lineBounds(endLine);
@@ -155,7 +161,8 @@ void SourceView::codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runt
 
     const uint32_t maxStartColumnOffset = startLineEndOffset > startLineOffset ? startLineEndOffset - startLineOffset - 1 : 0;
     const uint32_t startColumnOffset    = std::min(startColumn - 1, maxStartColumnOffset);
-    uint32_t       offset               = startLineOffset + startColumnOffset;
+
+    uint32_t offset = startLineOffset + startColumnOffset;
 
     const uint32_t maxEndColumnOffset = endLineEndOffset - endLineOffset;
     uint32_t       endOffset          = endLineOffset + std::min(endColumn - 1, maxEndColumnOffset);
@@ -164,6 +171,7 @@ void SourceView::codeRangeFromRuntimeLocation(const TaskContext& ctx, const Runt
 
     if (offset >= stringView_.size())
         offset = static_cast<uint32_t>(stringView_.size() - 1);
+
     if (endOffset > stringView_.size())
         endOffset = static_cast<uint32_t>(stringView_.size());
 

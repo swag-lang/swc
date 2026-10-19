@@ -101,8 +101,9 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
     // which rounds once, to the nearest double.
     const std::string digits = mantissa.toString().c_str();
     const std::string text   = std::format("{}e{}", digits, exponent10);
-    double            parsed = 0;
-    const auto [ptr, error]  = std::from_chars(text.data(), text.data() + text.size(), parsed);
+
+    double parsed           = 0;
+    const auto [ptr, error] = std::from_chars(text.data(), text.data() + text.size(), parsed);
     if (error == std::errc::result_out_of_range)
     {
         // Past the largest double the value is infinite; below the smallest subnormal it is zero.
@@ -121,6 +122,7 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
 {
     if (targetBits == 0)
         targetBits = 64;
+
     SWC_ASSERT(targetBits == 32 || targetBits == 64);
 
     exact    = false;
@@ -132,6 +134,7 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
             set(0.0f);
         else
             set(0.0);
+
         exact = true;
         return;
     }
@@ -173,6 +176,7 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
     if (value.isUnsigned())
     {
         const uint64_t u = bits;
+
         if (targetBits == 32)
         {
             const auto f = static_cast<float>(u);
@@ -189,6 +193,7 @@ void ApFloat::set(const ApsInt& value, uint32_t targetBits, bool& exact, bool& o
     else
     {
         const auto s = static_cast<int64_t>(bits);
+
         if (targetBits == 32)
         {
             const auto f = static_cast<float>(s);
@@ -326,6 +331,7 @@ float ApFloat::asFloat() const
         return value_.f32;
     if (bitWidth_ == 64)
         return static_cast<float>(value_.f64);
+
     SWC_UNREACHABLE();
 }
 
@@ -335,6 +341,7 @@ double ApFloat::asDouble() const
         return value_.f32;
     if (bitWidth_ == 64)
         return value_.f64;
+
     SWC_UNREACHABLE();
 }
 
@@ -342,6 +349,7 @@ bool ApFloat::same(const ApFloat& other) const
 {
     if (bitWidth_ != other.bitWidth_)
         return false;
+
     switch (bitWidth_)
     {
         case 32:

@@ -153,6 +153,7 @@ bool ByteArray::allZero() const noexcept
         if (value != std::byte{})
             return false;
     }
+
     return true;
 }
 
@@ -167,6 +168,7 @@ bool ByteArray::contains(const std::span<const std::byte> needle) const noexcept
         return true;
     if (needle.size() > size())
         return false;
+
     const std::span<const std::byte> bytes = span();
     return std::ranges::search(bytes, needle).begin() != bytes.end();
 }
@@ -200,9 +202,11 @@ bool ByteArray::containsUtf16Le(const std::string_view text) const noexcept
                 break;
             }
         }
+
         if (found)
             return true;
     }
+
     return false;
 }
 
@@ -220,18 +224,22 @@ uint16_t ByteArray::readLe16(const size_t offset) const noexcept
 uint32_t ByteArray::readLe32(const size_t offset) const noexcept
 {
     SWC_ASSERT(containsRange(offset, sizeof(uint32_t)));
+
     uint32_t value = 0;
     for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
         value |= std::to_integer<uint32_t>((*this)[offset + i]) << (i * 8);
+
     return value;
 }
 
 uint64_t ByteArray::readLe64(const size_t offset) const noexcept
 {
     SWC_ASSERT(containsRange(offset, sizeof(uint64_t)));
+
     uint64_t value = 0;
     for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
         value |= std::to_integer<uint64_t>((*this)[offset + i]) << (i * 8);
+
     return value;
 }
 
@@ -245,6 +253,7 @@ void ByteArray::append(const std::span<const std::byte> bytes)
 {
     if (bytes.empty())
         return;
+
     storage_.insert(storage_.end(), bytes.begin(), bytes.end());
 }
 
@@ -263,6 +272,7 @@ void ByteArray::appendAligned(uint32_t& outOffset, const ByteArray& bytes, const
     const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(size()), alignment);
     if (size() < alignedOffset)
         resize(alignedOffset, std::byte{0});
+
     outOffset = alignedOffset;
     append(bytes);
 }

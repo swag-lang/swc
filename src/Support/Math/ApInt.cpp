@@ -89,6 +89,7 @@ bool ApInt::same(const ApInt& other) const
 {
     if (bitWidth_ != other.bitWidth_)
         return false;
+
     SWC_ASSERT(numWords_ == other.numWords_);
     return std::equal(words_, words_ + numWords_, other.words_);
 }
@@ -160,6 +161,7 @@ void ApInt::logicalShiftLeft(uint64_t amount, bool& overflow)
 
         for (uint64_t i = numWords_; i-- > wordShift;)
             words_[i] = words_[i - wordShift];
+
         for (uint64_t i = 0; i < wordShift; ++i)
             words_[i] = 0;
     }
@@ -178,8 +180,8 @@ void ApInt::logicalShiftLeft(uint64_t amount, bool& overflow)
             overflow = true;
     }
 
-    // IMPORTANT: for non-multiple-of-64 widths, shifting can spill into unused
-    // bits of the last word. Flag overflow BEFORE normalize masks them away.
+    // A partial last word can receive shifted bits outside the declared width.
+    // Record overflow before normalization masks those bits away.
     if (hasTopBitsOverflow())
         overflow = true;
 
@@ -204,6 +206,7 @@ void ApInt::logicalShiftRight(uint64_t amount)
     {
         for (uint32_t i = 0; i < numWords_ - static_cast<uint32_t>(wordShift); ++i)
             words_[i] = words_[i + wordShift];
+
         for (auto i = static_cast<uint32_t>(numWords_ - wordShift); i < numWords_; ++i)
             words_[i] = 0;
     }
@@ -236,6 +239,7 @@ void ApInt::arithmeticShiftRight(uint64_t amount)
             setAllBits();
         else
             setZero();
+
         return;
     }
 
@@ -444,13 +448,15 @@ void ApInt::mul(const ApInt& rhs, bool& overflow)
             const uint64_t old = tmp[i + j];
             uint64_t       sum = old + low;
             const uint64_t c1  = (sum < old);
+
             sum += carry;
             const uint64_t c2 = (sum < carry);
-            tmp[i + j]        = sum;
-            carry             = high + c1 + c2;
+
+            tmp[i + j] = sum;
+            carry      = high + c1 + c2;
         }
 
-        // Propagate carry correctly across tmp[i+n] (tmp limb can overflow)
+        // Adding the carry can overflow another word of the temporary product.
         uint32_t k = i + n;
         uint64_t c = carry;
         while (c != 0 && k < 2 * MAX_WORDS)
@@ -518,6 +524,7 @@ ApInt ApInt::div(const ApInt& rhs, bool& overflow)
             rem.sub(divisor, overflow);
             if (overflow)
                 return ApInt(bitWidth_);
+
             quotient.setBit(static_cast<uint64_t>(bit));
         }
     }
@@ -532,11 +539,9 @@ void ApInt::mod(const ApInt& rhs, bool& overflow)
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
     SWC_ASSERT(!rhs.isZero());
 
-    // div(rhs) overwrites *this with quotient, returns the remainder.
+    // Division replaces this value with the quotient; retain only the remainder.
     const ApInt rem = div(rhs, overflow);
-
-    // Install the remainder back into *this.
-    *this = rem;
+    *this           = rem;
 }
 
 void ApInt::modSigned(const ApInt& rhs, bool& overflow)
@@ -739,7 +744,6 @@ ApInt ApInt::divSigned(const ApInt& rhs, bool& overflow)
     const bool resultNeg = lhsNeg ^ rhsNeg;
 
     const ApInt minVal = minValueSigned(bitWidth_);
-
     const ApInt negOne = maxValue(bitWidth_);
 
     if (same(minVal) && rhs.same(negOne))
@@ -766,6 +770,7 @@ ApInt ApInt::divSigned(const ApInt& rhs, bool& overflow)
         bool dummyOverflow = false;
         magLhs.add(1, dummyOverflow);
     }
+
     *this = magLhs;
 
     // Apply sign to remainder: the signed remainder has the same sign as dividend (lhs).

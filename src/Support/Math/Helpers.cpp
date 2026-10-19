@@ -49,7 +49,6 @@ namespace Math
         const __uint128_t q128 = num / d;
         const __uint128_t r128 = num % d;
 
-        // For (2^128-1) / (2^64) the quotient is < 2^64, so it fits.
         q = static_cast<uint64_t>(q128);
         r = static_cast<uint64_t>(r128);
 
@@ -57,12 +56,8 @@ namespace Math
         q = _udiv128(hi, lo, d, &r);
 
 #else
-        // Portable fallback: bit-by-bit restoring division on 128 bits.
-        //
-        // Conceptually divides (hi<<64 | lo) by d.
-        // We maintain 'rem' as the running remainder (up to 64 bits),
-        // and shift in bits from 'lo' high-to-low, just like standard
-        // long division.
+        // Restoring division starts with the high word as the remainder, then
+        // shifts in the low word from its most significant bit to its least.
         uint64_t rem   = hi;
         uint64_t qWord = 0;
 
@@ -70,6 +65,7 @@ namespace Math
         {
             rem = (rem << 1) | ((lo >> bit) & 1u);
             qWord <<= 1;
+
             if (rem >= d)
             {
                 rem -= d;
@@ -127,7 +123,6 @@ namespace Math
 
         SWC_UNREACHABLE();
     }
-
 }
 
 SWC_END_NAMESPACE();

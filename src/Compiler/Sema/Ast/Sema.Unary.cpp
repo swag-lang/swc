@@ -24,11 +24,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // The type a dereference operates on. A reference bound to a POINTER slot — '&nullable *T',
-    // what a container's 'opIndex' hands back — dereferences like the pointer it names, so the
-    // reference layers are looked through and the nullability of the slot is the nullability
-    // of the dereference. A reference to anything else keeps its own type: it already IS the
-    // value, and dereferencing it stays an operand-type error rather than a second indirection.
+    // References to pointer slots dereference through the slot, preserving its
+    // nullability (for example, opIndex's &nullable *T). Other references already
+    // name a value and remain invalid dereference operands.
     const TypeInfo& derefOperandType(Sema& sema, const SemaNodeView& view)
     {
         const TypeInfo* type = &SemaHelpers::aliasEnumType(sema, view);
@@ -38,9 +36,11 @@ namespace
             const TypeRef pointeeTypeRef = type->payloadTypeRef();
             if (pointeeTypeRef.isInvalid())
                 break;
+
             const TypeInfo* pointeeType = &sema.typeMgr().get(pointeeTypeRef);
             if (const TypeInfo* unwrappedType = pointeeType->unwrapAliasEnumType(sema.ctx()))
                 pointeeType = unwrappedType;
+
             if (!pointeeType->isPointerOrReference())
                 break;
 
@@ -57,6 +57,7 @@ namespace
             ApsInt                 foldedValue;
             const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::Plus);
             SWC_ASSERT(foldStatus == Math::FoldStatus::Ok);
+
             result = sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeInt(sema.ctx(), foldedValue, view.type()->payloadIntBits(), view.type()->payloadIntSign()));
             return Result::Continue;
         }
@@ -67,8 +68,7 @@ namespace
 
     Result constantFoldMinus(Sema& sema, ConstantRef& result, const SemaNodeView& view)
     {
-        // In the case of a literal with a suffix, it has already been done
-        // Swag.minusLiteralSuffix
+        // Swag.minusLiteralSuffix already handled negation for suffixed literals.
         if (view.node()->is(AstNodeId::SuffixLiteral))
         {
             result = view.cstRef();
@@ -82,16 +82,19 @@ namespace
             const Math::FoldStatus foldStatus = Math::foldUnaryInt(foldedValue, view.cst()->getInt(), Math::FoldUnaryOp::Minus);
             if (foldStatus == Math::FoldStatus::Overflow)
                 return SemaError::raiseLiteralOverflow(sema, view.nodeRef(), *view.cst(), view.typeRef());
+
             if (foldStatus != Math::FoldStatus::Ok)
             {
                 if (Math::isSafetyError(foldStatus))
                     return SemaError::raiseFoldSafety(sema, foldStatus, sema.curNodeRef(), view.nodeRef(), SemaError::ReportLocation::Token);
+
                 return Result::Error;
             }
 
             ConstantValue resultValue = ConstantValue::makeInt(sema.ctx(), foldedValue, type.payloadIntBits(), TypeInfo::Sign::Signed);
             if (view.type()->isAlias())
                 resultValue.setTypeRef(view.typeRef());
+
             result = sema.cstMgr().addConstant(sema.ctx(), resultValue);
             return Result::Continue;
         }
@@ -105,6 +108,7 @@ namespace
             ConstantValue resultValue = ConstantValue::makeFloat(sema.ctx(), foldedValue, type.payloadFloatBits());
             if (view.type()->isAlias())
                 resultValue.setTypeRef(view.typeRef());
+
             result = sema.cstMgr().addConstant(sema.ctx(), resultValue);
             return Result::Continue;
         }
@@ -117,11 +121,13 @@ namespace
         CastRequest castRequest(CastKind::BoolExpr);
         castRequest.errorNodeRef = view.nodeRef();
         castRequest.setConstantFoldingSrc(view.cstRef());
+
         const Result castResult = Cast::castAllowed(sema, castRequest, view.typeRef(), sema.typeMgr().typeBool());
         if (castResult != Result::Continue)
         {
             if (castResult == Result::Error)
                 return Cast::emitCastFailure(sema, castRequest.failure);
+
             return castResult;
         }
 
@@ -133,6 +139,7 @@ namespace
     Result constantFoldTilde(Sema& sema, ConstantRef& result, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
+
         const TypeInfo& valueType     = SemaHelpers::aliasType(sema, view);
         const TypeInfo* storageType   = &valueType;
         ConstantRef     storageCstRef = view.cstRef();
@@ -140,9 +147,11 @@ namespace
         if (valueType.isEnum())
         {
             SWC_ASSERT(valueType.isEnumFlags());
+
             const ConstantValue& enumValue = sema.cstMgr().get(storageCstRef);
             if (enumValue.isEnumValue())
                 storageCstRef = enumValue.getEnumValue();
+
             storageType = &sema.typeMgr().get(valueType.payloadSymEnum().underlyingTypeRef());
         }
 
@@ -157,12 +166,14 @@ namespace
         {
             const ConstantRef   underlyingRef = sema.cstMgr().addConstant(sema.ctx(), resultValue);
             const ConstantValue enumValue     = ConstantValue::makeEnumValue(sema.ctx(), underlyingRef, view.typeRef());
-            result                            = sema.cstMgr().addConstant(sema.ctx(), enumValue);
+
+            result = sema.cstMgr().addConstant(sema.ctx(), enumValue);
             return Result::Continue;
         }
 
         if (view.type()->isAlias())
             resultValue.setTypeRef(view.typeRef());
+
         result = sema.cstMgr().addConstant(sema.ctx(), resultValue);
         return Result::Continue;
     }
@@ -188,10 +199,12 @@ namespace
 
         const TypeRef elementTypeRef = type.payloadTypeRef();
         SWC_RESULT(sema.waitSemaCompleted(&sema.typeMgr().get(elementTypeRef), view.nodeRef()));
+
         const uint64_t        elementSize = sema.typeMgr().get(elementTypeRef).sizeOf(sema.ctx());
         DataSegmentAllocation allocation;
         if (!elementSize || !sema.cstMgr().shardDataSegment(dataRef.shardIndex).findAllocation(allocation, dataRef.offset))
             return Result::Continue;
+
         if (elementSize > allocation.size - (dataRef.offset - allocation.offset))
             return Result::Continue;
 
@@ -205,17 +218,21 @@ namespace
         {
             case TokenId::SymMinus:
                 return constantFoldMinus(sema, result, view);
+
             case TokenId::SymPlus:
                 return constantFoldPlus(sema, result, view);
+
             case TokenId::KwdNot:
                 return constantFoldNot(sema, result, view);
+
             case TokenId::SymTilde:
                 return constantFoldTilde(sema, result, node, view);
+
             case TokenId::SymLeftBracket:
                 return constantFoldDeref(sema, result, view);
+
             default:
-                // Address and dereference operations still need their storage semantics,
-                // even when the operand has a constant value.
+                // Address-taking still needs storage semantics for constant operands.
                 return Result::Continue;
         }
     }
@@ -225,6 +242,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_unary_operand_type, expr.codeRef());
         diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -244,6 +262,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -252,6 +271,7 @@ namespace
             auto diag = SemaError::report(sema, DiagnosticId::sema_err_negate_unsigned, expr.codeRef());
             diag.addArgument(Diagnostic::ARG_TYPE, view.typeRef());
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 
@@ -261,6 +281,7 @@ namespace
     Result checkPlus(Sema& sema, const AstUnaryExpr& expr, const SemaNodeView& view)
     {
         SWC_UNUSED(expr);
+
         const TypeInfo& type = SemaHelpers::aliasType(sema, view);
         if (type.isScalarNumeric() || type.isSimd())
             return Result::Continue;
@@ -272,6 +293,7 @@ namespace
     {
         if (view.type()->isConvertibleToBoolAliasAware(sema.ctx()))
             return Result::Continue;
+
         return reportInvalidType(sema, expr, view);
     }
 
@@ -280,18 +302,20 @@ namespace
         const TypeInfo& type = SemaHelpers::aliasType(sema, view);
         if (type.isIntLike() || type.isEnum())
             return Result::Continue;
+
         if (type.isSimd() && sema.typeMgr().get(type.payloadSimdLaneTypeRef()).isInt())
             return Result::Continue;
+
         return reportInvalidType(sema, expr, view);
     }
 
-    // Returns true when the operand of '&' is an index into a constant with
-    // data-segment storage (array or struct). The data has a real address even
-    // though the element value is known at compile time.
+    // An index into a constant array can still name data-segment storage.
+    // A known element value does not make its address unavailable.
     bool isAddressableConstantIndex(Sema& sema, const SemaNodeView& view)
     {
         if (!view.node() || !view.node()->is(AstNodeId::IndexExpr))
             return false;
+
         const auto&        idxExpr  = view.node()->cast<AstIndexExpr>();
         const SemaNodeView baseView = sema.viewTypeConstant(idxExpr.nodeExprRef);
         if (!baseView.hasConstant() || baseView.typeRef().isInvalid())
@@ -307,13 +331,16 @@ namespace
         if (!sema.isLValue(*view.node()) && !isAddressableConstantIndex(sema, view))
         {
             const DiagnosticId diagId = view.cstRef().isValid() ? DiagnosticId::sema_err_take_address_constant : DiagnosticId::sema_err_take_address_not_lvalue;
-            auto               diag   = SemaError::report(sema, diagId, node.codeRef());
+
+            auto diag = SemaError::report(sema, diagId, node.codeRef());
             if (diagId == DiagnosticId::sema_err_take_address_not_lvalue)
             {
                 diag.addNote(DiagnosticId::sema_note_expression_not_addressable);
                 SemaError::addSpan(sema, diag.last(), view.nodeRef());
             }
+
             diag.report(sema.ctx());
+
             return Result::Error;
         }
 

@@ -19,9 +19,11 @@ namespace
     {
         if (sema.enteringState())
             SemaHelpers::declareSymbol(sema, node);
+
         auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
         if (!sym.isGenericInstance())
             SWC_RESULT(Match::ghosting(sema, sym));
+
         if (sym.isGenericRoot() && !sym.isGenericInstance())
         {
             if (!sym.isTyped())
@@ -30,6 +32,7 @@ namespace
             sema.curViewSymbol().sym()->setSemaCompleted(sema.ctx());
             return Result::SkipChildren;
         }
+
         return Result::Continue;
     }
 
@@ -37,27 +40,30 @@ namespace
     {
         if (!sym.hasDynamicStorage())
             return Result::Continue;
+
         for (const SymbolVariable* field : sym.fields())
         {
             const TypeInfo& fieldType = sema.typeMgr().get(field->typeRef());
             if (!SymbolStruct::typeHasDynamicStorage(sema.ctx(), fieldType))
                 continue;
+
             const uint64_t start = field->offset();
             const uint64_t end   = start + fieldType.sizeOf(sema.ctx());
             for (const SymbolVariable* other : sym.fields())
             {
                 if (other == field)
                     continue;
+
                 const uint64_t otherStart = other->offset();
                 const uint64_t otherEnd   = otherStart + other->typeInfo(sema.ctx()).sizeOf(sema.ctx());
                 if (start < otherEnd && otherStart < end)
                     return SemaError::raise(sema, DiagnosticId::sema_err_dynamic_layout, *field);
             }
         }
+
         return Result::Continue;
     }
 
-    // Drops the ignored fields of an aggregate, then lays out the remaining ones.
     Result layoutAggregateFields(Sema& sema, SymbolStruct& sym)
     {
         sym.removeIgnoredFields();
@@ -98,6 +104,7 @@ namespace
 
         const TypeRef specializedTypeRef = SemaHelpers::ensureStructTypeRef(sema, *instance);
         bindSpecializedStructInitializerTarget(sema, nodeWhatRef, *instance, specializedTypeRef);
+
         return Result::Continue;
     }
 
@@ -110,6 +117,7 @@ namespace
             auto&          sym           = sema.curViewSymbol().sym()->cast<SymbolStruct>();
             const TypeInfo structType    = TypeInfo::makeStruct(&sym);
             const TypeRef  structTypeRef = ctx.typeMgr().addType(structType);
+
             sym.setTypeRef(structTypeRef);
             sym.setTyped(ctx);
 
@@ -133,6 +141,7 @@ namespace
         auto frame = sema.frame();
         frame.pushBindingType(bindingTypeRef);
         sema.pushFramePopOnPostChild(std::move(frame), childRef);
+
         return Result::Continue;
     }
 }
@@ -143,7 +152,6 @@ Result AstStructDecl::semaPreDecl(Sema& sema) const
     sym.setDeclNodeRef(sema.curNodeRef());
     sym.setGenericRoot(spanGenericParamsRef.isValid());
 
-    // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()) && sema.typeMgr().isTypeInfoRuntimeStruct(sym.idRef()))
         sym.addExtraFlag(SymbolStructFlagsE::TypeInfo);
 
@@ -167,6 +175,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
     {
         if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
             return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
+
         return SemaSpecOp::ensureGeneratedOperators(sema, sym);
     }
 
@@ -179,11 +188,11 @@ Result AstStructDecl::semaPostNode(Sema& sema)
 
     if (!sym.isGenericInstance())
         SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, sym));
+
     SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, sym));
     SWC_RESULT(SemaSpecOp::ensureGeneratedEquality(sema, sym));
     SWC_RESULT(sym.registerSpecOps(sema));
 
-    // Runtime struct
     if (sym.inSwagNamespace(sema.ctx()))
         sema.typeMgr().registerRuntimeType(sym.idRef(), sym.typeRef());
 
@@ -191,6 +200,7 @@ Result AstStructDecl::semaPostNode(Sema& sema)
         return Result::Continue;
 
     sym.setSemaCompleted(sema.ctx());
+
     return Result::Continue;
 }
 
@@ -200,6 +210,7 @@ Result AstUnionDecl::semaPreDecl(Sema& sema) const
     sym.setDeclNodeRef(sema.curNodeRef());
     sym.setGenericRoot(spanGenericParamsRef.isValid());
     sym.addExtraFlag(SymbolStructFlagsE::Union);
+
     return Result::SkipChildren;
 }
 
@@ -226,12 +237,14 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
 
     if (!sym.isGenericInstance())
         SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, sym));
+
     SWC_RESULT(sym.registerSpecOps(sema));
 
     if (sym.isGenericInstance())
         return Result::Continue;
 
     sym.setSemaCompleted(sema.ctx());
+
     return Result::Continue;
 }
 
@@ -239,6 +252,7 @@ Result AstAnonymousStructDecl::semaPreDecl(Sema& sema) const
 {
     auto& sym = SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_struct");
     sym.addExtraFlag(SymbolStructFlagsE::Anonymous);
+
     return Result::SkipChildren;
 }
 
@@ -264,6 +278,7 @@ Result AstAnonymousStructDecl::semaPostNode(Sema& sema)
         return sema.waitImplRegistrations(sym.idRef(), sym.codeRef());
 
     sym.setSemaCompleted(sema.ctx());
+
     // Keep the declaration symbol: a lazy body can revisit its signature, and
     // its fields still belong to this aggregate. The symbol also exposes its type.
     return Result::Continue;
@@ -274,6 +289,7 @@ Result AstAnonymousUnionDecl::semaPreDecl(Sema& sema) const
     auto& sym = SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_union");
     sym.addExtraFlag(SymbolStructFlagsE::Union);
     sym.addExtraFlag(SymbolStructFlagsE::Anonymous);
+
     return Result::SkipChildren;
 }
 
@@ -292,6 +308,7 @@ Result AstAnonymousUnionDecl::semaPostNode(Sema& sema)
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
     SWC_RESULT(layoutAggregateFields(sema, sym));
     sym.setSemaCompleted(sema.ctx());
+
     // As with anonymous structs, replay must reuse the owner of the field symbols.
     return Result::Continue;
 }
@@ -300,9 +317,8 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
 {
     SWC_RESULT(specializeGenericStructInitializerTarget(sema, nodeWhatRef));
 
-    // 'Foo{...}' can only initialize a type. A namespace, or any other untyped symbol,
-    // reaches here without a type, and the cast below would then match against an
-    // invalid TypeRef; diagnose the spelling instead.
+    // Foo{...} requires a type. Reject untyped symbols here so initialization
+    // cannot pass an invalid TypeRef to the cast below.
     if (sema.viewType(nodeWhatRef).typeRef().isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeWhatRef);
 
@@ -310,6 +326,7 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
     AstNode::collectChildren(children, sema.ast(), spanArgsRef);
 
     SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children));
+
     SemaNodeView initView = sema.curViewNodeTypeConstant();
     SWC_RESULT(SemaHelpers::attachLiteralRuntimeStorageIfNeeded(sema, *this, initView));
 

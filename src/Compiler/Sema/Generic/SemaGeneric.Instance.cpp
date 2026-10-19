@@ -53,6 +53,7 @@ namespace SemaGeneric
         SpanRef genericParamSpan(const Symbol& root)
         {
             SWC_ASSERT(root.isFunction() || root.isStruct());
+
             if (const auto* function = root.safeCast<SymbolFunction>())
             {
                 const auto* decl = genericFunctionDecl(*function);
@@ -78,20 +79,20 @@ namespace SemaGeneric
 
         Result evalGenericDefaultArg(Sema& sema, const Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, size_t paramIndex, GenericResolvedArg& outArg)
         {
-            outArg                        = {};
+            outArg = {};
+
             const GenericParamDesc& param = params[paramIndex];
             if (param.defaultRef.isInvalid())
                 return Result::Continue;
 
-            // Defaults can depend only on parameters declared before them. Clone the
-            // default expression with the prefix bindings resolved so later params do
-            // not accidentally participate in evaluation.
+            // Bind only earlier parameters so later parameters cannot affect default evaluation.
             const ResolvedGenericBindingSource   source{params, resolvedArgs};
             SmallVector<SemaClone::ParamBinding> bindings;
             buildPartialGenericContextBindings(sema, root, source, paramIndex, bindings);
 
             AstNodeRef clonedRef = AstNodeRef::invalid();
             SWC_RESULT(evalGenericClonedNode(sema, root, param.defaultRef, bindings, GenericEvalReadyKind::Constant, clonedRef));
+
             if (clonedRef.isInvalid())
                 return Result::Error;
 
@@ -100,7 +101,8 @@ namespace SemaGeneric
 
         Result resolveGenericValueParamType(Sema& sema, const Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, size_t paramIndex, TypeRef& outTypeRef)
         {
-            outTypeRef                    = TypeRef::invalid();
+            outTypeRef = TypeRef::invalid();
+
             const GenericParamDesc& param = params[paramIndex];
             if (param.explicitType.isInvalid())
                 return Result::Continue;
@@ -114,6 +116,7 @@ namespace SemaGeneric
 
             AstNodeRef clonedTypeRef = AstNodeRef::invalid();
             SWC_RESULT(evalGenericClonedNode(sema, root, param.explicitType, bindings, GenericEvalReadyKind::TypeOrSymbol, clonedTypeRef));
+
             if (clonedTypeRef.isInvalid())
                 return Result::Error;
 
@@ -130,11 +133,13 @@ namespace SemaGeneric
 
             TypeRef declaredTypeRef = TypeRef::invalid();
             SWC_RESULT(resolveGenericValueParamType(sema, root, params, resolvedArgs, paramIndex, declaredTypeRef));
+
             if (declaredTypeRef.isValid())
             {
                 arg.typeRef = declaredTypeRef;
                 if (arg.cstRef.isInvalid())
                     return Result::Continue;
+
                 const TypeRef constantTypeRef = sema.cstMgr().get(arg.cstRef).typeRef();
                 if (constantTypeRef != declaredTypeRef)
                 {
@@ -150,6 +155,7 @@ namespace SemaGeneric
                     {
                         if (res == Result::Error)
                             return Cast::emitCastFailure(sema, castRequest.failure);
+
                         return res;
                     }
 
@@ -168,6 +174,7 @@ namespace SemaGeneric
         {
             if (genericArgNodes.empty())
                 return fallbackNodeRef;
+
             return genericArgNodes[std::min(paramIndex, genericArgNodes.size() - 1)];
         }
 
@@ -191,6 +198,7 @@ namespace SemaGeneric
                 {
                     ConstantRef newCstRef = ConstantRef::invalid();
                     SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, ioArg.diagRef, diagView.cstRef(), TypeInfo::Sign::Unknown));
+
                     if (newCstRef.isValid())
                     {
                         sema.setConstant(ioArg.diagRef, newCstRef);
@@ -214,6 +222,7 @@ namespace SemaGeneric
                 SWC_RESULT(evalGenericDefaultArg(sema, root, params, ioResolvedArgs, i, defaultArg));
                 if (!defaultArg.present)
                     return Result::Continue;
+
                 ioResolvedArgs[i] = defaultArg;
             }
 
@@ -221,6 +230,7 @@ namespace SemaGeneric
             {
                 if (!ioResolvedArgs[i].present)
                     return Result::Continue;
+
                 if (params[i].kind == GenericParamKind::Type)
                     SWC_RESULT(finalizeResolvedGenericType(sema, ioResolvedArgs[i]));
                 else
@@ -234,9 +244,9 @@ namespace SemaGeneric
         {
             outKeys.clear();
             outKeys.reserve(params.size());
-            // Instance identity is exactly the ordered list of declared generic
-            // parameters. Type params and value params occupy the same slot index but
-            // carry different payload kinds in GenericInstanceKey.
+
+            // Preserve declared parameter order in the instance key. Type and value
+            // parameters use the same slots with different payload kinds.
             for (size_t i = 0; i < params.size(); ++i)
             {
                 GenericInstanceKey key;
@@ -244,6 +254,7 @@ namespace SemaGeneric
                     key.typeRef = resolvedArgs[i].typeRef;
                 else
                     key.cstRef = resolvedArgs[i].cstRef;
+
                 outKeys.push_back(key);
             }
         }
@@ -263,6 +274,7 @@ namespace SemaGeneric
             constexpr SymbolStructFlags inheritedFlags = SymbolStructFlagsE::TypeInfo |
                                                          SymbolStructFlagsE::GenericRoot |
                                                          SymbolStructFlagsE::Union;
+
             return root.structFlags().mask(inheritedFlags);
         }
 
@@ -271,6 +283,7 @@ namespace SemaGeneric
             GenericInstanceOrigin origin;
             if (sema.curNodeRef().isValid())
                 origin.codeRange = SemaError::getNodeCodeRange(sema, sema.curNodeRef(), SemaError::ReportLocation::Children);
+
             origin.caller = sema.currentFunction() ? sema.currentFunction() : (sema.curScopePtr() ? sema.curSymMap() : sema.topSymMap());
             return origin;
         }
@@ -279,7 +292,8 @@ namespace SemaGeneric
         {
             if (auto* function = root.safeCast<SymbolFunction>())
             {
-                auto& cloneDecl                = sema.node(cloneRef).cast<AstFunctionDecl>();
+                auto& cloneDecl = sema.node(cloneRef).cast<AstFunctionDecl>();
+
                 cloneDecl.spanGenericParamsRef = SpanRef::invalid();
 
                 auto* instance = Symbol::make<SymbolFunction>(sema.ctx(), &cloneDecl, cloneDecl.tokNameRef, function->idRef(), clonedGenericSymbolFlags(root));
@@ -292,6 +306,7 @@ namespace SemaGeneric
                 instance->setDeclNodePayloadContext(&sema.currentNodePayloadContext());
                 instance->setOwnerSymMap(function->ownerSymMap());
                 instance->setGenericInstance(sema.ctx(), function, origin);
+
                 return instance;
             }
 
@@ -307,10 +322,12 @@ namespace SemaGeneric
                 instance->setOwnerSymMap(st.ownerSymMap());
                 instance->setDeclNodeRef(cloneRef);
                 instance->setGenericInstance(&st, origin);
+
                 return instance;
             }
 
-            auto& cloneDecl                = sema.node(cloneRef).cast<AstUnionDecl>();
+            auto& cloneDecl = sema.node(cloneRef).cast<AstUnionDecl>();
+
             cloneDecl.spanGenericParamsRef = SpanRef::invalid();
             cloneDecl.spanWhereRef         = SpanRef::invalid();
 
@@ -320,6 +337,7 @@ namespace SemaGeneric
             instance->setOwnerSymMap(st.ownerSymMap());
             instance->setDeclNodeRef(cloneRef);
             instance->setGenericInstance(&st, origin);
+
             return instance;
         }
 
@@ -335,6 +353,7 @@ namespace SemaGeneric
         {
             if (const auto* function = instance.safeCast<SymbolFunction>())
                 return function->isGenericCompletionOwner(ctx);
+
             return instance.cast<SymbolStruct>().isGenericCompletionOwner(ctx);
         }
 
@@ -342,6 +361,7 @@ namespace SemaGeneric
         {
             if (const auto* function = instance.safeCast<SymbolFunction>())
                 return function->tryStartGenericCompletion(ctx);
+
             return instance.cast<SymbolStruct>().tryStartGenericCompletion(ctx);
         }
 
@@ -357,6 +377,7 @@ namespace SemaGeneric
         {
             if (const auto* function = instance.safeCast<SymbolFunction>())
                 return function->isGenericNodeCompleted();
+
             return instance.cast<SymbolStruct>().isGenericNodeCompleted();
         }
 
@@ -392,8 +413,10 @@ namespace SemaGeneric
             const SemaClone::CloneContext cloneContext{bindings};
             const AstNodeRef              cloneRef = SemaClone::cloneAst(sema, genericDeclNodeRef(root), cloneContext);
             Symbol*                       created  = createGenericInstanceSymbol(sema, root, cloneRef, origin);
+
             setGenericCompletionOwner(*created, sema.ctx());
             sema.setSymbol(cloneRef, created);
+
             return storage.addNoLock(keys.span(), created);
         }
 
@@ -410,12 +433,15 @@ namespace SemaGeneric
             SWC_RESULT(sema.waitSemaCompleted(&rootStruct, rootStruct.codeRef()));
             SWC_RESULT(SemaSpecOp::ensureGeneratedOperators(sema, rootStruct));
             SWC_RESULT(instantiateGenericStructImpls(sema, rootStruct, instanceStruct, params, resolvedArgs));
+
             instanceStruct.removeIgnoredFields();
             SWC_RESULT(instanceStruct.canBeCompleted(sema));
             SWC_RESULT(instanceStruct.computeLayout(sema.ctx()));
+
             SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, instanceStruct));
             SWC_RESULT(SemaSpecOp::ensureGeneratedEquality(sema, instanceStruct));
             SWC_RESULT(instanceStruct.registerSpecOps(sema));
+
             instanceStruct.setSemaCompleted(sema.ctx());
             return Result::Continue;
         }

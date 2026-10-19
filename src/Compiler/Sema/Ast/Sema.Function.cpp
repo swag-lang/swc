@@ -785,6 +785,7 @@ namespace
             const TypeRef concreteTypeRef = sema.typeMgr().typeInt(32, sign);
             SemaNodeView  castView        = sema.viewNodeTypeConstant(exprRef);
             SWC_RESULT(Cast::cast(sema, castView, concreteTypeRef, CastKind::Implicit));
+
             ioTypeRef = concreteTypeRef;
         }
         else if (concretizedTypeInfo.isFloatUnsized())
@@ -792,6 +793,7 @@ namespace
             const TypeRef concreteTypeRef = sema.typeMgr().typeF64();
             SemaNodeView  castView        = sema.viewNodeTypeConstant(exprRef);
             SWC_RESULT(Cast::cast(sema, castView, concreteTypeRef, CastKind::Implicit));
+
             ioTypeRef = concreteTypeRef;
         }
 
@@ -801,6 +803,7 @@ namespace
         {
             SemaNodeView castView = sema.viewNodeTypeConstant(exprRef);
             SWC_RESULT(Cast::cast(sema, castView, concretizedTypeRef, CastKind::Implicit));
+
             ioTypeRef = concretizedTypeRef;
         }
 
@@ -810,6 +813,7 @@ namespace
         {
             SemaNodeView castView = sema.viewNodeTypeConstant(exprRef);
             SWC_RESULT(Cast::cast(sema, castView, normalizedTypeLikeRef, CastKind::Implicit));
+
             ioTypeRef = normalizedTypeLikeRef;
         }
 
@@ -855,13 +859,13 @@ namespace
             return true;
         if (declNode->is(AstNodeId::CompilerFunc))
             return sema.token(declNode->codeRef()).id == TokenId::CompilerAst;
+
         return false;
     }
 
-    // Compile-time evaluated functions never leak borrowed locals through their return
-    // value: '#ast' returns are cloned as source code, and '#run' blocks and compiler
-    // functions persist return payloads pointing into the local stack frame into the
-    // compiler segment (persistCompilerRunValue) before the frame dies.
+    // #ast returns become cloned source. #run and compiler-function returns
+    // persist stack-backed payloads into the compiler segment before the local
+    // frame dies, so returning those locals does not leak a borrow.
     bool returnValueIsMaterializedByCompiler(const Sema& sema, const SymbolFunction& sym)
     {
         const AstNode* declNode = sym.decl();
@@ -925,7 +929,8 @@ namespace
 
     Result resolveReturnTypeRef(Sema& sema, AstNodeRef exprRef, TypeRef& outTypeRef)
     {
-        outTypeRef                             = TypeRef::invalid();
+        outTypeRef = TypeRef::invalid();
+
         const SemaInlinePayload* inlinePayload = nearestReturnContextPayload(sema);
         if (inlinePayload)
         {

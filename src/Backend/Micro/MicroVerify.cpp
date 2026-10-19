@@ -51,8 +51,10 @@ namespace
     {
         if (!reg.isValid())
             return Result::Continue;
+
         if (reg.isVirtual() || reg.isInstructionPointer() || reg.isNoBase())
             return Result::Continue;
+
         return reportError(context, phase, std::format("instruction #{} uses non-virtual register {} at operand {} before legalize/RA loop", instructionIdx, reg.packed, operandIndex));
     }
 
@@ -127,8 +129,10 @@ namespace
     {
         if (!isValidAnyRegister(reg))
             return false;
+
         if (reg.isInstructionPointer() || reg.isNoBase())
             return false;
+
         return true;
     }
 
@@ -139,6 +143,7 @@ namespace
 
         if (op == MicroInstrOpcode::LoadAddrRegMem || MicroInstr::isRelocatableMemoryAccess(op))
             return reg.isAnyInt() || reg.isInstructionPointer();
+
         return reg.isAnyInt();
     }
 
@@ -146,8 +151,10 @@ namespace
     {
         if (!isValidAnyRegister(reg))
             return false;
+
         if (reg.isInstructionPointer() || reg.isNoBase())
             return false;
+
         return reg.isAnyInt();
     }
 
@@ -301,8 +308,10 @@ namespace
             case MicroInstrOpcode::JumpCond:
                 if (!isValidCondition(ops[0].cpuCond))
                     return reportError(context, phase, std::format("jump instruction #{} uses unsupported condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
+
                 if (!isValidOpBits(ops[1].opBits))
                     return reportError(context, phase, std::format("jump instruction #{} uses unsupported op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
+
                 if (ops[2].valueU64 > std::numeric_limits<uint32_t>::max())
                     return reportError(context, phase, std::format("jump instruction #{} targets out-of-range label {}", instructionIndex, ops[2].valueU64));
                 break;
@@ -310,6 +319,7 @@ namespace
             case MicroInstrOpcode::JumpCondImm:
                 if (!isValidCondition(ops[0].cpuCond))
                     return reportError(context, phase, std::format("jump-immediate instruction #{} uses unsupported condition {}", instructionIndex, static_cast<uint32_t>(ops[0].cpuCond)));
+
                 if (!isValidOpBits(ops[1].opBits))
                     return reportError(context, phase, std::format("jump-immediate instruction #{} uses unsupported op bits {}", instructionIndex, static_cast<uint32_t>(ops[1].opBits)));
                 break;
@@ -367,8 +377,9 @@ namespace
 
     Result verifyInstructionRegisters(const MicroPassContext& context, std::string_view phase, uint32_t instructionIndex, const MicroInstr& inst, const MicroInstrOperand* ops)
     {
-        const MicroInstrDef&        info  = MicroInstr::info(inst.op);
-        const auto                  modes = info.resolvedRegModes(ops);
+        const MicroInstrDef& info  = MicroInstr::info(inst.op);
+        const auto           modes = info.resolvedRegModes(ops);
+
         MicroPassHelpers::AmcLayout amcLayout;
         const bool                  hasAmc = MicroPassHelpers::amcLayoutFor(amcLayout, inst.op);
 
@@ -379,6 +390,7 @@ namespace
 
             if (info.flags.has(MicroInstrFlagsE::HasMemBaseOffsetOperands) && operandIndex == info.memBaseOperandIndex)
                 continue;
+
             if (hasAmc && (operandIndex == amcLayout.baseIdx || operandIndex == amcLayout.indexIdx))
                 continue;
 
@@ -394,8 +406,10 @@ namespace
             const bool     allowsNoBase = inst.op != MicroInstrOpcode::VecUnaryAmcRegMem;
             if (!isValidAnyRegister(base) || !(base.isAnyInt() || (allowsNoBase && base.isNoBase())))
                 return reportError(context, phase, std::format("instruction #{} references unknown memory base register {} at operand {}", instructionIndex, base.packed, amcLayout.baseIdx));
+
             if (!isValidAmcIndexRegister(ops[amcLayout.indexIdx].reg))
                 return reportError(context, phase, std::format("instruction #{} references unknown AMC index register {} at operand {}", instructionIndex, ops[amcLayout.indexIdx].reg.packed, amcLayout.indexIdx));
+
             return Result::Continue;
         }
 

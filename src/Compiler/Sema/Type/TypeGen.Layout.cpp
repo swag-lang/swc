@@ -13,20 +13,24 @@ TypeGen::LayoutKind TypeGen::layoutKindOf(const TypeInfo& type)
 
     if (type.isEnum())
         return LayoutKind::Enum;
+
     if (type.isArray())
         return LayoutKind::Array;
     if (type.isSimd())
         return LayoutKind::Simd;
     if (type.isSlice())
         return LayoutKind::Slice;
+
     if (type.isAlias())
         return LayoutKind::Alias;
+
     if (type.isAnyVariadic())
         return type.isTypedVariadic() ? LayoutKind::TypedVariadic : LayoutKind::Variadic;
     if (type.isCodeBlock())
         return LayoutKind::CodeBlock;
     if (type.isFunction())
         return LayoutKind::Func;
+
     if (type.isInterface())
         return LayoutKind::Interface;
     if (type.isPointerLike())
@@ -41,9 +45,8 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
 {
     using Pn = IdentifierManager::PredefinedName;
 
-    // The TypeInfo hierarchy itself is expressed in Swag runtime types. Always wait
-    // for the base nodes first so specialized TypeInfo structs can reference their
-    // common payload fields safely.
+    // Wait for the base runtime TypeInfo nodes before using specialized layouts,
+    // which reference their common payload fields.
     SWC_RESULT(sema.waitPredefined(Pn::TypeInfo, typeRef, codeRef));
     SWC_RESULT(sema.waitPredefined(Pn::TypeValue, typeRef, codeRef));
 
@@ -69,6 +72,7 @@ Result TypeGen::rtTypeRefFor(Sema& sema, LayoutKind kind, TypeRef& typeRef, cons
     SWC_RESULT(sema.waitPredefined(predefinedName, typeRef, codeRef));
     if (typeRef.isInvalid())
         return Result::Pause;
+
     return Result::Continue;
 }
 

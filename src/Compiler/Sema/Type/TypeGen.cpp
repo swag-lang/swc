@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeGen.Internal.h"
+
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
@@ -38,9 +39,8 @@ namespace
         if (!typeRef.isValid())
             return false;
 
-        // Reflection eligibility is a graph property. A cycle already on the recursion stack
-        // is acceptable: dependency collection gives every distinct TypeRef a cache entry,
-        // then relocations wire the recursive edges once all payloads have offsets.
+        // Reflection can handle recursive type cycles. Allocate an entry for each TypeRef
+        // first, then wire recursive relocations after all payload offsets are available.
         if (!visiting.insert(typeRef))
             return true;
 
@@ -87,7 +87,8 @@ namespace
         result.rtTypeRef = entry.rtTypeRef;
 
         const TypeInfo& structType = ctx.typeMgr().get(result.rtTypeRef);
-        result.span                = std::span{storage.ptr<std::byte>(result.offset), structType.sizeOf(ctx)};
+
+        result.span = std::span{storage.ptr<std::byte>(result.offset), structType.sizeOf(ctx)};
         return true;
     }
 }
@@ -137,6 +138,7 @@ TypeGen::CacheLock::CacheLock(TypeGenCache& cache, TaskContext& ctx, LockMode mo
         {
             if (mode == LockMode::TryLock)
                 return;
+
             cache.ownership.wait(generation_, std::memory_order_acquire);
             generation_ = cache.ownership.load(std::memory_order_acquire);
             continue;
@@ -175,16 +177,16 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
     if (tryGetCompletedTypeInfoResult(sema.ctx(), storage, cache, typeRef, result))
         return Result::Continue;
 
-    // Each call progresses as much as possible without relying on recursion.
-    // It returns Result::Continue only when the requested type AND all its dependencies are fully done.
+    // Advance the iterative walk as far as possible. Continue only after the root
+    // and every dependency are complete.
     SWC_RESULT(processTypeInfo(sema, result, storage, typeRef, ownerNodeRef, cache));
 
     if (!cache.pendingBackRefs.empty())
     {
-        // Back references let runtime pointers be mapped to compiler TypeRefs.
-        // Publish them only after the payload is Done, otherwise a concurrent lookup
-        // could observe a pointer to partially-emitted metadata.
+        // Publish reverse mappings only after the payload is Done, so concurrent readers
+        // cannot discover partially emitted metadata.
         const std::scoped_lock lk(ptrToTypeMutex_);
+
         for (const TypeRef cachedTypeRef : cache.pendingBackRefs)
         {
             auto it = cache.entries.find(cachedTypeRef);
@@ -196,9 +198,11 @@ Result TypeGen::makeTypeInfo(Sema& sema, DataSegment& storage, TypeRef typeRef, 
             if (entry.state != TypeGenCache::State::Done || entry.backRefPublished)
                 continue;
 
-            const auto ptr              = reinterpret_cast<uintptr_t>(storage.ptr<std::byte>(entry.offset));
+            const auto ptr = reinterpret_cast<uintptr_t>(storage.ptr<std::byte>(entry.offset));
+
             ptrToType_.getOrInsert(ptr) = cachedTypeRef;
-            entry.backRefPublished      = true;
+
+            entry.backRefPublished = true;
         }
 
         cache.pendingBackRefs.clear();
@@ -235,6 +239,7 @@ TypeRef TypeGenInternal::pointerLayoutDepTypeRef(const TypeManager& typeMgr, con
     // compiler builtin type itself does not carry an explicit payload type.
     if (type.isTypeInfo())
         return typeMgr.structTypeInfo();
+
     return type.payloadTypeRef();
 }
 

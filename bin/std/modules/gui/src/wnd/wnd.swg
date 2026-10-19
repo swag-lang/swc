@@ -235,7 +235,7 @@ interface IWnd
 enum WndFlags
 {
     None = 0                // No flags are enabled.
-    NoScroll                // Ignores ancestor scroll offsets when computing surface coordinates.
+    NoScroll                // Ignores the immediate parent's scroll offset and paints its own content without scrolling.
     ClipChildren            // Clips child painting to this window's client rectangle.
     Disabled                // Rejects user input and uses disabled presentation.
     Hidden                  // Excludes the window from painting, input, and layout visibility.
@@ -1501,20 +1501,20 @@ impl Wnd
     // Returns this window's rectangle in surface coordinates.
     mtd const surfaceRect()->Math.Rectangle
     {
-        var result: retval  = .position
+        var result: retval = .position
         var p = .parent
-        var ignoresAncestor = .wndFlags.has(.NoScroll)
+        var ignoresParent  = .wndFlags.has(.NoScroll)
         while p
         {
             result.x += p.position.x
             result.y += p.position.y
-            if not ignoresAncestor
+            if not ignoresParent
             {
                 result.x -= p.scrollPos.x
                 result.y -= p.scrollPos.y
             }
 
-            ignoresAncestor = ignoresAncestor or p.wndFlags.has(.NoScroll)
+            ignoresParent = p.wndFlags.has(.NoScroll)
             p = p.parent
         }
 

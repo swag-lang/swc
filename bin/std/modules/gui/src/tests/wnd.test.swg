@@ -256,8 +256,8 @@ impl IWnd for AncestorTestWnd {}
     Swag.assert(container.children.isEmpty())
 }
 
-// A no-scroll window and everything it contains ignore scroll offsets above that boundary in
-// painting, hit testing, and coordinate conversion.
+// A no-scroll window and its descendants ignore its immediate parent's scroll offset.
+// Outer scrolling still moves that subtree, just as painting and hit testing do.
 #test
 {
     var host: Testing.HeadlessHost
@@ -278,6 +278,13 @@ impl IWnd for AncestorTestWnd {}
     fixed.scrollPos = {0, 6}
     let nested = Wnd.create'Wnd(fixed, null, {2, 20, 20, 20})
     Swag.assert(nested.surfaceRect().y == 64)
+
+    host.root.scrollPos = {0, 9}
+    Swag.assert(normal.surfaceRect().y == 41)
+    Swag.assert(fixed.surfaceRect().y == 41)
+    Swag.assert(nested.surfaceRect().y == 55)
+    Swag.assert(nested.surfaceToLocal({17, 55}) == Math.Point{0, 0})
+    Swag.assert(host.root.windowAt(18, 56, true) == nested)
 }
 
 // Deferred destruction immediately unregisters timers, so one progressive loader cannot receive

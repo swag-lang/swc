@@ -48,11 +48,12 @@ using Swag, Core, Pixel
         Pixel.Testing.assertImageGolden(&image, Format.toString("markdownview.images.loading.%", name).toString())
 
         // Waiting belongs to the test harness; an actual frame only polls the tasks.
-        for 3
+        for 3 where inline.images.raster != null or html.images.raster != null
         {
             inline.images.raster?.task.wait()
             html.images.raster?.task.wait()
-            image = host.render(view)
+            Swag.assert(host.surface.isDirty)
+            host.surface.paintWnd(view)
         }
 
         Swag.assert(inline.images.raster == null and html.images.raster == null)
@@ -62,6 +63,68 @@ using Swag, Core, Pixel
         Swag.assert(inline.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
         Swag.assert(html.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
     }
+}
+
+// An embedded HTML canvas keeps its own scroll fixed, but still follows the outer Markdown
+// viewport. Its loading frames must repaint the visible image after the reader scrolls to it.
+#test
+{
+    let fileName = Testing.tempFilePath("markdown-scrolled-image-", ".svg")
+    defer discard catch File.delete(fileName)
+    discard expect File.writeAllText(fileName,
+                                     "<svg width='120' height='60'><rect width='120' height='60' fill='#285078'/></svg>")
+    var source: String
+    for 20 do
+        source += "A paragraph above the embedded image.\n\n"
+    source += Format.toString("<div><img src='%'></div>\n\nTrailing paragraph.", fileName)
+
+    var gate:    Swag.Semaphore
+    var started: Swag.Semaphore
+    var host:    Testing.HeadlessHost
+    host.setup(480, 240)
+    defer host.shutdown()
+    host.app.deterministicStreaming = false
+    let view = Markdown.View.createText(&host.root, source.toString())
+    view.resize(480, 240)
+    view.applyLayout()
+    let html = view.blocks[20].html!
+    view.scroll.setScrollPos(0, html.position.y - 40)
+    Swag.assert(view.scroll.scrollPosition().y > 240)
+    Swag.assert(html.canvas.surfaceRect().y == html.surfaceRect().y)
+
+    // Hold completion beyond the first paint so unrelated initial invalidations cannot hide
+    // a loading indicator that stops requesting frames once the rest of the surface is idle.
+    let raster = Memory.new'HtmlImageRaster()
+    html.images.raster = raster
+    raster.task.submit(func|gate = &gate, started = &started|()->Image
+    {
+        started.release()
+        gate.acquire()
+        return Image.create(120, 60, .RGBA8)
+    })
+    defer
+    {
+        gate.release()
+        html.images.raster?.task.wait()
+    }
+
+    started.acquire()
+    discard host.render(view)
+    Swag.assert(html.images.raster != null and not html.images.entries[0].uploaded)
+
+    // The surface loop consumes only the region the loading image invalidated.
+    for 4
+    {
+        Swag.assert(host.surface.isDirty)
+        let phase = html.images.loadingPhase
+        host.surface.paintWnd(view)
+        Swag.assert(html.images.loadingPhase != phase)
+    }
+
+    gate.release()
+    raster.task.wait()
+    host.surface.paintWnd(view)
+    Swag.assert(html.images.raster == null and html.images.entries[0].uploaded)
 }
 
 // Raster jobs survive entry-array growth, publish on the UI thread, grow at a new DPI,

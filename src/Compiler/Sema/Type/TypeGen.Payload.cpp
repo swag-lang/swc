@@ -1032,9 +1032,11 @@ namespace
         entry.funcParamsOffset = 0;
         entry.funcParamsCount  = static_cast<uint32_t>(parameters.size());
         entry.funcParamTypes.clear();
+
         entry.funcGenericsOffset = 0;
         entry.funcGenericsCount  = 0;
         entry.funcGenericTypes.clear();
+
         entry.funcReturnTypeRef = TypeRef::invalid();
 
         if (symFunc.isGenericInstance())
@@ -1048,9 +1050,10 @@ namespace
         if (!parameters.empty())
         {
             const auto [paramsOffset, paramsPtr] = storage.reserveSpan<Runtime::TypeValue>(entry.funcParamsCount);
-            entry.funcParamsOffset               = paramsOffset;
-            rtType.parameters.ptr                = paramsPtr;
-            rtType.parameters.count              = entry.funcParamsCount;
+
+            entry.funcParamsOffset  = paramsOffset;
+            rtType.parameters.ptr   = paramsPtr;
+            rtType.parameters.count = entry.funcParamsCount;
             storage.addRelocation(offset + offsetof(Runtime::TypeInfoFunc, parameters.ptr), paramsOffset);
 
             for (uint32_t i = 0; i < entry.funcParamsCount; ++i)
@@ -1059,8 +1062,7 @@ namespace
                 SWC_ASSERT(symParam);
 
                 Runtime::TypeValue& tv = paramsPtr[i];
-
-                std::string_view paramName;
+                std::string_view    paramName;
                 if (symParam->idRef().isValid() && !symParam->isUnnamed())
                 {
                     const auto& id = ctx.idMgr().get(symParam->idRef());
@@ -1068,7 +1070,8 @@ namespace
                 }
 
                 const uint32_t elemOffset = paramsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
-                tv.name.length            = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), paramName);
+
+                tv.name.length = storage.addString(elemOffset, offsetof(Runtime::TypeValue, name.ptr), paramName);
 
                 entry.funcParamTypes.push_back(symParam->typeRef());
             }
@@ -1161,7 +1164,8 @@ std::pair<uint32_t, Runtime::TypeInfo*> TypeGen::allocateTypeInfoPayload(DataSeg
 
         case LayoutKind::Interface:
         {
-            const auto res   = storage.reserve<Runtime::TypeInfo>();
+            const auto res = storage.reserve<Runtime::TypeInfo>();
+
             res.second->kind = Runtime::TypeInfoKind::Interface;
             return res;
         }
@@ -1206,6 +1210,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
     const auto* metadata      = storage.ptr<Runtime::TypeInfoStruct>(metadataEntry.offset);
     SWC_ASSERT(metadata->dynamicSlots.count == 1);
     SWC_ASSERT(metadata->dynamicSlots.ptr[0].offset == offsetof(Runtime::TypeInfo, dynamicIdentity));
+
     auto*   payload            = storage.ptr<Runtime::TypeInfo>(entry.offset);
     TypeRef unqualifiedTypeRef = key;
     if (keyType.isConst() || keyType.isNullable())
@@ -1215,16 +1220,18 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         unqualified.removeFlag(TypeInfoFlagsE::Nullable);
         unqualifiedTypeRef = typeMgr.addType(unqualified);
     }
+
     const auto& unqualifiedEntry = requireCacheEntry(cache, unqualifiedTypeRef);
     addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfo, unqualified), unqualifiedEntry.offset);
 
     // A copied or user-created descriptor must not acquire a compiler type's identity.
     // Its self reference is sealed in the hidden DynCast slot, outside public fields.
     const auto [identityOffset, identity] = storage.reserve<Runtime::DynamicStructInfo>();
-    identity->type                        = &metadata->base;
-    identity->offset                      = offsetof(Runtime::TypeInfo, dynamicIdentity);
-    identity->runtimeType                 = payload;
-    payload->dynamicIdentity              = identity;
+
+    identity->type           = &metadata->base;
+    identity->offset         = offsetof(Runtime::TypeInfo, dynamicIdentity);
+    identity->runtimeType    = payload;
+    payload->dynamicIdentity = identity;
     storage.addRelocation(identityOffset + offsetof(Runtime::DynamicStructInfo, type), metadataEntry.offset);
     storage.addRelocation(identityOffset + offsetof(Runtime::DynamicStructInfo, runtimeType), entry.offset);
     storage.addRelocation(entry.offset + offsetof(Runtime::TypeInfo, dynamicIdentity), identityOffset);
@@ -1236,6 +1243,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
             const SymbolEnum& symEnum = keyType.payloadSymEnum();
             const TypeRef     depKey  = symEnum.underlyingTypeRef();
             const auto&       dep     = requireCacheEntry(cache, depKey);
+
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoEnum, rawType), dep.offset);
 
             exportAttributes(sema, cache, storage, entry.offset, offsetof(Runtime::TypeInfoEnum, attributes), symEnum.attributes());
@@ -1248,6 +1256,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 for (uint32_t i = 0; i < entry.enumValuesCount; ++i)
                 {
                     const uint32_t elemOffset = entry.enumValuesOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
                     exportAttributes(sema, cache, storage, elemOffset, offsetof(Runtime::TypeValue, attributes), values[i]->attributes());
                 }
             }
@@ -1259,6 +1268,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         {
             const TypeRef depKey = TypeGenInternal::pointerLayoutDepTypeRef(typeMgr, keyType);
             const auto&   dep    = requireCacheEntry(cache, depKey);
+
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoPointer, pointedType), dep.offset);
             break;
         }
@@ -1270,6 +1280,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         case LayoutKind::Simd:
         {
             const auto& dep = requireCacheEntry(cache, keyType.payloadSimdLaneTypeRef());
+
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoSimd, laneType), dep.offset);
             break;
         }
@@ -1278,10 +1289,12 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         {
             const TypeRef pointedTypeRef = typeMgr.arrayElementTypeRef(keyType);
             const auto&   dep            = requireCacheEntry(cache, pointedTypeRef);
+
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, pointedType), dep.offset);
 
             const TypeRef finalTypeRef = resolveArrayFinalTypeRef(typeMgr, ctx, keyType);
             const auto&   fin          = requireCacheEntry(cache, finalTypeRef);
+
             addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoArray, finalType), fin.offset);
             break;
         }
@@ -1300,20 +1313,22 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
         case LayoutKind::Struct:
         {
-            // Wire each 'TypeValue.pointedType' of the reflected struct members.
             SWC_ASSERT(entry.structGenericTypes.size() == entry.structGenericsCount);
             SWC_ASSERT(entry.structFieldTypes.size() == entry.structFieldsCount);
             SWC_ASSERT(entry.structMethodTypes.size() == entry.structMethodsCount);
             SWC_ASSERT(entry.structInterfaceTypes.size() == entry.structInterfacesCount);
             SWC_ASSERT(entry.usingFieldTypes.size() == entry.usingFieldsCount);
+
             wireTypeValueArrayPointedRelocations(cache, storage, entry.structGenericTypes, entry.structGenericsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.structFieldTypes, entry.structFieldsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.structMethodTypes, entry.structMethodsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.structInterfaceTypes, entry.structInterfacesOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.usingFieldTypes, entry.usingFieldsOffset);
+
             if (entry.structFromGenericTypeRef.isValid())
             {
                 const auto& dep = requireCacheEntry(cache, entry.structFromGenericTypeRef);
+
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoStruct, fromGeneric), dep.offset);
             }
 
@@ -1330,6 +1345,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 SWC_ASSERT(field);
 
                 const uint32_t elemOffset = entry.structFieldsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
                 exportAttributes(sema, cache, storage, elemOffset, offsetof(Runtime::TypeValue, attributes), field->attributes());
 
                 if (!field->isUsingField())
@@ -1337,6 +1353,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
 
                 SWC_ASSERT(usingIndex < entry.usingFieldsCount);
                 const uint32_t usingElemOffset = entry.usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
+
                 exportAttributes(sema, cache, storage, usingElemOffset, offsetof(Runtime::TypeValue, attributes), field->attributes());
                 ++usingIndex;
             }
@@ -1348,6 +1365,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 SWC_ASSERT(method);
 
                 const uint32_t elemOffset = entry.structMethodsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
                 exportAttributes(sema, cache, storage, elemOffset, offsetof(Runtime::TypeValue, attributes), method->attributes());
             }
 
@@ -1358,12 +1376,14 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
         {
             SWC_ASSERT(entry.funcGenericTypes.size() == entry.funcGenericsCount);
             SWC_ASSERT(entry.funcParamTypes.size() == entry.funcParamsCount);
+
             wireTypeValueArrayPointedRelocations(cache, storage, entry.funcGenericTypes, entry.funcGenericsOffset);
             wireTypeValueArrayPointedRelocations(cache, storage, entry.funcParamTypes, entry.funcParamsOffset);
 
             if (entry.funcReturnTypeRef.isValid())
             {
                 const auto& dep = requireCacheEntry(cache, entry.funcReturnTypeRef);
+
                 addTypeRelocation(storage, entry.offset, offsetof(Runtime::TypeInfoFunc, returnType), dep.offset);
             }
 
@@ -1377,6 +1397,7 @@ void TypeGen::wireRelocations(Sema& sema, const TypeGenCache& cache, DataSegment
                 SWC_ASSERT(param);
 
                 const uint32_t elemOffset = entry.funcParamsOffset + static_cast<uint32_t>(i * sizeof(Runtime::TypeValue));
+
                 exportAttributes(sema, cache, storage, elemOffset, offsetof(Runtime::TypeValue, attributes), param->attributes());
             }
 

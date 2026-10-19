@@ -35,9 +35,6 @@ namespace
         return SemaHelpers::withoutLookupOverride(sema, [&]() -> T& { return SemaHelpers::registerUniqueSymbol<T>(sema, node, name); });
     }
 
-    // A bare 'break' and a 'continue' both stop at the enclosing '#scope' instead of reaching
-    // through it. Name the construct they landed on, and its scope name when it has one, so the
-    // reader sees why the statement found no target rather than a bare absence.
     Result reportScopeStatement(Sema& sema, DiagnosticId diagId, AstNodeRef scopeRef)
     {
         const AstNode& scopeNode = sema.node(scopeRef);
@@ -52,6 +49,7 @@ namespace
         diag.addNote(DiagnosticId::sema_note_enclosing_scope_here);
         diag.last().addSpan(scopeNode.codeRange(sema.ctx()));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -98,6 +96,7 @@ namespace
             const auto& symAlias = symView.sym()->cast<SymbolAlias>();
             if (symAlias.aliasedSymbol() && symAlias.aliasedSymbol()->isEnum())
                 return &symAlias.aliasedSymbol()->cast<SymbolEnum>();
+
             return SemaHelpers::enumSymbolFromTypeRef(sema, symAlias.underlyingTypeRef());
         }
 
@@ -130,6 +129,7 @@ namespace
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_type_not_visitable, node.nodeExprRef, SemaError::ReportLocation::Children);
         diag.addArgument(Diagnostic::ARG_TYPE, typeRef);
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -163,16 +163,15 @@ namespace
         TypeRef typeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), exprView.typeRef());
         if (!typeRef.isValid())
             typeRef = exprView.typeRef();
+
         return sema.typeMgr().get(typeRef).isInt();
     }
 
     Result setupForLoopBoundCheck(Sema& sema, const AstForStmt& node, const LoopSemaPayload& payload)
     {
-        // A range loop asks a predicate, and an inverted range answers it immediately: the
-        // loop lowering already emits the entry test that skips the body, so the iteration is
-        // empty rather than undefined. Only constant bounds are rejected, in Sema.Range, where
-        // the inversion is certain instead of merely possible. Slicing keeps its check, because
-        // it asks for a length rather than a predicate.
+        // Range loops test bounds on entry, so an inverted dynamic range is empty.
+        // Sema.Range rejects proven constant inversions; slicing still needs a
+        // length check rather than an iteration predicate.
         if (payload.isRangeLoop)
             return Result::Continue;
 
@@ -198,6 +197,7 @@ namespace
         auto           diag        = SemaError::report(sema, DiagnosticId::sema_err_foreach_too_many_names, SourceCodeRef{node.srcViewRef(), errorTokRef});
         diag.addArgument(Diagnostic::ARG_VALUE, static_cast<uint32_t>(tokNames.size()));
         diag.report(sema.ctx());
+
         return Result::Error;
     }
 
@@ -207,10 +207,12 @@ namespace
         frame.setCurrentBreakContent(loopRef, SemaFrame::BreakContextKind::Loop);
         if (iterationBodyRef.isValid())
             SemaHelpers::killNarrowFactsForLoopBody(sema, iterationBodyRef, frame);
+
         // A collection iterated by this loop: a structural mutation of that same storage
         // in the body (Array.add / remove / ...) invalidates the snapshot the loop reads.
         if (iterationRoot)
             frame.pushIterationBorrow({iterationRoot, iterationSourceRef, iterationBodyRef});
+
         sema.pushFramePopOnPostNode(std::move(frame));
     }
 
@@ -229,6 +231,7 @@ namespace
         SWC_ASSERT(payload.localSymbols.size() == index);
         auto& symVar = createSymbol();
         payload.localSymbols.push_back(&symVar);
+
         return symVar;
     }
 
@@ -267,6 +270,7 @@ namespace
         {
             ConstantRef newCstRef = ConstantRef::invalid();
             SWC_RESULT(Cast::concretizeConstant(sema, newCstRef, exprView.nodeRef(), exprView.cstRef(), TypeInfo::Sign::Unknown));
+
             sema.setConstant(exprView.nodeRef(), newCstRef);
             exprView = SemaNodeView(sema, exprRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
         }
@@ -279,14 +283,16 @@ namespace
         SWC_RESULT(Cast::cast(sema, exprView, concreteArrayTypeRef, CastKind::Implicit));
         if (exprView.nodeRef() != sourceNodeRef)
             sema.setSubstitute(exprRef, exprView.nodeRef());
+
         return Result::Continue;
     }
 
     Result foreachElementTypes(Sema& sema, const AstForeachStmt& node, const SemaNodeView& exprView, TypeRef& valueTypeRef, TypeRef& indexTypeRef, bool& outBindsValueAddress)
     {
         outBindsValueAddress = false;
-        bool sourceIsConst   = false;
-        bool sourceIsEnum    = false;
+
+        bool sourceIsConst = false;
+        bool sourceIsEnum  = false;
 
         if (const SymbolEnum* symEnum = enumTypeExprSymbol(sema, exprView))
         {
@@ -334,12 +340,9 @@ namespace
 
             sourceIsConst = exprView.type()->isConst() || sourceType.isConst() || sourceType.isAnyString();
 
-            // An array is stored in its binding, so a binding that cannot be written reaches
-            // its elements: '&name' over a 'let' array, a read-only parameter, or a field of a
-            // const receiver must not hand out a mutable reference the assignment would
-            // silently drop. A slice or a variadic only holds a handle to storage living
-            // elsewhere, which the binding does not freeze: '&values[i]' is mutable there,
-            // and '&name' agrees with it.
+            // Arrays store elements in the binding, so immutable bindings imply const
+            // element addresses. Slices and variadics only freeze their handles; their
+            // referenced elements may remain mutable.
             if (!sourceIsConst && sourceType.isArray())
                 sourceIsConst = SemaCheck::isConstAssignmentTarget(sema, exprView.nodeRef(), exprView) || SemaCheck::isImmutableBinding(sema, exprView.nodeRef());
         }
@@ -350,6 +353,7 @@ namespace
             TypeInfoFlags typeFlags = TypeInfoFlagsE::Zero;
             if (sourceIsConst || sourceIsEnum)
                 typeFlags.add(TypeInfoFlagsE::Const);
+
             valueTypeRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, typeFlags));
         }
         else if (valueTypeRef.isValid())
@@ -359,6 +363,7 @@ namespace
             TypeRef rawValueTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), valueTypeRef);
             if (!rawValueTypeRef.isValid())
                 rawValueTypeRef = valueTypeRef;
+
             if (sema.typeMgr().get(rawValueTypeRef).isStruct())
             {
                 valueTypeRef         = sema.typeMgr().addType(TypeInfo::makeValuePointer(valueTypeRef, TypeInfoFlagsE::Const));

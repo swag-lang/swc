@@ -51,6 +51,7 @@ namespace
         diag.addArgument(Diagnostic::ARG_TYPE, referencedSymbol.getFullScopedName(ctx));
         diag.last().addSpan(referencedSymbol.codeRange(ctx), "referenced type declared here", DiagnosticSeverity::Note);
         diag.report(ctx);
+
         return Result::Error;
     }
 
@@ -103,7 +104,7 @@ namespace
             const SymbolStruct& symbolStruct = type.payloadSymStruct();
             SWC_RESULT(validateTypeReferenceSymbol(ctx, ownerSymbol, focusSymbol, usage, symbolStruct, stack));
 
-            // An instance of another module's generic names this module's types in its arguments.
+            // Even foreign generic instances can carry local types as arguments.
             SmallVector<GenericInstanceKey> genericArgs;
             if (symbolStruct.isGenericInstance() && symbolStruct.tryGetGenericInstanceArgs(genericArgs))
             {
@@ -136,6 +137,7 @@ namespace
             {
                 if (!param || !param->typeRef().isValid())
                     continue;
+
                 SWC_RESULT(validateExportedTypeRef(ctx, ownerSymbol, focusSymbol, usage, param->typeRef(), stack));
             }
 
@@ -214,6 +216,7 @@ namespace
             ownerType = symImpl->symStruct();
         else if (symImpl->isForEnum())
             ownerType = symImpl->symEnum();
+
         if (!ownerType)
             return Result::Continue;
 
@@ -233,6 +236,7 @@ namespace ModuleApiExport
             return "interface";
         if (symbol.isAlias())
             return "alias";
+
         return symbol.toFamily();
     }
 
@@ -244,7 +248,9 @@ namespace ModuleApiExport
             return Result::Continue;
 
         ModuleApiValidationScope validationScope(stack, symbol);
-        auto                     result = Result::Continue;
+
+        auto result = Result::Continue;
+
         if (const auto* symbolAlias = symbol.safeCast<SymbolAlias>())
             result = validatePublicAliasSymbol(ctx, *symbolAlias, stack);
         else if (const auto* symbolEnum = symbol.safeCast<SymbolEnum>())
@@ -255,6 +261,7 @@ namespace ModuleApiExport
             result = validatePublicStructSymbol(ctx, *symbolStruct, stack);
 
         SWC_RESULT(result);
+
         stack.markValidated(symbol);
         return Result::Continue;
     }
@@ -273,6 +280,7 @@ namespace ModuleApiExport
             SWC_RESULT(validateExportedTypeRef(ctx, symbolFunction, symbolFunction, "its return type", symbolFunction.returnTypeRef(), stack));
 
         const auto& parameters = symbolFunction.parameters();
+
         for (uint32_t i = 0; i < parameters.size(); ++i)
         {
             const SymbolVariable* param = parameters[i];
@@ -284,6 +292,7 @@ namespace ModuleApiExport
                 usage = std::format("parameter '{}'", param->name(ctx));
             else
                 usage = std::format("parameter #{}", i + 1);
+
             SWC_RESULT(validateExportedTypeRef(ctx, symbolFunction, *param, usage.view(), param->typeRef(), stack));
         }
 

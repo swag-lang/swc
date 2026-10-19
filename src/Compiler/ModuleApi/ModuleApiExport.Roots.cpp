@@ -30,8 +30,10 @@ namespace
         {
             case ModuleApiDependencyScope::Public:
                 return symbol.isPublic();
+
             case ModuleApiDependencyScope::NonPublic:
                 return !symbol.isPublic();
+
             default:
                 return true;
         }
@@ -45,6 +47,7 @@ namespace
             return;
         if (isWholeFileExportedSymbol(collector.ctx->compiler(), symbol))
             return;
+
         if (!matchesDependencyScope(collector.scope, symbol) || !isGeneratedModuleApiTypeSymbol(symbol))
             return;
 
@@ -117,6 +120,7 @@ namespace
         {
             const SymbolStruct& symbolStruct = type.payloadSymStruct();
             collectModuleApiTypeSymbolDependency(collector, symbolStruct);
+
             if (symbolStruct.isGenericInstance())
             {
                 SmallVector<GenericInstanceKey> genericArgs;
@@ -163,7 +167,6 @@ namespace
                 collectModuleApiTypeRefDependencies(collector, childTypeRef);
         }
     }
-
 }
 
 namespace ModuleApiExport
@@ -177,6 +180,7 @@ namespace ModuleApiExport
         {
             if (const Symbol* aliasedSymbol = symbolAlias->aliasedSymbol())
                 collectModuleApiTypeSymbolDependency(collector, *aliasedSymbol);
+
             collectModuleApiTypeRefDependencies(collector, symbolAlias->underlyingTypeRef());
             return;
         }
@@ -226,7 +230,6 @@ namespace ModuleApiExport
 
 namespace
 {
-
     std::unordered_map<const Symbol*, size_t> buildGeneratedRootTypeIndexMap(std::span<const ModuleApiGeneratedRoot> roots)
     {
         std::unordered_map<const Symbol*, size_t> result;
@@ -249,7 +252,8 @@ namespace ModuleApiExport
             return;
 
         const std::unordered_map<const Symbol*, size_t> rootIndexByTypeSymbol = buildGeneratedRootTypeIndexMap(roots);
-        std::vector<std::vector<size_t>>                dependencies;
+
+        std::vector<std::vector<size_t>> dependencies;
         dependencies.resize(roots.size());
 
         for (size_t index = 0; index < roots.size(); ++index)
@@ -260,6 +264,7 @@ namespace ModuleApiExport
 
             ModuleApiDependencyCollector collector{.ctx = &ctx, .scope = ModuleApiDependencyScope::Any};
             collectModuleApiSymbolDependencies(collector, *symbol);
+
             for (const Symbol* dependencySymbol : collector.symbols)
             {
                 const auto it = rootIndexByTypeSymbol.find(dependencySymbol);
@@ -279,7 +284,9 @@ namespace ModuleApiExport
         };
 
         std::vector visitStates(roots.size(), VisitState::Unvisited);
-        auto        visitRoot = [&](auto&& self, const size_t index) -> void {
+
+        // Emit dependencies before their users, cutting recursive type cycles.
+        auto visitRoot = [&](auto&& self, const size_t index) -> void {
             switch (visitStates[index])
             {
                 case VisitState::Done:

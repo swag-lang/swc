@@ -31,6 +31,7 @@ private:
 
     std::mutex                          mutex_;
     std::vector<std::unique_ptr<Block>> blocks_;
+
     // Full blocks never become available again. Keep them outside the slow-path scan.
     size_t              firstAvailableBlock_ = 0;
     std::atomic<Block*> currentBlock_        = nullptr;

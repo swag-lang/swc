@@ -33,15 +33,18 @@ private:
     friend class JIT;
     friend class JITMemoryManager;
 
-    void*    ptr_              = nullptr;
-    uint32_t size_             = 0;
-    uint32_t allocationSize_   = 0;
+    void*    ptr_            = nullptr;
+    uint32_t size_           = 0;
+    uint32_t allocationSize_ = 0;
+
     uint32_t unwindInfoOffset_ = 0;
     uint32_t unwindInfoSize_   = 0;
+
     // Nearby fallback thunks for relative calls whose final target lies outside rel32 reach.
     uint32_t constantIslandOffset_ = 0;
     uint32_t constantIslandSize_   = 0;
-    void*    hostRuntimeFunction_  = nullptr;
+
+    void* hostRuntimeFunction_ = nullptr;
 };
 
 SWC_END_NAMESPACE();

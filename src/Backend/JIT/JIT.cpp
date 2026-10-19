@@ -42,8 +42,9 @@ constexpr uint32_t K_FUNCTION_THUNK_SLOT = 16;
 namespace
 {
     constexpr uint32_t K_COMPILER_EXCEPTION_CODE = 666;
-    using RuntimeSetupInvoker                    = void (*)(Runtime::RuntimeFlags);
-    using RuntimeHookInvoker                     = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
+
+    using RuntimeSetupInvoker = void (*)(Runtime::RuntimeFlags);
+    using RuntimeHookInvoker  = void (*)(uint64_t, uint64_t, uint64_t, const Runtime::String*);
 
     enum class RuntimeHookStage : uint64_t
     {
@@ -67,8 +68,9 @@ namespace
     {
         RelocationResolveFailureKind kind         = RelocationResolveFailureKind::None;
         const Symbol*                targetSymbol = nullptr;
-        Utf8                         moduleName;
-        Utf8                         functionName;
+
+        Utf8 moduleName;
+        Utf8 functionName;
     };
 
     struct ConstantFunctionPatch
@@ -79,11 +81,10 @@ namespace
 
     struct JITRelocationPatchContext
     {
-        // One flat table, allocated when the first constant is walked; most functions name a
-        // few string constants, and a node-based set paid an allocation for each of them.
+        // Allocate lazily: most functions reference only a few string constants.
         StampedKeySet visitedConstantAllocations;
-        // Resolved addresses are never null, so a null entry reads as absent. Function
-        // relocations fill it; a node-based map allocated a node for each of them.
+
+        // Resolved addresses are non-null, so null marks a missing cache entry.
         PointerMap<SymbolFunction, void> resolvedFunctionAddresses;
     };
 
@@ -101,6 +102,7 @@ namespace
     {
         if (!function)
             return false;
+
         return ctx.idMgr().runtimeFunctionKind(function->idRef()) == IdentifierManager::RuntimeFunctionKind::SetupRuntime;
     }
 
@@ -112,6 +114,7 @@ namespace
             return false;
         if (!function->srcViewRef().isValid())
             return true;
+
         return !ctx.compiler().srcView(function->srcViewRef()).isRuntimeFile();
     }
 
@@ -124,9 +127,8 @@ namespace
         outOffsets.insert(outOffsets.end(), offsets.begin(), offsets.end());
     }
 
-    // Appends the offsets of every function the run reaches; the caller sorts the result. The
-    // list is only ever searched, so it is gathered as a list instead of a set with a node per
-    // offset that every compile-time call then copied into one.
+    // Gather offsets for the caller to sort and search, avoiding a separate
+    // allocation for each offset.
     void collectJitGlobalInitRelocationOffsets(TaskContext& ctx, std::vector<uint64_t>& outOffsets)
     {
         const SymbolFunction* runFunction = ctx.state().runJitFunction;
@@ -137,6 +139,7 @@ namespace
         const auto                       collect = [&](const SymbolFunction* function) {
             if (!function || !seen.insert(function))
                 return;
+
             collectGlobalInitRelocationOffsets(*function, outOffsets);
         };
 
@@ -152,8 +155,7 @@ namespace
 
     bool referencesGlobalInitRange(const std::vector<uint64_t>& sortedReferencedOffsets, const uint64_t offset, const uint64_t size)
     {
-        // One binary search instead of a scan of every referenced slot: this is asked once per
-        // global-init variable, and a module has thousands of both.
+        // Use one binary search per global variable instead of scanning every referenced slot.
         const uint64_t endOffset = offset + std::max<uint64_t>(size, 1);
         const auto     it        = std::ranges::lower_bound(sortedReferencedOffsets, offset);
         return it != sortedReferencedOffsets.end() && *it < endOffset;
@@ -178,10 +180,8 @@ namespace
 
         const uint64_t tlsIdPlusOne = *CompilerInstance::runtimeContextTlsIdStorage() + 1;
 
-        // A JIT run has no operating-system command line of its own: the effective one exists only
-        // in the compiler, so hand it to every imported module. Otherwise 'Swag.args()' answers from the
-        // module's own, never-filled slot, and 'Env.hasArg' says something different depending on
-        // whether it was compiled into the module under test or into an imported library.
+        // JIT arguments live in the compiler's ProcessInfo. Share them with imported
+        // modules so their separate slots yield the same Swag.args() values.
         ctx.compiler().ensureProcessInfoRunArgs();
         const Runtime::String* processArgs = &ctx.compiler().processInfo().args;
         for (const CompilerInstance::NativeRuntimeImport& runtimeImport : runtimeImports)
@@ -200,9 +200,8 @@ namespace
                 return reportRelocationFailure(ctx, DiagnosticId::cmd_err_native_invalid_foreign_function_relocation, hookSymbolName.view(), failure);
             }
 
-            // Shared runtime hooks refresh the imported module TLS slot before
-            // their one-time lifecycle guards, which is exactly what JIT needs
-            // to keep Swag.getContext() valid inside imported DLL code like core.dll.
+            // Hooks refresh TLS before their one-time lifecycle guards, keeping
+            // Swag.getContext() valid inside imported DLL code.
             const auto hookInvoker = reinterpret_cast<RuntimeHookInvoker>(hookAddress);
             hookInvoker(static_cast<uint64_t>(RuntimeHookStage::Init), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
             hookInvoker(static_cast<uint64_t>(RuntimeHookStage::PreMain), tlsIdPlusOne, static_cast<uint64_t>(Runtime::RuntimeFlags::FromCompiler), processArgs);
@@ -251,6 +250,7 @@ namespace
                 leftChar = static_cast<char>(leftChar - 'A' + 'a');
             if ('A' <= rightChar && rightChar <= 'Z')
                 rightChar = static_cast<char>(rightChar - 'A' + 'a');
+
             if (leftChar != rightChar)
                 return false;
         }
@@ -279,18 +279,19 @@ namespace
             (message.size()),
             static_cast<ULONG_PTR>(Runtime::ExceptionKind::Error),
         };
+
         RaiseException(K_COMPILER_EXCEPTION_CODE, 0, std::size(params), params);
 #else
         SWC_UNUSED(functionName);
         SWC_UNUSED(exitCode);
 #endif
+
         SWC_UNREACHABLE();
     }
 
 #ifdef _WIN32
-    // Fiber-local slots allocated by JIT code, with the cleanup callback each one names. Windows runs
-    // that callback whenever a thread holding a value in the slot exits, which can be long after the
-    // compiler instance that compiled the callback is gone; the instance releases its own slots first.
+    // Windows can invoke FLS callbacks after their CompilerInstance is gone.
+    // Track slots so the instance can release them while callback code is alive.
     struct JitFiberSlot
     {
         DWORD                  slot     = FLS_OUT_OF_INDEXES;
@@ -339,10 +340,8 @@ namespace
 
     BOOL WINAPI jitBlockedTerminateProcess(HANDLE processHandle, const UINT exitCode)
     {
-        // Stopping a process the compile-time code started is ordinary work, and a build script
-        // that drives another program has to be able to give up on it. Only the compiler's own
-        // process is off limits. An identifier of zero means the handle answers for no process
-        // this call can name, which is refused rather than guessed at.
+        // Allow terminating other processes, but never the compiler or a handle
+        // whose process identity cannot be resolved.
         const DWORD targetProcessId = GetProcessId(processHandle);
         if (targetProcessId != 0 && targetProcessId != GetCurrentProcessId())
             return TerminateProcess(processHandle, exitCode);
@@ -515,6 +514,7 @@ namespace
             return ctx.state().nodeRef;
         if (ownerFunction)
             return ownerFunction->declNodeRef();
+
         return AstNodeRef::invalid();
     }
 
@@ -524,6 +524,7 @@ namespace
             return ctx.state().codeRef;
         if (ownerFunction)
             return ownerFunction->codeRefIfDeclared();
+
         return SourceCodeRef::invalid();
     }
 
@@ -533,6 +534,7 @@ namespace
             return ownerFunction;
         if (ctx.state().runJitFunction)
             return ctx.state().runJitFunction;
+
         return &targetFunction;
     }
 
@@ -578,6 +580,7 @@ namespace
             case LocalFunctionAddressKind::Patchable:
                 if (void* patchAddress = targetFunction.jitPatchAddress())
                     return patchAddress;
+
                 return targetFunction.jitWorkAddress();
 
             case LocalFunctionAddressKind::Callable:
@@ -704,6 +707,7 @@ namespace
         {
             if (outFailure)
                 outFailure->kind = RelocationResolveFailureKind::TargetSymbolMissing;
+
             return false;
         }
 
@@ -742,6 +746,7 @@ namespace
                 outFailure->kind         = RelocationResolveFailureKind::LocalTargetUnavailable;
                 outFailure->targetSymbol = &targetFunction;
             }
+
             return prepareResult;
         }
 
@@ -784,9 +789,8 @@ namespace
         if (tryResolveDirectRelocationTargetAddress(outTargetAddress, reloc, basePtr))
             return Result::Continue;
 
-        // The owner's own address is the code being patched. The relocation names it like any
-        // other local target; answering here spares the owner a copy of its relocation list,
-        // marked with the self address, before every patch.
+        // Resolve the owner's address from the code being patched, avoiding a
+        // copy of its relocation list with self-address markers on every patch.
         if (ownerFunction && reloc.targetSymbol == ownerFunction)
         {
             outTargetAddress = reinterpret_cast<uint64_t>(basePtr);
@@ -823,10 +827,9 @@ namespace
         {
             case MicroRelocation::Kind::ConstantAddress:
             {
-                // A private island copy consumes the payload bytes only. Its
-                // address is never observable, so the producer's stable load
-                // address is sufficient and avoids asking the identity resolver
-                // to recover an allocation that a later payload append moved.
+                // Private island copies use payload bytes without exposing the source's
+                // identity. Its stable load address avoids recovering an allocation
+                // that later payload appends may have moved.
                 if (reloc.requiresConstantCopy())
                 {
                     if (!reloc.hasConstantSource() || reloc.targetAddress == 0)
@@ -836,9 +839,8 @@ namespace
                     return Result::Continue;
                 }
 
-                // A segment-backed relocation names its canonical source. Resolve that
-                // source at patch time, matching the native backend instead of relying
-                // on the auxiliary raw target address.
+                // Resolve segment-backed constants from their canonical source at
+                // patch time, matching native lowering rather than the raw target.
                 if (reloc.hasConstantSource())
                 {
                     if (reloc.constantShard >= ConstantManager::SHARD_COUNT)
@@ -977,10 +979,8 @@ namespace
         }
         else if (location && location->fileName.ptr && location->fileName.length)
         {
-            // The raise site can live in a module compiled in another session
-            // (a workspace dependency), whose files this compile cannot map to
-            // a span. The runtime location still carries the raw coordinates —
-            // reporting them beats reporting nothing.
+            // Imported code may come from another compiler session with no mappable
+            // source span. Keep its raw file coordinates available for the report.
             Utf8 rawLocation{std::string_view{location->fileName.ptr, location->fileName.length}};
             rawLocation += std::format(":{}:{}", location->lineStart, location->colStart);
             report.diag.addNote(DiagnosticId::sema_note_runtime_raise_location);
@@ -998,10 +998,8 @@ namespace
         std::memcpy(basePtr + reloc.codeOffset, &targetAddress, sizeof(targetAddress));
     }
 
-    // Writes the distance from the end of the instruction straight to the
-    // target, for RIP-relative accesses whose target must stay the one true
-    // storage (mutable globals). The proximity arena keeps the distance
-    // within a signed 32-bit displacement.
+    // Mutable globals must retain their canonical storage. The proximity arena
+    // keeps direct RIP-relative displacements within signed 32-bit reach.
     bool tryPatchRelative32Direct(std::span<std::byte> writableCode, const MicroRelocation& reloc, uint64_t targetAddress)
     {
         auto* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
@@ -1071,15 +1069,16 @@ namespace
     {
         if (outDataOnly)
             *outDataOnly = false;
+
         DataSegment&                             segment = ctx.compiler().cstMgr().shardDataSegment(shardIndex);
         const ConstantManager::WalkedAllocation* walked  = ConstantManager::walkedAllocation(segment, sourceOffset);
         if (!walked)
             return Result::Continue;
+
         const DataSegmentAllocation allocation = walked->allocation;
 
-        // A graph seen to hold only data has nothing to patch, for as long as no relocation was
-        // added anywhere since: the versions are read before the relocations, so one added in
-        // between invalidates what this walk establishes.
+        // Data-only graphs need no patching until relocations change. Read the
+        // version before walking so a concurrent addition invalidates this result.
         const uint64_t relocationVersions = ctx.compiler().cstMgr().relocationVersionSum();
         if (walked->dataOnlyRelocationVersions == relocationVersions)
         {
@@ -1088,17 +1087,15 @@ namespace
             return Result::Continue;
         }
 
-        // Constants can point to other constants that eventually contain function
-        // pointers. Walk that graph once per allocation to avoid cycles while still
-        // patching nested runtime data used by JIT-executed code. The high bit keeps the
-        // first allocation of the first shard from packing to zero, which marks a free slot.
+        // Walk nested constant graphs once per allocation to patch function pointers
+        // without cycles. The high bit makes even shard 0, offset 0 a nonzero key;
+        // zero marks a free slot.
         const uint64_t visitKey = 1ULL << 63 | static_cast<uint64_t>(shardIndex) << 32 | allocation.offset;
         if (!patchContext.visitedConstantAllocations.insert(visitKey))
             return Result::Continue;
 
-        // Most allocations carry a few relocations; the walk recurses while it reads them, so
-        // each level keeps its own list, inline. The copy also keeps the list in hand while a
-        // nested level records other offsets in the worker's table.
+        // Keep an inline copy per recursion level: nested lookups can replace
+        // entries in the worker's table.
         SmallVector<ConstantFunctionPatch>          patches;
         const SmallVector<DataSegmentRelocation, 4> relocations = walked->relocations;
         bool                                        dataOnly    = true;
@@ -1118,6 +1115,7 @@ namespace
             SWC_ASSERT(relocation.targetSymbol != nullptr);
             if (!relocation.targetSymbol)
                 return Result::Error;
+
             SymbolFunction& targetFunction = *const_cast<SymbolFunction*>(relocation.targetSymbol);
             if (shouldLeaveOptionalFunctionRelocationUnresolved(relocation, targetFunction))
             {
@@ -1127,7 +1125,9 @@ namespace
 
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
-            const Result             resolveResult = resolveFunctionSymbolTargetAddress(ctx, targetAddress, targetFunction, ownerFunction, LocalFunctionAddressKind::Patchable, &failure, &patchContext);
+
+            const Result resolveResult = resolveFunctionSymbolTargetAddress(ctx, targetAddress, targetFunction, ownerFunction, LocalFunctionAddressKind::Patchable, &failure, &patchContext);
+
             if (resolveResult == Result::Pause)
                 return Result::Pause;
             if (resolveResult != Result::Continue)
@@ -1137,6 +1137,7 @@ namespace
                     ctx.compiler().registerDeferredJitConstantFunction(targetFunction, {.shardIndex = shardIndex, .offset = relocation.offset});
                     continue;
                 }
+
                 return reportRelocationFailure(ctx, relocationDiagnosticId(targetFunction.isForeign()), "<jit-constant>", failure);
             }
 
@@ -1160,6 +1161,7 @@ namespace
             walked->dataOnlyRelocationVersions = relocationVersions;
         if (outDataOnly)
             *outDataOnly = dataOnly;
+
         return Result::Continue;
     }
 
@@ -1187,24 +1189,24 @@ namespace
         if (relocations.empty())
             return Result::Continue;
 
-        // Island storage is handed out in relocation order, which is the same
-        // order prepare() measured it in, so both agree without recording a
-        // slot offset in the relocation itself.
+        // Allocate island slots in the order measured by prepare(), avoiding a
+        // stored slot offset in each relocation.
         uint32_t islandOffset = islandBase;
 
-        // All relocations for one emitted function share resolution caches. This matters
-        // for local functions that may need preparation before they expose a patchable
-        // address, and for foreign lookups that should not hit the OS repeatedly.
         const uint8_t* basePtr = reinterpret_cast<uint8_t*>(writableCode.data());
         SWC_ASSERT(basePtr != nullptr);
 
+        // Share resolution caches across one function's relocations to avoid
+        // repeated local-function preparation and foreign lookups.
         JITRelocationPatchContext patchContext;
 
         for (const MicroRelocation& reloc : relocations)
         {
             uint64_t                 targetAddress = 0;
             RelocationResolveFailure failure;
-            const Result             resolveResult = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr, ownerFunction, &failure, &patchContext);
+
+            const Result resolveResult = resolveRelocationTargetAddress(ctx, targetAddress, reloc, basePtr, ownerFunction, &failure, &patchContext);
+
             if (resolveResult == Result::Pause)
                 return Result::Pause;
             if (resolveResult != Result::Continue)
@@ -1240,15 +1242,16 @@ namespace
                         std::memcpy(copy, reinterpret_cast<const void*>(targetAddress), reloc.constantCopySize);
                         if (!tryPatchRelative32Direct(writableCode, reloc, reinterpret_cast<uint64_t>(copy)))
                             return Result::Error;
+
                         continue;
                     }
 
-                    // Segment-backed constants and mutable globals must reach their real
-                    // storage, never an island copy: materialized pointers preserve identity,
-                    // and constants can contain relocations patched in place. The proximity
-                    // arena hosts this code and every such segment payload.
+                    // Identity-bearing pointers must target real segment storage, where
+                    // nested relocations are patched in place. The proximity arena
+                    // keeps these targets reachable without island copies.
                     if (!tryPatchRelative32Direct(writableCode, reloc, targetAddress))
                         return Result::Error;
+
                     continue;
                 }
 
@@ -1256,6 +1259,7 @@ namespace
                 {
                     if (!patchRelative32Function(writableCode, reloc, targetAddress, islandOffset))
                         return Result::Error;
+
                     islandOffset += K_FUNCTION_THUNK_SLOT;
                     continue;
                 }
@@ -1285,10 +1289,9 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
     const uint32_t codeSize          = Math::alignUpU32(static_cast<uint32_t>(linearCode.size()), sizeof(uint32_t));
     const bool     registerSehUnwind = !unwindInfo.empty();
 
-    // Direct calls reserve a nearby fallback thunk in case their final target lies outside
-    // rel32 reach. A fixed-payload memory relocation can likewise reserve an
-    // adjacent data copy. Address materializations retain the canonical segment
-    // address and therefore do not use this escape hatch.
+    // Calls reserve nearby fallback thunks for targets outside rel32 reach.
+    // Fixed-payload reads may also use nearby copies; address materializations
+    // retain their canonical segment storage.
     uint32_t islandSize = 0;
     for (const MicroRelocation& relocation : relocations)
     {
@@ -1317,6 +1320,7 @@ void JIT::prepare(JITMemoryManager& memoryManager, JITMemory& outExecutableMemor
     const uint64_t islandSizeU64     = islandSize;
     const uint64_t allocationSizeU64 = islandSize ? islandBaseU64 + islandSizeU64 : static_cast<uint64_t>(codeSize) + unwindSizeU64;
     const uint32_t allocationSize    = static_cast<uint32_t>(allocationSizeU64);
+
     memoryManager.allocateWithCodeSize(outExecutableMemory, allocationSize, codeSize);
 
     if (islandSize)
@@ -1342,12 +1346,10 @@ Result JIT::patch(TaskContext& ctx, const JITMemory& executableMemory, const std
 {
     const TaskScopedContext scopedContext(ctx);
     SWC_ASSERT(!executableMemory.empty());
-    // The span has to reach past the code: the constant island lives after it,
-    // and size() is only the code.
-    // The allocator commits full pages. A relocation can reserve a new fixed
-    // payload island after preparation has measured an earlier layout, so make
-    // every committed byte available to the patcher rather than clipping it to
-    // the logical code and island extents.
+
+    // Expose all committed bytes, including storage beyond the initial code and
+    // island extents. Later relocations can reserve fixed payloads beyond the
+    // layout measured during preparation; the allocator commits full pages.
     const uint32_t  patchableSize = executableMemory.allocationSize_;
     const std::span writableCode{static_cast<std::byte*>(executableMemory.entryPoint()), patchableSize};
     return patchRelocations(ctx, ownerFunction, writableCode, relocations, executableMemory.constantIslandOffset_);
@@ -1361,8 +1363,9 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 
     const TaskScopedContext   scopedContext(ctx);
     JITRelocationPatchContext patchContext;
-    const bool                patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
-    std::vector<uint64_t>     sortedReferencedGlobalInitOffsets;
+
+    const bool            patchReferencedGlobalsOnly = ctx.state().runJitFunction != nullptr;
+    std::vector<uint64_t> sortedReferencedGlobalInitOffsets;
 
     // During a #run, patch only global-init slots referenced by the active JIT call graph.
     // Full native/JIT preparation still patches the complete snapshot.
@@ -1371,13 +1374,14 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
         collectJitGlobalInitRelocationOffsets(ctx, sortedReferencedGlobalInitOffsets);
         if (sortedReferencedGlobalInitOffsets.empty())
             return Result::Continue;
+
         std::ranges::sort(sortedReferencedGlobalInitOffsets);
         const auto duplicates = std::ranges::unique(sortedReferencedGlobalInitOffsets);
         sortedReferencedGlobalInitOffsets.erase(duplicates.begin(), duplicates.end());
     }
 
-    // The address cache grows with the functions actually resolved. Sizing it for every global
-    // of the module made each compile-time call allocate and clear a table of that size.
+    // Let the address cache grow with resolved functions instead of sizing it
+    // for every global in the module.
     for (const SymbolVariable* symVar : globals)
     {
         SWC_ASSERT(symVar != nullptr);
@@ -1398,7 +1402,8 @@ Result JIT::patchGlobalFunctionVariables(TaskContext& ctx)
 
         uint64_t                 targetAddress = 0;
         RelocationResolveFailure failure;
-        const Result             resolveResult = resolveFunctionSymbolTargetAddress(ctx, targetAddress, *targetFunction, nullptr, LocalFunctionAddressKind::Callable, &failure, &patchContext);
+
+        const Result resolveResult = resolveFunctionSymbolTargetAddress(ctx, targetAddress, *targetFunction, nullptr, LocalFunctionAddressKind::Callable, &failure, &patchContext);
 
         if (resolveResult == Result::Pause)
             return Result::Pause;
@@ -1479,14 +1484,17 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
     // native ABI's shadow space. An explicit native call owns that space independently of the
     // caller's optimized frame. The pointer result stays in the common return register.
     MicroBuilder builder(ctx);
+
     // These process-owned bridges outlive compiler instances and configuration changes.
     // Optimize them independently of the configuration of their first caller.
     Runtime::BuildCfgBackend backendCfg{};
     backendCfg.optimLevel = Runtime::BuildCfgBackendOptimLevel::O1;
     builder.setBackendBuildCfg(backendCfg);
     builder.setRetUsesAbiRegs(true, false);
+
     const MicroReg targetReg = MicroReg::virtualIntReg(1);
     builder.emitLoadRegPtrImm(targetReg, reinterpret_cast<uint64_t>(targetFn));
+
     const ABICall::PreparedCall preparedCall = {
         .numPreparedArgs = numArgs,
         .intArgMask      = static_cast<uint8_t>((1u << numArgs) - 1u),
@@ -1501,6 +1509,7 @@ void* JIT::getNativeInterfaceAdapter(TaskContext& ctx, void* targetFn, const uin
     JITMemory executableMemory;
     prepare(cache.memoryManager, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, {});
     finalize(executableMemory);
+
     void* const entryPoint = executableMemory.entryPoint();
     cache.entries.push_back({targetFn, numArgs, std::move(executableMemory)});
     return entryPoint;
@@ -1530,6 +1539,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     const bool                   directReturn           = !retType.isVoid && !retType.isIndirect;
 
     packedArgs.resize(args.size() + packedArgBaseOffset);
+
     SmallVector<uint16_t> signature;
     signature.reserve(packedArgs.size() + 1);
     signature.push_back(directReturn ? static_cast<uint16_t>(retType.numBits | (retType.isFloat ? 0x100 : 0)) : 0);
@@ -1562,6 +1572,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
             indirectArgStorageSize         = Math::alignUpU32(indirectArgStorageSize, argType.indirectAlign);
             const uint64_t nextStorageSize = static_cast<uint64_t>(indirectArgStorageSize) + argType.indirectSize;
             SWC_ASSERT(nextStorageSize <= std::numeric_limits<uint32_t>::max());
+
             if (indirectArgCopies.empty())
                 indirectArgCopies.reserve(args.size());
             indirectArgCopies.push_back({i, indirectArgStorageSize, argType.indirectSize});
@@ -1598,9 +1609,10 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 
     struct Invoker
     {
-        CallConvKind          callConv;
-        bool                  unwind;
-        bool                  debugInfo;
+        CallConvKind callConv;
+        bool         unwind;
+        bool         debugInfo;
+
         SmallVector<uint16_t> signature;
         JITMemory             memory;
     };
@@ -1615,8 +1627,9 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
     // per-call frame, including during recursive calls. Own its pages independently of any
     // CompilerInstance, and unregister unwind records before releasing those pages.
     thread_local InvokerCache cache;
-    const auto&               backend = ctx.compiler().buildCfg().backend;
-    const bool                unwind  = ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || backend.enableExceptions || backend.debugInfo;
+
+    const auto& backend = ctx.compiler().buildCfg().backend;
+    const bool  unwind  = ctx.compiler().cmdLine().targetOs == Runtime::TargetOs::Windows || backend.enableExceptions || backend.debugInfo;
 
     void* invoker = nullptr;
     for (const auto& entry : cache.entries)
@@ -1630,11 +1643,13 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
 
     if (!invoker)
     {
-        MicroBuilder   builder(ctx);
+        MicroBuilder builder(ctx);
+
         const MicroReg frameReg  = MicroReg::virtualIntReg(1);
         const MicroReg argsReg   = MicroReg::virtualIntReg(2);
         const MicroReg targetReg = MicroReg::virtualIntReg(3);
         const MicroReg resultReg = MicroReg::virtualIntReg(4);
+
         builder.emitLoadRegReg(frameReg, CallConv::get(CallConvKind::C).intArgRegs[0], MicroOpBits::B64);
         builder.emitLoadRegMem(argsReg, frameReg, offsetof(CallFrame, arguments), MicroOpBits::B64);
         builder.emitLoadRegMem(targetReg, frameReg, offsetof(CallFrame, target), MicroOpBits::B64);
@@ -1666,6 +1681,7 @@ Result JIT::emitAndCall(TaskContext& ctx, void* targetFn, std::span<const JITArg
         JITMemory executableMemory;
         prepare(cache.memoryManager, executableMemory, loweredCode.bytes, loweredCode.unwindInfo, {});
         finalize(executableMemory);
+
         invoker = executableMemory.entryPoint();
         cache.entries.push_back({callConvKind, unwind, backend.debugInfo, std::move(signature), std::move(executableMemory)});
     }
@@ -1690,7 +1706,6 @@ namespace
         if (openParen == std::string_view::npos || openParen + 1 >= text.size())
             return {};
 
-        // Find the matching closing paren by tracking nesting depth
         uint32_t depth      = 1;
         size_t   closeParen = std::string_view::npos;
         for (size_t i = openParen + 1; i < text.size(); ++i)
@@ -1728,6 +1743,7 @@ namespace
                 continue;
             if (tokenStart >= rangeEnd)
                 break;
+
             if (token.id == TokenId::IntrinsicAssert)
             {
                 assertRef = TokenRef(i);
@@ -1754,6 +1770,7 @@ namespace
             {
                 openParenRef = TokenRef(i);
                 depth        = 1;
+
                 for (uint32_t j = i + 1; j < tokens.size(); ++j)
                 {
                     const Token& nestedToken = tokens[j];
@@ -1943,6 +1960,7 @@ namespace
     {
         const uint32_t dumpStart = codeOffset > 8 ? codeOffset - 8 : 0;
         const uint32_t dumpEnd   = std::min<uint32_t>(static_cast<uint32_t>(code.bytes.size()), codeOffset + 8);
+
         out += "jit bytes:";
         for (uint32_t i = dumpStart; i < dumpEnd; ++i)
         {
@@ -2003,6 +2021,7 @@ namespace
         {
             if (sourceMatch.source.sourceFile)
                 out += std::format("jit source: {}:{}:{}\n", sourceMatch.source.sourceFile->path().string(), sourceMatch.source.codeRange.line, sourceMatch.source.codeRange.column);
+
             SWC_ASSERT(sourceMatch.debugRange != nullptr);
             out += std::format("jit source span: [0x{:X}, 0x{:X})\n", sourceMatch.debugRange->codeStartOffset, sourceMatch.debugRange->codeEndOffset);
         }
@@ -2078,9 +2097,8 @@ Result JIT::call(TaskContext& ctx, void* invoker, const uint64_t* arg0, JITCallE
     {
         ctx.compiler().initPerThreadRuntimeContextForJit();
 
-        // This is an actual program run (not compile-time evaluation), so make the
-        // program's 'Swag.args()' reflect the command line it was effectively launched with.
-        // Done here rather than at codegen so compile-time '#run' keeps a zeroed Swag.processInfo().
+        // Populate the effective command line at program entry; doing it during
+        // codegen would also expose it to compile-time #run.
         ctx.compiler().ensureProcessInfoRunArgs();
     }
 
@@ -2137,6 +2155,7 @@ void JIT::releaseThreadStorage(const std::function<bool(const void*)>& ownsCallb
         std::erase_if(jitFiberSlots(), [&](const JitFiberSlot& entry) {
             if (!ownsCallback(reinterpret_cast<const void*>(entry.callback)))
                 return false;
+
             released.push_back(entry.slot);
             return true;
         });

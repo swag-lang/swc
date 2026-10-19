@@ -55,13 +55,12 @@ namespace
         sema.setIsValue(*node);
         sema.setType(nodeRef, srcTypeRef);
         sema.setConstant(nodeRef, cstRef);
+
         return nodeRef;
     }
 
-    // The elements of an array literal are unified, not independent: an untyped element belongs to
-    // the type deduced for the literal as a whole. Returns that element type when it is a scalar
-    // the untyped elements can be retargeted to, and an invalid ref otherwise (struct aggregates,
-    // nested arrays, type-like elements), which leaves the caller on plain concretization.
+    // Untyped array elements share the literal's deduced scalar type. An invalid
+    // ref leaves aggregates, nested arrays, and type-like values to normal deduction.
     TypeRef unifiedArrayLiteralElemTypeRef(Sema& sema, ConstantRef cstRef, TypeRef aggregateTypeRef)
     {
         if (!aggregateTypeRef.isValid() || !sema.typeMgr().get(aggregateTypeRef).isAggregateArray())
@@ -79,13 +78,10 @@ namespace
         return sema.typeMgr().get(elemTypeRef).isScalarNumeric() ? elemTypeRef : TypeRef::invalid();
     }
 
-    // Concretizing an untyped element on its own would land it on its standalone default (s32/f64)
-    // and then drag a narrower typed sibling up with it, so `[1'u8, 2, 3]` would become an s32
-    // array while the very same literal typed through a variable declaration stays u8.
-    //
-    // Folds through 'castAllowed' rather than 'castConstant' because this path must stay silent:
-    // a target the element cannot reach just falls back to plain concretization instead of
-    // raising, and 'castAllowed' only records the failure.
+    // Retarget untyped elements together: [1'u8, 2, 3] must stay u8 rather than
+    // defaulting its untyped siblings to s32 and widening the whole array.
+    // castAllowed records failures silently, letting unsuitable targets fall
+    // back to ordinary concretization without emitting an error.
     bool concretizeUntypedArrayElement(Sema& sema, ConstantRef& result, ConstantRef valueRef, TypeRef unifiedElemTypeRef)
     {
         if (!unifiedElemTypeRef.isValid())
@@ -114,7 +110,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
 {
     const TaskContext& ctx = sema.ctx();
 
-    // Be sure constant is sized
+    // Resolve unsized literals before reinterpreting their bits.
     if (dstType.isInt())
     {
         TypeInfo::Sign hintSign = dstType.payloadIntSign();
@@ -185,6 +181,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
 
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
         return true;
     }
 
@@ -193,6 +190,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
         const ApFloat&      value  = src.getFloat();
         const ConstantValue result = ConstantValue::makeFloat(ctx, value, dstBits);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
         return true;
     }
 
@@ -201,6 +199,7 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
         const ApsInt        i      = Math::bitCastToApInt(src.getFloat(), dstType.isIntLikeUnsigned());
         const ConstantValue result = ConstantValue::makeFromIntLike(ctx, i, dstType);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
         return true;
     }
 
@@ -217,10 +216,11 @@ bool Cast::foldConstantBitCast(Sema& sema, CastRequest& castRequest, TypeRef dst
         const ApFloat       f      = Math::bitCastToApFloat(value, dstBits);
         const ConstantValue result = ConstantValue::makeFloat(ctx, f, dstBits);
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
         return true;
     }
 
-    // Should be unreachable given earlier asserts, but keep consistent error behavior.
+    // Keep failure handling defined even when assertions are disabled.
     castRequest.fail(DiagnosticId::sema_err_cannot_cast, src.typeRef(), dstTypeRef);
     return false;
 }
@@ -258,6 +258,7 @@ bool Cast::foldConstantBoolToFloat(Sema& sema, CastRequest& castRequest, TypeRef
 
     const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
     return true;
 }
 
@@ -282,6 +283,7 @@ bool Cast::foldConstantFloatToBool(Sema& sema, CastRequest& castRequest)
 
     const ConstantValue result = ConstantValue::makeBool(ctx, value);
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
     return true;
 }
 
@@ -302,15 +304,11 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
 
     if (targetUnsigned)
     {
-        // An explicit `cast(uN) <negative>` reinterprets/wraps the bit pattern, exactly like the
-        // runtime cast does — it must NOT be rejected as out-of-range. (A negative literal *suffix*
-        // such as `-1'u32` is a different, genuinely contradictory form and keeps erroring: it is a
-        // LiteralSuffix cast, not FromExplicitNode.) This only surfaces in const folding once the
-        // operand is constant — e.g. a runtime `cast(u32) r` whose `r` becomes a negative constant
-        // after the function is inlined at a constant call site.
-        // Promotion is not exempt: the same conversion made on values the compiler cannot fold
-        // raises an overflow panic, so folding it to the wrapped value would make a program
-        // behave differently for no reason other than the operand being known.
+        // Explicit casts wrap negative bit patterns just like runtime casts,
+        // including when inlining makes a previously runtime operand constant.
+        // Negative unsigned suffixes (-1'u32) remain errors: LiteralSuffix is
+        // distinct from FromExplicitNode. Promotion also retains overflow checks
+        // so folding cannot change behavior compared with runtime operands.
         const bool explicitWrap = castRequest.flags.has(CastFlagsE::FromExplicitNode);
         if (!value.isUnsigned() && value.isNegative() && !castRequest.flags.has(CastFlagsE::NoOverflow) && !explicitWrap && targetBits != 0)
         {
@@ -359,6 +357,7 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
             ApsInt maxSignedU = maxSigned;
             if (!maxSignedU.isUnsigned())
                 maxSignedU.setUnsigned(true);
+
             maxSignedU.resize(checkBits);
 
             if (vCheck.gt(maxBits))
@@ -382,7 +381,6 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
         return false;
     }
 
-    // Fold:
     if (value.isUnsigned() != targetUnsigned)
     {
         if (value.isUnsigned() && !targetUnsigned)
@@ -408,6 +406,7 @@ bool Cast::foldConstantIntLikeToIntLike(Sema& sema, CastRequest& castRequest, Ty
 
     const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
     return true;
 }
 
@@ -432,6 +431,7 @@ bool Cast::foldConstantIntLikeToFloat(Sema& sema, CastRequest& castRequest, Type
 
     const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
     return true;
 }
 
@@ -456,6 +456,7 @@ bool Cast::foldConstantFloatToIntLike(Sema& sema, CastRequest& castRequest, Type
 
     const ConstantValue result = ConstantValue::makeFromIntLike(ctx, value, dstType);
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
     return true;
 }
 
@@ -479,6 +480,7 @@ bool Cast::foldConstantFloatToFloat(Sema& sema, CastRequest& castRequest, TypeRe
 
     const ConstantValue result = ConstantValue::makeFloat(ctx, value, targetBits);
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
     return true;
 }
 
@@ -500,6 +502,7 @@ bool Cast::foldConstantIntLikeToPointer(Sema& sema, CastRequest& castRequest, Ty
         result = ConstantValue::makeBlockPointer(ctx, dstType.payloadTypeRef(), ptrValue, dstType.flags());
 
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
     return true;
 }
 
@@ -533,6 +536,7 @@ bool Cast::foldConstantPointerToIntLike(Sema& sema, CastRequest& castRequest, Ty
     const ApsInt        intValue = ApsInt::makeUnsigned64(ptrValue);
     const ConstantValue result   = ConstantValue::makeFromIntLike(ctx, intValue, dstType);
     castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(ctx, result));
+
     return true;
 }
 
@@ -548,23 +552,23 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequ
     {
         if (res == Result::Error)
             return emitCastFailure(sema, castRequest.failure);
+
         return res;
     }
 
     result = castRequest.outConstRef;
     if (result.isValid() && sema.cstMgr().get(result).typeRef() == targetTypeRef)
         return Result::Continue;
+
     if (srcTypeRef == targetTypeRef)
     {
         result = cstRef;
         return Result::Continue;
     }
 
-    // A struct literal converted to a struct folds field by field inside 'castAllowed', each field
-    // through this same function. When that fold produces nothing, some field is built at run
-    // time, and the literal is constructed by code generation from its own field expressions. A
-    // synthetic node would hold the literal's value without those expressions, so its cast would
-    // follow the rules of a stored value and refuse the field conversions the literal performs.
+    // Struct literals fold field by field in castAllowed. An incomplete fold
+    // needs the original field expressions for runtime construction; a synthetic
+    // stored-value node would lose them and reject valid literal conversions.
     if (sema.typeMgr().get(srcTypeRef).isAggregateStruct() && sema.typeMgr().get(targetTypeRef).isStruct())
     {
         result = ConstantRef::invalid();
@@ -574,6 +578,7 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, CastRequest& castRequ
     const AstNodeRef syntheticNodeRef = makeSyntheticConstantNode(sema, cstRef, srcTypeRef, castRequest.errorNodeRef);
     SemaNodeView     syntheticView(sema, syntheticNodeRef, SemaNodeViewPartE::Node | SemaNodeViewPartE::Type | SemaNodeViewPartE::Constant);
     SWC_RESULT(cast(sema, syntheticView, targetTypeRef, castRequest.kind, castRequest.flags));
+
     result = syntheticView.cstRef();
     return Result::Continue;
 }
@@ -582,6 +587,7 @@ Result Cast::castConstant(Sema& sema, ConstantRef& result, ConstantRef cstRef, T
 {
     CastRequest castRequest(castKind);
     castRequest.errorNodeRef = errorNodeRef;
+
     return castConstant(sema, result, castRequest, cstRef, targetTypeRef);
 }
 
@@ -602,8 +608,8 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
     leftCstRef  = nodeLeftView.cstRef();
     rightCstRef = nodeRightView.cstRef();
 
-    // If the right side accepts contextual typing, mirror binary expression sema: the resolved
-    // left type is offered to the right child before the operator is finalized.
+    // Offer the left type to a contextually typed right operand, matching
+    // binary-expression analysis before the operator is finalized.
     if (leftType->isFloat() && rightType->isFloatUnsized() && SemaHelpers::canUseContextualBinding(sema, nodeRightView.nodeRef()))
     {
         CastRequest castRequest(CastKind::Implicit);
@@ -612,8 +618,8 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
         rightTypeRef = sema.cstMgr().get(rightCstRef).typeRef();
     }
 
-    // If one side is concrete, concretize the other side.
-    // If both sides are not concrete, keep it that way to concretize at the very last moment.
+    // Concretize against a concrete sibling; keep two unsized values flexible
+    // until their final destination is known.
     if (leftConcrete != rightConcrete)
     {
         if (!leftConcrete)
@@ -632,14 +638,15 @@ Result Cast::promoteConstants(Sema& sema, const SemaNodeView& nodeLeftView, cons
 
     const TypeRef promotedTypeRef = sema.typeMgr().promote(leftTypeRef, rightTypeRef, force32BitInts);
 
-    // A shift only borrows the promoted type to widen its operands: its result keeps the left
-    // operand's own type, and the caller restores that sign right after. Range-checking this
-    // intermediate step would reject a negative left operand shifted by an unsigned count,
-    // which the language accepts and folds correctly.
+    // Shifts use promotion only to widen operands, then restore the left sign.
+    // Range-checking that intermediate type would reject valid negative left
+    // operands paired with unsigned counts.
     CastRequest leftRequest(CastKind::Promotion);
     leftRequest.errorNodeRef = nodeLeftView.nodeRef();
+
     CastRequest rightRequest(CastKind::Promotion);
     rightRequest.errorNodeRef = nodeRightView.nodeRef();
+
     if (signUnificationOnly)
     {
         leftRequest.flags.add(CastFlagsE::NoOverflow);
@@ -656,6 +663,7 @@ Result Cast::concretizeConstant(Sema& sema, ConstantRef& result, AstNodeRef node
 {
     if (!concretizeConstant(sema, result, cstRef, hintSign))
         return SemaError::raiseLiteralTooBig(sema, nodeOwnerRef, sema.cstMgr().get(cstRef));
+
     return Result::Continue;
 }
 
@@ -676,6 +684,7 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
 
         ApsInt value = srcCst.getIntLike();
         value.setSigned(sign == TypeInfo::Sign::Signed);
+
         bool           overflow = false;
         const uint32_t destBits = TypeManager::chooseConcreteScalarWidth(value.minBits(), overflow);
         if (overflow)
@@ -688,12 +697,12 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         const TypeInfo&     concreteTy      = typeMgr.get(concreteTypeRef);
         const ConstantValue intVal          = ConstantValue::makeFromIntLike(ctx, value, concreteTy);
         result                              = sema.cstMgr().addConstant(ctx, intVal);
+
         return true;
     }
 
-    // An untyped character literal is a rune once it needs a type of its own, as the cast to 'any'
-    // already decides: an untyped variadic argument would otherwise carry the compile-time
-    // 'character' type to run time, which no reflection code expects.
+    // Runtime reflection expects rune, not the compile-time character type,
+    // when untyped characters become standalone or variadic values.
     if (ty.isChar())
     {
         result = sema.cstMgr().addConstant(ctx, ConstantValue::makeRune(ctx, srcCst.getChar()));
@@ -712,13 +721,15 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
         const ApFloat       concreteF = srcF.toFloat(destBits, isExact, overflow);
         const ConstantValue floatVal  = ConstantValue::makeFloat(ctx, concreteF, destBits);
         result                        = sema.cstMgr().addConstant(ctx, floatVal);
+
         return true;
     }
 
     if (srcCst.isAggregate())
     {
-        const auto&              values             = srcCst.getAggregate();
-        const TypeRef            unifiedElemTypeRef = unifiedArrayLiteralElemTypeRef(sema, cstRef, srcCst.typeRef());
+        const auto&   values             = srcCst.getAggregate();
+        const TypeRef unifiedElemTypeRef = unifiedArrayLiteralElemTypeRef(sema, cstRef, srcCst.typeRef());
+
         SmallVector<ConstantRef> concretizedValues;
         concretizedValues.reserve(values.size());
 
@@ -753,6 +764,7 @@ bool Cast::concretizeConstant(Sema& sema, ConstantRef& result, ConstantRef cstRe
             concretizedAggregate = ConstantValue::makeAggregateStruct(ctx, ty.payloadAggregate().names, concretizedValues);
 
         result = sema.cstMgr().addConstant(ctx, concretizedAggregate);
+
         return true;
     }
 

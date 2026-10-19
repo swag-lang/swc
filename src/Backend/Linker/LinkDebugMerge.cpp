@@ -13,13 +13,13 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint16_t K_S_LPROC32_ID  = 0x1146;
+    constexpr uint16_t K_S_LPROC32_ID = 0x1146;
 
     constexpr uint8_t K_LF_PAD0 = 0xF0;
 
-    constexpr uint32_t K_FIRST_TYPE_INDEX  = 0x1000;
-    constexpr uint32_t K_CV_LINE_MASK      = 0x00FFFFFF;
-    constexpr uint16_t K_REL_AMD64_SECREL  = 0x000B;
+    constexpr uint32_t K_FIRST_TYPE_INDEX = 0x1000;
+    constexpr uint32_t K_CV_LINE_MASK     = 0x00FFFFFF;
+    constexpr uint16_t K_REL_AMD64_SECREL = 0x000B;
 
     // Record layouts, as offsets from the start of a record (its 16-bit length).
     constexpr size_t K_PROC_CODE_SIZE        = 16;
@@ -341,6 +341,7 @@ void LinkDebugMerger::commitTypes(ObjectTypes& types)
 {
     for (const std::string* record : types.addedRecords)
         debugInfo_->tpiRecords.append(std::string_view(*record));
+
     debugInfo_->tpiIndexEnd += static_cast<uint32_t>(types.addedRecords.size());
     types.addedRecords.clear();
 }
@@ -410,6 +411,7 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
             case CodeViewRecords::K_S_FRAMEPROC:
                 if (!function || record.size() < K_FRAMEPROC_SIZE)
                     break;
+
                 function->frameSize      = BinaryPatch::readU32(record, K_RECORD_HEADER);
                 function->frameToCodeReg = BinaryPatch::readU16(record, K_FRAMEPROC_BASE_REG);
                 function->frameProcFlags = BinaryPatch::readU32(record, K_FRAMEPROC_FLAGS);
@@ -418,16 +420,19 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
             case CodeViewRecords::K_S_REGREL32:
                 if (!function || record.size() < K_REGREL_NAME)
                     break;
-                function->locals.push_back({.name        = Utf8(readName(record, K_REGREL_NAME)),
-                                            .typeIndex   = imageTypeIndex(types.imageIndices, BinaryPatch::readU32(record, K_REGREL_TYPE)),
-                                            .frameOffset = static_cast<int32_t>(BinaryPatch::readU32(record, K_RECORD_HEADER)),
-                                            .cvRegister  = BinaryPatch::readU16(record, K_REGREL_REGISTER)});
+
+                function->locals.push_back(
+                    {.name        = Utf8(readName(record, K_REGREL_NAME)),
+                     .typeIndex   = imageTypeIndex(types.imageIndices, BinaryPatch::readU32(record, K_REGREL_TYPE)),
+                     .frameOffset = static_cast<int32_t>(BinaryPatch::readU32(record, K_RECORD_HEADER)),
+                     .cvRegister  = BinaryPatch::readU16(record, K_REGREL_REGISTER)});
                 break;
 
             case CodeViewRecords::K_S_PROC_ID_END:
             case CodeViewRecords::K_S_END:
                 if (!function)
                     break;
+
                 symbols.functions.try_emplace(functionSymbol, Math::hash(functionSymbol), debugInfo_->functions.size());
                 debugInfo_->functions.push_back(std::move(*function));
                 function.reset();
@@ -454,6 +459,7 @@ void LinkDebugMerger::mergeSymbolRecords(ObjectSymbols& symbols, const ObjectTyp
             {
                 if (record.size() < K_UDT_NAME)
                     break;
+
                 Utf8           name      = Utf8(readName(record, K_UDT_NAME));
                 const uint32_t typeIndex = imageTypeIndex(types.imageIndices, BinaryPatch::readU32(record, K_RECORD_HEADER));
                 if (typeIndex && udts_.emplace(name, typeIndex).second)

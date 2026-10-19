@@ -1001,9 +1001,11 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
 {
     BlockInfo&                 block = blocks_[blockIndex];
     SmallVector8<RestorePoint> restores;
+
     // Every block contains instructions. If this block consumes the rest of
     // the rename walk, no later block can observe its scope restores.
     const bool needsRestore = block.instructionEnd - block.instructionBegin != instructionRefs_.size() - state.position;
+
     for (const uint32_t phiIndex : block.phis)
     {
         PhiInfo& phi      = phiInfos_[phiIndex];
@@ -1038,11 +1040,12 @@ void MicroSsaState::renameBlock(const uint32_t blockIndex, RenameState& state)
             if (valueId == K_INVALID_VALUE)
                 continue;
 
-            appendValueUse(valueId, UseSite{
-                                        .kind     = UseSite::Kind::Instruction,
-                                        .instRef  = instRef,
-                                        .phiIndex = K_INVALID_PHI,
-                                    });
+            appendValueUse(valueId,
+                           UseSite{
+                               .kind     = UseSite::Kind::Instruction,
+                               .instRef  = instRef,
+                               .phiIndex = K_INVALID_PHI,
+                           });
         }
 
         info.firstDefValue = valueInfoCount_;

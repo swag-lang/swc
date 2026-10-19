@@ -1059,18 +1059,15 @@ namespace
 
         const MicroReg hashReg = codeGen.nextVirtualIntRegister();
         builder.emitLoadRegMem(hashReg, switchState.switchValueReg, offsetof(Runtime::TypeInfo, crc), MicroOpBits::B32);
+
         const SwitchDispatchSearch search{.codeGen = &codeGen, .valueReg = hashReg, .opBits = MicroOpBits::B32, .useUnsignedCond = true, .defaultLabel = defaultLabel};
         search.emit(entries.span());
         return true;
     }
 
-    // Replaces testing every case in turn with one search over the values the cases name, emitted
-    // right after the switch value is computed and jumping straight to the body that matches.
-    //
-    // Source order stops mattering once the cases are searched instead of scanned, so this only takes
-    // over a switch where that cannot change what matches: every case value known at compile time, no
-    // `where` clause to run after a match, no value claimed by two cases, and a `default` last if
-    // there is one.
+    // Dispatch directly to case bodies using a search over constant case values.
+    // This requires source order to have no effect on the match: no `where`
+    // clauses, overlapping values, or non-final `default`.
     bool emitSwitchDispatch(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, const AstSwitchStmt& switchNode)
     {
         if (!switchState.hasExpression || switchState.dynamicStructSwitch)
@@ -1120,12 +1117,14 @@ namespace
             if (!collectIntSwitchIntervals(entries, codeGen, switchState, caseRefs.span()))
                 return false;
 
-            const SwitchDispatchSearch search{.codeGen         = &codeGen,
-                                              .valueReg        = switchState.switchValueReg,
-                                              .opBits          = switchState.compareOpBits,
-                                              .useUnsignedCond = switchState.useUnsignedCond,
-                                              .allowJumpTable  = true,
-                                              .defaultLabel    = defaultLabel};
+            const SwitchDispatchSearch search{
+                .codeGen         = &codeGen,
+                .valueReg        = switchState.switchValueReg,
+                .opBits          = switchState.compareOpBits,
+                .useUnsignedCond = switchState.useUnsignedCond,
+                .allowJumpTable  = true,
+                .defaultLabel    = defaultLabel};
+
             search.emit(entries.span());
             return true;
         }

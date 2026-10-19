@@ -4899,6 +4899,7 @@ namespace SemaEscape
                 uint32_t budget = K_EXPR_BUDGET;
                 sema.setVariableEscapeInfo(symVar, expressionEscapeInfoWithTarget(sema, initRef, targetTypeRef, budget));
             }
+
             return Result::Continue;
         }
 
@@ -4911,10 +4912,8 @@ namespace SemaEscape
         const SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, initRef, targetTypeRef, budget);
         if (!info.hasBorrow())
         {
-            // A function-valued callback can return a pointer to heap, global, or
-            // caller-owned storage. Remember that opaque pointee provenance on the
-            // otherwise-local binding so writes through it cannot be mistaken for
-            // writes into this frame.
+            // Indirect callbacks can return heap/global/caller storage. Keep that unknown
+            // pointee provenance so writes through a local binding are not treated as frame-local.
             if (isLocalVariableStorage(sema, symVar) && isDirectBorrowCarrier(sema, targetTypeRef) && isIndirectCallResult(sema, initRef))
             {
                 SemaEscapeInfo opaquePointee;
@@ -4927,7 +4926,7 @@ namespace SemaEscape
 
             if (variableInitializerCanEscape(symVar))
             {
-                // A retval initializer hands the result back to the caller: RETURN use.
+                // A retval initializer propagates through the return summary.
                 const DeferredCallUse use = symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal) ? DeferredCallUse::Return : DeferredCallUse::Store;
                 recordDeferredCallBorrow(sema, initRef, initRef, "an initializer", use, true);
                 sema.clearVariableEscapeInfo(symVar);
@@ -4954,12 +4953,12 @@ namespace SemaEscape
             auto reportResult = Result::Continue;
             if (!SemaHelpers::effectiveInlinePayload(sema))
                 reportResult = reportBorrowEscape(sema, initRef, info, "an initializer");
+
             sema.clearVariableEscapeInfo(symVar);
             return reportResult;
         }
 
-        // Initializing the RETVAL storage with a parameter borrow hands it back to the
-        // caller: feeds the RETURN summary like 'return param'.
+        // A parameter borrow in retval storage feeds the return summary, like 'return param'.
         if (info.kind == SemaEscapeKind::Parameter && symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
         {
             SymbolFunction* currentFn = sema.currentFunction();
@@ -4975,15 +4974,14 @@ namespace SemaEscape
             return reportBorrowEscape(sema, initRef, info, "an initializer");
         else
             sema.clearVariableEscapeInfo(symVar);
+
         return Result::Continue;
     }
 
     namespace
     {
-        // Does a deferred-call binding carry anything that can reach this frame? A snapshot
-        // holding nothing but routes back to globals does not: it was captured so the
-        // invalidation check can follow the payload, and reading it as "derives from local
-        // storage" would silence real escapes through a global's buffer.
+        // Global-only snapshots track payload invalidation, not frame borrows. Treating
+        // them as local-derived storage would hide escapes through global buffers.
         bool deferredCallCarriesFrameBorrow(const SemaEscapeInfo& info)
         {
             for (const auto& snapshot : info.deferredCalls)
@@ -4992,6 +4990,7 @@ namespace SemaEscape
                     continue;
                 if (!snapshot->edges.empty())
                     return true;
+
                 for (const SemaEscapeDeferredCheck& check : snapshot->checks)
                 {
                     if (!check.staticSource)
@@ -5002,12 +5001,9 @@ namespace SemaEscape
             return false;
         }
 
-        // Whether the base pointer of an assignment destination provably derives from
-        // frame-local storage: a local pointer that borrows a local, or an opaque pointer
-        // handed out by a call on local storage ('root.pool.newPtr()'). Storing a frame-local's
-        // borrow into such a destination stays within the frame (a self-reference), unlike a
-        // parameter/global pointer (caller-visible) or an opaque pointer of unknown origin (a
-        // heap block from an external allocator), which must still be reported.
+        // Stores through pointers derived from frame-local storage remain self-references
+        // inside the frame. Parameter/global pointers and unknown opaque pointers may
+        // reach longer-lived storage, so their destinations still require escape checks.
         bool destinationBaseIsFrameLocalPointer(Sema& sema, AstNodeRef leftRef)
         {
             AstNodeRef ref   = sema.resolvedNodeRef(leftRef);
@@ -5020,11 +5016,13 @@ namespace SemaEscape
                     ref = sema.resolvedNodeRef(node.cast<AstMemberAccessExpr>().nodeLeftRef);
                     continue;
                 }
+
                 if (node.is(AstNodeId::IndexExpr))
                 {
                     ref = sema.resolvedNodeRef(node.cast<AstIndexExpr>().nodeExprRef);
                     continue;
                 }
+
                 break;
             }
 
@@ -5037,6 +5035,7 @@ namespace SemaEscape
                 return false;
             if (info->isLocalBorrow())
                 return true;
+
             return info->isDeferredCallBorrow() && deferredCallCarriesFrameBorrow(*info);
         }
     }
@@ -5047,8 +5046,9 @@ namespace SemaEscape
 
         bool                  wholeVariable = false;
         const SymbolVariable* dstVar        = storageRootVariable(sema, leftRef, true, wholeVariable);
-        SemaEscapeProjection  projection;
-        bool                  hasProjection = dstVar && storageProjection(sema, leftRef, projection) && projection.root == dstVar && !projection.components.empty();
+
+        SemaEscapeProjection projection;
+        bool                 hasProjection = dstVar && storageProjection(sema, leftRef, projection) && projection.root == dstVar && !projection.components.empty();
         if (!hasProjection &&
             storageProjection(sema, leftRef, projection) &&
             projection.root &&
@@ -5081,9 +5081,11 @@ namespace SemaEscape
                 info.sourceVar = sourceVar;
                 info.sourceRef = rightRef;
                 info.typeRef   = targetTypeRef;
+
                 return reportBorrowEscape(sema, leftRef, info, "an assignment");
             }
         }
+
         if (!typeCanCarryBorrowImpl(sema, targetTypeRef))
         {
             if (dstVar)
@@ -5093,6 +5095,7 @@ namespace SemaEscape
                 else if (wholeVariable)
                     sema.clearVariableEscapeInfo(*dstVar);
             }
+
             return Result::Continue;
         }
 
@@ -5109,14 +5112,12 @@ namespace SemaEscape
         SemaEscapeInfo info   = expressionEscapeInfoWithTarget(sema, rightRef, targetTypeRef, budget);
         if (!info.hasBorrow())
             info = directTargetStorageBorrowInfo(sema, rightRef, targetTypeRef);
+
         if (!info.hasBorrow())
         {
-            // A destination outside the local frame turns a callee-borrowed argument
-            // into an escape: defer the judgement to the per-function summaries. Only a
-            // GLOBAL destination provably outlives the frame ('durableDest'): pointer
-            // dereferences and parameter-rooted destinations may target caller-frame
-            // storage. A RETVAL destination hands the result back to the caller: that
-            // is a RETURN use (edges chain into the caller's return summary).
+            // Defer external destinations to final callee summaries. Only globals are
+            // provably durable; dereferences and parameter roots may reach caller-frame
+            // storage. Retval destinations propagate through the return summary.
             if (!dstVar || !isLocalVariableStorage(sema, *dstVar))
             {
                 const DeferredCallUse use = dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::RetVal) ? DeferredCallUse::Return : DeferredCallUse::Store;
@@ -5140,12 +5141,9 @@ namespace SemaEscape
             return Result::Continue;
         }
 
-        // Storing a parameter borrow into a GLOBAL makes this function "store its
-        // argument": legal for THIS function (the data is caller-owned), but it feeds
-        // the per-function STORES summary judged at every call site against what was
-        // really passed in. Only true globals qualify: a destination rooted at a
-        // parameter (me.list = x) targets caller-owned storage whose relative
-        // lifetime is unknown (the allocator free-lists live in 'me').
+        // Storing a parameter borrow in a global feeds the stores summary for callers
+        // to check against actual arguments. Parameter-rooted destinations have unknown
+        // relative lifetimes and need a pair summary instead of this global rule.
         if (info.kind == SemaEscapeKind::Parameter && dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::GlobalStorage))
         {
             SymbolFunction* currentFn = sema.currentFunction();
@@ -5153,9 +5151,7 @@ namespace SemaEscape
                 addStoredBorrowOrigins(*currentFn, info);
         }
 
-        // Storing a parameter borrow into the RETVAL storage hands it back through the
-        // return value ('result.field = param; return result'): feeds the RETURN
-        // summary exactly like 'return param'.
+        // A parameter borrow stored in retval fields feeds the return summary.
         if (info.kind == SemaEscapeKind::Parameter && dstVar && dstVar->hasExtraFlag(SymbolVariableFlagsE::RetVal))
         {
             SymbolFunction* currentFn = sema.currentFunction();
@@ -5163,20 +5159,18 @@ namespace SemaEscape
                 addReturnBorrowOrigins(sema, *currentFn, info);
         }
 
-        // Storing a parameter borrow into storage reachable from ANOTHER parameter
-        // ('me.list = item' -> pair item->me): legal here, but judged at call sites
-        // where the destination argument provably outlives the stored one. The
-        // assignment-mode root above bails on parameter-pointer destinations, so walk
-        // the destination in READ mode: it roots member/deref accesses at the signature
-        // receiver. A BARE identifier destination is the parameter being rebound: no
-        // caller-visible store.
+        // A borrow stored through another parameter is checked at call sites, where
+        // relative argument lifetimes are known. Read-mode roots retain the signature
+        // receiver through member/dereference access. A bare parameter identifier is
+        // only rebound locally and does not create a caller-visible store.
         if (info.kind == SemaEscapeKind::Parameter)
         {
-            bool                  pairWhole       = false;
-            const SymbolVariable* pairRoot        = storageRootVariable(sema, leftRef, false, pairWhole);
-            SymbolFunction*       currentFn       = sema.currentFunction();
-            const AstNodeRef      leftResolvedRef = sema.resolvedNodeRef(leftRef);
-            const bool            leftIsBareVar   = leftResolvedRef.isValid() && sema.node(leftResolvedRef).is(AstNodeId::Identifier);
+            bool                  pairWhole = false;
+            const SymbolVariable* pairRoot  = storageRootVariable(sema, leftRef, false, pairWhole);
+            SymbolFunction*       currentFn = sema.currentFunction();
+
+            const AstNodeRef leftResolvedRef = sema.resolvedNodeRef(leftRef);
+            const bool       leftIsBareVar   = leftResolvedRef.isValid() && sema.node(leftResolvedRef).is(AstNodeId::Identifier);
             if (pairRoot && !leftIsBareVar && currentFn)
             {
                 const SymbolVariable* dstParam = signatureParameterFor(sema, *pairRoot);
@@ -5186,6 +5180,7 @@ namespace SemaEscape
                     if (findCallerParameterIndex(*currentFn, *dstParam, intoIndex))
                     {
                         const uint64_t origins = parameterOriginsMask(*currentFn, info);
+
                         for (uint64_t remainingOrigins = origins; remainingOrigins; remainingOrigins &= remainingOrigins - 1)
                         {
                             const size_t storedIndex = std::countr_zero(remainingOrigins);
@@ -5202,10 +5197,8 @@ namespace SemaEscape
             }
             else if (!pairRoot && !leftIsBareVar && currentFn)
             {
-                // The store goes through a local bound to an ACCESSOR call
-                // ('let table = .tablePtr(); table[i] = key'). Whether it reaches the
-                // receiver depends on the accessor's return summary, which is not final
-                // yet: record an edge and let the fixpoint decide.
+                // A local accessor result reaches the receiver only if its final return
+                // summary says so. Record the edge for the fixpoint to decide.
                 recordAccessorStoreIntoParamPair(sema, leftRef, info);
             }
         }
@@ -5213,9 +5206,8 @@ namespace SemaEscape
         if (dstVar)
             return storeOrReportDestinationInfo(sema, *dstVar, leftRef, info, "an assignment", hasProjection ? &projection : nullptr);
 
-        // A local borrow reaching a destination that provably stays in this frame (a
-        // self-reference through a local-derived pointer) does not escape. A temporary or
-        // materialized borrow dies with the statement/frame regardless, so it always does.
+        // A local self-reference stays in the frame. Temporary/materialized borrows
+        // still expire with their statement or scope and cannot escape through it.
         if (info.isLocalBorrow())
             return destStaysInFrame ? Result::Continue : reportBorrowEscape(sema, leftRef, info, "an assignment");
         if (info.isMaterializedBorrow() || info.isTemporaryBorrow())

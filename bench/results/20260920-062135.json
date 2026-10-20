@@ -10,7 +10,7 @@
           "exe_bytes": 91136
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 208.8448,
@@ -103,7 +103,7 @@
       "swc-jit-release": {
         "kind": "jit"
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit"
       },
       "node20": {
@@ -129,7 +129,7 @@
           "exe_bytes": 92672
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 179.1237,
@@ -222,7 +222,7 @@
       "swc-jit-release": {
         "kind": "jit"
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit"
       },
       "node20": {
@@ -248,7 +248,7 @@
           "exe_bytes": 90624
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 196.4133,
@@ -341,7 +341,7 @@
       "swc-jit-release": {
         "kind": "jit"
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit"
       },
       "node20": {
@@ -367,7 +367,7 @@
           "exe_bytes": 90624
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 167.4636,
@@ -460,7 +460,7 @@
       "swc-jit-release": {
         "kind": "jit"
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit"
       },
       "node20": {
@@ -486,7 +486,7 @@
           "exe_bytes": 91136
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 168.4541,
@@ -579,7 +579,7 @@
       "swc-jit-release": {
         "kind": "jit"
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit"
       },
       "node20": {
@@ -605,7 +605,7 @@
           "exe_bytes": 90112
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 169.7097,
@@ -698,7 +698,7 @@
       "swc-jit-release": {
         "kind": "jit"
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit"
       },
       "node20": {
@@ -724,7 +724,7 @@
           "exe_bytes": 90112
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 459.9068,
@@ -817,7 +817,7 @@
       "swc-jit-release": {
         "kind": "jit"
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit"
       },
       "node20": {

@@ -49,7 +49,7 @@
           ]
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 147.621,
@@ -427,7 +427,7 @@
           ]
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 130489,
@@ -553,7 +553,7 @@
           ]
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 198.422,
@@ -894,7 +894,7 @@
           ]
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 24828641,
@@ -1034,7 +1034,7 @@
           ]
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 181.1911,
@@ -1411,7 +1411,7 @@
           ]
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 2503168387,
@@ -1541,7 +1541,7 @@
           ]
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 178.9838,
@@ -1950,7 +1950,7 @@
           ]
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 4431000,
@@ -2126,7 +2126,7 @@
           ]
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 172.4832,
@@ -2592,7 +2592,7 @@
           ]
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 56061776,
@@ -2785,7 +2785,7 @@
           ]
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 211.2722,
@@ -3152,7 +3152,7 @@
           ]
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 67441,
@@ -3311,7 +3311,7 @@
           ]
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 410.3149,
@@ -3717,7 +3717,7 @@
           ]
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 633277775,
@@ -3929,7 +3929,7 @@
       "first_stdout_ms": 138.5632,
       "peak_bytes": 61714432
     },
-    "swc-jit-fast-debug": {
+    "swc-jit-devmode": {
       "first_stdout_ms": 135.6223,
       "peak_bytes": 55988224
     },

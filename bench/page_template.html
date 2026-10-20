@@ -606,7 +606,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         Rotating round-robin, execution minimum retained. Locally checked compilations use a minimum confirmed by a second sample within 10%.
         Unconfirmed lower samples remain in the raw record. Allocator results use medians.</li>
         <li><b>Calibration</b>{{calib_start}} ms then {{calib_end}} ms; probe departure {{machine_spread}}%.
-        Execution-probe departures above {{drift_limit}}% reject a campaign. Historical build-control spreads above {{build_control_limit}}% produce a note.</li>
+        Execution-probe departures above {{drift_limit}}% reject a campaign. Build controls moving apart by more than {{build_control_limit}}% also reject it.</li>
         <li><b>Bounds checks</b>Rust, Swift and C# retain their checks; Swag release and C++ do not. Build recipes differ; see <code>bench/README.md</code>.</li>
         <li><b>Reference</b>Headlines use measured durations and their sums
         against the non-Swag runtime with the smallest total over all tasks. Native / AOT and JIT / interpreted references

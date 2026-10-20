@@ -276,9 +276,9 @@ class CampaignPublicationTests(unittest.TestCase):
             self.assertIn('title="No measurement: swag release (native)"', rendered)
             self.assertIn("Swag release", readme.read_text(encoding="utf-8"))
 
-    def test_historical_split_does_not_discard_a_quiet_campaign(self):
-        for end_probe, rejected in ((100, False), (200, True)):
-            with self.subTest(end_probe=end_probe), tempfile.TemporaryDirectory() as folder:
+    def test_a_split_between_build_controls_rejects_the_campaign(self):
+        for end_probe, split, rejected in ((100, 8.4, False), (200, 8.4, True), (100, 62.8, True)):
+            with self.subTest(end_probe=end_probe, split=split), tempfile.TemporaryDirectory() as folder:
                 root = Path(folder)
                 exe = root / "compiler.exe"
                 exe.write_bytes(b"fixture")
@@ -286,7 +286,7 @@ class CampaignPublicationTests(unittest.TestCase):
                 samples = iter([100] * 18 + [end_probe] * 12)
                 metadata = {"stamp": "fixture", "date": "2026-10-18T17:18:40+00:00"}
                 build = {"wall_ms": 500, "peak_bytes": 10, "samples": [500, 505]}
-                controls = {"reference": "yesterday", "controls": {"cpp": 1.5}, "spread_pct": 62.8}
+                controls = {"references": ["yesterday"], "controls": {"cpp": 1.5}, "spread_pct": split}
                 appended = [{"meta": metadata, "context": {"build_factor": 1, "build_controls": 11}}]
                 with contextlib.ExitStack() as stack:
                     patches = [
@@ -321,7 +321,7 @@ class CampaignPublicationTests(unittest.TestCase):
                 archive = root / "results" / ("rejected" if rejected else "") / "fixture.json"
                 self.assertTrue(archive.exists())
                 raw = json.loads(archive.read_text())
-                self.assertEqual(raw["calibration"]["build_controls"]["spread_pct"], 62.8)
+                self.assertEqual(raw["calibration"]["build_controls"]["spread_pct"], split)
                 self.assertEqual(raw["tasks"]["fixture"]["cpp-clang-cl"]["build"]["repeatability"]["status"], "verified")
                 self.assertEqual(append.call_count, 0 if rejected else 1)
 

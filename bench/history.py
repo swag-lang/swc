@@ -49,17 +49,27 @@ PROTOCOL = 2
 # left the campaign reading clean from both ends and fiction in the middle. Against
 # that timeline it reads 950 %.
 DRIFT_LIMIT_PCT = 40.0
+
+# The execution probe cannot see a slowdown confined to some compilers. Four times
+# (2026-09-24, 09-25, 10-18 and 10-19) every toolchain linking through link.exe built
+# 1.4 to 1.9 times slower while Go, Zig, Swift and .NET stayed near their usual times,
+# repeatably within the campaign, and was back to normal in the next one. Swag links
+# itself, so each of those campaigns inflated its build lead. A split wider than this
+# limit between the build controls' movements rejects the campaign. Each control's
+# movement is its median over the last few accepted campaigns, so one polluted
+# predecessor cannot make the clean campaign after it read as split.
 BUILD_CONTROL_SPREAD_LIMIT_PCT = 25.0
+BUILD_CONTROL_REFERENCES = 5
 BUILD_PAIR_LIMIT_PCT = 10.0
 
-TRACKED = ["swag-release", "swc-jit-release", "swag-fast-debug", "swc-jit-fast-debug"]
-BUILT = ["swag-release", "swag-fast-debug"]
+TRACKED = ["swag-release", "swc-jit-release", "swag-devmode", "swc-jit-devmode"]
+BUILT = ["swag-release", "swag-devmode"]
 MIN_CONTROLS = 3
 FAMILIES = (("run", "ms"), ("build", "wall_ms"))
 RUN_GROUPS = {
-    "native": ("swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc", "rust",
+    "native": ("swag-release", "swag-devmode", "cpp-clang-cl", "cpp-msvc", "rust",
                "zig", "d-ldc", "odin", "go", "swift", "csharp-aot"),
-    "jit": ("swc-jit-release", "swc-jit-fast-debug", "csharp-jit", "java-hotspot",
+    "jit": ("swc-jit-release", "swc-jit-devmode", "csharp-jit", "java-hotspot",
             "node20", "luajit2.1", "php-jit", "lua5.4", "python3.12", "php", "ruby"),
 }
 
@@ -114,22 +124,11 @@ def geo(values):
     return math.exp(sum(math.log(v) for v in values) / len(values))
 
 
-def build_control_spread(current, reference):
-    """Describe build-control movements since the preceding accepted campaign.
-
-    A runtime calibration cannot see a slowdown confined to a group of compilers.
-    Compare each control's geometric build-time movement across the same tasks; a
-    wide middle-half spread means one machine factor cannot explain the movement.
-    This is historical context, not a test of today's measurement repeatability. Only
-    the tasks both campaigns measured are compared, so a campaign that adds a task is
-    still checked against its predecessor.
-    """
-    if not reference:
-        return None
-
+def _build_control_movements(current, reference):
+    """Each control's geometric build-time movement over the tasks both campaigns measured."""
     tasks = [task for task in current["tasks"] if task in reference["tasks"]]
     if not tasks:
-        return None
+        return {}
     controls = {}
     for runtime in current["tasks"][tasks[0]]:
         if runtime in TRACKED:
@@ -140,12 +139,32 @@ def build_control_spread(current, reference):
                  for task in tasks]
         if all(before) and all(after):
             controls[runtime] = geo([new / old for new, old in zip(after, before)])
+    return controls
 
+
+def build_control_spread(current, references):
+    """Describe how differently the build controls moved since recent accepted campaigns.
+
+    A runtime calibration cannot see a slowdown confined to a group of compilers.
+    Compare each control's geometric build-time movement across the same tasks; a
+    wide middle-half spread means one machine factor cannot explain the movement.
+    A control's movement is its multiplicative median over every reference, so a
+    single disturbed reference cannot fake a split in a quiet campaign. Only the tasks
+    both campaigns measured are compared, so a campaign that adds a task is still
+    checked against its predecessors.
+    """
+    references = [reference for reference in references or [] if reference]
+    movements = {}
+    for reference in references:
+        for runtime, movement in _build_control_movements(current, reference).items():
+            movements.setdefault(runtime, []).append(movement)
+
+    controls = {runtime: robust_factor(values) for runtime, values in movements.items()}
     if len(controls) < 6:
         return None
     values = sorted(controls.values())
     return {
-        "reference": reference["meta"]["stamp"],
+        "references": [reference["meta"]["stamp"] for reference in references],
         "controls": controls,
         "spread_pct": (values[3 * len(values) // 4] / values[len(values) // 4] - 1.0) * 100.0,
     }

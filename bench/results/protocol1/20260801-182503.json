@@ -15,7 +15,7 @@
           "peak_bytes": 31014912
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 89.0246,
@@ -122,7 +122,7 @@
           "peak_bytes": 126005248
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 130489,
@@ -183,7 +183,7 @@
           "peak_bytes": 25567232
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 104.9985,
@@ -290,7 +290,7 @@
           "peak_bytes": 122286080
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 24828641,
@@ -351,7 +351,7 @@
           "peak_bytes": 7290880
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 96.2984,
@@ -458,7 +458,7 @@
           "peak_bytes": 102453248
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 2832485395,
@@ -519,7 +519,7 @@
           "peak_bytes": 57602048
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 84.8184,
@@ -626,7 +626,7 @@
           "peak_bytes": 151101440
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 4431000,
@@ -687,7 +687,7 @@
           "peak_bytes": 6234112
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 84.4458,
@@ -794,7 +794,7 @@
           "peak_bytes": 101289984
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 56061776,
@@ -855,7 +855,7 @@
           "peak_bytes": 6430720
         }
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "kind": "aot",
         "build": {
           "wall_ms": 98.579,
@@ -962,7 +962,7 @@
           "peak_bytes": 100667392
         }
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "kind": "jit",
         "run": {
           "check": 67441,
@@ -1046,7 +1046,7 @@
       "wall_ms": 51.2719,
       "peak_bytes": 97566720
     },
-    "swc-jit-fast-debug": {
+    "swc-jit-devmode": {
       "wall_ms": 56.6971,
       "peak_bytes": 100126720
     },

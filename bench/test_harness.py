@@ -97,7 +97,7 @@ class HarnessTests(unittest.TestCase):
             builds = tc.make_hello_builds({"clang_cl": "clang-cl.exe"}, {}, "swc.exe", 6)
         outputs = set()
         for name, compiler, cfg in (("swag-release", "swc.exe", "release"),
-                                    ("swag-fast-debug", "swc.exe", "devmode"),
+                                    ("swag-devmode", "swc.exe", "devmode"),
                                     ("cpp-clang-cl", "clang-cl.exe", None),
                                     ("cpp-msvc", "cl.exe", None)):
             with self.subTest(runtime=name):
@@ -123,9 +123,9 @@ class HarnessTests(unittest.TestCase):
             recipes = tc.make_recipes({"clang_cl": "clang-cl.exe"}, {}, "swc.exe")
             runtimes = tc.make_runtimes({}, "swc.exe")
             commands = [recipes[name]("sha256", "probe")["cmd"]
-                        for name in ("swag-release", "swag-fast-debug")]
+                        for name in ("swag-release", "swag-devmode")]
             commands += [runtimes[name]("sha256")
-                         for name in ("swc-jit-release", "swc-jit-fast-debug")]
+                         for name in ("swc-jit-release", "swc-jit-devmode")]
         for command in commands:
             self.assertNotIn("--module-file", command)
             self.assertEqual([command[index + 1] for index, arg in enumerate(command)

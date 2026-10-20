@@ -49,9 +49,9 @@ for _stream in (sys.stdout, sys.stderr):
 
 PAT = re.compile(r"CHECK=(-?\d+)\s+MS=([\d.]+)")
 
-AOT_ORDER = ["swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc",
+AOT_ORDER = ["swag-release", "swag-devmode", "cpp-clang-cl", "cpp-msvc",
              "rust", "zig", "d-ldc", "odin", "go", "swift", "csharp-aot", "csharp-jit", "java-hotspot"]
-JIT_ORDER = ["swc-jit-release", "swc-jit-fast-debug", "node20", "luajit2.1",
+JIT_ORDER = ["swc-jit-release", "swc-jit-devmode", "node20", "luajit2.1",
              "lua5.4", "python3.12", "php", "php-jit", "ruby"]
 
 # A runtime is sampled until it has spent this much measured time on a task, within
@@ -740,26 +740,24 @@ def main():
 
     build_controls = None
     if measure_build:
-        previous = next((entry for entry in reversed(history.load_results())
-                         if any(task in entry.get("tasks", {}) for task in tasks) and
-                         all((entry["tasks"][task].get("swag-release", {}).get("build") or {}).get("wall_ms")
-                             for task in tasks if task in entry.get("tasks", {}))), None)
-        build_controls = history.build_control_spread(results, previous)
+        previous = [entry for entry in history.load_results()
+                    if any(task in entry.get("tasks", {}) for task in tasks) and
+                    all((entry["tasks"][task].get("swag-release", {}).get("build") or {}).get("wall_ms")
+                        for task in tasks if task in entry.get("tasks", {}))]
+        build_controls = history.build_control_spread(results, previous[-history.BUILD_CONTROL_REFERENCES:])
         if build_controls:
             results["calibration"]["build_controls"] = build_controls
             print("build control spread: %.1f %% across %d toolchains (vs %s)" %
                   (build_controls["spread_pct"], len(build_controls["controls"]),
-                   build_controls["reference"]))
+                   ", ".join(build_controls["references"])))
 
     stamp = results["meta"]["stamp"]
     spread = results["calibration"]["spread_pct"]
-    # Yesterday's compiler mix is context, not evidence of interference today.
-    # Compilation times have already been checked against repeats in this campaign.
-    if build_controls and build_controls["spread_pct"] > history.BUILD_CONTROL_SPREAD_LIMIT_PCT:
-        print("note: build controls moved differently from %s (%.1f %% spread); "
-              "this historical comparison does not reject the campaign" %
-              (build_controls["reference"], build_controls["spread_pct"]))
-    rejected = spread > DRIFT_LIMIT_PCT
+    # Repeats inside the campaign cannot catch this: the slowdown of the split
+    # compilers lasts the whole campaign, so every one of their samples agrees.
+    split = bool(build_controls and
+                 build_controls["spread_pct"] > history.BUILD_CONTROL_SPREAD_LIMIT_PCT)
+    rejected = spread > DRIFT_LIMIT_PCT or split
     folder = os.path.join(tc.BENCH, "results", "rejected" if rejected else "")
     os.makedirs(folder, exist_ok=True)
     raw = os.path.join(folder, "%s.json" % stamp)
@@ -767,11 +765,16 @@ def main():
         json.dump(results, f, indent=2)
 
     if rejected:
-        # Preserve the raw measurement for audit when the execution probes diverge
-        # within this campaign. Historical compiler movements do not decide this.
-        print("the reference workload departs %.1f %% from a neighbouring probe, past the %.0f %% "
-              "limit, worst around %s" % (spread, DRIFT_LIMIT_PCT,
-                                          results["calibration"]["worst_moment"]))
+        # Preserve the raw measurement for audit; it never enters the history.
+        if spread > DRIFT_LIMIT_PCT:
+            print("the reference workload departs %.1f %% from a neighbouring probe, past the %.0f %% "
+                  "limit, worst around %s" % (spread, DRIFT_LIMIT_PCT,
+                                              results["calibration"]["worst_moment"]))
+        if split:
+            controls = sorted(build_controls["controls"].items(), key=lambda item: item[1])
+            print("build controls moved apart by %.1f %%, past the %.0f %% limit: %s" %
+                  (build_controls["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT,
+                   "  ".join("%s=%.2f" % item for item in controls)))
         print("campaign archived in results/rejected/%s.json and NOT recorded" % stamp)
         print("check machine load, then measure again")
         return 0

@@ -88,7 +88,8 @@ builds, and CPython and Lua on the longer tasks. Long executions keep their pilo
 every compilation is repeated, with extra samples concentrated on fast or unstable builds.
 Before a recorded measurement, the driver waits for three consecutive CPU
 samples below 15%, then performs the normal 30-second reference warm-up. Reference
-checks reject campaigns with large execution-probe departures within the sweep; they cannot prove that no
+checks reject campaigns with large execution-probe departures within the sweep, and
+build-control checks reject campaigns whose compilers moved apart; they cannot prove that no
 other process ran. Use a quiet machine and leave it undisturbed for the sweep. `--quick` skips
 the idle gate and reference warm-up and writes no benchmark history.
 
@@ -391,25 +392,34 @@ its neighbours by more than 40 % the campaign goes to `results/rejected/` and ne
 history, kept because deleting a measurement one dislikes is how a benchmark starts lying, but
 not published.
 
-That execution probe cannot detect interference limited to compilers. Compilation repeats now
-check each measurement directly. The driver also records each compiler control's geometric
-build-time movement since the previous accepted build campaign, over the tasks both measured.
-If the upper and lower quartiles differ by more than 25%, it prints a note and keeps the
-comparison in `calibration.build_controls`; this historical comparison does not reject a campaign.
-A toolchain-specific change in scheduling, startup or cache state between two dates cannot
-establish that today's quiet, repeatable measurements were interrupted. The context correction
-remains an estimate when different compiler groups move differently.
+That execution probe cannot detect interference limited to compilers, and neither can the
+compilation repeats: the slowdown lasts the whole campaign, so every sample of an affected
+compiler agrees with the others. Before publication, the driver therefore compares each compiler
+control's geometric build-time movement, over the tasks both campaigns measured, with each of the
+last five accepted build campaigns, and keeps the multiplicative median of those movements per
+control. If the upper and lower quartiles of the controls differ by more than 25 %, the campaign
+is archived under `results/rejected/`. The comparison is kept in `calibration.build_controls`.
 
-The historical check used to reject campaigns. On 2026-09-25,
-MSVC, clang-cl, Rust, D and Odin slowed by 40–65 % between two unchanged-code campaigns while
-Zig and .NET stayed near their previous times; the old execution probe accepted this split and
-the displayed MSVC/Swag build ratio jumped from 2.3 to 3.9. The historical diagnostic exposes this split.
-The two split campaigns measure about 54 % by this check; adjacent accepted nine-control
-campaigns around them stay below 10 %.
-The split campaigns `20260924-172317` and `20260925-055026` are preserved in
-`results/rejected/`; neither contributes to the published history. The first campaign and
-campaigns with fewer than six matching controls have no such comparison. Those archived results
-retain their original classification; changing the rule does not retroactively verify their samples.
+The median over several references is what makes the check usable. Against the previous campaign
+alone, one disturbed campaign that slipped through made the quiet one after it read as split:
+`20261020-171301` measured 59 % against `20261019-181609` alone and 2 % against the median of
+five. Over every accepted protocol 2 campaign the check reads at most 22 %, except
+`20260812-173429` (42 %, six controls, the two .NET runtimes about a third faster),
+which was recorded before the check existed.
+
+The same split has been seen four times, and every time it was transient. MSVC, clang-cl, Rust,
+D and Odin, all linking through `link.exe`, built 1.4 to 1.9 times slower while Go, Zig, Swift and
+.NET stayed near their usual times, and the next campaign with the same toolchains was back to
+normal. Swag links its own executables, so the context correction, a median across controls of
+which half were slowed, inflated its build lead: on 2026-09-25 the displayed MSVC/Swag build ratio
+jumped from 2.3 to 3.9, and on 2026-10-19 the build speedup over the fastest rival read 3.2
+against 1.8 to 2.2 for the campaigns around it, with Swag's corrected execution times flattered by
+up to 8 %. Execution controls also ran 15 to 30 % slower that day while the probe departures stayed
+under the 40 % limit. The split campaigns `20260924-172317`, `20260925-055026`, `20261018-171840` and
+`20261019-181609` are preserved in `results/rejected/`; none contributes to the published history.
+For two days the split only produced a note, which is how `20261019-181609` was first recorded;
+it was moved aside when the rejection was restored. The first campaign and campaigns with fewer
+than six matching controls have no such comparison.
 
 Endpoints alone were not enough, and that is not hypothetical: a build launched from another
 window multiplied *every* compilation of `raytrace` by ten — clang-cl went from 408 ms to

@@ -19,7 +19,7 @@ def campaign(day, own=(50, 99, 101, 200), rival=(100, 100, 100, 100)):
         tasks[task] = {}
         for runtime, value in (("swag-release", sw), ("cpp-clang-cl", other),
                                ("swc-jit-release", sw), ("node20", other),
-                               ("swag-fast-debug", 0.01), ("python3.12", other)):
+                               ("swag-devmode", 0.01), ("python3.12", other)):
             tasks[task][runtime] = {"run": {"ms": value, "samples": [value, value]},
                                    "build": {"wall_ms": value, "samples": [value, value], "peak_bytes": value * 1024}}
     return {"meta": {"date": "2026-10-%02dT00:00:00+00:00" % day,
@@ -44,7 +44,7 @@ class ReportMetricsTests(unittest.TestCase):
         current = campaign(2)
         self.assertEqual(metrics.rivals(current, TASKS, "run", "ms", "jit"), ["node20", "python3.12"])
         builds = metrics.rivals(current, TASKS, "build", "wall_ms")
-        self.assertNotIn("swag-fast-debug", builds)
+        self.assertNotIn("swag-devmode", builds)
         self.assertIn("python3.12", builds)  # Only the recorded build contract matters here.
 
     def test_missing_errors_and_invalid_values_never_produce_a_comparison(self):
@@ -219,7 +219,7 @@ class ReportMetricsTests(unittest.TestCase):
     def test_jit_headline_names_its_rivals_and_excludes_both_swag_modes(self):
         current = campaign(2, own=(50,) * 4)
         for i, task in enumerate(TASKS):
-            current["tasks"][task]["swc-jit-fast-debug"] = {"run": {"ms": 80}}
+            current["tasks"][task]["swc-jit-devmode"] = {"run": {"ms": 80}}
             current["tasks"][task]["csharp-jit"] = {"run": {"ms": 80 if i < 2 else 140}}
         markup = mkpage.competitive_stat(current, [], TASKS, "swc-jit-release", "run", "jit", "JIT execution")
         self.assertIn("-200.0<em>ms</em>", markup)
@@ -255,7 +255,7 @@ class ReportTableTests(unittest.TestCase):
     def test_direct_comparisons_use_each_competitors_total_against_every_swag_mode(self):
         current = campaign(2, own=(1, 2, 3, 1000), rival=(100,) * 4)
         for task in TASKS:
-            current["tasks"][task]["swc-jit-fast-debug"] = {"run": {"ms": 500}}
+            current["tasks"][task]["swc-jit-devmode"] = {"run": {"ms": 500}}
             current["tasks"][task]["python3.12"]["run"]["ms"] = 0.01
         current["tasks"]["hello"] = {"cpp-clang-cl": {"run": {"ms": 999999}}}
         with mock.patch.object(mkpage, "simple_table", side_effect=lambda headers, rows: (headers, rows)):
@@ -292,7 +292,7 @@ class ReportTableTests(unittest.TestCase):
         for task in TASKS:
             del current["tasks"][task]["python3.12"]["build"]
             current["tasks"][task]["cpp-clang-cl"]["build"]["wall_ms"] = 500
-            current["tasks"][task]["swag-fast-debug"]["build"]["wall_ms"] = 100
+            current["tasks"][task]["swag-devmode"]["build"]["wall_ms"] = 100
         with mock.patch.object(mkpage, "simple_table", side_effect=lambda headers, rows: (headers, rows)):
             headers, rows = mkpage.swag_comparison_table(current, TASKS, "build")
         self.assertEqual(len(headers), 4)
@@ -351,7 +351,7 @@ class ReportTableTests(unittest.TestCase):
         self.assertIn("+100.0<em>ms</em>", headline)
         self.assertIn("trend improved", headline)
     def test_task_ranking_orders_all_modes_and_shows_only_measured_times(self):
-        times = {"swag-fast-debug": 200, "rust": 150, "node20": 125,
+        times = {"swag-devmode": 200, "rust": 150, "node20": 125,
                  "swag-release": 50, "cpp-clang-cl": 100, "go": float("nan")}
         markup = mkpage.performance_table(["one"], list(times), lambda rt, task: times[rt])
         order = [markup.index('<li class="l-%s"' % cls)

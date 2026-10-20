@@ -113,9 +113,9 @@
           "leven": 1.0869120649874295,
           "chacha": 0.9804743974170242
         },
-        "build_geo_index": 0.9473214760174843,
+        "build_geo_index": 0.9473214760174842,
         "build_peak_mb": 118.48046875,
-        "exe_kb": 130.91922453621865
+        "exe_kb": 130.9192245362189
       },
       "swc-jit-release": {
         "run_ms": {
@@ -148,7 +148,7 @@
         },
         "run_geo_index": 1.0190586310638432
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 98.43969997,
           "csvagg": 54.09440002,
@@ -208,9 +208,9 @@
         },
         "build_geo_index": 0.9695090119501234,
         "build_peak_mb": 227.40625,
-        "exe_kb": 173.08938529425842
+        "exe_kb": 173.08938529425873
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 94.40089995,
           "csvagg": 58.73809999,
@@ -229,7 +229,7 @@
           "leven": 39.5836541914298,
           "chacha": 96.28253088198849
         },
-        "run_geo_adjusted_ms": 69.60271686316636,
+        "run_geo_adjusted_ms": 69.6027168631663,
         "run_index": {
           "wordfreq": 0.9977560413688444,
           "csvagg": 0.9778363597261708,
@@ -385,7 +385,7 @@
         "chacha": 1.0371043979162597
       },
       "run_controls": 70,
-      "run_dispersion_pct": 1.682980035767619,
+      "run_dispersion_pct": 1.6829800357676192,
       "build_factor": 0.9917035075311367,
       "build_task_factors": {
         "wordfreq": 0.999653450944102,
@@ -397,7 +397,7 @@
         "chacha": 1.1348917664557647
       },
       "build_controls": 42,
-      "build_dispersion_pct": 3.7414154470457683
+      "build_dispersion_pct": 3.7414154470457692
     },
     "runtimes": {
       "swag-release": {
@@ -419,7 +419,7 @@
           "leven": 16.372708826039595,
           "chacha": 29.745896403469818
         },
-        "run_geo_adjusted_ms": 33.699059391801356,
+        "run_geo_adjusted_ms": 33.69905939180134,
         "run_index": {
           "wordfreq": 1.02929326013579,
           "csvagg": 1.0376979250891858,
@@ -460,7 +460,7 @@
         },
         "build_geo_index": 1.0203630018259005,
         "build_peak_mb": 117.453125,
-        "exe_kb": 130.99049257088262
+        "exe_kb": 130.99049257088285
       },
       "swc-jit-release": {
         "run_ms": {
@@ -493,7 +493,7 @@
         },
         "run_geo_index": 0.9976739290902109
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 91.49150003,
           "csvagg": 59.42910002,
@@ -541,7 +541,7 @@
           "leven": 148.26438584660823,
           "chacha": 531.7615457592824
         },
-        "build_geo_adjusted_ms": 161.74913113275974,
+        "build_geo_adjusted_ms": 161.74913113276003,
         "build_index": {
           "wordfreq": 0.872756666132728,
           "csvagg": 0.9946987214767613,
@@ -553,9 +553,9 @@
         },
         "build_geo_index": 1.0075034873310487,
         "build_peak_mb": 211.65625,
-        "exe_kb": 173.16159618527672
+        "exe_kb": 173.16159618527703
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 96.74039995,
           "csvagg": 60.56070002,
@@ -764,7 +764,7 @@
           "leven": 16.60550002,
           "chacha": 29.12980004
         },
-        "run_geo_adjusted_ms": 33.590555233320096,
+        "run_geo_adjusted_ms": 33.59055523332008,
         "run_index": {
           "wordfreq": 1.0,
           "csvagg": 1.0,
@@ -805,7 +805,7 @@
         },
         "build_geo_index": 1.0,
         "build_peak_mb": 117.40625,
-        "exe_kb": 131.06127644894457
+        "exe_kb": 131.0612764489448
       },
       "swc-jit-release": {
         "run_ms": {
@@ -826,7 +826,7 @@
           "leven": 16.91969996,
           "chacha": 29.95429991
         },
-        "run_geo_adjusted_ms": 33.27249142823787,
+        "run_geo_adjusted_ms": 33.272491428237856,
         "run_index": {
           "wordfreq": 1.0,
           "csvagg": 1.0,
@@ -838,7 +838,7 @@
         },
         "run_geo_index": 1.0
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 89.59550003,
           "csvagg": 56.69820006,
@@ -898,9 +898,9 @@
         },
         "build_geo_index": 1.0,
         "build_peak_mb": 228.6796875,
-        "exe_kb": 173.16159618527672
+        "exe_kb": 173.16159618527703
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 92.11989993,
           "csvagg": 61.34679995,
@@ -919,7 +919,7 @@
           "leven": 43.29950002,
           "chacha": 96.36179998
         },
-        "run_geo_adjusted_ms": 70.64050993569099,
+        "run_geo_adjusted_ms": 70.64050993569104,
         "run_index": {
           "wordfreq": 1.0,
           "csvagg": 1.0,
@@ -934,7 +934,7 @@
     },
     "headline": {
       "tasks": 7,
-      "exec_native_vs_best": 1.4539259649099328,
+      "exec_native_vs_best": 1.453925964909933,
       "exec_jit_vs_best": 1.0248023276685228,
       "exec_native_fastest": "cpp-clang-cl",
       "exec_jit_fastest": "swc-jit-release",
@@ -1076,7 +1076,7 @@
       },
       "run_controls": 70,
       "run_dispersion_pct": 2.534193356747385,
-      "build_factor": 0.9706930805636249,
+      "build_factor": 0.9706930805636248,
       "build_task_factors": {
         "wordfreq": 0.8317065522319554,
         "csvagg": 0.8537831474030689,
@@ -1138,7 +1138,7 @@
           "leven": 131.59072254968797,
           "chacha": 134.58773319698324
         },
-        "build_geo_adjusted_ms": 147.6537464034908,
+        "build_geo_adjusted_ms": 147.6537464034909,
         "build_index": {
           "wordfreq": 1.5470272044708562,
           "csvagg": 1.5190821712377605,
@@ -1183,7 +1183,7 @@
         },
         "run_geo_index": 1.0316230499471175
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 97.0695,
           "csvagg": 55.12439999,
@@ -1243,9 +1243,9 @@
         },
         "build_geo_index": 1.2314380637427542,
         "build_peak_mb": 222.08984375,
-        "exe_kb": 205.66409964631353
+        "exe_kb": 205.6640996463139
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 103.26260001,
           "csvagg": 58.2845,
@@ -1421,7 +1421,7 @@
         "chacha": 0.9459461916795413
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.418938909683789,
+      "run_dispersion_pct": 2.4189389096837886,
       "build_factor": 0.9308159588628167,
       "build_task_factors": {
         "wordfreq": 0.8428965008289009,
@@ -1484,7 +1484,7 @@
           "leven": 136.04021435173075,
           "chacha": 154.81459504334816
         },
-        "build_geo_adjusted_ms": 132.82393760970044,
+        "build_geo_adjusted_ms": 132.82393760970055,
         "build_index": {
           "wordfreq": 1.247744432293917,
           "csvagg": 1.183263631957001,
@@ -1529,7 +1529,7 @@
         },
         "run_geo_index": 0.9804683788690383
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 82.51829998,
           "csvagg": 40.71480001,
@@ -1577,7 +1577,7 @@
           "leven": 172.46922876122918,
           "chacha": 561.5634692963449
         },
-        "build_geo_adjusted_ms": 193.5015820201906,
+        "build_geo_adjusted_ms": 193.50158202019043,
         "build_index": {
           "wordfreq": 1.1508003174587367,
           "csvagg": 1.3256764721513206,
@@ -1591,7 +1591,7 @@
         "build_peak_mb": 196.578125,
         "exe_kb": 109.22574745588476
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 85.70190001,
           "csvagg": 41.00790003,
@@ -1636,7 +1636,7 @@
       "run": {
         "controls": 10,
         "geo": [
-          0.9439533397181435,
+          0.9439533397181434,
           1.0560380776269696
         ],
         "tasks": {
@@ -1920,7 +1920,7 @@
         },
         "run_geo_index": 0.9071195295990749
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 79.28429998,
           "csvagg": 41.0341,
@@ -1982,7 +1982,7 @@
         "build_peak_mb": 266.92578125,
         "exe_kb": 119.75733281647526
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 77.64930002,
           "csvagg": 40.7521,
@@ -2020,7 +2020,7 @@
       "exec_jit_vs_best": 1.0903900280566057,
       "exec_native_fastest": "cpp-clang-cl",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 1.8556979193403655,
+      "build_speedup": 1.855697919340366,
       "build_tasks": 7
     },
     "null": {
@@ -2064,7 +2064,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.7252503246014789,
+          0.7252503246014788,
           1.1275620164795568
         ],
         "tasks": {
@@ -2203,7 +2203,7 @@
         "chacha": 0.9210328951612714
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.4163240353012627,
+      "run_dispersion_pct": 2.416324035301263,
       "build_factor": 0.8698870325501589,
       "build_task_factors": {
         "wordfreq": 0.851987543015381,
@@ -2215,7 +2215,7 @@
         "chacha": 0.9266972412273586
       },
       "build_controls": 42,
-      "build_dispersion_pct": 5.519507023112624
+      "build_dispersion_pct": 5.519507023112625
     },
     "runtimes": {
       "swag-release": {
@@ -2247,7 +2247,7 @@
           "leven": 0.700059623882756,
           "chacha": 0.9155480458859732
         },
-        "run_geo_index": 0.7909610355267079,
+        "run_geo_index": 0.7909610355267078,
         "build_ms": {
           "wordfreq": 125.9657,
           "csvagg": 124.6262,
@@ -2266,7 +2266,7 @@
           "leven": 153.025928764176,
           "chacha": 148.22953375588904
         },
-        "build_geo_adjusted_ms": 145.88334505365884,
+        "build_geo_adjusted_ms": 145.88334505365873,
         "build_index": {
           "wordfreq": 1.3363875084185124,
           "csvagg": 1.2664769940723186,
@@ -2299,7 +2299,7 @@
           "leven": 12.295758585695767,
           "chacha": 26.627387728324038
         },
-        "run_geo_adjusted_ms": 30.098632780966362,
+        "run_geo_adjusted_ms": 30.098632780966348,
         "run_index": {
           "wordfreq": 0.846210570922094,
           "csvagg": 0.8920111266448593,
@@ -2311,7 +2311,7 @@
         },
         "run_geo_index": 0.904610129538484
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 85.20679997,
           "csvagg": 41.14410002,
@@ -2359,7 +2359,7 @@
           "leven": 176.1108895121729,
           "chacha": 500.03245869846427
         },
-        "build_geo_adjusted_ms": 193.08717399066254,
+        "build_geo_adjusted_ms": 193.08717399066236,
         "build_index": {
           "wordfreq": 1.188872576998237,
           "csvagg": 1.1174640769447641,
@@ -2373,7 +2373,7 @@
         "build_peak_mb": 270.109375,
         "exe_kb": 119.75733281647526
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 82.67239999,
           "csvagg": 41.75470001,
@@ -2594,7 +2594,7 @@
         "chacha": 0.961343686135488
       },
       "run_controls": 70,
-      "run_dispersion_pct": 1.9027654966534315,
+      "run_dispersion_pct": 1.902765496653432,
       "build_factor": 0.926152883013613,
       "build_task_factors": {
         "wordfreq": 0.8876746803768527,
@@ -2628,7 +2628,7 @@
           "leven": 11.894546700703696,
           "chacha": 27.036428672541245
         },
-        "run_geo_adjusted_ms": 26.33365440342311,
+        "run_geo_adjusted_ms": 26.33365440342312,
         "run_index": {
           "wordfreq": 0.9013743111164199,
           "csvagg": 0.7003333972728815,
@@ -2657,7 +2657,7 @@
           "leven": 152.8733139769541,
           "chacha": 143.10597442677627
         },
-        "build_geo_adjusted_ms": 144.82067055005263,
+        "build_geo_adjusted_ms": 144.82067055005277,
         "build_index": {
           "wordfreq": 1.3573523439716897,
           "csvagg": 1.3393252829223254,
@@ -2690,7 +2690,7 @@
           "leven": 12.217620000530342,
           "chacha": 25.92777213755695
         },
-        "run_geo_adjusted_ms": 29.93524954867115,
+        "run_geo_adjusted_ms": 29.935249548671134,
         "run_index": {
           "wordfreq": 0.8784116274482592,
           "csvagg": 0.848626542755053,
@@ -2702,7 +2702,7 @@
         },
         "run_geo_index": 0.8996996697177159
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 95.75089999,
           "csvagg": 45.99429999,
@@ -2764,7 +2764,7 @@
         "build_peak_mb": 269.34765625,
         "exe_kb": 119.75496590704459
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 94.55670003,
           "csvagg": 46.36789998,
@@ -2783,7 +2783,7 @@
           "leven": 36.91914938308262,
           "chacha": 76.15268196569008
         },
-        "run_geo_adjusted_ms": 57.43599056991057,
+        "run_geo_adjusted_ms": 57.43599056991062,
         "run_index": {
           "wordfreq": 0.9756332554318714,
           "csvagg": 0.7624301624800545,
@@ -2802,7 +2802,7 @@
       "exec_jit_vs_best": 1.0966476785666344,
       "exec_native_fastest": "cpp-clang-cl",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 2.231686019044864,
+      "build_speedup": 2.2316860190448637,
       "build_tasks": 7
     },
     "null": {
@@ -2985,7 +2985,7 @@
         "chacha": 0.9727030171281474
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.1124131342804318,
+      "run_dispersion_pct": 2.1124131342804313,
       "build_factor": 0.9243353982505268,
       "build_task_factors": {
         "wordfreq": 0.836818984010557,
@@ -2997,7 +2997,7 @@
         "chacha": 1.0300381952112598
       },
       "build_controls": 42,
-      "build_dispersion_pct": 10.509271549963476
+      "build_dispersion_pct": 10.509271549963474
     },
     "runtimes": {
       "swag-release": {
@@ -3091,9 +3091,9 @@
           "leven": 0.7121534256041708,
           "chacha": 0.9154590880730236
         },
-        "run_geo_index": 0.9119441157069256
+        "run_geo_index": 0.9119441157069257
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 78.99820001,
           "csvagg": 43.99969999,
@@ -3141,7 +3141,7 @@
           "leven": 207.26798863103198,
           "chacha": 475.9208952435565
         },
-        "build_geo_adjusted_ms": 184.90104770338718,
+        "build_geo_adjusted_ms": 184.90104770338735,
         "build_index": {
           "wordfreq": 1.0626380003580744,
           "csvagg": 1.09176231004446,
@@ -3155,7 +3155,7 @@
         "build_peak_mb": 271.1796875,
         "exe_kb": 119.75733281647526
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 77.39530003,
           "csvagg": 48.22529998,
@@ -3388,7 +3388,7 @@
         "chacha": 0.891180181016394
       },
       "build_controls": 42,
-      "build_dispersion_pct": 6.506299114079331
+      "build_dispersion_pct": 6.506299114079329
     },
     "runtimes": {
       "swag-release": {
@@ -3410,7 +3410,7 @@
           "leven": 10.625348189294625,
           "chacha": 25.715576766142096
         },
-        "run_geo_adjusted_ms": 25.027522059373695,
+        "run_geo_adjusted_ms": 25.027522059373705,
         "run_index": {
           "wordfreq": 0.808895991901959,
           "csvagg": 0.7628279909960293,
@@ -3449,7 +3449,7 @@
           "leven": 1.9170232492504329,
           "chacha": 1.6606681614279837
         },
-        "build_geo_index": 1.9715578686667081,
+        "build_geo_index": 1.9715578686667083,
         "build_peak_mb": 138.55078125,
         "exe_kb": 94.99700414214458
       },
@@ -3472,7 +3472,7 @@
           "leven": 10.927291250881776,
           "chacha": 27.232306954778938
         },
-        "run_geo_adjusted_ms": 28.877093176621575,
+        "run_geo_adjusted_ms": 28.87709317662156,
         "run_index": {
           "wordfreq": 0.8023335015864211,
           "csvagg": 0.8982996227599325,
@@ -3484,7 +3484,7 @@
         },
         "run_geo_index": 0.8678969303787697
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 71.80479995,
           "csvagg": 36.86289996,
@@ -3503,7 +3503,7 @@
           "leven": 37.38318775244236,
           "chacha": 66.0747916500704
         },
-        "run_geo_adjusted_ms": 54.37886902367139,
+        "run_geo_adjusted_ms": 54.37886902367142,
         "run_index": {
           "wordfreq": 0.9371243289898961,
           "csvagg": 0.8002895288735489,
@@ -3542,11 +3542,11 @@
           "leven": 1.5582809472248713,
           "chacha": 1.0683476182507583
         },
-        "build_geo_index": 1.6181058119802731,
+        "build_geo_index": 1.618105811980273,
         "build_peak_mb": 246.75390625,
         "exe_kb": 139.92723845164892
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 81.61489997,
           "csvagg": 37.73779998,
@@ -3767,7 +3767,7 @@
         "chacha": 0.9692778857826067
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.8430635656308723,
+      "run_dispersion_pct": 2.8430635656308727,
       "build_factor": 0.9093070229824964,
       "build_task_factors": {
         "wordfreq": 0.8560686014814012,
@@ -3801,7 +3801,7 @@
           "leven": 11.414591293142342,
           "chacha": 26.40264506740202
         },
-        "run_geo_adjusted_ms": 24.886270177793964,
+        "run_geo_adjusted_ms": 24.886270177793953,
         "run_index": {
           "wordfreq": 0.8136629825567966,
           "csvagg": 0.726636668697396,
@@ -3875,7 +3875,7 @@
         },
         "run_geo_index": 0.849433209745213
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 86.31520002,
           "csvagg": 41.95380001,
@@ -3904,7 +3904,7 @@
           "leven": 0.772477211969955,
           "chacha": 0.7030658907610068
         },
-        "run_geo_index": 0.778622421460656,
+        "run_geo_index": 0.7786224214606559,
         "build_ms": {
           "wordfreq": 192.8373,
           "csvagg": 203.4333,
@@ -3923,7 +3923,7 @@
           "leven": 224.33389638740917,
           "chacha": 484.5453455443621
         },
-        "build_geo_adjusted_ms": 245.52424524744927,
+        "build_geo_adjusted_ms": 245.52424524744947,
         "build_index": {
           "wordfreq": 1.6079683953349102,
           "csvagg": 1.389535183615356,
@@ -3937,7 +3937,7 @@
         "build_peak_mb": 240.39453125,
         "exe_kb": 129.21888584437312
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 92.15440002,
           "csvagg": 44.9022,
@@ -3956,7 +3956,7 @@
           "leven": 40.704333943290905,
           "chacha": 86.3277716714225
         },
-        "run_geo_adjusted_ms": 63.302394903939565,
+        "run_geo_adjusted_ms": 63.30239490393951,
         "run_index": {
           "wordfreq": 0.9827319812881855,
           "csvagg": 0.7443098232123612,
@@ -4158,7 +4158,7 @@
         "chacha": 0.9705397047414531
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.2371983017607624,
+      "run_dispersion_pct": 2.237198301760762,
       "build_factor": 0.8983775671809688,
       "build_task_factors": {
         "wordfreq": 0.8747229408103633,
@@ -4170,7 +4170,7 @@
         "chacha": 0.9426554108377645
       },
       "build_controls": 42,
-      "build_dispersion_pct": 5.299698102832092
+      "build_dispersion_pct": 5.299698102832093
     },
     "runtimes": {
       "swag-release": {
@@ -4254,7 +4254,7 @@
           "leven": 10.771164951275162,
           "chacha": 26.53389641267717
         },
-        "run_geo_adjusted_ms": 28.467288127346254,
+        "run_geo_adjusted_ms": 28.467288127346265,
         "run_index": {
           "wordfreq": 0.799513446349144,
           "csvagg": 0.8440516153435369,
@@ -4266,7 +4266,7 @@
         },
         "run_geo_index": 0.8555802978789411
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 80.28389997,
           "csvagg": 39.80620002,
@@ -4285,7 +4285,7 @@
           "leven": 38.3953257752645,
           "chacha": 63.77534035713553
         },
-        "run_geo_adjusted_ms": 53.46753391410881,
+        "run_geo_adjusted_ms": 53.467533914108785,
         "run_index": {
           "wordfreq": 0.8968572853783524,
           "csvagg": 0.7393362032160747,
@@ -4314,7 +4314,7 @@
           "leven": 194.8057669955305,
           "chacha": 447.59929784417955
         },
-        "build_geo_adjusted_ms": 211.36581645225596,
+        "build_geo_adjusted_ms": 211.36581645225615,
         "build_index": {
           "wordfreq": 1.3786782384173584,
           "csvagg": 1.2174543850542379,
@@ -4328,7 +4328,7 @@
         "build_peak_mb": 227.26171875,
         "exe_kb": 129.3617936084278
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 87.63019997,
           "csvagg": 40.52880005,
@@ -4410,7 +4410,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.7166130029850041,
+          0.716613002985004,
           1.0782347317267196
         ],
         "tasks": {
@@ -4651,7 +4651,7 @@
         },
         "run_geo_index": null
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": null,
           "csvagg": null,
@@ -4699,7 +4699,7 @@
           "leven": 191.61450023004508,
           "chacha": 480.36389836075455
         },
-        "build_geo_adjusted_ms": 211.1897635935729,
+        "build_geo_adjusted_ms": 211.1897635935731,
         "build_index": {
           "wordfreq": 1.3089506224663068,
           "csvagg": 1.2254342914230774,
@@ -4713,7 +4713,7 @@
         "build_peak_mb": 224.84375,
         "exe_kb": 129.2934926908494
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": null,
           "csvagg": null,
@@ -4939,7 +4939,7 @@
           "leven": 10.411658733022136,
           "chacha": 25.375173945709673
         },
-        "run_geo_adjusted_ms": 25.59904997038073,
+        "run_geo_adjusted_ms": 25.599049970380705,
         "run_index": {
           "wordfreq": 0.8195220432047434,
           "csvagg": 0.9184524038630477,
@@ -4980,7 +4980,7 @@
         },
         "build_geo_index": 1.5806869565547939,
         "build_peak_mb": 119.83203125,
-        "exe_kb": 90.34984022868672
+        "exe_kb": 90.34984022868689
       },
       "swc-jit-release": {
         "run_ms": {
@@ -5001,7 +5001,7 @@
           "leven": 11.634611142688872,
           "chacha": 26.27324900157502
         },
-        "run_geo_adjusted_ms": 28.338124694272363,
+        "run_geo_adjusted_ms": 28.338124694272377,
         "run_index": {
           "wordfreq": 0.7859234148928772,
           "csvagg": 0.8796258529874457,
@@ -5013,7 +5013,7 @@
         },
         "run_geo_index": 0.8516983092592286
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 74.8267,
           "csvagg": 35.53960001,
@@ -5075,7 +5075,7 @@
         "build_peak_mb": 226.00390625,
         "exe_kb": 128.72468623310212
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 74.2649,
           "csvagg": 37.8162,
@@ -5299,7 +5299,7 @@
         "chacha": 1.0125631337538101
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.465800281776406,
+      "run_dispersion_pct": 2.4658002817764055,
       "build_factor": 0.889556364879975,
       "build_task_factors": {
         "wordfreq": 0.8971866179069152,
@@ -5311,7 +5311,7 @@
         "chacha": 1.114616947576308
       },
       "build_controls": 42,
-      "build_dispersion_pct": 4.9771989554760765
+      "build_dispersion_pct": 4.977198955476076
     },
     "runtimes": {
       "swag-release": {
@@ -5343,7 +5343,7 @@
           "leven": 0.6037524873603219,
           "chacha": 0.9169825941042423
         },
-        "run_geo_index": 0.7224756879967595,
+        "run_geo_index": 0.7224756879967594,
         "build_ms": {
           "wordfreq": 173.3611,
           "csvagg": 184.0635,
@@ -5407,7 +5407,7 @@
         },
         "run_geo_index": 0.8281232778594312
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 88.32919999,
           "csvagg": 43.1641,
@@ -5426,7 +5426,7 @@
           "leven": 39.18569171155385,
           "chacha": 65.11307573047606
         },
-        "run_geo_adjusted_ms": 54.06668986175311,
+        "run_geo_adjusted_ms": 54.06668986175313,
         "run_index": {
           "wordfreq": 1.003460164754019,
           "csvagg": 0.7880687540666661,
@@ -5455,7 +5455,7 @@
           "leven": 205.33927392190574,
           "chacha": 341.9763182578959
         },
-        "build_geo_adjusted_ms": 209.53280463601632,
+        "build_geo_adjusted_ms": 209.53280463601595,
         "build_index": {
           "wordfreq": 1.4054545079120675,
           "csvagg": 1.3123928504120743,
@@ -5469,7 +5469,7 @@
         "build_peak_mb": 180.984375,
         "exe_kb": 129.4364037471177
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 90.6483,
           "csvagg": 41.2853,
@@ -5488,7 +5488,7 @@
           "leven": 38.995918889117775,
           "chacha": 71.48630795163751
         },
-        "run_geo_adjusted_ms": 58.96275943813104,
+        "run_geo_adjusted_ms": 58.96275943813098,
         "run_index": {
           "wordfreq": 1.0015859956295008,
           "csvagg": 0.6966493270504686,
@@ -5507,7 +5507,7 @@
       "exec_jit_vs_best": 1.0521602467800684,
       "exec_native_fastest": "swag-release",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 1.6087484729459158,
+      "build_speedup": 1.608748472945916,
       "build_tasks": 7
     },
     "null": {
@@ -5551,7 +5551,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.7709494916311573,
+          0.7709494916311572,
           1.089147240384258
         ],
         "tasks": {
@@ -5705,7 +5705,7 @@
         "chacha": 1.103641318079519
       },
       "build_controls": 42,
-      "build_dispersion_pct": 7.443757126531662
+      "build_dispersion_pct": 7.443757126531661
     },
     "runtimes": {
       "swag-release": {
@@ -5737,7 +5737,7 @@
           "leven": 0.6181442893429849,
           "chacha": 0.8449145563393516
         },
-        "run_geo_index": 0.7248710175715839,
+        "run_geo_index": 0.7248710175715838,
         "build_ms": {
           "wordfreq": 160.3084,
           "csvagg": 193.1464,
@@ -5801,7 +5801,7 @@
         },
         "run_geo_index": 0.8461685832776782
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 85.1997,
           "csvagg": 38.9073,
@@ -5820,7 +5820,7 @@
           "leven": 39.180410354035274,
           "chacha": 66.88328293077193
         },
-        "run_geo_adjusted_ms": 53.22811435689441,
+        "run_geo_adjusted_ms": 53.22811435689439,
         "run_index": {
           "wordfreq": 1.0093452937317309,
           "csvagg": 0.7259214380385697,
@@ -5863,7 +5863,7 @@
         "build_peak_mb": 233.5,
         "exe_kb": 128.72468623310212
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 84.0872,
           "csvagg": 41.6523,
@@ -6087,7 +6087,7 @@
         "chacha": 0.8954916667430527
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.161514756712517,
+      "run_dispersion_pct": 2.1615147567125175,
       "build_factor": 0.8260439465677543,
       "build_task_factors": {
         "wordfreq": 0.8048116880340026,
@@ -6099,7 +6099,7 @@
         "chacha": 0.8732257493620446
       },
       "build_controls": 42,
-      "build_dispersion_pct": 7.033536212524988
+      "build_dispersion_pct": 7.033536212524987
     },
     "runtimes": {
       "swag-release": {
@@ -6195,7 +6195,7 @@
         },
         "run_geo_index": 0.8084608176720499
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 73.5348,
           "csvagg": 36.62999999,
@@ -6257,7 +6257,7 @@
         "build_peak_mb": 231.8515625,
         "exe_kb": 128.72468623310212
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 73.70919999,
           "csvagg": 35.6264,
@@ -6339,7 +6339,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.7007414270056229,
+          0.700741427005623,
           1.1579419858323377
         ],
         "tasks": {
@@ -6480,7 +6480,7 @@
         "chacha": 1.163700815485683
       },
       "run_controls": 70,
-      "run_dispersion_pct": 3.4258843055472408,
+      "run_dispersion_pct": 3.4258843055472403,
       "build_factor": null,
       "build_task_factors": {},
       "build_controls": 0,
@@ -6568,7 +6568,7 @@
           "leven": 10.483169052388572,
           "chacha": 24.625917253516413
         },
-        "run_geo_adjusted_ms": 26.696931544849175,
+        "run_geo_adjusted_ms": 26.69693154484916,
         "run_index": {
           "wordfreq": 0.7484877352465806,
           "csvagg": 0.8475949694980448,
@@ -6580,7 +6580,7 @@
         },
         "run_geo_index": 0.8023724824583433
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 75.0783,
           "csvagg": 35.18029998,
@@ -6599,7 +6599,7 @@
           "leven": 37.67826381694268,
           "chacha": 74.59064980011429
         },
-        "run_geo_adjusted_ms": 53.558086771588684,
+        "run_geo_adjusted_ms": 53.55808677158866,
         "run_index": {
           "wordfreq": 0.9507328823945441,
           "csvagg": 0.7247273746777605,
@@ -6642,7 +6642,7 @@
         "build_peak_mb": null,
         "exe_kb": null
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 76.91950002,
           "csvagg": 37.4272,
@@ -6887,7 +6887,7 @@
         },
         "run_geo_index": 0.8474897582191938
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 72.5947,
           "csvagg": 29.8421,
@@ -6935,7 +6935,7 @@
           "leven": 185.32248379110962,
           "chacha": 393.90309918661546
         },
-        "build_geo_adjusted_ms": 198.09907872004538,
+        "build_geo_adjusted_ms": 198.09907872004572,
         "build_index": {
           "wordfreq": 1.267955793286661,
           "csvagg": 1.1571911040585987,
@@ -6947,9 +6947,9 @@
         },
         "build_geo_index": 1.2339201530776616,
         "build_peak_mb": 234.71484375,
-        "exe_kb": 127.8733542614438
+        "exe_kb": 127.87335426144425
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 72.9083,
           "csvagg": 31.8185,
@@ -6978,7 +6978,7 @@
           "leven": 0.9599534129909892,
           "chacha": 0.7321413912125189
         },
-        "run_geo_index": 0.8283006810240671
+        "run_geo_index": 0.8283006810240672
       }
     },
     "headline": {
@@ -7236,7 +7236,7 @@
           "leven": 160.161950170059,
           "chacha": 150.66683513947476
         },
-        "build_geo_adjusted_ms": 156.1913295414138,
+        "build_geo_adjusted_ms": 156.19132954141395,
         "build_index": {
           "wordfreq": 1.4993821075705263,
           "csvagg": 1.5165432394068497,
@@ -7246,9 +7246,9 @@
           "leven": 1.39750422684089,
           "chacha": 1.139713618070856
         },
-        "build_geo_index": 1.3910506295333356,
+        "build_geo_index": 1.3910506295333358,
         "build_peak_mb": 123.734375,
-        "exe_kb": 89.4932992753301
+        "exe_kb": 89.49329927533027
       },
       "swc-jit-release": {
         "run_ms": {
@@ -7281,7 +7281,7 @@
         },
         "run_geo_index": 0.823015982015554
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 86.54049999,
           "csvagg": 33.56919999,
@@ -7329,7 +7329,7 @@
           "leven": 179.4895900424021,
           "chacha": 342.4378417844073
         },
-        "build_geo_adjusted_ms": 181.10619834109505,
+        "build_geo_adjusted_ms": 181.10619834109488,
         "build_index": {
           "wordfreq": 1.2337086662625143,
           "csvagg": 0.9686421607204392,
@@ -7341,9 +7341,9 @@
         },
         "build_geo_index": 1.1280748473149977,
         "build_peak_mb": 231.8515625,
-        "exe_kb": 127.44928098445219
+        "exe_kb": 127.44928098445241
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 80.21679999,
           "csvagg": 39.1906,
@@ -7567,7 +7567,7 @@
         "chacha": 0.9564345555318575
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.521850926737629,
+      "run_dispersion_pct": 2.5218509267376295,
       "build_factor": 0.8867334669044885,
       "build_task_factors": {
         "wordfreq": 0.8178777303092222,
@@ -7579,7 +7579,7 @@
         "chacha": 0.925703538463925
       },
       "build_controls": 42,
-      "build_dispersion_pct": 6.662183924097024
+      "build_dispersion_pct": 6.6621839240970235
     },
     "runtimes": {
       "swag-release": {
@@ -7675,7 +7675,7 @@
         },
         "run_geo_index": 0.8187226435578178
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 80.19949999,
           "csvagg": 33.57969999,
@@ -7723,7 +7723,7 @@
           "leven": 183.1452912931824,
           "chacha": 367.4531703361917
         },
-        "build_geo_adjusted_ms": 194.5038998735229,
+        "build_geo_adjusted_ms": 194.50389987352273,
         "build_index": {
           "wordfreq": 1.3092297375380577,
           "csvagg": 1.245355041983648,
@@ -7737,7 +7737,7 @@
         "build_peak_mb": 231.6015625,
         "exe_kb": 127.4489801190764
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 90.63309999,
           "csvagg": 36.09399998,
@@ -7961,7 +7961,7 @@
         "chacha": 0.959983607455692
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.2026920784353794,
+      "run_dispersion_pct": 2.20269207843538,
       "build_factor": 0.8252544206067667,
       "build_task_factors": {
         "wordfreq": 0.7776554321879723,
@@ -7973,7 +7973,7 @@
         "chacha": 0.8993925932335527
       },
       "build_controls": 42,
-      "build_dispersion_pct": 7.217733558604378
+      "build_dispersion_pct": 7.21773355860438
     },
     "runtimes": {
       "swag-release": {
@@ -8057,7 +8057,7 @@
           "leven": 10.87232711697362,
           "chacha": 23.285918474427444
         },
-        "run_geo_adjusted_ms": 26.768174962834156,
+        "run_geo_adjusted_ms": 26.76817496283414,
         "run_index": {
           "wordfreq": 0.7365630352422978,
           "csvagg": 0.9688366279577375,
@@ -8069,7 +8069,7 @@
         },
         "run_geo_index": 0.8045136932582208
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 70.93749999,
           "csvagg": 30.23150002,
@@ -8129,9 +8129,9 @@
         },
         "build_geo_index": 1.2185643722989952,
         "build_peak_mb": 232.79296875,
-        "exe_kb": 127.30073789132858
+        "exe_kb": 127.30073789132881
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 75.16469999,
           "csvagg": 32.5261,
@@ -8150,7 +8150,7 @@
           "leven": 38.89207029657739,
           "chacha": 69.77567062580454
         },
-        "run_geo_adjusted_ms": 56.01308471141172,
+        "run_geo_adjusted_ms": 56.01308471141167,
         "run_index": {
           "wordfreq": 0.9560386593190888,
           "csvagg": 0.6261405421731416,
@@ -8169,7 +8169,7 @@
       "exec_jit_vs_best": 1.0528183537970208,
       "exec_native_fastest": "swag-release",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 1.8186413190766098,
+      "build_speedup": 1.8186413190766102,
       "build_tasks": 7
     },
     "null": {
@@ -8355,7 +8355,7 @@
         "chacha": 0.9201272132265493
       },
       "run_controls": 70,
-      "run_dispersion_pct": 3.2246846409886794,
+      "run_dispersion_pct": 3.224684640988679,
       "build_factor": 0.8192658443708872,
       "build_task_factors": {
         "wordfreq": 0.7817030607618953,
@@ -8463,7 +8463,7 @@
         },
         "run_geo_index": 0.8274189058929102
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 72.36610001,
           "csvagg": 30.73299999,
@@ -8525,7 +8525,7 @@
         "build_peak_mb": 234.23046875,
         "exe_kb": 127.4489801190764
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 74.40879999,
           "csvagg": 32.9274,
@@ -8544,7 +8544,7 @@
           "leven": 38.677487975100185,
           "chacha": 73.92412594936754
         },
-        "run_geo_adjusted_ms": 56.78023584527939,
+        "run_geo_adjusted_ms": 56.78023584527945,
         "run_index": {
           "wordfreq": 0.9526262382955328,
           "csvagg": 0.6458639514320738,
@@ -8761,7 +8761,7 @@
         "chacha": 0.8834289435136394
       },
       "build_controls": 42,
-      "build_dispersion_pct": 5.719478780131429
+      "build_dispersion_pct": 5.71947878013143
     },
     "runtimes": {
       "swag-release": {
@@ -8783,7 +8783,7 @@
           "leven": 9.922409209690322,
           "chacha": 20.627873734006812
         },
-        "run_geo_adjusted_ms": 22.13533990160694,
+        "run_geo_adjusted_ms": 22.13533990160695,
         "run_index": {
           "wordfreq": 0.7078751338294507,
           "csvagg": 0.6733567520248699,
@@ -8857,7 +8857,7 @@
         },
         "run_geo_index": 0.8111769603892502
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 78.18489999,
           "csvagg": 33.22440002,
@@ -8917,9 +8917,9 @@
         },
         "build_geo_index": 1.213200814110776,
         "build_peak_mb": 231.5703125,
-        "exe_kb": 127.3071333344486
+        "exe_kb": 127.30713333444882
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 83.28279998,
           "csvagg": 33.70110004,
@@ -8948,7 +8948,7 @@
           "leven": 0.9123904709394599,
           "chacha": 0.7646105247453099
         },
-        "run_geo_index": 0.8144672399472116
+        "run_geo_index": 0.8144672399472115
       }
     },
     "headline": {
@@ -9143,7 +9143,7 @@
         "chacha": 0.9398775509461608
       },
       "run_controls": 70,
-      "run_dispersion_pct": 3.060641983814409,
+      "run_dispersion_pct": 3.0606419838144086,
       "build_factor": 0.8346717612287508,
       "build_task_factors": {
         "wordfreq": 0.8076930744941806,
@@ -9155,7 +9155,7 @@
         "chacha": 0.9173349411467467
       },
       "build_controls": 42,
-      "build_dispersion_pct": 6.727132636306704
+      "build_dispersion_pct": 6.7271326363067026
     },
     "runtimes": {
       "swag-release": {
@@ -9177,7 +9177,7 @@
           "leven": 10.685844227890671,
           "chacha": 21.172758078929714
         },
-        "run_geo_adjusted_ms": 23.610284978379077,
+        "run_geo_adjusted_ms": 23.610284978379067,
         "run_index": {
           "wordfreq": 0.7497563018438251,
           "csvagg": 0.8311113396518135,
@@ -9206,7 +9206,7 @@
           "leven": 173.8736241154985,
           "chacha": 166.12438179831827
         },
-        "build_geo_adjusted_ms": 176.99428927232952,
+        "build_geo_adjusted_ms": 176.9942892723297,
         "build_index": {
           "wordfreq": 1.6532660297798567,
           "csvagg": 1.7656394397018265,
@@ -9251,7 +9251,7 @@
         },
         "run_geo_index": 0.8042163884145913
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 78.81209999,
           "csvagg": 31.34009999,
@@ -9313,7 +9313,7 @@
         "build_peak_mb": 101.84375,
         "exe_kb": 126.86570720288958
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 78.70180003,
           "csvagg": 32.42810001,
@@ -9537,7 +9537,7 @@
         "chacha": 0.9450946364853896
       },
       "run_controls": 70,
-      "run_dispersion_pct": 2.1043172340806513,
+      "run_dispersion_pct": 2.1043172340806517,
       "build_factor": 0.8326730595450672,
       "build_task_factors": {
         "wordfreq": 0.7852704079794014,
@@ -9549,7 +9549,7 @@
         "chacha": 0.9302927473226219
       },
       "build_controls": 42,
-      "build_dispersion_pct": 5.672059929767211
+      "build_dispersion_pct": 5.67205992976721
     },
     "runtimes": {
       "swag-release": {
@@ -9571,7 +9571,7 @@
           "leven": 10.755501710969396,
           "chacha": 20.55582500419822
         },
-        "run_geo_adjusted_ms": 23.200243172139025,
+        "run_geo_adjusted_ms": 23.200243172139036,
         "run_index": {
           "wordfreq": 0.7174819495503008,
           "csvagg": 0.8186173535976361,
@@ -9600,7 +9600,7 @@
           "leven": 173.1133913175215,
           "chacha": 166.20488598346415
         },
-        "build_geo_adjusted_ms": 173.38126466262327,
+        "build_geo_adjusted_ms": 173.38126466262344,
         "build_index": {
           "wordfreq": 1.6707948361772698,
           "csvagg": 1.739450801021751,
@@ -9610,7 +9610,7 @@
           "leven": 1.510512926647815,
           "chacha": 1.2572506203499483
         },
-        "build_geo_index": 1.5441453636789682,
+        "build_geo_index": 1.5441453636789684,
         "build_peak_mb": 100.2109375,
         "exe_kb": 90.99380085121813
       },
@@ -9633,7 +9633,7 @@
           "leven": 10.933165058275724,
           "chacha": 22.155029985003722
         },
-        "run_geo_adjusted_ms": 26.908914465999256,
+        "run_geo_adjusted_ms": 26.90891446599927,
         "run_index": {
           "wordfreq": 0.7193031772656929,
           "csvagg": 0.9964578748571461,
@@ -9645,7 +9645,7 @@
         },
         "run_geo_index": 0.8087435990189203
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 73.43480003,
           "csvagg": 32.91079996,
@@ -9707,7 +9707,7 @@
         "build_peak_mb": 102.58203125,
         "exe_kb": 126.87213098104804
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 74.54060001,
           "csvagg": 32.01899998,
@@ -9726,7 +9726,7 @@
           "leven": 39.46917072263132,
           "chacha": 75.3946718870217
         },
-        "run_geo_adjusted_ms": 58.163280559520054,
+        "run_geo_adjusted_ms": 58.163280559520004,
         "run_index": {
           "wordfreq": 0.9472377662911149,
           "csvagg": 0.6231743475107627,
@@ -9745,7 +9745,7 @@
       "exec_jit_vs_best": 1.0592375898731168,
       "exec_native_fastest": "swag-release",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 1.8507226797501313,
+      "build_speedup": 1.8507226797501317,
       "build_tasks": 7
     },
     "null": {
@@ -9753,7 +9753,7 @@
         "controls": 10,
         "geo": [
           0.9467804758673687,
-          1.0417916119852144
+          1.0417916119852146
         ],
         "tasks": {
           "wordfreq": [
@@ -9790,7 +9790,7 @@
         "controls": 6,
         "geo": [
           0.7300732221926296,
-          1.1257605539096207
+          1.125760553909621
         ],
         "tasks": {
           "wordfreq": [
@@ -9931,7 +9931,7 @@
         "chacha": 0.9440425355403953
       },
       "run_controls": 70,
-      "run_dispersion_pct": 3.148158380876387,
+      "run_dispersion_pct": 3.1481583808763878,
       "build_factor": 0.8385813130826905,
       "build_task_factors": {
         "wordfreq": 0.8163941821535866,
@@ -9943,7 +9943,7 @@
         "chacha": 0.9394656055756754
       },
       "build_controls": 42,
-      "build_dispersion_pct": 7.109895294173479
+      "build_dispersion_pct": 7.1098952941734765
     },
     "runtimes": {
       "swag-release": {
@@ -10006,7 +10006,7 @@
         },
         "build_geo_index": 1.5719897358442487,
         "build_peak_mb": 100.81640625,
-        "exe_kb": 92.27851791498381
+        "exe_kb": 92.27851791498364
       },
       "swc-jit-release": {
         "run_ms": {
@@ -10039,7 +10039,7 @@
         },
         "run_geo_index": 0.7854691301020613
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 71.926,
           "csvagg": 30.91799997,
@@ -10058,7 +10058,7 @@
           "leven": 40.097352755546304,
           "chacha": 63.399261978952396
         },
-        "run_geo_adjusted_ms": 53.35304529610362,
+        "run_geo_adjusted_ms": 53.35304529610365,
         "run_index": {
           "wordfreq": 0.9496130273515062,
           "csvagg": 0.6568631394597186,
@@ -10101,7 +10101,7 @@
         "build_peak_mb": 103.046875,
         "exe_kb": 127.43351548507138
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 74.80060001,
           "csvagg": 31.2345,
@@ -10120,7 +10120,7 @@
           "leven": 39.29047713878339,
           "chacha": 67.10661610574137
         },
-        "run_geo_adjusted_ms": 55.34854259263728,
+        "run_geo_adjusted_ms": 55.34854259263723,
         "run_index": {
           "wordfreq": 0.9605026708845494,
           "csvagg": 0.6133034617031647,
@@ -10385,7 +10385,7 @@
           "lz77": 23.69259996,
           "sort": 18.13869999
         },
-        "run_geo_adjusted_ms": 21.832179711831802,
+        "run_geo_adjusted_ms": 21.832179711831813,
         "run_index": {
           "wordfreq": 0.7223139377212974,
           "csvagg": 0.6154952914077295,
@@ -10429,7 +10429,7 @@
           "lz77": 158.6637,
           "sort": 146.1186
         },
-        "build_geo_adjusted_ms": 176.42334914275855,
+        "build_geo_adjusted_ms": 176.4233491427587,
         "build_index": {
           "wordfreq": 1.589260367777572,
           "csvagg": 1.889091772122988,
@@ -10446,7 +10446,7 @@
         },
         "build_geo_index": 1.571238375458881,
         "build_peak_mb": 101.2734375,
-        "exe_kb": 91.61619647839773
+        "exe_kb": 91.61619647839755
       },
       "swc-jit-release": {
         "run_ms": {
@@ -10494,7 +10494,7 @@
         },
         "run_geo_index": 0.7453763873290793
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 72.41239998,
           "csvagg": 29.95690005,
@@ -10523,7 +10523,7 @@
           "lz77": 39.25389994,
           "sort": 23.79820001
         },
-        "run_geo_adjusted_ms": 51.728626401101934,
+        "run_geo_adjusted_ms": 51.72862640110191,
         "run_index": {
           "wordfreq": 0.9467030117916477,
           "csvagg": 0.610798800596101,
@@ -10586,7 +10586,7 @@
         "build_peak_mb": 101.859375,
         "exe_kb": 123.75031589700671
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 77.53120002,
           "csvagg": 31.32750001,
@@ -10876,7 +10876,7 @@
         "sort": 1.0081295834883732
       },
       "run_controls": 135,
-      "run_dispersion_pct": 6.792697009554541,
+      "run_dispersion_pct": 6.7926970095545425,
       "build_factor": 1.1782765760210894,
       "build_task_factors": {
         "wordfreq": 1.6054945564264935,
@@ -10984,9 +10984,9 @@
           "lz77": 0.9524023045996677,
           "sort": 1.0237688292685887
         },
-        "build_geo_index": 1.5199803276844643,
+        "build_geo_index": 1.5199803276844646,
         "build_peak_mb": 101.56640625,
-        "exe_kb": 91.86416449841118
+        "exe_kb": 91.86416449841086
       },
       "swc-jit-release": {
         "run_ms": {
@@ -11034,7 +11034,7 @@
         },
         "run_geo_index": 0.7304375330029124
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 85.04919999,
           "csvagg": 34.93850003,
@@ -11126,7 +11126,7 @@
         "build_peak_mb": 101.94140625,
         "exe_kb": 123.78887344772708
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 89.82220001,
           "csvagg": 34.88489997,
@@ -11155,7 +11155,7 @@
           "lz77": 40.701689770632264,
           "sort": 24.43872335811098
         },
-        "run_geo_adjusted_ms": 50.05340805349156,
+        "run_geo_adjusted_ms": 50.05340805349153,
         "run_index": {
           "wordfreq": 0.9255660869965487,
           "csvagg": 0.4931199251368595,
@@ -11526,7 +11526,7 @@
         },
         "build_geo_index": 1.4731499370516359,
         "build_peak_mb": 101.7109375,
-        "exe_kb": 91.86416449841118
+        "exe_kb": 91.86416449841086
       },
       "swc-jit-release": {
         "run_ms": {
@@ -11574,7 +11574,7 @@
         },
         "run_geo_index": 0.7558425071840953
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 89.07270001,
           "csvagg": 36.11370001,
@@ -11666,7 +11666,7 @@
         "build_peak_mb": 101.9765625,
         "exe_kb": 123.8300609495495
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 89.0413,
           "csvagg": 36.7078,
@@ -12114,7 +12114,7 @@
         },
         "run_geo_index": 0.7390835102178727
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 51.39060004,
           "csvagg": 23.08000001,
@@ -12143,7 +12143,7 @@
           "lz77": 37.7974413739325,
           "sort": 21.58146079448154
         },
-        "run_geo_adjusted_ms": 32.222686845696536,
+        "run_geo_adjusted_ms": 32.22268684569652,
         "run_index": {
           "wordfreq": 0.6666337368062933,
           "csvagg": 0.47417677877299597,
@@ -12204,9 +12204,9 @@
         },
         "build_geo_index": 1.276762884805583,
         "build_peak_mb": 111.21484375,
-        "exe_kb": 135.84882365435718
+        "exe_kb": 135.8488236543567
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 53.72800003,
           "csvagg": 22.57000003,
@@ -12235,7 +12235,7 @@
           "lz77": 36.90084168970959,
           "sort": 21.357765571626533
         },
-        "run_geo_adjusted_ms": 36.06232212709676,
+        "run_geo_adjusted_ms": 36.062322127096785,
         "run_index": {
           "wordfreq": 0.6778553291710735,
           "csvagg": 0.42856173896747574,
@@ -12496,7 +12496,7 @@
         "sort": 1.0202357643164248
       },
       "run_controls": 135,
-      "run_dispersion_pct": 2.7572905832839325,
+      "run_dispersion_pct": 2.757290583283933,
       "build_factor": 0.9072896349002064,
       "build_task_factors": {
         "wordfreq": 0.8901088269865112,
@@ -12654,7 +12654,7 @@
         },
         "run_geo_index": 0.7186035130621289
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 55.88900001,
           "csvagg": 23.68680004,
@@ -12683,7 +12683,7 @@
           "lz77": 37.33407934979693,
           "sort": 21.301154850772104
         },
-        "run_geo_adjusted_ms": 31.60367633324473,
+        "run_geo_adjusted_ms": 31.603676333244746,
         "run_index": {
           "wordfreq": 0.6997551703812619,
           "csvagg": 0.4701894125661563,
@@ -12727,7 +12727,7 @@
           "lz77": 161.94917403688564,
           "sort": 147.1503167566647
         },
-        "build_geo_adjusted_ms": 182.02897925500216,
+        "build_geo_adjusted_ms": 182.028979255002,
         "build_index": {
           "wordfreq": 1.3006324305724517,
           "csvagg": 1.4032405410780018,
@@ -12744,9 +12744,9 @@
         },
         "build_geo_index": 1.1338226679202341,
         "build_peak_mb": 107.70703125,
-        "exe_kb": 135.76620870935028
+        "exe_kb": 135.76620870935002
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 57.19229998,
           "csvagg": 23.87899999,
@@ -13036,7 +13036,7 @@
         "sort": 1.0063599855219842
       },
       "run_controls": 135,
-      "run_dispersion_pct": 2.4364336004797846,
+      "run_dispersion_pct": 2.436433600479784,
       "build_factor": 0.8827408992041186,
       "build_task_factors": {
         "wordfreq": 0.872986284737814,
@@ -13085,7 +13085,7 @@
           "lz77": 21.67260959105073,
           "sort": 17.909893327735322
         },
-        "run_geo_adjusted_ms": 20.89176155255827,
+        "run_geo_adjusted_ms": 20.891761552558258,
         "run_index": {
           "wordfreq": 0.6920457259945529,
           "csvagg": 0.6158120007451249,
@@ -13177,7 +13177,7 @@
           "lz77": 22.011931492570003,
           "sort": 18.4624788716762
         },
-        "run_geo_adjusted_ms": 24.02744849656335,
+        "run_geo_adjusted_ms": 24.02744849656336,
         "run_index": {
           "wordfreq": 0.7009017460827188,
           "csvagg": 0.7485321225828729,
@@ -13194,7 +13194,7 @@
         },
         "run_geo_index": 0.7221415489244557
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 55.84839999,
           "csvagg": 23.54289999,
@@ -13284,9 +13284,9 @@
         },
         "build_geo_index": 1.1427793087086402,
         "build_peak_mb": 106.19140625,
-        "exe_kb": 135.68498418768675
+        "exe_kb": 135.68498418768652
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 56.07649998,
           "csvagg": 24.0108,
@@ -13593,7 +13593,7 @@
         "sort": 0.9697561872086323
       },
       "build_controls": 87,
-      "build_dispersion_pct": 4.978603253878038
+      "build_dispersion_pct": 4.978603253878037
     },
     "runtimes": {
       "swag-release": {
@@ -13625,7 +13625,7 @@
           "lz77": 21.122098036064514,
           "sort": 17.26094625325089
         },
-        "run_geo_adjusted_ms": 21.234061774521507,
+        "run_geo_adjusted_ms": 21.234061774521518,
         "run_index": {
           "wordfreq": 0.7207741909545713,
           "csvagg": 0.6098444709339912,
@@ -13669,7 +13669,7 @@
           "lz77": 198.80979136068908,
           "sort": 190.96160709532987
         },
-        "build_geo_adjusted_ms": 216.3031527809919,
+        "build_geo_adjusted_ms": 216.3031527809921,
         "build_index": {
           "wordfreq": 1.9535822856442078,
           "csvagg": 1.9724470824046085,
@@ -13734,7 +13734,7 @@
         },
         "run_geo_index": 0.7195707068227722
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 57.46659997,
           "csvagg": 26.4187,
@@ -13824,9 +13824,9 @@
         },
         "build_geo_index": 1.3966423018806495,
         "build_peak_mb": 128.4921875,
-        "exe_kb": 155.51349115211457
+        "exe_kb": 155.51349115211403
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 60.92890003,
           "csvagg": 25.74179997,
@@ -13855,7 +13855,7 @@
           "lz77": 36.31611286529032,
           "sort": 22.024137101425083
         },
-        "run_geo_adjusted_ms": 36.07630077370903,
+        "run_geo_adjusted_ms": 36.07630077370904,
         "run_index": {
           "wordfreq": 0.7350869758685523,
           "csvagg": 0.4670748195983552,
@@ -14133,7 +14133,7 @@
         "sort": 1.0023976654248767
       },
       "build_controls": 87,
-      "build_dispersion_pct": 5.828482579086528
+      "build_dispersion_pct": 5.828482579086529
     },
     "runtimes": {
       "swag-release": {
@@ -14180,7 +14180,7 @@
           "lz77": 0.8748798632917156,
           "sort": 0.9726155714857228
         },
-        "run_geo_index": 0.6463434510073098,
+        "run_geo_index": 0.6463434510073099,
         "build_ms": {
           "wordfreq": 134.3622,
           "csvagg": 148.1955,
@@ -14257,7 +14257,7 @@
           "lz77": 20.272592491882985,
           "sort": 17.61575930012785
         },
-        "run_geo_adjusted_ms": 24.787475199216797,
+        "run_geo_adjusted_ms": 24.787475199216807,
         "run_index": {
           "wordfreq": 0.7259331010412884,
           "csvagg": 0.7869294525448989,
@@ -14274,7 +14274,7 @@
         },
         "run_geo_index": 0.7449840434305453
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 57.77050008,
           "csvagg": 23.55089993,
@@ -14347,7 +14347,7 @@
           "lz77": 183.24424061026258,
           "sort": 155.8508218729566
         },
-        "build_geo_adjusted_ms": 189.6866776041214,
+        "build_geo_adjusted_ms": 189.68667760412123,
         "build_index": {
           "wordfreq": 1.544532784094438,
           "csvagg": 1.4786154265336522,
@@ -14366,7 +14366,7 @@
         "build_peak_mb": 109.2578125,
         "exe_kb": 155.55760785637096
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 57.23979999,
           "csvagg": 23.98569998,
@@ -14395,7 +14395,7 @@
           "lz77": 35.4013565865793,
           "sort": 21.67924304255779
         },
-        "run_geo_adjusted_ms": 36.27408837503045,
+        "run_geo_adjusted_ms": 36.27408837503044,
         "run_index": {
           "wordfreq": 0.7238796277096772,
           "csvagg": 0.4661712446431995,
@@ -14419,7 +14419,7 @@
       "exec_jit_vs_best": 1.0534358358097449,
       "exec_native_fastest": "swag-release",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 1.940637047910315,
+      "build_speedup": 1.9406370479103154,
       "build_tasks": 7
     },
     "null": {
@@ -14656,7 +14656,7 @@
         "sort": 0.9360615082104843
       },
       "run_controls": 135,
-      "run_dispersion_pct": 2.2306119901599035,
+      "run_dispersion_pct": 2.230611990159903,
       "build_factor": 0.8765844060662831,
       "build_task_factors": {
         "wordfreq": 0.7635121804818826,
@@ -14673,7 +14673,7 @@
         "sort": 0.9484937495395043
       },
       "build_controls": 87,
-      "build_dispersion_pct": 4.900560589950009
+      "build_dispersion_pct": 4.900560589950008
     },
     "runtimes": {
       "swag-release": {
@@ -14749,7 +14749,7 @@
           "lz77": 158.73026398122676,
           "sort": 147.30313201097263
         },
-        "build_geo_adjusted_ms": 172.80175778060996,
+        "build_geo_adjusted_ms": 172.8017577806101,
         "build_index": {
           "wordfreq": 1.6213952854035198,
           "csvagg": 1.7617731249581339,
@@ -14764,9 +14764,9 @@
           "lz77": 1.0004195287342144,
           "sort": 1.008106647688745
         },
-        "build_geo_index": 1.538984235878787,
+        "build_geo_index": 1.5389842358787869,
         "build_peak_mb": 101.88671875,
-        "exe_kb": 97.4416068533732
+        "exe_kb": 97.44160685337337
       },
       "swc-jit-release": {
         "run_ms": {
@@ -14814,7 +14814,7 @@
         },
         "run_geo_index": 0.7278930017064802
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 60.31750003,
           "csvagg": 25.70819994,
@@ -14904,9 +14904,9 @@
         },
         "build_geo_index": 1.2395669575360346,
         "build_peak_mb": 110.4921875,
-        "exe_kb": 148.42212335928824
+        "exe_kb": 148.4221233592877
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 63.19470005,
           "csvagg": 27.64560003,
@@ -14935,7 +14935,7 @@
           "lz77": 35.73993186616359,
           "sort": 22.28240316159855
         },
-        "run_geo_adjusted_ms": 36.32908389937905,
+        "run_geo_adjusted_ms": 36.329083899379064,
         "run_index": {
           "wordfreq": 0.7177597177185053,
           "csvagg": 0.471918371356601,
@@ -15023,7 +15023,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.6678437099693624,
+          0.6678437099693625,
           1.1143529341701468
         ],
         "tasks": {
@@ -15179,7 +15179,7 @@
         "lz77": "9626c1c92",
         "sort": "9626c1c92"
       },
-      "run_factor": 0.9490460693104578,
+      "run_factor": 0.9490460693104579,
       "run_task_factors": {
         "wordfreq": 0.883575602118914,
         "csvagg": 0.8292607327404572,
@@ -15195,7 +15195,7 @@
         "sort": 0.9353280677072371
       },
       "run_controls": 135,
-      "run_dispersion_pct": 2.5222563556001276,
+      "run_dispersion_pct": 2.522256355600127,
       "build_factor": null,
       "build_task_factors": {},
       "build_controls": 0,
@@ -15246,7 +15246,7 @@
           "lz77": 0.9154406778348851,
           "sort": 0.9440790020242595
         },
-        "run_geo_index": 0.6324369307975779,
+        "run_geo_index": 0.632436930797578,
         "build_ms": {
           "wordfreq": null,
           "csvagg": null,
@@ -15340,7 +15340,7 @@
         },
         "run_geo_index": 0.7335314225869967
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 59.83119993,
           "csvagg": 23.80779991,
@@ -15369,7 +15369,7 @@
           "lz77": 38.67625181921484,
           "sort": 20.9994767056941
         },
-        "run_geo_adjusted_ms": 33.06882299013358,
+        "run_geo_adjusted_ms": 33.0688229901336,
         "run_index": {
           "wordfreq": 0.7557841849065055,
           "csvagg": 0.5063594165650696,
@@ -15432,7 +15432,7 @@
         "build_peak_mb": null,
         "exe_kb": null
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 58.49929992,
           "csvagg": 23.80289999,
@@ -15773,7 +15773,7 @@
         },
         "run_geo_index": 0.7440196647880016
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 64.15440002,
           "csvagg": 29.53119995,
@@ -15865,7 +15865,7 @@
         "build_peak_mb": 118.46484375,
         "exe_kb": 174.29487373298068
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 66.97359995,
           "csvagg": 26.71849995,
@@ -15894,7 +15894,7 @@
           "lz77": 35.62181104618439,
           "sort": 21.86257316462912
         },
-        "run_geo_adjusted_ms": 35.11745147560278,
+        "run_geo_adjusted_ms": 35.11745147560279,
         "run_index": {
           "wordfreq": 0.6950226334663985,
           "csvagg": 0.40002953248619844,
@@ -16391,7 +16391,7 @@
         "sort": 1.1013423692671545
       },
       "build_controls": 87,
-      "build_dispersion_pct": 9.100087264436333
+      "build_dispersion_pct": 9.100087264436334
     },
     "runtimes": {
       "swag-release": {
@@ -16423,7 +16423,7 @@
           "lz77": 19.994150377600995,
           "sort": 17.55830393845139
         },
-        "run_geo_adjusted_ms": 20.379400790546054,
+        "run_geo_adjusted_ms": 20.379400790546065,
         "run_index": {
           "wordfreq": 0.7453855691794369,
           "csvagg": 0.6010338273803316,
@@ -16482,9 +16482,9 @@
           "lz77": 1.0194842135370366,
           "sort": 1.0460576104029884
         },
-        "build_geo_index": 1.4715255550471948,
+        "build_geo_index": 1.471525555047195,
         "build_peak_mb": 102.56640625,
-        "exe_kb": 107.31951824105934
+        "exe_kb": 107.31951824105954
       },
       "swc-jit-release": {
         "run_ms": {
@@ -16515,7 +16515,7 @@
           "lz77": 21.235911042931626,
           "sort": 17.828460188864863
         },
-        "run_geo_adjusted_ms": 23.31365385973968,
+        "run_geo_adjusted_ms": 23.31365385973969,
         "run_index": {
           "wordfreq": 0.6989913596967885,
           "csvagg": 0.7265902308551603,
@@ -16530,9 +16530,9 @@
           "lz77": 0.9059882260633486,
           "sort": 0.9490391794512898
         },
-        "run_geo_index": 0.7006885525847258
+        "run_geo_index": 0.700688552584726
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 60.80149999,
           "csvagg": 27.06470003,
@@ -16622,9 +16622,9 @@
         },
         "build_geo_index": 1.2771056246991632,
         "build_peak_mb": 117.3515625,
-        "exe_kb": 176.49833006014504
+        "exe_kb": 176.49833006014535
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 68.43570003,
           "csvagg": 25.49869998,
@@ -16677,7 +16677,7 @@
       "exec_jit_vs_best": 1.0351923361944195,
       "exec_native_fastest": "swag-release",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 1.8521607912669518,
+      "build_speedup": 1.8521607912669522,
       "build_tasks": 7
     },
     "null": {
@@ -17070,7 +17070,7 @@
         }
       },
       "geo_vs_mimalloc": 1.5480804537961406,
-      "geo_vs_crt": 0.2842855341285013,
+      "geo_vs_crt": 0.28428553412850127,
       "geo_ws_vs_mimalloc": 1.0732462500636173,
       "geo_ws_vs_crt": 1.2628539706161501,
       "count": 14
@@ -17243,7 +17243,7 @@
         },
         "build_geo_index": 1.4380495207194282,
         "build_peak_mb": 103.72265625,
-        "exe_kb": 107.48468558412982
+        "exe_kb": 107.48468558413002
       },
       "swc-jit-release": {
         "run_ms": {
@@ -17291,7 +17291,7 @@
         },
         "run_geo_index": 0.707490213583387
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 69.33199998,
           "csvagg": 27.41819993,
@@ -17320,7 +17320,7 @@
           "lz77": 36.183321689490754,
           "sort": 20.631167334074398
         },
-        "run_geo_adjusted_ms": 31.51892051429143,
+        "run_geo_adjusted_ms": 31.518920514291416,
         "run_index": {
           "wordfreq": 0.7299669659637369,
           "csvagg": 0.47256333395411965,
@@ -17381,9 +17381,9 @@
         },
         "build_geo_index": 1.2261487564066582,
         "build_peak_mb": 118.6640625,
-        "exe_kb": 176.96093028222552
+        "exe_kb": 176.96093028222583
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 69.99710004,
           "csvagg": 25.88149998,
@@ -17909,7 +17909,7 @@
         "sort": 1.0671233239932651
       },
       "build_controls": 87,
-      "build_dispersion_pct": 8.540092878067048
+      "build_dispersion_pct": 8.540092878067046
     },
     "runtimes": {
       "swag-release": {
@@ -17941,7 +17941,7 @@
           "lz77": 21.32303194057732,
           "sort": 17.420157276546412
         },
-        "run_geo_adjusted_ms": 20.47890900301456,
+        "run_geo_adjusted_ms": 20.47890900301457,
         "run_index": {
           "wordfreq": 0.7593484738229617,
           "csvagg": 0.5889293961774431,
@@ -17956,7 +17956,7 @@
           "lz77": 0.8999869991717583,
           "sort": 0.9603862066272817
         },
-        "run_geo_index": 0.6096627120560532,
+        "run_geo_index": 0.609662712056053,
         "build_ms": {
           "wordfreq": 162.6494,
           "csvagg": 184.3222,
@@ -18002,7 +18002,7 @@
         },
         "build_geo_index": 1.4713608166984709,
         "build_peak_mb": 103.7890625,
-        "exe_kb": 107.48468558412982
+        "exe_kb": 107.48468558413002
       },
       "swc-jit-release": {
         "run_ms": {
@@ -18033,7 +18033,7 @@
           "lz77": 20.87075694358763,
           "sort": 17.861684306025463
         },
-        "run_geo_adjusted_ms": 23.74609603201218,
+        "run_geo_adjusted_ms": 23.7460960320122,
         "run_index": {
           "wordfreq": 0.7347029943151465,
           "csvagg": 0.7453397403074473,
@@ -18050,7 +18050,7 @@
         },
         "run_geo_index": 0.7136855405982385
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 62.44100002,
           "csvagg": 26.2961,
@@ -18094,7 +18094,7 @@
           "lz77": 0.9072723495884105,
           "sort": 0.8424695497258687
         },
-        "run_geo_index": 0.45706063580127737,
+        "run_geo_index": 0.4570606358012773,
         "build_ms": {
           "wordfreq": 218.6681,
           "csvagg": 241.1443,
@@ -18138,11 +18138,11 @@
           "lz77": 1.2952063344779874,
           "sort": 1.221087831801259
         },
-        "build_geo_index": 1.288418862352002,
+        "build_geo_index": 1.2884188623520023,
         "build_peak_mb": 116.3046875,
-        "exe_kb": 176.6660635471368
+        "exe_kb": 176.66606354713616
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 66.85579999,
           "csvagg": 24.92280002,
@@ -18259,7 +18259,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.6509731117327378,
+          0.6509731117327376,
           1.163602068743838
         ],
         "tasks": {
@@ -18587,8 +18587,8 @@
           "ws_vs_crt": 1.24712202609363
         }
       },
-      "geo_vs_mimalloc": 1.3384377027526881,
-      "geo_vs_crt": 0.2461539261277071,
+      "geo_vs_mimalloc": 1.338437702752688,
+      "geo_vs_crt": 0.24615392612770715,
       "geo_ws_vs_mimalloc": 1.0764695937700588,
       "geo_ws_vs_crt": 1.2527668142535233,
       "count": 14
@@ -18809,7 +18809,7 @@
         },
         "run_geo_index": 0.7058782770314752
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 63.03869991,
           "csvagg": 26.96039993,
@@ -18853,7 +18853,7 @@
           "lz77": 0.8970094130172429,
           "sort": 0.8645311615118366
         },
-        "run_geo_index": 0.46147605180202833,
+        "run_geo_index": 0.4614760518020283,
         "build_ms": {
           "wordfreq": 200.6808,
           "csvagg": 217.9237,
@@ -18901,7 +18901,7 @@
         "build_peak_mb": 115.26953125,
         "exe_kb": 177.24877755711864
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 66.91699999,
           "csvagg": 27.39329997,
@@ -18930,7 +18930,7 @@
           "lz77": 35.80531444645619,
           "sort": 23.137712926847705
         },
-        "run_geo_adjusted_ms": 35.47400431718414,
+        "run_geo_adjusted_ms": 35.47400431718415,
         "run_index": {
           "wordfreq": 0.7208300700244338,
           "csvagg": 0.45702533254733296,
@@ -18954,7 +18954,7 @@
       "exec_jit_vs_best": 1.0464158522110711,
       "exec_native_fastest": "swag-release",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 1.7419850744574499,
+      "build_speedup": 1.74198507445745,
       "build_tasks": 7
     },
     "null": {
@@ -19347,7 +19347,7 @@
         }
       },
       "geo_vs_mimalloc": 1.372540242594643,
-      "geo_vs_crt": 0.25586191848850487,
+      "geo_vs_crt": 0.2558619184885048,
       "geo_ws_vs_mimalloc": 1.073072019372338,
       "geo_ws_vs_crt": 1.257613828432287,
       "count": 14
@@ -19520,7 +19520,7 @@
         },
         "build_geo_index": 1.3234968440023542,
         "build_peak_mb": 68.14453125,
-        "exe_kb": 107.69604826181708
+        "exe_kb": 107.6960482618169
       },
       "swc-jit-release": {
         "run_ms": {
@@ -19568,7 +19568,7 @@
         },
         "run_geo_index": 0.7266144779799225
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 55.77089987,
           "csvagg": 21.80940006,
@@ -19597,7 +19597,7 @@
           "lz77": 36.30153247831325,
           "sort": 20.739396183489255
         },
-        "run_geo_adjusted_ms": 31.709774993790763,
+        "run_geo_adjusted_ms": 31.709774993790777,
         "run_index": {
           "wordfreq": 0.6442771431225903,
           "csvagg": 0.48550853190803667,
@@ -19612,7 +19612,7 @@
           "lz77": 0.9247879200232468,
           "sort": 0.8714691100492712
         },
-        "run_geo_index": 0.4660199221124158,
+        "run_geo_index": 0.46601992211241583,
         "build_ms": {
           "wordfreq": 221.1524,
           "csvagg": 161.5958,
@@ -19658,9 +19658,9 @@
         },
         "build_geo_index": 1.092655174253262,
         "build_peak_mb": 79.83203125,
-        "exe_kb": 173.37366892490115
+        "exe_kb": 173.37366892490056
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 65.70560019,
           "csvagg": 22.03230001,
@@ -19778,7 +19778,7 @@
         "controls": 6,
         "geo": [
           0.6188693664758612,
-          1.465446683673029
+          1.4654466836730293
         ],
         "tasks": {
           "wordfreq": [
@@ -20106,7 +20106,7 @@
         }
       },
       "geo_vs_mimalloc": 1.29730066144798,
-      "geo_vs_crt": 0.23057875650461238,
+      "geo_vs_crt": 0.23057875650461235,
       "geo_ws_vs_mimalloc": 1.0753058877686557,
       "geo_ws_vs_crt": 1.252833105634265,
       "count": 14
@@ -20186,7 +20186,7 @@
         "sort": 1.1148164280888613
       },
       "build_controls": 87,
-      "build_dispersion_pct": 4.418096547538397
+      "build_dispersion_pct": 4.418096547538398
     },
     "runtimes": {
       "swag-release": {
@@ -20327,7 +20327,7 @@
         },
         "run_geo_index": 0.7651219746544144
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 65.8773,
           "csvagg": 27.393,
@@ -20419,7 +20419,7 @@
         "build_peak_mb": 122.8984375,
         "exe_kb": 177.16565696316212
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 69.2199,
           "csvagg": 29.2937,
@@ -20536,7 +20536,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.7633848269475794,
+          0.7633848269475795,
           1.218239496853278
         ],
         "tasks": {
@@ -20992,7 +20992,7 @@
           "lz77": 0.8844954795901534,
           "sort": 0.9773234641151151
         },
-        "run_geo_index": 0.6225100496816708,
+        "run_geo_index": 0.6225100496816709,
         "build_ms": {
           "wordfreq": 165.6125,
           "csvagg": 166.0367,
@@ -21036,7 +21036,7 @@
           "lz77": 0.9065072606664283,
           "sort": 1.017380350864322
         },
-        "build_geo_index": 1.3347919887607944,
+        "build_geo_index": 1.3347919887607942,
         "build_peak_mb": 100.203125,
         "exe_kb": 108.52717899128658
       },
@@ -21086,7 +21086,7 @@
         },
         "run_geo_index": 0.755845996935012
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 60.515,
           "csvagg": 25.6641,
@@ -21115,7 +21115,7 @@
           "lz77": 35.34565419698016,
           "sort": 22.21239501770211
         },
-        "run_geo_adjusted_ms": 32.379547607720156,
+        "run_geo_adjusted_ms": 32.37954760772014,
         "run_index": {
           "wordfreq": 0.7337633716390232,
           "csvagg": 0.5023258316439798,
@@ -21176,9 +21176,9 @@
         },
         "build_geo_index": 1.131862533940114,
         "build_peak_mb": 120.640625,
-        "exe_kb": 178.0412615251251
+        "exe_kb": 178.04126152512475
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 65.36589999,
           "csvagg": 25.64180001,
@@ -21687,7 +21687,7 @@
         "sort": 1.0336393309814376
       },
       "run_controls": 135,
-      "run_dispersion_pct": 3.6085564405119825,
+      "run_dispersion_pct": 3.608556440511982,
       "build_factor": 1.0893404194310634,
       "build_task_factors": {
         "wordfreq": 1.1693477336383304,
@@ -21828,7 +21828,7 @@
           "lz77": 20.119921101873878,
           "sort": 18.02659732607893
         },
-        "run_geo_adjusted_ms": 24.289061313354118,
+        "run_geo_adjusted_ms": 24.28906131335413,
         "run_index": {
           "wordfreq": 0.6780211439840449,
           "csvagg": 0.7155398327578149,
@@ -21845,7 +21845,7 @@
         },
         "run_geo_index": 0.7300042849433381
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 65.8671,
           "csvagg": 28.04489998,
@@ -21874,7 +21874,7 @@
           "lz77": 35.23393832944528,
           "sort": 21.208364777668933
         },
-        "run_geo_adjusted_ms": 31.697084390906134,
+        "run_geo_adjusted_ms": 31.69708439090612,
         "run_index": {
           "wordfreq": 0.7178165551579234,
           "csvagg": 0.47634776091375236,
@@ -21937,7 +21937,7 @@
         "build_peak_mb": 118.5546875,
         "exe_kb": 174.33483083706759
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 67.24880001,
           "csvagg": 27.69710001,
@@ -22054,7 +22054,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.6032596042087512,
+          0.6032596042087514,
           1.2613152258865257
         ],
         "tasks": {
@@ -22385,7 +22385,7 @@
       "geo_vs_mimalloc": 1.3423689802694054,
       "geo_vs_crt": 0.2465122047636076,
       "geo_ws_vs_mimalloc": 1.0736378104383777,
-      "geo_ws_vs_crt": 1.2503203922704993,
+      "geo_ws_vs_crt": 1.250320392270499,
       "count": 14
     }
   },
@@ -22495,7 +22495,7 @@
           "lz77": 21.47560720290827,
           "sort": 17.48710545833522
         },
-        "run_geo_adjusted_ms": 20.06814280987132,
+        "run_geo_adjusted_ms": 20.068142809871325,
         "run_index": {
           "wordfreq": 0.7012670841544015,
           "csvagg": 0.572527513346807,
@@ -22587,7 +22587,7 @@
           "lz77": 21.243406687971675,
           "sort": 17.69466695215334
         },
-        "run_geo_adjusted_ms": 24.21316158755589,
+        "run_geo_adjusted_ms": 24.213161587555913,
         "run_index": {
           "wordfreq": 0.6617350329731775,
           "csvagg": 0.7741232984712745,
@@ -22604,7 +22604,7 @@
         },
         "run_geo_index": 0.7277231294740544
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 71.8641,
           "csvagg": 26.0667,
@@ -22677,7 +22677,7 @@
           "lz77": 167.15963488162168,
           "sort": 152.342091127808
         },
-        "build_geo_adjusted_ms": 180.67512998425724,
+        "build_geo_adjusted_ms": 180.6751299842574,
         "build_index": {
           "wordfreq": 1.4147699729767993,
           "csvagg": 1.3617714688163285,
@@ -22696,7 +22696,7 @@
         "build_peak_mb": 85.03515625,
         "exe_kb": 176.54275233561197
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 71.05589999,
           "csvagg": 27.28559999,
@@ -22725,7 +22725,7 @@
           "lz77": 36.79496027435822,
           "sort": 22.063908853846755
         },
-        "run_geo_adjusted_ms": 35.307663758601954,
+        "run_geo_adjusted_ms": 35.30766375860197,
         "run_index": {
           "wordfreq": 0.7161955321693612,
           "csvagg": 0.43128549231815017,
@@ -23142,7 +23142,7 @@
         }
       },
       "geo_vs_mimalloc": 1.2844257746325312,
-      "geo_vs_crt": 0.23841197936368316,
+      "geo_vs_crt": 0.2384119793636831,
       "geo_ws_vs_mimalloc": 1.0684454849684923,
       "geo_ws_vs_crt": 1.23779010564654,
       "count": 14
@@ -23205,7 +23205,7 @@
         "sort": 0.9801348683835193
       },
       "run_controls": 135,
-      "run_dispersion_pct": 3.530840324485702,
+      "run_dispersion_pct": 3.5308403244857027,
       "build_factor": 1.0480336234315526,
       "build_task_factors": {
         "wordfreq": 1.0484306102571774,
@@ -23222,7 +23222,7 @@
         "sort": 1.0302426504899673
       },
       "build_controls": 87,
-      "build_dispersion_pct": 4.904617958782355
+      "build_dispersion_pct": 4.904617958782356
     },
     "runtimes": {
       "swag-release": {
@@ -23363,7 +23363,7 @@
         },
         "run_geo_index": 0.7406717763069393
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 56.1554,
           "csvagg": 23.00260001,
@@ -23392,7 +23392,7 @@
           "lz77": 34.79431480350903,
           "sort": 20.563292512223516
         },
-        "run_geo_adjusted_ms": 31.755211878016155,
+        "run_geo_adjusted_ms": 31.75521187801617,
         "run_index": {
           "wordfreq": 0.7108996416073738,
           "csvagg": 0.49019396824107603,
@@ -23453,9 +23453,9 @@
         },
         "build_geo_index": 1.1214364391216773,
         "build_peak_mb": 118.9375,
-        "exe_kb": 174.79617102696665
+        "exe_kb": 174.79617102696696
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 53.499,
           "csvagg": 24.3926,
@@ -23484,7 +23484,7 @@
           "lz77": 37.964575379492956,
           "sort": 22.480987811748893
         },
-        "run_geo_adjusted_ms": 35.687152525147525,
+        "run_geo_adjusted_ms": 35.68715252514754,
         "run_index": {
           "wordfreq": 0.658711392279253,
           "csvagg": 0.4804259837591864,
@@ -24074,7 +24074,7 @@
         },
         "build_geo_index": 1.4148689429289496,
         "build_peak_mb": 100.375,
-        "exe_kb": 109.32180695462766
+        "exe_kb": 109.32180695462786
       },
       "swc-jit-release": {
         "run_ms": {
@@ -24122,7 +24122,7 @@
         },
         "run_geo_index": 0.7480190572451211
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 59.39419998,
           "csvagg": 24.46500002,
@@ -24166,7 +24166,7 @@
           "lz77": 0.9048235785956995,
           "sort": 0.9127090390474596
         },
-        "run_geo_index": 0.4638987021734688,
+        "run_geo_index": 0.46389870217346885,
         "build_ms": {
           "wordfreq": 188.163,
           "csvagg": 209.8896,
@@ -24210,11 +24210,11 @@
           "lz77": 1.182822228928894,
           "sort": 1.126294360208772
         },
-        "build_geo_index": 1.195552961171284,
+        "build_geo_index": 1.1955529611712838,
         "build_peak_mb": 117.8046875,
         "exe_kb": 173.335794906968
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 60.26150001,
           "csvagg": 24.35879997,
@@ -24660,7 +24660,7 @@
         }
       },
       "geo_vs_mimalloc": 1.2581345297482618,
-      "geo_vs_crt": 0.22612751893847718,
+      "geo_vs_crt": 0.22612751893847713,
       "geo_ws_vs_mimalloc": 1.0742099954633102,
       "geo_ws_vs_crt": 1.2528718674719685,
       "count": 14
@@ -24723,7 +24723,7 @@
         "sort": 0.983274535940201
       },
       "run_controls": 135,
-      "run_dispersion_pct": 2.286368556259187,
+      "run_dispersion_pct": 2.2863685562591867,
       "build_factor": 1.104446602571311,
       "build_task_factors": {
         "wordfreq": 0.9955317556787944,
@@ -24833,7 +24833,7 @@
         },
         "build_geo_index": 1.4005098411263988,
         "build_peak_mb": 105.81640625,
-        "exe_kb": 114.61119410146686
+        "exe_kb": 114.61119410146706
       },
       "swc-jit-release": {
         "run_ms": {
@@ -24864,7 +24864,7 @@
           "lz77": 21.979334533084515,
           "sort": 19.944277282893704
         },
-        "run_geo_adjusted_ms": 24.857102248954355,
+        "run_geo_adjusted_ms": 24.857102248954345,
         "run_index": {
           "wordfreq": 0.7151562322876158,
           "csvagg": 0.7707016390907013,
@@ -24881,7 +24881,7 @@
         },
         "run_geo_index": 0.747076674512522
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 64.8853,
           "csvagg": 26.51410003,
@@ -24910,7 +24910,7 @@
           "lz77": 36.948184753093216,
           "sort": 25.336362419045795
         },
-        "run_geo_adjusted_ms": 34.104730026531634,
+        "run_geo_adjusted_ms": 34.104730026531655,
         "run_index": {
           "wordfreq": 0.7116555028626877,
           "csvagg": 0.4805197128282549,
@@ -24954,7 +24954,7 @@
           "lz77": 202.49880269028318,
           "sort": 192.57719939652932
         },
-        "build_geo_adjusted_ms": 219.85112905971465,
+        "build_geo_adjusted_ms": 219.85112905971445,
         "build_index": {
           "wordfreq": 1.7657040769788694,
           "csvagg": 1.5072557705396705,
@@ -24973,7 +24973,7 @@
         "build_peak_mb": 148.09375,
         "exe_kb": 241.89628522484873
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 66.41279999,
           "csvagg": 27.07509999,
@@ -25026,7 +25026,7 @@
       "exec_jit_vs_best": 1.055120667987813,
       "exec_native_fastest": "swag-release",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 1.8248607892452289,
+      "build_speedup": 1.824860789245229,
       "build_tasks": 7
     },
     "null": {
@@ -25595,7 +25595,7 @@
           "lz77": 0.8453331395388975,
           "sort": 0.9044567863919201
         },
-        "build_geo_index": 1.360885927063592,
+        "build_geo_index": 1.3608859270635918,
         "build_peak_mb": 102.61328125,
         "exe_kb": 120.32098971118809
       },
@@ -25628,7 +25628,7 @@
           "lz77": 21.861351601420036,
           "sort": 18.026157972924935
         },
-        "run_geo_adjusted_ms": 24.537496458536964,
+        "run_geo_adjusted_ms": 24.537496458536985,
         "run_index": {
           "wordfreq": 0.7062239048007608,
           "csvagg": 0.7550243420990833,
@@ -25645,7 +25645,7 @@
         },
         "run_geo_index": 0.7374709679153265
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 65.67380001,
           "csvagg": 32.54450002,
@@ -25674,7 +25674,7 @@
           "lz77": 37.217701964619714,
           "sort": 25.63342642423953
         },
-        "run_geo_adjusted_ms": 34.45119704158188,
+        "run_geo_adjusted_ms": 34.451197041581864,
         "run_index": {
           "wordfreq": 0.7407596612373688,
           "csvagg": 0.5002298605627182,
@@ -25737,7 +25737,7 @@
         "build_peak_mb": 152.30078125,
         "exe_kb": 258.24002246544046
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 65.67559997,
           "csvagg": 32.6645,
@@ -25854,7 +25854,7 @@
       "build": {
         "controls": 6,
         "geo": [
-          0.6973862580217766,
+          0.6973862580217767,
           1.1097480744930603
         ],
         "tasks": {
@@ -26183,7 +26183,7 @@
         }
       },
       "geo_vs_mimalloc": 1.110502689253009,
-      "geo_vs_crt": 0.20288149809765801,
+      "geo_vs_crt": 0.20288149809765796,
       "geo_ws_vs_mimalloc": 1.0225729955878948,
       "geo_ws_vs_crt": 1.2078709736347377,
       "count": 14
@@ -26251,7 +26251,7 @@
         "sort": 1.0004197758617832
       },
       "run_controls": 135,
-      "run_dispersion_pct": 1.8357979980544004,
+      "run_dispersion_pct": 1.8357979980544,
       "build_factor": 1.054813954950004,
       "build_task_factors": {
         "wordfreq": 0.9446873944008799,
@@ -26268,7 +26268,7 @@
         "sort": 1.1263025271999412
       },
       "build_controls": 87,
-      "build_dispersion_pct": 5.102556035575364
+      "build_dispersion_pct": 5.102556035575363
     },
     "runtimes": {
       "swag-release": {
@@ -26409,7 +26409,7 @@
         },
         "run_geo_index": 0.6447976984765903
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
           "wordfreq": 67.61790003,
           "csvagg": 26.80460003,
@@ -26453,7 +26453,7 @@
           "lz77": 0.9497764572568494,
           "sort": 1.07218566828737
         },
-        "run_geo_index": 0.5165028015502748,
+        "run_geo_index": 0.5165028015502747,
         "build_ms": {
           "wordfreq": 247.4289,
           "csvagg": 271.6859,
@@ -26501,7 +26501,7 @@
         "build_peak_mb": 150.28515625,
         "exe_kb": 258.24002246544046
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
           "wordfreq": 67.89409998,
           "csvagg": 29.24970002,
@@ -26975,20 +26975,20 @@
         "build_validation": "confirmed-min-v2",
         "warmup_s": 30
       },
-      "stamp": "20261019-181609",
-      "date": "2026-10-19T18:16:09+00:00",
+      "stamp": "20261020-171301",
+      "date": "2026-10-20T17:13:01+00:00",
       "label": "",
-      "commit": "460828fa6d",
-      "subject": "[prompt 2] Land independent double roots and mixed vector state",
-      "master": "460828fa6d",
+      "commit": "76765f6b78",
+      "subject": "[prompt 4] Integrate string-map invariant savings",
+      "master": "76765f6b78",
       "dirty": false,
       "swc": "C:\\Perso\\swag-lang\\swc\\bin\\swc.exe",
-      "swc_bytes": 8046080
+      "swc_bytes": 8063488
     },
-    "drift_pct": 3.5375100107942368,
-    "machine_spread_pct": 16.385493923883132,
-    "worst_moment": "wordfreq",
-    "calibration_ms": 45.9504,
+    "drift_pct": 3.4088282340757967,
+    "machine_spread_pct": 8.389152411361689,
+    "worst_moment": "dijkstra",
+    "calibration_ms": 43.2612,
     "context": {
       "baseline": "20260807-134858",
       "baseline_commit": "d36631d85",
@@ -26999,721 +26999,712 @@
         "lz77": "9626c1c92",
         "sort": "9626c1c92"
       },
-      "run_factor": 1.1733288548721252,
+      "run_factor": 1.0715555362340756,
       "run_task_factors": {
-        "wordfreq": 1.2638638423311446,
-        "csvagg": 1.0801665944978607,
-        "sha256": 1.116214750457223,
-        "dijkstra": 1.0669983514859052,
-        "raytrace": 1.0761778043640429,
-        "leven": 1.4040025247308654,
-        "chacha": 1.2461886777697464,
-        "nbody": 1.150763358778626,
-        "fannkuch": 1.1749629767987937,
-        "binarytrees": 1.23980281286095,
-        "lz77": 1.1525176325242328,
-        "sort": 1.1016989765064298
+        "wordfreq": 0.9878329665743162,
+        "csvagg": 0.9834859709781272,
+        "sha256": 1.0920549425693837,
+        "dijkstra": 1.0231635004194137,
+        "raytrace": 0.9926675282656052,
+        "leven": 1.289173575422954,
+        "chacha": 1.1677405666613758,
+        "nbody": 1.0619723547717235,
+        "fannkuch": 1.0793650793650793,
+        "binarytrees": 1.05877607703383,
+        "lz77": 1.0766055956081753,
+        "sort": 1.0009828459103325
       },
       "run_controls": 135,
-      "run_dispersion_pct": 2.989788526316116,
-      "build_factor": 1.6290831240619,
+      "run_dispersion_pct": 2.366422220896085,
+      "build_factor": 1.1403914607760177,
       "build_task_factors": {
-        "wordfreq": 1.6014847564951413,
-        "csvagg": 1.5548567127852655,
-        "sha256": 1.5615827682012347,
-        "dijkstra": 1.779552291707792,
-        "raytrace": 1.6486542033198988,
-        "leven": 1.5969066184039624,
-        "chacha": 1.6714934306184344,
-        "nbody": 1.8777678788232117,
-        "fannkuch": 1.8889887017863478,
-        "binarytrees": 1.8734275714280915,
-        "lz77": 1.7040451911099976,
-        "sort": 1.8130617183635978
+        "wordfreq": 0.9497343064924082,
+        "csvagg": 1.2071796543500195,
+        "sha256": 1.1108493323920046,
+        "dijkstra": 1.2226707708268836,
+        "raytrace": 1.1302196365644497,
+        "leven": 1.2111465638856862,
+        "chacha": 1.1767370431291568,
+        "nbody": 1.308089836387459,
+        "fannkuch": 1.1746165912542978,
+        "binarytrees": 1.1453491757716607,
+        "lz77": 1.2015186343676554,
+        "sort": 1.1911491085517794
       },
       "build_controls": 87,
-      "build_dispersion_pct": 20.671154971799048
+      "build_dispersion_pct": 6.300103131242718
     },
     "runtimes": {
       "swag-release": {
         "run_ms": {
-          "wordfreq": 57.81760003,
-          "csvagg": 19.1871,
-          "sha256": 35.8976,
-          "dijkstra": 30.36120004,
-          "raytrace": 9.47210001,
-          "leven": 12.81389996,
-          "chacha": 25.49999999,
-          "nbody": 20.68389999,
-          "fannkuch": 14.34719999,
-          "binarytrees": 11.54669997,
-          "lz77": 23.83590001,
-          "sort": 19.66270001
+          "wordfreq": 48.66309999,
+          "csvagg": 18.64670002,
+          "sha256": 34.5297,
+          "dijkstra": 30.37970001,
+          "raytrace": 8.15349998,
+          "leven": 11.63079997,
+          "chacha": 23.21449999,
+          "nbody": 18.94899999,
+          "fannkuch": 13.99010001,
+          "binarytrees": 9.70770005,
+          "lz77": 21.47119999,
+          "sort": 17.80889998
         },
         "run_adjusted_ms": {
-          "wordfreq": 45.74669999527625,
-          "csvagg": 17.763093302213765,
-          "sha256": 32.16011971289185,
-          "dijkstra": 28.45477689606446,
-          "raytrace": 8.80161249524882,
-          "leven": 9.126692961222638,
-          "chacha": 20.462391004575906,
-          "nbody": 17.974068979701492,
-          "fannkuch": 12.210767720604428,
-          "binarytrees": 9.31333583874924,
-          "lz77": 20.681592487044945,
-          "sort": 17.847615754670024
+          "wordfreq": 49.26247820900093,
+          "csvagg": 18.95980275291055,
+          "sha256": 31.619013525783437,
+          "dijkstra": 29.691930954873584,
+          "raytrace": 8.213726900330713,
+          "leven": 9.021903793043656,
+          "chacha": 19.879843736499904,
+          "nbody": 17.8432140016236,
+          "fannkuch": 12.961416185735295,
+          "binarytrees": 9.168794290475661,
+          "lz77": 19.943422250068192,
+          "sort": 17.791413761745236
         },
-        "run_geo_adjusted_ms": 19.86868109031818,
+        "run_geo_adjusted_ms": 20.026189472896064,
         "run_index": {
-          "wordfreq": 0.632660935068631,
-          "csvagg": 0.6056742505078301,
-          "sha256": 0.5469361606260466,
-          "dijkstra": 0.6293216159371531,
-          "raytrace": 0.4974657902506003,
-          "leven": 0.5496186775604627,
-          "chacha": 0.7024555944935318,
-          "nbody": 0.7041833588524642,
-          "fannkuch": 0.8834554401639372,
-          "binarytrees": 0.2667072122254555,
-          "lz77": 0.8729135899800566,
-          "sort": 0.9839523099510741
+          "wordfreq": 0.6812829238113962,
+          "csvagg": 0.6464788607913374,
+          "sha256": 0.5377337527025015,
+          "dijkstra": 0.6566832007528347,
+          "raytrace": 0.4642385864614368,
+          "leven": 0.5433081679068678,
+          "chacha": 0.6824572674443907,
+          "nbody": 0.6990567568521315,
+          "fannkuch": 0.937765249779884,
+          "binarytrees": 0.26256795706938096,
+          "lz77": 0.8417574383452424,
+          "sort": 0.9808538523462969
         },
-        "run_geo_index": 0.5914960604940961,
+        "run_geo_index": 0.5961851280454906,
         "build_ms": {
-          "wordfreq": 172.1096,
-          "csvagg": 227.921,
-          "sha256": 175.4549,
-          "dijkstra": 167.452,
-          "raytrace": 159.0274,
-          "leven": 167.0612,
-          "chacha": 172.8139,
-          "nbody": 178.4558,
-          "fannkuch": 168.1042,
-          "binarytrees": 199.2,
-          "lz77": 168.4532,
-          "sort": 176.9035
+          "wordfreq": 126.6121,
+          "csvagg": 184.5,
+          "sha256": 150.4473,
+          "dijkstra": 137.738,
+          "raytrace": 165.9,
+          "leven": 191.5,
+          "chacha": 185.0,
+          "nbody": 181.1,
+          "fannkuch": 157.1,
+          "binarytrees": 167.6,
+          "lz77": 161.0715,
+          "sort": 161.4
         },
         "build_adjusted_ms": {
-          "wordfreq": 107.46877190180871,
-          "csvagg": 146.58649773053216,
-          "sha256": 112.3570927989325,
-          "dijkstra": 94.09782493061807,
-          "raytrace": 96.45891763097814,
-          "leven": 104.61550980793749,
-          "chacha": 103.3889196537618,
-          "nbody": 95.03613413167841,
-          "fannkuch": 88.99163866942665,
-          "binarytrees": 106.32917068053621,
-          "lz77": 98.8548900456515,
-          "sort": 97.57169224204156
+          "wordfreq": 133.31317941710267,
+          "csvagg": 152.83557781574785,
+          "sha256": 135.43447847786894,
+          "dijkstra": 112.65338412142523,
+          "raytrace": 146.78562876883774,
+          "leven": 158.11463757583238,
+          "chacha": 157.21439303725114,
+          "nbody": 138.4461486988863,
+          "fannkuch": 133.74576961512435,
+          "binarytrees": 146.3309212119371,
+          "lz77": 134.05659753647512,
+          "sort": 135.49940879881365
         },
-        "build_geo_adjusted_ms": 108.21345313660134,
+        "build_geo_adjusted_ms": 141.4731865210868,
         "build_index": {
-          "wordfreq": 0.9713944863157065,
-          "csvagg": 1.3364766622070687,
-          "sha256": 0.992199716699451,
-          "dijkstra": 0.9516770021645142,
-          "raytrace": 0.8824361368420593,
-          "leven": 0.9128299011998311,
-          "chacha": 0.7820816012889981,
-          "nbody": 0.7169189196268189,
-          "fannkuch": 0.6406659424500263,
-          "binarytrees": 0.7310570032310058,
-          "lz77": 0.623046670698159,
-          "sort": 0.6677568238543319
+          "wordfreq": 1.204998299946243,
+          "csvagg": 1.3934515529606948,
+          "sha256": 1.1959908166861732,
+          "dijkstra": 1.1393423276618266,
+          "raytrace": 1.3428405208758751,
+          "leven": 1.3796402585197105,
+          "chacha": 1.1892423739798463,
+          "nbody": 1.0443886870879664,
+          "fannkuch": 0.9628585428960702,
+          "binarytrees": 1.006085574227218,
+          "lz77": 0.8449103199816663,
+          "sort": 0.9273248498056624
         },
-        "build_geo_index": 0.9637563912901621,
-        "build_peak_mb": 104.015625,
-        "exe_kb": 120.40290998370374
+        "build_geo_index": 1.2599698443572347,
+        "build_peak_mb": 94.1015625,
+        "exe_kb": 120.15346635962395
       },
       "swc-jit-release": {
         "run_ms": {
-          "wordfreq": 67.28140003,
-          "csvagg": 19.48469999,
-          "sha256": 37.31810005,
-          "dijkstra": 35.76379997,
-          "raytrace": 10.13040001,
-          "leven": 13.55610002,
-          "chacha": 28.22650003,
-          "nbody": 21.82350005,
-          "fannkuch": 15.43949998,
-          "binarytrees": 13.39569996,
-          "lz77": 24.24349997,
-          "sort": 20.9148
+          "wordfreq": 50.6435,
+          "csvagg": 20.00930003,
+          "sha256": 36.82780004,
+          "dijkstra": 34.92170002,
+          "raytrace": 9.41289996,
+          "leven": 12.03520002,
+          "chacha": 23.545,
+          "nbody": 20.67529998,
+          "fannkuch": 14.48869996,
+          "binarytrees": 11.88919996,
+          "lz77": 22.0844,
+          "sort": 19.03779997
         },
         "run_adjusted_ms": {
-          "wordfreq": 53.234690143443174,
-          "csvagg": 18.038606349475096,
-          "sha256": 33.43272433437543,
-          "dijkstra": 33.51813985485097,
-          "raytrace": 9.413314388124242,
-          "leven": 9.655324531983005,
-          "chacha": 22.650261981609262,
-          "nbody": 18.9643682026534,
-          "fannkuch": 13.140414025695666,
-          "binarytrees": 10.804702022806586,
-          "lz77": 21.035252985155743,
-          "sort": 18.9841330944342
+          "wordfreq": 51.267270594972615,
+          "csvagg": 20.34528261760534,
+          "sha256": 33.72339486267207,
+          "dijkstra": 34.13110417414709,
+          "raytrace": 9.482429607067209,
+          "leven": 9.335593165607255,
+          "chacha": 20.16286893870292,
+          "nbody": 19.468774198405818,
+          "fannkuch": 13.423354374705884,
+          "binarytrees": 11.229192100097022,
+          "lz77": 20.512990170299556,
+          "sort": 19.01910711835055
         },
-        "run_geo_adjusted_ms": 21.63025913494911,
+        "run_geo_adjusted_ms": 21.52781325256598,
         "run_index": {
-          "wordfreq": 0.7061820996637028,
-          "csvagg": 0.7027061086191418,
-          "sha256": 0.5714683019552579,
-          "dijkstra": 0.7394495707918851,
-          "raytrace": 0.542319710006133,
-          "leven": 0.5706557772779208,
-          "chacha": 0.756160619666082,
-          "nbody": 0.7238584753393189,
-          "fannkuch": 0.9013989782886077,
-          "binarytrees": 0.6155052358123116,
-          "lz77": 0.8974275461169049,
-          "sort": 1.0105576086592494
+          "wordfreq": 0.6800833947794502,
+          "csvagg": 0.7925642424915014,
+          "sha256": 0.5764367571601879,
+          "dijkstra": 0.752972284306927,
+          "raytrace": 0.5463015748359582,
+          "leven": 0.5517587893211823,
+          "chacha": 0.6731210209981142,
+          "nbody": 0.7431113474168749,
+          "fannkuch": 0.9208079665454242,
+          "binarytrees": 0.6396869175071085,
+          "lz77": 0.8751462340406848,
+          "sort": 1.0124193352810704
         },
-        "run_geo_index": 0.6500943634353705
+        "run_geo_index": 0.647015367003616
       },
-      "swag-fast-debug": {
+      "swag-devmode": {
         "run_ms": {
-          "wordfreq": 77.07860001,
-          "csvagg": 29.22210004,
-          "sha256": 62.09560001,
-          "dijkstra": 71.0698,
-          "raytrace": 12.79960002,
-          "leven": 27.80459996,
-          "chacha": 42.00119997,
-          "nbody": 63.30889999,
-          "fannkuch": 29.15920003,
-          "binarytrees": 21.33089997,
-          "lz77": 43.23549999,
-          "sort": 28.1841
+          "wordfreq": 63.65150004,
+          "csvagg": 28.86110003,
+          "sha256": 58.78790002,
+          "dijkstra": 70.16900001,
+          "raytrace": 11.94369997,
+          "leven": 25.83940001,
+          "chacha": 40.89230002,
+          "nbody": 61.11469999,
+          "fannkuch": 27.45240001,
+          "binarytrees": 18.65579997,
+          "lz77": 39.14190002,
+          "sort": 24.63270002
         },
         "run_adjusted_ms": {
-          "wordfreq": 60.986474514399994,
-          "csvagg": 27.053326948686596,
-          "sha256": 55.63051373811755,
-          "dijkstra": 66.60722568224026,
-          "raytrace": 11.893573690235883,
-          "leven": 19.803810513325033,
-          "chacha": 33.70372457978663,
-          "nbody": 55.014699162122724,
-          "fannkuch": 24.81712241643965,
-          "binarytrees": 17.205074668912182,
-          "lz77": 37.51395967392363,
-          "sort": 25.582396463119082
+          "wordfreq": 64.43548878585781,
+          "csvagg": 29.34571603629095,
+          "sha256": 53.83236477249395,
+          "dijkstra": 68.58043702813522,
+          "raytrace": 12.031923710517766,
+          "leven": 20.043383220543106,
+          "chacha": 35.018309021252016,
+          "nbody": 57.548296540296406,
+          "fannkuch": 25.433841185735297,
+          "binarytrees": 17.620156305632047,
+          "lz77": 36.35676814208709,
+          "sort": 24.60851364300661
         },
-        "run_geo_adjusted_ms": 33.61827139800027,
+        "run_geo_adjusted_ms": 34.5656695360364,
         "run_index": {
-          "wordfreq": 0.6806868033994943,
-          "csvagg": 0.4771461337407154,
-          "sha256": 0.2161219072150325,
-          "dijkstra": 1.2902375975098745,
-          "raytrace": 0.5304681668471815,
-          "leven": 0.41789888970166306,
-          "chacha": 0.35793909959001297,
-          "nbody": 1.8823052120612105,
-          "fannkuch": 1.397777623643673,
-          "binarytrees": 0.37095172067582016,
-          "lz77": 0.9556747159203064,
-          "sort": 1.0749719076387863
+          "wordfreq": 0.7191821996002293,
+          "csvagg": 0.5175775598737931,
+          "sha256": 0.2091361837730965,
+          "dijkstra": 1.3284603494745397,
+          "raytrace": 0.5366387496807037,
+          "leven": 0.42295433942341687,
+          "chacha": 0.37190020261882656,
+          "nbody": 1.968991200039572,
+          "fannkuch": 1.4325131454071263,
+          "binarytrees": 0.3799011295174097,
+          "lz77": 0.9261950582657723,
+          "sort": 1.034049366450661
         },
-        "run_geo_index": 0.4940679718325948,
+        "run_geo_index": 0.5079913253279601,
         "build_ms": {
-          "wordfreq": 273.9567,
-          "csvagg": 372.2,
-          "sha256": 261.5194,
-          "dijkstra": 310.5,
-          "raytrace": 270.4914,
-          "leven": 287.3,
-          "chacha": 279.9209,
-          "nbody": 249.3672,
-          "fannkuch": 239.8973,
-          "binarytrees": 296.1,
-          "lz77": 277.6113,
-          "sort": 303.3
+          "wordfreq": 178.0736,
+          "csvagg": 253.7703,
+          "sha256": 230.3,
+          "dijkstra": 219.101,
+          "raytrace": 188.5794,
+          "leven": 239.6,
+          "chacha": 243.9,
+          "nbody": 191.2,
+          "fannkuch": 179.7557,
+          "binarytrees": 181.0767,
+          "lz77": 209.0491,
+          "sort": 183.2258
         },
         "build_adjusted_ms": {
-          "wordfreq": 171.06419457875816,
-          "csvagg": 239.37897102638223,
-          "sha256": 167.47072606419738,
-          "dijkstra": 174.48208824592666,
-          "raytrace": 164.06800131604967,
-          "leven": 179.91033206884924,
-          "chacha": 167.4675442166903,
-          "nbody": 132.79980066347565,
-          "fannkuch": 126.99774211097073,
-          "binarytrees": 158.05254738206213,
-          "lz77": 162.91310902333925,
-          "sort": 167.28608680445106
+          "wordfreq": 187.49833377891508,
+          "csvagg": 210.21750912181938,
+          "sha256": 207.3188444954028,
+          "dijkstra": 179.19868964547467,
+          "raytrace": 166.85199398342468,
+          "leven": 197.8290713481433,
+          "chacha": 207.26805655019217,
+          "nbody": 146.16733092891806,
+          "fannkuch": 153.03351011588418,
+          "binarytrees": 158.09737661704995,
+          "lz77": 173.98739729910224,
+          "sort": 153.82272352347997
         },
-        "build_geo_adjusted_ms": 179.11628495082002,
+        "build_geo_adjusted_ms": 193.12019230061958,
         "build_index": {
-          "wordfreq": 1.221108211539055,
-          "csvagg": 1.5722498548554686,
-          "sha256": 1.1978039954582589,
-          "dijkstra": 1.563012796932836,
-          "raytrace": 1.44024285523965,
-          "leven": 1.2249622766570543,
-          "chacha": 0.33930891608528635,
-          "nbody": 0.9628769811403123,
-          "fannkuch": 0.8951679252878915,
-          "binarytrees": 1.0018562876454642,
-          "lz77": 1.050591411660299,
-          "sort": 1.124591935504035
+          "wordfreq": 1.3384200918907803,
+          "csvagg": 1.3807163043090878,
+          "sha256": 1.4828104356291523,
+          "dijkstra": 1.6052641731035184,
+          "raytrace": 1.4646816581510267,
+          "leven": 1.346966273926029,
+          "chacha": 0.4199494292228384,
+          "nbody": 1.0597994699014794,
+          "fannkuch": 1.0786860260102658,
+          "binarytrees": 1.0021404491581178,
+          "lz77": 1.1220071020397646,
+          "sort": 1.034083573094673
         },
-        "build_geo_index": 1.1156800686466473,
-        "build_peak_mb": 150.65234375,
-        "exe_kb": 258.24002246544046
+        "build_geo_index": 1.202907649978157,
+        "build_peak_mb": 126.19921875,
+        "exe_kb": 257.99412215859775
       },
-      "swc-jit-fast-debug": {
+      "swc-jit-devmode": {
         "run_ms": {
-          "wordfreq": 78.65360001,
-          "csvagg": 32.3965,
-          "sha256": 64.95909998,
-          "dijkstra": 76.56340004,
-          "raytrace": 14.16630001,
-          "leven": 30.34940001,
-          "chacha": 47.98830004,
-          "nbody": 71.1987,
-          "fannkuch": 31.40099999,
-          "binarytrees": 24.26450001,
-          "lz77": 47.47510003,
-          "sort": 29.2245
+          "wordfreq": 66.29550003,
+          "csvagg": 30.73399997,
+          "sha256": 61.86940003,
+          "dijkstra": 71.45699998,
+          "raytrace": 12.95370003,
+          "leven": 26.63799998,
+          "chacha": 40.96349998,
+          "nbody": 67.58990005,
+          "fannkuch": 31.02459997,
+          "binarytrees": 22.10839995,
+          "lz77": 40.73330003,
+          "sort": 25.40300001
         },
         "run_adjusted_ms": {
-          "wordfreq": 62.232653056144635,
-          "csvagg": 29.99213284785967,
-          "sha256": 58.195880276077254,
-          "dijkstra": 71.75587472405893,
-          "raytrace": 13.163531112195203,
-          "leven": 21.616342902102478,
-          "chacha": 38.50805331170455,
-          "nbody": 61.870843781094536,
-          "fannkuch": 26.725097394602635,
-          "binarytrees": 19.571257427628844,
-          "lz77": 41.19251514271456,
-          "sort": 26.526756058785754
+          "wordfreq": 67.11205464209671,
+          "csvagg": 31.250064441115985,
+          "sha256": 56.65410925610927,
+          "dijkstra": 69.83927783849644,
+          "raytrace": 13.049384271320715,
+          "leven": 20.662849819319764,
+          "chacha": 35.07928143416011,
+          "nbody": 63.645630459494214,
+          "fannkuch": 28.74337938397059,
+          "binarytrees": 20.881091318134867,
+          "lz77": 37.83493249167977,
+          "sort": 25.378057290180163
         },
-        "run_geo_adjusted_ms": 36.4451903664365,
+        "run_geo_adjusted_ms": 36.00824324520785,
         "run_index": {
-          "wordfreq": 0.6755614487579116,
-          "csvagg": 0.48889482209837204,
-          "sha256": 0.21774337646282596,
-          "dijkstra": 1.2680651296681205,
-          "raytrace": 0.5348007068178229,
-          "leven": 0.4992284643498864,
-          "chacha": 0.3996194894625976,
-          "nbody": 2.0156980482099587,
-          "fannkuch": 1.2830037977461786,
-          "binarytrees": 0.9295169106609027,
-          "lz77": 0.970203570927526,
-          "sort": 1.0861160791363136
+          "wordfreq": 0.7285293915114298,
+          "csvagg": 0.5094000741128468,
+          "sha256": 0.2119747477209326,
+          "dijkstra": 1.2341951547349401,
+          "raytrace": 0.530163211706489,
+          "leven": 0.4772075846089588,
+          "chacha": 0.3640372164222841,
+          "nbody": 2.0735190479735404,
+          "fannkuch": 1.3798963710097194,
+          "binarytrees": 0.9917261353816067,
+          "lz77": 0.8911227314489878,
+          "sort": 1.039083558465419
         },
-        "run_geo_index": 0.5159247915907611
+        "run_geo_index": 0.5097392880938808
       }
     },
     "headline": {
       "tasks": 7,
-      "exec_native_vs_best": 1.0,
+      "exec_native_vs_best": 1.001438599325736,
       "exec_jit_vs_best": 1.0,
       "exec_native_fastest": "swag-release",
       "exec_jit_fastest": "swc-jit-release",
-      "build_speedup": 3.2274726314377324,
+      "build_speedup": 2.1874248599634694,
       "build_tasks": 7
     },
     "null": {
       "run": {
         "controls": 10,
         "geo": [
-          0.9085178319482471,
-          1.0693228743388314
+          0.9604112978729563,
+          1.0339655314393525
         ],
         "tasks": {
           "wordfreq": [
-            0.7764621772396052,
-            1.039304314078506
+            0.9400701282402749,
+            1.0516129774142142
           ],
           "csvagg": [
-            0.8826571955094128,
-            1.0719841866552404
+            0.8466905174055065,
+            1.1260741811107227
           ],
           "sha256": [
-            0.9666920844341194,
-            1.0532957047686218
+            0.9436509806928394,
+            1.0823555722014249
           ],
           "dijkstra": [
-            0.942777323976882,
-            1.0530737383571844
+            0.9581958262756699,
+            1.0538254502955176
           ],
           "raytrace": [
-            0.8751193656531361,
-            1.09338816349293
+            0.9081556766545504,
+            1.066271751203258
           ],
           "leven": [
-            0.9367952837666206,
-            1.108037941005327
+            0.9303243752523667,
+            1.0398579187016976
           ],
           "chacha": [
-            0.6979408078863779,
-            1.2360978361361008
+            0.8520420124406852,
+            1.1785960338635155
           ],
           "nbody": [
-            0.9309815021921394,
-            1.0852747467376476
+            0.9565452600744418,
+            1.04228385228273
           ],
           "fannkuch": [
-            0.8987328455286074,
-            1.1047501846635444
+            0.9042991825459564,
+            1.0609170025201662
           ],
           "binarytrees": [
-            0.812473603171254,
-            1.1696046880286834
+            0.8525448891736267,
+            1.2412571729473132
           ],
           "lz77": [
-            0.8811868940805754,
-            1.1442270279613878
+            0.9269775959856927,
+            1.0504511880087113
           ],
           "sort": [
-            0.9557604928106789,
-            1.1564678566597093
+            0.9161321110416274,
+            1.1671091815139147
           ]
         }
       },
       "build": {
         "controls": 6,
         "geo": [
-          0.4628319967704726,
-          1.4537184131735488
+          0.7084393570897016,
+          1.113725048119124
         ],
         "tasks": {
           "wordfreq": [
-            0.6671737437869856,
-            1.2401681399266988
+            0.9277158394897751,
+            1.1293892409125112
           ],
           "csvagg": [
-            0.24972597430511018,
-            1.819846146282649
+            0.40456928353870936,
+            1.1646251882916245
           ],
           "sha256": [
-            0.494135484264971,
-            1.4672473056767352
+            0.6945106869023001,
+            1.2716071048204325
           ],
           "dijkstra": [
-            0.5545739925277126,
-            1.3418253846923274
+            0.7789965381899515,
+            1.0704954808391698
           ],
           "raytrace": [
-            0.3080432398065209,
-            1.5902700127614382
+            0.4528920970578344,
+            1.1811097960639874
           ],
           "leven": [
-            0.25644371186325926,
-            1.4106910437720446
+            0.40299385857199926,
+            1.2130714483796945
           ],
           "chacha": [
-            0.5741544247718732,
-            1.7401043099748263
+            0.9143949691157799,
+            1.0987660046782337
           ],
           "nbody": [
-            0.6913280697998132,
-            1.4892350036459594
+            0.8005701286334431,
+            1.1628722539093248
           ],
           "fannkuch": [
-            0.6166882129808062,
-            1.2797461762751363
+            0.8548218943899524,
+            1.251305623362998
           ],
           "binarytrees": [
-            0.6647598992631508,
-            1.3280806956425122
+            0.8636153987277831,
+            1.3015474938355456
           ],
           "lz77": [
-            0.7332155804546718,
-            1.245399852212034
+            0.8024244235452938,
+            1.1551841925875508
           ],
           "sort": [
-            0.6577117182048919,
-            1.3240904819549937
+            0.8566656590422195,
+            1.326212266881171
           ]
         }
       }
     },
-    "sample_spread_pct": 34.59155410675915,
-    "hello_jit_ms": 140.7697,
-    "hello_build_ms": 190.7,
-    "hello_build_peak_mb": 89.8203125,
+    "sample_spread_pct": 27.112429736558386,
+    "hello_jit_ms": 92.3706,
+    "hello_build_ms": 133.2306,
+    "hello_build_peak_mb": 87.98828125,
     "loop": {
       "hello_build": {
-        "wall_ms": 190.7,
-        "adjusted_ms": 117.05971118558712,
-        "peak_mb": 89.8203125,
-        "peak_working_set_mb": 83.96875,
+        "wall_ms": 133.2306,
+        "adjusted_ms": 116.82882990840598,
+        "peak_mb": 87.98828125,
+        "peak_working_set_mb": 84.99609375,
         "samples": 6,
-        "index": 1.0393740582532782,
+        "index": 1.0373240616523298,
         "since": "d36631d85"
       },
-      "core_rebuild": {
-        "wall_ms": 4118.0575,
-        "adjusted_ms": 2527.83755425087,
-        "peak_mb": 796.28515625,
-        "peak_working_set_mb": 754.00390625,
-        "samples": 2,
-        "index": 0.8072910958862546,
-        "since": "a4677422e"
-      },
       "core_noop": {
-        "wall_ms": 97.2218,
-        "adjusted_ms": 59.67884545853652,
-        "peak_mb": 6.51171875,
-        "peak_working_set_mb": 14.421875,
+        "wall_ms": 72.2178,
+        "adjusted_ms": 63.32720165306829,
+        "peak_mb": 6.51953125,
+        "peak_working_set_mb": 15.0390625,
         "samples": 6,
-        "index": 0.9844250332597928,
+        "index": 1.0446060428043027,
         "since": "a4677422e"
       },
       "core_touch": {
-        "wall_ms": 3618.1,
-        "adjusted_ms": 2220.9425329867477,
-        "peak_mb": 753.8671875,
-        "peak_working_set_mb": 703.453125,
+        "wall_ms": 2778.4539,
+        "adjusted_ms": 2436.40363468638,
+        "peak_mb": 780.828125,
+        "peak_working_set_mb": 731.1953125,
         "samples": 3,
-        "index": 0.7435455997101305,
+        "index": 0.8156794580599064,
         "since": "a4677422e"
       },
       "doc_std": {
-        "wall_ms": 54306.2223,
-        "adjusted_ms": 33335.452008486056,
-        "peak_mb": 4945.33984375,
-        "peak_working_set_mb": 4826.12109375,
-        "samples": 2,
-        "index": 0.8824475308044232,
+        "wall_ms": 55337.3,
+        "adjusted_ms": 48524.82844999898,
+        "peak_mb": 5047.921875,
+        "peak_working_set_mb": 4931.59375,
+        "samples": 3,
+        "index": 1.2845368059658882,
         "since": "a4677422e"
       },
       "format_tree": {
-        "wall_ms": 692.9378,
-        "adjusted_ms": 425.3544768619619,
-        "peak_mb": 512.5390625,
-        "peak_working_set_mb": 448.65625,
+        "wall_ms": 603.599,
+        "adjusted_ms": 529.2910555374211,
+        "peak_mb": 510.62890625,
+        "peak_working_set_mb": 444.37890625,
         "samples": 3,
-        "index": 0.9287734361918002,
+        "index": 1.1557218723164142,
         "since": "a4677422e"
       }
     },
     "allocator": {
       "workloads": {
         "pair": {
-          "swag_ns": 8.911,
-          "swag_ws_mb": 6.82421875,
-          "swag_commit_mb": 3.66015625,
-          "mimalloc_ns": 5.202,
-          "mimalloc_ws_mb": 4.7421875,
-          "mimalloc_commit_mb": 4.71875,
-          "crt_ns": 36.142,
-          "crt_ws_mb": 3.9296875,
-          "crt_commit_mb": 2.3203125,
-          "vs_mimalloc": 1.7129950019223374,
-          "ws_vs_mimalloc": 1.4390444810543657,
-          "vs_crt": 0.2465552542748049,
-          "ws_vs_crt": 1.7365805168986084
+          "swag_ns": 8.707,
+          "swag_ws_mb": 7.53125,
+          "swag_commit_mb": 3.71484375,
+          "mimalloc_ns": 4.944,
+          "mimalloc_ws_mb": 5.171875,
+          "mimalloc_commit_mb": 4.7109375,
+          "crt_ns": 34.032,
+          "crt_ws_mb": 4.28125,
+          "crt_commit_mb": 2.328125,
+          "vs_mimalloc": 1.7611245954692558,
+          "ws_vs_mimalloc": 1.4561933534743203,
+          "vs_crt": 0.2558474377056888,
+          "ws_vs_crt": 1.7591240875912408
         },
         "trees": {
-          "swag_ns": 12.547,
+          "swag_ns": 11.605,
           "swag_ws_mb": 7.3203125,
-          "swag_commit_mb": 4.09375,
-          "mimalloc_ns": 8.108,
+          "swag_commit_mb": 4.1015625,
+          "mimalloc_ns": 8.214,
           "mimalloc_ws_mb": 5.296875,
-          "mimalloc_commit_mb": 5.21484375,
-          "crt_ns": 50.375,
+          "mimalloc_commit_mb": 5.21875,
+          "crt_ns": 49.833,
           "crt_ws_mb": 4.5234375,
           "crt_commit_mb": 3.47265625,
-          "vs_mimalloc": 1.547483966452886,
+          "vs_mimalloc": 1.4128317506695884,
           "ws_vs_mimalloc": 1.3820058997050146,
-          "vs_crt": 0.24907196029776676,
+          "vs_crt": 0.23287781189171836,
           "ws_vs_crt": 1.618307426597582
         },
         "churn": {
-          "swag_ns": 31.197,
-          "swag_ws_mb": 25.15625,
-          "swag_commit_mb": 27.265625,
-          "mimalloc_ns": 20.167,
+          "swag_ns": 29.812,
+          "swag_ws_mb": 25.1484375,
+          "swag_commit_mb": 27.27734375,
+          "mimalloc_ns": 19.414,
           "mimalloc_ws_mb": 23.23046875,
-          "mimalloc_commit_mb": 30.63671875,
-          "crt_ns": 87.714,
-          "crt_ws_mb": 25.89453125,
-          "crt_commit_mb": 28.28125,
-          "vs_mimalloc": 1.5469331085436602,
-          "ws_vs_mimalloc": 1.0828989406423406,
-          "vs_crt": 0.35566728230385114,
-          "ws_vs_crt": 0.9714889123548046
+          "mimalloc_commit_mb": 30.6484375,
+          "crt_ns": 81.435,
+          "crt_ws_mb": 25.890625,
+          "crt_commit_mb": 28.27734375,
+          "vs_mimalloc": 1.535592871123931,
+          "ws_vs_mimalloc": 1.0825626366235077,
+          "vs_crt": 0.3660833793823295,
+          "ws_vs_crt": 0.9713337356668679
         },
         "medium": {
-          "swag_ns": 30.05,
-          "swag_ws_mb": 16.94140625,
-          "swag_commit_mb": 23.06640625,
-          "mimalloc_ns": 40.229,
-          "mimalloc_ws_mb": 18.64453125,
-          "mimalloc_commit_mb": 22.671875,
-          "crt_ns": 379.234,
+          "swag_ns": 27.899,
+          "swag_ws_mb": 16.93359375,
+          "swag_commit_mb": 23.0625,
+          "mimalloc_ns": 40.392,
+          "mimalloc_ws_mb": 18.6484375,
+          "mimalloc_commit_mb": 22.68359375,
+          "crt_ns": 364.73,
           "crt_ws_mb": 15.86328125,
-          "crt_commit_mb": 16.09375,
-          "vs_mimalloc": 0.746973576275821,
-          "ws_vs_mimalloc": 0.908652838885397,
-          "vs_crt": 0.07923867585712252,
-          "ws_vs_crt": 1.0679635557744398
+          "crt_commit_mb": 16.109375,
+          "vs_mimalloc": 0.6907060804119627,
+          "ws_vs_mimalloc": 0.908043569333892,
+          "vs_crt": 0.07649219970937406,
+          "ws_vs_crt": 1.0674710662398423
         },
         "large": {
-          "swag_ns": 1285.49,
-          "swag_ws_mb": 46.04296875,
-          "swag_commit_mb": 43.41796875,
-          "mimalloc_ns": 1586.359,
+          "swag_ns": 1105.75,
+          "swag_ws_mb": 46.03515625,
+          "swag_commit_mb": 43.421875,
+          "mimalloc_ns": 1407.263,
           "mimalloc_ws_mb": 70.55859375,
-          "mimalloc_commit_mb": 93.38671875,
-          "crt_ns": 12047.072,
+          "mimalloc_commit_mb": 93.3828125,
+          "crt_ns": 10287.376,
           "crt_ws_mb": 35.625,
-          "crt_commit_mb": 34.82421875,
-          "vs_mimalloc": 0.8103399041452787,
-          "ws_vs_mimalloc": 0.652549410396944,
-          "vs_crt": 0.10670559618137918,
-          "ws_vs_crt": 1.2924342105263158
+          "crt_commit_mb": 34.8359375,
+          "vs_mimalloc": 0.7857450952664854,
+          "ws_vs_mimalloc": 0.6524386868183579,
+          "vs_crt": 0.10748610724445185,
+          "ws_vs_crt": 1.2922149122807018
         },
         "realloc": {
-          "swag_ns": 10963.667,
-          "swag_ws_mb": 12.47265625,
+          "swag_ns": 9809.25,
+          "swag_ws_mb": 12.46484375,
           "swag_commit_mb": 12.32421875,
-          "mimalloc_ns": 10231.328,
-          "mimalloc_ws_mb": 11.875,
-          "mimalloc_commit_mb": 26.984375,
-          "crt_ns": 86228.925,
+          "mimalloc_ns": 9321.006,
+          "mimalloc_ws_mb": 11.87109375,
+          "mimalloc_commit_mb": 27.01171875,
+          "crt_ns": 74562.297,
           "crt_ws_mb": 8.515625,
-          "crt_commit_mb": 9.328125,
-          "vs_mimalloc": 1.0715780981706382,
-          "ws_vs_mimalloc": 1.050328947368421,
-          "vs_crt": 0.1271460475704643,
-          "ws_vs_crt": 1.4646788990825688
+          "crt_commit_mb": 9.3125,
+          "vs_mimalloc": 1.0523810412738712,
+          "ws_vs_mimalloc": 1.0500164527805198,
+          "vs_crt": 0.13155777644564784,
+          "ws_vs_crt": 1.4637614678899082
         },
         "spread": {
-          "swag_ns": 2858.333,
-          "swag_ws_mb": 7.08203125,
-          "swag_commit_mb": 5.53515625,
-          "mimalloc_ns": 3387.5,
-          "mimalloc_ws_mb": 5.0,
-          "mimalloc_commit_mb": 7.65234375,
-          "crt_ns": 3681.667,
+          "swag_ns": 2566.667,
+          "swag_ws_mb": 7.07421875,
+          "swag_commit_mb": 5.546875,
+          "mimalloc_ns": 2621.667,
+          "mimalloc_ws_mb": 5.00390625,
+          "mimalloc_commit_mb": 7.65625,
+          "crt_ns": 3445.833,
           "crt_ws_mb": 3.9296875,
-          "crt_commit_mb": 3.6796875,
-          "vs_mimalloc": 0.8437883394833948,
-          "ws_vs_mimalloc": 1.41640625,
-          "vs_crt": 0.776369237087439,
-          "ws_vs_crt": 1.8021868787276343
+          "crt_commit_mb": 3.68359375,
+          "vs_mimalloc": 0.9790209816883685,
+          "ws_vs_mimalloc": 1.4137392661982826,
+          "vs_crt": 0.744861111957544,
+          "ws_vs_crt": 1.8001988071570576
         },
         "grow": {
-          "swag_ns": 9.338,
-          "swag_ws_mb": 159.30859375,
+          "swag_ns": 8.003,
+          "swag_ws_mb": 159.3046875,
           "swag_commit_mb": 156.8515625,
-          "mimalloc_ns": 8.015,
+          "mimalloc_ns": 6.742,
           "mimalloc_ws_mb": 157.703125,
-          "mimalloc_commit_mb": 158.265625,
-          "crt_ns": 33.738,
+          "mimalloc_commit_mb": 158.26953125,
+          "crt_ns": 30.337,
           "crt_ws_mb": 218.1796875,
-          "crt_commit_mb": 228.93359375,
-          "vs_mimalloc": 1.165065502183406,
-          "ws_vs_mimalloc": 1.010180322996136,
-          "vs_crt": 0.27677989210978715,
-          "ws_vs_crt": 0.7301715186020696
+          "crt_commit_mb": 228.9140625,
+          "vs_mimalloc": 1.187036487689113,
+          "ws_vs_mimalloc": 1.0101555533538096,
+          "vs_crt": 0.26380327652701324,
+          "ws_vs_crt": 0.7301536147813944
         },
         "spread:8": {
-          "swag_ns": 1125.0,
-          "swag_ws_mb": 8.29296875,
-          "swag_commit_mb": 13.55078125,
-          "mimalloc_ns": 1291.875,
-          "mimalloc_ws_mb": 6.640625,
-          "mimalloc_commit_mb": 18.3203125,
-          "crt_ns": 3556.979,
-          "crt_ws_mb": 6.45703125,
-          "crt_commit_mb": 12.79296875,
-          "vs_mimalloc": 0.8708272859216255,
-          "ws_vs_mimalloc": 1.2488235294117647,
-          "vs_crt": 0.3162796294271066,
-          "ws_vs_crt": 1.2843315184513007
+          "swag_ns": 884.375,
+          "swag_ws_mb": 8.35546875,
+          "swag_commit_mb": 13.62890625,
+          "mimalloc_ns": 863.958,
+          "mimalloc_ws_mb": 6.52734375,
+          "mimalloc_commit_mb": 17.34765625,
+          "crt_ns": 2726.354,
+          "crt_ws_mb": 6.37890625,
+          "crt_commit_mb": 11.79296875,
+          "vs_mimalloc": 1.0236319358116945,
+          "ws_vs_mimalloc": 1.2800718132854578,
+          "vs_crt": 0.32438010617843466,
+          "ws_vs_crt": 1.3098591549295775
         },
         "churn:4": {
-          "swag_ns": 12.895,
-          "swag_ws_mb": 82.0625,
-          "swag_commit_mb": 99.078125,
-          "mimalloc_ns": 9.126,
-          "mimalloc_ws_mb": 80.5625,
-          "mimalloc_commit_mb": 111.35546875,
-          "crt_ns": 74.864,
-          "crt_ws_mb": 98.23828125,
-          "crt_commit_mb": 108.56640625,
-          "vs_mimalloc": 1.4129958360727592,
-          "ws_vs_mimalloc": 1.0186190845616758,
-          "vs_crt": 0.17224567215216924,
-          "ws_vs_crt": 0.8353413654618473
+          "swag_ns": 11.821,
+          "swag_ws_mb": 81.96484375,
+          "swag_commit_mb": 99.02734375,
+          "mimalloc_ns": 7.989,
+          "mimalloc_ws_mb": 80.26953125,
+          "mimalloc_commit_mb": 111.11328125,
+          "crt_ns": 69.475,
+          "crt_ws_mb": 98.328125,
+          "crt_commit_mb": 109.19921875,
+          "vs_mimalloc": 1.4796595318563024,
+          "ws_vs_mimalloc": 1.0211202491605431,
+          "vs_crt": 0.1701475350845628,
+          "ws_vs_crt": 0.8335849356427777
         },
         "medium:4": {
-          "swag_ns": 12.796,
-          "swag_ws_mb": 47.09375,
-          "swag_commit_mb": 79.25390625,
-          "mimalloc_ns": 15.142,
-          "mimalloc_ws_mb": 62.6796875,
-          "mimalloc_commit_mb": 96.3203125,
-          "crt_ns": 1558.789,
-          "crt_ws_mb": 45.43359375,
-          "crt_commit_mb": 48.359375,
-          "vs_mimalloc": 0.8450667018887862,
-          "ws_vs_mimalloc": 0.7513398977938427,
-          "vs_crt": 0.008208936552670054,
-          "ws_vs_crt": 1.036540280285444
+          "swag_ns": 12.574,
+          "swag_ws_mb": 46.9296875,
+          "swag_commit_mb": 79.25,
+          "mimalloc_ns": 12.979,
+          "mimalloc_ws_mb": 63.9453125,
+          "mimalloc_commit_mb": 98.79296875,
+          "crt_ns": 1435.412,
+          "crt_ws_mb": 46.16796875,
+          "crt_commit_mb": 48.5390625,
+          "vs_mimalloc": 0.9687957469758842,
+          "ws_vs_mimalloc": 0.7339034819792303,
+          "vs_crt": 0.008759854313604735,
+          "ws_vs_crt": 1.0164988577713852
         },
         "large:4": {
-          "swag_ns": 671.09,
-          "swag_ws_mb": 145.484375,
-          "swag_commit_mb": 143.26171875,
-          "mimalloc_ns": 712.646,
-          "mimalloc_ws_mb": 246.0625,
-          "mimalloc_commit_mb": 318.16796875,
-          "crt_ns": 5269.866,
-          "crt_ws_mb": 104.8984375,
-          "crt_commit_mb": 104.27734375,
-          "vs_mimalloc": 0.9416877383722073,
-          "ws_vs_mimalloc": 0.591249682499365,
-          "vs_crt": 0.1273447939662982,
-          "ws_vs_crt": 1.3869069784762047
+          "swag_ns": 661.185,
+          "swag_ws_mb": 145.5546875,
+          "swag_commit_mb": 143.33203125,
+          "mimalloc_ns": 686.796,
+          "mimalloc_ws_mb": 221.9375,
+          "mimalloc_commit_mb": 296.90625,
+          "crt_ns": 5098.283,
+          "crt_ws_mb": 106.9921875,
+          "crt_commit_mb": 106.6640625,
+          "vs_mimalloc": 0.9627094508412977,
+          "ws_vs_mimalloc": 0.6558363841171501,
+          "vs_crt": 0.12968777919938926,
+          "ws_vs_crt": 1.360423512230741
         },
         "xfer:2": {
-          "swag_ns": 78.902,
-          "swag_ws_mb": 12.671875,
-          "swag_commit_mb": 11.90625,
-          "mimalloc_ns": 72.323,
-          "mimalloc_ws_mb": 11.09375,
-          "mimalloc_commit_mb": 14.984375,
-          "crt_ns": 109.182,
-          "crt_ws_mb": 10.54296875,
-          "crt_commit_mb": 9.97265625,
-          "vs_mimalloc": 1.0909669123238805,
-          "ws_vs_mimalloc": 1.1422535211267606,
-          "vs_crt": 0.7226649081350406,
-          "ws_vs_crt": 1.2019266394961097
+          "swag_ns": 81.721,
+          "swag_ws_mb": 12.34765625,
+          "swag_commit_mb": 11.3359375,
+          "mimalloc_ns": 66.6,
+          "mimalloc_ws_mb": 11.328125,
+          "mimalloc_commit_mb": 15.0390625,
+          "crt_ns": 104.483,
+          "crt_ws_mb": 10.74609375,
+          "crt_commit_mb": 10.27734375,
+          "vs_mimalloc": 1.2270420420420423,
+          "ws_vs_mimalloc": 1.09,
+          "vs_crt": 0.782146377879655,
+          "ws_vs_crt": 1.1490367139222102
         },
         "xfer:4": {
-          "swag_ns": 74.568,
-          "swag_ws_mb": 17.87890625,
-          "swag_commit_mb": 19.234375,
-          "mimalloc_ns": 68.965,
-          "mimalloc_ws_mb": 16.17578125,
-          "mimalloc_commit_mb": 24.38671875,
-          "crt_ns": 97.743,
-          "crt_ws_mb": 15.29296875,
-          "crt_commit_mb": 15.5546875,
-          "vs_mimalloc": 1.0812441093308198,
-          "ws_vs_mimalloc": 1.1052885776382517,
-          "vs_crt": 0.7628986218961972,
-          "ws_vs_crt": 1.1690932311621967
+          "swag_ns": 73.227,
+          "swag_ws_mb": 17.33984375,
+          "swag_commit_mb": 18.62890625,
+          "mimalloc_ns": 62.428,
+          "mimalloc_ws_mb": 16.53125,
+          "mimalloc_commit_mb": 24.2109375,
+          "crt_ns": 92.178,
+          "crt_ws_mb": 15.53515625,
+          "crt_commit_mb": 15.5,
+          "vs_mimalloc": 1.1729832767347985,
+          "ws_vs_mimalloc": 1.048913043478261,
+          "vs_crt": 0.7944086441450239,
+          "ws_vs_crt": 1.1161679658033694
         }
       },
-      "geo_vs_mimalloc": 1.0821527766080834,
-      "geo_vs_crt": 0.19951981843231667,
-      "geo_ws_vs_mimalloc": 1.0226963609645843,
-      "geo_ws_vs_crt": 1.2175925133516512,
+      "geo_vs_mimalloc": 1.1242989004503137,
+      "geo_vs_crt": 0.2013968854814877,
+      "geo_ws_vs_mimalloc": 1.0239148375478389,
+      "geo_ws_vs_crt": 1.208736079388402,
       "count": 14
     }
   }

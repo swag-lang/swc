@@ -257,11 +257,9 @@ def make_recipes(t, env, swc, cores=0):
                     "clean": [os.path.join(proj, "bin"), os.path.join(proj, "obj", "Release")]}
         return make
 
-    # The fast-debug benchmark IDs are stable data keys shared with recorded campaigns. They now
-    # select the equivalent devmode preset so the historical series remains continuous.
     return {
         "swag-release":    swag("release"),
-        "swag-fast-debug": swag("devmode"),
+        "swag-devmode":    swag("devmode"),
         "cpp-clang-cl":    cpp(t["clang_cl"]),
         "cpp-msvc":        cpp(cl),
         "rust":            rust,
@@ -288,7 +286,7 @@ def make_recipes(t, env, swc, cores=0):
 def make_launchers(t, dotnet_dll_runner):
     """id -> callable(exe) -> command line, for the toolchains that produced an exe."""
     return {k: (lambda e: [e]) for k in
-            ["swag-release", "swag-fast-debug", "cpp-clang-cl", "cpp-msvc",
+            ["swag-release", "swag-devmode", "cpp-clang-cl", "cpp-msvc",
              "rust", "zig", "d-ldc", "odin", "go", "swift", "csharp-aot"]} | {
         "csharp-jit": lambda e: [dotnet_dll_runner, e],
         "java-hotspot": lambda e: [t["java"], "-cp", os.path.dirname(e), "Bench"]}
@@ -319,7 +317,7 @@ def make_runtimes(t, swc, cores=0):
 
     return {
         "swc-jit-release":    jit("release"),
-        "swc-jit-fast-debug": jit("devmode"),
+        "swc-jit-devmode":    jit("devmode"),
         "node20":             lambda task: [t["node"], os.path.join(SRC, "js", task + ".js")],
         "luajit2.1":          lambda task: [t["luajit"], os.path.join(SRC, "lua", task + ".lua")],
         "lua5.4":             lambda task: [t["lua"], os.path.join(SRC, "lua", task + ".lua")],
@@ -359,7 +357,7 @@ def make_hello_builds(t, env, swc, cores=0):
         "java-hotspot": lambda: systems_recipe(
             t, "java-hotspot", os.path.join(hello, "java", "Bench.java"), "hello_java-hotspot"),
         "swag-release": swag("release"),
-        "swag-fast-debug": swag("devmode"),
+        "swag-devmode": swag("devmode"),
         "cpp-clang-cl": cpp(t["clang_cl"], "clang"),
         "cpp-msvc": cpp(cl, "msvc"),
         "rust": lambda: {
@@ -394,7 +392,7 @@ def make_hello_runs(t, swc, cores=0):
     return {
         "swc-jit-release":    [swc, "sema", *swc_worker_args(cores), "--build-cfg", "release", "-f",
                                os.path.join(hello, "run.swg")],
-        "swc-jit-fast-debug": [swc, "sema", *swc_worker_args(cores), "--build-cfg", "devmode", "-f",
+        "swc-jit-devmode":    [swc, "sema", *swc_worker_args(cores), "--build-cfg", "devmode", "-f",
                                os.path.join(hello, "run.swg")],
         "node20":             [t["node"], os.path.join(hello, "hello.js")],
         "luajit2.1":          [t["luajit"], os.path.join(hello, "hello.lua")],

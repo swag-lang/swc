@@ -175,8 +175,8 @@ class HistoryAdjustmentTests(unittest.TestCase):
 
     def test_execution_speedup_counts_advantages_with_separate_non_swag_references(self):
         tasks = {task: {rt: {"run": {"ms": elapsed * scale}}
-                        for rt, elapsed in (("swag-release", 100), ("swag-fast-debug", 0.001),
-                                            ("swc-jit-release", 10), ("swc-jit-fast-debug", 0.001),
+                        for rt, elapsed in (("swag-release", 100), ("swag-devmode", 0.001),
+                                            ("swc-jit-release", 10), ("swc-jit-devmode", 0.001),
                                             ("cpp-msvc", native), ("rust", rust),
                                             ("node20", jit), ("lua5.4", 0.001))}
                  for task, scale, native, rust, jit in (("first", 1, 200, 400, 40),
@@ -192,7 +192,7 @@ class HistoryAdjustmentTests(unittest.TestCase):
         for invalid in (None, 0, -1, float("inf"), float("nan")):
             with self.subTest(invalid=invalid):
                 tasks = {task: {"swag-release": {"run": {"ms": 100}},
-                                "swag-fast-debug": {"run": {"ms": 1}},
+                                "swag-devmode": {"run": {"ms": 1}},
                                 "cpp-msvc": {"run": {"ms": 1 if task == "first" else invalid}},
                                 "rust": {"run": {"ms": 1, "error": "failed"}},
                                 "node20": {"run": {"ms": 1}}} for task in TASKS}
@@ -218,14 +218,24 @@ class HistoryAdjustmentTests(unittest.TestCase):
                 if runtime in ("cpp-a", "cpp-b", "rust", "extra-0", "extra-1"):
                     entry["build"]["wall_ms"] *= 1.55
 
-        stable = history.build_control_spread(coherent, baseline)
-        unstable = history.build_control_spread(split, baseline)
+        stable = history.build_control_spread(coherent, [baseline])
+        unstable = history.build_control_spread(split, [baseline])
         self.assertAlmostEqual(stable["spread_pct"], 0.0)
         self.assertGreater(unstable["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT)
+        self.assertEqual(unstable["references"], ["run-01"])
 
         # A campaign that adds a task is compared with its predecessor on the shared tasks.
-        extended = history.build_control_spread(add_task(split, "third"), baseline)
+        extended = history.build_control_spread(add_task(split, "third"), [baseline])
         self.assertEqual(extended["spread_pct"], unstable["spread_pct"])
+
+        # The quiet campaign after a split one: the median over recent references keeps
+        # the disturbed predecessor from making it read as split itself.
+        recovered = copy.deepcopy(baseline)
+        recovered["meta"]["stamp"] = "run-04"
+        alone = history.build_control_spread(recovered, [split])
+        among = history.build_control_spread(recovered, [baseline, coherent, split])
+        self.assertGreater(alone["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT)
+        self.assertLess(among["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT)
 
     def test_oldest_clean_campaign_is_the_baseline(self):
         dirty = campaign("run-01", True, run_scale=2.0)
@@ -286,7 +296,7 @@ class HistoryAdjustmentTests(unittest.TestCase):
             entries["cpp-a"]["build"]["wall_ms"] = first
             entries["cpp-b"]["build"]["wall_ms"] = second
             entries["cpp-msvc"] = {"build": {"wall_ms": 20000.0}}
-            entries["swag-fast-debug"] = {"build": {"wall_ms": 0.01}}
+            entries["swag-devmode"] = {"build": {"wall_ms": 0.01}}
             entries["swc-jit-release"]["build"] = {"wall_ms": 0.01}
 
         entry = history.build_entries([result])[0]

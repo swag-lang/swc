@@ -43,8 +43,8 @@ TASK_INFO = {
 RUNTIMES = [
     ("swag-release",       "swag release",      "native",    "swag"),
     ("swc-jit-release",    "swag release",      "JIT",       "swag"),
-    ("swag-fast-debug",    "swag devmode",      "native",    "swag"),
-    ("swc-jit-fast-debug", "swag devmode",      "JIT",       "swag"),
+    ("swag-devmode",       "swag devmode",      "native",    "swag"),
+    ("swc-jit-devmode",    "swag devmode",      "JIT",       "swag"),
     ("cpp-clang-cl",       "clang",             "native",    "native"),
     ("cpp-msvc",           "MSVC",              "native",    "native"),
     ("rust",               "Rust",              "native",    "native"),
@@ -69,7 +69,7 @@ META = {r[0]: r for r in RUNTIMES}
 # Stable two-character codes identify compilers and runtime modes on every surface.
 CODES = {
     "swag-release": "SW", "swc-jit-release": "SJ",
-    "swag-fast-debug": "SD", "swc-jit-fast-debug": "JD",
+    "swag-devmode": "SD", "swc-jit-devmode": "JD",
     "cpp-clang-cl": "CL", "cpp-msvc": "VC", "rust": "RS",
     "zig": "ZG", "d-ldc": "LD", "odin": "OD", "swift": "SF", "go": "GO",
     "csharp-aot": "CA", "csharp-jit": "CJ", "java-hotspot": "JV", "node20": "V8",
@@ -80,7 +80,7 @@ CODES = {
 # Runtime classes identify configurations; the stylesheet shares colours across execution modes.
 LANG = {
     "swag-release": "swag", "swc-jit-release": "swagjit",
-    "swag-fast-debug": "swagdev", "swc-jit-fast-debug": "swagdevjit",
+    "swag-devmode": "swagdev", "swc-jit-devmode": "swagdevjit",
     "cpp-clang-cl": "clang", "cpp-msvc": "msvc", "rust": "rust", "zig": "zig", "d-ldc": "d",
     "odin": "odin", "swift": "swift", "csharp-aot": "csaot", "csharp-jit": "csjit",
     "node20": "js", "luajit2.1": "luajit", "lua5.4": "lua", "python3.12": "py",
@@ -118,8 +118,8 @@ DRIFT_LIMIT = history.DRIFT_LIMIT_PCT
 HIST_SERIES = [
     ("swag-release",       "SW", "h-a"),
     ("swc-jit-release",    "SJ", "h-b"),
-    ("swag-fast-debug",    "SD", "h-c"),
-    ("swc-jit-fast-debug", "JD", "h-d"),
+    ("swag-devmode",       "SD", "h-c"),
+    ("swc-jit-devmode",    "JD", "h-d"),
 ]
 
 # The edit-build loop, in the order a person meets it: the first build, the build where
@@ -346,9 +346,9 @@ def performance_table(tasks, runtimes, value):
 def swag_comparison_table(campaign, tasks, family, campaigns=()):
     """Compare every competitor directly with Swag on the complete displayed panel."""
     key = "ms" if family == "run" else "wall_ms"
-    leads = ["swag-release", "swag-fast-debug"]
+    leads = ["swag-release", "swag-devmode"]
     if family == "run":
-        leads += ["swc-jit-release", "swc-jit-fast-debug"]
+        leads += ["swc-jit-release", "swc-jit-devmode"]
     headers = ["language / mode", "competitor total"]
     for lead in leads:
         values = report_metrics.measurements(campaign, tasks, lead, family, key)
@@ -811,7 +811,7 @@ def main():
     memory_value = "%d<em>MiB</em>" % round(bmem["swag-release"]) if "swag-release" in bmem else "&mdash;"
     execution_stats = "".join([
         competitive_stat(R, campaigns, TASK_IDS, "swag-release", "run", "native", "Native execution &middot; release"),
-        competitive_stat(R, campaigns, TASK_IDS, "swag-fast-debug", "run", "native", "Native execution &middot; devmode"),
+        competitive_stat(R, campaigns, TASK_IDS, "swag-devmode", "run", "native", "Native execution &middot; devmode"),
         competitive_stat(R, campaigns, TASK_IDS, "swc-jit-release", "run", "jit", "JIT / interpreted execution"),
     ])
     build_stats = "".join([
@@ -905,7 +905,7 @@ def main():
         "Total native execution time across those %s programs: **%s** for Swag release, "
         "**%s** for Swag devmode, and **%s** for clang-cl."
         % (spelled(len(TASK_IDS)).lower(), duration(run_totals.get("swag-release")),
-           duration(run_totals.get("swag-fast-debug")), duration(run_totals.get("cpp-clang-cl"))),
+           duration(run_totals.get("swag-devmode")), duration(run_totals.get("cpp-clang-cl"))),
         "The total build-time difference vs the non-Swag compiler with the smallest total is "
         "**%s**. The raw table above includes each recipe's imports and linking or bytecode generation."
         % build_gap,

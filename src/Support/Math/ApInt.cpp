@@ -191,8 +191,6 @@ void ApInt::logicalShiftRight(uint64_t amount)
             carry                   = newCarry;
         }
     }
-
-    normalize();
 }
 
 void ApInt::arithmeticShiftRight(uint64_t amount)
@@ -487,7 +485,6 @@ ApInt ApInt::div(const ApInt& rhs, bool& overflow)
     }
 
     *this = quotient;
-    rem.normalize();
     return rem;
 }
 
@@ -735,7 +732,6 @@ ApInt ApInt::divSigned(const ApInt& rhs, bool& overflow)
         remMag.add(1, dummyOverflow);
     }
 
-    remMag.normalize();
     return remMag;
 }
 
@@ -752,7 +748,6 @@ void ApInt::bitwiseOr(uint64_t rhs)
     }
 
     words_[0] |= rhs;
-    normalize();
 }
 
 void ApInt::bitwiseOr(const ApInt& rhs)
@@ -762,8 +757,6 @@ void ApInt::bitwiseOr(const ApInt& rhs)
 
     for (uint32_t i = 0; i < numWords_; ++i)
         words_[i] |= rhs.words_[i];
-
-    normalize();
 }
 
 void ApInt::bitwiseAnd(const ApInt& rhs)
@@ -773,8 +766,6 @@ void ApInt::bitwiseAnd(const ApInt& rhs)
 
     for (uint32_t i = 0; i < numWords_; ++i)
         words_[i] &= rhs.words_[i];
-
-    normalize();
 }
 
 void ApInt::bitwiseXor(const ApInt& rhs)
@@ -784,8 +775,6 @@ void ApInt::bitwiseXor(const ApInt& rhs)
 
     for (uint32_t i = 0; i < numWords_; ++i)
         words_[i] ^= rhs.words_[i];
-
-    normalize();
 }
 
 bool ApInt::testBit(uint64_t bitIndex) const
@@ -1046,8 +1035,6 @@ void ApInt::resize(uint32_t newBitWidth)
 
     bitWidth_ = newBitWidth;
     numWords_ = newNumWords;
-
-    normalize();
 }
 
 void ApInt::resizeSigned(uint32_t newBitWidth)
@@ -1218,25 +1205,12 @@ uint32_t ApInt::minBits() const
     // Find highest non-zero word.
     for (int wi = static_cast<int>(numWords_) - 1; wi >= 0; --wi)
     {
-        uint64_t w = words_[static_cast<uint32_t>(wi)];
-
-        // Mask off unused bits in the top word (if any).
-        if (static_cast<uint32_t>(wi) == numWords_ - 1)
-        {
-            const uint32_t used = bitWidth_ % WORD_BITS;
-            if (used != 0)
-            {
-                const uint64_t mask = (uint64_t{1} << used) - 1;
-                w &= mask;
-            }
-        }
-
+        const uint64_t w = words_[static_cast<uint32_t>(wi)];
         if (w != 0)
         {
             const uint32_t msbInWord = 63u - static_cast<uint32_t>(std::countl_zero(w));
             const uint32_t bitIndex  = static_cast<uint32_t>(wi) * WORD_BITS + msbInWord;
-            const uint32_t rawBits   = std::min(bitIndex + 1, bitWidth_);
-            return roundUpToStdWidth(std::max<uint32_t>(rawBits, 1u));
+            return roundUpToStdWidth(bitIndex + 1);
         }
     }
 
@@ -1253,8 +1227,8 @@ uint32_t ApInt::minBitsSigned() const
     // Remove redundant sign-extension: find the highest bit that differs from the sign fill.
     for (int wi = static_cast<int>(numWords_) - 1; wi >= 0; --wi)
     {
-        uint64_t w    = words_[static_cast<uint32_t>(wi)];
-        uint64_t fill = sign ? ~uint64_t{0} : uint64_t{0};
+        const uint64_t w    = words_[static_cast<uint32_t>(wi)];
+        uint64_t       fill = sign ? ~uint64_t{0} : uint64_t{0};
 
         // Top word may have unused bits; ignore them for signed-min calculation.
         if (static_cast<uint32_t>(wi) == numWords_ - 1)
@@ -1263,7 +1237,6 @@ uint32_t ApInt::minBitsSigned() const
             if (used != 0)
             {
                 const uint64_t mask = (uint64_t{1} << used) - 1;
-                w &= mask;
                 fill &= mask;
             }
         }

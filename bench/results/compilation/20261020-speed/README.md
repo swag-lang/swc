@@ -18,6 +18,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Borrow assignment and generic-declaration AST lists | Copying node references into temporary vectors and destroying those vectors | Chunk iteration preserves source order, skipped assignment targets and recursive parameter expansion. Assignment-list code shrinks from 880 to 876 bytes and its frame from 1,080 to 856 bytes; generic-root parameter collection shrinks from 1,417 to 1,384 bytes and its frame from 744 to 488 bytes. The 102-byte span helper already exists elsewhere and is folded by the linker. |
 | Borrow generic parameter declarations during deduction | Copying declaration references before expanding their descriptions | The ordered recursive expansion reads the same immutable AST chunks. The collector shrinks from 1,261 to 1,252 code bytes and its frame from 800 to 528 bytes; one temporary cleanup disappears. The existing span helper is shared. |
 | Append cloned parameter declarations directly to their worklist | A temporary reference vector and a second per-reference append loop | The index-based worklist keeps the same order across growth. Its identifier collector shrinks from 1,923 to 1,627 code bytes and its frame from 1,032 to 728 bytes. No AST entries or identifiers change. |
+| Preserve normalized words without remasking them | Eight redundant normalization tails after bitwise operations, logical right shift, remainder construction and unsigned widening | These operations cannot set a bit above the existing width, or already finish through a normalizing mutation. Both bitwise inputs have the same normalized width; the raw-word OR masks its input first. Arithmetic that can introduce upper bits retains its mask. |
+| Query minimum integer widths from normalized words | Reconstructing the unsigned top-word mask and clamping an already bounded highest bit; masking the signed input word again | The highest live set bit is inside the width. Signed queries retain the mask on their synthesized sign fill. All ten changed bodies shrink and their frames remain stable or shrink. The integer object's code shrinks from 20,407 to 20,108 bytes and retained data from 5,653 to 5,561 bytes. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -81,6 +83,12 @@ singular `generic` filter excluded the shared allocator used by some selected
 examples; its missing-symbol failure was a selection error and is not counted
 as validation. The corrected directory selection includes its provider files.
 
+The normalization/minimum-width batch passes 1,503 C++ tests. The bit oracle now
+checks signed and unsigned minimum widths, signed 64-bit capacity, and zero
+extension into a larger width. Additional cases cover every single bit and its
+complement at widths 1 through 128, logical shifts and bitwise mutations, and
+signed quotient/remainder normalization at widths 3 through 128.
+
 Rejected trials:
 
 - Returning a separately constructed all-ones reachability vector duplicated
@@ -101,3 +109,7 @@ Rejected trials:
   collectors by 281 code bytes. The extra token-span API and its callers are
   restored. Borrowing partial-lambda parameter chunks grew that caller by 13
   bytes and is also restored; none of these trials is retained.
+- Removing the scalar divider's final normalization changed its inlining into
+  unsigned formatting: `toString` grew from 439 to 550 code bytes and its frame
+  from 112 to 144 bytes. That one tail is restored; formatting returns to its
+  original body and frame while the other normalization savings remain.

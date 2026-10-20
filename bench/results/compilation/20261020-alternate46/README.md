@@ -26,7 +26,9 @@ All builds and tests have fresh machine-load admission and six-worker bounds.
 | 6 | `f2510a041` Share web-renaming memory keys | One file-local key/hash pair replaces two identical pairs. Fields, equality, hash, table operations and order are unchanged. Both affected bodies retain their extent, calls and stack reservation. | DevMode build; 1,517 default C++ tests. |
 | 4 | `6b382e504` Erase reference payloads through one probe | Clear the slot already found, preserving occupied keys, collision chains and live counts. Const lookup keeps its original emitted shape. | DevMode build; 1,580 full C++ tests; 3,917 native tests and expected recovery checks. |
 | 6 | `006f19030` Share little-endian word helpers | Read/write families and looped appends share their bodies. The 16-bit append stays unrolled; the storage append helper is force-inlined. All nine entry points retain extent, calls and stack reservation. | DevMode build; 1,518 default C++ tests, including literal byte-order and neighbour checks. |
-| 4 | Current shift-reuse batch | Reuse the shift computed during power-of-two validation for multiply and unsigned division, removing a repeated integer-word walk. The main pass retains its stack reservation and call count, with a 56-byte smaller extent. | DevMode build; 1,518 default C++ tests; both selected native `pow2` inputs pass. |
+| 4 | `d4bdb472c` Reuse validated shift amounts | Reuse the shift computed during power-of-two validation for multiply and unsigned division, removing a repeated integer-word walk. The main pass retains its stack reservation and call count, with a 56-byte smaller extent. | DevMode build; 1,518 default C++ tests; both selected native `pow2` inputs pass. |
+| 6 | `8158f7804` Remove the materialized-default wrapper | The duplicate method and its declaration are removed; global, const and let declarations use the identical existing resolver. Equivalent const/let caller branches are merged. | DevMode and Release builds; 1,519 default C++ tests; six native defaults tests with each compiler executable. |
+| 4 | Current identifier-lookup batch | Use the identifier already resolved for name comparison as the debug pointer, removing a second storage lookup on each hit. The DevMode helper loses one call and 16 stack bytes, with an 11-byte smaller extent. | DevMode build; 1,520 default C++ tests, including forced hash collisions and canonical debug pointers. |
 
 Counts belong to each batch's tested revision. A conflict-free merge does not
 claim that every suite was rerun on the combined revision. The full C++/native
@@ -43,6 +45,8 @@ bin/swc.dm.exe unittest --num-cores 6
 bin/swc.dm.exe unittest --dev-full --num-cores 6
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter pow2 --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter struct_safe_defaults --num-cores 6 --rebuild
+bin/swc.exe --num-cores 6 tools/unittests.swgs native --file-filter struct_safe_defaults --num-cores 6 --rebuild
 ```
 
 The full native tool exits zero. Its deliberate panic and hardware-exception
@@ -54,6 +58,11 @@ Replacing `integerLog2` with `std::countl_zero` passed correctness checks but
 introduced CPU-capability dispatch, outlined helpers and additional calls.
 That trial and its trial-only test are restored; shift reuse leaves the original
 integer-logarithm implementation unchanged.
+
+Combining interface-set membership and insertion was left unchanged: the remaining
+membership guard precedes validation and scope publication that can fail. Moving
+insertion earlier would mutate the set on those failure paths. The simpler overload
+already uses insertion's result.
 
 The general ByteArray append helper initially added a tail jump, and forcing it
 inline through `pushBack` then added a per-byte call. The retained helper operates

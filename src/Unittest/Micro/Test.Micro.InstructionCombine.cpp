@@ -3580,7 +3580,7 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadAcrossScans_ProvesEveryPath)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
-        for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u})
+        for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u, 13u})
         {
             constexpr MicroReg base  = MicroReg::virtualIntReg(1);
             constexpr MicroReg index = MicroReg::virtualIntReg(2);
@@ -3628,14 +3628,25 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadAcrossScans_ProvesEveryPath)
             builder.emitOpBinaryRegImm(other, ApInt(1, getNumBits(bits)), MicroOp::Subtract, bits);
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, second);
             builder.placeLabel(reload);
-            builder.emitLoadAmcRegMem(value, mode == 6 ? MicroOpBits::B16 : bits, base, index, 8, mode == 5 ? 8 : 0, MicroOpBits::B64);
+            MicroReg loadBase = base;
+            if (mode >= 10)
+            {
+                loadBase = MicroReg::virtualIntReg(5);
+                builder.emitLoadRegReg(loadBase, mode == 11 ? index : base, mode == 12 ? MicroOpBits::B32 : MicroOpBits::B64);
+                if (mode == 13)
+                    builder.emitOpBinaryRegImm(loadBase, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+            }
+            builder.emitLoadAmcRegMem(value, mode == 6 ? MicroOpBits::B16 : bits, loadBase, index, 8, mode == 5 ? 8 : 0, MicroOpBits::B64);
             builder.emitLoadMemReg(base, 16, value, bits);
             builder.emitRet();
 
             SWC_RESULT(runInstCombinePass(builder));
-            const bool reused = mode == 0 || mode == 7;
+            const bool reused = mode == 0 || mode == 7 || mode == 10;
             if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != (reused ? 0u : 1u) ||
                 Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
+                return Result::Error;
+            const auto* load = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadAmcRegMem);
+            if (reused && (!load || load->ops(builder.operands())[1].reg != base))
                 return Result::Error;
         }
     }

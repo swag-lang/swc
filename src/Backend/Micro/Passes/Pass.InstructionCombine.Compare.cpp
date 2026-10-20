@@ -233,11 +233,21 @@ namespace InstructionCombine
             if (patternIt->op != MicroInstrOpcode::LoadAmcRegMem)
                 continue;
             const auto* candidate = patternIt->ops(*ctx.operands);
-            if (!candidate || candidate[1].reg != cmp[0].reg || candidate[2].reg != cmp[1].reg ||
+            if (!candidate || candidate[2].reg != cmp[1].reg ||
                 candidate[3].opBits != cmp[4].opBits || candidate[4].opBits != cmp[3].opBits ||
                 candidate[5].valueU64 != cmp[5].valueU64 || candidate[6].valueU64 != cmp[6].valueU64 ||
                 !candidate[0].reg.isVirtualInt())
                 continue;
+            if (candidate[1].reg != cmp[0].reg)
+            {
+                if (!ctx.ssa)
+                    continue;
+                const auto  base = ctx.ssa->reachingDef(candidate[1].reg, patternIt.current);
+                const auto* copy = base.valid() && !base.isPhi && base.inst && base.inst->op == MicroInstrOpcode::LoadRegReg ? base.inst->ops(*ctx.operands) : nullptr;
+                if (!copy || copy[2].opBits != MicroOpBits::B64 || copy[1].reg != cmp[0].reg ||
+                    !ctx.ssa->sameValueAt(cmp[0].reg, cmpRef, base.instRef))
+                    continue;
+            }
             if (distance && (!ctx.ssa || !ctx.builder ||
                              !ctx.ssa->sameValueAt(cmp[0].reg, cmpRef, patternIt.current) ||
                              !ctx.ssa->sameValueAt(cmp[1].reg, cmpRef, patternIt.current) ||
@@ -254,7 +264,11 @@ namespace InstructionCombine
         const MicroReg    saved        = MicroReg::virtualIntReg(ctx.nextVirtualIntRegIndex++);
         MicroInstrOperand earlyLoad[7] = {};
         std::copy_n(loadOps, 7, earlyLoad);
-        earlyLoad[0].reg             = saved;
+        earlyLoad[0].reg = saved;
+        // A copied load base may only be defined after the comparison.
+        // Materialize the read through the address the comparison itself used.
+        earlyLoad[1]                 = cmp[0];
+        earlyLoad[2]                 = cmp[1];
         MicroInstrOperand compare[3] = {};
         compare[0].reg               = saved;
         compare[1].reg               = cmp[2].reg;

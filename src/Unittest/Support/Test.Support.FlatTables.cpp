@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Support/Core/PointerSet.h"
+#include "Support/Core/RefTypes.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -130,6 +131,49 @@ SWC_TEST_BEGIN(FlatTables_FlatKeyMapClearAfterLargeAndSmallFills)
         if (set.contains(key) != (key >= 100 && key < 2100))
             return Result::Error;
     }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FlatTables_RefPointerMapEraseKeepsProbesAndLiveCounts)
+{
+    RefPointerMap<AstNodeRef, int> map;
+    std::array<int, 257>           values{};
+    map.erase(AstNodeRef::invalid());
+    map.erase(AstNodeRef{3});
+    for (uint32_t key = 0; key < values.size(); ++key)
+        map.set(AstNodeRef{key}, &values[key]);
+    if (map.size() != values.size())
+        return Result::Error;
+
+    for (uint32_t key = 0; key < values.size(); key += 3)
+    {
+        map.erase(AstNodeRef{key});
+        map.erase(AstNodeRef{key});
+    }
+    map.set(AstNodeRef{1000}, nullptr);
+    map.erase(AstNodeRef{1000});
+    map.erase(AstNodeRef{1001});
+    map.erase(AstNodeRef::invalid());
+    if (map.size() != 171)
+        return Result::Error;
+
+    const auto& readOnly = map;
+    for (uint32_t key = 0; key < values.size(); ++key)
+    {
+        int* expected = key % 3 ? &values[key] : nullptr;
+        if (readOnly.find(AstNodeRef{key}) != expected)
+            return Result::Error;
+        map.set(AstNodeRef{key}, &values[key]);
+    }
+    map.set(AstNodeRef{1000}, &values[0]);
+    if (map.size() != values.size() + 1 || map.find(AstNodeRef{1000}) != &values[0])
+        return Result::Error;
+
+    for (uint32_t key = 0; key < values.size(); ++key)
+        map.erase(AstNodeRef{key});
+    map.erase(AstNodeRef{1000});
+    if (map.size() || map.find(AstNodeRef{1000}) || map.find(AstNodeRef::invalid()))
+        return Result::Error;
 }
 SWC_TEST_END()
 

@@ -203,20 +203,7 @@ class RefPointerMap
 public:
     V* find(R ref) const noexcept
     {
-        if (slots_.empty() || ref.isInvalid())
-            return nullptr;
-
-        const uint32_t key   = ref.get();
-        size_t         index = slotIndex(key, slots_.size() - 1);
-        while (slots_[index].key != K_FREE)
-        {
-            if (slots_[index].key == key)
-                return slots_[index].value;
-
-            index = (index + 1) & (slots_.size() - 1);
-        }
-
-        return nullptr;
+        return findImpl<false>(*this, ref);
     }
 
     void set(R ref, V* value)
@@ -255,8 +242,7 @@ public:
 
     void erase(R ref)
     {
-        if (find(ref))
-            set(ref, nullptr);
+        findImpl<true>(*this, ref);
     }
 
     // The references that map to a value; an erased one no longer counts.
@@ -273,6 +259,37 @@ private:
     static constexpr uint32_t K_FREE           = std::numeric_limits<uint32_t>::max();
 
     static size_t slotIndex(uint32_t key, size_t mask) noexcept { return FlatTable::slotIndex(key, mask); }
+
+    template<bool Erase, typename Self>
+    static V* findImpl(Self& self, R ref) noexcept
+    {
+        if (self.slots_.empty() || ref.isInvalid())
+            return nullptr;
+
+        const uint32_t key   = ref.get();
+        size_t         index = slotIndex(key, self.slots_.size() - 1);
+        while (self.slots_[index].key != K_FREE)
+        {
+            auto& slot = self.slots_[index];
+            if (slot.key == key)
+            {
+                V* value = slot.value;
+                if constexpr (Erase)
+                {
+                    if (value)
+                    {
+                        slot.value = nullptr;
+                        --self.live_;
+                    }
+                }
+                return value;
+            }
+
+            index = (index + 1) & (self.slots_.size() - 1);
+        }
+
+        return nullptr;
+    }
 
     void rehash(size_t capacity)
     {

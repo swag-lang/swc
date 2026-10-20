@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Main/CompilerCacheStore.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
@@ -358,6 +359,8 @@ CompilerInstance::CompilerInstance(const Global& global, const CommandLine& cmdL
     global_(&global),
     buildCfg_(cmdLine.defaultBuildCfg)
 {
+    if (cmdLine.rebuild)
+        CompilerCacheStore::invalidateAll();
     if (cmdLine.optimizerStats)
         optimizerStats_ = std::make_unique<MicroOptimizerStats>();
 
@@ -403,6 +406,7 @@ namespace
 
 CompilerInstance::~CompilerInstance()
 {
+    CompilerCacheStore::flushAll();
     // JIT code can register fiber-local storage whose cleanup callback is its own code reading its
     // own globals, such as the runtime allocator's thread heap. Windows would run it when a thread
     // exits, after this instance is gone; release those slots while the callbacks can still run.

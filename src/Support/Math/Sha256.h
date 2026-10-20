@@ -7,4 +7,7 @@ SWC_BEGIN_NAMESPACE();
 // This is the kind modern toolchains (and recent Visual Studio) expect; MD5 is deprecated.
 std::array<uint8_t, 32> sha256(std::span<const std::byte> data);
 
+// Hash a logical concatenation without allocating or copying the complete input.
+std::array<uint8_t, 32> sha256Parts(std::initializer_list<std::span<const std::byte>> parts);
+
 SWC_END_NAMESPACE();

@@ -27,6 +27,61 @@ from this checkout's `bin/` through `SWAG_PATH`.
 | `py -3 bench/driver.py --tasks chacha --quick --swc-cores 6` | cap every Swag compiler started by the sweep at six workers |
 | `py -3 bench/compile.py --against "C:\path\outside-checkout\baseline\swc.exe" --swc-cores 6 --admit` | A/B the edit-build loop between two compilers, order alternated; records nothing |
 | `py -3 bench/compile.py --swc-cores 6 --admit` | measure with an explicit worker cap and shared-machine admission before every compiler invocation; records nothing |
+| `py -3 bench/parsecache.py --scratch "C:\path\outside-checkout" --against "C:\baseline\swc.exe" --reps 9` | compare a preserved compiler with automatic runtime/API caches on runtime, core, pixel and gui consumers |
+| `py -3 bench/cachecheck.py --scratch "C:\path\outside-checkout" [--dm] [--rebuild-only]` | verify automatic reuse, forced rebuild with mapped readers, invalidation, corruption recovery, native/JIT behavior and concurrent publication |
+
+The runtime/API comparison requires the checkout-local Release compiler and matching
+devmode standard-library artifacts. Prepare those before measuring:
+
+```powershell
+bin\swc.exe build --workspace bin/std --workspace-module gui -bc devmode --num-cores 6
+```
+
+Preserve the baseline executable outside the checkout and explicitly provide its
+`runtime` and `std` resources there. Its executable hash and extra arguments are recorded.
+For an older compiler whose machine cache needed an explicit switch, pass
+`--against-arg=--machine-cache` to the benchmark driver. The current compiler reuses
+supported entries automatically and exposes no cache enable/disable switch.
+
+The comparison uses six workers, checks CPU and memory admission before every
+invocation (CPU at most 15% by default), alternates the two compilers, and creates a
+fresh native output directory for every sample. Both compilers have population and
+reuse pilots before their paired samples. Pilot artifacts run outside the timer and
+must print the expected value. `--kind sema` measures the front end separately.
+Raw JSON retains all samples, pilot timings, compiler identities, paired wall/CPU
+ratios and peak compiler memory. The historical `off` sample label now means the
+preserved baseline; `warm` means the checkout compiler with automatic reuse.
+
+Machine-code archives preserve supported runtime/imported API functions, unwind
+data, relocations and source mappings, skipping backend optimization, register
+allocation and encoding. Source loading, lexing, parsing, semantic analysis and
+initial IR generation still run. Resolved declarations are not archived. The
+unprofitable parse-image prototype and its public option have been removed.
+Debug-information builds, requested micro listings, optimizer
+statistics and full development validation use ordinary emission where those
+requests require the passes to execute.
+
+`--rebuild` invalidates the machine archive before compilation, reads no
+old entries, and publishes fresh entries produced by the rebuild. Ordinary commands
+reuse them afterwards. The existing output-local native artifact cache also keeps
+its forced-rebuild behavior.
+
+The archive uses the compiler executable identity (path, size, write stamp
+and version). Body checksums reject damaged records. Publication merges immutable
+entries under a directory lock and publishes complete files. On Windows, replacing
+a mapped generation can briefly leave the cache path absent between two renames;
+a reader then compiles normally. Existing readers retain their immutable generation.
+Machine-code fingerprints also include target/configuration, ABI, relevant semantic information,
+lowered instructions and constant graphs; references rebind to the current instance.
+Conservative misses can add variants even on an unchanged input graph. All loading,
+hashing, remaining emission and publication costs stay inside the timed compilation.
+The driver checkpoints pilots and individual samples; only cases marked complete
+constitute a finished comparison.
+
+The [original runtime/API cache investigation](results/runtime-api-cache/20261020/README.md)
+preserves the opt-in revision's measurements and validation boundaries.
+The [automatic-cache iteration](results/runtime-api-cache/20261020-automatic/README.md)
+records the retained reader, forced-rebuild checks and rejected syntax-cache paths.
 
 Most of a campaign is spent on the controls, not on swc: the NativeAOT, Swift and Zig
 builds, and CPython and Lua on the longer tasks. Long executions keep their pilot sample;

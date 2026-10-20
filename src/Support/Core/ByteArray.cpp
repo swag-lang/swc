@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/ByteView.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
@@ -7,16 +8,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    template<typename T>
-    T readLittleEndian(const ByteArray& bytes, const size_t offset) noexcept
-    {
-        SWC_ASSERT(bytes.containsRange(offset, sizeof(T)));
-        T value = 0;
-        for (uint32_t i = 0; i < sizeof(T); ++i)
-            value |= std::to_integer<T>(bytes[offset + i]) << (i * 8);
-        return value;
-    }
-
     template<typename T>
     __forceinline void appendLittleEndian(ByteArray::Storage& bytes, const T value)
     {
@@ -240,28 +231,27 @@ bool ByteArray::containsUtf16Le(const std::string_view text) const noexcept
 
 bool ByteArray::containsRange(const size_t offset, const size_t byteCount) const noexcept
 {
-    return offset <= size() && byteCount <= size() - offset;
+    return ByteView(span()).containsRange(offset, byteCount);
 }
 
 uint16_t ByteArray::readLe16(const size_t offset) const noexcept
 {
-    return readLittleEndian<uint16_t>(*this, offset);
+    return ByteView(span()).readLe16(offset);
 }
 
 uint32_t ByteArray::readLe32(const size_t offset) const noexcept
 {
-    return readLittleEndian<uint32_t>(*this, offset);
+    return ByteView(span()).readLe32(offset);
 }
 
 uint64_t ByteArray::readLe64(const size_t offset) const noexcept
 {
-    return readLittleEndian<uint64_t>(*this, offset);
+    return ByteView(span()).readLe64(offset);
 }
 
 uint32_t ByteArray::readBe32(const size_t offset) const noexcept
 {
-    SWC_ASSERT(containsRange(offset, sizeof(uint32_t)));
-    return (std::to_integer<uint32_t>((*this)[offset + 0]) << 24) | (std::to_integer<uint32_t>((*this)[offset + 1]) << 16) | (std::to_integer<uint32_t>((*this)[offset + 2]) << 8) | std::to_integer<uint32_t>((*this)[offset + 3]);
+    return ByteView(span()).readBe32(offset);
 }
 
 void ByteArray::append(const std::span<const std::byte> bytes)

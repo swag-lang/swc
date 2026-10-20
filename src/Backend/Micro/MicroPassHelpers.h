@@ -413,6 +413,17 @@ namespace MicroPassHelpers
     // Jumps preserve flags and require the CFG variant to prove their successors.
     bool areCpuFlagsDeadAfter(const MicroStorage& storage, const MicroOperandStorage& operands, MicroInstrRef afterRef, MicroBuilder* builder = nullptr);
 
+    // Cache storage and invalidation stay with each pass context.
+    template<typename Context>
+    inline bool cachedCpuFlagsDeadAfter(const Context& context, const MicroInstrRef& ref)
+    {
+        if (ref.isValid() && ref == context.lastFlagsDeadRef)
+            return context.lastFlagsDead;
+        context.lastFlagsDeadRef = ref;
+        context.lastFlagsDead    = areCpuFlagsDeadAfter(*context.storage, *context.operands, ref, context.builder);
+        return context.lastFlagsDead;
+    }
+
     // True when the CPU flags are redefined after 'instRef' before any label,
     // jump, call, or terminator. Unlike areCpuFlagsDeadAfter, this also stops
     // at labels and requires an actual overwrite rather than an ABI boundary.

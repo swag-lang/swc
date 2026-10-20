@@ -338,11 +338,7 @@ namespace InstructionCombine
 
     bool Context::areCpuFlagsDeadAfter(const MicroInstrRef ref) const
     {
-        if (ref.isValid() && ref == lastFlagsDeadRef)
-            return lastFlagsDead;
-        lastFlagsDeadRef = ref;
-        lastFlagsDead    = MicroPassHelpers::areCpuFlagsDeadAfter(*storage, *operands, ref, builder);
-        return lastFlagsDead;
+        return MicroPassHelpers::cachedCpuFlagsDeadAfter(*this, ref);
     }
 
     bool Context::isImmutableStorageBase(const MicroReg reg)

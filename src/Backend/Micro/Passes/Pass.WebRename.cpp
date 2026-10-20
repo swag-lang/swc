@@ -10,6 +10,22 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    struct MemoryLocation
+    {
+        MicroReg base;
+        uint64_t offset;
+
+        bool operator==(const MemoryLocation&) const = default;
+    };
+
+    struct MemoryLocationHash
+    {
+        size_t operator()(const MemoryLocation& location) const
+        {
+            return std::hash<MicroReg>{}(location.base) ^ (std::hash<uint64_t>{}(location.offset) << 1);
+        }
+    };
+
     struct Webs
     {
         std::vector<uint32_t> parents;
@@ -93,20 +109,6 @@ namespace
         // Value numbering deliberately leaves frame reads to mem-to-reg.
         // Preserving them here would create single-use integer copies that
         // instruction combining removes, only to recreate them next sweep.
-        struct LoadLocation
-        {
-            MicroReg base;
-            uint64_t offset;
-
-            bool operator==(const LoadLocation&) const = default;
-        };
-        struct LoadLocationHash
-        {
-            size_t operator()(const LoadLocation& location) const
-            {
-                return std::hash<MicroReg>{}(location.base) ^ (std::hash<uint64_t>{}(location.offset) << 1);
-            }
-        };
         struct LoadCandidate
         {
             MicroInstrRef ref;
@@ -114,7 +116,7 @@ namespace
         };
 
         std::optional<FlatKeySet>                                               frameDerived;
-        std::unordered_map<LoadLocation, size_t, LoadLocationHash>               firstLoadByLocation;
+        std::unordered_map<MemoryLocation, size_t, MemoryLocationHash>           firstLoadByLocation;
         std::vector<LoadCandidate>                                                loads;
         std::vector<MicroInstrRef>                                                preserve;
         const auto                                                                flush = [&] {
@@ -152,7 +154,7 @@ namespace
                     MicroPassHelpers::collectFrameDerivedRegs(frameDerived.emplace(), storage, operands, CallConv::get(context.callConvKind).stackPointer);
                 if (!frameDerived->contains(ops[1].reg.packed))
                 {
-                    const LoadLocation location{.base = ops[1].reg, .offset = ops[3].valueU64};
+                    const MemoryLocation location{.base = ops[1].reg, .offset = ops[3].valueU64};
                     const auto [first, inserted] = firstLoadByLocation.try_emplace(location, loads.size());
                     const bool repeated           = !inserted;
                     if (repeated)
@@ -214,21 +216,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         MicroReg source;
         uint32_t value;
     };
-    struct StoredLocation
-    {
-        MicroReg base;
-        uint64_t offset;
-
-        bool operator==(const StoredLocation&) const = default;
-    };
-    struct StoredLocationHash
-    {
-        size_t operator()(const StoredLocation& location) const
-        {
-            return std::hash<MicroReg>{}(location.base) ^ (std::hash<uint64_t>{}(location.offset) << 1);
-        }
-    };
-    std::unordered_map<StoredLocation, StoredValue, StoredLocationHash> storedValues;
+    std::unordered_map<MemoryLocation, StoredValue, MemoryLocationHash> storedValues;
     // Keyed by the packed register; only looked up.
     FlatKeySet candidates;
     for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)

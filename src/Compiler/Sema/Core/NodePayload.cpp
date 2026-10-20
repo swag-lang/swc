@@ -364,7 +364,7 @@ void NodePayload::setSubstitute(AstNodeRef nodeRef, AstNodeRef substNodeRef)
     const uint32_t         shardIdx = nodeRef.get() % NODE_PAYLOAD_SHARD_NUM;
     Shard*                 shard    = ensureShard(shardIdx);
     const std::scoped_lock lock(shard->storeMutex);
-
+    // Readers may retain older payload snapshots, so published records stay immutable.
     const Ref value  = shard->store.pushBack(SubstituteStorage{});
     auto*     stored = shard->store.ptr<SubstituteStorage>(value);
     SWC_ASSERT(stored);

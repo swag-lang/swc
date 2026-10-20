@@ -116,13 +116,10 @@ protected:
     Ast&       ast() { return ast_; }
     const Ast& ast() const { return ast_; }
 
-    static NodePayloadKind  payloadKind(const AstNode& node) { return static_cast<NodePayloadKind>(node.payloadBits() & NODE_PAYLOAD_KIND_MASK); }
-    static uint32_t         payloadShard(const AstNode& node) { return (node.payloadBits() & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT; }
-    static bool             hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
-    static NodePayloadFlags payloadFlags(const AstNode& node) { return static_cast<NodePayloadFlags>(node.payloadBits() & ~NODE_PAYLOAD_KIND_MASK & ~NODE_PAYLOAD_SHARD_MASK); }
+    static NodePayloadKind payloadKind(const AstNode& node) { return static_cast<NodePayloadKind>(node.payloadBits() & NODE_PAYLOAD_KIND_MASK); }
+    static bool            hasPayloadFlags(const AstNode& node, NodePayloadFlags value) { return (node.payloadBits() & static_cast<uint16_t>(value)) != 0; }
 
     static void setPayloadKind(AstNode& node, NodePayloadKind value);
-    static void setPayloadShard(AstNode& node, uint32_t shard);
     static void addPayloadFlags(AstNode& node, NodePayloadFlags value);
     static void removePayloadFlags(AstNode& node, NodePayloadFlags value);
 
@@ -248,9 +245,6 @@ private:
     PayloadInfo                    payloadInfo(const AstNode& node) const;
     std::span<const Symbol* const> symbolsFromInfo(const PayloadInfo& info) const;
     NodePayloadFlags               payloadFlagsStored(const AstNode& node) const;
-
-    SubstituteStorage*       substituteStorage(const AstNode& node);
-    const SubstituteStorage* substituteStorage(const AstNode& node) const;
 
     Shard*       ensureShard(uint32_t shardIdx);
     Shard*       tryGetShard(uint32_t shardIdx);

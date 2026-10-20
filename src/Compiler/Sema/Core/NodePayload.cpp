@@ -210,11 +210,6 @@ void NodePayload::setPayloadKind(AstNode& node, NodePayloadKind value)
     node.updatePayloadBits(NODE_PAYLOAD_KIND_MASK, static_cast<uint16_t>(value));
 }
 
-void NodePayload::setPayloadShard(AstNode& node, uint32_t shard)
-{
-    node.updatePayloadBits(NODE_PAYLOAD_SHARD_MASK, static_cast<uint16_t>(shard << NODE_PAYLOAD_SHARD_SHIFT));
-}
-
 void NodePayload::addPayloadFlags(AstNode& node, NodePayloadFlags value)
 {
     node.updatePayloadBits(0, static_cast<uint16_t>(value));
@@ -1111,26 +1106,6 @@ NodePayloadFlags NodePayload::payloadFlagsStored(const AstNode& node) const
 
         return flags;
     }
-}
-
-NodePayload::SubstituteStorage* NodePayload::substituteStorage(const AstNode& node)
-{
-    SWC_ASSERT(payloadKind(node) == NodePayloadKind::Substitute);
-    const uint64_t state    = node.payloadState();
-    const uint32_t shardIdx = (AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT;
-    Shard*         shard    = tryGetShard(shardIdx);
-    SWC_ASSERT(shard != nullptr);
-    return shard->store.ptr<SubstituteStorage>(AstNode::payloadRefFromState(state));
-}
-
-const NodePayload::SubstituteStorage* NodePayload::substituteStorage(const AstNode& node) const
-{
-    SWC_ASSERT(payloadKind(node) == NodePayloadKind::Substitute);
-    const uint64_t state    = node.payloadState();
-    const uint32_t shardIdx = (AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT;
-    const Shard*   shard    = tryGetShard(shardIdx);
-    SWC_ASSERT(shard != nullptr);
-    return shard->store.ptr<SubstituteStorage>(AstNode::payloadRefFromState(state));
 }
 
 SWC_END_NAMESPACE();

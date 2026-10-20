@@ -60,14 +60,23 @@ std::string_view Token::toFamily(TokenId id)
 
 std::string_view Token::intrinsicName(const TokenId id)
 {
+    constexpr auto prefix = std::string_view{"Swag."};
+    static_assert([prefix] {
+        for (const auto& info : TOKEN_ID_INFOS)
+        {
+            if (info.kind.has(TokenIdKindE::Intrinsic) && !info.kind.has(TokenIdKindE::Compiler) &&
+                !info.displayName.starts_with(prefix) && !info.displayName.starts_with("."))
+                return false;
+        }
+        return true;
+    }());
+
     if (!isIntrinsic(id) || isCompiler(id))
         return {};
 
-    std::string_view name   = toName(id);
-    constexpr auto   prefix = std::string_view{"Swag."};
-    if (!name.starts_with(prefix))
+    std::string_view name = toName(id);
+    if (name.front() == '.')
         return {};
-
     name.remove_prefix(prefix.size());
     return name;
 }

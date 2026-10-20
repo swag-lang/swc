@@ -21,6 +21,7 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Preserve normalized words without remasking them | Eight redundant normalization tails after bitwise operations, logical right shift, remainder construction and unsigned widening | These operations cannot set a bit above the existing width, or already finish through a normalizing mutation. Both bitwise inputs have the same normalized width; the raw-word OR masks its input first. Arithmetic that can introduce upper bits retains its mask. |
 | Query minimum integer widths from normalized words | Reconstructing the unsigned top-word mask and clamping an already bounded highest bit; masking the signed input word again | The highest live set bit is inside the width. Signed queries retain the mask on their synthesized sign fill. All ten changed bodies shrink and their frames remain stable or shrink. The integer object's code shrinks from 20,407 to 20,108 bytes and retained data from 5,653 to 5,561 bytes. |
 | Clear COFF output at its public entry point | A second `clear` call in the sole private builder | The public object builder clears the output before any possible failure and does not write it before calling the private file builder. The later resize still initializes every output byte. The private builder keeps its 2,283-byte body and 352-byte frame while losing one call. |
+| Validate intrinsic-name spelling at C++ compile time | A length check and five-byte prefix comparison for each intrinsic-name query | The definition table is statically constrained to `Swag.` names or dot-prefixed member intrinsics. A one-byte member check preserves the empty names for `.count` and `.buffer`; all other accepted names lose the same five bytes. The helper shrinks from 98 to 85 code bytes without a frame; its registry initializer shrinks from 981 to 935 bytes with the same 120-byte frame. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -95,6 +96,11 @@ The COFF milestone on base `0614ed6b6c` passes all 1,565 C++ tests with
 and all 3,908 native tests. Native recovery probes fail as expected and the
 outer tool exits zero. This milestone also validates the combined AST and
 integer changes integrated at that base.
+
+The intrinsic-name batch passes 1,504 C++ tests, including round trips for every
+named intrinsic and rejection of member/non-intrinsic names. Intrinsic-focused
+parser validation checks 29 normal and 29 expected-error inputs, including
+runtime sources.
 
 Rejected trials:
 

@@ -191,6 +191,35 @@ SWC_TEST_BEGIN(ApInt_DivisionReturnsNormalizedRemainders)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ApInt_BoundariesMatchEveryActiveBit)
+{
+    for (uint32_t requestedWidth = 0; requestedWidth <= ApInt::maxBitWidth(); ++requestedWidth)
+    {
+        const uint32_t   width = requestedWidth ? requestedWidth : ApInt::maxBitWidth();
+        const std::array bounds{
+            ApInt::minValue(requestedWidth),
+            ApInt::minValueSigned(requestedWidth),
+            ApInt::maxValue(requestedWidth),
+            ApInt::maxValueSigned(requestedWidth),
+        };
+        for (uint32_t kind = 0; kind < bounds.size(); ++kind)
+        {
+            if (bounds[kind].bitWidth() != width)
+                return Result::Error;
+            for (uint32_t bit = 0; bit < width; ++bit)
+            {
+                const bool expected = kind == 2 ||
+                                      (kind == 1 && bit + 1 == width) ||
+                                      (kind == 3 && bit + 1 < width);
+                if (bounds[kind].testBit(bit) != expected)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

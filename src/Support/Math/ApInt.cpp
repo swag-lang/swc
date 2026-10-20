@@ -875,11 +875,11 @@ void ApInt::setSignBit(bool isNegative)
 
 ApInt ApInt::minValue(uint32_t bitWidth)
 {
-    static const ApInt U8   = makeMinValue(8);
-    static const ApInt U16  = makeMinValue(16);
-    static const ApInt U32  = makeMinValue(32);
-    static const ApInt U64  = makeMinValue(64);
-    static const ApInt U128 = makeMinValue(128);
+    static constexpr ApInt U8{8, 0, 0};
+    static constexpr ApInt U16{16, 0, 0};
+    static constexpr ApInt U32{32, 0, 0};
+    static constexpr ApInt U64{64, 0, 0};
+    static constexpr ApInt U128{128, 0, 0};
 
     switch (bitWidth)
     {
@@ -894,11 +894,11 @@ ApInt ApInt::minValue(uint32_t bitWidth)
 
 ApInt ApInt::minValueSigned(uint32_t bitWidth)
 {
-    static const ApInt S8   = makeMinSignedValue(8);
-    static const ApInt S16  = makeMinSignedValue(16);
-    static const ApInt S32  = makeMinSignedValue(32);
-    static const ApInt S64  = makeMinSignedValue(64);
-    static const ApInt S128 = makeMinSignedValue(128);
+    static constexpr ApInt S8{8, uint64_t{1} << 7, 0};
+    static constexpr ApInt S16{16, uint64_t{1} << 15, 0};
+    static constexpr ApInt S32{32, uint64_t{1} << 31, 0};
+    static constexpr ApInt S64{64, uint64_t{1} << 63, 0};
+    static constexpr ApInt S128{128, 0, uint64_t{1} << 63};
 
     switch (bitWidth)
     {
@@ -913,11 +913,11 @@ ApInt ApInt::minValueSigned(uint32_t bitWidth)
 
 ApInt ApInt::maxValue(uint32_t bitWidth)
 {
-    static const ApInt U8   = makeMaxValue(8);
-    static const ApInt U16  = makeMaxValue(16);
-    static const ApInt U32  = makeMaxValue(32);
-    static const ApInt U64  = makeMaxValue(64);
-    static const ApInt U128 = makeMaxValue(128);
+    static constexpr ApInt U8{8, 0xFF, 0};
+    static constexpr ApInt U16{16, 0xFFFF, 0};
+    static constexpr ApInt U32{32, 0xFFFFFFFF, 0};
+    static constexpr ApInt U64{64, UINT64_MAX, 0};
+    static constexpr ApInt U128{128, UINT64_MAX, UINT64_MAX};
 
     switch (bitWidth)
     {
@@ -933,11 +933,11 @@ ApInt ApInt::maxValue(uint32_t bitWidth)
 
 ApInt ApInt::maxValueSigned(uint32_t bitWidth)
 {
-    static const ApInt S8   = makeMaxSignedValue(8);
-    static const ApInt S16  = makeMaxSignedValue(16);
-    static const ApInt S32  = makeMaxSignedValue(32);
-    static const ApInt S64  = makeMaxSignedValue(64);
-    static const ApInt S128 = makeMaxSignedValue(128);
+    static constexpr ApInt S8{8, 0x7F, 0};
+    static constexpr ApInt S16{16, 0x7FFF, 0};
+    static constexpr ApInt S32{32, 0x7FFFFFFF, 0};
+    static constexpr ApInt S64{64, UINT64_MAX >> 1, 0};
+    static constexpr ApInt S128{128, UINT64_MAX, UINT64_MAX >> 1};
 
     switch (bitWidth)
     {

@@ -136,16 +136,6 @@ namespace
     }
 }
 
-bool DocApi::isAnonymousAggregateSymbol(const Symbol& symbol)
-{
-    const auto* symbolStruct = symbol.safeCast<SymbolStruct>();
-    if (!symbolStruct || !symbolStruct->decl())
-        return false;
-
-    return symbolStruct->decl()->is(AstNodeId::AnonymousStructDecl) ||
-           symbolStruct->decl()->is(AstNodeId::AnonymousUnionDecl);
-}
-
 bool DocApi::hasCompilerGeneratedIdentifier(const TaskContext& ctx, const Symbol& symbol)
 {
     // Source identifiers cannot use the reserved "__" prefix. Sema uses it for
@@ -962,7 +952,7 @@ void DocApi::collectDocItems(TaskContext& ctx, std::vector<DocItem>& outItems, c
             return;
         if (runtime && !isDocumentationSymbol(compiler, *symbol, true))
             return;
-        if (isAnonymousAggregateSymbol(*symbol) || isInCompilerGeneratedScope(workerCtx, *symbol))
+        if (symbol->hasAnonymousAggregateDeclaration() || isInCompilerGeneratedScope(workerCtx, *symbol))
             return;
 
         if (const auto* function = symbol->safeCast<SymbolFunction>())

@@ -17,7 +17,6 @@ public:
     static Utf8                       displayNameFor(std::string_view fullName, DocItemKind kind);
     static std::optional<DocItemKind> itemKind(const Symbol& symbol);
     static bool                       hasNoDocAttribute(const Symbol& symbol);
-    static bool                       isAnonymousAggregateSymbol(const Symbol& symbol);
     static bool                       hasCompilerGeneratedIdentifier(const TaskContext& ctx, const Symbol& symbol);
     static bool                       isInCompilerGeneratedScope(const TaskContext& ctx, const Symbol& symbol);
     static void                       appendNormalizedComment(std::vector<Utf8>& outLines, std::string_view text);

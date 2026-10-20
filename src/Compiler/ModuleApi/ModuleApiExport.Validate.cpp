@@ -55,15 +55,6 @@ namespace
         return Result::Error;
     }
 
-    bool isAnonymousModuleApiTypeSymbol(const Symbol& symbol)
-    {
-        const auto* symbolStruct = symbol.safeCast<SymbolStruct>();
-        if (!symbolStruct || !symbolStruct->decl())
-            return false;
-
-        return symbolStruct->decl()->is(AstNodeId::AnonymousStructDecl) || symbolStruct->decl()->is(AstNodeId::AnonymousUnionDecl);
-    }
-
     Result validateTypeReferenceSymbol(TaskContext& ctx, const Symbol& ownerSymbol, const Symbol& focusSymbol, std::string_view usage, const Symbol& referencedSymbol, ModuleApiValidationStack& stack)
     {
         if (!isCurrentModuleSymbol(ctx.compiler(), referencedSymbol))
@@ -74,7 +65,7 @@ namespace
 
         if (!referencedSymbol.isPublic() && !stack.isSupporting(referencedSymbol))
         {
-            if (isAnonymousModuleApiTypeSymbol(referencedSymbol))
+            if (referencedSymbol.hasAnonymousAggregateDeclaration())
                 return validatePublicTypeSymbol(ctx, referencedSymbol, stack);
 
             return reportModuleApiNonPublicTypeReference(ctx, ownerSymbol, focusSymbol, usage, referencedSymbol);

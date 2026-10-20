@@ -85,13 +85,21 @@ void SourceCodeRange::fromOffset(const TaskContext& ctx, const SourceView& view,
 
 uint32_t SourceCodeRange::endLine(const TaskContext& ctx) const
 {
+    SWC_UNUSED(ctx);
     if (!srcView || !len)
         return line;
 
-    SourceCodeRange endRange;
-    endRange.fromOffset(ctx, *srcView, offset + len - 1, 1);
+    const uint32_t endOffset = offset + len - 1;
+    const auto&    lines     = srcView->lines();
+    if (endOffset >= srcView->stringView().size() || lines.empty())
+        return 0;
 
-    return endRange.line;
+    // This query needs only the line; do not decode UTF-8 or expand tabs for a column.
+    const auto it = std::ranges::upper_bound(lines, endOffset);
+    if (it == lines.begin())
+        return 1 + srcView->lineOffset();
+
+    return static_cast<uint32_t>(std::distance(lines.begin(), it)) + srcView->lineOffset();
 }
 
 SWC_END_NAMESPACE();

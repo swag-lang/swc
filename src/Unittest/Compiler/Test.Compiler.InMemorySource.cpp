@@ -202,6 +202,51 @@ SWC_TEST_BEGIN(Compiler_EofDiagnosticsKeepFileAndTaskState)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_RangeEndLinesMatchByteBoundaries)
+{
+    const std::array sources = {std::string_view{}, std::string_view{"\tfirst\r\n\xC3\xA9\tlast\n"}, std::string_view{"one line"}};
+    for (const std::string_view source : sources)
+    {
+        SourceView view(SourceViewRef{0}, nullptr, source);
+        view.lines().push_back(0);
+        for (uint32_t offset = 0; offset < source.size(); ++offset)
+        {
+            if (source[offset] == '\n')
+                view.lines().push_back(offset + 1);
+        }
+
+        for (const uint32_t lineOffset : {0u, 7u})
+        {
+            view.setLineOffset(lineOffset);
+            for (uint32_t offset = 0; offset <= source.size(); ++offset)
+            {
+                for (uint32_t len = 0; len <= source.size() - offset; ++len)
+                {
+                    const SourceCodeRange range{.srcView = &view, .offset = offset, .len = len, .line = 19};
+                    const uint32_t        expected = len ? 1 + lineOffset + static_cast<uint32_t>(std::count(source.begin(), source.begin() + offset + len - 1, '\n')) : 19;
+                    if (range.endLine(ctx) != expected)
+                        return Result::Error;
+                }
+            }
+        }
+
+        SourceCodeRange range{.srcView = &view, .offset = static_cast<uint32_t>(source.size()), .len = 1, .line = 19};
+        if (range.endLine(ctx) != 0)
+            return Result::Error;
+        range.srcView = nullptr;
+        if (range.endLine(ctx) != 19)
+            return Result::Error;
+
+        view.lines().clear();
+        range.srcView = &view;
+        range.offset  = 0;
+        if (range.endLine(ctx) != 0)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_ZeroLengthDiagnosticRangesKeepEofLocations)
 {
     struct TestCase

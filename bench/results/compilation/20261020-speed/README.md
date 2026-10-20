@@ -43,6 +43,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Reuse numeric-promotion metadata and insertion state | Two repeated type lookups in every mixed float/integer pair, both lookups for identical types, and sixteen preliminary map probes | The private builder uses the same sixteen builtin references. Mixed pairs select the metadata already fetched; identity returns its input. Since the map starts empty and grows once per iteration, its size proves each insertion unique. Promotion code shrinks from 755 to 705 bytes and its reservation from 72 to 56; table construction shrinks from 966 to 886 bytes with the same 360-byte reservation. Other function sizes are unchanged. |
 
+| Find a range's last line without calculating its column | Walking the final line's bytes, decoding UTF-8 and expanding tabs for a discarded column | The same bounded final-byte offset and upper-bound search select the line, including empty, missing-source and missing-line-table cases. The helper's code grows from 228 to 252 bytes, while retained data falls from 176 to 124 bytes for the object and its reservation falls from 32 to 24 bytes. It no longer calls column calculation; four mutually exclusive security-cookie return sites replace the former column call site. Other function code is unchanged. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -198,6 +200,14 @@ count preserves the mathematical test without that overflowing addition. The
 new C++ regression fails before the fix while the other 1,508 pass; all 1,509
 then pass. It checks one-, five- and 39-digit mantissas at both signed exponent
 extremes, plus zero at the maximum exponent. This is a correctness repair.
+
+The empty-ring follow-up passes all 1,511 C++ tests on combined base
+`ace441b6e8`, including the imported counted-remainder optimizer regressions.
+The end-line batch passes all 1,512 C++ tests. Its independent newline-count
+oracle checks every valid byte range in empty, single-line and mixed CRLF,
+UTF-8/tab sources at two line offsets, plus missing sources, missing line tables
+and out-of-range final bytes. Existing EOF and rendered-diagnostic checks also
+pass; no diagnostic information or wording is intentionally changed.
 
 Rejected trials:
 

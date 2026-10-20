@@ -209,7 +209,7 @@ namespace
             DocApi::collectSymbolTree(symbols, seen, *importedModule->asSymMap());
             for (const Symbol* symbol : symbols)
             {
-                if (!symbol || !DocApi::itemKind(*symbol).has_value() || DocApi::hasNoDocAttribute(*symbol) || DocApi::isAnonymousAggregateSymbol(*symbol) || DocApi::isInCompilerGeneratedScope(ctx, *symbol))
+                if (!symbol || !DocApi::itemKind(*symbol).has_value() || DocApi::hasNoDocAttribute(*symbol) || symbol->hasAnonymousAggregateDeclaration() || DocApi::isInCompilerGeneratedScope(ctx, *symbol))
                     continue;
 
                 const Utf8 fullName = symbol->getFullScopedName(ctx);
@@ -381,7 +381,7 @@ namespace
         {
             const SymbolStruct& symbolStruct = type.payloadSymStruct();
             const SymbolStruct* root         = symbolStruct.genericRootOrSelf();
-            if (root && (DocApi::isAnonymousAggregateSymbol(*root) || DocApi::hasCompilerGeneratedIdentifier(ctx, *root)))
+            if (root && (root->hasAnonymousAggregateDeclaration() || DocApi::hasCompilerGeneratedIdentifier(ctx, *root)))
             {
                 const Utf8 fullName    = root->getFullScopedName(ctx);
                 const Utf8 replacement = root->isUnion() ? "union { ... }" : "struct { ... }";
@@ -756,7 +756,7 @@ void DocApi::renderApiDocument(TaskContext& ctx, DocApiDocument& document, const
     for (const Symbol* symbol : symbols)
     {
         const auto* symbolStruct = symbol ? symbol->safeCast<SymbolStruct>() : nullptr;
-        if (!symbolStruct || (!isAnonymousAggregateSymbol(*symbolStruct) && !hasCompilerGeneratedIdentifier(ctx, *symbolStruct)))
+        if (!symbolStruct || (!symbolStruct->hasAnonymousAggregateDeclaration() && !hasCompilerGeneratedIdentifier(ctx, *symbolStruct)))
             continue;
 
         const Utf8 fullName = symbolStruct->getFullScopedName(ctx);

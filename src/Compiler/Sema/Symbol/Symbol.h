@@ -204,6 +204,10 @@ public:
 
     bool isSymMap() const noexcept { return isNamespace() || isModule() || isEnum() || isStruct() || isInterface() || isImpl(); }
     bool isType() const;
+    bool hasAnonymousAggregateDeclaration() const noexcept
+    {
+        return isStruct() && decl_ && (decl_->is(AstNodeId::AnonymousStructDecl) || decl_->is(AstNodeId::AnonymousUnionDecl));
+    }
     bool isValueExpr() const noexcept { return isVariable() || isConstant() || isEnumValue(); }
     bool inSwagNamespace(const TaskContext& ctx) const noexcept;
     bool acceptOverloads() const noexcept { return isFunction(); }

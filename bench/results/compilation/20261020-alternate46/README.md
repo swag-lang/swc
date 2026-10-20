@@ -11,8 +11,9 @@ Their branches are `perf/prompt4-alternate-20261020-1347` and
 `quality/prompt6-alternate-20261020-1347`. Logs and inspection probes stay in
 the parent session directory. `SWC_BUILD_NUM` remains 1173.
 
-No compilation benchmark, profiler, timing comparison, or quantitative speed or
-memory claim is made. Prompt 4 uses only the checkout-local DevMode compiler.
+No compilation benchmark, profiler, timing comparison, or measured speed or peak-memory
+claim is made. Assembly extents, calls and stack reservations are static evidence.
+Prompt 4 uses only the checkout-local DevMode compiler.
 Prompt 6 additionally builds Release when a batch changes a shared header.
 All builds and tests have fresh machine-load admission and six-worker bounds.
 
@@ -32,11 +33,13 @@ All builds and tests have fresh machine-load admission and six-worker bounds.
 | 6 | `278b8fd8b` Shared anonymous aggregate query | An inline `Symbol` query replaces the documentation and module-API copies. Existing kind/null/AST checks, dependencies and object layout are preserved. | DevMode and Release builds; 1,581 full C++ tests including Doc/ModuleApi fixtures; 3,917 native tests and expected recovery checks. |
 | 4 | `fcb0bfe4e` Resolve constant payloads once | Remove the repeated `getConstantRef` query used only by an assertion identical to the following reference-validity assertion. The getter loses two calls and 115 code bytes with the same stack reservation. | DevMode build; 1,520 default C++ tests; eight normal and thirteen expected-diagnostic constant inputs checked. |
 | 6 | `e585f3c7e` Share conditional-loop child completion | The condition cast and escape-branch merge for C-style `for` and `while` use one file-local template. Both required callbacks retain exactly identical disassembly. | DevMode build; 1,520 default C++ tests; eight native `for_c` and fourteen native `while` tests. |
-| 4 | Current substitute-pointer batch | Reuse the last AST node already read by the substitute walk for the debug pointer. The walk loses three calls and eight stack bytes, with a 127-byte smaller extent. | DevMode build; 1,521 default C++ tests, including stripped metadata through zero-, one- and two-step substitution chains. |
+| 4 | `364d325f6` Reuse final substitute metadata | Reuse the last AST node already read by the substitute walk for the debug pointer. The walk loses three calls and eight stack bytes, with a 127-byte smaller extent. | DevMode build; 1,521 default C++ tests, including stripped metadata through zero-, one- and two-step substitution chains. |
+| 6 | `452c6a69a` Share CPU flag liveness caching | Instruction combining and post-RA peepholes use one inline cache query. Storage and invalidation remain in each context. Both complete method disassemblies are identical in DevMode and Release. | Both compiler builds; 1,520 default C++ tests; 324 native optimizer tests. |
+| 4 | Remove duplicate chunk initialization | Value-initialized atomic-pointer arrays already contain null pointers. Remove the second null-store loop before publication; slot/size publication order is unchanged. Both lookup-table test bodies retain their calls and stack reservation and shrink by 31/32 bytes. | DevMode build; 1,583 full C++ tests, including concurrent-reader publication; 3,917 native tests and expected recovery checks. |
 
 Counts belong to each batch's tested revision. A conflict-free merge does not
 claim that every suite was rerun on the combined revision. The full C++/native
-milestones belong to `6b382e504` and the shared anonymous aggregate batch; later
+milestones belong to `6b382e504`, the anonymous aggregate and chunk-initialization batches; later
 independent checks are listed separately.
 
 ## Commands
@@ -55,6 +58,7 @@ bin/swc.exe --num-cores 6 tools/unittests.swgs native --file-filter struct_safe_
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm sema --file-filter const --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter for_c --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter while --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter optimizer --num-cores 6 --rebuild
 ```
 
 The full native tool exits zero. Its deliberate panic and hardware-exception
@@ -79,6 +83,9 @@ The general ByteArray append helper initially added a tail jump, and forcing it
 inline through `pushBack` then added a per-byte call. The retained helper operates
 on the existing storage, preserving the original loop bodies. The distinct short
 unrolled 16-bit append is deliberately retained.
+
+The CPU-flags helper initially copied its reference argument on cache hits. Passing
+that argument by const reference preserves the original bodies in both compilers.
 
 The backlog and benchmark history are unchanged. This is an ongoing, time-bounded
 pass, not a claim of whole-tree code-health coverage or completed speed targets.

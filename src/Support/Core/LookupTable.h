@@ -36,9 +36,6 @@ public:
         if (chunkIndex == chunks_.size())
         {
             auto chunk = std::make_unique<Chunk>();
-            for (std::atomic<T*>& slot : *chunk)
-                slot.store(nullptr, std::memory_order_relaxed);
-
             chunks_.push_back(std::move(chunk));
             publishChunkSnapshot();
         }

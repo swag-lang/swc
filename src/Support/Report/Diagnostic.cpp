@@ -350,10 +350,12 @@ void Diagnostic::report(TaskContext& ctx) const
     const bool firstReport = !ctx.hasCompiler() || ctx.compiler().tryRegisterReportedDiagnostic(msg);
 
     // Match expectations in every source file represented by this diagnostic.
+    SourceFile* ownerFile = nullptr;
     if (fileOwner_.isValid())
     {
         SWC_ASSERT(ctx.hasCompiler());
-        const SourceFile& file = ctx.compiler().file(fileOwner_);
+        ownerFile              = &ctx.compiler().file(fileOwner_);
+        const SourceFile& file = *ownerFile;
         dismiss                = file.unitTest().verifyExpected(ctx, reportedDiagnostic);
 
         std::unordered_set verifiedFiles = {&file};
@@ -382,13 +384,12 @@ void Diagnostic::report(TaskContext& ctx) const
             if (ctx.hasCompiler())
             {
                 ctx.compiler().notifyAlive();
-                if (fileOwner_.isValid())
+                if (ownerFile)
                 {
-                    SourceFile& file = ctx.compiler().file(fileOwner_);
-                    file.setHasError();
+                    ownerFile->setHasError();
 
                     const SourceCodeRange startRange = reportedDiagnostic.elements_.front()->codeRange(0, ctx);
-                    file.addErrorLineRange(startRange.line, startRange.endLine(ctx));
+                    ownerFile->addErrorLineRange(startRange.line, startRange.endLine(ctx));
                 }
             }
             break;
@@ -400,10 +401,9 @@ void Diagnostic::report(TaskContext& ctx) const
             if (ctx.hasCompiler())
             {
                 ctx.compiler().notifyAlive();
-                if (fileOwner_.isValid())
+                if (ownerFile)
                 {
-                    SourceFile& file = ctx.compiler().file(fileOwner_);
-                    file.setHasWarning();
+                    ownerFile->setHasWarning();
                 }
             }
             break;

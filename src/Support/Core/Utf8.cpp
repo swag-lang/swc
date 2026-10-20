@@ -130,7 +130,7 @@ void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopRep
         }
     }
 
-    *this = next;
+    *this = std::move(next);
 }
 
 void Utf8::push_back_uni(char32_t cp)

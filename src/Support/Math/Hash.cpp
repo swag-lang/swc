@@ -167,10 +167,8 @@ namespace Math
 
     uint32_t hashCombine(uint32_t h, uint64_t v)
     {
-        const uint32_t     folded = static_cast<uint32_t>(v) ^ static_cast<uint32_t>(v >> 32);
-        constexpr uint32_t k      = 0x9e3779b9u;
-        h ^= folded + k + (h << 6) + (h >> 2);
-        return h;
+        const uint32_t folded = static_cast<uint32_t>(v) ^ static_cast<uint32_t>(v >> 32);
+        return hashCombine(h, folded);
     }
 }
 

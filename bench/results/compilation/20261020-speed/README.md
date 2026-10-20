@@ -15,6 +15,7 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Remove the unread reverse keyword map | Building and destroying 157 hash-map entries and their allocations | The field has no readers; forward keyword insertion, lookups and assertions are unchanged. Keyword setup loses code and reduces its stack reservation from 21,744 to 21,120 bytes. |
 | Construct character flags from a constant template | Runtime clearing and merging passes over the character-class table | The same rules build a 1,024-byte template at C++ compile time. Setup copies it to the original member location, preserving every lookup. All 346 lexer code sections remain byte-identical. The template is smaller than the removed reverse map's minimum 2,826-byte key/view payload, before node and bucket overhead. |
 | Check the reserved namespace without an owning string | Copying a namespace, lowercasing its entire contents and destroying the copy | Length and four unsigned-byte `tolower` checks preserve the existing locale-sensitive result. The helper shrinks from 225 to 91 code bytes and its stack reservation from 80 to 32 bytes. |
+| Borrow assignment and generic-declaration AST lists | Copying node references into temporary vectors and destroying those vectors | Chunk iteration preserves source order, skipped assignment targets and recursive parameter expansion. Assignment-list code shrinks from 880 to 876 bytes and its frame from 1,080 to 856 bytes; generic-root parameter collection shrinks from 1,417 to 1,384 bytes and its frame from 744 to 488 bytes. The 102-byte span helper already exists elsewhere and is folded by the linker. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -56,6 +57,13 @@ expected-error inputs; namespace-focused semantics checks 31 and 29 respectively
 including runtime sources. Full JIT passes 1,539 tests and full native passes
 3,904, including the expected recovery probes. This milestone uses the combined
 base `db9b65ad9c`, including concurrent compare-scan and loop-rotation changes.
+
+The borrowed-list batch passes 1,500 C++ tests, five native multiple-assignment
+tests and generic-focused semantic checks over 68 normal and 45 expected-error
+inputs, including runtime sources. The existing paged-span tests cover chunk
+boundaries and growth; the borrowed views remain inside the original AST owner's
+lifetime. This batch uses base `62434c120a`, including the imported invariant
+subtraction and scaled-add optimizer changes.
 
 Rejected trials:
 

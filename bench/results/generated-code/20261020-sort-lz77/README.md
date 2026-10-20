@@ -282,3 +282,12 @@ generated-code profiles from the retained hybrid, after pairing overloaded bodie
 The earlier complete optimizer-directory check remains 324 JIT plus 324 native
 tests in DevMode. Benchmark computations, timed boundaries and checksums, compiler
 build identity, accepted history and benchmark report were not changed.
+
+The closing multiplier-budget audit also covers the root's consumer: multiply-high
+and divisions/remainders that would introduce another multiply keep their local
+expansions. Power-of-two divisors and masks remain eligible. The new consumer
+counterexample fails before this guard with 1,515 other C++ tests passing; all
+1,516 pass after it. Nine focused Release tests pass again through JIT/native
+with micro validation. All twelve checksums and generated-code profiles remain
+unchanged (`final-checksums.json`, `microdiff-consumer-guard.json`), preserving the
+retained hash and sort improvements.

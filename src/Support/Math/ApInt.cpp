@@ -451,6 +451,7 @@ ApInt ApInt::div(const ApInt& rhs, bool& overflow)
 {
     SWC_ASSERT(bitWidth_ == rhs.bitWidth_);
     SWC_ASSERT(!rhs.isZero());
+    overflow = false;
 
     // Fast path: divisor fits in 64 -> remainder fits 64, but we still return full ApInt.
     if (rhs.fit64())

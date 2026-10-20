@@ -162,6 +162,24 @@ SWC_TEST_BEGIN(ApInt_NormalizedQueriesMatchBitOracle)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ApInt_DivisionClearsPreviousOverflow)
+{
+    for (uint32_t width = 1; width <= ApInt::maxBitWidth(); ++width)
+    {
+        for (const bool zero : {false, true})
+        {
+            const ApInt input     = zero ? ApInt(width) : ApInt::maxValue(width);
+            ApInt       quotient  = input;
+            bool        overflow  = true;
+            const ApInt remainder = quotient.div(ApInt(1, width), overflow);
+            if (overflow || !quotient.same(input) || !remainder.isZero())
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ApInt_DivisionReturnsNormalizedRemainders)
 {
     for (uint32_t width = 2; width <= ApInt::maxBitWidth(); ++width)

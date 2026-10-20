@@ -39,6 +39,12 @@ oracle covers all those widths and 49 input pairs. Both tests fail before their
 repairs; the repaired DevMode compiler passes all 1,488 C++ tests. These are
 correctness repairs, not compilation-speed gains.
 
+A later division regression starts the overflow output as true and divides zero
+or the maximum value by one at every width from 1 through 128. The old narrow
+division path leaves that output unchanged: the new test fails while the other
+1,500 pass. Division now initializes the output before either path, and all
+1,501 C++ tests pass. This is another correctness repair, not a speed gain.
+
 The normalized-integer batch passes 1,490 C++ tests, including bit-based query
 oracles and narrow/wide-divisor remainder checks, the complete JIT suite (1,539),
 and the complete native suite (3,900), with the DevMode compiler and `devmode`

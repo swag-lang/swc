@@ -947,8 +947,7 @@ namespace
 
     Result collectAliasIdentifiers(Sema& sema, AliasIdentifierArray& outAliasIdentifiers, AliasNameRefArray& outAliasNameRefs, AstNodeRef callRef, std::span<const AstNodeRef> args, std::span<const DeclaredCodeParam> declaredParams)
     {
-        outAliasIdentifiers.fill(IdentifierRef::invalid());
-        outAliasNameRefs.fill(SourceCodeRef::invalid());
+        // The sole caller supplies fresh, value-initialized alias arrays.
 
         SmallVector<TokenRef> foreachNames;
         bool                  isForeachCall = false;

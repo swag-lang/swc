@@ -29,6 +29,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Initialize identifier registry arrays once | Filling already-invalid predefined and runtime-function reference arrays before setup assigns their named entries | The member arrays use value initialization and strong references default to invalid, checked statically. Setup is their only writer and rewrites every assigned slot, so untouched entries remain invalid across repeated setup as well. Setup code shrinks from 1,640 to 692 bytes with the same 104-byte reservation. |
 | Test 64-bit capacity from the live upper word | A generic unsigned word scan and a signed minimum-width walk merely to compare its result with 64 | For the current two-word representation, unsigned capacity needs a zero upper word. Signed capacity needs that word to equal the low word's sign fill masked to the active width. Other representations retain the existing algorithms. The unsigned helper shrinks from 37 to 19 bytes; the signed query becomes a 42-byte leaf instead of a 33-byte wrapper calling minimum-width analysis, and loses its 40-byte reservation. |
 
+| Initialize inline alias arrays once | Filling both arrays with invalid references again inside their private collector | The sole caller supplies fresh value-initialized arrays; both reference types default to the same invalid values. Missing aliases and early errors therefore retain their original state. The collector shrinks from 2,692 to 2,068 code bytes with the same 888-byte reservation and eighteen calls; every other function in the object retains its size. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -141,6 +143,13 @@ the complete JIT suite passes 1,539 tests. The unsigned division caller also
 shrinks by ten code bytes without changing its frame. Integer-object code falls
 by 19 bytes while retained data rises by eight; the combined sections shrink
 and the signed query no longer calls minimum-width analysis.
+
+The inline-alias batch on combined base `8f52dc25cd` passes all 1,508 C++
+tests, both native `inline_for_elements` cases, and the expected-error
+`too_many_aliases` semantic case (29 inputs including runtime). Its normal
+semantic selection contains only the 28 runtime inputs and is not claimed as
+alias coverage. This build also includes the imported branch-simplification and
+strength-reduction changes and their C++ regressions.
 
 Rejected trials:
 

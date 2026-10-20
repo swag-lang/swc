@@ -33,6 +33,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Append receiver-analysis children to their worklist | A temporary child-reference vector, its copy loop and cleanup | The same last-in-first-out traversal checks invalid references when popped rather than before appending. AST ownership and index detection are unchanged. The helper shrinks from 1,004 to 473 code bytes, its reservation from 632 to 336 bytes, and calls from sixteen to ten; other functions retain their sizes. |
 
+| Append escape-analysis children to their worklists | Two temporary vectors and two reference-copy loops | Subtree membership and external-borrow observation append exactly the same children, including invalid entries, in the same order. Their visit budgets, early returns and conservative fallback remain unchanged. Membership code shrinks from 703 to 504 bytes and its reservation from 648 to 336; observation shrinks from 1,787 to 1,691 bytes and from 1,184 to 912 stack bytes. Two cleanups disappear and other function sizes are unchanged. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -158,6 +160,11 @@ and all expected recovery probes; the outer test tool exits zero. The subsequent
 receiver-worklist batch passes the cross-AST chained-receiver test, including
 indexing, reads and mutation of the original element storage. Its provider and
 consumer are selected together by `cross_ast_chain_receiver`.
+
+The escape-worklist batch passes all 1,508 C++ tests and all 85 sanity tests,
+including borrow invalidation, stale reads, reentrant storage, implicit lifecycle
+effects and escaping aggregates. Expected diagnostic cases are checked by that
+suite as well as its executable tests.
 
 Rejected trials:
 

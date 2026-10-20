@@ -3915,7 +3915,6 @@ namespace
             return false;
 
         SmallVector<AstNodeRef> worklist;
-        SmallVector<AstNodeRef> children;
         worklist.push_back(rootRef);
 
         uint32_t budget = 4096;
@@ -3929,10 +3928,7 @@ namespace
             if (nodeRef.isInvalid())
                 continue;
 
-            children.clear();
-            sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : children)
-                worklist.push_back(childRef);
+            sema.node(nodeRef).collectChildrenFromAst(worklist, sema.ast());
         }
 
         return false;
@@ -4346,10 +4342,7 @@ namespace
                 (node.is(AstNodeId::ErrorManagementExpr) && sema.token(node.codeRef()).id != TokenId::SymBang))
                 fn.markExternalBorrowObservation();
 
-            SmallVector<AstNodeRef> children;
-            node.collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef child : children)
-                pending.push_back(child);
+            node.collectChildrenFromAst(pending, sema.ast());
         }
 
         if (!pending.empty())

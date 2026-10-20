@@ -9,22 +9,48 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
+    uint32_t standardWidthForPrecision(uint32_t bits)
+    {
+        for (const uint32_t width : {8u, 16u, 32u, 64u, 128u})
+        {
+            if (bits <= width)
+                return width;
+        }
+        return 0;
+    }
+
     bool normalizedQueriesMatchBits(const ApInt& value)
     {
-        uint64_t lowWord      = 0;
-        uint32_t setBits      = 0;
-        bool     hasUpperBits = false;
+        uint64_t   lowWord      = 0;
+        uint32_t   setBits      = 0;
+        uint32_t   unsignedBits = 1;
+        uint32_t   signedBits   = 1;
+        bool       hasUpperBits = false;
+        const bool sign         = value.testBit(value.bitWidth() - 1);
         for (uint32_t bit = 0; bit < value.bitWidth(); ++bit)
         {
-            if (!value.testBit(bit))
+            const bool set = value.testBit(bit);
+            if (set != sign)
+                signedBits = bit + 2;
+            if (!set)
                 continue;
+            unsignedBits = bit + 1;
             ++setBits;
             if (bit < 64)
                 lowWord |= uint64_t{1} << bit;
             else
                 hasUpperBits = true;
         }
-        return value.as64() == lowWord && value.fit64() == !hasUpperBits && value.isPowerOf2() == (setBits == 1);
+        ApInt widened = value;
+        widened.resize(ApInt::maxBitWidth());
+        for (uint32_t bit = value.bitWidth(); bit < widened.bitWidth(); ++bit)
+        {
+            if (widened.testBit(bit))
+                return false;
+        }
+        return value.as64() == lowWord && value.fit64() == !hasUpperBits && value.isPowerOf2() == (setBits == 1) &&
+               value.minBits() == standardWidthForPrecision(unsignedBits) && value.minBitsSigned() == standardWidthForPrecision(signedBits) &&
+               value.fit64Signed() == (signedBits <= 64);
     }
 }
 
@@ -133,7 +159,9 @@ SWC_TEST_BEGIN(ApInt_NormalizedQueriesMatchBitOracle)
                 left.logicalShiftLeft(shift, overflow);
                 ApInt right = original;
                 right.arithmeticShiftRight(shift);
-                if (!normalizedQueriesMatchBits(left) || !normalizedQueriesMatchBits(right))
+                ApInt logicalRight = original;
+                logicalRight.logicalShiftRight(shift);
+                if (!normalizedQueriesMatchBits(left) || !normalizedQueriesMatchBits(right) || !normalizedQueriesMatchBits(logicalRight))
                     return Result::Error;
             }
 
@@ -155,6 +183,56 @@ SWC_TEST_BEGIN(ApInt_NormalizedQueriesMatchBitOracle)
                 return Result::Error;
             arithmetic.invertAllBits();
             if (!normalizedQueriesMatchBits(arithmetic))
+                return Result::Error;
+
+            const ApInt mask = ApInt::maxValue(width);
+            ApInt       ored = original;
+            ored.bitwiseOr(mask);
+            ApInt anded = original;
+            anded.bitwiseAnd(mask);
+            ApInt xored = original;
+            xored.bitwiseXor(mask);
+            ApInt lowOr = original;
+            lowOr.bitwiseOr(UINT64_MAX);
+            if (!normalizedQueriesMatchBits(ored) || !normalizedQueriesMatchBits(anded) ||
+                !normalizedQueriesMatchBits(xored) || !normalizedQueriesMatchBits(lowOr))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ApInt_MinimumWidthsMatchSingleBitsAndComplements)
+{
+    for (uint32_t width = 1; width <= ApInt::maxBitWidth(); ++width)
+    {
+        ApInt value(width);
+        for (uint32_t bit = 0; bit < width; ++bit)
+        {
+            value.setBit(bit);
+            ApInt complement = value;
+            complement.invertAllBits();
+            if (!normalizedQueriesMatchBits(value) || !normalizedQueriesMatchBits(complement))
+                return Result::Error;
+            value.clearBit(bit);
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ApInt_DivisionClearsPreviousOverflow)
+{
+    for (uint32_t width = 1; width <= ApInt::maxBitWidth(); ++width)
+    {
+        for (const bool zero : {false, true})
+        {
+            const ApInt input     = zero ? ApInt(width) : ApInt::maxValue(width);
+            ApInt       quotient  = input;
+            bool        overflow  = true;
+            const ApInt remainder = quotient.div(ApInt(1, width), overflow);
+            if (overflow || !quotient.same(input) || !remainder.isZero())
                 return Result::Error;
         }
     }
@@ -185,6 +263,24 @@ SWC_TEST_BEGIN(ApInt_DivisionReturnsNormalizedRemainders)
         bool        overflow  = false;
         const ApInt remainder = quotient.div(ApInt(denominator.data(), width), overflow);
         if (overflow || quotient.as64() != 2 || !quotient.fit64() || remainder.as64() != 5 || !remainder.fit64())
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(ApInt_SignedDivisionPreservesNormalizedResults)
+{
+    for (uint32_t width = 3; width <= ApInt::maxBitWidth(); ++width)
+    {
+        const ApInt minusOne = ApInt::maxValue(width);
+        ApInt       quotient = minusOne;
+        quotient.clearBit(0);
+        quotient.clearBit(1);
+        bool        overflow  = false;
+        const ApInt remainder = quotient.divSigned(ApInt(3, width), overflow);
+        if (overflow || !quotient.same(minusOne) || !remainder.same(minusOne) ||
+            !normalizedQueriesMatchBits(quotient) || !normalizedQueriesMatchBits(remainder))
             return Result::Error;
     }
     return Result::Continue;

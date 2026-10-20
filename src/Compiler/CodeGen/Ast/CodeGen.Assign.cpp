@@ -612,17 +612,19 @@ namespace
 
     Result emitAssignList(CodeGen& codeGen, const AstAssignList& assignList, const CodeGenNodePayload& rightPayload, TypeRef rightTypeRef, TokenId assignOp)
     {
-        SmallVector<AstNodeRef> leftRefs;
-        codeGen.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
+        const auto leftRefs = codeGen.ast().nodeSpan(assignList.spanChildrenRef);
 
-        for (const AstNodeRef leftRef : leftRefs)
+        for (auto chunk = leftRefs.chunksBegin(); chunk != leftRefs.chunksEnd(); ++chunk)
         {
-            if (leftRef.isInvalid())
-                continue;
-            if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
-                continue;
+            for (const AstNodeRef leftRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                if (leftRef.isInvalid())
+                    continue;
+                if (codeGen.node(leftRef).is(AstNodeId::AssignIgnore))
+                    continue;
 
-            SWC_RESULT(emitAssign(codeGen, leftRef, rightPayload, rightTypeRef, assignOp));
+                SWC_RESULT(emitAssign(codeGen, leftRef, rightPayload, rightTypeRef, assignOp));
+            }
         }
 
         return Result::Continue;

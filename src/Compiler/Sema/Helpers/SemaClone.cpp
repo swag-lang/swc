@@ -430,10 +430,7 @@ namespace
             if (const auto* declList = node->safeCast<AstVarDeclList>())
             {
                 // Several declarations sharing one type: each of them names a parameter.
-                SmallVector<AstNodeRef> declRefs;
-                sourceAst.appendNodes(declRefs, declList->spanChildrenRef);
-                for (const AstNodeRef declRef : declRefs)
-                    paramRefs.push_back(declRef);
+                sourceAst.appendNodes(paramRefs, declList->spanChildrenRef);
                 continue;
             }
 

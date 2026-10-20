@@ -39,12 +39,16 @@ All builds and tests have fresh machine-load admission and six-worker bounds.
 | 6 | `44114314d` Share generic symbol metadata access | Function and struct generic data share completion-owner assignment/query and origin lookup. Allocation entry points and the distinct completion-depth representations remain separate. All eight Release bodies and six DevMode queries are identical; DevMode setters retain calls, frame and extent, with relocated assertion source coordinates. Both executable lengths are unchanged. | DevMode and Release builds; 1,521 default C++ tests; two native generic-struct-default tests. |
 | 4 | `34fe7488f` Validate symbol payloads on the consumed snapshot | The two scalar getters and list getter retain validity/kind/shard assertions on the snapshot they consume, removing repeated AST, payload and shard lookups. Each loses three calls; scalar frames shrink eight bytes and bodies shrink 137 bytes each, while the list frame stays fixed and its body shrinks 127 bytes. | DevMode build; 1,522 default C++ tests, including symbol identity across growth and const/mutable list access. |
 | 6 | `a2590459d` Remove unused payload helpers | Remove five internal helpers with no callers or address references, including the duplicated const/mutable substitute-storage getters. Live declarations, fields and access paths are unchanged. The defining DevMode object's code and read-only data shrink. | DevMode and Release builds; 1,521 default C++ tests. |
-| 4 | Read folded-source payload partitions once | Keep the early kind filter and let the existing symbol reader handle an absent partition. Present partitions no longer repeat the acquire query; absent partitions still return without recording a symbol. The recorder loses one call and 62 code bytes with its original frame; constant/type setters are identical. | DevMode build; 1,522 default C++ tests. |
+| 4 | `b5446a4af` Read folded-source payload partitions once | Keep the early kind filter and let the existing symbol reader handle an absent partition. Present partitions no longer repeat the acquire query; absent partitions still return without recording a symbol. The recorder loses one call and 62 code bytes with its original frame; constant/type setters are identical. | DevMode build; 1,522 default C++ tests. |
+| 6 | `76a4bd309` Share constant JIT argument preparation | Share constant/default resolution and ordinary scalar/reference materialization; the receiver keeps its distinct binding path. Following the strictest-copy rule, oversized scalar `set` arguments now hit the same existing assertion as ordinary calls. Both DevMode frames are stable; its added 35-byte cold assertion path and two-byte reduction in the ordinary builder account for the object's 33-byte code increase. Both Release builders shrink with four fewer calls and non-increasing frames; retained data is unchanged. | DevMode and Release builds; 1,584 full C++ tests. The optional full native rerun was deferred by machine load. |
+| 4 | Initialize fresh JIT fold buffers once | Every caller freshly emplaces its byte buffer. `SmallVector::resize` value-initializes all bytes; remove the second payload zero-fill while retaining the redzone fill and all allocations/capacities. The helper loses one `memset` call and 14 bytes with its original frame; both builders and public callers are identical. | DevMode build; 1,522 default C++ tests; the standalone literal-suffix struct initializer passes its native test and compile-time assertions. |
 
 Counts belong to each batch's tested revision. A conflict-free merge does not
 claim that every suite was rerun on the combined revision. The full C++/native
 milestones belong to `6b382e504`, the anonymous aggregate and chunk-initialization batches; later
 independent checks are listed separately.
+The JIT argument-preparation batch adds a full C++ milestone without claiming a
+new full-native result.
 
 ## Commands
 
@@ -64,6 +68,7 @@ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter for_c 
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter while --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter optimizer --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter structs_defaults --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter literal_suffix_struct_initializer --num-cores 6 --rebuild
 ```
 
 The full native tool exits zero. Its deliberate panic and hardware-exception

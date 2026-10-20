@@ -41,6 +41,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Retain the decimal mantissa string for float parsing | A NUL-length scan, a second string copy/allocation and temporary cleanup | The integer's decimal result is kept directly and supplied to the same formatter as a sized view. Decimal text, exponent formatting and `from_chars` conversion are unchanged. The setter shrinks from 688 to 555 code bytes, its reservation from 256 to 224 bytes, and calls from eleven to eight. Smaller format wrappers bring object code from 80,798 to 80,604 bytes and retained data from 35,603 to 35,583 bytes. |
 
+| Reuse numeric-promotion metadata and insertion state | Two repeated type lookups in every mixed float/integer pair, both lookups for identical types, and sixteen preliminary map probes | The private builder uses the same sixteen builtin references. Mixed pairs select the metadata already fetched; identity returns its input. Since the map starts empty and grows once per iteration, its size proves each insertion unique. Promotion code shrinks from 755 to 705 bytes and its reservation from 72 to 56; table construction shrinks from 966 to 886 bytes with the same 360-byte reservation. Other function sizes are unchanged. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -184,6 +186,10 @@ The float-mantissa batch passes both JIT `float_literal_rounding` tests, checkin
 exact IEEE bits for decimal halfway rounding, long mantissas, the largest finite
 double, the normal/subnormal boundary and the smallest subnormal, plus agreement
 with runtime arithmetic.
+
+The promotion batch passes all 1,508 C++ tests, including the existing numeric
+pair, operand-order and forced-32-bit promotion expectations. Every compiler
+context also constructs the complete table with its uniqueness assertions.
 
 Rejected trials:
 

@@ -1582,8 +1582,7 @@ void SymbolStruct::setGenericRoot(bool value) noexcept
 
 const GenericInstanceOrigin* SymbolStruct::genericInstanceOrigin() const noexcept
 {
-    const auto* data = genericData();
-    return data && data->rootSym ? &data->origin : nullptr;
+    return SymbolGenericData::instanceOrigin(genericData());
 }
 
 void SymbolStruct::setGenericInstance(SymbolStruct* root, const GenericInstanceOrigin& origin) noexcept
@@ -1685,23 +1684,18 @@ bool SymbolStruct::tryGetGenericInstanceArgs(SmallVector<GenericInstanceKey>& ou
 
 void SymbolStruct::setGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    auto&              data     = ensureGenericData();
-    const TaskContext* expected = nullptr;
-    const bool         done     = data.completionOwner.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
-    SWC_ASSERT(done || expected == &ctx);
+    SymbolGenericData::setCompletionOwner(ensureGenericData(), ctx);
 }
 
 bool SymbolStruct::isGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    const auto* data = genericData();
-    return data && data->completionOwner.load(std::memory_order_acquire) == &ctx;
+    return SymbolGenericData::isCompletionOwner(genericData(), ctx);
 }
 
 bool SymbolStruct::isGenericCompletionActive(const TaskContext& ctx) const noexcept
 {
     const auto* data = genericData();
-    return data &&
-           data->completionOwner.load(std::memory_order_acquire) == &ctx &&
+    return SymbolGenericData::isCompletionOwner(data, ctx) &&
            (data->completionState.load(std::memory_order_acquire) & K_GENERIC_COMPLETION_DEPTH_MASK) != 0;
 }
 

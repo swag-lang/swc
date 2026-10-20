@@ -1206,23 +1206,18 @@ std::recursive_mutex& SymbolFunction::genericEvalRunMutex(const TaskContext& ctx
 
 void SymbolFunction::setGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    auto&              data     = ensureGenericData(ctx);
-    const TaskContext* expected = nullptr;
-    const bool         done     = data.completionOwner.compare_exchange_strong(expected, &ctx, std::memory_order_acq_rel);
-    SWC_ASSERT(done || expected == &ctx);
+    SymbolGenericData::setCompletionOwner(ensureGenericData(ctx), ctx);
 }
 
 bool SymbolFunction::isGenericCompletionOwner(const TaskContext& ctx) const noexcept
 {
-    const auto* data = genericData();
-    return data && data->completionOwner.load(std::memory_order_acquire) == &ctx;
+    return SymbolGenericData::isCompletionOwner(genericData(), ctx);
 }
 
 bool SymbolFunction::isGenericCompletionActive(const TaskContext& ctx) const noexcept
 {
     const auto* data = genericData();
-    return data &&
-           data->completionOwner.load(std::memory_order_acquire) == &ctx &&
+    return SymbolGenericData::isCompletionOwner(data, ctx) &&
            data->completionDepth.load(std::memory_order_acquire) != 0;
 }
 
@@ -1275,8 +1270,7 @@ void SymbolFunction::setGenericRoot(bool value) noexcept
 
 const GenericInstanceOrigin* SymbolFunction::genericInstanceOrigin() const noexcept
 {
-    const auto* data = genericData();
-    return data && data->rootSym ? &data->origin : nullptr;
+    return SymbolGenericData::instanceOrigin(genericData());
 }
 
 void SymbolFunction::setGenericInstance(const TaskContext& ctx, SymbolFunction* root, const GenericInstanceOrigin& origin) noexcept

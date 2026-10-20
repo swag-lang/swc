@@ -223,6 +223,66 @@ namespace InstructionCombine
             return true;
         }
 
+        // Reassociation puts two additions on y's dependency chain instead
+        // of one. Keep loop-carried or computed addends on their original
+        // path; a load, constant or incoming value is the supported leaf.
+        bool isLeafScaledAddend(Context& ctx, MicroReg reg, MicroInstrRef atRef, MicroOpBits bits)
+        {
+            for (uint32_t depth = 0; depth < MicroOptimizationLimits::InstructionCombineRegReg::K_MAX_FACTOR_COPY_DEPTH; ++depth)
+            {
+                if (!reg.isVirtualInt())
+                    return reg.isInt();
+                const auto value = ctx.ssa->reachingDef(reg, atRef);
+                if (!value.valid() || value.isPhi)
+                    return false;
+                if (!value.inst)
+                    return true;
+                const auto* input = value.inst->ops(*ctx.operands);
+                if (!input)
+                    return false;
+                MicroOpBits definedBits = MicroOpBits::Zero;
+                switch (value.inst->op)
+                {
+                    case MicroInstrOpcode::LoadRegReg:
+                        if (getNumBits(input[2].opBits) < getNumBits(bits) && input[2].opBits != MicroOpBits::B32)
+                            return false;
+                        if (getNumBits(input[2].opBits) < getNumBits(bits))
+                            bits = input[2].opBits;
+                        reg   = input[1].reg;
+                        atRef = value.instRef;
+                        continue;
+                    case MicroInstrOpcode::LoadZeroExtRegReg:
+                    case MicroInstrOpcode::LoadSignedExtRegReg:
+                        if (getNumBits(input[2].opBits) < getNumBits(bits) && input[2].opBits != MicroOpBits::B32)
+                            return false;
+                        bits  = input[3].opBits;
+                        reg   = input[1].reg;
+                        atRef = value.instRef;
+                        continue;
+                    case MicroInstrOpcode::ClearReg:
+                    case MicroInstrOpcode::LoadRegImm:
+                    case MicroInstrOpcode::LoadRegPtrImm:
+                    case MicroInstrOpcode::LoadRegPtrReloc:
+                        definedBits = input[1].opBits;
+                        break;
+                    case MicroInstrOpcode::LoadRegMem:
+                    case MicroInstrOpcode::LoadZeroExtRegMem:
+                    case MicroInstrOpcode::LoadSignedExtRegMem:
+                        definedBits = input[2].opBits;
+                        break;
+                    case MicroInstrOpcode::LoadAmcRegMem:
+                    case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                    case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+                        definedBits = input[3].opBits;
+                        break;
+                    default:
+                        return false;
+                }
+                return getNumBits(definedBits) >= getNumBits(bits) || definedBits == MicroOpBits::B32;
+            }
+            return false;
+        }
+
         // x * (2^k + 1) + y = (x + y) + (x << k). The shift and
         // the first addition are independent, replacing the serial multiply
         // and addition without duplicating a product. Keep coefficients an
@@ -248,7 +308,7 @@ namespace InstructionCombine
                     continue;
                 const uint64_t coefficient = multiply[3].valueU64 & getBitsMask(bits);
                 const uint64_t scale       = coefficient - 1;
-                if (scale <= 8 || !std::has_single_bit(scale))
+                if (scale <= 8 || !std::has_single_bit(scale) || !isLeafScaledAddend(ctx, ops[1 - side].reg, ref, bits))
                     continue;
                 auto scan = MicroStorage::Iterator{ctx.storage, product.instRef};
                 for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && scan.current.isValid() && scan.current != ref; ++step, ++scan)

@@ -57,3 +57,31 @@ func dynamicChain64(a, b, c, d, coefficient: u64)->u64 => ((a * coefficient + b)
             Swag.assert(signed64(x, y) == dynamicSigned64(x, y, 33))
     }
 }
+
+#[Swag.NoInline]
+func weighted64(values: [*] u8, count: u64)->u64
+{
+    var result = 7'u64
+    for i in count do
+        result += cast(u64, values[i]) * 33
+    return result
+}
+
+#[Swag.NoInline, Swag.Optimize(false)]
+func referenceWeighted64(values: [*] u8, count: u64)->u64
+{
+    var result = 7'u64
+    for i in count do
+        result += cast(u64, values[i]) * 33
+    return result
+}
+
+#test
+{
+    var values: [64] u8
+    for i in 64 do
+        values[i] = cast(u8, i)
+
+    for count in [0'u64, 1, 7, 32, 64] do
+        Swag.assert(weighted64(&values[0], count) == referenceWeighted64(&values[0], count))
+}

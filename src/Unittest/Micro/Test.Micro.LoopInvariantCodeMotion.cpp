@@ -1206,7 +1206,7 @@ SWC_TEST_END()
 // the original address computation at its use.
 SWC_TEST_BEGIN(LICM_ReassociatesSubtractedInvariantAddressWithFlagsAndPathProofs)
 {
-    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u})
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u})
     {
         constexpr MicroReg outerBase = MicroReg::virtualIntReg(1);
         constexpr MicroReg fixed     = MicroReg::virtualIntReg(2);
@@ -1226,6 +1226,11 @@ SWC_TEST_BEGIN(LICM_ReassociatesSubtractedInvariantAddressWithFlagsAndPathProofs
         builder.emitLoadRegImm(induction, ApInt(0, 64), MicroOpBits::B64);
         if (mode == 3)
             builder.emitCmpRegImm(induction, ApInt(8, 64), MicroOpBits::B64);
+        if (mode == 11)
+        {
+            builder.emitLoadLabelAddress(flags, loop);
+            builder.emitLoadMemReg(outerBase, 16, flags, MicroOpBits::B64);
+        }
         builder.placeLabel(loop);
         if (mode == 3)
         {

@@ -1,5 +1,6 @@
 #pragma once
 #include "Support/Core/Utf8.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -21,9 +22,10 @@ public:
     uint32_t        bitWidth() const { return bitWidth_; }
     static uint32_t maxBitWidth() { return MAX_BITS; }
 
-    bool     fit64() const;
-    bool     fit64Signed() const;
-    uint64_t as64() const;
+    bool fit64() const;
+    bool fit64Signed() const;
+    // Every mutation normalizes the live words to bitWidth_, including widths below 64.
+    uint64_t as64() const { return words_[0]; }
     int64_t  as64Signed() const;
 
     bool     same(const ApInt& other) const;
@@ -119,6 +121,18 @@ protected:
     static uint32_t computeNumWords(uint32_t bitWidth);
     void            normalize();
     bool            hasTopBitsOverflow() const;
+
+private:
+    // Builtin bounds have known normalized words and need no runtime initialization.
+    consteval ApInt(uint32_t bitWidth, uint64_t lowWord, uint64_t highWord) :
+        words_{lowWord, highWord},
+        bitWidth_(bitWidth),
+        numWords_(static_cast<uint32_t>((bitWidth + WORD_BITS - 1) / WORD_BITS))
+    {
+        SWC_ASSERT(bitWidth > 0 && bitWidth <= MAX_BITS);
+        SWC_ASSERT(numWords_ > 1 || highWord == 0);
+        SWC_ASSERT(bitWidth % WORD_BITS == 0 || (words_[numWords_ - 1] >> (bitWidth % WORD_BITS)) == 0);
+    }
 };
 
 SWC_END_NAMESPACE();

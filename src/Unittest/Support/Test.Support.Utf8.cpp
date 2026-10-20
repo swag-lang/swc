@@ -54,6 +54,16 @@ SWC_TEST_BEGIN(Utf8_ReplacementPreservesQuotesLoopsAndAliasedViews)
     if (aliased != "new new new")
         return Result::Error;
 
+    Utf8 aliasedLoop = "aaaa a";
+    aliasedLoop.replace_loop(aliasedLoop.subView(0, 2), aliasedLoop.subView(5, 1), true);
+    if (aliasedLoop != "a a")
+        return Result::Error;
+
+    Utf8 emptyPattern = "keep";
+    emptyPattern.replace_loop("", "replacement", true);
+    if (emptyPattern != "keep")
+        return Result::Error;
+
     Utf8 binary("a\0a", 3);
     binary.replace_loop("a", "long");
     if (binary != Utf8("long\0long", 9))

@@ -118,16 +118,16 @@ void Utf8::replace_loop(std::string_view from, std::string_view to, bool loopRep
     if (from.empty())
         return;
 
-    Utf8 current = *this;
-    Utf8 next    = replaceOutsideQuotes(current, from, to);
+    Utf8 next = replaceOutsideQuotes(*this, from, to);
 
-    if (loopReplace)
+    if (loopReplace && next != *this)
     {
-        while (next != current)
+        Utf8 current;
+        do
         {
             current.swap(next);
             next = replaceOutsideQuotes(current, from, to);
-        }
+        } while (next != current);
     }
 
     *this = std::move(next);

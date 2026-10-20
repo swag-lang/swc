@@ -89,20 +89,21 @@ namespace
         return true;
     }
 
-    bool canRewriteShift(MicroOpBits opBits, uint64_t immediate)
+    bool tryGetShiftAmount(uint32_t& outShift, MicroOpBits opBits, uint64_t immediate)
     {
         const uint32_t bitCount = getNumBits(opBits);
         if (!bitCount)
             return false;
         if (!Math::isPowerOfTwo(immediate))
             return false;
-        return Math::integerLog2(immediate) < bitCount;
+        outShift = Math::integerLog2(immediate);
+        return outShift < bitCount;
     }
 
-    void reduceMultiplyToShift(MicroInstrOperand* ops, uint64_t immediate)
+    void reduceMultiplyToShift(MicroInstrOperand* ops, uint32_t shift)
     {
         ops[2].microOp  = MicroOp::ShiftLeft;
-        ops[3].valueU64 = Math::integerLog2(immediate);
+        ops[3].valueU64 = shift;
     }
 
     bool tryReduceMultiplyByZero(MicroInstrOperand* ops, uint64_t immediate)
@@ -127,17 +128,19 @@ namespace
 
     bool tryReduceUnsignedDivideToShift(MicroInstrOperand* ops, MicroOpBits opBits, uint64_t immediate)
     {
-        if (immediate == 0 || !canRewriteShift(opBits, immediate))
+        uint32_t shift;
+        if (immediate == 0 || !tryGetShiftAmount(shift, opBits, immediate))
             return false;
 
         ops[2].microOp  = MicroOp::ShiftRight;
-        ops[3].valueU64 = Math::integerLog2(immediate);
+        ops[3].valueU64 = shift;
         return true;
     }
 
     bool tryReduceUnsignedModuloToMask(MicroInstrOperand* ops, MicroOpBits opBits, uint64_t immediate)
     {
-        if (immediate == 0 || !canRewriteShift(opBits, immediate))
+        uint32_t shift;
+        if (immediate == 0 || !tryGetShiftAmount(shift, opBits, immediate))
             return false;
 
         ops[2].microOp  = MicroOp::And;
@@ -1410,15 +1413,18 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
         {
             case MicroOp::MultiplySigned:
             case MicroOp::MultiplyUnsigned:
-                if (immediate > 1 && !canRewriteShift(opBits, immediate))
+            {
+                uint32_t shift = 0;
+                if (immediate > 1 && !tryGetShiftAmount(shift, opBits, immediate))
                     break;
                 if (!flagsDead())
                     break;
                 // The guard above already checked every nontrivial shift candidate.
                 if (!tryReduceMultiplyByZero(ops, immediate) && !tryReduceMultiplyByOne(ops, immediate))
-                    reduceMultiplyToShift(ops, immediate);
+                    reduceMultiplyToShift(ops, shift);
                 changed = true;
                 break;
+            }
 
             case MicroOp::Add:
             case MicroOp::Subtract:

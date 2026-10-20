@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Compiler/Lexer/LangSpec.h"
+#include "Compiler/Lexer/Token.h"
 #include "Main/Global.h"
 #include "Main/TaskContext.h"
 #include "Support/Core/Utf8.h"
@@ -80,6 +81,27 @@ SWC_TEST_BEGIN(LangSpec_ReservedNamespaceMatchesOwningFoldOracle)
     const Utf8 longName(1024, 'S');
     if (LangSpec::isReservedNamespace(longName))
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Token_IntrinsicNamesRoundTripThroughTheDefinitionTable)
+{
+    for (uint32_t index = 0; index < static_cast<uint32_t>(TokenId::Count); ++index)
+    {
+        const auto id   = static_cast<TokenId>(index);
+        const auto name = Token::intrinsicName(id);
+        if (Token::isIntrinsic(id) && !Token::isCompiler(id) && Token::toName(id).starts_with("Swag."))
+        {
+            if (name.empty() || Token::intrinsicFromName(name) != id)
+                return Result::Error;
+        }
+        else if (!name.empty())
+            return Result::Error;
+    }
+    for (const auto name : {std::string_view{}, std::string_view{"Swag.memcpy"}, std::string_view{"missingIntrinsic"}})
+        if (Token::intrinsicFromName(name) != TokenId::Invalid)
+            return Result::Error;
     return Result::Continue;
 }
 SWC_TEST_END()

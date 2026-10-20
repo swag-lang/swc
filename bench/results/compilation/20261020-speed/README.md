@@ -20,6 +20,10 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Append cloned parameter declarations directly to their worklist | A temporary reference vector and a second per-reference append loop | The index-based worklist keeps the same order across growth. Its identifier collector shrinks from 1,923 to 1,627 code bytes and its frame from 1,032 to 728 bytes. No AST entries or identifiers change. |
 | Preserve normalized words without remasking them | Eight redundant normalization tails after bitwise operations, logical right shift, remainder construction and unsigned widening | These operations cannot set a bit above the existing width, or already finish through a normalizing mutation. Both bitwise inputs have the same normalized width; the raw-word OR masks its input first. Arithmetic that can introduce upper bits retains its mask. |
 | Query minimum integer widths from normalized words | Reconstructing the unsigned top-word mask and clamping an already bounded highest bit; masking the signed input word again | The highest live set bit is inside the width. Signed queries retain the mask on their synthesized sign fill. All ten changed bodies shrink and their frames remain stable or shrink. The integer object's code shrinks from 20,407 to 20,108 bytes and retained data from 5,653 to 5,561 bytes. |
+| Clear COFF output at its public entry point | A second `clear` call in the sole private builder | The public object builder clears the output before any possible failure and does not write it before calling the private file builder. The later resize still initializes every output byte. The private builder keeps its 2,283-byte body and 352-byte frame while losing one call. |
+| Validate intrinsic-name spelling at C++ compile time | A length check and five-byte prefix comparison for each intrinsic-name query | The definition table is statically constrained to `Swag.` names or dot-prefixed member intrinsics. A one-byte member check preserves the empty names for `.count` and `.buffer`; all other accepted names lose the same five bytes. The helper shrinks from 98 to 85 code bytes without a frame; its registry initializer shrinks from 981 to 935 bytes with the same 120-byte frame. |
+| Reuse each keyword validation lookup | A second identical hash-table probe after each of 157 keyword insertions | One pointer feeds the existing presence and value assertions. A compile-time assertion-mode branch removes the entire check when assertions are disabled. Insertion order, slots and capacity do not change. Setup code shrinks from 105,131 to 89,385 bytes and its stack reservation from 21,120 to 16,032 bytes; the object loses code and retained data overall. |
+| Check field uniqueness through insertion's result | A separate membership query before each struct-field insertion | The existing `emplace` reports duplicates and still supplies the same field ordinal. The assertion remains active; using-field flag publication, map insertion and field publication keep their order for valid input. `addField` shrinks from 426 to 236 code bytes with the same 80-byte reservation. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -89,6 +93,30 @@ extension into a larger width. Additional cases cover every single bit and its
 complement at widths 1 through 128, logical shifts and bitwise mutations, and
 signed quotient/remainder normalization at widths 3 through 128.
 
+The COFF milestone on base `0614ed6b6c` passes all 1,565 C++ tests with
+`--dev-full`, including the extended-relocation writer case, all 1,539 JIT tests
+and all 3,908 native tests. Native recovery probes fail as expected and the
+outer tool exits zero. This milestone also validates the combined AST and
+integer changes integrated at that base.
+
+The intrinsic-name batch passes 1,504 C++ tests, including round trips for every
+named intrinsic and rejection of member/non-intrinsic names. Intrinsic-focused
+parser validation checks 29 normal and 29 expected-error inputs, including
+runtime sources.
+
+The keyword-validation batch passes 1,504 C++ tests and the complete lexer
+suites (33 normal and 50 expected-error inputs, including runtime). C++ inlining
+also folds the lookup helper into the two public queries: the hashed query's
+reservation falls from 56 to 32 bytes, while the unhashed query retains 48 bytes;
+both lose an intermediate helper call. Table storage and query results remain
+unchanged. A lambda-based trial added per-keyword calls and was replaced by the
+direct compile-time-gated block before validation.
+
+The field-insertion batch passes 1,504 C++ tests and the native `struct_layout`
+case, including packed fields, explicit alignment and overlapping field offsets.
+The two affected name-lookup wrappers retain or shrink their reservations while
+C++ inlining removes an intermediate helper call; their source logic is unchanged.
+
 Rejected trials:
 
 - Returning a separately constructed all-ones reachability vector duplicated
@@ -113,3 +141,20 @@ Rejected trials:
   unsigned formatting: `toString` grew from 439 to 550 code bytes and its frame
   from 112 to 144 bytes. That one tail is restored; formatting returns to its
   original body and frame while the other normalization savings remain.
+- Returning early from Tarjan's recursive connector for a graph sink removed
+  stack operations on that path, but grew the connector from 450 to 501 code
+  bytes and cycle discovery from 742 to 781 bytes. The trial is restored.
+- Caching the COFF output pointer and deferring read-only-data span construction
+  removed calls or unused work, but each affected builder's frame grew from 352
+  to 368 bytes. Restoring the private clear and shortening the span lifetime did
+  not remove that growth. Those pointer/span rewrites are restored.
+- Pre-reserving the keyword table was left aside: a static insertion model
+  changes collision order and lengthens some individual lookups, including
+  `if`. The allocation saving would therefore require a timing tradeoff; no
+  keyword-table reservation change is retained.
+- Starting decimal formatting loops with `do` removed an already-proved first
+  zero check, and copying the signed minimum avoided rebuilding its magnitude.
+  The unsigned body shrank by five bytes, but the signed variants grew and
+  reserved 16 more stack bytes. Even the unsigned-only change crossed an
+  inlining threshold and grew signed formatting from 2,093 to 2,454 bytes. All
+  formatting changes and their trial-only oracle are restored.

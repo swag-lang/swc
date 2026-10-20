@@ -31,6 +31,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Initialize inline alias arrays once | Filling both arrays with invalid references again inside their private collector | The sole caller supplies fresh value-initialized arrays; both reference types default to the same invalid values. Missing aliases and early errors therefore retain their original state. The collector shrinks from 2,692 to 2,068 code bytes with the same 888-byte reservation and eighteen calls; every other function in the object retains its size. |
 
+| Append receiver-analysis children to their worklist | A temporary child-reference vector, its copy loop and cleanup | The same last-in-first-out traversal checks invalid references when popped rather than before appending. AST ownership and index detection are unchanged. The helper shrinks from 1,004 to 473 code bytes, its reservation from 632 to 336 bytes, and calls from sixteen to ten; other functions retain their sizes. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -150,6 +152,12 @@ tests, both native `inline_for_elements` cases, and the expected-error
 semantic selection contains only the 28 runtime inputs and is not claimed as
 alias coverage. This build also includes the imported branch-simplification and
 strength-reduction changes and their C++ regressions.
+
+The inline-alias milestone also passes the complete native suite (3,912 tests)
+and all expected recovery probes; the outer test tool exits zero. The subsequent
+receiver-worklist batch passes the cross-AST chained-receiver test, including
+indexing, reads and mutation of the original element storage. Its provider and
+consumer are selected together by `cross_ast_chain_receiver`.
 
 Rejected trials:
 

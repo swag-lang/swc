@@ -1631,24 +1631,19 @@ namespace
             return false;
 
         SmallVector<AstNodeRef> worklist;
-        SmallVector<AstNodeRef> children;
         worklist.push_back(exprRef);
         while (!worklist.empty())
         {
             const AstNodeRef nodeRef = worklist.back();
             worklist.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
 
             const AstNode& node = sema.node(nodeRef);
             if (node.is(AstNodeId::IndexExpr) || node.is(AstNodeId::IndexListExpr))
                 return true;
 
-            children.clear();
-            node.collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : children)
-            {
-                if (childRef.isValid())
-                    worklist.push_back(childRef);
-            }
+            node.collectChildrenFromAst(worklist, sema.ast());
         }
 
         return false;

@@ -25,6 +25,7 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Reuse each keyword validation lookup | A second identical hash-table probe after each of 157 keyword insertions | One pointer feeds the existing presence and value assertions. A compile-time assertion-mode branch removes the entire check when assertions are disabled. Insertion order, slots and capacity do not change. Setup code shrinks from 105,131 to 89,385 bytes and its stack reservation from 21,120 to 16,032 bytes; the object loses code and retained data overall. |
 | Check field uniqueness through insertion's result | A separate membership query before each struct-field insertion | The existing `emplace` reports duplicates and still supplies the same field ordinal. The assertion remains active; using-field flag publication, map insertion and field publication keep their order for valid input. `addField` shrinks from 426 to 236 code bytes with the same 80-byte reservation. |
 | Reuse a contiguous span's aligned offset | Recomputing the aligned data position after a successful capacity check | The capacity comparison uses the same unsigned footprint arithmetic. A new page recomputes the offset from zero; existing-page writes reuse it. Header, payload and publication order are unchanged. The builder shrinks from 429 to 426 code bytes with the same 56-byte reservation. |
+| Read a message listener's source file once | A duplicate source-view/file lookup before preparing the same request | The existing saved pointer still controls rejection of a missing file and populates the request. Other argument guards and queue operations retain their order. The function shrinks from 578 to 555 code bytes with the same 80-byte reservation and one fewer call. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -123,6 +124,10 @@ including raw-span payload/alignment checks for existing and fresh pages and
 zero alignment. Overload-focused semantics checks 34 normal and 31 expected-error
 inputs, including runtime sources, and the native optimizer selection passes
 316 tests, covering the concurrent optimizer changes imported at that base.
+
+The listener-file batch passes 1,505 C++ tests and message-focused semantic
+checks over 29 normal and 29 expected-error inputs, including runtime sources.
+These inputs exercise compiler message type metadata and cyclic message work.
 
 Rejected trials:
 

@@ -35,7 +35,7 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Append escape-analysis children to their worklists | Two temporary vectors and two reference-copy loops | Subtree membership and external-borrow observation append exactly the same children, including invalid entries, in the same order. Their visit budgets, early returns and conservative fallback remain unchanged. Membership code shrinks from 703 to 504 bytes and its reservation from 648 to 336; observation shrinks from 1,787 to 1,691 bytes and from 1,184 to 912 stack bytes. Two cleanups disappear and other function sizes are unchanged. |
 
-| Allocate the return-summary ring without zeroing unread slots | An initial zero write for every completed-function queue slot | The fixed-capacity queue writes each slot before increasing its counted occupancy; only counted entries are popped. Capacity, FIFO order, duplicate suppression and wraparound remain unchanged. The callback shrinks from 5,768 to 5,604 code bytes and loses one call with the same 368-byte reservation; a new 13-byte cleanup leaves the object's total code smaller. |
+| Allocate the return-summary ring without zeroing unread slots | An initial zero write for every completed-function queue slot | The fixed-capacity queue writes each slot before increasing its counted occupancy; only counted entries are popped. Capacity, FIFO order, duplicate suppression and wraparound remain unchanged. Empty rings retain a null pointer without allocating. The final callback shrinks from 5,768 to 5,720 code bytes with the same 368-byte reservation; a new 13-byte cleanup leaves the object's total code smaller. |
 
 | Use the proven signed minimum-width bounds | Clamping the highest differing bit's precision to the active width | A bit differing from the sign fill cannot be the sign bit. Adding one sign bit therefore yields a precision from two through the active width; all-sign-fill values retain their existing eight-bit result. The helper shrinks from 323 to 317 code bytes with the same 32-byte reservation, and other function sizes remain unchanged. |
 
@@ -200,6 +200,17 @@ then pass. It checks one-, five- and 39-digit mantissas at both signed exponent
 extremes, plus zero at the maximum exponent. This is a correctness repair.
 
 Rejected trials:
+
+- Appending a formatted exponent into the mantissa's existing string removed a
+  separate string, but grew the setter from 554 to 752 code bytes, its reservation
+  from 224 to 240 bytes and calls from eight to twelve. The sized-view version
+  remains in place.
+- Combining section lookup and insertion in COFF merging shortened its main
+  body, but grew the shared insertion helper's reservation from 64 to 80 bytes.
+  The existing section map queries are retained.
+- Leaving unread COFF section indices uninitialized grew the merge body's
+  reservation from 736 to 752 bytes once its original empty-allocation behavior
+  was preserved. The original index vector is restored.
 
 - Returning a separately constructed all-ones reachability vector duplicated
   generated construction code and grew the frame. The retained version constructs

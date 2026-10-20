@@ -5831,7 +5831,7 @@ namespace SemaEscape
             std::vector<uint8_t> queued(returnEntries.size(), 0);
             const size_t         worklistCapacity = returnEntries.size();
             // Each ring slot is written by enqueue before a counted entry can read it.
-            const auto worklist = std::make_unique_for_overwrite<size_t[]>(worklistCapacity);
+            const auto worklist = worklistCapacity ? std::make_unique_for_overwrite<size_t[]>(worklistCapacity) : nullptr;
 
             size_t worklistHead  = 0;
             size_t worklistTail  = 0;

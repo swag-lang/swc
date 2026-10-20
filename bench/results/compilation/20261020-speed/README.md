@@ -35,6 +35,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Append escape-analysis children to their worklists | Two temporary vectors and two reference-copy loops | Subtree membership and external-borrow observation append exactly the same children, including invalid entries, in the same order. Their visit budgets, early returns and conservative fallback remain unchanged. Membership code shrinks from 703 to 504 bytes and its reservation from 648 to 336; observation shrinks from 1,787 to 1,691 bytes and from 1,184 to 912 stack bytes. Two cleanups disappear and other function sizes are unchanged. |
 
+| Allocate the return-summary ring without zeroing unread slots | An initial zero write for every completed-function queue slot | The fixed-capacity queue writes each slot before increasing its counted occupancy; only counted entries are popped. Capacity, FIFO order, duplicate suppression and wraparound remain unchanged. The callback shrinks from 5,768 to 5,604 code bytes and loses one call with the same 368-byte reservation; a new 13-byte cleanup leaves the object's total code smaller. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -165,6 +167,11 @@ The escape-worklist batch passes all 1,508 C++ tests and all 85 sanity tests,
 including borrow invalidation, stale reads, reentrant storage, implicit lifecycle
 effects and escaping aggregates. Expected diagnostic cases are checked by that
 suite as well as its executable tests.
+
+The return-summary ring passes the focused `jit_use_after_free_summary` sanity
+input (29 inputs including runtime). Its compile-time executions and expected
+use-after-free diagnostics cover guarded forwarding through recursive return
+summaries, wrappers and stored carriers; it has no executable `#test` bodies.
 
 Rejected trials:
 

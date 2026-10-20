@@ -5829,16 +5829,18 @@ namespace SemaEscape
             }
 
             std::vector<uint8_t> queued(returnEntries.size(), 0);
-            std::vector<size_t>  worklist(returnEntries.size());
+            const size_t         worklistCapacity = returnEntries.size();
+            // Each ring slot is written by enqueue before a counted entry can read it.
+            const auto worklist = std::make_unique_for_overwrite<size_t[]>(worklistCapacity);
 
             size_t worklistHead  = 0;
             size_t worklistTail  = 0;
             size_t worklistCount = 0;
 
             const auto enqueue = [&](const size_t index) {
-                SWC_ASSERT(worklistCount < worklist.size());
+                SWC_ASSERT(worklistCount < worklistCapacity);
                 worklist[worklistTail] = index;
-                if (++worklistTail == worklist.size())
+                if (++worklistTail == worklistCapacity)
                     worklistTail = 0;
                 ++worklistCount;
                 queued[index] = 1;
@@ -5853,7 +5855,7 @@ namespace SemaEscape
             while (worklistCount)
             {
                 const size_t dependencyIndex = worklist[worklistHead];
-                if (++worklistHead == worklist.size())
+                if (++worklistHead == worklistCapacity)
                     worklistHead = 0;
                 --worklistCount;
                 queued[dependencyIndex] = 0;

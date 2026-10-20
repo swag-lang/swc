@@ -185,6 +185,11 @@ namespace InstructionCombine
                     continue;
                 if (index < first || index >= last)
                     return false;
+                // A materialized label can be entered without following the
+                // explicit CFG predecessors, bypassing the compared read.
+                const auto addressTaken = cfg.addressTakenLabelIndices();
+                if (std::ranges::find(addressTaken, index) != addressTaken.end())
+                    return false;
                 if (std::ranges::find(visited, index) != visited.end())
                     continue;
                 visited.push_back(index);

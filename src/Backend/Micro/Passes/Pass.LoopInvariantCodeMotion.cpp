@@ -226,6 +226,10 @@ namespace
             const uint32_t header = loop->header;
             if (!header)
                 return true;
+            // An indirect entry into the body would skip the new preheader.
+            for (const uint32_t label : cfg.addressTakenLabelIndices())
+                if (label < n && loop->inBody[label])
+                    return true;
 
             uint32_t externalPredCount = 0;
             for (const uint32_t p : cfg.predecessors(header))

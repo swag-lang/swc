@@ -1,0 +1,116 @@
+Iterations:        1
+Instructions:      14
+Total Cycles:      15
+Total uOps:        14
+
+Dispatch Width:    6
+uOps Per Cycle:    0.93
+IPC:               0.93
+Block RThroughput: 2.3
+
+
+Instruction Info:
+[1]: #uOps
+[2]: Latency
+[3]: RThroughput
+[4]: MayLoad
+[5]: MayStore
+[6]: HasSideEffects (U)
+
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      5     0.33    *                   movzx	rax, byte ptr [rdi + rsi]
+ 1      5     0.33    *                   movzx	rcx, byte ptr [rdi + rsi + 1]
+ 1      1     0.20                        add	rcx, rax
+ 1      1     0.50                        shl	rax, 5
+ 1      1     0.20                        add	rax, rcx
+ 1      5     0.33    *                   movzx	rcx, byte ptr [rdi + rsi + 2]
+ 1      1     0.20                        add	rcx, rax
+ 1      1     0.50                        shl	rax, 5
+ 1      1     0.20                        add	rax, rcx
+ 1      5     0.33    *                   movzx	rcx, byte ptr [rdi + rsi + 3]
+ 1      1     0.20                        add	rcx, rax
+ 1      1     0.50                        shl	rax, 5
+ 1      1     0.20                        add	rax, rcx
+ 1      1     0.20                        movzx	eax, ax
+
+
+Resources:
+[0]   - ADLPPort00
+[1]   - ADLPPort01
+[2]   - ADLPPort02
+[3]   - ADLPPort03
+[4]   - ADLPPort04
+[5]   - ADLPPort05
+[6]   - ADLPPort06
+[7]   - ADLPPort07
+[8]   - ADLPPort08
+[9]   - ADLPPort09
+[10]  - ADLPPort10
+[11]  - ADLPPort11
+[12]  - ADLPPortInvalid
+
+
+Resource pressure per iteration:
+[0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    [8]    [9]    [10]   [11]   [12]   
+2.00   2.00   1.00   1.00    -     2.00   2.00    -      -      -     2.00   2.00    -     
+
+Resource pressure by instruction:
+[0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    [8]    [9]    [10]   [11]   [12]   Instructions:
+ -      -      -      -      -      -      -      -      -      -     1.00    -      -     movzx	rax, byte ptr [rdi + rsi]
+ -      -      -     1.00    -      -      -      -      -      -      -      -      -     movzx	rcx, byte ptr [rdi + rsi + 1]
+ -      -      -      -      -      -      -      -      -      -      -     1.00    -     add	rcx, rax
+ -      -      -      -      -      -     1.00    -      -      -      -      -      -     shl	rax, 5
+ -      -      -      -      -     1.00    -      -      -      -      -      -      -     add	rax, rcx
+ -      -     1.00    -      -      -      -      -      -      -      -      -      -     movzx	rcx, byte ptr [rdi + rsi + 2]
+ -     1.00    -      -      -      -      -      -      -      -      -      -      -     add	rcx, rax
+1.00    -      -      -      -      -      -      -      -      -      -      -      -     shl	rax, 5
+ -      -      -      -      -      -      -      -      -      -      -     1.00    -     add	rax, rcx
+ -      -      -      -      -      -      -      -      -      -     1.00    -      -     movzx	rcx, byte ptr [rdi + rsi + 3]
+ -      -      -      -      -      -     1.00    -      -      -      -      -      -     add	rcx, rax
+1.00    -      -      -      -      -      -      -      -      -      -      -      -     shl	rax, 5
+ -      -      -      -      -     1.00    -      -      -      -      -      -      -     add	rax, rcx
+ -     1.00    -      -      -      -      -      -      -      -      -      -      -     movzx	eax, ax
+
+
+Timeline view:
+                    01234
+Index     0123456789     
+
+[0,0]     DeeeeeER  .   .   movzx	rax, byte ptr [rdi + rsi]
+[0,1]     DeeeeeER  .   .   movzx	rcx, byte ptr [rdi + rsi + 1]
+[0,2]     D=====eER .   .   add	rcx, rax
+[0,3]     D=====eER .   .   shl	rax, 5
+[0,4]     D======eER.   .   add	rax, rcx
+[0,5]     DeeeeeE--R.   .   movzx	rcx, byte ptr [rdi + rsi + 2]
+[0,6]     .D======eER   .   add	rcx, rax
+[0,7]     .D======eER   .   shl	rax, 5
+[0,8]     .D=======eER  .   add	rax, rcx
+[0,9]     .DeeeeeE---R  .   movzx	rcx, byte ptr [rdi + rsi + 3]
+[0,10]    .D========eER .   add	rcx, rax
+[0,11]    .D========eER .   shl	rax, 5
+[0,12]    . D========eER.   add	rax, rcx
+[0,13]    . D=========eER   movzx	eax, ax
+
+
+Average Wait times (based on the timeline view):
+[0]: Executions
+[1]: Average time spent waiting in a scheduler's queue
+[2]: Average time spent waiting in a scheduler's queue while ready
+[3]: Average time elapsed from WB until retire stage
+
+      [0]    [1]    [2]    [3]
+0.     1     1.0    1.0    0.0       movzx	rax, byte ptr [rdi + rsi]
+1.     1     1.0    1.0    0.0       movzx	rcx, byte ptr [rdi + rsi + 1]
+2.     1     6.0    0.0    0.0       add	rcx, rax
+3.     1     6.0    0.0    0.0       shl	rax, 5
+4.     1     7.0    0.0    0.0       add	rax, rcx
+5.     1     1.0    1.0    2.0       movzx	rcx, byte ptr [rdi + rsi + 2]
+6.     1     7.0    0.0    0.0       add	rcx, rax
+7.     1     7.0    0.0    0.0       shl	rax, 5
+8.     1     8.0    0.0    0.0       add	rax, rcx
+9.     1     1.0    1.0    3.0       movzx	rcx, byte ptr [rdi + rsi + 3]
+10.    1     9.0    0.0    0.0       add	rcx, rax
+11.    1     9.0    0.0    0.0       shl	rax, 5
+12.    1     9.0    0.0    0.0       add	rax, rcx
+13.    1     10.0   0.0    0.0       movzx	eax, ax
+       1     5.9    0.3    0.4       <total>

@@ -1,0 +1,104 @@
+Iterations:        1
+Instructions:      11
+Total Cycles:      21
+Total uOps:        11
+
+Dispatch Width:    6
+uOps Per Cycle:    0.52
+IPC:               0.52
+Block RThroughput: 3.0
+
+
+Instruction Info:
+[1]: #uOps
+[2]: Latency
+[3]: RThroughput
+[4]: MayLoad
+[5]: MayStore
+[6]: HasSideEffects (U)
+
+[1]    [2]    [3]    [4]    [5]    [6]    Instructions:
+ 1      5     0.33    *                   movzx	rax, byte ptr [rdi + rsi]
+ 1      3     1.00                        imul	rax, rax, 33
+ 1      5     0.33    *                   movzx	rcx, byte ptr [rdi + rsi + 1]
+ 1      1     0.20                        add	rax, rcx
+ 1      3     1.00                        imul	rax, rax, 33
+ 1      5     0.33    *                   movzx	rcx, byte ptr [rdi + rsi + 2]
+ 1      1     0.20                        add	rax, rcx
+ 1      3     1.00                        imul	rax, rax, 33
+ 1      5     0.33    *                   movzx	rcx, byte ptr [rdi + rsi + 3]
+ 1      1     0.20                        add	rax, rcx
+ 1      1     0.20                        movzx	eax, ax
+
+
+Resources:
+[0]   - ADLPPort00
+[1]   - ADLPPort01
+[2]   - ADLPPort02
+[3]   - ADLPPort03
+[4]   - ADLPPort04
+[5]   - ADLPPort05
+[6]   - ADLPPort06
+[7]   - ADLPPort07
+[8]   - ADLPPort08
+[9]   - ADLPPort09
+[10]  - ADLPPort10
+[11]  - ADLPPort11
+[12]  - ADLPPortInvalid
+
+
+Resource pressure per iteration:
+[0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    [8]    [9]    [10]   [11]   [12]   
+1.00   3.00   1.00   1.00    -     1.00   1.00    -      -      -     2.00   1.00    -     
+
+Resource pressure by instruction:
+[0]    [1]    [2]    [3]    [4]    [5]    [6]    [7]    [8]    [9]    [10]   [11]   [12]   Instructions:
+ -      -      -      -      -      -      -      -      -      -     1.00    -      -     movzx	rax, byte ptr [rdi + rsi]
+ -     1.00    -      -      -      -      -      -      -      -      -      -      -     imul	rax, rax, 33
+ -      -      -     1.00    -      -      -      -      -      -      -      -      -     movzx	rcx, byte ptr [rdi + rsi + 1]
+ -      -      -      -      -      -      -      -      -      -      -     1.00    -     add	rax, rcx
+ -     1.00    -      -      -      -      -      -      -      -      -      -      -     imul	rax, rax, 33
+ -      -     1.00    -      -      -      -      -      -      -      -      -      -     movzx	rcx, byte ptr [rdi + rsi + 2]
+ -      -      -      -      -      -     1.00    -      -      -      -      -      -     add	rax, rcx
+ -     1.00    -      -      -      -      -      -      -      -      -      -      -     imul	rax, rax, 33
+ -      -      -      -      -      -      -      -      -      -     1.00    -      -     movzx	rcx, byte ptr [rdi + rsi + 3]
+ -      -      -      -      -     1.00    -      -      -      -      -      -      -     add	rax, rcx
+1.00    -      -      -      -      -      -      -      -      -      -      -      -     movzx	eax, ax
+
+
+Timeline view:
+                    0123456789 
+Index     0123456789          0
+
+[0,0]     DeeeeeER  .    .    .   movzx	rax, byte ptr [rdi + rsi]
+[0,1]     D=====eeeER    .    .   imul	rax, rax, 33
+[0,2]     DeeeeeE---R    .    .   movzx	rcx, byte ptr [rdi + rsi + 1]
+[0,3]     D========eER   .    .   add	rax, rcx
+[0,4]     D=========eeeER.    .   imul	rax, rax, 33
+[0,5]     DeeeeeE-------R.    .   movzx	rcx, byte ptr [rdi + rsi + 2]
+[0,6]     .D===========eER    .   add	rax, rcx
+[0,7]     .D============eeeER .   imul	rax, rax, 33
+[0,8]     .DeeeeeE----------R .   movzx	rcx, byte ptr [rdi + rsi + 3]
+[0,9]     .D===============eER.   add	rax, rcx
+[0,10]    .D================eER   movzx	eax, ax
+
+
+Average Wait times (based on the timeline view):
+[0]: Executions
+[1]: Average time spent waiting in a scheduler's queue
+[2]: Average time spent waiting in a scheduler's queue while ready
+[3]: Average time elapsed from WB until retire stage
+
+      [0]    [1]    [2]    [3]
+0.     1     1.0    1.0    0.0       movzx	rax, byte ptr [rdi + rsi]
+1.     1     6.0    0.0    0.0       imul	rax, rax, 33
+2.     1     1.0    1.0    3.0       movzx	rcx, byte ptr [rdi + rsi + 1]
+3.     1     9.0    0.0    0.0       add	rax, rcx
+4.     1     10.0   0.0    0.0       imul	rax, rax, 33
+5.     1     1.0    1.0    7.0       movzx	rcx, byte ptr [rdi + rsi + 2]
+6.     1     12.0   0.0    0.0       add	rax, rcx
+7.     1     13.0   0.0    0.0       imul	rax, rax, 33
+8.     1     1.0    1.0    10.0      movzx	rcx, byte ptr [rdi + rsi + 3]
+9.     1     16.0   0.0    0.0       add	rax, rcx
+10.    1     17.0   0.0    0.0       movzx	eax, ax
+       1     7.9    0.4    1.8       <total>

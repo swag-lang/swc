@@ -3580,7 +3580,7 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadAcrossScans_ProvesEveryPath)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
-        for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u, 13u})
+        for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u, 13u, 14u, 15u})
         {
             constexpr MicroReg base  = MicroReg::virtualIntReg(1);
             constexpr MicroReg index = MicroReg::virtualIntReg(2);
@@ -3594,6 +3594,11 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadAcrossScans_ProvesEveryPath)
             builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
             builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
             builder.emitLoadRegReg(other, MicroReg::intReg(3), bits);
+            if (mode == 14)
+            {
+                builder.emitLoadLabelAddress(value, exit);
+                builder.emitLoadMemReg(base, 24, value, MicroOpBits::B64);
+            }
             if (mode == 4)
             {
                 builder.emitCmpRegImm(other, ApInt(0, getNumBits(bits)), bits);
@@ -3618,6 +3623,8 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadAcrossScans_ProvesEveryPath)
                 builder.emitLoadMemReg(base, 0, other, bits);
             if (mode == 2)
                 builder.emitCallReg(base, CallConvKind::Swag);
+            if (mode == 15)
+                builder.emitLoadVolatileRegMem(other, base, 0, bits);
             if (mode == 3 || mode == 9)
                 builder.emitOpBinaryRegImm(mode == 3 ? index : base, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
             builder.placeLabel(second);
@@ -6309,6 +6316,8 @@ SWC_TEST_BEGIN(InstCombine_ScaledAdd_KeepsOtherCoefficients)
     return Result::Continue;
 }
 SWC_TEST_END()
+
+
 
 SWC_END_NAMESPACE();
 

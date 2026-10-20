@@ -930,7 +930,7 @@ void NodePayload::setConstAssignSourceParameter(AstNodeRef nodeRef, const Symbol
 void NodePayload::recordFoldedSourceSymbol(AstNodeRef nodeRef, const AstNode& node)
 {
     const PayloadInfo info = payloadInfo(node);
-    if ((info.kind != NodePayloadKind::SymbolRef && info.kind != NodePayloadKind::SymbolList) || !tryGetShard(info.shardIdx))
+    if (info.kind != NodePayloadKind::SymbolRef && info.kind != NodePayloadKind::SymbolList)
         return;
 
     // Only a resolved name folds; an overload set still waiting for a selection does not.

@@ -58,12 +58,11 @@ uint32_t MicroControlFlowGraph::singleEntry() const
 
 std::vector<uint8_t> MicroControlFlowGraph::reachableFrom(const std::span<const MicroInstrRef> roots) const
 {
-    std::vector<uint8_t> reachable(instructionCount(), 0);
-    if (hasUnsupportedControlFlowForCfgLiveness_ || !supportsDeadCodeLiveness_ || !addressTakenLabelIndices_.empty())
-    {
-        std::ranges::fill(reachable, 1);
+    const uint8_t        initial = hasUnsupportedControlFlowForCfgLiveness_ || !supportsDeadCodeLiveness_ || !addressTakenLabelIndices_.empty();
+    std::vector<uint8_t> reachable(instructionCount(), initial);
+    if (initial)
         return reachable;
-    }
+
     std::vector<uint32_t> pending;
     for (const MicroInstrRef root : roots)
     {

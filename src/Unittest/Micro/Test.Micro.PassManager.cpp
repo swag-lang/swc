@@ -469,6 +469,56 @@ SWC_TEST_BEGIN(MicroControlFlowGraph_KeepsEdgeOrderAcrossRebuilds)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MicroControlFlowGraph_ReachabilityRootsAndConservativeFallbacks)
+{
+    MicroBuilder builder(ctx);
+    builder.emitNop();
+    const auto entry = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+    builder.emitNop();
+    const auto detached = builder.instructions().lastInstructionRef();
+    builder.emitRet();
+
+    const auto& cfg = builder.controlFlowGraph();
+    if (cfg.reachableFrom({}) != std::vector<uint8_t>({0, 0, 0, 0}))
+        return Result::Error;
+    const std::array entryRoots{entry, entry};
+    if (cfg.reachableFrom(entryRoots) != std::vector<uint8_t>({1, 1, 0, 0}))
+        return Result::Error;
+    const std::array detachedRoots{detached};
+    if (cfg.reachableFrom(detachedRoots) != std::vector<uint8_t>({0, 0, 1, 1}))
+        return Result::Error;
+    const std::array bothRoots{entry, detached};
+    if (cfg.reachableFrom(bothRoots) != std::vector<uint8_t>({1, 1, 1, 1}))
+        return Result::Error;
+    const std::array missingRoots{entry, MicroInstrRef::invalid()};
+    if (cfg.reachableFrom(missingRoots) != std::vector<uint8_t>({1, 1, 1, 1}))
+        return Result::Error;
+
+    builder.emitJumpReg(MicroReg::virtualIntReg(1));
+    const auto& incomplete = builder.controlFlowGraph();
+    if (incomplete.reachableFrom({}) != std::vector<uint8_t>(5, 1))
+        return Result::Error;
+
+    MicroBuilder missingLabelBuilder(ctx);
+    missingLabelBuilder.emitNop();
+    missingLabelBuilder.emitJumpToLabel(MicroCond::Zero, MicroOpBits::B64, missingLabelBuilder.createLabel());
+    missingLabelBuilder.emitRet();
+    if (missingLabelBuilder.controlFlowGraph().reachableFrom({}) != std::vector<uint8_t>(3, 1))
+        return Result::Error;
+
+    MicroBuilder addressedBuilder(ctx);
+    const auto   label = addressedBuilder.createLabel();
+    addressedBuilder.emitRet();
+    addressedBuilder.placeLabel(label);
+    addressedBuilder.emitLoadLabelAddress(MicroReg::virtualIntReg(1), label);
+    addressedBuilder.emitRet();
+    if (addressedBuilder.controlFlowGraph().reachableFrom({}) != std::vector<uint8_t>(4, 1))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroControlFlowGraph_RebuildsLargeBranchesAndRemovedLabels)
 {
     MicroBuilder builder(ctx);

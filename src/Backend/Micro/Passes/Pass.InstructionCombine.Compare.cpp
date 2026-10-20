@@ -1,4 +1,6 @@
 #include "pch.h"
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroOptimizationLimits.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
@@ -153,6 +155,52 @@ namespace InstructionCombine
         return true;
     }
 
+    namespace
+    {
+        // Walk backwards from the reload to the comparison. Every incoming
+        // path must reach that read before a write or call, including paths
+        // around nested read-only scans. A path outside the bounded region
+        // declines the rewrite rather than assuming that it is unreachable.
+        bool hasUnchangedComparedMemory(const Context& ctx, MicroInstrRef cmpRef, MicroInstrRef loadRef)
+        {
+            const MicroControlFlowGraph& cfg = ctx.builder->controlFlowGraph();
+            if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
+                return false;
+            const uint32_t first = cfg.indexOf(cmpRef);
+            const uint32_t last  = cfg.indexOf(loadRef);
+            if (first >= last || last - first > MicroOptimizationLimits::InstructionCombineCompare::K_MAX_RELOAD_SCAN)
+                return false;
+            SmallVector<uint32_t> pending;
+            SmallVector<uint32_t> visited;
+            for (const uint32_t predecessor : cfg.predecessors(last))
+                pending.push_back(predecessor);
+            if (pending.empty())
+                return false;
+            const auto refs = cfg.instructionRefs();
+            while (!pending.empty())
+            {
+                const uint32_t index = pending.back();
+                pending.pop_back();
+                if (index == first)
+                    continue;
+                if (index < first || index >= last)
+                    return false;
+                if (std::ranges::find(visited, index) != visited.end())
+                    continue;
+                visited.push_back(index);
+                const MicroInstr* inst = ctx.storage->ptr(refs[index]);
+                if (!inst || ctx.isClaimed(refs[index]))
+                    return false;
+                const MicroInstrDef& info = MicroInstr::info(inst->op);
+                if (info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) || cfg.predecessors(index).empty())
+                    return false;
+                for (const uint32_t predecessor : cfg.predecessors(index))
+                    pending.push_back(predecessor);
+            }
+            return true;
+        }
+    }
+
     // A compare followed by a branch may already have read the exact indexed
     // cell loaded on the fallthrough path. Load it into a fresh value before
     // the compare and let register allocation coalesce the fallthrough copy.
@@ -169,21 +217,37 @@ namespace InstructionCombine
         ++patternIt;
         if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::JumpCond)
             return false;
-        const MicroInstrRef jumpRef = patternIt.current;
-        const MicroInstr*   jump    = &*patternIt;
-        ++patternIt;
-        if (!patternIt.current.isValid() || patternIt->op != MicroInstrOpcode::LoadAmcRegMem)
-            return false;
-        const MicroInstrRef      loadRef = patternIt.current;
-        const MicroInstr*        load    = &*patternIt;
+        const MicroInstrRef      jumpRef = patternIt.current;
+        const MicroInstr*        jump    = &*patternIt;
         const MicroInstrOperand* jumpOps = jump->ops(*ctx.operands);
-        const MicroInstrOperand* loadOps = load->ops(*ctx.operands);
-        if (!jumpOps || !loadOps || jumpOps[0].cpuCond == MicroCond::Unconditional ||
-            loadOps[1].reg != cmp[0].reg || loadOps[2].reg != cmp[1].reg ||
-            loadOps[3].opBits != cmp[4].opBits || loadOps[4].opBits != cmp[3].opBits ||
-            loadOps[5].valueU64 != cmp[5].valueU64 || loadOps[6].valueU64 != cmp[6].valueU64 ||
-            !loadOps[0].reg.isVirtualInt() || !cmp[2].reg.isVirtualInt() ||
-            !ctx.claimAll({cmpRef, jumpRef, loadRef}))
+        if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional || !cmp[2].reg.isVirtualInt())
+            return false;
+
+        MicroInstrRef            loadRef = MicroInstrRef::invalid();
+        const MicroInstrOperand* loadOps = nullptr;
+        for (uint32_t distance = 0; distance < MicroOptimizationLimits::InstructionCombineCompare::K_MAX_RELOAD_SCAN; ++distance)
+        {
+            ++patternIt;
+            if (!patternIt.current.isValid())
+                break;
+            if (patternIt->op != MicroInstrOpcode::LoadAmcRegMem)
+                continue;
+            const auto* candidate = patternIt->ops(*ctx.operands);
+            if (!candidate || candidate[1].reg != cmp[0].reg || candidate[2].reg != cmp[1].reg ||
+                candidate[3].opBits != cmp[4].opBits || candidate[4].opBits != cmp[3].opBits ||
+                candidate[5].valueU64 != cmp[5].valueU64 || candidate[6].valueU64 != cmp[6].valueU64 ||
+                !candidate[0].reg.isVirtualInt())
+                continue;
+            if (distance && (!ctx.ssa || !ctx.builder ||
+                             !ctx.ssa->sameValueAt(cmp[0].reg, cmpRef, patternIt.current) ||
+                             !ctx.ssa->sameValueAt(cmp[1].reg, cmpRef, patternIt.current) ||
+                             !hasUnchangedComparedMemory(ctx, cmpRef, patternIt.current)))
+                continue;
+            loadRef = patternIt.current;
+            loadOps = candidate;
+            break;
+        }
+        if (!loadRef.isValid() || !ctx.claimAll({cmpRef, jumpRef, loadRef}))
             return false;
 
         ctx.ensureVirtualIndices();

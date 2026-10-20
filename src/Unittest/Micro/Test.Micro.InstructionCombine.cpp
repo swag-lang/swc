@@ -3573,6 +3573,76 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadDifferentCell_KeepsCompare)
 }
 SWC_TEST_END()
 
+// A scan's exit retains the last compared cell through a second read-only
+// scan. Writes before the comparison are harmless; writes on any intervening
+// path, a bypass of the comparison, and changed addresses keep the reload.
+SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadAcrossScans_ProvesEveryPath)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u})
+        {
+            constexpr MicroReg base  = MicroReg::virtualIntReg(1);
+            constexpr MicroReg index = MicroReg::virtualIntReg(2);
+            constexpr MicroReg other = MicroReg::virtualIntReg(3);
+            constexpr MicroReg value = MicroReg::virtualIntReg(4);
+            MicroBuilder       builder(ctx);
+            const auto         scan   = builder.createLabel();
+            const auto         exit   = builder.createLabel();
+            const auto         second = builder.createLabel();
+            const auto         reload = builder.createLabel();
+            builder.emitLoadRegReg(base, MicroReg::intReg(1), MicroOpBits::B64);
+            builder.emitLoadRegReg(index, MicroReg::intReg(2), MicroOpBits::B64);
+            builder.emitLoadRegReg(other, MicroReg::intReg(3), bits);
+            if (mode == 4)
+            {
+                builder.emitCmpRegImm(other, ApInt(0, getNumBits(bits)), bits);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+            }
+            builder.placeLabel(scan);
+            builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, exit);
+            MicroInstrOperand compare[7] = {};
+            compare[0].reg               = base;
+            compare[1].reg               = index;
+            compare[2].reg               = other;
+            compare[3].opBits            = MicroOpBits::B64;
+            compare[4].opBits            = bits;
+            compare[5].valueU64          = 8;
+            builder.instructions().insertDerivedBefore(builder.operands(), builder.instructions().lastInstructionRef(), MicroInstrOpcode::CmpAmcReg, compare);
+            if (mode == 7)
+                builder.emitLoadMemReg(base, 0, other, bits);
+            builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, scan);
+            builder.placeLabel(exit);
+            if (mode == 1)
+                builder.emitLoadMemReg(base, 0, other, bits);
+            if (mode == 2)
+                builder.emitCallReg(base, CallConvKind::Swag);
+            if (mode == 3 || mode == 9)
+                builder.emitOpBinaryRegImm(mode == 3 ? index : base, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+            builder.placeLabel(second);
+            builder.emitCmpRegImm(other, ApInt(0, getNumBits(bits)), bits);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, reload);
+            if (mode == 8)
+                builder.emitLoadMemReg(base, 0, other, bits);
+            builder.emitOpBinaryRegImm(other, ApInt(1, getNumBits(bits)), MicroOp::Subtract, bits);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, second);
+            builder.placeLabel(reload);
+            builder.emitLoadAmcRegMem(value, mode == 6 ? MicroOpBits::B16 : bits, base, index, 8, mode == 5 ? 8 : 0, MicroOpBits::B64);
+            builder.emitLoadMemReg(base, 16, value, bits);
+            builder.emitRet();
+
+            SWC_RESULT(runInstCombinePass(builder));
+            const bool reused = mode == 0 || mode == 7;
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != (reused ? 0u : 1u) ||
+                Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 namespace
 {
     void emitDelayedIndexUpdate(MicroBuilder& builder, bool compareOnRight, bool extraTempUse)

@@ -47,6 +47,43 @@ SWC_TEST_BEGIN(PostRALoopRotate_IndependentHeadersRotate)
 }
 SWC_TEST_END()
 
+// The value read for a scan's comparison remains live on its exit. Rotation
+// must repeat the load with the comparison, so that exit sees the last cell.
+SWC_TEST_BEGIN(PostRALoopRotate_KeepsIndexedHeaderLoadOnTheExit)
+{
+    constexpr MicroReg base  = MicroReg::intReg(8);
+    constexpr MicroReg index = MicroReg::intReg(9);
+    constexpr MicroReg value = MicroReg::intReg(10);
+    constexpr MicroReg pivot = MicroReg::intReg(11);
+    MicroBuilder       builder(ctx);
+    const auto         top  = builder.createLabel();
+    const auto         done = builder.createLabel();
+    builder.placeLabel(top);
+    builder.emitLoadAmcRegMem(value, MicroOpBits::B64, base, index, 8, 0, MicroOpBits::B64);
+    builder.emitCmpRegReg(value, pivot, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, done);
+    builder.emitOpBinaryRegImm(index, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, top);
+    const auto backRef = builder.instructions().lastInstructionRef();
+    builder.placeLabel(done);
+    builder.emitLoadMemReg(base, 0, value, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
+    const auto* back = builder.instructions().ptr(backRef);
+    if (!back || back->op != MicroInstrOpcode::JumpCond || back->ops(builder.operands())[0].cpuCond != MicroCond::Below ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 2 ||
+        Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpRegReg) != 2)
+        return Result::Error;
+    const auto  compareRef = builder.instructions().findPreviousInstructionRef(backRef);
+    const auto  loadRef    = builder.instructions().findPreviousInstructionRef(compareRef);
+    const auto* load       = builder.instructions().ptr(loadRef);
+    if (!load || load->op != MicroInstrOpcode::LoadAmcRegMem || load->ops(builder.operands())[0].reg != value)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 // The copied header is bounded: eight instructions ahead of the exit branch
 // rotate, nine keep the unconditional back edge.
 SWC_TEST_BEGIN(PostRALoopRotate_HeaderRunStopsAtEightInstructions)

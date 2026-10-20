@@ -61,8 +61,8 @@ namespace
     // next iteration sees the updated index before entering the body.
     bool isDuplicableHeaderConnector(const MicroInstr& inst)
     {
-        return isDuplicableConnector(inst) || inst.op == MicroInstrOpcode::LoadAddrRegMem ||
-               inst.op == MicroInstrOpcode::LoadAddrAmcRegMem;
+        return isDuplicableConnector(inst) || inst.op == MicroInstrOpcode::LoadAmcRegMem ||
+               inst.op == MicroInstrOpcode::LoadAddrRegMem || inst.op == MicroInstrOpcode::LoadAddrAmcRegMem;
     }
 
     // A header carrying more than this around its compare is not worth

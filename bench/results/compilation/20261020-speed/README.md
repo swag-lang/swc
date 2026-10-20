@@ -37,6 +37,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Allocate the return-summary ring without zeroing unread slots | An initial zero write for every completed-function queue slot | The fixed-capacity queue writes each slot before increasing its counted occupancy; only counted entries are popped. Capacity, FIFO order, duplicate suppression and wraparound remain unchanged. The callback shrinks from 5,768 to 5,604 code bytes and loses one call with the same 368-byte reservation; a new 13-byte cleanup leaves the object's total code smaller. |
 
+| Use the proven signed minimum-width bounds | Clamping the highest differing bit's precision to the active width | A bit differing from the sign fill cannot be the sign bit. Adding one sign bit therefore yields a precision from two through the active width; all-sign-fill values retain their existing eight-bit result. The helper shrinks from 323 to 317 code bytes with the same 32-byte reservation, and other function sizes remain unchanged. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -172,6 +174,9 @@ The return-summary ring passes the focused `jit_use_after_free_summary` sanity
 input (29 inputs including runtime). Its compile-time executions and expected
 use-after-free diagnostics cover guarded forwarding through recursive return
 summaries, wrappers and stored carriers; it has no executable `#test` bodies.
+
+The signed-precision batch passes all 1,508 C++ tests, including the independent
+bit oracle and every single-bit value and complement at widths 1 through 128.
 
 Rejected trials:
 

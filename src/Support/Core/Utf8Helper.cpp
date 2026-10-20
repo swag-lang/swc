@@ -702,9 +702,11 @@ size_t Utf8Helper::levenshtein(std::string_view a, std::string_view b)
 
     // Optimal string alignment: a swapped pair of adjacent letters ('gte' for 'get') counts as one
     // edit, the commonest typo there is.
-    std::vector<size_t> prev2(n + 1);
-    std::vector<size_t> prev(n + 1);
-    std::vector<size_t> curr(n + 1);
+    // The first row is assigned below; later rows are complete before either
+    // recurrence reads them, including the transposition row after the first swap.
+    auto prev2 = std::make_unique_for_overwrite<size_t[]>(n + 1);
+    auto prev  = std::make_unique_for_overwrite<size_t[]>(n + 1);
+    auto curr  = std::make_unique_for_overwrite<size_t[]>(n + 1);
     for (size_t j = 0; j <= n; j++)
         prev[j] = j;
 

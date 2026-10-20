@@ -45,6 +45,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Find a range's last line without calculating its column | Walking the final line's bytes, decoding UTF-8 and expanding tabs for a discarded column | The same bounded final-byte offset and upper-bound search select the line, including empty, missing-source and missing-line-table cases. The helper's code grows from 228 to 252 bytes, while retained data falls from 176 to 124 bytes for the object and its reservation falls from 32 to 24 bytes. It no longer calls column calculation; four mutually exclusive security-cookie return sites replace the former column call site. Other function code is unchanged. |
 
+| Build edit-distance rows without clearing their future contents | Three initial zero passes over rows that are assigned before use | The first predecessor row is filled explicitly. Each current row is complete before swapping, and transpositions first read the two-row predecessor after it contains the initial row. Nonempty inputs guarantee nonempty allocations. The same three arrays, recurrence and tie order remain; the function shrinks from 1,083 to 593 code bytes, its reservation from 168 to 104 bytes and calls from twelve to seven. Object code falls by 825 bytes and retained data by 99 bytes; other public helpers retain their code. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -207,9 +209,28 @@ The end-line batch passes all 1,512 C++ tests. Its independent newline-count
 oracle checks every valid byte range in empty, single-line and mixed CRLF,
 UTF-8/tab sources at two line offsets, plus missing sources, missing line tables
 and out-of-range final bytes. Existing EOF and rendered-diagnostic checks also
-pass; no diagnostic information or wording is intentionally changed.
+pass; no diagnostic information or wording is intentionally changed. The complete
+JIT suite also passes all 1,539 tests at this end-line milestone.
+
+The edit-distance milestone on combined base `ace441b6e8`, with the subsequent
+empty-ring, end-line and row-allocation changes, passes all 1,575 C++ tests with
+`--dev-full` and all 3,913 native tests, including the imported counted-remainder
+case. Native recovery probes pass their expected-failure checks and the outer
+tool exits zero. The new distance test covers empty inputs, replacements,
+insertions/deletions, adjacent and separated transpositions, restricted
+transposition semantics, both operand orders, rejection thresholds and stable
+first-candidate selection on a tie.
+
+The expected-error `unknown_symbol_suggests_name` input also passes (29 inputs
+including runtime), preserving the closest-name help text. Its normal selection
+contains only the 28 runtime inputs and is not claimed as suggestion coverage.
 
 Rejected trials:
+
+- Borrowing the truncation ellipsis removed a string copy and lowered its frame,
+  but grew the function from 2,035 to 2,106 code bytes and changed shared formatter
+  inlining. That code-shape tradeoff is left aside; truncation and its trial-only
+  tests are restored.
 
 - Appending a formatted exponent into the mantissa's existing string removed a
   separate string, but grew the setter from 554 to 752 code bytes, its reservation

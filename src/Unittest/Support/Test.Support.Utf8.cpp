@@ -32,6 +32,42 @@ SWC_TEST_BEGIN(Utf8_MoveOperationsTransferStorage)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Utf8_EditDistanceKeepsTranspositionsAndSuggestionOrder)
+{
+    struct TestCase
+    {
+        std::string_view a;
+        std::string_view b;
+        size_t           distance;
+    };
+    const std::array cases = {
+        TestCase{"", "", 0},
+        TestCase{"a", "", 1},
+        TestCase{"a", "b", 1},
+        TestCase{"same", "same", 0},
+        TestCase{"ab", "ba", 1},
+        TestCase{"abcd", "badc", 2},
+        TestCase{"kitten", "sitting", 3},
+        TestCase{"CA", "ABC", 3},
+        TestCase{"abcdef", "abcfde", 2},
+    };
+    for (const TestCase& test : cases)
+    {
+        if (Utf8Helper::levenshtein(test.a, test.b) != test.distance || Utf8Helper::levenshtein(test.b, test.a) != test.distance)
+            return Result::Error;
+    }
+
+    const std::vector<Utf8> candidates = {"get", "let", "set"};
+    const auto              transposed = Utf8Helper::bestMatch("gte", candidates);
+    const auto              tied       = Utf8Helper::bestMatch("bet", candidates);
+    if (!transposed || *transposed != "get" || !tied || *tied != "get")
+        return Result::Error;
+    if (Utf8Helper::bestMatch("be", candidates) || Utf8Helper::bestMatch("unrelated", candidates) || Utf8Helper::bestMatch("get", {}))
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Utf8_FixedDecimalFormatting)
 {
     if (Utf8Helper::formatFixedDecimal(12.345, 2) != "12.35")

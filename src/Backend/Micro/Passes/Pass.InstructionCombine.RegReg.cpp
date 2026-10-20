@@ -378,11 +378,30 @@ namespace InstructionCombine
                         return false;
                     continue;
                 }
+                MicroOp operation;
                 if (inst->op == MicroInstrOpcode::OpBinaryRegImm)
-                    return ops[2].microOp != MicroOp::MultiplySigned && ops[2].microOp != MicroOp::MultiplyUnsigned;
-                if (inst->op == MicroInstrOpcode::OpBinaryRegReg)
-                    return ops[3].microOp != MicroOp::MultiplySigned && ops[3].microOp != MicroOp::MultiplyUnsigned;
-                return true;
+                    operation = ops[2].microOp;
+                else if (inst->op == MicroInstrOpcode::OpBinaryRegReg)
+                    operation = ops[3].microOp;
+                else
+                    return true;
+                switch (operation)
+                {
+                    case MicroOp::MultiplySigned:
+                    case MicroOp::MultiplyUnsigned:
+                    case MicroOp::MultiplyHighSigned:
+                    case MicroOp::MultiplyHighUnsigned:
+                        return false;
+                    case MicroOp::DivideSigned:
+                    case MicroOp::DivideUnsigned:
+                    case MicroOp::ModuloSigned:
+                    case MicroOp::ModuloUnsigned:
+                        // Other divisors will introduce another multiply later.
+                        return inst->op == MicroInstrOpcode::OpBinaryRegImm && !ops[3].hasWideImmediateValue() &&
+                               std::has_single_bit(ops[3].valueU64 & getBitsMask(ops[1].opBits));
+                    default:
+                        return true;
+                }
             }
             return false;
         }

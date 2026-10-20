@@ -6419,6 +6419,10 @@ namespace
             if (mode == 6 && stage == 0 && !productOnRight)
                 builder.emitLoadRegImm(addend, ApInt(9, getNumBits(bits)), bits);
         }
+        if (mode == 9)
+            builder.emitOpBinaryRegReg(accumulator, MicroReg::virtualIntReg(1), MicroOp::MultiplyHighUnsigned, bits);
+        if (mode == 10 || mode == 11)
+            builder.emitOpBinaryRegImm(accumulator, ApInt(mode == 10 ? 10 : 65536, getNumBits(bits)), mode == 10 ? MicroOp::DivideUnsigned : MicroOp::ModuloUnsigned, bits);
         if (mode == 7)
         {
             builder.emitSetCondReg(MicroReg::virtualIntReg(20), MicroCond::Overflow);
@@ -6458,7 +6462,7 @@ SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsReadersFlagsAndBoundaries)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
-        for (uint32_t mode = 1; mode <= 8; ++mode)
+        for (uint32_t mode = 1; mode <= 11; ++mode)
         {
             MicroBuilder builder(ctx);
             emitAffineChain(builder, bits, 33, 3, false, mode);
@@ -6466,7 +6470,7 @@ SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsReadersFlagsAndBoundaries)
             MicroOp    operation = MicroOp::Add;
             uint64_t   immediate = 0;
             const bool balanced  = firstBinaryRegImm(builder, operation, immediate) && operation == MicroOp::MultiplySigned && immediate == 35937;
-            if (balanced != (mode == 6))
+            if (balanced != (mode == 6 || mode == 11))
                 return Result::Error;
         }
     }

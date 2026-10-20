@@ -1201,6 +1201,84 @@ SWC_TEST_BEGIN(NaturalLoop_CollectBody_CountsMembersOnceAcrossTailsAndRebuilds)
 }
 SWC_TEST_END()
 
+// Root [base + (induction - fixed)] at base - fixed. A reversed
+// subtraction, live flags, changing inputs and a bypass of the body keep
+// the original address computation at its use.
+SWC_TEST_BEGIN(LICM_ReassociatesSubtractedInvariantAddressWithFlagsAndPathProofs)
+{
+    for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u})
+    {
+        constexpr MicroReg outerBase = MicroReg::virtualIntReg(1);
+        constexpr MicroReg fixed     = MicroReg::virtualIntReg(2);
+        constexpr MicroReg induction = MicroReg::virtualIntReg(3);
+        constexpr MicroReg nested    = MicroReg::virtualIntReg(4);
+        constexpr MicroReg value     = MicroReg::virtualIntReg(5);
+        constexpr MicroReg flags     = MicroReg::virtualIntReg(6);
+        MicroBuilder       builder(ctx);
+        const auto         loop = builder.createLabel();
+        const auto         done = builder.createLabel();
+        const auto         skip = builder.createLabel();
+        builder.emitLoadRegReg(outerBase, MicroReg::intReg(2), MicroOpBits::B64);
+        if (mode == 10)
+            builder.emitLoadRegImm(fixed, ApInt(2, 64), MicroOpBits::B64);
+        else
+            builder.emitLoadRegReg(fixed, MicroReg::intReg(3), MicroOpBits::B64);
+        builder.emitLoadRegImm(induction, ApInt(0, 64), MicroOpBits::B64);
+        if (mode == 3)
+            builder.emitCmpRegImm(induction, ApInt(8, 64), MicroOpBits::B64);
+        builder.placeLabel(loop);
+        if (mode == 3)
+        {
+            builder.emitSetCondReg(flags, MicroCond::Overflow);
+            builder.emitLoadMemReg(outerBase, 0, flags, MicroOpBits::B8);
+        }
+        if (mode == 8 || mode == 9)
+        {
+            builder.emitCmpRegImm(induction, ApInt(8, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, mode == 8 ? done : skip);
+        }
+        builder.emitLoadRegReg(nested, mode == 1 ? fixed : induction, mode == 5 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitOpBinaryRegReg(nested, mode == 1 ? induction : fixed, MicroOp::Subtract, MicroOpBits::B64);
+        if (mode == 4)
+        {
+            builder.emitSetCondReg(flags, MicroCond::Overflow);
+            builder.emitLoadMemReg(outerBase, 0, flags, MicroOpBits::B8);
+        }
+        builder.emitLoadAmcRegMem(value, MicroOpBits::B8, outerBase, nested, mode == 6 ? 2 : 1, mode == 7 ? 8 : 0, MicroOpBits::B64);
+        if (mode == 9)
+            builder.placeLabel(skip);
+        if (mode == 2)
+            builder.emitOpBinaryRegImm(fixed, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(induction, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitCmpRegImm(induction, ApInt(8, 64), MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Below, MicroOpBits::B32, loop);
+        builder.placeLabel(done);
+        builder.emitRet();
+
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroLoopInvariantCodeMotionPass>(builder));
+        const uint32_t labelPosition = Backend::Unittest::firstOpcodePosition(builder, MicroInstrOpcode::Label);
+        uint32_t       position      = 0;
+        MicroReg       rooted        = MicroReg::invalid();
+        bool           rewroteLoad   = false;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            const auto* ops = inst.ops(builder.operands());
+            if (inst.op == MicroInstrOpcode::OpBinaryRegReg && position < labelPosition && ops &&
+                ops[3].microOp == MicroOp::Subtract && ops[1].reg == fixed && ops[0].reg != nested)
+                rooted = ops[0].reg;
+            if (inst.op == MicroInstrOpcode::LoadAmcRegMem && rooted.isValid() && ops &&
+                ops[1].reg == rooted && ops[2].reg == induction && ops[6].valueU64 == (mode == 7 ? 8u : 0u))
+                rewroteLoad = true;
+            ++position;
+        }
+        const bool hoisted = mode == 0 || mode == 7;
+        if (rooted.isValid() != hoisted || rewroteLoad != hoisted)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

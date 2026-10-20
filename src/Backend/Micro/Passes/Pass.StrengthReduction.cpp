@@ -1002,11 +1002,194 @@ namespace
         return changed;
     }
 
+    // Finite signed counter ranges for a loop with one straight-line body.
+    // Shape and SSA identities are checked together.
+    struct CountedRange
+    {
+        uint64_t    upper = 0;
+        MicroOpBits bits  = MicroOpBits::Zero;
+    };
+
+    class CountedLoopRanges
+    {
+    public:
+        CountedLoopRanges(MicroPassContext& context, const MicroSsaState& ssa, const MicroPassHelpers::MicroDomTree& dom) :
+            context_(&context),
+            ssa_(&ssa),
+            dom_(&dom)
+        {
+        }
+
+        std::optional<uint64_t> upperBound(MicroReg reg, MicroInstrRef at, MicroOpBits bits)
+        {
+            if (!built_)
+            {
+                collect();
+                built_ = true;
+            }
+            auto value = ssa_->reachingDef(reg, at);
+            for (uint32_t depth = 0; depth < MicroOptimizationLimits::StrengthReduction::K_MAX_VALUE_COPY_DEPTH && value.valid(); ++depth)
+            {
+                if (const auto* range = ranges_.find(value.valueId); range && range->bits == bits)
+                    return range->upper;
+                if (value.isPhi || !value.inst || value.inst->op != MicroInstrOpcode::LoadRegReg)
+                    break;
+                const auto* copy = value.inst->ops(*context_->operands);
+                if (!copy || copy[2].opBits != bits || !copy[1].reg.isVirtualInt())
+                    break;
+                value = ssa_->reachingDef(copy[1].reg, value.instRef);
+            }
+            return {};
+        }
+
+    private:
+        std::optional<uint64_t> seedValue(uint32_t valueId, MicroOpBits bits) const
+        {
+            const auto* value = ssa_->valueInfo(valueId);
+            if (!value || value->isPhi())
+                return {};
+            const auto* inst = context_->instructions->ptr(value->instRef);
+            const auto* ops  = inst ? inst->ops(*context_->operands) : nullptr;
+            if (!ops || (inst->op != MicroInstrOpcode::ClearReg && inst->op != MicroInstrOpcode::LoadRegImm))
+                return {};
+            const MicroOpBits writeBits = ops[1].opBits;
+            if (writeBits != MicroOpBits::B32 && writeBits != MicroOpBits::B64)
+                return {};
+            if (inst->op == MicroInstrOpcode::ClearReg)
+                return 0;
+            if (ops[2].hasWideImmediateValue())
+                return {};
+            const uint64_t constant = ops[2].valueU64 & getBitsMask(writeBits) & getBitsMask(bits);
+            return constant <= (getBitsMask(bits) >> 1) ? std::optional<uint64_t>{constant} : std::nullopt;
+        }
+
+        void collect()
+        {
+            const auto& cfg = context_->builder->controlFlowGraph();
+            if (!cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
+                return;
+            const auto  refs  = cfg.instructionRefs();
+            const auto& loops = MicroPassHelpers::naturalLoopsFor(context_->ssaState, cfg, *dom_);
+            for (const auto& [header, loop] : loops)
+            {
+                if (loop.tails.size() != 1 || loop.bodyBegin != header || loop.bodySize != loop.bodyEnd - header || loop.bodyEnd < header + 3)
+                    continue;
+                bool hasIndirectEntry = false;
+                for (const uint32_t label : cfg.addressTakenLabelIndices())
+                    hasIndirectEntry |= label >= header && label < loop.bodyEnd;
+                if (hasIndirectEntry)
+                    continue;
+                const uint32_t tail = loop.tails[0];
+                if (tail + 1 != loop.bodyEnd)
+                    continue;
+                const auto* jump    = context_->instructions->ptr(refs[tail]);
+                const auto* cmp     = context_->instructions->ptr(refs[tail - 1]);
+                const auto* jumpOps = jump ? jump->ops(*context_->operands) : nullptr;
+                const auto* cmpOps  = cmp ? cmp->ops(*context_->operands) : nullptr;
+                if (!jump || jump->op != MicroInstrOpcode::JumpCond || !jumpOps || jumpOps[0].cpuCond != MicroCond::Less ||
+                    cfg.indexOfLabel(jumpOps[2].valueU64) != header || !cmp || cmp->op != MicroInstrOpcode::CmpRegImm || !cmpOps ||
+                    !cmpOps[0].reg.isVirtualInt() || cmpOps[2].hasWideImmediateValue())
+                    continue;
+                const MicroOpBits bits = cmpOps[1].opBits;
+                if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                    continue;
+                const uint64_t signedMax = getBitsMask(bits) >> 1;
+                const uint64_t limit     = cmpOps[2].valueU64 & getBitsMask(bits);
+                if (!limit || limit > signedMax)
+                    continue;
+                const MicroReg counter = cmpOps[0].reg;
+                const uint32_t phiId   = ssa_->reachingValueId(counter, refs[header]);
+                const auto*    phi     = ssa_->phiInfoForValue(phiId);
+                if (!phi || phi->incomingValueIds.empty())
+                    continue;
+                SmallVector<std::pair<uint32_t, uint64_t>> steps;
+                uint32_t                                   previousValue = phiId;
+                uint64_t                                   total         = 0;
+                bool                                       valid         = true;
+                for (uint32_t at = header; at < tail; ++at)
+                {
+                    const auto& successors = cfg.successors(at);
+                    if (successors.size() != 1 || successors[0] != at + 1)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    if (at != header)
+                    {
+                        for (const uint32_t pred : cfg.predecessors(at))
+                            valid &= pred >= header && pred <= tail;
+                    }
+                    const auto* useDef = ssa_->instrUseDef(refs[at]);
+                    if (!useDef)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    if (std::ranges::find(useDef->defs, counter) == useDef->defs.end())
+                        continue;
+                    const auto* inst = context_->instructions->ptr(refs[at]);
+                    const auto* ops  = inst ? inst->ops(*context_->operands) : nullptr;
+                    if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegImm || !ops || ops[0].reg != counter ||
+                        ops[1].opBits != bits || ops[2].microOp != MicroOp::Add || ops[3].hasWideImmediateValue() ||
+                        ssa_->reachingValueId(counter, refs[at]) != previousValue)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    const uint64_t step = ops[3].valueU64 & getBitsMask(bits);
+                    if (!step || step > signedMax - total || !ssa_->defValue(counter, refs[at], previousValue))
+                    {
+                        valid = false;
+                        break;
+                    }
+                    total += step;
+                    steps.push_back({previousValue, total});
+                }
+                if (!valid || steps.empty() || ssa_->reachingValueId(counter, refs[tail - 1]) != previousValue)
+                    continue;
+                bool     backInput = false;
+                bool     seedInput = false;
+                uint64_t seedMax   = 0;
+                for (const uint32_t incoming : phi->incomingValueIds)
+                {
+                    if (incoming == previousValue)
+                    {
+                        backInput = true;
+                        continue;
+                    }
+                    const auto seed = seedValue(incoming, bits);
+                    if (!seed)
+                    {
+                        valid = false;
+                        break;
+                    }
+                    seedInput = true;
+                    seedMax   = std::max(seedMax, *seed);
+                }
+                // Entry uses a literal seed; every back edge carries a value
+                // below the signed limit. Bounding the whole positive step also
+                // covers the final trip, so no intermediate value can wrap.
+                const uint64_t upper = std::max(seedMax, limit - 1);
+                if (!valid || !backInput || !seedInput || total > signedMax - upper)
+                    continue;
+                ranges_.emplace(phiId, CountedRange{upper, bits});
+                for (const auto& [valueId, prefix] : steps)
+                    ranges_.emplace(valueId, CountedRange{upper + prefix, bits});
+            }
+        }
+
+        MicroPassContext*                     context_;
+        const MicroSsaState*                  ssa_;
+        const MicroPassHelpers::MicroDomTree* dom_;
+        FlatKeyMap<CountedRange>              ranges_;
+        bool                                  built_ = false;
+    };
+
     // Turn every signed division or remainder of a provably non-negative
     // dividend by a positive constant into its unsigned form, before the
-    // reductions below look at them. Only the operation changes, so the
-    // analyses this reads stay valid for the whole scan.
-    bool useUnsignedDivisionWhereProven(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroSsaState& ssaScratch)
+    // reductions below look at them. Signedness and proved zero high bits
+    // may change; register use/def identities and control flow stay valid.
+    bool useUnsignedDivisionWhereProven(MicroPassContext& context, FlatKeyMap<uint8_t>& outLeadingZeros, MicroStorage& storage, MicroOperandStorage& operands, MicroSsaState& ssaScratch)
     {
         std::vector<MicroInstrRef> candidates;
         const auto                 view = storage.view();
@@ -1037,6 +1220,7 @@ namespace
 
         std::vector<SignTest> tests;
         collectSignTests(tests, *ssa, cfg, storage, operands);
+        CountedLoopRanges countedRanges(context, *ssa, dom);
 
         bool changed = false;
         for (const MicroInstrRef ref : candidates)
@@ -1046,14 +1230,33 @@ namespace
             if (!ops)
                 continue;
             if (!isKnownNonNegative(*ssa, dom, tests, operands, ops[0].reg, ref, cfg.indexOf(ref), ops[1].opBits))
-                continue;
+            {
+                const auto upper = countedRanges.upperBound(ops[0].reg, ref, ops[1].opBits);
+                if (!upper || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, ref, context.builder))
+                    continue;
+                const uint64_t divisor = ops[3].valueU64;
+                if (ops[1].opBits == MicroOpBits::B64 && *upper <= UINT32_MAX && divisor <= UINT32_MAX)
+                {
+                    ops[1].opBits = MicroOpBits::B32;
+                    ops[3].setImmediateValue(ApInt(divisor, 32));
+                }
+                const uint32_t width   = getNumBits(ops[1].opBits);
+                const uint32_t leading = std::min(width - 1, static_cast<uint32_t>(std::countl_zero(*upper)) - (64 - width));
+                outLeadingZeros.emplace(ref.get(), static_cast<uint8_t>(leading));
+            }
             ops[2].microOp = ops[2].microOp == MicroOp::DivideSigned ? MicroOp::DivideUnsigned : MicroOp::ModuloUnsigned;
             changed        = true;
         }
         return changed;
     }
 
-    bool tryExpandDivisionByConstant(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef instRef, MicroInstrOperand* ops, uint32_t& nextVirtualIntRegIndex)
+    struct DivisionExpansionState
+    {
+        FlatKeyMap<uint8_t> dividendLeadingZeros;
+        uint32_t            nextVirtualIntRegIndex = 0; // computed lazily on the first expansion
+    };
+
+    bool tryExpandDivisionByConstant(MicroPassContext& context, MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef instRef, MicroInstrOperand* ops, DivisionExpansionState& expansion)
     {
         const MicroOpBits opBits = ops[1].opBits;
         if (opBits != MicroOpBits::B32 && opBits != MicroOpBits::B64)
@@ -1096,14 +1299,22 @@ namespace
             return true;
         }
 
-        if (nextVirtualIntRegIndex == 0)
-            nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        const auto*    knownLeading = expansion.dividendLeadingZeros.find(instRef.get());
+        const uint32_t leadingZeros = knownLeading ? *knownLeading : 0;
+        if (!isSigned && leadingZeros && immediate > (bitsMask >> leadingZeros))
+        {
+            ops[2].microOp = isModulo ? MicroOp::Add : MicroOp::And;
+            ops[3].setImmediateValue(ApInt(0, bits));
+            return true;
+        }
+        if (expansion.nextVirtualIntRegIndex == 0)
+            expansion.nextVirtualIntRegIndex = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
 
-        const DivisionExpansionEmitter emitter{&storage, &operands, instRef, opBits, &nextVirtualIntRegIndex};
+        const DivisionExpansionEmitter emitter{&storage, &operands, instRef, opBits, &expansion.nextVirtualIntRegIndex};
 
         if (!isSigned)
         {
-            const UnsignedDivisionMagic magic = computeUnsignedDivisionMagic(immediate, bits);
+            const UnsignedDivisionMagic magic = computeUnsignedDivisionMagic(immediate, bits, leadingZeros);
             if (isModulo)
             {
                 const MicroReg dividendReg = emitter.allocVirtualReg();
@@ -1151,14 +1362,14 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
     MicroStorage&                storage  = *context.instructions;
     MicroOperandStorage&         operands = *context.operands;
     std::optional<MicroSsaState> localSsaState;
-    MicroSsaState&               ssaScratch             = context.ssaState ? *context.ssaState : localSsaState.emplace();
-    const MicroSsaState*         ssaState               = nullptr;
-    uint32_t                     nextVirtualIntRegIndex = 0; // computed lazily on the first expansion
+    MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
+    const MicroSsaState*         ssaState   = nullptr;
+    DivisionExpansionState       expansion;
 
     if (useLowBitsOfNarrowSignedRemainder(context, storage, operands, ssaScratch))
         context.passChanged = true;
 
-    if (useUnsignedDivisionWhereProven(context, storage, operands, ssaScratch))
+    if (useUnsignedDivisionWhereProven(context, expansion.dividendLeadingZeros, storage, operands, ssaScratch))
         context.passChanged = true;
 
     const auto view  = storage.view();
@@ -1226,7 +1437,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                 if (!flagsDead())
                     break;
                 changed = tryReduceUnsignedDivideToShift(ops, opBits, immediate) ||
-                          tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
+                          tryExpandDivisionByConstant(context, storage, operands, instRef, ops, expansion);
                 break;
 
             case MicroOp::ModuloUnsigned:
@@ -1237,8 +1448,8 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     changed = true;
                     break;
                 }
-                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, ssaScratch, instRef, ops, nextVirtualIntRegIndex) ||
-                          tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
+                changed = tryReduceUnsignedModuloEquality(context, storage, operands, ssaState, ssaScratch, instRef, ops, expansion.nextVirtualIntRegIndex) ||
+                          tryExpandDivisionByConstant(context, storage, operands, instRef, ops, expansion);
                 break;
 
             case MicroOp::DivideSigned:
@@ -1253,7 +1464,7 @@ Result MicroStrengthReductionPass::run(MicroPassContext& context)
                     break;
                 if (!flagsDead())
                     break;
-                changed = tryExpandDivisionByConstant(context, storage, operands, instRef, ops, nextVirtualIntRegIndex);
+                changed = tryExpandDivisionByConstant(context, storage, operands, instRef, ops, expansion);
                 break;
 
             default:

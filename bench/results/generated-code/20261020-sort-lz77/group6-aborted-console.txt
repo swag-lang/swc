@@ -1,0 +1,148 @@
+bin/swc.exe : 
+Au caractère Ligne:2 : 897
++ ... DE -eq 0) { bin/swc.exe --num-cores 6 tools/bench.swgs --no-build --s ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  ◆  swag        run • tools • devmode
+  ✓  module      win32 • 46 files • 160 ms
+  ✓  module      xinput • 41 files • 63 ms
+  ✓  module      core • 376 files • core.dll • 1 s 678 ms
+  ✓  workspace   std [2 roots] • 3 modules • 2 s 341 ms
+  ✓  checked     44 files • 224_955 tokens • 279 ms
+  ✓  tuned       649 functions • 3 s 191 ms
+
+[1/2] Measure
+---------------
+compiler under test : C:\Users\chris\AppData\Local\swc-agent-builds\prompt2-sort-lz77-20261020\bin\swc.exe
+campaign            : 2000 ms of samples per runtime and task (3..16), 2000 ms per build
+timed runs pinned to : 0x55401 (6 performance cores)
+preparing Swag dependencies...
+  win32/release  ready outside the clock (1 API files,  204.5 ms)
+  win32/devmode  ready outside the clock (1 API files,  164.7 ms)
+machine idle at 11 %, starting
+warming up 30 s on the reference workload...
+  calibration start    sha256/C++ = 41.834 ms
+== fixed compiler cost (hello world -> exe) ==
+  zig                  build=   4388.3 ms  mem= 1541.3 MB
+  d-ldc                build=    142.2 ms  mem=   80.3 MB
+  odin                 build=    234.0 ms  mem=  693.7 MB
+  go                   build=   6105.2 ms  mem=  823.4 MB
+  java-hotspot         build=    550.8 ms  mem=  153.0 MB
+  swag-release         build=    126.3 ms  mem=   59.9 MB
+  swag-fast-debug      build=    191.6 ms  mem=   80.3 MB
+  cpp-clang-cl         build=    139.1 ms  mem=   29.6 MB
+  cpp-msvc             build=    128.7 ms  mem=   40.5 MB
+  rust                 build=    196.3 ms  mem=  181.6 MB
+  swift                build=    347.6 ms  mem=   46.3 MB
+  csharp-aot           build=   6945.9 ms  mem=  342.6 MB
+  csharp-jit           build=   3060.8 ms  mem=  116.1 MB
+== the edit-build loop (compiler workloads) ==
+  core_rebuild         wall=   3581.8 ms (3x,  +20%)  mem=  583.1 MB
+  core_noop            wall=     57.1 ms (6x,  +18%)  mem=    6.7 MB
+  core_touch           wall=   2849.5 ms (2x,   +4%)  mem=  567.4 MB
+  doc_std              wall=  52610.6 ms (3x,  +47%)  mem= 3601.5 MB
+  format_tree          wall=   9541.2 ms (2x,   +4%)  mem=  425.4 MB
+== time to first program output (hello world) ==
+  swc-jit-release      first=  101.0 ms  mem=   60.1 MB
+  swc-jit-fast-debug   first=  158.4 ms  mem=   78.6 MB
+  node20               first=   60.8 ms  mem=   15.2 MB
+  luajit2.1            first=   21.2 ms  mem=    2.4 MB
+  lua5.4               first=   18.8 ms  mem=    2.1 MB
+  python3.12           first=   55.0 ms  mem=    8.9 MB
+  php                  first=   44.2 ms  mem=    8.8 MB
+  php-jit              first=   52.8 ms  mem=   12.3 MB
+  ruby                 first=   41.8 ms  mem=   47.6 MB
+== wordfreq == (machine 48.0 ms)
+  swag-release         run=     45.05 ms (10x,  +44%)  build=   165.1 ms  bmem=   67.4 MB  check=130489
+  swag-fast-debug      run=     58.84 ms ( 9x,  +56%)  build=   244.8 ms  bmem=   91.0 MB  check=130489
+  cpp-clang-cl         run=     49.34 ms ( 2x,  +27%)  build=   416.3 ms  bmem=   69.5 MB  check=130489
+  cpp-msvc             run=     54.78 ms ( 2x,   +5%)  build=   406.8 ms  bmem=   54.6 MB  check=130489
+  rust                 run=     51.45 ms ( 2x,   +2%)  build=   313.8 ms  bmem=  184.4 MB  check=130489
+  zig                  run=     57.01 ms ( 2x,   +2%)  build=  5876.4 ms  bmem= 1540.5 MB  check=130489
+  d-ldc                run=     49.15 ms ( 2x,   +2%)  build=   321.6 ms  bmem=  145.7 MB  check=130489
+  odin                 run=     56.80 ms ( 2x,   +1%)  build=   362.2 ms  bmem=  742.1 MB  check=130489
+  go                   run=     49.84 ms ( 2x,   +7%)  build=  6270.7 ms  bmem=  823.4 MB  check=130489
+  swift                run=     64.16 ms ( 2x,   +0%)  build=  2239.4 ms  bmem=  171.9 MB  check=130489
+  csharp-aot           run=     58.23 ms ( 3x,  +54%)  build=  6962.2 ms  bmem=  349.9 MB  check=130489
+  csharp-jit           run=    135.89 ms ( 2x,   +5%)  build=  3240.7 ms  bmem=  120.1 MB  check=130489
+  java-hotspot         run=     84.57 ms ( 2x,  +21%)  build=   575.1 ms  bmem=  167.4 MB  check=130489
+  swc-jit-release      run=     49.68 ms ( 8x,  +28%)  rmem=   91.7 MB  check=130489
+  swc-jit-fast-debug   run=     66.41 ms ( 4x,  +44%)  rmem=  112.3 MB  check=130489
+  node20               run=    213.54 ms ( 2x,  +29%)  rmem=  236.0 MB  check=130489
+  luajit2.1            run=    145.00 ms ( 2x,  +63%)  rmem=   72.1 MB  check=130489
+  lua5.4               run=   1303.00 ms ( 1x,   +0%)  rmem=   99.7 MB  check=130489
+  python3.12           run=   2913.71 ms ( 1x,   +0%)  rmem=   74.4 MB  check=130489
+  php                  run=   1030.92 ms ( 2x,  +13%)  rmem=  151.1 MB  check=130489
+  php-jit              run=    344.56 ms ( 2x,  +38%)  rmem=  154.6 MB  check=130489
+  ruby                 run=   4820.34 ms ( 1x,   +0%)  rmem=  430.2 MB  check=130489
+== csvagg == (machine 44.0 ms)
+  swag-release         run=     25.93 ms ( 9x, +194%)  build=   159.2 ms  bmem=   71.9 MB  check=24828641
+  swag-fast-debug      run=     48.90 ms ( 6x,  +98%)  build=   260.2 ms  bmem=   94.4 MB  check=24828641
+  cpp-clang-cl         run=     37.88 ms ( 2x,  +48%)  build=   443.2 ms  bmem=   69.5 MB  check=24828641
+  cpp-msvc             run=     29.90 ms ( 2x, +517%)  build=   456.5 ms  bmem=   66.9 MB  check=24828641
+  rust                 run=     35.33 ms ( 2x, +131%)  build=   490.9 ms  bmem=  184.0 MB  check=24828641
+  zig                  run=     25.70 ms ( 2x, +363%)  build=  4865.2 ms  bmem= 1541.5 MB  check=24828641
+  d-ldc                run=     42.90 ms ( 2x,  +40%)  build=   346.3 ms  bmem=  146.4 MB  check=24828641
+  odin                 run=     37.35 ms ( 2x,  +51%)  build=   419.4 ms  bmem=  754.1 MB  check=24828641
+  go                   run=     56.64 ms ( 2x,  +11%)  build= 11740.4 ms  bmem=  649.8 MB  check=24828641
+  swift                run=     88.23 ms ( 2x,  +57%)  build=  9773.6 ms  bmem=  179.5 MB  check=24828641
+  csharp-aot           run=     65.30 ms ( 2x, +277%)  build= 16653.8 ms  bmem=  358.3 MB  check=24828641
+  csharp-jit           run=    107.47 ms ( 2x,  +63%)  build=  4026.2 ms  bmem=  120.0 MB  check=24828641
+  java-hotspot         run=    151.16 ms ( 2x,   +2%)  build=   745.7 ms  bmem=  177.8 MB  check=24828641
+  swc-jit-release      run=     38.60 ms ( 3x, +371%)  rmem=   87.7 MB  check=24828641
+  swc-jit-fast-debug   run=    224.75 ms ( 1x,   +0%)  rmem=   99.9 MB  check=24828641
+  node20               run=    264.17 ms ( 1x,   +0%)  rmem=  253.9 MB  check=24828641
+  luajit2.1            run=    221.00 ms ( 2x,   +3%)  rmem=   74.7 MB  check=24828641
+  lua5.4               run=   2714.00 ms ( 1x,   +0%)  rmem=   74.7 MB  check=24828641
+  python3.12           run=   3693.02 ms ( 1x,   +0%)  rmem=   69.1 MB  check=24828641
+  php                  run=   2059.72 ms ( 1x,   +0%)  rmem=  163.1 MB  check=24828641
+  php-jit              run=    557.94 ms ( 2x, +221%)  rmem=  166.6 MB  check=24828641
+  ruby                 run=   2502.67 ms ( 1x,   +0%)  rmem=  310.1 MB  check=24828641
+== sha256 == (machine 115.3 ms)
+  swag-release         run=     73.59 ms ( 6x,  +51%)  build=   241.9 ms  bmem=   65.4 MB  check=2503168387
+  swag-fast-debug      run=    112.51 ms ( 5x,  +51%)  build=   503.4 ms  bmem=   87.3 MB  check=2503168387
+  cpp-clang-cl         run=     86.02 ms ( 2x,  +38%)  build=   748.8 ms  bmem=   69.5 MB  check=2503168387
+  cpp-msvc             run=     88.69 ms ( 2x,  +51%)  build=   827.6 ms  bmem=   58.6 MB  check=2503168387
+  rust                 run=     73.95 ms ( 2x,  +98%)  build=   696.9 ms  bmem=  181.0 MB  check=2503168387
+  zig                  run=     65.39 ms ( 2x,  +88%)  build=  8715.6 ms  bmem= 1541.3 MB  check=2503168387
+  d-ldc                run=     52.94 ms ( 2x, +338%)  build=   517.6 ms  bmem=  144.4 MB  check=2503168387
+  odin                 run=     59.19 ms ( 2x, +109%)  build=   573.7 ms  bmem=  750.0 MB  check=2503168387
+  go                   run=     48.68 ms ( 2x, +117%)  build= 13757.4 ms  bmem= 1091.8 MB  check=2503168387
+  swift                run=     66.58 ms ( 2x, +135%)  build=  6018.7 ms  bmem=  165.5 MB  check=2503168387
+  csharp-aot           run=     63.91 ms ( 2x,  +71%)  build= 10526.9 ms  bmem=  350.2 MB  check=2503168387
+  csharp-jit           run=     65.85 ms ( 2x,  +92%)  build=  4471.6 ms  bmem=  115.9 MB  check=2503168387
+  java-hotspot         run=     99.08 ms ( 2x,  +78%)  build=  1252.6 ms  bmem=  171.5 MB  check=2503168387
+  swc-jit-release      run=     52.24 ms ( 5x,  +75%)  rmem=   83.0 MB  check=2503168387
+  swc-jit-fast-debug   run=     82.06 ms ( 3x,  +87%)  rmem=  100.4 MB  check=2503168387
+  node20               run=   1071.04 ms ( 1x,   +0%)  rmem=  421.2 MB  check=2503168387
+  luajit2.1            run=   1057.00 ms ( 2x,  +32%)  rmem=  259.3 MB  check=2503168387
+  lua5.4               run=  26601.00 ms ( 1x,   +0%)  rmem=  515.0 MB  check=2503168387
+  python3.12           run=  59660.00 ms ( 1x,   +0%)  rmem=   34.3 MB  check=2503168387
+  php                  run=  27166.48 ms ( 1x,   +0%)  rmem=   28.8 MB  check=2503168387
+  php-jit              run=   1496.55 ms ( 1x,   +0%)  rmem=   32.3 MB  check=2503168387
+  ruby                 run= 116369.62 ms ( 1x,   +0%)  rmem=  272.3 MB  check=2503168387
+== dijkstra == (machine 84.0 ms)
+  swag-release         run=     38.36 ms ( 8x, +107%)  build=   253.7 ms  bmem=   67.2 MB  check=4431000
+  swag-fast-debug      run=     79.30 ms ( 6x, +168%)  build=   529.1 ms  bmem=   94.7 MB  check=4431000
+  cpp-clang-cl         run=    307.62 ms ( 1x,   +0%)  build=   759.7 ms  bmem=   69.5 MB  check=4431000
+  cpp-msvc             run=     54.71 ms ( 2x,  +64%)  build=   972.6 ms  bmem=   62.9 MB  check=4431000
+  rust                 run=     70.05 ms ( 2x, +158%)  build=   441.6 ms  bmem=  184.3 MB  check=4431000
+  zig                  run=     62.14 ms ( 2x,  +94%)  build=  6519.7 ms  bmem= 1541.6 MB  check=4431000
+  d-ldc                run=     75.64 ms ( 2x, +120%)  build=   385.9 ms  bmem=  144.7 MB  check=4431000
+  odin                 run=     58.10 ms ( 2x, +196%)  build=   506.4 ms  bmem=  742.0 MB  check=4431000
+  go                   run=     72.72 ms ( 2x, +698%)  build=  9432.0 ms  bmem=  879.0 MB  check=4431000
+  swift                run=     93.32 ms ( 2x, +3690%)  build=  3370.5 ms  bmem=  169.6 MB  check=4431000
+  csharp-aot           run=     76.87 ms ( 2x, +4021%)  build= 23878.6 ms  bmem=  343.5 MB  check=4431000
+  csharp-jit           run=    175.51 ms ( 2x, +2616%)  build=  5542.7 ms  bmem=  119.7 MB  check=4431000
+  java-hotspot         run=    177.97 ms ( 2x, +2684%)  build=   754.9 ms  bmem=  165.4 MB  check=4431000
+  swc-jit-release      run=     44.32 ms ( 6x, +7546%)  rmem=  115.0 MB  check=4431000
+  swc-jit-fast-debug   run=    133.75 ms ( 3x,  +61%)  rmem=  141.5 MB  check=4431000
+  node20               run=    268.14 ms ( 2x,   +1%)  rmem=  128.5 MB  check=4431000
+  luajit2.1            run=    278.00 ms ( 2x,   +9%)  rmem=   22.9 MB  check=4431000
+  lua5.4               run=   1356.00 ms ( 2x,  +29%)  rmem=   42.1 MB  check=4431000
+  python3.12           run=   3210.41 ms ( 1x,   +0%)  rmem=   77.2 MB  check=4431000
+  php                  run=   2451.52 ms ( 1x,   +0%)  rmem=  177.1 MB  check=4431000
+  php-jit              run=    914.83 ms ( 2x, +122%)  rmem=  180.6 MB  check=4431000
+  ruby                 run=   2307.85 ms ( 1x,   +0%)  rmem=   97.1 MB  check=4431000

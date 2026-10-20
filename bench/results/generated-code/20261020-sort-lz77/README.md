@@ -143,3 +143,56 @@ values and divisor/multiple neighbours, compared with unoptimized dynamic divisi
 All twelve Release checksum/code captures pass; the final native checksum loop
 was inspected. Analysis adds at most one width-bounded multiplier computation for
 an eligible even divisor. Timing remains unconfirmed pending the grouped campaign.
+
+
+## Finite signed counter ranges
+
+A straight-line natural loop with one signed constant-limit latch now proves a
+nonnegative finite range for its counter. Full-width positive increments must
+form one SSA chain; every initial phi input must be a nonnegative literal. The
+maximum entry value and the entire step must fit the signed width, including the
+final trip. Internal branches, external or materialized entries, unknown seeds,
+partial definitions, dynamic limits and live arithmetic flags retain their code.
+Copies may forward a proved counter value at the same width.
+
+The range supplies leading-zero facts to unsigned constant division. A positive
+64-bit operation narrows to 32 bits only when both its dividend range and divisor
+fit u32, preserving the full observed result by zero extension. Divisors larger
+than the proved dividend range produce zero quotients or unchanged remainders.
+The new facts are local to this pass invocation and the original instruction IDs.
+
+Sort's checksum loop changes from 52 to 43 instructions per two values (59 before
+the two division batches), with two reads and no calls. Its native `%7` uses a
+plain wide product by `0x24924925` and a shift, removing the signed multiply-high
+correction. The prologue, saved registers, stack accesses and frame stay unchanged.
+All eleven other benchmark bodies and loops retain their instruction/memory/call
+profiles after pairing overloads; all twelve checksums pass. See
+`microdiff-batch7.json`. The proof scans eligible loop bodies and phi inputs once,
+only when an existing nonnegative proof fails; copy queries retain the existing
+depth limit. It reuses cached SSA, dominators and natural loops.
+
+Both new structural C++ groups fail before this change, with the other 1,508
+passing. All 1,510 pass after it. The focused source passes JIT and native in
+Release, including negative starts, signed wrap boundaries, and positive 64-bit
+dividends/divisors above s32 but within u32. The complete optimizer directory
+passes 320 JIT and 320 native tests in DevMode with micro validation. Native loop
+instructions and all twelve checksum/code captures were inspected.
+
+## Second measurement attempt
+
+The Release compiler at `60ce9cd521`, including copied zero-test exits and even
+divisors, has SHA-256
+`81250d8e7f15f42ae1d073196f13e9746db4011af98dbeb2b3b50787c011716b`.
+Its twelve Release checksum/code captures match the validated DevMode compiler.
+The integrated group passes 1,508 in-memory C++ tests and 319 optimizer tests
+through both JIT and native in DevMode with micro validation.
+
+Its default full campaign started at 10:18 Paris and was stopped at 10:44 after
+the completed reference probes already made rejection unavoidable: SHA-256's
+115.3 ms probe follows CSV's 44.0 ms, a departure of about 162%, beyond the 40%
+limit. No later sample can remove that adjacent departure. Only this session's
+verified benchmark process tree was stopped. No session build or test overlapped
+these measurements. Wordfreq, CSV, SHA-256 and Dijkstra checksums agreed across
+all runtimes before stopping. The unrecorded partial console is retained in
+`group6-aborted-console.txt`; no history entry or performance claim comes from it.
+The finite-counter batch above was built and tested after this attempt stopped.

@@ -59,14 +59,15 @@ public:
     static bool isSpecOpName(std::string_view name);
 
 private:
-    CharFlags charFlags_[256];
-
-    StringMap<TokenId>                            keywordMap_;
-    std::unordered_map<TokenId, std::string_view> keywordIdMap_;
+    std::array<CharFlags, 256> charFlags_;
+    StringMap<TokenId>         keywordMap_;
+    static_assert(sizeof(charFlags_) == 256 * sizeof(CharFlags));
 
     void setup();
     void setupKeywords();
     void setupCharFlags();
+
+    static consteval std::array<CharFlags, 256> makeCharFlags();
 };
 
 SWC_END_NAMESPACE();

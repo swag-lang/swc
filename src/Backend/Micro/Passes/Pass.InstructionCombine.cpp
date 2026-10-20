@@ -287,6 +287,9 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         }
     }
 
+    // Balance complete chains before a local scaled-add rule breaks them apart.
+    runBalancedAffineChains(ctx);
+
     bool       hasSecondStore       = false;
     const bool hasForwardableMemory = runPerInstructionPatterns(ctx, hasSecondStore);
 

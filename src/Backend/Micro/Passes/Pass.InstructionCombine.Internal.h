@@ -167,7 +167,11 @@ namespace InstructionCombine
         // Claim every ref atomically: returns false without side-effects if
         // any was already claimed, or if one carries a relocation the caller
         // did not take responsibility for.
-        bool claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated = false);
+        bool claimAll(std::span<const MicroInstrRef> refs, bool allowRelocated = false);
+        bool claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated = false)
+        {
+            return claimAll(std::span<const MicroInstrRef>(refs.begin(), refs.size()), allowRelocated);
+        }
     };
 
     using PatternFn = bool (*)(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
@@ -204,6 +208,8 @@ namespace InstructionCombine
     // reads: a value defined in a loop body flows into a phi at the header
     // whether or not the next iteration reads it. Invalid when the value has
     // no reader, several, or a phi with readers of its own.
+    void runBalancedAffineChains(Context& ctx);
+
     MicroInstrRef singleDirectInstructionUse(const MicroSsaState& ssa, uint32_t valueId);
 
     // Whether `reg` holds a frame address where `atRef` reads it: the stack

@@ -196,3 +196,70 @@ these measurements. Wordfreq, CSV, SHA-256 and Dijkstra checksums agreed across
 all runtimes before stopping. The unrecorded partial console is retained in
 `group6-aborted-console.txt`; no history entry or performance claim comes from it.
 The finite-counter batch above was built and tested after this attempt stopped.
+
+
+## Balanced constant chains
+
+A closed three-stage `x * (2^k + 1) + y` chain can distribute its constants
+over independent leaf values and balance the sums. Products and intermediate
+copies must have one reader; all arithmetic flags must be dead; snapshots read
+each input at its original point. The bounded straight-line interval excludes
+branches, labels, calls, stores and volatile reads. Combined coefficients must
+fit an immediate signed 32-bit multiply. A computed or loop-carried addend,
+partial copy, shared intermediate or longer connected chain keeps its local
+expansion. Both product sides are supported. Dynamic claim lists use the same
+atomic relocation-aware claim implementation as existing fixed lists.
+
+The last pair remains eligible for parallel shift/add lowering. This leaves two
+immediate multiplies and avoids saturating the multiplier with a third one.
+The all-multiply prototype was rejected: LLVM-MCA models 16 cycles and reciprocal
+throughput 3.0, versus the current 15 cycles and 2.3. The retained hybrid keeps
+15 cycles and improves reciprocal throughput to 2.0. This is LLVM-MCA 20.1.8's
+Meteor Lake model for the emitted data flow with independent pointer/index
+inputs, excluding return overhead, not elapsed-time evidence. Inputs and outputs
+are in `hash-hybrid.s`/`hash-hybrid-mca.txt`; the rejected alternative is retained
+in `hash-allmul-rejected.s`/`hash-allmul-rejected-mca.txt`.
+
+The final native hash has 13 instructions rather than 15, with the same four
+byte reads. The inlined insertion loop changes from 29 to 27 instructions per
+eligible input position, retaining its four byte reads, head read and two stores.
+The other inlined hash also loses two instructions. Saved registers, frame,
+stack-operand counts, other memory operations and calls stay unchanged in the
+enclosing main function. Native code confirms both inlined sites use the
+retained two-multiply/shift-add shape. All eleven other benchmark profiles stay
+unchanged after pairing overloads, and all twelve checksums pass; see
+`microdiff-affine-hybrid.json`.
+
+Validation: two structural groups fail without reassociation; all 1,513 in-memory
+C++ tests pass with the final closed-chain and multiplier-budget guards. Nine
+focused source tests pass through JIT and native in Release, including arbitrary
+u32/u64/s64 extremes, mixed coefficients, shared prefixes, oversized coefficient
+products and additional finite-range quotient/remainder boundaries on both sides
+of u32. The complete optimizer directory passes 324 JIT and 324 native tests in
+DevMode with micro validation. The analysis adds one reverse instruction walk,
+with at most three stages, the existing bounded copy queries and a 32-instruction
+straight-line check for each eligible root. It reuses SSA and allocates no new
+graph analysis.
+
+## Final measurement status
+
+The Release compiler at `385fdeaffa`, before balanced chains, has SHA-256
+`79fb991cea5b98eb8af18f9535298da722883caa38a4c9b9ceae6ee938f5fe4d`.
+All twelve Release checksum/code captures match the validated finite-counter
+compiler. Twelve paired ABBA/BAAB rounds on sort, LZ77 and wordfreq remain within
+wide unchanged A/A controls; they neither confirm a gain nor supply a veto. Every
+sample is in `paired-before-hybrid.json`.
+
+The subsequent twelve-task execution-only attempt was stopped after its first
+reference probes already exceeded the 40% limit: start 54.116 ms, wordfreq about
+38.5 ms, a departure of about 40.6%. Its unrecorded console is retained in
+`final-run-aborted-console.txt`. No session build or test overlapped the paired
+or campaign measurements. No history entry or corrected execution index is
+derived from either aborted attempt, and no measurement includes the balanced
+chain batch. The latest accepted full campaign remains `20261019-181609`.
+
+All retained optimizations remain **landed, unconfirmed** as runtime gains. The
+next prompt 2 session must start with a quiet full campaign of the final combined
+revision before another optimization batch. The signed LZ77 i/p range proof in
+compiler.optimization.105 remains unfinished; the constant-counter proof does
+not cover its variable and conditional steps.

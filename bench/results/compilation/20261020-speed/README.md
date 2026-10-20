@@ -12,6 +12,9 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Initialize fresh integer temporaries once | Normalizing an all-zero constructor result and clearing fresh division, boundary-value and signed-formatting temporaries again | The constructor already clears every live word. The narrow division remainder is built directly with its final low word; traversal, overflow and normalization of nonzero values remain unchanged. Inspected frames do not grow, and the arithmetic object's code and retained data sections shrink overall. |
 | Test integer powers of two in one walk | A preliminary all-zero word scan | The existing one-bit scan already returns false when no word contains a bit. Word order and acceptance are unchanged; the helper shrinks from 86 to 57 code bytes without a frame. |
 | Build builtin integer bounds at C++ compile time | Twenty runtime constructions, CRT initialization calls and repeated initialization-guard checks | A private immediate constructor checks normalized words for the same twenty 8/16/32/64/128-bit values. Other widths keep their existing helpers. All four bound functions lose CRT initialization references and reduce their stack reservations from 48 to 32 bytes; object code and retained data sections both shrink. |
+| Remove the unread reverse keyword map | Building and destroying 157 hash-map entries and their allocations | The field has no readers; forward keyword insertion, lookups and assertions are unchanged. Keyword setup loses code and reduces its stack reservation from 21,744 to 21,120 bytes. |
+| Construct character flags from a constant template | Runtime clearing and merging passes over the character-class table | The same rules build a 1,024-byte template at C++ compile time. Setup copies it to the original member location, preserving every lookup. All 346 lexer code sections remain byte-identical. The template is smaller than the removed reverse map's minimum 2,826-byte key/view payload, before node and bucket overhead. |
+| Check the reserved namespace without an owning string | Copying a namespace, lowercasing its entire contents and destroying the copy | Length and four unsigned-byte `tolower` checks preserve the existing locale-sensitive result. The helper shrinks from 225 to 91 code bytes and its stack reservation from 80 to 32 bytes. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -45,6 +48,14 @@ semantic validation with `--file-filter literal` checks 40 normal and 32
 expected-error inputs, including runtime sources, with the DevMode compiler and
 `devmode` configuration. Semantic validation checks diagnostics and compile-time
 assertions rather than executing `#test` bodies.
+
+The lexical-initialization milestone passes 1,495 C++ tests, including every byte
+class and out-of-range values, an owning-fold namespace oracle and all sixteen
+ASCII casing combinations. The full lexer suites check 33 normal and 50
+expected-error inputs; namespace-focused semantics checks 31 and 29 respectively,
+including runtime sources. Full JIT passes 1,539 tests and full native passes
+3,904, including the expected recovery probes. This milestone uses the combined
+base `db9b65ad9c`, including concurrent compare-scan and loop-rotation changes.
 
 Rejected trials:
 

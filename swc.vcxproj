@@ -139,6 +139,7 @@
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Doc.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.GeneratedAst.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.InMemorySource.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.LangSpec.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.SymbolMap.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ModuleApiPublication.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.Failure.cpp"/>

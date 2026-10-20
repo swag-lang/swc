@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
@@ -127,6 +128,29 @@ SWC_TEST_BEGIN(SymbolMap_MissingLookupNeverReturnsConcurrentCollision)
     reader.join();
     if (!valid || symbols.findFirstSymbol(missing) || symbols.findFirstSymbol(present) != &symbol)
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(IdentifierManager_InterningHitsKeepCanonicalDebugPointers)
+{
+    constexpr uint32_t  collisionHash = 0x7A15B392;
+    auto&               identifiers   = ctx.idMgr();
+    const IdentifierRef first         = identifiers.addIdentifierOwned("intern_debug_first", collisionHash);
+    const IdentifierRef second        = identifiers.addIdentifierOwned("intern_debug_second", collisionHash);
+    const IdentifierRef firstHit      = identifiers.addIdentifier("intern_debug_first", collisionHash);
+    const IdentifierRef secondHit     = identifiers.addIdentifier("intern_debug_second", collisionHash);
+    if (first == second || firstHit != first || secondHit != second)
+        return Result::Error;
+
+    const Identifier& firstStored  = identifiers.get(first);
+    const Identifier& secondStored = identifiers.get(second);
+    if (firstStored.name != "intern_debug_first" || secondStored.name != "intern_debug_second")
+        return Result::Error;
+#if SWC_HAS_REF_DEBUG_INFO
+    if (first.dbgPtr != &firstStored || firstHit.dbgPtr != &firstStored ||
+        second.dbgPtr != &secondStored || secondHit.dbgPtr != &secondStored)
+        return Result::Error;
+#endif
 }
 SWC_TEST_END()
 

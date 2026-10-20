@@ -1093,11 +1093,6 @@ Result SymbolStruct::resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef,
     return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef, outRef);
 }
 
-Result SymbolStruct::resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const
-{
-    return const_cast<SymbolStruct*>(this)->computeDefaultValue(sema, typeRef, outRef);
-}
-
 namespace
 {
     constexpr uint32_t K_GENERIC_COMPLETION_DEPTH_MASK = 0x7FFFFFFFu;

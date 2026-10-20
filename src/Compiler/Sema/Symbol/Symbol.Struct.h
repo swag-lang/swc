@@ -137,7 +137,6 @@ public:
 
     static Result lowerTypeImplicitDefaultBytes(Sema& sema, std::span<std::byte> dstBytes, TypeRef typeRef);
     Result        resolveImplicitDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const;
-    Result        resolveImplicitMaterializedDefaultValueRef(Sema& sema, TypeRef typeRef, ConstantRef& outRef) const;
 
     SmallVector<SymbolFunction*> getSpecOp(IdentifierRef identifierRef) const;
     Result                       registerSpecOp(SymbolFunction& symFunc, SpecOpKind kind);

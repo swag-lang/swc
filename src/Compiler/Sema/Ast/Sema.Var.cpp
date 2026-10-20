@@ -1114,10 +1114,8 @@ namespace
                     implicitStructZeroInit = symStruct.hasImplicitAllZeroDefault();
 
                     if (hasGlobalStorage)
-                        SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitGlobalStoreRef));
-                    if (isConst)
-                        SWC_RESULT(symStruct.resolveImplicitMaterializedDefaultValueRef(sema, explicitTypeRef, implicitStructCstRef));
-                    else if (isLet)
+                        SWC_RESULT(symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef, implicitGlobalStoreRef));
+                    if (isConst || isLet)
                         SWC_RESULT(symStruct.resolveImplicitDefaultValueRef(sema, explicitTypeRef, implicitStructCstRef));
                 }
                 else if (hasGlobalStorage && !SymbolStruct::typeHasAllZeroImplicitDefault(sema, explicitTypeRef))

@@ -88,3 +88,58 @@ passed 316 tests through JIT and 316 natively in DevMode with `--validate-micro`
 All twelve Release benchmark checksums and instruction/memory/call/loop counts
 match the four-batch compiler after overloaded runtime bodies are paired.
 These repairs therefore preserve the target changes reported above.
+
+## Copied zero-test exits
+
+A copied raw integer followed by its exact-width zero test can send its taken
+edge straight past an equivalent join test. This changes LZ77 verification from
+13 to 9 instructions per byte, with two reads, no calls and unchanged frame,
+saved registers and spills. Eight instructions execute on each matching byte,
+instead of twelve; the mismatch clear remains conditional.
+
+Canonical setcc chains require an additional flag proof: their original
+comparison need not leave the join's zero-test flags. A reduced internal carry
+reader fails before this correction and passes after it. Raw copied zero tests
+retain equivalent flags and permit live consumers. Following the actual exit's
+control flow keeps waitWork and dynamic-view hot paths unchanged and removes one
+instruction from parkWorkObserver; it avoids the conservative prototype's extra
+tests. The eligibility adds only adjacent matching plus a flag-liveness query
+for canonical exits.
+
+All twelve checksums pass. The final comparison is in `microdiff-batch5.json`.
+Other timed benchmark kernels retain their work. Shared equality/reallocation
+paths shrink without added memory operations or calls. Allocator.configure's
+cold first-false path gains one instruction, while its early true path skips
+the remaining conditional moves; this is outside the benchmark timed regions.
+
+Validation: 1,506 in-memory C++ tests; 2,312 prefix/initial-state/mismatch cases
+through JIT and native in Release and DevMode with micro validation; all twelve
+Release checksum/code captures and final native-loop inspection. The full C++
+pre-correction run has only the expected new carry-reader failure (1,567 pass).
+Timing is not measured for this batch.
+
+## Even-divisor pre-shifts
+
+An unsigned even constant that needs a multiply-high correction now removes its
+power-of-two factor first and computes the odd-divisor multiplier with the newly
+proved leading zero bits. This is a general divisor property. Quotients use the
+shifted dividend; remainders retain the original dividend and original divisor.
+Odd divisors and already correction-free multipliers retain their expansion.
+
+Sort's checksum loop changes from 59 to 52 instructions per two input values,
+with the same two reads, no calls and unchanged saved registers, frame and spills.
+The emitted native loop uses `shr 3; mulhi 0x20c49ba5e353f7cf; shr 4` for `/1000`,
+then reconstructs the remainder with the original value. This matches the relevant
+D-LDC construction without changing the benchmark source. CSV's affected loop
+changes from 407 to 402 instructions, and Dijkstra's affected inner loop from
+182 to 174, with unchanged memory operations and calls. Allocator.maybePurge
+loses two instructions outside its loops. No other generated body or loop cost
+changes after overloaded bodies are paired; see `microdiff-batch6.json`.
+
+Validation: all 1,507 in-memory C++ tests, including width/remainder/live-flags
+eligibility; two native source tests through JIT and native with micro validation;
+512 pseudorandom inputs per width plus zero, signed boundaries, maximum unsigned
+values and divisor/multiple neighbours, compared with unoptimized dynamic division.
+All twelve Release checksum/code captures pass; the final native checksum loop
+was inspected. Analysis adds at most one width-bounded multiplier computation for
+an eligible even divisor. Timing remains unconfirmed pending the grouped campaign.

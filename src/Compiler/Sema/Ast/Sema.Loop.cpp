@@ -35,6 +35,22 @@ namespace
         return SemaHelpers::withoutLookupOverride(sema, [&]() -> T& { return SemaHelpers::registerUniqueSymbol<T>(sema, node, name); });
     }
 
+    template<typename Node>
+    __forceinline Result finishConditionalLoopChild(Sema& sema, const Node& node, const AstNodeRef& childRef)
+    {
+        if (childRef == node.nodeExprRef)
+        {
+            SemaNodeView view = sema.viewNodeTypeConstant(node.nodeExprRef);
+            SWC_RESULT(SemaCheck::castToBool(sema, view));
+        }
+
+        // The body runs zero or more times: union its borrow effects with the entry state.
+        if (childRef == node.nodeBodyRef)
+            sema.popEscapeBranch(true);
+
+        return Result::Continue;
+    }
+
     Result reportScopeStatement(Sema& sema, DiagnosticId diagId, AstNodeRef scopeRef)
     {
         const AstNode& scopeNode = sema.node(scopeRef);
@@ -394,17 +410,7 @@ Result AstForCStyleStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef
 
 Result AstForCStyleStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeExprRef)
-    {
-        SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        SWC_RESULT(SemaCheck::castToBool(sema, view));
-    }
-
-    // The body runs zero or more times: union its borrow effects with the entry state.
-    if (childRef == nodeBodyRef)
-        sema.popEscapeBranch(true);
-
-    return Result::Continue;
+    return finishConditionalLoopChild(sema, *this, childRef);
 }
 
 Result AstForStmt::semaPreNode(Sema& sema) const
@@ -729,17 +735,7 @@ Result AstInfiniteLoopStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& chil
 
 Result AstWhileStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
-    if (childRef == nodeExprRef)
-    {
-        SemaNodeView view = sema.viewNodeTypeConstant(nodeExprRef);
-        SWC_RESULT(SemaCheck::castToBool(sema, view));
-    }
-
-    // The body runs zero or more times: union its borrow effects with the entry state.
-    if (childRef == nodeBodyRef)
-        sema.popEscapeBranch(true);
-
-    return Result::Continue;
+    return finishConditionalLoopChild(sema, *this, childRef);
 }
 
 // A parallel range is expressed in non-negative indices, whatever the bounds were written as.

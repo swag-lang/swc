@@ -283,6 +283,198 @@ namespace InstructionCombine
             return false;
         }
 
+        struct AffineStage
+        {
+            MicroInstrRef multiplyRef;
+            MicroInstrRef addRef;
+            MicroInstrRef productCopy;
+            MicroReg      input;
+            MicroReg      addend;
+            uint64_t      coefficient  = 0;
+            uint64_t      addendWeight = 1;
+        };
+
+        std::optional<AffineStage> matchAffineStage(Context& ctx, MicroInstrRef ref, MicroOpBits bits)
+        {
+            const auto* inst = ctx.storage->ptr(ref);
+            const auto* add  = inst ? inst->ops(*ctx.operands) : nullptr;
+            if (!inst || inst->op != MicroInstrOpcode::OpBinaryRegReg || !add ||
+                add[2].opBits != bits || add[3].microOp != MicroOp::Add)
+                return {};
+            for (const uint32_t side : {0u, 1u})
+            {
+                auto          product = ctx.ssa->reachingDef(add[side].reg, ref);
+                MicroInstrRef copy;
+                if (!skipSingleUseIntCopy(ctx, product, copy, bits) || !product.valid() || product.isPhi ||
+                    !product.inst || product.inst->op != MicroInstrOpcode::OpBinaryRegImm ||
+                    ctx.ssa->transitiveInstructionUseCount(product.valueId, 2) != 1)
+                    continue;
+                const auto* multiply = product.inst->ops(*ctx.operands);
+                if (!multiply || multiply[1].opBits != bits || multiply[3].hasWideImmediateValue() ||
+                    (multiply[2].microOp != MicroOp::MultiplySigned && multiply[2].microOp != MicroOp::MultiplyUnsigned))
+                    continue;
+                const uint64_t coefficient = multiply[3].valueU64 & getBitsMask(bits);
+                if (coefficient <= 9 || !std::has_single_bit(coefficient - 1) ||
+                    !isLeafScaledAddend(ctx, add[1 - side].reg, ref, bits) ||
+                    !ctx.areCpuFlagsDeadAfter(product.instRef) || !ctx.areCpuFlagsDeadAfter(ref))
+                    continue;
+                return AffineStage{product.instRef, ref, copy, multiply[0].reg, add[1 - side].reg, coefficient, 1};
+            }
+            return {};
+        }
+
+        struct AffineChainEmitter
+        {
+            Context*    context;
+            MicroOpBits bits;
+
+            MicroReg term(MicroReg source, uint64_t weight, MicroInstrRef at) const
+            {
+                const MicroReg    value = MicroReg::virtualIntReg(context->nextVirtualIntRegIndex++);
+                MicroInstrOperand copy[3];
+                copy[0].reg    = value;
+                copy[1].reg    = source;
+                copy[2].opBits = bits;
+                context->emitInsertBefore(at, MicroInstrOpcode::LoadRegReg, copy);
+                if (weight != 1)
+                {
+                    MicroInstrOperand multiply[4];
+                    multiply[0].reg     = value;
+                    multiply[1].opBits  = bits;
+                    multiply[2].microOp = MicroOp::MultiplySigned;
+                    multiply[3].setImmediateValue(ApInt(weight, getNumBits(bits)));
+                    context->emitInsertBefore(at, MicroInstrOpcode::OpBinaryRegImm, multiply);
+                }
+                return value;
+            }
+
+            void add(MicroReg left, MicroReg right, MicroInstrRef at) const
+            {
+                MicroInstrOperand ops[4];
+                ops[0].reg     = left;
+                ops[1].reg     = right;
+                ops[2].opBits  = bits;
+                ops[3].microOp = MicroOp::Add;
+                context->emitInsertBefore(at, MicroInstrOpcode::OpBinaryRegReg, ops);
+            }
+        };
+
+        bool isClosedAffineRoot(Context& ctx, MicroInstrRef root, MicroOpBits bits)
+        {
+            const auto* rootOps = ctx.storage->ptr(root)->ops(*ctx.operands);
+            uint32_t    valueId = MicroSsaState::K_INVALID_VALUE;
+            if (!ctx.ssa->defValue(rootOps[0].reg, root, valueId))
+                return false;
+            for (uint32_t depth = 0; depth < MicroOptimizationLimits::InstructionCombineRegReg::K_MAX_FACTOR_COPY_DEPTH; ++depth)
+            {
+                const MicroInstrRef use  = singleDirectInstructionUse(*ctx.ssa, valueId);
+                const auto*         inst = use.isValid() ? ctx.storage->ptr(use) : nullptr;
+                const auto*         ops  = inst ? inst->ops(*ctx.operands) : nullptr;
+                if (!ops)
+                    return false;
+                if (inst->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == bits && ops[0].reg.isVirtualInt())
+                {
+                    if (!ctx.ssa->defValue(ops[0].reg, use, valueId))
+                        return false;
+                    continue;
+                }
+                if (inst->op == MicroInstrOpcode::OpBinaryRegImm)
+                    return ops[2].microOp != MicroOp::MultiplySigned && ops[2].microOp != MicroOp::MultiplyUnsigned;
+                if (inst->op == MicroInstrOpcode::OpBinaryRegReg)
+                    return ops[3].microOp != MicroOp::MultiplySigned && ops[3].microOp != MicroOp::MultiplyUnsigned;
+                return true;
+            }
+            return false;
+        }
+
+        // Keep the balanced tree within the multiplier throughput budget. The final
+        // pair remains eligible for the local parallel shift/add rule; the two
+        // larger coefficients retain one immediate multiply each.
+        bool tryBalanceAffineChain(Context& ctx, MicroInstrRef root, MicroOpBits bits)
+        {
+            using namespace MicroOptimizationLimits::InstructionCombineRegReg;
+            SmallVector<AffineStage, K_MAX_AFFINE_STAGES>       stages;
+            SmallVector<MicroInstrRef, K_MAX_AFFINE_STAGES * 4> refs;
+            MicroInstrRef                                       cursor = root;
+            MicroInstrRef                                       connector;
+            for (uint32_t depth = 0; depth < K_MAX_AFFINE_STAGES; ++depth)
+            {
+                const auto stage = matchAffineStage(ctx, cursor, bits);
+                if (!stage)
+                    break;
+                if (connector.isValid())
+                    refs.push_back(connector);
+                refs.push_back(stage->multiplyRef);
+                refs.push_back(stage->addRef);
+                if (stage->productCopy.isValid())
+                    refs.push_back(stage->productCopy);
+                stages.push_back(*stage);
+
+                auto input = ctx.ssa->reachingDef(stage->input, stage->multiplyRef);
+                connector  = MicroInstrRef::invalid();
+                if (!skipSingleUseIntCopy(ctx, input, connector, bits) || !input.valid() || input.isPhi || !input.inst ||
+                    input.inst->op != MicroInstrOpcode::OpBinaryRegReg ||
+                    ctx.ssa->transitiveInstructionUseCount(input.valueId, 2) != 1)
+                    break;
+                cursor = input.instRef;
+            }
+            if (stages.size() < K_MIN_AFFINE_STAGES ||
+                !isLeafScaledAddend(ctx, stages.back().input, stages.back().multiplyRef, bits) ||
+                !isClosedAffineRoot(ctx, root, bits))
+                return false;
+
+            uint64_t inputWeight = 1;
+            for (AffineStage& stage : stages)
+            {
+                stage.addendWeight = inputWeight;
+                if (stage.coefficient > INT32_MAX / inputWeight)
+                    return false;
+                inputWeight *= stage.coefficient;
+            }
+            if (std::has_single_bit(inputWeight - 1))
+                return false;
+
+            const AffineStage& first = stages.back();
+            auto               scan  = MicroStorage::Iterator{ctx.storage, first.multiplyRef};
+            for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && scan.current.isValid() && scan.current != root; ++step, ++scan)
+            {
+                if (isBlockBoundary(*scan) || MicroInstr::info(scan->op).flags.has(MicroInstrFlagsE::WritesMemory) || ctx.isClaimed(scan.current))
+                    return false;
+            }
+            if (scan.current != root || !ctx.claimAll(std::span<const MicroInstrRef>(refs.data(), refs.size())))
+                return false;
+
+            ctx.ensureVirtualIndices();
+            const AffineChainEmitter emitter{&ctx, bits};
+
+            const MicroReg firstTerm = emitter.term(first.input, inputWeight, first.multiplyRef);
+            MicroReg       middle    = MicroReg::invalid();
+            for (size_t index = stages.size(); index-- > 1;)
+            {
+                const AffineStage& stage = stages[index];
+                const MicroReg     term  = emitter.term(stage.addend, stage.addendWeight, stage.addRef);
+                if (index == stages.size() - 1)
+                    emitter.add(firstTerm, term, stage.addRef);
+                else if (!middle.isValid())
+                    middle = term;
+                else
+                    emitter.add(middle, term, stage.addRef);
+            }
+            const MicroReg lastTerm = emitter.term(stages.front().addend, 1, root);
+            emitter.add(middle, lastTerm, root);
+            emitter.add(firstTerm, middle, root);
+            const auto*       rootOps = ctx.storage->ptr(root)->ops(*ctx.operands);
+            MicroInstrOperand result[3];
+            result[0]        = rootOps[0];
+            result[1].reg    = firstTerm;
+            result[2].opBits = bits;
+            ctx.emitRewrite(root, MicroInstrOpcode::LoadRegReg, result, true);
+            for (const MicroInstrRef ref : refs)
+                if (ref != root)
+                    ctx.emitErase(ref);
+            return true;
+        }
+
         // x * (2^k + 1) + y = (x + y) + (x << k). The shift and
         // the first addition are independent, replacing the serial multiply
         // and addition without duplicating a product. Keep coefficients an
@@ -2035,6 +2227,23 @@ namespace InstructionCombine
     // there is no physical-register-reuse hazard. Uses transitive-instruction-use
     // counts (not raw use-list sizes) so dead loop-header phis don't hide the
     // single-consumer shape.
+    void runBalancedAffineChains(Context& ctx)
+    {
+        if (!ctx.ssa || !ctx.ssa->isValid())
+            return;
+        const auto view  = ctx.storage->view();
+        const auto begin = view.begin();
+        for (auto it = view.end(); it != begin;)
+        {
+            --it;
+            if (it->op != MicroInstrOpcode::OpBinaryRegReg || ctx.isClaimed(it.current))
+                continue;
+            const auto* ops = it->ops(*ctx.operands);
+            if (ops && ops[3].microOp == MicroOp::Add && (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
+                tryBalanceAffineChain(ctx, it.current, ops[2].opBits);
+        }
+    }
+
     bool tryFuseInPlaceUpdate(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst)
     {
         if (ctx.isClaimed(opRef) || !ctx.ssa)
@@ -2100,7 +2309,7 @@ namespace InstructionCombine
             return false;
 
         // Confine init/op/writeback to one basic block and confirm A is not read
-        // between the op and the writeback — the rewrite defines A at the op's
+        // between the op and the writeback â€” the rewrite defines A at the op's
         // position, earlier than the original writeback, so an intervening reader
         // of A would otherwise observe the new value instead of the old one.
         const auto             endIt = ctx.storage->view().end();

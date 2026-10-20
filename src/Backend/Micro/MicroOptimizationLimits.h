@@ -249,6 +249,14 @@ namespace MicroOptimizationLimits
 
     namespace InstructionCombineRegReg
     {
+        // [cost-model] Three stages beat the two-cycle serial shift/add path
+        // with one multiply latency and balanced additions; shorter chains keep it.
+        inline constexpr uint32_t K_MIN_AFFINE_STAGES = 3;
+
+        // [cost-model] Three stages retain two multiplies after local lowering.
+        // Longer connected chains keep their local expansions.
+        inline constexpr uint32_t K_MAX_AFFINE_STAGES = 3;
+
         // [analysis-budget] Bound the search for a consumer that can reuse its input register in place.
         inline constexpr uint32_t K_MAX_INPLACE_WINDOW = 32;
 

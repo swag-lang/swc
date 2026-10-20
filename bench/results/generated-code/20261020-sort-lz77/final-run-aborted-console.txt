@@ -1,0 +1,86 @@
+bin/swc.exe : 
+Au caractère Ligne:2 : 321
++ ... DE -eq 0) { bin/swc.exe --num-cores 6 tools/bench.swgs --no-build --r ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  ◆  swag        run • tools • devmode
+  ✓  module      win32 • 46 files • 233 ms
+  ✓  module      xinput • 41 files • 104 ms
+  ✓  module      core • 376 files • core.dll • 3 s 74 ms
+  ✓  workspace   std [2 roots] • 3 modules • 4 s 313 ms
+  ✓  checked     44 files • 224_955 tokens • 5 s 274 ms
+  ✓  tuned       649 functions • 6 s 72 ms
+
+[1/2] Measure
+---------------
+compiler under test : C:\Users\chris\AppData\Local\swc-agent-builds\prompt2-sort-lz77-20261020\bin\swc.exe
+campaign            : 2000 ms of samples per runtime and task (3..16), 2000 ms per build
+measurement phase   : execution only (updates only that report series)
+timed runs pinned to : 0x55401 (6 performance cores)
+preparing Swag dependencies...
+  win32/release  ready outside the clock (1 API files,  386.9 ms)
+  win32/devmode  ready outside the clock (1 API files, 1516.3 ms)
+  machine busy again (25 %), restarting the count
+machine idle at 11 %, starting
+warming up 30 s on the reference workload...
+  calibration start    sha256/C++ = 54.116 ms
+== time to first program output (hello world) ==
+  swc-jit-release      first=   98.7 ms  mem=   59.3 MB
+  swc-jit-fast-debug   first=  146.4 ms  mem=   77.2 MB
+  node20               first=   45.9 ms  mem=   15.1 MB
+  luajit2.1            first=   15.7 ms  mem=    2.4 MB
+  lua5.4               first=   14.3 ms  mem=    2.1 MB
+  python3.12           first=   43.6 ms  mem=    8.9 MB
+  php                  first=   38.0 ms  mem=    8.8 MB
+  php-jit              first=   42.6 ms  mem=   12.3 MB
+  ruby                 first=   34.3 ms  mem=   47.6 MB
+== wordfreq == (machine 38.5 ms)
+  preparing AOT programs outside the clock...
+  swag-release         run=     90.60 ms ( 9x, +113%)  rmem=   25.6 MB  check=130489
+  swag-fast-debug      run=    116.26 ms ( 7x, +120%)  rmem=   25.6 MB  check=130489
+  cpp-clang-cl         run=    100.17 ms ( 2x,  +64%)  rmem=   25.6 MB  check=130489
+  cpp-msvc             run=    115.69 ms ( 2x,  +37%)  rmem=   25.6 MB  check=130489
+  rust                 run=    107.53 ms ( 2x,  +55%)  rmem=   25.6 MB  check=130489
+  zig                  run=     91.07 ms ( 2x,  +68%)  rmem=   25.6 MB  check=130489
+  d-ldc                run=    108.63 ms ( 2x,   +2%)  rmem=   28.2 MB  check=130489
+  odin                 run=    128.85 ms ( 2x,   +6%)  rmem=   25.7 MB  check=130489
+  go                   run=    117.19 ms ( 2x,   +3%)  rmem=   37.9 MB  check=130489
+  swift                run=    121.65 ms ( 2x,  +16%)  rmem=   28.2 MB  check=130489
+  csharp-aot           run=    135.23 ms ( 2x,   +3%)  rmem=   28.5 MB  check=130489
+  csharp-jit           run=    222.83 ms ( 2x,   +4%)  rmem=   31.8 MB  check=130489
+  java-hotspot         run=    180.66 ms ( 2x,  +19%)  rmem=  624.0 MB  check=130489
+  swc-jit-release      run=     72.02 ms ( 5x, +148%)  rmem=   89.5 MB  check=130489
+  swc-jit-fast-debug   run=    121.81 ms ( 3x, +129%)  rmem=  110.8 MB  check=130489
+  node20               run=    353.51 ms ( 2x,  +70%)  rmem=  236.0 MB  check=130489
+  luajit2.1            run=    229.00 ms ( 2x,  +53%)  rmem=   72.1 MB  check=130489
+  lua5.4               run=   1514.00 ms ( 1x,   +0%)  rmem=   99.7 MB  check=130489
+  python3.12           run=   4502.44 ms ( 1x,   +0%)  rmem=   74.4 MB  check=130489
+  php                  run=   3033.97 ms ( 1x,   +0%)  rmem=  151.0 MB  check=130489
+  php-jit              run=    641.57 ms ( 2x,  +62%)  rmem=  154.6 MB  check=130489
+  ruby                 run=   5861.06 ms ( 1x,   +0%)  rmem=  430.9 MB  check=130489
+== csvagg == (machine 110.9 ms)
+  preparing AOT programs outside the clock...
+  swag-release         run=     21.22 ms (12x, +242%)  rmem=   20.4 MB  check=24828641
+  swag-fast-debug      run=     32.53 ms ( 8x, +173%)  rmem=   20.3 MB  check=24828641
+  cpp-clang-cl         run=     43.03 ms ( 2x, +128%)  rmem=   20.3 MB  check=24828641
+  cpp-msvc             run=     23.27 ms ( 2x, +120%)  rmem=   20.3 MB  check=24828641
+  rust                 run=     27.20 ms ( 2x, +110%)  rmem=   20.4 MB  check=24828641
+  zig                  run=     19.75 ms ( 2x, +133%)  rmem=   20.4 MB  check=24828641
+  d-ldc                run=     21.75 ms ( 2x, +152%)  rmem=   22.9 MB  check=24828641
+  odin                 run=     19.32 ms ( 2x, +165%)  rmem=   20.5 MB  check=24828641
+  go                   run=     28.14 ms ( 2x, +134%)  rmem=   47.7 MB  check=24828641
+  swift                run=     29.67 ms ( 2x, +158%)  rmem=   23.0 MB  check=24828641
+  csharp-aot           run=     30.64 ms ( 3x, +119%)  rmem=   35.5 MB  check=24828641
+  csharp-jit           run=     59.51 ms ( 2x,  +90%)  rmem=   39.3 MB  check=24828641
+  java-hotspot         run=    162.57 ms ( 2x,  +31%)  rmem=  628.0 MB  check=24828641
+  swc-jit-release      run=     20.72 ms ( 6x, +150%)  rmem=   89.4 MB  check=24828641
+  swc-jit-fast-debug   run=     32.90 ms ( 5x, +112%)  rmem=  111.2 MB  check=24828641
+  node20               run=     99.76 ms ( 2x, +125%)  rmem=  251.3 MB  check=24828641
+  luajit2.1            run=    113.00 ms ( 2x,  +88%)  rmem=   74.7 MB  check=24828641
+  lua5.4               run=   1522.00 ms ( 1x,   +0%)  rmem=   74.6 MB  check=24828641
+  python3.12           run=   3188.07 ms ( 1x,   +0%)  rmem=   69.0 MB  check=24828641
+  php                  run=   2009.80 ms ( 1x,   +0%)  rmem=  163.1 MB  check=24828641
+  php-jit              run=    621.81 ms ( 2x, +118%)  rmem=  166.6 MB  check=24828641
+  ruby                 run=   1477.34 ms ( 1x,   +0%)  rmem=  309.7 MB  check=24828641

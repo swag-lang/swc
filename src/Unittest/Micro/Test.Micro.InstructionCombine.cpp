@@ -6381,6 +6381,121 @@ SWC_TEST_BEGIN(InstCombine_ScaledAdd_KeepsLoopCarriedAddendChains)
 }
 SWC_TEST_END()
 
+namespace
+{
+    void emitAffineChain(MicroBuilder& builder, MicroOpBits bits, uint64_t coefficient, uint32_t stages, bool productOnRight, uint32_t mode)
+    {
+        const std::array sources{MicroReg::intReg(1), MicroReg::intReg(2), MicroReg::intReg(8), MicroReg::intReg(9), MicroReg::intReg(10)};
+        for (uint32_t i = 0; i <= stages; ++i)
+            builder.emitLoadRegReg(MicroReg::virtualIntReg(i + 1), sources[i], bits);
+        MicroReg accumulator = MicroReg::virtualIntReg(8);
+        builder.emitLoadRegReg(accumulator, MicroReg::virtualIntReg(1), bits);
+        for (uint32_t stage = 0; stage < stages; ++stage)
+        {
+            builder.emitOpBinaryRegImm(accumulator, ApInt(coefficient, getNumBits(bits)), MicroOp::MultiplySigned, bits);
+            if (mode == 2 && stage == 1)
+            {
+                builder.emitSetCondReg(MicroReg::virtualIntReg(20), MicroCond::Overflow);
+                builder.emitLoadMemReg(MicroReg::intReg(11), 24, MicroReg::virtualIntReg(20), MicroOpBits::B8);
+            }
+            if (mode == 3 && stage == 1)
+            {
+                const MicroReg partial = MicroReg::virtualIntReg(21);
+                builder.emitLoadRegReg(partial, accumulator, MicroOpBits::B16);
+                accumulator = partial;
+            }
+            const MicroReg addend = MicroReg::virtualIntReg(stage + 2);
+            if (mode == 8 && stage == 1)
+                builder.emitOpBinaryRegImm(addend, ApInt(1, getNumBits(bits)), MicroOp::Add, bits);
+            const MicroReg result = productOnRight ? addend : accumulator;
+            builder.emitOpBinaryRegReg(result, productOnRight ? accumulator : addend, MicroOp::Add, bits);
+            accumulator = result;
+            if (mode == 1 && stage == 0)
+                builder.emitLoadMemReg(MicroReg::intReg(11), 8, accumulator, bits);
+            if (mode == 4 && stage == 0)
+                builder.emitCallReg(MicroReg::intReg(11), CallConvKind::Swag);
+            if (mode == 5 && stage == 0)
+                builder.placeLabel(builder.createLabel());
+            if (mode == 6 && stage == 0 && !productOnRight)
+                builder.emitLoadRegImm(addend, ApInt(9, getNumBits(bits)), bits);
+        }
+        if (mode == 7)
+        {
+            builder.emitSetCondReg(MicroReg::virtualIntReg(20), MicroCond::Overflow);
+            builder.emitLoadMemReg(MicroReg::intReg(11), 24, MicroReg::virtualIntReg(20), MicroOpBits::B8);
+        }
+        builder.emitLoadMemReg(MicroReg::intReg(11), 0, accumulator, bits);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_AffineChain_BalancesWithoutMoreArithmetic)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool productOnRight : {false, true})
+        {
+            for (const uint32_t stages : {3u, 4u})
+            {
+                MicroBuilder builder(ctx);
+                emitAffineChain(builder, bits, 17, stages, productOnRight, 0);
+                SWC_RESULT(runInstCombinePass(builder));
+                MicroOp  operation = MicroOp::Add;
+                uint64_t immediate = 0;
+                if (!firstBinaryRegImm(builder, operation, immediate) ||
+                    operation != (stages == 3 ? MicroOp::MultiplySigned : MicroOp::ShiftLeft) ||
+                    immediate != (stages == 3 ? 4913u : 4u) ||
+                    Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != (stages == 3 ? stages : stages * 2))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsReadersFlagsAndBoundaries)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (uint32_t mode = 1; mode <= 8; ++mode)
+        {
+            MicroBuilder builder(ctx);
+            emitAffineChain(builder, bits, 33, 3, false, mode);
+            SWC_RESULT(runInstCombinePass(builder));
+            MicroOp    operation = MicroOp::Add;
+            uint64_t   immediate = 0;
+            const bool balanced  = firstBinaryRegImm(builder, operation, immediate) && operation == MicroOp::MultiplySigned && immediate == 35937;
+            if (balanced != (mode == 6))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_AffineChain_KeepsShortAndUnencodableProducts)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const uint64_t coefficient : {33ull, 65537ull})
+        {
+            const uint32_t stages = coefficient == 33 ? 2u : 3u;
+            MicroBuilder   builder(ctx);
+            emitAffineChain(builder, bits, coefficient, stages, false, 0);
+            SWC_RESULT(runInstCombinePass(builder));
+            MicroOp  operation = MicroOp::Add;
+            uint64_t immediate = 0;
+            if (!firstBinaryRegImm(builder, operation, immediate) || operation != MicroOp::ShiftLeft ||
+                immediate != std::countr_zero(coefficient - 1) ||
+                Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != stages * 2)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

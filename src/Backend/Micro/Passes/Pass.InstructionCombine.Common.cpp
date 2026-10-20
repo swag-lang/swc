@@ -401,7 +401,7 @@ namespace InstructionCombine
         return reportCalls.contains(ref.get());
     }
 
-    bool Context::claimAll(std::initializer_list<MicroInstrRef> refs, bool allowRelocated)
+    bool Context::claimAll(std::span<const MicroInstrRef> refs, bool allowRelocated)
     {
         for (const MicroInstrRef ref : refs)
             if (isClaimed(ref) || (!allowRelocated && isRelocated(ref)))

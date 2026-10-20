@@ -179,6 +179,10 @@ namespace MicroOptimizationLimits
 
     namespace InstructionCombineCompare
     {
+        // [analysis-budget] Bound compared-load reuse and its all-path memory proof;
+        // a path leaving this region keeps the reload.
+        inline constexpr uint32_t K_MAX_RELOAD_SCAN = 96;
+
         // [analysis-budget] Bound the distance over which a subtraction can replace a later comparison.
         inline constexpr uint32_t K_MAX_WINDOW = 6;
     }

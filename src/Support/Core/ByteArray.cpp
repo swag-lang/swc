@@ -5,6 +5,34 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    template<typename T>
+    T readLittleEndian(const ByteArray& bytes, const size_t offset) noexcept
+    {
+        SWC_ASSERT(bytes.containsRange(offset, sizeof(T)));
+        T value = 0;
+        for (uint32_t i = 0; i < sizeof(T); ++i)
+            value |= std::to_integer<T>(bytes[offset + i]) << (i * 8);
+        return value;
+    }
+
+    template<typename T>
+    __forceinline void appendLittleEndian(ByteArray::Storage& bytes, const T value)
+    {
+        for (uint32_t i = 0; i < sizeof(T); ++i)
+            bytes.push_back(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
+    }
+
+    template<typename T>
+    void writeLittleEndian(ByteArray& bytes, const size_t offset, const T value) noexcept
+    {
+        SWC_ASSERT(bytes.containsRange(offset, sizeof(T)));
+        for (uint32_t i = 0; i < sizeof(T); ++i)
+            bytes[offset + i] = static_cast<std::byte>((value >> (i * 8)) & 0xFF);
+    }
+}
+
 ByteArray::ByteArray(const std::initializer_list<std::byte> bytes) :
     storage_(bytes)
 {
@@ -217,30 +245,17 @@ bool ByteArray::containsRange(const size_t offset, const size_t byteCount) const
 
 uint16_t ByteArray::readLe16(const size_t offset) const noexcept
 {
-    SWC_ASSERT(containsRange(offset, sizeof(uint16_t)));
-    return static_cast<uint16_t>(std::to_integer<uint16_t>((*this)[offset + 0]) | (std::to_integer<uint16_t>((*this)[offset + 1]) << 8));
+    return readLittleEndian<uint16_t>(*this, offset);
 }
 
 uint32_t ByteArray::readLe32(const size_t offset) const noexcept
 {
-    SWC_ASSERT(containsRange(offset, sizeof(uint32_t)));
-
-    uint32_t value = 0;
-    for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
-        value |= std::to_integer<uint32_t>((*this)[offset + i]) << (i * 8);
-
-    return value;
+    return readLittleEndian<uint32_t>(*this, offset);
 }
 
 uint64_t ByteArray::readLe64(const size_t offset) const noexcept
 {
-    SWC_ASSERT(containsRange(offset, sizeof(uint64_t)));
-
-    uint64_t value = 0;
-    for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
-        value |= std::to_integer<uint64_t>((*this)[offset + i]) << (i * 8);
-
-    return value;
+    return readLittleEndian<uint64_t>(*this, offset);
 }
 
 uint32_t ByteArray::readBe32(const size_t offset) const noexcept
@@ -291,14 +306,12 @@ void ByteArray::appendLe16(const uint16_t value)
 
 void ByteArray::appendLe32(const uint32_t value)
 {
-    for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
-        pushBack(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
+    appendLittleEndian(storage_, value);
 }
 
 void ByteArray::appendLe64(const uint64_t value)
 {
-    for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
-        pushBack(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
+    appendLittleEndian(storage_, value);
 }
 
 void ByteArray::appendBe32(const uint32_t value)
@@ -329,23 +342,17 @@ void ByteArray::appendUtf16LeZ(const std::u16string_view text)
 
 void ByteArray::writeLe16(const size_t offset, const uint16_t value) noexcept
 {
-    SWC_ASSERT(containsRange(offset, sizeof(uint16_t)));
-    (*this)[offset + 0] = static_cast<std::byte>(value & 0xFF);
-    (*this)[offset + 1] = static_cast<std::byte>((value >> 8) & 0xFF);
+    writeLittleEndian(*this, offset, value);
 }
 
 void ByteArray::writeLe32(const size_t offset, const uint32_t value) noexcept
 {
-    SWC_ASSERT(containsRange(offset, sizeof(uint32_t)));
-    for (uint32_t i = 0; i < sizeof(uint32_t); ++i)
-        (*this)[offset + i] = static_cast<std::byte>((value >> (i * 8)) & 0xFF);
+    writeLittleEndian(*this, offset, value);
 }
 
 void ByteArray::writeLe64(const size_t offset, const uint64_t value) noexcept
 {
-    SWC_ASSERT(containsRange(offset, sizeof(uint64_t)));
-    for (uint32_t i = 0; i < sizeof(uint64_t); ++i)
-        (*this)[offset + i] = static_cast<std::byte>((value >> (i * 8)) & 0xFF);
+    writeLittleEndian(*this, offset, value);
 }
 
 void ByteArray::align(const size_t alignment, const std::byte pad)

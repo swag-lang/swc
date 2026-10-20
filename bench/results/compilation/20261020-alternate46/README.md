@@ -29,8 +29,10 @@ All builds and tests have fresh machine-load admission and six-worker bounds.
 | 4 | `d4bdb472c` Reuse validated shift amounts | Reuse the shift computed during power-of-two validation for multiply and unsigned division, removing a repeated integer-word walk. The main pass retains its stack reservation and call count, with a 56-byte smaller extent. | DevMode build; 1,518 default C++ tests; both selected native `pow2` inputs pass. |
 | 6 | `8158f7804` Remove the materialized-default wrapper | The duplicate method and its declaration are removed; global, const and let declarations use the identical existing resolver. Equivalent const/let caller branches are merged. | DevMode and Release builds; 1,519 default C++ tests; six native defaults tests with each compiler executable. |
 | 4 | `24cf22b87` Reuse resolved identifier metadata | Use the identifier already resolved for name comparison as the debug pointer, removing a second storage lookup on each hit. The DevMode helper loses one call and 16 stack bytes, with an 11-byte smaller extent. | DevMode build; 1,520 default C++ tests, including forced hash collisions and canonical debug pointers. |
-| 6 | Shared anonymous aggregate query | An inline `Symbol` query replaces the documentation and module-API copies. Existing kind/null/AST checks, dependencies and object layout are preserved. | DevMode and Release builds; 1,581 full C++ tests including Doc/ModuleApi fixtures; 3,917 native tests and expected recovery checks. |
-| 4 | Current constant-lookup batch | Remove the repeated `getConstantRef` query used only by an assertion identical to the following reference-validity assertion. The getter loses two calls and 115 code bytes with the same stack reservation. | DevMode build; 1,520 default C++ tests; eight normal and thirteen expected-diagnostic constant inputs checked. |
+| 6 | `278b8fd8b` Shared anonymous aggregate query | An inline `Symbol` query replaces the documentation and module-API copies. Existing kind/null/AST checks, dependencies and object layout are preserved. | DevMode and Release builds; 1,581 full C++ tests including Doc/ModuleApi fixtures; 3,917 native tests and expected recovery checks. |
+| 4 | `fcb0bfe4e` Resolve constant payloads once | Remove the repeated `getConstantRef` query used only by an assertion identical to the following reference-validity assertion. The getter loses two calls and 115 code bytes with the same stack reservation. | DevMode build; 1,520 default C++ tests; eight normal and thirteen expected-diagnostic constant inputs checked. |
+| 6 | `e585f3c7e` Share conditional-loop child completion | The condition cast and escape-branch merge for C-style `for` and `while` use one file-local template. Both required callbacks retain exactly identical disassembly. | DevMode build; 1,520 default C++ tests; eight native `for_c` and fourteen native `while` tests. |
+| 4 | Current substitute-pointer batch | Reuse the last AST node already read by the substitute walk for the debug pointer. The walk loses three calls and eight stack bytes, with a 127-byte smaller extent. | DevMode build; 1,521 default C++ tests, including stripped metadata through zero-, one- and two-step substitution chains. |
 
 Counts belong to each batch's tested revision. A conflict-free merge does not
 claim that every suite was rerun on the combined revision. The full C++/native
@@ -51,6 +53,8 @@ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter pow2 -
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter struct_safe_defaults --num-cores 6 --rebuild
 bin/swc.exe --num-cores 6 tools/unittests.swgs native --file-filter struct_safe_defaults --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm sema --file-filter const --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter for_c --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter while --num-cores 6 --rebuild
 ```
 
 The full native tool exits zero. Its deliberate panic and hardware-exception

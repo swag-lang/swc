@@ -29,6 +29,8 @@ namespace
     public:
         using NodePayload::addPayloadFlags;
         using NodePayload::ast;
+        using NodePayload::getSubstituteRef;
+        using NodePayload::setSubstitute;
         using NodePayload::setSymbolList;
 
         static void addValueFlag(AstNode& node) { addPayloadFlags(node, NodePayloadFlags::Value); }
@@ -68,6 +70,33 @@ SWC_TEST_BEGIN(NodePayload_ConcurrentUpdatesPreserveDisjointState)
 
     flagWriter.join();
     if (!valid.load(std::memory_order_relaxed))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(NodePayload_SubstituteChainsRestoreCanonicalDebugPointers)
+{
+    SourceView            sourceView(SourceViewRef{0}, nullptr);
+    NodePayloadTestAccess payload;
+    payload.ast().setSourceView(sourceView);
+    const AstNodeRef first      = payload.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+    const AstNodeRef middle     = payload.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+    const auto [last, lastNode] = payload.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid());
+
+    // Strip debug metadata so every read must recover the owning AST's address.
+    payload.setSubstitute(AstNodeRef{first.get()}, AstNodeRef{middle.get()});
+    payload.setSubstitute(AstNodeRef{middle.get()}, AstNodeRef{last.get()});
+    for (const uint32_t raw : {first.get(), middle.get(), last.get()})
+    {
+        const AstNodeRef resolved = payload.getSubstituteRef(AstNodeRef{raw});
+        if (resolved != last)
+            return Result::Error;
+#if SWC_HAS_REF_DEBUG_INFO
+        if (resolved.dbgPtr != lastNode)
+            return Result::Error;
+#endif
+    }
+    if (payload.getSubstituteRef(AstNodeRef::invalid()).isValid())
         return Result::Error;
 }
 SWC_TEST_END()

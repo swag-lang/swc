@@ -1469,7 +1469,7 @@ private func verifyFunctionCache(context: *Context, options: *Options, workspace
     try File.writeAllText(sourcePath.toString(), functionCacheSource(2, 2))
     let editedOutput = try context.captureCompiler(command)
     Console.print(editedOutput.toString())
-    if not Utf8.contains(editedOutput.toString(), "function-cache-value=2") or not Utf8.contains(editedOutput.toString(), "reused function")
+    if not Utf8.contains(editedOutput.toString(), "function-cache-value=2") or not Utf8.contains(editedOutput.toString(), "unchanged function")
     {
         Console.println("A body edit did not reuse an unchanged function from the function cache")
         return 1
@@ -1509,7 +1509,7 @@ private func verifyFunctionCache(context: *Context, options: *Options, workspace
     Console.print(coldOutput.toString())
     let coldIndex = try File.readAllBytes(cacheIndex.toString())
     if not Utf8.contains(coldOutput.toString(), "function-cache-value=1") or
-       Utf8.contains(coldOutput.toString(), "reused function") or
+       Utf8.contains(coldOutput.toString(), "unchanged function") or
        coldIndex.toSlice() != optimizedIndex.toSlice()
     {
         Console.println("A cold build disagreed with the function's updated Optimize identity.")
@@ -1540,9 +1540,9 @@ private func verifyFunctionCache(context: *Context, options: *Options, workspace
     options.appendExtra(&rebuild)
     let rebuiltOutput = try context.captureCompiler(rebuild)
     Console.print(rebuiltOutput.toString())
-    if Utf8.contains(rebuiltOutput.toString(), "reused function")
+    if Utf8.contains(rebuiltOutput.toString(), "unchanged function") or Utf8.contains(rebuiltOutput.toString(), "reused function")
     {
-        Console.println("A rebuild reused the function cache")
+        Console.println("A rebuild reused previously compiled functions")
         return 1
     }
 

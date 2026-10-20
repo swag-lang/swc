@@ -1707,11 +1707,17 @@ Result NativeBackendBuilder::prepare()
             {
                 std::vector<Utf8> stats;
                 stats.push_back(ScopedTimedLog::formatStatCount(ctx_, functionInfos.size(), "function"));
-                const size_t cacheHits = std::ranges::count_if(functionInfos, [](const NativeFunctionInfo& info) {
-                    return info.cacheHit || info.symbol->hasFlag(SymbolFlagsE::MachineCodeReused);
+                // Two sources, reported apart so a reader can tell them apart: machine code the
+                // shared runtime and imported API archive supplied, and functions this output's
+                // previous build already produced from the same input.
+                const size_t reused = std::ranges::count_if(functionInfos, [](const NativeFunctionInfo& info) {
+                    return info.symbol->hasFlag(SymbolFlagsE::MachineCodeReused);
                 });
-                if (cacheHits)
-                    stats.push_back(ScopedTimedLog::formatStatCount(ctx_, cacheHits, "reused function"));
+                const size_t unchanged = std::ranges::count_if(functionInfos, &NativeFunctionInfo::cacheHit);
+                if (reused)
+                    stats.push_back(ScopedTimedLog::formatStatCount(ctx_, reused, "reused function"));
+                if (unchanged)
+                    stats.push_back(ScopedTimedLog::formatStatCount(ctx_, unchanged, "unchanged function"));
                 microStage->setStat(ScopedTimedLog::joinStatItems(ctx_, stats));
             }
             return Result::Continue;

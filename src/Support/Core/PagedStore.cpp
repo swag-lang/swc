@@ -311,16 +311,17 @@ SpanRef PagedStore::pushSpanContiguousRaw(const void* data, uint32_t elemSize, u
 
     SWC_ASSERT(spanFootprintBytes(0, hdrSize, elemAlign, bytes) <= pageSizeValue_);
 
-    Page*    page     = curPage_ ? curPage_ : newPage();
-    uint32_t pageUsed = page->used.load(std::memory_order_relaxed);
-    if (spanFootprintBytes(pageUsed, hdrSize, elemAlign, bytes) > pageSizeValue_ - pageUsed)
+    Page*    page       = curPage_ ? curPage_ : newPage();
+    uint32_t pageUsed   = page->used.load(std::memory_order_relaxed);
+    uint32_t dataOffset = spanDataOffset(pageUsed, hdrSize, elemAlign);
+    if (dataOffset + bytes - pageUsed > pageSizeValue_ - pageUsed)
     {
-        page     = newPage();
-        pageUsed = 0;
+        page       = newPage();
+        pageUsed   = 0;
+        dataOffset = spanDataOffset(pageUsed, hdrSize, elemAlign);
     }
 
-    const uint32_t dataOffset = spanDataOffset(pageUsed, hdrSize, elemAlign);
-    const uint32_t newUsed    = dataOffset + bytes;
+    const uint32_t newUsed = dataOffset + bytes;
     SWC_ASSERT(newUsed <= pageSizeValue_);
 
     const SpanRef hdrRef{makeRef(pageSizeValue_, curPageIndex_, pageUsed)};

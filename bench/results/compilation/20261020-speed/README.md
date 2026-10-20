@@ -24,6 +24,7 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Validate intrinsic-name spelling at C++ compile time | A length check and five-byte prefix comparison for each intrinsic-name query | The definition table is statically constrained to `Swag.` names or dot-prefixed member intrinsics. A one-byte member check preserves the empty names for `.count` and `.buffer`; all other accepted names lose the same five bytes. The helper shrinks from 98 to 85 code bytes without a frame; its registry initializer shrinks from 981 to 935 bytes with the same 120-byte frame. |
 | Reuse each keyword validation lookup | A second identical hash-table probe after each of 157 keyword insertions | One pointer feeds the existing presence and value assertions. A compile-time assertion-mode branch removes the entire check when assertions are disabled. Insertion order, slots and capacity do not change. Setup code shrinks from 105,131 to 89,385 bytes and its stack reservation from 21,120 to 16,032 bytes; the object loses code and retained data overall. |
 | Check field uniqueness through insertion's result | A separate membership query before each struct-field insertion | The existing `emplace` reports duplicates and still supplies the same field ordinal. The assertion remains active; using-field flag publication, map insertion and field publication keep their order for valid input. `addField` shrinks from 426 to 236 code bytes with the same 80-byte reservation. |
+| Reuse a contiguous span's aligned offset | Recomputing the aligned data position after a successful capacity check | The capacity comparison uses the same unsigned footprint arithmetic. A new page recomputes the offset from zero; existing-page writes reuse it. Header, payload and publication order are unchanged. The builder shrinks from 429 to 426 code bytes with the same 56-byte reservation. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -117,6 +118,12 @@ case, including packed fields, explicit alignment and overlapping field offsets.
 The two affected name-lookup wrappers retain or shrink their reservations while
 C++ inlining removes an intermediate helper call; their source logic is unchanged.
 
+The contiguous-span batch on combined base `a0e8332edc` passes 1,505 C++ tests,
+including raw-span payload/alignment checks for existing and fresh pages and
+zero alignment. Overload-focused semantics checks 34 normal and 31 expected-error
+inputs, including runtime sources, and the native optimizer selection passes
+316 tests, covering the concurrent optimizer changes imported at that base.
+
 Rejected trials:
 
 - Returning a separately constructed all-ones reachability vector duplicated
@@ -158,3 +165,6 @@ Rejected trials:
   reserved 16 more stack bytes. Even the unsigned-only change crossed an
   inlining threshold and grew signed formatting from 2,093 to 2,454 bytes. All
   formatting changes and their trial-only oracle are restored.
+- Peeling the first paged-span write removed its repeated first-reference test,
+  but grew `pushSpanRaw` from 330 to 347 code bytes and its reservation from 104
+  to 120 bytes. The original chunk loop is restored.

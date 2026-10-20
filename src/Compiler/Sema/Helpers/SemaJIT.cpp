@@ -1075,13 +1075,13 @@ namespace
 
     std::byte* reserveJitFoldStorage(SmallVector<std::byte>& storage, const uint64_t size)
     {
+        // Every caller supplies a freshly emplaced buffer; resize zeroes its bytes.
 #if SWC_DEV_MODE
         storage.resize(size + K_JIT_FOLD_REDZONE);
         std::memset(storage.data() + size, K_JIT_FOLD_REDZONE_BYTE, K_JIT_FOLD_REDZONE);
 #else
         storage.resize(size);
 #endif
-        std::memset(storage.data(), 0, size);
         return storage.data();
     }
 

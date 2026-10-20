@@ -3580,7 +3580,7 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadAcrossScans_ProvesEveryPath)
 {
     for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
     {
-        for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u})
+        for (const uint32_t mode : {0u, 1u, 2u, 3u, 4u, 5u, 6u, 7u, 8u, 9u, 10u, 11u, 12u, 13u})
         {
             constexpr MicroReg base  = MicroReg::virtualIntReg(1);
             constexpr MicroReg index = MicroReg::virtualIntReg(2);
@@ -3628,14 +3628,25 @@ SWC_TEST_BEGIN(InstCombine_ComparedIndexedReloadAcrossScans_ProvesEveryPath)
             builder.emitOpBinaryRegImm(other, ApInt(1, getNumBits(bits)), MicroOp::Subtract, bits);
             builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, second);
             builder.placeLabel(reload);
-            builder.emitLoadAmcRegMem(value, mode == 6 ? MicroOpBits::B16 : bits, base, index, 8, mode == 5 ? 8 : 0, MicroOpBits::B64);
+            MicroReg loadBase = base;
+            if (mode >= 10)
+            {
+                loadBase = MicroReg::virtualIntReg(5);
+                builder.emitLoadRegReg(loadBase, mode == 11 ? index : base, mode == 12 ? MicroOpBits::B32 : MicroOpBits::B64);
+                if (mode == 13)
+                    builder.emitOpBinaryRegImm(loadBase, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+            }
+            builder.emitLoadAmcRegMem(value, mode == 6 ? MicroOpBits::B16 : bits, loadBase, index, 8, mode == 5 ? 8 : 0, MicroOpBits::B64);
             builder.emitLoadMemReg(base, 16, value, bits);
             builder.emitRet();
 
             SWC_RESULT(runInstCombinePass(builder));
-            const bool reused = mode == 0 || mode == 7;
+            const bool reused = mode == 0 || mode == 7 || mode == 10;
             if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != (reused ? 0u : 1u) ||
                 Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadAmcRegMem) != 1)
+                return Result::Error;
+            const auto* load = Backend::Unittest::findFirstOpcode(builder, MicroInstrOpcode::LoadAmcRegMem);
+            if (reused && (!load || load->ops(builder.operands())[1].reg != base))
                 return Result::Error;
         }
     }
@@ -6174,6 +6185,125 @@ SWC_TEST_BEGIN(InstCombine_ImmutableParameterReadInLoopStaysALoad)
         const bool kept = mode == 0;
         if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != (kept ? 1u : 0u) ||
             Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegMem) != (kept ? 0u : 1u))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    void emitScaledAdd(MicroBuilder& builder, MicroOpBits bits, uint64_t coefficient, bool productOnRight, uint32_t mode)
+    {
+        constexpr MicroReg x       = MicroReg::virtualIntReg(1);
+        constexpr MicroReg y       = MicroReg::virtualIntReg(2);
+        constexpr MicroReg product = MicroReg::virtualIntReg(3);
+        constexpr MicroReg copied  = MicroReg::virtualIntReg(4);
+        constexpr MicroReg flags   = MicroReg::virtualIntReg(5);
+        builder.emitLoadRegReg(x, MicroReg::intReg(1), bits);
+        builder.emitLoadRegReg(y, MicroReg::intReg(2), bits);
+        builder.emitLoadRegReg(product, x, bits);
+        builder.emitOpBinaryRegImm(product, ApInt(coefficient, getNumBits(bits)), MicroOp::MultiplySigned, bits);
+        if (mode == 1)
+            builder.emitLoadMemReg(MicroReg::intReg(3), 8, product, bits);
+        if (mode == 2)
+        {
+            builder.emitSetCondReg(flags, MicroCond::Overflow);
+            builder.emitLoadMemReg(MicroReg::intReg(3), 16, flags, MicroOpBits::B8);
+        }
+        builder.emitLoadRegReg(copied, product, mode == 4 ? MicroOpBits::B16 : bits);
+        if (mode == 5)
+            builder.emitCallReg(MicroReg::intReg(3), CallConvKind::Swag);
+        if (mode == 7)
+            builder.emitLoadRegImm(product, ApInt(9, getNumBits(bits)), bits);
+        const MicroReg result = productOnRight ? y : copied;
+        builder.emitOpBinaryRegReg(result, productOnRight ? copied : y, MicroOp::Add, bits);
+        if (mode == 3)
+        {
+            builder.emitSetCondReg(flags, MicroCond::Overflow);
+            builder.emitLoadMemReg(MicroReg::intReg(3), 24, flags, MicroOpBits::B8);
+        }
+        builder.emitLoadMemReg(MicroReg::intReg(3), 0, result, bits);
+        if (mode == 6)
+            builder.emitLoadMemReg(MicroReg::intReg(3), 32, y, bits);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(InstCombine_ScaledAdd_ExposesIndependentShiftAndSum)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const uint64_t coefficient : {17ull, 33ull, 257ull, 65537ull})
+        {
+            for (const bool productOnRight : {false, true})
+            {
+                MicroBuilder builder(ctx);
+                emitScaledAdd(builder, bits, coefficient, productOnRight, 0);
+                SWC_RESULT(runInstCombinePass(builder));
+                MicroOp  operation = MicroOp::Add;
+                uint64_t immediate = 0;
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1 ||
+                    !firstBinaryRegImm(builder, operation, immediate) || operation != MicroOp::ShiftLeft || immediate != std::countr_zero(coefficient - 1) ||
+                    Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 2)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ScaledAdd_KeepsExtraReadersFlagsAndBoundaries)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const uint32_t mode : {1u, 2u, 3u, 4u, 5u})
+        {
+            for (const bool productOnRight : {false, true})
+            {
+                MicroBuilder builder(ctx);
+                emitScaledAdd(builder, bits, 33, productOnRight, mode);
+                SWC_RESULT(runInstCombinePass(builder));
+                MicroOp  operation = MicroOp::Add;
+                uint64_t immediate = 0;
+                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegImm) != 1 ||
+                    !firstBinaryRegImm(builder, operation, immediate) || operation != MicroOp::MultiplySigned || immediate != 33)
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ScaledAdd_KeepsLiveAddendAndChangedCopySource)
+{
+    for (const uint32_t mode : {6u, 7u})
+    {
+        MicroBuilder builder(ctx);
+        emitScaledAdd(builder, MicroOpBits::B64, 33, false, mode);
+        SWC_RESULT(runInstCombinePass(builder));
+        MicroOp  operation = MicroOp::Add;
+        uint64_t immediate = 0;
+        if (!firstBinaryRegImm(builder, operation, immediate) || operation != MicroOp::MultiplySigned || immediate != 33)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(InstCombine_ScaledAdd_KeepsOtherCoefficients)
+{
+    for (const uint64_t coefficient : {9ull, 35ull})
+    {
+        MicroBuilder builder(ctx);
+        emitScaledAdd(builder, MicroOpBits::B64, coefficient, false, 0);
+        SWC_RESULT(runInstCombinePass(builder));
+        MicroOp  operation = MicroOp::Add;
+        uint64_t immediate = 0;
+        if ((firstBinaryRegImm(builder, operation, immediate) && operation == MicroOp::ShiftLeft) ||
+            Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 1)
             return Result::Error;
     }
     return Result::Continue;

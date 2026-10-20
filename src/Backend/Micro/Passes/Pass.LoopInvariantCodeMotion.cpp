@@ -476,9 +476,10 @@ namespace
             //
             //     inner = &[fixed + induction]
             //       or: inner = fixed; inner += induction
+            //       or: inner = induction; inner -= fixed
             //     value = [base + inner]
             //   ->
-            //     rooted = &[base + fixed]   // current loop preheader
+            //     rooted = &[base + fixed]   // or base - fixed, in the preheader
             //     value  = [rooted + induction]
             //
             // x86 cannot encode the first form without the per-iteration LEA.
@@ -516,11 +517,12 @@ namespace
                 const MicroInstr* nested   = storage.ptr(instrRefs[lastSlot]);
                 if (!nested)
                     continue;
-                const MicroInstrOperand* nestedOps  = nested->ops(operands);
-                MicroReg                 innerBase  = MicroReg::invalid();
-                MicroReg                 innerIndex = MicroReg::invalid();
-                int64_t                  innerAdd   = 0;
-                bool                     copyAddSum = false;
+                const MicroInstrOperand* nestedOps      = nested->ops(operands);
+                MicroReg                 innerBase      = MicroReg::invalid();
+                MicroReg                 innerIndex     = MicroReg::invalid();
+                int64_t                  innerAdd       = 0;
+                bool                     copyArithmetic = false;
+                bool                     subtractFixed  = false;
                 if (nested->op == MicroInstrOpcode::LoadAddrAmcRegMem && definition->count == 1)
                 {
                     if (!nestedOps || nestedOps[0].reg != nestedReg || nestedOps[3].opBits != MicroOpBits::B64 ||
@@ -533,7 +535,7 @@ namespace
                 else if (nested->op == MicroInstrOpcode::OpBinaryRegReg && definition->count == 2 && lastSlot > 0 &&
                          inBody[lastSlot - 1] && nestedOps && nestedOps[0].reg == nestedReg &&
                          nestedOps[1].reg != nestedReg && nestedOps[2].opBits == MicroOpBits::B64 &&
-                         nestedOps[3].microOp == MicroOp::Add &&
+                         (nestedOps[3].microOp == MicroOp::Add || nestedOps[3].microOp == MicroOp::Subtract) &&
                          MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, instrRefs[lastSlot], context.builder))
                 {
                     const MicroInstr*        copy    = storage.ptr(instrRefs[lastSlot - 1]);
@@ -541,21 +543,43 @@ namespace
                     if (!copy || copy->op != MicroInstrOpcode::LoadRegReg || !copyOps ||
                         copyOps[0].reg != nestedReg || copyOps[1].reg == nestedReg || copyOps[2].opBits != MicroOpBits::B64)
                         continue;
-                    innerBase  = copyOps[1].reg;
-                    innerIndex = nestedOps[1].reg;
-                    copyAddSum = true;
+                    innerBase      = copyOps[1].reg;
+                    innerIndex     = nestedOps[1].reg;
+                    copyArithmetic = true;
+                    subtractFixed  = nestedOps[3].microOp == MicroOp::Subtract;
                 }
                 else
                     continue;
 
                 const bool baseVaries  = defsInLoop.contains(innerBase.packed);
                 const bool indexVaries = defsInLoop.contains(innerIndex.packed);
-                if (baseVaries == indexVaries)
+                if (baseVaries == indexVaries || (subtractFixed && (!baseVaries || !preheaderFlagsDead)))
                     continue;
+                if (subtractFixed)
+                {
+                    // Two hoisted instructions replace two on every executed
+                    // body trip. Do not add work to a skipped body or retain
+                    // the new base through iterations that never use it.
+                    bool runsOnEveryPath = true;
+                    for (const uint32_t tail : loop->tails)
+                        runsOnEveryPath &= dom.dominates(lastSlot, tail);
+                    for (const uint32_t at : bodyIndices)
+                    {
+                        if (dom.dominates(lastSlot, at))
+                            continue;
+                        for (const uint32_t successor : cfg.successors(at))
+                        {
+                            if (!inBody[successor])
+                                runsOnEveryPath = false;
+                        }
+                    }
+                    if (!runsOnEveryPath)
+                        continue;
+                }
 
                 // Between the sum and its reader, only the read of the value the
                 // reader compares against.
-                if (copyAddSum && lastSlot + 1 != i)
+                if (copyArithmetic && lastSlot + 1 != i)
                 {
                     const MicroInstr* gap = lastSlot + 2 == i && inBody[lastSlot + 1] ? storage.ptr(instrRefs[lastSlot + 1]) : nullptr;
                     if (!gap || !opcodeReadsMemory(gap->op) || (inst->op != MicroInstrOpcode::CmpAmcReg && inst->op != MicroInstrOpcode::CmpRegAmc))
@@ -591,7 +615,7 @@ namespace
                 rewritten.append(instOps, inst->numOperands);
                 rewritten[outerLayout.baseIdx].reg     = rooted;
                 rewritten[outerLayout.indexIdx].reg    = induction;
-                rewritten[outerLayout.addIdx].valueU64 = 0;
+                rewritten[outerLayout.addIdx].valueU64 = subtractFixed ? static_cast<uint64_t>(add) : 0;
 
                 MicroInstrOperand rootedOps[8] = {};
                 rootedOps[0].reg               = rooted;
@@ -601,7 +625,22 @@ namespace
                 rootedOps[4].opBits            = MicroOpBits::B64;
                 rootedOps[5].valueU64          = 1;
                 rootedOps[6].valueU64          = static_cast<uint64_t>(add);
-                storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::LoadAddrAmcRegMem, rootedOps);
+                if (subtractFixed)
+                {
+                    MicroInstrOperand copy[3];
+                    copy[0].reg    = rooted;
+                    copy[1].reg    = outerBase;
+                    copy[2].opBits = MicroOpBits::B64;
+                    storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::LoadRegReg, copy);
+                    MicroInstrOperand subtract[4];
+                    subtract[0].reg     = rooted;
+                    subtract[1].reg     = fixed;
+                    subtract[2].opBits  = MicroOpBits::B64;
+                    subtract[3].microOp = MicroOp::Subtract;
+                    storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::OpBinaryRegReg, subtract);
+                }
+                else
+                    storage.insertDerivedBefore(operands, headerRef, MicroInstrOpcode::LoadAddrAmcRegMem, rootedOps);
                 storage.insertDerivedBefore(operands, ref, rewrittenOp, {rewritten.data(), rewritten.size()});
                 storage.erase(ref);
 

@@ -223,6 +223,90 @@ namespace InstructionCombine
             return true;
         }
 
+        // x * (2^k + 1) + y = (x + y) + (x << k). The shift and
+        // the first addition are independent, replacing the serial multiply
+        // and addition without duplicating a product. Keep coefficients an
+        // address scale already handles and any observed arithmetic flags.
+        bool tryParallelizeScaledAdd(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
+        {
+            if (!ctx.ssa || ops[3].microOp != MicroOp::Add || !ops[1].reg.isVirtualInt())
+                return false;
+            const MicroOpBits bits = ops[2].opBits;
+            if (bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+                return false;
+            for (const uint32_t side : {0u, 1u})
+            {
+                auto          product = ctx.ssa->reachingDef(ops[side].reg, ref);
+                MicroInstrRef copyRef;
+                if (!skipSingleUseIntCopy(ctx, product, copyRef, bits) || !product.valid() || product.isPhi ||
+                    !product.inst || product.inst->op != MicroInstrOpcode::OpBinaryRegImm ||
+                    ctx.ssa->transitiveInstructionUseCount(product.valueId, 2) != 1)
+                    continue;
+                const auto* multiply = product.inst->ops(*ctx.operands);
+                if (!multiply || multiply[1].opBits != bits || multiply[3].hasWideImmediateValue() ||
+                    (multiply[2].microOp != MicroOp::MultiplySigned && multiply[2].microOp != MicroOp::MultiplyUnsigned))
+                    continue;
+                const uint64_t coefficient = multiply[3].valueU64 & getBitsMask(bits);
+                const uint64_t scale       = coefficient - 1;
+                if (scale <= 8 || !std::has_single_bit(scale))
+                    continue;
+                auto scan = MicroStorage::Iterator{ctx.storage, product.instRef};
+                for (uint32_t step = 0; step < K_MAX_INPLACE_WINDOW && scan.current.isValid() && scan.current != ref; ++step, ++scan)
+                {
+                    if (isBlockBoundary(*scan))
+                        break;
+                }
+                if (scan.current != ref || !ctx.areCpuFlagsDeadAfter(product.instRef) || !ctx.areCpuFlagsDeadAfter(ref))
+                    continue;
+                if (side == 0)
+                {
+                    const auto addend = ctx.ssa->reachingDef(ops[1].reg, ref);
+                    if (!addend.valid() || singleDirectInstructionUse(*ctx.ssa, addend.valueId) != ref ||
+                        (copyRef.isValid() && !ctx.ssa->sameValueAt(multiply[0].reg, copyRef, ref)))
+                        continue;
+                }
+                if (!ctx.claimAll({ref, product.instRef, copyRef.isValid() ? copyRef : ref}))
+                    continue;
+
+                MicroInstrOperand add[4];
+                std::copy_n(ops, 4, add);
+                MicroInstrOperand shift[4];
+                shift[0].reg      = ops[side].reg;
+                shift[1].opBits   = bits;
+                shift[2].microOp  = MicroOp::ShiftLeft;
+                shift[3].valueU64 = std::countr_zero(scale);
+                if (side == 0)
+                {
+                    // Consume the unscaled input before its shift. Delay
+                    // its copy until after that last read, so allocation can
+                    // keep the shift in the input's own register.
+                    add[0] = ops[1];
+                    add[1] = multiply[0];
+                    ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegReg, add);
+                    if (copyRef.isValid())
+                    {
+                        MicroInstrOperand copy[3];
+                        copy[0]        = ops[0];
+                        copy[1]        = multiply[0];
+                        copy[2].opBits = bits;
+                        ctx.emitInsertBefore(ref, MicroInstrOpcode::LoadRegReg, copy);
+                        ctx.emitErase(copyRef);
+                    }
+                    ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, shift);
+                }
+                else
+                {
+                    // The product has no other reader, so its register can
+                    // hold the shifted input after the first addition.
+                    ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegReg, add);
+                    ctx.emitInsertBefore(ref, MicroInstrOpcode::OpBinaryRegImm, shift);
+                }
+                ctx.emitErase(product.instRef);
+                return true;
+            }
+            return false;
+        }
+
         // Multiplication by the same small constant can follow an add/subtract.
         // Keep each input read at its original address-computation position.
         bool tryFactorScaledInputs(Context& ctx, MicroInstrRef ref, const MicroInstrOperand* ops)
@@ -2101,7 +2185,7 @@ namespace InstructionCombine
         if (tryDoubleInput(ctx, ref, ops))
             return true;
         if (ops[0].reg != ops[1].reg)
-            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldNegatedLhs(ctx, ref, ops) || tryFoldVariableRotate(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldBitwiseDifference(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedBitwiseComplement(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryReduceAddedScaledDifference(ctx, ref, ops) || trySelectLowBitProduct(ctx, ref, ops) || tryFactorSingleProduct(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
+            return tryFoldNegatedRhs(ctx, ref, ops) || tryFoldNegatedLhs(ctx, ref, ops) || tryFoldVariableRotate(ctx, ref, ops) || tryFoldRotate(ctx, ref, ops) || tryFactorCommonShifts(ctx, ref, ops) || tryParallelizeScaledAdd(ctx, ref, ops) || tryFactorScaledInputs(ctx, ref, ops) || tryCombineBitMasks(ctx, ref, ops) || tryCancelBitwiseComplements(ctx, ref, ops) || tryMoveXorComplement(ctx, ref, ops) || tryFoldBitwiseSelect(ctx, ref, ops) || tryFoldBitwiseDifference(ctx, ref, ops) || tryFoldAddressDifference(ctx, ref, ops) || tryFoldRepeatedBitwiseComplement(ctx, ref, ops) || tryFoldRepeatedInput(ctx, ref, ops) || tryReduceAddedScaledDifference(ctx, ref, ops) || trySelectLowBitProduct(ctx, ref, ops) || tryFactorSingleProduct(ctx, ref, ops) || tryFactorCommonInputs(ctx, ref, ops);
 
         const MicroReg    dst    = ops[0].reg;
         const MicroOpBits opBits = ops[2].opBits;

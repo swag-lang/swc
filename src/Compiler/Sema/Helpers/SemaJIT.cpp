@@ -1130,6 +1130,72 @@ namespace
 #endif
     }
 
+    __forceinline Result constCallArgumentConstantRef(Sema& sema, ConstantRef& outCstRef, const AstNodeRef& callRef, const ResolvedCallArgument& resolvedArg)
+    {
+        const AstNodeRef argRef = resolvedArg.argRef;
+        if (argRef.isValid())
+        {
+            const SemaNodeView argConstView = sema.viewConstant(argRef);
+            if (!argConstView.cstRef().isValid())
+                return Result::Continue;
+
+            outCstRef = argConstView.cstRef();
+            return Result::Continue;
+        }
+
+        return defaultArgumentConstantRef(sema, outCstRef, callRef, resolvedArg);
+    }
+
+    __forceinline bool appendConstCallArgument(Sema& sema, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs, const TypeRef& argValueTypeRef, const ConstantRef& argCstRef)
+    {
+        TaskContext&         ctx              = sema.ctx();
+        const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);
+        const ConstantValue& argConstantValue = sema.cstMgr().get(argCstRef);
+        if (argValueType.isReferenceOrNonNullValuePointer() &&
+            !argConstantValue.isNull() &&
+            !argConstantValue.isValuePointer() &&
+            !argConstantValue.isBlockPointer())
+        {
+            const TypeRef pointeeTypeRef = argValueType.payloadTypeRef();
+            if (!pointeeTypeRef.isValid())
+                return false;
+
+            const TypeInfo& pointeeType     = sema.typeMgr().get(pointeeTypeRef);
+            const uint64_t  pointeeByteSize = pointeeType.sizeOf(ctx);
+            const uint64_t  argStorageSize  = argValueType.sizeOf(ctx);
+            if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
+                return false;
+            if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
+                return false;
+            if (!constantPayloadFitsByteSize(argConstantValue, pointeeByteSize))
+                return false;
+
+            auto& pointeeStorage = outArgStorage.emplace_back();
+            reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
+            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeType) == Result::Continue);
+
+            pushJitPointerArgument(outArgStorage, outJitArgs, argValueTypeRef, argStorageSize, pointeeStorage.data());
+            return true;
+        }
+
+        const uint64_t argStorageSize = argValueType.sizeOf(ctx);
+        if (!argStorageSize)
+            return false;
+
+        SWC_ASSERT(argStorageSize <= std::numeric_limits<uint32_t>::max());
+        if (argStorageSize > std::numeric_limits<uint32_t>::max())
+            return false;
+        if (!constantPayloadFitsByteSize(argConstantValue, argStorageSize))
+            return false;
+
+        auto& argStorage = outArgStorage.emplace_back();
+        reserveJitFoldStorage(argStorage, argStorageSize);
+        SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueType) == Result::Continue);
+
+        pushJitArgument(outJitArgs, argValueTypeRef, argStorage.data());
+        return true;
+    }
+
     Result buildConstCallArguments(Sema& sema, bool& outBuilt, const SymbolFunction& calledFn, AstNodeRef callRef, std::span<const ResolvedCallArgument> resolvedArgs, SmallVector<SmallVector<std::byte>>& outArgStorage, SmallVector<JITArgument>& outJitArgs)
     {
         outBuilt = false;
@@ -1155,70 +1221,12 @@ namespace
             if (!argValueTypeRef.isValid())
                 return Result::Continue;
 
-            ConstantRef      argCstRef = ConstantRef::invalid();
-            const AstNodeRef argRef    = resolvedArg.argRef;
-            if (argRef.isValid())
-            {
-                const SemaNodeView argConstView = sema.viewConstant(argRef);
-                if (!argConstView.cstRef().isValid())
-                    return Result::Continue;
-
-                argCstRef = argConstView.cstRef();
-            }
-            else
-            {
-                SWC_RESULT(defaultArgumentConstantRef(sema, argCstRef, callRef, resolvedArg));
-                if (!argCstRef.isValid())
-                    return Result::Continue;
-            }
-
+            ConstantRef argCstRef = ConstantRef::invalid();
+            SWC_RESULT(constCallArgumentConstantRef(sema, argCstRef, callRef, resolvedArg));
             if (!argCstRef.isValid())
                 return Result::Continue;
-
-            const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);
-            const ConstantValue& argConstantValue = sema.cstMgr().get(argCstRef);
-            if (argValueType.isReferenceOrNonNullValuePointer() &&
-                !argConstantValue.isNull() &&
-                !argConstantValue.isValuePointer() &&
-                !argConstantValue.isBlockPointer())
-            {
-                const TypeRef pointeeTypeRef = argValueType.payloadTypeRef();
-                if (!pointeeTypeRef.isValid())
-                    return Result::Continue;
-
-                const TypeInfo& pointeeType     = sema.typeMgr().get(pointeeTypeRef);
-                const uint64_t  pointeeByteSize = pointeeType.sizeOf(ctx);
-                const uint64_t  argStorageSize  = argValueType.sizeOf(ctx);
-                if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
-                    return Result::Continue;
-                if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
-                    return Result::Continue;
-                if (!constantPayloadFitsByteSize(argConstantValue, pointeeByteSize))
-                    return Result::Continue;
-
-                auto& pointeeStorage = outArgStorage.emplace_back();
-                reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeType) == Result::Continue);
-
-                pushJitPointerArgument(outArgStorage, outJitArgs, argValueTypeRef, argStorageSize, pointeeStorage.data());
-                continue;
-            }
-
-            const uint64_t argStorageSize = argValueType.sizeOf(ctx);
-            if (!argStorageSize)
+            if (!appendConstCallArgument(sema, outArgStorage, outJitArgs, argValueTypeRef, argCstRef))
                 return Result::Continue;
-
-            SWC_ASSERT(argStorageSize <= std::numeric_limits<uint32_t>::max());
-            if (argStorageSize > std::numeric_limits<uint32_t>::max())
-                return Result::Continue;
-            if (!constantPayloadFitsByteSize(argConstantValue, argStorageSize))
-                return Result::Continue;
-
-            auto& argStorage = outArgStorage.emplace_back();
-            reserveJitFoldStorage(argStorage, argStorageSize);
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueType) == Result::Continue);
-
-            pushJitArgument(outJitArgs, argValueTypeRef, argStorage.data());
         }
 
         outBuilt = true;
@@ -1308,63 +1316,12 @@ namespace
                 continue;
             }
 
-            ConstantRef      argCstRef = ConstantRef::invalid();
-            const AstNodeRef argRef    = resolvedArg.argRef;
-            if (argRef.isValid())
-            {
-                const SemaNodeView argConstView = sema.viewConstant(argRef);
-                if (!argConstView.cstRef().isValid())
-                    return Result::Continue;
-
-                argCstRef = argConstView.cstRef();
-            }
-            else
-            {
-                SWC_RESULT(defaultArgumentConstantRef(sema, argCstRef, callRef, resolvedArg));
-                if (!argCstRef.isValid())
-                    return Result::Continue;
-            }
-
-            const TypeInfo&      argValueType     = sema.typeMgr().get(argValueTypeRef);
-            const ConstantValue& argConstantValue = sema.cstMgr().get(argCstRef);
-            if (argValueType.isReferenceOrNonNullValuePointer() &&
-                !argConstantValue.isNull() &&
-                !argConstantValue.isValuePointer() &&
-                !argConstantValue.isBlockPointer())
-            {
-                const TypeRef pointeeTypeRef = argValueType.payloadTypeRef();
-                if (!pointeeTypeRef.isValid())
-                    return Result::Continue;
-
-                const TypeInfo& pointeeType     = sema.typeMgr().get(pointeeTypeRef);
-                const uint64_t  pointeeByteSize = pointeeType.sizeOf(ctx);
-                const uint64_t  argStorageSize  = argValueType.sizeOf(ctx);
-                if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
-                    return Result::Continue;
-                if (pointeeByteSize > std::numeric_limits<uint32_t>::max())
-                    return Result::Continue;
-                if (!constantPayloadFitsByteSize(argConstantValue, pointeeByteSize))
-                    return Result::Continue;
-
-                auto& pointeeStorage = outArgStorage.emplace_back();
-                reserveJitFoldStorage(pointeeStorage, pointeeByteSize);
-                SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{pointeeStorage.data(), pointeeByteSize}, argCstRef, pointeeType) == Result::Continue);
-
-                pushJitPointerArgument(outArgStorage, outJitArgs, argValueTypeRef, argStorageSize, pointeeStorage.data());
-                continue;
-            }
-
-            const uint64_t argStorageSize = argValueType.sizeOf(ctx);
-            if (!argStorageSize || argStorageSize > std::numeric_limits<uint32_t>::max())
+            ConstantRef argCstRef = ConstantRef::invalid();
+            SWC_RESULT(constCallArgumentConstantRef(sema, argCstRef, callRef, resolvedArg));
+            if (!argCstRef.isValid())
                 return Result::Continue;
-            if (!constantPayloadFitsByteSize(argConstantValue, argStorageSize))
+            if (!appendConstCallArgument(sema, outArgStorage, outJitArgs, argValueTypeRef, argCstRef))
                 return Result::Continue;
-
-            auto& argStorage = outArgStorage.emplace_back();
-            reserveJitFoldStorage(argStorage, argStorageSize);
-            SWC_INTERNAL_CHECK(ConstantLower::lowerToBytes(sema, std::span{argStorage.data(), argStorageSize}, argCstRef, argValueType) == Result::Continue);
-
-            pushJitArgument(outJitArgs, argValueTypeRef, argStorage.data());
         }
 
         outBuilt = outReceiverStorage != nullptr;

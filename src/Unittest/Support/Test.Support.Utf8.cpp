@@ -32,6 +32,35 @@ SWC_TEST_BEGIN(Utf8_MoveOperationsTransferStorage)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Utf8_ReplacementPreservesQuotesLoopsAndAliasedViews)
+{
+    Utf8 quoted = "old 'old' \"old\" old";
+    quoted.replace_loop("old", "new");
+    if (quoted != "new 'old' \"old\" new")
+        return Result::Error;
+
+    Utf8 repeated = "a        b";
+    repeated.replace_loop("  ", " ", true);
+    if (repeated != "a b")
+        return Result::Error;
+
+    Utf8 unchanged(128, 'x');
+    unchanged.replace_loop("absent", "replacement", true);
+    if (unchanged != Utf8(128, 'x'))
+        return Result::Error;
+
+    Utf8 aliased = "old new old";
+    aliased.replace_loop(aliased.subView(0, 3), aliased.subView(4, 3));
+    if (aliased != "new new new")
+        return Result::Error;
+
+    Utf8 binary("a\0a", 3);
+    binary.replace_loop("a", "long");
+    if (binary != Utf8("long\0long", 9))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Utf8_EditDistanceKeepsTranspositionsAndSuggestionOrder)
 {
     struct TestCase

@@ -268,7 +268,6 @@ bool NodePayload::hasConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 
 const ConstantValue& NodePayload::getConstant(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
-    SWC_ASSERT(hasConstant(ctx, nodeRef));
     const ConstantRef cstRef = getConstantRef(ctx, nodeRef);
     SWC_ASSERT(cstRef.isValid());
     return ctx.cstMgr().get(cstRef);

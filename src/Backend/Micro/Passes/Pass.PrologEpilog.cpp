@@ -670,61 +670,71 @@ void MicroPrologEpilogPass::buildSavedRegsPlan(MicroPassContext& context, const 
     bool     framePointerNamed = false;
     uint64_t classifiedRegs    = 0;
 
+    const auto classify = [&](MicroReg reg, MicroInstrRegMode mode) {
+        if (reg.isVirtual())
+            return;
+
+        // Merely naming the frame pointer requests its setup. Every
+        // other register matters only at its first definition.
+        if (reg.isInt() && reg == conv.framePointer)
+        {
+            if (conv.isIntPersistentReg(reg))
+            {
+                useFramePointer_  = true;
+                framePointerNamed = true;
+            }
+
+            return;
+        }
+
+        if (mode != MicroInstrRegMode::Def && mode != MicroInstrRegMode::UseDef)
+            return;
+
+        const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+        if (bit < MicroPhysLiveness::K_INVALID_BIT)
+        {
+            const uint64_t mask = 1ull << bit;
+            if (classifiedRegs & mask)
+                return;
+
+            classifiedRegs |= mask;
+        }
+
+        if (reg.isInt())
+        {
+            if (!conv.isIntPersistentReg(reg))
+                return;
+
+            if (!containsPushedReg(reg))
+                pushedRegs_.push_back(reg);
+        }
+        else if (reg.isFloat())
+        {
+            if (!conv.isFloatPersistentReg(reg))
+                return;
+
+            if (!containsSavedSlot(reg))
+            {
+                SavedRegSlot savedSlot;
+                savedSlot.reg      = reg;
+                savedSlot.slotBits = MicroOpBits::B128;
+                savedRegSlots_.push_back(savedSlot);
+            }
+        }
+    };
+
     const auto& storeOps = *context.operands;
     for (const auto& inst : context.instructions->view())
     {
-        visitRegOperands(inst, storeOps, [&](MicroReg reg, MicroInstrRegMode mode) {
-            if (reg.isVirtual())
-                return;
+        visitRegOperands(inst, storeOps, classify);
 
-            // Merely naming the frame pointer requests its setup. Every
-            // other register matters only at its first definition.
-            if (reg.isInt() && reg == conv.framePointer)
-            {
-                if (conv.isIntPersistentReg(reg))
-                {
-                    useFramePointer_  = true;
-                    framePointerNamed = true;
-                }
-
-                return;
-            }
-
-            if (mode != MicroInstrRegMode::Def && mode != MicroInstrRegMode::UseDef)
-                return;
-
-            const uint32_t bit = MicroPhysLiveness::bitOf(reg);
-            if (bit < MicroPhysLiveness::K_INVALID_BIT)
-            {
-                const uint64_t mask = 1ull << bit;
-                if (classifiedRegs & mask)
-                    return;
-
-                classifiedRegs |= mask;
-            }
-
-            if (reg.isInt())
-            {
-                if (!conv.isIntPersistentReg(reg))
-                    return;
-
-                if (!containsPushedReg(reg))
-                    pushedRegs_.push_back(reg);
-            }
-            else if (reg.isFloat())
-            {
-                if (!conv.isFloatPersistentReg(reg))
-                    return;
-
-                if (!containsSavedSlot(reg))
-                {
-                    SavedRegSlot savedSlot;
-                    savedSlot.reg      = reg;
-                    savedSlot.slotBits = MicroOpBits::B128;
-                    savedRegSlots_.push_back(savedSlot);
-                }
-            }
-        });
+        // The encoder may write a register no operand names: VPGATHERDD destroys its
+        // XMM15 mask. A nonvolatile one among them is still owed to the caller.
+        if (context.encoder && MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::EncoderRegUseDef))
+        {
+            for (const MicroReg reg : inst.collectUseDef(storeOps, context.encoder).defs)
+                classify(reg, MicroInstrRegMode::Def);
+        }
     }
 
     // The frame register is only owed to the unwinder by a function whose stack pointer moves

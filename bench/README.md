@@ -27,6 +27,28 @@ from this checkout's `bin/` through `SWAG_PATH`.
 | `py -3 bench/driver.py --tasks chacha --quick --swc-cores 6` | cap every Swag compiler started by the sweep at six workers |
 | `py -3 bench/compile.py --against "C:\path\outside-checkout\baseline\swc.exe" --swc-cores 6 --admit` | A/B the edit-build loop between two compilers, order alternated; records nothing |
 | `py -3 bench/compile.py --swc-cores 6 --admit` | measure with an explicit worker cap and shared-machine admission before every compiler invocation; records nothing |
+| `py -3 bench/parsecache.py --scratch "C:\path\outside-checkout" --reps 9` | compare source parsing with warm binary parse archives on runtime, core, pixel and gui consumers; writes isolated logs and raw samples outside the checkout |
+
+The parse-cache comparison requires the checkout-local Release compiler and matching devmode
+standard-library artifacts. Prepare those before measuring:
+
+```powershell
+bin\swc.exe build --workspace bin/std --workspace-module gui -bc devmode --num-cores 6
+```
+
+The comparison uses six workers,
+checks machine admission before every invocation, alternates cache-disabled and cache-warm order,
+and creates a fresh native output directory for every sample. It executes both pilot artifacts
+for each consumer outside the timer and checks their output. Use `--kind sema` to measure the
+front end separately, or `--kind syntax` to isolate source loading and parsing against binary
+loading. Raw JSON records population separately from reuse and reports median
+paired wall and CPU ratios; disagreement between those ratios needs more measurement.
+
+The current archives contain tokens, source positions and private syntax trees. Compilations
+still load the source to validate the key and run a fresh semantic pass and backend. The DevMode
+compiler bypasses disk archives because its debug references contain process addresses.
+Archives are experimental and enabled explicitly with `--parse-cache`; the comparison passes
+that option for warm samples and `--no-parse-cache` for source-parsing controls.
 
 Most of a campaign is spent on the controls, not on swc: the NativeAOT, Swift and Zig
 builds, and CPython and Lua on the longer tasks. Long executions keep their pilot sample;

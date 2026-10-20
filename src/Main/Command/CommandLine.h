@@ -183,6 +183,7 @@ struct CommandLine
     bool silent                  = false;
     bool cleanCache              = false;
     bool rebuild                 = false;
+    bool parseCache              = false;
     bool dryRun                  = false;
     bool showConfig              = false;
     bool dumpFormatConfig        = false;

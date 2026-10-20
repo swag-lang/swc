@@ -340,7 +340,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.006 — Reuse analyzed prelude state
 
-- Evidence: each fresh compiler process analyzes the unchanged runtime prelude before compiling a module or script.
+- Evidence: each fresh compiler process analyzes the unchanged runtime prelude before compiling
+  a module or script. Experimental parse archives preserve tokens and syntax in private trees;
+  original source loading and runtime semantic/bootstrap work still repeat for each instance.
 - Next: serialize the prelude through the ordinary module-interface mechanism and include source, compiler, target, and relevant configuration in its cache key.
 - Done when: warm module builds and script launches skip prelude lexing, parsing, and semantic analysis, while fresh and reused paths produce identical diagnostics and artifacts.
 - Related: compiler.core.001, compiler.core.004, compiler.core.016.
@@ -358,9 +360,12 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   Repeated closure application remains a local lead: a per-consumer capture set improves
   a 1,000-file shared dependency, but a standard eight-root graph was about 2.7% slower
   overall in Release despite neutral setup timing.
+  Experimental `ParseCache` images also retain original API source loading and reconstruct
+  the consumer's resolved symbols and types through a fresh semantic pass.
 - Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
   work separately from consumer sources on a small consumer, a large module graph, and a
-  diamond dependency. Compare cold and warm imports with both compiler executables. Use
+  diamond dependency, including consumers of the core, pixel and gui API closures. Compare
+  cold and warm imports with both compiler executables. Use
   that baseline to prototype a versioned binary interface for resolved non-generic
   declarations; retain the source import path for unsupported declarations while expanding
   coverage. Before widening lazy imported methods, close body materialization across cyclic

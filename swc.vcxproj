@@ -481,6 +481,8 @@
         <ClCompile Include="src\Compiler\Parser\Parser\Parser.Type.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Parser\Parser.Var.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp"/>
+        <ClCompile Include="src\Compiler\Parser\Parser\ParseCache.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ParseCache.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">Create</PrecompiledHeader>
@@ -816,6 +818,7 @@
         <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Struct.inc"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstVisit.h"/>
         <ClInclude Include="src\Compiler\Parser\Parser\Parser.h"/>
+        <ClInclude Include="src\Compiler\Parser\Parser\ParseCache.h"/>
         <ClInclude Include="src\Compiler\Parser\Parser\ParserJob.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Support\Report\Assert.h"/>

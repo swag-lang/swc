@@ -40,6 +40,7 @@ PagedStore::PagedStore(PagedStore&& other) noexcept :
     pageShift_(other.pageShift_),
     pageMask_(other.pageMask_),
     proximityPages_(other.proximityPages_),
+    zeroedPages_(other.zeroedPages_),
     curPage_(other.curPage_),
     curPageIndex_(other.curPageIndex_),
     lastPtr_(other.lastPtr_)
@@ -81,6 +82,7 @@ PagedStore& PagedStore::operator=(PagedStore&& other) noexcept
         std::swap(pageShift_, other.pageShift_);
         std::swap(pageMask_, other.pageMask_);
         std::swap(proximityPages_, other.proximityPages_);
+        std::swap(zeroedPages_, other.zeroedPages_);
         std::swap(curPage_, other.curPage_);
         std::swap(curPageIndex_, other.curPageIndex_);
         std::swap(lastPtr_, other.lastPtr_);
@@ -193,6 +195,27 @@ void PagedStore::restoreFromPreserveOffsets(std::span<const std::byte> src) cons
         SWC_ASSERT(srcOffset + used <= src.size_bytes());
         std::memcpy((*pages)[i]->bytes(), src.data() + srcOffset, used);
     }
+}
+
+void PagedStore::loadImage(const std::span<const std::byte> src)
+{
+    SWC_ASSERT(pagesStorage_.empty());
+    SWC_ASSERT(src.size() < INVALID_REF);
+    for (size_t offset = 0; offset < src.size(); offset += pageSizeValue_)
+    {
+        auto&      page = pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_, proximityPages_));
+        const auto used = static_cast<uint32_t>(std::min<size_t>(pageSizeValue_, src.size() - offset));
+        std::memcpy(page->bytes(), src.data() + offset, used);
+        page->used.store(used, std::memory_order_relaxed);
+    }
+
+    totalBytes_ = src.size();
+    if (!pagesStorage_.empty())
+    {
+        curPage_      = pagesStorage_.back().get();
+        curPageIndex_ = static_cast<uint32_t>(pagesStorage_.size() - 1);
+    }
+    publishPages();
 }
 
 std::pair<SpanRef, uint32_t> PagedStore::writeChunkRaw(const uint8_t* src, uint32_t elemSize, uint32_t elemAlign, uint32_t remaining, uint32_t totalElems)
@@ -497,7 +520,9 @@ PagedStore::Page::~Page()
 PagedStore::Page* PagedStore::newPage()
 {
     pagesStorage_.emplace_back(std::make_unique<Page>(pageSizeValue_, proximityPages_));
-    curPage_      = pagesStorage_.back().get();
+    curPage_ = pagesStorage_.back().get();
+    if (zeroedPages_)
+        std::memset(curPage_->bytes(), 0, pageSizeValue_);
     curPageIndex_ = static_cast<uint32_t>(pagesStorage_.size() - 1);
     publishPages();
     return curPage_;

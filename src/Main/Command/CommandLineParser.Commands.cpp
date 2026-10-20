@@ -80,7 +80,7 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Input, "sema service doc test build run smoke", "--import-api-dir", nullptr,
         &cmdLine_->importApiDirs,
         "Add a read-only dependency root containing generated public API files (.swg/.swgs) under <module>/<backend>/<build-cfg>/<arch>");
-    add(HelpOptionGroup::Input, "sema service doc test build run smoke", "--import-api-file", nullptr,
+    add(HelpOptionGroup::Input, "syntax sema service doc test build run smoke", "--import-api-file", nullptr,
         &cmdLine_->importApiFiles,
         "Add one generated public API file (.swg/.swgs) to the compilation input");
     add(HelpOptionGroup::Input, "sema service doc build run smoke", "--export-api-dir", nullptr,
@@ -179,7 +179,7 @@ void CommandLineParser::registerCommands()
 
     add(HelpOptionGroup::Input, "clean", "--cache", nullptr,
         &cmdLine_->cleanCache,
-        "Remove the dependency copies the compiler keeps outside any workspace, one per build of a dependency a script imported");
+        "Remove dependency copies and binary parse caches kept outside workspaces");
     add(HelpOptionGroup::Input, "clean", "--cache-days", nullptr,
         &cmdLine_->cleanCacheDays,
         "Restrict --cache to the copies no run has used for at least this many days");
@@ -286,6 +286,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "sema test build run smoke", "--optimizer-stats", nullptr,
         &cmdLine_->optimizerStats,
         "Report per-pass time, analysis work, and observed optimizer budgets when compilation ends; bypass native function reuse");
+    add(HelpOptionGroup::Development, "all", "--parse-cache", nullptr,
+        &cmdLine_->parseCache,
+        "Reuse experimental binary parse archives for runtime and imported API sources");
 
 #if SWC_DEV_MODE
     add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds",

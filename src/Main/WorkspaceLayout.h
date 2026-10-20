@@ -64,6 +64,11 @@ namespace WorkspaceLayout
         return (cacheRoot() / "dep").lexically_normal();
     }
 
+    inline fs::path parseCacheRoot()
+    {
+        return (cacheRoot() / "parse").lexically_normal();
+    }
+
     // Where an entry is assembled before it is renamed into place, which is the moment it starts
     // to exist for everyone else.
     inline fs::path dependencyCacheStagingRoot()

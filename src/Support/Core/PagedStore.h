@@ -34,6 +34,9 @@ public:
     // Os::allocProximityMemory). Each page remembers its own origin, so
     // enabling this on a store that already has pages is fine.
     void enableProximityPages() noexcept { proximityPages_ = true; }
+    // Persisted parse images include allocation padding. Clear pages at allocation
+    // so those gaps never publish bytes left behind by another allocation.
+    void enableZeroedPages() noexcept { zeroedPages_ = true; }
 
     uint32_t size() const noexcept;
     uint32_t extentSize() const noexcept;
@@ -44,6 +47,9 @@ public:
     void copyTo(std::span<std::byte> dst) const;
     void copyToPreserveOffsets(std::span<std::byte> dst) const;
     void restoreFromPreserveOffsets(std::span<const std::byte> src) const;
+    // Load an immutable image into an empty store. Offsets remain valid and later
+    // allocations append after the image, including its last partial page.
+    void loadImage(std::span<const std::byte> src);
 
     uint8_t* pushU8(uint8_t v) { return pushPod(v); }
     uint8_t* pushU16(uint16_t v) { return pushPod(v); }
@@ -249,6 +255,7 @@ private:
     uint32_t pageShift_      = std::countr_zero(K_DEFAULT_PAGE_SIZE);
     uint32_t pageMask_       = K_DEFAULT_PAGE_SIZE - 1;
     bool     proximityPages_ = false;
+    bool     zeroedPages_    = false;
 
     Page*    curPage_      = nullptr;
     uint32_t curPageIndex_ = 0;

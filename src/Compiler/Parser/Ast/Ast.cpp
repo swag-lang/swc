@@ -4,6 +4,131 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    // The image carries an index of live objects as well as allocation pages. Node
+    // constructors establish atomic-member lifetimes before the tree is published.
+    constexpr size_t K_PARSE_NODE_WORDS = 2;
+
+    template<typename T>
+    bool loadParseNode(PagedStore& store, const std::span<const uint32_t> record, SourceView& view)
+    {
+        static_assert(std::is_trivially_destructible_v<T>);
+        const uint32_t local = Ast::refLocal(record[0]);
+        if (!store.containsRef(local, sizeof(T)))
+            return false;
+
+        T value;
+        std::memcpy(&value, store.ptr<std::byte>(local), sizeof(T));
+        if (static_cast<uint32_t>(value.id()) != record[1] || value.payloadState() != 0 || value.maySideTable(0xFF))
+            return false;
+        if (value.tokRef().isValid() && value.tokRef().get() >= view.numTokens())
+            return false;
+
+        auto* node = ::new (store.ptr<std::byte>(local)) T(value);
+        node->setCodeRef({view.ref(), TokenRef(value.tokRef().get())});
+#if SWC_HAS_REF_DEBUG_INFO
+        node->dbgMyRef        = AstNodeRef(record[0]);
+        node->dbgMyRef.dbgPtr = node;
+#endif
+        return true;
+    }
+
+    void appendParseNode(std::vector<uint32_t>& out, const AstNodeRef ref, const AstNode& node)
+    {
+        out.push_back(ref.get());
+        out.push_back(static_cast<uint32_t>(node.id()));
+    }
+}
+
+void Ast::copyParseImage(std::vector<std::byte>& out, std::vector<uint32_t>& nodes)
+{
+    SWC_ASSERT(hasParsedNodeBoundary_);
+    size_t size = sizeof(uint32_t) * SHARD_COUNT;
+    for (const auto& shard : shards_)
+        size += shard.store.extentSize();
+    out.resize(size);
+    size_t offset = sizeof(uint32_t) * SHARD_COUNT;
+    for (uint32_t i = 0; i < SHARD_COUNT; ++i)
+    {
+        const uint32_t bytes = shards_[i].store.extentSize();
+        std::memcpy(out.data() + i * sizeof(uint32_t), &bytes, sizeof(bytes));
+        shards_[i].store.copyToPreserveOffsets(std::span(out).subspan(offset, bytes));
+        offset += bytes;
+    }
+
+    nodes.clear();
+    appendParseNode(nodes, root_, node(root_));
+    // Semantic traversal deliberately excludes syntax such as #code binders.
+    // Record allocations instead so every parsed node gets its source view remapped.
+    for (auto& shard : shards_)
+    {
+        for (const AstNodeRef ref : shard.parseNodes)
+        {
+            if (ref != root_)
+                appendParseNode(nodes, ref, node(ref));
+        }
+        std::vector<AstNodeRef>().swap(shard.parseNodes);
+    }
+}
+
+bool Ast::loadParseImage(const std::span<const std::byte> image, const std::span<const uint32_t> nodes, const uint32_t root)
+{
+    SWC_ASSERT(root_.isInvalid());
+    for (const auto& shard : shards_)
+    {
+        if (shard.store.size())
+            return false;
+    }
+    if (image.size() < sizeof(uint32_t) * SHARD_COUNT || nodes.empty() || nodes.size() % K_PARSE_NODE_WORDS)
+        return false;
+
+    std::optional<PagedStore> stores[SHARD_COUNT];
+    size_t                    offset = sizeof(uint32_t) * SHARD_COUNT;
+    for (uint32_t i = 0; i < SHARD_COUNT; ++i)
+    {
+        uint32_t bytes;
+        std::memcpy(&bytes, image.data() + i * sizeof(uint32_t), sizeof(bytes));
+        if (bytes > image.size() - offset || bytes >= LOCAL_MASK)
+            return false;
+        if (bytes)
+            stores[i].emplace().loadImage(image.subspan(offset, bytes));
+        offset += bytes;
+    }
+    if (offset != image.size() || nodes.front() != root || nodes[1] != static_cast<uint32_t>(AstNodeId::File))
+        return false;
+
+    // Validation precedes publication, so a rejected image leaves a fresh parser target.
+    for (size_t index = 0; index < nodes.size(); index += K_PARSE_NODE_WORDS)
+    {
+        const auto record = nodes.subspan(index, K_PARSE_NODE_WORDS);
+        auto&      shard  = stores[refShard(record[0])];
+        if (!shard)
+            return false;
+        auto& store  = *shard;
+        bool  loaded = false;
+        switch (static_cast<AstNodeId>(record[1]))
+        {
+#define SWC_NODE_DEF(__enum, __flags) \
+    case AstNodeId::__enum: loaded = loadParseNode<AstTypeOf<AstNodeId::__enum>::type>(store, record, srcView()); break;
+#include "Compiler/Parser/Ast/AstNodes.Def.inc"
+#undef SWC_NODE_DEF
+            default: return false;
+        }
+        if (!loaded)
+            return false;
+    }
+
+    for (uint32_t i = 0; i < SHARD_COUNT; ++i)
+    {
+        if (stores[i])
+            shards_[i].store = std::move(*stores[i]);
+    }
+    root_ = AstNodeRef(root);
+    captureParsedNodeBoundary();
+    return true;
+}
+
 Ast::NodeSpanView Ast::nodeRefs(SpanRef spanRef) const
 {
     if (spanRef.isInvalid())
@@ -60,6 +185,8 @@ bool Ast::hasSpan(SpanRef spanRef) const
 
 void Ast::captureParsedNodeBoundary()
 {
+    if (captureParseNodes_)
+        captureParseNodes_ = false;
     // The parser fills a fresh Ast, and each shard's store only ever grows at its end: every
     // node of the tree lies below the shard's extent here, and every node made afterwards (a
     // generated parse, a clone, a sema expansion) lands at or above it. The extents draw that

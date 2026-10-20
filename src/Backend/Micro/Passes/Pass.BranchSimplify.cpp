@@ -1616,6 +1616,37 @@ namespace
         return true;
     }
 
+    struct CopiedZeroTest
+    {
+        MicroReg    reg;
+        MicroOpBits bits;
+        bool        nonzero;
+    };
+
+    // The copied value need not be a canonical boolean. Its zero test is
+    // identical at this width, including the flags left on the taken edge.
+    std::optional<CopiedZeroTest> matchCopiedZeroTest(MicroStorage& storage, MicroOperandStorage& operands, MicroInstrRef jumpRef, MicroCond condition)
+    {
+        const bool nonzero = condition == MicroCond::NotEqual || condition == MicroCond::NotZero;
+        if (!nonzero && condition != MicroCond::Equal && condition != MicroCond::Zero)
+            return {};
+        auto previous = MicroStorage::Iterator{&storage, jumpRef};
+        --previous;
+        const MicroInstr* compare = previous.current.isValid() ? &*previous : nullptr;
+        if (!compare || compare->op != MicroInstrOpcode::CmpRegImm)
+            return {};
+        const auto* cmp = compare->ops(operands);
+        --previous;
+        const MicroInstr* copy = previous.current.isValid() ? &*previous : nullptr;
+        if (!cmp || cmp[2].hasWideImmediateValue() || cmp[2].valueU64 != 0 || !copy || copy->op != MicroInstrOpcode::LoadRegReg)
+            return {};
+        const auto* copied = copy->ops(operands);
+        if (!copied || !copied[0].reg.isVirtualInt() || !copied[1].reg.isVirtualInt() ||
+            copied[1].reg != cmp[0].reg || copied[2].opBits != cmp[1].opBits)
+            return {};
+        return CopiedZeroTest{copied[0].reg, cmp[1].opBits, nonzero};
+    }
+
     inline bool tryGetShortCircuitBoolValue(bool& outValue, MicroCond setCond, MicroCond branchCond)
     {
         if (setCond == branchCond)
@@ -2408,7 +2439,7 @@ namespace
     bool threadShortCircuitExits(MicroStorage& storage, MicroOperandStorage& operands, MicroBuilder* builder, ProgramLayoutCache& layoutCache)
     {
         const ProgramLayout& layout = layoutCache.get(storage, operands);
-        if (!layout.hasConditionalJump || !layout.hasSetCondition || !layout.hasImmediateCompare)
+        if (!layout.hasConditionalJump || !layout.hasImmediateCompare)
             return false;
 
         // Labels placed past a join's test, by the join's jump.
@@ -2433,14 +2464,25 @@ namespace
             // self-extensions do not touch the flags.
             SmallVector<MicroInstrRef, K_MAX_SHORT_CIRCUIT_BOOL_CHAIN> chain;
             BoolBits                                                   bits;
-            const MicroInstrOperand*                                   setOps = nullptr;
-            if (!collectShortCircuitBoolChain(storage, operands, jumpRef, chain, false, setOps, bits))
-                continue;
-
-            // The branch condition pins the boolean's value on the taken edge.
-            bool boolOne = false;
-            if (!tryGetShortCircuitBoolValue(boolOne, setOps[1].cpuCond, jumpOps[0].cpuCond))
-                continue;
+            const MicroInstrOperand*                                   setOps      = nullptr;
+            bool                                                       boolOne     = false;
+            MicroOpBits                                                rawTestBits = MicroOpBits::Zero;
+            if (collectShortCircuitBoolChain(storage, operands, jumpRef, chain, false, setOps, bits))
+            {
+                // A setcc pins the canonical boolean on the taken edge.
+                if (!tryGetShortCircuitBoolValue(boolOne, setOps[1].cpuCond, jumpOps[0].cpuCond))
+                    continue;
+            }
+            else
+            {
+                const auto copied = matchCopiedZeroTest(storage, operands, jumpRef, jumpOps[0].cpuCond);
+                if (!copied)
+                    continue;
+                bits.clear();
+                setBoolBits(bits, copied->reg, getNumBits(copied->bits));
+                rawTestBits = copied->bits;
+                boolOne     = copied->nonzero;
+            }
 
             // The join: copies of the boolean, `cmp B, 0`, a conditional jump.
             const auto* labelIt = layout.labelOrdinalById.find(joinLabelId);
@@ -2452,7 +2494,8 @@ namespace
                 continue;
             const MicroInstrOperand* joinCmpOps = joinInst->ops(operands);
             if (!joinCmpOps || joinCmpOps[2].hasWideImmediateValue() || joinCmpOps[2].valueU64 != 0 ||
-                boolBitsOf(bits, joinCmpOps[0].reg) < getNumBits(joinCmpOps[1].opBits))
+                boolBitsOf(bits, joinCmpOps[0].reg) < getNumBits(joinCmpOps[1].opBits) ||
+                (rawTestBits != MicroOpBits::Zero && rawTestBits != joinCmpOps[1].opBits))
                 continue;
             const MicroInstrRef joinJumpRef = layout.order[joinOrdinal + 1];
             const MicroInstr*   joinJump    = storage.ptr(joinJumpRef);
@@ -2507,6 +2550,17 @@ namespace
             uint32_t joinTargetId = 0;
             if (!tryGetJumpTargetLabelId(joinTargetId, *joinJump, joinJumpOps) || joinTargetId == joinLabelId)
                 continue;
+            if (rawTestBits == MicroOpBits::Zero)
+            {
+                // A setcc proves the value, but its original comparison need
+                // not leave the flags the join's zero test would define.
+                const auto* targetOrdinal = layout.labelOrdinalById.find(joinTargetId);
+                if (!targetOrdinal)
+                    continue;
+                const MicroInstrRef targetRef = layout.order[*targetOrdinal];
+                if (!storage.ptr(targetRef) || !MicroPassHelpers::areCpuFlagsDeadAfter(storage, operands, targetRef, builder))
+                    continue;
+            }
             jumpOps[2].valueU64 = joinTargetId;
             changed             = true;
         }

@@ -88,3 +88,32 @@ passed 316 tests through JIT and 316 natively in DevMode with `--validate-micro`
 All twelve Release benchmark checksums and instruction/memory/call/loop counts
 match the four-batch compiler after overloaded runtime bodies are paired.
 These repairs therefore preserve the target changes reported above.
+
+## Copied zero-test exits
+
+A copied raw integer followed by its exact-width zero test can send its taken
+edge straight past an equivalent join test. This changes LZ77 verification from
+13 to 9 instructions per byte, with two reads, no calls and unchanged frame,
+saved registers and spills. Eight instructions execute on each matching byte,
+instead of twelve; the mismatch clear remains conditional.
+
+Canonical setcc chains require an additional flag proof: their original
+comparison need not leave the join's zero-test flags. A reduced internal carry
+reader fails before this correction and passes after it. Raw copied zero tests
+retain equivalent flags and permit live consumers. Following the actual exit's
+control flow keeps waitWork and dynamic-view hot paths unchanged and removes one
+instruction from parkWorkObserver; it avoids the conservative prototype's extra
+tests. The eligibility adds only adjacent matching plus a flag-liveness query
+for canonical exits.
+
+All twelve checksums pass. The final comparison is in `microdiff-batch5.json`.
+Other timed benchmark kernels retain their work. Shared equality/reallocation
+paths shrink without added memory operations or calls. Allocator.configure's
+cold first-false path gains one instruction, while its early true path skips
+the remaining conditional moves; this is outside the benchmark timed regions.
+
+Validation: 1,506 in-memory C++ tests; 2,312 prefix/initial-state/mismatch cases
+through JIT and native in Release and DevMode with micro validation; all twelve
+Release checksum/code captures and final native-loop inspection. The full C++
+pre-correction run has only the expected new carry-reader failure (1,567 pass).
+Timing is not measured for this batch.

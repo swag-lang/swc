@@ -2592,6 +2592,114 @@ SWC_TEST_BEGIN(BranchSimplify_TrapEndsTheFailurePath)
 }
 SWC_TEST_END()
 
+// Raw copied truth can bypass a repeated zero test without assuming that
+// a nonzero integer is one. Width, copy and flag boundaries remain exact.
+SWC_TEST_BEGIN(BranchSimplify_ThreadsCopiedZeroTestsAtTheirExactWidth)
+{
+    for (const MicroOpBits width : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const bool nonzero : {false, true})
+        {
+            for (uint32_t mode = 0; mode < 10; ++mode)
+            {
+                const MicroReg    input  = MicroReg::virtualIntReg(10);
+                const MicroReg    copied = MicroReg::virtualIntReg(11);
+                const MicroReg    rhs    = MicroReg::virtualIntReg(12);
+                const MicroReg    output = MicroReg::virtualIntReg(13);
+                const MicroReg    flags  = MicroReg::virtualIntReg(14);
+                MicroBuilder      builder(ctx);
+                const auto        join       = builder.createLabel();
+                const auto        exit       = builder.createLabel();
+                const MicroOpBits otherWidth = width == MicroOpBits::B8 ? MicroOpBits::B64 : MicroOpBits::B8;
+                builder.emitLoadRegReg(copied, mode == 2 ? rhs : input, mode == 1 ? otherWidth : width);
+                if (mode == 3)
+                    builder.emitLoadRegReg(input, rhs, width);
+                builder.emitCmpRegImm(input, ApInt(mode == 5 ? 1 : 0, 64), width);
+                if (mode == 6)
+                    builder.emitOpBinaryRegImm(rhs, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+                if (mode == 7)
+                    builder.emitLoadRegReg(copied, rhs, width);
+                builder.emitJumpToLabel(nonzero ? MicroCond::NotEqual : MicroCond::Equal, MicroOpBits::B32, join);
+                const auto firstJump = builder.instructions().lastInstructionRef();
+                builder.emitLoadRegReg(copied, rhs, width);
+                builder.placeLabel(join);
+                builder.emitCmpRegImm(copied, ApInt(0, 64), mode == 4 ? otherWidth : width);
+                const bool exitOnNonzero = nonzero != (mode == 9);
+                builder.emitJumpToLabel(exitOnNonzero ? MicroCond::NotEqual : MicroCond::Equal, MicroOpBits::B32, exit);
+                if (mode == 9)
+                {
+                    builder.emitSetCondReg(flags, MicroCond::Overflow);
+                    builder.emitLoadMemReg(output, 8, flags, MicroOpBits::B8);
+                }
+                builder.emitOpBinaryRegImm(rhs, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+                builder.emitLoadMemReg(output, 16, rhs, MicroOpBits::B64);
+                builder.placeLabel(exit);
+                if (mode == 8)
+                {
+                    builder.emitSetCondReg(flags, MicroCond::Overflow);
+                    builder.emitLoadMemReg(output, 8, flags, MicroOpBits::B8);
+                }
+                builder.emitLoadMemReg(output, 0, copied, width);
+                builder.emitRet();
+
+                SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+                const auto* jump     = builder.instructions().ptr(firstJump);
+                const auto* ops      = jump && jump->op == MicroInstrOpcode::JumpCond ? jump->ops(builder.operands()) : nullptr;
+                const bool  threaded = ops && ops[2].valueU64 == exit.get();
+                if (threaded != (mode == 0 || mode == 8))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+// A canonical boolean's join comparison clears carry, unlike the original
+// unsigned comparison. A direct exit must preserve that flag definition.
+SWC_TEST_BEGIN(BranchSimplify_KeepsCanonicalJoinWhenExitReadsFlags)
+{
+    for (uint32_t mode = 0; mode < 3; ++mode)
+    {
+        const MicroReg left    = MicroReg::virtualIntReg(10);
+        const MicroReg right   = MicroReg::virtualIntReg(11);
+        const MicroReg other   = MicroReg::virtualIntReg(12);
+        const MicroReg boolean = MicroReg::virtualIntReg(13);
+        const MicroReg result  = MicroReg::virtualIntReg(14);
+        const MicroReg output  = MicroReg::virtualIntReg(15);
+        MicroBuilder   builder(ctx);
+        const auto     join = builder.createLabel();
+        const auto     exit = builder.createLabel();
+        builder.emitCmpRegReg(left, right, MicroOpBits::B64);
+        builder.emitSetCondReg(boolean, MicroCond::Above);
+        builder.emitJumpToLabel(MicroCond::BelowOrEqual, MicroOpBits::B32, join);
+        const auto early = builder.instructions().lastInstructionRef();
+        builder.emitCmpRegImm(other, ApInt(0, 64), MicroOpBits::B64);
+        builder.emitSetCondReg(boolean, MicroCond::NotEqual);
+        builder.placeLabel(join);
+        builder.emitCmpRegImm(boolean, ApInt(0, 64), MicroOpBits::B8);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, exit);
+        builder.emitOpBinaryRegImm(left, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitLoadMemReg(output, 16, left, MicroOpBits::B64);
+        builder.placeLabel(exit);
+        if (mode == 1)
+            builder.emitOpBinaryRegImm(other, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        if (mode != 2)
+        {
+            builder.emitSetCondReg(result, MicroCond::Below);
+            builder.emitLoadMemReg(output, 0, result, MicroOpBits::B8);
+        }
+        builder.emitRet();
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+        const auto* jump = builder.instructions().ptr(early);
+        const auto* ops  = jump && jump->op == MicroInstrOpcode::JumpCond ? jump->ops(builder.operands()) : nullptr;
+        if (!ops || (ops[2].valueU64 == exit.get()) != (mode != 0))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

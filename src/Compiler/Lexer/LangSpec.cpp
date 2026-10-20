@@ -20,8 +20,12 @@ void LangSpec::setupKeywords()
     {                                                                             \
         auto hash64 = Math::hash(__name);                                         \
         keywordMap_.insert_or_assign(__name, hash64, TokenId::__id);              \
-        SWC_ASSERT(keywordMap_.contains(__name, hash64));                         \
-        SWC_ASSERT(*keywordMap_.find(__name, hash64) == TokenId::__id);           \
+        if constexpr (SWC_HAS_ASSERT)                                             \
+        {                                                                         \
+            const auto* keyword = keywordMap_.find(__name, hash64);               \
+            SWC_ASSERT(keyword);                                                  \
+            SWC_ASSERT(*keyword == TokenId::__id);                                \
+        }                                                                         \
     }
 
 #include "Compiler/Lexer/Tokens.Def.inc"

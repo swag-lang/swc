@@ -22,6 +22,7 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Query minimum integer widths from normalized words | Reconstructing the unsigned top-word mask and clamping an already bounded highest bit; masking the signed input word again | The highest live set bit is inside the width. Signed queries retain the mask on their synthesized sign fill. All ten changed bodies shrink and their frames remain stable or shrink. The integer object's code shrinks from 20,407 to 20,108 bytes and retained data from 5,653 to 5,561 bytes. |
 | Clear COFF output at its public entry point | A second `clear` call in the sole private builder | The public object builder clears the output before any possible failure and does not write it before calling the private file builder. The later resize still initializes every output byte. The private builder keeps its 2,283-byte body and 352-byte frame while losing one call. |
 | Validate intrinsic-name spelling at C++ compile time | A length check and five-byte prefix comparison for each intrinsic-name query | The definition table is statically constrained to `Swag.` names or dot-prefixed member intrinsics. A one-byte member check preserves the empty names for `.count` and `.buffer`; all other accepted names lose the same five bytes. The helper shrinks from 98 to 85 code bytes without a frame; its registry initializer shrinks from 981 to 935 bytes with the same 120-byte frame. |
+| Reuse each keyword validation lookup | A second identical hash-table probe after each of 157 keyword insertions | One pointer feeds the existing presence and value assertions. A compile-time assertion-mode branch removes the entire check when assertions are disabled. Insertion order, slots and capacity do not change. Setup code shrinks from 105,131 to 89,385 bytes and its stack reservation from 21,120 to 16,032 bytes; the object loses code and retained data overall. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -101,6 +102,14 @@ The intrinsic-name batch passes 1,504 C++ tests, including round trips for every
 named intrinsic and rejection of member/non-intrinsic names. Intrinsic-focused
 parser validation checks 29 normal and 29 expected-error inputs, including
 runtime sources.
+
+The keyword-validation batch passes 1,504 C++ tests and the complete lexer
+suites (33 normal and 50 expected-error inputs, including runtime). C++ inlining
+also folds the lookup helper into the two public queries: the hashed query's
+reservation falls from 56 to 32 bytes, while the unhashed query retains 48 bytes;
+both lose an intermediate helper call. Table storage and query results remain
+unchanged. A lambda-based trial added per-keyword calls and was replaced by the
+direct compile-time-gated block before validation.
 
 Rejected trials:
 

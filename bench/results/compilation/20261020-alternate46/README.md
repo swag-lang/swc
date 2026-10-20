@@ -41,7 +41,9 @@ All builds and tests have fresh machine-load admission and six-worker bounds.
 | 6 | `a2590459d` Remove unused payload helpers | Remove five internal helpers with no callers or address references, including the duplicated const/mutable substitute-storage getters. Live declarations, fields and access paths are unchanged. The defining DevMode object's code and read-only data shrink. | DevMode and Release builds; 1,521 default C++ tests. |
 | 4 | `b5446a4af` Read folded-source payload partitions once | Keep the early kind filter and let the existing symbol reader handle an absent partition. Present partitions no longer repeat the acquire query; absent partitions still return without recording a symbol. The recorder loses one call and 62 code bytes with its original frame; constant/type setters are identical. | DevMode build; 1,522 default C++ tests. |
 | 6 | `76a4bd309` Share constant JIT argument preparation | Share constant/default resolution and ordinary scalar/reference materialization; the receiver keeps its distinct binding path. Following the strictest-copy rule, oversized scalar `set` arguments now hit the same existing assertion as ordinary calls. Both DevMode frames are stable; its added 35-byte cold assertion path and two-byte reduction in the ordinary builder account for the object's 33-byte code increase. Both Release builders shrink with four fewer calls and non-increasing frames; retained data is unchanged. | DevMode and Release builds; 1,584 full C++ tests. The optional full native rerun was deferred by machine load. |
-| 4 | Initialize fresh JIT fold buffers once | Every caller freshly emplaces its byte buffer. `SmallVector::resize` value-initializes all bytes; remove the second payload zero-fill while retaining the redzone fill and all allocations/capacities. The helper loses one `memset` call and 14 bytes with its original frame; both builders and public callers are identical. | DevMode build; 1,522 default C++ tests; the standalone literal-suffix struct initializer passes its native test and compile-time assertions. |
+| 4 | `adfa6a5b7` Initialize fresh JIT fold buffers once | Every caller freshly emplaces its byte buffer. `SmallVector::resize` value-initializes all bytes; remove the second payload zero-fill while retaining the redzone fill and all allocations/capacities. The helper loses one `memset` call and 14 bytes with its original frame; both builders and public callers are identical. | DevMode build; 1,522 default C++ tests; the standalone literal-suffix struct initializer passes its native test and compile-time assertions. |
+| 6 | `fb78a5716` Explain substitute record immutability | Document why a replacement allocates a fresh record: concurrent readers can retain older snapshots. The comment replaces a blank line, preserving every code token and assertion source coordinate. | Static diff, equal line counts and writer/reader inspection; no executable change. |
+| 4 | Remove unreachable string-map states and repeated rounding | All private rehash callers already supply powers of two or wrapped zero. Keep the same minimum without a second rounding walk. Tombstones cannot originate from the existing API, so remove their tracking and displacement branch while preserving fingerprints, slot placement, counts and capacities. Each keyword query loses one comparison and branch with its original calls/frame; keyword initialization is identical. Lexer/parser object code shrinks by 658/2,006 bytes with unchanged retained data; the inspected parser frame is unchanged. | DevMode build; 1,524 default C++ tests, including literal capacities, collisions across growth, reserve, clear and reverse reinsertion; 3,917 native tests and expected recovery checks, with outer exit zero. |
 
 Counts belong to each batch's tested revision. A conflict-free merge does not
 claim that every suite was rerun on the combined revision. The full C++/native
@@ -49,6 +51,10 @@ milestones belong to `6b382e504`, the anonymous aggregate and chunk-initializati
 independent checks are listed separately.
 The JIT argument-preparation batch adds a full C++ milestone without claiming a
 new full-native result.
+The final string-map batch repeats the native milestone with all executable
+changes retained by this session. The later immutability comment preserves all
+code tokens and line counts. These checks do not certify concurrent foreign
+changes subsequently integrated into `master`.
 
 ## Commands
 
@@ -100,6 +106,16 @@ that argument by const reference preserves the original bodies in both compilers
 The broad `--file-filter generic` selection excludes the shared allocator helpers
 required by several selected files and fails with unknown `testAlloc`/`testFree`.
 It is not counted as validation. The standalone `structs_defaults` selection passes.
+
+The attempted NodePayload reader consolidation is not retained. A member template
+emitted two extra DevMode bodies. A shared span-returning list reader introduced
+two metadata memory moves and a branch in the snapshot resolver. Returning a
+status with pointer/count outputs removed that cost but added metadata writes in
+the Release getter. Its strict span-only path and the resolver's multiple return
+forms therefore retain their direct construction under the current generated-work
+budget. The final scalar/query subset did not complete final validation within the
+session's remaining admitted windows. All candidate code was saved outside the
+checkouts and removed; only the immutability comment remains.
 
 The backlog and benchmark history are unchanged. This is an ongoing, time-bounded
 pass, not a claim of whole-tree code-health coverage or completed speed targets.

@@ -27,6 +27,7 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Reuse a contiguous span's aligned offset | Recomputing the aligned data position after a successful capacity check | The capacity comparison uses the same unsigned footprint arithmetic. A new page recomputes the offset from zero; existing-page writes reuse it. Header, payload and publication order are unchanged. The builder shrinks from 429 to 426 code bytes with the same 56-byte reservation. |
 | Read a message listener's source file once | A duplicate source-view/file lookup before preparing the same request | The existing saved pointer still controls rejection of a missing file and populates the request. Other argument guards and queue operations retain their order. The function shrinks from 578 to 555 code bytes with the same 80-byte reservation and one fewer call. |
 | Initialize identifier registry arrays once | Filling already-invalid predefined and runtime-function reference arrays before setup assigns their named entries | The member arrays use value initialization and strong references default to invalid, checked statically. Setup is their only writer and rewrites every assigned slot, so untouched entries remain invalid across repeated setup as well. Setup code shrinks from 1,640 to 692 bytes with the same 104-byte reservation. |
+| Test 64-bit capacity from the live upper word | A generic unsigned word scan and a signed minimum-width walk merely to compare its result with 64 | For the current two-word representation, unsigned capacity needs a zero upper word. Signed capacity needs that word to equal the low word's sign fill masked to the active width. Other representations retain the existing algorithms. The unsigned helper shrinks from 37 to 19 bytes; the signed query becomes a 42-byte leaf instead of a 33-byte wrapper calling minimum-width analysis, and loses its 40-byte reservation. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -132,6 +133,14 @@ These inputs exercise compiler message type metadata and cyclic message work.
 
 The identifier-initialization batch passes 1,505 C++ tests and all 85 sanity
 tests with the DevMode compiler and `devmode` program configuration.
+
+The direct-capacity batch passes 1,505 C++ tests, including the independent bit
+precision/capacity oracles at every width from 1 through 128. Literal-focused
+semantics checks 40 normal and 32 expected-error inputs, including runtime, and
+the complete JIT suite passes 1,539 tests. The unsigned division caller also
+shrinks by ten code bytes without changing its frame. Integer-object code falls
+by 19 bytes while retained data rises by eight; the combined sections shrink
+and the signed query no longer calls minimum-width analysis.
 
 Rejected trials:
 

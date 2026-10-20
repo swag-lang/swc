@@ -35,7 +35,9 @@ All builds and tests have fresh machine-load admission and six-worker bounds.
 | 6 | `e585f3c7e` Share conditional-loop child completion | The condition cast and escape-branch merge for C-style `for` and `while` use one file-local template. Both required callbacks retain exactly identical disassembly. | DevMode build; 1,520 default C++ tests; eight native `for_c` and fourteen native `while` tests. |
 | 4 | `364d325f6` Reuse final substitute metadata | Reuse the last AST node already read by the substitute walk for the debug pointer. The walk loses three calls and eight stack bytes, with a 127-byte smaller extent. | DevMode build; 1,521 default C++ tests, including stripped metadata through zero-, one- and two-step substitution chains. |
 | 6 | `452c6a69a` Share CPU flag liveness caching | Instruction combining and post-RA peepholes use one inline cache query. Storage and invalidation remain in each context. Both complete method disassemblies are identical in DevMode and Release. | Both compiler builds; 1,520 default C++ tests; 324 native optimizer tests. |
-| 4 | Remove duplicate chunk initialization | Value-initialized atomic-pointer arrays already contain null pointers. Remove the second null-store loop before publication; slot/size publication order is unchanged. Both lookup-table test bodies retain their calls and stack reservation and shrink by 31/32 bytes. | DevMode build; 1,583 full C++ tests, including concurrent-reader publication; 3,917 native tests and expected recovery checks. |
+| 4 | `fb432e10d` Remove duplicate chunk initialization | Value-initialized atomic-pointer arrays already contain null pointers. Remove the second null-store loop before publication; slot/size publication order is unchanged. Both lookup-table test bodies retain their calls and stack reservation and shrink by 31/32 bytes. | DevMode build; 1,583 full C++ tests, including concurrent-reader publication; 3,917 native tests and expected recovery checks. |
+| 6 | `44114314d` Share generic symbol metadata access | Function and struct generic data share completion-owner assignment/query and origin lookup. Allocation entry points and the distinct completion-depth representations remain separate. All eight Release bodies and six DevMode queries are identical; DevMode setters retain calls, frame and extent, with relocated assertion source coordinates. Both executable lengths are unchanged. | DevMode and Release builds; 1,521 default C++ tests; two native generic-struct-default tests. |
+| 4 | Validate symbol payloads on the consumed snapshot | The two scalar getters and list getter retain validity/kind/shard assertions on the snapshot they consume, removing repeated AST, payload and shard lookups. Each loses three calls; scalar frames shrink eight bytes and bodies shrink 137 bytes each, while the list frame stays fixed and its body shrinks 127 bytes. | DevMode build; 1,522 default C++ tests, including symbol identity across growth and const/mutable list access. |
 
 Counts belong to each batch's tested revision. A conflict-free merge does not
 claim that every suite was rerun on the combined revision. The full C++/native
@@ -59,6 +61,7 @@ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm sema --file-filter const --
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter for_c --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter while --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter optimizer --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter structs_defaults --num-cores 6 --rebuild
 ```
 
 The full native tool exits zero. Its deliberate panic and hardware-exception
@@ -86,6 +89,10 @@ unrolled 16-bit append is deliberately retained.
 
 The CPU-flags helper initially copied its reference argument on cache hits. Passing
 that argument by const reference preserves the original bodies in both compilers.
+
+The broad `--file-filter generic` selection excludes the shared allocator helpers
+required by several selected files and fails with unknown `testAlloc`/`testFree`.
+It is not counted as validation. The standalone `structs_defaults` selection passes.
 
 The backlog and benchmark history are unchanged. This is an ongoing, time-bounded
 pass, not a claim of whole-tree code-health coverage or completed speed targets.

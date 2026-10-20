@@ -522,12 +522,13 @@ bool NodePayload::hasSymbol(AstNodeRef nodeRef) const
 const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef) const
 {
     SWC_UNUSED(ctx);
-    SWC_ASSERT(hasSymbol(nodeRef));
+    SWC_ASSERT(nodeRef.isValid());
 
-    const AstNode&    node     = ast().node(nodeRef);
-    const PayloadInfo info     = payloadInfo(node);
-    const uint32_t    shardIdx = info.shardIdx;
-    const Shard*      shard    = tryGetShard(shardIdx);
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
+    SWC_ASSERT(info.kind == NodePayloadKind::SymbolRef);
+    const uint32_t shardIdx = info.shardIdx;
+    const Shard*   shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
 
     const Symbol* const* slot  = (shard->store.ptr<Symbol*>(info.ref));
@@ -538,12 +539,13 @@ const Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 Symbol& NodePayload::getSymbol(const TaskContext& ctx, AstNodeRef nodeRef)
 {
     SWC_UNUSED(ctx);
-    SWC_ASSERT(hasSymbol(nodeRef));
+    SWC_ASSERT(nodeRef.isValid());
 
-    const AstNode&    node     = ast().node(nodeRef);
-    const PayloadInfo info     = payloadInfo(node);
-    const uint32_t    shardIdx = info.shardIdx;
-    Shard*            shard    = tryGetShard(shardIdx);
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
+    SWC_ASSERT(info.kind == NodePayloadKind::SymbolRef);
+    const uint32_t shardIdx = info.shardIdx;
+    Shard*         shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
 
     Symbol** slot  = (shard->store.ptr<Symbol*>(info.ref));
@@ -592,12 +594,13 @@ bool NodePayload::hasSymbolList(AstNodeRef nodeRef) const
 
 std::span<const Symbol* const> NodePayload::getSymbolListImpl(AstNodeRef nodeRef) const
 {
-    SWC_ASSERT(hasSymbolList(nodeRef));
+    SWC_ASSERT(nodeRef.isValid());
 
-    const AstNode&    node     = ast().node(nodeRef);
-    const PayloadInfo info     = payloadInfo(node);
-    const uint32_t    shardIdx = info.shardIdx;
-    const Shard*      shard    = tryGetShard(shardIdx);
+    const AstNode&    node = ast().node(nodeRef);
+    const PayloadInfo info = payloadInfo(node);
+    SWC_ASSERT(info.kind == NodePayloadKind::SymbolList);
+    const uint32_t shardIdx = info.shardIdx;
+    const Shard*   shard    = tryGetShard(shardIdx);
     SWC_ASSERT(shard != nullptr);
 
     const auto spanView = shard->store.span<const Symbol*>(info.ref);

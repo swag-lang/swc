@@ -30,7 +30,10 @@ namespace
         using NodePayload::addPayloadFlags;
         using NodePayload::ast;
         using NodePayload::getSubstituteRef;
+        using NodePayload::getSymbol;
+        using NodePayload::getSymbolList;
         using NodePayload::setSubstitute;
+        using NodePayload::setSymbol;
         using NodePayload::setSymbolList;
 
         static void addValueFlag(AstNode& node) { addPayloadFlags(node, NodePayloadFlags::Value); }
@@ -192,6 +195,31 @@ SWC_TEST_BEGIN(NodePayload_RecloneReadsOwningAstWithBorrowedSourceLocation)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(NodePayload_SymbolGettersPreserveIdentity)
+{
+    SourceView            sourceView(SourceViewRef{0}, nullptr);
+    NodePayloadTestAccess payload;
+    payload.ast().setSourceView(sourceView);
+    SymbolVariable                              first(nullptr, TokenRef::invalid(), IdentifierRef{1}, {});
+    SymbolVariable                              second(nullptr, TokenRef::invalid(), IdentifierRef{2}, {});
+    std::vector<std::pair<AstNodeRef, Symbol*>> bindings;
+    for (uint32_t index = 0; index < 257; ++index)
+    {
+        const AstNodeRef nodeRef = payload.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
+        Symbol*          symbol  = index % 2 ? &first : &second;
+        payload.setSymbol(nodeRef, symbol);
+        bindings.emplace_back(nodeRef, symbol);
+    }
+
+    const NodePayloadTestAccess& constPayload = payload;
+    for (const auto& [nodeRef, symbol] : bindings)
+    {
+        if (&payload.getSymbol(ctx, nodeRef) != symbol || &constPayload.getSymbol(ctx, nodeRef) != symbol)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(NodePayload_MutableAndConstSymbolListsPreserveFlagsAndOrder)
 {
     SourceView            sourceView(SourceViewRef{0}, nullptr);
@@ -235,6 +263,10 @@ SWC_TEST_BEGIN(NodePayload_MutableAndConstSymbolListsPreserveFlagsAndOrder)
         if (!std::ranges::equal(payload.resolveSymbols(mutableRef).symbols, test.symbols))
             return Result::Error;
         if (!std::ranges::equal(payload.resolveSymbols(constRef).symbols, test.symbols))
+            return Result::Error;
+        const NodePayloadTestAccess& constPayload = payload;
+        if (!std::ranges::equal(payload.getSymbolList(mutableRef), test.symbols) ||
+            !std::ranges::equal(constPayload.getSymbolList(constRef), test.symbols))
             return Result::Error;
         if ((mutableNode->payloadBits() & NODE_PAYLOAD_FLAGS_MASK) != (test.flags | markerFlag))
             return Result::Error;

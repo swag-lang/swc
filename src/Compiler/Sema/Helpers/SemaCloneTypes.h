@@ -23,6 +23,9 @@ namespace SemaClone
 
         const SymbolVariable* sourceParam        = nullptr;
         AstNodeRef            valueBorrowHomeRef = AstNodeRef::invalid();
+
+        // The home addresses storage built for this call alone, which nothing else can write.
+        bool valueBorrowFreshStorage = false;
     };
 }
 

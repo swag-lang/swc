@@ -164,6 +164,12 @@ namespace PostRaPeephole
                     demand.read(reg, 15);
                 return;
             }
+            if (inst.op == MicroInstrOpcode::Trap)
+            {
+                // Nothing runs after a trap to read any register.
+                demand.lanes.fill(0);
+                return;
+            }
             if (info.flags.has(MicroInstrFlagsE::IsCallInstruction) && !ctx.isClaimed(ref))
             {
                 // The call replaces transient values and reads its argument widths.

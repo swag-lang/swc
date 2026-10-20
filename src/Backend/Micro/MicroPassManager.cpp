@@ -603,6 +603,10 @@ void MicroPassManager::configureDefaultPipeline(const Runtime::BuildCfgBackend& 
     // The value-borrow extent test goes in front of the write checks the optimization loop kept,
     // first among the passes that run once on the converged pre-RA IR.
     addPreRaFinalPass(*valueBorrowFastPathPass_);
+    // Rematerialized fallback arguments leave their old virtual address chains dead.
+    // Remove them before allocation, where even a dead definition can force a spill.
+    if (optimize)
+        addPreRaFinalPass(*deadCodeEliminationPass_);
 
     // Phase 2 - Pre-RA optimization loop (operates on virtual registers only).
     // Iterates until fixed point before touching register allocation.

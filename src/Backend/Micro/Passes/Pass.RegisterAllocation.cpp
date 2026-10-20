@@ -872,7 +872,10 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
             else if (jumpOver && inner == idx + 1)
                 regionIsGuard = false;
             else if (MicroInstrInfo::isTerminatorInstruction(*innerIt))
-                regionIsGuard = false;
+            {
+                // A report that never returns closes its region with a trap right behind the call.
+                regionIsGuard = innerIt->op == MicroInstrOpcode::Trap && endsInCall && !hasCallResultCopy && inner + 1 == targetIdx;
+            }
             else if (instructionUseDefs_[inner].isCall)
             {
                 endsInCall        = true;

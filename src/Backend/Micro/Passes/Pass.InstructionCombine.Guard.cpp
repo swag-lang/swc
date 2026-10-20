@@ -92,18 +92,27 @@ namespace InstructionCombine
             return true;
         }
 
-        // Whether `jumpRef` skips a straight-line report that ends at the label `joinRef`.
+        // Whether `jumpRef` skips a straight-line report that ends at the label `joinRef`, either
+        // falling into it or stopped by the trap behind a report that never returns.
         bool skipsReport(Context& ctx, const MicroInstrRef jumpRef, const MicroInstrRef joinRef)
         {
             bool hasReport = false;
+            bool stopped   = false;
             auto walker    = MicroStorage::Iterator{ctx.storage, jumpRef};
             ++walker;
             for (; walker.current != joinRef; ++walker)
             {
                 const MicroInstrRef ref  = walker.current;
                 const MicroInstr*   inst = ref.isValid() ? &*walker : nullptr;
-                if (!inst || inst->op == MicroInstrOpcode::Label || MicroInstrInfo::isTerminatorInstruction(*inst))
+                if (!inst || stopped || inst->op == MicroInstrOpcode::Label)
                     return false;
+                if (MicroInstrInfo::isTerminatorInstruction(*inst))
+                {
+                    if (inst->op != MicroInstrOpcode::Trap || !hasReport)
+                        return false;
+                    stopped = true;
+                    continue;
+                }
                 hasReport = hasReport || ctx.isReportCall(ref);
             }
             return hasReport;
@@ -151,12 +160,14 @@ namespace InstructionCombine
             const uint32_t joinIndex = cfg.indexOf(ref);
             if (joinIndex == MicroControlFlowGraph::K_NO_INDEX || joinIndex == 0)
                 return false;
+            // The join is entered by the guard's jump, and by the report falling into it
+            // unless the report ends in a trap.
             const auto  addressTaken = cfg.addressTakenLabelIndices();
             const auto& incoming     = cfg.predecessors(joinIndex);
-            if (incoming.size() != 2 || std::ranges::find(addressTaken, joinIndex) != addressTaken.end())
+            if (incoming.empty() || incoming.size() > 2 || std::ranges::find(addressTaken, joinIndex) != addressTaken.end())
                 return false;
-            const uint32_t jumpIndex = incoming[0] == joinIndex - 1 ? incoming[1] : incoming[0];
-            if (jumpIndex >= joinIndex - 1 || (incoming[0] != joinIndex - 1 && incoming[1] != joinIndex - 1))
+            const uint32_t jumpIndex = incoming[0] == joinIndex - 1 ? incoming.back() : incoming[0];
+            if (jumpIndex >= joinIndex - 1 || (incoming.size() == 2 && incoming[0] != joinIndex - 1 && incoming[1] != joinIndex - 1))
                 return false;
 
             const MicroInstrRef      earlierJumpRef = cfg.instructionRefs()[jumpIndex];

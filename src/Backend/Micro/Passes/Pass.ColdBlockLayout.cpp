@@ -6,6 +6,9 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Assert.h"
 
 // Cold block layout. See the header for why it exists and why it runs last.
@@ -28,8 +31,8 @@
 // The first is a guard whose success jumps over the report. The second is a
 // report several tests branch to, behind a jump the passing path takes; once
 // the report is gone that jump targets the next instruction and is dropped.
-// A report that already ends with a jump of its own keeps it and needs none
-// added.
+// A report that already ends with a jump of its own, or with the trap behind
+// a report that never returns, keeps it and needs none added.
 
 SWC_BEGIN_NAMESPACE();
 
@@ -37,6 +40,22 @@ namespace
 {
     using MicroLabelHelpers::tryGetJumpTargetLabelId;
     using MicroLabelHelpers::tryGetLabelId;
+
+    FlatKeySet collectColdCallRefs(const MicroBuilder& builder)
+    {
+        // Compiler-owned thunks have no runtime symbols and can be lowered before sema setup.
+        if (builder.codeRelocations().empty())
+            return {};
+        FlatKeySet          refs    = MicroPassHelpers::collectReportCallRefs(builder);
+        const IdentifierRef writeId = builder.ctx().idMgr().runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowWrite);
+        for (const MicroRelocation& relocation : builder.codeRelocations())
+        {
+            const MicroInstr* call = builder.instructions().ptr(relocation.instructionRef);
+            if (call && call->compilerSafetyCall && relocation.targetSymbol && relocation.targetSymbol->idRef() == writeId)
+                refs.insert(relocation.instructionRef.get());
+        }
+        return refs;
+    }
 
     bool isUnconditionalLabelJump(const MicroInstr& inst, const MicroInstrOperand* ops)
     {
@@ -64,14 +83,14 @@ namespace
     // one of the calls and ends either by falling into a label or with a jump of
     // its own. `skipTarget` is the label a guard jumps to; the block then has to
     // end exactly there.
-    bool matchColdBlock(ColdBlock& outBlock, const MicroPassContext& context, const FlatKeySet& reportCalls, MicroInstrRef firstRef, const uint32_t* skipTarget)
+    bool matchColdBlock(ColdBlock& outBlock, const MicroPassContext& context, const FlatKeySet& coldCalls, MicroInstrRef firstRef, const uint32_t* skipTarget)
     {
         const MicroStorage&        storage  = *context.instructions;
         const MicroOperandStorage& operands = *context.operands;
 
-        bool          hasReport = false;
-        bool          jumpsAway = false;
-        MicroInstrRef lastRef   = MicroInstrRef::invalid();
+        bool          hasColdCall = false;
+        bool          jumpsAway   = false;
+        MicroInstrRef lastRef     = MicroInstrRef::invalid();
         for (MicroStorage::ConstIterator it{&storage, firstRef}; it.current.isValid(); ++it)
         {
             const MicroInstrRef      ref  = it.current;
@@ -80,15 +99,16 @@ namespace
 
             if (inst->op == MicroInstrOpcode::Label)
             {
-                // The label that opens the second shape belongs to the block.
-                if (ref == firstRef && !skipTarget)
+                // Several tests can enter the same fallback, including a final test that
+                // jumps over it. Its entry label moves with the block in either shape.
+                uint32_t labelId = 0;
+                if (ref == firstRef && tryGetLabelId(labelId, *inst, ops) && (!skipTarget || labelId != *skipTarget))
                 {
                     lastRef = ref;
                     continue;
                 }
 
-                uint32_t labelId = 0;
-                if (!hasReport || !tryGetLabelId(labelId, *inst, ops) || (skipTarget && labelId != *skipTarget))
+                if (!hasColdCall || !tryGetLabelId(labelId, *inst, ops) || (skipTarget && labelId != *skipTarget))
                     return false;
                 outBlock.firstRef = firstRef;
                 outBlock.lastRef  = lastRef;
@@ -100,12 +120,13 @@ namespace
             // A jump of its own may only close the block, and nothing else may leave it.
             if (jumpsAway || inst->op == MicroInstrOpcode::JumpTableData || inst->op == MicroInstrOpcode::LoadLabelAddress)
                 return false;
-            jumpsAway = isUnconditionalLabelJump(*inst, ops);
+            // The trap behind a report that never returns closes the block like a jump of its own.
+            jumpsAway = isUnconditionalLabelJump(*inst, ops) || (inst->op == MicroInstrOpcode::Trap && hasColdCall);
             if (MicroInstrInfo::isTerminatorInstruction(*inst) && !jumpsAway)
                 return false;
 
-            hasReport = hasReport || reportCalls.contains(ref.get());
-            lastRef   = ref;
+            hasColdCall = hasColdCall || coldCalls.contains(ref.get());
+            lastRef     = ref;
         }
 
         return false;
@@ -121,8 +142,10 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
     if (!context.builder)
         return Result::Continue;
 
-    const FlatKeySet reportCalls = MicroPassHelpers::collectReportCallRefs(*context.builder);
-    if (reportCalls.empty())
+    // Generated value-borrow calls are the fallback of an inline extent test. They return
+    // normally and use the same cold-block return edge as a report does.
+    const FlatKeySet coldCalls = collectColdCallRefs(*context.builder);
+    if (coldCalls.empty())
         return Result::Continue;
 
     MicroStorage&        storage  = *context.instructions;
@@ -156,7 +179,7 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
             {
                 auto nextIt = it;
                 ++nextIt;
-                matched        = matchColdBlock(block, context, reportCalls, nextIt.current, &targetId);
+                matched        = matchColdBlock(block, context, coldCalls, nextIt.current, &targetId);
                 block.skipped  = true;
                 block.guardRef = ref;
             }
@@ -166,7 +189,7 @@ Result MicroColdBlockLayoutPass::run(MicroPassContext& context)
             const MicroInstr* previous = storage.ptr(previousRef);
             if (endsControlFlow(*previous, previous->ops(operands)))
             {
-                matched        = matchColdBlock(block, context, reportCalls, ref, nullptr);
+                matched        = matchColdBlock(block, context, coldCalls, ref, nullptr);
                 block.guardRef = previousRef;
             }
         }

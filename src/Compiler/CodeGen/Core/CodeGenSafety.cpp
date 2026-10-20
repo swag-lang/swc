@@ -115,6 +115,12 @@ namespace
 
         CodeGenCallHelpers::emitPreparedCall(codeGen, runtimeFunction, callConv, preparedArgs);
 
+        // The report never comes back. Ending its path here leaves nothing live across the
+        // call, so the passing path keeps its registers instead of preserving them for a
+        // continuation that cannot run.
+        if (runtimeFunction.attributes().hasRtFlag(RtAttributeFlagsE::NoReturn))
+            codeGen.builder().emitTrap();
+
         return Result::Continue;
     }
 
@@ -285,7 +291,7 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
         {
             for (const auto& binding : expansion->argMappings)
             {
-                if (binding.valueBorrowHomeRef.isInvalid())
+                if (binding.valueBorrowHomeRef.isInvalid() || binding.valueBorrowFreshStorage)
                     continue;
 
                 frameSize = Math::alignUpU64(frameSize, alignof(Runtime::ValueBorrowRecord));
@@ -439,16 +445,15 @@ bool CodeGenSafety::hasValueBorrowSafety(const CodeGen& codeGen)
 }
 
 // A direct write to an owned local stack slot cannot overlap a caller's older
-// storage; callee borrows end before returning. With no local call-site borrow
-// open, the write needs no guard. Keep checks for inline bodies, which run inside
-// caller borrows, and caller return slots, which the caller can borrow.
+// storage; callee borrows end before returning. An inline body runs inside the
+// borrows of its own arguments, which this function opened like any other: the
+// write needs no guard unless one of the borrows still open could cover the local.
+// Keep checks for caller return slots, which the caller can borrow.
 bool CodeGenSafety::isUnborrowableLocalWrite(CodeGen& codeGen, AstNodeRef targetRef)
 {
     while (codeGen.node(targetRef).is(AstNodeId::ParenExpr))
         targetRef = codeGen.node(targetRef).cast<AstParenExpr>().nodeExprRef;
     if (!codeGen.node(targetRef).is(AstNodeId::Identifier))
-        return false;
-    if (codeGen.frame().currentInlineContext().payload || codeGen.hasOpenLocalValueBorrow())
         return false;
 
     const Symbol* symbol = codeGen.viewSymbol(targetRef).sym();
@@ -461,8 +466,10 @@ bool CodeGenSafety::isUnborrowableLocalWrite(CodeGen& codeGen, AstNodeRef target
         return false;
     if (!symVar->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) || !codeGen.localStackBaseReg().isValid())
         return false;
+    if (CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar))
+        return false;
 
-    return !CodeGenFunctionHelpers::usesCallerReturnStorage(codeGen, *symVar);
+    return !codeGen.openLocalValueBorrowMayCover(*symVar);
 }
 
 Result CodeGenSafety::prepareValueBorrowSafety(CodeGen& codeGen)

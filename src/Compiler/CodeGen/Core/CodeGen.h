@@ -456,6 +456,7 @@ public:
     void   registerErrorScopePop();
     void   registerValueBorrowEnd(uint32_t recordOffset);
     bool   hasOpenLocalValueBorrow() const;
+    bool   openLocalValueBorrowMayCover(const SymbolVariable& local);
 
     struct ValueBorrowSite
     {

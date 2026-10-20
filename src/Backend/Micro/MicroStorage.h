@@ -171,6 +171,8 @@ public:
     MicroInstrRef insertDerivedBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
     MicroInstrRef insertSyntheticBefore(MicroOperandStorage& operands, MicroInstrRef beforeRef, MicroInstrOpcode op, std::span<const MicroInstrOperand> opsData);
 
+    // Relinks one existing instruction without changing its reference, operands or metadata.
+    void moveBefore(MicroInstrRef ref, MicroInstrRef beforeRef);
     // Relinks the run [firstRef, lastRef] behind the last instruction. Every reference stays
     // valid, so whatever is keyed by one - a relocation, a label - follows its instruction.
     void moveRangeToEnd(MicroInstrRef firstRef, MicroInstrRef lastRef);

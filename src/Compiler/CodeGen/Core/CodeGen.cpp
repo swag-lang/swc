@@ -1569,6 +1569,55 @@ bool CodeGen::hasOpenLocalValueBorrow() const
     return false;
 }
 
+// Whether a borrow this function opened and has not yet released could cover `local`.
+// Distinct variables never share storage, so a borrow whose argument is another variable's
+// own value cannot reach it. Any other argument shape, an address through a pointer for
+// instance, could name the local, and counts as covering it.
+bool CodeGen::openLocalValueBorrowMayCover(const SymbolVariable& local)
+{
+    if (valueBorrowSites.empty())
+        return false;
+
+    const auto borrowedVariable = [&](const ValueBorrowSite& site) -> const SymbolVariable* {
+        AstNodeRef ref = resolvedNodeRef(site.expressionRef);
+        if (ref.isValid() && site.addressHome)
+            ref = resolvedNodeRef(node(ref).cast<AstSingleVarDecl>().nodeInitRef);
+        while (ref.isValid() && (node(ref).is(AstNodeId::ParenExpr) || node(ref).is(AstNodeId::CastExpr)))
+            ref = resolvedNodeRef(node(ref).is(AstNodeId::ParenExpr) ? node(ref).cast<AstParenExpr>().nodeExprRef : node(ref).cast<AstCastExpr>().nodeExprRef);
+        if (ref.isInvalid() || !node(ref).is(AstNodeId::Identifier))
+            return nullptr;
+
+        const Symbol* symbol = viewSymbol(ref).sym();
+        const auto*   symVar = symbol ? symbol->safeCast<SymbolVariable>() : nullptr;
+        if (!symVar || !symVar->isFrameVariable() || symVar->isClosureCapture() || symVar->hasGlobalStorage())
+            return nullptr;
+
+        // A pointer's value is an address: what it borrows lies outside the variable.
+        const TypeInfo& type = typeMgr().unwrapAliasEnumTypeOrSelf(ctx(), symVar->typeRef());
+        return type.isPointerLikeOrReference() ? nullptr : symVar;
+    };
+
+    const uint32_t lastLocalRecordOffset = valueBorrowSites.back().stackOffset;
+    for (const CodeGenDeferScope& scope : deferScopes_)
+    {
+        for (const CodeGenDeferredAction& action : scope.actions)
+        {
+            if (action.kind != CodeGenDeferredAction::Kind::EndValueBorrow || action.borrowRecordOffset > lastLocalRecordOffset)
+                continue;
+            for (const ValueBorrowSite& site : valueBorrowSites)
+            {
+                if (site.stackOffset != action.borrowRecordOffset)
+                    continue;
+                const SymbolVariable* borrowed = borrowedVariable(site);
+                if (!borrowed || borrowed == &local)
+                    return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void CodeGen::registerErrorScopePop()
 {
     SWC_ASSERT(!deferScopes_.empty());

@@ -4,7 +4,7 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// Final layout of the blocks that report a fault.
+// Final layout of runtime-guard slow paths.
 //
 // A runtime guard lowers to a test, a jump over its report, and the report:
 // the two arguments of the panic, the registers parked around the call, the
@@ -17,6 +17,7 @@ SWC_BEGIN_NAMESPACE();
 // path keeps the test and a jump that is not taken; the report returns through
 // a jump of its own, because a panic can come back when a hook handles it.
 // Nothing about the guard changes, only where its cold half lives.
+// Value-borrow fallback calls use the same layout, with their argument and location setup.
 //
 // It runs last before emission: the prologue and epilogue rewrites read the
 // function as one entry, one body and its returns, and must not find code

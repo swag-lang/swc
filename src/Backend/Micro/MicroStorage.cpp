@@ -220,6 +220,34 @@ MicroInstrRef MicroStorage::insertBefore(MicroOperandStorage& operands, MicroIns
     return insertBefore(beforeRef, inst);
 }
 
+void MicroStorage::moveBefore(const MicroInstrRef ref, const MicroInstrRef beforeRef)
+{
+    SWC_ASSERT(ptr(ref) && ptr(beforeRef));
+    if (ref == beforeRef || nodes_[ref.get()].next == beforeRef)
+        return;
+
+    const MicroInstrRef previous = nodes_[ref.get()].prev;
+    const MicroInstrRef next     = nodes_[ref.get()].next;
+    if (previous.isValid())
+        nodes_[previous.get()].next = next;
+    else
+        head_ = next;
+    if (next.isValid())
+        nodes_[next.get()].prev = previous;
+    else
+        tail_ = previous;
+
+    const MicroInstrRef insertionPrevious = nodes_[beforeRef.get()].prev;
+    nodes_[ref.get()].prev                = insertionPrevious;
+    nodes_[ref.get()].next                = beforeRef;
+    nodes_[beforeRef.get()].prev          = ref;
+    if (insertionPrevious.isValid())
+        nodes_[insertionPrevious.get()].next = ref;
+    else
+        head_ = ref;
+    ++revision_;
+}
+
 void MicroStorage::moveRangeToEnd(const MicroInstrRef firstRef, const MicroInstrRef lastRef)
 {
     SWC_ASSERT(ptr(firstRef) && ptr(lastRef));

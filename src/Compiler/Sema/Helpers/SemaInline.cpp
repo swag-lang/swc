@@ -1996,6 +1996,13 @@ namespace
         const TokenRef  paramNameRef     = materializedInlineBindingTokRef(sema, param, ioBinding.exprRef);
         const bool      contextualLambda = isInlineContextualLambdaArg(sema, ioBinding.exprRef);
 
+        // An array passed as a slice gets a header built for this call alone: no other code can
+        // name, let alone write, the storage the parameter borrows.
+        const TypeRef argTypeRef         = sema.viewType(ioBinding.exprRef).typeRef();
+        const bool    borrowsFreshHeader = mat.borrowedValue && argTypeRef.isValid() &&
+                                        sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), argTypeRef).isArray() &&
+                                        sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), param.typeRef()).isSlice();
+
         AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, ioBinding.exprRef);
         if (clonedInitRef.isInvalid())
             return Result::Error;
@@ -2098,8 +2105,9 @@ namespace
             auto* valuePayload     = sema.compiler().allocate<InlineValueBorrowSemaPayload>();
             valuePayload->identity = valueIdentity;
             sema.setSemaPayload(loadRef, valuePayload);
-            ioBinding.exprRef            = loadRef;
-            ioBinding.valueBorrowHomeRef = declRef;
+            ioBinding.exprRef                 = loadRef;
+            ioBinding.valueBorrowHomeRef      = declRef;
+            ioBinding.valueBorrowFreshStorage = borrowsFreshHeader;
         }
         ioBinding.preserveUseCodeRef = true;
         ioBinding.mutableHomeUse     = context.isOrdinaryInline && !materializedAsLet && !mat.homesAddress;

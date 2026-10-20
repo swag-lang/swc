@@ -39,6 +39,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Use the proven signed minimum-width bounds | Clamping the highest differing bit's precision to the active width | A bit differing from the sign fill cannot be the sign bit. Adding one sign bit therefore yields a precision from two through the active width; all-sign-fill values retain their existing eight-bit result. The helper shrinks from 323 to 317 code bytes with the same 32-byte reservation, and other function sizes remain unchanged. |
 
+| Retain the decimal mantissa string for float parsing | A NUL-length scan, a second string copy/allocation and temporary cleanup | The integer's decimal result is kept directly and supplied to the same formatter as a sized view. Decimal text, exponent formatting and `from_chars` conversion are unchanged. The setter shrinks from 688 to 555 code bytes, its reservation from 256 to 224 bytes, and calls from eleven to eight. Smaller format wrappers bring object code from 80,798 to 80,604 bytes and retained data from 35,603 to 35,583 bytes. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -177,6 +179,11 @@ summaries, wrappers and stored carriers; it has no executable `#test` bodies.
 
 The signed-precision batch passes all 1,508 C++ tests, including the independent
 bit oracle and every single-bit value and complement at widths 1 through 128.
+
+The float-mantissa batch passes both JIT `float_literal_rounding` tests, checking
+exact IEEE bits for decimal halfway rounding, long mantissas, the largest finite
+double, the normal/subnormal boundary and the smallest subnormal, plus agreement
+with runtime arithmetic.
 
 Rejected trials:
 

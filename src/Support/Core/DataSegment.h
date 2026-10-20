@@ -104,6 +104,9 @@ public:
 
     Ref  findRef(const void* ptr) const noexcept;
     bool findAllocation(DataSegmentAllocation& outAllocation, uint32_t offset) const noexcept;
+    // True when the allocation holds a string that addString interned: its owners can never
+    // rely on a distinct address for equal content.
+    bool isInternedString(const DataSegmentAllocation& allocation) const;
 
     uint32_t size() const noexcept;
     uint32_t extentSize() const noexcept;

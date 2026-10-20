@@ -228,6 +228,7 @@
         <ClCompile Include="src\Backend\Debug\DebugInfoCodeView.cpp"/>
         <ClCompile Include="src\Backend\Debug\DebugRecordCollector.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeArtifactBuilder.cpp"/>
+        <ClCompile Include="src\Backend\Native\NativeGlobalLayout.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeRDataCollector.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeValidate.cpp"/>
         <ClCompile Include="src\Backend\Native\NativeBackendBuilder.cpp"/>
@@ -867,6 +868,7 @@
         <ClInclude Include="src\Backend\RuntimeSafety.h"/>
         <ClInclude Include="src\Backend\RuntimeTypeInfo.h"/>
         <ClInclude Include="src\Backend\Native\NativeArtifactBuilder.h"/>
+        <ClInclude Include="src\Backend\Native\NativeGlobalLayout.h"/>
         <ClInclude Include="src\Backend\Native\NativeRDataCollector.h"/>
         <ClInclude Include="src\Backend\Native\NativeValidate.h"/>
         <ClInclude Include="src\Backend\Native\NativeBackendBuilder.h"/>

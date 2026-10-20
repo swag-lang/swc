@@ -16,15 +16,6 @@ NativeRDataCollector::NativeRDataCollector(NativeBackendBuilder& builder) :
 {
 }
 
-Result NativeRDataCollector::collectAndEmit()
-{
-    SWC_RESULT(collectStartupRoots());
-    SWC_RESULT(collectFunctionRoots());
-    SWC_RESULT(collectGlobalRoots());
-
-    return emitCollectedRoots();
-}
-
 Result NativeRDataCollector::collectStartupRoots()
 {
     if (builder_->startup)
@@ -48,13 +39,21 @@ Result NativeRDataCollector::collectFunctionRoots()
 
 Result NativeRDataCollector::collectGlobalRoots()
 {
-    const Utf8& ownerName = builder_->scopedSymbolNames().dataBase;
-    for (const DataSegmentRelocation& relocation : builder_->compiler().globalInitSegment().copyRelocations())
+    // Walk the emitted allocations rather than the segment's relocation list, whose order
+    // follows compilation scheduling and which also covers storage nothing reaches.
+    const Utf8&                        ownerName   = builder_->scopedSymbolNames().dataBase;
+    const DataSegment&                 initSegment = builder_->compiler().globalInitSegment();
+    std::vector<DataSegmentRelocation> relocations;
+    for (const NativeGlobalLayout::Allocation& allocation : builder_->globalLayout.initAllocations())
     {
-        if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
-            continue;
+        initSegment.copyRelocations(relocations, allocation.sourceOffset, allocation.size);
+        for (const DataSegmentRelocation& relocation : relocations)
+        {
+            if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
+                continue;
 
-        SWC_RESULT(enqueueSourceOffset(ownerName, relocation.targetShardIndex, relocation.targetOffset));
+            SWC_RESULT(enqueueSourceOffset(ownerName, relocation.targetShardIndex, relocation.targetOffset));
+        }
     }
 
     return Result::Continue;
@@ -141,6 +140,19 @@ Result NativeRDataCollector::enqueueSourceOffset(const Utf8& ownerName, const ui
     reachable.source                    = allocation;
     reachable.ownerName                 = ownerName;
 
+    if (segment.isInternedString(allocation))
+    {
+        const std::string_view content{segment.ptr<char>(allocation.offset), allocation.size};
+        const auto [stringIt, first] = strings_.try_emplace(content, &reachable);
+        if (!first)
+        {
+            // Strings carry no relocations, so nothing remains to visit through an alias.
+            reachable.canonical = stringIt->second;
+            aliases_.push_back({shardIndex, &reachable});
+            return Result::Continue;
+        }
+    }
+
     reachableAllocations_.push_back({shardIndex, &reachable});
     pending_.push_back({shardIndex, &reachable});
 
@@ -182,8 +194,19 @@ Result NativeRDataCollector::emitReachableAllocations()
         mapEntry.emittedOffset = emittedOffset;
         mapEntry.zeroFilled    = zeroFilled;
 
+        entry.allocation->emittedIndex = static_cast<uint32_t>(builder_->rdataAllocations.size());
         builder_->rdataAllocationMap[entry.shardIndex].push_back(mapEntry);
         builder_->rdataAllocations.push_back(mapEntry);
+    }
+
+    // An alias resolves its own source offsets to the bytes its canonical string emitted.
+    for (const PendingRDataAllocation& alias : aliases_)
+    {
+        SWC_ASSERT(alias.allocation->canonical && alias.allocation->canonical->emittedIndex != INVALID_REF);
+        NativeRDataAllocationMapEntry mapEntry = builder_->rdataAllocations[alias.allocation->canonical->emittedIndex];
+        mapEntry.shardIndex                    = alias.shardIndex;
+        mapEntry.sourceOffset                  = alias.allocation->source.offset;
+        builder_->rdataAllocationMap[alias.shardIndex].push_back(std::move(mapEntry));
     }
 
     // Source offsets are looked up by binary search.

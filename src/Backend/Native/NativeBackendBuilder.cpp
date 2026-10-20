@@ -64,14 +64,15 @@ Utf8 nativeScopedSectionBaseSymbol(const uint32_t scopeHash, const std::string_v
     return std::format("{}_{:08x}", baseName, scopeHash);
 }
 
-Utf8 nativeScopedRDataAllocationSymbol(const uint32_t scopeHash, const uint32_t shardIndex, const uint32_t sourceOffset)
+// The emitted offset, unlike the shard and source offset, does not depend on compilation scheduling.
+Utf8 nativeScopedRDataAllocationSymbol(const uint32_t scopeHash, const uint32_t emittedOffset)
 {
-    return std::format("__swc_rdata_{:08x}_{:02x}_{:08x}", scopeHash, shardIndex, sourceOffset);
+    return std::format("__swc_rdata_{:08x}_{:08x}", scopeHash, emittedOffset);
 }
 
-Utf8 nativeScopedRDataAllocationSymbol(const CompilerInstance& compiler, const uint32_t shardIndex, const uint32_t sourceOffset)
+Utf8 nativeScopedRDataAllocationSymbol(const CompilerInstance& compiler, const uint32_t emittedOffset)
 {
-    return nativeScopedRDataAllocationSymbol(Math::hash(nativeArtifactScopeName(compiler).view()), shardIndex, sourceOffset);
+    return nativeScopedRDataAllocationSymbol(Math::hash(nativeArtifactScopeName(compiler).view()), emittedOffset);
 }
 
 Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& function)
@@ -85,6 +86,56 @@ Utf8 unresolvedFunctionSymbolName(const TaskContext& ctx, const SymbolFunction& 
 namespace
 {
     constexpr uint32_t K_FUNCTION_CACHE_MIN_INSTRUCTIONS = 64;
+
+    Utf8 locationTieKey(const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        // The public API name spells generic arguments and overload signatures from their
+        // content, and the type's full name separates instances whose spelling still coincides.
+        // Both are text: type hashes and references depend on compilation scheduling.
+        Utf8 key = symbol.computePublicApiSymbolName(ctx);
+        key += "|";
+        key += ctx.typeMgr().get(symbol.typeRef()).toFullName(ctx);
+        return key;
+    }
+
+    Utf8 locationTieKey(const TaskContext& ctx, const SymbolVariable& symbol)
+    {
+        Utf8 key = symbol.getFullScopedName(ctx);
+        key += "|";
+        key += ctx.typeMgr().get(symbol.typeRef()).toFullName(ctx);
+        return key;
+    }
+
+    // Generic instances, and other symbols generated from one declaration, share a source
+    // location. The stable location sort leaves them in discovery order, which depends on
+    // compilation scheduling, so order each such run by the symbols' own identity instead.
+    template<typename T>
+    void orderLocationTies(const TaskContext& ctx, std::vector<T*>& values)
+    {
+        const CompilerInstance&           compiler = ctx.compiler();
+        std::vector<SymbolSort::Entry<T>> ties;
+        size_t                            first = 0;
+        while (first < values.size())
+        {
+            const SourceFile* file  = compiler.srcView(values[first]->srcViewRef()).file();
+            const uint32_t    token = values[first]->tokRef().get();
+            size_t            last  = first + 1;
+            while (last < values.size() && values[last]->tokRef().get() == token && compiler.srcView(values[last]->srcViewRef()).file() == file)
+                ++last;
+
+            if (last - first > 1)
+            {
+                ties.clear();
+                for (size_t i = first; i < last; ++i)
+                    ties.push_back({.symbol = values[i], .key = locationTieKey(ctx, *values[i])});
+                std::ranges::stable_sort(ties, {}, &SymbolSort::Entry<T>::key);
+                for (size_t i = first; i < last; ++i)
+                    values[i] = ties[i - first].symbol;
+            }
+
+            first = last;
+        }
+    }
 
     Utf8 functionCacheKey(const NativeBackendBuilder& builder, const SymbolFunction& function)
     {
@@ -1321,7 +1372,7 @@ Result NativeBackendBuilder::appendCodeRelocation(const NativeCodeRelocationTarg
         {
             const bool isInit = relocation.kind == MicroRelocation::Kind::GlobalInitAddress;
             record.symbolName = isInit ? scopedSymbolNames().dataBase : scopedSymbolNames().bssBase;
-            record.addend     = relocation.targetAddress;
+            record.addend     = globalLayout.map(isInit ? DataSegmentKind::GlobalInit : DataSegmentKind::GlobalZero, static_cast<uint32_t>(relocation.targetAddress));
 
             patchDataRelocationAddend(record, *target.bytes, patchOffset, relocation);
             break;
@@ -1372,7 +1423,7 @@ Utf8 NativeBackendBuilder::rdataAllocationSymbol(const NativeRDataAllocationMapE
 {
     if (!allocation.symbolName.empty())
         return allocation.symbolName;
-    return nativeScopedRDataAllocationSymbol(scopedSymbolNames().scopeHash, allocation.shardIndex, allocation.sourceOffset);
+    return nativeScopedRDataAllocationSymbol(scopedSymbolNames().scopeHash, allocation.emittedOffset);
 }
 
 bool NativeBackendBuilder::tryMapRDataSourceOffset(uint32_t& outOffset, const uint32_t shardIndex, const uint32_t sourceOffset) const noexcept
@@ -1572,6 +1623,9 @@ Result NativeBackendBuilder::prepare()
     SymbolSort::sortAndUniqueByLocation(dropFunctions, *compiler_, sortKeys);
     SymbolSort::sortAndUniqueByLocation(mainFunctions, *compiler_, sortKeys);
     SymbolSort::sortAndUniqueByLocation(regularGlobals, *compiler_, sortKeys);
+    for (std::vector<SymbolFunction*>* roots : {&testFunctions, &initFunctions, &preMainFunctions, &dropFunctions, &mainFunctions})
+        orderLocationTies(ctx_, *roots);
+    orderLocationTies(ctx_, regularGlobals);
     appendGlobalFunctionInitDependencies(*this, functions, seenCodeGenFunctions, regularGlobals);
     std::vector<SymbolFunction*> executableRoots;
     if (executable || library)
@@ -1702,6 +1756,7 @@ Result NativeBackendBuilder::prepare()
             // Code generation only needs symbols. Build artifact names and lookup tables
             // once the dependency set and executable reachability have stopped changing.
             SWC_SCHED_PHASE(ctx_.global().jobMgr(), "function infos");
+            orderLocationTies(ctx_, functions);
             SWC_RESULT(rebuildFunctionInfos(*this, functions, sortKeys));
             if (microStage)
             {

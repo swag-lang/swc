@@ -369,6 +369,87 @@ SWC_FILESYSTEM_TEST_BEGIN(Linker_MissingResourceDrainsParallelReaders)
 }
 SWC_TEST_END()
 
+SWC_FILESYSTEM_TEST_BEGIN(Linker_ParallelBuildsProduceIdenticalArtifacts)
+{
+    // Workers reserve global storage, intern strings and discover generic instances in
+    // scheduling order. None of that order may reach the artifact: the same sources must build
+    // to the same bytes. Without that, two builds of one program measure two different layouts.
+    constexpr std::string_view source = R"(struct(T) Cell
+{
+    value: T
+}
+
+impl Cell
+{
+    func doubled(me)->T => .value + .value
+}
+
+var gTotal:  s64
+var gScale = 3's64
+var gLabel = "determinism"
+
+func(T) typeName(value: T)->string? => #typeof(T).name
+
+func(T) accumulate(value: T)
+{
+    let cell: Cell'T = {value: value}
+    gTotal += cast(s64, cell.doubled()) * gScale
+    Swag.print(typeName(value), " ", gLabel, "\n")
+}
+
+#main
+{
+    accumulate(1's8)
+    accumulate(2's16)
+    accumulate(3's32)
+    accumulate(4's64)
+    accumulate(5'u8)
+    accumulate(6'u16)
+    accumulate(7'u32)
+    accumulate(8'u64)
+    Swag.print(gTotal, "\n")
+}
+)";
+
+    const LinkerTestDirectory testDir("parallel_determinism");
+    SWC_RESULT(testDir.write("main.swg", source));
+
+    struct ArtifactKind
+    {
+        std::string_view name;
+        std::string_view extension;
+    };
+
+    // A static library also covers the archive members the constants are split into.
+    for (const ArtifactKind kind : {ArtifactKind{"executable", ".exe"}, ArtifactKind{"static-library", ".lib"}})
+    {
+        ByteArray first;
+        for (uint32_t round = 0; round < 3; ++round)
+        {
+            const fs::path          roundDir = testDir.path() / kind.name / std::to_string(round);
+            const std::vector<Utf8> args     = {"build", "-f", Utf8(testDir.path() / "main.swg"), "-n", "determinism", "--artifact-kind", Utf8(kind.name), "--out-dir", Utf8(roundDir / "output"), "--work-dir", Utf8(roundDir / "work"), "--build-cfg", "devmode", "--num-cores", "6", "--no-log-color"};
+            SWC_RESULT(runCompiler(args, ExitCode::Success, ""));
+
+            ByteArray               bytes;
+            FileSystem::IoErrorInfo ioError;
+            SWC_RESULT(FileSystem::readBinaryFile(roundDir / "output" / std::format("determinism{}", kind.extension), bytes, ioError));
+
+            // The image timestamp is the build time by design, the only byte allowed to move.
+            if (kind.extension == ".exe")
+                bytes.writeLe32(bytes.readLe32(0x3c) + 8, 0);
+
+            if (!round)
+                first = std::move(bytes);
+            else if (bytes.size() != first.size() || std::memcmp(bytes.data(), first.data(), bytes.size()) != 0)
+            {
+                std::println(stderr, "[linker-test] {} build {} differs from build 0", kind.name, round);
+                return Result::Error;
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

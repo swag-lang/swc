@@ -1,6 +1,7 @@
 #pragma once
 #include "Backend/Linker/LinkJob.h"
 #include "Backend/Micro/MachineCode.h"
+#include "Backend/Native/NativeGlobalLayout.h"
 #include "Backend/Native/NativeSection.h"
 #include "Compiler/Sema/Constant/ConstantStorageLayout.h"
 #include "Main/TaskContext.h"
@@ -94,7 +95,7 @@ struct NativeObjDescription
     bool includeMergedRData   = false;
     bool splitRDataReferences = false;
 
-    uint16_t rdataShardIndex      = 0;
+    // A range of the builder's emitted read-only allocations.
     uint16_t rdataAllocationCount = 0;
     uint32_t rdataAllocationIndex = INVALID_REF;
 
@@ -224,9 +225,10 @@ public:
     std::vector<std::unique_ptr<MachineCode>>            generatedMachineCodes;
     std::unique_ptr<NativeStartupInfo>                   startup;
 
-    NativeSectionData mergedRData;
-    NativeSectionData mergedData;
-    NativeSectionData mergedBss;
+    NativeSectionData  mergedRData;
+    NativeSectionData  mergedData;
+    NativeSectionData  mergedBss;
+    NativeGlobalLayout globalLayout;
 
     std::array<std::vector<NativeRDataAllocationMapEntry>, ConstantStorageLayout::SHARD_COUNT> rdataAllocationMap;
     std::vector<NativeRDataAllocationMapEntry>                                                 rdataAllocations;

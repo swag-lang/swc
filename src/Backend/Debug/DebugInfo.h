@@ -77,6 +77,9 @@ struct DebugInfoObjectRequest
     // can contain thousands of objects; hashing their paths risks collisions that define
     // an unwind symbol twice.
     uint32_t objectIndex = 0;
+    // The artifact's symbol scope keeps objects of different modules apart without depending
+    // on where their files are written.
+    uint32_t symbolScopeHash = 0;
 
     std::span<const DebugInfoFunctionRecord> functions;
     std::span<const DebugInfoDataRecord>     globals;

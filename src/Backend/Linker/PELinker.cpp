@@ -691,11 +691,13 @@ namespace
                 debugFunctions.push_back({.symbolName = info->symbolName, .debugName = info->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = info->machineCode});
 
             const DebugInfoObjectRequest debugInfoRequest = {
-                .ctx          = &builder_->ctx(),
-                .targetOs     = builder_->ctx().cmdLine().targetOs,
-                .objectPath   = description.objPath,
-                .functions    = debugFunctions,
-                .emitCodeView = false,
+                .ctx             = &builder_->ctx(),
+                .targetOs        = builder_->ctx().cmdLine().targetOs,
+                .objectPath      = description.objPath,
+                .objectIndex     = description.index,
+                .symbolScopeHash = builder_->scopedSymbolNames().scopeHash,
+                .functions       = debugFunctions,
+                .emitCodeView    = false,
             };
 
             return DebugInfo::buildObject(debugInfoRequest, debugInfoResult);

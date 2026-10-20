@@ -5,6 +5,21 @@ This backlog covers the compiler front end, back end, and workspace build engine
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
 
+### compiler.core.085 — Name generated symbols from the program, not from a process-wide counter
+
+- Evidence: `SemaHelpers::getUniqueIdentifier` numbers lambdas, closures, closure adapters,
+  `#run` expressions and anonymous structs from `CompilerInstance::atomicId`, in compilation
+  scheduling order. Two parallel builds of `core.dll` name `Swag.runWork.__lambda_12528` and
+  `__lambda_12173`, and `Core.Array'(TagBin.__anonymous_struct_657)` and `_562`. The names reach
+  `.swagdbg`, and generic instances over anonymous structs share a source location, so they also
+  decide the order of those functions. Executables, static libraries and the benchmark tasks
+  already build to identical bytes; the shared libraries do not.
+- Next: derive a generated name from its declaration and owner, such as the owner's scoped name
+  and the token, with a per-owner suffix for clones. Keep names unique wherever the function
+  cache identity or a symbol map relies on them.
+- Done when: rebuilding `core`, `pixel` and `gui` twice with six workers produces identical
+  shared libraries apart from the image timestamp.
+
 ### compiler.core.084 — Stop native test recovery from reusing state abandoned by a panic
 
 - Evidence: a safety panic in SVG parsing while `defaultThemeImages` holds its cache mutex

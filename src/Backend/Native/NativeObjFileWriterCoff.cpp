@@ -64,15 +64,14 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
     if (description.rdataAllocationCount)
     {
         SWC_ASSERT(!description.includeMergedRData);
-        SWC_ASSERT(description.rdataShardIndex < ConstantStorageLayout::SHARD_COUNT);
 
-        const auto& mappings = builder_->rdataAllocationMap[description.rdataShardIndex];
-        SWC_ASSERT(description.rdataAllocationIndex + description.rdataAllocationCount <= mappings.size());
+        const auto& allocations = builder_->rdataAllocations;
+        SWC_ASSERT(description.rdataAllocationIndex + description.rdataAllocationCount <= allocations.size());
 
         for (uint32_t i = 0; i < description.rdataAllocationCount; ++i)
         {
             CoffSectionBuild section;
-            SWC_RESULT(buildRDataAllocationSection(section, mappings[description.rdataAllocationIndex + i]));
+            SWC_RESULT(buildRDataAllocationSection(section, allocations[description.rdataAllocationIndex + i]));
             sections.push_back(std::move(section));
         }
     }
@@ -125,14 +124,15 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
 
     DebugInfoObjectResult        debugInfoResult;
     const DebugInfoObjectRequest debugInfoRequest = {
-        .ctx          = &builder_->ctx(),
-        .targetOs     = builder_->ctx().cmdLine().targetOs,
-        .objectPath   = description.objPath,
-        .objectIndex  = description.index,
-        .functions    = debugRecords.functions,
-        .globals      = debugRecords.globals,
-        .constants    = debugRecords.constants,
-        .emitCodeView = builder_->compiler().buildCfg().backend.debugInfo,
+        .ctx             = &builder_->ctx(),
+        .targetOs        = builder_->ctx().cmdLine().targetOs,
+        .objectPath      = description.objPath,
+        .objectIndex     = description.index,
+        .symbolScopeHash = builder_->scopedSymbolNames().scopeHash,
+        .functions       = debugRecords.functions,
+        .globals         = debugRecords.globals,
+        .constants       = debugRecords.constants,
+        .emitCodeView    = builder_->compiler().buildCfg().backend.debugInfo,
     };
     SWC_RESULT(DebugInfo::buildObject(debugInfoRequest, debugInfoResult));
     for (auto& debugSectionData : debugInfoResult.sections)
@@ -226,7 +226,7 @@ Result NativeObjFileWriterCoff::buildRDataAllocationSection(CoffSectionBuild& se
             const auto* targetAllocation = builder_->tryFindRDataEmittedAllocation(static_cast<uint32_t>(relocation.addend));
             if (!targetAllocation)
             {
-                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(names->scopeHash, allocation.shardIndex, allocation.sourceOffset);
+                const Utf8 ownerName = nativeScopedRDataAllocationSymbol(names->scopeHash, allocation.emittedOffset);
                 return builder_->reportError(DiagnosticId::cmd_err_native_constant_payload_unsupported, Diagnostic::ARG_SYM, ownerName);
             }
 
@@ -376,7 +376,7 @@ void NativeObjFileWriterCoff::addDefinedSymbols(const NativeObjDescription& desc
 
     for (uint32_t i = 0; i < description.rdataAllocationCount; ++i)
     {
-        const auto& allocation = builder_->rdataAllocationMap[description.rdataShardIndex][description.rdataAllocationIndex + i];
+        const auto& allocation = builder_->rdataAllocations[description.rdataAllocationIndex + i];
         const auto& section    = sections[i + 1];
         SWC_ASSERT(section.data.name == ".rdata" || section.data.name == ".rbss");
 

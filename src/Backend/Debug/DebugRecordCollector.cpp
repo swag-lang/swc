@@ -250,7 +250,7 @@ void collectDebugRecords(NativeBackendBuilder&                      builder,
             record.isConst              = symbol->hasExtraFlag(SymbolVariableFlagsE::Let);
             record.symbolName           = debugDataSymbolName(builder.ctx(), *symbol);
             record.sectionName          = sectionName;
-            record.symbolOffset         = symbol->offset();
+            record.symbolOffset         = builder.globalLayout.map(symbol->globalStorageKind(), symbol->offset());
             record.isGlobal             = symbol->isPublic();
         }
 

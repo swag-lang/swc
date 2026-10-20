@@ -1416,8 +1416,7 @@ namespace
         pdataSection.name            = ".pdata";
         pdataSection.characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_ALIGN_4BYTES | IMAGE_SCN_MEM_READ;
 
-        const uint32_t objectHash  = Math::hash(Utf8(request.objectPath).view());
-        uint32_t       unwindIndex = 0;
+        uint32_t unwindIndex = 0;
         for (const DebugInfoFunctionRecord& function : request.functions)
         {
             if (!function.machineCode || function.machineCode->unwindInfo.empty())
@@ -1427,7 +1426,7 @@ namespace
             const uint32_t unwindOffset = static_cast<uint32_t>(xdataSection.bytes.size());
             xdataSection.bytes.append(std::span{function.machineCode->unwindInfo.data(), function.machineCode->unwindInfo.size()});
 
-            const Utf8             unwindSymbolName = std::format("__swc_unwind_{:08x}_{:06}_{:04}", objectHash, request.objectIndex, unwindIndex++);
+            const Utf8             unwindSymbolName = std::format("__swc_unwind_{:08x}_{:06}_{:04}", request.symbolScopeHash, request.objectIndex, unwindIndex++);
             DebugInfoDefinedSymbol unwindSym;
             unwindSym.name        = unwindSymbolName;
             unwindSym.sectionName = xdataSection.name;

@@ -753,8 +753,11 @@ SWC_TEST_BEGIN(NativeArtifact_UnwindRecordsDoNotRequireCodeViewMetadata)
         function->setDebugStackFrameSize(32);
         auto* global = makeTestGlobal(*fixture.compilerCtx, "visible_global", fixture.compiler->typeMgr().typeU64());
         // The collector sees real global metadata even when this particular object contains only code.
-        global->setGlobalStorage(DataSegmentKind::GlobalInit, 0);
+        const auto [globalOffset, globalStorage] = fixture.compiler->globalInitSegment().reserve<uint64_t>();
+        *globalStorage                           = 0;
+        global->setGlobalStorage(DataSegmentKind::GlobalInit, globalOffset);
         fixture.nativeBuilder->regularGlobals.push_back(global);
+        fixture.nativeBuilder->globalLayout.build(*fixture.nativeBuilder);
         NativeFunctionInfo                             info{.symbol = function, .machineCode = &code, .symbolName = "__visible_function", .debugName = "visible_function"};
         const std::array<const NativeFunctionInfo*, 2> functions = {nullptr, &info};
 
@@ -844,9 +847,13 @@ SWC_TEST_BEGIN(NativeArtifact_LinkMergesArchiveMemberDebugInfo)
     function->parameters().push_back(parameter);
     function->setDebugStackFrameSize(32);
     function->setDebugStackBaseReg(MicroReg::intReg(4));
-    auto* global = makeTestGlobal(*fixture.compilerCtx, "member_global", stringType);
-    global->setGlobalStorage(DataSegmentKind::GlobalInit, 16);
+    // Storage that nothing reaches leaves the section, so the global moves to its front.
+    auto*        global      = makeTestGlobal(*fixture.compilerCtx, "member_global", stringType);
+    DataSegment& initSegment = fixture.compiler->globalInitSegment();
+    initSegment.reserveBlock(16, 8, true);
+    global->setGlobalStorage(DataSegmentKind::GlobalInit, initSegment.reserveBlock(16, 8, true));
     fixture.nativeBuilder->regularGlobals.push_back(global);
+    fixture.nativeBuilder->globalLayout.build(*fixture.nativeBuilder);
 
     // Object 0 of an archive: it owns the writable data, and the read-only data lives elsewhere.
     NativeFunctionInfo   info{.symbol = function, .machineCode = &code, .symbolName = "__member_function", .debugName = "member_function"};
@@ -908,7 +915,7 @@ SWC_TEST_BEGIN(NativeArtifact_LinkMergesArchiveMemberDebugInfo)
     if (debugInfo.globals.size() != 1)
         return failNativeArtifactTest(K_TEST_NAME, "the member's global did not merge");
     const LinkDebugGlobal& mergedGlobal = debugInfo.globals.front();
-    if (mergedGlobal.displayName != "member_global" || mergedGlobal.symbolName != dataBase || mergedGlobal.sectionOffset != 16)
+    if (mergedGlobal.displayName != "member_global" || mergedGlobal.symbolName != dataBase || mergedGlobal.sectionOffset != 0)
         return failNativeArtifactTest(K_TEST_NAME, "the merged global is not addressed from its module's data");
     if (tpiRecordKind(debugInfo.tpiRecords, mergedGlobal.typeIndex) != K_LF_STRUCTURE)
         return failNativeArtifactTest(K_TEST_NAME, "the merged global lost its type");
@@ -1085,6 +1092,9 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
     const CommandLine               commandLine = makeStandaloneNativeArtifactCmdLine("coff_writer_uses_extended_relocations", Runtime::BuildCfgBackendKind::SharedLibrary);
     const NativeArtifactTestFixture fixture(ctx.global(), commandLine);
 
+    const auto [globalOffset, globalStorage] = fixture.compiler->globalInitSegment().reserve<uint64_t>();
+    *globalStorage                           = 0;
+
     MachineCode code;
     code.bytes.resize(sizeof(uint64_t), std::byte{0});
     code.codeRelocations.reserve(RELOCATION_COUNT);
@@ -1093,10 +1103,11 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_CoffWriterUsesExtendedRelocations)
         code.codeRelocations.push_back({
             .kind          = MicroRelocation::Kind::GlobalInitAddress,
             .codeOffset    = 0,
-            .targetAddress = 0,
+            .targetAddress = globalOffset,
         });
     }
     addNativeFunctionInfo(*fixture.nativeBuilder, *fixture.compilerCtx, code, "coff_extended_relocations");
+    fixture.nativeBuilder->globalLayout.build(*fixture.nativeBuilder);
 
     NativeObjDescription description;
     description.objPath = fixture.cmdLine.workDir / "coff_extended_relocations.obj";
@@ -1200,10 +1211,10 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     const auto findAllocationDescription = [&](const uint32_t sourceOffset) -> const NativeObjDescription* {
         for (const NativeObjDescription& description : fixture.nativeBuilder->objectDescriptions)
         {
-            if (description.rdataShardIndex != 0 || description.rdataAllocationIndex == INVALID_REF)
+            if (!description.rdataAllocationCount)
                 continue;
-            const auto& mapping = fixture.nativeBuilder->rdataAllocationMap[0][description.rdataAllocationIndex];
-            if (mapping.sourceOffset == sourceOffset)
+            const auto& allocation = fixture.nativeBuilder->rdataAllocations[description.rdataAllocationIndex];
+            if (allocation.shardIndex == 0 && allocation.sourceOffset == sourceOffset)
                 return &description;
         }
         return nullptr;
@@ -1225,8 +1236,8 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
     if (!functionDescription || !rootDescription || !nestedDescription || !zeroDescription)
         return failNativeArtifactTest("NativeArtifact_RDataKeepsReferencedDependencies", "archive allocation object is missing");
 
-    const Utf8 rootSymbol   = nativeScopedRDataAllocationSymbol(*fixture.compiler, 0, rootOffset);
-    const Utf8 nestedSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, 0, nestedOffset);
+    const Utf8 rootSymbol   = nativeScopedRDataAllocationSymbol(*fixture.compiler, emittedRootOffset);
+    const Utf8 nestedSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, emittedNestedOffset);
 
     Diagnostic diag;
     CoffObject functionObject;
@@ -1246,7 +1257,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_RDataKeepsReferencedDependencies)
 
     // Adjacent allocation objects must each retain only their own relocation range.
     const auto nestedRData  = std::ranges::find(nestedObject.sections, Utf8(".rdata"), &CoffInputSection::name);
-    const Utf8 stringSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, 0, stringOffset);
+    const Utf8 stringSymbol = nativeScopedRDataAllocationSymbol(*fixture.compiler, emittedStringOffset);
     if (nestedRData == nestedObject.sections.end() || nestedRData->relocs.size() != 1 || nestedRData->relocs.front().symbolName != stringSymbol || nestedRData->bytes.readLe64(0) != 0)
         return Result::Error;
 
@@ -1287,7 +1298,7 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_ArchiveBatchesLargeConstantSets)
     {
         if (!description.rdataAllocationCount)
             continue;
-        if (description.rdataShardIndex != 0 || description.rdataAllocationIndex != nextAllocation || description.rdataAllocationCount != 2)
+        if (description.rdataAllocationIndex != nextAllocation || description.rdataAllocationCount != 2)
             return failNativeArtifactTest("NativeArtifact_ArchiveBatchesLargeConstantSets", "batch partition loses allocation coverage or granularity");
         nextAllocation += description.rdataAllocationCount;
     }
@@ -1386,12 +1397,17 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_DataEmitsFunctionRelocations)
     *globalStorage                           = 0;
     initSegment.addFunctionRelocation(relocOffset, targetFunction);
 
+    auto* relocated = makeTestGlobal(*fixture.compilerCtx, "GFunctionPointer", fixture.compiler->typeMgr().typeU64());
+    relocated->setGlobalStorage(DataSegmentKind::GlobalInit, relocOffset);
+    fixture.nativeBuilder->regularGlobals.push_back(relocated);
+
     auto* global = makeTestGlobal(*fixture.compilerCtx, "GFunctionInit", fixture.compiler->typeMgr().typeU64());
     global->setGlobalStorage(DataSegmentKind::GlobalInit, globalOffset);
     global->setGlobalFunctionInit(targetFunction);
     fixture.nativeBuilder->regularGlobals.push_back(global);
 
     SWC_RESULT(fixture.artifactBuilder->build());
+    const NativeGlobalLayout& layout = fixture.nativeBuilder->globalLayout;
 
     if (fixture.nativeBuilder->mergedData.relocations.size() != 2)
         return Result::Error;
@@ -1405,13 +1421,13 @@ SWC_FILESYSTEM_TEST_BEGIN(NativeArtifact_DataEmitsFunctionRelocations)
         if (relocation.addend != 0)
             return Result::Error;
 
-        if (relocation.offset == relocOffset)
+        if (relocation.offset == layout.map(DataSegmentKind::GlobalInit, relocOffset))
         {
             foundSegmentRelocation = true;
             continue;
         }
 
-        if (relocation.offset == globalOffset)
+        if (relocation.offset == layout.map(DataSegmentKind::GlobalInit, globalOffset))
         {
             foundGlobalInitBinding = true;
             continue;

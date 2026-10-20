@@ -713,15 +713,12 @@ void NativeArtifactBuilder::resetDataSections() const
     builder_->mergedBss.name            = ".bss";
     builder_->mergedBss.characteristics = IMAGE_SCN_CNT_UNINITIALIZED_DATA | IMAGE_SCN_MEM_READ | IMAGE_SCN_MEM_WRITE | IMAGE_SCN_ALIGN_16BYTES;
 
-    CompilerInstance& compiler = builder_->compiler();
-
     builder_->mergedRData.bytes.clear();
     builder_->mergedRData.relocations.clear();
     builder_->mergedData.bytes.clear();
     builder_->mergedData.relocations.clear();
-
-    builder_->mergedBss.bssSize = compiler.globalZeroSegment().extentSize();
-    builder_->mergedBss.bss     = builder_->mergedBss.bssSize != 0;
+    builder_->mergedBss.bssSize = 0;
+    builder_->mergedBss.bss     = false;
 
     for (auto& mappings : builder_->rdataAllocationMap)
         mappings.clear();
@@ -730,37 +727,42 @@ void NativeArtifactBuilder::resetDataSections() const
 
 Result NativeArtifactBuilder::prepareDataSectionsWithoutStartup(NativeRDataCollector& rdataCollector) const
 {
-    // Global initializers also retain constants, such as dynamic type descriptors, without
-    // requiring a code reference. Startup roots arrive after startup lowering has completed.
-    SWC_RESULT(rdataCollector.collectFunctionRoots());
-    SWC_RESULT(rdataCollector.collectGlobalRoots());
-
-    CompilerInstance& compiler = builder_->compiler();
-    const uint32_t    dataSize = compiler.globalInitSegment().extentSize();
-    if (dataSize)
-    {
-        builder_->mergedData.bytes.resize(dataSize);
-        compiler.globalInitSegment().copyToPreserveOffsets(std::span{builder_->mergedData.bytes.data(), dataSize});
-    }
-
-    return Result::Continue;
+    // Startup roots, and the global storage that startup code reaches, arrive after startup
+    // lowering has completed.
+    return rdataCollector.collectFunctionRoots();
 }
 
 Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataCollector) const
 {
-    // Constant offsets are only known once every root, including startup, has been emitted.
+    // Startup code is lowered by now, so every root of the global storage is known. Global
+    // initializers also retain constants, such as dynamic type descriptors, without requiring a
+    // code reference; constant offsets are only known once every root has been emitted.
+    NativeGlobalLayout& layout = builder_->globalLayout;
+    layout.build(*builder_);
+    SWC_RESULT(rdataCollector.collectGlobalRoots());
     SWC_RESULT(rdataCollector.emitCollectedRoots());
 
-    CompilerInstance& compiler = builder_->compiler();
-    if (!builder_->mergedData.bytes.empty())
+    builder_->mergedBss.bssSize = layout.zeroSize();
+    builder_->mergedBss.bss     = builder_->mergedBss.bssSize != 0;
+    if (!layout.initSize())
+        return Result::Continue;
+
+    const DataSegment& initSegment = builder_->compiler().globalInitSegment();
+    builder_->mergedData.bytes.resize(layout.initSize());
+
+    const NativeBackendBuilder::ScopedSymbolNames* names = nullptr;
+    std::vector<DataSegmentRelocation>             relocations;
+    for (const NativeGlobalLayout::Allocation& allocation : layout.initAllocations())
     {
-        const std::vector<DataSegmentRelocation>       relocations = compiler.globalInitSegment().copyRelocations();
-        const NativeBackendBuilder::ScopedSymbolNames* names       = nullptr;
-        builder_->mergedData.relocations.reserve(builder_->mergedData.relocations.size() + relocations.size());
+        const auto* sourceBytes = initSegment.ptr<std::byte>(allocation.sourceOffset);
+        SWC_ASSERT(sourceBytes != nullptr);
+        std::memcpy(builder_->mergedData.bytes.data() + allocation.emittedOffset, sourceBytes, allocation.size);
+
+        initSegment.copyRelocations(relocations, allocation.sourceOffset, allocation.size);
         for (const auto& relocation : relocations)
         {
             NativeSectionRelocation record;
-            record.offset = relocation.offset;
+            record.offset = allocation.emittedOffset + (relocation.offset - allocation.sourceOffset);
             if (relocation.kind == DataSegmentRelocationKind::DataSegmentOffset)
             {
                 if (!names)
@@ -769,7 +771,7 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
                 if (relocation.targetShardIndex == INVALID_REF)
                 {
                     record.symbolName = names->dataBase;
-                    record.addend     = relocation.targetOffset;
+                    record.addend     = layout.map(DataSegmentKind::GlobalInit, relocation.targetOffset);
                 }
                 else
                 {
@@ -790,29 +792,29 @@ Result NativeArtifactBuilder::finishDataSections(NativeRDataCollector& rdataColl
 
             builder_->mergedData.relocations.push_back(std::move(record));
         }
+    }
 
-        for (const SymbolVariable* symbol : builder_->regularGlobals)
-        {
-            if (!symbol)
-                continue;
-            if (!symbol->hasGlobalStorage())
-                continue;
-            if (symbol->globalStorageKind() != DataSegmentKind::GlobalInit)
-                continue;
+    for (const SymbolVariable* symbol : builder_->regularGlobals)
+    {
+        if (!symbol)
+            continue;
+        if (!symbol->hasGlobalStorage())
+            continue;
+        if (symbol->globalStorageKind() != DataSegmentKind::GlobalInit)
+            continue;
 
-            const SymbolFunction* targetFunction = symbol->globalFunctionInit();
-            if (!targetFunction)
-                continue;
+        const SymbolFunction* targetFunction = symbol->globalFunctionInit();
+        if (!targetFunction)
+            continue;
 
-            const uint64_t storageSize = builder_->ctx().typeMgr().get(symbol->typeRef()).sizeOf(builder_->ctx());
-            SWC_ASSERT(storageSize == sizeof(uint64_t));
+        const uint64_t storageSize = builder_->ctx().typeMgr().get(symbol->typeRef()).sizeOf(builder_->ctx());
+        SWC_ASSERT(storageSize == sizeof(uint64_t));
 
-            NativeSectionRelocation record;
-            record.offset = symbol->offset();
-            SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, targetFunction));
-            record.addend = 0;
-            builder_->mergedData.relocations.push_back(std::move(record));
-        }
+        NativeSectionRelocation record;
+        record.offset = layout.map(DataSegmentKind::GlobalInit, symbol->offset());
+        SWC_RESULT(builder_->resolveFunctionSymbolName(record.symbolName, targetFunction));
+        record.addend = 0;
+        builder_->mergedData.relocations.push_back(std::move(record));
     }
 
     return Result::Continue;
@@ -885,11 +887,9 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
     size_t             objectCount  = functionCount + builder_->rdataAllocations.size() + 1;
     if (objectCount > memberLimit)
     {
-        const auto countObjects = [&](const uint32_t count) {
-            size_t result = functionCount + 1;
-            for (const auto& mappings : builder_->rdataAllocationMap)
-                result += (mappings.size() + count - 1) / count;
-            return result;
+        const size_t allocationCount = builder_->rdataAllocations.size();
+        const auto   countObjects    = [&](const uint32_t count) {
+            return functionCount + 1 + (allocationCount + count - 1) / count;
         };
 
         const size_t minimumCount = countObjects(maxBatchSize);
@@ -934,25 +934,27 @@ Result NativeArtifactBuilder::partitionArchiveObjects() const
 
     // Multiple objects can relocate to the same allocation. Format its symbol once
     // here, when assigning the allocation to its archive member.
-    const uint32_t scopeHash = builder_->scopedSymbolNames().scopeHash;
-    uint32_t       objIndex  = static_cast<uint32_t>(functionCount + 1);
-    for (uint32_t shardIndex = 0; shardIndex < ConstantStorageLayout::SHARD_COUNT; ++shardIndex)
+    const uint32_t scopeHash   = builder_->scopedSymbolNames().scopeHash;
+    auto&          allocations = builder_->rdataAllocations;
+    uint32_t       objIndex    = static_cast<uint32_t>(functionCount + 1);
+    for (uint32_t allocationIndex = 0; allocationIndex < allocations.size(); ++allocationIndex)
     {
-        auto& mappings = builder_->rdataAllocationMap[shardIndex];
-        for (uint32_t allocationIndex = 0; allocationIndex < mappings.size(); ++allocationIndex)
-        {
-            NativeRDataAllocationMapEntry& allocation = mappings[allocationIndex];
-            allocation.symbolName                     = nativeScopedRDataAllocationSymbol(scopeHash, allocation.shardIndex, allocation.sourceOffset);
+        NativeRDataAllocationMapEntry& allocation = allocations[allocationIndex];
+        allocation.symbolName                     = nativeScopedRDataAllocationSymbol(scopeHash, allocation.emittedOffset);
 
-            if (allocationIndex % batchSize == 0)
-            {
-                static_assert(ConstantStorageLayout::SHARD_COUNT <= std::numeric_limits<uint16_t>::max());
-                NativeObjDescription& description = builder_->objectDescriptions[objIndex++];
-                description.rdataShardIndex       = static_cast<uint16_t>(shardIndex);
-                description.rdataAllocationIndex  = allocationIndex;
-                description.rdataAllocationCount  = static_cast<uint16_t>(std::min<size_t>(batchSize, mappings.size() - allocationIndex));
-            }
+        if (allocationIndex % batchSize == 0)
+        {
+            NativeObjDescription& description = builder_->objectDescriptions[objIndex++];
+            description.rdataAllocationIndex  = allocationIndex;
+            description.rdataAllocationCount  = static_cast<uint16_t>(std::min<size_t>(batchSize, allocations.size() - allocationIndex));
         }
+    }
+
+    // Code relocations resolve allocations through the per-shard lookup tables.
+    for (auto& mappings : builder_->rdataAllocationMap)
+    {
+        for (NativeRDataAllocationMapEntry& mapping : mappings)
+            mapping.symbolName = nativeScopedRDataAllocationSymbol(scopeHash, mapping.emittedOffset);
     }
 
     SWC_ASSERT(objIndex == numObjects);

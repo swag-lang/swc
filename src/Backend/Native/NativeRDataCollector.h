@@ -11,7 +11,8 @@ class NativeBackendBuilder;
 class SymbolFunction;
 
 // Collects the constant-shard allocations that are reachable from emitted native code or globals
-// and remaps their internal relocations into the merged .rdata section.
+// and remaps their internal relocations into the merged .rdata section. Global roots are read
+// from the builder's global layout, so it must be built first.
 class NativeRDataCollector
 {
 public:
@@ -19,7 +20,6 @@ public:
     NativeRDataCollector(const NativeRDataCollector&)            = delete;
     NativeRDataCollector& operator=(const NativeRDataCollector&) = delete;
 
-    Result collectAndEmit();
     Result collectStartupRoots();
     Result collectFunctionRoots();
     Result collectGlobalRoots();
@@ -30,12 +30,17 @@ private:
     {
         DataSegmentAllocation source;
         Utf8                  ownerName;
+
+        // An equal interned string reached first, whose emitted bytes this one shares.
+        const ReachableRDataAllocation* canonical = nullptr;
+        // Index of the emitted entry in the builder's allocation list.
+        uint32_t emittedIndex = INVALID_REF;
     };
 
     struct PendingRDataAllocation
     {
-        uint32_t                        shardIndex = 0;
-        const ReachableRDataAllocation* allocation = nullptr;
+        uint32_t                  shardIndex = 0;
+        ReachableRDataAllocation* allocation = nullptr;
     };
 
     Result collectPendingAllocations();
@@ -50,6 +55,10 @@ private:
     // Every reached allocation, in the order the roots reached it, which is the emission order.
     std::vector<PendingRDataAllocation> reachableAllocations_;
     std::vector<PendingRDataAllocation> pending_;
+    // Strings are interned per shard, and which shard holds a string depends on compilation
+    // scheduling. Each content is emitted once; later copies become aliases of the first.
+    std::unordered_map<std::string_view, const ReachableRDataAllocation*> strings_;
+    std::vector<PendingRDataAllocation>                                   aliases_;
 };
 
 SWC_END_NAMESPACE();

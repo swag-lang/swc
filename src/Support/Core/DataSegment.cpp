@@ -166,6 +166,23 @@ bool DataSegment::findAllocation(DataSegmentAllocation& outAllocation, const uin
     return true;
 }
 
+bool DataSegment::isInternedString(const DataSegmentAllocation& allocation) const
+{
+    if (!allocation.size || allocation.align != alignof(std::byte))
+        return false;
+
+    // Read the bytes before taking the lock: the large-block path of ptr() takes it too.
+    const char* bytes = ptr<char>(allocation.offset);
+    if (!bytes || bytes[allocation.size - 1] != 0)
+        return false;
+
+    const std::string_view value{bytes, allocation.size - 1};
+    const uint32_t         hash = Math::hash(value);
+    const std::shared_lock lock(mutex_);
+    const InternedString*  found = stringMap_.find(value, hash);
+    return found && found->offset == allocation.offset;
+}
+
 uint32_t DataSegment::size() const noexcept
 {
     const std::shared_lock lock(mutex_);

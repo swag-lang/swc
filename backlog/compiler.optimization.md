@@ -280,13 +280,16 @@ new language syntax.
 
 ### compiler.optimization.105 — Prove lz77's signed remainder bounds
 
-- Evidence: unsigned constant remainders with a proven bounded dividend already lower to a mask or
-  multiply by a magic number. The remaining signed `i` and `p` remainders need a proof of
-  nonnegativity under Swag's truncating remainder semantics; Zig's floor-modulo behavior is not
-  equivalent for negative inputs. Recent static changes match the winner's loop instruction counts,
-  but no new full-campaign timing confirms a gain.
-- Next: follow the loop-carried counters through SSA ranges and exit conditions. Prove
-  nonnegativity before removing sign correction, and retain negative-input controls.
+- Evidence: `CountedLoopRanges` in `Pass.StrengthReduction.cpp` handles literal seeds and limits,
+  positive constant steps, and straight-line bodies with a no-wrap proof. LZ77's remaining signed
+  `i` and `p` remainders fall outside that boundary: `i` has conditional `best`/one steps, while
+  `p` has bounds derived from `i` and `best`. Swag's truncating remainder and Zig's floor modulo
+  differ for negative inputs.
+- Next: recover signed upper bounds from `min(value, constant)` selections and prove the inner
+  match counter bounded under its dominating guard despite early exits. Propagate that range
+  through `best`, then prove `i` cannot wrap on either increment and bound `p`'s dynamic range.
+  Extend the existing SSA proof with general guard/phi facts; retain negative, overflow,
+  conditional-step and alternate-entry controls before removing any sign correction.
 - Done when: every removed sign correction has a sound range proof, exact checksums, unrelated
   positive/negative coverage, and no generated-code loss elsewhere.
 

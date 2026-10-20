@@ -191,6 +191,14 @@ The promotion batch passes all 1,508 C++ tests, including the existing numeric
 pair, operand-order and forced-32-bit promotion expectations. Every compiler
 context also constructs the complete table with its uniqueness assertions.
 
+A fourth arithmetic defect is reproduced directly: a decimal mantissa with
+`INT64_MAX` as its exponent becomes zero because adding its digit count wraps
+the range-direction calculation. Comparing the exponent with the negated digit
+count preserves the mathematical test without that overflowing addition. The
+new C++ regression fails before the fix while the other 1,508 pass; all 1,509
+then pass. It checks one-, five- and 39-digit mantissas at both signed exponent
+extremes, plus zero at the maximum exponent. This is a correctness repair.
+
 Rejected trials:
 
 - Returning a separately constructed all-ones reachability vector duplicated

@@ -107,8 +107,9 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
     if (error == std::errc::result_out_of_range)
     {
         // Past the largest double the value is infinite; below the smallest subnormal it is zero.
-        const int64_t magnitude = static_cast<int64_t>(digits.size()) + exponent10;
-        parsed                  = magnitude > 0 ? std::numeric_limits<double>::infinity() : 0.0;
+        // Compare without adding: an extreme positive exponent can overflow int64_t.
+        const bool aboveRange = exponent10 > -static_cast<int64_t>(digits.size());
+        parsed                = aboveRange ? std::numeric_limits<double>::infinity() : 0.0;
     }
     else
     {

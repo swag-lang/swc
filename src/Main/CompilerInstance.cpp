@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "Backend/Micro/MachineCodeCache.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
@@ -403,6 +404,8 @@ namespace
 
 CompilerInstance::~CompilerInstance()
 {
+    if (cmdLine().machineCache)
+        MachineCodeCache::flush();
     // JIT code can register fiber-local storage whose cleanup callback is its own code reading its
     // own globals, such as the runtime allocator's thread heap. Windows would run it when a thread
     // exits, after this instance is gone; release those slots while the callbacks can still run.

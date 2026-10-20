@@ -1,0 +1,16 @@
+{
+  "compiler": "C:\\Perso\\swag-lang\\swc-binary-cache\\bin\\swc.exe",
+  "checks": [
+    "disabled cache creates no archives",
+    "cold and warm native/JIT calls return the same values",
+    "a new consumer layout keeps current globals and constant pointers",
+    "changed generic API body and literal invalidate generated code",
+    "body checksum failures fall back and repair current entries",
+    "a truncated archive falls back and is republished",
+    "source errors retain the imported source location",
+    "program configuration changes preserve native and JIT behavior",
+    "a callee that starts writing invalidates cached caller optimizations",
+    "compiler identity changes use another archive",
+    "concurrent publication leaves a readable merged archive"
+  ]
+}

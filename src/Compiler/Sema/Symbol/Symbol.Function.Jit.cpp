@@ -4,11 +4,14 @@
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITPatchJob.h"
+#include "Backend/Micro/MachineCodeCache.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Report/Assert.h"
 #include "Support/Thread/JobManager.h"
 
@@ -407,13 +410,23 @@ Result SymbolFunction::emit(TaskContext& ctx)
 
     // The static sanitizer runs the checks whose sanity guard is on for this function:
     // the build-config default combined with any `#[Swag.Sanity(...)]` override on it.
+    std::optional<MachineCodeCache> cache;
+    if (ctx.cmdLine().machineCache)
+        cache.emplace(ctx, *this, builder);
+    const bool     reused              = cache && cache->read(loweredMicroCode_);
+    const uint64_t warningsBefore      = Stats::get().numWarnings.load(std::memory_order_relaxed);
     const uint16_t sanitizerSafetyMask = attributes().effectiveSanityMask(ctx.compiler().buildCfg().sanityGuards);
-    const Result   emitResult          = loweredMicroCode_.emit(ctx, builder, debugStackBaseReg(), sanitizerSafetyMask, this);
+    const Result   emitResult          = reused ? Result::Continue : loweredMicroCode_.emit(ctx, builder, debugStackBaseReg(), sanitizerSafetyMask, this);
     if (emitResult != Result::Continue)
     {
         ctx.state().jitEmissionError = true;
         return emitResult;
     }
+
+    if (reused)
+        addFlag(SymbolFlagsE::MachineCodeReused);
+    if (cache && !reused && Stats::get().numWarnings.load(std::memory_order_relaxed) == warningsBefore && !Stats::hasError())
+        cache->write(loweredMicroCode_);
 
     // CodeView requires a physical frame register. Replace the pre-allocation virtual
     // debug base with its resolved home so local-variable records can be emitted.

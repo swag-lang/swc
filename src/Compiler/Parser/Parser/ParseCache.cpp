@@ -4,10 +4,10 @@
 #include "Compiler/Parser/Parser/ParserJob.h"
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerCache.h"
 #include "Main/FileSystem.h"
 #include "Main/Stats.h"
 #include "Main/TaskContext.h"
-#include "Main/Version.h"
 #include "Main/WorkspaceLayout.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Math/Hash.h"
@@ -50,18 +50,6 @@ namespace
         bytes = bytes.subspan(count * sizeof(T));
     }
 
-    Utf8 compilerIdentity()
-    {
-        const fs::path  exe = Os::getExeFullName();
-        std::error_code ec;
-        const auto      size = fs::file_size(exe, ec);
-        if (ec)
-            return {};
-        const auto time = fs::last_write_time(exe, ec);
-        if (ec)
-            return {};
-        return std::format("{}:{}:{}:{}.{}.{}:{}", exe.generic_string(), size, time.time_since_epoch().count(), SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM, sizeof(AstNode));
-    }
 }
 
 fs::path ParseCache::path(const TaskContext& ctx, const SourceFile& file, const ParserJobOptions options)
@@ -74,7 +62,7 @@ fs::path ParseCache::path(const TaskContext& ctx, const SourceFile& file, const 
     if (!cmd.parseCache || options.emitTrivia || options.ignoreGlobalCompilerIfSkip || options.allowReservedIdentifiers ||
         cmd.lexOnly || cmd.syntaxOnly || cmd.semaOnly || isEditorServiceCommand(cmd.command))
         return {};
-    static const Utf8 compiler = compilerIdentity();
+    const Utf8& compiler = compilerCacheIdentity();
     if (compiler.empty())
         return {};
     const Utf8 key = std::format("{}:{}:{}:{}:{}", compiler.view(), file.genericPathString().view(), file.isRuntime(), static_cast<uint32_t>(compilerCommandFromKind(cmd.command)), Math::hash(file.sourceView()));

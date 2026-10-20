@@ -62,6 +62,8 @@ namespace Unittest
             result.artifactKindExplicit = false;
             result.commandExplicit      = false;
             result.verboseUnittest      = false;
+            result.machineCache         = false;
+            result.parseCache           = false;
             return result;
         }
 

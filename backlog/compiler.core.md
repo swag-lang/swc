@@ -77,11 +77,17 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   root cause is fixed, and the script passes repeated parallel imports with six workers.
 - Related: compiler.core.081
 
-### compiler.core.030 — Reuse lowered runtime code across executables
+### compiler.core.030 — Skip repeated runtime IR generation
 
-- Evidence: executable lowering starts from reachable roots, but runtime functions reached through relocations are lowered for every executable. The existing function cache skips functions with code relocations.
-- Next: profile a current `hello_build`, identify the runtime functions repeatedly lowered, and determine whether their relocations can be represented in a reusable artifact keyed by compiler build, runtime sources, configuration, and target.
-- Done when: a fresh and reused runtime artifact produce identical executables and the cache invalidates on every relevant input change; delete the entry if no safe reusable subset remains.
+- Evidence: experimental `MachineCodeCache` archives preserve runtime/API machine code,
+  unwind data and relocations across executables, with consumer-owned reference fixups.
+  Lookup still follows fresh semantic analysis and unoptimized IR generation. Conservative
+  global-distance and source-context differences can also produce misses for unchanged sources.
+- Next: move eligible lookup ahead of IR generation using stable body and semantic dependency
+  identities, preserving configuration, target, ABI, constants, effects and source provenance.
+- Done when: warm builds skip the corresponding runtime IR generation, fresh and reused paths
+  preserve diagnostics and native/JIT behavior, and complete compilation remains faster after
+  fingerprinting and reference fixups.
 - Related: compiler.core.003, compiler.core.004, compiler.core.006.
 ### compiler.core.072 — Link preparation resolves and places the native image on one thread
 
@@ -342,7 +348,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 - Evidence: each fresh compiler process analyzes the unchanged runtime prelude before compiling
   a module or script. Experimental parse archives preserve tokens and syntax in private trees;
-  original source loading and runtime semantic/bootstrap work still repeat for each instance.
+  machine-code archives amortize backend emission. Original source loading and runtime semantic
+  analysis still repeat for each instance.
 - Next: serialize the prelude through the ordinary module-interface mechanism and include source, compiler, target, and relevant configuration in its cache key.
 - Done when: warm module builds and script launches skip prelude lexing, parsing, and semantic analysis, while fresh and reused paths produce identical diagnostics and artifacts.
 - Related: compiler.core.001, compiler.core.004, compiler.core.016.
@@ -361,7 +368,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   a 1,000-file shared dependency, but a standard eight-root graph was about 2.7% slower
   overall in Release despite neutral setup timing.
   Experimental `ParseCache` images also retain original API source loading and reconstruct
-  the consumer's resolved symbols and types through a fresh semantic pass.
+  the consumer's resolved symbols and types through a fresh semantic pass. `MachineCodeCache`
+  preserves supported compiled bodies, while imported declaration and type resolution remain fresh.
 - Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
   work separately from consumer sources on a small consumer, a large module graph, and a
   diamond dependency, including consumers of the core, pixel and gui API closures. Compare

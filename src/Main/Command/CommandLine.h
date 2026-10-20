@@ -184,6 +184,7 @@ struct CommandLine
     bool cleanCache              = false;
     bool rebuild                 = false;
     bool parseCache              = false;
+    bool machineCache            = false;
     bool dryRun                  = false;
     bool showConfig              = false;
     bool dumpFormatConfig        = false;

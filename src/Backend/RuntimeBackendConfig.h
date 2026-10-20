@@ -2,6 +2,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
+struct ByteArray;
+
 namespace Runtime
 {
     // Controls which calls the semantic inliner expands.
@@ -91,6 +93,9 @@ namespace Runtime
 
     struct BuildCfgBackend
     {
+        // Every backend control that can change emitted code participates here.
+        void appendCacheIdentity(ByteArray& bytes) const;
+
         BuildCfgBackendOptimLevel optimLevel = BuildCfgBackendOptimLevel::O0;
         bool                      vectorize;
         bool                      debugInfo;

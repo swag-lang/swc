@@ -97,47 +97,6 @@ namespace
         return Utf8Helper::toLowerHex(sha256(std::span{reinterpret_cast<const std::byte*>(identity.data()), identity.size()}));
     }
 
-    void appendBackendConfig(ByteArray& bytes, const Runtime::BuildCfgBackend& config)
-    {
-        bytes.pushBack(static_cast<std::byte>(config.optimLevel));
-        bytes.pushBack(static_cast<std::byte>(config.vectorize));
-        bytes.pushBack(static_cast<std::byte>(config.debugInfo));
-        bytes.pushBack(static_cast<std::byte>(config.enableExceptions));
-        bytes.pushBack(static_cast<std::byte>(config.math.fma));
-        bytes.pushBack(static_cast<std::byte>(config.math.noNaN));
-        bytes.pushBack(static_cast<std::byte>(config.math.noInf));
-        bytes.pushBack(static_cast<std::byte>(config.math.noSignedZero));
-        bytes.pushBack(static_cast<std::byte>(config.math.unsafe));
-        bytes.pushBack(static_cast<std::byte>(config.math.approxFunc));
-        bytes.pushBack(static_cast<std::byte>(config.inlineMode));
-        bytes.appendLe32(config.optimizer.iterations.preRaSweeps);
-        bytes.appendLe32(config.optimizer.iterations.allocationSweeps);
-        bytes.appendLe32(config.optimizer.iterations.postRaSweeps);
-        bytes.appendLe32(config.optimizer.iterations.prePrologueSweeps);
-        bytes.appendLe32(config.optimizer.iterations.branchThreadRounds);
-        bytes.appendLe32(config.optimizer.iterations.inductionVariableRounds);
-        bytes.appendLe32(config.optimizer.iterations.loopInvariantRounds);
-        bytes.appendLe32(config.optimizer.iterations.sinkToUseRounds);
-        bytes.appendLe32(config.optimizer.iterations.registerJoinRounds);
-        bytes.appendLe32(config.optimizer.iterations.postRaHoistLevels);
-        bytes.appendLe32(config.optimizer.unroll.memoryBytes);
-        bytes.appendLe32(config.optimizer.unroll.maxTrips);
-        bytes.appendLe32(config.optimizer.unroll.maxWideTableTrips);
-        bytes.appendLe32(config.optimizer.unroll.maxBodyInstructions);
-        bytes.appendLe32(config.optimizer.unroll.maxTotalInstructions);
-        bytes.appendLe32(config.optimizer.unroll.maxOrdinaryBodyInstructions);
-        bytes.appendLe32(config.optimizer.unroll.maxOrdinaryTotalInstructions);
-        bytes.appendLe32(config.optimizer.unroll.maxBranchedTotalInstructions);
-        bytes.appendLe32(config.optimizer.unroll.maxNestedTotalInstructions);
-        bytes.appendLe32(config.optimizer.unroll.maxPartialBodyInstructions);
-        bytes.appendLe32(config.optimizer.unroll.partialFactor);
-        bytes.appendLe32(config.optimizer.unroll.initializerLookback);
-        bytes.appendLe32(config.optimizer.unroll.sumInitializerLookback);
-        bytes.appendLe32(config.optimizer.vectorization.maxPlanInstructions);
-        bytes.appendLe32(config.optimizer.vectorization.maxTreeDepth);
-        bytes.appendLe32(config.optimizer.vectorization.maxPromotedPerLoop);
-    }
-
     Utf8 functionCacheFingerprint(const NativeBackendBuilder& builder, const SymbolFunction& function)
     {
         const MicroBuilder* microBuilder = function.microInstrBuilder();
@@ -145,7 +104,7 @@ namespace
             return {};
 
         ByteArray identity;
-        appendBackendConfig(identity, microBuilder->backendBuildCfg());
+        microBuilder->backendBuildCfg().appendCacheIdentity(identity);
         identity.pushBack(static_cast<std::byte>(function.callConvKind()));
         identity.appendLe32(function.attributes().effectiveSanityMask(builder.compiler().buildCfg().sanityGuards));
         identity.appendLe32(function.debugStackBaseReg().packed);
@@ -1110,6 +1069,15 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
     if (!functionCacheEnabled_)
         return false;
 
+    // The shared runtime/API archive validates semantic and relocation inputs.
+    // Keep these functions on that path rather than the older output-local COFF cache.
+    if (ctx().cmdLine().machineCache && function.decl())
+    {
+        const SourceFile* file = compiler().ownerSourceFile(function.srcViewRef());
+        if (file && (file->isRuntime() || file->isImportedApi()))
+            return false;
+    }
+
     // A requested microcode listing comes from running the passes a cached object skips.
     if (const MicroBuilder* builder = function.microInstrBuilder(); builder && builder->hasPrintPassOptions())
         return false;
@@ -1739,9 +1707,9 @@ Result NativeBackendBuilder::prepare()
             {
                 std::vector<Utf8> stats;
                 stats.push_back(ScopedTimedLog::formatStatCount(ctx_, functionInfos.size(), "function"));
-                const size_t cacheHits = std::ranges::count_if(
-                    functionInfos,
-                    &NativeFunctionInfo::cacheHit);
+                const size_t cacheHits = std::ranges::count_if(functionInfos, [](const NativeFunctionInfo& info) {
+                    return info.cacheHit || info.symbol->hasFlag(SymbolFlagsE::MachineCodeReused);
+                });
                 if (cacheHits)
                     stats.push_back(ScopedTimedLog::formatStatCount(ctx_, cacheHits, "reused function"));
                 microStage->setStat(ScopedTimedLog::joinStatItems(ctx_, stats));

@@ -179,7 +179,7 @@ void CommandLineParser::registerCommands()
 
     add(HelpOptionGroup::Input, "clean", "--cache", nullptr,
         &cmdLine_->cleanCache,
-        "Remove dependency copies and binary parse caches kept outside workspaces");
+        "Remove dependency copies and binary compiler caches kept outside workspaces");
     add(HelpOptionGroup::Input, "clean", "--cache-days", nullptr,
         &cmdLine_->cleanCacheDays,
         "Restrict --cache to the copies no run has used for at least this many days");
@@ -289,6 +289,9 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "all", "--parse-cache", nullptr,
         &cmdLine_->parseCache,
         "Reuse experimental binary parse archives for runtime and imported API sources");
+    add(HelpOptionGroup::Development, "all", "--machine-cache", nullptr,
+        &cmdLine_->machineCache,
+        "Reuse experimental machine code archives for runtime and imported API functions");
 
 #if SWC_DEV_MODE
     add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds",

@@ -28,6 +28,8 @@ from this checkout's `bin/` through `SWAG_PATH`.
 | `py -3 bench/compile.py --against "C:\path\outside-checkout\baseline\swc.exe" --swc-cores 6 --admit` | A/B the edit-build loop between two compilers, order alternated; records nothing |
 | `py -3 bench/compile.py --swc-cores 6 --admit` | measure with an explicit worker cap and shared-machine admission before every compiler invocation; records nothing |
 | `py -3 bench/parsecache.py --scratch "C:\path\outside-checkout" --reps 9` | compare source parsing with warm binary parse archives on runtime, core, pixel and gui consumers; writes isolated logs and raw samples outside the checkout |
+| `py -3 bench/parsecache.py --scratch "C:\path\outside-checkout" --cache machine --reps 9` | compare complete native compilations with shared runtime/API machine-code archives |
+| `py -3 bench/cachecheck.py --scratch "C:\path\outside-checkout" [--dm]` | verify machine-code reuse, invalidation, corruption recovery, native/JIT behavior and concurrent publication |
 
 The parse-cache comparison requires the checkout-local Release compiler and matching devmode
 standard-library artifacts. Prepare those before measuring:
@@ -37,18 +39,37 @@ bin\swc.exe build --workspace bin/std --workspace-module gui -bc devmode --num-c
 ```
 
 The comparison uses six workers,
-checks machine admission before every invocation, alternates cache-disabled and cache-warm order,
+checks machine admission before every invocation (CPU at most 15% by default), alternates cache-disabled and cache-warm order,
 and creates a fresh native output directory for every sample. It executes both pilot artifacts
 for each consumer outside the timer and checks their output. Use `--kind sema` to measure the
 front end separately, or `--kind syntax` to isolate source loading and parsing against binary
 loading. Raw JSON records population separately from reuse and reports median
 paired wall and CPU ratios; disagreement between those ratios needs more measurement.
 
-The current archives contain tokens, source positions and private syntax trees. Compilations
+The parse archives contain tokens, source positions and private syntax trees. Compilations
 still load the source to validate the key and run a fresh semantic pass and backend. The DevMode
 compiler bypasses disk archives because its debug references contain process addresses.
 Archives are experimental and enabled explicitly with `--parse-cache`; the comparison passes
 that option for warm samples and `--no-parse-cache` for source-parsing controls.
+
+`--cache machine` instead compares `--machine-cache` with both experimental caches disabled.
+The compiler still loads sources, performs semantic analysis and generates unoptimized IR.
+Supported runtime and imported API functions reuse machine code, unwind data, relocations and
+source mappings, skipping backend optimization, register allocation and encoding. Resolved API
+declarations are not archived. Both compiler executables support these archives; debug-information
+builds, requested micro listings, optimizer statistics, full development validation and rebuilds
+use ordinary emission. The option remains experimental and disabled by default.
+
+Machine-code entries share one archive per compiler executable identity (path, size, write stamp
+and version). Input fingerprints include target/configuration, ABI, semantic information used by
+the backend, lowered instructions and constant graphs. References are rebound to the current
+compiler instance. Checksums reject damaged bodies; publication merges entries under the
+directory lock and atomically replaces the archive. Conservative misses can add variants even
+on an unchanged input graph. Their hashing, emission and publication costs remain inside the
+reported warm measurements. `reuse_changed_archive` records this distinction from parse archives.
+
+The [runtime/API cache investigation](results/runtime-api-cache/20261020/README.md) preserves
+the measured samples, validation boundaries and remaining limits of the machine-code layer.
 
 Most of a campaign is spent on the controls, not on swc: the NativeAOT, Swift and Zig
 builds, and CPython and Lua on the longer tasks. Long executions keep their pilot sample;

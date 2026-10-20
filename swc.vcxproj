@@ -250,6 +250,9 @@
         <ClCompile Include="src\Backend\Micro\MicroReg.cpp"/>
         <ClCompile Include="src\Backend\Micro\MicroInstr.cpp"/>
         <ClCompile Include="src\Backend\Micro\MachineCode.cpp"/>
+        <ClCompile Include="src\Backend\Micro\MachineCodeCache.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.MachineCodeCache.cpp"/>
+        <ClCompile Include="src\Backend\RuntimeBackendConfig.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.BranchSimplify.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.ColdBlockLayout.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.ConstantFolding.cpp"/>
@@ -631,6 +634,8 @@
         <ClInclude Include="src\Backend\Micro\MicroPrinter.h"/>
         <ClInclude Include="src\Backend\Micro\MicroBuilder.h"/>
         <ClInclude Include="src\Backend\Micro\MachineCode.h"/>
+        <ClInclude Include="src\Backend\Micro\MachineCodeCache.h"/>
+        <ClInclude Include="src\Main\CompilerCache.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.BranchSimplify.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.ColdBlockLayout.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantFolding.h"/>

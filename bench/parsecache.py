@@ -1,4 +1,4 @@
-r"""Compare binary parse reuse with source parsing on real generated APIs.
+r"""Compare binary parse or machine-code reuse on real generated APIs.
 
 Prepare the devmode standard-library artifacts (gui and its dependencies), then:
     py -3 bench/parsecache.py --scratch C:\path\outside-checkout --reps 9
@@ -11,6 +11,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import statistics
 import subprocess
@@ -53,11 +54,11 @@ SOURCES = {
 }
 
 
-def admit():
+def admit(max_cpu=65):
     script = ROOT / ".agents/skills/modify-swag-codebase/scripts/check-machine-load.ps1"
     while True:
         result = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script)],
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", str(script), "-MaxCpuPercent", str(max_cpu)],
             capture_output=True, text=True)
         if result.returncode == 0:
             return
@@ -82,10 +83,14 @@ def main():
     parser.add_argument("--reps", type=int, default=9)
     parser.add_argument("--only", nargs="+", choices=MODULES, default=list(MODULES))
     parser.add_argument("--kind", choices=["syntax", "sema", "build"], default="build")
+    parser.add_argument("--cache", choices=["parse", "machine"], default="parse")
+    parser.add_argument("--max-cpu", type=int, default=15)
     args = parser.parse_args()
+    if args.cache == "machine" and args.kind == "syntax":
+        parser.error("Machine-code archives require --kind sema or build")
     scratch = args.scratch.resolve()
-    if scratch.is_relative_to(ROOT) or args.reps < 1:
-        parser.error("Use a scratch directory outside the checkout and at least one pair")
+    if scratch.is_relative_to(ROOT) or args.reps < 1 or not 1 <= args.max_cpu <= 65:
+        parser.error("Use an external scratch directory, at least one pair, and --max-cpu between 1 and 65")
     scratch.mkdir(parents=True, exist_ok=True)
     run_root = scratch / time.strftime("parsecache-%Y%m%d-%H%M%S")
     run_root.mkdir()
@@ -100,13 +105,15 @@ def main():
             env["PATH"] = env.pop(key)
     env["PATH"] = os.pathsep.join(map(str, libraries)) + os.pathsep + env.get("PATH", "")
     compiler = ROOT / "bin/swc.exe"
-    cache = temp / "swag/parse"
+    cache = temp / "swag" / args.cache
     runtime_files = list((ROOT / "bin/runtime").glob("*.swg"))
     data = {
         "compiler": str(compiler),
         "compiler_sha256": hashlib.sha256(compiler.read_bytes()).hexdigest(),
         "kind": args.kind,
+        "cache": args.cache,
         "workers": 6,
+        "admission_max_cpu": args.max_cpu,
         "runtime_files": len(runtime_files),
         "runtime_bytes": sum(path.stat().st_size for path in runtime_files),
         "cases": {},
@@ -129,11 +136,10 @@ def main():
                 command += ["--import-api-module", module]
         if args.kind == "build":
             command += ["-n", "consumer", "-od", str(output), "-wd", str(output)]
-        if bypass:
-            command.append("--no-parse-cache")
-        else:
-            command.append("--parse-cache")
-        admit()
+        command += ["--no-parse-cache", "--no-machine-cache"]
+        if not bypass:
+            command.append("--" + args.cache + "-cache")
+        admit(args.max_cpu)
         result = winproc.run(command, cwd=str(run_root), env=env, pin=True)
         (run_root / (label + ".log")).write_text(
             result["stdout"] + result["stderr"], encoding="utf-8")
@@ -141,9 +147,11 @@ def main():
             raise RuntimeError(f"{label}: compilation failed; see {run_root / (label + '.log')}")
         # Execute each pilot artifact separately, outside the timed compilation.
         if args.kind == "build" and label.endswith(("-populate", "-reuse")):
-            admit()
-            native = winproc.run([str(output / "consumer.exe")], cwd=str(run_root), env=env, pin=True)
-            if native["exit"] != 0 or native["stdout"].strip() != "42":
+            admit(args.max_cpu)
+            run_command = command.copy()
+            run_command[1] = "run"
+            native = winproc.run(run_command, cwd=str(run_root), env=env, pin=True)
+            if native["exit"] != 0 or not re.search(r"(?:^|[\r\n])42(?:\s|$)", native["stdout"]):
                 raise RuntimeError(f"{label}: expected native output 42: {native}")
         print(label, round(result["wall_ms"], 2), "ms,", round(result["cpu_ms"], 2), "CPU ms", flush=True)
         return {key: value for key, value in result.items() if key not in ["stdout", "stderr"]}
@@ -160,7 +168,8 @@ def main():
         if not before:
             raise RuntimeError("No binary archives were produced; use the Release compiler")
         item["reuse"] = measure(name, name + "-reuse")
-        if snapshot() != before:
+        item["reuse_changed_archive"] = snapshot() != before
+        if args.cache == "parse" and item["reuse_changed_archive"]:
             raise RuntimeError("A warm read rewrote or added archives")
         for index in range(args.reps):
             for mode in (["off", "warm"] if index % 2 == 0 else ["warm", "off"]):

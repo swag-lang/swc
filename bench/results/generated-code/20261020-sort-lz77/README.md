@@ -255,7 +255,7 @@ reference probes already exceeded the 40% limit: start 54.116 ms, wordfreq about
 38.5 ms, a departure of about 40.6%. Its unrecorded console is retained in
 `final-run-aborted-console.txt`. No session build or test overlapped the paired
 or campaign measurements. No history entry or corrected execution index is
-derived from either aborted attempt, and no measurement includes the balanced
+derived from either aborted attempt, and no recorded campaign includes the balanced
 chain batch. The latest accepted full campaign remains `20261019-181609`.
 
 All retained optimizations remain **landed, unconfirmed** as runtime gains. The
@@ -263,3 +263,22 @@ next prompt 2 session must start with a quiet full campaign of the final combine
 revision before another optimization batch. The signed LZ77 i/p range proof in
 compiler.optimization.105 remains unfinished; the constant-counter proof does
 not cover its variable and conditional steps.
+
+## Closing validation
+
+A final twelve-round paired check compares the hybrid's native programs with the
+finite-counter Release programs, using identical sources, configurations, module
+names, six-worker builds, isolated outputs and performance-core affinity. Its
+median B/A is 1.006 for LZ77 and 0.989 for wordfreq. The unchanged A/A ranges are
+0.938–1.185 and 0.818–1.225 respectively: neither task supplies a timing veto or
+a confirmed gain. Every raw sample is in `paired-hybrid.json`. This short probe
+does not replace the pending full campaign.
+
+The combined revision `8266a64b1a` was rebuilt with the DevMode compiler after
+integration, including concurrent compiler changes. All 1,516 in-memory C++ tests
+and the nine focused Release source tests pass through JIT/native with micro
+validation. Fresh Release program captures preserve all twelve checksums and all
+generated-code profiles from the retained hybrid, after pairing overloaded bodies.
+The earlier complete optimizer-directory check remains 324 JIT plus 324 native
+tests in DevMode. Benchmark computations, timed boundaries and checksums, compiler
+build identity, accepted history and benchmark report were not changed.

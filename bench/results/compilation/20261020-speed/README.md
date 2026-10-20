@@ -24,6 +24,10 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Validate intrinsic-name spelling at C++ compile time | A length check and five-byte prefix comparison for each intrinsic-name query | The definition table is statically constrained to `Swag.` names or dot-prefixed member intrinsics. A one-byte member check preserves the empty names for `.count` and `.buffer`; all other accepted names lose the same five bytes. The helper shrinks from 98 to 85 code bytes without a frame; its registry initializer shrinks from 981 to 935 bytes with the same 120-byte frame. |
 | Reuse each keyword validation lookup | A second identical hash-table probe after each of 157 keyword insertions | One pointer feeds the existing presence and value assertions. A compile-time assertion-mode branch removes the entire check when assertions are disabled. Insertion order, slots and capacity do not change. Setup code shrinks from 105,131 to 89,385 bytes and its stack reservation from 21,120 to 16,032 bytes; the object loses code and retained data overall. |
 | Check field uniqueness through insertion's result | A separate membership query before each struct-field insertion | The existing `emplace` reports duplicates and still supplies the same field ordinal. The assertion remains active; using-field flag publication, map insertion and field publication keep their order for valid input. `addField` shrinks from 426 to 236 code bytes with the same 80-byte reservation. |
+| Reuse a contiguous span's aligned offset | Recomputing the aligned data position after a successful capacity check | The capacity comparison uses the same unsigned footprint arithmetic. A new page recomputes the offset from zero; existing-page writes reuse it. Header, payload and publication order are unchanged. The builder shrinks from 429 to 426 code bytes with the same 56-byte reservation. |
+| Read a message listener's source file once | A duplicate source-view/file lookup before preparing the same request | The existing saved pointer still controls rejection of a missing file and populates the request. Other argument guards and queue operations retain their order. The function shrinks from 578 to 555 code bytes with the same 80-byte reservation and one fewer call. |
+| Initialize identifier registry arrays once | Filling already-invalid predefined and runtime-function reference arrays before setup assigns their named entries | The member arrays use value initialization and strong references default to invalid, checked statically. Setup is their only writer and rewrites every assigned slot, so untouched entries remain invalid across repeated setup as well. Setup code shrinks from 1,640 to 692 bytes with the same 104-byte reservation. |
+| Test 64-bit capacity from the live upper word | A generic unsigned word scan and a signed minimum-width walk merely to compare its result with 64 | For the current two-word representation, unsigned capacity needs a zero upper word. Signed capacity needs that word to equal the low word's sign fill masked to the active width. Other representations retain the existing algorithms. The unsigned helper shrinks from 37 to 19 bytes; the signed query becomes a 42-byte leaf instead of a 33-byte wrapper calling minimum-width analysis, and loses its 40-byte reservation. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -117,6 +121,27 @@ case, including packed fields, explicit alignment and overlapping field offsets.
 The two affected name-lookup wrappers retain or shrink their reservations while
 C++ inlining removes an intermediate helper call; their source logic is unchanged.
 
+The contiguous-span batch on combined base `a0e8332edc` passes 1,505 C++ tests,
+including raw-span payload/alignment checks for existing and fresh pages and
+zero alignment. Overload-focused semantics checks 34 normal and 31 expected-error
+inputs, including runtime sources, and the native optimizer selection passes
+316 tests, covering the concurrent optimizer changes imported at that base.
+
+The listener-file batch passes 1,505 C++ tests and message-focused semantic
+checks over 29 normal and 29 expected-error inputs, including runtime sources.
+These inputs exercise compiler message type metadata and cyclic message work.
+
+The identifier-initialization batch passes 1,505 C++ tests and all 85 sanity
+tests with the DevMode compiler and `devmode` program configuration.
+
+The direct-capacity batch passes 1,505 C++ tests, including the independent bit
+precision/capacity oracles at every width from 1 through 128. Literal-focused
+semantics checks 40 normal and 32 expected-error inputs, including runtime, and
+the complete JIT suite passes 1,539 tests. The unsigned division caller also
+shrinks by ten code bytes without changing its frame. Integer-object code falls
+by 19 bytes while retained data rises by eight; the combined sections shrink
+and the signed query no longer calls minimum-width analysis.
+
 Rejected trials:
 
 - Returning a separately constructed all-ones reachability vector duplicated
@@ -158,3 +183,6 @@ Rejected trials:
   reserved 16 more stack bytes. Even the unsigned-only change crossed an
   inlining threshold and grew signed formatting from 2,093 to 2,454 bytes. All
   formatting changes and their trial-only oracle are restored.
+- Peeling the first paged-span write removed its repeated first-reference test,
+  but grew `pushSpanRaw` from 330 to 347 code bytes and its reservation from 104
+  to 120 bytes. The original chunk loop is restored.

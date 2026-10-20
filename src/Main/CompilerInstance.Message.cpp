@@ -548,7 +548,7 @@ void CompilerInstance::enqueueCompilerMessageTypeInfoPreparation(TaskContext& ct
     if (typeRef.isInvalid())
         return;
 
-    if (!listenerFunction || ownerNodeRef.isInvalid() || sourceViewFile(*listenerFunction) == nullptr)
+    if (!listenerFunction || ownerNodeRef.isInvalid())
         return;
 
     const SourceFile* listenerFile = sourceViewFile(*listenerFunction);

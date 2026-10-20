@@ -12,8 +12,7 @@ SWC_BEGIN_NAMESPACE();
 void IdentifierManager::setup(const TaskContext& ctx)
 {
     SWC_UNUSED(ctx);
-    predefined_.fill(IdentifierRef::invalid());
-    runtimeFunctions_.fill(IdentifierRef::invalid());
+    static_assert(IdentifierRef{}.isInvalid());
 
     struct PredefinedEntry
     {

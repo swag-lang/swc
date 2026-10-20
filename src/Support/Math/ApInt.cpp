@@ -1188,14 +1188,23 @@ namespace
 
 bool ApInt::fit64() const
 {
-    return std::all_of(words_ + 1, words_ + numWords_, [](const uint64_t word) { return word == 0; });
+    if constexpr (MAX_WORDS == 2)
+        return numWords_ == 1 || words_[1] == 0;
+    else
+        return std::all_of(words_ + 1, words_ + numWords_, [](const uint64_t word) { return word == 0; });
 }
 
 bool ApInt::fit64Signed() const
 {
     if (bitWidth_ <= 64)
         return true;
-    return minBitsSigned() <= 64;
+    if constexpr (MAX_WORDS == 2)
+    {
+        const uint64_t signFill = uint64_t{0} - (words_[0] >> (WORD_BITS - 1));
+        return words_[1] == (signFill >> (2 * WORD_BITS - bitWidth_));
+    }
+    else
+        return minBitsSigned() <= 64;
 }
 
 uint32_t ApInt::minBits() const

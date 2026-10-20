@@ -204,6 +204,7 @@
         <ClCompile Include="src\Unittest\Support\Test.Support.AppendOnlyLookupTable.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.ApInt.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.ByteArray.cpp"/>
+        <ClCompile Include="src\Unittest\Support\Test.Support.Sha256.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.FlatTables.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.PagedStore.cpp"/>
         <ClCompile Include="src\Unittest\Support\Test.Support.SmallVector.cpp"/>
@@ -436,6 +437,8 @@
         <ClCompile Include="src\Main\Global.cpp"/>
         <ClCompile Include="src\Main\CompilerMessageTypeInfoJob.cpp"/>
         <ClCompile Include="src\Main\CompilerTagRegistry.cpp"/>
+        <ClCompile Include="src\Support\Os\ReadOnlyFileMapping.Windows.cpp"/>
+        <ClCompile Include="src\Main\CompilerCacheStore.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.Module.cpp"/>
         <ClCompile Include="src\Main\CompilerInstance.Message.cpp"/>
@@ -484,8 +487,6 @@
         <ClCompile Include="src\Compiler\Parser\Parser\Parser.Type.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Parser\Parser.Var.cpp"/>
         <ClCompile Include="src\Compiler\Parser\Parser\ParserJob.cpp"/>
-        <ClCompile Include="src\Compiler\Parser\Parser\ParseCache.cpp"/>
-        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ParseCache.cpp"/>
         <ClCompile Include="src\pch.cpp">
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
             <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='DevMode|x64'">Create</PrecompiledHeader>
@@ -636,6 +637,9 @@
         <ClInclude Include="src\Backend\Micro\MachineCode.h"/>
         <ClInclude Include="src\Backend\Micro\MachineCodeCache.h"/>
         <ClInclude Include="src\Main\CompilerCache.h"/>
+        <ClInclude Include="src\Main\CompilerCacheStore.h"/>
+        <ClInclude Include="src\Support\Core\ByteView.h"/>
+        <ClInclude Include="src\Support\Os\ReadOnlyFileMapping.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.BranchSimplify.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.ColdBlockLayout.h"/>
         <ClInclude Include="src\Backend\Micro\Passes\Pass.ConstantFolding.h"/>
@@ -823,7 +827,6 @@
         <ClInclude Include="src\Compiler\Parser\Ast\AstNodes.Struct.inc"/>
         <ClInclude Include="src\Compiler\Parser\Ast\AstVisit.h"/>
         <ClInclude Include="src\Compiler\Parser\Parser\Parser.h"/>
-        <ClInclude Include="src\Compiler\Parser\Parser\ParseCache.h"/>
         <ClInclude Include="src\Compiler\Parser\Parser\ParserJob.h"/>
         <ClInclude Include="src\pch.h"/>
         <ClInclude Include="src\Support\Report\Assert.h"/>

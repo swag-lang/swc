@@ -88,7 +88,6 @@ namespace
         // Only the compiler's own subdirectories: the cache root is a shared temporary directory,
         // and nothing else that lives there was put there by a build.
         addCleanTarget(outTargets, "Dependency cache", WorkspaceLayout::dependencyCacheRoot());
-        addCleanTarget(outTargets, "Parse cache", WorkspaceLayout::parseCacheRoot());
         addCleanTarget(outTargets, "Machine code cache", WorkspaceLayout::machineCacheRoot());
         addCleanTarget(outTargets, "Legacy script cache", WorkspaceLayout::legacyScriptCacheRoot());
     }

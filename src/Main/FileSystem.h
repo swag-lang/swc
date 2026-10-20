@@ -37,6 +37,12 @@ namespace FileSystem
         CloseWrite,
     };
 
+    enum class FileReplacement : uint8_t
+    {
+        Ordinary,
+        Mapped,
+    };
+
     struct IoErrorInfo
     {
         IoProblem problem = IoProblem::Read;
@@ -58,21 +64,21 @@ namespace FileSystem
     Result      resolveFolder(TaskContext& ctx, fs::path& folder);
     Result      reportInvalidFolder(TaskContext& ctx, const fs::path& path, const Utf8& because);
     // Reports 'id' about 'path', with 'because' as the reason when there is one.
-    Result      reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path);
-    Result      reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path, const Utf8& because);
-    Result      readBinaryFile(const fs::path& path, std::vector<char>& outData, IoErrorInfo& error);
-    Result      readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error, size_t extraCapacity = 0);
-    Result      readBinaryFile(const fs::path& path, ByteArray& outData, IoErrorInfo& error);
-    Result      readTextFile(const fs::path& path, std::string& outText, IoErrorInfo& error);
-    Result      writeBinaryFile(const fs::path& path, const void* data, size_t size, IoErrorInfo& error);
-    Result      writeBinaryFileAtomic(const fs::path& path, const void* data, size_t size, IoErrorInfo& error);
+    Result reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path);
+    Result reportPathError(TaskContext& ctx, DiagnosticId id, const fs::path& path, const Utf8& because);
+    Result readBinaryFile(const fs::path& path, std::vector<char>& outData, IoErrorInfo& error);
+    Result readBinaryFile(const fs::path& path, std::vector<char8_t>& outData, IoErrorInfo& error, size_t extraCapacity = 0);
+    Result readBinaryFile(const fs::path& path, ByteArray& outData, IoErrorInfo& error);
+    Result readTextFile(const fs::path& path, std::string& outText, IoErrorInfo& error);
+    Result writeBinaryFile(const fs::path& path, const void* data, size_t size, IoErrorInfo& error);
+    Result writeBinaryFileAtomic(const fs::path& path, const void* data, size_t size, IoErrorInfo& error, FileReplacement replacement = FileReplacement::Ordinary);
     // A loaded library keeps its file mapped: the system will not replace or delete it while
     // it still lets the file be renamed. A publication moves such a file aside under this
     // extension and removes it once nothing maps it any more.
     bool   isMovedAsidePath(const fs::path& path);
     bool   moveFileAside(const fs::path& path);
     void   removeMovedAsideFiles(const fs::path& directory);
-    Result renameOverFile(const fs::path& from, const fs::path& to, IoErrorInfo& error);
+    Result renameOverFile(const fs::path& from, const fs::path& to, IoErrorInfo& error, FileReplacement replacement = FileReplacement::Ordinary);
     bool   pathEquals(const fs::path& lhs, const fs::path& rhs);
     bool   pathStartsWith(const fs::path& path, const fs::path& prefix);
     void   setDiagnosticPath(Diagnostic& diag, const TaskContext* ctx, const fs::path& path);

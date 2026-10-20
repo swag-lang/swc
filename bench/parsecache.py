@@ -1,7 +1,7 @@
-r"""Compare binary parse or machine-code reuse on real generated APIs.
+r"""Compare compiler builds on runtime and real generated APIs.
 
 Prepare the devmode standard-library artifacts (gui and its dependencies), then:
-    py -3 bench/parsecache.py --scratch C:\path\outside-checkout --reps 9
+    py -3 bench/parsecache.py --scratch C:\path\outside-checkout --against C:\baseline\swc.exe --reps 9
 
 Uses the checkout-local Release compiler, six workers, fresh output directories,
 private caches, load admission before every invocation, and alternating A/B order.
@@ -82,12 +82,11 @@ def main():
     parser.add_argument("--scratch", required=True, type=Path)
     parser.add_argument("--reps", type=int, default=9)
     parser.add_argument("--only", nargs="+", choices=MODULES, default=list(MODULES))
-    parser.add_argument("--kind", choices=["syntax", "sema", "build"], default="build")
-    parser.add_argument("--cache", choices=["parse", "machine"], default="parse")
+    parser.add_argument("--kind", choices=["sema", "build"], default="build")
+    parser.add_argument("--against", required=True, type=Path)
+    parser.add_argument("--against-arg", action="append", default=[])
     parser.add_argument("--max-cpu", type=int, default=15)
     args = parser.parse_args()
-    if args.cache == "machine" and args.kind == "syntax":
-        parser.error("Machine-code archives require --kind sema or build")
     scratch = args.scratch.resolve()
     if scratch.is_relative_to(ROOT) or args.reps < 1 or not 1 <= args.max_cpu <= 65:
         parser.error("Use an external scratch directory, at least one pair, and --max-cpu between 1 and 65")
@@ -105,40 +104,47 @@ def main():
             env["PATH"] = env.pop(key)
     env["PATH"] = os.pathsep.join(map(str, libraries)) + os.pathsep + env.get("PATH", "")
     compiler = ROOT / "bin/swc.exe"
-    cache = temp / "swag" / args.cache
+    baseline = args.against.resolve()
+    if not baseline.is_file():
+        parser.error("--against needs an existing baseline compiler")
+    cache = temp / "swag"
     runtime_files = list((ROOT / "bin/runtime").glob("*.swg"))
     data = {
         "compiler": str(compiler),
         "compiler_sha256": hashlib.sha256(compiler.read_bytes()).hexdigest(),
         "kind": args.kind,
-        "cache": args.cache,
+        "cache": "automatic",
+        "baseline_compiler": str(baseline),
+        "baseline_sha256": hashlib.sha256(baseline.read_bytes()).hexdigest(),
+        "baseline_args": args.against_arg,
+        "sample_labels": {"off": "preserved baseline compiler", "warm": "checkout automatic caches"},
         "workers": 6,
         "admission_max_cpu": args.max_cpu,
         "runtime_files": len(runtime_files),
         "runtime_bytes": sum(path.stat().st_size for path in runtime_files),
         "cases": {},
+        "complete": False,
     }
 
+    def checkpoint():
+        (run_root / "measurements.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+    checkpoint()
+
     def snapshot():
-        return {str(path): path.stat().st_mtime_ns for path in cache.glob("*.bin")}
+        return {str(path): path.stat().st_mtime_ns for path in cache.glob("*/*.bin")}
 
     def measure(name, label, bypass=False):
         source = run_root / (name + ".swg")
         output = run_root / label
-        command = [str(compiler), args.kind, "-f", str(source), "--num-cores", "6"]
-        if args.kind == "syntax":
-            for module in MODULES[name]:
-                for path in api_files(module):
-                    command += ["--import-api-file", str(path)]
-        else:
-            command += ["-bc", "devmode"]
-            for module in MODULES[name]:
-                command += ["--import-api-module", module]
+        command = [str(baseline if bypass else compiler), args.kind, "-f", str(source), "--num-cores", "6"]
+        command += ["-bc", "devmode"]
+        for module in MODULES[name]:
+            command += ["--import-api-module", module]
         if args.kind == "build":
             command += ["-n", "consumer", "-od", str(output), "-wd", str(output)]
-        command += ["--no-parse-cache", "--no-machine-cache"]
-        if not bypass:
-            command.append("--" + args.cache + "-cache")
+        if bypass:
+            command += args.against_arg
         admit(args.max_cpu)
         result = winproc.run(command, cwd=str(run_root), env=env, pin=True)
         (run_root / (label + ".log")).write_text(
@@ -162,18 +168,24 @@ def main():
         item = data["cases"][name] = {
             "api_files": len(files), "api_bytes": sum(path.stat().st_size for path in files),
             "off": [], "warm": [],
+            "complete": False,
         }
         item["populate"] = measure(name, name + "-populate")
+        checkpoint()
         before = snapshot()
         if not before:
             raise RuntimeError("No binary archives were produced; use the Release compiler")
         item["reuse"] = measure(name, name + "-reuse")
         item["reuse_changed_archive"] = snapshot() != before
-        if args.cache == "parse" and item["reuse_changed_archive"]:
-            raise RuntimeError("A warm read rewrote or added archives")
+        checkpoint()
+        item["baseline_populate"] = measure(name, name + "-baseline-populate", bypass=True)
+        checkpoint()
+        item["baseline_reuse"] = measure(name, name + "-baseline-reuse", bypass=True)
+        checkpoint()
         for index in range(args.reps):
             for mode in (["off", "warm"] if index % 2 == 0 else ["warm", "off"]):
                 item[mode].append(measure(name, f"{name}-{index}-{mode}", bypass=mode == "off"))
+                checkpoint()
         for metric in ["wall_ms", "cpu_ms"]:
             ratios = [warm[metric] / off[metric] for off, warm in zip(item["off"], item["warm"])
                       if off[metric] > 0]
@@ -181,7 +193,10 @@ def main():
             item["paired_" + metric + "_ratio"] = ratio
         print(name, "paired wall ratio", item["paired_wall_ms_ratio"],
               "paired CPU ratio", item["paired_cpu_ms_ratio"], flush=True)
-        (run_root / "measurements.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
+        item["complete"] = True
+        checkpoint()
+    data["complete"] = True
+    checkpoint()
     print("Results:", run_root / "measurements.json", flush=True)
 
 

@@ -64,11 +64,6 @@ namespace WorkspaceLayout
         return (cacheRoot() / "dep").lexically_normal();
     }
 
-    inline fs::path parseCacheRoot()
-    {
-        return (cacheRoot() / "parse").lexically_normal();
-    }
-
     inline fs::path machineCacheRoot()
     {
         return (cacheRoot() / "machine").lexically_normal();

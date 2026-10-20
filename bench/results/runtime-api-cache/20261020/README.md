@@ -1,5 +1,9 @@
 # Runtime and exported API machine-code cache
 
+This records the opt-in implementation at commit `35e65ba5d6`. Its compiler options
+and reproduction commands describe that revision. Later work makes reuse automatic
+and removes those public switches; the raw measurements below remain unchanged.
+
 The experimental `--machine-cache` option reuses compiled runtime and imported API
 functions. It avoids backend optimization, register allocation and encoding. Source
 loading, parsing, semantic analysis and initial IR generation still run. The earlier

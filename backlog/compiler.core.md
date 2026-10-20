@@ -79,7 +79,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.030 — Skip repeated runtime IR generation
 
-- Evidence: experimental `MachineCodeCache` archives preserve runtime/API machine code,
+- Evidence: automatic `MachineCodeCache` archives preserve runtime/API machine code,
   unwind data and relocations across executables, with consumer-owned reference fixups.
   Lookup still follows fresh semantic analysis and unoptimized IR generation. Conservative
   global-distance and source-context differences can also produce misses for unchanged sources.
@@ -347,9 +347,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 ### compiler.core.006 — Reuse analyzed prelude state
 
 - Evidence: each fresh compiler process analyzes the unchanged runtime prelude before compiling
-  a module or script. Experimental parse archives preserve tokens and syntax in private trees;
-  machine-code archives amortize backend emission. Original source loading and runtime semantic
-  analysis still repeat for each instance.
+  a module or script. Machine-code archives amortize backend emission, but original runtime
+  source loading, lexing, parsing and semantic analysis still repeat for each instance.
 - Next: serialize the prelude through the ordinary module-interface mechanism and include source, compiler, target, and relevant configuration in its cache key.
 - Done when: warm module builds and script launches skip prelude lexing, parsing, and semantic analysis, while fresh and reused paths produce identical diagnostics and artifacts.
 - Related: compiler.core.001, compiler.core.004, compiler.core.016.
@@ -367,9 +366,10 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   Repeated closure application remains a local lead: a per-consumer capture set improves
   a 1,000-file shared dependency, but a standard eight-root graph was about 2.7% slower
   overall in Release despite neutral setup timing.
-  Experimental `ParseCache` images also retain original API source loading and reconstruct
-  the consumer's resolved symbols and types through a fresh semantic pass. `MachineCodeCache`
-  preserves supported compiled bodies, while imported declaration and type resolution remain fresh.
+  Parse-image prototypes still required original source loading and a fresh semantic pass;
+  their read and reconstruction costs did not establish a whole-command gain.
+  `MachineCodeCache` preserves supported compiled bodies, while imported declaration and
+  type resolution remain fresh.
 - Next: measure imported API bytes, tokens, AST memory, parse time and declaration/body sema
   work separately from consumer sources on a small consumer, a large module graph, and a
   diamond dependency, including consumers of the core, pixel and gui API closures. Compare

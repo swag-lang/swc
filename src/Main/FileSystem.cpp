@@ -462,7 +462,7 @@ void FileSystem::removeMovedAsideFiles(const fs::path& directory)
 
 // Readers and competing writers must only see complete artifacts. A rename on the same volume
 // replaces the directory entry without overwriting the previous bytes.
-Result FileSystem::renameOverFile(const fs::path& from, const fs::path& to, IoErrorInfo& error)
+Result FileSystem::renameOverFile(const fs::path& from, const fs::path& to, IoErrorInfo& error, const FileReplacement replacement)
 {
     const auto deadline   = std::chrono::steady_clock::now() + std::chrono::seconds(2);
     bool       movedAside = false;
@@ -485,6 +485,15 @@ Result FileSystem::renameOverFile(const fs::path& from, const fs::path& to, IoEr
         if (!sharingError)
             return Result::Error;
 
+        // A deliberate mapping cannot disappear during a scanner retry. Preserve
+        // its generation under the stale name and publish the complete new file.
+        // Cache readers may miss during the two renames, but never see partial data.
+        if (replacement == FileReplacement::Mapped && !movedAside && moveFileAside(to))
+        {
+            movedAside = true;
+            continue;
+        }
+
         if (std::chrono::steady_clock::now() < deadline)
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(25));
@@ -500,7 +509,7 @@ Result FileSystem::renameOverFile(const fs::path& from, const fs::path& to, IoEr
     }
 }
 
-Result FileSystem::writeBinaryFileAtomic(const fs::path& path, const void* data, const size_t size, IoErrorInfo& error)
+Result FileSystem::writeBinaryFileAtomic(const fs::path& path, const void* data, const size_t size, IoErrorInfo& error, const FileReplacement replacement)
 {
     static std::atomic_uint64_t sequence      = 0;
     fs::path                    temporaryPath = path;
@@ -509,7 +518,7 @@ Result FileSystem::writeBinaryFileAtomic(const fs::path& path, const void* data,
     Result result = writeBinaryFile(temporaryPath, data, size, error);
     if (result == Result::Continue)
     {
-        result = renameOverFile(temporaryPath, path, error);
+        result = renameOverFile(temporaryPath, path, error, replacement);
         if (result == Result::Continue)
             return result;
     }

@@ -17,9 +17,8 @@ class MachineCodeCache
 {
 public:
     MachineCodeCache(TaskContext& ctx, const SymbolFunction& function, const MicroBuilder& builder);
-    bool        read(MachineCode& out) const;
-    void        write(const MachineCode& code) const;
-    static void flush();
+    bool read(MachineCode& out) const;
+    void write(const MachineCode& code) const;
     // Describes current IR and source bindings without cache I/O.
     static Utf8 inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& outSources, const SymbolFunction& function, const MicroBuilder& builder, std::string_view compilerIdentity);
 

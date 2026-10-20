@@ -4,6 +4,7 @@
 
 #include "Main/FileSystem.h"
 #include "Support/Os/Os.h"
+#include "Support/Os/ReadOnlyFileMapping.h"
 #include "Unittest/Unittest.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -333,6 +334,38 @@ SWC_FILESYSTEM_TEST_BEGIN(FileSystem_AtomicWriteReplacesLoadedLibrary)
     }
 
     fs::remove_all(testDir, ec);
+    return result;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(FileSystem_ReplaceMappedCacheRetainsReaderGeneration)
+{
+    const fs::path  directory = Os::getTemporaryPath() / std::format("swc_cache_mapping_p{}", Os::currentProcessId());
+    const fs::path  path      = directory / "cache.bin";
+    std::error_code ec;
+    fs::create_directories(directory, ec);
+    if (ec)
+        return Result::Error;
+
+    FileSystem::IoErrorInfo error;
+    Result                  result = FileSystem::writeBinaryFileAtomic(path, "old", 3, error);
+    if (result == Result::Continue)
+    {
+        Os::ReadOnlyFileMapping oldGeneration;
+        Os::ReadOnlyFileMapping tooSmall;
+        Os::ReadOnlyFileMapping newGeneration;
+        if (!oldGeneration.open(path, 3) || tooSmall.open(path, 2))
+            result = Result::Error;
+        if (result == Result::Continue)
+            result = FileSystem::writeBinaryFileAtomic(path, "replacement", 11, error, FileSystem::FileReplacement::Mapped);
+        if (result == Result::Continue && (!newGeneration.open(path, 11) || oldGeneration.bytes().size() != 3 || std::memcmp(oldGeneration.bytes().data(), "old", 3) || newGeneration.bytes().size() != 11 || std::memcmp(newGeneration.bytes().data(), "replacement", 11)))
+            result = Result::Error;
+    }
+
+    FileSystem::removeMovedAsideFiles(directory);
+    fs::remove_all(directory, ec);
+    if (ec)
+        return Result::Error;
     return result;
 }
 SWC_TEST_END()

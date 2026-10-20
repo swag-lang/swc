@@ -286,12 +286,6 @@ void CommandLineParser::registerCommands()
     add(HelpOptionGroup::Development, "sema test build run smoke", "--optimizer-stats", nullptr,
         &cmdLine_->optimizerStats,
         "Report per-pass time, analysis work, and observed optimizer budgets when compilation ends; bypass native function reuse");
-    add(HelpOptionGroup::Development, "all", "--parse-cache", nullptr,
-        &cmdLine_->parseCache,
-        "Reuse experimental binary parse archives for runtime and imported API sources");
-    add(HelpOptionGroup::Development, "all", "--machine-cache", nullptr,
-        &cmdLine_->machineCache,
-        "Reuse experimental machine code archives for runtime and imported API functions");
 
 #if SWC_DEV_MODE
     add(HelpOptionGroup::Development, "all", "--dev-stop", "-ds",

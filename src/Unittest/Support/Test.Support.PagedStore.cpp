@@ -9,37 +9,6 @@
 
 SWC_BEGIN_NAMESPACE();
 
-SWC_TEST_BEGIN(PagedStore_LoadImagePreservesOffsetsAndAppends)
-{
-    PagedStore original(32);
-    const Ref  first              = original.pushBack(uint64_t{41});
-    const Ref  second             = original.reserveRange(32, 1, true);
-    original.at<uint64_t>(second) = 42;
-    const Ref              last   = original.pushBack(uint32_t{43});
-    std::vector<std::byte> image(original.extentSize());
-    original.copyToPreserveOffsets(image);
-
-    PagedStore restored(32);
-    restored.loadImage(image);
-    if (restored.at<uint64_t>(first) != 41 || restored.at<uint64_t>(second) != 42 || restored.at<uint32_t>(last) != 43)
-        return Result::Error;
-    if (restored.extentSize() != original.extentSize())
-        return Result::Error;
-    std::vector<std::byte> copy(image.size());
-    restored.copyToPreserveOffsets(copy);
-    if (copy != image)
-        return Result::Error;
-    const Ref appended = restored.pushBack(uint32_t{44});
-    if (appended < image.size() || restored.at<uint32_t>(appended) != 44 || restored.at<uint32_t>(last) != 43)
-        return Result::Error;
-
-    PagedStore empty;
-    empty.loadImage({});
-    if (empty.size() || empty.pushBack(uint32_t{1}) != 0)
-        return Result::Error;
-}
-SWC_TEST_END()
-
 SWC_TEST_BEGIN(PagedStore_MoveConstructionPreservesProximityAllocation)
 {
     PagedStore source(32);

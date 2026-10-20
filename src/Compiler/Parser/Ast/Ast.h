@@ -68,14 +68,6 @@ public:
     void              addFlag(AstFlags flag) { flags_.add(flag); }
     void              captureParsedNodeBoundary();
     bool              isAdditionalNode(AstNodeRef nodeRef) const;
-    void              copyParseImage(std::vector<std::byte>& out, std::vector<uint32_t>& nodes);
-    bool              loadParseImage(std::span<const std::byte> image, std::span<const uint32_t> nodes, uint32_t root);
-    void              prepareParseImage()
-    {
-        captureParseNodes_ = true;
-        for (auto& shard : shards_)
-            shard.store.enableZeroedPages();
-    }
 
     // Resolving a node handle is the single most executed operation of the semantic passes, so it
     // stays inline: the shard is a shift, the page and offset are a shift and a mask inside the
@@ -163,8 +155,6 @@ public:
             globalRef                   = AstNodeRef{packRef(shard, localByteRef)};
             ::new (local.second) NodeType{};
             local.second->setCodeRef(SourceCodeRef(activeSrcView.ref(), tokRef));
-            if (captureParseNodes_)
-                shards_[shard].parseNodes.push_back(globalRef);
         }
 
         std::pair<AstNodeRef, NodeType*> value{globalRef, local.second};
@@ -216,7 +206,6 @@ private:
     struct Shard
     {
         PagedStore                store;
-        std::vector<AstNodeRef>   parseNodes;
         mutable std::shared_mutex mutex;
     };
 
@@ -253,7 +242,6 @@ private:
     mutable std::unique_ptr<ReachableNodeIndex> reachableNodeIndex_;
     uint32_t                                    parsedNodeBoundaryByShard_[SHARD_COUNT] = {};
     bool                                        hasParsedNodeBoundary_                  = false;
-    bool                                        captureParseNodes_                      = false;
     inline static thread_local SourceView*      threadSourceViewOverride_               = nullptr;
 };
 

@@ -16,79 +16,128 @@ namespace
         0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
 
     uint32_t rotr(const uint32_t value, const uint32_t count) { return (value >> count) | (value << (32 - count)); }
+
+    struct Sha256State
+    {
+        uint32_t                h[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+        std::array<uint8_t, 64> tail{};
+        uint64_t                totalBytes = 0;
+        size_t                  used       = 0;
+
+        void block(const uint8_t* data)
+        {
+            uint32_t w[64];
+            for (size_t i = 0; i < 16; ++i)
+            {
+                w[i] = (static_cast<uint32_t>(data[i * 4]) << 24) |
+                       (static_cast<uint32_t>(data[i * 4 + 1]) << 16) |
+                       (static_cast<uint32_t>(data[i * 4 + 2]) << 8) |
+                       static_cast<uint32_t>(data[i * 4 + 3]);
+            }
+
+            for (int i = 16; i < 64; ++i)
+            {
+                const uint32_t s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
+                const uint32_t s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
+                w[i]              = w[i - 16] + s0 + w[i - 7] + s1;
+            }
+
+            uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
+            for (int i = 0; i < 64; ++i)
+            {
+                const uint32_t s1    = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+                const uint32_t ch    = (e & f) ^ (~e & g);
+                const uint32_t temp1 = hh + s1 + ch + K_RC[i] + w[i];
+                const uint32_t s0    = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+                const uint32_t maj   = (a & b) ^ (a & c) ^ (b & c);
+                const uint32_t temp2 = s0 + maj;
+
+                hh = g;
+                g  = f;
+                f  = e;
+                e  = d + temp1;
+                d  = c;
+                c  = b;
+                b  = a;
+                a  = temp1 + temp2;
+            }
+
+            h[0] += a;
+            h[1] += b;
+            h[2] += c;
+            h[3] += d;
+            h[4] += e;
+            h[5] += f;
+            h[6] += g;
+            h[7] += hh;
+        }
+
+        void append(std::span<const std::byte> data)
+        {
+            totalBytes += data.size();
+            if (used)
+            {
+                const size_t count = std::min(tail.size() - used, data.size());
+                if (count)
+                    std::memcpy(tail.data() + used, data.data(), count);
+                used += count;
+                data = data.subspan(count);
+                if (used != tail.size())
+                    return;
+                block(tail.data());
+                used = 0;
+            }
+            while (data.size() >= tail.size())
+            {
+                block(reinterpret_cast<const uint8_t*>(data.data()));
+                data = data.subspan(tail.size());
+            }
+            if (!data.empty())
+            {
+                std::memcpy(tail.data(), data.data(), data.size());
+                used = data.size();
+            }
+        }
+
+        std::array<uint8_t, 32> finish()
+        {
+            const uint64_t bitLength = totalBytes * 8;
+            tail[used++]             = 0x80;
+            if (used > 56)
+            {
+                std::memset(tail.data() + used, 0, tail.size() - used);
+                block(tail.data());
+                used = 0;
+            }
+            std::memset(tail.data() + used, 0, 56 - used);
+            for (size_t index = 0; index < 8; ++index)
+                tail[63 - index] = static_cast<uint8_t>(bitLength >> (8 * index));
+            block(tail.data());
+            std::array<uint8_t, 32> out{};
+            for (int i = 0; i < 8; ++i)
+            {
+                out[i * 4 + 0] = static_cast<uint8_t>(h[i] >> 24);
+                out[i * 4 + 1] = static_cast<uint8_t>(h[i] >> 16);
+                out[i * 4 + 2] = static_cast<uint8_t>(h[i] >> 8);
+                out[i * 4 + 3] = static_cast<uint8_t>(h[i]);
+            }
+
+            return out;
+        }
+    };
+}
+
+std::array<uint8_t, 32> sha256Parts(const std::initializer_list<std::span<const std::byte>> parts)
+{
+    Sha256State state;
+    for (const auto part : parts)
+        state.append(part);
+    return state.finish();
 }
 
 std::array<uint8_t, 32> sha256(const std::span<const std::byte> data)
 {
-    uint32_t h[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
-
-    const uint64_t bitLen = data.size() * 8;
-    std::vector    msg(reinterpret_cast<const uint8_t*>(data.data()), reinterpret_cast<const uint8_t*>(data.data()) + data.size());
-    msg.push_back(0x80);
-    while (msg.size() % 64 != 56)
-        msg.push_back(0);
-
-    for (int i = 7; i >= 0; --i)
-        msg.push_back(static_cast<uint8_t>(bitLen >> (8 * i)));
-
-    for (size_t off = 0; off < msg.size(); off += 64)
-    {
-        uint32_t w[64];
-        for (size_t i = 0; i < 16; ++i)
-        {
-            w[i] = (static_cast<uint32_t>(msg[off + i * 4]) << 24) |
-                   (static_cast<uint32_t>(msg[off + i * 4 + 1]) << 16) |
-                   (static_cast<uint32_t>(msg[off + i * 4 + 2]) << 8) |
-                   static_cast<uint32_t>(msg[off + i * 4 + 3]);
-        }
-
-        for (int i = 16; i < 64; ++i)
-        {
-            const uint32_t s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >> 3);
-            const uint32_t s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >> 10);
-            w[i]              = w[i - 16] + s0 + w[i - 7] + s1;
-        }
-
-        uint32_t a = h[0], b = h[1], c = h[2], d = h[3], e = h[4], f = h[5], g = h[6], hh = h[7];
-        for (int i = 0; i < 64; ++i)
-        {
-            const uint32_t s1    = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
-            const uint32_t ch    = (e & f) ^ (~e & g);
-            const uint32_t temp1 = hh + s1 + ch + K_RC[i] + w[i];
-            const uint32_t s0    = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
-            const uint32_t maj   = (a & b) ^ (a & c) ^ (b & c);
-            const uint32_t temp2 = s0 + maj;
-
-            hh = g;
-            g  = f;
-            f  = e;
-            e  = d + temp1;
-            d  = c;
-            c  = b;
-            b  = a;
-            a  = temp1 + temp2;
-        }
-
-        h[0] += a;
-        h[1] += b;
-        h[2] += c;
-        h[3] += d;
-        h[4] += e;
-        h[5] += f;
-        h[6] += g;
-        h[7] += hh;
-    }
-
-    std::array<uint8_t, 32> out{};
-    for (int i = 0; i < 8; ++i)
-    {
-        out[i * 4 + 0] = static_cast<uint8_t>(h[i] >> 24);
-        out[i * 4 + 1] = static_cast<uint8_t>(h[i] >> 16);
-        out[i * 4 + 2] = static_cast<uint8_t>(h[i] >> 8);
-        out[i * 4 + 3] = static_cast<uint8_t>(h[i]);
-    }
-
-    return out;
+    return sha256Parts({data});
 }
 
 SWC_END_NAMESPACE();

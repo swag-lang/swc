@@ -13,6 +13,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerCache.h"
+#include "Main/CompilerCacheStore.h"
 #include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/WorkspaceLayout.h"
@@ -28,131 +29,6 @@ namespace
     constexpr uint32_t K_RELOCATION_SIZE = 28;
     constexpr uint32_t K_SOURCE_SIZE     = 12;
     constexpr uint32_t K_MAX_IMAGE_SIZE  = 64 * 1024 * 1024;
-
-    class CacheStore;
-    std::atomic<CacheStore*> activeStore = nullptr;
-
-    class CacheStore
-    {
-    public:
-        CacheStore()
-        {
-            const auto& compiler = compilerCacheIdentity();
-            const auto  bytes    = std::as_bytes(std::span{compiler.data(), compiler.size()});
-            path_                = WorkspaceLayout::machineCacheRoot() / std::format("{}.bin", Utf8Helper::toLowerHex(sha256(bytes)).view());
-            load(entries_);
-            activeStore.store(this, std::memory_order_release);
-        }
-
-        ~CacheStore() { activeStore.store(nullptr, std::memory_order_release); }
-
-        bool read(ByteArray& out, const Utf8& key)
-        {
-            const std::shared_lock lock(mutex_);
-            const auto             found = entries_.find(key);
-            if (found == entries_.end())
-                return false;
-            out = found->second;
-            return true;
-        }
-
-        void write(const Utf8& key, ByteArray bytes)
-        {
-            const std::unique_lock lock(mutex_);
-            entries_.insert_or_assign(key, bytes);
-            pending_.insert_or_assign(key, std::move(bytes));
-        }
-
-        void flush()
-        {
-            const std::unique_lock lock(mutex_);
-            if (pending_.empty())
-                return;
-            std::error_code ec;
-            fs::create_directories(path_.parent_path(), ec);
-            if (ec)
-                return;
-            Os::DirectoryLock publication;
-            Utf8              because;
-            if (!publication.lock(because, path_.parent_path()))
-                return;
-            std::unordered_map<Utf8, ByteArray> merged;
-            load(merged);
-            for (const auto& [key, bytes] : pending_)
-                merged.insert_or_assign(key, bytes);
-            size_t extent = 16;
-            for (const auto& [key, bytes] : merged)
-                extent += 68 + bytes.size();
-            // Keep the newest working set when the archive reaches its size bound.
-            if (extent > K_MAX_IMAGE_SIZE)
-                merged = pending_;
-            std::vector<Utf8> keys;
-            for (const auto& [key, bytes] : merged)
-                keys.push_back(key);
-            std::ranges::sort(keys);
-            ByteArray archive;
-            archive.appendLe64(K_STORE_MAGIC);
-            archive.appendLe32(static_cast<uint32_t>(keys.size()));
-            archive.appendLe32(0);
-            for (const Utf8& key : keys)
-            {
-                const auto& bytes = merged.at(key);
-                archive.append(key.view());
-                archive.appendLe32(static_cast<uint32_t>(bytes.size()));
-                archive.append(bytes);
-            }
-            FileSystem::IoErrorInfo error;
-            if (archive.size() <= K_MAX_IMAGE_SIZE && FileSystem::writeBinaryFileAtomic(path_, archive.data(), archive.size(), error) == Result::Continue)
-                pending_.clear();
-        }
-
-    private:
-        void load(std::unordered_map<Utf8, ByteArray>& out) const
-        {
-            std::error_code ec;
-            const auto      size = fs::file_size(path_, ec);
-            if (ec || size < 16 || size > K_MAX_IMAGE_SIZE)
-                return;
-            ByteArray               archive;
-            FileSystem::IoErrorInfo error;
-            if (FileSystem::readBinaryFile(path_, archive, error) != Result::Continue || archive.size() < 16 || archive.readLe64(0) != K_STORE_MAGIC)
-                return;
-            const uint32_t count = archive.readLe32(8);
-            if (count > (archive.size() - 16) / (68 + K_HEADER_SIZE))
-                return;
-            std::unordered_map<Utf8, ByteArray> entries;
-            size_t                              cursor = 16;
-            for (uint32_t index = 0; index < count; ++index)
-            {
-                if (!archive.containsRange(cursor, 68))
-                    return;
-                Utf8           key(std::string_view(reinterpret_cast<const char*>(archive.data() + cursor), 64));
-                const uint32_t length = archive.readLe32(cursor + 64);
-                cursor += 68;
-                if (length < K_HEADER_SIZE || !archive.containsRange(cursor, length))
-                    return;
-                ByteArray bytes;
-                bytes.append(archive.span().subspan(cursor, length));
-                if (!entries.emplace(std::move(key), std::move(bytes)).second)
-                    return;
-                cursor += length;
-            }
-            if (cursor == archive.size())
-                out = std::move(entries);
-        }
-
-        static constexpr uint64_t           K_STORE_MAGIC = 0x31544553434d5753; // SWMCSET1
-        fs::path                            path_;
-        std::shared_mutex                   mutex_;
-        std::unordered_map<Utf8, ByteArray> entries_;
-        std::unordered_map<Utf8, ByteArray> pending_;
-    };
-
-    CacheStore& store()
-    {
-        static CacheStore cache;
-        return cache;
-    }
 
     void appendString(ByteArray& out, const std::string_view text)
     {
@@ -415,14 +291,14 @@ namespace
 MachineCodeCache::MachineCodeCache(TaskContext& ctx, const SymbolFunction& function, const MicroBuilder& builder)
 {
     const CommandLine& command = ctx.cmdLine();
-    if (!command.machineCache || !function.decl() || command.optimizerStats || command.rebuild || builder.hasPrintPassOptions() || builder.backendBuildCfg().debugInfo || ctx.compiler().buildCfg().backend.debugInfo || isEditorServiceCommand(command.command))
+    if (!function.decl() || command.optimizerStats || command.command == CommandKind::Syntax || builder.hasPrintPassOptions() || builder.backendBuildCfg().debugInfo || ctx.compiler().buildCfg().backend.debugInfo || isEditorServiceCommand(command.command))
         return;
 #if SWC_DEV_MODE
     if (command.devFull || command.validateMicro)
         return;
 #endif
     const SourceFile* file = ctx.compiler().ownerSourceFile(function.srcViewRef());
-    if (!file || (!file->isRuntime() && !file->isImportedApi()) || compilerCacheIdentity().empty())
+    if (!file || (file->hasFlag(FileFlagsE::CustomSrc) || (!file->isRuntime() && !file->isImportedApi())) || compilerCacheIdentity().empty())
         return;
 
     key_ = inputKey(ctx, sources_, function, builder, compilerCacheIdentity().view());
@@ -546,24 +422,23 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
 
 bool MachineCodeCache::read(MachineCode& out) const
 {
-    if (key_.empty())
+    if (key_.empty() || ctx_->cmdLine().rebuild)
         return false;
-    ByteArray bytes;
-    if (!store().read(bytes, key_) || bytes.size() < K_HEADER_SIZE || bytes.readLe64(0) != K_MAGIC)
+    const auto record = CompilerCacheStore::get(false).read(key_);
+    if (!record || record.bytes.size() < K_HEADER_SIZE || record.bytes.readLe64(0) != K_MAGIC)
         return false;
-    const uint32_t codeSize = bytes.readLe32(8), unwindSize = bytes.readLe32(12);
-    const uint32_t relocations = bytes.readLe32(24), sources = bytes.readLe32(28);
+    const ByteView& bytes    = record.bytes;
+    const uint32_t  codeSize = bytes.readLe32(8), unwindSize = bytes.readLe32(12);
+    const uint32_t  relocations = bytes.readLe32(24), sources = bytes.readLe32(28);
     if (K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE != bytes.size() || !codeSize)
         return false;
     std::array<uint8_t, 32> checksum;
     std::memcpy(checksum.data(), bytes.data() + 32, checksum.size());
-    std::memset(bytes.data() + 32, 0, checksum.size());
-    // Bind the payload to its input identity too: a damaged archive index cannot
-    // redirect a valid body to a different function with another valid checksum.
-    bytes.append(key_.view());
-    if (sha256(bytes.span()) != checksum)
+    // The checksum field is logically zero; the shared record stays immutable.
+    const std::array<std::byte, 32> zero{};
+    const auto                      keyBytes = std::as_bytes(std::span{key_.data(), key_.size()});
+    if (sha256Parts({bytes.span().first(32), zero, bytes.span().subspan(K_HEADER_SIZE), keyBytes}) != checksum)
         return false;
-    bytes.resize(bytes.size() - key_.size());
 
     MachineCode code;
     code.debugStackBasePhysReg = MicroReg::fromPacked(bytes.readLe32(16));
@@ -684,17 +559,9 @@ void MachineCodeCache::write(const MachineCode& code) const
     bytes.append(records);
     if (bytes.size() > K_MAX_IMAGE_SIZE)
         return;
-    bytes.append(key_.view());
-    const auto checksum = sha256(bytes.span());
-    bytes.resize(bytes.size() - key_.size());
+    const auto checksum = sha256Parts({bytes.span(), std::as_bytes(std::span{key_.data(), key_.size()})});
     std::memcpy(bytes.data() + 32, checksum.data(), checksum.size());
-    store().write(key_, std::move(bytes));
-}
-
-void MachineCodeCache::flush()
-{
-    if (CacheStore* cache = activeStore.load(std::memory_order_acquire))
-        cache->flush();
+    CompilerCacheStore::get(ctx_->cmdLine().rebuild).write(key_, std::move(bytes));
 }
 
 SWC_END_NAMESPACE();

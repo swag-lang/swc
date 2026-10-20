@@ -1,0 +1,11 @@
+{
+  "compiler": "C:\\Perso\\swag-lang\\swc-binary-cache\\bin\\swc.dm.exe",
+  "selection": "forced rebuild with mapped readers",
+  "checks": [
+    "cold and warm native/JIT calls return the same values",
+    "ordinary compiler commands reuse archives without a cache option",
+    "--rebuild bypasses existing entries and replaces the machine archive",
+    "rebuild preserves old mapped readers while publishing fresh generations",
+    "--rebuild invalidates old machine records even when statistics bypass publication"
+  ]
+}

@@ -1071,7 +1071,7 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
 
     // The shared runtime/API archive validates semantic and relocation inputs.
     // Keep these functions on that path rather than the older output-local COFF cache.
-    if (ctx().cmdLine().machineCache && function.decl())
+    if (function.decl())
     {
         const SourceFile* file = compiler().ownerSourceFile(function.srcViewRef());
         if (file && (file->isRuntime() || file->isImportedApi()))

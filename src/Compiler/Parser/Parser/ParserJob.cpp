@@ -1,10 +1,8 @@
 #include "pch.h"
 #include "Compiler/Parser/Parser/ParserJob.h"
-#include "Compiler/Parser/Parser/ParseCache.h"
 #include "Compiler/Parser/Parser/Parser.h"
 #include "Compiler/SourceFile.h"
 #include "Compiler/Verify.h"
-#include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"
 #include "Support/Thread/JobManager.h"
@@ -16,12 +14,6 @@ Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, const ParserJob
     Ast& ast = file.ast();
 
     file.unitTest().tokenize(ctx);
-
-    const fs::path cachePath = ParseCache::path(ctx, file, options);
-    if (!cachePath.empty() && !ctx.cmdLine().rebuild && !file.unitTest().hasExpectedDirectives() && ParseCache::read(ctx, file, cachePath))
-        return Result::Continue;
-    if (!cachePath.empty())
-        ast.prepareParseImage();
 
     LexerFlags lexerFlags = LexerFlagsE::Default;
 
@@ -44,9 +36,6 @@ Result parseLoadedSourceFile(TaskContext& ctx, SourceFile& file, const ParserJob
 
     Parser parser;
     parser.parse(ctx, ast);
-
-    if (!cachePath.empty() && !file.unitTest().hasExpectedDirectives())
-        ParseCache::write(file, cachePath);
 
     return Result::Continue;
 }

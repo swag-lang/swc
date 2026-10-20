@@ -1283,13 +1283,13 @@ Result SymbolStruct::registerSpecOps(Sema& sema) const
 void SymbolStruct::addField(SymbolVariable* sym)
 {
     SWC_ASSERT(sym != nullptr);
-    SWC_ASSERT(!fieldIndexMap_.contains(sym));
 
     // Published before the field so a reader that sees the field also sees the flag.
     if (sym->isUsingField())
         addExtraFlag(SymbolStructFlagsE::UsingField);
 
-    fieldIndexMap_.emplace(sym, fields_.size());
+    [[maybe_unused]] const bool inserted = fieldIndexMap_.emplace(sym, fields_.size()).second;
+    SWC_ASSERT(inserted);
     fields_.push_back(sym);
 }
 

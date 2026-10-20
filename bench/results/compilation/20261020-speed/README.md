@@ -47,6 +47,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Build edit-distance rows without clearing their future contents | Three initial zero passes over rows that are assigned before use | The first predecessor row is filled explicitly. Each current row is complete before swapping, and transpositions first read the two-row predecessor after it contains the initial row. Nonempty inputs guarantee nonempty allocations. The same three arrays, recurrence and tie order remain; the function shrinks from 1,083 to 593 code bytes, its reservation from 168 to 104 bytes and calls from twelve to seven. Object code falls by 825 bytes and retained data by 99 bytes; other public helpers retain their code. |
 
+| Reuse a diagnostic's resolved owner file | Looking up the same file again when marking its error or warning state | The first lookup already precedes expectation matching; compiler-owned file objects retain stable addresses. The same owner, expected-diagnostic matching, display deduplication, task state and line ranges are retained. Reporting shrinks from 1,964 to 1,921 code bytes, its reservation from 352 to 336 bytes and calls from 37 to 35. Other function code and retained data are unchanged. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -224,6 +226,13 @@ first-candidate selection on a tie.
 The expected-error `unknown_symbol_suggests_name` input also passes (29 inputs
 including runtime), preserving the closest-name help text. Its normal selection
 contains only the 28 runtime inputs and is not claimed as suggestion coverage.
+
+The owner-file follow-up on base `da352b84c8` passes all 1,513 default C++
+tests, including parser-worker file isolation and EOF file/task-state checks.
+The expected-error `unknown_symbol_suggests_name` input passes again (29 inputs
+including runtime), preserving its help text and expectation matching. This
+follow-up changes diagnostic bookkeeping only; the preceding broad milestones
+remain tied to the versions described above.
 
 Rejected trials:
 

@@ -16,6 +16,8 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Construct character flags from a constant template | Runtime clearing and merging passes over the character-class table | The same rules build a 1,024-byte template at C++ compile time. Setup copies it to the original member location, preserving every lookup. All 346 lexer code sections remain byte-identical. The template is smaller than the removed reverse map's minimum 2,826-byte key/view payload, before node and bucket overhead. |
 | Check the reserved namespace without an owning string | Copying a namespace, lowercasing its entire contents and destroying the copy | Length and four unsigned-byte `tolower` checks preserve the existing locale-sensitive result. The helper shrinks from 225 to 91 code bytes and its stack reservation from 80 to 32 bytes. |
 | Borrow assignment and generic-declaration AST lists | Copying node references into temporary vectors and destroying those vectors | Chunk iteration preserves source order, skipped assignment targets and recursive parameter expansion. Assignment-list code shrinks from 880 to 876 bytes and its frame from 1,080 to 856 bytes; generic-root parameter collection shrinks from 1,417 to 1,384 bytes and its frame from 744 to 488 bytes. The 102-byte span helper already exists elsewhere and is folded by the linker. |
+| Borrow generic parameter declarations during deduction | Copying declaration references before expanding their descriptions | The ordered recursive expansion reads the same immutable AST chunks. The collector shrinks from 1,261 to 1,252 code bytes and its frame from 800 to 528 bytes; one temporary cleanup disappears. The existing span helper is shared. |
+| Append cloned parameter declarations directly to their worklist | A temporary reference vector and a second per-reference append loop | The index-based worklist keeps the same order across growth. Its identifier collector shrinks from 1,923 to 1,627 code bytes and its frame from 1,032 to 728 bytes. No AST entries or identifiers change. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -64,6 +66,14 @@ inputs, including runtime sources. The existing paged-span tests cover chunk
 boundaries and growth; the borrowed views remain inside the original AST owner's
 lifetime. This batch uses base `62434c120a`, including the imported invariant
 subtraction and scaled-add optimizer changes.
+The same compiler also passes all 315 native optimizer tests.
+
+The deduction/cloning batch passes 1,500 C++ tests, generic-focused semantic
+checks over 68 normal and 45 expected-error inputs, all 152 native tests in the
+`generics` directory, and the native macro-parameter-shadowing case. The broader
+singular `generic` filter excluded the shared allocator used by some selected
+examples; its missing-symbol failure was a selection error and is not counted
+as validation. The corrected directory selection includes its provider files.
 
 Rejected trials:
 
@@ -77,3 +87,11 @@ Rejected trials:
 - Reusing `nthNode`'s initial chunk total for bounds checking would decode a
   chunk for legitimate out-of-range queries that currently read only the total.
   That work tradeoff was left aside; no AST lookup change is retained.
+- Inlining the two `ByteArray::data` getters removed fourteen calls and 112 code
+  bytes from the inspected COFF writer, but increased the allocation-section
+  builder's stack reservation from 352 to 368 bytes. The trial is discarded;
+  both accessors keep their original out-of-line definitions.
+- Borrowing generic parameter-name token chunks grew each of the two inspected
+  collectors by 281 code bytes. The extra token-span API and its callers are
+  restored. Borrowing partial-lambda parameter chunks grew that caller by 13
+  bytes and is also restored; none of these trials is retained.

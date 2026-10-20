@@ -153,12 +153,12 @@ namespace
 
         if (paramNode->is(AstNodeId::VarDeclList))
         {
-            SmallVector<AstNodeRef> vars;
-            sema.ast().appendNodes(vars, paramNode->cast<AstVarDeclList>().spanChildrenRef);
-
-            for (const AstNodeRef varRef : vars)
-                appendFunctionParamDesc(sema, varRef, outParams);
-
+            const auto vars = sema.ast().nodeSpan(paramNode->cast<AstVarDeclList>().spanChildrenRef);
+            for (auto chunk = vars.chunksBegin(); chunk != vars.chunksEnd(); ++chunk)
+            {
+                for (const AstNodeRef varRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                    appendFunctionParamDesc(sema, varRef, outParams);
+            }
             return;
         }
 

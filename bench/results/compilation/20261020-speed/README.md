@@ -37,6 +37,12 @@ benchmark campaign is run; compilation-time targets remain unverified.
 
 | Allocate the return-summary ring without zeroing unread slots | An initial zero write for every completed-function queue slot | The fixed-capacity queue writes each slot before increasing its counted occupancy; only counted entries are popped. Capacity, FIFO order, duplicate suppression and wraparound remain unchanged. The callback shrinks from 5,768 to 5,604 code bytes and loses one call with the same 368-byte reservation; a new 13-byte cleanup leaves the object's total code smaller. |
 
+| Use the proven signed minimum-width bounds | Clamping the highest differing bit's precision to the active width | A bit differing from the sign fill cannot be the sign bit. Adding one sign bit therefore yields a precision from two through the active width; all-sign-fill values retain their existing eight-bit result. The helper shrinks from 323 to 317 code bytes with the same 32-byte reservation, and other function sizes remain unchanged. |
+
+| Retain the decimal mantissa string for float parsing | A NUL-length scan, a second string copy/allocation and temporary cleanup | The integer's decimal result is kept directly and supplied to the same formatter as a sized view. Decimal text, exponent formatting and `from_chars` conversion are unchanged. The setter shrinks from 688 to 555 code bytes, its reservation from 256 to 224 bytes, and calls from eleven to eight. Smaller format wrappers bring object code from 80,798 to 80,604 bytes and retained data from 35,603 to 35,583 bytes. |
+
+| Reuse numeric-promotion metadata and insertion state | Two repeated type lookups in every mixed float/integer pair, both lookups for identical types, and sixteen preliminary map probes | The private builder uses the same sixteen builtin references. Mixed pairs select the metadata already fetched; identity returns its input. Since the map starts empty and grows once per iteration, its size proves each insertion unique. Promotion code shrinks from 755 to 705 bytes and its reservation from 72 to 56; table construction shrinks from 966 to 886 bytes with the same 360-byte reservation. Other function sizes are unchanged. |
+
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
 requiring `--dev-full`.
@@ -172,6 +178,26 @@ The return-summary ring passes the focused `jit_use_after_free_summary` sanity
 input (29 inputs including runtime). Its compile-time executions and expected
 use-after-free diagnostics cover guarded forwarding through recursive return
 summaries, wrappers and stored carriers; it has no executable `#test` bodies.
+
+The signed-precision batch passes all 1,508 C++ tests, including the independent
+bit oracle and every single-bit value and complement at widths 1 through 128.
+
+The float-mantissa batch passes both JIT `float_literal_rounding` tests, checking
+exact IEEE bits for decimal halfway rounding, long mantissas, the largest finite
+double, the normal/subnormal boundary and the smallest subnormal, plus agreement
+with runtime arithmetic.
+
+The promotion batch passes all 1,508 C++ tests, including the existing numeric
+pair, operand-order and forced-32-bit promotion expectations. Every compiler
+context also constructs the complete table with its uniqueness assertions.
+
+A fourth arithmetic defect is reproduced directly: a decimal mantissa with
+`INT64_MAX` as its exponent becomes zero because adding its digit count wraps
+the range-direction calculation. Comparing the exponent with the negated digit
+count preserves the mathematical test without that overflowing addition. The
+new C++ regression fails before the fix while the other 1,508 pass; all 1,509
+then pass. It checks one-, five- and 39-digit mantissas at both signed exponent
+extremes, plus zero at the maximum exponent. This is a correctness repair.
 
 Rejected trials:
 

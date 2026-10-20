@@ -1256,11 +1256,9 @@ uint32_t ApInt::minBitsSigned() const
             const uint32_t msbInWord = 63u - static_cast<uint32_t>(std::countl_zero(diff));
             const uint32_t bitIndex  = static_cast<uint32_t>(wi) * WORD_BITS + msbInWord;
 
-            // One extra bit above the highest differing bit to carry the sign.
-            uint32_t rawBits = bitIndex + 2;
-            rawBits          = std::max<uint32_t>(rawBits, 1u);
-            rawBits          = std::min<uint32_t>(rawBits, bitWidth_);
-            return roundUpToStdWidth(rawBits);
+            // The sign bit cannot differ from its fill. Adding a sign bit therefore
+            // stays within the active width and is already at least two bits.
+            return roundUpToStdWidth(bitIndex + 2);
         }
     }
 

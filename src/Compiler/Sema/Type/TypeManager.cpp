@@ -677,11 +677,11 @@ TypeRef TypeManager::runtimeType(IdentifierManager::PredefinedName name) const
 
 TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
 {
-    const TypeInfo& lhs = get(lhsRef);
-    const TypeInfo& rhs = get(rhsRef);
-
     if (lhsRef == rhsRef)
         return lhsRef;
+
+    const TypeInfo& lhs = get(lhsRef);
+    const TypeInfo& rhs = get(rhsRef);
 
     const bool lhsFloat = lhs.isFloat();
     const bool rhsFloat = rhs.isFloat();
@@ -698,11 +698,8 @@ TypeRef TypeManager::computePromotion(TypeRef lhsRef, TypeRef rhsRef) const
         }
 
         // Mixed float/int: Must return a float, potentially widened
-        const TypeRef floatRef = lhsFloat ? lhsRef : rhsRef;
-        const TypeRef intRef   = lhsFloat ? rhsRef : lhsRef;
-
-        const TypeInfo& fInfo = get(floatRef);
-        const TypeInfo& iInfo = get(intRef);
+        const TypeInfo& fInfo = lhsFloat ? lhs : rhs;
+        const TypeInfo& iInfo = lhsFloat ? rhs : lhs;
 
         const uint32_t fBits = fInfo.payloadFloatBits();
         const uint32_t iBits = iInfo.payloadIntLikeBits();
@@ -772,8 +769,8 @@ void TypeManager::buildPromoteTable()
     for (uint32_t i = 0; i < n; ++i)
     {
         const uint32_t key = types[i].get();
-        SWC_ASSERT(promoteIndex_.find(key) == nullptr);
         promoteIndex_.emplace(key, i);
+        SWC_ASSERT(promoteIndex_.size() == i + 1);
     }
 
     // Rows share one allocation and a fixed stride for promotion lookups.

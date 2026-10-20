@@ -99,16 +99,17 @@ void ApFloat::set(const ApInt& mantissa, int64_t exponent10)
     // Scaling the mantissa by a power of ten in floating point rounds twice, and misses the nearest
     // double by an ulp or two for literals as plain as 1.005. The decimal text is converted instead,
     // which rounds once, to the nearest double.
-    const std::string digits = mantissa.toString().c_str();
-    const std::string text   = std::format("{}e{}", digits, exponent10);
+    const Utf8        digits = mantissa.toString();
+    const std::string text   = std::format("{}e{}", digits.view(), exponent10);
 
     double parsed           = 0;
     const auto [ptr, error] = std::from_chars(text.data(), text.data() + text.size(), parsed);
     if (error == std::errc::result_out_of_range)
     {
         // Past the largest double the value is infinite; below the smallest subnormal it is zero.
-        const int64_t magnitude = static_cast<int64_t>(digits.size()) + exponent10;
-        parsed                  = magnitude > 0 ? std::numeric_limits<double>::infinity() : 0.0;
+        // Compare without adding: an extreme positive exponent can overflow int64_t.
+        const bool aboveRange = exponent10 > -static_cast<int64_t>(digits.size());
+        parsed                = aboveRange ? std::numeric_limits<double>::infinity() : 0.0;
     }
     else
     {

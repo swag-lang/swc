@@ -409,7 +409,12 @@ AstNodeRef NodePayload::followSubstituteChain(AstNodeRef nodeRef) const
             .ref      = AstNode::payloadRefFromState(state),
             .shardIdx = static_cast<uint32_t>((AstNode::payloadBitsFromState(state) & NODE_PAYLOAD_SHARD_MASK) >> NODE_PAYLOAD_SHARD_SHIFT)};
         if (info.kind != NodePayloadKind::Substitute)
-            break;
+        {
+#if SWC_HAS_REF_DEBUG_INFO
+            nodeRef.dbgPtr = &node;
+#endif
+            return nodeRef;
+        }
 
         const Shard* shard = tryGetShard(info.shardIdx);
         SWC_ASSERT(shard != nullptr);
@@ -417,11 +422,6 @@ AstNodeRef NodePayload::followSubstituteChain(AstNodeRef nodeRef) const
         SWC_ASSERT(storage);
         nodeRef = storage->substNodeRef;
     }
-
-#if SWC_HAS_REF_DEBUG_INFO
-    nodeRef.dbgPtr = &ast().node(nodeRef);
-#endif
-    return nodeRef;
 }
 
 bool NodePayload::hasType(const TaskContext& ctx, AstNodeRef nodeRef) const

@@ -963,6 +963,48 @@ SWC_TEST_BEGIN(StrengthReduction_AddSubZeroPreservesLiveResultsAndFlags)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(StrengthReduction_PreshiftsEvenDivisorsThatNeedCorrection)
+{
+    for (const MicroOpBits bits : {MicroOpBits::B32, MicroOpBits::B64})
+    {
+        const uint64_t divisor  = bits == MicroOpBits::B32 ? 14 : 1000;
+        const uint64_t preShift = bits == MicroOpBits::B32 ? 1 : 3;
+        for (const bool remainder : {false, true})
+        {
+            for (const bool liveFlags : {false, true})
+            {
+                const MicroReg value  = MicroReg::virtualIntReg(10);
+                const MicroReg output = MicroReg::virtualIntReg(11);
+                const MicroReg flags  = MicroReg::virtualIntReg(12);
+                MicroBuilder   builder(ctx);
+                builder.emitLoadRegReg(value, MicroReg::intReg(2), bits);
+                const MicroOp operation = remainder ? MicroOp::ModuloUnsigned : MicroOp::DivideUnsigned;
+                builder.emitOpBinaryRegImm(value, ApInt(divisor, getNumBits(bits)), operation, bits);
+                if (liveFlags)
+                {
+                    builder.emitSetCondReg(flags, MicroCond::Overflow);
+                    builder.emitLoadMemReg(output, 8, flags, MicroOpBits::B8);
+                }
+                builder.emitLoadMemReg(output, 0, value, bits);
+                builder.emitRet();
+                SWC_RESULT(Backend::Unittest::runMicroPass<MicroStrengthReductionPass>(builder));
+                if (countBinaryRegImmOp(builder, operation) != (liveFlags ? 1u : 0u))
+                    return Result::Error;
+                if (liveFlags)
+                    continue;
+                if (!hasBinaryRegImm(builder, MicroOp::ShiftRight, preShift) ||
+                    Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Add) != 0 ||
+                    Backend::Unittest::countBinaryRegRegOp(builder, MicroOp::Subtract) != (remainder ? 1u : 0u))
+                    return Result::Error;
+                if (remainder && !hasBinaryRegImm(builder, MicroOp::MultiplySigned, divisor))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

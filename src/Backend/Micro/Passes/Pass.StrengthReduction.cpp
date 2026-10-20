@@ -333,12 +333,13 @@ namespace
     {
         uint64_t multiplier = 0;
         uint32_t shift      = 0;
+        uint8_t  preShift   = 0;
         bool     addFixup   = false; // multiplier does not fit N bits: use the add/shr fixup sequence
     };
 
     // Hacker's Delight figure 10-9, generalized to the operand width. Requires a
     // non-power-of-two divisor >= 3. All arithmetic stays within N bits.
-    UnsignedDivisionMagic computeUnsignedDivisionMagic(uint64_t divisor, uint32_t bits)
+    UnsignedDivisionMagic computeUnsignedDivisionMagic(uint64_t divisor, uint32_t bits, uint32_t leadingZeros = 0)
     {
         SWC_ASSERT(divisor >= 3 && !Math::isPowerOfTwo(divisor));
         SWC_ASSERT(bits == 32 || bits == 64);
@@ -347,13 +348,16 @@ namespace
         const uint64_t maxU   = (bits == 64) ? ~0ull : (1ull << bits) - 1;
 
         UnsignedDivisionMagic magic;
-        const uint64_t        nc = maxU - (maxU - divisor + 1) % divisor;
-        uint32_t              p  = bits - 1;
-        uint64_t              q1 = twoNm1 / nc;
-        uint64_t              r1 = twoNm1 - q1 * nc;
-        uint64_t              q2 = (twoNm1 - 1) / divisor;
-        uint64_t              r2 = (twoNm1 - 1) - q2 * divisor;
-        uint64_t              delta;
+        SWC_ASSERT(leadingZeros < bits);
+        const uint64_t maxDividend = maxU >> leadingZeros;
+        SWC_ASSERT(divisor <= maxDividend);
+        const uint64_t nc = maxDividend - (maxDividend - divisor + 1) % divisor;
+        uint32_t       p  = bits - 1;
+        uint64_t       q1 = twoNm1 / nc;
+        uint64_t       r1 = twoNm1 - q1 * nc;
+        uint64_t       q2 = (twoNm1 - 1) / divisor;
+        uint64_t       r2 = (twoNm1 - 1) - q2 * divisor;
+        uint64_t       delta;
 
         do
         {
@@ -387,6 +391,17 @@ namespace
             delta = divisor - 1 - r2;
         } while (p < bits * 2 && (q1 < delta || (q1 == delta && r1 == 0)));
 
+        // An even divisor that needs the correction is cheaper after its
+        // power-of-two factor is removed. The shift also proves those high
+        // dividend bits zero when computing the odd divisor's multiplier.
+        if (magic.addFixup && !(divisor & 1))
+        {
+            const uint32_t preShift = std::countr_zero(divisor);
+            magic                   = computeUnsignedDivisionMagic(divisor >> preShift, bits, leadingZeros + preShift);
+            SWC_ASSERT(!magic.addFixup && magic.preShift == 0);
+            magic.preShift = static_cast<uint8_t>(preShift);
+            return magic;
+        }
         magic.multiplier = (q2 + 1) & maxU;
         magic.shift      = p - bits;
         return magic;
@@ -560,6 +575,8 @@ namespace
         // With the fixup: q = ((n - mulhi(n, M)) >> 1 + mulhi(n, M)) >> (shift - 1).
         void emitUnsignedDivide(MicroReg dst, const UnsignedDivisionMagic& magic) const
         {
+            if (magic.preShift)
+                emitOpRegImm(dst, MicroOp::ShiftRight, magic.preShift);
             // A 32-bit dividend times a 32-bit multiplier fits in 64 bits: the
             // plain 64-bit product shifted down is the high half, as LLVM emits
             // it, and needs neither rax nor rdx.

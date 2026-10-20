@@ -117,3 +117,29 @@ through JIT and native in Release and DevMode with micro validation; all twelve
 Release checksum/code captures and final native-loop inspection. The full C++
 pre-correction run has only the expected new carry-reader failure (1,567 pass).
 Timing is not measured for this batch.
+
+## Even-divisor pre-shifts
+
+An unsigned even constant that needs a multiply-high correction now removes its
+power-of-two factor first and computes the odd-divisor multiplier with the newly
+proved leading zero bits. This is a general divisor property. Quotients use the
+shifted dividend; remainders retain the original dividend and original divisor.
+Odd divisors and already correction-free multipliers retain their expansion.
+
+Sort's checksum loop changes from 59 to 52 instructions per two input values,
+with the same two reads, no calls and unchanged saved registers, frame and spills.
+The emitted native loop uses `shr 3; mulhi 0x20c49ba5e353f7cf; shr 4` for `/1000`,
+then reconstructs the remainder with the original value. This matches the relevant
+D-LDC construction without changing the benchmark source. CSV's affected loop
+changes from 407 to 402 instructions, and Dijkstra's affected inner loop from
+182 to 174, with unchanged memory operations and calls. Allocator.maybePurge
+loses two instructions outside its loops. No other generated body or loop cost
+changes after overloaded bodies are paired; see `microdiff-batch6.json`.
+
+Validation: all 1,507 in-memory C++ tests, including width/remainder/live-flags
+eligibility; two native source tests through JIT and native with micro validation;
+512 pseudorandom inputs per width plus zero, signed boundaries, maximum unsigned
+values and divisor/multiple neighbours, compared with unoptimized dynamic division.
+All twelve Release checksum/code captures pass; the final native checksum loop
+was inspected. Analysis adds at most one width-bounded multiplier computation for
+an eligible even divisor. Timing remains unconfirmed pending the grouped campaign.

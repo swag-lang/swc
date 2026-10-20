@@ -135,10 +135,8 @@ public:
 private:
     // Control bytes mirror Abseil/Swiss-table style filtering:
     //  - EMPTY (0x80): never used
-    //  - TOMB  (0xFE): tombstone
     //  - otherwise: 7-bit fingerprint (never 0) derived from hash's top byte | 1
     static constexpr uint8_t EMPTY = 0x80;
-    static constexpr uint8_t TOMB  = 0xFE;
 
     static constexpr double MAX_LOAD = 0.875; // 7/8
     static constexpr size_t INIT_CAP = 16;
@@ -149,7 +147,7 @@ private:
         uint16_t         pad  = 0;
         uint32_t         hash = 0; // 32-bit hash
         std::string_view key{};
-        T                value{}; // POD value; uninitialized bits OK for EMPTY/TOMB
+        T                value{}; // POD value; uninitialized bits OK for EMPTY
     };
 
     std::vector<uint8_t> ctrl;  // control bytes
@@ -160,16 +158,12 @@ private:
 
     static constexpr bool isOccupied(uint8_t c) noexcept
     {
-        return c != EMPTY && c != TOMB;
+        return c != EMPTY;
     }
 
     static uint8_t fingerprint(uint32_t h) noexcept
     {
-        uint8_t fp = static_cast<uint8_t>((h >> 24) | 1u); // ensure non-zero, top 8 bits of 32-bit hash
-        if (fp == EMPTY || fp == TOMB)
-            fp = 1;
-
-        return fp;
+        return static_cast<uint8_t>((h >> 24) | 1u); // Odd fingerprints cannot equal EMPTY.
     }
 
     static size_t nextPow2(size_t x)
@@ -186,7 +180,9 @@ private:
 
     void rehash(size_t newCapPow2)
     {
-        newCapPow2 = nextPow2(newCapPow2);
+        // Callers round requested capacities or double an existing power of two.
+        // Keep the minimum for a wrapped zero capacity as well.
+        newCapPow2 = std::max(size_t{2}, newCapPow2);
         std::vector       newCtrl(newCapPow2, EMPTY);
         std::vector<Slot> newSlots(newCapPow2);
         const size_t      newMask = newCapPow2 - 1;
@@ -240,10 +236,9 @@ private:
         if (static_cast<double>(sizeValue + 1) > MAX_LOAD * static_cast<double>(capacity()))
             rehash(capacity() ? capacity() * 2 : INIT_CAP);
 
-        const uint8_t fp         = fingerprint(hash);
-        size_t        idx        = hash & mask;
-        uint16_t      dist       = 0;
-        size_t        first_tomb = INVALID_POS;
+        const uint8_t fp   = fingerprint(hash);
+        size_t        idx  = hash & mask;
+        uint16_t      dist = 0;
 
         while (true)
         {
@@ -251,120 +246,62 @@ private:
 
             if (c == EMPTY)
             {
-                size_t target = (first_tomb != INVALID_POS) ? first_tomb : idx;
-                ctrl[target]  = fp;
-                Slot& s       = slots[target];
-                s.hash        = hash;
-                s.key         = key;
-                s.dist        = dist;
+                ctrl[idx] = fp;
+                Slot& s   = slots[idx];
+                s.hash    = hash;
+                s.key     = key;
+                s.dist    = dist;
                 on_insert(s.value);
                 ++sizeValue;
                 return {&s.value, true};
             }
 
-            if (c == TOMB && first_tomb == INVALID_POS)
-                first_tomb = idx;
+            Slot& s = slots[idx];
 
-            if (isOccupied(c))
+            if (c == fp && s.hash == hash && s.key == key)
             {
-                Slot& s = slots[idx];
+                on_found(s.value);
+                return {&s.value, false};
+            }
 
-                if (c == fp && s.hash == hash && s.key == key)
+            if (s.dist < dist)
+            {
+                // Swap with resident at idx
+                uint8_t new_fp = fp;
+                std::swap(ctrl[idx], new_fp);
+
+                Slot carry      = std::move(slots[idx]);
+                slots[idx].hash = hash;
+                slots[idx].key  = key;
+                slots[idx].dist = dist;
+                on_insert(slots[idx].value);
+
+                size_t   ins   = (idx + 1) & mask;
+                uint16_t idist = static_cast<uint16_t>(carry.dist + 1);
+
+                while (true)
                 {
-                    on_found(s.value);
-                    return {&s.value, false};
-                }
-
-                if (s.dist < dist)
-                {
-                    size_t target = (first_tomb != INVALID_POS) ? first_tomb : idx;
-
-                    // If using a tombstone target, place it there first.
-                    if (target != idx)
+                    const uint8_t cc = ctrl[ins];
+                    if (cc == EMPTY)
                     {
-                        Slot moving;
-                        moving.hash = hash;
-                        moving.key  = key;
-                        moving.dist = dist;
-                        on_insert(moving.value);
+                        ctrl[ins]  = new_fp;
+                        carry.dist = idist;
+                        slots[ins] = std::move(carry);
+                        ++sizeValue;
 
-                        ctrl[target]  = fp;
-                        slots[target] = std::move(moving);
-
-                        // Continue by inserting displaced resident
-                        Slot    carry    = std::move(slots[idx]);
-                        uint8_t carry_fp = c;
-                        ctrl[idx]        = TOMB;
-
-                        const size_t base  = carry.hash & mask;
-                        size_t       ins   = (target + 1) & mask;
-                        uint16_t     idist = static_cast<uint16_t>(((target >= base) ? (target - base) : (target + capacity() - base)) + 1);
-
-                        while (true)
-                        {
-                            const uint8_t cc = ctrl[ins];
-                            if (cc == EMPTY || cc == TOMB)
-                            {
-                                ctrl[ins]  = carry_fp;
-                                carry.dist = idist;
-                                slots[ins] = std::move(carry);
-                                if (cc == EMPTY)
-                                    ++sizeValue;
-
-                                return {&slots[target].value, true};
-                            }
-
-                            if (slots[ins].dist < idist)
-                            {
-                                carry.dist = idist;
-                                std::swap(ctrl[ins], carry_fp);
-                                std::swap(slots[ins], carry);
-                                idist = carry.dist;
-                            }
-
-                            ++idist;
-                            ins = (ins + 1) & mask;
-                        }
+                        return {&slots[idx].value, true};
                     }
 
-                    // Swap with resident at idx
-                    uint8_t new_fp = fp;
-                    std::swap(ctrl[idx], new_fp);
-
-                    Slot carry      = std::move(slots[idx]);
-                    slots[idx].hash = hash;
-                    slots[idx].key  = key;
-                    slots[idx].dist = dist;
-                    on_insert(slots[idx].value);
-
-                    size_t   ins   = (idx + 1) & mask;
-                    uint16_t idist = static_cast<uint16_t>(carry.dist + 1);
-
-                    while (true)
+                    if (slots[ins].dist < idist)
                     {
-                        const uint8_t cc = ctrl[ins];
-                        if (cc == EMPTY || cc == TOMB)
-                        {
-                            ctrl[ins]  = new_fp;
-                            carry.dist = idist;
-                            slots[ins] = std::move(carry);
-                            if (cc == EMPTY)
-                                ++sizeValue;
-
-                            return {&slots[idx].value, true};
-                        }
-
-                        if (slots[ins].dist < idist)
-                        {
-                            carry.dist = idist;
-                            std::swap(ctrl[ins], new_fp);
-                            std::swap(slots[ins], carry);
-                            idist = carry.dist;
-                        }
-
-                        ++idist;
-                        ins = (ins + 1) & mask;
+                        carry.dist = idist;
+                        std::swap(ctrl[ins], new_fp);
+                        std::swap(slots[ins], carry);
+                        idist = carry.dist;
                     }
+
+                    ++idist;
+                    ins = (ins + 1) & mask;
                 }
             }
 
@@ -388,19 +325,16 @@ private:
             if (c == EMPTY)
                 return false;
 
-            if (isOccupied(c))
+            const Slot& s = slots[idx];
+
+            if (c == fp && s.hash == hash && s.key == key)
             {
-                const Slot& s = slots[idx];
-
-                if (c == fp && s.hash == hash && s.key == key)
-                {
-                    out_idx = idx;
-                    return true;
-                }
-
-                if (s.dist < dist)
-                    return false;
+                out_idx = idx;
+                return true;
             }
+
+            if (s.dist < dist)
+                return false;
 
             ++dist;
             idx = (idx + 1) & mask;
@@ -422,8 +356,6 @@ private:
             return nullptr;
         return &slots[idx].value;
     }
-
-    static constexpr size_t INVALID_POS = static_cast<size_t>(-1);
 };
 
 SWC_END_NAMESPACE();

@@ -17,7 +17,6 @@ ApInt::ApInt(uint32_t bitWidth) :
 {
     SWC_ASSERT(bitWidth <= MAX_BITS);
     clearWords();
-    normalize();
 }
 
 ApInt::ApInt(uint64_t value, uint32_t bitWidth) :
@@ -39,35 +38,6 @@ ApInt::ApInt(const void* data, uint32_t bitWidth) :
     const uint32_t byteCount = (bitWidth + 7) / 8;
     memcpy(words_, data, byteCount);
     normalize();
-}
-
-uint64_t ApInt::as64() const
-{
-    const uint32_t maxBits   = std::min<uint32_t>(bitWidth_, 64);
-    const uint32_t wordCount = (maxBits + WORD_BITS - 1) / WORD_BITS;
-
-    uint64_t result = 0;
-
-    // Copy low bits from ApInt.
-    for (uint32_t i = 0; i < wordCount; ++i)
-    {
-        uint64_t       w        = words_[i];
-        const uint32_t bitIndex = i * WORD_BITS;
-
-        if (bitIndex + WORD_BITS > maxBits)
-        {
-            const uint32_t validBits = maxBits - bitIndex;
-            if (validBits < WORD_BITS)
-            {
-                const uint64_t mask = (uint64_t{1} << validBits) - 1;
-                w &= mask;
-            }
-        }
-
-        result |= (w << bitIndex);
-    }
-
-    return result;
 }
 
 int64_t ApInt::as64Signed() const
@@ -486,21 +456,15 @@ ApInt ApInt::div(const ApInt& rhs, bool& overflow)
     if (rhs.fit64())
     {
         const uint64_t rem64 = div(rhs.as64());
-        ApInt          rem(bitWidth_);
-        rem.setZero();
-        rem.words_[0] = rem64;
-        rem.normalize();
-        return rem;
+        return ApInt(rem64, bitWidth_);
     }
 
     const uint32_t totalBits = bitWidth_;
 
     ApInt rem(bitWidth_);
-    rem.setZero();
 
     const ApInt divisor(rhs);
     ApInt       quotient(bitWidth_);
-    quotient.setZero();
 
     for (int bit = static_cast<int>(totalBits) - 1; bit >= 0; --bit)
     {
@@ -633,9 +597,7 @@ namespace
         if (!bitWidth)
             bitWidth = ApInt::maxBitWidth();
 
-        ApInt result(bitWidth);
-        result.setZero();
-        return result;
+        return ApInt(bitWidth);
     }
 
     ApInt makeMinSignedValue(uint32_t bitWidth)
@@ -644,7 +606,6 @@ namespace
             bitWidth = ApInt::maxBitWidth();
 
         ApInt result(bitWidth);
-        result.setZero();
         result.setBit(bitWidth - 1);
         return result;
     }
@@ -1192,7 +1153,6 @@ Utf8 ApInt::toSignedString() const
     {
         // min signed = 1 << (bitWidth-1) in magnitude, printed as "-(1<<...)" in decimal
         ApInt mag(bitWidth_);
-        mag.setZero();
         mag.setBit(bitWidth_ - 1);
 
         std::string digits;
@@ -1240,9 +1200,7 @@ namespace
 
 bool ApInt::fit64() const
 {
-    if (bitWidth_ <= 64)
-        return true;
-    return minBits() <= 64;
+    return std::all_of(words_ + 1, words_ + numWords_, [](const uint64_t word) { return word == 0; });
 }
 
 bool ApInt::fit64Signed() const
@@ -1329,10 +1287,6 @@ uint32_t ApInt::minBitsSigned() const
 
 bool ApInt::isPowerOf2() const
 {
-    // By convention, treat only non-negative, non-zero values as powers of two.
-    if (isZero())
-        return false;
-
     bool foundOneBit = false;
 
     for (uint32_t i = 0; i < numWords_; ++i)

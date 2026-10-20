@@ -21,9 +21,10 @@ public:
     uint32_t        bitWidth() const { return bitWidth_; }
     static uint32_t maxBitWidth() { return MAX_BITS; }
 
-    bool     fit64() const;
-    bool     fit64Signed() const;
-    uint64_t as64() const;
+    bool fit64() const;
+    bool fit64Signed() const;
+    // Every mutation normalizes the live words to bitWidth_, including widths below 64.
+    uint64_t as64() const { return words_[0]; }
     int64_t  as64Signed() const;
 
     bool     same(const ApInt& other) const;

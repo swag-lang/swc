@@ -8,6 +8,9 @@ benchmark campaign is run; compilation-time targets remain unverified.
 | Retained change | Compiler work removed | Equivalence and storage evidence |
 | --- | --- | --- |
 | Initialize conservative CFG reachability with its final value | Zeroing every instruction byte immediately before filling the same bytes with ones | The existing conservative predicate selects the initial byte. Supported graphs retain their zero initialization and traversal; missing roots retain their later all-ones fallback. The DevMode function shrinks from 1,197 to 1,151 code bytes with the same 112-byte stack reservation. |
+| Query normalized integer words directly | Reconstructing and masking the low word for each 64-bit conversion; computing a rounded minimum width merely to test 64-bit capacity | Constructors and mutations normalize the active top word. The low word is already the required truncation; 64-bit capacity depends only on the remaining live words. No fields, allocations or representations change. The capacity query shrinks from 289 to 37 code bytes and loses its stack reservation. |
+| Initialize fresh integer temporaries once | Normalizing an all-zero constructor result and clearing fresh division, boundary-value and signed-formatting temporaries again | The constructor already clears every live word. The narrow division remainder is built directly with its final low word; traversal, overflow and normalization of nonzero values remain unchanged. Inspected frames do not grow, and the arithmetic object's code and retained data sections shrink overall. |
+| Test integer powers of two in one walk | A preliminary all-zero word scan | The existing one-bit scan already returns false when no word contains a bit. Word order and acceptance are unchanged; the helper shrinks from 86 to 57 code bytes without a frame. |
 
 Validation uses fresh machine-load admission before each command. C++ tests use
 isolated temporary/cache roots. The default C++ suite omits filesystem tests
@@ -28,6 +31,12 @@ five input patterns, and shifts through one beyond the width. The subtraction
 oracle covers all those widths and 49 input pairs. Both tests fail before their
 repairs; the repaired DevMode compiler passes all 1,488 C++ tests. These are
 correctness repairs, not compilation-speed gains.
+
+The normalized-integer batch passes 1,490 C++ tests, including bit-based query
+oracles and narrow/wide-divisor remainder checks, the complete JIT suite (1,539),
+and the complete native suite (3,900), with the DevMode compiler and `devmode`
+program configuration. Native validation includes the expected idle, pending and
+hardware recovery probes; the tool exits zero.
 
 Rejected trials:
 

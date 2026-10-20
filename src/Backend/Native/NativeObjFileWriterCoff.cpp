@@ -434,8 +434,6 @@ void NativeObjFileWriterCoff::addUndefinedSymbols(const std::vector<CoffSectionB
 
 Result NativeObjFileWriterCoff::buildCoffFile(ByteArray& outBytes, std::vector<CoffSectionBuild>& sections, std::vector<CoffSymbolRecord>& symbols, const CoffSymbolIndex& symbolIndex)
 {
-    outBytes.clear();
-
     CoffStringTable stringTable;
     for (auto& symbol : symbols)
         symbol.stringOffset = stringTable.add(symbol.name.view());

@@ -250,6 +250,12 @@ void ApInt::arithmeticShiftRight(uint64_t amount)
         return;
     }
 
+    // Whole-word moves and carry propagation must also see the sign bits
+    // above a partial top word. Normalize those temporary bits away at the end.
+    const uint32_t topUsed = bitWidth_ % WORD_BITS;
+    if (topUsed)
+        words_[numWords_ - 1] |= ~((ONE << topUsed) - 1);
+
     const uint64_t wordShift = amount / WORD_BITS;
     const uint64_t bitShift  = amount % WORD_BITS;
 
@@ -274,22 +280,7 @@ void ApInt::arithmeticShiftRight(uint64_t amount)
     // Intra-word shift with sign-fill into the top word.
     if (bitShift > 0)
     {
-        // How many bits are actually used in the top word?
-        uint32_t topUsed = bitWidth_ % WORD_BITS;
-        if (topUsed == 0)
-            topUsed = WORD_BITS;
-
-        // Insert ones into the highest 'bitShift' bits of the *used* region of the top word.
-        uint64_t carry;
-        if (topUsed == 64)
-        {
-            carry = ~0ull << (64 - bitShift);
-        }
-        else
-        {
-            // safe because amount < bitWidth_ => bitShift <= topUsed
-            carry = ((uint64_t{1} << bitShift) - 1) << (topUsed - bitShift);
-        }
+        uint64_t carry = ~uint64_t{0} << (WORD_BITS - bitShift);
 
         for (int i = static_cast<int>(numWords_) - 1; i >= 0; --i)
         {
@@ -416,7 +407,8 @@ void ApInt::sub(const ApInt& rhs, bool& overflow)
         const uint64_t t = b + borrow;
 
         const uint64_t result = a - t;
-        borrow                = (a < t);
+        // Adding the incoming borrow can wrap before the subtraction.
+        borrow = (t < b) || (a < t);
 
         words_[i] = result;
     }

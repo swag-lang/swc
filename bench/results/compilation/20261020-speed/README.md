@@ -19,6 +19,16 @@ detached instructions, absent roots, unresolved jumps and address-taken labels.
 The discarded index-list trial also passed seven focused native tests; those
 results are not a validation claim for a retained index-list change.
 
+Two arithmetic defects found while checking the representation invariant were
+reproduced with independent bit-by-bit C++ oracles. Unsigned subtraction now
+retains the borrow when adding the incoming borrow wraps the subtrahend word.
+Negative arithmetic shifts sign-extend a partial top word before moving words or
+propagating bit carries. The shift oracle covers every width from 1 through 128,
+five input patterns, and shifts through one beyond the width. The subtraction
+oracle covers all those widths and 49 input pairs. Both tests fail before their
+repairs; the repaired DevMode compiler passes all 1,488 C++ tests. These are
+correctness repairs, not compilation-speed gains.
+
 Rejected trials:
 
 - Returning a separately constructed all-ones reachability vector duplicated

@@ -44,15 +44,9 @@ Result AstEnumDecl::semaPreNode(Sema& sema) const
 
 namespace
 {
-    TypeRef enumUnderlyingStorageTypeRef(Sema& sema, TypeRef typeRef)
-    {
-        const TypeRef unwrappedTypeRef = sema.typeMgr().get(typeRef).unwrap(sema.ctx(), TypeRef::invalid(), TypeExpandE::Alias);
-        return unwrappedTypeRef.isValid() ? unwrappedTypeRef : typeRef;
-    }
-
     const TypeInfo& enumUnderlyingStorageType(Sema& sema, TypeRef typeRef)
     {
-        return sema.typeMgr().get(enumUnderlyingStorageTypeRef(sema, typeRef));
+        return sema.typeMgr().get(typeRef).unwrapAliasTypeOrSelf(sema.ctx());
     }
 
     Result validateEnumUnderlyingType(Sema& sema, const SymbolEnum& sym, const SemaNodeView& typeView, AstNodeRef typeNodeRef)
@@ -77,8 +71,7 @@ namespace
     {
         if (typeView.nodeRef().isValid())
         {
-            const TypeRef   storageTypeRef = enumUnderlyingStorageTypeRef(sema, typeView.typeRef());
-            const TypeInfo& storageType    = sema.typeMgr().get(storageTypeRef);
+            const TypeInfo& storageType = enumUnderlyingStorageType(sema, typeView.typeRef());
             if (storageType.isArray() && !storageType.isConst())
             {
                 // Enum values are immutable constants, so array-backed enums must

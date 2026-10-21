@@ -91,7 +91,13 @@ public func runSuite(context: *Context, options: *Options, suite: string, buildC
         return try runSourceSuite(context, options, "unittests/jit", "Jit", "no-output", "--no-output", buildCfg)
 
     case "safety":
-        return try runSourceSuite(context, options, "unittests/safety", "Safety", "no-output", "--no-output", buildCfg)
+
+        // Allocator invalidation fixtures need compiled checks even in the release preset.
+        var guarded = options[]
+        guarded.extra = {}
+        guarded.extra.add(["--tag", "Swag.AllocatorSafety"])
+        options.appendExtra(&guarded.extra)
+        return try runSourceSuite(context, &guarded, "unittests/safety", "Safety", "no-output", "--no-output", buildCfg)
 
     case "sanity":
         return try runSourceSuite(context, options, "unittests/sanity", "Sanity", "no-output", "--no-output", buildCfg)

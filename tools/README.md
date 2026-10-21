@@ -106,6 +106,9 @@ library beside itself over `SWAG_PATH`, so naming the right compiler is enough t
 | `build.swgs` | Build every workspace |
 | `vault.swgs` | The privileged Swag Vault/WinFsp end-to-end sandbox, kept out of `tests.swgs` |
 
+The compiler safety suite enables `Swag.AllocatorSafety` in both configurations so its
+allocator-invalidation fixtures run with the compiled checks they need.
+
 `tests.swgs` validates the bin portability boundary, file-scoped backlog identifiers, nonempty
 domains, fully scoped domain file names, the `Recorded` and `Updated` stamps every entry opens
 with, the newest-first order of entries and of the README inventory, Markdown links, and the third-party notice

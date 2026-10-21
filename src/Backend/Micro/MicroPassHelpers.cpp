@@ -182,8 +182,9 @@ FlatKeySet MicroPassHelpers::collectRegisterOnlyCallRefs(MicroBuilder& builder)
             continue;
         if (ABITypeNormalize::normalize(ctx, conv, ctx.typeMgr().get(function.returnTypeRef()), ABITypeNormalize::Usage::Return).isIndirect)
             continue;
-        SmallVector<ABICall::ArgLayout> layouts;
-        bool                            registerOnly = true;
+        ABICall::ArgRegisterState registerState;
+        uint32_t                  parameterIndex = 0;
+        bool                      registerOnly   = true;
         for (const auto* parameter : function.parameters())
         {
             // Internal variadics pass one pointer to their packed slice. C
@@ -194,8 +195,7 @@ FlatKeySet MicroPassHelpers::collectRegisterOnlyCallRefs(MicroBuilder& builder)
                 registerOnly = false;
                 break;
             }
-            layouts.push_back({.numBits = normalized.numBits, .isFloat = normalized.isFloat});
-            if (ABICall::argumentRegisterIndex(conv, layouts.span(), static_cast<uint32_t>(layouts.size() - 1)) == UINT32_MAX)
+            if (registerState.next(conv, parameterIndex++, normalized.isFloat) == UINT32_MAX)
             {
                 registerOnly = false;
                 break;

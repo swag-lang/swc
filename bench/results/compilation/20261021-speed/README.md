@@ -9,10 +9,15 @@ No timing campaign or profiler is run; compilation-time targets remain unverifie
 | Retained change | Compiler work removed | Equivalence and storage evidence |
 | --- | --- | --- |
 | Allocate stack-displacement scratch without clearing unread entries | An initial eight-byte zero write per instruction | The entry and every first-discovered successor receive their offset before being queued. Later transitions retain that initialized offset, including unknown states. Unreachable slots are never read. Capacity, allocation count, propagation and results are unchanged. The helper loses one `memset`, shrinks from 2,237 to 2,018 code bytes and reserves 208 rather than 224 stack bytes. |
+| Walk call-argument register banks once | Rebuilding a temporary layout list and recounting each argument's same-kind predecessors | The existing ABI register-state helper visits parameters in the same declaration order. Return, indirect-argument and call-kind exclusions are unchanged. The classifier shrinks from 1,186 to 817 code bytes and its stack reservation from 272 to 120 bytes. |
 
 The first batch builds successfully and passes all 1,535 default C++ tests,
 including backend stack-frame, promotion and register-allocation coverage.
 The default C++ command omits filesystem tests requiring `--dev-full`.
+
+The register-bank batch passes all 1,536 default C++ tests. Its new classifier
+test covers every pair of zero through seven integer and floating parameters,
+with either bank first, including empty signatures and independent exhaustion.
 
 Commands run from the campaign worktree:
 

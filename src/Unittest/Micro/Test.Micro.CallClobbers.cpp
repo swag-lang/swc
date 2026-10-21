@@ -9,6 +9,7 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Unittest/Unittest.h"
 #include "Unittest/UnittestHelpers.h"
 
@@ -34,6 +35,38 @@ namespace
         return *builder.instructions().ptr(builder.instructions().lastInstructionRef());
     }
 }
+
+SWC_TEST_BEGIN(CallClobbers_RegisterOnlyCallsRespectBothArgumentBanks)
+{
+    const CallConv& conv = CallConv::swag();
+    for (uint32_t integers = 0; integers <= conv.intArgRegs.size() + 1; ++integers)
+    {
+        for (uint32_t floats = 0; floats <= conv.floatArgRegs.size() + 1; ++floats)
+        {
+            for (const bool floatsFirst : {false, true})
+            {
+                SymbolFunction* function = makeCallee(ctx);
+                for (uint32_t index = 0; index < integers + floats; ++index)
+                {
+                    const bool isFloat   = floatsFirst ? index < floats : index >= integers;
+                    auto*      parameter = Symbol::make<SymbolVariable>(ctx, nullptr, TokenRef::invalid(), IdentifierRef::invalid(), SymbolFlagsE::Zero);
+                    parameter->setTypeRef(isFloat ? ctx.typeMgr().typeF64() : ctx.typeMgr().typeU64());
+                    function->addParameter(parameter);
+                }
+
+                MicroBuilder builder(ctx);
+                builder.emitCallLocal(function, CallConvKind::Swag, 0, 0);
+                const MicroInstrRef callRef  = builder.instructions().lastInstructionRef();
+                const auto          calls    = MicroPassHelpers::collectRegisterOnlyCallRefs(builder);
+                const bool          expected = integers <= conv.intArgRegs.size() && floats <= conv.floatArgRegs.size();
+                if (calls.contains(callRef.get()) != expected || calls.size() != (expected ? 1u : 0u))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
 
 // A direct call writes the convention's whole transient set until its target's code proves
 // less, and then exactly the registers the proof names.

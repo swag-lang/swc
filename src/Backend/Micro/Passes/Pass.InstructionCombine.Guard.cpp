@@ -50,12 +50,44 @@ namespace InstructionCombine
             MicroInstrOpcode op        = MicroInstrOpcode::Nop;
             MicroOpBits      bits      = MicroOpBits::Zero;
             MicroCond        cond      = MicroCond::Unconditional;
-            uint32_t         leftId    = 0;
-            uint32_t         rightId   = 0;
-            uint64_t         immediate = 0;
+            uint32_t         leftId     = 0;
+            uint64_t         leftOffset = 0;
+            uint32_t         rightId    = 0;
+            uint64_t         immediate  = 0;
 
             bool operator==(const GuardTest&) const = default;
         };
+
+        // The value `reg` holds at `at`, as a value plus a constant offset: `i + 1` recomputed for
+        // a second access is the same test as the first, whatever register it was rebuilt in.
+        uint32_t offsetValueId(uint64_t& outOffset, const Context& ctx, MicroReg reg, MicroInstrRef at)
+        {
+            outOffset = 0;
+            for (uint32_t depth = 0; depth < 4; ++depth)
+            {
+                const auto def = ctx.ssa->reachingDef(reg, at);
+                if (!def.valid() || def.isPhi || !def.inst)
+                    return def.valueId;
+                const MicroInstrOperand* ops = def.inst->ops(*ctx.operands);
+                if (!ops)
+                    return def.valueId;
+                if (def.inst->op == MicroInstrOpcode::LoadAddrRegMem && ops[1].reg.isVirtualInt() && ops[2].opBits == MicroOpBits::B64)
+                {
+                    outOffset += ops[3].valueU64;
+                    reg = ops[1].reg;
+                }
+                else if (def.inst->op == MicroInstrOpcode::OpBinaryRegImm && ops[1].opBits == MicroOpBits::B64 && ops[2].microOp == MicroOp::Add &&
+                         !ops[3].hasWideImmediateValue())
+                    outOffset += ops[3].valueU64;
+                else if (def.inst->op == MicroInstrOpcode::LoadRegReg && ops[1].reg.isVirtualInt() && ops[2].opBits == MicroOpBits::B64)
+                    reg = ops[1].reg;
+                else
+                    return def.valueId;
+                at = def.instRef;
+            }
+
+            return ctx.ssa->reachingValueId(reg, at);
+        }
 
         bool readGuardTest(GuardTest& out, const Context& ctx, const MicroInstrRef cmpRef, const MicroCond cond)
         {
@@ -66,13 +98,15 @@ namespace InstructionCombine
             if (!ops || !ops[0].reg.isVirtualInt())
                 return false;
 
-            const uint32_t left = ctx.ssa->reachingValueId(ops[0].reg, cmpRef);
+            uint64_t       leftOffset = 0;
+            const uint32_t left       = offsetValueId(leftOffset, ctx, ops[0].reg, cmpRef);
             if (left == MicroSsaState::K_INVALID_VALUE)
                 return false;
 
-            out.op     = cmp->op;
-            out.cond   = cond;
-            out.leftId = left;
+            out.op         = cmp->op;
+            out.cond       = cond;
+            out.leftId     = left;
+            out.leftOffset = leftOffset;
             if (cmp->op == MicroInstrOpcode::CmpRegImm)
             {
                 if (ops[2].hasWideImmediateValue())

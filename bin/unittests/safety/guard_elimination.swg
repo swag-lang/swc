@@ -221,3 +221,19 @@ func opaqueS64(v: s64)->s64 => v
     Swag.assert(climb(opaqueS64(0), opaqueS64(9)) == 10)
     discard climb(opaqueS64(Swag.S64.Max - 1), opaqueS64(Swag.S64.Max))
 }
+
+// The same index plus one, recomputed for a second access, is still one test, and still guarded.
+#test
+{
+    #[Swag.Safety(.BoundCheck, true)]
+    func pairNext(values: *[4] u64, i: u64)->u64
+    {
+        let first = values[][i + 1]     // swc-expected-error {{safety_err_runtime}}
+        values[][i + 1] = first + 1
+        return values[][i + 1]
+    }
+
+    var values: [4] u64 = [1, 2, 3, 4]
+    Swag.assert(pairNext(&values, opaqueU64(1)) == 4)
+    discard pairNext(&values, opaqueU64(3))
+}

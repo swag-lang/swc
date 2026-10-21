@@ -26,14 +26,24 @@ public:
 
 private:
     using Entries = std::unordered_map<Utf8, Record>;
+    struct Archive
+    {
+        Record                record;
+        std::vector<uint32_t> offsets;
+
+        Record         read(const Utf8& key) const;
+        void           appendTo(Entries& out) const;
+        static Archive decode(Record record);
+    };
+
     explicit CompilerCacheStore(bool rebuild);
-    void load(Entries& out) const;
-    void invalidateOnce();
-    void flush();
+    Archive load() const;
+    void    invalidateOnce();
+    void    flush();
 
     fs::path                  path_;
     mutable std::shared_mutex mutex_;
-    Entries                   entries_;
+    Archive                   archive_;
     Entries                   pending_;
     bool                      rebuilding_ = false;
     bool                      replace_    = false;

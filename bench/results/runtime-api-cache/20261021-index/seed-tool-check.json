@@ -1,0 +1,7 @@
+{
+  "checks": [
+    "seeding preserves every real body and key",
+    "seven unused records added",
+    "repeated seeding leaves bytes unchanged"
+  ]
+}

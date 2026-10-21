@@ -3,7 +3,8 @@ r"""Compare compiler builds on runtime and real generated APIs.
 Prepare the devmode standard-library artifacts (gui and its dependencies), then:
     py -3 bench/parsecache.py --scratch C:\path\outside-checkout --against C:\baseline\swc.exe --reps 9
 
-Uses the checkout-local Release compiler, six workers, fresh output directories,
+Defaults to the checkout-local Release compiler; --compiler selects a frozen copy.
+Uses six workers, fresh output directories,
 private caches, load admission before every invocation, and alternating A/B order.
 Dependency production is outside the timer. Does not update benchmark history.
 """
@@ -14,6 +15,7 @@ import os
 import re
 from pathlib import Path
 import statistics
+import struct
 import subprocess
 import time
 
@@ -68,13 +70,40 @@ def admit(max_cpu=65):
         time.sleep(15)
 
 
-def api_files(module):
-    output = ROOT / "bin/std/.output" / module
+def api_files(module, resource_root):
+    output = resource_root / "std/.output" / module
     files = sorted(path for path in output.rglob("*.swg")
                    if path.parent.name == "x86_64" and path.parent.parent.name == "devmode")
     if not files:
         raise RuntimeError(f"Build the devmode {module} dependency before measuring")
     return files
+
+
+def seed_unused_records(cache, count):
+    """Model archive occupancy without generating unrelated code inside the timer."""
+    for path in cache.glob("machine/*.bin"):
+        payload = path.read_bytes()
+        if payload[:8] != b"SWMCSET2":
+            raise RuntimeError(f"cannot seed archive format: {path}")
+        entries = struct.unpack_from("<I", payload, 8)[0]
+        body = 16 + entries * 68
+        records = {}
+        for index in range(entries):
+            cursor = 16 + index * 68
+            key = payload[cursor:cursor + 64].decode("ascii")
+            length = struct.unpack_from("<I", payload, cursor + 64)[0]
+            records[key] = payload[body:body + length]
+            body += length
+        assert body == len(payload)
+        for index in range(count):
+            records.setdefault(f"{index:064x}", b"x")
+        keys = sorted(records)
+        expanded = (payload[:8] + struct.pack("<II", len(keys), 0)
+                    + b"".join(key.encode("ascii") + struct.pack("<I", len(records[key])) for key in keys)
+                    + b"".join(records[key] for key in keys))
+        if len(expanded) > 64 * 1024 * 1024:
+            raise RuntimeError(f"seeded archive exceeds 64 MiB: {path}")
+        path.write_bytes(expanded)
 
 
 def main():
@@ -84,31 +113,39 @@ def main():
     parser.add_argument("--only", nargs="+", choices=MODULES, default=list(MODULES))
     parser.add_argument("--kind", choices=["sema", "build"], default="build")
     parser.add_argument("--against", required=True, type=Path)
+    parser.add_argument("--compiler", type=Path, default=ROOT / "bin/swc.exe",
+                        help="select a candidate compiler, optionally frozen outside the checkout")
     parser.add_argument("--against-arg", action="append", default=[])
     parser.add_argument("--max-cpu", type=int, default=15)
+    parser.add_argument("--unused-records", type=int, default=0,
+                        help="seed unused archive entries outside the timer (default: 0)")
     args = parser.parse_args()
     scratch = args.scratch.resolve()
     if scratch.is_relative_to(ROOT) or args.reps < 1 or not 1 <= args.max_cpu <= 65:
         parser.error("Use an external scratch directory, at least one pair, and --max-cpu between 1 and 65")
+    if not 0 <= args.unused_records <= (64 * 1024 * 1024 - 16) // 69:
+        parser.error("--unused-records needs a count that fits the 64 MiB archive limit")
     scratch.mkdir(parents=True, exist_ok=True)
     run_root = scratch / time.strftime("parsecache-%Y%m%d-%H%M%S")
     run_root.mkdir()
     temp = run_root / "temp"
     temp.mkdir()
     env = dict(os.environ, TEMP=str(temp), TMP=str(temp))
+    compiler = args.compiler.resolve()
+    if not compiler.is_file():
+        parser.error("--compiler needs an existing candidate compiler")
     # Standalone consumers load the standard modules' shared libraries at startup.
     # Keep these dependencies outside each fresh consumer output directory.
-    libraries = sorted((ROOT / "bin/std/.output").glob("*/shared-library/devmode/x86_64"))
+    libraries = sorted((compiler.parent / "std/.output").glob("*/shared-library/devmode/x86_64"))
     for key in list(env):
         if key.upper() == "PATH" and key != "PATH":
             env["PATH"] = env.pop(key)
     env["PATH"] = os.pathsep.join(map(str, libraries)) + os.pathsep + env.get("PATH", "")
-    compiler = ROOT / "bin/swc.exe"
     baseline = args.against.resolve()
     if not baseline.is_file():
         parser.error("--against needs an existing baseline compiler")
     cache = temp / "swag"
-    runtime_files = list((ROOT / "bin/runtime").glob("*.swg"))
+    runtime_files = list((compiler.parent / "runtime").glob("*.swg"))
     data = {
         "compiler": str(compiler),
         "compiler_sha256": hashlib.sha256(compiler.read_bytes()).hexdigest(),
@@ -117,11 +154,12 @@ def main():
         "baseline_compiler": str(baseline),
         "baseline_sha256": hashlib.sha256(baseline.read_bytes()).hexdigest(),
         "baseline_args": args.against_arg,
-        "sample_labels": {"off": "preserved baseline compiler", "warm": "checkout automatic caches"},
+        "sample_labels": {"off": "preserved baseline compiler", "warm": "candidate automatic caches"},
         "workers": 6,
         "admission_max_cpu": args.max_cpu,
         "runtime_files": len(runtime_files),
         "runtime_bytes": sum(path.stat().st_size for path in runtime_files),
+        "synthetic_unused_records": args.unused_records,
         "cases": {},
         "complete": False,
     }
@@ -164,7 +202,7 @@ def main():
 
     for name in args.only:
         (run_root / (name + ".swg")).write_text(SOURCES[name], encoding="utf-8")
-        files = [path for module in MODULES[name] for path in api_files(module)]
+        files = [path for module in MODULES[name] for path in api_files(module, compiler.parent)]
         item = data["cases"][name] = {
             "api_files": len(files), "api_bytes": sum(path.stat().st_size for path in files),
             "off": [], "warm": [],
@@ -182,6 +220,8 @@ def main():
         checkpoint()
         item["baseline_reuse"] = measure(name, name + "-baseline-reuse", bypass=True)
         checkpoint()
+        if args.unused_records:
+            seed_unused_records(cache, args.unused_records)
         for index in range(args.reps):
             for mode in (["off", "warm"] if index % 2 == 0 else ["warm", "off"]):
                 item[mode].append(measure(name, f"{name}-{index}-{mode}", bypass=mode == "off"))

@@ -1,0 +1,19 @@
+{
+  "method": "One Release object snapshot, relinked twice; only CompilerCacheStore.obj differs",
+  "common_object_count": 456,
+  "common_object_manifest_sha256": "fcda55fe407c14f3333ed10dc03af2be884a8a362446d5bad287cab0859d0944",
+  "baseline_compiler_sha256": "b7c4baddd3b4d5f1446695fb3bf3ae4f087be7cb469545a64a7d30fbbfb37592",
+  "candidate_compiler_sha256": "2bbb91fab116080840ae00c747e3fdaa7cf08824d557f797cbc13a817c00e17a",
+  "baseline_store_object_sha256": "a750f111731b781a860c8ac9fc234b09fc724e81d7a46127007113609a4b8549",
+  "candidate_store_object_sha256": "5655db91d0b687d193b9a6ff57daba118f80a06fa6c788f8fb13a5495c0e3cfa",
+  "baseline_store_source_sha256": "03343820203a131e6019ada649b2a8d7d8a46ef5d13b23d009d6f3a636502c65",
+  "candidate_store_source_sha256": "07deedc17a5edc2bc1c8495f1095c27e8c803d0d70d4ba06fe2d120b2d4fd63e",
+  "resources_manifest_sha256": "18fc9ab3ce65d6a03ba481cccd456f506b2a0fa11c70e8f9d3d54cd09e2a0fef",
+  "baseline_bytes": 8115712,
+  "candidate_bytes": 8118272,
+  "cpp_tests": {
+    "compiler": "DevMode",
+    "command": "bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm cpp --num-cores 6",
+    "passed": 1600
+  }
+}

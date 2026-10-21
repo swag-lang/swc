@@ -30,7 +30,7 @@ from this checkout's `bin/` through `SWAG_PATH`.
 | `py -3 bench/parsecache.py --scratch "C:\path\outside-checkout" --against "C:\baseline\swc.exe" --reps 9` | compare a preserved compiler with automatic runtime/API caches on runtime, core, pixel and gui consumers |
 | `py -3 bench/cachecheck.py --scratch "C:\path\outside-checkout" [--dm] [--rebuild-only]` | verify automatic reuse, forced rebuild with mapped readers, invalidation, corruption recovery, native/JIT behavior and concurrent publication |
 
-The runtime/API comparison requires the checkout-local Release compiler and matching
+The runtime/API comparison requires a Release compiler and matching
 devmode standard-library artifacts. Prepare those before measuring:
 
 ```powershell
@@ -39,6 +39,8 @@ bin\swc.exe build --workspace bin/std --workspace-module gui -bc devmode --num-c
 
 Preserve the baseline executable outside the checkout and explicitly provide its
 `runtime` and `std` resources there. Its executable hash and extra arguments are recorded.
+Both cache drivers accept `--compiler <path>` to select a frozen candidate executable;
+provide the same resources beside it. Otherwise they use the checkout-local compiler.
 For an older compiler whose machine cache needed an explicit switch, pass
 `--against-arg=--machine-cache` to the benchmark driver. The current compiler reuses
 supported entries automatically and exposes no cache enable/disable switch.
@@ -48,6 +50,10 @@ invocation (CPU at most 15% by default), alternates the two compilers, and creat
 fresh native output directory for every sample. Both compilers have population and
 reuse pilots before their paired samples. Pilot artifacts run outside the timer and
 must print the expected value. `--kind sema` measures the front end separately.
+`--unused-records 50000 --only runtime` seeds synthetic unused keys in both archives
+after their pilots, outside the timer. It measures the cost of a crowded archive
+without compiling unrelated modules. These one-byte dummy bodies model index
+occupancy only; they do not measure real module production or body loading.
 Raw JSON retains all samples, pilot timings, compiler identities, paired wall/CPU
 ratios and peak compiler memory. The historical `off` sample label now means the
 preserved baseline; `warm` means the checkout compiler with automatic reuse.
@@ -71,6 +77,10 @@ and version). Body checksums reject damaged records. Publication merges immutabl
 entries under a directory lock and publishes complete files. On Windows, replacing
 a mapped generation can briefly leave the cache path absent between two renames;
 a reader then compiles normally. Existing readers retain their immutable generation.
+Readers validate the sorted index once and keep four-byte body offsets, looking up
+keys directly in the mapped index. They allocate no per-entry strings or hash nodes
+until a publication needs to merge generations. Invalid index order, duplicate keys,
+out-of-bounds or empty bodies, and trailing bytes reject the archive as a whole.
 Machine-code fingerprints also include target/configuration, ABI, relevant semantic information,
 lowered instructions and constant graphs; references rebind to the current instance.
 Conservative misses can add variants even on an unchanged input graph. All loading,
@@ -82,6 +92,8 @@ The [original runtime/API cache investigation](results/runtime-api-cache/2026102
 preserves the opt-in revision's measurements and validation boundaries.
 The [automatic-cache iteration](results/runtime-api-cache/20261020-automatic/README.md)
 records the retained reader, forced-rebuild checks and rejected syntax-cache paths.
+The [mapped-index comparison](results/runtime-api-cache/20261021-index/README.md)
+records ordinary consumers and a synthetic crowded archive, including their limits.
 
 Most of a campaign is spent on the controls, not on swc: the NativeAOT, Swift and Zig
 builds, and CPython and Lua on the longer tasks. Long executions keep their pilot sample;

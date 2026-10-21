@@ -154,6 +154,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scratch", required=True, type=Path)
     parser.add_argument("--dm", action="store_true")
+    parser.add_argument("--compiler", type=Path,
+                        help="select a compiler, optionally frozen outside the checkout")
     parser.add_argument("--rebuild-only", action="store_true")
     args = parser.parse_args()
     scratch = args.scratch.resolve()
@@ -164,7 +166,9 @@ def main():
     temp = run / "temp"
     temp.mkdir()
     env = dict(os.environ, TEMP=str(temp), TMP=str(temp))
-    compiler = ROOT / ("bin/swc.dm.exe" if args.dm else "bin/swc.exe")
+    compiler = (args.compiler or ROOT / ("bin/swc.dm.exe" if args.dm else "bin/swc.exe")).resolve()
+    if not compiler.is_file():
+        parser.error("--compiler needs an existing compiler executable")
     api = run / "api.swg"
     api.write_text(API, encoding="utf-8")
     source = run / "consumer.swg"
@@ -232,6 +236,47 @@ def main():
         (run / "verification.json").write_text(json.dumps({"compiler": str(compiler), "selection": "forced rebuild with mapped readers", "checks": checks}, indent=2), encoding="utf-8")
         print("Results:", run / "verification.json", flush=True)
         return
+
+    # Valid unused records must not hide real entries in the mapped sorted index.
+    for path, (data, index) in archives(cache).items():
+        records = {key: data[offset:offset + length] for key, (offset, length) in index.items()}
+        for value in range(8192):
+            key = f"{value:064x}"
+            assert key not in records
+            records[key] = b"x"
+        keys = sorted(records)
+        expanded = (data[:8] + struct.pack("<II", len(keys), 0)
+                    + b"".join(key.encode("ascii") + struct.pack("<I", len(records[key])) for key in keys)
+                    + b"".join(records[key] for key in keys))
+        path.write_bytes(expanded)
+    indexed = invoke("large-index")
+    assert "reused function" in indexed["stdout"], indexed["stdout"]
+    checks.append("a large index with unused records still resolves cached functions")
+
+    # A malformed index is a complete miss, never a partially trusted generation.
+    for damage in ["duplicate", "unsorted", "count", "zero-length", "overrun", "trailing"]:
+        for path, (data, index) in archives(cache).items():
+            assert len(index) >= 2
+            damaged = bytearray(data)
+            if damage == "duplicate":
+                damaged[84:148] = damaged[16:80]
+            elif damage == "unsorted":
+                damaged[16:80], damaged[84:148] = damaged[84:148], damaged[16:80]
+            elif damage == "count":
+                struct.pack_into("<I", damaged, 8, 0xffffffff)
+            elif damage == "zero-length":
+                struct.pack_into("<I", damaged, 80, 0)
+            elif damage == "overrun":
+                struct.pack_into("<I", damaged, 80, len(data))
+            else:
+                damaged += b"x"
+            path.write_bytes(damaged)
+        repaired = invoke("index-" + damage)
+        assert "reused function" not in repaired["stdout"], repaired["stdout"]
+        assert archives(cache)
+        reused = invoke("index-" + damage + "-warm")
+        assert "reused function" in reused["stdout"], reused["stdout"]
+    checks.append("invalid index order, duplicates, counts, lengths and trailing data reject and repair the complete archive")
 
     source.write_text(SOURCE.replace("EXPECTED", "42").replace("PADDING", "113"), encoding="utf-8")
     invoke("layout")

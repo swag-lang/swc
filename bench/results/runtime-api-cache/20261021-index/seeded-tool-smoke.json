@@ -1,0 +1,87 @@
+{
+  "compiler": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-cache-index-d46396b72eda444e955b4b6b88b7113c\\candidate\\swc.exe",
+  "compiler_sha256": "2bbb91fab116080840ae00c747e3fdaa7cf08824d557f797cbc13a817c00e17a",
+  "kind": "build",
+  "cache": "automatic",
+  "baseline_compiler": "C:\\Users\\chris\\AppData\\Local\\Temp\\swc-cache-index-d46396b72eda444e955b4b6b88b7113c\\baseline\\swc.exe",
+  "baseline_sha256": "b7c4baddd3b4d5f1446695fb3bf3ae4f087be7cb469545a64a7d30fbbfb37592",
+  "baseline_args": [],
+  "sample_labels": {
+    "off": "preserved baseline compiler",
+    "warm": "candidate automatic caches"
+  },
+  "workers": 6,
+  "admission_max_cpu": 15,
+  "runtime_files": 28,
+  "runtime_bytes": 463775,
+  "synthetic_unused_records": 7,
+  "cases": {
+    "runtime": {
+      "api_files": 0,
+      "api_bytes": 0,
+      "off": [
+        {
+          "exit": 0,
+          "wall_ms": 131.4512,
+          "first_stdout_ms": null,
+          "cpu_ms": 328.125,
+          "peak_job_bytes": 64458752,
+          "peak_proc_bytes": 63148032,
+          "peak_working_set_bytes": 66260992
+        }
+      ],
+      "warm": [
+        {
+          "exit": 0,
+          "wall_ms": 175.8153,
+          "first_stdout_ms": null,
+          "cpu_ms": 375.0,
+          "peak_job_bytes": 72015872,
+          "peak_proc_bytes": 70737920,
+          "peak_working_set_bytes": 73867264
+        }
+      ],
+      "complete": true,
+      "populate": {
+        "exit": 0,
+        "wall_ms": 202.5442,
+        "first_stdout_ms": null,
+        "cpu_ms": 703.125,
+        "peak_job_bytes": 88502272,
+        "peak_proc_bytes": 87212032,
+        "peak_working_set_bytes": 88494080
+      },
+      "reuse": {
+        "exit": 0,
+        "wall_ms": 146.5957,
+        "first_stdout_ms": null,
+        "cpu_ms": 359.375,
+        "peak_job_bytes": 70610944,
+        "peak_proc_bytes": 69320704,
+        "peak_working_set_bytes": 72421376
+      },
+      "reuse_changed_archive": true,
+      "baseline_populate": {
+        "exit": 0,
+        "wall_ms": 202.1648,
+        "first_stdout_ms": null,
+        "cpu_ms": 609.375,
+        "peak_job_bytes": 89133056,
+        "peak_proc_bytes": 87842816,
+        "peak_working_set_bytes": 88629248
+      },
+      "baseline_reuse": {
+        "exit": 0,
+        "wall_ms": 155.2832,
+        "first_stdout_ms": null,
+        "cpu_ms": 484.375,
+        "peak_job_bytes": 70709248,
+        "peak_proc_bytes": 69427200,
+        "peak_working_set_bytes": 72654848
+      },
+      "paired_wall_ms_ratio": 1.3374948269776161,
+      "paired_cpu_ms_ratio": 1.1428571428571428
+    }
+  },
+  "complete": true
+}

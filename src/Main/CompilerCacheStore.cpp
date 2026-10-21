@@ -13,6 +13,9 @@ namespace
 {
     constexpr uint64_t               K_STORE_MAGIC      = 0x32544553434d5753; // SWMCSET2
     constexpr size_t                 K_MAX_ARCHIVE_SIZE = 64 * 1024 * 1024;
+    constexpr size_t                 K_HEADER_SIZE      = 16;
+    constexpr size_t                 K_KEY_SIZE         = 64;
+    constexpr size_t                 K_INDEX_ENTRY_SIZE = K_KEY_SIZE + 4;
     std::atomic<CompilerCacheStore*> activeStore        = nullptr;
 }
 
@@ -25,7 +28,7 @@ CompilerCacheStore::CompilerCacheStore(const bool rebuild) :
     const fs::path root     = WorkspaceLayout::machineCacheRoot();
     path_                   = root / std::format("{}.bin", Utf8Helper::toLowerHex(sha256(bytes)).view());
     if (!rebuild)
-        load(entries_);
+        archive_ = load();
     activeStore.store(this, std::memory_order_release);
 }
 
@@ -47,7 +50,7 @@ void CompilerCacheStore::invalidateOnce()
     const std::unique_lock lock(mutex_);
     if (rebuilding_)
         return;
-    entries_.clear();
+    archive_ = {};
     pending_.clear();
     rebuilding_ = true;
     replace_    = true;
@@ -56,8 +59,8 @@ void CompilerCacheStore::invalidateOnce()
 CompilerCacheStore::Record CompilerCacheStore::read(const Utf8& key) const
 {
     const std::shared_lock lock(mutex_);
-    const auto             found = entries_.find(key);
-    return found == entries_.end() ? Record{} : found->second;
+    const auto             found = pending_.find(key);
+    return found == pending_.end() ? archive_.read(key) : found->second;
 }
 
 void CompilerCacheStore::write(const Utf8& key, ByteArray bytes)
@@ -65,7 +68,6 @@ void CompilerCacheStore::write(const Utf8& key, ByteArray bytes)
     const auto             owner = std::make_shared<const ByteArray>(std::move(bytes));
     const Record           entry{owner, ByteView(owner->span())};
     const std::unique_lock lock(mutex_);
-    entries_.insert_or_assign(key, entry);
     pending_.insert_or_assign(key, entry);
 }
 
@@ -103,23 +105,24 @@ void CompilerCacheStore::flush()
     }
     Entries merged;
     if (!replace_)
-        load(merged);
+        load().appendTo(merged);
     for (const auto& [key, bytes] : pending_)
         merged.insert_or_assign(key, bytes);
-    size_t extent = 16;
+    size_t extent = K_HEADER_SIZE;
     for (const auto& [key, bytes] : merged)
-        extent += 68 + bytes.bytes.size();
+        extent += K_INDEX_ENTRY_SIZE + bytes.bytes.size();
     // Keep the newest working set when the archive reaches its size bound.
     if (extent > K_MAX_ARCHIVE_SIZE)
     {
         merged = pending_;
-        extent = 16;
+        extent = K_HEADER_SIZE;
         for (const auto& [key, bytes] : merged)
-            extent += 68 + bytes.bytes.size();
+            extent += K_INDEX_ENTRY_SIZE + bytes.bytes.size();
     }
     if (extent > K_MAX_ARCHIVE_SIZE)
         return;
     std::vector<Utf8> keys;
+    keys.reserve(merged.size());
     for (const auto& [key, bytes] : merged)
         keys.push_back(key);
     std::ranges::sort(keys);
@@ -140,16 +143,9 @@ void CompilerCacheStore::flush()
     // Retain this generation in memory before replacing the file. Releasing our
     // previous mappings lets the ordinary rename succeed when no other compiler
     // is still reading that generation. Outstanding reader records keep it alive.
-    const auto published  = std::make_shared<const ByteArray>(std::move(archive));
-    size_t     bodyCursor = 16 + keys.size() * 68;
-    for (const Utf8& key : keys)
-    {
-        auto&        record = merged.at(key);
-        const size_t length = record.bytes.size();
-        record              = Record{published, ByteView(published->span().subspan(bodyCursor, length))};
-        bodyCursor += length;
-    }
-    entries_ = std::move(merged);
+    const auto published = std::make_shared<const ByteArray>(std::move(archive));
+    archive_             = Archive::decode(Record{published, ByteView(published->span())});
+    merged.clear();
     FileSystem::IoErrorInfo error;
     if (published->size() <= K_MAX_ARCHIVE_SIZE && FileSystem::writeBinaryFileAtomic(path_, published->data(), published->size(), error, FileSystem::FileReplacement::Mapped) == Result::Continue)
     {
@@ -158,37 +154,79 @@ void CompilerCacheStore::flush()
     }
 }
 
-void CompilerCacheStore::load(Entries& out) const
+CompilerCacheStore::Archive CompilerCacheStore::load() const
 {
     const auto mapping = std::make_shared<Os::ReadOnlyFileMapping>();
     if (!mapping->open(path_, K_MAX_ARCHIVE_SIZE))
-        return;
-    const ByteView archive(mapping->bytes());
-    if (archive.size() < 16 || archive.readLe64(0) != K_STORE_MAGIC)
-        return;
-    const uint32_t count = archive.readLe32(8);
-    if (count > (archive.size() - 16) / 69)
-        return;
-    Entries entries;
-    // Keep the index contiguous so lookup does not fault pages from unused bodies.
-    size_t cursor     = 16;
-    size_t bodyCursor = 16 + static_cast<size_t>(count) * 68;
+        return {};
+    return Archive::decode(Record{mapping, ByteView(mapping->bytes())});
+}
+
+CompilerCacheStore::Archive CompilerCacheStore::Archive::decode(Record record)
+{
+    const ByteView bytes = record.bytes;
+    if (bytes.size() < K_HEADER_SIZE || bytes.readLe64(0) != K_STORE_MAGIC)
+        return {};
+    const uint32_t count = bytes.readLe32(8);
+    if (count > (bytes.size() - K_HEADER_SIZE) / (K_INDEX_ENTRY_SIZE + 1))
+        return {};
+
+    Archive archive;
+    archive.offsets.reserve(count);
+    size_t cursor     = K_HEADER_SIZE;
+    size_t bodyCursor = K_HEADER_SIZE + static_cast<size_t>(count) * K_INDEX_ENTRY_SIZE;
     for (uint32_t index = 0; index < count; ++index)
     {
-        if (!archive.containsRange(cursor, 68))
-            return;
-        Utf8           key(std::string_view(reinterpret_cast<const char*>(archive.data() + cursor), 64));
-        const uint32_t length = archive.readLe32(cursor + 64);
-        cursor += 68;
-        if (!length || !archive.containsRange(bodyCursor, length))
-            return;
-        const Record record{mapping, ByteView(archive.span().subspan(bodyCursor, length))};
-        if (!entries.emplace(std::move(key), record).second)
-            return;
+        // Publications already sort keys. Validate that order before binary lookup;
+        // retain only body offsets instead of allocating a string and hash node per key.
+        if (index && std::memcmp(bytes.data() + cursor - K_INDEX_ENTRY_SIZE, bytes.data() + cursor, K_KEY_SIZE) >= 0)
+            return {};
+        const uint32_t length = bytes.readLe32(cursor + K_KEY_SIZE);
+        cursor += K_INDEX_ENTRY_SIZE;
+        if (!length || !bytes.containsRange(bodyCursor, length))
+            return {};
+        archive.offsets.push_back(static_cast<uint32_t>(bodyCursor));
         bodyCursor += length;
     }
-    if (bodyCursor == archive.size())
-        out = std::move(entries);
+    if (bodyCursor != bytes.size())
+        return {};
+    archive.record = std::move(record);
+    return archive;
+}
+
+CompilerCacheStore::Record CompilerCacheStore::Archive::read(const Utf8& key) const
+{
+    if (key.size() != K_KEY_SIZE)
+        return {};
+    size_t first = 0, last = offsets.size();
+    while (first < last)
+    {
+        const size_t cursor     = first + (last - first) / 2;
+        const size_t keyOffset  = K_HEADER_SIZE + cursor * K_INDEX_ENTRY_SIZE;
+        const int    comparison = std::memcmp(key.data(), record.bytes.data() + keyOffset, K_KEY_SIZE);
+        if (!comparison)
+        {
+            const uint32_t length = record.bytes.readLe32(keyOffset + K_KEY_SIZE);
+            return Record{record.owner, ByteView(record.bytes.span().subspan(offsets[cursor], length))};
+        }
+        if (comparison < 0)
+            last = cursor;
+        else
+            first = cursor + 1;
+    }
+    return {};
+}
+
+void CompilerCacheStore::Archive::appendTo(Entries& out) const
+{
+    out.reserve(out.size() + offsets.size());
+    for (size_t index = 0; index < offsets.size(); ++index)
+    {
+        const size_t keyOffset = K_HEADER_SIZE + index * K_INDEX_ENTRY_SIZE;
+        Utf8         key(std::string_view(reinterpret_cast<const char*>(record.bytes.data() + keyOffset), K_KEY_SIZE));
+        const auto   length = record.bytes.readLe32(keyOffset + K_KEY_SIZE);
+        out.insert_or_assign(std::move(key), Record{record.owner, ByteView(record.bytes.span().subspan(offsets[index], length))});
+    }
 }
 
 SWC_END_NAMESPACE();

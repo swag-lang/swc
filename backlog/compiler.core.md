@@ -4,6 +4,17 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.086 — Merge archive publications without rebuilding every key
+
+- Evidence: `CompilerCacheStore::Archive::appendTo` materializes a string and hash node for
+  every persisted record when publishing even a small set of new variants. The sorted mapped
+  index already provides the ordering needed to merge those records with pending writes.
+- Next: measure publication separately from lookup on a large working set, then merge the
+  sorted archive and pending records directly if that cost justifies the change.
+- Done when: publishing a small delta avoids per-existing-record key and hash-node allocations,
+  improves complete compilation on crowded archives, and preserves replacement, size-bound
+  eviction, corruption recovery, mapped readers and concurrent publication.
+
 
 ### compiler.core.085 — Build shared libraries to identical bytes
 

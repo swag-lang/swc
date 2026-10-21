@@ -2,11 +2,15 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Compiler/SourceFile.h"
+#include "Compiler/Verify.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/Command/CommandLineParser.h"
+#include "Main/CompilerInstance.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
+#include "Main/Stats.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"
@@ -161,29 +165,47 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_ModuleDirectoryRunsSetupAndDefaultSources)
     NewCommandTestDirectory directory("ModuleDirectorySetup");
     SWC_RESULT(CompilerTestFile::writeText(directory.path() / "module.swg", "#load(\"setup/loaded.swg\")\n"));
     SWC_RESULT(CompilerTestFile::writeText(directory.path() / "setup" / "loaded.swg", "const LoadedSetupValue = 37\n"));
-    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "src" / "probe.swg", "#assert(LoadedSetupValue == 37)\n"));
-
-    const std::vector<Utf8> args = {"sema", "--module", Utf8(directory.path().string()), "--num-cores", "1", "--no-log-color"};
-    std::string             output;
-    Os::ProcessRunOptions   options;
-    options.capturedOutput = &output;
-    options.forwardOutput  = false;
-    options.timeoutMs      = 15000;
-    uint32_t exitCode      = UINT32_MAX;
-    if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+    const fs::path sourcePath = directory.path() / "src" / "probe.swg";
+    for (const bool rejected : {false, true})
     {
-        std::println(stderr, "[module directory setup] {}", output);
-        return Result::Error;
-    }
+        const std::string_view source = rejected ? "#assert(LoadedSetupValue == 38) // swc-expected-error {{sema_err_compiler_assert}}\n" : "#assert(LoadedSetupValue == 37)\n";
+        SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
 
-    // A successful setup alone is insufficient: the conventional source directory must run.
-    SWC_RESULT(CompilerTestFile::writeText(directory.path() / "src" / "probe.swg", "#assert(LoadedSetupValue == 38)\n"));
-    output.clear();
-    exitCode = UINT32_MAX;
-    if (Os::runProcess(exitCode, Os::getExeFullName(), args, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode == 0)
-        return Result::Error;
-    if (output.find("compile-time assertion evaluated to false") == std::string::npos)
-        return Result::Error;
+        CommandLine command;
+        command.silent               = true;
+        command.devStopDiagnostics   = false;
+        char              arg0[]     = "swc.dm";
+        char              arg1[]     = "sema";
+        char              arg2[]     = "--module";
+        std::string       modulePath = directory.path().string();
+        char              arg4[]     = "--num-cores";
+        char              arg5[]     = "1";
+        char*             argv[]     = {arg0, arg1, arg2, modulePath.data(), arg4, arg5};
+        CommandLineParser parser(const_cast<Global&>(ctx.global()), command);
+        SWC_RESULT(parser.parse(std::size(argv), argv));
+        command.sourceDrivenTest = true;
+
+        // Module selection and setup do not depend on process-launch timing. Exercise the same
+        // driver directly; the rejected source must produce its exact expected diagnostic.
+        const uint64_t   errorsBefore = Stats::getNumErrors();
+        CompilerInstance compiler(ctx.global(), command);
+        const ExitCode   exitCode = compiler.run();
+        const uint64_t   errors   = Stats::getNumErrors();
+        Stats::get().numErrors.store(errorsBefore, std::memory_order_relaxed);
+        if (exitCode != ExitCode::Success || errors || compiler.hasErrorDiagnostic() != rejected)
+            return Result::Error;
+
+        SourceFile* probe = nullptr;
+        for (SourceFile* file : compiler.files())
+        {
+            if (FileSystem::pathEquals(file->path(), sourcePath))
+                probe = file;
+        }
+        if (!probe || probe->hasError() != rejected)
+            return Result::Error;
+        if (rejected && probe->unitTest().hasUntouchedErrorDirectiveInLineRange(1, 1, "sema_err_compiler_assert"))
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

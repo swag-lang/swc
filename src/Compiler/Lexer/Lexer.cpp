@@ -25,8 +25,9 @@ namespace
 
     uint32_t editDistance(const std::string_view lhs, const std::string_view rhs)
     {
-        std::vector<uint32_t> prev(rhs.size() + 1);
-        std::vector<uint32_t> curr(rhs.size() + 1);
+        // The predecessor is filled below, and each current row is complete before swapping.
+        auto prev = std::make_unique_for_overwrite<uint32_t[]>(rhs.size() + 1);
+        auto curr = std::make_unique_for_overwrite<uint32_t[]>(rhs.size() + 1);
 
         for (size_t j = 0; j <= rhs.size(); ++j)
             prev[j] = static_cast<uint32_t>(j);

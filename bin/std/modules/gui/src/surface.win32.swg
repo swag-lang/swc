@@ -36,6 +36,12 @@ private const HTBOTTOMRIGHT = 17
 // WM_SIZE state emitted when a native window has no drawable client area.
 private const SizeMinimized = 1'u64
 
+// Native timer that keeps the application clock running inside the desktop's move and size loop.
+private const DesktopLoopTimerId = 1'u64
+
+// Period of that timer. USER32 raises anything shorter to its own minimum of ten milliseconds.
+private const DesktopLoopTimerPeriod = 10'u32
+
 // Windows storage embedded by `Surface`.
 #[Swag.Opaque]
 #[Swag.NoCopy]
@@ -57,6 +63,9 @@ internal struct NativeSurface
         dropTarget:       SurfaceDropTarget     // OLE drop target of this window, owned by it.
         dropTargetActive: bool     // Whether that target is registered with OLE.
     }
+
+    // Whether the desktop loop timer is armed for this window.
+    inDesktopLoop: bool
 
     // A discrete placement prepares its expensive frame before USER32 exposes the new size.
     inDiscretePlacement: bool
@@ -83,6 +92,25 @@ private impl Surface
     // of those transactions has a frame to publish: the first has no content yet, the second no
     // rendering context left.
     mtd const canPresentNow()->bool => not .isHidden and not .isMinimized and not .wnd.isPendingDestroy
+
+    // Keeps the application clock running while the desktop owns the message loop.
+    //
+    // Moving or sizing the window by its frame runs USER32's own loop until the button is
+    // released, and the application loop waits behind it. That loop still dispatches timer
+    // messages, so a native timer is what reaches the application in the meantime.
+    mtd enterDesktopLoop()
+    {
+        .inDesktopLoop = true
+        discard SetTimer(.hWnd, DesktopLoopTimerId, DesktopLoopTimerPeriod, null)
+    }
+
+    mtd exitDesktopLoop()
+    {
+        if not .inDesktopLoop do
+            return
+        .inDesktopLoop = false
+        discard KillTimer(.hWnd, DesktopLoopTimerId)
+    }
 }
 
 private func postSurfaceSysCommand(surface: *Surface, kind: SysCommandEvent.Kind)
@@ -268,12 +296,31 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
             EndPaint(hWnd, &ps)
             return 0
 
+        case WM_NCLBUTTONDOWN:
+
+            // A press on the caption or a border runs USER32's move or size loop inside
+            // DefWindowProc. The window does not hear of it until the pointer has actually
+            // moved, so the clock is armed from the press and runs until the loop returns.
+            surface.enterDesktopLoop()
+            let result = DefWindowProcW(hWnd, msg, wParam, lParam)
+            surface.exitDesktopLoop()
+            return result
+
+        case WM_TIMER:
+            if wParam != DesktopLoopTimerId do
+                break
+            if surface.inDesktopLoop do
+                surface.app.runClockFrame()
+            return 0
+
         case WM_ENTERSIZEMOVE:
             surface.setSizing(true)
+            surface.enterDesktopLoop()
             return 0
 
         case WM_EXITSIZEMOVE:
             surface.setSizing(false)
+            surface.exitDesktopLoop()
 
             // The gesture is over, so content that held a reflow back for its duration runs it
             // now, and the exact final geometry reaches the screen before the application loop

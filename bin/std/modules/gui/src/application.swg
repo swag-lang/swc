@@ -144,6 +144,7 @@ struct Application
     modalSurfaces:       Array'(*Surface)     // Surface stack of the nested modal loops.
     toDelete:            Array'{ ptr: *void?, type: const *Swag.TypeInfo }     // Deferred deletions.
     systemReducedMotion: bool                 // Platform client-area-animation preference.
+    inClockFrame:        bool                 // Whether a clock frame runs inside a desktop loop.
 
     public
     {
@@ -709,6 +710,28 @@ private impl Application
 
         for surface in .surfaces do
             surface.paint()
+    }
+
+    // Advances everything that runs on its own clock, repaints, and does nothing else.
+    //
+    // This is what the desktop's move and size loop calls while it holds the application loop.
+    // Playback, animations, and polls are frame events, animations, and timers: a window that
+    // keeps them waiting for the length of the gesture freezes a video whose sound goes on. None
+    // of them dispatches input, and a window they destroy is only queued, so they are safe here
+    // in a way the rest of [[Gui.Application.runFrame]] is not. Temporary allocations are kept,
+    // since the frame that entered the gesture is still on the stack.
+    internal mtd runClockFrame()
+    {
+        if .inClockFrame do
+            return
+        .inClockFrame = true
+        defer .inClockFrame = false
+
+        .timing.update()
+        .animator.advance(.timing.deltaSeconds)
+        .sendFrameEvents()
+        .sendTimerEvents()
+        .paintSurfaces()
     }
 
     // Processes one complete input, event, paint, and frame-callback cycle.

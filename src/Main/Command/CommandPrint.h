@@ -1,17 +1,24 @@
 #pragma once
 #include "Support/Core/Utf8.h"
 
+#include "Main/Version.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Os/Os.h"
+#include "Support/Report/LogSymbol.h"
 #include "Support/Report/Logger.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace CommandPrint
 {
+    inline void printCompilerHeader(const TaskContext& ctx)
+    {
+        Logger::print(ctx, std::format("{}{}{} Swag compiler {}.{}.{}\n", LogColorHelper::toAnsi(ctx, LogColor::BrandVoltage), LogSymbolHelper::toString(ctx, LogSymbol::CommandMark), LogColorHelper::toAnsi(ctx, LogColor::Reset), SWC_VERSION, SWC_REVISION, SWC_BUILD_NUM));
+    }
+
     constexpr LogColor helpArgumentLabelColor()
     {
-        return LogColor::BrightBlue;
+        return LogColor::BrandArc;
     }
 
     inline Logger::FieldGroupStyle infoGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 24)
@@ -32,7 +39,15 @@ namespace CommandPrint
     inline Logger::FieldGroupStyle helpGroupStyle(const bool blankLineBefore, const size_t maxLabelWidth = 34)
     {
         Logger::FieldGroupStyle style = infoGroupStyle(blankLineBefore, maxLabelWidth);
+        style.titleColor              = LogColor::BrandVoltage;
+        style.defaultValueColor       = LogColor::Reset;
+        style.wrapValues              = true;
+        const size_t columns          = Os::stdoutColumnCount();
+        style.maxLineWidth            = columns ? std::min<size_t>(columns, 100) : 100;
+        style.minLabelWidth           = std::min(style.minLabelWidth, style.maxLineWidth / 3);
+        style.maxLabelWidth           = std::min(style.maxLabelWidth, style.maxLineWidth / 3);
         style.maxLabelWidth           = std::max(style.maxLabelWidth, style.minLabelWidth);
+        style.minLabelWidth           = style.maxLabelWidth;
         return style;
     }
 

@@ -129,6 +129,7 @@
     </ItemDefinitionGroup>
     <ItemGroup>
         <ClCompile Include="src\Backend\BinaryPatch.cpp"/>
+        <ClCompile Include="src\Main\Command\Command.Info.cpp"/>
         <ClCompile Include="src\Main\EditorIndex.cpp"/>
         <ClCompile Include="src\Main\EditorService.cpp"/>
         <ClCompile Include="src\Support\Math\Sha256.cpp"/>

@@ -243,6 +243,19 @@ fs::path FileSystem::compilerResourceRoot(const fs::path& exeFullName)
     return lexicallyNormalize(exeDir);
 }
 
+fs::path FileSystem::standardLibraryWorkspaceRoot(const fs::path& exeFullName)
+{
+    const fs::path  localRoot = compilerResourceRoot(exeFullName) / "std";
+    std::error_code ec;
+    if (fs::is_directory(localRoot, ec))
+        return lexicallyNormalize(localRoot);
+
+    const std::optional<Utf8> installRoot = Os::readEnvironmentVariable("SWAG_PATH");
+    if (!installRoot || installRoot->empty())
+        return {};
+    return absolutePathNoThrow(fs::path(installRoot->c_str()) / "std");
+}
+
 fs::path FileSystem::currentPathNoThrow()
 {
     std::error_code ec;

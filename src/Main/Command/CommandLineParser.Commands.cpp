@@ -27,6 +27,7 @@ void CommandLineParser::registerCommands()
 
     configSchema_.addEnum("command", &cmdLine_->command,
                           {
+                              {"info", CommandKind::Info},
                               {"new", CommandKind::New},
                               {"clean", CommandKind::Clean},
                               {"format", CommandKind::Format},
@@ -67,12 +68,12 @@ void CommandLineParser::registerCommands()
         &cmdLine_->moduleFilePath,
         "Run this module setup file before compiling the rest of the module; derive the module root and relative input paths from its parent directory");
 
-    add(HelpOptionGroup::Input, "new clean sema service doc test build run smoke", "--workspace", "-w",
+    add(HelpOptionGroup::Input, "info new clean sema service doc test build run smoke", "--workspace", "-w",
         &cmdLine_->workspacePath,
-        "Use a workspace containing modules/<module>/module.swg and modules/<module>/src; new creates the workspace when absent, while compilation owns its .output and .tmp directories and excludes --module, --module-file, --directory, and --file");
-    add(HelpOptionGroup::Input, "clean sema service doc test build run smoke", "--workspace-module", "-m",
+        "Use modules/<name>/module.swg and modules/<name>/src in this workspace; new creates it when absent, info reports its folders, and compilation writes .output/.tmp; excludes --module, --module-file, --directory, and --file");
+    add(HelpOptionGroup::Input, "info clean sema service doc test build run smoke", "--workspace-module", "-m",
         &cmdLine_->workspaceModuleFilter,
-        "With --workspace, compile only this module and its internal workspace dependencies");
+        "With --workspace, select this module and its internal workspace dependencies; info reports its folders");
 
     add(HelpOptionGroup::Input, "sema service doc test build run smoke", "--import-api-module", nullptr,
         &cmdLine_->importApiModules,

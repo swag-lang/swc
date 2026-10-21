@@ -106,3 +106,8 @@ An attempted native `--file-filter '\compiler\'` run excluded the runtime
 allocator helper used by several selected inputs and failed with missing
 `testAlloc`/`testFree` symbols. It is not counted as validation; the complete
 native run includes those helpers and passes.
+
+Integration with concurrent master `c7fe372c50` preserves both required test
+includes (`Stats.h` and `WorkspaceLayout.h`). The combined DevMode compiler
+builds and passes all 1,602 C++ tests with `--dev-full`; this resolves the only
+merge conflict without changing either test's behavior.

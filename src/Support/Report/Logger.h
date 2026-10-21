@@ -45,6 +45,7 @@ public:
 
         bool blankLineBefore = true;
         bool blankLineAfter  = false;
+        bool wrapValues      = false;
     };
 
     Logger() = default;

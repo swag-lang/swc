@@ -28,6 +28,13 @@ ExitCode runCompilerCli(const int argc, char* argv[])
     if (cmdLine.helpPrinted)
         return ExitCode::Success;
 
+    if (cmdLine.command == CommandKind::Info)
+    {
+        const TaskContext ctx(global, cmdLine);
+        Command::info(ctx);
+        return ExitCode::Success;
+    }
+
     global.initialize(cmdLine);
     TaskContext            startupCtx(global, cmdLine);
     const ScopedCommandLog commandLog(startupCtx);

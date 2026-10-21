@@ -540,11 +540,9 @@ Result AstCompilerShortFunc::semaPostNode(Sema& sema) const
 
     if (sema.ast().hasSpan(spanPartsRef))
     {
-        SmallVector<AstNodeRef> parts;
-        sema.ast().appendNodes(parts, spanPartsRef);
-
         Utf8 generated;
-        SWC_RESULT(SemaHelpers::appendConstantText(sema, parts.span(), generated));
+        // Multipart '#ast' has no body child; the visitor already collected its parts.
+        SWC_RESULT(SemaHelpers::appendConstantText(sema, sema.visit().currentChildren(), generated));
 
         return substituteCompilerAstString(sema, sema.curNodeRef(), generated.view());
     }

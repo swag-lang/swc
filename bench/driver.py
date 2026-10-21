@@ -1,796 +1,529 @@
-"""Run one full benchmark campaign and append it to the history.
+"""Run one benchmark campaign and record it.
 
-Everything is measured in a single pass, because splitting a campaign in two
-produced a 45% level shift between the halves on this machine. Repetitions are
-round-robin — repetition 0 of every runtime, then repetition 1, and so on — so a
-slow stretch of machine time is shared by everyone instead of landing entirely on
-one language. A fixed reference workload is timed before and after the sweep and
-the drift between the two is recorded with the results.
+    py -3 driver.py [--swc PATH] [--label TEXT] [--quick] [--tasks a,b] [--build | --run]
+                    [--swc-cores N] [--warmup SECONDS] [--no-reference]
 
-Three properties of that round-robin were each measured to be worth their cost, on
-the ratio between two binaries that never change — the only thing this bench is
-allowed to claim:
+A campaign measures, in one sitting, the Swag compiler under test, the frozen Swag
+reference, and every other toolchain, on the same twelve programs. It publishes two kinds
+of numbers, and both are ratios measured inside the same minutes:
 
-  * every timed run is pinned to the performance cores. Left to the scheduler, a
-    short process lands on an E core or a low-power core often enough to move that
-    ratio by 10 % between two blocks of measurements; pinned, by 2 %.
-  * the order inside a cycle rotates. With a fixed order the runtime listed first
-    is always measured at the same point of the machine's thermal ramp, which is a
-    systematic advantage rather than a result.
-  * each runtime is sampled to a time budget instead of a fixed count, and its
-    samples are spread evenly across the whole window rather than bunched at one
-    end. A 50 ms task then gets twenty-four samples where CPython gets three, and
-    both are spread over the same minutes.
+  * Swag against each other language: the ratio of their medians on each task, and the
+    geometric mean of those ratios over the panel, each with its 95 % interval.
+  * Swag against its own reference: the median of the per-round ratios, sample paired with
+    sample. This is the progress curve, and it needs no correction between campaigns
+    because the reference is measured next to the compiler every time.
 
-    py -3 driver.py [--swc PATH] [--budget MS] [--build-budget MS]
-                    [--warmup SECONDS] [--label TEXT] [--quick]
+Every sample is taken on a machine verified to be otherwise quiet while it ran (see
+machine.py), from the same warm toolchain state (see toolchains.py), in rounds whose order
+is drawn at random (see sampler.py). README.md states the protocol in full.
 """
 import argparse
+import datetime
 import glob
 import json
 import os
 import re
-import shutil
-import subprocess
 import sys
 import time
 
 import allocbench
 import history
+import installs
+import machine
+import sampler
 import toolchains as tc
 import winproc
 
 # A compiler error reaches this driver verbatim, and swc draws its diagnostics with box
-# characters. The Windows console defaults to a code page that cannot encode them, so
-# printing the error raised UnicodeEncodeError and buried the very error it was reporting.
+# characters the default Windows console code page cannot encode.
 for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
 
 PAT = re.compile(r"CHECK=(-?\d+)\s+MS=([\d.]+)")
 
-AOT_ORDER = ["swag-release", "swag-devmode", "cpp-clang-cl", "cpp-msvc",
-             "rust", "zig", "d-ldc", "odin", "go", "swift", "csharp-aot", "csharp-jit", "java-hotspot"]
-JIT_ORDER = ["swc-jit-release", "swc-jit-devmode", "node20", "luajit2.1",
-             "lua5.4", "python3.12", "php", "php-jit", "ruby"]
-
-# A runtime is sampled until it has spent this much measured time on a task, within
-# these bounds. Below the floor a minimum is meaningless; above the ceiling the extra
-# samples stop paying. The Swag runtimes are what the campaign exists to measure and
-# get the full budget. The controls only feed the machine correction, a median over
-# more than a dozen of them, so each one needs far fewer samples.
-RUN_BUDGET_MS = 2000
-RUN_MIN_REPS = 3
-RUN_MAX_REPS = 16
-CONTROL_RUN_BUDGET_MS = 600
-CONTROL_RUN_MIN_REPS = 2
-CONTROL_RUN_MAX_REPS = 6
-
-# A run this long is already averaging over everything a repetition would average
-# over: its pilot sample is the measurement.
-RUN_SLOW_MS = 1500
-
-# Every build needs a repeat, including slow controls. The budget buys additional
-# samples; it never turns a slow or delayed pilot into an unverified result.
-BUILD_BUDGET_MS = 2000
-BUILD_MIN_REPS = 2
-BUILD_MAX_REPS = 6
-CONTROL_BUILD_BUDGET_MS = 800
-CONTROL_BUILD_MAX_REPS = 3
-BUILD_SLOW_MS = 2500
-BUILD_SLOW_MAX_REPS = 3
-BUILD_PAIR_LIMIT_PCT = history.BUILD_PAIR_LIMIT_PCT
-
-DRIFT_LIMIT_PCT = history.DRIFT_LIMIT_PCT
-
-# Nothing of ours runs while this is sampled, so it is somebody else's work. Idle on
-# this machine sits around 5 % with an editor and a browser open; an active build puts
-# it over 50 %. Waiting for quiet costs a minute, discovering the contention afterwards
-# costs the whole campaign.
-QUIET_LIMIT_PCT = 15.0
-QUIET_SAMPLES = 3
-QUIET_WAIT_S = 300
+# A campaign whose accepted samples include more than this share still contended after
+# every retry measured a busy machine, and is archived instead of recorded.
+CONTENDED_LIMIT = 0.05
+QUIET_START_S = 600
+CALIBRATION_REPS = 7
 
 
-def rm(path):
-    if os.path.isdir(path):
-        shutil.rmtree(path, ignore_errors=True)
-    elif os.path.exists(path):
-        try:
-            os.unlink(path)
-        except OSError:
-            pass
+def log(message=""):
+    print(message)
+    sys.stdout.flush()
 
 
-def prepare(recipe):
-    for p in recipe["clean"]:
-        rm(p)
-    for p in recipe.get("mkdir", []):
-        os.makedirs(p, exist_ok=True)
+def process_error(r):
+    output = "\n".join(s.rstrip() for s in (r["stdout"], r["stderr"]) if s)
+    return "exit=%d\n%s" % (r["exit"], output[-4000:])
 
 
-def process_error(result):
-    # Parallel module progress can follow the diagnostic by thousands of characters.
-    # Keep both streams whole so the report preserves its source location and notes.
-    output = "\n".join(stream.rstrip() for stream in (result["stdout"], result["stderr"]) if stream)
-    return "exit=%d\n%s" % (result["exit"], output)
+class Campaign:
+    def __init__(self, args, t, env, subject, reference, stamp):
+        self.args = args
+        self.t = t
+        self.env = env
+        self.installs = {"subject": subject}
+        if reference:
+            self.installs["reference"] = reference
+        self.quick = args.quick
+        self.cores = args.swc_cores
+        self.waits = []
+        self.rng, self.seed = sampler.campaign_rng(stamp, args.label)
+        self.baselines = {family: machine.Baseline() for family in ("build", "run", "hello", "loop")}
 
+    # ------------------------------------------------------------------ plans
+    def plan(self, family):
+        if self.quick:
+            return sampler.quick_plan
+        tracked = set(tc.TRACKED) | set(tc.REFERENCES)
+        if family == "run":
+            return lambda name, pilot: sampler.plan_run(name in tracked, pilot)
+        if family == "build":
+            return lambda name, pilot: sampler.plan_build(name in tracked, pilot)
+        return lambda name, pilot: sampler.plan_loop(pilot)
 
-def prepare_swag_dependencies(swc, env, cores=0):
-    """Publish dependencies once, outside every timed compiler sample."""
-    std = os.path.join(tc.worktree(), "bin", "std")
-    for cfg in ("release", "devmode"):
-        cmd = [swc, "build", *tc.swc_worker_args(cores), "--workspace", std, "--workspace-module", "win32",
-               "--build-cfg", cfg]
-        r = winproc.run(cmd, cwd=tc.worktree(), env=env)
-        if r["exit"] != 0:
-            return "win32/%s: %s" % (cfg, process_error(r))
-        try:
-            api_files = tc.snapshot_swag_dependency_api_files(cfg)
-        except (RuntimeError, OSError) as error:
-            return str(error)
-        print("  win32/%-8s ready outside the clock (%d API files, %6.1f ms)" %
-              (cfg, len(api_files), r["wall_ms"]))
-    return None
+    def units(self, names):
+        """Each Swag runtime paired with its reference counterpart, every other runtime alone."""
+        present = set(names)
+        units, paired = [], set()
+        for name in names:
+            if name in paired:
+                continue
+            partner = tc.REFERENCE_OF.get(name)
+            if partner in present:
+                units.append((name, partner))
+                paired.update((name, partner))
+            elif name not in tc.REFERENCES:
+                units.append((name,))
+        return units
 
+    # ----------------------------------------------------------------- builds
+    def _prepare(self, recipe):
+        for path in recipe["clean"]:
+            tc.rm(path)
+        for path in recipe["mkdir"]:
+            os.makedirs(path, exist_ok=True)
 
-def build_once(recipe, env):
-    prepare(recipe)
-    r = winproc.run(recipe["cmd"], cwd=recipe["cwd"], env=env | recipe.get("env", {}))
-    if r["exit"] != 0 or not os.path.exists(recipe["exe"]):
-        return None, process_error(r)
-    return r, None
-
-
-def workload_once(workload, env):
-    """One timed run of a compiler workload, after its untimed preparation."""
-    if workload["prepare"]:
-        workload["prepare"](env)
-    r = winproc.run(workload["cmd"], cwd=workload["cwd"], env=env)
-    if r["exit"] != 0:
-        return None, process_error(r)
-    return r, None
-
-
-def keep_workload(acc, r):
-    acc["wall_ms"] = r["wall_ms"] if acc.get("wall_ms") is None else min(acc["wall_ms"], r["wall_ms"])
-    acc["cpu_ms"] = r["cpu_ms"] if acc.get("cpu_ms") is None else min(acc["cpu_ms"], r["cpu_ms"])
-    acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
-    acc["peak_working_set_bytes"] = max(acc.get("peak_working_set_bytes", 0), r["peak_working_set_bytes"])
-    acc.setdefault("samples", []).append(round(r["wall_ms"], 1))
-
-
-def run_once(cmd, env):
-    r = winproc.run(cmd, cwd=tc.BENCH, env=env, pin=True)
-    m = PAT.search(r["stdout"] + r["stderr"])
-    if r["exit"] != 0 or not m:
-        return None, process_error(r), r
-    return (int(m.group(1)), float(m.group(2))), None, r
-
-
-def plan_reps(wall_ms, tracked=True):
-    """How many samples a runtime earns on a task, from one pilot measurement."""
-    budget, low, high = ((RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS) if tracked else
-                         (CONTROL_RUN_BUDGET_MS, CONTROL_RUN_MIN_REPS, CONTROL_RUN_MAX_REPS))
-    low, high = min(low, RUN_MAX_REPS), min(high, RUN_MAX_REPS)
-    if not wall_ms:
-        return low
-    if wall_ms >= RUN_SLOW_MS:
-        return 1
-    return max(low, min(high, int(budget // wall_ms)))
-
-
-def plan_builds(wall_ms, tracked=True):
-    """How many times a toolchain is built, from its first build."""
-    budget, low, high = ((BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS) if tracked else
-                         (CONTROL_BUILD_BUDGET_MS, BUILD_MIN_REPS, CONTROL_BUILD_MAX_REPS))
-    low, high = min(low, BUILD_MAX_REPS), min(high, BUILD_MAX_REPS)
-    if not wall_ms:
-        return low
-    if wall_ms >= BUILD_SLOW_MS:
-        return low
-    return max(low, min(high, int(budget // wall_ms)))
-
-
-def needs_build_sample(acc, tracked=True):
-    if acc.get("error"):
-        return False
-    count = len(acc.get("samples") or [])
-    best = acc.get("wall_ms")
-    ceiling = min(BUILD_MAX_REPS, BUILD_SLOW_MAX_REPS) if best and best >= BUILD_SLOW_MS else BUILD_MAX_REPS
-    if count >= ceiling:
-        return False
-    if count < plan_builds(best, tracked):
-        return True
-    return history.confirmed_build_pair(acc.get("samples") or [], BUILD_PAIR_LIMIT_PCT) is None
-
-
-def measure_builds(jobs, env, workloads=False):
-    """Rotate complete builds, retrying only the measurements still needing evidence."""
-    measured = {name: {} for name in jobs}
-    sample = workload_once if workloads else build_once
-    for rep in range(BUILD_MAX_REPS):
-        due = [name for name, acc in measured.items()
-               if needs_build_sample(acc, workloads or name in history.TRACKED)]
-        if not due:
-            break
-        turn = rep % len(due)
-        for name in due[turn:] + due[:turn]:
-            result, error = sample(jobs[name], env)
-            if error:
-                measured[name]["error"] = error
-            elif workloads:
-                keep_workload(measured[name], result)
+    def warm_build(self, recipe):
+        """One untimed build, which also leaves the toolchain caches the samples restore."""
+        state = recipe["state"]
+        if state:
+            if state.owned:
+                state.reset()
             else:
-                keep_build(measured[name], result, jobs[name])
-    return measured
+                state.restore()
+        self._prepare(recipe)
+        r = winproc.run(recipe["cmd"], cwd=recipe["cwd"], env=self.env | recipe["env"])
+        if r["exit"] != 0 or not os.path.exists(recipe["exe"]):
+            return process_error(r)
+        if state and state.capture_on_warm:
+            state.capture()
+        return None
+
+    def build_sample(self, recipe):
+        self._prepare(recipe)
+        if recipe["state"]:
+            recipe["state"].restore()
+        r = machine.timed_run(recipe["cmd"], cwd=recipe["cwd"], env=self.env | recipe["env"])
+        if r["exit"] != 0 or not os.path.exists(recipe["exe"]):
+            raise sampler.SampleError(process_error(r))
+        return {"wall_ms": r["wall_ms"], "cpu_ms": r["job_cpu_ms"], "peak_bytes": r["peak_job_bytes"],
+                "peak_working_set_bytes": r["peak_working_set_bytes"], "foreign_cores": r["foreign_cores"]}
+
+    def measure_builds(self, recipes):
+        errors = {}
+        for name, recipe in recipes.items():
+            error = self.warm_build(recipe)
+            if error:
+                errors[name] = error
+                log("  %-20s BUILD ERROR %s" % (name, error.splitlines()[-1] if error else ""))
+        names = [n for n in recipes if n not in errors]
+        series = sampler.run_rounds(self.units(names), lambda n, _: self.build_sample(recipes[n]),
+                                    self.plan("build"), "wall_ms", self.rng, self.waits,
+                                    self.baselines["build"], log)
+        out = {}
+        for name, recipe in recipes.items():
+            if name in errors:
+                out[name] = {"error": errors[name]}
+                continue
+            out[name] = series[name].as_dict()
+            artifacts = glob.glob(recipe["artifact_glob"]) if recipe["artifact_glob"] else [recipe["exe"]]
+            out[name]["exe_bytes"] = sum(os.path.getsize(p) for p in artifacts if os.path.exists(p))
+        return out
+
+    # ------------------------------------------------------------------- runs
+    def run_sample(self, cmd, overrides):
+        r = machine.timed_run(cmd, cwd=tc.BENCH, env=self.env | overrides, pin=True)
+        m = PAT.search(r["stdout"] + r["stderr"])
+        if r["exit"] != 0 or not m:
+            raise sampler.SampleError(process_error(r))
+        return {"ms": float(m.group(2)), "check": int(m.group(1)), "wall_ms": r["wall_ms"],
+                "peak_bytes": r["peak_job_bytes"], "foreign_cores": r["foreign_cores"]}
+
+    def measure_runs(self, commands):
+        series = sampler.run_rounds(self.units(list(commands)),
+                                    lambda n, _: self.run_sample(*commands[n]),
+                                    self.plan("run"), "ms", self.rng, self.waits,
+                                    self.baselines["run"], log)
+        out = {}
+        for name, s in series.items():
+            out[name] = s.as_dict()
+            checks = {x["check"] for x in s.samples}
+            if len(checks) > 1:
+                out[name]["error"] = "unstable checksum: %s" % sorted(checks)
+            elif checks:
+                out[name]["check"] = checks.pop()
+        return out
+
+    def hello_sample(self, spec):
+        if spec["state"]:
+            spec["state"].restore()
+        r = machine.timed_run(spec["cmd"], cwd=tc.BENCH, env=self.env | spec["env"], pin=True,
+                              first_stdout_match=spec["marker"])
+        if r["exit"] != 0 or r["first_stdout_ms"] is None:
+            raise sampler.SampleError(process_error(r))
+        return {"first_ms": r["first_stdout_ms"], "wall_ms": r["wall_ms"], "peak_bytes": r["peak_job_bytes"],
+                "foreign_cores": r["foreign_cores"]}
+
+    def measure_hello_runs(self, specs):
+        for spec in specs.values():
+            if spec["state"]:
+                spec["state"].reset()
+            winproc.run(spec["cmd"], cwd=tc.BENCH, env=self.env | spec["env"])
+            if spec["state"]:
+                spec["state"].capture()
+        series = sampler.run_rounds(self.units(list(specs)), lambda n, _: self.hello_sample(specs[n]),
+                                    self.plan("run"), "first_ms", self.rng, self.waits,
+                                    self.baselines["hello"], log)
+        return {name: s.as_dict() for name, s in series.items()}
+
+    # ------------------------------------------------------------- edit loop
+    def loop_sample(self, workload):
+        env = self.env | workload["env"]
+        if workload["prepare"]:
+            workload["prepare"](env)
+        r = machine.timed_run(workload["cmd"], cwd=workload["cwd"], env=env)
+        if r["exit"] != 0:
+            raise sampler.SampleError(process_error(r))
+        return {"wall_ms": r["wall_ms"], "cpu_ms": r["job_cpu_ms"], "peak_bytes": r["peak_job_bytes"],
+                "peak_working_set_bytes": r["peak_working_set_bytes"], "foreign_cores": r["foreign_cores"]}
+
+    def measure_loop(self):
+        plans = {role: tc.make_compiler_workloads(install, self.cores)
+                 for role, install in self.installs.items()}
+        out = {}
+        for wid in tc.COMPILER_WORKLOADS:
+            jobs = {role: plans[role][wid] for role in plans}
+            errors = {}
+            for role, job in jobs.items():
+                try:
+                    self.loop_sample(job)
+                except (sampler.SampleError, RuntimeError) as error:
+                    errors[role] = str(error)
+            units = [tuple(r for r in ("subject", "reference") if r in jobs and r not in errors)]
+            series = sampler.run_rounds([u for u in units if u], lambda n, _: self.loop_sample(jobs[n]),
+                                        self.plan("loop"), "wall_ms", self.rng, self.waits,
+                                        self.baselines["loop"], log)
+            out[wid] = {role: ({"error": errors[role]} if role in errors else series[role].as_dict())
+                        for role in jobs}
+            line = "  %-14s" % wid
+            for role in jobs:
+                s = series.get(role)
+                e = s.estimate() if s else None
+                line += "  %s %s" % (role, ("%.1f ms (n=%d)" % (e.value, e.n)) if e else errors.get(role, "-")[:60])
+            log(line)
+        return out
 
 
-def settle_build_measurements(results):
-    """Keep unresolved samples for audit without publishing an unsupported minimum."""
-    measurements = [("hello/" + name, acc) for name, acc in results.get("hello_build", {}).items()]
-    measurements += [("loop/" + name, acc) for name, acc in results.get("loop", {}).items()]
-    measurements += [(task + "/" + name, entry["build"])
-                     for task, entries in results["tasks"].items()
-                     for name, entry in entries.items() if entry.get("build")]
-    for label, acc in measurements:
-        if acc.get("error"):
-            continue
-        history.settle_build(acc, BUILD_PAIR_LIMIT_PCT)
-        if acc["repeatability"]["status"] == "unresolved":
-            print("  compilation %s: no agreeing pair after %d samples; raw samples kept, time omitted" %
-                  (label, len(acc.get("samples") or [])))
+def quality(results):
+    """How many accepted samples were still contended, and how many were taken again."""
+    accepted = contended = set_aside = 0
 
+    def walk(node):
+        nonlocal accepted, contended, set_aside
+        if isinstance(node, dict):
+            if "samples" in node and isinstance(node["samples"], list):
+                accepted += len(node["samples"])
+                contended += sum(1 for s in node["samples"] if s.get("contended"))
+                set_aside += len(node.get("set_aside") or [])
+            for value in node.values():
+                if isinstance(value, (dict, list)):
+                    walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                if isinstance(value, dict):
+                    walk(value)
 
-def schedule(reps):
-    """Spread `reps` samples evenly over RUN_MAX_REPS cycles.
-
-    Bunching a runtime's samples at one end of the window would measure it in one
-    machine state and its neighbour in another; spreading them means every runtime
-    covers the same minutes whatever its sample count.
-    """
-    cycles = []
-    for cycle in range(RUN_MAX_REPS):
-        if (cycle + 1) * reps // RUN_MAX_REPS > cycle * reps // RUN_MAX_REPS:
-            cycles.append(cycle)
-    return set(cycles)
-
-
-def keep_build(acc, r, recipe):
-    acc["wall_ms"] = r["wall_ms"] if acc.get("wall_ms") is None else min(acc["wall_ms"], r["wall_ms"])
-    acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
-    acc["peak_working_set_bytes"] = max(acc.get("peak_working_set_bytes", 0), r["peak_working_set_bytes"])
-    artifacts = glob.glob(recipe["artifact_glob"]) if recipe.get("artifact_glob") else [recipe["exe"]]
-    acc["exe_bytes"] = sum(os.path.getsize(path) for path in artifacts)
-    acc.setdefault("samples", []).append(round(r["wall_ms"], 1))
-
-
-def keep_run(acc, got, r):
-    check, ms = got
-    if acc.get("check") is None:
-        acc["check"] = check
-    elif acc["check"] != check:
-        acc["error"] = "unstable checksum %d vs %d" % (acc["check"], check)
-    acc["wall_ms"] = r["wall_ms"] if acc.get("wall_ms") is None else min(acc["wall_ms"], r["wall_ms"])
-    acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
-    # Every sample is kept, not just the minimum that becomes the result: without them
-    # a campaign cannot say how sure it is, and a number nobody can question is not a
-    # measurement.
-    acc.setdefault("samples", []).append(ms)
-    # The result is the fastest sample, unless a clock read it short; every new sample
-    # can change which samples are judged faults, so both are decided again each time.
-    acc["ms"] = min(acc["samples"])
-    acc.pop("timer_faults", None)
-    history.settle_run(acc)
-
-
-def spread_pct(samples):
-    if not samples:
-        return 0.0
-    # A zero timer reading has no relative spread; keep it instead of inventing a duration.
-    minimum = min(samples)
-    return (max(samples) / minimum - 1.0) * 100.0 if minimum > 0 else None
+    for section in ("hello_build", "hello_run", "loop", "tasks"):
+        walk(results.get(section) or {})
+    return {"accepted": accepted, "contended": contended, "set_aside": set_aside,
+            "contended_share": contended / accepted if accepted else 0.0}
 
 
 def campaign_errors(results):
-    """Do not publish a comparison when an available port failed or disagreed."""
+    """A campaign in which an available port failed or disagreed has measured nothing."""
     errors = []
-    for family in ("hello_build", "hello_run", "loop"):
-        for name, entry in results.get(family, {}).items():
+    for family in ("hello_build", "hello_run"):
+        for name, entry in (results.get(family) or {}).items():
             if entry.get("error"):
-                errors.append("%s/%s: %s" % (family, name, entry["error"]))
-    errors += ["allocator/%s" % error for error in allocbench.errors(results.get("allocator"))]
+                errors.append("%s/%s: %s" % (family, name, entry["error"].splitlines()[-1]))
+    for wid, roles in (results.get("loop") or {}).items():
+        for role, entry in roles.items():
+            if entry.get("error"):
+                errors.append("loop/%s/%s: %s" % (wid, role, entry["error"].splitlines()[-1]))
+    errors += ["allocator/%s" % e for e in allocbench.errors(results.get("allocator"))]
     for task, entries in results["tasks"].items():
         seen = {}
         for name, entry in entries.items():
             for family in ("build", "run"):
-                if entry.get(family, {}).get("error"):
-                    errors.append("%s/%s/%s: %s" % (task, name, family, entry[family]["error"]))
-            check = entry.get("run", {}).get("check")
+                record = entry.get(family) or {}
+                if record.get("error"):
+                    errors.append("%s/%s/%s: %s" % (task, name, family, record["error"].splitlines()[-1]))
+            check = (entry.get("run") or {}).get("check")
             if check is not None:
                 seen.setdefault(check, []).append(name)
         if len(seen) > 1:
-            errors.append("%s: %s" % (task, seen))
+            errors.append("%s: checksums disagree %s" % (task, seen))
     return errors
 
 
-def wait_for_quiet():
-    """Refuse to start until the machine belongs to us. Returns the settled load."""
-    deadline = time.time() + QUIET_WAIT_S
-    quiet = 0
-    busy = winproc.system_busy_pct()
-    while time.time() < deadline:
-        busy = winproc.system_busy_pct()
-        if busy < QUIET_LIMIT_PCT:
-            quiet += 1
-            if quiet >= QUIET_SAMPLES:
-                return busy
-        else:
-            if quiet:
-                print("  machine busy again (%.0f %%), restarting the count" % busy)
-                sys.stdout.flush()
-            quiet = 0
-    return None
-
-
 def parse_args(argv=None):
-    global RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS
-    global BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS
-
     ap = argparse.ArgumentParser()
-    ap.add_argument("--swc", help="compiler under test (default: bin/swc.exe of the main worktree)")
-    ap.add_argument("--swc-cores", type=int, default=0,
-                    help="cap Swag compiler workers; 0 uses the compiler default")
-    ap.add_argument("--budget", type=int, default=RUN_BUDGET_MS,
-                    help="measured milliseconds each runtime gets per task")
-    ap.add_argument("--build-budget", type=int, default=BUILD_BUDGET_MS,
-                    help="wall milliseconds each toolchain gets to be rebuilt, per task")
-    ap.add_argument("--warmup", type=int, default=30,
-                    help="seconds of reference workload before the first calibration")
+    ap.add_argument("--swc", help="compiler under test (default: bin/swc.exe of this checkout)")
+    ap.add_argument("--swc-cores", type=int, default=0, help="cap Swag compiler workers; 0 = compiler default")
+    ap.add_argument("--warmup", type=int, default=30, help="seconds of reference workload before measuring")
     ap.add_argument("--label", default="", help="short note stored with this campaign")
-    ap.add_argument("--quick", action="store_true", help="1 sample, no warm-up; smoke test only")
-    ap.add_argument("--tasks", default="",
-                    help="comma-separated subset of the tasks to sweep, for iterating on one of "
-                         "them; a partial sweep is never recorded")
+    ap.add_argument("--quick", action="store_true", help="one sample of everything; proves the plumbing, records nothing")
+    ap.add_argument("--tasks", default="", help="comma-separated subset of tasks; a partial sweep is never recorded")
+    ap.add_argument("--no-reference", action="store_true",
+                    help="measure without the frozen reference; such a campaign has no progress values")
+    ap.add_argument("--out", help="also write the raw campaign to this file; it is never recorded from there")
     phase = ap.add_mutually_exclusive_group()
-    phase.add_argument("--build", action="store_true",
-                       help="measure compilation only; update only compilation history and report data")
-    phase.add_argument("--run", action="store_true",
-                       help="measure execution only; build AOT programs outside the clock and update only execution data")
+    phase.add_argument("--build", action="store_true", help="measure compilation only")
+    phase.add_argument("--run", action="store_true", help="measure execution only")
     return ap.parse_args(argv)
 
 
-def selected_phases(args):
-    return not args.run, not args.build
-
-
-def campaign_settings(args):
-    """Record the measurement choices alongside raw samples and normalized history."""
-    measure_build, measure_run = selected_phases(args)
-    return {
-        "pin_mask": "0x%x" % winproc.PIN_MASK,
-        "pin_cores": bin(winproc.PIN_MASK).count("1"),
-        "phases": (["build"] if measure_build else []) + (["run"] if measure_run else []),
-        "swc_cores": args.swc_cores,
-        "budget_ms": RUN_BUDGET_MS,
-        "min_reps": RUN_MIN_REPS,
-        "max_reps": RUN_MAX_REPS,
-        "build_budget_ms": BUILD_BUDGET_MS,
-        "build_min_reps": BUILD_MIN_REPS,
-        "build_max_reps": BUILD_MAX_REPS,
-        "build_slow_max_reps": BUILD_SLOW_MAX_REPS,
-        "build_pair_limit_pct": BUILD_PAIR_LIMIT_PCT,
-        "build_validation": "confirmed-min-v2",
-        "warmup_s": args.warmup,
-    }
-
-
-def main():
-    global RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS
-    global BUILD_BUDGET_MS, BUILD_MIN_REPS, BUILD_MAX_REPS
-
-    args = parse_args()
+def main(argv=None):
+    args = parse_args(argv)
     if args.swc_cores < 0:
         raise SystemExit("--swc-cores needs a nonnegative value")
-    measure_build, measure_run = selected_phases(args)
+    measure_build, measure_run = not args.run, not args.build
+    tasks = [t.strip() for t in args.tasks.split(",") if t.strip()] or list(tc.TASKS)
+    unknown = [t for t in tasks if t not in tc.TASKS]
+    if unknown:
+        raise SystemExit("unknown task(s): %s (known: %s)" % (", ".join(unknown), ", ".join(tc.TASKS)))
 
-    RUN_BUDGET_MS = args.budget
-    BUILD_BUDGET_MS = args.build_budget
-    if args.quick:
-        RUN_BUDGET_MS = 0
-        RUN_MIN_REPS = 1
-        RUN_MAX_REPS = 1
-        BUILD_BUDGET_MS = 0
-        BUILD_MIN_REPS = 1
-        BUILD_MAX_REPS = 1
-        args.warmup = 0
-
-    tasks = tc.TASKS
-    if args.tasks:
-        tasks = [t.strip() for t in args.tasks.split(",") if t.strip()]
-        unknown = [t for t in tasks if t not in tc.TASKS]
-        if unknown:
-            print("unknown task(s): %s" % ", ".join(unknown))
-            print("known tasks: %s" % ", ".join(tc.TASKS))
-            return 1
+    started = datetime.datetime.now(datetime.timezone.utc)
+    stamp = started.strftime("%Y%m%d-%H%M%S")
+    described = machine.describe()
+    problem = machine.power_problem(described["power"])
+    if problem and not args.quick:
+        log("cannot measure: %s" % problem)
+        return 1
 
     t = tc.discover()
     gone = tc.missing(t)
     if gone:
-        print("missing toolchains, skipped: %s" % ", ".join(gone))
-    swc = tc.swc_path(args.swc)
+        log("missing toolchains, skipped: %s" % ", ".join(gone))
+    swc = os.path.abspath(tc.swc_path(args.swc))
     if not os.path.exists(swc):
-        print("compiler not found: %s" % swc)
-        print("build it first, or pass --swc PATH")
+        log("compiler not found: %s" % swc)
         return 1
 
-    env = tc.build_env(t)
-    recipes = tc.make_recipes(t, env, swc, args.swc_cores)
-    launchers = tc.make_launchers(t, t["dotnet"]) if measure_run else None
-    runtimes = tc.make_runtimes(t, swc, args.swc_cores) if measure_run else None
-    hello_builds = tc.make_hello_builds(t, env, swc, args.swc_cores)
-    hello_runs = tc.make_hello_runs(t, swc, args.swc_cores) if measure_run else None
-
-    aot = [k for k in AOT_ORDER if k not in gone]
-    jit = [k for k in JIT_ORDER if k not in gone]
     os.makedirs(tc.OUT, exist_ok=True)
+    log("machine             : %s, %s, %s, power mode %s"
+        % (described["cpu"], described["os"], "AC" if described["power"]["ac"] else "battery",
+           described["power"]["mode"]))
+    log("compiler under test : %s" % swc)
+    subject = installs.snapshot_subject(swc)
+    log("  installed as      : %s (sha256 %s)" % (subject.root, subject.meta["swc_sha256"][:16]))
+    reference = None
+    if not args.no_reference:
+        reference, why = installs.load_reference()
+        if reference is None:
+            log("reference           : %s" % why)
+            log("freeze one with `py -3 bench/reference.py freeze <name>`, or pass --no-reference")
+            return 1
+        log("reference           : %s, commit %s, frozen %s" % (reference.meta["name"], reference.meta["commit"],
+                                                                 reference.meta["frozen"][:10]))
+    env = tc.build_env(t)
+    log("preparing Swag dependencies outside the clock...")
+    for install in [subject] + ([reference] if reference else []):
+        error = install.publish_dependencies(env, args.swc_cores)
+        if error:
+            log("dependency preparation failed for %s: %s" % (install.role, error))
+            return 1
+        missing_tasks = [task for task in tasks if not install.has_task(task)]
+        if missing_tasks:
+            log("%s has no sources for %s" % (install.role, ", ".join(missing_tasks)))
+            return 1
 
-    print("compiler under test : %s" % swc)
-    print("campaign            : %d ms of samples per runtime and task (%d..%d), "
-          "%d ms per build" %
-          (RUN_BUDGET_MS, RUN_MIN_REPS, RUN_MAX_REPS, BUILD_BUDGET_MS))
-    if measure_build != measure_run:
-        print("measurement phase   : %s only (updates only that report series)" %
-              ("compilation" if measure_build else "execution"))
-    print("timed runs pinned to : 0x%x (%d performance cores)" %
-          (winproc.PIN_MASK, bin(winproc.PIN_MASK).count("1")))
+    campaign = Campaign(args, t, env, subject, reference, stamp)
+    shared = {}
+    if measure_build or measure_run:
+        shared["zig"] = tc.zig_global_cache()
+        if "go" not in gone:
+            log("warming Go's standard-library build cache outside the clock...")
+            shared["go"] = tc.go_std_cache(t, env, [tc.go_files(task) for task in tasks] +
+                                           [[os.path.join(tc.SRC, "hello", "hello.go")]])
+    roles = campaign.installs
+    recipes = tc.make_recipes(t, env, roles, args.swc_cores, shared)
+    launchers = tc.make_launchers(t)
+    runtimes = tc.make_runtimes(t, roles, args.swc_cores)
+    aot = [n for n in tc.SWAG_AOT + ["ref-release", "ref-devmode"] + tc.AOT_CONTROLS
+           if n in recipes and n not in gone]
+    jit = [n for n in tc.SWAG_JIT + ["ref-jit-release", "ref-jit-devmode"] + tc.JIT_CONTROLS
+           if n in runtimes and n not in gone]
 
-    print("preparing Swag dependencies...")
-    dependency_error = prepare_swag_dependencies(swc, env, args.swc_cores)
-    if dependency_error:
-        print("dependency preparation failed: %s" % dependency_error)
-        return 1
+    versions = {name: machine.tool_version(cmd, env) for name, cmd in tc.version_commands(t).items()
+                if name not in gone}
 
     if not args.quick:
-        idle = wait_for_quiet()
-        if idle is None:
-            print("the machine has been busy for %d s: something else is compiling or "
-                  "indexing." % QUIET_WAIT_S)
-            print("a campaign measured against that is not a measurement; nothing was run")
+        quiet, waited, load = machine.wait_for_quiet(QUIET_START_S, seconds=3)
+        if not quiet:
+            log("the machine stayed busy for %d s (%.1f foreign cores); nothing was measured" % (waited, load))
             return 1
-        print("machine idle at %.0f %%, starting" % idle)
+        log("machine quiet (%.1f foreign cores), starting" % load)
 
-    # ------------------------------------------------------------- calibration
-    calib_recipe = recipes["cpp-clang-cl"]("sha256", "calib_sha256")
-    r, err = build_once(calib_recipe, env)
-    if err:
-        print("calibration build failed: %s" % err)
+    calib = recipes["cpp-clang-cl"]("sha256", "calib_sha256")
+    error = campaign.warm_build(calib)
+    if error:
+        log("calibration build failed: %s" % error)
         return 1
 
-    # The campaign used to idle for two minutes first, so that it "started cold". A
-    # sweep lasts a quarter of an hour and spends nearly all of it hot: starting cold
-    # only meant the first task was measured in a state no other task would ever see,
-    # and it made the opening calibration unrepresentative — 37 ms against the 50 ms
-    # the same workload takes once the machine has settled.
-    #
-    # Long enough to leave the idle state, short enough not to overshoot it: back to
-    # back reference runs are a heavier duty cycle than the sweep, which spends much
-    # of its time launching processes and waiting on interpreters, so ninety seconds
-    # of it opened the campaign 50 % hotter than it ended. The build and startup
-    # phases that follow finish the job at the sweep's own pace.
-    if args.warmup:
-        print("warming up %d s on the reference workload..." % args.warmup)
-        sys.stdout.flush()
+    def probe():
+        values = []
+        for _ in range(1 if args.quick else CALIBRATION_REPS):
+            try:
+                values.append(campaign.run_sample([calib["exe"]], {})["ms"])
+            except sampler.SampleError:
+                pass
+        return sorted(values)[len(values) // 2] if values else None
+
+    if args.warmup and not args.quick:
+        log("warming up %d s on the reference workload..." % args.warmup)
         deadline = time.time() + args.warmup
         while time.time() < deadline:
-            run_once([calib_recipe["exe"]], env)
+            winproc.run([calib["exe"]], cwd=tc.BENCH, env=env, pin=True)
 
-    def calibrate(tag, reps=12, quiet=False):
-        best = None
-        for _ in range(1 if args.quick else reps):
-            got, _, _ = run_once([calib_recipe["exe"]], env)
-            if got:
-                best = got[1] if best is None or got[1] < best else best
-        if best is None:
-            print("  calibration %-8s produced no valid result" % tag)
-            return None
-        if not quiet:
-            print("  calibration %-8s sha256/C++ = %.3f ms" % (tag, best))
-            sys.stdout.flush()
-        return best
-
-    results = {"tasks": {}, "hello_build": {}, "hello_run": {}, "calibration": {},
-               "skipped": gone}
-    results["calibration"]["probes"] = {}
-    results["calibration"]["start"] = calibrate("start")
-    if results["calibration"]["start"] is None:
-        return 1
+    results = {"tasks": {}, "calibration": {"probes": {"start": probe()}}, "skipped": gone}
 
     if measure_build:
-        # --------------------------------------------------- fixed compiler cost
-        print("== fixed compiler cost (hello world -> exe) ==")
-        results["hello_build"] = measure_builds(
-            {name: make() for name, make in hello_builds.items() if name not in gone}, env)
-        for name, acc in results["hello_build"].items():
-            if acc.get("error"):
-                print("  %-20s ERROR %s" % (name, acc["error"]))
-            else:
-                print("  %-20s build=%9.1f ms  mem=%7.1f MB" %
-                      (name, acc["wall_ms"], acc["peak_bytes"] / 1048576.0))
-        sys.stdout.flush()
-
-        # --------------------------------------------------- the edit-build loop
-        # Not pinned, like every build: a rebuild is meant to use the whole machine.
-        print("== the edit-build loop (compiler workloads) ==")
-        workloads = tc.make_compiler_workloads(swc, args.swc_cores)
-        results["loop"] = measure_builds(workloads, env, workloads=True)
-        for name, acc in results["loop"].items():
-            if acc.get("error"):
-                print("  %-20s ERROR %s" % (name, acc["error"]))
-            else:
-                print("  %-20s wall=%9.1f ms (%dx, %+4.0f%%)  mem=%7.1f MB" %
-                      (name, acc["wall_ms"], len(acc["samples"]), spread_pct(acc["samples"]),
-                       acc["peak_bytes"] / 1048576.0))
-        sys.stdout.flush()
-
+        log("== hello world, source to executable ==")
+        hello = tc.make_hello_builds(t, env, roles, args.swc_cores, shared)
+        results["hello_build"] = campaign.measure_builds({n: make() for n, make in hello.items() if n not in gone})
+        log("== the edit-build loop ==")
+        results["loop"] = campaign.measure_loop()
     if measure_run:
-        # -------------------------------------------------- time to first output
-        print("== time to first program output (hello world) ==")
-        for rep in range(1 if args.quick else 12):
-            for name in jit:
-                output_marker = "hello, world\n" if name.startswith("swc-") else "hi"
-                r = winproc.run(hello_runs[name], cwd=tc.BENCH, env=env, pin=True,
-                                first_stdout_match=output_marker)
-                acc = results["hello_run"].setdefault(name, {})
-                if r["exit"] != 0:
-                    acc["error"] = process_error(r)
-                    continue
-                if r["first_stdout_ms"] is None:
-                    acc["error"] = "process did not print its hello output"
-                    continue
-                acc["first_stdout_ms"] = (r["first_stdout_ms"] if acc.get("first_stdout_ms") is None
-                                          else min(acc["first_stdout_ms"], r["first_stdout_ms"]))
-                acc["peak_bytes"] = max(acc.get("peak_bytes", 0), r["peak_job_bytes"])
-        for name in jit:
-            acc = results["hello_run"][name]
-            if acc.get("error"):
-                print("  %-20s ERROR %s" % (name, acc["error"]))
-            else:
-                print("  %-20s first=%7.1f ms  mem=%7.1f MB" %
-                      (name, acc["first_stdout_ms"], acc["peak_bytes"] / 1048576.0))
-        sys.stdout.flush()
+        log("== hello world, time to first output ==")
+        specs = {n: s for n, s in tc.make_hello_runs(t, roles, args.swc_cores).items() if n not in gone}
+        results["hello_run"] = campaign.measure_hello_runs(specs)
 
-    # ------------------------------------------------------------------ the sweep
     for task in tasks:
-        # The reference workload again, right before the task. Two endpoints cannot see
-        # a burst in the middle: a parallel build once multiplied every compilation of
-        # one task by ten and was gone before the closing calibration, so the campaign
-        # read clean at both ends and was fiction in between. This timeline sees it.
-        probe = calibrate(task, reps=6, quiet=True)
-        results["calibration"]["probes"][task] = probe
-        print("== %s == (machine %.1f ms)" % (task, probe or 0.0))
-        built = {}
-        errors = {}
-        for name in aot:
-            built[name] = recipes[name](task, "%s_%s" % (task, name.replace("-", "_")))
-
-        acc_build = {}
+        results["calibration"]["probes"][task] = probe()
+        log("== %s == (reference workload %.1f ms)" % (task, results["calibration"]["probes"][task] or 0))
+        built = {name: recipes[name](task, "%s_%s" % (task, name.replace("-", "_"))) for name in aot}
+        entries = {name: {"kind": "aot"} for name in aot} | {name: {"kind": "jit"} for name in jit}
+        failed = set()
         if measure_build:
-            acc_build = measure_builds(built, env)
-            errors = {name: acc["error"] for name, acc in acc_build.items() if acc.get("error")}
-        elif measure_run:
-            print("  preparing AOT programs outside the clock...")
-            for name in aot:
-                _, err = build_once(built[name], env)
-                if err:
-                    errors[name] = err
-
-        acc_run = {}
+            for name, record in campaign.measure_builds(built).items():
+                entries[name]["build"] = record
+                if record.get("error"):
+                    failed.add(name)
+        else:
+            for name, recipe in built.items():
+                error = campaign.warm_build(recipe)
+                if error:
+                    entries[name]["run"] = {"error": error}
+                    failed.add(name)
         if measure_run:
-            cmds = {}
-            for name in aot:
-                if name not in errors:
-                    cmds[name] = launchers[name](built[name]["exe"])
-            for name in jit:
-                cmds[name] = runtimes[name](task)
-
-            # One pilot sample per runtime prices the task, then each runtime is given the
-            # number of samples its own duration affords inside the budget.
-            acc_run = {name: {} for name in cmds}
-            plan = {}
-            for name, cmd in cmds.items():
-                got, err, r = run_once(cmd, env)
-                if not got:
-                    acc_run[name]["error"] = err
-                    plan[name] = set()
-                else:
-                    keep_run(acc_run[name], got, r)
-                    plan[name] = schedule(plan_reps(r["wall_ms"], name in history.TRACKED) - 1)
-
-            names = [n for n in cmds if not acc_run[n].get("error")]
-            for cycle in range(RUN_MAX_REPS):
-                due = [n for n in names if cycle in plan[n]]
-                if not due:
-                    continue
-                # Rotate: no runtime keeps the head of the cycle, and the head of a cycle
-                # is the one that pays for whatever the previous cycle left behind.
-                turn = cycle % len(due)
-                for name in due[turn:] + due[:turn]:
-                    got, err, r = run_once(cmds[name], env)
-                    if not got:
-                        acc_run[name]["error"] = err
-                    else:
-                        keep_run(acc_run[name], got, r)
-
-        results["tasks"][task] = {}
-        for name in aot + jit:
-            entry = {"kind": "aot" if name in aot else "jit"}
-            if name in errors:
-                if measure_build:
-                    entry["build"] = {"error": errors[name]}
-                if measure_run:
-                    entry["run"] = {"error": errors[name]}
-                print("  %-20s %s ERROR %s" % (name, "BUILD" if measure_build else "RUN", errors[name]))
-            elif measure_run:
-                if measure_build and name in aot:
-                    entry["build"] = acc_build[name]
-                entry["run"] = acc_run.get(name, {})
-                r = entry["run"]
-                spread = spread_pct(history.timer_faults(r.get("samples") or [])[0])
-                spread = "%+4.0f%%" % spread if spread is not None else "n/a"
-                if r.get("timer_faults"):
-                    print("  %-20s TIMER FAULT, samples set aside: %s ms"
-                          % (name, ", ".join("%.2f" % v for v in r["timer_faults"])))
-                if r.get("error"):
-                    print("  %-20s RUN ERROR %s" % (name, r["error"]))
-                elif name in aot and measure_build:
-                    print("  %-20s run=%10.2f ms (%2dx, %s)  build=%8.1f ms  "
-                          "bmem=%7.1f MB  check=%d"
-                          % (name, r["ms"], len(r.get("samples") or []),
-                             spread, entry["build"]["wall_ms"],
-                             entry["build"]["peak_bytes"] / 1048576.0, r["check"]))
-                else:
-                    print("  %-20s run=%10.2f ms (%2dx, %s)  rmem=%7.1f MB  check=%d"
-                          % (name, r["ms"], len(r.get("samples") or []),
-                             spread, r["peak_bytes"] / 1048576.0,
-                             r["check"]))
-            elif name in aot:
-                entry["build"] = acc_build[name]
-                r = entry["build"]
-                print("  %-20s build=%8.1f ms  bmem=%7.1f MB" %
-                      (name, r["wall_ms"], r["peak_bytes"] / 1048576.0))
-            results["tasks"][task][name] = entry
-        sys.stdout.flush()
+            commands = {name: (launchers[name](built[name]["exe"]), {}) for name in aot if name not in failed}
+            commands |= {name: runtimes[name](task) for name in jit}
+            for name, record in campaign.measure_runs(commands).items():
+                entries[name]["run"] = record
+        results["tasks"][task] = entries
+        summary = []
+        for name in tc.TRACKED:
+            for family, key in (("build", "wall_ms"), ("run", "ms")):
+                record = entries.get(name, {}).get(family)
+                if record and record.get("samples"):
+                    values = [s[key] for s in record["samples"]]
+                    summary.append("%s %s %.1f" % (name, family, sorted(values)[len(values) // 2]))
+        log("  " + "  ".join(summary))
 
     if measure_run:
-        # The allocator is measured against its own competitors, mimalloc and the C runtime
-        # heap, in the same rounds: their ratio needs no machine correction. The programs are
-        # built outside the clock.
-        probe = calibrate("allocator", reps=6, quiet=True)
-        results["calibration"]["probes"]["allocator"] = probe
-        print("== allocator == (machine %.1f ms)" % (probe or 0.0))
-        exes, build_errors = allocbench.build(swc, env, os.path.join(tc.OUT, "allocator"),
-                                              args.swc_cores)
+        results["calibration"]["probes"]["allocator"] = probe()
+        log("== allocator ==")
+        alloc_env = subject.env(env, subject.temp("allocator"))
+        exes, build_errors = allocbench.build(subject.swc, env, os.path.join(tc.OUT, "allocator"),
+                                              args.swc_cores, swag_env=alloc_env)
         results["allocator"] = allocbench.measure(exes, 1 if args.quick else allocbench.REPS)
         for name, error in build_errors.items():
-            print("  %-20s BUILD ERROR %s" % (name, error))
+            log("  %-20s BUILD ERROR %s" % (name, error))
             for accs in results["allocator"].values():
                 accs[name] = {"error": error}
-        sys.stdout.flush()
 
-    results["calibration"]["end"] = calibrate("end")
-    if results["calibration"]["end"] is None:
-        return 1
-    s, e = results["calibration"]["start"], results["calibration"]["end"]
-    results["calibration"]["drift_pct"] = (e - s) / s * 100.0
+    results["calibration"]["probes"]["end"] = probe()
+    results["quality"] = quality(results)
+    results["quality"]["quiet_waits_s"] = round(sum(campaign.waits), 1)
+    results["quality"]["foreign_median_cores"] = {family: b.median() for family, b in campaign.baselines.items()}
+    results["meta"] = history.describe(swc, args.label, {
+        "phases": (["build"] if measure_build else []) + (["run"] if measure_run else []),
+        "swc_cores": args.swc_cores, "pin_mask": "0x%x" % winproc.PIN_MASK,
+        "pin_cores": bin(winproc.PIN_MASK).count("1"), "warmup_s": args.warmup,
+        "foreign_excess_cores": machine.FOREIGN_EXCESS_CORES, "seed": campaign.seed,
+        "tasks": tasks, "quick": args.quick,
+    }, stamp=stamp, started=started)
+    results["meta"]["machine"] = described
+    results["meta"]["machine"]["power_end"] = machine.power()
+    results["meta"]["installs"] = {"subject": subject.meta,
+                                   "reference": reference.meta if reference else None}
+    results["meta"]["toolchains"] = versions
 
-    # Probes run in sweep order: the tasks, then the sections measured after them.
-    timeline = [("start", s)] + sorted(results["calibration"]["probes"].items(),
-                                       key=lambda kv: tasks.index(kv[0])
-                                       if kv[0] in tasks else len(tasks)) + [("end", e)]
-    timeline = [(tag, value) for tag, value in timeline if value]
-
-    # What matters is a probe out of line with the ones around it, not the spread of
-    # the whole timeline. The machine settles across a campaign — it opens 50 % slower
-    # than it ends, warm from the warm-up and cooling into the lighter duty cycle of
-    # the sweep — and that ramp is intrinsic: it moves a task's Swag measurement and
-    # its controls together, which is exactly what the per-task correction is for.
-    # Interference does not behave that way. It arrives, hits one task, and leaves,
-    # and it hits compilation far harder than execution. So each probe is compared
-    # with its neighbours in time: a ramp reads flat, a visitor reads as a spike.
-    spike, worst_tag = 0.0, timeline[0][0]
-    for index, (tag, value) in enumerate(timeline):
-        neighbours = [timeline[j][1] for j in (index - 1, index + 1)
-                      if 0 <= j < len(timeline)]
-        local = (value / min(neighbours) - 1.0) * 100.0 if neighbours else 0.0
-        if local > spike:
-            spike, worst_tag = local, tag
-    results["calibration"]["spread_pct"] = spike
-    results["calibration"]["worst_moment"] = worst_tag
-    print("machine timeline: %s" % "  ".join("%s=%.1f" % tv for tv in timeline))
-    print("worst departure from its neighbours: %.1f %% (at %s)" % (spike, worst_tag))
-    print("drift over the sweep: %+.1f %%" % results["calibration"]["drift_pct"])
-
-    if measure_build and not args.quick:
-        settle_build_measurements(results)
-
-    # --------------------------------------------------------------- checksums
+    q = results["quality"]
+    log("samples: %d accepted, %d taken again after interference, %d still contended (%.1f %%), "
+        "%.0f s waited for quiet" % (q["accepted"], q["set_aside"], q["contended"], 100 * q["contended_share"],
+                                     q["quiet_waits_s"]))
+    if args.out:
+        with open(args.out, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=1)
+        log("raw campaign also written to %s" % args.out)
     bad = campaign_errors(results)
     if bad:
-        print("campaign contains build, run or checksum errors: %s" % "; ".join(bad))
-        print("campaign stopped before recording results")
+        log("campaign contains build, run or checksum errors:")
+        for line in bad:
+            log("  " + line)
+        log("nothing recorded")
         return 1
-    else:
-        print("checksums agree across every runtime on every task")
-
-    results["meta"] = history.describe(swc, args.label, campaign_settings(args))
+    log("checksums agree across every runtime on every task")
 
     if args.quick:
-        # Nothing is written at all: mkpage.py reports the most recent file in
-        # results/, so leaving a one-repetition campaign there would quietly turn the
-        # published page into noise.
-        print("quick run: nothing recorded, one repetition proves nothing")
+        log("quick run: nothing recorded, one sample proves nothing")
         return 0
-
     if len(tasks) != len(tc.TASKS):
-        # Same reason: the page and the normalized history both read a campaign as
-        # covering every task, and a subset would silently publish gaps.
-        print("partial sweep (%s): nothing recorded" % ", ".join(tasks))
+        log("partial sweep (%s): nothing recorded" % ", ".join(tasks))
+        return 0
+    if reference is None:
+        log("no reference: nothing recorded, a campaign without its reference cannot be compared")
         return 0
 
-    build_controls = None
-    if measure_build:
-        previous = [entry for entry in history.load_results()
-                    if any(task in entry.get("tasks", {}) for task in tasks) and
-                    all((entry["tasks"][task].get("swag-release", {}).get("build") or {}).get("wall_ms")
-                        for task in tasks if task in entry.get("tasks", {}))]
-        build_controls = history.build_control_spread(results, previous[-history.BUILD_CONTROL_REFERENCES:])
-        if build_controls:
-            results["calibration"]["build_controls"] = build_controls
-            print("build control spread: %.1f %% across %d toolchains (vs %s)" %
-                  (build_controls["spread_pct"], len(build_controls["controls"]),
-                   ", ".join(build_controls["references"])))
-
-    stamp = results["meta"]["stamp"]
-    spread = results["calibration"]["spread_pct"]
-    # Repeats inside the campaign cannot catch this: the slowdown of the split
-    # compilers lasts the whole campaign, so every one of their samples agrees.
-    split = bool(build_controls and
-                 build_controls["spread_pct"] > history.BUILD_CONTROL_SPREAD_LIMIT_PCT)
-    rejected = spread > DRIFT_LIMIT_PCT or split
+    rejected = q["contended_share"] > CONTENDED_LIMIT or problem or machine.power_problem(
+        results["meta"]["machine"]["power_end"])
     folder = os.path.join(tc.BENCH, "results", "rejected" if rejected else "")
     os.makedirs(folder, exist_ok=True)
     raw = os.path.join(folder, "%s.json" % stamp)
     with open(raw, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=2)
-
+        json.dump(results, f, indent=1)
     if rejected:
-        # Preserve the raw measurement for audit; it never enters the history.
-        if spread > DRIFT_LIMIT_PCT:
-            print("the reference workload departs %.1f %% from a neighbouring probe, past the %.0f %% "
-                  "limit, worst around %s" % (spread, DRIFT_LIMIT_PCT,
-                                              results["calibration"]["worst_moment"]))
-        if split:
-            controls = sorted(build_controls["controls"].items(), key=lambda item: item[1])
-            print("build controls moved apart by %.1f %%, past the %.0f %% limit: %s" %
-                  (build_controls["spread_pct"], history.BUILD_CONTROL_SPREAD_LIMIT_PCT,
-                   "  ".join("%s=%.2f" % item for item in controls)))
-        print("campaign archived in results/rejected/%s.json and NOT recorded" % stamp)
-        print("check machine load, then measure again")
+        log("campaign archived in results/rejected/%s.json and NOT recorded: the machine was busy or "
+            "changed power state" % stamp)
         return 0
-
-    print("raw campaign written to results/%s.json" % stamp)
-
+    log("raw campaign written to results/%s.json" % stamp)
     entries = history.append(results)
-    current = next(entry for entry in entries if entry["meta"]["stamp"] == stamp)
-    context = current["context"]
-    if measure_run:
-        print("context adjustment: execution=%+.1f %% from %d control measurements" %
-              ((context["run_factor"] - 1.0) * 100.0, context["run_controls"]))
-    if measure_build:
-        print("context adjustment: compilation=%+.1f %% from %d control measurements" %
-              ((context["build_factor"] - 1.0) * 100.0, context["build_controls"]))
-    print("history updated (%d campaigns)" % len(entries))
+    log("history updated (%d campaigns)" % len(entries))
     return 0
 
 

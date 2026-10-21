@@ -84,6 +84,17 @@ class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
                 ("PeakProcessMemoryUsed", ctypes.c_size_t), ("PeakJobMemoryUsed", ctypes.c_size_t)]
 
 
+class JOBOBJECT_BASIC_ACCOUNTING_INFORMATION(ctypes.Structure):
+    _fields_ = [("TotalUserTime", ctypes.c_longlong), ("TotalKernelTime", ctypes.c_longlong),
+                ("ThisPeriodTotalUserTime", ctypes.c_longlong),
+                ("ThisPeriodTotalKernelTime", ctypes.c_longlong),
+                ("TotalPageFaultCount", w.DWORD), ("TotalProcesses", w.DWORD),
+                ("ActiveProcesses", w.DWORD), ("TotalTerminatedProcesses", w.DWORD)]
+
+
+JobObjectBasicAccountingInformation = 1
+
+
 class FILETIME(ctypes.Structure):
     _fields_ = [("dwLowDateTime", w.DWORD), ("dwHighDateTime", w.DWORD)]
 
@@ -386,6 +397,12 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None, capture_first_stdout=
     ret = w.DWORD()
     k32.QueryInformationJobObject(h_job, JobObjectExtendedLimitInformation, ctypes.byref(info),
                                   ctypes.sizeof(info), ctypes.byref(ret))
+    # Every process of the tree, including helpers that already exited: what the machine
+    # spent on our behalf, which the interference estimate subtracts from the total.
+    accounting = JOBOBJECT_BASIC_ACCOUNTING_INFORMATION()
+    k32.QueryInformationJobObject(h_job, JobObjectBasicAccountingInformation,
+                                  ctypes.byref(accounting), ctypes.sizeof(accounting),
+                                  ctypes.byref(ret))
 
     # Some compilers leave helper processes behind (cl.exe did, 46 of them over a
     # full sweep) and they quietly skew every later measurement. The job object is
@@ -425,6 +442,8 @@ def run(cmd, cwd=None, env=None, pin=False, priority=None, capture_first_stdout=
         "first_stdout_ms": ((first_stdout_tick[0] - t0.value) * 1000.0 / freq.value
                             if first_stdout_tick[0] is not None else None),
         "cpu_ms": _ft(kernel) + _ft(user),
+        "job_cpu_ms": (accounting.TotalUserTime + accounting.TotalKernelTime) / 10000.0,
+        "job_processes": accounting.TotalProcesses,
         "peak_job_bytes": info.PeakJobMemoryUsed,
         "peak_proc_bytes": info.PeakProcessMemoryUsed,
         "peak_working_set_bytes": memory.PeakWorkingSetSize,

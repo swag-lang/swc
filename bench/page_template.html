@@ -438,6 +438,20 @@ summary:hover { color: var(--fg); }
 
 footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--faint); font-size: .74rem; font-family: var(--mono); }
 
+/* ---------------------------------------------------------- intervals */
+.stat .verdict { align-self: center; margin-left: 10px; font: .66rem/1.2 var(--mono); letter-spacing: .04em; }
+.stat .verdict.won { color: #AAFFC3; }
+.stat .verdict.lost { color: #FF7777; }
+.stat .verdict.tied { color: #A9A9B4; }
+.ci-cell { font-family: var(--mono); }
+.ci-cell.won { color: light-dark(#176E37, #AAFFC3); }
+.ci-cell.lost { color: light-dark(#B42318, #FF7777); }
+.ci-cell.tied { color: var(--soft); }
+.tally { color: var(--faint); font-size: .62rem; margin-left: 4px; }
+.hwhisker { stroke: var(--faint); stroke-width: 6; opacity: .25; }
+table.progress td:last-child { width: 150px; }
+table.matrix td { min-width: 96px; }
+
 @media (max-width: 900px) {
     .grid2, .small-mult { grid-template-columns: minmax(0, 1fr); }
 }
@@ -461,7 +475,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
         <svg class="mark" viewBox="0 0 114 116" role="img" aria-label="Swag"><path d="M17.8 38L52 8L94 8L104.32 20L95.2 28L47.2 28L38.08 36L37.52 40L44.4 48L92.4 48L99.28 56L96.2 78L62 108L20 108L9.68 96L18.8 88L66.8 88L75.92 80L76.48 76L69.6 68L21.6 68L14.72 60L17.8 38Z"/></svg>
         <span class="wordmark">SWAG</span>
         <span class="sep"></span>
-        <span class="meta">{{campaigns}} accepted campaigns &middot; protocol {{protocol}}</span>
+        <span class="meta">{{campaigns}} campaigns &middot; protocol {{protocol}} &middot; reference {{reference}}</span>
     </div>
 </header>
 
@@ -469,174 +483,100 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
     <div class="wrap">
         <div class="rule"></div>
         <h1>Swag performance</h1>
-        <p>{{ntasks}} matching workloads &middot; {{nruntimes}} runtime configurations &middot; identical checksums</p>
+        <p>{{ntasks}} matching workloads &middot; {{nruntimes}} runtime configurations &middot; identical checksums &middot; medians with 95&nbsp;% intervals</p>
         <div class="stats">
             <div class="stats-row stats-execution">{{execution_stats}}</div>
             <div class="stats-row stats-build">{{build_stats}}</div>
         </div>
-        <p class="cap">Time difference = Swag time &minus; rival time across {{ntasks}} workloads, one run or build each.
-        Negative = less time; positive = extra time. The smaller value beside each arrow is the previous value.
-        Each group uses one non-Swag rival: the runtime with the smallest total time. Longer tasks weigh more.
-        Close = within 1% on a task. Memory shows the largest working set, not a sum of separate peaks.
-        Time arrows compare the two displayed values directly:
-        &uarr; more time saved or less time lost, &darr; less saved or more lost, &rarr; unchanged at displayed precision.
-        A dash means no earlier comparison. Fixed-reference progress is in <a href="#historique">History</a>.
+        <p class="cap">Each card compares Swag with its strongest rival in that family: the geometric mean, over the
+        {{ntasks}} tasks, of Swag's median time divided by the rival's. Negative means Swag takes less time.
+        A verdict is printed only when the whole 95&nbsp;% interval lies on one side of parity; otherwise there is
+        no measurable difference. The counts give the same verdict task by task.
         Execution {{run_date}} &middot; compilation {{build_date}}.</p>
     </div>
 </div>
 
 <nav class="page-nav" aria-label="Report sections"><div class="wrap">
+    <a href="#progress">Progress</a>
     <a href="#comparisons">Swag vs each language</a>
     <a href="#execution">Execution</a><a href="#compilation">Compilation</a>
     <a href="#allocateur">Allocator</a><a href="#ressources">Resources</a>
-    <a href="#historique">History</a><a href="#methode">Method</a>
+    <a href="#methode">Campaign and method</a>
 </div></nav>
 
 <main class="wrap">
-<div class="reading-key" aria-label="Measurement units and differences">
-    <strong>Measured times &middot; shorter is faster</strong>
-    <span>ms / s: elapsed time</span><span>&minus; less time / + extra time</span>
-    <span>MiB: peak memory</span>
+<div class="reading-key" aria-label="How to read the measurements">
+    <strong>Every value is a median &middot; every comparison has a 95&nbsp;% interval</strong>
+    <span>&minus; less time / + more time</span><span>green: measurably better &middot; red: measurably worse &middot; grey: no measurable difference</span>
 </div>
 <details class="code-key"><summary>Compiler codes and modes</summary>{{runtime_legend}}</details>
 
+<section id="progress">
+    <div class="sh"><h2>Progress against the reference</h2></div>
+    <p class="cap">The compiler under test is measured next to a frozen Swag compiler, reference {{reference}},
+    in every campaign: the two are sampled back to back in every round, so they share the machine's state minute by minute.
+    A change is the median of those paired ratios, per task, then the geometric mean over the tasks.
+    No correction is applied between campaigns and none is needed: each point is a ratio measured inside one campaign.
+    Hover a series for its per-task values. The shaded band is the 95&nbsp;% interval of the first curve.</p>
+    {{progress}}
+</section>
+
 <section id="comparisons">
     <div class="sh"><h2>Swag vs each language</h2></div>
-    <p class="cap">Each row compares one competitor directly with every Swag mode, across all {{ntasks}} workloads.
-    The competitor total is shown beside its name; each Swag column gives its total in the heading
-    and the time difference in each row: Swag total minus competitor total. Negative means less time; positive means extra time.
-    Green means Swag wins; red means Swag loses. Arrows show whether the time saved improved (&uarr;),
-    regressed (&darr;) since the previous comparable campaign against that same competitor.
-    A neutral arrow (&rarr;) means equal printed values.
-    Hover for the reference date and sensitivity check; a dash means no earlier comparison.
-    Longer workloads weigh more. Hello is excluded; an incomplete panel produces a dash.</p>
-    <h3>Total execution time</h3>
-    <p class="section-meta">Measured {{run_date}} &middot; <code>{{run_commit}}</code></p>
-    <p class="cap">Native, AOT, JIT and interpreted competitors keep their measured execution modes.
+    <p class="cap">Each cell is the geometric mean, over all tasks, of the Swag median divided by the competitor's median,
+    as a time difference. Hover for the 95&nbsp;% interval. The small counts are the tasks on which Swag is measurably faster,
+    not measurably different, and measurably slower. Execution {{run_date}} (<code>{{run_commit}}</code>);
+    compilation {{build_date}} (<code>{{build_commit}}</code>).
     Swag JIT compiles its kernel before the timer; other JITs can compile during it.</p>
-    {{swag_execution_comparison}}
-    <h3>Total compilation time</h3>
-    <p class="section-meta">Measured {{build_date}} &middot; <code>{{build_commit}}</code></p>
-    <p class="cap">One complete cold build per workload, including each recipe's imports, optimization and linking
-    or bytecode generation. These totals compare build recipes with different library work.</p>
-    {{swag_build_comparison}}
+    {{comparison_matrix}}
 </section>
 
 <section id="execution">
     <div class="sh"><h2>Execution</h2></div>
-    <p class="section-meta">Measured {{run_date}} &middot; <code>{{run_commit}}</code></p>
-    <p class="cap">Two tables: native / AOT, and JIT / interpreted. Each keeps one compact line per example,
-    fastest to slowest, with measured times in equally sized cells. Hover a code for its full name and mode.
-    Swag JIT compiles its kernel before the timer; other JITs can compile during it.</p>
+    <p class="cap">Median time of the timed kernel, fastest to slowest; hover for the interval and the number of samples.
+    Every sample is a fresh process pinned to the performance cores.</p>
     {{ex_performance}}
 </section>
 
 <section id="compilation">
     <div class="sh"><h2>Compilation</h2></div>
-    <p class="section-meta">Measured {{build_date}} &middot; <code>{{build_commit}}</code></p>
-    <p class="cap">One ranking per example, fastest to slowest. Complete cold builds include each recipe's imports,
-    optimization and linking or bytecode generation. Cells show only measured times and have equal widths.
-    Locally checked builds use the fastest sample confirmed by a second within 10%; isolated lower samples are retained in the raw data.
-    A time with no confirming pair is omitted. Hello is separate and excluded from the totals above.
-    These recipes include different library work; Java and C# CoreCLR produce bytecode.</p>
+    <p class="cap">Median time of a complete build from source to a runnable artifact, including each recipe's imports,
+    optimization and linking or bytecode generation. Every toolchain is timed in the same state: its own caches warm
+    (Swag's runtime machine code, Go's standard library, Zig's compiler_rt), the project's outputs removed.
+    Java and C# CoreCLR produce bytecode. <code>hello</code> is a separate small program.</p>
     {{bu_performance}}
 </section>
 
 <section id="allocateur">
     <div class="sh"><h2>Allocator</h2></div>
-    <p class="section-meta">Execution campaign &middot; {{run_date}} &middot; <code>{{run_commit}}</code></p>
-    <p class="cap">Swag's runtime allocator, vendored mimalloc built with MSVC /O2, and the C runtime heap.
-    Each workload runs in a fresh, pinned process; allocators alternate between rounds.
-    Bars show median nanoseconds per operation; shorter is faster.
+    <p class="cap">Swag's runtime allocator, vendored mimalloc built with MSVC /O2, and the C runtime heap, in the same rounds.
+    Each workload runs in a fresh pinned process; bars show the median nanoseconds per operation.
     Swag uses <code>Memory.alloc</code>/<code>Memory.free</code>; its peak working set includes <code>core</code>.</p>
     {{allocator}}
 </section>
 
 <section id="ressources">
     <div class="sh"><h2>Memory, startup and size</h2></div>
-    <p class="cap">These are costs: <strong>shorter bars are better</strong>.
-    All axes are linear and start at zero. Values remain visible when a small bar is hard to distinguish.
-    Memory and artifact size use binary units (MiB and KiB).</p>
-    <div class="grid2">
-        <div>
-            <h3>Peak compiler memory</h3>
-            <p class="cap">Maximum across tasks, complete process tree. Build campaign {{build_date}}.</p>
-            {{me_chart}}
-        </div>
-        <div>
-            <h3>Peak program memory</h3>
-            <p class="cap">Maximum across tasks. Execution campaign {{run_date}}.</p>
-            {{rm_chart}}
-        </div>
-        <div>
-            <h3>Hello-world startup</h3>
-            <p class="cap">Time to first output, or process wall time when first-output timing is unavailable.
-            Execution campaign {{run_date}}.</p>
-            {{st_chart}}
-        </div>
-        <div>
-            <h3>Artifact size</h3>
-            <p class="cap">Geometric mean, build campaign {{build_date}}. C# CoreCLR: IL assembly;
-            Java: all class files. Both need their installed runtime, excluded here.</p>
-            {{sz_chart}}
-        </div>
-    </div>
-</section>
-
-<section id="historique">
-    <div class="sh"><h2>Progress over time</h2></div>
-    <p class="cap">Progress score v{{progress_version}} uses {{progress_tasks}} fixed workloads to track Swag's own evolution,
-    independently of its current lead over competitors.
-    Each score is 100 at the first reproducible campaign covering that complete panel, and uses
-    machine-corrected times. Missing times or correction factors produce no score.
-    Progress plots share the same score axis and mark the 100 reference.
-    These are estimates: small movements, particularly in build time, can be measurement noise.</p>
-    <p class="cap">SW / SJ: release native / JIT. SD / JD: devmode native / JIT.
-    Each execution model has its own reference. Expand the legacy views for competitor ratios and
-    the original smaller-panel indices, with their control-resolution bands.</p>
-    {{history}}
+    <p class="cap">Costs: shorter bars are better. Linear axes from zero, binary units.</p>
+    {{resources}}
 </section>
 
 <section id="methode">
-    <div class="sh"><h2>How to read the measurements</h2></div>
+    <div class="sh"><h2>Campaign and method</h2></div>
+    {{quality}}
     <ul class="method">
-        <li><b>Machine</b>Intel Core Ultra 9 185H, Windows 11, AC power. Baseline x86-64, no <code>-march=native</code> or LTO.</li>
-        <li><b>Affinity</b>Execution on performance cores ({{pin_mask}}, {{pin_cores}} cores); builds are not pinned.</li>
-        <li><b>Samples</b>Swag execution: {{budget_ms}} ms per task, {{min_reps}} to {{max_reps}} samples; fewer for controls.
-        Rotating round-robin, execution minimum retained. Locally checked compilations use a minimum confirmed by a second sample within 10%.
-        Unconfirmed lower samples remain in the raw record. Allocator results use medians.</li>
-        <li><b>Calibration</b>{{calib_start}} ms then {{calib_end}} ms; probe departure {{machine_spread}}%.
-        Execution-probe departures above {{drift_limit}}% reject a campaign. Build controls moving apart by more than {{build_control_limit}}% also reject it.</li>
-        <li><b>Bounds checks</b>Rust, Swift and C# retain their checks; Swag release and C++ do not. Build recipes differ; see <code>bench/README.md</code>.</li>
-        <li><b>Reference</b>Headlines use measured durations and their sums
-        against the non-Swag runtime with the smallest total over all tasks. Native / AOT and JIT / interpreted references
-        are independent. Direct comparison cells use the competitor named in their row.
-        Per-example rankings show measured times only.
-        Small gaps do not imply statistical significance.</li>
-        <li><b>Progress score</b>100 / geometric mean of corrected task time / corrected reference task time.
-        Version {{progress_version}} freezes {{progress_tasks}} workloads. The baseline is the first clean, complete campaign;
-        incomplete campaigns have no score. New tasks do not silently enter this index.</li>
-        <li><b>Headline times</b>Swag total &minus; best non-Swag total across all displayed workloads.
-        Competitors must have valid times for the complete panel. Native / AOT and JIT / interpreted references stay separate;
-        compilation includes bytecode recipes. Negative differences mean less time; positive differences mean extra time.
-        Totals sum each measured workload once; longer tasks weigh more. Each headline uses one rival for the whole panel.
-        Tables and headlines use the same duration formatting.
-        Ahead / close / behind counts use a &plusmn;1% display band. Memory remains the peak in MiB.</li>
-        <li><b>Trend arrows</b>Compare the previous accepted campaign with complete measurements on the displayed panel,
-        under the same protocol. Each time value uses its own campaign's non-Swag runtime with the smallest total.
-        Compare the displayed differences directly: green up = a lower difference;
-        red down = a higher difference. Neutral right = equal printed values.
-        The tooltip reports sensitivity to replacing each selected minimum with its next observed sample;
-        overlapping ranges or missing repeat evidence do not change the observed arrow direction.
-        This leave-one-out check is not a confidence interval and cannot detect every systematic bias.
-        A competitive gap can widen even when Swag itself runs faster. The small value is the previous measured value.
-        Memory arrows compare the two displayed peaks directly; a smaller peak is better.
-        Hover an arrow for the reference campaign and matched panel. These are observed changes, not significance tests.</li>
-        <li><b>Other benchmarks</b><a href="https://www.spec.org/cpu2017/Docs/overview.html">SPEC CPU</a>
-        aggregates normalized ratios geometrically; the legacy history views retain that convention.
-        The <a href="https://benchmarksgame-team.pages.debian.net/benchmarksgame/box-plot-summary-charts.html">Benchmarks Game</a>
-        also shows distributions. The task counts complement the headline total by showing how broadly a gap applies.</li>
-        <li><b>Protocol</b>{{protocol}}. Raw campaigns, toolchains and measurement rules: <code>bench/README.md</code>.</li>
+        <li><b>Estimator</b>The median of each series, with a distribution-free 95&nbsp;% interval from order statistics.
+        Ratios add their uncertainties in log space; a panel uses the geometric mean, as SPEC does.</li>
+        <li><b>Sampling</b>Rounds in a random order recorded with its seed. Each series samples until its interval is narrow
+        enough, its time budget is spent, or its maximum count is reached, after a pilot that prices it.</li>
+        <li><b>Interference</b>Every sample measures the CPU the rest of the machine used while it ran. A sample that exceeds
+        its family's running median by more than 2.5 cores is set aside and taken again once the machine is quiet.</li>
+        <li><b>State</b>Swag is measured from a private copy of the compiler, runtime and library, with private caches.
+        Every toolchain gets one untimed warm-up build, then each sample restores the same warm caches and a clean project.</li>
+        <li><b>Machine</b>Mains power required; the power mode and the toolchain versions are recorded with the campaign.
+        Execution is pinned to one logical processor per performance core; builds use the whole machine.</li>
+        <li><b>Validity</b>Every port prints the same checksum; a campaign with a failed build, run or checksum is not recorded.
+        Raw campaigns, every sample included, live in <code>bench/results</code>; <code>bench/README.md</code> states the protocol.</li>
     </ul>
 </section>
 
@@ -644,7 +584,7 @@ footer { border-top: 1px solid var(--line); padding: 20px 0 40px; color: var(--f
 
 <footer class="wrap">
     <code>{{commit}}</code> &mdash; {{subject}}<br>
-    Execution provenance: {{provenance}} &middot; missing toolchains: {{skipped}}
+    Missing toolchains: {{skipped}}
 </footer>
 </body>
 </html>

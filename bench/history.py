@@ -1,191 +1,68 @@
-"""Build a compact, machine-adjusted history from the raw benchmark campaigns.
+"""What a campaign concludes, and the history of those conclusions.
 
-Every non-Swag runtime is a control: its compiler and benchmark source stay fixed,
-so a systematic movement of those measurements describes the machine rather than
-the Swag compiler. Per task, the median logarithmic movement of all controls becomes
-the context factor. Dividing Swag by that factor removes machine-wide drift while a
-single noisy or upgraded toolchain cannot dominate the correction.
+Nothing here corrects one campaign by another. Every published number is a ratio between
+two series measured in the same campaign, in interleaved rounds:
 
-The raw campaign files remain authoritative. Rebuilding the history from them keeps
-the correction auditable and lets a better normalization be applied retroactively.
+  * comparisons: a Swag runtime against another language, ratio of medians per task and
+    their geometric mean over the panel;
+  * progress: a Swag runtime against the frozen reference, median of the per-round ratios
+    per task and their geometric mean.
+
+Both come with a 95 % interval (see stats.py), so a reader can tell a measured difference
+from noise without trusting anyone. The raw campaigns under results/ remain authoritative:
+the history is rebuilt from them whenever the report is generated, so an improved analysis
+applies retroactively without touching a measurement.
 """
 import datetime
 import glob
 import json
-import math
 import os
-import statistics
 import subprocess
 
 import allocbench
+import sampler
+import stats
 import toolchains as tc
 
 HISTORY = os.path.join(tc.BENCH, "history.json")
 RESULTS = os.path.join(tc.BENCH, "results", "*.json")
 
-# How the measurement was taken. Two campaigns of different protocols are not
-# comparable and must never share a history, so the number is stamped into every
-# campaign and campaigns of an earlier protocol live in their own folder, kept as
-# evidence and read by nothing.
+# How the measurement was taken. Campaigns of different protocols are not comparable and
+# never share a history: earlier ones live in results/protocolN/, kept as evidence.
 #
-#   1  five repetitions, whatever core the scheduler chose, sha256 on 512 KiB and
-#      chacha on 1 MiB — durations of a few milliseconds, below what this machine
-#      can resolve.
-#   2  runs pinned to the performance cores, samples budgeted per runtime and
-#      spread across the window, order rotated, every sample kept, sha256 and
-#      chacha scaled sixteenfold.
-PROTOCOL = 2
+#   1  five repetitions on whatever core the scheduler chose.
+#   2  pinned runs, budgeted samples, minimum as the estimator, Swag corrected between
+#      campaigns by the median movement of the other languages.
+#   3  medians with 95 % intervals, a frozen reference compiler measured beside the
+#      compiler under test in every round, every sample checked for interference, every
+#      toolchain timed from the same warm state with a clean project, isolated installs.
+PROTOCOL = 3
 
-# The reference workload is timed before every task, and before and after the sweep.
-# When one of those probes departs from its neighbours in time by more than this, the
-# machine had a visitor and the driver archives the campaign instead of recording it.
-#
-# Neighbours, not the whole timeline: a campaign settles as it runs, opening warmer
-# than it ends, and that ramp moves a task's Swag measurement and its controls
-# together — which is what the per-task correction exists for. The limit sits just
-# above the ramp's own size, so it cannot fire on the machine merely cooling. What it
-# catches is a visitor arriving and leaving: a parallel build once multiplied every
-# compilation of one task by ten and was gone before the closing calibration, which
-# left the campaign reading clean from both ends and fiction in the middle. Against
-# that timeline it reads 950 %.
-DRIFT_LIMIT_PCT = 40.0
+TRACKED = tc.TRACKED
+RUN_GROUPS = tc.RUN_GROUPS
 
-# The execution probe cannot see a slowdown confined to some compilers. Four times
-# (2026-09-24, 09-25, 10-18 and 10-19) every toolchain linking through link.exe built
-# 1.4 to 1.9 times slower while Go, Zig, Swift and .NET stayed near their usual times,
-# repeatably within the campaign, and was back to normal in the next one. Swag links
-# itself, so each of those campaigns inflated its build lead. A split wider than this
-# limit between the build controls' movements rejects the campaign. Each control's
-# movement is its median over the last few accepted campaigns, so one polluted
-# predecessor cannot make the clean campaign after it read as split.
-BUILD_CONTROL_SPREAD_LIMIT_PCT = 25.0
-BUILD_CONTROL_REFERENCES = 5
-BUILD_PAIR_LIMIT_PCT = 10.0
+# Each progress series: (id, label, section, subject runtime, reference runtime, metric key).
+PROGRESS = [
+    ("run-release", "native release execution", "run", "swag-release", "ref-release", "ms"),
+    ("run-devmode", "native devmode execution", "run", "swag-devmode", "ref-devmode", "ms"),
+    ("jit-release", "JIT release execution", "run", "swc-jit-release", "ref-jit-release", "ms"),
+    ("jit-devmode", "JIT devmode execution", "run", "swc-jit-devmode", "ref-jit-devmode", "ms"),
+    ("build-release", "release compilation", "build", "swag-release", "ref-release", "wall_ms"),
+    ("build-devmode", "devmode compilation", "build", "swag-devmode", "ref-devmode", "wall_ms"),
+    ("memory-release", "release compiler peak memory", "build", "swag-release", "ref-release", "peak_bytes"),
+    ("size-release", "release executable size", "build", "swag-release", "ref-release", "exe_bytes"),
+]
 
-TRACKED = ["swag-release", "swc-jit-release", "swag-devmode", "swc-jit-devmode"]
-BUILT = ["swag-release", "swag-devmode"]
-MIN_CONTROLS = 3
-FAMILIES = (("run", "ms"), ("build", "wall_ms"))
-RUN_GROUPS = {
-    "native": ("swag-release", "swag-devmode", "cpp-clang-cl", "cpp-msvc", "rust",
-               "zig", "d-ldc", "odin", "go", "swift", "csharp-aot"),
-    "jit": ("swc-jit-release", "swc-jit-devmode", "csharp-jit", "java-hotspot",
-            "node20", "luajit2.1", "php-jit", "lua5.4", "python3.12", "php", "ruby"),
-}
-
-# Versioned, fixed panel: adding a benchmark must not silently change a progress score.
-PROGRESS_VERSION = 1
-PROGRESS_TASKS = ("wordfreq", "csvagg", "sha256", "dijkstra", "raytrace", "leven", "chacha",
-                  "nbody", "fannkuch", "binarytrees", "lz77", "sort")
-
-
-def progress_series(entries, runtime, family, tasks=PROGRESS_TASKS):
-    """Base-100 speed against the first clean, complete, machine-corrected campaign.
-
-    Every task has equal weight. Incomplete times or missing correction factors produce
-    no score. The index does not use the fastest competitor as its denominator, and an
-    added workload cannot silently enter its fixed panel.
-    """
-    def times(entry):
-        values = entry.get("runtimes", {}).get(runtime, {}).get(family + "_adjusted_ms") or {}
-        factors = entry.get("context", {}).get(family + "_task_factors") or {}
-        if not tasks or any(not values.get(t) or not math.isfinite(values[t]) or values[t] <= 0
-                            or not factors.get(t) or not math.isfinite(factors[t]) or factors[t] <= 0
-                            for t in tasks):
-            return None
-        return values
-
-    available = sorted(((entry, times(entry)) for entry in entries), key=lambda pair: pair[0]["meta"]["date"])
-    baseline = next(((entry, values) for entry, values in available
-                     if values and not entry.get("meta", {}).get("dirty")), None)
-    if baseline is None:
-        return {"baseline": None, "scores": {}}
-    reference, before = baseline
-    scores = {entry["meta"]["stamp"]: 100 / geo([values[t] / before[t] for t in tasks])
-              if values else None for entry, values in available}
-    return {"baseline": reference["meta"], "scores": scores}
-
-
-# Every program times itself, and a run's result is its fastest sample, so one clock
-# that reads short becomes the fastest runtime on that task. Go's time.Now once read
-# 0.5 ms for a raytrace its other samples timed at 10.5 ms, and that sample made Go
-# the reference every Swag ratio on the task was divided by. A pinned run cannot go
-# twice as fast as its next fastest one: across every archived campaign the widest
-# honest gap is 0.57, a JIT's warm run against its cold ones, and the clock faults
-# read 0.05 to 0.50. Below this ratio the lowest sample is a timer fault, set aside
-# and kept in the record.
-TIMER_FAULT_RATIO = 0.5
-
-
-def geo(values):
-    values = [v for v in values if v and v > 0]
-    if not values:
-        return None
-    return math.exp(sum(math.log(v) for v in values) / len(values))
-
-
-def _build_control_movements(current, reference):
-    """Each control's geometric build-time movement over the tasks both campaigns measured."""
-    tasks = [task for task in current["tasks"] if task in reference["tasks"]]
-    if not tasks:
-        return {}
-    controls = {}
-    for runtime in current["tasks"][tasks[0]]:
-        if runtime in TRACKED:
-            continue
-        before = [_metric(reference["tasks"][task].get(runtime, {}), "build", "wall_ms")
-                  for task in tasks]
-        after = [_metric(current["tasks"][task].get(runtime, {}), "build", "wall_ms")
-                 for task in tasks]
-        if all(before) and all(after):
-            controls[runtime] = geo([new / old for new, old in zip(after, before)])
-    return controls
-
-
-def build_control_spread(current, references):
-    """Describe how differently the build controls moved since recent accepted campaigns.
-
-    A runtime calibration cannot see a slowdown confined to a group of compilers.
-    Compare each control's geometric build-time movement across the same tasks; a
-    wide middle-half spread means one machine factor cannot explain the movement.
-    A control's movement is its multiplicative median over every reference, so a
-    single disturbed reference cannot fake a split in a quiet campaign. Only the tasks
-    both campaigns measured are compared, so a campaign that adds a task is still
-    checked against its predecessors.
-    """
-    references = [reference for reference in references or [] if reference]
-    movements = {}
-    for reference in references:
-        for runtime, movement in _build_control_movements(current, reference).items():
-            movements.setdefault(runtime, []).append(movement)
-
-    controls = {runtime: robust_factor(values) for runtime, values in movements.items()}
-    if len(controls) < 6:
-        return None
-    values = sorted(controls.values())
-    return {
-        "references": [reference["meta"]["stamp"] for reference in references],
-        "controls": controls,
-        "spread_pct": (values[3 * len(values) // 4] / values[len(values) // 4] - 1.0) * 100.0,
-    }
-
-
-def robust_factor(values):
-    """Multiplicative median, suitable for ratios spanning several orders of magnitude."""
-    values = [v for v in values if v and v > 0]
-    if not values:
-        return None
-    return math.exp(statistics.median(math.log(v) for v in values))
-
-
-def dispersion(values, center):
-    """Median absolute multiplicative deviation from ``center``, expressed as percent."""
-    if not center:
-        return None
-    residuals = [abs(math.log(v / center)) for v in values if v and v > 0]
-    if not residuals:
-        return None
-    return math.expm1(statistics.median(residuals)) * 100.0
+# The Swag runtime each comparison leads with, the family its rivals come from, and the
+# section and metric it reads.
+LEADS = [
+    ("swag-release", "native", "run", "ms"),
+    ("swag-devmode", "native", "run", "ms"),
+    ("swc-jit-release", "jit", "run", "ms"),
+    ("swc-jit-devmode", "jit", "run", "ms"),
+    ("swag-release", None, "build", "wall_ms"),
+    ("swag-devmode", None, "build", "wall_ms"),
+]
 
 
 def _git(args, cwd):
@@ -196,504 +73,175 @@ def _git(args, cwd):
         return ""
 
 
-def describe(swc, label="", settings=None):
+def describe(swc, label="", settings=None, stamp=None, started=None):
     """Identity of a campaign: when, which commit, which binary, and whether the tree
-    carried uncommitted changes at the time — which decides whether the commit alone
-    reproduces the measurement."""
+    carried uncommitted changes, which decides whether the commit alone reproduces it."""
     root = tc.worktree()
-    stat = os.stat(swc) if os.path.exists(swc) else None
-    now = datetime.datetime.now(datetime.timezone.utc)
+    started = started or datetime.datetime.now(datetime.timezone.utc)
     return {
         "protocol": PROTOCOL,
         "settings": settings or {},
-        "stamp": now.strftime("%Y%m%d-%H%M%S"),
-        "date": now.isoformat(timespec="seconds"),
+        "stamp": stamp or started.strftime("%Y%m%d-%H%M%S"),
+        "date": started.isoformat(timespec="seconds"),
+        "finished": datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),
         "label": label,
-        "commit": _git(["rev-parse", "--short", "HEAD"], root),
+        "commit": _git(["rev-parse", "--short=10", "HEAD"], root),
         "subject": _git(["log", "-1", "--format=%s"], root),
-        "master": _git(["rev-parse", "--short", "master"], root),
         "dirty": bool(_git(["status", "--porcelain", "--untracked-files=no"], root)),
         "swc": swc,
-        "swc_bytes": stat.st_size if stat else 0,
+        "swc_bytes": os.path.getsize(swc) if os.path.exists(swc) else 0,
     }
 
 
-def timer_faults(samples):
-    """Split self-timed run samples into the honest ones and the timer faults.
-
-    Only the lowest samples are judged, each against the next one up, and two honest
-    samples always remain to judge by.
-    """
-    honest = sorted(samples)
-    faults = []
-    while len(honest) >= 3 and honest[0] < TIMER_FAULT_RATIO * honest[1]:
-        faults.append(honest.pop(0))
-    return honest, faults
+# ------------------------------------------------------------------- reading
+def record(campaign, task, runtime, family):
+    """One series of a task, or None when it is missing or failed."""
+    rec = ((campaign.get("tasks") or {}).get(task) or {}).get(runtime, {}).get(family)
+    return rec if rec and not rec.get("error") and rec.get("samples") else None
 
 
-def settle_run(run):
-    """Set a run's result to its fastest honest sample, recording the timer faults.
-
-    A run without a fault keeps the result it recorded: archived samples were rounded,
-    the result was not.
-    """
-    samples = (run or {}).get("samples")
-    if not samples or run.get("error"):
-        return run
-    honest, faults = timer_faults(samples)
-    if faults:
-        run["ms"] = honest[0]
-        run["timer_faults"] = faults
-    return run
+def values(rec, key):
+    """The samples of one series that count: timer faults out, scalars repeated."""
+    if rec is None:
+        return []
+    if key == "exe_bytes":
+        return [rec["exe_bytes"]] * 2 if rec.get("exe_bytes") else []
+    raw = [s[key] for s in rec["samples"] if s.get(key)]
+    return sampler.honest(raw)[0] if key in ("ms", "first_ms") else raw
 
 
-def confirmed_build_pair(samples, limit_pct=BUILD_PAIR_LIMIT_PCT):
-    """The fastest build time supported by a second sample, with its supporting time."""
-    ordered = sorted(value for value in samples if math.isfinite(value) and value > 0)
-    return next(((low, high) for low, high in zip(ordered, ordered[1:])
-                 if high <= low * (1.0 + limit_pct / 100.0)), None)
+def estimate(rec, key):
+    return stats.estimate(values(rec, key))
 
 
-def settle_build(build, limit_pct=BUILD_PAIR_LIMIT_PCT):
-    """Use the fastest confirmed pair without letting an isolated low discard the series."""
-    if not build or build.get("error"):
-        return build
-    samples = build.get("samples") or []
-    pair = confirmed_build_pair(samples, limit_pct)
-    raw_min = build.get("raw_min_wall_ms", build.get("unverified_wall_ms", build.get("wall_ms")))
-    build["repeatability"] = {"status": "verified" if pair else "unresolved",
-                              "method": "confirmed-min-v2", "limit_pct": limit_pct,
-                              "supporting_pair_ms": list(pair) if pair else None,
-                              "pair_spread_pct": (pair[1] / pair[0] - 1.0) * 100.0 if pair else None}
-    if not pair:
-        build["unverified_wall_ms"] = build.pop("wall_ms", raw_min)
-        return build
-    unconfirmed = [value for value in samples if value < pair[0]]
-    if unconfirmed:
-        build["raw_min_wall_ms"] = raw_min
-        build["unconfirmed_samples"] = unconfirmed
-    # Preserve the unrounded recorded minimum when it has supporting evidence.
-    build["wall_ms"] = pair[0] if unconfirmed or raw_min is None else raw_min
-    build.pop("unverified_wall_ms", None)
-    return build
-
-
-def settle_campaign(campaign):
-    """Derive results from archived samples without rewriting the raw campaign."""
-    for entries in (campaign.get("tasks") or {}).values():
-        for entry in entries.values():
-            if isinstance(entry, dict) and entry.get("run"):
-                settle_run(entry["run"])
-    builds = list(campaign.get("hello_build", {}).values()) + list(campaign.get("loop", {}).values())
-    builds += [entry["build"] for entries in campaign.get("tasks", {}).values()
-               for entry in entries.values() if entry.get("build")]
-    for build in builds:
-        # Earlier protocols did not promise repeatability checks. Revisit only
-        # measurements that opted into the local check and kept its evidence.
-        if build.get("repeatability"):
-            settle_build(build, build["repeatability"].get("limit_pct", BUILD_PAIR_LIMIT_PCT))
-    return campaign
-
-
-def _metric(entry, family, key):
-    return (entry.get(family) or {}).get(key)
-
-
-def _complete(entries, family, key):
-    """Whether one task of one campaign carries enough controls to be a reference."""
-    controls = [entry for runtime, entry in entries.items() if runtime not in TRACKED]
-    return sum(1 for entry in controls if _metric(entry, family, key)) >= MIN_CONTROLS
-
-
-def _context(results, refs, panel):
-    """Return execution and build context factors, each task against its own reference.
-
-    Each task gets its own factor because the sweep lasts long enough for machine
-    conditions to change between tasks. The campaign factor is the geometric mean of
-    the panel factors and exists for reporting; correction always uses the finer
-    per-task value.
-    """
-    contexts = {}
-    for family, key in FAMILIES:
-        task_factors = {}
-        task_counts = {}
-        task_dispersion = {}
-        for task, entries in results["tasks"].items():
-            reference = refs[family].get(task)
-            if not reference:
-                continue
-            base_entries = reference["tasks"].get(task, {})
-            ratios = []
-            for runtime, entry in entries.items():
-                if runtime in TRACKED:
-                    continue
-                current = _metric(entry, family, key)
-                before = _metric(base_entries.get(runtime, {}), family, key)
-                if current and before:
-                    ratios.append(current / before)
-
-            if len(ratios) < MIN_CONTROLS:
-                continue
-            factor = robust_factor(ratios)
-            task_factors[task] = factor
-            task_counts[task] = len(ratios)
-            task_dispersion[task] = dispersion(ratios, factor)
-
-        weighted_dispersion = []
-        for task, value in task_dispersion.items():
-            weighted_dispersion.extend([value] * task_counts[task])
-        # The campaign factor mixes tasks, so it only averages the panel: a task
-        # measured against a later reference does not describe the same interval.
-        panel_factors = [v for t, v in task_factors.items() if t in panel[family]]
-        contexts[family] = {
-            "factor": geo(panel_factors or list(task_factors.values())),
-            "task_factors": task_factors,
-            "controls": sum(task_counts.values()),
-            "dispersion_pct": statistics.median(weighted_dispersion)
-                              if weighted_dispersion else None,
-        }
-    return contexts
-
-
-def _select_baseline(results):
-    """Use the oldest reproducible campaign, falling back to the oldest campaign."""
-    for result in results:
-        if result.get("meta", {}).get("dirty") or result.get("skipped"):
-            continue
-        if all(_complete(entries, family, key)
-               for entries in result.get("tasks", {}).values()
-               for family, key in FAMILIES):
-            return result
-    return results[0]
-
-
-def _task_references(results, baseline):
-    """Per family and task, the campaign that task is measured against.
-
-    A task the baseline measured is indexed against the baseline, as before. A task
-    added to the benchmark later has no baseline value, and indexing it against
-    nothing would keep it out of the history altogether however many campaigns have
-    since measured it. It is indexed instead against the first reproducible campaign
-    that measured it, which therefore reads 1.00.
-    """
-    refs = {}
-    for family, key in FAMILIES:
-        per_task = {}
-        for result in results:
-            if result.get("meta", {}).get("dirty") or result.get("skipped"):
-                continue
-            for task, entries in result.get("tasks", {}).items():
-                if task not in per_task and _complete(entries, family, key):
-                    per_task[task] = result
-        for task, entries in baseline.get("tasks", {}).items():
-            if _complete(entries, family, key):
-                per_task[task] = baseline
-        refs[family] = per_task
-    return refs
-
-
-def _null_indices(results, refs, panel):
-    """Apply the whole correction to each unchanged control, as if it were the compiler.
-
-    A control's source and toolchain are identical from one campaign to the next, so its
-    corrected index should read exactly 1.00. What it reads instead is the resolution of
-    this harness: a movement of the Swag curve inside that band has not been measured.
-    Each control is corrected by the median of the *other* controls, never by a set
-    containing itself, which would flatten it towards 1.00 for free.
-    """
-    nulls = {}
-    for family, key in FAMILIES:
-        per_task = {}
-        for task in results["tasks"]:
-            reference = refs[family].get(task)
-            if not reference:
-                continue
-            base = reference["tasks"].get(task, {})
-            ratios = {}
-            for runtime, entry in results["tasks"].get(task, {}).items():
-                if runtime in TRACKED:
-                    continue
-                current = _metric(entry, family, key)
-                before = _metric(base.get(runtime, {}), family, key)
-                if current and before:
-                    ratios[runtime] = current / before
-            if len(ratios) <= MIN_CONTROLS:
-                continue
-            for runtime, ratio in ratios.items():
-                factor = robust_factor([v for k, v in ratios.items() if k != runtime])
-                if factor:
-                    per_task.setdefault(runtime, {})[task] = ratio / factor
-        # The band on the aggregate covers the panel, exactly like the aggregate itself.
-        indices = {rt: geo([v for t, v in vs.items() if t in panel[family]])
-                   for rt, vs in per_task.items()}
-        indices = {rt: v for rt, v in indices.items() if v}
-        task_spread = {}
-        for task in results["tasks"]:
-            values = [vs[task] for vs in per_task.values() if task in vs]
-            if values:
-                task_spread[task] = [min(values), max(values)]
-        nulls[family] = {
-            "controls": len(indices),
-            "geo": [min(indices.values()), max(indices.values())] if indices else None,
-            "tasks": task_spread,
-        }
-    return nulls
-
-
-def ratios_to_best(tasks, task_ids, family, key, reference_exclusions=()):
-    """Geometric mean of each runtime's time / fastest time on the same tasks.
-
-    Only runtimes measured on every task participate, so missing measurements cannot
-    improve a runtime's score by dropping its slower workloads. The fastest time may
-    belong to a different runtime on each task. Exclusions affect the reference only,
-    so Swag can be compared with the fastest non-Swag compiler without setting its
-    own ceiling.
-    """
-    if not task_ids:
-        return {}
-
-    def value(runtime, task):
-        measurement = tasks[task].get(runtime, {}).get(family) or {}
-        elapsed = measurement.get(key)
-        return elapsed if (not measurement.get("error") and elapsed
-                           and math.isfinite(elapsed) and elapsed > 0) else None
-
-    present = [rt for rt in tasks[task_ids[0]] if all(value(rt, t) for t in task_ids)]
-    references = [rt for rt in present if rt not in reference_exclusions]
-    if not references:
-        return {}
-    best = {t: min(value(rt, t) for rt in references) for t in task_ids}
-    return {rt: geo([value(rt, t) / best[t] for t in task_ids]) for rt in present}
-
-
-def execution_ratios(tasks, task_ids, group, reference_exclusions=()):
-    """Compare execution only within one execution model, including its reference."""
-    selected = {task: {rt: rec for rt, rec in tasks[task].items() if rt in RUN_GROUPS[group]}
-                for task in task_ids}
-    return ratios_to_best(selected, task_ids, "run", "ms", reference_exclusions)
-
-
-def execution_speedup(tasks, task_ids, group):
-    """Geometric mean of fastest non-Swag time / Swag time in one execution model."""
-    lead = {"native": "swag-release", "jit": "swc-jit-release"}[group]
-    ratios = execution_ratios(tasks, task_ids, group, reference_exclusions=TRACKED)
-    swag = ratios.get(lead)
-    return 1.0 / swag if swag else None
-
-
-def build_speedup(tasks, task_ids):
-    """Geometric mean of fastest non-Swag build time / Swag release build time."""
-    ratios = ratios_to_best(tasks, task_ids, "build", "wall_ms", reference_exclusions=TRACKED)
-    swag = ratios.get("swag-release")
-    return 1.0 / swag if swag else None
-
-
-def _headline(results, panel):
-    """The ratios the report leads with, recomputed for every campaign.
-
-    Execution and compilation compare times measured in the same campaign. Both
-    cover their fixed task panel only: a task that joined the benchmark later would
-    otherwise move the geometric mean on its first campaign, which would read as a
-    compiler movement.
-    """
-    tasks = results["tasks"]
-    run_tasks = [t for t in tasks if t in panel["run"]] or list(tasks)
-    build_tasks = [t for t in tasks if t in panel["build"]] or list(tasks)
-    native = execution_ratios(tasks, run_tasks, "native")
-    jit = execution_ratios(tasks, run_tasks, "jit")
-    return {
-        "tasks": len(run_tasks),
-        "exec_native_vs_best": native.get("swag-release"),
-        "exec_jit_vs_best": jit.get("swc-jit-release"),
-        "exec_native_fastest": min(native, key=native.get) if native else None,
-        "exec_jit_fastest": min(jit, key=jit.get) if jit else None,
-        "build_speedup": build_speedup(tasks, build_tasks),
-        "build_tasks": len(build_tasks),
-    }
-
-
-def condense(results, refs=None, baseline=None):
-    """Turn one raw campaign into the compact, adjusted entry kept in the history."""
-    baseline = baseline or results
-    refs = refs or _task_references([results], baseline)
-    tasks = results["tasks"]
-    task_ids = list(tasks)
-    panel = {family: [t for t in task_ids if refs[family].get(t) is baseline]
-             for family, _ in FAMILIES}
-    context = _context(results, refs, panel)
-
-    def ms(rt, task):
-        return tasks[task].get(rt, {}).get("run", {}).get("ms")
-
-    def build(rt, task, key):
-        return (tasks[task].get(rt, {}).get("build") or {}).get(key)
-
-    def baseline_metric(rt, task, family, key):
-        reference = refs[family].get(task)
-        if not reference:
+def paired(a_rec, b_rec, key):
+    """Median of the per-round ratios of two series sampled side by side."""
+    if a_rec is None or b_rec is None:
+        return None
+    if key == "exe_bytes":
+        if not a_rec.get("exe_bytes") or not b_rec.get("exe_bytes"):
             return None
-        return _metric(reference["tasks"].get(task, {}).get(rt, {}), family, key)
+        r = a_rec["exe_bytes"] / b_rec["exe_bytes"]
+        return stats.Estimate(r, r, r, 1, 0.0, True)
+    faults = lambda rec: set(sampler.honest([s[key] for s in rec["samples"]])[1]) if key in ("ms", "first_ms") else set()
+    fa, fb = faults(a_rec), faults(b_rec)
+    by_round = {s["round"]: s[key] for s in b_rec["samples"] if s.get(key) and s[key] not in fb}
+    ratios = [s[key] / by_round[s["round"]] for s in a_rec["samples"]
+              if s.get(key) and s[key] not in fa and s["round"] in by_round]
+    return stats.estimate(ratios)
 
-    def factor(family, task):
-        family_context = context[family]
-        return family_context["task_factors"].get(task) or family_context["factor"] or 1.0
 
-    entry = {
-        "meta": results["meta"],
-        "drift_pct": results["calibration"].get("drift_pct"),
-        "machine_spread_pct": results["calibration"].get("spread_pct"),
-        "worst_moment": results["calibration"].get("worst_moment"),
-        "calibration_ms": results["calibration"].get("start"),
-        "context": {
-            "baseline": baseline["meta"].get("stamp"),
-            "baseline_commit": baseline["meta"].get("commit"),
-            "task_baselines": {t: refs["run"][t]["meta"].get("commit")
-                               for t in task_ids
-                               if t in refs["run"] and t not in panel["run"]},
-            "run_factor": context["run"]["factor"],
-            "run_task_factors": context["run"]["task_factors"],
-            "run_controls": context["run"]["controls"],
-            "run_dispersion_pct": context["run"]["dispersion_pct"],
-            "build_factor": context["build"]["factor"],
-            "build_task_factors": context["build"]["task_factors"],
-            "build_controls": context["build"]["controls"],
-            "build_dispersion_pct": context["build"]["dispersion_pct"],
-        },
-        "runtimes": {},
+def tasks_of(campaign):
+    return [t for t in tc.TASKS if t in (campaign.get("tasks") or {})]
+
+
+def progress(campaign):
+    """Every progress series of a campaign: per task, and the geometric mean of the panel."""
+    out = {}
+    tasks = tasks_of(campaign)
+    for pid, _, family, subject, reference, key in PROGRESS:
+        per_task = {t: paired(record(campaign, t, subject, family), record(campaign, t, reference, family), key)
+                    for t in tasks}
+        if not any(per_task.values()):
+            continue
+        complete = all(per_task.values())
+        out[pid] = {"tasks": {t: e.as_dict() if e else None for t, e in per_task.items()},
+                    "geo": stats.geomean(per_task.values()).as_dict() if complete else None}
+    # The edit-build loop and the hello programs, one value each.
+    singles = {}
+    for wid, roles in (campaign.get("loop") or {}).items():
+        a, b = roles.get("subject") or {}, roles.get("reference") or {}
+        if a.get("samples") and b.get("samples") and not a.get("error") and not b.get("error"):
+            e = paired(a, b, "wall_ms")
+            if e:
+                singles["loop-" + wid] = e.as_dict()
+    for name, ref in (("swag-release", "ref-release"), ("swag-devmode", "ref-devmode")):
+        hb = campaign.get("hello_build") or {}
+        e = paired(hb.get(name), hb.get(ref), "wall_ms") if hb.get(name) and hb.get(ref) else None
+        if e:
+            singles["hello-build-" + name.split("-")[1]] = e.as_dict()
+    for name, ref in (("swc-jit-release", "ref-jit-release"), ("swc-jit-devmode", "ref-jit-devmode")):
+        hr = campaign.get("hello_run") or {}
+        e = paired(hr.get(name), hr.get(ref), "first_ms") if hr.get(name) and hr.get(ref) else None
+        if e:
+            singles["hello-run-" + name.split("-")[-1]] = e.as_dict()
+    if singles:
+        out["singles"] = singles
+    return out
+
+
+def competitors(campaign, family, group, key):
+    """Non-Swag runtimes with a valid series on every task of the panel."""
+    tasks = tasks_of(campaign)
+    pool = set(RUN_GROUPS[group]) if group else {rt for t in tasks for rt in campaign["tasks"][t]}
+    excluded = set(TRACKED) | set(tc.REFERENCES)
+    return sorted(rt for rt in pool if rt not in excluded and tasks and
+                  all(estimate(record(campaign, t, rt, family), key) for t in tasks))
+
+
+def compare(campaign, lead, rival, family, key):
+    """Lead / rival on every task, their geometric mean and the faster / tie / slower tally."""
+    tasks = tasks_of(campaign)
+    per_task = {t: stats.ratio(estimate(record(campaign, t, lead, family), key),
+                               estimate(record(campaign, t, rival, family), key)) for t in tasks}
+    if not tasks or not all(per_task.values()):
+        return None
+    return {"tasks": per_task, "geo": stats.geomean(per_task.values()), "tally": stats.tally(per_task.values())}
+
+
+def comparisons(campaign):
+    """lead -> family -> rival -> comparison, plus the strongest rival of each lead."""
+    out = {}
+    for lead, group, family, key in LEADS:
+        if not all(record(campaign, t, lead, family) for t in tasks_of(campaign)):
+            continue
+        rivals = {}
+        for rival in competitors(campaign, family, group, key):
+            c = compare(campaign, lead, rival, family, key)
+            if c:
+                rivals[rival] = c
+        if not rivals:
+            continue
+        # The strongest rival is the one against which Swag's geometric mean is worst.
+        strongest = max(rivals, key=lambda r: rivals[r]["geo"].value)
+        out.setdefault(lead, {})[family] = {"rivals": rivals, "strongest": strongest, "group": group}
+    return out
+
+
+# ----------------------------------------------------------------- history
+def condense(campaign):
+    """The compact entry the history keeps for one campaign."""
+    comps = comparisons(campaign)
+    headline = {}
+    for lead, families in comps.items():
+        for family, c in families.items():
+            best = c["rivals"][c["strongest"]]
+            headline["%s/%s" % (lead, family)] = {"rival": c["strongest"], "geo": best["geo"].as_dict(),
+                                                 "tally": best["tally"]}
+    return {
+        "meta": campaign["meta"],
+        "quality": campaign.get("quality"),
+        "progress": progress(campaign),
+        "headline": headline,
+        "probes": (campaign.get("calibration") or {}).get("probes"),
+        "allocator": allocbench.condense(campaign.get("allocator")),
     }
-
-    for rt in TRACKED:
-        if rt not in tasks[task_ids[0]]:
-            continue
-        run_ms = {t: ms(rt, t) for t in task_ids}
-        adjusted_ms = {t: (run_ms[t] / factor("run", t)) if run_ms[t] else None
-                       for t in task_ids}
-        run_index = {}
-        for task in task_ids:
-            base = baseline_metric(rt, task, "run", "ms")
-            run_index[task] = adjusted_ms[task] / base if adjusted_ms[task] and base else None
-        # Aggregates cover the panel only, so a task joining the benchmark cannot
-        # step the curve. Per-task values below cover everything measured.
-        rec = {
-            "run_ms": run_ms,
-            "run_adjusted_ms": adjusted_ms,
-            "run_geo_adjusted_ms": geo([adjusted_ms[t] for t in panel["run"]
-                                        if t in adjusted_ms]),
-            "run_index": run_index,
-            "run_geo_index": geo([run_index[t] for t in panel["run"] if t in run_index]),
-        }
-        if rt in BUILT:
-            b_ms = {t: build(rt, t, "wall_ms") for t in task_ids}
-            b_adjusted = {t: (b_ms[t] / factor("build", t)) if b_ms[t] else None
-                          for t in task_ids}
-            b_index = {}
-            for task in task_ids:
-                base = baseline_metric(rt, task, "build", "wall_ms")
-                b_index[task] = b_adjusted[task] / base if b_adjusted[task] and base else None
-            rec["build_ms"] = b_ms
-            rec["build_adjusted_ms"] = b_adjusted
-            build_panel = panel["build"]
-            rec["build_geo_adjusted_ms"] = (geo([b_adjusted[t] for t in build_panel])
-                                             if all(b_adjusted.get(t) for t in build_panel) else None)
-            rec["build_index"] = b_index
-            rec["build_geo_index"] = (geo([b_index[t] for t in build_panel])
-                                      if all(b_index.get(t) for t in build_panel) else None)
-            peaks = [build(rt, t, "peak_bytes") for t in task_ids]
-            peaks = [p for p in peaks if p]
-            rec["build_peak_mb"] = max(peaks) / 1048576.0 if peaks else None
-            sizes = [build(rt, t, "exe_bytes") for t in task_ids]
-            rec["exe_kb"] = geo(sizes) / 1024.0 if geo(sizes) else None
-        entry["runtimes"][rt] = rec
-
-    entry["headline"] = _headline(results, panel)
-    entry["null"] = _null_indices(results, refs, panel)
-
-    # How far apart a runtime's own repeated samples landed, inside this campaign. The
-    # null band says what the bench can resolve between campaigns; this says how quiet
-    # the machine was during this one, and the two answer different questions.
-    spreads = []
-    for entries in results["tasks"].values():
-        for runtime, data in entries.items():
-            samples = timer_faults((data.get("run") or {}).get("samples") or [])[0]
-            if len(samples) > 1 and min(samples) > 0:
-                spreads.append((max(samples) / min(samples) - 1.0) * 100.0)
-    entry["sample_spread_pct"] = statistics.median(spreads) if spreads else None
-
-    hello = results.get("hello_run", {}).get("swc-jit-release", {})
-    entry["hello_jit_ms"] = hello.get("first_stdout_ms", hello.get("wall_ms"))
-    hb = results.get("hello_build", {}).get("swag-release", {})
-    entry["hello_build_ms"] = hb.get("wall_ms")
-    entry["hello_build_peak_mb"] = (hb.get("peak_bytes") or 0) / 1048576.0 or None
-
-    # The edit-build loop, corrected like every build: the raw wall time is divided by
-    # this campaign's compilation context, so two campaigns compare on one machine
-    # state. Memory is kept raw, as everywhere else. The index against the first clean
-    # campaign that measured each workload is filled in once every campaign has been
-    # condensed, in build_entries.
-    measured = {}
-    if hb:
-        measured["hello_build"] = hb
-    measured.update(results.get("loop") or {})
-    build_factor = context["build"]["factor"] or 1.0
-    loop = {}
-    for name, acc in measured.items():
-        if acc.get("error") or not acc.get("wall_ms"):
-            continue
-        loop[name] = {
-            "wall_ms": acc["wall_ms"],
-            "adjusted_ms": acc["wall_ms"] / build_factor,
-            "peak_mb": (acc.get("peak_bytes") or 0) / 1048576.0 or None,
-            "peak_working_set_mb": (acc.get("peak_working_set_bytes") or 0) / 1048576.0 or None,
-            "samples": len(acc.get("samples") or []) or None,
-            "index": None,
-            "since": None,
-        }
-    entry["loop"] = loop
-
-    # The allocator against mimalloc and the C runtime heap, measured in the same rounds:
-    # the ratios need no machine correction and are what the history follows.
-    entry["allocator"] = allocbench.condense(results.get("allocator"))
-    return entry
-
-
-def index_loop(entries):
-    """Index every edit-build workload against the first clean campaign that measured
-    it, which reads 1.00 — exactly as a task added after the baseline is indexed."""
-    first = {}
-    for entry in entries:
-        if entry["meta"].get("dirty"):
-            continue
-        for name, rec in (entry.get("loop") or {}).items():
-            if name not in first and rec.get("adjusted_ms"):
-                first[name] = (entry["meta"].get("commit"), rec["adjusted_ms"])
-    for entry in entries:
-        for name, rec in (entry.get("loop") or {}).items():
-            reference = first.get(name)
-            if reference and rec.get("adjusted_ms"):
-                rec["index"] = rec["adjusted_ms"] / reference[1]
-                rec["since"] = reference[0]
-    return entries
 
 
 def load_results():
+    """Every recorded campaign of the current protocol, oldest first."""
     results = []
     for path in sorted(glob.glob(RESULTS)):
         with open(path, encoding="utf-8") as stream:
             campaign = json.load(stream)
         if campaign.get("meta", {}).get("protocol") == PROTOCOL:
-            results.append(settle_campaign(campaign))
-    results.sort(key=lambda result: datetime.datetime.fromisoformat(result["meta"]["date"]))
+            results.append(campaign)
+    results.sort(key=lambda c: datetime.datetime.fromisoformat(c["meta"]["date"]))
     return results
 
 
 def build_entries(results):
-    if not results:
-        return []
-    results = sorted(results,
-                     key=lambda result: datetime.datetime.fromisoformat(result["meta"]["date"]))
-    baseline = _select_baseline(results)
-    refs = _task_references(results, baseline)
-    return index_loop([condense(result, refs, baseline) for result in results])
+    return [condense(r) for r in sorted(results, key=lambda c: datetime.datetime.fromisoformat(c["meta"]["date"]))]
 
 
 def load():
@@ -705,23 +253,19 @@ def load():
 
 def save(entries):
     with open(HISTORY, "w", encoding="utf-8", newline="\r\n") as f:
-        json.dump(entries, f, indent=2)
+        json.dump(entries, f, indent=1)
 
 
 def rebuild():
-    """Recompute the complete adjusted history from its raw campaign archive."""
-    results = load_results()
-    if not results:
-        return load()
-    entries = build_entries(results)
+    """Recompute the history from the raw campaigns."""
+    entries = build_entries(load_results())
     save(entries)
     return entries
 
 
 def append(results):
     raw = load_results()
-    stamp = results.get("meta", {}).get("stamp")
-    if not any(result.get("meta", {}).get("stamp") == stamp for result in raw):
+    if not any(r["meta"]["stamp"] == results["meta"]["stamp"] for r in raw):
         raw.append(results)
     entries = build_entries(raw)
     save(entries)

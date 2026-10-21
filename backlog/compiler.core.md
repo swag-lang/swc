@@ -4,6 +4,20 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.087 — Make machine-code cache keys independent of worker scheduling
+
+- Evidence: with six workers, rebuilding the same benchmark task with an unchanged compiler and
+  inputs publishes new variants on every build (`lz77` release: archive 133 552, 139 986,
+  149 665, 151 156, 158 489, 162 528 bytes over six builds); with one worker the second build hits
+  every entry. `MachineCodeCache::inputKey` hashes the pre-optimization Micro stream, which
+  therefore depends on the order workers finish. Every miss republishes the whole shared archive
+  (compiler.core.086), so the archive grows across sessions and each build pays for it.
+- Next: dump the keys and their input streams for one function across two six-worker builds and
+  find the first differing instruction or operand.
+- Done when: two six-worker builds of the same inputs produce the same keys, so the second build
+  publishes nothing.
+- Related: compiler.core.086, compiler.core.085.
+
 ### compiler.core.086 — Merge archive publications without rebuilding every key
 
 - Evidence: `CompilerCacheStore::Archive::appendTo` materializes a string and hash node for
@@ -347,15 +361,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.004 — The benchmark campaign has no regression threshold on the edit-build loop
 
-- Evidence: the benchmark harness (`bench/compile.py`) records `core_rebuild`, `core_noop`,
-  `core_touch`, `hello_build`, `doc_std` and `format_tree` with samples, compilation context
-  and peak memory. It computes no noise band and reports no regression for these workloads.
-- Next: run five clean baseline campaigns and derive a resolution band per edit-build
-  workload, then make a campaign report any workload that leaves its band without
-  rewriting the baseline.
-- Done when: every edit-build workload has a band from five clean campaigns, and a campaign
-  flags a workload outside its band without moving the baseline. Release and DevMode are
-  measured where they differ, and every result names its mode.
+- Evidence: since benchmark protocol 3, every campaign measures `core_rebuild`, `core_noop`,
+  `core_touch`, `doc_std` and `format_tree` beside the frozen reference compiler and reports
+  each paired ratio with its 95 % interval and verdict. The `core` workloads build in DevMode
+  only, so a Release-only edit-build regression stays invisible.
+- Next: add Release variants of the three `core` workloads to `make_compiler_workloads`.
+- Done when: the edit-build loop is measured in Release and DevMode against the reference, and
+  every result names its mode.
 - Related: compiler.core.002, compiler.core.005, compiler.core.007, repo.tooling.007.
 
 ### compiler.core.006 — Reuse analyzed prelude state

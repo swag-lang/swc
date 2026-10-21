@@ -25,6 +25,7 @@ import subprocess
 import sys
 import time
 
+import installs
 import toolchains as tc
 import winproc
 
@@ -34,6 +35,7 @@ AVAILABLE_WORKLOADS = ["core_rebuild", "core_noop", "core_touch", "hello_build",
 
 
 def measure(workload, env, admit=None):
+    env = env | workload.get("env", {})
     if workload["prepare"]:
         workload["prepare"](env)
     if admit:
@@ -45,27 +47,16 @@ def measure(workload, env, admit=None):
     return r
 
 
-def make_hello_workload(toolchains, env, swc, cores):
-    recipe = tc.make_hello_builds(toolchains, env, swc)["swag-release"]()
-    command = list(recipe["cmd"])
-    if cores:
-        command.extend(["--num-cores", str(cores)])
-
-    out = os.path.realpath(tc.OUT)
+def make_hello_workload(install, cores):
+    recipe = tc.swag_build(install, "release", [os.path.join(tc.SRC, "hello", "hello.swg")],
+                           "hello_" + install.role, cores)
 
     def prepare(_):
         for path in recipe["clean"]:
-            target = os.path.realpath(path)
-            if os.path.commonpath([out, target]) != out:
-                raise RuntimeError("hello build output is outside the benchmark output directory: " + target)
-            if os.path.isdir(target):
-                shutil.rmtree(target)
-            elif os.path.exists(target):
-                os.remove(target)
-        for path in recipe.get("mkdir", []):
-            os.makedirs(path, exist_ok=True)
+            tc.rm(path)
+        recipe["state"].restore()
 
-    return {"cmd": command, "cwd": recipe["cwd"], "prepare": prepare,
+    return {"cmd": recipe["cmd"], "cwd": recipe["cwd"], "env": recipe["env"], "prepare": prepare,
             "what": "hello world, source to linked executable"}
 
 
@@ -130,9 +121,10 @@ def main():
     admit = make_admitter() if args.admit else None
     plans = {}
     for tag, path in binaries:
-        plans[tag] = tc.make_compiler_workloads(path, args.swc_cores, admit)
+        install = installs.beside(path, "compile_" + tag)
+        plans[tag] = tc.make_compiler_workloads(install, args.swc_cores, admit)
         if "hello_build" in ids:
-            plans[tag]["hello_build"] = make_hello_workload(toolchains, env, path, args.swc_cores)
+            plans[tag]["hello_build"] = make_hello_workload(install, args.swc_cores)
     samples = {tag: {wid: [] for wid in ids} for tag, _ in binaries}
 
     for tag, path in binaries:

@@ -36,12 +36,12 @@ being compiled by it.
 
 ### repo.tooling.010 — Separate cross-language build scenarios from compiler throughput
 
-- Evidence: `bench/toolchains.py` forces Go dependency rebuilds with `-a` and a fresh `GOCACHE`,
-  and clears both Zig caches. `bench/driver.py` publishes Swag's Win32 dependency outside the
-  timer; C++ links the installed CRT but reparses headers, including unused `<cmath>` through
-  `src/cpp/common.h`. Swag collects its runtime sources even for hello. The report combines
-  native executable builds with Java and C# bytecode generation. These are valid recipe timings,
-  but neither equal compiler workloads nor one shared dependency-cache scenario.
+- Evidence: since protocol 3 every toolchain is timed in one recorded state, a warm toolchain
+  and a clean project (Go's standard library and Zig's global cache warm, Swag's runtime
+  machine code warm), with intervals. C++ still reparses headers, including unused `<cmath>`
+  through `src/cpp/common.h`, Swag collects its runtime sources even for hello, and the report
+  combines native executable builds with Java and C# bytecode generation: valid recipe timings,
+  not equal compiler workloads.
 - Next: define versioned scenarios for application rebuilds with prepared dependencies,
   dependency rebuilds, and a real source edit. Keep bytecode and native outputs distinct.
   Add a separate generated-code workload at several sizes, with equivalent operations and

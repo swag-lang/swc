@@ -33,8 +33,11 @@ FIELDS = ("worker_ns/op", "phase_ns/op", "p50_ns", "p99_ns", "per_ops",
           "os_reserves", "os_commits", "os_decommits")
 
 
-def build(swc, env, out, cores=0):
-    """Build the three executables under `out`. Returns ({implementation: exe}, errors)."""
+def build(swc, env, out, cores=0, swag_env=None):
+    """Build the three executables under `out`. Returns ({implementation: exe}, errors).
+
+    `swag_env` is the environment of the Swag build, which a campaign gives the private
+    temporary folder of the installation it measures."""
     os.makedirs(out, exist_ok=True)
     mimalloc = os.path.join(tc.worktree(), "src", "Support", "Memory", "mimalloc")
     source = os.path.join(HERE, "src", "allocbench.c")
@@ -57,7 +60,7 @@ def build(swc, env, out, cores=0):
     cmd = [swc, "build", *tc.swc_worker_args(cores), "-f", "src/allocbench.swg",
            "--module-file", os.path.join(HERE, "module.swg"), "-bc", "release",
            "-od", swagdir, "-wd", swagdir]
-    done = subprocess.run(cmd, cwd=tc.worktree(), capture_output=True, text=True, errors="replace")
+    done = subprocess.run(cmd, cwd=tc.worktree(), env=swag_env, capture_output=True, text=True, errors="replace")
     exe = os.path.join(swagdir, "allocator.exe")
     if done.returncode != 0 or not os.path.exists(exe):
         errors["swag"] = (done.stdout + done.stderr).strip()[-400:] or "build failed"

@@ -1,0 +1,9 @@
+{
+  "name": "r1",
+  "commit": "dd211f6eeb",
+  "subject": "[prompt 4] Integrate enum storage lookup savings",
+  "dirty": false,
+  "frozen": "2026-10-21T16:52:23+00:00",
+  "swc_sha256": "2db5b1c6cff9c52efa79fe03bdea6aade72342d4569edb9596a206adf7fa7135",
+  "tree_sha256": "0f1e18975f15d1cc248cefa0f6a7a4ad4b77c1e585dfb3db4ef54ed6afe9e5ef"
+}

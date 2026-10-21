@@ -1492,10 +1492,9 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
         while (changed)
         {
             changed = false;
-            for (const uint32_t node : rpo)
+            // Reverse postorder starts with the entry, whose dominator is fixed.
+            for (const uint32_t node : std::span(rpo).subspan(1))
             {
-                if (node == entry)
-                    continue;
                 uint32_t    newIdom      = MicroDomTree::K_INVALID_NODE;
                 const auto& predecessors = cfg.predecessors(node);
                 if (predecessors.size() == 1)
@@ -1532,10 +1531,9 @@ MicroPassHelpers::MicroDomTree MicroPassHelpers::computeInstructionDominators(co
     // Each reachable non-entry node gets a sibling link below before the
     // subtree walk can read it; retained entries need no clearing.
     nextSibling.resize(n);
-    for (const uint32_t node : rpo)
+    // Both traversal paths put the entry first; it has no parent link.
+    for (const uint32_t node : std::span(rpo).subspan(1))
     {
-        if (node == entry)
-            continue;
         const uint32_t parent = idom[node];
         nextSibling[node]     = firstChild[parent];
         firstChild[parent]    = node;

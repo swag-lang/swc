@@ -11,6 +11,7 @@ No timing campaign or profiler is run; compilation-time targets remain unverifie
 | Allocate stack-displacement scratch without clearing unread entries | An initial eight-byte zero write per instruction | The entry and every first-discovered successor receive their offset before being queued. Later transitions retain that initialized offset, including unknown states. Unreachable slots are never read. Capacity, allocation count, propagation and results are unchanged. The helper loses one `memset`, shrinks from 2,237 to 2,018 code bytes and reserves 208 rather than 224 stack bytes. |
 | Walk call-argument register banks once | Rebuilding a temporary layout list and recounting each argument's same-kind predecessors | The existing ABI register-state helper visits parameters in the same declaration order. Return, indirect-argument and call-kind exclusions are unchanged. The classifier shrinks from 1,186 to 817 code bytes and its stack reservation from 272 to 120 bytes. |
 | Read compiler-call AST lists without intermediate copies | A child vector and append loop in injection scope discovery; copied argument lists for stringification and tag queries | The same immutable AST chunks retain source order. Injection rejects invalid references when popped, before set insertion. Stringification walks chunks sequentially; tag lookup borrows the three indexed arguments. The three helpers shrink from 1,222/596/1,195 to 739/555/1,088 code bytes, with stack reservations falling from 680/480/1,024 to 384/288/784 bytes. |
+| Start dominator passes after their known entry | One root comparison per visited node in each cyclic fixed-point sweep and the child-link walk | Both forward traversal and reverse postorder put the entry first. Its fixed dominator and absent parent link are unchanged; every other node retains its order. The helper shrinks from 3,116 to 3,100 code bytes with the same 264-byte stack reservation and no storage change. |
 
 The first batch builds successfully and passes all 1,535 default C++ tests,
 including backend stack-frame, promotion and register-allocation coverage.
@@ -24,6 +25,10 @@ The compiler-call batch passes the complete native suite: 3,922 tests in the
 `devmode` program configuration. Its expected idle, pending and hardware recovery
 probes produce their deliberate failures, and the outer tool exits zero. This
 also exercises the two preceding backend batches together.
+
+The dominator batch passes all 1,536 default C++ tests, including the existing
+48-shape comparison between SSA dominance and instruction-graph dominance,
+disconnected graphs, cycles, nonzero entries and stale-snapshot rejection.
 
 Commands run from the campaign worktree:
 

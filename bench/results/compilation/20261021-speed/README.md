@@ -19,6 +19,18 @@ No timing campaign or profiler is run; compilation-time targets remain unverifie
 | Initialize directive-suggestion rows only with their recurrence values | Two initial zero passes per token-name comparison | The predecessor row is filled explicitly and each current row is fully assigned before swapping, including empty operands. The Levenshtein recurrence, candidate order and thresholds are unchanged. The helper shrinks from 704 to 463 code bytes and its stack reservation from 136 to 72 bytes. |
 | Fill return-summary edge tables without prior zeroing | Initial eight-byte writes for completion edges and sixteen-byte writes for return-propagation edges | Each prefix-counted range is filled completely before propagation reads it. Empty tables retain null storage without allocating. Counts, edge order, masks, queue behavior and locking are unchanged. The callback shrinks from 5,720 to 5,591 code bytes and its stack reservation from 368 to 336 bytes. Total object code falls from 183,792 to 183,534 bytes with unchanged retained data. |
 
+The eleventh speed batch reuses `unwrapAliasTypeOrSelf` for enum storage
+metadata. Each normalization loses its final type-table lookup; ordinary types
+also avoid the generic expansion call. The existing alias traversal stops on
+the same invalid underlying reference and retains enum wrappers. Validation,
+const-array normalization and value sequencing are unchanged. The emitted
+declaration/normalizer/storage-helper bodies total 1,427 -> 1,347 bytes, without
+new persistent storage or allocations. Its DevMode build and focused semantic
+checks pass: 35 ordinary and 39 expected-diagnostic inputs, including runtime,
+covering explicit/default enums, flags, strict aliases and array backing.
+An earlier trial carrying metadata between declaration stages was discarded
+in favor of this existing API and smaller change.
+
 The first batch builds successfully and passes all 1,535 default C++ tests,
 including backend stack-frame, promotion and register-allocation coverage.
 The default C++ command omits filesystem tests requiring `--dev-full`.
@@ -111,3 +123,9 @@ Integration with concurrent master `c7fe372c50` preserves both required test
 includes (`Stats.h` and `WorkspaceLayout.h`). The combined DevMode compiler
 builds and passes all 1,602 C++ tests with `--dev-full`; this resolves the only
 merge conflict without changing either test's behavior.
+
+The user ended the session before the original 18:00 limit. Eleven structural
+speed batches and one separate test-determinism repair were retained. The last
+enum change has focused validation; the complete native/JIT and 1,602-test C++
+milestones above precede that narrow change. No elapsed-time or peak-memory
+improvement is claimed, and the historical speed targets remain unverified.

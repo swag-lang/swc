@@ -181,3 +181,40 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     }
     const result = #run conflict()
 }
+
+// A loop that calls nothing reads the extent of the open borrows once, before it starts:
+// nothing inside it can open or close one. Its writes are still checked against them.
+#[Swag.NoInline]
+func fillAlongside(value: BorrowedValue, destination: [*] u64, count: u64)->u64
+{
+    for i in count do
+        destination[i] = i + 1
+    return value.second
+}
+
+#test
+{
+    var value  = BorrowedValue{67, 71}
+    var other: [4] u64
+    let result = fillAlongside(value, &other[0], 4)
+    Swag.assert(result == 71 and other[3] == 4)
+}
+
+#test
+{
+    #[Swag.NoInline]
+    func fillIntoBorrow(value: BorrowedValue, destination: [*] u64, count: u64)->u64
+    {
+        for i in count do
+            destination[i] = i     // swc-expected-error {{safety_err_runtime}}
+        return value.second
+    }
+
+    func conflict()->u64
+    {
+        var value = BorrowedValue{73, 79}
+        return fillIntoBorrow(value, cast([*] u64, &value), 2)
+    }
+
+    const result = #run conflict()
+}

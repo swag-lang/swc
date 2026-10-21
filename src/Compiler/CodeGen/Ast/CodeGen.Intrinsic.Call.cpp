@@ -2470,11 +2470,12 @@ namespace
 
         if (isMulAdd)
         {
-            const MicroOp  mulOp  = laneBits == 32 ? MicroOp::VecMulF32 : MicroOp::VecMulF64;
-            const MicroOp  addOp  = laneBits == 32 ? MicroOp::VecAddF32 : MicroOp::VecAddF64;
-            const MicroReg mulReg = codeGen.nextVirtualFloatRegister();
-            builder.emitOpBinaryRegRegReg(mulReg, loadArg(0), loadArg(1), mulOp, MicroOpBits::B128);
-            builder.emitOpBinaryRegRegReg(resultPayload.reg, mulReg, loadArg(2), addOp, MicroOpBits::B128);
+            const MicroReg aReg = loadArg(0);
+            const MicroReg bReg = loadArg(1);
+            const MicroReg cReg = loadArg(2);
+            const MicroOp  op   = laneBits == 32 ? MicroOp::VecMultiplyAddF32 : MicroOp::VecMultiplyAddF64;
+            builder.emitLoadRegReg(resultPayload.reg, aReg, MicroOpBits::B128);
+            builder.emitOpTernaryRegRegReg(resultPayload.reg, bReg, cReg, op, MicroOpBits::B128);
             outHandled = true;
             return Result::Continue;
         }

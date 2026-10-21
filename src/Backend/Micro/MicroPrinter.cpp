@@ -356,6 +356,10 @@ namespace
                 return "vec.permb";
             case MicroOp::VecBlendVB:
                 return "vec.blendvb";
+            case MicroOp::VecMultiplyAddF32:
+                return "vec.muladdf32";
+            case MicroOp::VecMultiplyAddF64:
+                return "vec.muladdf64";
             case MicroOp::VecAddProductF32:
                 return "vec.addproductf32";
             case MicroOp::VecAddProductF64:

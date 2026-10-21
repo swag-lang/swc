@@ -309,6 +309,10 @@ enum class MicroOp : uint8_t
     VecInsert16,
     VecInsert32,
 
+    // Non-fused packed mulAdd keeps the product's rounding boundary opaque to contraction.
+    VecMultiplyAddF32,
+    VecMultiplyAddF64,
+
     // Packed FMA, with the same operand roles as the scalar forms above.
     // Keep each F32/F64 pair together for fusedFloatElementBits.
     VecAddProductF32,

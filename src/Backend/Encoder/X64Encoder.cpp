@@ -3915,6 +3915,17 @@ void X64Encoder::encodeOpTernaryRegRegMem(MicroReg regDst, MicroReg regLeft, Mic
 
 void X64Encoder::encodeOpTernaryRegRegReg(MicroReg reg0, MicroReg reg1, MicroReg reg2, MicroOp op, MicroOpBits opBits)
 {
+    if (op == MicroOp::VecMultiplyAddF32 || op == MicroOp::VecMultiplyAddF64)
+    {
+        SWC_ASSERT(opBits == MicroOpBits::B128 && reg0.isFloat() && reg1.isFloat() && reg2.isFloat());
+        SWC_ASSERT(reg0 != reg2);
+        const MicroOp mulOp = op == MicroOp::VecMultiplyAddF32 ? MicroOp::VecMulF32 : MicroOp::VecMulF64;
+        const MicroOp addOp = op == MicroOp::VecMultiplyAddF32 ? MicroOp::VecAddF32 : MicroOp::VecAddF64;
+        encodeOpBinaryRegRegReg(reg0, reg0, reg1, mulOp, opBits);
+        encodeOpBinaryRegRegReg(reg0, reg0, reg2, addOp, opBits);
+        return;
+    }
+
     // vpblendvb xmm1, xmm2, xmm3, xmm4 (VEX.128.66.0F3A 4C /r /is4): the
     // destination doubles as the first source in vvvv, the second source
     // rides in r/m, and the mask register sits in the high nibble of the

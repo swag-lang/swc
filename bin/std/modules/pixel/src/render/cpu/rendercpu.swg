@@ -1403,7 +1403,8 @@ private impl RenderCpu
         let invArea      = 1.0 / area
 
         // Opposite orientations of a shared edge use one endpoint as their common origin.
-        // Separately rounded products then make the two edge values exact opposites.
+        // The same rounded equation in scalar and packed paths makes the two edge values
+        // exact opposites, even when one triangle ends with a scalar tail.
         let dx0 = p2.x - p1.x
         let dy0 = p2.y - p1.y
         let dx1 = p0.x - p2.x
@@ -1497,9 +1498,9 @@ private impl RenderCpu
                         if maxX - x >= 3
                         {
                             let sx = Math.Simd.splat(cast(f32, x) + 0.5) + CpuPixelLanes
-                            let e0 = dx0 * rowDy0 - dy0 * (sx - edge0Origin.x)
-                            let e1 = dx1 * rowDy1 - dy1 * (sx - edge1Origin.x)
-                            let e2 = dx2 * rowDy2 - dy2 * (sx - edge2Origin.x)
+                            let e0 = Math.mulAdd(Math.Simd.splat(-dy0), sx - edge0Origin.x, Math.Simd.splat(dx0 * rowDy0))
+                            let e1 = Math.mulAdd(Math.Simd.splat(-dy1), sx - edge1Origin.x, Math.Simd.splat(dx1 * rowDy1))
+                            let e2 = Math.mulAdd(Math.Simd.splat(-dy2), sx - edge2Origin.x, Math.Simd.splat(dx2 * rowDy2))
                             coverage  = insideEdges4(e0, e1, e2, edge0TopLeft, edge1TopLeft, edge2TopLeft)
                             laneCount = 4
                         }

@@ -1164,7 +1164,9 @@ bool MicroRegisterAllocationPass::walkIntervals(std::vector<LiveInterval>&& inte
     }
 
     // Group nodes per value for the consumers (rewrite, resolution, dump).
-    std::vector<uint32_t> order(out.nodes.size());
+    // Every entry is assigned before sorting; the consumed prefix later holds group offsets.
+    const auto          orderStorage = std::make_unique_for_overwrite<uint32_t[]>(out.nodes.size());
+    std::span<uint32_t> order(orderStorage.get(), out.nodes.size());
     for (uint32_t i = 0; i < order.size(); ++i)
         order[i] = i;
     std::ranges::sort(order, [&](const uint32_t a, const uint32_t b) {

@@ -15,6 +15,7 @@ No timing campaign or profiler is run; compilation-time targets remain unverifie
 | Stop scanning uses after a direct upper-half observation | Remaining instruction/operand lookups and unnecessary propagation edges for a value already known to require its upper half | Edges run from a result to its inputs. An edge to an already-observed input cannot add a fact; the initial observation and every edge that can still change a fact remain. Traversal results and vector capacities cannot grow. The helper shrinks from 2,622 to 2,606 code bytes with the same 208-byte stack reservation. |
 | Reuse the active semantic visitor's child snapshot | Span decoding in stringification and tag queries; another child collection/copy for compiler diagnostics and unreachable-code checks | These post-node/post-child callbacks use the default, unresolved visitor snapshot. Their AST lists are immutable during the callback, and none of the readers advances the visitor while borrowing it. String/tag/diagnostic/unreachable bodies shrink from 555/1,088/1,436/927 to 433/1,026/1,012/678 bytes; stack reservations fall from 288/784/512/528 to 192/744/224/240 bytes. This supersedes the earlier string/tag borrowed-list readers. |
 | Reuse the visitor's multipart AST-generation inputs | Copying and destroying a temporary reference vector before concatenating generated source | The parser constructs either one body or the multipart span, so the multipart callback's children are exactly those parts in order. The borrowed span is consumed before substitution restarts the node. The callback shrinks from 755 to 580 code bytes and its stack reservation from 528 to 240 bytes. |
+| Allocate interval-sort indices without zeroing them | One four-byte zero write per interval before the sequential index fill | The index fill completes before sorting, and the same consumed prefix becomes the group-offset table. Allocation count, byte capacity, sorting and node moves are unchanged. The interval walker shrinks from 8,742 to 8,270 code bytes and its stack reservation from 1,200 to 1,152 bytes. Total object code falls from 80,253 to 79,789 bytes with unchanged retained data. |
 
 The first batch builds successfully and passes all 1,535 default C++ tests,
 including backend stack-frame, promotion and register-allocation coverage.
@@ -48,6 +49,9 @@ The multipart-AST batch checks `sema/compiler/ast.swg`, including its nested
 generation and generic multipart assertions (29 normal inputs with runtime).
 The error selection contains only 28 runtime inputs and is not error-case
 coverage. Its native `operator_index_ptr` consumer passes all ten tests.
+
+The interval-index batch passes all 1,536 default C++ tests, including interval
+splitting, spills, call ranges and edge-resolution cases.
 
 Commands run from the campaign worktree:
 

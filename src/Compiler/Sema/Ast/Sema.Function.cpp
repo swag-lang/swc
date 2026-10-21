@@ -509,7 +509,7 @@ namespace
         else if (sema.enteringState())
         {
             TaskContext& ctx = sema.ctx();
-            auto*        sym = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), SemaHelpers::getUniqueIdentifier(sema, namePrefix), sema.frame().flagsForCurrentAccess());
+            auto*        sym = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), SemaHelpers::getStableIdentifier(sema, node, namePrefix), sema.frame().flagsForCurrentAccess());
             SymbolMap*   map = SemaFrame::currentSymMap(sema);
             SWC_ASSERT(map != nullptr);
 

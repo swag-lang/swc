@@ -218,6 +218,8 @@ public:
         RuntimeParallelRange,
         RuntimeParallelRangeFallible,
 
+        ClosureAdapter,
+
         Count,
     };
 

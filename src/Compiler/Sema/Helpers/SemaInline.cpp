@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
+#include "Compiler/Sema/Core/NodePayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
@@ -837,9 +838,15 @@ namespace
         // the Ast it expands in, and the clone keeps the source location of the text it came
         // from. Reading such a clone against the file that owns its tokens resolves every child
         // reference in the wrong store, which lands on whatever node that index happens to hit.
-        const Ast* declAst = nullptr;
+        // A generic instance is cloned into the Ast of whichever caller instantiated it first, so
+        // its declaration's payload context names that store; without it, inlining an instance
+        // would depend on which file got there first.
+        const Ast*         declAst        = nullptr;
+        const NodePayload* payloadContext = fn.declNodePayloadContext();
         if (sema.ast().tryFindNodeRef(declNode).isValid())
             declAst = &sema.ast();
+        else if (const Ast* instanceAst = payloadContext ? payloadContext->storeOf(declNode) : nullptr)
+            declAst = instanceAst;
         else if (const Ast* writtenAst = declNode->sourceAst(sema.ctx()); writtenAst && writtenAst->tryFindNodeRef(declNode).isValid())
             declAst = writtenAst;
         if (!declAst)
@@ -3115,6 +3122,7 @@ Result SemaInline::tryInlineCall(Sema& sema, AstNodeRef callRef, const SymbolFun
 
     inlinePayload->callRef             = callRef;
     inlinePayload->inlineRootRef       = inlineRootRef;
+    inlinePayload->callSite            = sema.node(callRef).codeRef();
     inlinePayload->sourceFunction      = &fn;
     inlinePayload->parentInlinePayload = sema.frame().currentInlinePayload();
     inlinePayload->callerScope         = callerScope;

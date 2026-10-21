@@ -94,7 +94,8 @@ namespace
         // Both are text: type hashes and references depend on compilation scheduling.
         Utf8 key = symbol.computePublicApiSymbolName(ctx);
         key += "|";
-        key += ctx.typeMgr().get(symbol.typeRef()).toFullName(ctx);
+        if (symbol.typeRef().isValid())
+            key += ctx.typeMgr().get(symbol.typeRef()).toFullName(ctx);
         return key;
     }
 
@@ -102,8 +103,37 @@ namespace
     {
         Utf8 key = symbol.getFullScopedName(ctx);
         key += "|";
-        key += ctx.typeMgr().get(symbol.typeRef()).toFullName(ctx);
+        if (symbol.typeRef().isValid())
+            key += ctx.typeMgr().get(symbol.typeRef()).toFullName(ctx);
         return key;
+    }
+
+    bool isClosureAdapter(const TaskContext& ctx, const SymbolFunction& symbol)
+    {
+        return symbol.idRef() == ctx.idMgr().predefined(IdentifierManager::PredefinedName::ClosureAdapter);
+    }
+
+    // A closure adapter borrows the declaration of whichever symbol first interned its closure
+    // type, which depends on compilation scheduling. Its signature is its identity.
+    Utf8 closureAdapterName(const TaskContext& ctx, const SymbolFunction& adapter)
+    {
+        Utf8 name = "__closure_adapter ";
+        name += ctx.typeMgr().get(adapter.typeRef()).toFullName(ctx);
+        return name;
+    }
+
+    void orderClosureAdapters(const TaskContext& ctx, std::vector<SymbolFunction*>& functions)
+    {
+        const auto adapters = std::ranges::stable_partition(functions, [&](const SymbolFunction* function) { return !isClosureAdapter(ctx, *function); });
+        if (adapters.empty())
+            return;
+
+        std::vector<SymbolSort::Entry<SymbolFunction>> entries;
+        entries.reserve(adapters.size());
+        for (SymbolFunction* adapter : adapters)
+            entries.push_back({.symbol = adapter, .key = closureAdapterName(ctx, *adapter)});
+        std::ranges::stable_sort(entries, {}, &SymbolSort::Entry<SymbolFunction>::key);
+        std::ranges::transform(entries, adapters.begin(), &SymbolSort::Entry<SymbolFunction>::symbol);
     }
 
     // Generic instances, and other symbols generated from one declaration, share a source
@@ -821,16 +851,22 @@ namespace
     NativeFunctionInfo makeFunctionInfo(NativeBackendBuilder& builder, SymbolFunction& symbol, const uint32_t ordinal, const NativeFunctionInfoOptions& options)
     {
         NativeFunctionInfo info;
-        info.symbol                   = &symbol;
-        info.machineCode              = &symbol.loweredCode();
-        info.sortKey                  = options.sortKeys ? options.sortKeys->key(symbol) : SymbolSort::locationKey(builder.compiler(), symbol);
+        info.symbol               = &symbol;
+        info.machineCode          = &symbol.loweredCode();
+        info.sortKey              = options.sortKeys ? options.sortKeys->key(symbol) : SymbolSort::locationKey(builder.compiler(), symbol);
+        const bool closureAdapter = isClosureAdapter(builder.ctx(), symbol);
+        if (closureAdapter)
+            info.sortKey = closureAdapterName(builder.ctx(), symbol);
         info.compilerFn               = isCompilerFunction(symbol);
         const bool exportPublicSymbol = isExportedLibraryFunction(builder, symbol, options.supportsExportedFunctions);
         if (exportPublicSymbol)
             info.symbolName = symbol.computePublicApiSymbolName(builder.ctx());
         else
             info.symbolName = buildLocalFunctionSymbolName(builder, info, ordinal);
-        if (options.includeDebugNames)
+        // Stack traces read an adapter's name from the debug name in every configuration.
+        if (closureAdapter)
+            info.debugName = info.sortKey;
+        else if (options.includeDebugNames)
             info.debugName = symbol.getFullScopedName(builder.ctx());
         info.exported = exportPublicSymbol;
         return info;
@@ -1772,6 +1808,7 @@ Result NativeBackendBuilder::prepare()
             // once the dependency set and executable reachability have stopped changing.
             SWC_SCHED_PHASE(ctx_.global().jobMgr(), "function infos");
             orderLocationTies(ctx_, functions);
+            orderClosureAdapters(ctx_, functions);
             SWC_RESULT(rebuildFunctionInfos(*this, functions, sortKeys));
             if (microStage)
             {
@@ -1780,7 +1817,7 @@ Result NativeBackendBuilder::prepare()
                 // Two sources, reported apart so a reader can tell them apart: machine code the
                 // shared runtime and imported API archive supplied, and functions this output's
                 // previous build already produced from the same input.
-                const size_t reused = std::ranges::count_if(functionInfos, [](const NativeFunctionInfo& info) {
+                const size_t reused    = std::ranges::count_if(functionInfos, [](const NativeFunctionInfo& info) {
                     return info.symbol->hasFlag(SymbolFlagsE::MachineCodeReused);
                 });
                 const size_t unchanged = std::ranges::count_if(functionInfos, &NativeFunctionInfo::cacheHit);

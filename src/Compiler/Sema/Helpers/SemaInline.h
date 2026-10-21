@@ -62,7 +62,9 @@ struct SemaInlinePayload
 
     AstNodeRef callRef       = AstNodeRef::invalid();
     AstNodeRef inlineRootRef = AstNodeRef::invalid();
-    TypeRef    returnTypeRef = TypeRef::invalid();
+    // The call site in source terms. Node references depend on when the clone was appended.
+    SourceCodeRef callSite;
+    TypeRef       returnTypeRef = TypeRef::invalid();
 
     // Drop caller flow-narrowing facts from this first callee-origin statement onward.
     // Earlier materialized argument bindings remain caller code and retain those facts.

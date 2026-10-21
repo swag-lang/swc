@@ -601,7 +601,9 @@ Result SymbolFunction::ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& o
         return Result::Continue;
     }
 
-    const IdentifierRef adapterId = ctx.idMgr().addIdentifierOwned(std::format("__closure_adapter_{}", ctx.compiler().atomicId().fetch_add(1)));
+    // One adapter serves every function cast to this closure type. The symbol that interned the type
+    // is whichever got there first, so the adapter is known by its signature, never by that symbol.
+    const IdentifierRef adapterId = ctx.idMgr().predefined(IdentifierManager::PredefinedName::ClosureAdapter);
     auto* const         adapter   = make<SymbolFunction>(ctx, decl(), tokRef(), adapterId, SymbolFlagsE::Zero);
 
     adapter->setOwnerSymMap(ownerSymMap());

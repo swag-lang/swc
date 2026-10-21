@@ -73,6 +73,9 @@ class NodePayload
     friend class SemaJob;
 
 public:
+    // The store holding this node when it belongs to this payload's Ast, null otherwise.
+    const Ast* storeOf(const AstNode* node) const { return ast_.tryFindNodeRef(node).isValid() ? &ast_ : nullptr; }
+
     struct StoredView
     {
         TypeRef                  typeRef = TypeRef::invalid();

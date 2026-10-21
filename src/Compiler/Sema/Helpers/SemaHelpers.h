@@ -224,6 +224,9 @@ namespace SemaHelpers
     Result appendConstantText(Sema& sema, std::span<const AstNodeRef> parts, Utf8& outText);
 
     IdentifierRef getUniqueIdentifier(Sema& sema, const std::string_view& name);
+    // A generated name that every build of the same sources spells the same way. Use it for
+    // functions and types, whose names reach runtime type identity and debug records.
+    IdentifierRef getStableIdentifier(Sema& sema, const AstNode& node, const std::string_view& name);
     IdentifierRef resolveIdentifier(Sema& sema, const SourceCodeRef& codeRef);
     IdentifierRef resolveCodeParamIdentifier(const Sema& sema, uint32_t slot);
 
@@ -416,10 +419,16 @@ namespace SemaHelpers
     template<typename T>
     T& registerUniqueSymbol(Sema& sema, const AstNode& node, const std::string_view& name)
     {
-        TaskContext&        ctx         = sema.ctx();
-        const Utf8          privateName = Utf8("__") + Utf8(name);
-        const IdentifierRef idRef       = getUniqueIdentifier(sema, privateName);
-        const SymbolFlags   flags       = sema.frame().flagsForCurrentAccess();
+        TaskContext& ctx         = sema.ctx();
+        const Utf8   privateName = Utf8("__") + Utf8(name);
+
+        // A local's generated name reaches nothing but CodeView, so it keeps the cheaper counter.
+        IdentifierRef idRef;
+        if constexpr (std::is_same_v<T, SymbolVariable>)
+            idRef = getUniqueIdentifier(sema, privateName);
+        else
+            idRef = getStableIdentifier(sema, node, privateName);
+        const SymbolFlags flags = sema.frame().flagsForCurrentAccess();
 
         T* sym = Symbol::make<T>(ctx, &node, node.tokRef(), idRef, flags);
 

@@ -5,18 +5,18 @@ This backlog covers the compiler front end, back end, and workspace build engine
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
 
-### compiler.core.085 — Name generated symbols from the program, not from a process-wide counter
+### compiler.core.085 — Build shared libraries to identical bytes
 
-- Evidence: `SemaHelpers::getUniqueIdentifier` numbers lambdas, closures, closure adapters,
-  `#run` expressions and anonymous structs from `CompilerInstance::atomicId`, in compilation
-  scheduling order. Two parallel builds of `core.dll` name `Swag.runWork.__lambda_12528` and
-  `__lambda_12173`, and `Core.Array'(TagBin.__anonymous_struct_657)` and `_562`. The names reach
-  `.swagdbg`, and generic instances over anonymous structs share a source location, so they also
-  decide the order of those functions. Executables, static libraries and the benchmark tasks
-  already build to identical bytes; the shared libraries do not.
-- Next: derive a generated name from its declaration and owner, such as the owner's scoped name
-  and the token, with a per-owner suffix for clones. Keep names unique wherever the function
-  cache identity or a symbol map relies on them.
+- Evidence: executables, static libraries and the benchmark tasks rebuild identically with six
+  workers; `core.dll`, `pixel.dll` and `gui.dll` still differ. Two sources remain. The set of
+  generic instances varies: one build of `core.dll` emits one more `Core.Math.max` instance than
+  the next, and a shared library emits every instance its analysis created. And `.rdata` holds a
+  duplicated 16-byte string constant in some builds only: `Core.Env.showInFileExplorer` reaches
+  three such constants in one build and two in the next.
+- Next: log which call sites create `Core.Math.max` instances in two builds and find the
+  speculative instantiation; then trace the `showInFileExplorer` string constants back to
+  `materializeRuntimeStringConstant` and `materializeRuntimeBufferConstant` to see which cache
+  lets one value materialize twice.
 - Done when: rebuilding `core`, `pixel` and `gui` twice with six workers produces identical
   shared libraries apart from the image timestamp.
 

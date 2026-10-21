@@ -27,6 +27,7 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -218,6 +219,68 @@ IdentifierRef SemaHelpers::getUniqueIdentifier(Sema& sema, const std::string_vie
 {
     const uint32_t id = sema.compiler().atomicId().fetch_add(1);
     return sema.idMgr().addIdentifierOwned(std::format("{}_{}", name, id));
+}
+
+namespace
+{
+    void appendStableOwnerIdentity(const TaskContext& ctx, Utf8& out, const SymbolMap* map)
+    {
+        for (; map; map = map->ownerSymMap())
+        {
+            out += '/';
+
+            // A type's full name spells its generic arguments and every scope around it.
+            if ((map->isStruct() || map->isInterface() || map->isEnum()) && map->typeRef().isValid())
+            {
+                out += ctx.typeMgr().get(map->typeRef()).toFullName(ctx);
+                return;
+            }
+
+            out += map->name(ctx);
+        }
+    }
+
+    void appendStableFunctionIdentity(const TaskContext& ctx, Utf8& out, const SymbolFunction& function)
+    {
+        out += '/';
+        out += function.name(ctx);
+
+        SmallVector<GenericInstanceKey> args;
+        if (function.tryGetGenericInstanceArgs(ctx, args))
+        {
+            for (const GenericInstanceKey& arg : args)
+            {
+                out += '\'';
+                if (arg.typeRef.isValid())
+                    out += ctx.typeMgr().get(arg.typeRef).toFullName(ctx);
+                else if (arg.cstRef.isValid())
+                    out += ctx.cstMgr().get(arg.cstRef).toString(ctx);
+            }
+        }
+
+        appendStableOwnerIdentity(ctx, out, function.ownerSymMap());
+    }
+}
+
+IdentifierRef SemaHelpers::getStableIdentifier(Sema& sema, const AstNode& node, const std::string_view& name)
+{
+    // Describe what is named rather than when a worker reached it: its declaration, the inline
+    // call sites that copied it, and the function or scope that owns it. Generic instances and
+    // expansions of one declaration differ by the last two.
+    const TaskContext& ctx      = sema.ctx();
+    Utf8               identity = name;
+    ctx.compiler().appendStableSourceIdentity(identity, node.codeRef());
+    for (const SemaInlinePayload* payload = sema.frame().currentInlinePayload(); payload; payload = payload->parentInlinePayload)
+        ctx.compiler().appendStableSourceIdentity(identity, payload->callSite);
+
+    if (const SymbolFunction* function = sema.frame().currentFunction())
+        appendStableFunctionIdentity(ctx, identity, *function);
+    else
+        appendStableOwnerIdentity(ctx, identity, SemaFrame::currentSymMap(sema));
+
+    // Two independent 32-bit hashes keep collisions out of reach in a large module.
+    const uint64_t hash = (static_cast<uint64_t>(Math::hash(identity.view())) << 32) | Math::hash(identity.view(), 0x9e3779b97f4a7c15ull);
+    return sema.idMgr().addIdentifierOwned(std::format("{}_{:016x}", name, hash));
 }
 
 IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef& codeRef)

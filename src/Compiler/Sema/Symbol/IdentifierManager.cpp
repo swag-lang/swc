@@ -168,6 +168,8 @@ void IdentifierManager::setup(const TaskContext& ctx)
 
         {.name = PredefinedName::RuntimeParallelRange, .str = "__parallelRange"},
         {.name = PredefinedName::RuntimeParallelRangeFallible, .str = "__parallelRangeFallible"},
+
+        {.name = PredefinedName::ClosureAdapter, .str = "__closure_adapter"},
     };
 
     for (const auto& it : PREDEFINED_NAMES)

@@ -3,6 +3,7 @@
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Math/Hash.h"
 #include "Support/Report/Assert.h"
 
@@ -181,8 +182,10 @@ namespace
         h = Math::hashCombine(h, symbol.scopedNameHash(ctx));
         if (symbol.decl())
         {
-            h = Math::hashCombine(h, symbol.srcViewRef().get());
-            h = Math::hashCombine(h, symbol.tokRef().get());
+            // View references follow loading order; the stable position does not.
+            Utf8 position;
+            ctx.compiler().appendStableSourceIdentity(position, {.srcViewRef = symbol.srcViewRef(), .tokRef = symbol.tokRef()});
+            h = Math::hashCombine(h, Math::hash(position.view()));
         }
     }
 

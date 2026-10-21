@@ -288,6 +288,24 @@ namespace SemaGeneric
             return origin;
         }
 
+        // A declaration inside a generic struct is never analyzed in place: each instance of the
+        // struct analyzes its own copy. Only a root outside such a scope is ever declared.
+        bool isDeclaredInPlace(const Symbol& root)
+        {
+            for (const SymbolMap* map = root.ownerSymMap(); map; map = map->ownerSymMap())
+            {
+                const SymbolStruct* owner = nullptr;
+                if (map->isStruct())
+                    owner = &map->cast<SymbolStruct>();
+                else if (map->isImpl() && map->cast<SymbolImpl>().isForStruct())
+                    owner = map->cast<SymbolImpl>().symStruct();
+                if (owner && owner->isGenericRoot())
+                    return false;
+            }
+
+            return true;
+        }
+
         Symbol* createGenericInstanceSymbol(Sema& sema, Symbol& root, AstNodeRef cloneRef, const GenericInstanceOrigin& origin)
         {
             if (auto* function = root.safeCast<SymbolFunction>())
@@ -448,6 +466,10 @@ namespace SemaGeneric
 
         Result createGenericInstance(Sema& sema, Symbol& root, std::span<const GenericParamDesc> params, std::span<const GenericResolvedArg> resolvedArgs, Symbol*& outInstance, const GenericInstanceOrigin& origin, AstNodeRef errorNodeRef = AstNodeRef::invalid())
         {
+            // A new instance copies the root's attributes. They are final once the root is declared;
+            // copied earlier, whether an #[Inline] root inlines would depend on scheduling.
+            if (isDeclaredInPlace(root))
+                SWC_RESULT(sema.waitDeclared(&root, root.codeRef()));
             outInstance = findOrCreateGenericInstance(sema, root, params, resolvedArgs, origin);
             if (!outInstance->isSemaCompleted())
             {

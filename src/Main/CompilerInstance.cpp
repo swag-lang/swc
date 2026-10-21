@@ -30,6 +30,7 @@
 #include "Main/TaskContext.h"
 #include "Support/Core/LookupTable.h"
 #include "Support/Core/Utf8Helper.h"
+#include "Support/Math/Hash.h"
 #include "Support/Math/Sha256.h"
 #include "Support/Memory/mimalloc/include/mimalloc.h"
 #include "Support/Os/Os.h"
@@ -1227,6 +1228,29 @@ const SourceView& CompilerInstance::srcView(SourceViewRef ref) const
 {
     SWC_ASSERT(ref.isValid());
     return *srcViewLookup_->at(ref.get());
+}
+
+void CompilerInstance::appendStableSourceIdentity(Utf8& out, const SourceCodeRef& codeRef) const
+{
+    // View references follow the order files and generated sections were loaded in. A generated
+    // section also lands in a per-worker file, so it is known by the site that produced it and by
+    // its own text instead.
+    if (codeRef.srcViewRef.isValid())
+    {
+        const SourceView&   view   = srcView(codeRef.srcViewRef);
+        const SourceCodeRef origin = view.debugSourceCodeRef();
+        if (origin.srcViewRef.isValid() && origin.srcViewRef != codeRef.srcViewRef)
+        {
+            appendStableSourceIdentity(out, origin);
+            out += std::format("#{:08x}", Math::hash(view.stringView()));
+        }
+        else if (const SourceFile* file = view.file())
+            out += Utf8(file->path());
+        else
+            out += std::format("#{:08x}", Math::hash(view.stringView()));
+    }
+
+    out += std::format(":{}", codeRef.tokRef.get());
 }
 
 const SourceFile* CompilerInstance::ownerSourceFile(SourceViewRef ref) const

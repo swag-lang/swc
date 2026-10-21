@@ -493,7 +493,7 @@ namespace
         if (!storedSym)
         {
             TaskContext&        ctx   = sema.ctx();
-            const IdentifierRef idRef = SemaHelpers::getUniqueIdentifier(sema, "__run_expr");
+            const IdentifierRef idRef = SemaHelpers::getStableIdentifier(sema, node, "__run_expr");
 
             auto* symFn = Symbol::make<SymbolFunction>(ctx, &node, node.tokRef(), idRef, sema.frame().flagsForCurrentAccess());
             symFn->setOwnerSymMap(SemaFrame::currentSymMap(sema));

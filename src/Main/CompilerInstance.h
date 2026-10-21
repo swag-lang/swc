@@ -418,6 +418,9 @@ public:
     const std::vector<NativeRuntimeImport>& nativeRuntimeImports() const { return nativeRuntimeImports_; }
     std::string_view                        runtimeImportLinkName(std::string_view moduleName) const;
 
+    // Appends a position text that every build of the same sources spells the same way.
+    void appendStableSourceIdentity(Utf8& out, const SourceCodeRef& codeRef) const;
+
     Result                   collectFiles(TaskContext& ctx);
     Result                   runModuleSetup(TaskContext& ctx);
     Result                   validateAllocatorConfig(TaskContext& ctx) const;

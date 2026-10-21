@@ -103,6 +103,8 @@ enum class SymbolFlagsE : uint16_t
     EditorRetired       = 1 << 11,
     MachineCodeEmitted  = 1 << 12,
     MachineCodeReused   = 1 << 13,
+    LoweredLeaf         = 1 << 14,
+    SemaLeaf            = 1 << 15,
 };
 
 using SymbolFlags             = AtomicEnumFlags<SymbolFlagsE>;

@@ -94,6 +94,22 @@ SWC_TEST_BEGIN(MachineCodeCache_TracksCalleeEffectsAndNullability)
 }
 SWC_TEST_END()
 
+// A caller's code depends on what its callees were proved to clobber.
+SWC_TEST_BEGIN(MachineCodeCache_TracksCallClobbers)
+{
+    auto*        caller = makeCacheFunction(ctx, "cacheClobbersCaller");
+    auto*        target = makeCacheFunction(ctx, "cacheClobbersTarget");
+    MicroBuilder builder(ctx);
+    builder.emitCallLocal(target, CallConvKind::Swag);
+    const Utf8        whole = cacheKey(ctx, *caller, builder);
+    const MicroInstr& call  = *builder.instructions().ptr(builder.instructions().lastInstructionRef());
+    call.setCallClobbers(builder.operands(), 1);
+    const Utf8 narrowed = cacheKey(ctx, *caller, builder);
+    if (whole.empty() || narrowed.empty() || whole == narrowed)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MachineCodeCache_PreservesGlobalAddressDistances)
 {
     auto*        caller = makeCacheFunction(ctx, "cacheGlobalCaller");

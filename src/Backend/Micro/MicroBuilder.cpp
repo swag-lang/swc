@@ -434,11 +434,12 @@ void MicroBuilder::emitCallLocal(const Symbol* targetSymbol, const CallConvKind 
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
     SWC_ASSERT(!targetFunction.isForeign());
 
-    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallLocal, 3);
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallLocal, 4);
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
     ops[1].valueU32        = intArgMask;
     ops[2].valueU32        = floatArgMask.widths;
+    ops[3].valueU64        = MicroInstr::K_CALL_CLOBBERS_ALL;
 
     addRelocation({
         .kind           = MicroRelocation::Kind::LocalFunctionAddress,
@@ -455,11 +456,12 @@ void MicroBuilder::emitCallExtern(const Symbol* targetSymbol, const CallConvKind
     const SymbolFunction& targetFunction = targetSymbol->cast<SymbolFunction>();
     SWC_ASSERT(targetFunction.isForeign());
 
-    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallExtern, 3);
+    auto [instRef, inst]   = addInstructionWithRef(MicroInstrOpcode::CallExtern, 4);
     MicroInstrOperand* ops = inst.ops(operands_);
     ops[0].callConv        = callConv;
     ops[1].valueU32        = intArgMask;
     ops[2].valueU32        = floatArgMask.widths;
+    ops[3].valueU64        = MicroInstr::K_CALL_CLOBBERS_ALL;
 
     addRelocation({
         .kind           = MicroRelocation::Kind::ForeignFunctionAddress,

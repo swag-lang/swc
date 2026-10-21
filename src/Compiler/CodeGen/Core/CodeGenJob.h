@@ -1,5 +1,6 @@
 #pragma once
 #include "Support/Core/RefTypes.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Thread/Job.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -33,12 +34,22 @@ private:
     void      initSemaAndCodeGen();
     void      releaseSemaAndCodeGen();
 
+    JobResult waitLeafCalleesLowered(std::span<SymbolFunction* const> callees);
+
     std::unique_ptr<Sema>    ownedSema_;
     std::unique_ptr<CodeGen> codeGen_;
 
     SymbolFunction* symbolFunc_     = nullptr;
     NodePayload*    nodePayloadCtx_ = nullptr;
     AstNodeRef      root_           = AstNodeRef::invalid();
+
+    // The functions the lowered body calls directly, read while the job still owned it. An
+    // optimized body is emitted once the leaf candidates among them are lowered (see
+    // SymbolFunction::resolveCallClobbers).
+    SmallVector<SymbolFunction*> directCallees_;
+    bool                         readsCalleeClobbers_ = false;
+    bool                         loweringStarted_     = false;
+    bool                         bodyEmitted_         = false;
 };
 
 SWC_END_NAMESPACE();

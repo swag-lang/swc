@@ -40,6 +40,14 @@ struct NativeFunctionInfo
     bool cacheHit   = false;
 };
 
+// One line of a previous build's function cache index.
+struct NativeFunctionCacheEntry
+{
+    Utf8     fingerprint;
+    Utf8     symbolName;
+    uint64_t callClobbers = MicroInstr::K_CALL_CLOBBERS_ALL;
+};
+
 struct NativeFunctionCacheRecord
 {
     Utf8 key;
@@ -105,8 +113,9 @@ struct NativeObjDescription
 class NativeBackendBuilder
 {
 public:
-    // Version 1 omitted per-function Optimize overrides from the code identity.
-    static constexpr uint32_t K_FUNCTION_CACHE_VERSION = 2;
+    // Version 1 omitted per-function Optimize overrides from the code identity. Version 2 kept no
+    // call clobbers, which an optimized caller of a reused leaf reads.
+    static constexpr uint32_t K_FUNCTION_CACHE_VERSION = 3;
 
     struct NativeTestProgressEvent
     {
@@ -289,7 +298,7 @@ private:
     LinkJob                 deferredToolRun_;
 
     std::unique_ptr<Archive>                                             existingFunctionCacheArchive_;
-    std::unordered_map<Utf8, std::pair<Utf8, Utf8>>                      existingFunctionCacheEntries_;
+    std::unordered_map<Utf8, NativeFunctionCacheEntry>                   existingFunctionCacheEntries_;
     std::unordered_map<const SymbolFunction*, NativeFunctionCacheRecord> functionCacheRecords_;
     mutable std::mutex                                                   functionCacheMutex_;
 

@@ -1075,8 +1075,13 @@ void NativeBackendBuilder::prepareFunctionCache()
     if (!indexContent.starts_with(expectedHeader))
         return;
 
-    std::unordered_map<Utf8, std::pair<Utf8, Utf8>> entries;
-    size_t                                          cursor = expectedHeader.size();
+    // A line holds the key, the fingerprint and the clobbers at fixed widths, then the symbol name.
+    constexpr size_t K_FINGERPRINT_START = 65;
+    constexpr size_t K_CLOBBERS_START    = K_FINGERPRINT_START + 65;
+    constexpr size_t K_NAME_START        = K_CLOBBERS_START + 17;
+
+    std::unordered_map<Utf8, NativeFunctionCacheEntry> entries;
+    size_t                                             cursor = expectedHeader.size();
     while (cursor < indexContent.size())
     {
         size_t end = indexContent.find('\n', cursor);
@@ -1087,13 +1092,18 @@ void NativeBackendBuilder::prepareFunctionCache()
             line.remove_suffix(1);
         if (!line.empty())
         {
-            const size_t firstTab  = line.find('\t');
-            const size_t secondTab = firstTab == std::string_view::npos ? firstTab : line.find('\t', firstTab + 1);
-            if (firstTab == std::string_view::npos || secondTab == std::string_view::npos || firstTab != 64 || secondTab - firstTab != 65 || secondTab + 1 == line.size())
+            if (line.size() <= K_NAME_START || line[K_FINGERPRINT_START - 1] != '\t' || line[K_CLOBBERS_START - 1] != '\t' || line[K_NAME_START - 1] != '\t')
                 return;
-            entries.emplace(
-                Utf8(line.substr(0, firstTab)),
-                std::pair{Utf8(line.substr(firstTab + 1, secondTab - firstTab - 1)), Utf8(line.substr(secondTab + 1))});
+
+            NativeFunctionCacheEntry entry;
+            const char*              clobbersEnd = line.data() + K_NAME_START - 1;
+            const auto               parsed      = std::from_chars(line.data() + K_CLOBBERS_START, clobbersEnd, entry.callClobbers, 16);
+            if (parsed.ec != std::errc{} || parsed.ptr != clobbersEnd)
+                return;
+
+            entry.fingerprint = Utf8(line.substr(K_FINGERPRINT_START, K_CLOBBERS_START - K_FINGERPRINT_START - 1));
+            entry.symbolName  = Utf8(line.substr(K_NAME_START));
+            entries.emplace(Utf8(line.substr(0, K_FINGERPRINT_START - 1)), std::move(entry));
         }
         cursor = end + 1;
     }
@@ -1142,9 +1152,9 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
     record.fingerprint = fingerprint;
 
     const auto cached = existingFunctionCacheEntries_.find(record.key);
-    if (cached != existingFunctionCacheEntries_.end() && cached->second.first == fingerprint && existingFunctionCacheArchive_)
+    if (cached != existingFunctionCacheEntries_.end() && cached->second.fingerprint == fingerprint && existingFunctionCacheArchive_)
     {
-        const Utf8&    symbolName   = cached->second.second;
+        const Utf8&    symbolName   = cached->second.symbolName;
         const uint32_t memberOffset = existingFunctionCacheArchive_->memberOffsetForSymbol(symbolName);
         if (memberOffset)
         {
@@ -1163,7 +1173,12 @@ bool NativeBackendBuilder::tryReuseFunction(SymbolFunction& function)
         }
     }
 
-    const bool             hit = record.hit;
+    // The object holds the code a fresh emission would produce, so its callers trust the
+    // clobbers that emission recorded.
+    const bool hit = record.hit;
+    if (hit)
+        function.setCallClobbers(cached->second.callClobbers);
+
     const std::scoped_lock lock(functionCacheMutex_);
     functionCacheRecords_.insert_or_assign(&function, std::move(record));
     return hit;

@@ -1735,7 +1735,7 @@ Result PELinker::prepareIncrementalFunctionCache(LinkJob& outJob) const
             continue;
 
         members.push_back({.name = std::format("function_{:06}.obj", members.size()), .bytes = *objectBytes});
-        index += std::format("{}\t{}\t{}\n", record->key.view(), record->fingerprint.view(), info.symbolName.view());
+        index += std::format("{}\t{}\t{:016x}\t{}\n", record->key.view(), record->fingerprint.view(), info.symbol->callClobbers(), info.symbolName.view());
     }
 
     ByteArray  archiveBytes;

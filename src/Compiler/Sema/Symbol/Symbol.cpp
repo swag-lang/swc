@@ -237,6 +237,13 @@ void Symbol::setSemaCompleted(TaskContext& ctx)
     }
 #endif
 
+    // A function whose analysis found nothing to call is a leaf candidate its optimized callers
+    // wait for (see CodeGenJob::waitLeafCalleesLowered). The set is read here, before code
+    // generation adds the helpers it calls, so the candidates are the same on every build.
+    const auto* function = safeCast<SymbolFunction>();
+    if (function && !function->hasCallDependencies())
+        flags_.add(SymbolFlagsE::SemaLeaf);
+
     flags_.add(SymbolFlagsE::SemaCompleted);
     ctx.compiler().noteSymbolSemaCompleted();
     ctx.compiler().onSymbolSemaCompleted(ctx, *this);

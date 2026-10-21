@@ -1,12 +1,55 @@
 #include "pch.h"
 #include "Backend/Micro/MachineCode.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
+
+namespace
+{
+    using MicroPhysLiveness = MicroPassHelpers::MicroPhysLiveness;
+
+    uint64_t physicalRegBits(const MicroRegSpan regs)
+    {
+        uint64_t bits = 0;
+        for (const MicroReg reg : regs)
+            bits |= 1ull << MicroPhysLiveness::bitOf(reg);
+        return bits;
+    }
+
+    // Reads the final code, after every pass and with the encoder's own writes (a gather's mask,
+    // the RDX of a division), so a caller trusting the result keeps nothing this code touches.
+    // The return registers stay clobbered even when the body leaves them alone: every call
+    // hands its result back in them.
+    uint64_t leafCallClobbers(const MicroBuilder& builder, const Encoder& encoder)
+    {
+        const CallConv& conv     = CallConv::get(CallConvKind::Swag);
+        uint64_t        clobbers = physicalRegBits(std::array{conv.intReturn, conv.floatReturn});
+
+        MicroInstrUseDef useDef;
+        for (const MicroInstr& inst : builder.instructions().view())
+        {
+            if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                return MicroInstr::K_CALL_CLOBBERS_ALL;
+
+            inst.collectUseDef(useDef, builder.operands(), &encoder);
+            for (const MicroReg reg : useDef.defs)
+            {
+                const uint32_t bit = MicroPhysLiveness::bitOf(reg);
+                if (bit < MicroPhysLiveness::K_INVALID_BIT)
+                    clobbers |= 1ull << bit;
+            }
+        }
+
+        // The function saves and restores any nonvolatile register it writes.
+        return clobbers & (physicalRegBits(conv.intTransientRegs) | physicalRegBits(conv.floatTransientRegs));
+    }
+}
 
 const MachineCode::DebugSourceRange* MachineCode::findDebugSourceRangeAtOffset(const uint32_t codeOffset) const
 {
@@ -109,6 +152,7 @@ Result MachineCode::emit(TaskContext& ctx, MicroBuilder& builder, MicroReg debug
 
     debugStackBasePhysReg = passContext.debugStackBasePhysReg;
     codeAlignment         = passContext.codeAlignment;
+    callClobbers          = leafCallClobbers(builder, encoder);
 
     // Diagnostics can abort lowering before any encodable instruction is produced.
     // Propagate the existing failure instead of crashing in the test runner.

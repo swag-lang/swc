@@ -1101,6 +1101,12 @@ void SymbolFunction::appendCallDependencies(SmallVector<SymbolFunction*>& out) c
     out.append(callDependencies_.data(), callDependencies_.size());
 }
 
+bool SymbolFunction::hasCallDependencies() const
+{
+    const std::shared_lock lock(callDependenciesMutex_);
+    return !callDependencies_.empty() || (lifecycleDependencies_ && !lifecycleDependencies_->empty());
+}
+
 void SymbolFunction::addLifecycleDependency(const SymbolFunction* sym, const bool observesEffects)
 {
     if (!sym || sym == this)

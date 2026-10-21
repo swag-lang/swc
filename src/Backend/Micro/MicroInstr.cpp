@@ -2,6 +2,7 @@
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/Encoder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroStorage.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -126,6 +127,35 @@ namespace
             result.widths = static_cast<uint16_t>(ops[index].valueU32);
         return result;
     }
+
+    // Direct calls carry their clobbers after the float argument widths; any other call has none.
+    uint32_t callClobbersOperandIndex(const MicroInstrDef& opcodeInfo)
+    {
+        return opcodeInfo.callConvIndex + 3;
+    }
+
+    uint64_t callClobbersFromOperands(const MicroInstr& inst, const MicroInstrDef& opcodeInfo, const MicroInstrOperand* ops)
+    {
+        const uint32_t index = callClobbersOperandIndex(opcodeInfo);
+        return inst.numOperands > index ? ops[index].valueU64 : MicroInstr::K_CALL_CLOBBERS_ALL;
+    }
+
+    void addClobberedRegs(MicroInstrUseDef& useDef, const MicroRegSpan transientRegs, const uint64_t clobbers)
+    {
+        if (clobbers == MicroInstr::K_CALL_CLOBBERS_ALL)
+        {
+            useDef.defs.append(transientRegs.data(), transientRegs.size());
+            return;
+        }
+
+        for (const MicroReg reg : transientRegs)
+        {
+            const uint32_t bit = MicroPassHelpers::MicroPhysLiveness::bitOf(reg);
+            SWC_ASSERT(bit < MicroPassHelpers::MicroPhysLiveness::K_INVALID_BIT);
+            if (clobbers & (1ull << bit))
+                useDef.defs.push_back(reg);
+        }
+    }
 }
 
 MicroInstrUseDef MicroInstr::collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const
@@ -140,6 +170,21 @@ CallFloatArgs MicroInstr::callFloatArgs(const MicroOperandStorage& operands) con
     const MicroInstrDef& opcodeInfo = info(op);
     SWC_ASSERT(opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction));
     return callFloatArgsFromOperands(*this, opcodeInfo, ops(operands));
+}
+
+uint64_t MicroInstr::callClobbers(const MicroOperandStorage& operands) const
+{
+    const MicroInstrDef& opcodeInfo = info(op);
+    SWC_ASSERT(opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction));
+    return callClobbersFromOperands(*this, opcodeInfo, ops(operands));
+}
+
+void MicroInstr::setCallClobbers(MicroOperandStorage& operands, const uint64_t clobbers) const
+{
+    const MicroInstrDef& opcodeInfo = info(op);
+    SWC_ASSERT(opcodeInfo.flags.has(MicroInstrFlagsE::IsCallInstruction));
+    SWC_ASSERT(numOperands > callClobbersOperandIndex(opcodeInfo));
+    ops(operands)[callClobbersOperandIndex(opcodeInfo)].valueU64 = clobbers;
 }
 
 void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStorage& operands, const Encoder* encoder) const
@@ -171,8 +216,9 @@ void MicroInstr::collectUseDef(MicroInstrUseDef& useDef, const MicroOperandStora
         // ABI tables contain physical registers, so no operand-sentinel filtering is needed.
         SWC_ASSERT(std::ranges::all_of(callConv.intTransientRegs, &MicroReg::isInt));
         SWC_ASSERT(std::ranges::all_of(callConv.floatTransientRegs, &MicroReg::isFloat));
-        useDef.defs.append(callConv.intTransientRegs.data(), callConv.intTransientRegs.size());
-        useDef.defs.append(callConv.floatTransientRegs.data(), callConv.floatTransientRegs.size());
+        const uint64_t clobbers = callClobbersFromOperands(*this, opcodeInfo, ops);
+        addClobberedRegs(useDef, callConv.intTransientRegs, clobbers);
+        addClobberedRegs(useDef, callConv.floatTransientRegs, clobbers);
     }
 
     if (ops)

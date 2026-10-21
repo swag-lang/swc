@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
-#include "Backend/Native/NativeBackendBuilder.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -193,21 +193,47 @@ JobResult CodeGenJob::execImpl()
     // Sleeping jobs resume here without regenerating an already lowered body.
     if (!symbolFunc_->isCodeGenPreSolved())
     {
+        // An optimized body reads the final clobbers of the leaf candidates it calls. Joining them
+        // before lowering keeps nothing alive meanwhile: the body is then lowered and emitted in
+        // one go. Only the dependencies analysis found count, since lowering adds the helpers it
+        // calls and a lowering paused halfway resumes here.
+        if (!loweringStarted_)
+        {
+            if (sema().compiler().buildCfg().backend.runsCostlyOptimizations())
+            {
+                const JobResult waitResult = waitLeafCalleesLowered(deps.span());
+                if (waitResult != JobResult::Done)
+                    return waitResult;
+            }
+
+            loweringStarted_ = true;
+        }
+
         SWC_ASSERT(root_.isValid());
         const Result codeGenResult = codeGen_->exec(*symbolFunc_, root_);
         if (codeGenResult != Result::Continue)
             return abortCodeGen(ctx(), *symbolFunc_, codeGenResult);
 
+        const MicroBuilder* builder = symbolFunc_->microInstrBuilder();
+        readsCalleeClobbers_        = builder && builder->backendBuildCfg().runsCostlyOptimizations();
+        symbolFunc_->classifyLoweredBody(directCallees_);
         symbolFunc_->setCodeGenPreSolved(ctx());
+    }
 
-        // Reuse a native artifact when available; otherwise emit the lowered body.
-        NativeBackendBuilder* nativeBuilder = sema().compiler().activeNativeBuilder();
-        if (!nativeBuilder || !nativeBuilder->tryReuseFunction(*symbolFunc_))
+    if (!bodyEmitted_)
+    {
+        // Lowering may call leaf helpers analysis did not see.
+        if (readsCalleeClobbers_)
         {
-            const Result emitResult = symbolFunc_->emit(ctx());
-            if (emitResult != Result::Continue)
-                return abortCodeGen(ctx(), *symbolFunc_, emitResult);
+            const JobResult waitResult = waitLeafCalleesLowered(directCallees_.span());
+            if (waitResult != JobResult::Done)
+                return waitResult;
         }
+
+        const Result emitResult = symbolFunc_->emitOrReuse(ctx());
+        if (emitResult != Result::Continue)
+            return abortCodeGen(ctx(), *symbolFunc_, emitResult);
+        bodyEmitted_ = true;
     }
 
     SmallVector<SymbolFunction*> finalDeps;
@@ -234,6 +260,32 @@ JobResult CodeGenJob::execImpl()
     }
 
     symbolFunc_->setCodeGenCompleted(ctx());
+    return JobResult::Done;
+}
+
+// A leaf candidate waits on no other function before its own lowering, since its analysis found
+// nothing to call, so joining candidates adds no cycle. Their analysis is joined first: whether a
+// callee is a candidate is only known once it is complete.
+JobResult CodeGenJob::waitLeafCalleesLowered(const std::span<SymbolFunction* const> callees)
+{
+    for (SymbolFunction* callee : callees)
+    {
+        if (callee == symbolFunc_ || callee->isCodeGenPreSolved() || callee->isCodeGenCompleted())
+            continue;
+
+        const Result semaWaitResult = sema().waitSemaCompleted(callee, callee->codeRef());
+        if (semaWaitResult != Result::Continue)
+            return abortCodeGen(ctx(), *symbolFunc_, semaWaitResult);
+        if (callee->isIgnored())
+            return abortCodeGen(ctx(), *symbolFunc_, Result::Error);
+        if (!callee->isSemaLeaf())
+            continue;
+
+        sema().compiler().tryEnqueueCodeGenJob(sema(), *callee, callee->declNodeRef());
+        if (prepareWaitCodeGenPreSolved(ctx(), *symbolFunc_, *callee, root_))
+            return JobResult::Sleep;
+    }
+
     return JobResult::Done;
 }
 

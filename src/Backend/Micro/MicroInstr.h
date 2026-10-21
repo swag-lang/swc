@@ -218,6 +218,11 @@ using MicroInstrRegOperandRefs = SmallVector<MicroInstrRegOperandRef, 3>;
 
 struct MicroInstr
 {
+    // Physical registers a direct call writes, one MicroPassHelpers::MicroPhysLiveness bit each.
+    // Every bit set stands for the convention's whole transient set, which is what a call writes
+    // unless its target's final code proved less (see SymbolFunction::resolveCallClobbers).
+    static constexpr uint64_t K_CALL_CLOBBERS_ALL = ~0ull;
+
     DebugSourceInfo  debugSourceInfo;
     MicroOperandRef  opsRef      = MicroOperandRef::invalid();
     MicroInstrOpcode op          = MicroInstrOpcode::OpBinaryRegImm;
@@ -235,6 +240,8 @@ struct MicroInstr
 
     MicroInstrUseDef collectUseDef(const MicroOperandStorage& operands, const Encoder* encoder) const;
     CallFloatArgs    callFloatArgs(const MicroOperandStorage& operands) const;
+    uint64_t         callClobbers(const MicroOperandStorage& operands) const;
+    void             setCallClobbers(MicroOperandStorage& operands, uint64_t clobbers) const;
     bool             has128BitOperands(const MicroInstrOperand* operands) const;
 
     // Conservatively describes all float inputs of a packed instruction.

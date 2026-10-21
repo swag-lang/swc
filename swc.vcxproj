@@ -256,6 +256,7 @@
         <ClCompile Include="src\Backend\Micro\MachineCode.cpp"/>
         <ClCompile Include="src\Backend\Micro\MachineCodeCache.cpp"/>
         <ClCompile Include="src\Unittest\Micro\Test.Micro.MachineCodeCache.cpp"/>
+        <ClCompile Include="src\Unittest\Micro\Test.Micro.CallClobbers.cpp"/>
         <ClCompile Include="src\Backend\RuntimeBackendConfig.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.BranchSimplify.cpp"/>
         <ClCompile Include="src\Backend\Micro\Passes\Pass.ColdBlockLayout.cpp"/>

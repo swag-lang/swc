@@ -24,8 +24,9 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_MAGIC           = 0x3245444f434d5753; // SWMCODE2
-    constexpr uint32_t K_HEADER_SIZE     = 64;
+    constexpr uint64_t K_MAGIC           = 0x3345444f434d5753; // SWMCODE3
+    constexpr uint32_t K_CHECKSUM_OFFSET = 40;
+    constexpr uint32_t K_HEADER_SIZE     = K_CHECKSUM_OFFSET + 32;
     constexpr uint32_t K_RELOCATION_SIZE = 28;
     constexpr uint32_t K_SOURCE_SIZE     = 12;
     constexpr uint32_t K_MAX_IMAGE_SIZE  = 64 * 1024 * 1024;
@@ -433,16 +434,17 @@ bool MachineCodeCache::read(MachineCode& out) const
     if (K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE != bytes.size() || !codeSize)
         return false;
     std::array<uint8_t, 32> checksum;
-    std::memcpy(checksum.data(), bytes.data() + 32, checksum.size());
+    std::memcpy(checksum.data(), bytes.data() + K_CHECKSUM_OFFSET, checksum.size());
     // The checksum field is logically zero; the shared record stays immutable.
     const std::array<std::byte, 32> zero{};
     const auto                      keyBytes = std::as_bytes(std::span{key_.data(), key_.size()});
-    if (sha256Parts({bytes.span().first(32), zero, bytes.span().subspan(K_HEADER_SIZE), keyBytes}) != checksum)
+    if (sha256Parts({bytes.span().first(K_CHECKSUM_OFFSET), zero, bytes.span().subspan(K_HEADER_SIZE), keyBytes}) != checksum)
         return false;
 
     MachineCode code;
     code.debugStackBasePhysReg = MicroReg::fromPacked(bytes.readLe32(16));
     code.codeAlignment         = bytes.readLe32(20);
+    code.callClobbers          = bytes.readLe64(32);
     if (!std::has_single_bit(code.codeAlignment) || code.codeAlignment > 4096)
         return false;
     size_t cursor = K_HEADER_SIZE;
@@ -553,6 +555,7 @@ void MachineCodeCache::write(const MachineCode& code) const
     bytes.appendLe32(code.codeAlignment);
     bytes.appendLe32(static_cast<uint32_t>(code.codeRelocations.size()));
     bytes.appendLe32(static_cast<uint32_t>(code.debugSourceRanges.size()));
+    bytes.appendLe64(code.callClobbers);
     bytes.resize(K_HEADER_SIZE, std::byte{0});
     bytes.append(image);
     bytes.append(code.unwindInfo);
@@ -560,7 +563,7 @@ void MachineCodeCache::write(const MachineCode& code) const
     if (bytes.size() > K_MAX_IMAGE_SIZE)
         return;
     const auto checksum = sha256Parts({bytes.span(), std::as_bytes(std::span{key_.data(), key_.size()})});
-    std::memcpy(bytes.data() + 32, checksum.data(), checksum.size());
+    std::memcpy(bytes.data() + K_CHECKSUM_OFFSET, checksum.data(), checksum.size());
     CompilerCacheStore::get(ctx_->cmdLine().rebuild).write(key_, std::move(bytes));
 }
 

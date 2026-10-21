@@ -5,6 +5,7 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITPatchJob.h"
 #include "Backend/Micro/MachineCodeCache.h"
+#include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -81,6 +82,23 @@ namespace
         }
 
         return epochSum;
+    }
+
+    // Visits every call the body makes directly to another function, with that function.
+    template<typename F>
+    Result visitDirectCalls(const SymbolFunction& caller, const MicroBuilder& builder, F&& visit)
+    {
+        for (const MicroRelocation& relocation : builder.codeRelocations())
+        {
+            if (relocation.kind != MicroRelocation::Kind::LocalFunctionAddress || relocation.targetSymbol == &caller)
+                continue;
+
+            const MicroInstr* inst = builder.instructions().ptr(relocation.instructionRef);
+            if (inst && inst->op == MicroInstrOpcode::CallLocal)
+                SWC_RESULT(visit(*inst, relocation.targetSymbol->cast<SymbolFunction>()));
+        }
+
+        return Result::Continue;
     }
 
     void setWaitJitCompleted(TaskContext& ctx, const SymbolFunction& function, const Symbol* waiterSymbol)
@@ -369,6 +387,17 @@ const std::vector<uint64_t>& SymbolFunction::globalInitRelocationOffsets() const
 
 Result SymbolFunction::emit(TaskContext& ctx)
 {
+    return emitLowered(ctx, nullptr);
+}
+
+// Reuses the native artifact's cached object when it still matches, and emits the body otherwise.
+Result SymbolFunction::emitOrReuse(TaskContext& ctx)
+{
+    return emitLowered(ctx, ctx.compiler().activeNativeBuilder());
+}
+
+Result SymbolFunction::emitLowered(TaskContext& ctx, NativeBackendBuilder* nativeCache)
+{
     if (ctx.state().jitEmissionError)
         return Result::Error;
 
@@ -393,7 +422,23 @@ Result SymbolFunction::emit(TaskContext& ctx)
         return Result::Continue;
     }
 
+    // The cache fingerprints the builder, so it is consulted under the lock that guards it: a
+    // caller emitting a leaf on its own behalf can race the leaf's own job.
+    if (nativeCache)
+    {
+        if (!nativeCacheChecked_)
+        {
+            nativeCacheChecked_ = true;
+            nativeCacheHit_     = nativeCache->tryReuseFunction(*this);
+        }
+
+        if (nativeCacheHit_)
+            return Result::Continue;
+    }
+
     auto& builder = microInstrBuilder(ctx);
+    SWC_RESULT(narrowCallClobbers(ctx, builder));
+
     // Mark which return ABI register bank the function may write. Later backend
     // passes use this to preserve live return registers through epilog generation.
     if (!returnTypeRef().isValid() || returnTypeRef() == ctx.typeMgr().typeVoid())
@@ -425,6 +470,7 @@ Result SymbolFunction::emit(TaskContext& ctx)
         addFlag(SymbolFlagsE::MachineCodeReused);
     if (!reused && Stats::get().numWarnings.load(std::memory_order_relaxed) == warningsBefore && !Stats::hasError())
         cache.write(loweredMicroCode_);
+    setCallClobbers(loweredMicroCode_.callClobbers);
 
     // CodeView requires a physical frame register. Replace the pre-allocation virtual
     // debug base with its resolved home so local-variable records can be emitted.
@@ -440,6 +486,71 @@ Result SymbolFunction::emit(TaskContext& ctx)
 
     ctx.compiler().notifyAlive();
     return Result::Continue;
+}
+
+// Runs while the lowering job still owns the body: once it is published as lowered, a '#run'
+// batch may emit it, and release its builder, from another thread.
+void SymbolFunction::classifyLoweredBody(SmallVector<SymbolFunction*>& outDirectCallees)
+{
+    outDirectCallees.clear();
+    const MicroBuilder* builder = microInstrBuilder();
+    if (!builder)
+        return;
+
+    bool hasCall = false;
+    for (const MicroInstr& inst : builder->instructions().view())
+    {
+        if (MicroInstr::info(inst.op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+        {
+            hasCall = true;
+            break;
+        }
+    }
+
+    if (!hasCall)
+    {
+        addFlag(SymbolFlagsE::LoweredLeaf);
+        return;
+    }
+
+    visitDirectCalls(*this, *builder, [&](const MicroInstr&, SymbolFunction& callee) {
+        outDirectCallees.push_back(&callee);
+        return Result::Continue;
+    });
+}
+
+Result SymbolFunction::resolveCallClobbers(TaskContext& ctx, uint64_t& outClobbers)
+{
+    // Whether this callee is trusted cannot depend on how far its own job has got: only a
+    // candidate its callers waited for is, and only once it was lowered without any call.
+    outClobbers = MicroInstr::K_CALL_CLOBBERS_ALL;
+    if (!isSemaLeaf() || !isCodeGenPreSolved() || !isLoweredLeaf())
+        return Result::Continue;
+
+    outClobbers = callClobbers();
+    if (outClobbers != MicroInstr::K_CALL_CLOBBERS_ALL)
+        return Result::Continue;
+
+    SWC_RESULT(emitOrReuse(ctx));
+    outClobbers = callClobbers();
+    return Result::Continue;
+}
+
+// An optimized body keeps values across a call in the transient registers its callee leaves
+// alone. Which callee qualifies has to be the same whichever thread emits first: the caller's
+// job emits only once the leaf candidates it calls are lowered, and a '#run' batch only once
+// every function it holds is.
+Result SymbolFunction::narrowCallClobbers(TaskContext& ctx, MicroBuilder& builder)
+{
+    if (!builder.backendBuildCfg().runsCostlyOptimizations())
+        return Result::Continue;
+
+    return visitDirectCalls(*this, builder, [&](const MicroInstr& call, SymbolFunction& callee) {
+        uint64_t clobbers = MicroInstr::K_CALL_CLOBBERS_ALL;
+        SWC_RESULT(callee.resolveCallClobbers(ctx, clobbers));
+        call.setCallClobbers(builder.operands(), clobbers);
+        return Result::Continue;
+    });
 }
 
 bool SymbolFunction::hasLoweredCode() const noexcept

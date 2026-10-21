@@ -24,6 +24,7 @@ class SymbolImpl;
 class SymbolInterface;
 class NodePayload;
 class JITPatchJob;
+class NativeBackendBuilder;
 class TaskContext;
 
 enum class SymbolFunctionFlagsE : uint16_t
@@ -374,6 +375,7 @@ public:
 
     void addCallDependency(const SymbolFunction* sym);
     void appendCallDependencies(SmallVector<SymbolFunction*>& out) const;
+    bool hasCallDependencies() const;
 
     void addLifecycleDependency(const SymbolFunction* sym, bool observesEffects = true);
     void appendLifecycleDependencies(SmallVector<SymbolFunction*>& out) const;
@@ -465,7 +467,19 @@ public:
     void     resetJitState() noexcept;
 
     Result emit(TaskContext& ctx);
+    Result emitOrReuse(TaskContext& ctx);
     Result ensureClosureAdapter(TaskContext& ctx, SymbolFunction*& outAdapter);
+
+    // Registers a direct call to this function writes, as MicroInstr call clobbers. Only a leaf is
+    // ever narrowed: a function whose analysis found no call, its callers wait for it, and whose
+    // body was lowered without any call, so it can be emitted on a caller's behalf when its own
+    // job has not got there yet: its passes read no other function.
+    void     classifyLoweredBody(SmallVector<SymbolFunction*>& outDirectCallees);
+    bool     isSemaLeaf() const noexcept { return hasFlag(SymbolFlagsE::SemaLeaf); }
+    bool     isLoweredLeaf() const noexcept { return hasFlag(SymbolFlagsE::LoweredLeaf); }
+    uint64_t callClobbers() const noexcept { return callClobbers_.load(std::memory_order_acquire); }
+    void     setCallClobbers(uint64_t clobbers) noexcept { callClobbers_.store(clobbers, std::memory_order_release); }
+    Result   resolveCallClobbers(TaskContext& ctx, uint64_t& outClobbers);
 
     GenericInstanceStorage& genericInstanceStorage(const TaskContext& ctx) const noexcept;
     bool                    tryGetGenericInstanceArgs(const TaskContext& ctx, const SymbolFunction& instance, SmallVector<GenericInstanceKey>& outArgs) const;
@@ -538,6 +552,8 @@ private:
     GenericData& ensureGenericData(const TaskContext& ctx) const noexcept;
     GenericData* genericData() const noexcept;
 
+    Result emitLowered(TaskContext& ctx, NativeBackendBuilder* nativeCache);
+    Result narrowCallClobbers(TaskContext& ctx, MicroBuilder& builder);
     Result jitMaterialize(TaskContext& ctx);
     bool   jitPrepare(TaskContext& ctx);
     Result jitPatch(TaskContext& ctx);
@@ -623,6 +639,9 @@ private:
     // functions a program imports are never generated, and a lowered one keeps its machine code.
     std::atomic<MicroBuilder*> microInstrBuilder_ = nullptr;
     MachineCode                loweredMicroCode_;
+    std::atomic<uint64_t>      callClobbers_       = MicroInstr::K_CALL_CLOBBERS_ALL;
+    bool                       nativeCacheChecked_ = false;
+    bool                       nativeCacheHit_     = false;
 
     mutable std::shared_mutex            callDependenciesMutex_;
     mutable std::shared_mutex            closureAdapterMutex_;

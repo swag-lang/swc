@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Encoder/EncoderDebugInfo.h"
+#include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/Micro/MicroRelocation.h"
 #include "Support/Core/ByteArray.h"
@@ -33,6 +34,10 @@ struct MachineCode
 
     // Alignment the image has to give the first byte of `bytes` (see MicroPassContext::codeAlignment).
     uint32_t codeAlignment = 16;
+
+    // Transient registers the code writes, as a call's clobbers, when no call is left in it;
+    // MicroInstr::K_CALL_CLOBBERS_ALL for any other code.
+    uint64_t callClobbers = MicroInstr::K_CALL_CLOBBERS_ALL;
 
     const DebugSourceRange* findDebugSourceRangeAtOffset(uint32_t codeOffset) const;
     static bool             tryResolveDebugSourceRange(const TaskContext& ctx, ResolvedDebugSourceRange& outResolvedRange, const DebugSourceRange& range);

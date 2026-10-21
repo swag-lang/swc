@@ -345,6 +345,16 @@ void CodeGenSafety::configureValueBorrowSites(CodeGen& codeGen, AstNodeRef bodyR
                     if (!isBorrowedValueType(codeGen, borrowType))
                         continue;
 
+                    // An array passed as a slice gets a header built for this call alone: no
+                    // other code can name, let alone write, the storage the parameter borrows.
+                    AstNodeRef sourceRef = codeGen.resolvedNodeRef(args[i].argRef);
+                    for (uint32_t depth = 0; depth < 4 && sourceRef.isValid() && codeGen.node(sourceRef).is(AstNodeId::CastExpr); ++depth)
+                        sourceRef = codeGen.node(sourceRef).cast<AstCastExpr>().nodeExprRef;
+                    const TypeRef sourceTypeRef = sourceRef.isValid() ? SemaNodeView(codeGen.sema(), sourceRef, SemaNodeViewPartE::Type, SemaNodeViewResolveE::Stored).typeRef() : TypeRef::invalid();
+                    if (sourceTypeRef.isValid() && codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), sourceTypeRef).isArray() &&
+                        codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), borrowType).isSlice())
+                        continue;
+
                     const auto abi = ABITypeNormalize::normalize(codeGen.ctx(), CallConv::get(function->callConvKind()), codeGen.typeMgr().get(borrowType), ABITypeNormalize::Usage::Argument);
                     if (!abi.isIndirect || abi.needsIndirectCopy)
                         continue;

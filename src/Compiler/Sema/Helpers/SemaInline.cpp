@@ -1998,11 +1998,14 @@ namespace
 
         // An array passed as a slice gets a header built for this call alone: no other code can
         // name, let alone write, the storage the parameter borrows.
-        const TypeRef argTypeRef         = sema.viewType(ioBinding.exprRef).typeRef();
+        // The argument already carries its conversion to the parameter: read the type under it.
+        AstNodeRef argSourceRef = ioBinding.exprRef;
+        while (sema.node(argSourceRef).is(AstNodeId::CastExpr))
+            argSourceRef = sema.node(argSourceRef).cast<AstCastExpr>().nodeExprRef;
+        const TypeRef argTypeRef         = SemaNodeView(sema, argSourceRef, SemaNodeViewPartE::Type, SemaNodeViewResolveE::Stored).typeRef();
         const bool    borrowsFreshHeader = mat.borrowedValue && argTypeRef.isValid() &&
                                         sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), argTypeRef).isArray() &&
                                         sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), param.typeRef()).isSlice();
-
         AstNodeRef clonedInitRef = SemaClone::cloneDetachedExpr(sema, ioBinding.exprRef);
         if (clonedInitRef.isInvalid())
             return Result::Error;

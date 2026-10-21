@@ -15,7 +15,7 @@ SWC_BEGIN_NAMESPACE();
 //     cmp gap, %address             at or above the lowest open borrow
 //     jbe check
 //     sub gap, %address
-//     cmp %size, gap                ends at or below it
+//     cmp %size, gap                ends at or below it (cmp gap, size when it is fixed)
 //     jbe done
 //   check:
 //     rcx = %address, rdx = %size, r8 = %location, r9 = %extentCache

@@ -109,6 +109,32 @@ namespace
         return std::nullopt;
     }
 
+    // A write of a fixed size: the test then compares against the size itself, and the register
+    // holding it is needed by the fallback alone.
+    std::optional<uint64_t> resolveConstantArgument(const MicroPassContext& context, const GuardCall& guard, const MicroSsaState& ssa, uint32_t argIndex)
+    {
+        MicroReg      reg = guard.args[argIndex];
+        MicroInstrRef at  = guard.argRefs[argIndex];
+        for (uint32_t depth = 0; depth < 8; ++depth)
+        {
+            const auto def = ssa.reachingDef(reg, at);
+            if (!def.valid() || def.isPhi || !def.inst)
+                break;
+            const auto* ops = def.inst->ops(*context.operands);
+            if (def.inst->op == MicroInstrOpcode::LoadRegReg && ops[2].opBits == MicroOpBits::B64 && ops[1].reg.isVirtualInt())
+            {
+                reg = ops[1].reg;
+                at  = def.instRef;
+                continue;
+            }
+            if (def.inst->op == MicroInstrOpcode::LoadRegImm && ops[1].opBits == MicroOpBits::B64 && !ops[2].hasWideImmediateValue() &&
+                ops[2].valueU64 <= std::numeric_limits<uint32_t>::max())
+                return ops[2].valueU64;
+            break;
+        }
+        return std::nullopt;
+    }
+
     // Shared addresses must not keep a register live through the loop for several cold calls.
     // Rematerialize the exact same target in the ABI register, including its relocation identity.
     void rematerializeArgument(MicroPassContext& context, const GuardCall& guard, uint32_t argIndex, MicroRelocation relocation)
@@ -189,7 +215,7 @@ namespace
         storage.insertDerivedBefore(operands, beforeRef, MicroInstrOpcode::CmpRegReg, ops);
     }
 
-    void insertExtentTest(MicroPassContext& context, const GuardCall& guard, MicroReg extent, MicroReg gap, const MicroRelocation* cacheSource)
+    void insertExtentTest(MicroPassContext& context, const GuardCall& guard, MicroReg extent, MicroReg gap, const MicroRelocation* cacheSource, std::optional<uint64_t> sizeConstant)
     {
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
@@ -238,8 +264,20 @@ namespace
         subOps[2].opBits            = MicroOpBits::B64;
         subOps[3].microOp           = MicroOp::Subtract;
         storage.insertDerivedBefore(operands, at, MicroInstrOpcode::OpBinaryRegReg, subOps);
-        insertCompare(storage, operands, at, size, gap);
-        insertJump(storage, operands, at, MicroCond::BelowOrEqual, doneId);
+        if (sizeConstant)
+        {
+            MicroInstrOperand sizeOps[3] = {};
+            sizeOps[0].reg               = gap;
+            sizeOps[1].opBits            = MicroOpBits::B64;
+            sizeOps[2].setImmediateValue(ApInt(*sizeConstant, 64));
+            storage.insertDerivedBefore(operands, at, MicroInstrOpcode::CmpRegImm, sizeOps);
+            insertJump(storage, operands, at, MicroCond::AboveOrEqual, doneId);
+        }
+        else
+        {
+            insertCompare(storage, operands, at, size, gap);
+            insertJump(storage, operands, at, MicroCond::BelowOrEqual, doneId);
+        }
 
         insertLabel(storage, operands, at, checkId);
     }
@@ -298,7 +336,10 @@ Result MicroValueBorrowFastPathPass::run(MicroPassContext& context)
             sinkGuardInput(context, guard, ssa, 2);
         if (cacheSource)
             rematerializeArgument(context, guard, 3, *cacheSource);
-        insertExtentTest(context, guard, extent, gap, cacheSource ? &*cacheSource : nullptr);
+        const auto sizeConstant = resolveConstantArgument(context, guard, ssa, 1);
+        if (sizeConstant)
+            sinkGuardInput(context, guard, ssa, 1);
+        insertExtentTest(context, guard, extent, gap, cacheSource ? &*cacheSource : nullptr, sizeConstant);
         changed = true;
     }
 

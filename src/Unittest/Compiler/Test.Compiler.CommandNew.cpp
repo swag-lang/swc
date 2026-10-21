@@ -7,6 +7,7 @@
 #include "Main/Command/CommandLineParser.h"
 #include "Main/FileSystem.h"
 #include "Main/Global.h"
+#include "Main/WorkspaceLayout.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"
@@ -56,6 +57,35 @@ SWC_TEST_BEGIN(Compiler_NewScriptCommandParsesDefaultPath)
         return Result::Error;
     if (!parserCmdLine.newScriptPath.empty())
         return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_InfoReportsPathsWithoutCompilation)
+{
+    std::string           output;
+    Os::ProcessRunOptions options;
+    options.capturedOutput = &output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 10000;
+
+    uint32_t                exitCode = UINT32_MAX;
+    const std::vector<Utf8> args     = {"info", "--no-log-color", "--log-ascii", "--num-cores", "1"};
+    if (Os::runProcess(exitCode, Os::getExeFullName(), args, Os::getTemporaryPath(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+    const auto lines = Utf8Helper::splitLines(output);
+    if (output.find('\x1b') != std::string::npos || std::ranges::find(lines, "Caches") == lines.end() || std::ranges::find(lines, "Native toolchain") == lines.end())
+        return Result::Error;
+
+    // Compare paths independently of spaces and line breaks inserted by the report layout.
+    Utf8 compact(output);
+    std::erase_if(compact, [](const char c) { return c == ' ' || c == '\r' || c == '\n'; });
+    for (const fs::path& path : {WorkspaceLayout::dependencyCacheRoot(), WorkspaceLayout::machineCacheRoot()})
+    {
+        std::string expected = path.string();
+        std::erase(expected, ' ');
+        if (compact.find(expected) == Utf8::npos)
+            return Result::Error;
+    }
 }
 SWC_TEST_END()
 

@@ -52,6 +52,7 @@ namespace FileSystem
     const char* filePathDisplayModeName(FilePathDisplayMode mode);
     fs::path    absolutePathNoThrow(const fs::path& path);
     fs::path    compilerResourceRoot(const fs::path& exeFullName);
+    fs::path    standardLibraryWorkspaceRoot(const fs::path& exeFullName);
     fs::path    currentPathNoThrow();
     fs::path    generatedDependencyApiDir(const fs::path& exeFullName, std::string_view moduleName);
     fs::path    normalizePath(const fs::path& path);

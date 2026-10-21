@@ -24,6 +24,7 @@ enum class CommandKind
     Smoke,
     Build,
     Run,
+    Info,
 };
 
 enum class NewProjectKind
@@ -42,19 +43,20 @@ struct CommandInfo
 
 inline constexpr CommandInfo COMMANDS[] = {
     {CommandKind::New, "new", "Create a runnable script or an executable workspace module"},
-    {CommandKind::Clean, "clean", "Remove what a build produced, and the caches the compiler keeps between runs"},
+    {CommandKind::Run, "run", "Build native artifacts and run executables when available"},
+    {CommandKind::Build, "build", "Build native artifacts without running executables"},
+    {CommandKind::Test, "test", "Run #test functions, source tests, and expected diagnostic checks"},
     {CommandKind::Format, "format", "Parse source files and write their canonical formatting back to disk"},
+    {CommandKind::Doc, "doc", "Analyze source semantics and generate HTML documentation"},
+    {CommandKind::Clean, "clean", "Remove selected build outputs and compiler caches"},
+    {CommandKind::Info, "info", "Show the compiler, installation, cache paths, and native toolchain"},
     {CommandKind::Syntax, "syntax", "Check source syntax without generating IR or backend code"},
     {CommandKind::Sema, "sema", "Analyze source semantics, including type checking"},
+    {CommandKind::Smoke, "smoke", "Run native executables for bounded frames in isolation to check startup"},
     {CommandKind::Service, "service", "Serve persistent compiler analysis requests for editor integrations"},
-    {CommandKind::Doc, "doc", "Compile source semantics and generate HTML documentation"},
 #if SWC_HAS_UNITTEST
     {CommandKind::Unittest, "unittest", "Run only the internal C++ unit tests"},
 #endif
-    {CommandKind::Test, "test", "Run source-driven tests, expected diagnostics, and #test functions"},
-    {CommandKind::Smoke, "smoke", "Run emitted executables for a bounded number of frames, isolated from the machine, to prove they start and run"},
-    {CommandKind::Build, "build", "Build native artifacts from input sources without running emitted executables"},
-    {CommandKind::Run, "run", "Build native artifacts from input sources and run emitted executables when available"},
 };
 
 inline constexpr std::string_view SWAG_TEST_RUN_ARG = "swag.test";
@@ -302,6 +304,8 @@ constexpr std::string_view commandName(const CommandKind command)
 {
     switch (command)
     {
+        case CommandKind::Info:
+            return "info";
         case CommandKind::New:
             return "new";
         case CommandKind::Clean:

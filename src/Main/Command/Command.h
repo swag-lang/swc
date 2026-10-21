@@ -10,6 +10,7 @@ class TaskContext;
 
 namespace Command
 {
+    void   info(const TaskContext& ctx);
     Result createProject(TaskContext& ctx);
     Result clean(TaskContext& ctx);
     void   dryRun(CompilerInstance& compiler);

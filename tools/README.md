@@ -1,5 +1,11 @@
 # Repository tools
 
+Run `bin\swc.exe info` to inspect the compiler executable, installation folders, standard
+modules, absolute cache paths, and detected MSVC/Windows SDK libraries. It reads the installation
+without compiling sources or creating folders. Add `--workspace <path>` or `--module <path>` to
+include that project's output and intermediate folders. `bin\swc.exe help <command>` lists the
+options for one command.
+
 The project-owned tool entry points are Swag scripts in this directory: hand one to the compiler,
 or double-click it once `setup.swgs` has claimed the extension.
 Every tool takes the same shape:

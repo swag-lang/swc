@@ -28,6 +28,10 @@ Utf8 LogColorHelper::toAnsi(const TaskContext& ctx, LogColor c)
             return "\x1b[1m";
         case Dim:
             return "\x1b[2m";
+        case BrandVoltage:
+            return colorToAnsi(247, 249, 0);
+        case BrandArc:
+            return colorToAnsi(56, 189, 248);
 
         case Red:
             return "\x1b[31m";

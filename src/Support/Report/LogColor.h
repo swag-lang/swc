@@ -16,6 +16,8 @@ enum class LogColor
     Reset,
     Bold,
     Dim,
+    BrandVoltage,
+    BrandArc,
 
     Red,
     Green,

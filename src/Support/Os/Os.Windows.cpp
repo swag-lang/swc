@@ -1434,9 +1434,6 @@ namespace Os
             break;
         }
 
-        if (outToolchain.vcLibPath.empty())
-            return WindowsToolchainDiscoveryResult::MissingMsvcToolchain;
-
         candidates.clear();
         if (const auto sdkDir = readEnvUtf8("WindowsSdkDir"))
         {
@@ -1478,10 +1475,10 @@ namespace Os
 
             outToolchain.sdkUmLibPath   = umLib;
             outToolchain.sdkUcrtLibPath = ucrtLib;
-            return WindowsToolchainDiscoveryResult::Ok;
+            return outToolchain.vcLibPath.empty() ? WindowsToolchainDiscoveryResult::MissingMsvcToolchain : WindowsToolchainDiscoveryResult::Ok;
         }
 
-        return WindowsToolchainDiscoveryResult::MissingWindowsSdk;
+        return outToolchain.vcLibPath.empty() ? WindowsToolchainDiscoveryResult::MissingMsvcToolchain : WindowsToolchainDiscoveryResult::MissingWindowsSdk;
     }
 
     bool isDebuggerAttached()

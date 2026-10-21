@@ -1186,7 +1186,7 @@ Result CommandLineParser::checkCommandLine(TaskContext& ctx) const
     // A module directory selects its setup file and conventional sources. Normalize it before
     // resolving relative inputs so setup execution and imports use the same root. Cleaning a
     // module only needs its directory; it must also work after the setup file was removed.
-    if (!cmdLine_->modulePath.empty() && cmdLine_->moduleFilePath.empty() && cmdLine_->command != CommandKind::Clean)
+    if (!cmdLine_->modulePath.empty() && cmdLine_->moduleFilePath.empty() && cmdLine_->command != CommandKind::Clean && cmdLine_->command != CommandKind::Info)
     {
         fs::path moduleFile = cmdLine_->modulePath / "module.swg";
         SWC_RESULT(FileSystem::resolveFile(ctx, moduleFile));

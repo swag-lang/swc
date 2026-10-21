@@ -197,20 +197,10 @@ namespace
     // sets `SWAG_PATH` in the first place, before anything has been configured.
     Result resolveSwagStdWorkspaceRoot(fs::path& outRoot, TaskContext& ctx)
     {
-        outRoot = (FileSystem::compilerResourceRoot(Os::getExeFullName()) / "std").lexically_normal();
-
-        std::error_code ec;
-        if (fs::is_directory(outRoot, ec))
-            return Result::Continue;
-
-        outRoot.clear();
-        const std::optional<Utf8> installRoot = Os::readEnvironmentVariable("SWAG_PATH");
-        if (!installRoot.has_value() || installRoot->empty())
+        outRoot = FileSystem::standardLibraryWorkspaceRoot(Os::getExeFullName());
+        if (outRoot.empty())
             return FileSystem::reportInvalidFolder(ctx, "SWAG_PATH", "environment variable is not defined, and no standard library sits beside the compiler");
-
-        outRoot = fs::path(installRoot->c_str());
         SWC_RESULT(FileSystem::resolveFolder(ctx, outRoot));
-        outRoot = (outRoot / "std").lexically_normal();
         return Result::Continue;
     }
 

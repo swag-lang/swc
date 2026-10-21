@@ -68,6 +68,39 @@ SWC_TEST_BEGIN(Logger_TestTalliesNameSuccessfulWork)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Logger_CommandHelpWrapsAndAlignsDescriptions)
+{
+    std::string           output;
+    Os::ProcessRunOptions options;
+    options.capturedOutput = &output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 10000;
+
+    uint32_t                exitCode = UINT32_MAX;
+    const std::vector<Utf8> args     = {"help", "build"};
+    if (Os::runProcess(exitCode, Os::getExeFullName(), args, Os::getTemporaryPath(), &options) != Os::ProcessRunResult::Ok || exitCode != 0)
+        return Result::Error;
+    if (output.find('\x1b') != std::string::npos)
+        return Result::Error;
+
+    const auto lines               = Utf8Helper::splitLines(output);
+    bool       checkedContinuation = false;
+    for (size_t i = 0; i < lines.size(); i++)
+    {
+        if (Utf8Helper::countChars(lines[i]) > 100)
+            return Result::Error;
+        const size_t descriptionColumn = lines[i].find("Read options from a config file");
+        if (descriptionColumn == Utf8::npos)
+            continue;
+        if (i + 1 == lines.size() || lines[i + 1].find_first_not_of(' ') != descriptionColumn)
+            return Result::Error;
+        checkedContinuation = true;
+    }
+    if (!checkedContinuation)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Logger_NestedStagesDetailedChoiceDoesNotLeak)
 {
     Logger&    logger = ctx.global().logger();

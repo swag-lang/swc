@@ -98,20 +98,109 @@ namespace
         }
     }
 
+    Utf8 wrapFieldValue(const std::string_view value, const size_t valueColumn, const size_t maxLineWidth)
+    {
+        Utf8 continuation = "\n";
+        continuation.append(valueColumn, ' ');
+
+        Utf8   out;
+        size_t column          = valueColumn;
+        size_t lastSpace       = Utf8::npos;
+        size_t lastSpaceColumn = 0;
+        for (size_t pos = 0; pos < value.size();)
+        {
+            if (value[pos] == '\x1b' && pos + 1 < value.size() && value[pos + 1] == '[')
+            {
+                const size_t start = pos;
+                pos += 2;
+                while (pos < value.size())
+                {
+                    const unsigned char c = static_cast<unsigned char>(value[pos++]);
+                    if (c >= 0x40 && c <= 0x7e)
+                        break;
+                }
+                out.append(value.substr(start, pos - start));
+                continue;
+            }
+
+            if (value[pos] == '\n')
+            {
+                out += continuation;
+                column    = valueColumn;
+                lastSpace = Utf8::npos;
+                pos++;
+                continue;
+            }
+
+            if (column >= maxLineWidth)
+            {
+                if (value[pos] == ' ')
+                {
+                    pos++;
+                    out += continuation;
+                    column = valueColumn;
+                }
+                else if (lastSpace != Utf8::npos)
+                {
+                    out.replace(lastSpace, 1, continuation);
+                    column = valueColumn + column - lastSpaceColumn - 1;
+                }
+                else
+                {
+                    out += continuation;
+                    column = valueColumn;
+                }
+                lastSpace = Utf8::npos;
+                continue;
+            }
+
+            if (value[pos] == ' ')
+            {
+                lastSpace       = out.size();
+                lastSpaceColumn = column;
+            }
+
+            // UTF-8 continuation bytes belong to the same console character.
+            const size_t start = pos++;
+            while (pos < value.size() && (static_cast<unsigned char>(value[pos]) & 0xc0) == 0x80)
+                pos++;
+            out.append(value.substr(start, pos - start));
+            column++;
+        }
+        return out;
+    }
+
     Utf8 formatFieldEntry(const TaskContext& ctx, const Logger::FieldEntry& entry, const Logger::FieldGroupStyle& style, const size_t labelColumn)
     {
         const LogColor labelColor  = entry.labelColor == LogColor::Reset ? style.defaultLabelColor : entry.labelColor;
         const LogColor valueColor  = entry.valueColor == LogColor::Reset ? style.defaultValueColor : entry.valueColor;
         const size_t   indentWidth = style.lineIndent + style.indentPerLevel * entry.indentLevel;
         const size_t   labelWidth  = indentWidth + Utf8Helper::countChars(entry.label);
+        const size_t   valueColumn = style.wrapValues ? std::min(labelColumn + 2, style.maxLineWidth - 1) : labelColumn + 2;
 
         Utf8 out;
         out.append(indentWidth, ' ');
         appendColoredText(out, ctx, labelColor, entry.label);
 
-        const size_t padding = labelWidth < labelColumn ? labelColumn - labelWidth + 2 : 2;
-        out.append(padding, ' ');
-        appendValue(out, ctx, entry, valueColor);
+        if (style.wrapValues && labelWidth > labelColumn)
+        {
+            out += '\n';
+            out.append(valueColumn, ' ');
+        }
+        else
+        {
+            const size_t padding = labelWidth < labelColumn ? labelColumn - labelWidth + 2 : 2;
+            out.append(padding, ' ');
+        }
+
+        if (style.wrapValues)
+        {
+            Utf8 value;
+            appendValue(value, ctx, entry, valueColor);
+            out += wrapFieldValue(value, valueColumn, style.maxLineWidth);
+        }
+        else
+            appendValue(out, ctx, entry, valueColor);
         out += "\n";
         return out;
     }

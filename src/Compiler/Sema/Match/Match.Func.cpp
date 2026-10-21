@@ -29,6 +29,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
+#include "Support/Report/DiagnosticBuilder.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -854,14 +855,21 @@ namespace
                     return Utf8{"its reference parameter cannot take a '#move' argument"};
                 }
 
+                Diagnostic reason = Diagnostic::get(fail.castFailure.diagId);
+                fail.castFailure.applyArguments(reason);
+                // The surrounding candidate already identifies the call and argument.
+                reason.removeArgument(Diagnostic::ARG_INDEX);
+                reason.removeArgument(Diagnostic::ARG_SYM);
+                reason.removeArgument(Diagnostic::ARG_RECEIVER_FN);
+                const Utf8 reasonText = DiagnosticBuilder(ctx, reason).formatMessage(reason.last());
                 if (const SymbolVariable* param = fail.castFailure.dstTypeRef.isValid() ? namedFailedParameter(fn, fail, ctx) : nullptr)
                 {
                     const uint32_t argNumber = writtenArgNumber(fail.argIndex, ufcsArg);
                     if (!argNumber)
-                        return std::format("parameter '{}' cannot accept the receiver: {}", param->name(ctx), Diagnostic::diagIdMessage(fail.castFailure.diagId));
-                    return std::format("parameter '{}' cannot accept argument {}: {}", param->name(ctx), argNumber, Diagnostic::diagIdMessage(fail.castFailure.diagId));
+                        return std::format("parameter '{}' cannot accept the receiver: {}", param->name(ctx), reasonText);
+                    return std::format("parameter '{}' cannot accept argument {}: {}", param->name(ctx), argNumber, reasonText);
                 }
-                return Utf8{Diagnostic::diagIdMessage(fail.castFailure.diagId)};
+                return reasonText;
             }
 
             if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))
@@ -1023,6 +1031,8 @@ namespace
             case MatchFailKind::InvalidArgumentType:
                 if (fail.castFailure.diagId != DiagnosticId::None)
                 {
+                    if (isNote || !hasFunctionCallConvMismatch(fail, ctx))
+                        (void) addCastFailureArgs(diagElement, fail.castFailure);
                     if (isNote)
                     {
                         if (diagElement.id() == DiagnosticId::sema_note_overload_candidate_argument_type)
@@ -1034,8 +1044,6 @@ namespace
                             diagElement.addArgument(Diagnostic::ARG_WHAT, makeCandidateFailureText(fn, fail, ufcsArg, ctx));
                         }
                     }
-                    if (isNote || !hasFunctionCallConvMismatch(fail, ctx))
-                        (void) addCastFailureArgs(diagElement, fail.castFailure);
                     if (isNote && diagElement.id() == DiagnosticId::sema_note_overload_candidate_argument_type)
                     {
                         if (const SymbolVariable* param = namedFailedParameter(fn, fail, ctx))

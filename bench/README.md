@@ -93,6 +93,16 @@ build-control checks reject campaigns whose compilers moved apart; they cannot p
 other process ran. Use a quiet machine and leave it undisturbed for the sweep. `--quick` skips
 the idle gate and reference warm-up and writes no benchmark history.
 
+## Harness checks
+
+Run all measurement, history, and report checks from the checkout root:
+
+```powershell
+python -B -m unittest discover -s bench
+```
+
+These checks use synthetic measurements and temporary files; they record no campaign.
+
 ## What is measured
 
 Twelve equivalent workloads in Swag, C++, Rust, Zig, D, Odin, Go, Swift, C#, Java,

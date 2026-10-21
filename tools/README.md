@@ -110,11 +110,11 @@ The compiler safety suite enables `Swag.AllocatorSafety` in both configurations 
 allocator-invalidation fixtures run with the compiled checks they need.
 
 `tests.swgs` validates the bin portability boundary, file-scoped backlog identifiers, nonempty
-domains, fully scoped domain file names, the `Recorded` and `Updated` stamps every entry opens
-with, the newest-first order of entries and of the README inventory, Markdown links, and the third-party notice
-contract - every scoped `THIRDPARTY.md` is indexed and every `@NOTICE:` resolves - before it
-selects or starts a test campaign. `bin\swc.exe --num-cores 6 tools\tests\repository.swgs .`
-runs the backlog check alone.
+domains, fully scoped domain file names, flat domain lists without `Recorded` or `Updated`
+history fields, a README inventory listing every domain once, Markdown links, live `Related`
+identifiers, and the third-party notice contract - every scoped `THIRDPARTY.md` is indexed and
+every `@NOTICE:` resolves - before it selects or starts a test campaign.
+`bin\swc.exe --num-cores 6 tools\tests\repository.swgs .` runs the backlog check alone.
 
 `portability.swgs` also rejects local native imports in applications, libraries, tests, tools, examples, and benchmarks,
 including approved `.win32.swg` files. Add missing operations to their official ABI modules

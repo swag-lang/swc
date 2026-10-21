@@ -2,8 +2,8 @@
 
 #if SWC_HAS_UNITTEST
 
-#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Symbol/SymbolMap.h"
 #include "Main/CompilerInstance.h"
 #include "Main/Global.h"

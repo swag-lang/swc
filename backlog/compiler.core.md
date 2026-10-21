@@ -45,20 +45,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: each remaining map has an equivalent replacement, or code evidence shows that no
   lower-work representation preserves its traversal contract.
 
-### compiler.core.074 — Repeated native rebuilds choose different prologues
-
-- Evidence: two consecutive six-worker DevMode rebuilds of `core` differ in every section but
-  `.idata` and `.rsrc`. Global offsets in `.data` and `.bss` vary because semantic jobs assign
-  them concurrently (`allocateGlobalStorage` in `Sema.Var.cpp`), and type-info string
-  deduplication can shift `.rdata` by one empty-string allocation. The `.text` difference
-  shows that function or constant placement varies as well, so the comparison has to start
-  from the normalized sections rather than from unwind records.
-- Next: assign globals at emission using a stable key such as module, file, and declaration
-  order, while keeping JIT addresses valid. Then repeat the normalized section and unwind
-  comparison.
-- Done when: output differences are explained and corrected at their owning boundary,
-  normalized sections are stable across repeated builds, and affected native tests pass.
-
 ### compiler.core.081 — An imported generic method once lost its own parameter
 
 - Evidence: a forced standard-library rebuild once stopped with `unknown symbol 'arr'` inside
@@ -124,7 +110,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 ### compiler.core.075 — Aligned node references collapse semantic metadata partitions
 
 - Evidence: `NodePayload` selects its shard with `nodeRef.get() % NODE_PAYLOAD_SHARD_NUM`
-  (16 shards, 25 selectors in `NodePayload.cpp`). The reference is an AST byte offset aligned
+  (16 shards). The reference is an AST byte offset aligned
   to at least eight bytes, so only two shards receive payload storage or side-table entries.
   Side-table readers answer an absent entry from a per-node bit instead of their shard count
   (folded source symbols excepted). Payload storage writes (`storeMutex`, taken by every stored
@@ -298,8 +284,10 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 - Evidence: the per-function code cache (`functionCacheFingerprint` in
   `NativeBackendBuilder.cpp`) admits only non-debug functions with at least 64
-  micro-instructions and no code relocation. Calls, referenced constants, debug information
-  and small functions are still regenerated, and JIT builds have no reuse.
+  micro-instructions and no code relocation. Ordinary functions outside that policy still
+  regenerate; this per-function incremental cache has no JIT path. The separate automatic
+  `MachineCodeCache` already reuses supported runtime and imported-API machine code in native
+  and JIT builds, including relocations (compiler.core.030).
   `NativeObjFileWriter` already writes one function per archive member, and the integrated
   linker resolves members lazily. Broader coverage therefore extends the fingerprint and
   admission policy, not the storage format.

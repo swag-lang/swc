@@ -9,8 +9,8 @@
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
-#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Generic/SemaGeneric.ArgNodes.h"
+#include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaDeclHelpers.h"
@@ -1949,8 +1949,8 @@ namespace
             // constraint), leaving only the move variant.
             if (params[i]->hasExtraFlag(SymbolVariableFlagsE::FwdCopy))
             {
-                const TypeInfo& fwdType        = param.unwrapAliasEnumTypeOrSelf(sema.ctx());
-                const TypeRef   fwdTypeRef     = fwdType.typeRef();
+                const TypeInfo& fwdType    = param.unwrapAliasEnumTypeOrSelf(sema.ctx());
+                const TypeRef   fwdTypeRef = fwdType.typeRef();
                 if (fwdType.isStruct())
                 {
                     SWC_RESULT(sema.waitSemaCompleted(&fwdType, argRef));
@@ -1972,8 +1972,8 @@ namespace
             bool argMovesToValue = false;
             if (isExplicitMoveArgumentNode(sema, argRef))
             {
-                const TypeInfo& paramCheck     = param.unwrapAliasEnumTypeOrSelf(sema.ctx());
-                argMovesToValue                = !paramCheck.isMoveReference();
+                const TypeInfo& paramCheck = param.unwrapAliasEnumTypeOrSelf(sema.ctx());
+                argMovesToValue            = !paramCheck.isMoveReference();
                 if (argMovesToValue && paramCheck.isPointerOrReference())
                 {
                     CastFailure cf{};
@@ -2057,9 +2057,9 @@ namespace
             }
             else
             {
-                const TypeInfo& declaredType  = params.back()->type(sema.ctx());
-                const TypeInfo& variadicType  = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
-                const TypeRef   variadicTy    = variadicType.payloadTypeRef();
+                const TypeInfo& declaredType = params.back()->type(sema.ctx());
+                const TypeInfo& variadicType = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
+                const TypeRef   variadicTy   = variadicType.payloadTypeRef();
                 if (fixedVariadicArg.argRef.isValid())
                     SWC_RESULT(probeTypedVariadicArgument(sema, fn, fixedVariadicArg, variadicTy, startVariadic, mapping.variadicArgs.empty(), outCandidate, outFail));
                 if (outFail.active)

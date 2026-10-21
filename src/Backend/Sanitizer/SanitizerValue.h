@@ -23,7 +23,7 @@ struct SanitizerValue
     SanitizerValueKind kind = SanitizerValueKind::Unknown;
     // Stack facts remember how many bytes a write or guard established. Zero means
     // the width is unknown; a wide copy must not promote it to eight bytes.
-    uint8_t  storedBytes = 0;
+    uint8_t storedBytes = 0;
     // A pointer value that existed when its pointee was moved. Fresh addresses of
     // the same storage can reinitialize it. This flag fits the existing padding.
     bool     movedBorrow = false;

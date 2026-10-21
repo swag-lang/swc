@@ -534,6 +534,9 @@ namespace Simd
     func sqrt(x: Simd.F64x2)->Simd.F64x2 => Swag.sqrt(x)
 
     // Multiplies two values and adds a third, per lane.
+    //
+    // Each lane rounds its product to the element type before the addition, keeping the
+    // two rounding steps even when the build enables floating-point contraction.
     func mulAdd(x, y, z: Simd.F32x4)->Simd.F32x4 => Swag.mulAdd(x, y, z)
     func mulAdd(x, y, z: Simd.F64x2)->Simd.F64x2 => Swag.mulAdd(x, y, z)
 

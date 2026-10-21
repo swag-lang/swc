@@ -47,24 +47,19 @@ is the current scorecard.
 
 - Evidence: `bin/unittests/native/functions/value_borrow_cost.swg` compares identical
   native small-argument and block-sum calls with only `.ValueBorrow` toggled. The
-  [focused measurements](../bench/results/safety/20261016-value-borrow.md) retain all samples
+  [focused measurements](../bench/results/safety/20261016-value-borrow.md) retain samples
   and compiler rebuild CPU/memory controls, but shared-machine drift prevents a tight bound.
-  On the twelve `bench/` programs in `devmode` the guard first cost up to 24x (chacha), because
-  every guarded write called the runtime. Writes proved to land in the function's own frame
-  now lose their check while the function has no borrow of its own open, and the other checks
-  call the runtime only for a write inside the address extent of the open borrows. A function
-  that calls nothing and keeps no write check registers no borrow. Against the
-  same programs built without `.ValueBorrow`, nbody still costs about 1.9x, fannkuch 1.4x and
-  dijkstra 1.3x; the rest measure within the machine's noise.
-- Next: what remains is the check sitting in the loop, not its instruction count. Tried apart,
-  neither loading the extent once at entry of a function that calls nothing but its checks
-  (dijkstra 65 to 63 ms) nor testing ahead of the argument copies (nbody unchanged) paid;
-  together, with the copies and the call moved to a cold block out of the loop, they might. A
-  function that writes still pays about 23 ns per call to register each value parameter
-  (nbody's slice); checking its own writes against those ranges inline would need a runtime
-  entry that reports the conflict. Repeat the paired fixture on a quiet machine with an unchanged A/A
-  control, then measure a representative application; tiny-call ratios must not stand in for
-  application overhead.
+  Frame-write proofs and an inline address-extent test avoid unnecessary runtime checks.
+  `Pass.ValueBorrowFastPath` also hoists the extent load before eligible loops, or to function
+  entry when the function calls only write checks and fault reports; a call-free function
+  with no remaining write check registers no borrow. Earlier same-program comparisons found
+  about 1.9x for nbody, 1.4x for fannkuch and 1.3x for dijkstra; they predate the latest hoists
+  and do not establish their current overhead.
+- Next: repeat the paired fixture on a quiet machine with an unchanged A/A control, then
+  measure a representative application. Attribute remaining loop checks, argument copies,
+  cold failure-call layout and per-value-parameter borrow registration before choosing another
+  change. Checking a writing function's own ranges inline still needs a runtime entry that
+  reports a conflict. Tiny-call ratios must not stand in for application overhead.
 - Done when: reproducible measurements state the workload, compiler and program configurations,
   guard settings and variability, and give a bounded assessment of the runtime overhead.
 - Related: compiler.safety.006, compiler.safety.020, compiler.safety.023,

@@ -22,6 +22,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   (`border-collapse` is not even a property the parser resolves). Every browser default separates
   cell borders by 2px; here cells touch, and a bordered table draws doubled walls where a
   collapsed one means single lines.
+- Next: add declared column sizing and table-layout handling, then border spacing and
+  collapsed-border geometry to the tables fixture.
 - Done when: an author-declared column width wins over content sizing, `table-layout: fixed`
   sizes from the first row, border spacing separates and `border-collapse: collapse` merges
   adjacent cell borders, and the tables fixture compares those against browser geometry,
@@ -88,6 +90,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 - Intent: `box-shadow` is not a property the parser resolves, and `text-shadow` is not either.
   Cards cast no elevation and outlined hero text loses its legibility layer. The generated
   documentation stylesheet in `src/Doc/DocPage.cpp` now uses `box-shadow`, which this viewer drops.
+- Next: parse and paint outset box-shadow and text-shadow with offset, blur, color, and
+  border-radius behavior.
 - Done when: an outset `box-shadow` with offset, blur and color draws behind the border box
   (inset may be recorded as a limitation), `text-shadow` draws behind the run, and both respect
   border radius.
@@ -98,6 +102,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   scaled thumbnail or a translated decoration renders untransformed in place. Unlike the entries
   above this rarely destroys a document's meaning, but
   pages that build shapes out of transformed pseudo-elements show their raw boxes.
+- Next: parse translate, scale, rotate, and transform-origin and apply their shared affine matrix to
+  painting and hit testing.
 - Done when: `translate`, `scale` and `rotate` transforms apply to a box's painting and hit
   testing as one affine matrix, `transform-origin` is honoured, and layout remains untransformed
   as the specification says.
@@ -107,6 +113,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 - Evidence: `@layer` blocks are parsed like `@supports` (`stylesheet.swg`), unwrapped into
   plain source order, so a sheet that uses layers to de-prioritize its reset cascades in the
   wrong order.
+- Next: retain declared layer order in the cascade and cover ordinary and important precedence with
+  focused tests.
 - Done when: layers retain their declared order, ordinary layered rules order below unlayered
   rules, and important declarations reverse layer precedence, with focused cascade tests.
 
@@ -116,6 +124,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   notice) bound document storage and nesting. There is still no fixture for truncation at a hostile point, an
   attribute of pathological length, or a rule that expands `var()` toward its substitution cap
   on every element.
+- Next: add hostile truncation, attribute-length, and stylesheet-substitution fixtures with explicit
+  expected outcomes.
 - Done when: a malformed corpus covers truncated tags at chunk edges, pathological
   attribute lengths and pathological stylesheets with the expected outcome for each.
 
@@ -140,6 +150,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   and the legacy elements `<center>`, `<font>`, `<big>`, `<strike>`, `<tt>` are unknown tags
   that default to unstyled inline. Saved mail, old manuals and tool-generated HTML from the
   attribute era lose the presentation carried by those unsupported features.
+- Next: map the listed legacy attributes and element defaults into computed style and protect the
+  result with an attribute-era fixture.
 - Done when: the presentational attributes map to the computed style with the precedence of
   a zero-specificity author rule, the legacy elements carry their traditional default styles,
   and a fixture from the attribute era renders with its table borders, cell padding and centered
@@ -153,6 +165,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   keeps a `scrollTop` and no `scrollLeft`, so `overflow-x: auto` — the standard idiom on every
   code block and wide table — clips the right edge and offers no way to see it. A wide `<pre>`
   line (whose `white-space: pre` legitimately never wraps) is simply unreadable past the margin.
+- Next: add horizontal scrolling for overflow-x regions and define the document-level behavior when
+  minimum content width exceeds the viewport.
 - Done when: an `overflow-x: auto` region whose content is wider than itself scrolls
   horizontally with the same themed bar its vertical axis has, wheel and drag both drive it, and
   a document whose minimum content width exceeds the viewport either pans or is reported as a
@@ -163,6 +177,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
 - Intent: `layoutTable` assigns each cell to the column of its index, so a header spanning three
   columns compresses into one and every row below it shifts. Spans are the first thing a real
   table uses.
+- Next: place and size table cells across declared row and column spans and add browser-geometry
+  fixture cases.
 - Done when: a cell's `colspan` and `rowspan` attributes place and size it across its
   columns and rows, column min/max measurement distributes a spanning cell's width over the
   columns it covers, and `html.tables.html` gains span cases checked against a browser.
@@ -175,6 +191,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   named lines and areas, `grid-template-rows`, `auto-fill`/`auto-fit` and implicit tracks are
   not modelled. A numeric `repeat()` now unrolls in `gridTemplate`; the two automatic counts
   still collapse to a single flexible track because they depend on the width layout discovers.
+- Next: use grid-column and grid-row placement with an occupancy grid, then implement the declared
+  row and automatic-track sizing cases.
 - Done when: `grid-column`/`grid-row` with spans place items in an occupancy grid with
   implicit rows, `auto-fill` and `auto-fit` derive their count from the available width,
   `grid-template-rows` sizes declared rows, and `html.flex-grid.html` gains placed-and-spanned
@@ -187,6 +205,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   baseline` falls through to start alignment because `layoutFlexLine` only handles center, end
   and stretch. And a column container ignores `justify-content` entirely — `layoutFlexColumn`
   stacks from the top whatever the document asks — and cannot wrap.
+- Next: apply order, align-content, baseline alignment, and column justify-content in flex layout
+  and cover each in the flex fixture.
 - Done when: items lay out in `order` order, a wrapped container distributes its lines per
   `align-content`, row items align on their first baselines, a column container distributes free
   main-axis space per `justify-content`, and the flex fixture asserts each against browser
@@ -199,6 +219,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   left, and an Arabic or Hebrew text node is measured and drawn in logical order, which for RTL
   scripts is backwards. Part of the limit sits below this engine — the toolkit's text stack
   shapes no complex scripts — but the engine does not even reorder what the stack could draw.
+- Next: carry paragraph direction into bidirectional run ordering and start/end alignment while
+  identifying the residual shaping limit.
 - Done when: the paragraph direction follows `dir`/`direction`, RTL runs within a line are
   reordered per the bidirectional algorithm's paragraph-and-run level, `start`/`end` alignment
   follows direction, and the residual shaping limit is recorded against the text stack rather
@@ -210,6 +232,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   `radial-gradient` are deliberately dropped so the box keeps what is behind it. For a hero
   band or a striped code header that is the difference between the page's structure and a flat
   void — and `Painter` already draws gradient brushes for the toolkit's own widgets.
+- Next: paint linear and radial backgrounds through painter brushes, then add bounded local
+  background-image sizing with a base-color fallback.
 - Done when: linear and radial gradients with color stops fill a box's background through
   the painter's brushes, a local `background-image` file is drawn with `background-size: cover`
   and `contain` at least, and an unsupported image value still degrades to the base color rather
@@ -224,6 +248,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   `htmlParseLength` and fall through every keyword switch, so `background: inherit` and
   `all: unset`-style resets keep whatever was there. For inherited properties the accidental
   behavior is often right; for non-inherited ones it never is.
+- Next: implement inherit, initial, and unset from computed/default values and state the supported
+  revert behavior.
 - Done when: `inherit` copies the parent's computed value for any property, `initial`
   restores the property's default, `unset` picks between them by inheritance, and `revert` is
   at least `unset` with the divergence recorded.
@@ -235,6 +261,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   puts on abbreviations, truncated cells and icon links — never shows, although the hover
   tracking that could trigger it already exists for links. `<meta name="description">` is
   likewise unreachable.
+- Next: expose document title and description to the host and show element title attributes through
+  themed tooltips.
 - Done when: the view exposes the document title and description to its host, hovering an
   element with a `title` shows it as a themed tooltip after the toolkit's delay, and Swag Scope
   captions its HTML tab with the title.
@@ -245,6 +273,8 @@ The engine lives beside its widget inside `gui`; the view owns document selectio
   interrupted by any inline markup — `find <b>this</b> phrase` — can never be found, and the
   highlight cannot span nodes either. The document already assembles `textContent` per subtree,
   so the pieces exist.
+- Next: search concatenated document text with a map back to node ranges and use Unicode case
+  folding.
 - Done when: a search runs over a concatenated text with a map back to node-and-offset
   ranges, a match spanning markup highlights each covered run, and case folding goes through
   Unicode rather than `Latin1NoCase`.

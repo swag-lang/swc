@@ -185,11 +185,11 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(WebRename_PreservesInterleavedRepeatedLocations)
 {
-    MicroBuilder                   builder(ctx);
-    X64Encoder                     encoder(ctx);
-    const MicroReg                 base  = MicroReg::virtualIntReg(1);
-    const MicroReg                 value = MicroReg::virtualFloatReg(1);
-    std::array<MicroInstrRef, 4>    loads;
+    MicroBuilder                      builder(ctx);
+    X64Encoder                        encoder(ctx);
+    const MicroReg                    base  = MicroReg::virtualIntReg(1);
+    const MicroReg                    value = MicroReg::virtualFloatReg(1);
+    std::array<MicroInstrRef, 4>      loads;
     constexpr std::array<uint64_t, 4> offsets{0x40, 0x48, 0x40, 0x48};
     for (size_t index = 0; index < offsets.size(); ++index)
     {

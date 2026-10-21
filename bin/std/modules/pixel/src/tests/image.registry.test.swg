@@ -137,6 +137,7 @@ internal impl Image
 #test
 {
     registryAllocator.setup()
+
     // Poisoning freed storage is an allocator diagnostic, so only a runtime built with it fills.
     registryAllocator.configure(false, false, false, false, #hastag("Swag.AllocatorDiagnostics"))
     Image.checkRegistryCallback(false, false)

@@ -345,6 +345,9 @@ alias ConstF64 = Const'f64
     func pow(x, y: f64) => Swag.pow(x, y)
 
     // Returns `x * y + z`.
+    //
+    // The product rounds to the result type before the addition. Each operation keeps its
+    // own rounding, even when the build enables floating-point contraction.
     func mulAdd(x, y, z: f32) => Swag.mulAdd(x, y, z)
     func mulAdd(x, y, z: f64) => Swag.mulAdd(x, y, z)
 }

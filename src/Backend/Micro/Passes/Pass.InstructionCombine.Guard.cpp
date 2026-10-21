@@ -47,9 +47,9 @@ namespace InstructionCombine
 
         struct GuardTest
         {
-            MicroInstrOpcode op        = MicroInstrOpcode::Nop;
-            MicroOpBits      bits      = MicroOpBits::Zero;
-            MicroCond        cond      = MicroCond::Unconditional;
+            MicroInstrOpcode op         = MicroInstrOpcode::Nop;
+            MicroOpBits      bits       = MicroOpBits::Zero;
+            MicroCond        cond       = MicroCond::Unconditional;
             uint32_t         leftId     = 0;
             uint64_t         leftOffset = 0;
             uint32_t         rightId    = 0;

@@ -270,7 +270,7 @@ namespace
         if (callsOnlyChecks && firstRef.isValid() && (calls.size() > 1 || context.builder->controlFlowGraph().hasLoop()))
         {
             HoistedExtent hoisted;
-            hoisted.insertBefore         = firstRef;
+            hoisted.insertBefore        = firstRef;
             outLoops[K_FUNCTION_REGION] = hoisted;
             for (const MicroInstrRef callRef : calls)
                 outGuardLoop.getOrInsert(callRef.get()) = K_FUNCTION_REGION;

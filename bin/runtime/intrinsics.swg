@@ -218,6 +218,9 @@ func atomicStore(addr: *u64, value: u64)
     func leadingZeros(value: u64)->u64
 
     // Returns '(val1 * val2) + val3'.
+    //
+    // The product rounds to the result type before the addition, even when the build
+    // enables floating-point contraction.
     func mulAdd(val1, val2, val3: f32)->f32
     func mulAdd(val1, val2, val3: f64)->f64
 
@@ -307,6 +310,9 @@ func atomicStore(addr: *u64, value: u64)
     func byteSwap(value: #simd [2] u64)->#simd [2] u64
 
     // Element-wise '(val1 * val2) + val3'.
+    //
+    // Each lane rounds its product to the element type before the addition, even when
+    // the build enables floating-point contraction.
     func mulAdd(val1, val2, val3: #simd [4] f32)->#simd [4] f32
     func mulAdd(val1, val2, val3: #simd [2] f64)->#simd [2] f64
 

@@ -16,13 +16,12 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
 
 ### cpu.simd.012 — Packed code generation misses idiomatic hardware forms
 
-- Intent: complete dynamic lane insertion and extraction and extend fused multiply-add to packed
-  code. Immediate lane shuffles, horizontal reductions and SAD already lower through dedicated
-  operations. Scalar code already has the rounding contract: under the `fpMathFma` build setting
-  (on in `release`), a post-RA peephole contracts a scalar product accumulation into
-  `vfmadd231ss`/`sd` when every lane of the product is otherwise dead, while an explicit
-  `Swag.mulAdd` keeps its separate multiply and add rounding (`30feb4eb9`). Packed product
-  accumulations and vector `mulAdd` still emit a multiply followed by an add.
+- Intent: complete dynamic lane insertion and extraction and the remaining 64-bit lane writes.
+  Immediate lane shuffles, horizontal reductions and SAD already lower through dedicated
+  operations. Under `backend.math.fma` (on in `release`), a post-RA peephole contracts eligible
+  scalar and packed product accumulations when the product is otherwise dead in every lane;
+  packed contraction also requires `backend.math.noNaN`. Explicit scalar and vector `Swag.mulAdd`
+  preserve separate multiply and add rounding, including when contraction is enabled.
 - Evidence: a constant lane read of a register-resident vector never touches the frame. A 32- or
   64-bit lane is a `movd`/`movq`, through one `pshufd` past lane zero; an 8- or 16-bit lane slides
   down by bytes (`psrldq`) and leaves through the same move, extended from its own width. A
@@ -32,9 +31,9 @@ conversion, image codecs, text/crypto routines, Pixel spans, and SDF samples.
   insertion widths. What still goes through the frame: a 64-bit lane write, and every dynamic
   index - `v[i]` spills the vector and reads `[rsp + i * 4]`, `v[i] = x` spills, stores the lane
   and reloads sixteen bytes.
-- Next: give the 64-bit lane write its `vpinsrq`, lower a dynamic lane read through a byte shuffle
-  with a computed control where that beats the spill, and extend the `fpMathFma` contraction to
-  packed product accumulations or state why packed code keeps separate rounding.
+- Next: give the 64-bit lane write its `vpinsrq` and lower a dynamic lane read through a byte
+  shuffle with a computed control where that beats the spill, preserving the explicit `mulAdd`
+  rounding contract.
 - Done when: encoder tests and `PrintMicro` show each idiom on a representative standard-module
   kernel and end-to-end benchmarks show no regression on the fallback target.
 - Related: cpu.simd.010.

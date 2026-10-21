@@ -236,7 +236,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">476</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">477</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -676,6 +676,7 @@
 <li><a href="#Pixel_StringPainter_font">StringPainter.font</a></li>
 <li><a href="#Pixel_StringPainter_horzAlign">StringPainter.horzAlign</a></li>
 <li><a href="#Pixel_StringPainter_vertAlign">StringPainter.vertAlign</a></li>
+<li><a href="#Pixel_Svg_parseImageSize">Svg.parseImageSize</a></li>
 <li><a href="#Pixel_Svg_trace">Svg.trace</a></li>
 <li><a href="#Pixel_Poly2Tri_Tessellate_addPoint">Tessellate.addPoint</a></li>
 <li><a href="#Pixel_Poly2Tri_Tessellate_addPolyLine">Tessellate.addPolyLine</a></li>
@@ -2358,6 +2359,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_StringPainter_vertAlign">StringPainter.vertAlign</a></td><td><p>Sets vertical alignment within the draw rectangle.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_Svg_parseImageSize">Svg.parseImageSize</a></td><td><p>Parses the root viewport's natural image size in CSS pixels without decoding its contents.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Svg_trace">Svg.trace</a></td><td><p>Traces a flat-color raster image into a vector document.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_Poly2Tri_Tessellate_addPoint">Tessellate.addPoint</a></td><td><p>Adds one point to the polygon border being registered.</p>
@@ -2927,6 +2930,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <table class="api-summary">
 <thead><tr><th>Name</th><th>Description</th></tr></thead>
 <tbody>
+<tr><td class="code-type"><a href="#Pixel_Svg_parseImageSize">Svg.parseImageSize</a></td><td><p>Parses the root viewport's natural image size in CSS pixels without decoding its contents.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_Svg_trace">Svg.trace</a></td><td><p>Traces a flat-color raster image into a vector document.</p>
 </td></tr>
 </tbody>
@@ -8024,19 +8029,19 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_naturalSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.naturalSize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_naturalSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3580">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_naturalSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.naturalSize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_naturalSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3600">src</a></div>
 <p>Returns the preferred image dimensions in CSS pixels.</p>
 <p>Absolute root <span class="code-inline">width</span> and <span class="code-inline">height</span> attributes determine this size. A missing or relative dimension is inferred from the other dimension and the view-box aspect ratio; if neither dimension is absolute, the view-box size is returned. Nonpositive dimensions are treated as unspecified. This query does not change the user-space coordinates used by <a href="#Pixel_Svg_Drawing_paint">Pixel.Svg.Drawing.paint</a> and <a href="#Pixel_Svg_Drawing_rasterize">Pixel.Svg.Drawing.rasterize</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">naturalSize</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_paint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.paint</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_paint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3683">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_paint" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.paint</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_paint" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3703">src</a></div>
 <p>Paints the drawing with its origin at <span class="code-inline">(x, y)</span> of the current path space, scaled by <span class="code-inline">scale</span>.</p>
 <p>Fills follow the fill rule of each shape, normalized when the document is parsed, and strokes honor width, caps, and joins scaled by <span class="code-inline">scale</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">paint</span>(painter: *<span class="SCst"><a href="#Pixel_Painter">Painter</a></span>, x, y: <span class="STpe">f32</span>, scale = <span class="SNum">1.0</span>'<span class="STpe">f32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.parse</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3607">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.parse</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3627">src</a></div>
 <p>Parses an SVG document authored in the supported subset.</p>
 <p>The result owns its shapes and decoded images. Text supports one-level <span class="code-inline">tspan</span> runs with <span class="code-inline">x</span>, <span class="code-inline">y</span>, <span class="code-inline">dx</span>, <span class="code-inline">dy</span>, size, family class, anchor, weight, style, letter and word spacing, solid fill, and opacity, and runs along the direction its element is turned by. Images stretch into their declared rectangle. Patterns repeat vector shape tiles in user or object-bounding-box units. Filters support either a Gaussian blur followed by offsets, or a standalone <span class="code-inline">feDropShadow</span>.</p>
 <p>A <span class="code-inline">clip-path</span> is instantiated in the space of the element that names it, a <span class="code-inline">use</span> fits a referenced <span class="code-inline">symbol</span>'s view box into the size it asks for, and markers are placed on authored vertices with the tangent orientation <span class="code-inline">orient="auto"</span> states. A reference to an identifier the document does not define leaves its element alone.</p>
@@ -8044,7 +8049,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(text: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_Svg_ParseOptions">ParseOptions</a></span> = {})-&gt;<span class="SCst"><a href="#Pixel_Svg_Drawing">Drawing</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_rasterize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.rasterize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_rasterize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L4089">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_rasterize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.rasterize</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_rasterize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L4109">src</a></div>
 <p>Rasterizes the drawing into an owned image of exactly <span class="code-inline">width</span> by <span class="code-inline">height</span> pixels.</p>
 <p>The drawing is scaled uniformly from its view box to <span class="code-inline">width</span>, antialiased, on a transparent ground. Rasterization is done in software: no window, no GPU.</p>
 <p><span class="code-inline">supersample</span> renders that many samples per axis and box-filters them down, replacing the renderer's screen-space edge feather with near-exact coverage. The default doubles sampling, a good balance for icon and atlas work.</p>
@@ -8056,7 +8061,7 @@ doc.<span class="SFct">addPath</span>(path, <span class="SCst"><a href="#Pixel_C
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">rasterize</span>(renderer: <span class="SCst"><a href="#Pixel_IRenderer">IRenderer</a></span>, width, height: <span class="STpe">s32</span>, supersample: <span class="STpe">u8</span> = <span class="SNum">2</span>)-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_shapeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.shapeCount</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_shapeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3571">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Svg_Drawing_shapeCount" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Drawing.shapeCount</span> <a class="api-item-permalink" href="#Pixel_Svg_Drawing_shapeCount" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3591">src</a></div>
 <p>Returns the number of parsed shapes.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">shapeCount</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -10064,24 +10069,24 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">name</span>()-&gt;<span class="SCst"><a href="std.core.html#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.begin</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2439">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_begin" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.begin</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_begin" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2440">src</a></div>
 <p>Starts a CPU frame with the requested positive BGRA surface dimensions.</p>
 <p>Reusing the same dimensions preserves the surface pixels until they are cleared or drawn over. No native context is created.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">begin</span>(width, height: <span class="STpe">s32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2420">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2421">src</a></div>
 <p>Releases pooled render-target descriptors owned by the renderer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.reset</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2429">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.reset</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2430">src</a></div>
 <p>Resets all renderer-owned resources and returns to an empty deterministic state.</p>
 <p>Every outstanding texture and render-target handle from this renderer becomes invalid.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_RenderCpu_surfaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.surfaceImage</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_surfaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2452">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_RenderCpu_surfaceImage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderCpu.surfaceImage</span> <a class="api-item-permalink" href="#Pixel_RenderCpu_surfaceImage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/cpu/rendercpu.swg#L2453">src</a></div>
 <p>Returns an owned copy of the current surface pixels.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">surfaceImage</span>()-&gt;<span class="SCst"><a href="#Pixel_Image">Image</a></span></span></div>
 </section>
@@ -10251,6 +10256,12 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="api-item api-item-func"><span id="Pixel_StringPainter_vertAlign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StringPainter.vertAlign</span> <a class="api-item-permalink" href="#Pixel_StringPainter_vertAlign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/painter/stringpainter.swg#L38">src</a></div>
 <p>Sets vertical alignment within the draw rectangle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">vertAlign</span>(align: <span class="SCst"><a href="#Pixel_StringVertAlignment">StringVertAlignment</a></span>)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_Svg_parseImageSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Svg.parseImageSize</span> <a class="api-item-permalink" href="#Pixel_Svg_parseImageSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/parse.swg#L3577">src</a></div>
+<p>Parses the root viewport's natural image size in CSS pixels without decoding its contents.</p>
+<p>The same width, height and view-box rules as <a href="#Pixel_Svg_Drawing_naturalSize">Pixel.Svg.Drawing.naturalSize</a> apply. Missing or nonpositive viewport dimensions fail. Child elements and their resources are deliberately not validated; use <a href="#Pixel_Svg_Drawing_parse">Pixel.Svg.Drawing.parse</a> to prepare the complete drawing.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseImageSize</span>(text: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="std.core.html#Core_Math_Vector2">Vector2</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_Svg_trace" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Svg.trace</span> <a class="api-item-permalink" href="#Pixel_Svg_trace" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/svg/trace.swg#L36">src</a></div>
@@ -12082,6 +12093,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.Svg.Drawing.parse|Pixel_Svg_Drawing_parse|Parses an SVG document authored in the supported subset.",
 "f|Pixel.Svg.Drawing.rasterize|Pixel_Svg_Drawing_rasterize|Rasterizes the drawing into an owned image of exactly width by height pixels.",
 "f|Pixel.Svg.Drawing.shapeCount|Pixel_Svg_Drawing_shapeCount|Returns the number of parsed shapes.",
+"f|Pixel.Svg.parseImageSize|Pixel_Svg_parseImageSize|Parses the root viewport's natural image size in CSS pixels without decoding its contents.",
 "f|Pixel.Svg.trace|Pixel_Svg_trace|Traces a flat-color raster image into a vector document.",
 "f|Pixel.Testing.assertGolden|Pixel_Testing_assertGolden|Compares the display list recorded by 'painter' against the golden named 'name'.",
 "f|Pixel.Testing.assertGoldenText|Pixel_Testing_assertGoldenText|Compares arbitrary text against the golden named 'name'.",

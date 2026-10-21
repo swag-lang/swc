@@ -37,9 +37,9 @@ func stepParticles(particles: [..] Particle, dt: f64, steps: u64)
     // Quarter steps over small integers stay exact, so the expected positions do not
     // depend on how the operations are grouped.
     var particles: [3] Particle = [
-        {1.0, 2.0, 3.0, 0.5, -0.5, 0.0, 1.0},
-        {-4.0, 0.0, 8.0, 0.0, 1.0, -1.0, 2.0},
-        {0.0, 16.0, -2.0, 2.0, 0.25, 0.75, 3.0}]
+        {1.0,  2.0,  3.0,  0.5, -0.5, 0.0,  1.0},
+        {-4.0, 0.0,  8.0,  0.0, 1.0,  -1.0, 2.0},
+        {0.0,  16.0, -2.0, 2.0, 0.25, 0.75, 3.0}]
     var expected = particles
     for 4
     {
@@ -48,9 +48,9 @@ func stepParticles(particles: [..] Particle, dt: f64, steps: u64)
             p.vx += p.mass * 0.25
             p.vy -= 0.25
             p.vz += 0.5
-            p.x += 0.25 * p.vx
-            p.y += 0.25 * p.vy
-            p.z += 0.25 * p.vz
+            p.x  += 0.25 * p.vx
+            p.y  += 0.25 * p.vy
+            p.z  += 0.25 * p.vz
         }
     }
 

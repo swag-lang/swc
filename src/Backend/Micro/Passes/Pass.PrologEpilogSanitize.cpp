@@ -47,6 +47,11 @@
 //       explicit probe loads. The expansion inserts one dummy load per page
 //       between the subtract and the body so the guard pages fault in order.
 //
+//   expandLargeBodyStackAdjustments
+//       Local frames can grow after guards have ended the entry prologue. Probe
+//       before those subtracts with memory comparisons, preserving live registers
+//       and letting the original subtract produce its own flags.
+//
 //   sanitizeEpilogueStackAdjustments
 //       Same coalescing as the prologue version but applied backwards from
 //       each Ret over the run of epilogue instructions.
@@ -1229,6 +1234,62 @@ namespace
         return false;
     }
 
+    bool hasBodyStackProbes(const MicroPassContext& context, MicroStorage::Iterator allocation, MicroReg stackPointer, uint64_t stackAdjust)
+    {
+        const auto begin = context.instructions->view().begin();
+        for (uint64_t offset = stackAdjust;; offset = ((offset - 1) / ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE) * ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+        {
+            if (allocation == begin)
+                return false;
+            --allocation;
+            if (allocation->op != MicroInstrOpcode::CmpMemImm)
+                return false;
+            const MicroInstrOperand* ops = allocation->ops(*context.operands);
+            if (ops[0].reg != stackPointer || ops[1].opBits != MicroOpBits::B8 ||
+                ops[2].valueU64 != uint64_t{0} - offset || ops[3].valueU64 != 0)
+                return false;
+            if (offset <= ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+                return true;
+        }
+    }
+
+    bool expandLargeBodyStackAdjustments(const MicroPassContext& context, const CallConv& conv)
+    {
+        if (!context.taskContext || context.taskContext->cmdLine().targetOs != Runtime::TargetOs::Windows)
+            return false;
+
+        bool inPrologue = true;
+        bool changed    = false;
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt; ++it)
+        {
+            const MicroInstrOperand* ops = it->ops(*context.operands);
+            if (inPrologue && isPrologueInstruction(conv, *it, ops, conv.stackPointer))
+                continue;
+            inPrologue = false;
+
+            uint64_t stackAdjust = 0;
+            if (!isStackAdjustWithOp(*it, ops, conv.stackPointer, MicroOp::Subtract, stackAdjust) ||
+                !ABICall::needsWindowsStackProbe(context.taskContext->cmdLine().targetOs, stackAdjust) ||
+                hasBodyStackProbes(context, it, conv.stackPointer, stackAdjust))
+                continue;
+
+            const MicroInstrRef allocation = it.current;
+            MicroInstrOperand   probe[4];
+            probe[0].reg    = conv.stackPointer;
+            probe[1].opBits = MicroOpBits::B8;
+            probe[3].setImmediateValue(ApInt(0, 8));
+            for (uint64_t offset = ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE; offset < stackAdjust; offset += ABICall::K_WINDOWS_STACK_PROBE_PAGE_SIZE)
+            {
+                probe[2].valueU64 = uint64_t{0} - offset;
+                context.instructions->insertSyntheticBefore(*context.operands, allocation, MicroInstrOpcode::CmpMemImm, probe);
+            }
+            probe[2].valueU64 = uint64_t{0} - stackAdjust;
+            context.instructions->insertSyntheticBefore(*context.operands, allocation, MicroInstrOpcode::CmpMemImm, probe);
+            changed = true;
+        }
+        return changed;
+    }
+
     bool sanitizeEpilogueStackAdjustments(const MicroPassContext& context, const CallConv& conv)
     {
         SWC_ASSERT(context.instructions);
@@ -1443,8 +1504,9 @@ Result MicroPrologEpilogSanitizePass::run(MicroPassContext& context)
     const bool      changedReservedCallFrame  = reserveBodyCallFrame(context, conv);
     const bool      changedLoopCallFrame      = hoistLoopCallFrame(context, conv);
     const bool      changedStackProbeProlog   = expandLargePrologueStackAdjustments(context, conv);
+    const bool      changedStackProbeBody     = expandLargeBodyStackAdjustments(context, conv);
     const bool      changedReturnTails        = shareIdenticalReturnTails(context, conv);
-    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallFrame || changedLoopCallFrame || changedReturnTails;
+    const bool      changed                   = changedFramePointerProlog || changedStackProlog || changedStackProbeProlog || changedStackProbeBody || changedStackEpilogue || changedUnusedSaves || changedUnusedFrame || changedCompactFrame || changedReservedCallFrame || changedLoopCallFrame || changedReturnTails;
     context.passChanged                       = changed;
     return Result::Continue;
 }

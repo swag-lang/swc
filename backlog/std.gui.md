@@ -115,6 +115,8 @@ making clipboard completion depend on drag interaction.
 
 - Related: platform.portability.068
 
+- Next: expose virtual-file descriptors and deferred contents through clipboard ownership
+  independently of drag interaction.
 - Done when: A clipboard owner publishes virtual-file names, metadata, and deferred contents through the typed-value API, and another GUI consumer retrieves them after the copy action without initiating a drag.
 
 ### std.gui.010 — No keyboard access keys
@@ -125,6 +127,8 @@ one keyboard access-key contract.
 
 - Related: platform.portability.048
 
+- Next: add caption mnemonics, surface Alt handling, menu activation, and underline visibility as
+  one access-key contract.
 - Done when: Alt reveals mnemonic underlines, activates a unique caption or menu target from the keyboard, and restores focus correctly; tests cover duplicate and unavailable keys.
 
 ### std.gui.013 — Gesture recognizers have no claim arbitration
@@ -135,6 +139,8 @@ pointer sequence.
 
 - Related: std.gui.011, std.gui.012, std.gui.014, std.gui.016, std.gui.017, std.gui.018, std.gui.019
 
+- Next: define claim arbitration between child controls and scrolling parents for one raw pointer
+  sequence.
 - Done when: A child recognizer and scrolling parent receive one pointer sequence under an explicit winner/cancellation rule, and tests prove only the winner performs the action.
 
 ### std.gui.014 — No tap recognizer
@@ -144,6 +150,7 @@ Recognize a tap with platform-appropriate distance and timing thresholds.
 
 - Related: std.gui.013, std.gui.015
 
+- Next: recognize taps using documented platform-appropriate movement and duration thresholds.
 - Done when: A touch sequence within documented movement and duration thresholds emits one tap, while movement, cancellation, and a second pointer prevent a false tap in headless tests.
 
 ### std.gui.015 — No double-tap recognizer
@@ -154,6 +161,8 @@ unless a control explicitly requests it.
 
 - Related: std.gui.013, std.gui.014
 
+- Next: compose qualifying taps into double tap without delaying single tap unless a control
+  requests arbitration.
 - Done when: Two qualifying taps within the configured interval and distance emit one double tap, and a single tap is delayed only for controls that request double-tap arbitration.
 
 ### std.gui.016 — No long-press recognizer
@@ -163,6 +172,7 @@ Recognize long press with movement cancellation and an explicit interaction with
 
 - Related: std.gui.013
 
+- Next: recognize long press with movement cancellation and an explicit context-menu interaction.
 - Done when: A stationary held contact emits one long press and its requested context action, while release, movement, cancellation, or a competing gesture prevents it.
 
 ### std.gui.017 — No pan recognizer
@@ -172,6 +182,7 @@ Recognize single- and multi-pointer pan with capture transfer and velocity repor
 
 - Related: std.gui.013, std.gui.021
 
+- Next: recognize single- and multi-pointer pan with capture transfer and velocity reporting.
 - Done when: Single- and multi-pointer movement emit pan deltas and bounded velocity, transfer capture according to the claim rule, and stop on cancellation in headless tests.
 
 ### std.gui.018 — No pinch recognizer
@@ -181,6 +192,7 @@ Report scale around the contact centroid without combining pinch completion with
 
 - Related: std.gui.013, std.gui.019
 
+- Next: report pinch scale around the contact centroid independently of rotation.
 - Done when: Two contacts report scale around their centroid with stable start, update, and end phases, while rotation remains separately observable and contact loss ends the pinch.
 
 ### std.gui.019 — No rotate recognizer
@@ -190,6 +202,7 @@ Report rotation independently of pinch scale while sharing std.gui.013's arbitra
 
 - Related: std.gui.013, std.gui.018
 
+- Next: report rotation independently of pinch while sharing gesture arbitration.
 - Done when: Two contacts report signed rotation around their centroid independently of pinch scale, and gesture arbitration prevents duplicate actions in headless tests.
 
 ### std.gui.020 — No touch-sized input profile
@@ -200,6 +213,8 @@ Add a touch theme/input profile whose hit targets are larger even when the paint
 
 - Related: std.gui.013, std.gui.021, std.gui.022
 
+- Next: add a touch input profile that expands effective hit targets without enlarging the painted
+  glyphs.
 - Done when: A touch input profile expands effective hit targets for the slider, scroll bar, and representative small controls without enlarging their painted glyphs, with headless boundary tests.
 
 ### std.gui.021 — Touch scrolling has no inertia
@@ -210,6 +225,8 @@ with deterministic deceleration and reduced-motion behavior.
 
 - Related: std.gui.017
 
+- Next: drive kinetic scrolling from the animation scheduler with deterministic deceleration and
+  reduced-motion behavior.
 - Done when: A pan release continues scrolling with bounded deterministic deceleration, stops at content bounds or cancellation, and follows reduced-motion policy in scheduler-driven tests.
 
 ### std.gui.022 — Nested scroll views do not chain touch motion
@@ -219,6 +236,7 @@ Transfer unconsumed pan motion to the next scrollable ancestor at a boundary.
 
 - Related: std.gui.013, std.gui.017, std.gui.021
 
+- Next: transfer unconsumed pan motion at a boundary to the nearest eligible scrollable ancestor.
 - Done when: At a scroll boundary, unconsumed pan distance transfers once to the nearest eligible ancestor without losing or duplicating motion, with nested-view headless tests.
 
 ### std.gui.023 — Pen pressure is not modeled end to end
@@ -230,6 +248,8 @@ hardware.
 
 - Related: std.gui.011, std.gui.024
 
+- Next: carry pen identity and pressure through native and headless input routing to a Swag Capture
+  drawing tool.
 - Done when: Native and headless pen events carry identity and pressure through GUI routing to a Swag Capture drawing tool, and varying pressure changes the recorded stroke in a deterministic test.
 
 ### std.gui.024 — No palm rejection during a pen stroke
@@ -240,6 +260,7 @@ gesture, with headless mixed-device tests.
 
 - Related: std.gui.012, std.gui.013, std.gui.023
 
+- Next: define and test suppression of competing touch contacts while a pen owns a drawing gesture.
 - Done when: An explicit palm-rejection rule suppresses competing touch contacts while a pen owns a drawing gesture and restores ordinary touch behavior after pen release, with mixed-device headless tests.
 
 ### std.gui.026 — Docking has no tab-reorder or landing-preview interaction
@@ -250,6 +271,8 @@ rectangle. Moving a pane transfers logical ownership, commands, and focus withou
 
 - Related: std.gui.025
 
+- Next: add tab reorder and edge/stack docking with an exact landing overlay while preserving pane
+  ownership and focus.
 - Done when: Tab reorder and edge or stack docking show an accurate landing rectangle and transfer pane identity, commands, and focus without destroying the view, with interaction tests.
 
 ### std.gui.027 — Docked panes cannot float and redock
@@ -260,6 +283,8 @@ geometry.
 
 - Related: std.gui.025, std.gui.026, std.gui.028
 
+- Next: move panes into floating surfaces and redock them with stable identity, focus, and
+  DPI-correct geometry.
 - Done when: A pane floats into its own surface and redocks with unchanged identity and focus; geometry remains usable when monitor scale or topology changes.
 
 ### std.gui.029 — No multi-document host
@@ -272,6 +297,8 @@ first consumer; Swag Vault does not need this merely as a demonstration.
 
 - Related: std.gui.025
 
+- Next: add a tab-stack `DocumentHost` with active/dirty state, close veto/save, reorder, and
+  command routing, using Capture as the first consumer.
 - Done when: DocumentHost tracks active and dirty documents, close veto/save, close-others, reorder, and command routing, while tests cover lazy pages and focus independently of docking.
 
 ### std.gui.034 — No print preview
@@ -282,6 +309,7 @@ pagination path that can disagree with paper.
 
 - Related: std.gui.030, std.gui.033, app.capture.001
 
+- Next: render a zoomable preview through the same page-count and paint callback used for printing.
 - Done when: Preview uses the same page count and paint callback as printing, zooms through representative pages, and matches fake-backend output without a separate pagination path.
 
 ### std.gui.035 — Data-driven UI resource for `std/gui`
@@ -309,6 +337,8 @@ construction so static labels do not depend on each application remembering a ma
 
 - Related: std.gui.004
 
+- Next: define automatic bindings for construction-time catalog text and test language changes
+  without application-specific handlers.
 - Done when: A label initialized from the GUI string catalog updates after Application.setLanguage without an application-specific notification handler, while command-driven controls retain their existing behavior in a localization test.
 
 ### std.gui.044 — A composite that commits a measured size loses the fraction the layout rounds off
@@ -335,6 +365,8 @@ date/name data and plural selection instead of maintaining GUI-local culture tab
 
 - Related: std.gui.003
 
+- Next: add one independently reviewed GUI translation with key-coverage checks and
+  `Core.Globalization` locale data.
 - Done when: At least one additional GUI translation ships as a separately reviewed resource, its key coverage is checked, and locale data and plural selection use Core.Globalization rather than GUI-local rules.
 
 ### std.gui.011 — No pointer-event model
@@ -353,6 +385,8 @@ The smallest coherent input layer is:
   existing events. Native adapters belong to platform.portability.054.
 - Related: std.gui.012, std.gui.013, std.gui.020, std.gui.023, platform.portability.054
 
+- Next: add the stated platform-neutral `PointerEvent` fields and route and bubble simultaneous
+  contacts through the headless host.
 - Done when: Common GUI events carry pointer identity, mouse/touch/pen kind, contact state, position, buttons, pressure, tilt, and contact bounds through routing and bubbling, with headless tests for simultaneous contacts.
 
 ### std.gui.012 — Pointer capture is application-wide rather than per pointer
@@ -363,6 +397,8 @@ OS takes a contact away and an explicit rule for suppressing compatibility mouse
 The native translation belongs to platform.portability.054.
 - Related: std.gui.011, std.gui.013
 
+- Next: add capture per pointer with cancellation and a rule suppressing duplicate compatibility
+  mouse events.
 - Done when: Two active pointers can hold independent capture owners, cancellation releases only the affected owner, and compatibility mouse messages do not trigger a second action in mixed-device tests.
 
 ### std.gui.025 — No docking layout host
@@ -379,6 +415,8 @@ identity; drag interaction, floating surfaces, and persistence have their own id
 
 - Related: std.gui.029, std.gui.026, std.gui.027, std.gui.028
 
+- Next: add the programmatic split-tree `DockHost` model with stable pane IDs, close/hide, and
+  minimum sizes.
 - Done when: A DockHost programmatically builds split leaves and tab stacks with stable pane IDs, close/hide, and minimum-size behavior, and layout tests cover nested splits without depending on drag, floating, or persistence.
 
 ### std.gui.045 — Verify the gui10 first-frame palette report
@@ -407,6 +445,8 @@ missing-monitor rectangles and ignores panes the application no longer registers
 
 - Related: std.gui.025, platform.portability.084, std.gui.027
 
+- Next: serialize stable pane IDs, splits, active tabs, and floating rectangles with constrained
+  restore and missing-pane handling.
 - Done when: A dock layout round-trips stable pane IDs, splits, active tabs, and floating rectangles, and restore ignores missing panes while constraining rectangles to available monitors in tests.
 
 ### std.gui.030 — No printable-document pagination contract
@@ -418,6 +458,8 @@ without coupling the document to one printer backend. A fake backend records com
 
 - Related: std.pixel.005, platform.portability.086, std.gui.033, std.gui.034
 
+- Next: define a printer-independent page-count and physical-unit paint callback and exercise it
+  through a fake backend.
 - Done when: One document page callback reports count and paints in physical units into Pixel.Painter; a fake backend verifies imageable bounds, page order, multi-page failure, and vector/raster fallback.
 
 ### std.gui.032 — Print jobs cannot be cancelled
@@ -428,6 +470,8 @@ cancelled result and cleanup tests in the fake backend.
 
 - Related: std.gui.030, platform.portability.086
 
+- Next: propagate GUI cancellation through pagination and spooling with a distinct result and
+  fake-backend cleanup tests.
 - Done when: Cancellation from the GUI stops pagination and spooling, returns a distinct cancelled result, and leaves no open page or job handle in fake-backend failure tests.
 
 ### std.gui.033 — No page-setup model
@@ -438,6 +482,8 @@ preview. Validate requested settings against the capabilities supplied by platfo
 
 - Related: std.gui.030, platform.portability.086, std.gui.034
 
+- Next: model paper, orientation, margins, scale/fit, and copies independently and validate them
+  against declared printer capabilities.
 - Done when: Paper, orientation, margins, scale or fit, and copies form a printer-independent value that validates against declared device capabilities, with tests for unsupported combinations.
 
 ### std.gui.040 — A check box does not line up with the fields of the form it stands in

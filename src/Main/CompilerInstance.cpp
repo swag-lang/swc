@@ -1,5 +1,4 @@
 #include "pch.h"
-#include "Main/CompilerCacheStore.h"
 #include "Main/CompilerInstance.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITExecManager.h"
@@ -22,6 +21,7 @@
 #include "Compiler/SourceFile.h"
 #include "Main/Command/Command.h"
 #include "Main/Command/CommandLine.h"
+#include "Main/CompilerCacheStore.h"
 #include "Main/EditorIndex.h"
 #include "Main/ExternalModuleManager.h"
 #include "Main/FileSystem.h"

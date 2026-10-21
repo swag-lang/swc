@@ -107,7 +107,7 @@ namespace
 SWC_TEST_BEGIN(Sema_NodeViewsInitializeAndResetAbsentPayloads)
 {
     SemaDecisionFixture fixture(ctx, "NodeViewPayloadReset");
-    Sema&               sema = fixture.sema();
+    Sema&               sema        = fixture.sema();
     const AstNodeRef    constantRef = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
     const AstNodeRef    symbolRef   = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;
     const AstNodeRef    listRef     = sema.ast().makeNode<AstNodeId::Identifier>(TokenRef::invalid()).first;

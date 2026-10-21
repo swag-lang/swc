@@ -589,24 +589,24 @@ private:
     static void                            runtimeCompilerCompileString(const CompilerInstance* owner, Runtime::String str);
     const SourceView*                      findSourceViewByLocation(const Runtime::SourceCodeLocation& location) const;
 
-    const CommandLine*                             cmdLine_ = nullptr;
-    const Global*                                  global_  = nullptr;
-    std::vector<std::unique_ptr<SourceFile>>       files_;
-    std::vector<std::unique_ptr<SourceView>>       srcViews_;
-    std::vector<std::unique_ptr<SourceContent>>    srcViewBuffers_;
-    std::unique_ptr<LookupTable<SourceFile>>       fileLookup_;
-    std::unique_ptr<LookupTable<SourceView>>       srcViewLookup_;
-    std::unique_ptr<TypeManager>                   typeMgr_;
-    std::unique_ptr<TypeGen>                       typeGen_;
-    std::unique_ptr<ConstantManager>               cstMgr_;
-    std::unique_ptr<IdentifierManager>             idMgr_;
-    mutable std::unique_ptr<JITMemoryManager>      jitMemMgr_;
-    mutable std::once_flag                         jitMemMgrOnce_;
-    std::unique_ptr<ExternalModuleManager>         externalModuleMgr_;
-    SymbolModule*                                  symModule_           = nullptr;
-    SymbolNamespace*                               moduleNamespace_     = nullptr;
-    SymbolNamespace*                               importRootNamespace_ = nullptr;
-    JobClientId                                    jobClientId_         = 0;
+    const CommandLine*                          cmdLine_ = nullptr;
+    const Global*                               global_  = nullptr;
+    std::vector<std::unique_ptr<SourceFile>>    files_;
+    std::vector<std::unique_ptr<SourceView>>    srcViews_;
+    std::vector<std::unique_ptr<SourceContent>> srcViewBuffers_;
+    std::unique_ptr<LookupTable<SourceFile>>    fileLookup_;
+    std::unique_ptr<LookupTable<SourceView>>    srcViewLookup_;
+    std::unique_ptr<TypeManager>                typeMgr_;
+    std::unique_ptr<TypeGen>                    typeGen_;
+    std::unique_ptr<ConstantManager>            cstMgr_;
+    std::unique_ptr<IdentifierManager>          idMgr_;
+    mutable std::unique_ptr<JITMemoryManager>   jitMemMgr_;
+    mutable std::once_flag                      jitMemMgrOnce_;
+    std::unique_ptr<ExternalModuleManager>      externalModuleMgr_;
+    SymbolModule*                               symModule_           = nullptr;
+    SymbolNamespace*                            moduleNamespace_     = nullptr;
+    SymbolNamespace*                            importRootNamespace_ = nullptr;
+    JobClientId                                 jobClientId_         = 0;
     // Each scheduler thread appends to its own slot. Jobs remain compiler-owned
     // until teardown, after the caller has drained all work for this instance.
     mutable std::vector<OwnedJobStorage>      ownedJobs_;
@@ -697,13 +697,13 @@ private:
     std::unordered_map<IdentifierRef, uint32_t>                                                                  pendingImplRegistrations_;
     // Number of names in 'pendingImplRegistrations_', written inside the same exclusive section,
     // so the usual "nothing pending" answer needs neither the lock nor a lookup.
-    std::atomic<uint32_t> pendingImplRegistrationNames_{0};
-    std::mutex                                                                                                   reportedDiagnosticsMutex_;
-    std::atomic<bool>                                                                                            hasErrorDiagnostic_ = false;
-    std::unordered_set<Utf8>                                                                                     reportedDiagnostics_;
-    mutable std::shared_mutex                                                                                    deferredEscapeChecksMutex_;
-    std::vector<SemaEscapeDeferredCheck>                                                                         deferredEscapeChecks_;
-    std::vector<SemaEscapeSummaryEdge>                                                                           escapeSummaryEdges_;
+    std::atomic<uint32_t>                pendingImplRegistrationNames_{0};
+    std::mutex                           reportedDiagnosticsMutex_;
+    std::atomic<bool>                    hasErrorDiagnostic_ = false;
+    std::unordered_set<Utf8>             reportedDiagnostics_;
+    mutable std::shared_mutex            deferredEscapeChecksMutex_;
+    std::vector<SemaEscapeDeferredCheck> deferredEscapeChecks_;
+    std::vector<SemaEscapeSummaryEdge>   escapeSummaryEdges_;
     // Positions in `escapeSummaryEdges_` of the only two kinds the frees propagation reads, kept
     // as the edges arrive: that pass runs once per compile-time call and must not rescan the
     // module's whole edge list to find the handful it cares about.

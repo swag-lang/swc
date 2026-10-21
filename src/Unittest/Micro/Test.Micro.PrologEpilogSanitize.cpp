@@ -397,6 +397,50 @@ SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ExpandsLargeWindowsStackAdjustIntoPageP
 }
 SWC_TEST_END()
 
+// A guarded expression can end the entry prologue before local arrays allocate their frame.
+// Probe below the old stack pointer without overwriting the live return register or the
+// flags produced by the allocation itself.
+SWC_TEST_BEGIN(MicroPrologEpilogSanitize_ProbesBodyStackGrowthWithoutClobberingRegisters)
+{
+    constexpr MicroReg rsp = MicroReg::intReg(4);
+    constexpr MicroReg rax = MicroReg::intReg(0);
+    MicroBuilder       builder(ctx);
+
+    builder.emitLoadRegImm(rax, ApInt(42, 64), MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Subtract, MicroOpBits::B64);
+    builder.emitLoadMemReg(rsp, 0, rax, MicroOpBits::B64);
+    builder.emitOpBinaryRegImm(rsp, ApInt(12 * 1024, 64), MicroOp::Add, MicroOpBits::B64);
+    builder.emitRet();
+
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
+    if (builder.instructions().count() != 8)
+        return Result::Error;
+
+    const MicroOperandStorage& operands = builder.operands();
+    for (uint32_t page = 1; page <= 3; ++page)
+    {
+        const MicroInstr* probe = instructionAt(builder, page);
+        if (!probe || probe->op != MicroInstrOpcode::CmpMemImm)
+            return Result::Error;
+        const MicroInstrOperand* ops = probe->ops(operands);
+        if (ops[0].reg != rsp || ops[1].opBits != MicroOpBits::B8 ||
+            ops[2].valueU64 != 0 - page * 4096ull || ops[3].valueU64 != 0)
+            return Result::Error;
+    }
+
+    const MicroInstr* allocation = instructionAt(builder, 4);
+    if (!allocation || !Backend::Unittest::isStackAdjust(*allocation, allocation->ops(operands), rsp, MicroOp::Subtract, 12 * 1024ull))
+        return Result::Error;
+    const MicroInstr* store = instructionAt(builder, 5);
+    if (!store || store->op != MicroInstrOpcode::LoadMemReg || store->ops(operands)[1].reg != rax)
+        return Result::Error;
+
+    SWC_RESULT(runPrologEpilogSanitizePass(builder));
+    if (builder.instructions().count() != 8)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MicroPrologEpilogSanitize_KeepsOnlyLastFramePointerSetupInEntryProlog)
 {
     constexpr MicroReg rsp = MicroReg::intReg(4);

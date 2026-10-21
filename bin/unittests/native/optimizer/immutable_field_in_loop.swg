@@ -17,8 +17,8 @@ func fillScaled(out: [*] s64, count: u64, scale: Scale, text: string)->s64
     for i in count
     {
         out[i] = cast(s64, i) * scale.factor
-        total += scale.limit
-        total += cast(s64, text.count)
+        total  += scale.limit
+        total  += cast(s64, text.count)
     }
 
     return total

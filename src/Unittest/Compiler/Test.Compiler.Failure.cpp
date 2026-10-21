@@ -94,9 +94,9 @@ namespace
         SWC_RESULT(builder.run());
         builder.ctx().setMuteOutput(true);
         NativeBackendBuilder::ArtifactRunReport report;
-        const Result runResult = builder.runExistingArtifact(&report);
-        failedTests            = builder.nativeTestsFailed;
-        output                 = std::move(report.output);
+        const Result                            runResult = builder.runExistingArtifact(&report);
+        failedTests                                       = builder.nativeTestsFailed;
+        output                                            = std::move(report.output);
         return runResult == Result::Error && report.completed && report.exitCode != 0 ? Result::Continue : Result::Error;
     }
 

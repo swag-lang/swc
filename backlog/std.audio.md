@@ -68,6 +68,8 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 - Next: enumerate output devices with stable session identifiers and enough capabilities for a
   caller to present a choice.
+- Done when: The public API enumerates output devices with stable session identifiers and enough
+  capability information to present a choice.
 - Related: std.audio.005, std.audio.006
 
 ### std.audio.005 — The engine cannot select an output device
@@ -90,6 +92,8 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 
 - Next: add backend-neutral stereo panning to `Voice` without requiring the listener and
   distance model of platform.portability.063.
+- Done when: `Voice` exposes backend-neutral stereo panning without requiring the listener or
+  distance model.
 - Related: platform.portability.063
 
 ### std.audio.008 — No reverb effect
@@ -135,6 +139,8 @@ owned by `bin/std/modules/audio` together. [README.md](README.md) has the whole 
 - Next: sequence this after platform.portability.064: a per-voice filter answers most of the
   need, and an effects graph is a much larger commitment. Do not build the graph to get the
   filter.
+- Done when: Effects can be inserted on a bus through a stated DSP or node-graph contract sequenced
+  after the per-voice filter boundary.
 - Related: platform.portability.064, std.audio.008, std.audio.009
 
 ---

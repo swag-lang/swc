@@ -334,7 +334,7 @@ new language syntax.
   stack-walking/debug fixtures pass, unprofiled builds retain useful placement, and runtime, size,
   startup, and build costs are evaluated separately.
 - Related: compiler.optimization.118, compiler.optimization.119, compiler.optimization.120,
-  compiler.core.074.
+  compiler.core.085.
 
 ### compiler.optimization.107 — Preserve resolved bodies before ABI lowering
 
@@ -615,14 +615,17 @@ new language syntax.
   correct shared slow path, growth is bounded, and failure/cleanup/stack-walking coverage passes.
 - Related: compiler.optimization.111, compiler.optimization.114, compiler.optimization.120.
 
-### compiler.optimization.118 — Use precise callee register contracts for internal calls
+### compiler.optimization.118 — Extend precise callee register contracts beyond leaves
 
-- Evidence: `ABICall`, `CallConv`, and register allocation represent concrete ABI register effects.
-  A known direct implementation may clobber fewer registers than its ABI permits, even when
-  inlining is undesirable.
-- Next: publish actual callee clobber masks after lowering, including transitive calls, and retain
-  caller values in proven preserved registers. Lower acyclic callees first; use conservative fixed
-  points or the ordinary ABI inside recursive components.
+- Evidence: optimized direct calls already consume clobber masks from proven semantically
+  leaf callees whose lowered code contains no call. `MachineCode::leafCallClobbers` reads
+  final physical writes, and `SymbolFunction::narrowCallClobbers` lets callers retain values
+  in preserved transient registers. Machine-code and incremental-function caches retain
+  those masks. A body containing a call still publishes the full conservative mask, so
+  transitive non-leaf contracts remain unavailable.
+- Next: extend the existing masks to transitive callees and retain caller values in proven
+  preserved registers. Lower acyclic callees first; use conservative fixed points or the
+  ordinary ABI inside recursive components, preserving the existing leaf path.
 - Expansion: measure internal worker conventions with argument/result placement chosen for a call
   cluster, redundant save/restore removal, and legal sibling/tail calls. Preserve platform unwind
   requirements and canonical ABI entries for external/indirect/address-taken uses.

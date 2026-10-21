@@ -254,7 +254,7 @@ namespace
         if (shouldPrintPass(context, pass, true))
             printPassInstructions(context, pass, true);
 
-        context.passChanged = false;
+        context.passChanged                         = false;
         MicroOptimizerPassStats*              stats = nullptr;
         std::chrono::steady_clock::time_point started;
         uint64_t                              cfgBuildId = 0;
@@ -438,8 +438,8 @@ namespace
             context.ssaState = &ssaState;
         }
 
-        bool   reachedFixedPoint = false;
-        size_t passesToRun       = passes.size();
+        bool     reachedFixedPoint = false;
+        size_t   passesToRun       = passes.size();
         uint32_t sweeps            = 0;
         for (uint32_t iteration = 0; iteration < settings.maxIterations; ++iteration)
         {

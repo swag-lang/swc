@@ -74,20 +74,20 @@ not the discovery.
   test covers a documented and an undocumented declaration.
 - Related: compiler.command.doc.003, compiler.command.doc.004
 
-### compiler.command.doc.006 — A documentation run spends nine tenths of its time re-running sema
+### compiler.command.doc.006 — Attribute the remaining semantic and JIT cost of documentation
 
 - Evidence: `swc doc` runs full workspace sema on every invocation, with or without
-  `--rebuild`, and persists no sema artifact. On the whole `std` workspace, page generation
-  takes under 1 s of a ~8 s wall run. Sema dominates, mostly through compile-time execution
-  that JIT-emits about 7,800 functions (77 s CPU sema, 24.5 s CPU codegen, 21.7 s CPU micro
-  lowering). Each module also re-analyzes its dependencies' exported API: `ogl` has 29 own
-  sources, but sema processes 133 files. The hottest JIT preparation roots are `isStruct`,
-  `__message_0`, `isEnum`, `fromArgb` and `fourCc`. Suppressing optional constant folding
-  for `doc` changed no wall time.
-- Next: attribute each newly emitted function and its lowering CPU to the first JIT root and
-  dependency closure that demanded it, excluding already-ready preparations. Start with the
-  `isStruct`/`isEnum` closures and the repeated `__message_0` path, then decide whether a
-  doc-mode fast path exists.
+  `--rebuild`, and persists no sema artifact. A profile before automatic machine-code reuse
+  put page generation below 1 s of a roughly 8 s `std` run, with compile-time execution
+  JIT-emitting about 7,800 functions. Its hottest preparation roots were `isStruct`,
+  `__message_0`, `isEnum`, `fromArgb` and `fourCc`. Those are historical leads: eligible
+  runtime and imported-API JIT bodies can now reuse machine code unless `--rebuild` is used.
+  Imported API parsing and semantic analysis remain fresh.
+- Next: rebaseline cold, warm and `--rebuild` documentation runs on the same `std` inputs.
+  Attribute each remaining newly emitted function and its lowering CPU to the first JIT root
+  and dependency closure that demanded it, excluding reused bodies and already-ready
+  preparations. Follow the historical roots only where the new profile confirms their cost,
+  then decide whether a doc-mode fast path exists.
 - Done when: `swc doc --workspace bin/std` no longer pays for JIT emission or lowering its
   pages do not need, or the attribution shows that no doc-mode fast path exists and the
   remaining cost is left to compiler.core.002 and compiler.core.003.

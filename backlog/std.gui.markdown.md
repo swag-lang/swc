@@ -61,6 +61,8 @@ child blocks, rendered with inherited indent and the quote border spanning its c
 keeping the streamed, per-block visual pipeline as it is.
 
 - Intent: quotes and list items own child blocks instead of flattening or hoisting them
+- Next: give quote and list-item blocks child blocks while preserving the streamed visual pipeline
+  and revise the list-hoisting fixture.
 - Done when: a fixture with a list in a quote, a fence in a list item, a multi-paragraph item
   and a two-level quote lays out with correct indentation and borders, and the existing
   list-hoisting test is rewritten to the new stance
@@ -74,6 +76,8 @@ repository already colors Swag both in `DocMarkdown` and through the RichEdit le
 Coloring is the visible half of parity with every competitor.
 
 - Intent: fenced code colors through the shared lexer interface
+- Next: color fenced code through the shared lexer interface and distinguish wrapped lines from
+  authored newlines.
 - Done when: a `swag` fence colors, an unknown language stays plain, and wrapped lines are
   visually distinguishable from new lines
 
@@ -89,6 +93,8 @@ and resolve when the definition arrives. `revealFileOffset` windows have the sam
 directions.
 
 - Intent: a streamed document resolves references wherever their definitions sit
+- Next: make streamed reference and footnote resolution document-wide, using a definition pre-scan
+  or deferred resolution.
 - Done when: a multi-chunk streamed fixture with end-of-file definitions renders every
   reference link and footnote live, including after a reveal
 
@@ -102,6 +108,8 @@ blocks do not exist, and the emphasis flanking rules are approximate. The record
 durable artifact; the fixes are the first harvest.
 
 - Intent: conformance is a measured number with a recorded stance, not a guess
+- Next: run the CommonMark and GFM example corpora through the parser and renderer and record every
+  deliberate deviation.
 - Done when: the corpus runs as a test and a stance file lists every deviation as deliberate
 
 ### std.gui.markdown.008 — Find cannot walk its matches
@@ -115,5 +123,7 @@ search state and connect it to the host. Swag Scope's search panel deserves the 
 Markdown as over code.
 
 - Intent: find walks matches one by one and says how many there are
+- Next: expose existing occurrence-counting and exact-occurrence selection as document-wide search
+  state and connect it to the host.
 - Done when: repeated find advances match-by-match across and within blocks, and the match
   count is exposed to the host

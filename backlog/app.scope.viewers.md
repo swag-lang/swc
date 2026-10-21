@@ -185,7 +185,7 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
 | Key/value configuration | `.ini` `.cfg` `.conf` `.properties` `.env` | code and raw text | sections, keys, dialect diagnostics | [app.scope.text.040](app.scope.text.md) |
 | Other encodings | UTF-16/32, Windows-1252 | full, detected and overridable | legacy encodings and diagnostics | [app.scope.text.004](app.scope.text.md) |
 | Source code | registered extensions, common build/config names, and shebang scripts | full, lexer coloring | outline, folding, overview | [app.scope.text.006](app.scope.text.md) |
-| Markdown | `.md` `.markdown` | rendered and raw text | outline, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
+| Markdown | `.md` `.markdown` | rendered and raw text with heading outline | outline filtering/current-section tracking, synchronized source, resource diagnostics | [app.scope.document.001](app.scope.document.md) |
 | HTML | `.html` `.htm` `.xhtml` | rendered, code, and raw text | DOM/source/resource inspection; advanced engine layout | [app.scope.document.006](app.scope.document.md), [HTML roadmap](std.gui.html.md) |
 | JSON and JSON Lines | `.json` `.jsonl` | code and raw text | semantic tree, paths, schema facts | [app.scope.text.024](app.scope.text.md) |
 | XML | `.xml` `.xsd` `.xsl` `.xslt` | code and raw text | namespace-aware tree and paths | [app.scope.text.038](app.scope.text.md) |

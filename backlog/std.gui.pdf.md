@@ -49,6 +49,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   carries a hostile fixture. There is no document-level adversarial matrix for cyclic page
   trees, contradictory lengths, declared-size attacks or very large scans. The parser has local
   depth limits but no overall memory or node budget.
+- Next: build the listed malformed-document corpus and define an overall document resource budget
+  and a large-scan accounting fixture.
 - Done when: a malformed corpus covers truncation, cycles, contradictory lengths and
   declared-size attacks with the expected error for each, a large fixture measures the full-file
   snapshot separately from lazy trailer/page indexing, and the parser refuses to allocate past
@@ -137,6 +139,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 - Intent: `indexDocument` fails the whole document as soon as an `/Encrypt` entry or a standard
   security handler is seen. Files encrypted with an *empty* user password are rejected along with
   files requiring a password. The reader has no decryption path for either case.
+- Next: implement standard-security-handler decryption with distinct empty-password,
+  password-required, and malformed-document outcomes.
 - Done when: the standard security handler is implemented for revisions 2 through 6 — RC4 40
   and 128 bit, AES-128 and AES-256 — strings and streams are decrypted per object with the correct
   key derivation, a document that opens with the empty user password opens silently, and one that
@@ -151,6 +155,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   perfectly. For a viewer that is the difference between a page with a gap in it and a page that
   will not display. Other unsupported constructs are silently ignored or substituted instead;
   those paths also need an explicit limitation record.
+- Next: return safely decoded page items with per-item limitation records instead of discarding the
+  whole page for unsupported content.
 - Done when: a page decodes as far as it can, each construct it could not represent is
   recorded against the item that needed it with enough detail to name the feature, `Page` exposes
   those limitations to the caller, and a document-level failure is reserved for input that cannot
@@ -166,6 +172,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   path — the standard way to fill text with an image or a gradient. Modes 1, 2, 4, 5 and 6 are
   drawn as a plain fill; mode 7 paints nothing but also contributes no clip. Outlined display type
   therefore renders solid, and subsequent content ignores the missing text clip.
+- Next: retain text render modes in items and implement stroke, fill-and-stroke, and text-clipping
+  behavior.
 - Done when: an item carries its render mode, stroke and fill-and-stroke modes paint with the
   stroke color and width, and the clipping modes contribute the run's outline to the clip.
 
@@ -174,6 +182,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 - Intent: `Page.addText` accepts UTF-8 and `windows1252` then fails the whole `save` on the first
   character outside that encoding. No font can be embedded, so the writer cannot express text
   such as Greek, Cyrillic, Hebrew, CJK or emoji.
+- Next: embed and subset TrueType/OpenType fonts with composite encoding and `ToUnicode` while
+  retaining standard faces as the default.
 - Done when: a TrueType or OpenType program can be embedded, subset to the glyphs used, with a
   Type0 composite font, an Identity-H encoding and a `/ToUnicode` map so the output stays
   searchable and copyable; the standard faces remain the default so a Latin document still carries
@@ -203,6 +213,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   The PDF corpus has no fixed page expectations spanning its document families.
 - Intent: protect the decoded output against an independently reviewed stored image, including a
   regression that paints a valid page entirely black.
+- Next: add independently reviewed fixed page goldens spanning the PDF corpus families and a
+  valid-but-black-page regression.
 - Done when: a representative page from each corpus family has a golden, the fixtures that
   exercise text, images, strokes and forms compare rendered output rather than model fields, and a
   round trip through the writer is judged on its rendered result.
@@ -228,6 +240,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   marks and signature appearances all live in annotation appearance streams, and none of them
   reach the page. A commented or filled document renders as the blank form underneath it, with no
   indication that anything is missing.
+- Next: decode and paint normal annotation appearance streams in order with their mapping and
+  visibility flags, without executing actions.
 - Done when: the normal appearance stream of each annotation is drawn in annotation order
   after the page content, with its `/Rect` to `/BBox` mapping and `/Matrix` applied, hidden and
   no-view flags honoured, and annotations without an appearance stream skipped rather than
@@ -240,6 +254,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 - Intent: the `sh` operator falls through the content switch and paints nothing, and a shading
   pattern used as a fill paints nothing. Type 2 and type 3 shadings with sampled, exponential and
   stitching functions cover the overwhelming majority of gradients in real documents.
+- Next: evaluate the required function types and paint axial and radial shadings through the current
+  clip and shading-pattern fills.
 - Done when: `sh` paints an axial or radial shading through the current clip, a shading
   pattern selected by `scn` fills a path with the same code, the `/Function` types needed by those
   two are evaluated, and the remaining shading types are reported per item.
@@ -249,6 +265,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 - Intent: a type 1 pattern is a content stream tiled over a region — hatching in engineering
   drawings, texture fills in presentations. None of it is drawn.
+- Next: decode tiling-pattern cells once and tile them under the pattern matrix, preserving colored
+  and uncolored paint behavior.
 - Done when: a tiling pattern's cell is decoded once through the existing content parser,
   tiled over the filled region under the pattern matrix, and both paint types are handled, with
   the uncolored form taking its color from the `scn` operands.
@@ -260,6 +278,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   read, so every optional content group is painted whatever its default configuration says. A
   drawing exported with construction layers off shows them on, and a multi-language artwork shows
   every language at once.
+- Next: read the default optional-content configuration and apply visibility to marked content and
+  `XObjects`.
 - Done when: the catalog's `/OCProperties` default configuration decides which groups are
   visible, marked-content sections and XObjects belonging to a hidden group are skipped, and the
   group list is exposed so a caller can override the configuration.
@@ -271,6 +291,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   are in glyph space, not thousandths — are read as though they were normal metrics, so the text
   is both the wrong shape and the wrong size. Documents produced by older TeX toolchains and by
   drawing programs that embed bitmap fonts hit this.
+- Next: decode Type3 `CharProcs` under their font and text matrices and interpret widths in glyph
+  space.
 - Done when: a Type3 glyph is drawn by running its `CharProc` through the existing content
   parser under the font matrix and the text matrix, and its widths are interpreted in glyph space.
 
@@ -296,6 +318,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 - Intent: `JBIG2Decode` is the modern successor to CCITT for scanned text, and is what recent
   scanner firmware and PDF optimizers emit.
+- Next: implement bounded JBIG2 generic/text-region decoding including shared `JBIG2Globals`
+  segments.
 - Done when: the generic region and text region decoding procedures are implemented, including
   the embedded stream form with a shared `/JBIG2Globals` segment.
 - Related: std.gui.pdf.002, std.gui.pdf.015
@@ -304,6 +328,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
 
 - Intent: `JPXDecode` appears in print production and in some scanner output. It is the largest
   single decoder on this list and the rarest of the three, which is why it sits last.
+- Next: implement the PDF JPEG 2000 codestream subset or report it as an explicit per-item
+  limitation.
 - Done when: the codestream form used by PDF decodes, or the codec is removed from the
   recognized set and reported as a first-class limitation instead of being half-recognized.
 - Related: std.gui.pdf.002
@@ -314,6 +340,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   `/Metadata` XMP stream is not read, and `/PageLabels` is not read — so a document numbered
   `i, ii, iii, 1, 2` reports pages 1 through 5 and no viewer built on this can show the number the
   page itself carries.
+- Next: read creation/modification dates, XMP metadata, and page labels with their stated source
+  forms.
 - Done when: the two dates are parsed from the PDF date form, the XMP packet is exposed as
   bytes with its common Dublin Core fields surfaced, and a page reports its label.
 
@@ -325,6 +353,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   Merging two documents and splitting one are the two most common things anyone does to a PDF, and
   neither can be done here without degrading the pages. There is also no insert-at-index and no
   reorder.
+- Next: copy and renumber page object graphs without redrawing and add insert-at-index and reorder
+  operations.
 - Done when: a page can be copied from one document to another at the object level — its
   content streams, resources and font programs carried across unchanged and renumbered — a page
   can be inserted at a position and moved, and a merge of two files that this module can open
@@ -339,6 +369,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   so trimmed content reappears. And a text item is written as one `Tj` with the standard face's own
   metrics even though `textAdvances` holds the exact advance the document gave every code, so
   letters inside a run drift wherever the substitute's metrics differ.
+- Next: preserve fill rules, clips, and per-code text advances through writing and compare the
+  round-trip rendering.
 - Done when: the even-odd rule survives a decode-encode cycle, a clipped item is written back
   inside `q W n … Q`, a text run is written as a `TJ` array carrying the retained per-code
   advances, and a round-trip test compares rendered pages rather than only re-reading the model.
@@ -350,6 +382,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   it. A page that came in as a two-megabyte JPEG photograph leaves as a fifty-megabyte raster, a
   bilevel scan leaves as eight bits per pixel, and a palette image loses its palette. The same
   image used on twenty pages is written twenty times.
+- Next: preserve supported encoded JPEG and natural-depth image representations and share repeated
+  image objects.
 - Done when: an image whose source is already a JPEG is passed through as `DCTDecode`, a
   bilevel or small-palette image is written at its natural depth or through an indexed space, and
   an image written more than once shares one object.
@@ -360,6 +394,7 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   There is no way to write a link, a bookmark, a page label, or a document date, so a generated
   report cannot have a clickable table of contents — which is most of what a generated report is
   for.
+- Next: add writer support for link annotations, outline trees, page labels, and document dates.
 - Done when: a page can carry link annotations to a URI or to another page, a document can
   carry an outline tree and page labels, and `/CreationDate` and `/ModDate` are written.
 - Related: std.gui.pdf.017, std.gui.pdf.018
@@ -370,6 +405,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   many small objects is larger than it needs to be, and there is no way to save a change to an
   existing file except by rewriting it whole — which, per std.gui.pdf.020, degrades every page it did not
   originate.
+- Next: add object/cross-reference streams and incremental append-only saves for documents opened
+  from files.
 - Done when: objects can be written into object streams behind a cross-reference stream, and a
   document opened from a file can be saved as an incremental update that appends rather than
   rewrites.
@@ -397,6 +434,8 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   runs into the contract `Reader.loadPage` states — a page owns what it retains and stays valid
   after its reader is released — so it needs a shared buffer, which `Core` does not have, or a
   decision to narrow that contract.
+- Next: settle shared-byte-buffer ownership or the page lifetime contract, then share font programs
+  between pages.
 - Done when: `Core` publishes a shared byte buffer or the page ownership contract is settled,
   a decoded font program is shared between the pages that reference the same font object, and a
   `Document` load of the corpus costs one copy per distinct program.

@@ -115,11 +115,11 @@ namespace
             bool          repeatedLocation;
         };
 
-        std::optional<FlatKeySet>                                               frameDerived;
-        std::unordered_map<MemoryLocation, size_t, MemoryLocationHash>           firstLoadByLocation;
-        std::vector<LoadCandidate>                                                loads;
-        std::vector<MicroInstrRef>                                                preserve;
-        const auto                                                                flush = [&] {
+        std::optional<FlatKeySet>                                      frameDerived;
+        std::unordered_map<MemoryLocation, size_t, MemoryLocationHash> firstLoadByLocation;
+        std::vector<LoadCandidate>                                     loads;
+        std::vector<MicroInstrRef>                                     preserve;
+        const auto                                                     flush = [&] {
             for (const LoadCandidate& load : loads)
                 if (load.repeatedLocation)
                     preserve.push_back(load.ref);
@@ -156,7 +156,7 @@ namespace
                 {
                     const MemoryLocation location{.base = ops[1].reg, .offset = ops[3].valueU64};
                     const auto [first, inserted] = firstLoadByLocation.try_emplace(location, loads.size());
-                    const bool repeated           = !inserted;
+                    const bool repeated          = !inserted;
                     if (repeated)
                         loads[first->second].repeatedLocation = true;
                     loads.push_back(LoadCandidate{.ref = it.current, .repeatedLocation = repeated});
@@ -237,7 +237,7 @@ Result MicroWebRenamePass::run(MicroPassContext& context)
         else if ((it->op == MicroInstrOpcode::LoadRegMem || it->op == MicroInstrOpcode::OpBinaryRegMem) && ops[2].opBits == MicroOpBits::B64)
         {
             const uint64_t offset = ops[it->op == MicroInstrOpcode::LoadRegMem ? 3 : 4].valueU64;
-            const auto stored = storedValues.find({ops[1].reg, offset});
+            const auto     stored = storedValues.find({ops[1].reg, offset});
             if (stored != storedValues.end() && ssa->reachingValueId(stored->second.source, it.current) != stored->second.value)
                 candidates.insert(stored->second.source.packed);
         }

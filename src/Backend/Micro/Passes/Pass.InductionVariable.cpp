@@ -863,7 +863,7 @@ Result MicroInductionVariablePass::run(MicroPassContext& context)
     for (uint32_t round = 0; round < K_MAX_LOCAL_ROUNDS; ++round)
     {
         ++rounds;
-        bool hasOtherLoop = false;
+        bool       hasOtherLoop = false;
         const bool changed      = reduceRound(context, processedHeaders, hasOtherLoop);
         stopped                 = changed && hasOtherLoop;
         if (!changed)

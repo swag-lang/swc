@@ -203,6 +203,8 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   - The catalogue begins with small composable examples before games and applications. Every
     advertised example is built or tested by release validation with the compiler and payload that
     ship together.
+- Next: turn release examples into a local catalogue with list, show, copy, run, and test operations
+  and the stated provenance and limits.
 - Done when: a user can find, inspect, copy, run, and test one example for scripts, workspaces,
   imports, tests, errors, compile-time execution, core collections, and GUI without cloning the
   repository. The catalogue gives a useful prerequisite report rather than attempting an impossible
@@ -230,6 +232,8 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
   human log interleaved with data. Define stdout/stderr ownership and one record framing; never
   require a consumer to parse a sentence. Preserve existing exit-code meanings and version any
   extension explicitly.
+- Next: generate a versioned JSON/JSONL interface from the existing command, diagnostic,
+  documentation, example, and capability definitions.
 - Done when: a small independent client can discover a command, create a project, run a safe
   plan, interpret an intentional compiler error, locate the matching local reference entry, and
   distinguish a source error from an unavailable host capability without hard-coded Swag knowledge.
@@ -274,6 +278,8 @@ its embedded payload or diagnose a damaged delivery. Conversely, guidance for an
     spans, exit categories, no unintended network access, and no global shell mutation.
   - Manifest signatures, hashes, licences, release version coherence, and recovery from an altered
     payload or cache.
+- Next: stage the final release artifact in clean disposable environments and implement the listed
+  acceptance cases for both delivery contracts.
 - Done when: every published release is blocked on this matrix in clean disposable Windows
   environments, and its report identifies the artifact manifest and every externally supplied
   prerequisite. A passing repository campaign alone is no longer accepted as release evidence.

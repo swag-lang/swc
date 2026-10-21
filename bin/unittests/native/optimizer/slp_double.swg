@@ -55,7 +55,7 @@ func scaled(values: *[8] f64, scale: f64)
 #[Swag.Optimize(true)]
 func snapshotBeforeOverwrite(values: *[8] f64)
 {
-    let left = values[][0]
+    let left  = values[][0]
     let right = values[][1]
     values[][0] = -9
     values[][4] = Swag.sqrt(left)

@@ -387,6 +387,27 @@ namespace InstructionCombine
         return loopSlotsAll || loopSlots.contains(ref.get());
     }
 
+    const MicroPassHelpers::MicroDomTree* Context::guardDominators()
+    {
+        if (!guardDominatorsReady)
+        {
+            guardDominatorsReady = true;
+            guardDominatorsValid = false;
+            if (builder)
+            {
+                const MicroControlFlowGraph& cfg   = builder->controlFlowGraph();
+                const uint32_t               entry = MicroPassHelpers::findSingleCfgEntry(cfg);
+                if (entry != MicroPassHelpers::MicroDomTree::K_INVALID_NODE && !cfg.hasUnsupportedControlFlowForCfgLiveness())
+                {
+                    guardDominatorTree   = MicroPassHelpers::computeInstructionDominators(cfg, entry, ssa);
+                    guardDominatorsValid = true;
+                }
+            }
+        }
+
+        return guardDominatorsValid ? &guardDominatorTree : nullptr;
+    }
+
     bool Context::isReportCall(const MicroInstrRef ref)
     {
         if (!reportCallsReady)

@@ -114,6 +114,14 @@ namespace InstructionCombine
         bool       reportCallsReady = false;
         FlatKeySet reportCalls;
 
+        // The instruction dominator tree of the function, computed on the first question; null
+        // when the graph has no single entry or control flow the analysis cannot read.
+        const MicroPassHelpers::MicroDomTree* guardDominators();
+
+        bool                           guardDominatorsReady = false;
+        bool                           guardDominatorsValid = false;
+        MicroPassHelpers::MicroDomTree guardDominatorTree;
+
         bool       loopSlotsReady = false;
         bool       loopSlotsAll   = false;
         FlatKeySet loopSlots;
@@ -314,6 +322,7 @@ namespace InstructionCombine
     bool tryDropRangeProvedCompare(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
     bool tryResolveRangeProvedBranch(Context& ctx, MicroInstrRef ref, const MicroInstr& inst);
     bool tryDropRepeatedGuard(Context& ctx, MicroInstrRef cmpRef, const MicroInstr& cmpInst);
+    bool tryResolveDominatedOverflowGuard(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst);
     bool tryDropFrameWriteGuard(Context& ctx, MicroInstrRef callRef, const MicroInstr& callInst);
     bool tryFoldConstBinaryRhs(Context& ctx, MicroInstrRef binRef, const MicroInstr& binInst);
     bool tryFoldConstCopy(Context& ctx, MicroInstrRef copyRef, const MicroInstr& copyInst);

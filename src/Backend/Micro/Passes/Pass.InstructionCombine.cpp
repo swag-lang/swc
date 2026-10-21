@@ -153,6 +153,7 @@ namespace
         r.add(MicroInstrOpcode::CmpRegImm, tryDropRepeatedGuard);
         r.add(MicroInstrOpcode::CmpRegReg, tryDropRepeatedGuard);
         r.add(MicroInstrOpcode::OpBinaryRegImm, tryResolveRangeProvedBranch);
+        r.add(MicroInstrOpcode::OpBinaryRegImm, tryResolveDominatedOverflowGuard);
         r.add(MicroInstrOpcode::OpBinaryRegReg, tryResolveRangeProvedBranch);
         r.add(MicroInstrOpcode::LoadRegReg, tryFoldConstCopy);
         r.add(MicroInstrOpcode::LoadRegReg, tryDelayCopiedAddressIncrement);
@@ -261,6 +262,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.loopSlots.clear();
     ctx.reportCalls.clear();
     ctx.reportCallsReady         = false;
+    ctx.guardDominatorsReady     = false;
     ctx.loopSlotsReady           = false;
     ctx.immutableBasesReady      = false;
     ctx.zeroExtendedFrameReady   = false;

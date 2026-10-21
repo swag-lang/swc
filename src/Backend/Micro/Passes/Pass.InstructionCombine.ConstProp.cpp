@@ -957,6 +957,59 @@ namespace InstructionCombine
     {
         using MicroOptimizationLimits::InstructionCombineConstProp::K_MAX_BOUND_DEPTH;
 
+        // The smallest all-ones value covering `value`: what an exclusive or of values up to
+        // `value` cannot exceed.
+        uint64_t smearRight(uint64_t value)
+        {
+            value |= value >> 1;
+            value |= value >> 2;
+            value |= value >> 4;
+            value |= value >> 8;
+            value |= value >> 16;
+            value |= value >> 32;
+            return value;
+        }
+
+        bool unsignedUpperBound(uint64_t& outBound, const Context& ctx, MicroReg reg, MicroInstrRef useRef, int depth);
+
+        // A phi holds one of its incoming values, so the largest of their bounds bounds it.
+        // A loop-carried value bounds only when its update does on its own: following the
+        // back edge to the phi itself runs out of depth and proves nothing.
+        bool phiUpperBound(uint64_t& outBound, const Context& ctx, uint32_t phiValueId, int depth)
+        {
+            if (depth <= 0)
+                return false;
+            const auto* phi = ctx.ssa->phiInfoForValue(phiValueId);
+            if (!phi || phi->incomingValueIds.empty())
+                return false;
+
+            uint64_t bound = 0;
+            for (const uint32_t incomingId : phi->incomingValueIds)
+            {
+                const auto* incoming = ctx.ssa->valueInfo(incomingId);
+                if (!incoming)
+                    return false;
+
+                uint64_t incomingBound = 0;
+                if (incoming->isPhi())
+                {
+                    if (!phiUpperBound(incomingBound, ctx, incomingId, depth - 1))
+                        return false;
+                }
+                else
+                {
+                    const MicroInstrRef afterDef = ctx.nextRef(incoming->instRef);
+                    if (afterDef.isInvalid() || ctx.ssa->reachingValueId(incoming->reg, afterDef) != incomingId ||
+                        !unsignedUpperBound(incomingBound, ctx, incoming->reg, afterDef, depth - 1))
+                        return false;
+                }
+                bound = std::max(bound, incomingBound);
+            }
+
+            outBound = bound;
+            return true;
+        }
+
         // Proves an inclusive unsigned upper bound for the full value of 'reg' at
         // 'useRef', by walking its reaching definitions. Only definitions whose
         // write zero-extends to the full register width participate (32- and
@@ -968,7 +1021,11 @@ namespace InstructionCombine
                 return false;
 
             const auto rd = ctx.ssa->reachingDef(reg, useRef);
-            if (!rd.valid() || rd.isPhi || !rd.inst)
+            if (!rd.valid())
+                return false;
+            if (rd.isPhi)
+                return phiUpperBound(outBound, ctx, rd.valueId, depth - 1);
+            if (!rd.inst)
                 return false;
 
             const MicroInstrOperand* defOps = rd.inst->ops(*ctx.operands);
@@ -1063,6 +1120,14 @@ namespace InstructionCombine
                         outBound = inner + imm;
                         return true;
                     }
+                    if (defOps[2].microOp == MicroOp::Xor)
+                    {
+                        uint64_t inner = 0;
+                        if (!unsignedUpperBound(inner, ctx, reg, rd.instRef, depth - 1))
+                            return false;
+                        outBound = smearRight(std::max(inner, imm)) & opMask;
+                        return true;
+                    }
                     return false;
                 }
 
@@ -1072,7 +1137,7 @@ namespace InstructionCombine
                         return false;
                     if (defOps[1].reg == reg)
                         return false;
-                    if (defOps[3].microOp != MicroOp::Add && defOps[3].microOp != MicroOp::Or)
+                    if (defOps[3].microOp != MicroOp::Add && defOps[3].microOp != MicroOp::Or && defOps[3].microOp != MicroOp::Xor)
                         return false;
                     const uint64_t opMask = getBitsMask(defOps[2].opBits);
                     uint64_t       lhs    = 0;
@@ -1081,6 +1146,11 @@ namespace InstructionCombine
                         return false;
                     if (!unsignedUpperBound(rhs, ctx, defOps[1].reg, rd.instRef, depth - 1))
                         return false;
+                    if (defOps[3].microOp == MicroOp::Xor)
+                    {
+                        outBound = smearRight(std::max(lhs, rhs)) & opMask;
+                        return true;
+                    }
                     if (lhs + rhs < lhs || lhs + rhs > opMask)
                         return false;
                     outBound = lhs + rhs;

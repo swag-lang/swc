@@ -118,3 +118,106 @@ var g_Wide = Swag.U64.Max
     Swag.assert(readAfterTest(&values, opaqueU64(2)) == 4)
     discard readAfterTest(&values, opaqueU64(4))
 }
+
+#[Swag.NoInline]
+func opaqueS64(v: s64)->s64 => v
+
+// Two indices walking towards each other: 'i < j' leaves room for 'i + 1' below the
+// maximum, and for 'j - 1' above the minimum, so neither update can overflow.
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func meet(first, last: s64)->s64
+    {
+        var i     = first
+        var j     = last
+        var steps = 0's64
+        while i < j
+        {
+            i     += 1
+            j     -= 1
+            steps += 1
+        }
+
+        return steps
+    }
+
+    Swag.assert(meet(opaqueS64(0), opaqueS64(9)) == 5)
+    Swag.assert(meet(opaqueS64(Swag.S64.Max - 3), opaqueS64(Swag.S64.Max)) == 2)
+    Swag.assert(meet(opaqueS64(Swag.S64.Min), opaqueS64(Swag.S64.Min + 3)) == 2)
+}
+
+// A tested non-zero value can lose one without borrowing.
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func previous(value: u64)->u64
+    {
+        if value != 0 do
+            return value - 1
+        return 0
+    }
+
+    Swag.assert(previous(opaqueU64(1)) == 0)
+    Swag.assert(previous(opaqueU64(0)) == 0)
+}
+
+// A value only known to differ from another constant can still borrow.
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func previousUnlessFive(value: u64)->u64
+    {
+        if value != 5 do
+            return value - 1     // swc-expected-error {{safety_err_runtime}}
+        return 0
+    }
+
+    Swag.assert(previousUnlessFive(opaqueU64(9)) == 8)
+    discard previousUnlessFive(opaqueU64(0))
+}
+
+// Below a constant leaves only as much room as the constant does.
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func bump(value: u8)->u8
+    {
+        if value < 200 do
+            return value + 55
+        return 0
+    }
+
+    Swag.assert(bump(cast(u8, opaqueU32(199))) == 254)
+    Swag.assert(bump(cast(u8, opaqueU32(250))) == 0)
+}
+
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func bumpTooFar(value: u8)->u8
+    {
+        if value < 200 do
+            return value + 57     // swc-expected-error {{safety_err_runtime}}
+        return 0
+    }
+
+    Swag.assert(bumpTooFar(cast(u8, opaqueU32(10))) == 67)
+    discard bumpTooFar(cast(u8, opaqueU32(199)))
+}
+
+// 'i <= j' still lets 'i' reach the maximum, where 'i + 1' overflows.
+#test
+{
+    #[Swag.Safety(.Overflow, true)]
+    func climb(first, last: s64)->s64
+    {
+        var i = first
+        while i <= last do
+            i += 1     // swc-expected-error {{safety_err_runtime}}
+        return i
+    }
+
+    Swag.assert(climb(opaqueS64(0), opaqueS64(9)) == 10)
+    discard climb(opaqueS64(Swag.S64.Max - 1), opaqueS64(Swag.S64.Max))
+}

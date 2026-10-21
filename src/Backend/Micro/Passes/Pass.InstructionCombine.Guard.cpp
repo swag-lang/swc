@@ -204,6 +204,279 @@ namespace InstructionCombine
 
     namespace
     {
+        // What a dominating compare established about a value: `value cond other`, where
+        // `other` is a constant when `hasConstant`.
+        struct ValueRelation
+        {
+            MicroCond   cond        = MicroCond::Unconditional;
+            MicroOpBits bits        = MicroOpBits::Zero;
+            bool        hasConstant = false;
+            uint64_t    constant    = 0;
+        };
+
+        // The condition seen from the other operand: `a < b` is `b > a`.
+        bool swapCondition(MicroCond& outCond, MicroCond cond)
+        {
+            switch (cond)
+            {
+                case MicroCond::Less: outCond = MicroCond::Greater; return true;
+                case MicroCond::LessOrEqual: outCond = MicroCond::GreaterOrEqual; return true;
+                case MicroCond::Greater: outCond = MicroCond::Less; return true;
+                case MicroCond::GreaterOrEqual: outCond = MicroCond::LessOrEqual; return true;
+                case MicroCond::Below: outCond = MicroCond::Above; return true;
+                case MicroCond::BelowOrEqual: outCond = MicroCond::AboveOrEqual; return true;
+                case MicroCond::Above: outCond = MicroCond::Below; return true;
+                case MicroCond::AboveOrEqual: outCond = MicroCond::BelowOrEqual; return true;
+                case MicroCond::Equal:
+                case MicroCond::NotEqual:
+                case MicroCond::Zero:
+                case MicroCond::NotZero: outCond = cond; return true;
+                default: return false;
+            }
+        }
+
+        int64_t signExtend(uint64_t value, MicroOpBits bits)
+        {
+            const uint32_t width = getNumBits(bits);
+            if (width >= 64)
+                return static_cast<int64_t>(value);
+            const uint64_t sign = 1ull << (width - 1);
+            value &= getBitsMask(bits);
+            return static_cast<int64_t>((value ^ sign) - sign);
+        }
+
+        // Whether `value op k` stays in range, `op` an addition or a subtraction of the positive
+        // constant `k`, given the relation. Signed ranges are checked for the overflow flag,
+        // unsigned ones for the carry.
+        bool relationKeepsInRange(const ValueRelation& rel, bool isAdd, bool isSigned, uint64_t k, MicroOpBits bits)
+        {
+            const uint32_t width = getNumBits(bits);
+            const uint64_t mask  = getBitsMask(bits);
+            if (rel.bits != bits || k == 0 || k > (mask >> 1))
+                return false;
+
+            MicroCond cond = rel.cond;
+            if (cond == MicroCond::Zero)
+                cond = MicroCond::Equal;
+            else if (cond == MicroCond::NotZero)
+                cond = MicroCond::NotEqual;
+
+            if (isSigned)
+            {
+                const int64_t maxValue = width >= 64 ? INT64_MAX : static_cast<int64_t>((1ull << (width - 1)) - 1);
+                const int64_t minValue = -maxValue - 1;
+                const int64_t kSigned  = static_cast<int64_t>(k);
+                const int64_t c        = signExtend(rel.constant, bits);
+                if (isAdd)
+                {
+                    // Need value <= max - k.
+                    if (cond == MicroCond::Less)
+                        return rel.hasConstant ? c - 1 <= maxValue - kSigned : k == 1;
+                    if (cond == MicroCond::LessOrEqual)
+                        return rel.hasConstant && c <= maxValue - kSigned;
+                    return false;
+                }
+
+                // Need value >= min + k.
+                if (cond == MicroCond::Greater)
+                    return rel.hasConstant ? c + 1 >= minValue + kSigned : k == 1;
+                if (cond == MicroCond::GreaterOrEqual)
+                    return rel.hasConstant && c >= minValue + kSigned;
+                return false;
+            }
+
+            const uint64_t c = rel.constant & mask;
+            if (isAdd)
+            {
+                // Need value <= mask - k.
+                if (cond == MicroCond::Below)
+                    return rel.hasConstant ? c != 0 && c - 1 <= mask - k : k == 1;
+                if (cond == MicroCond::BelowOrEqual)
+                    return rel.hasConstant && c <= mask - k;
+                return false;
+            }
+
+            // Need value >= k.
+            if (cond == MicroCond::Above)
+                return rel.hasConstant ? c < mask && c + 1 >= k : k == 1;
+            if (cond == MicroCond::AboveOrEqual)
+                return rel.hasConstant && c >= k;
+            if (cond == MicroCond::NotEqual)
+                return rel.hasConstant && c == 0 && k == 1;
+            return false;
+        }
+
+        // Reads `cmp value, other` + `jcc` as the relation its taken edge (or, inverted, its
+        // fall-through edge) establishes about `valueId`.
+        bool readComparedRelation(ValueRelation& out, const Context& ctx, MicroInstrRef cmpRef, uint32_t valueId, MicroCond jumpCond)
+        {
+            const MicroInstr* cmp = ctx.instruction(cmpRef);
+            if (!cmp || (cmp->op != MicroInstrOpcode::CmpRegImm && cmp->op != MicroInstrOpcode::CmpRegReg))
+                return false;
+            const MicroInstrOperand* ops = cmp->ops(*ctx.operands);
+            if (!ops || !ops[0].reg.isVirtualInt())
+                return false;
+
+            out      = {};
+            out.cond = jumpCond;
+            if (cmp->op == MicroInstrOpcode::CmpRegImm)
+            {
+                if (ops[2].hasWideImmediateValue() || ctx.ssa->reachingValueId(ops[0].reg, cmpRef) != valueId)
+                    return false;
+                out.bits        = ops[1].opBits;
+                out.hasConstant = true;
+                out.constant    = ops[2].valueU64;
+                return true;
+            }
+
+            if (!ops[1].reg.isVirtualInt())
+                return false;
+            out.bits                   = ops[2].opBits;
+            const uint32_t leftValue   = ctx.ssa->reachingValueId(ops[0].reg, cmpRef);
+            const uint32_t rightValue  = ctx.ssa->reachingValueId(ops[1].reg, cmpRef);
+            const bool     valueOnLeft = leftValue == valueId;
+            if (!valueOnLeft && rightValue != valueId)
+                return false;
+            if (leftValue == rightValue)
+                return false;
+            if (!valueOnLeft && !swapCondition(out.cond, out.cond))
+                return false;
+            out.hasConstant = resolveIntConstant(out.constant, ctx, valueOnLeft ? ops[1].reg : ops[0].reg, cmpRef, out.bits);
+            return true;
+        }
+    }
+
+    // A guard on `value + k` or `value - k` that a dominating test of the same value settles.
+    //
+    //     cmp  i, j                      cmp  i, j
+    //     jge  Exit                      jge  Exit
+    //     ...                            ...
+    //     add  i, 1                ->    add  i, 1
+    //     jno  Next                      jmp  Next
+    //     ...report...                   ...report...
+    //   Next:                          Next:
+    //
+    // Every path to the addition took the edge where `i < j` held, and `j` cannot exceed the
+    // width's maximum, so `i + 1` cannot overflow. The edge proves the relation only when it is
+    // the only way into its target. A program's own branch is never resolved here: only a
+    // guard's jump over its report, so a proof that reads a guard's outcome stays a guard's.
+    bool tryResolveDominatedOverflowGuard(Context& ctx, MicroInstrRef opRef, const MicroInstr& opInst)
+    {
+        if (!ctx.ssa || !ctx.builder)
+            return false;
+
+        const MicroInstrOperand* ops = opInst.ops(*ctx.operands);
+        if (!ops || opInst.op != MicroInstrOpcode::OpBinaryRegImm || !ops[0].reg.isVirtualInt() || ops[3].hasWideImmediateValue())
+            return false;
+        const bool isAdd = ops[2].microOp == MicroOp::Add;
+        if (!isAdd && ops[2].microOp != MicroOp::Subtract)
+            return false;
+        const MicroOpBits bits = ops[1].opBits;
+        if (bits != MicroOpBits::B8 && bits != MicroOpBits::B16 && bits != MicroOpBits::B32 && bits != MicroOpBits::B64)
+            return false;
+
+        const MicroInstrRef jumpRef = ctx.nextRef(opRef);
+        const MicroInstr*   jump    = jumpRef.isValid() ? ctx.instruction(jumpRef) : nullptr;
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond || ctx.isClaimed(jumpRef))
+            return false;
+        const MicroInstrOperand* jumpOps  = jump->ops(*ctx.operands);
+        uint32_t                 targetId = 0;
+        if (!tryGetJumpTargetLabelId(targetId, *jump, jumpOps))
+            return false;
+        const MicroCond guardCond = jumpOps[0].cpuCond;
+        if (guardCond != MicroCond::NotOverflow && guardCond != MicroCond::AboveOrEqual)
+            return false;
+        const bool isSigned = guardCond == MicroCond::NotOverflow;
+
+        const MicroControlFlowGraph& cfg       = ctx.builder->controlFlowGraph();
+        const uint32_t               joinIndex = cfg.indexOfLabel(targetId);
+        if (joinIndex == MicroControlFlowGraph::K_NO_INDEX || !skipsReport(ctx, jumpRef, cfg.instructionRefs()[joinIndex]))
+            return false;
+
+        const uint32_t opIndex = cfg.indexOf(opRef);
+        if (opIndex == MicroControlFlowGraph::K_NO_INDEX)
+            return false;
+        const MicroPassHelpers::MicroDomTree* dom = ctx.guardDominators();
+        if (!dom)
+            return false;
+
+        // The operand is often a copy of the value the program tested: lowering copies a
+        // variable before updating it. Every value of the copy chain holds the same bits.
+        SmallVector<uint32_t, 4> valueIds;
+        MicroReg                 reg   = ops[0].reg;
+        MicroInstrRef            useAt = opRef;
+        for (uint32_t depth = 0; depth < 4; ++depth)
+        {
+            const auto def = ctx.ssa->reachingDef(reg, useAt);
+            if (!def.valid())
+                break;
+            valueIds.push_back(def.valueId);
+            if (def.isPhi || !def.inst || def.inst->op != MicroInstrOpcode::LoadRegReg)
+                break;
+            const MicroInstrOperand* copyOps = def.inst->ops(*ctx.operands);
+            if (!copyOps || !copyOps[1].reg.isVirtualInt() || getNumBits(copyOps[2].opBits) < getNumBits(bits))
+                break;
+            reg   = copyOps[1].reg;
+            useAt = def.instRef;
+        }
+
+        const uint64_t k      = ops[3].valueU64 & getBitsMask(bits);
+        bool           proven = false;
+        for (const uint32_t valueId : valueIds)
+        {
+            const auto* info = ctx.ssa->valueInfo(valueId);
+            if (!info)
+                continue;
+            for (const auto& use : info->uses)
+            {
+                if (proven)
+                    break;
+                if (use.kind != MicroSsaState::UseSite::Kind::Instruction || use.instRef == opRef)
+                    continue;
+
+                const MicroInstrRef      branchRef = ctx.nextRef(use.instRef);
+                const MicroInstr*        branch    = branchRef.isValid() ? ctx.instruction(branchRef) : nullptr;
+                const MicroInstrOperand* branchOps = branch ? branch->ops(*ctx.operands) : nullptr;
+                uint32_t                 branchTo  = 0;
+                if (!branch || branch->op != MicroInstrOpcode::JumpCond || !tryGetJumpTargetLabelId(branchTo, *branch, branchOps) ||
+                    branchOps[0].cpuCond == MicroCond::Unconditional)
+                    continue;
+                const uint32_t branchIndex = cfg.indexOf(branchRef);
+                if (branchIndex == MicroControlFlowGraph::K_NO_INDEX || cfg.successors(branchIndex).size() != 2)
+                    continue;
+
+                // The taken edge establishes the condition, the fall-through its complement.
+                const uint32_t edges[2] = {cfg.indexOfLabel(branchTo), branchIndex + 1};
+                for (uint32_t edge = 0; edge < 2 && !proven; ++edge)
+                {
+                    const uint32_t successor = edges[edge];
+                    if (successor == MicroControlFlowGraph::K_NO_INDEX || successor >= cfg.instructionRefs().size() || edges[0] == edges[1])
+                        continue;
+                    const auto& incoming = cfg.predecessors(successor);
+                    if (incoming.size() != 1 || incoming[0] != branchIndex || !dom->dominates(successor, opIndex))
+                        continue;
+
+                    MicroCond cond = branchOps[0].cpuCond;
+                    if (edge == 1 && !MicroPassHelpers::invertCondition(cond, cond))
+                        continue;
+                    ValueRelation relation;
+                    proven = readComparedRelation(relation, ctx, use.instRef, valueId, cond) &&
+                             relationKeepsInRange(relation, isAdd, isSigned, k, bits);
+                }
+            }
+        }
+
+        if (!proven || !ctx.claimAll({jumpRef}))
+            return false;
+
+        MicroInstrOperand newOps[3] = {jumpOps[0], jumpOps[1], jumpOps[2]};
+        newOps[0].cpuCond           = MicroCond::Unconditional;
+        ctx.emitRewrite(jumpRef, MicroInstrOpcode::JumpCond, newOps);
+        return true;
+    }
+
+    namespace
+    {
         // A value-borrow runtime call as code generation lays it out: its arguments copied into the
         // convention's first registers just before it, and the whole wrapped in an adjustment of the
         // stack pointer when the call is made at an unaligned depth.

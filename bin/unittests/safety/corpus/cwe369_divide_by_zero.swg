@@ -83,8 +83,9 @@ func divideFloatByZero(value, divisor: f32)->f32
 }
 
 // An intrinsic argument outside its domain is the same class: a partial function applied
-// where it is not defined.
-#[Swag.Safety(.Math, true)]
+// where it is not defined. Inlined into the '#run' that reaches it, the body would receive the
+// argument as a constant the static domain check then reports: this case is the guard's.
+#[Swag.Safety(.Math, true), Swag.NoInline]
 func squareRootOfNegative(value: f32)->f32
 {
     return Swag.sqrt(value)     // swc-expected-error {{safety_err_runtime}}

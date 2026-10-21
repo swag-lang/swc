@@ -319,3 +319,19 @@ is the current scorecard.
 - Done when: writing one field preserves proofs for untouched moved-from fields,
   complete reinitialization remains accepted, and focused corpus/sanity checks pass
   with measured cost and without a new whole-program pass.
+
+### compiler.safety.032 — An inlined body ignores its own Sanity attributes
+
+- Evidence: the static sanity mask is computed once per emitted function
+  (`attributes().effectiveSanityMask` in `Symbol.Function.Jit.cpp`), so a callee inlined into
+  its caller is judged with the caller's mask. `#[Swag.Sanity(.Math, false)]` on a function
+  whose body `#run` inlines did not stop `sanity_err_invalid_argument` inside that body; the
+  [cwe369 corpus case](../bin/unittests/safety/corpus/cwe369_divide_by_zero.swg) now uses
+  `NoInline` instead. Runtime guards already follow the inline payload's `runtimeSafetyMask`.
+- Next: carry the inline expansion's sanity mask to the instructions it lowers, the way the
+  runtime mask reaches code generation, and let each sanitizer check consult the mask of the
+  instruction it reports on. Cover an inlined callee that disables a check its caller keeps,
+  and the reverse.
+- Done when: an inlined body is judged by its own `Swag.Sanity` attributes in both
+  directions, and the sanity suite passes with the new cases.
+- Related: compiler.safety.019.

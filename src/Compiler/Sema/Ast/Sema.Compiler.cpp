@@ -702,8 +702,7 @@ Result AstCompilerDiagnostic::semaPreNodeChild(Sema& sema, const AstNodeRef& chi
 
 Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
 {
-    SmallVector<AstNodeRef> parts;
-    collectChildrenFromAst(parts, sema.ast());
+    const auto parts = sema.visit().currentChildren();
 
     const Token& tok = sema.token(codeRef());
     if (tok.id == TokenId::CompilerAssert)
@@ -720,7 +719,7 @@ Result AstCompilerDiagnostic::semaPostNode(Sema& sema) const
     }
 
     Utf8 text;
-    SWC_RESULT(SemaHelpers::appendConstantText(sema, parts.span(), text));
+    SWC_RESULT(SemaHelpers::appendConstantText(sema, parts, text));
 
     switch (tok.id)
     {

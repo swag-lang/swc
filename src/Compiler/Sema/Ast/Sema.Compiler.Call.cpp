@@ -1409,15 +1409,11 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerStringOf(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerStringOf(Sema& sema)
     {
-        Utf8       text;
-        const auto parts = sema.ast().nodeSpan(node.spanChildrenRef);
-        for (auto chunk = parts.chunksBegin(); chunk != parts.chunksEnd(); ++chunk)
-        {
-            for (const AstNodeRef partRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
-                SWC_RESULT(appendCompilerStringOfPart(sema, partRef, text));
-        }
+        Utf8 text;
+        for (const AstNodeRef partRef : sema.visit().currentChildren())
+            SWC_RESULT(appendCompilerStringOfPart(sema, partRef, text));
 
         const ConstantValue value = ConstantValue::makeString(sema.ctx(), text);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
@@ -1571,9 +1567,9 @@ namespace
         return Result::Continue;
     }
 
-    Result semaCompilerGetTag(Sema& sema, const AstCompilerCall& node)
+    Result semaCompilerGetTag(Sema& sema)
     {
-        const auto children = sema.ast().nodeRefs(node.spanChildrenRef);
+        const auto children = sema.visit().currentChildren();
         if (children.size() != 3)
             return Result::Continue;
 
@@ -1805,10 +1801,10 @@ Result AstCompilerCall::semaPostNode(Sema& sema) const
     switch (tok.id)
     {
         case TokenId::CompilerGetTag:
-            return semaCompilerGetTag(sema, *this);
+            return semaCompilerGetTag(sema);
 
         case TokenId::CompilerStringOf:
-            return semaCompilerStringOf(sema, *this);
+            return semaCompilerStringOf(sema);
 
         default:
             SWC_INTERNAL_ERROR();

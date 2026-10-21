@@ -13,6 +13,7 @@ No timing campaign or profiler is run; compilation-time targets remain unverifie
 | Read compiler-call AST lists without intermediate copies | A child vector and append loop in injection scope discovery; copied argument lists for stringification and tag queries | The same immutable AST chunks retain source order. Injection rejects invalid references when popped, before set insertion. Stringification walks chunks sequentially; tag lookup borrows the three indexed arguments. The three helpers shrink from 1,222/596/1,195 to 739/555/1,088 code bytes, with stack reservations falling from 680/480/1,024 to 384/288/784 bytes. |
 | Start dominator passes after their known entry | One root comparison per visited node in each cyclic fixed-point sweep and the child-link walk | Both forward traversal and reverse postorder put the entry first. Its fixed dominator and absent parent link are unchanged; every other node retains its order. The helper shrinks from 3,116 to 3,100 code bytes with the same 264-byte stack reservation and no storage change. |
 | Stop scanning uses after a direct upper-half observation | Remaining instruction/operand lookups and unnecessary propagation edges for a value already known to require its upper half | Edges run from a result to its inputs. An edge to an already-observed input cannot add a fact; the initial observation and every edge that can still change a fact remain. Traversal results and vector capacities cannot grow. The helper shrinks from 2,622 to 2,606 code bytes with the same 208-byte stack reservation. |
+| Reuse the active semantic visitor's child snapshot | Span decoding in stringification and tag queries; another child collection/copy for compiler diagnostics and unreachable-code checks | These post-node/post-child callbacks use the default, unresolved visitor snapshot. Their AST lists are immutable during the callback, and none of the readers advances the visitor while borrowing it. String/tag/diagnostic/unreachable bodies shrink from 555/1,088/1,436/927 to 433/1,026/1,012/678 bytes; stack reservations fall from 288/784/512/528 to 192/744/224/240 bytes. This supersedes the earlier string/tag borrowed-list readers. |
 
 The first batch builds successfully and passes all 1,535 default C++ tests,
 including backend stack-frame, promotion and register-allocation coverage.
@@ -37,6 +38,11 @@ also passes all 1,600 C++ tests with `--dev-full` and all 1,539 JIT tests in
 `devmode`. These results describe the combined five-batch compiler source;
 the earlier complete native result precedes the dominator and upper-half batches.
 
+The visitor-snapshot batch checks the complete semantic suites: 296 normal and
+350 expected-diagnostic inputs, including runtime sources. These stages execute
+no runtime `#test` bodies. The native `stringof` case also passes its one test
+and compile-time assertions with the DevMode compiler in `devmode`.
+
 Commands run from the campaign worktree:
 
 ```text
@@ -46,6 +52,8 @@ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --num-cores 6 --rebu
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native -bc release --file-filter slp --num-cores 6 --rebuild
 bin/swc.dm.exe unittest --dev-full --num-cores 6
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm jit --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm sema --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter stringof --num-cores 6 --rebuild
 ```
 
 C++ validation uses a session-specific temporary/cache root outside all checkouts.

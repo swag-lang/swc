@@ -997,13 +997,13 @@ void SemaCheck::unreachableCode(Sema& sema, AstNodeRef blockRef, AstNodeRef chil
     if (!stopsBlockFlow(sema, blockRef, childRef))
         return;
 
-    SmallVector<AstNodeRef> children;
-    sema.node(blockRef).collectChildrenFromAst(children, sema.ast());
+    // Only active-block post-child callbacks call this; their snapshot stays fixed here.
+    const auto children = sema.visit().currentChildren();
 
     uint32_t index = 0;
-    while (index < children.size32() && children[index] != childRef)
+    while (index < children.size() && children[index] != childRef)
         index++;
-    if (index + 1 >= children.size32())
+    if (index + 1 >= children.size())
         return;
 
     // Report only the first unreachable statement after the block's first jump.

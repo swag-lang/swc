@@ -12,6 +12,7 @@ No timing campaign or profiler is run; compilation-time targets remain unverifie
 | Walk call-argument register banks once | Rebuilding a temporary layout list and recounting each argument's same-kind predecessors | The existing ABI register-state helper visits parameters in the same declaration order. Return, indirect-argument and call-kind exclusions are unchanged. The classifier shrinks from 1,186 to 817 code bytes and its stack reservation from 272 to 120 bytes. |
 | Read compiler-call AST lists without intermediate copies | A child vector and append loop in injection scope discovery; copied argument lists for stringification and tag queries | The same immutable AST chunks retain source order. Injection rejects invalid references when popped, before set insertion. Stringification walks chunks sequentially; tag lookup borrows the three indexed arguments. The three helpers shrink from 1,222/596/1,195 to 739/555/1,088 code bytes, with stack reservations falling from 680/480/1,024 to 384/288/784 bytes. |
 | Start dominator passes after their known entry | One root comparison per visited node in each cyclic fixed-point sweep and the child-link walk | Both forward traversal and reverse postorder put the entry first. Its fixed dominator and absent parent link are unchanged; every other node retains its order. The helper shrinks from 3,116 to 3,100 code bytes with the same 264-byte stack reservation and no storage change. |
+| Stop scanning uses after a direct upper-half observation | Remaining instruction/operand lookups and unnecessary propagation edges for a value already known to require its upper half | Edges run from a result to its inputs. An edge to an already-observed input cannot add a fact; the initial observation and every edge that can still change a fact remain. Traversal results and vector capacities cannot grow. The helper shrinks from 2,622 to 2,606 code bytes with the same 208-byte stack reservation. |
 
 The first batch builds successfully and passes all 1,535 default C++ tests,
 including backend stack-frame, promotion and register-allocation coverage.
@@ -30,12 +31,21 @@ The dominator batch passes all 1,536 default C++ tests, including the existing
 48-shape comparison between SSA dominance and instruction-graph dominance,
 disconnected graphs, cycles, nonzero entries and stale-snapshot rejection.
 
+The upper-half batch passes all 27 SLP-focused native tests in the `release`
+program configuration, where vectorization is enabled. The five-batch milestone
+also passes all 1,600 C++ tests with `--dev-full` and all 1,539 JIT tests in
+`devmode`. These results describe the combined five-batch compiler source;
+the earlier complete native result precedes the dominator and upper-half batches.
+
 Commands run from the campaign worktree:
 
 ```text
 MSBuild.exe swc.vcxproj /t:Build /p:Configuration=DevMode /p:Platform=x64 /m:6 /p:SwcCompileJobs=6
 bin/swc.dm.exe unittest --num-cores 6
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native -bc release --file-filter slp --num-cores 6 --rebuild
+bin/swc.dm.exe unittest --dev-full --num-cores 6
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm jit --num-cores 6 --rebuild
 ```
 
 C++ validation uses a session-specific temporary/cache root outside all checkouts.

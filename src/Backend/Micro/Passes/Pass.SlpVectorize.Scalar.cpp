@@ -32,6 +32,8 @@ namespace
             const auto& value = values[id];
             if (!value.reg.isVirtualFloat())
                 continue;
+            // Edges from a result to an already-observed input cannot add a fact.
+            // Once one use observes this value, the remaining uses need no scan.
             for (const auto& use : value.uses)
             {
                 if (use.kind == MicroSsaState::UseSite::Kind::Phi)
@@ -40,7 +42,10 @@ namespace
                     if (phi && phi->resultValueId != MicroSsaState::K_INVALID_VALUE)
                         inputs[phi->resultValueId].push_back(id);
                     else
+                    {
                         observed[id] = 1;
+                        break;
+                    }
                     continue;
                 }
                 const MicroInstr* instruction = context.instructions->ptr(use.instRef);
@@ -48,7 +53,7 @@ namespace
                 if (!ops)
                 {
                     observed[id] = 1;
-                    continue;
+                    break;
                 }
                 bool upperFlows = false;
                 bool understood = false;
@@ -102,14 +107,20 @@ namespace
                         break;
                 }
                 if (!understood)
+                {
                     observed[id] = 1;
+                    break;
+                }
                 else if (upperFlows)
                 {
                     uint32_t result;
                     if (ops[0].reg.isVirtualFloat() && ssa.defValue(ops[0].reg, use.instRef, result))
                         inputs[result].push_back(id);
                     else
+                    {
                         observed[id] = 1;
+                        break;
+                    }
                 }
             }
         }

@@ -104,8 +104,9 @@ FlatKeyMap<uint64_t> MicroPassHelpers::collectStackPointerOffsets(const MicroPas
     const MicroReg stackPointer = callConv.stackPointer;
     const auto     refs         = cfg.instructionRefs();
     // 0: unvisited, 1: one known displacement, 2: conflicting or unknown.
-    std::vector<uint8_t>  states(refs.size());
-    std::vector<uint64_t> offsets(refs.size());
+    std::vector<uint8_t> states(refs.size());
+    // A discovered instruction receives its offset before it enters the worklist.
+    const auto            offsets = std::make_unique_for_overwrite<uint64_t[]>(refs.size());
     std::vector<uint32_t> pending{entry};
     states[entry]  = 1;
     offsets[entry] = 0ull - frameBaseOffset;

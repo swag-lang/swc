@@ -1,7 +1,8 @@
 #run
 {
     let cfg = Swag.compiler().getBuildCfg()!
-    cfg.backendKind = .Executable
+    // Only the test command supplies an entry point for this test-only module.
+    cfg.backendKind = #command == Swag.CompilerCommand.Test ? .Executable : .Export
 
     // Setup can change language guards, but cannot change its allocator's compiled capabilities.
     let hasSafety      = #hastag("Swag.AllocatorSafety")

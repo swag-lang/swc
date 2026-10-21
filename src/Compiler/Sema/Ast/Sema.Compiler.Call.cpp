@@ -498,16 +498,10 @@ namespace
         {
             const AstNodeRef nodeRef = pending.back();
             pending.pop_back();
-            if (!payload->nodeRefs.insert(nodeRef).second)
+            if (nodeRef.isInvalid() || !payload->nodeRefs.insert(nodeRef).second)
                 continue;
 
-            SmallVector<AstNodeRef> children;
-            sema.node(nodeRef).collectChildrenFromAst(children, sema.ast());
-            for (const AstNodeRef childRef : children)
-            {
-                if (childRef.isValid())
-                    pending.push_back(childRef);
-            }
+            sema.node(nodeRef).collectChildrenFromAst(pending, sema.ast());
         }
 
         return payload;
@@ -1417,12 +1411,13 @@ namespace
 
     Result semaCompilerStringOf(Sema& sema, const AstCompilerCall& node)
     {
-        SmallVector<AstNodeRef> parts;
-        node.collectChildrenFromAst(parts, sema.ast());
-
-        Utf8 text;
-        for (const AstNodeRef partRef : parts)
-            SWC_RESULT(appendCompilerStringOfPart(sema, partRef, text));
+        Utf8       text;
+        const auto parts = sema.ast().nodeSpan(node.spanChildrenRef);
+        for (auto chunk = parts.chunksBegin(); chunk != parts.chunksEnd(); ++chunk)
+        {
+            for (const AstNodeRef partRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                SWC_RESULT(appendCompilerStringOfPart(sema, partRef, text));
+        }
 
         const ConstantValue value = ConstantValue::makeString(sema.ctx(), text);
         sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), value));
@@ -1578,8 +1573,7 @@ namespace
 
     Result semaCompilerGetTag(Sema& sema, const AstCompilerCall& node)
     {
-        SmallVector<AstNodeRef> children;
-        node.collectChildrenFromAst(children, sema.ast());
+        const auto children = sema.ast().nodeRefs(node.spanChildrenRef);
         if (children.size() != 3)
             return Result::Continue;
 

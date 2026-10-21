@@ -92,6 +92,20 @@ using Swag, Core, Pixel
     Swag.assert(view.scroll.scrollPosition().y > 240)
     Swag.assert(html.canvas.surfaceRect().y == html.surfaceRect().y)
 
+    // JIT submissions run on the caller, so a gated body would block before submit returns.
+    // Its first frame still paints the loading state; the next frame publishes the image.
+    if Swag.jit()
+    {
+        discard host.render(view)
+        Swag.assert(html.images.raster != null and not html.images.entries[0].uploaded)
+        Swag.assert(host.surface.isDirty)
+        html.images.raster?.task.wait()
+        host.surface.paintWnd(view)
+        Swag.assert(html.images.raster == null and html.images.entries[0].uploaded)
+        Swag.assert(html.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
+        return
+    }
+
     // Hold completion beyond the first paint so unrelated initial invalidations cannot hide
     // a loading indicator that stops requesting frames once the rest of the surface is idle.
     let raster = Memory.new'HtmlImageRaster()

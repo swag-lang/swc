@@ -87,7 +87,10 @@ def describe(swc, label="", settings=None, stamp=None, started=None):
         "label": label,
         "commit": _git(["rev-parse", "--short=10", "HEAD"], root),
         "subject": _git(["log", "-1", "--format=%s"], root),
-        "dirty": bool(_git(["status", "--porcelain", "--untracked-files=no"], root)),
+        # The report and the history are this harness's own outputs, regenerated after every
+        # campaign; a stale copy of them says nothing about what was measured.
+        "dirty": bool(_git(["status", "--porcelain", "--untracked-files=no", "--", ".",
+                            ":(exclude)bench/bench.html", ":(exclude)bench/history.json"], root)),
         "swc": swc,
         "swc_bytes": os.path.getsize(swc) if os.path.exists(swc) else 0,
     }

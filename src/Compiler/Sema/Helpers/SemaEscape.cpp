@@ -5735,7 +5735,9 @@ namespace SemaEscape
                     for (size_t i = 1; i < completionOffsets.size(); ++i)
                         completionOffsets[i] += completionOffsets[i - 1];
 
-                    std::vector<size_t> completionDependents(completionOffsets.back());
+                    // The counted fill assigns every edge before propagation reads its range.
+                    const size_t        completionDependentCount = completionOffsets.back();
+                    const auto          completionDependents     = completionDependentCount ? std::make_unique_for_overwrite<size_t[]>(completionDependentCount) : nullptr;
                     std::vector<size_t> completionCursor(completionOffsets.begin(), completionOffsets.end() - 1);
                     for (size_t callerIndex = 0; callerIndex < returnEntries.size(); ++callerIndex)
                     {
@@ -5811,7 +5813,9 @@ namespace SemaEscape
             for (size_t i = 1; i < dependentOffsets.size(); ++i)
                 dependentOffsets[i] += dependentOffsets[i - 1];
 
-            std::vector<DependentReturnEdge> dependentEdges(dependentOffsets.back());
+            // The same counted fill covers the whole edge table, including both record fields.
+            const size_t dependentEdgeCount = dependentOffsets.back();
+            const auto   dependentEdges     = dependentEdgeCount ? std::make_unique_for_overwrite<DependentReturnEdge[]>(dependentEdgeCount) : nullptr;
             {
                 std::vector<size_t> dependentCursor(dependentOffsets.begin(), dependentOffsets.end() - 1);
                 for (size_t callerIndex = 0; callerIndex < returnEntries.size(); ++callerIndex)

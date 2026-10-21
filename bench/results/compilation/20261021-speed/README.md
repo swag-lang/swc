@@ -17,6 +17,7 @@ No timing campaign or profiler is run; compilation-time targets remain unverifie
 | Reuse the visitor's multipart AST-generation inputs | Copying and destroying a temporary reference vector before concatenating generated source | The parser constructs either one body or the multipart span, so the multipart callback's children are exactly those parts in order. The borrowed span is consumed before substitution restarts the node. The callback shrinks from 755 to 580 code bytes and its stack reservation from 528 to 240 bytes. |
 | Allocate interval-sort indices without zeroing them | One four-byte zero write per interval before the sequential index fill | The index fill completes before sorting, and the same consumed prefix becomes the group-offset table. Allocation count, byte capacity, sorting and node moves are unchanged. The interval walker shrinks from 8,742 to 8,270 code bytes and its stack reservation from 1,200 to 1,152 bytes. Total object code falls from 80,253 to 79,789 bytes with unchanged retained data. |
 | Initialize directive-suggestion rows only with their recurrence values | Two initial zero passes per token-name comparison | The predecessor row is filled explicitly and each current row is fully assigned before swapping, including empty operands. The Levenshtein recurrence, candidate order and thresholds are unchanged. The helper shrinks from 704 to 463 code bytes and its stack reservation from 136 to 72 bytes. |
+| Fill return-summary edge tables without prior zeroing | Initial eight-byte writes for completion edges and sixteen-byte writes for return-propagation edges | Each prefix-counted range is filled completely before propagation reads it. Empty tables retain null storage without allocating. Counts, edge order, masks, queue behavior and locking are unchanged. The callback shrinks from 5,720 to 5,591 code bytes and its stack reservation from 368 to 336 bytes. Total object code falls from 183,792 to 183,534 bytes with unchanged retained data. |
 
 The first batch builds successfully and passes all 1,535 default C++ tests,
 including backend stack-frame, promotion and register-allocation coverage.
@@ -59,6 +60,23 @@ expected-error selection checks 29 inputs including runtime and covers close
 misspellings and distant names. The normal selection contains only runtime
 inputs and is not counted as directive-suggestion coverage.
 
+The return-edge batch passes the JIT use-after-free summary input through the
+sanity suite (29 inputs including runtime, with compile-time diagnostics rather
+than runtime `#test` bodies). The ten-batch milestone passes all 3,922 native
+tests and all 1,539 JIT tests in `devmode`.
+
+The first full C++ milestone attempt exposed a filesystem-test failure:
+`Compiler_ModuleDirectoryRunsSetupAndDefaultSources` timed out after 15 seconds
+while launching and compiling its subprocess. Its exact one-worker module
+scenario passes independently. The test now parses the same module command and
+runs the driver in process, separating module-selection correctness from a
+process-wide launch/compilation deadline. It still checks successful setup and
+normal source collection, then requires the exact `sema_err_compiler_assert`
+expectation and an error on `src/probe.swg` for the rejected variant. No timeout
+is increased or assertion removed. The repaired combined compiler passes all
+1,600 C++ tests with `--dev-full`; the later complete JIT run uses that binary.
+This is a test-determinism repair, not a compilation-speed gain.
+
 Commands run from the campaign worktree:
 
 ```text
@@ -73,6 +91,7 @@ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter string
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm sema --file-filter '\compiler\ast.swg' --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter operator_index_ptr --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm parser --file-filter parser_err_invalid_compiler --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm sanity --file-filter jit_use_after_free_summary --num-cores 6 --rebuild
 ```
 
 C++ validation uses a session-specific temporary/cache root outside all checkouts.

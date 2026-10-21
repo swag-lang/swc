@@ -249,18 +249,40 @@ namespace
         return inst.op == MicroInstrOpcode::JumpCond && ops && ops[0].cpuCond != MicroCond::Unconditional;
     }
 
+    // The key of the region that is the whole function.
+    constexpr uint32_t K_FUNCTION_REGION = std::numeric_limits<uint32_t>::max();
+
     void findHoistableLoops(FlatKeyMap<uint32_t>& outGuardLoop, std::unordered_map<uint32_t, HoistedExtent>& outLoops, const MicroPassContext& context, std::span<const MicroInstrRef> calls)
     {
+        FlatKeySet allowedCalls = MicroPassHelpers::collectReportCallRefs(*context.builder);
+        for (const MicroInstrRef callRef : calls)
+            allowedCalls.insert(callRef.get());
+
+        // A function that calls nothing else runs entirely inside the borrows its callers opened
+        // and opens none of its own: one read at its entry serves every check.
+        bool callsOnlyChecks = true;
+        for (auto it = context.instructions->view().begin(), endIt = context.instructions->view().end(); it != endIt && callsOnlyChecks; ++it)
+        {
+            if (MicroInstr::info(it->op).flags.has(MicroInstrFlagsE::IsCallInstruction) && !allowedCalls.contains(it.current.get()))
+                callsOnlyChecks = false;
+        }
+        const MicroInstrRef firstRef = context.instructions->view().begin().current;
+        if (callsOnlyChecks && firstRef.isValid() && (calls.size() > 1 || context.builder->controlFlowGraph().hasLoop()))
+        {
+            HoistedExtent hoisted;
+            hoisted.insertBefore         = firstRef;
+            outLoops[K_FUNCTION_REGION] = hoisted;
+            for (const MicroInstrRef callRef : calls)
+                outGuardLoop.getOrInsert(callRef.get()) = K_FUNCTION_REGION;
+            return;
+        }
+
         const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
         if (!cfg.hasLoop() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return;
         const uint32_t entry = MicroPassHelpers::findSingleCfgEntry(cfg);
         if (entry == MicroPassHelpers::MicroDomTree::K_INVALID_NODE)
             return;
-
-        FlatKeySet allowedCalls = MicroPassHelpers::collectReportCallRefs(*context.builder);
-        for (const MicroInstrRef callRef : calls)
-            allowedCalls.insert(callRef.get());
 
         const MicroPassHelpers::MicroDomTree   dom   = MicroPassHelpers::computeInstructionDominators(cfg, entry);
         const MicroPassHelpers::NaturalLoopMap loops = MicroPassHelpers::findNaturalLoops(cfg, dom);

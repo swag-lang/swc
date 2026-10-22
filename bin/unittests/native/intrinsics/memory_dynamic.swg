@@ -164,3 +164,23 @@ func compareDynamic(left, right: const [*] void, size: u64)->s32
         }
     }
 }
+
+// A later mismatch with the opposite ordering must not replace the first one,
+// including bytes covered by both overlapping head and tail reads.
+#test
+{
+    var left:  [80] u8
+    var right: [80] u8
+    for size in 2 to 33
+    {
+        for first in size - 1
+        {
+            fillDynamic(left, 0x80, #sizeof(left))
+            fillDynamic(right, 0x80, #sizeof(right))
+            left[3 + first]    = 0x7F
+            left[3 + size - 1] = 0xFF
+            Swag.assert(compareDynamic(&left[3], &right[5], size) == -1)
+            Swag.assert(compareDynamic(&right[5], &left[3], size) == 1)
+        }
+    }
+}

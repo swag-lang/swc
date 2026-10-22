@@ -3,6 +3,7 @@
 #if SWC_HAS_UNITTEST
 
 #include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Unittest/Unittest.h"
@@ -628,6 +629,83 @@ SWC_TEST_BEGIN(PostRALoopRotate_CountMismatchFallsThroughToNextIteration)
     SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(nonUnit));
     if (!nonUnit.instructions().ptr(backRef))
         return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopRotate_ThreadsIdenticalRegisterComparisonExits)
+{
+    for (const auto bits : {MicroOpBits::B8, MicroOpBits::B16, MicroOpBits::B32, MicroOpBits::B64})
+    {
+        for (const auto condition : {MicroCond::Equal, MicroCond::NotEqual, MicroCond::Below, MicroCond::AboveOrEqual, MicroCond::Less, MicroCond::GreaterOrEqual})
+        {
+            for (const bool opposite : {false, true})
+            {
+                const auto   left   = MicroReg::intReg(1);
+                const auto   right  = MicroReg::intReg(2);
+                const auto   output = MicroReg::intReg(3);
+                MicroBuilder builder(ctx);
+                const auto   join = builder.createLabel();
+                const auto   exit = builder.createLabel();
+                MicroCond    inverse;
+                if (!MicroPassHelpers::invertLayoutBranchCondition(inverse, condition))
+                    return Result::Error;
+                builder.emitCmpRegReg(left, right, bits);
+                builder.emitJumpToLabel(condition, MicroOpBits::B32, join);
+                const auto early = builder.instructions().lastInstructionRef();
+                builder.emitLoadMemReg(output, 0, left, bits);
+                builder.emitOpBinaryRegImm(left, ApInt(1, 64), MicroOp::Add, bits);
+                builder.placeLabel(join);
+                builder.emitCmpRegReg(left, right, bits);
+                builder.emitJumpToLabel(opposite ? inverse : condition, MicroOpBits::B32, exit);
+                builder.emitSetCondReg(MicroReg::intReg(4), MicroCond::Below);
+                builder.emitLoadMemReg(output, 8, left, bits);
+                builder.placeLabel(exit);
+                builder.emitLoadMemReg(output, 16, right, bits);
+                builder.emitRet();
+                SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
+                const auto* jump = builder.instructions().ptr(early);
+                if (!jump || jump->op != MicroInstrOpcode::JumpCond)
+                    return Result::Error;
+                const auto target = jump->ops(builder.operands())[2].valueU64;
+                if (target == join.get() || (!opposite && target != exit.get()))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopRotate_RepeatedRegisterExitKeepsDifferentFlags)
+{
+    for (uint32_t variant = 0; variant < 4; ++variant)
+    {
+        const auto   left   = MicroReg::intReg(1);
+        const auto   right  = MicroReg::intReg(2);
+        const auto   output = MicroReg::intReg(3);
+        MicroBuilder builder(ctx);
+        const auto   join = builder.createLabel();
+        const auto   exit = builder.createLabel();
+        builder.emitCmpRegReg(left, right, MicroOpBits::B64);
+        if (variant == 3)
+            builder.emitOpBinaryRegImm(output, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Greater, MicroOpBits::B32, join);
+        const auto early = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(output, 0, left, MicroOpBits::B64);
+        builder.emitOpBinaryRegImm(left, ApInt(1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.placeLabel(join);
+        builder.emitCmpRegReg(variant == 1 ? right : left, variant == 1 ? left : right, variant == 0 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitJumpToLabel(variant == 2 ? MicroCond::Below : MicroCond::Greater, MicroOpBits::B32, exit);
+        builder.emitLoadMemReg(output, 8, left, MicroOpBits::B64);
+        builder.placeLabel(exit);
+        builder.emitSetCondReg(MicroReg::intReg(4), MicroCond::Below);
+        builder.emitRet();
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
+        const auto* jump = builder.instructions().ptr(early);
+        if (!jump || jump->op != MicroInstrOpcode::JumpCond || jump->ops(builder.operands())[2].valueU64 != join.get())
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

@@ -40,16 +40,16 @@ namespace
         return AstNodeRef::invalid();
     }
 
-    Result failArrayDimCount(const CastAggregateArgs& args, size_t srcCount, size_t dstCount)
+    Result failArrayCount(const CastAggregateArgs& args, DiagnosticId diagnosticId, size_t srcCount, uint64_t dstCount)
     {
-        const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_num_dims, args.srcTypeRef, args.dstTypeRef);
+        const Result res = args.castRequest->fail(diagnosticId, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
-        args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, static_cast<uint64_t>(dstCount));
+        args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, dstCount);
 
         return res;
     }
 
-    Result failArrayDimMismatch(const CastAggregateArgs& args, size_t, uint64_t srcDim, uint64_t dstDim)
+    Result failArrayDimMismatch(const CastAggregateArgs& args, uint64_t srcDim, uint64_t dstDim)
     {
         const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_dim_mismatch, args.srcTypeRef, args.dstTypeRef);
         args.castRequest->failure.addArgument(Diagnostic::ARG_LEFT, srcDim);
@@ -70,15 +70,6 @@ namespace
         }
 
         return true;
-    }
-
-    Result failArrayTooManyValues(const CastAggregateArgs& args, size_t srcCount, uint64_t dstCount)
-    {
-        const Result res = args.castRequest->fail(DiagnosticId::sema_err_array_cast_too_many_values, args.srcTypeRef, args.dstTypeRef);
-        args.castRequest->failure.addArgument(Diagnostic::ARG_COUNT, static_cast<uint64_t>(srcCount));
-        args.castRequest->failure.addArgument(Diagnostic::ARG_VALUE, dstCount);
-
-        return res;
     }
 
     Result failArrayConst(const CastAggregateArgs& args, DiagnosticId diagnosticId)
@@ -204,12 +195,12 @@ namespace
 
         const auto& srcDims = args.srcType->payloadArrayDims();
         if (srcDims.size() != dstDims.size())
-            return failArrayDimCount(args, srcDims.size(), dstDims.size());
+            return failArrayCount(args, DiagnosticId::sema_err_array_cast_num_dims, srcDims.size(), dstDims.size());
 
         for (size_t i = 0; i < srcDims.size(); ++i)
         {
             if (srcDims[i] != dstDims[i])
-                return failArrayDimMismatch(args, i, srcDims[i], dstDims[i]);
+                return failArrayDimMismatch(args, srcDims[i], dstDims[i]);
         }
 
         if (args.srcType->payloadArrayIndexTypeRefs() != args.dstType->payloadArrayIndexTypeRefs() && args.castRequest->kind != CastKind::Explicit)
@@ -266,7 +257,7 @@ namespace
         {
             const uint64_t dstTopDim = dstDims[0];
             if (srcTypes.size() > dstTopDim)
-                return failArrayTooManyValues(args, srcTypes.size(), dstTopDim);
+                return failArrayCount(args, DiagnosticId::sema_err_array_cast_too_many_values, srcTypes.size(), dstTopDim);
 
             TypeManager&  typeMgr         = args.sema->typeMgr();
             const TypeRef dstSubArrayType = typeMgr.addArrayTypeAfterFirstDimension(*args.dstType);
@@ -330,7 +321,7 @@ namespace
 
         uint64_t totalCount = args.dstType->arrayTotalElementCount();
         if (srcTypes.size() > totalCount)
-            return failArrayTooManyValues(args, srcTypes.size(), totalCount);
+            return failArrayCount(args, DiagnosticId::sema_err_array_cast_too_many_values, srcTypes.size(), totalCount);
         if (srcTypes.size() < totalCount && SymbolStruct::typeRequiresExplicitInitialization(*args.sema, dstElemTypeRef))
             return failArrayMissingRequiredValues(args);
 

@@ -79,7 +79,7 @@ impl SystemFontFallbackCache
     {
         for family in .families.toSlice()[first to]
         {
-            let face = catch FontFamily.createTypeFace(family, style)
+            let face = catch FontFamily.createTypeFace(family, style) else null
             if face and face.face.hasChar(c) do
                 return face
         }

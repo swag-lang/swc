@@ -421,11 +421,11 @@ private func decodeMicroDvd(track: *Track, source: string) fail
         let secondClose = Utf8.indexOf(line, "}", firstClose + 2)
         if secondClose == Swag.U64.Max do
             continue
-        let first = catch StrConv.toU64(line[1 until firstClose])
-        let last  = catch StrConv.toU64(line[firstClose + 2 until secondClose])
+        let first = catch StrConv.toU64(line[1 until firstClose]) else 0
+        let last  = catch StrConv.toU64(line[firstClose + 2 until secondClose]) else 0
         if firstClose == 2 and first == 1 and last == 1
         {
-            let declared = catch StrConv.toF64(Latin1.trim(line[secondClose + 1 to]))
+            let declared = catch StrConv.toF64(Latin1.trim(line[secondClose + 1 to])) else 0
             if declared > 0 do
                 framesPerSecond = declared
             continue

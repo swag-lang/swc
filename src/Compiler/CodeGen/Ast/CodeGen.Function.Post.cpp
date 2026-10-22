@@ -1566,11 +1566,13 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     }
 
     SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, true));
+    const auto*      expression  = codeGen.node(ownerRef).safeCast<AstErrorManagementExpr>();
+    const AstNodeRef fallbackRef = expression ? expression->nodeFallbackRef : AstNodeRef::invalid();
     if (hasResult && kind == FallibleHandlerKind::Catch)
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
         const SymbolVariable*     resultStorage = resultPayload.runtimeStorageSym;
-        if (const auto* expression = codeGen.node(ownerRef).safeCast<AstErrorManagementExpr>())
+        if (expression)
         {
             // The wrapper shares its payload slot with a contextual conversion. That slot
             // can name the conversion's smaller result buffer while its register still
@@ -1591,7 +1593,8 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
             builder.emitLoadAddressRegMem(resultPayload.reg, codeGen.localStackBaseReg(), resultStorage->offset(), MicroOpBits::B64);
         }
 
-        SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));
+        if (fallbackRef.isInvalid())
+            SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));
     }
 
     // Retain the handled record in the enclosing capture owner, then expose its borrowed any.
@@ -1607,6 +1610,14 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
             codeGen.resolveLocalStackPayload(*lowering->errOwnerSym).reg,
         };
         SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, args));
+    }
+
+    // 'catch e else V': evaluated on the failure path only, after the capture is bound so 'V'
+    // can read it. It writes the result slot the success value inherited, joining both paths.
+    if (hasResult && fallbackRef.isValid())
+    {
+        SWC_RESULT(codeGen.emitNodeNow(fallbackRef));
+        assignFallibleExprResult(codeGen, codeGen.payload(nodeRef), codeGen.payload(fallbackRef), resultType);
     }
 
     // 'catch e else { H }': the anonymous lazy handler runs here (failure path only).
@@ -1681,8 +1692,13 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstErrorManagementExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
+    // 'catch e else V': the fallback is generated lazily inside the failure block. Compare
+    // resolved nodes: an inlined fallback call is visited through its substitute.
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
-    const AstNodeRef managedExprRef   = codeGen.resolvedNodeRef(nodeExprRef);
+    if (nodeFallbackRef.isValid() && resolvedChildRef == codeGen.resolvedNodeRef(nodeFallbackRef))
+        return Result::SkipChildren;
+
+    const AstNodeRef managedExprRef = codeGen.resolvedNodeRef(nodeExprRef);
     if (resolvedChildRef == managedExprRef)
         SWC_RESULT(CodeGenFunctionHelpers::emitFallibleWrapperPreNode(codeGen, codeGen.curNodeRef()));
 
@@ -1700,11 +1716,12 @@ Result AstErrorManagementStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNo
 {
     // 'catch e else { H }': skip the handler in the normal traversal so it is not emitted
     // on the success path; it is generated lazily inside the failure block instead.
-    if (nodeHandlerRef.isValid() && childRef == nodeHandlerRef)
+    // Compare resolved nodes: an inlined 'else do call()' is visited through its substitute.
+    const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
+    if (nodeHandlerRef.isValid() && resolvedChildRef == codeGen.resolvedNodeRef(nodeHandlerRef))
         return Result::SkipChildren;
 
-    const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
-    const AstNodeRef managedBodyRef   = codeGen.resolvedNodeRef(nodeBodyRef);
+    const AstNodeRef managedBodyRef = codeGen.resolvedNodeRef(nodeBodyRef);
     if (resolvedChildRef == managedBodyRef)
         SWC_RESULT(CodeGenFunctionHelpers::emitFallibleWrapperPreNode(codeGen, codeGen.curNodeRef()));
 

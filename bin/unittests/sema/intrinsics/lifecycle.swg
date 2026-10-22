@@ -601,7 +601,7 @@ func intrinsicAutoDropCatchLoopInfo()->IntrinsicInfo
         for i in 2
         {
             let base       = cast(s32, (i * 3 + 1))
-            let value: s32 = catch intrinsicAutoDropCatchLoopStep(base)
+            let value: s32 = catch intrinsicAutoDropCatchLoopStep(base) else 0
             if value == 0
             {
                 second += 1

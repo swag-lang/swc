@@ -2040,7 +2040,7 @@ private impl Decoder
         if declared and observed * 2 < declared * 3 and declared * 2 < observed * 3 do
             return
 
-        .info.frameRate = catch frameRateFromDuration(observed)
+        .info.frameRate = catch frameRateFromDuration(observed) else {}
     }
 
     mtd const currentFrameCount()->u64

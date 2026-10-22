@@ -206,7 +206,7 @@ impl IForm for FormImage
 
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = catch cast(*FormImage?, ptr)
+        let other = catch cast(*FormImage?, ptr) else null
         if not other do
             return false
 

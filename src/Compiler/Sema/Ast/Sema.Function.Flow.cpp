@@ -271,6 +271,12 @@ namespace
         return tokenId == TokenId::KwdCatch;
     }
 
+    bool isErrorManagementResultDiscarded(const Sema& sema)
+    {
+        const AstNode* parent = sema.visit().parentNode();
+        return parent && parent->is(AstNodeId::DiscardExpr);
+    }
+
     bool canPropagateFallibleResult(const Sema& sema)
     {
         return isFallibleFunctionContext(sema) ||
@@ -1806,18 +1812,38 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
 
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
 
-    // Only 'catch' resumes with a default result. 'expect' terminates on failure,
-    // so its successful value may have a type with no implicit default.
+    // Only 'catch' resumes after a failure, and 'else V' names the result it resumes with.
+    // 'expect' terminates on failure, so its successful value may have a type with no
+    // implicit default.
     const bool    isNotNullUnwrap = codeGenPayload && codeGenPayload->notNullUnwrap;
     const TokenId tokenId         = effectiveErrorManagementTokenId(sema, sema.token(codeRef()).id);
-    if (!isNotNullUnwrap && errorManagementSynthesizesDefaultResult(tokenId) && resultTypeRef.isValid())
+    const bool    hasResult       = resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid();
+    if (nodeFallbackRef.isValid())
+    {
+        if (!hasResult)
+            return SemaError::raise(sema, DiagnosticId::sema_err_catch_fallback_without_result, nodeFallbackRef);
+
+        SemaNodeView fallbackView = sema.viewNodeTypeConstant(nodeFallbackRef);
+        SWC_RESULT(SemaCheck::isValue(sema, fallbackView.nodeRef()));
+        SWC_RESULT(Cast::cast(sema, fallbackView, resultTypeRef, CastKind::Implicit));
+    }
+
+    // Without 'else', a failure leaves the type default in the result. A bare 'catch' would
+    // turn the failure into that default silently, so its result must not be read. A capture
+    // keeps the default beside the error it explains.
+    const bool synthesizesDefault = !isNotNullUnwrap && hasResult && errorManagementSynthesizesDefaultResult(tokenId) && nodeFallbackRef.isInvalid();
+    if (synthesizesDefault && errNameTokRef.isInvalid() && !isErrorManagementResultDiscarded(sema))
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_catch_value_needs_fallback, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_TYPE, resultTypeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    if (synthesizesDefault)
         SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, resultTypeRef, sema.curNodeRef()));
 
-    if (!isNotNullUnwrap &&
-        errorManagementSynthesizesDefaultResult(tokenId) &&
-        resultTypeRef.isValid() &&
-        resultTypeRef != sema.typeMgr().typeVoid() &&
-        SymbolStruct::typeRequiresExplicitInitialization(sema, resultTypeRef))
+    if (synthesizesDefault && SymbolStruct::typeRequiresExplicitInitialization(sema, resultTypeRef))
     {
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_type_requires_init, codeRef());
         diag.addArgument(Diagnostic::ARG_TYPE, resultTypeRef);

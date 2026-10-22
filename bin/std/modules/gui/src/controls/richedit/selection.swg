@@ -307,7 +307,7 @@ impl RichEditCtrl
 
     private mtd registerClipboardFormat()
     {
-        .clipFormat = catch Clipboard.registerFormat("std.richedit.style")
+        .clipFormat = catch Clipboard.registerFormat("std.richedit.style") else 0
     }
 
     // Copies the selected text to the active clipboard backend.

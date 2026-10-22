@@ -1222,9 +1222,14 @@ AstNodeRef Parser::parseErrorManagementExpr()
     nodePtr->nodeExprRef    = parseExpression();
 
     // The result and the optional caught error have separate bindings in the enclosing scope.
-    if (ast_->srcView().token(opTokRef).id == TokenId::KwdCatch &&
-        consumeIf(TokenId::KwdAs).isValid())
-        nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    // 'else V' names the value the expression yields when the operand fails.
+    if (ast_->srcView().token(opTokRef).id == TokenId::KwdCatch)
+    {
+        if (consumeIf(TokenId::KwdAs).isValid())
+            nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        if (consumeIf(TokenId::KwdElse).isValid())
+            nodePtr->nodeFallbackRef = parseExpression();
+    }
 
     // 'expect f()!' asserts the RESULT is not null, not the fallible call. These keywords
     // already swallow everything to their right, so parseExpression() folded the '!' onto

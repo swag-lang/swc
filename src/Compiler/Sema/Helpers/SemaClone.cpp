@@ -2106,6 +2106,8 @@ AstNodeRef AstErrorManagementExpr::semaClone(Sema& sema, const CloneContext& clo
     auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ErrorManagementExpr>(tokRef());
     newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
     newPtr->errNameTokRef = errNameTokRef;
+    if (nodeFallbackRef.isValid())
+        newPtr->nodeFallbackRef = SemaClone::cloneAst(sema, nodeFallbackRef, cloneContextAsInline(cloneContext));
     return newRef;
 }
 

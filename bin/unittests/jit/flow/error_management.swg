@@ -255,17 +255,17 @@ func aggregateDeferFail()->AggregateResult fail
 
 func catchSuccessValue()->s32
 {
-    return catch propagateExplicitSuccess()
+    return catch propagateExplicitSuccess() else 0
 }
 
 func catchTrySuccessValue()->s32
 {
-    return catch propagateTrySuccess()
+    return catch propagateTrySuccess() else 0
 }
 
 func inlineCatchSuccessValue()->s32
 {
-    return catch inlineMayFailValue(63)
+    return catch inlineMayFailValue(63) else 0
 }
 
 func catchFailureInfo()->CatchInfo
@@ -314,7 +314,7 @@ func dismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch propagateExplicitFailure()
+    result.value  = catch propagateExplicitFailure() else 0
     result.hasErr = false
     result.code   = 0
     return result
@@ -322,14 +322,14 @@ func dismissFailureInfo()->CatchInfo
 
 func inlineDismissSuccessValue()->s32
 {
-    return catch inlineMayFailValue(64)
+    return catch inlineMayFailValue(64) else 0
 }
 
 func inlineDismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch inlineAlwaysFailValue(42)
+    result.value  = catch inlineAlwaysFailValue(42) else 0
     result.hasErr = false
     result.code   = 0
     return result
@@ -353,7 +353,7 @@ func catchTryBlockVoidFailureCode()->s32
 
 func catchAggregateSuccess()->AggregateResult
 {
-    return catch aggregateSuccess(70)
+    return catch aggregateSuccess(70) else {}
 }
 
 func catchAggregateFailureInfo()->AggregateInfo
@@ -373,14 +373,14 @@ func catchAggregateFailureInfo()->AggregateInfo
 
 func dismissAggregateSuccess()->AggregateResult
 {
-    return catch aggregateSuccess(80)
+    return catch aggregateSuccess(80) else {}
 }
 
 func dismissAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch aggregateFailure(72)
+    result.value  = catch aggregateFailure(72) else {}
     result.hasErr = false
     result.code   = 0
     return result
@@ -474,7 +474,7 @@ func catchNullableSliceFailureInfo()->NullInfo
 func dismissNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  *s32? = catch nullablePointerFailure(76)
+    let value:  *s32? = catch nullablePointerFailure(76) else null
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -484,7 +484,7 @@ func dismissNullablePointerFailureInfo()->NullInfo
 func dismissNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  string? = catch nullableStringFailure(77)
+    let value:  string? = catch nullableStringFailure(77) else null
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -494,7 +494,7 @@ func dismissNullableStringFailureInfo()->NullInfo
 func dismissNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  [..] s32? = catch nullableSliceFailure(78)
+    let value:  [..] s32? = catch nullableSliceFailure(78) else null
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -542,7 +542,7 @@ func dismissErrDeferOverrideFailureInfo()->TraceInfo
     resetErrorTrace()
 
     var result: TraceInfo
-    result.value  = catch errDeferOverrideFailure()
+    result.value  = catch errDeferOverrideFailure() else 0
     result.trace  = ErrorTrace
     result.hasErr = false
     result.code   = 0
@@ -566,9 +566,9 @@ func errIsAsFailureInfo()->ErrCastInfo
     var result: ErrCastInfo
     catch alwaysFailTypedVoid(86) as err8
 
-    let exactErr = catch cast(*ErrValue?, err8)
-    let baseErr  = catch cast(*Swag.BaseError?, err8)
-    let otherErr = catch cast(*OtherErrValue?, err8)
+    let exactErr = catch cast(*ErrValue?, err8) else null
+    let baseErr  = catch cast(*Swag.BaseError?, err8) else null
+    let otherErr = catch cast(*OtherErrValue?, err8) else null
 
     result.exactType     = (err8 is ErrValue)
     result.baseType      = (err8 is Swag.BaseError)
@@ -622,7 +622,7 @@ func notNullSliceSuccess()->s32
 
 func dismissSuccessValue()->s32
 {
-    return catch propagateTrySuccess()
+    return catch propagateTrySuccess() else 0
 }
 
 #test

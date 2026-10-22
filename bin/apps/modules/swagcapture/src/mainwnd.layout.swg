@@ -272,7 +272,7 @@ impl MainWnd
 
         for c in .toolRail.children
         {
-            let button = catch cast(*IconButton?, c)
+            let button = catch cast(*IconButton?, c) else null
             if not button do
                 continue
             if showLabels

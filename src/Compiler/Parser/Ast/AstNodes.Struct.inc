@@ -1445,10 +1445,13 @@ struct AstErrorManagementExpr : AstNodeT<AstNodeId::ErrorManagementExpr>
 {
     AstNodeRef nodeExprRef;
 
+    // 'catch e else V' value used when 'e' fails; invalid otherwise.
+    AstNodeRef nodeFallbackRef;
+
     // Optional local name for a caught error, as in catch f() as err.
     TokenRef errNameTokRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeFallbackRef}); }
 
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;

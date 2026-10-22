@@ -771,7 +771,7 @@ impl LibraryView
         }
         else
         {
-            var image = catch Image.load(it.fi.fullName)
+            var image = catch Image.load(it.fi.fullName) else {}
             var haar: ImageStatistics.HaarFeatures
             var width, height: s32
             if image.isValid()
@@ -976,7 +976,7 @@ impl LibraryView
         if Library.getFolder() == cf do
             result = g_Library.files
         else do
-            result = catch Library.enumerateSupportedFiles(cf)
+            result = catch Library.enumerateSupportedFiles(cf) else {}
 
         // `items` only borrows pointers owned by `allItems`. Drop those borrows before their
         // owners so filter() never snapshots selection state through destroyed LibraryItems.

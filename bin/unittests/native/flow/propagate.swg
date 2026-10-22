@@ -53,7 +53,7 @@ func propagateAfterCatch(ok: bool)->s32 fail
 
 #test
 {
-    Swag.assert((catch propagateAfterCatch(true)) == 10)
+    Swag.assert((catch propagateAfterCatch(true) else 0) == 10)
     discard catch propagateAfterCatch(false) as err
     Swag.assert(propagateErrorCode(err) == 4)
 }
@@ -76,8 +76,8 @@ func propagateIntoBlock(ok: bool)->s32 fail
 
 #test
 {
-    Swag.assert((catch propagateIntoBlock(true)) == 11)
-    Swag.assert((catch propagateIntoBlock(false)) == -5)
+    Swag.assert((catch propagateIntoBlock(true) else 0) == 11)
+    Swag.assert((catch propagateIntoBlock(false) else 0) == -5)
 }
 
 struct PropagateReader
@@ -102,7 +102,7 @@ func propagateNested(reader: *PropagateReader, boxed: any)->s32 fail
 #test
 {
     var reader: PropagateReader
-    Swag.assert((catch propagateNested(&reader, 5's32)) == 15)
+    Swag.assert((catch propagateNested(&reader, 5's32) else 0) == 15)
 
     discard catch propagateNested(&reader, "text") as castError
     Swag.assert(castError != null and propagateErrorCode(castError) == 0)
@@ -143,11 +143,11 @@ func(T) propagateGeneric(value: T, ok: bool)->T fail
 
 #test
 {
-    Swag.assert((catch propagateInline(true)) == 11)
+    Swag.assert((catch propagateInline(true) else 0) == 11)
     discard catch propagateInline(false) as inlineError
     Swag.assert(propagateErrorCode(inlineError) == 8)
 
-    Swag.assert((catch propagateGeneric(3's32, true)) == 3)
+    Swag.assert((catch propagateGeneric(3's32, true) else 0) == 3)
     discard catch propagateGeneric(1.5'f32, false) as genericError
     Swag.assert(propagateErrorCode(genericError) == 9)
 }
@@ -161,7 +161,7 @@ func(T) propagateGeneric(value: T, ok: bool)->T fail
 
 #test
 {
-    Swag.assert((catch propagateBlockSecond(true)) == 20)
+    Swag.assert((catch propagateBlockSecond(true) else 0) == 20)
     discard catch propagateBlockSecond(false) as err
     Swag.assert(propagateErrorCode(err) == 10)
 }

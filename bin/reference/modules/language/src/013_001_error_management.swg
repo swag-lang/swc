@@ -22,11 +22,12 @@ func count(name: string?)->u64 fail
 
 /**
 # Catching Errors
-'catch' handles the error locally and returns the default value for the result
-type. To inspect the error, capture it with 'as err': this binds a fresh local
-(of type `any?`) that is null on success and holds the caught error on
-failure. The capture is visible in the enclosing scope, after the catch, so each
-capture in a given scope needs its own name.
+'catch' handles the error locally. To inspect the error, capture it with 'as err':
+this binds a fresh local (of type `any?`) that is null on success and holds the
+caught error on failure. The capture is visible in the enclosing scope, after the
+catch, so each capture in a given scope needs its own name. On failure, the result
+of a capturing 'catch' is the default value of its type; read it only when 'err'
+is null, or name the replacement with 'else', described below.
 
 The captured payload stays alive until that scope ends, including across later
 failures. Copies of the 'any' view and pointers derived from it borrow that lifetime
@@ -103,21 +104,36 @@ func recordTrace(name: string?, out: *s32) fail
 }
 
 /**
-# Dismissing Errors
-To dismiss a failure and continue with the type default, use 'catch' without a
-capture: the error is handled and dropped, and the expression yields the default
-value for the result type. To keep the error, add an 'as err' capture; to use a
-custom fallback, capture and branch ('var x = catch f() as err; if err != null do x = V').
+# Replacing a Failed Result with 'else'
+'catch e else V' yields 'V' when 'e' fails. 'V' converts to the result type of 'e'
+and is evaluated only on the failure path, after an 'as err' capture is bound, so it
+can read the error. Because the replacement is written, the result type needs no
+default: a non-null pointer can be caught too.
+
+A failure never becomes a value silently. A 'catch' without a capture or 'else' cannot
+be read: the compiler rejects it. When the result is not needed, write 'discard catch',
+which handles the error and drops both.
 */
 func safeCount(name: string?)->u64
 {
-    return catch count(name)
+    return catch count(name) else 0
+}
+
+func countOrCode(name: string?)->u64
+{
+    return catch count(name) as err else cast(u64, assume cast(MyError, err).code)
 }
 
 #test
 {
     Swag.assert(safeCount("hello") == 5)
     Swag.assert(safeCount(null) == 0)
+    Swag.assert(countOrCode(null) == 7)
+
+    let required = catch loadRequiredValue() else &requiredValue
+    Swag.assert(required[] == 42)
+
+    discard catch count(null)
 }
 
 /**
@@ -249,7 +265,7 @@ failure reads better with each exit point spelled out.
 func implicitTotal(name0: string?, name1: string?)->u64 fail
 {
     let first  = count(name0)
-    let second = catch count(name1)
+    let second = catch count(name1) else 0
     return first + second + count("ok")
 }
 
@@ -278,9 +294,9 @@ constructing a replacement, and 'expect' stops without one. Both accept result
 types with no default, including non-null pointers. A successful nullable result
 remains nullable: 'expect' checks success, not presence.
 
-'catch' resumes with a default result and therefore needs a result type with a
-safe default. A non-null pointer has none; propagate it with 'try' or require
-success with 'expect'.
+A capturing 'catch' without 'else' resumes with a default result and therefore needs
+a result type with a safe default. A non-null pointer has none; give the replacement
+with 'else', propagate with 'try', or require success with 'expect'.
 
 Inside '#test', 'try' is equivalent to 'expect', so both forms keep the
 success path concise when failure is not expected. An inlined function keeps

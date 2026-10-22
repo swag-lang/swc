@@ -79,7 +79,7 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
 
         result.add(#move info)
 
-        let next = catch FindNextFileW(handle, &findData)
+        let next = catch FindNextFileW(handle, &findData) else 0
         if not next do
             break
     }

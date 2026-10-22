@@ -61,13 +61,15 @@ func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 #test
 {
     // swc-expected-note@* {{'catch' needs a default result when its operand fails}}
-    let value = catch nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_type_requires_init}}
+    let value = catch nonNullRequiresInitFallible() as error     // swc-expected-error {{sema_err_type_requires_init}}
+    discard value, error
 }
 
+// 'else' supplies the replacement, so the result type needs no default.
 #test
 {
-    // swc-expected-note@* {{'catch' needs a default result when its operand fails}}
-    let value = catch nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_type_requires_init}}
+    let value = catch nonNullRequiresInitFallible() else &NonNullRequiresInitFallibleItem
+    #assert(#typeof(value) == *NonNullRequiresInitItem)
 }
 
 #test

@@ -185,7 +185,7 @@ func loadContent(fileName: string)->Content fail
     {
         let metadataBytes = catch Archive.Zip.loadEntry(fileName, meta) as metadataError
         if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
-            metadata = catch parseMetadata(cast(string, metadataBytes.toSlice()))
+            metadata = catch parseMetadata(cast(string, metadataBytes.toSlice())) else {}
     }
 
     return try parseContentWithImages(cast(string, bytes.toSlice()), styleSource, kind, #move images, #move metadata)

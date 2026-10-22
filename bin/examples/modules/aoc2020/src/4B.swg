@@ -88,17 +88,17 @@ func day4BWithExplicitChecks()
             switch fieldParts[0]
             {
             case "byr":
-                let year = catch StrConv.toS32(fieldValue)
+                let year = catch StrConv.toS32(fieldValue) else 0
                 if year >= 1920 and year <= 2002 do
                     validFields |= 1
 
             case "iyr":
-                let year = catch StrConv.toS32(fieldValue)
+                let year = catch StrConv.toS32(fieldValue) else 0
                 if year >= 2010 and year <= 2020 do
                     validFields |= 2
 
             case "eyr":
-                let year = catch StrConv.toS32(fieldValue)
+                let year = catch StrConv.toS32(fieldValue) else 0
                 if year >= 2020 and year <= 2030 do
                     validFields |= 4
 

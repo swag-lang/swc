@@ -109,7 +109,7 @@ func catchAsErrReraise(ok: bool)->s32 fail
 
 #test
 {
-    Swag.assert(catch catchAsErrReraise(true) == 5)
+    Swag.assert(catch catchAsErrReraise(true) == 5 else false)
     var seen = 0
     discard catch catchAsErrReraise(false) as err
     if err != null do

@@ -157,7 +157,7 @@ impl DragData
         {
             .imageDecoded = true
             if not .imageBytes.isEmpty() do
-                .imageValue = catch Pixel.Image.decode(.imageName.toString(), .imageBytes.toSlice(), {})
+                .imageValue = catch Pixel.Image.decode(.imageName.toString(), .imageBytes.toSlice(), {}) else {}
         }
 
         if not .imageValue.isValid() do
@@ -252,7 +252,7 @@ impl DragData
 
             var opt: Pixel.Png.EncodeOptions
             opt.compressionLevel = .BestSpeed
-            .imageBytes = catch .imageValue.encodeToBytes(.imageName.toString(), opt)
+            .imageBytes = catch .imageValue.encodeToBytes(.imageName.toString(), opt) else {}
         }
 
         return .imageBytes.toSlice()

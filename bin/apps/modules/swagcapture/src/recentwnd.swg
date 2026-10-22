@@ -457,7 +457,7 @@ impl RecentWnd
         // The recent strip needs only the newest capture names. Validating every SCC in the
         // library here would open the complete collection before the first thumbnail could
         // appear, so that index stays lazy: each recent candidate is validated as it is loaded.
-        var result = catch Directory.enumerateFiles(Library.getFolder())
+        var result = catch Directory.enumerateFiles(Library.getFolder()) else {}
         result.sort(func(a, b) => b.lastWriteTime <=> a.lastWriteTime)
 
         for r in result where Capture.isFileName(r.fullName) do

@@ -150,7 +150,7 @@ func returnStoredText(text: string)->string? fail
     let baseline = allocator.stats().countAlloc
     let pending  = copyStoredText("pending parent text")
     let expected = expect returnStoredText("returned by successful expect")
-    let caught   = catch returnStoredText("returned by successful catch")
+    let caught   = catch returnStoredText("returned by successful catch") else null
     catch failStoredText("an unrelated handled message")
     let valid = pending == "pending parent text" and expected == "returned by successful expect" and
                 caught == "returned by successful catch"

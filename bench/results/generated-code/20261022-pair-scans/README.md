@@ -55,10 +55,7 @@ requires temporary reuse. Positive cases assert that grouping actually occurred.
 
 The native `bounded_pair_scans.swg` fixture passes through JIT and native
 Release with the DevMode compiler: 6,550 expected answers per execution mode,
-including empty/inverted ranges and both equality conditions. The only rejected
-source during development put `const` after the pointer marker; its diagnostic
-correctly identified the scalar qualifier and its span, and the source was fixed.
-
+including empty/inverted ranges and both equality conditions. 
 The extra analysis remains the existing lazy physical-liveness/CFG computation
 and one jump-count scan after an exact shape match. For P accepted groups in an
 N-instruction/E-edge function, repeated pass invocations retain O(P*(N+E))
@@ -66,3 +63,13 @@ analysis work. Each group emits O(F) instructions for configured factor F.
 
 Timing: **not measured**. This is an accepted static improvement pending the
 session's full paired campaign. No benchmark source or workload changed.
+
+## Integrated Release boundary
+
+The Release compiler rebuilt after synchronization with master at `ddc8841e2a`
+also passes the focused source fixture through JIT and native Release. Its
+[twelve-task comparison](integrated-microdiff.txt) again changes only LZ77's
+match scan after overload/generated-name pairing, with all checksums matching.
+The target's final Micro instructions match the DevMode-driven candidate above.
+
+Release compiler SHA-256: `3a8a2771423198486205953bbfd1d8c347fc2889200776e74f0c6993713458ca`.

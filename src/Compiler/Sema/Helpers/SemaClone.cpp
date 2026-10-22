@@ -23,11 +23,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    void clearClonedNodePayload(AstNode& node)
-    {
-        node.clearPayload();
-    }
-
     const SemaClone::CloneContext& cloneContextAsInline(const CloneContext& cloneContext)
     {
         return static_cast<const SemaClone::CloneContext&>(cloneContext); // NOLINT(cppcoreguidelines-pro-type-static-cast-downcast)
@@ -486,7 +481,7 @@ namespace
         using NodeType            = AstTypeOf<ID>::type;
         auto [newRef, newNodePtr] = sema.ast().makeNode<ID>(node.tokRef());
         *newNodePtr               = node.cast<NodeType>();
-        clearClonedNodePayload(*newNodePtr);
+        newNodePtr->clearPayload();
         return newRef;
     }
 

@@ -26,15 +26,27 @@ prove it. Operating-system integrations live in
   window (std.gui.057), whatever the dirty area. Large-window traces with a small dirty box
   spent most of each frame presenting; those totals include driver backpressure and are not
   input-to-display measurements.
+- Reproducer: the user reports slow scrolling of `backlog/compiler.core.md` in Swag Scope
+  while the CPU is busy, with Typora remaining fluid on the same document under that load;
+  the slowdown affects the entire application, not only Markdown.
+- Measured boundary: forced full repaints of an empty maximized Swag Scope window in
+  `devmode`, at 8.35 million physical pixels under concurrent machine load, averaged 196.68 ms
+  over 263 frames (5.08 fps): 2.83 ms recording, 2.46 ms target submission, 175.10 ms in the
+  copy/readback stage, and 14.32 ms in flush/native publication. The process priority was
+  Normal (base 8); the main thread was observed waiting with dynamic priorities 9 and 11,
+  while idle runtime workers were parked. This does not measure input latency or isolate
+  driver execution from scheduling inside the copy/readback stage.
 - Constraint: the default OpenGL context is owned by the window thread, because a worker
   renderer let drawable reallocation overlap native sizing (std.gui.056). `Pixel.RenderThread`
   remains an explicit adapter. The default WGL swap interval is one. A partial copy cannot rely
   on preserved back buffers: the WGL pixel format grants neither swap-copy nor swap-exchange.
-- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input,
-  separating GPU execution from native-present wait. Measure whether surfaces that do not need
-  compositing can render directly into the presentation target, keeping the render target
-  where effects need it. Any asynchronous replacement must establish drawable ownership and
-  buffer lifetime during physical resizing.
+- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input on
+  that document at matched CPU contention, separating recording, GPU readback and native-present
+  wait. Split the copy/readback stage into GPU submission, readback, and CPU bitmap copy,
+  correlating wall time with thread CPU and ready/wait states. Compare reading the existing
+  surface target directly against the redundant full-size presentation copy for enabled
+  windows; preserve disabled-window tinting and premultiplied alpha. Any asynchronous
+  replacement must establish drawable ownership and buffer lifetime during physical resizing.
 - Done when: unnecessary surface copies and input-thread stalls have a measured policy,
   equivalent pixels, bounded resource ownership and frame queues, and real input-latency
   evidence.

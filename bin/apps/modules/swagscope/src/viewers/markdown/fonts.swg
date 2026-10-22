@@ -30,7 +30,7 @@ func systemFaces(names: const [..] string)->[FontFamilyStyle.count] (*TypeFace?)
         if family.name.isEmpty() do
             continue
         for index in FontFamilyStyle.count do
-            result[index] = catch FontFamily.createTypeFace(family, cast(FontFamilyStyle, index))
+            result[index] = catch FontFamily.createTypeFace(family, cast(FontFamilyStyle, index)) else null
         if result[0] != null do
             break
     }

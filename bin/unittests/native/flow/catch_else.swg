@@ -54,3 +54,17 @@ func catchElseEarlyReturn(ok: bool)->s32
     Swag.assert(catchElseEarlyReturn(true) == 100)
     Swag.assert(catchElseEarlyReturn(false) == -1)
 }
+
+var g_catchElseHandlerRuns = 0
+
+func catchElseBump() { g_catchElseHandlerRuns += 1 }
+
+// A handler that is a single inlined call still runs on the failure path only.
+#test
+{
+    g_catchElseHandlerRuns = 0
+    catch catchElseMayFail(true) else do catchElseBump()
+    Swag.assert(g_catchElseHandlerRuns == 0)
+    catch catchElseMayFail(false) else do catchElseBump()
+    Swag.assert(g_catchElseHandlerRuns == 1)
+}

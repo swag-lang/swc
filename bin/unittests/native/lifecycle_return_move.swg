@@ -63,17 +63,17 @@ func forwardMoveDefer(seed: s32)->MovePayload fail
 #test
 {
     MoveCopies, MoveMoves, MoveDrops = 0
-    let a = catch forwardBare(Seed)
+    let a = catch forwardBare(Seed) else {}
     check(a.value == Seed * 3, 60)
     let bareCopies = MoveCopies
 
     MoveCopies, MoveMoves, MoveDrops = 0
-    let b = catch forwardMove(Seed)
+    let b = catch forwardMove(Seed) else {}
     check(b.value == Seed * 3, 61)
     check(MoveCopies == bareCopies, 62)
 
     MoveCopies, MoveMoves, MoveDrops = 0
-    let c = catch forwardMoveDefer(Seed)
+    let c = catch forwardMoveDefer(Seed) else {}
     check(c.value == Seed * 3, 63)
     check(MoveCopies == bareCopies, 64)
 

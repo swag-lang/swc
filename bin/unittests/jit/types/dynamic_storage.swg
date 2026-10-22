@@ -17,7 +17,7 @@ func copyEmptyDynamicStorage(value: EmptyDynamicStorage)->EmptyDynamicStorage =>
     var base = copyEmptyDynamicStorage(owner.base)
     Swag.assert(not (&base is EmptyDynamicChild))
     let embedded = &owner.base
-    Swag.assert((catch cast(*EmptyDynamicChild?, embedded)) == &owner)
+    Swag.assert((catch cast(*EmptyDynamicChild?, embedded) else null) == &owner)
 }
 
 #[Swag.DynCast, Swag.Pack(1)]

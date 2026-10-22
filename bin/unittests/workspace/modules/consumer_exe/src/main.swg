@@ -530,7 +530,7 @@ func verifyRuntimeTypeCrossDllIdentity()
     }
     Swag.assert(hit == 2)
 
-    let sysErr = catch cast(*Swag.SystemError?, raised)
+    let sysErr = catch cast(*Swag.SystemError?, raised) else null
     Swag.assert(sysErr != null)
     Swag.assert(sysErr.message == "raised across the boundary")
 }

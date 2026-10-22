@@ -48,7 +48,7 @@ func assumePresentChild(value: *CheckedDynamicBase?)
 #[Swag.Safety(.Assume, false)]
 func tryDynamicChild(value: *CheckedDynamicBase)->*CheckedDynamicChild?
 {
-    return (catch cast(*CheckedDynamicChild?, value))
+    return (catch cast(*CheckedDynamicChild?, value) else null)
 }
 
 #test

@@ -154,5 +154,5 @@ func voidNeedsNothing(flag: bool)
     Swag.assert(whileTrueWithoutBreak() == 1)
     Swag.assert(nestedBreak() == 1)
     Swag.assert(endsInUnreachable(true) == 1)
-    Swag.assert((catch endsInFail(true)) == 1)
+    Swag.assert((catch endsInFail(true) else 0) == 1)
 }

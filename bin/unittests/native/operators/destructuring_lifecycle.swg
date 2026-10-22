@@ -70,7 +70,7 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
     let {first, count} = makeDestructuringPair'DestructuringSelfRef()
     Swag.assert(first.isValid() and count == 9)
 
-    let {first: caught} = catch makeDestructuringPairFail'DestructuringSelfRef()
+    let {first: caught} = catch makeDestructuringPairFail'DestructuringSelfRef() else {}
     Swag.assert(caught.isValid())
 
     let {first: expected} = expect makeDestructuringPairFail'DestructuringSelfRef()
@@ -83,7 +83,7 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
     {
         let {first: owned} = makeDestructuringPair'DestructuringOwner()
         Swag.assert(owned.isValid())
-        let {first: caught} = catch makeDestructuringPairFail'DestructuringOwner()
+        let {first: caught} = catch makeDestructuringPairFail'DestructuringOwner() else {}
         Swag.assert(caught.isValid())
     }
 

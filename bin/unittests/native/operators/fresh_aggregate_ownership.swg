@@ -182,14 +182,14 @@ func makeAuto(value: s64)->FreshOwner
 {
     resetFresh(15)
     {
-        let owner = catch makeFallible(FreshSeed)
+        let owner = catch makeFallible(FreshSeed) else {}
         Swag.assert(owner.value == 15)
     }
     expectFresh(0, 0, 1, 15)
 
     resetFresh(-16)
     {
-        let owner = catch makeFallible(FreshSeed)
+        let owner = catch makeFallible(FreshSeed) else {}
         Swag.assert(owner.value == 0)
     }
     expectFresh(0, 0, 1, 0)

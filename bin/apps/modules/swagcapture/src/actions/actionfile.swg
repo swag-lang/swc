@@ -312,7 +312,7 @@ private func showFileDetails(main: *MainWnd, capture: *Capture)
 
     if capture.rating do
         addDetail(rows, texts.ui_DetailRating, ratingLabel(capture.rating))
-    addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size))
+    addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size else 0))
     rows.computeLayout()
     discard dialog.doModal()
 }
@@ -439,7 +439,7 @@ impl MainWnd
         {
             var opt: Png.EncodeOptions
             opt.compressionLevel = .BestSpeed
-            return catch img.encodeToBytes("drag.png", opt)
+            return catch img.encodeToBytes("drag.png", opt) else {}
         })
     }
 
@@ -582,8 +582,8 @@ impl MainWnd
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let {w, _, _} = catch StrConv.parseS32(edit0.edit.text())
-        let {h, _, _} = catch StrConv.parseS32(edit1.edit.text())
+        let {w, _, _} = catch StrConv.parseS32(edit0.edit.text()) else {}
+        let {h, _, _} = catch StrConv.parseS32(edit1.edit.text()) else {}
         var image     = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         image.fill(Argb.White)
         .newCapture(image, sourceKind: .BlankCanvas)

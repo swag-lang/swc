@@ -426,7 +426,7 @@ impl PropWnd
                 edit.edit.setUnsignedIntegerRange(1, 10000)
             edit.edit.sigCommitted += func|prop, name|(ed)
             {
-                let {v, _, _} = catch StrConv.parseS32(ed.text())
+                let {v, _, _} = catch StrConv.parseS32(ed.text()) else {}
                 prop.pushTypedValue(v, BaseForm, name, true, true)
             }
         }

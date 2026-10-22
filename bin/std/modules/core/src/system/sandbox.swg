@@ -267,7 +267,7 @@ func smokeFrames()->u32
 
     // A marker with no usable count still means a bounded run, so fall back rather than
     // returning zero, which would read as "not a smoke run" and let the program run forever.
-    let frames = catch StrConv.toU32(request.value.toString())
+    let frames = catch StrConv.toU32(request.value.toString()) else 0
     return frames != 0 ? frames : DefaultSmokeFrames
 }
 

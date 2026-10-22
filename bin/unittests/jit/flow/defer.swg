@@ -576,7 +576,7 @@ func deferReturnDropInfo()->DeferDropInfo
         return DeferTrace
     }
 
-    const returnInfo = #run catch deferConditionalReturnTrace()
+    const returnInfo = #run catch deferConditionalReturnTrace() else {}
     const failTrace  = #run deferConditionalFailTrace()
     const catchTrace = #run deferConditionalCatchTrace()
     const tryTrace   = #run deferConditionalCatchElseTrace()

@@ -53,7 +53,7 @@ func makeManagedResult(succeed: bool)->ManagedResult fail
 
 func returnCatchResult()->ManagedResult
 {
-    return catch makeManagedResult(true)
+    return catch makeManagedResult(true) else {}
 }
 
 func returnExpectResult()->ManagedResult
@@ -69,7 +69,7 @@ func returnTryResult()->ManagedResult fail
 #[Swag.Inline]
 func returnInlineCatchResult()->ManagedResult
 {
-    return catch makeManagedResult(true)
+    return catch makeManagedResult(true) else {}
 }
 
 // A handled call constructs its successful result directly in the binding.
@@ -77,7 +77,7 @@ func returnInlineCatchResult()->ManagedResult
 {
     resetHooks(11)
     {
-        let value = catch makeManagedResult(true)
+        let value = catch makeManagedResult(true) else {}
         Swag.assert(value.value == 11)
     }
     Swag.assert(PostCopyCount == 0)
@@ -92,7 +92,7 @@ func returnInlineCatchResult()->ManagedResult
 {
     resetHooks(13)
     {
-        let value = catch makeManagedResult(false)
+        let value = catch makeManagedResult(false) else {}
         Swag.assert(value.value == 0)
     }
     Swag.assert(PostCopyCount == 0)
@@ -139,7 +139,7 @@ func returnInlineCatchResult()->ManagedResult
 
     resetHooks(29)
     {
-        let value = catch returnTryResult()
+        let value = catch returnTryResult() else {}
         Swag.assert(value.value == 29)
     }
     Swag.assert(PostCopyCount == 0)

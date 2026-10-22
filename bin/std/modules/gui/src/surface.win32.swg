@@ -848,7 +848,7 @@ impl Surface
             return
 
         var img     = icon
-        let newIcon = catch img.toHicon()
+        let newIcon = catch img.toHicon() else null
         if not newIcon do
             return
 

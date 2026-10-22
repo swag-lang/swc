@@ -666,10 +666,10 @@ impl IWnd for PlatformCatcher
     Swag.assert(nextResult == S_FALSE)
     Swag.assert(fetched == 3)
 
-    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer)))
+    Swag.assert(entries[0].cfFormat == cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer) else 0))
     Swag.assert(entries[0].lindex == -1)
 
-    let contents = cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer))
+    let contents = cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer) else 0)
     Swag.assert(entries[1].cfFormat == contents and entries[1].lindex == 0)
     Swag.assert(entries[2].cfFormat == contents and entries[2].lindex == 1)
     Swag.assert(entries[1].tymed & TYMED_ISTREAM)
@@ -722,7 +722,7 @@ impl IWnd for PlatformCatcher
     var session: DragSession
     let source = testDragSource(&session, &data)
 
-    let format = cast(CLIPFORMAT, catch RegisterClipboardFormatA(("SwagDragPrivate").buffer))
+    let format = cast(CLIPFORMAT, catch RegisterClipboardFormatA(("SwagDragPrivate").buffer) else 0)
 
     var fmt: FORMATETC
     fmt.cfFormat = format
@@ -798,7 +798,7 @@ impl IWnd for PlatformCatcher
     while formats.lpVtbl.Next(formats, 1, &fmt, &fetched) == S_OK
     {
         fmt.tymed = TYMED_HGLOBAL
-        if fmt.cfFormat == cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer)) do
+        if fmt.cfFormat == cast(CLIPFORMAT, catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer) else 0) do
             fmt.lindex = 0
         var medium: STGMEDIUM
         let getDataResult = source.lpVtbl.GetData(source, &fmt, &medium)

@@ -628,7 +628,7 @@ func deferBreakToScope()->s64
 
 #test
 {
-    let v = catch deferConditionalReturnTrace()
+    let v = catch deferConditionalReturnTrace() else {}
     Swag.assert(v.value == 7)
     Swag.assert(v.trace == 32)
 }

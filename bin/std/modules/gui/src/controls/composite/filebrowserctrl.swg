@@ -234,7 +234,7 @@ private impl FileBrowserCtrl
         l = treeCtrl.createLine(strings().browser_Drives)
         l.separator = true
 
-        let volumes = catch Directory.drives()
+        let volumes = catch Directory.drives() else {}
         for &v in volumes
         {
             v.removeBack()
@@ -780,7 +780,7 @@ impl FileBrowserCtrl
             .recurse         = false
         }
 
-        .currentEntries = catch Directory.enumerate(.currentFolder, options)
+        .currentEntries = catch Directory.enumerate(.currentFolder, options) else {}
 
         let filterExtensions = .activeFilterExtensions()
         let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)

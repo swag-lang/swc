@@ -132,7 +132,7 @@ func compilerWorkerCount()->u32
     let available = Hardware.processorCount()
     if available <= 2 do
         return 1
-    let requested = catch StrConv.toU32(compilerArgument("--compiler-workers="))
+    let requested = catch StrConv.toU32(compilerArgument("--compiler-workers=")) else 0
     let limit     = requested != 0 ? Math.min(requested, MaxWorkers) : MaxWorkers
     return Math.min(available - 1, limit)
 }
@@ -227,7 +227,7 @@ func startPiped(fileName: string, arguments: string, workingDirectory: string? =
 // Always reap an owned process before dropping its pipes or temporary files.
 func retireProcess(process: *Env.Process)
 {
-    if not (catch process.tryWaitForExit(0'ms))
+    if not (catch process.tryWaitForExit(0'ms) else false)
     {
         discard catch process.kill()
         discard catch process.waitForExit()

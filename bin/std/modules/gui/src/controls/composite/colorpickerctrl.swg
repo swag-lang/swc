@@ -302,7 +302,7 @@ impl ColorPickerCtrl
             .editR.setMaximumLength(3)
             .editR.sigCommitted += func|v|(ed)
             {
-                let res = catch StrConv.parseU32(ed.text())
+                let res = catch StrConv.parseU32(ed.text()) else {}
                 v.selectedColor.r = cast(Math.clamp(res.value, 0, 255))
                 v.updateAll()
                 v.sigColorChanged.call(v)
@@ -312,7 +312,7 @@ impl ColorPickerCtrl
             .editG.setMaximumLength(3)
             .editG.sigCommitted += func|v|(ed)
             {
-                let res = catch StrConv.parseU32(ed.text())
+                let res = catch StrConv.parseU32(ed.text()) else {}
                 v.selectedColor.g = cast(Math.clamp(res.value, 0, 255))
                 v.updateAll()
                 v.sigColorChanged.call(v)
@@ -322,7 +322,7 @@ impl ColorPickerCtrl
             .editB.setMaximumLength(3)
             .editB.sigCommitted += func|v|(ed)
             {
-                let res = catch StrConv.parseU32(ed.text())
+                let res = catch StrConv.parseU32(ed.text()) else {}
                 v.selectedColor.b = cast(Math.clamp(res.value, 0, 255))
                 v.updateAll()
                 v.sigColorChanged.call(v)
@@ -332,7 +332,7 @@ impl ColorPickerCtrl
             .editA.setMaximumLength(3)
             .editA.sigCommitted += func|v|(ed)
             {
-                let res = catch StrConv.parseU32(ed.text())
+                let res = catch StrConv.parseU32(ed.text()) else {}
                 v.selectedColor.a = cast(Math.clamp(res.value, 0, 255))
                 v.pickAlpha.setColor(v.selectedColor, false)
                 v.updateEdits(true)
@@ -342,7 +342,7 @@ impl ColorPickerCtrl
             .editHex.setMaximumLength(8)
             .editHex.sigCommitted += func|v|(ed)
             {
-                var res = catch StrConv.parseX64(ed.text())
+                var res = catch StrConv.parseX64(ed.text()) else {}
                 if not v.flags.has(.AllowAlpha) do
                     res.value |= 0xFF000000
                 v.selectedColor.argb = cast(u32, res.value)

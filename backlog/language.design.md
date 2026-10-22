@@ -107,31 +107,24 @@ in its module backlog; a general request for better names is not a missing langu
 - Related: language.design.024 owns implicit copies at consuming boundaries. `expect` already
   accepts non-defaultable results; this entry concerns resetting consumed sources.
 
-### language.design.010 — `catch` without a capture substitutes the type default and says nothing
+### language.design.010 — A capturing `catch` without `else` yields zeroed storage on failure
 
-- Evidence: `catch f()` handles the error, drops it, and yields the default value for the result
-  type
-  ([013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)).
-  It is a one-word conversion of a failure into a zero, with no `discard`-style ceremony — while the
-  language elsewhere refuses to let an ordinary return value be ignored without `discard`
-  ([007_007_discard.swg](../bin/reference/modules/language/src/007_007_discard.swg)). The two
-  policies point in opposite directions: an unread `s32` is an error, an unread *failure* is a zero.
-- Evidence: `func swallow()->s32 { return catch mustFail() }` returns 0 with no diagnostic.
-- Elsewhere: Swift's `try?` preserves failure as an optional result, while `try!` asserts success
-  ([Swift error handling](https://raw.githubusercontent.com/swiftlang/swift-book/main/TSPL.docc/LanguageGuide/ErrorHandling.md)).
-  These make different promises from substituting the ordinary result type's default.
-- Proposed contract: A handler either supplies an explicit replacement of the result type, propagates or
-  exits, or deliberately discards a failure from an operation whose result is not needed.
-  It never synthesizes zero/null as successful output. The error should be accessible inside
-  the handler and fallback evaluation must be lazy. Existing fail/try/catch and error-as-value
-  support remain the baseline; this entry does not add a second Result/exception system.
-- Next: Specify value-producing catch handlers using safeCount, blockCatchElse and GUI font
-  loading as before/after cases. Classify bare catches as discard, fallback or preserved error.
-  Define owned-result adoption and failed-path cleanup, including non-defaultable results.
-  Coordinate local capture scope with language.design.025 and preserve the terminal failure
-  contract of `expect`.
-- Done when: fallback, propagation, termination and explicit discard cannot be confused, a successful
-  result never requires a fabricated failure value, and side effects/lifetimes are tested.
+- Evidence: a bare `catch` whose result is read is rejected (`sema_err_catch_value_needs_fallback`),
+  and `catch f() else V` names the replacement. A capturing `let v = catch f() as err` without
+  `else` still yields storage zeroed by `emitZeroFallibleExprResult`
+  ([CodeGen.Function.Post.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Function.Post.cpp)): struct
+  field initializers do not run, and an enum without a zero member holds a value outside its set.
+  The [reference](../bin/reference/modules/language/src/013_001_error_management.swg) tells the
+  reader to use it only when `err` is null; about 270 `bin/` sites read the result beside an
+  `if err != null` test.
+- Proposed contract: no `catch` synthesizes a result. A capturing handler either names the
+  replacement with `else`, or binds the error where the result is unreachable on failure.
+- Next: decide the capture form together with language.design.025: a handler-scoped binding that
+  makes the result unreachable on failure, or `else` required whenever the result is read. Then
+  migrate the capture sites, and remove `emitZeroFallibleExprResult` with the `catch` branch of
+  the type-default check in `AstErrorManagementExpr::semaPostNode`.
+- Done when: no `catch` produces a value the source did not write, and a result type without a
+  default needs no special rule under `catch`.
 
 ### language.design.036 — Struct equality compares float members by their bytes
 
@@ -723,7 +716,7 @@ in its module backlog; a general request for better names is not a missing langu
   handlers using the same error name, shadowing, success paths, borrowed payloads and cleanup.
 - Done when: handler-only errors cannot leak into the enclosing block, intentionally stored errors
   have an explicit owner/lifetime, and the migration preserves delayed inspection.
-- Related: [language.design.010](#languagedesign010--catch-without-a-capture-substitutes-the-type-default-and-says-nothing)
+- Related: [language.design.010](#languagedesign010--a-capturing-catch-without-else-yields-zeroed-storage-on-failure)
 
 ### language.design.022 — The cost of value-dependent float inference is unmeasured
 

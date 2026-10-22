@@ -1343,7 +1343,7 @@ internal impl Surface
     g_DropSourceVtbl.QueryContinueDrag = &dropSrcQueryContinueDrag
     g_DropSourceVtbl.GiveFeedback      = &dropSrcGiveFeedback
 
-    g_PngDragFormat        = catch RegisterClipboardFormatA(("PNG").buffer)
-    g_FileDescriptorFormat = catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer)
-    g_FileContentsFormat   = catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer)
+    g_PngDragFormat        = catch RegisterClipboardFormatA(("PNG").buffer) else 0
+    g_FileDescriptorFormat = catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer) else 0
+    g_FileContentsFormat   = catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer) else 0
 }

@@ -74,7 +74,7 @@ internal impl FrameTrace
         if stress.found
         {
             .stressing = true
-            let frames = catch StrConv.toU64(stress.value)
+            let frames = catch StrConv.toU64(stress.value) else 0
             .maxFrames = frames != 0 ? frames : DefaultStressFrames
         }
 
@@ -84,7 +84,7 @@ internal impl FrameTrace
         let box = findMarker("swag.framestressbox")
         if box.found
         {
-            let side = catch StrConv.toF32(box.value)
+            let side = catch StrConv.toF32(box.value) else 0
             .boxSide = side > 0 ? side : DefaultStressBoxSide
         }
     }

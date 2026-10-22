@@ -175,7 +175,7 @@ impl OffsetOwnedEvent
     evt.drops = &drops
     let base: *Event = evt
     Swag.assert(cast(*void, base) != cast(*void, evt))
-    Swag.assert((catch cast(*OffsetOwnedEvent?, base)) == evt)
+    Swag.assert((catch cast(*OffsetOwnedEvent?, base) else null) == evt)
     host.root.postEvent(evt)
     host.pumpPostedEvents()
     Swag.assert(drops == 1)
@@ -188,7 +188,7 @@ impl OffsetOwnedEvent
     defer Memory.delete(evt)
     let view: IEvent = evt
     Swag.assert(Swag.kindOf(view) == #typeof(CommandStateEvent))
-    Swag.assert((catch cast(*CommandStateEvent?, view)) == evt)
+    Swag.assert((catch cast(*CommandStateEvent?, view) else null) == evt)
     Swag.assert(not evt.accepted)
 
     evt.kind          = .Apply

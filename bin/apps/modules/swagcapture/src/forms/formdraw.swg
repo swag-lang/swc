@@ -29,7 +29,7 @@ impl IForm for FormDraw
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = catch cast(*FormDraw?, ptr)
+        let other = catch cast(*FormDraw?, ptr) else null
         if not other do
             return false
         return .isSameBase(ptr) and

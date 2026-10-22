@@ -160,7 +160,7 @@ impl Library
 
     mtd fill()
     {
-        .files    = catch enumerateSupportedFiles(getFolder())
+        .files    = catch enumerateSupportedFiles(getFolder()) else {}
         .loaded   = true
         .revision += 1
     }

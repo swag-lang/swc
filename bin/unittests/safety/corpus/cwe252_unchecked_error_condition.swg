@@ -77,7 +77,7 @@ func catchesAndInspects(present: bool)->s32
 // Dismiss on purpose: the type default stands in.
 func dismisses(present: bool)->s32
 {
-    return catch load(present)
+    return catch load(present) else 0
 }
 
 // Handle on the failure path only: the handler runs instead of the rest, and can divert the
@@ -103,7 +103,7 @@ func discardsOnPurpose()
 
 #test
 {
-    Swag.assert((catch propagates(true)) == 1)
+    Swag.assert((catch propagates(true) else 0) == 1)
     Swag.assert(catchesAndInspects(true) == 1)
     Swag.assert(catchesAndInspects(false) == -7)
     Swag.assert(dismisses(false) == 0)

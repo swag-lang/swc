@@ -1,7 +1,6 @@
 #pragma once
 #include "Support/Memory/Heap.h"
 #include "Support/Report/Assert.h"
-#include <atomic>
 
 SWC_BEGIN_NAMESPACE();
 

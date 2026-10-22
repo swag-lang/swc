@@ -1,8 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
 
-#include <limits>
-
 SWC_BEGIN_NAMESPACE();
 
 namespace MicroLabelHelpers

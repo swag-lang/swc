@@ -5,8 +5,6 @@
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
-#include <optional>
-#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 

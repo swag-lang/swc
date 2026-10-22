@@ -14,6 +14,7 @@
 #include <cmath>
 #include <condition_variable>
 #include <cstdint>
+#include <cstring>
 #include <deque>
 #include <filesystem>
 #include <format>

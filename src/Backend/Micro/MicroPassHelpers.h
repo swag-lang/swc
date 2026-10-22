@@ -5,7 +5,6 @@
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Math/Fold.h"
-#include <unordered_set>
 
 SWC_BEGIN_NAMESPACE();
 

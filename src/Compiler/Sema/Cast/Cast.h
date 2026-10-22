@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/CastRequest.h"
 #include "Compiler/Sema/Type/TypeInfo.h"

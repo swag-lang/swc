@@ -1,8 +1,6 @@
 #pragma once
 #include "Support/Core/Utf8.h"
 
-#include <filesystem>
-
 SWC_BEGIN_NAMESPACE();
 
 namespace DebugPath

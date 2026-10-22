@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Sema/Cast/Cast.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"

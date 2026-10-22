@@ -1,8 +1,6 @@
 #pragma once
 #include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
-#include <cstdint>
-#include <cstring>
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Parser/Ast/AstNode.h"
 #include "Compiler/Sema/Core/AttributeList.h"
 #include "Compiler/Sema/Helpers/SemaCloneTypes.h"

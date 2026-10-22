@@ -160,10 +160,34 @@ MOVES = {
 }
 
 
-def move_mark(move, title):
-    arrow = MOVES[move][0]
-    return '<span class="trend %s" role="img" aria-label="%s" title="%s">%s</span>' % (
-        move, esc(MOVES[move][1]), esc(title), arrow)
+def move_mark(move, title, sure=True):
+    """An arrow, full when the move is measurable, faded when it stays within the noise."""
+    words = MOVES[move][1] if sure or move == "unchanged" else MOVES[move][1] + ", within the noise"
+    return '<span class="trend %s%s" role="img" aria-label="%s" title="%s">%s</span>' % (
+        move, "" if sure else " noise", esc(words), esc(title), MOVES[move][0])
+
+
+def since(now, before):
+    """How a time or size ratio moved between two independent campaigns: (move, sure, change).
+
+    The arrow always follows the direction of the change; only two values that print the same
+    are "unchanged". `sure` follows the rule of every other verdict on the page: the interval
+    of now / before lies on one side of parity."""
+    change = stats.ratio(now, before)
+    if pct(now) == pct(before):
+        move = "unchanged"
+    else:
+        move = "improved" if change.value < 1.0 else "regressed"
+    return move, change.verdict() != "tie", change
+
+
+def since_mark(now, before, previous_campaign):
+    """The arrow of a ratio's move since the previous campaign, both values on hover."""
+    move, sure, change = since(now, before)
+    title = "%s%s (%s): %+.1f %% before, %+.1f %% now; change %s, 95 %% interval %s" % (
+        MOVES[move][1], "" if sure or move == "unchanged" else ", within the noise", campaign_name(previous_campaign),
+        (before.value - 1.0) * 100.0, (now.value - 1.0) * 100.0, html.unescape(pct(change)), ci_text(change))
+    return move_mark(move, title, sure), move, sure, change
 
 
 def ordinal(n):
@@ -344,22 +368,17 @@ def series_estimate(campaign, task, rt, family):
 def headline_movement(e, rival, previous, previous_campaign, family):
     """The arrow and the previous value of a headline card.
 
-    The two values come from independent campaigns, so the arrow follows the same rule as
-    every other verdict on the page: it points only when the interval of their ratio lies
-    on one side of parity."""
+    The arrow follows the direction of the change, faded when the change stays within the
+    noise of two independent campaigns."""
     if not previous:
         return '<span class="trend-pair"><span class="previous-value">no previous campaign</span></span>'
     before = previous["rivals"][previous["strongest"]]["geo"]
-    change = stats.ratio(e, before)
-    move = {"faster": "improved", "slower": "regressed", "tie": "unchanged"}[change.verdict()]
+    mark = since_mark(e, before, previous_campaign)[0]
     rival_before = previous["strongest"]
     against = "" if rival_before == rival else " vs %s" % (runtime_label(rival_before) if family == "run"
                                                          else META[rival_before][1])
-    title = "%s (%s): %+.1f %% before, %+.1f %% now; change %s, 95 %% interval %s" % (
-        MOVES[move][1], campaign_name(previous_campaign), (before.value - 1.0) * 100.0, (e.value - 1.0) * 100.0,
-        html.unescape(pct(change)), ci_text(change))
     return ('<span class="trend-pair">%s<span class="previous-value">previous %+.1f&nbsp;%%%s</span></span>'
-            % (move_mark(move, title), (before.value - 1.0) * 100.0, esc(against)))
+            % (mark, (before.value - 1.0) * 100.0, esc(against)))
 
 
 def headline_card(name, lead, family, comps, previous_comps, previous_campaign):
@@ -381,15 +400,105 @@ def headline_card(name, lead, family, comps, previous_comps, previous_campaign):
                ci_text(e), tally["faster"], tally["tie"], tally["slower"], sum(tally.values())))
 
 
-def progress_section(entries, run_campaign, build_campaign, reference):
-    """The compiler under test against the frozen reference, latest campaign and history."""
+def reference_name_of(campaign):
+    return (((campaign or {}).get("meta", {}).get("installs") or {}).get("reference") or {}).get("name")
+
+
+def progress_of(campaign, family):
+    """The progress series a campaign measured for one family, run or build."""
+    if not campaign:
+        return {}
+    out = {}
+    for pid, rec in history.progress(campaign).items():
+        if pid == "singles":
+            continue
+        if next(p for p in history.PROGRESS if p[0] == pid)[2] == family:
+            out[pid] = rec
+    singles = {sid: e for sid, e in ((history.progress(campaign).get("singles")) or {}).items()
+               if sid.startswith("hello-run") == (family == "run")}
+    if singles:
+        out["singles"] = singles
+    return out
+
+
+def movement_cells(now, before, previous_campaign):
+    """The previous value and the move since it, two table cells."""
+    if now is None or before is None:
+        return ["&mdash;", "&mdash;"]
+    mark, _, _, change = since_mark(now, before, previous_campaign)
+    return ['<span class="ci-cell tied">%s</span>' % pct(before), '<span class="move">%s%s</span>' % (mark, pct(change))]
+
+
+SHORT_SERIES = {
+    "run-release": "native release", "run-devmode": "native devmode", "jit-release": "JIT release",
+    "jit-devmode": "JIT devmode", "build-release": "build release", "build-devmode": "build devmode",
+    "memory-release": "compiler memory", "size-release": "executable size",
+}
+
+
+def changes_by_task(latest, previous, previous_of, tasks):
+    """Per task and series: the ratio to the reference, its previous value and the move since it.
+
+    Every series is a paired ratio against the same frozen reference, so its movement between
+    two campaigns is the effect of the work done on the compiler in between."""
+    pids = [p[0] for p in history.PROGRESS if p[0] in latest]
+    better, worse, rows = [], [], []
+    faint = {"improved": 0, "regressed": 0}
+    for task in tasks:
+        cells = []
+        for pid in pids:
+            now = stats.Estimate.from_dict(latest[pid]["tasks"].get(task))
+            before = stats.Estimate.from_dict(((previous.get(pid) or {}).get("tasks") or {}).get(task))
+            if now is None:
+                cells.append("&mdash;")
+                continue
+            cell = change_cell(now)
+            if before is not None:
+                mark, move, sure, change = since_mark(now, before, previous_of[pid])
+                cell += '%s<small class="was">was %s</small>' % (mark, pct(before))
+                if move != "unchanged":
+                    if sure:
+                        (better if move == "improved" else worse).append(
+                            "<code>%s</code> %s %s" % (task, SHORT_SERIES[pid], pct(change)))
+                    else:
+                        faint[move] += 1
+            cells.append(cell)
+        rows.append(["<code>%s</code>" % task] + cells)
+    summary = ""
+    if previous:
+        summary = ('<p class="cap moves"><b class="improved">&uarr; measurably better:</b> %s<br>'
+                   '<b class="regressed">&darr; measurably worse:</b> %s<br>'
+                   'Within the noise, faded arrows: %d better, %d worse.</p>'
+                   % (", ".join(better) or "nothing", ", ".join(worse) or "nothing",
+                      faint["improved"], faint["regressed"]))
+    table = simple_table(["task"] + [SHORT_SERIES[p] for p in pids], rows, "by-task")
+    return summary + table
+
+
+def progress_section(entries, run_campaign, build_campaign, previous_run, previous_build, reference, tasks):
+    """The compiler under test against the frozen reference: latest campaign, the previous one, history."""
     if not entries:
         return '<p class="cap">No recorded campaign yet.</p>'
     latest = {}
-    for campaign in (build_campaign, run_campaign):
-        if campaign:
-            for pid, rec in history.progress(campaign).items():
+    previous = {}
+    previous_of = {}
+    for family, campaign, before in (("build", build_campaign, previous_build), ("run", run_campaign, previous_run)):
+        if not campaign:
+            continue
+        # A different reference starts a different series: its ratios are not comparable.
+        before = before if before and reference_name_of(before) == reference_name_of(campaign) else None
+        for pid, rec in progress_of(campaign, family).items():
+            if pid == "singles":
+                latest.setdefault("singles", {}).update(rec)
+            else:
                 latest[pid] = rec
+        for pid, rec in progress_of(before, family).items():
+            if pid == "singles":
+                previous.setdefault("singles", {}).update(rec)
+                previous_of.update({sid: before for sid in rec})
+            else:
+                previous[pid] = rec
+                previous_of[pid] = before
     rows = []
     labels = dict((p[0], p[1]) for p in history.PROGRESS)
     for pid, label, *_ in history.PROGRESS:
@@ -397,6 +506,7 @@ def progress_section(entries, run_campaign, build_campaign, reference):
         if not rec:
             continue
         e = stats.Estimate.from_dict(rec.get("geo"))
+        before = stats.Estimate.from_dict((previous.get(pid) or {}).get("geo"))
         series = [((x.get("progress") or {}).get(pid) or {}).get("geo") for x in entries]
         trend = spark([((s["value"] - 1.0) * 100.0) if s else None for s in series])
         lower = "smaller" if pid.startswith(("memory", "size")) else "less time"
@@ -404,21 +514,30 @@ def progress_section(entries, run_campaign, build_campaign, reference):
         per_task = " ".join("%s %s" % (t, html.unescape(pct(stats.Estimate.from_dict(v))))
                             for t, v in rec["tasks"].items() if v)
         rows.append(['<span title="%s">%s</span>' % (esc(per_task), labels[pid]),
-                     change_cell(e, lower, higher), ci_text(e), trend])
+                     change_cell(e, lower, higher), ci_text(e)] +
+                    movement_cells(e, before, previous_of.get(pid)) + [trend])
     singles = latest.get("singles") or {}
+    singles_before = previous.get("singles") or {}
     for wid, label in LOOP:
         e = stats.Estimate.from_dict(singles.get("loop-" + wid))
         if e:
             series = [(((x.get("progress") or {}).get("singles") or {}).get("loop-" + wid)) for x in entries]
-            rows.append([label, change_cell(e), ci_text(e),
-                         spark([((s["value"] - 1.0) * 100.0) if s else None for s in series])])
+            rows.append([label, change_cell(e), ci_text(e)] +
+                        movement_cells(e, stats.Estimate.from_dict(singles_before.get("loop-" + wid)),
+                                       previous_of.get("loop-" + wid)) +
+                        [spark([((s["value"] - 1.0) * 100.0) if s else None for s in series])])
     for sid, label in (("hello-build-release", "hello world build, release"),
                        ("hello-build-devmode", "hello world build, devmode"),
                        ("hello-run-release", "hello world on the JIT, time to output")):
         e = stats.Estimate.from_dict(singles.get(sid))
         if e:
-            rows.append([label, change_cell(e), ci_text(e), ""])
-    parts = [simple_table(["series", "change", "95 % interval", "history"], rows, "progress")]
+            rows.append([label, change_cell(e), ci_text(e)] +
+                        movement_cells(e, stats.Estimate.from_dict(singles_before.get(sid)), previous_of.get(sid)) +
+                        [""])
+    parts = [simple_table(["series", "against the reference", "95 % interval", "previous campaign",
+                           "since the previous", "history"], rows, "progress")]
+    parts.append('<h3>Task by task, since the previous campaign</h3>')
+    parts.append(changes_by_task(latest, previous, previous_of, tasks))
     labels_x = [e["meta"].get("commit") or e["meta"]["stamp"] for e in entries]
     parts.append('<div class="grid2">')
     for title, ids in (("Execution", ("run-release", "jit-release", "run-devmode", "jit-devmode")),
@@ -451,8 +570,9 @@ def merged_comparisons(run_campaign, build_campaign):
     return comps
 
 
-def comparison_matrix(comps):
-    """Every competitor against every Swag mode: geometric mean of the per-task ratios."""
+def comparison_matrix(comps, previous_comps, previous_of):
+    """Every competitor against every Swag mode: geometric mean of the per-task ratios, and its move
+    since the previous campaign."""
     headers = ["language / mode"] + ['%s %s' % (runtime_badge(lead), label) for lead, _, label in LEAD_COLUMNS]
     rows = []
     for rt, *_ in RUNTIMES:
@@ -465,6 +585,9 @@ def comparison_matrix(comps):
                 present = True
                 t = c["tally"]
                 cell = change_cell(c["geo"])
+                b = ((previous_comps.get(lead) or {}).get(family) or {}).get("rivals", {}).get(rt)
+                if b:
+                    cell += since_mark(c["geo"], b["geo"], previous_of[family])[0]
                 cells.append('%s <small class="tally" title="tasks where Swag is faster / not different / slower">'
                              '%d&middot;%d&middot;%d</small>' % (cell, t["faster"], t["tie"], t["slower"]))
             else:
@@ -484,42 +607,71 @@ def ranking_values(campaign, tasks, runtimes, family):
     return rows
 
 
-def place(values, rt, among):
-    """1-based place of `rt` among the runtimes `among`, by median."""
-    return 1 + sum(1 for other in among if values[other].value < values[rt].value)
+def standing(values, rt, among):
+    """The place of `rt` that noise cannot move: 1 + the runtimes measurably faster than it,
+    and the runtimes not measurably different from it, which share that place."""
+    ahead, tied = [], []
+    for other in among:
+        if other != rt:
+            verdict = stats.ratio(values[other], values[rt]).verdict()
+            if verdict == "faster":
+                ahead.append(other)
+            elif verdict == "tie":
+                tied.append(other)
+    return 1 + len(ahead), tied
+
+
+def place_text(place, tied):
+    return "%s%s" % (ordinal(place), ", tied with %d" % len(tied) if tied else "")
 
 
 def rank_movement(rt, values, previous, previous_campaign):
     """The arrow saying whether a Swag runtime gained, lost or kept its place on this task.
 
-    Places are counted among the runtimes measured in both campaigns, so a toolchain that
-    appears or disappears does not move Swag."""
-    if rt not in history.TRACKED or not previous or not values.get(rt) or not previous.get(rt):
+    A place counts only the runtimes measurably faster, so a rival whose interval overlaps
+    Swag's shares its place instead of swapping with it from one campaign to the next. Places
+    are counted among the runtimes measured in both campaigns, so a toolchain that appears or
+    disappears does not move Swag."""
+    if rt not in history.TRACKED or not values.get(rt):
         return ""
+    if not previous or not previous.get(rt):
+        place, tied = standing(values, rt, [o for o in values if values[o]])
+        return '<span class="trend unavailable" title="%s">&nbsp;</span>' % esc(place_text(place, tied))
     among = [other for other in values if values[other] and previous.get(other)]
-    now, before = place(values, rt, among), place(previous, rt, among)
+    (now, tied_now), (before, tied_before) = standing(values, rt, among), standing(previous, rt, among)
     move = "improved" if now < before else ("regressed" if now > before else "unchanged")
-    title = "%s of %d now, %s in the previous campaign (%s)" % (ordinal(now), len(among), ordinal(before),
-                                                               campaign_name(previous_campaign))
+    title = "%s of %d now, %s in the previous campaign (%s). Only runtimes measurably faster count; " \
+            "the others share the place." % (place_text(now, tied_now), len(among), place_text(before, tied_before),
+                                            campaign_name(previous_campaign))
     return move_mark(move, title)
 
 
 def ranking_table(rows, previous_rows=None, previous_campaign=None):
-    """One line per task, every runtime from fastest to slowest median, Swag's move in place."""
+    """One line per task, every runtime from fastest to slowest median, Swag's move in place.
+
+    Runtimes not measurably different from the table's first Swag runtime are marked: their
+    order against it is noise."""
     out = ['<div class="table-wrap"><table class="performance"><thead><tr><th scope="col">task</th>'
            '<th scope="col">fastest &rarr; slowest &middot; median</th></tr></thead><tbody>']
     previous_rows = dict(previous_rows or [])
     for task, values in rows:
         measured = sorted(values.items(), key=lambda kv: kv[1].value if kv[1] else math.inf)
+        before = previous_rows.get(task) or {}
+        lead = next((rt for rt in values if rt in history.TRACKED and values[rt]), None)
+        tied = set(standing(values, lead, [o for o in values if values[o]])[1]) if lead else set()
         info = TASK_INFO.get(task, task)
         out.append('<tr><th scope="row" title="%s"><code>%s</code></th><td><ol>' % (esc(info), task))
         for rt, e in measured:
             if rt not in META:
                 continue
             title = "%s: %s" % (runtime_label(rt), estimate_title(e))
-            out.append('<li class="%s" title="%s"><span class="speed-label">%s%s</span><span class="speed-value">%s</span></li>'
-                       % (lang_class(rt), esc(title), runtime_badge(rt),
-                          rank_movement(rt, values, previous_rows.get(task), previous_campaign),
+            if before.get(rt):
+                title += "; previous campaign %s" % html.unescape(duration(before[rt].value))
+            if rt in tied:
+                title += "; not measurably different from %s" % runtime_label(lead)
+            out.append('<li class="%s%s" title="%s"><span class="speed-label">%s%s</span><span class="speed-value">%s</span></li>'
+                       % (lang_class(rt), " tie" if rt in tied else "", esc(title), runtime_badge(rt),
+                          rank_movement(rt, values, before, previous_campaign),
                           duration(e.value) if e else "&mdash;"))
         out.append("</ol></td></tr>")
     out.append("</tbody></table></div>")
@@ -749,7 +901,7 @@ def main():
 
     comps = merged_comparisons(run_campaign, build_campaign)
     previous_comps = merged_comparisons(previous_run, previous_build)
-    matrix = comparison_matrix(comps)
+    matrix = comparison_matrix(comps, previous_comps, {"run": previous_run, "build": previous_build})
     execution_stats = "".join(headline_card(name, lead, "run", comps, previous_comps, previous_run) for lead, name in (
         ("swag-release", "Native execution &middot; release"), ("swag-devmode", "Native execution &middot; devmode"),
         ("swc-jit-release", "JIT / interpreted &middot; release")))
@@ -764,7 +916,8 @@ def main():
     subs = {
         "{{execution_stats}}": execution_stats,
         "{{build_stats}}": build_stats,
-        "{{progress}}": progress_section(entries, run_campaign, build_campaign, reference_name),
+        "{{progress}}": progress_section(entries, run_campaign, build_campaign, previous_run, previous_build,
+                                         reference_name, tasks),
         "{{comparison_matrix}}": matrix,
         "{{ex_performance}}": execution_tables(run_campaign, previous_run, tasks) if run_campaign else "",
         "{{bu_performance}}": build_table(build_campaign, previous_build, tasks) if build_campaign else "",

@@ -387,9 +387,12 @@ table.performance .runtime-badge { width: 22px; height: 18px; flex-basis: 22px; 
 table.performance li.l-swag, table.performance li.l-swagjit,
 table.performance li.l-swagdev, table.performance li.l-swagdevjit { background: var(--panel); outline: 1px solid var(--line); }
 .speed-label { display: inline-flex; align-items: center; }
-table.performance .trend { width: 1em; margin-left: 2px; text-align: center; font: 700 .72rem/1 var(--mono); color: var(--faint); }
-table.performance .trend.improved { color: light-dark(#176E37, #AAFFC3); }
-table.performance .trend.regressed { color: light-dark(#B42318, #FF7777); }
+table .trend { display: inline-block; width: 1em; margin: 0 2px; text-align: center; font: 700 .72rem/1 var(--mono); color: var(--faint); }
+table .trend.improved, .moves .improved { color: light-dark(#176E37, #AAFFC3); }
+table .trend.regressed, .moves .regressed { color: light-dark(#B42318, #FF7777); }
+.trend.noise { opacity: .4; }
+small.was { margin-left: 2px; color: var(--faint); font-size: .85em; }
+table.performance li.tie { border-bottom: 2px dotted var(--soft); }
 .speed-value { margin-left: auto; color: var(--fg); text-align: right; }
 .alloc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 12px 30px; }
 .alloc-workload { border-top: 1px solid var(--line); padding: 0 0 12px; }
@@ -489,9 +492,10 @@ table.matrix td { min-width: 96px; }
         </div>
         <p class="cap">Each card compares Swag with its strongest rival in that family: the geometric mean, over the
         {{ntasks}} tasks, of Swag's median time divided by the rival's. Negative means Swag takes less time.
-        The arrow compares the card with the previous campaign: &uarr; Swag improved, &darr; Swag regressed,
-        = no measurable change. It points only when the 95&nbsp;% interval of that change lies on one side of parity;
-        hover it for both values. The counts say, task by task, where Swag is measurably faster or slower.
+        The arrow compares the card with the previous campaign: &uarr; Swag improved, &darr; Swag regressed.
+        It is full when the 95&nbsp;% interval of that change lies on one side of parity, faded when the change
+        stays within the noise; hover it for both values and the interval. The counts say, task by task, where
+        Swag is measurably faster or slower.
         Execution {{run_date}} (previous {{previous_run}}) &middot; compilation {{build_date}} (previous {{previous_build}}).</p>
     </div>
 </div>
@@ -517,7 +521,9 @@ table.matrix td { min-width: 96px; }
     in every campaign: the two are sampled back to back in every round, so they share the machine's state minute by minute.
     A change is the median of those paired ratios, per task, then the geometric mean over the tasks.
     No correction is applied between campaigns and none is needed: each point is a ratio measured inside one campaign.
-    Hover a series for its per-task values. The shaded band is the 95&nbsp;% interval of the first curve.</p>
+    Since every campaign is measured against the same reference, the move of a ratio between two campaigns is
+    what the work on the compiler changed in between: &uarr; better, &darr; worse, full when measurable, faded
+    within the noise. Hover a series for its per-task values. The shaded band is the 95&nbsp;% interval of the first curve.</p>
     {{progress}}
 </section>
 
@@ -536,7 +542,9 @@ table.matrix td { min-width: 96px; }
     <p class="cap">Median time of the timed kernel, fastest to slowest; hover for the interval and the number of samples.
     Every sample is a fresh process pinned to the performance cores.
     The arrow beside a Swag badge gives its place against the previous campaign ({{previous_run}}):
-    &uarr; gained, &darr; lost, = kept, among the runtimes measured in both; hover it for the places.</p>
+    &uarr; gained, &darr; lost, = kept. A place counts only the runtimes measurably faster than Swag, so noise
+    cannot move it; runtimes underlined with dots are not measurably different from Swag and share its place,
+    whatever order their medians fall in. Hover for the places and the previous medians.</p>
     {{ex_performance}}
 </section>
 

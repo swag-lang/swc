@@ -1142,12 +1142,10 @@ Result CodeGenSafety::emitUnaryMathDomainCheck(CodeGen& codeGen, const MicroReg 
 
     MicroBuilder&  builder = codeGen.builder();
     const MicroReg zeroReg = emitFloatImmediateReg(codeGen, opBits, 0);
-    if (op == Math::FoldIntrinsicUnaryFloatOp::Sqrt)
-    {
-        builder.emitCmpRegReg(valueReg, zeroReg, opBits);
-        CodeGenCompareHelpers::emitConditionJump(codeGen, floatType, {.primaryCond = MicroCond::Below, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);
-    }
-    else if (op == Math::FoldIntrinsicUnaryFloatOp::Log || op == Math::FoldIntrinsicUnaryFloatOp::Log2 || op == Math::FoldIntrinsicUnaryFloatOp::Log10)
+    if (op == Math::FoldIntrinsicUnaryFloatOp::Sqrt ||
+        op == Math::FoldIntrinsicUnaryFloatOp::Log ||
+        op == Math::FoldIntrinsicUnaryFloatOp::Log2 ||
+        op == Math::FoldIntrinsicUnaryFloatOp::Log10)
     {
         builder.emitCmpRegReg(valueReg, zeroReg, opBits);
         CodeGenCompareHelpers::emitConditionJump(codeGen, floatType, {.primaryCond = MicroCond::Below, .floatUnorderedMode = CodeGenCompareHelpers::FloatUnorderedMode::AcceptUnordered}, failLabel);

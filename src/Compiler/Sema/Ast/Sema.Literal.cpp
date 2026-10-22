@@ -439,16 +439,7 @@ Result AstStringLiteral::semaPreNode(Sema& sema) const
         value = normalized;
     }
 
-    if (isRaw)
-    {
-        auto val = ConstantValue::makeString(ctx, value);
-        val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));
-        sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(ctx, val));
-
-        return Result::SkipChildren;
-    }
-
-    if (!tok.hasFlag(TokenFlagsE::Escaped))
+    if (isRaw || !tok.hasFlag(TokenFlagsE::Escaped))
     {
         auto val = ConstantValue::makeString(ctx, value);
         val.setTypeRef(sema.typeMgr().addType(TypeInfo::makeString()));

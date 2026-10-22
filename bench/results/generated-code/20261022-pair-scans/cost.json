@@ -1,0 +1,133 @@
+{
+  "checksum": 622942003053,
+  "scans": 1376206,
+  "matched_bytes": 8828260,
+  "histogram": [
+    {
+      "matched": 0,
+      "reached_bound": false,
+      "count": 78232
+    },
+    {
+      "matched": 1,
+      "reached_bound": false,
+      "count": 2015
+    },
+    {
+      "matched": 2,
+      "reached_bound": false,
+      "count": 1295
+    },
+    {
+      "matched": 4,
+      "reached_bound": false,
+      "count": 220561
+    },
+    {
+      "matched": 5,
+      "reached_bound": false,
+      "count": 185677
+    },
+    {
+      "matched": 6,
+      "reached_bound": false,
+      "count": 200218
+    },
+    {
+      "matched": 6,
+      "reached_bound": true,
+      "count": 1
+    },
+    {
+      "matched": 7,
+      "reached_bound": false,
+      "count": 192381
+    },
+    {
+      "matched": 8,
+      "reached_bound": false,
+      "count": 178544
+    },
+    {
+      "matched": 9,
+      "reached_bound": false,
+      "count": 164823
+    },
+    {
+      "matched": 10,
+      "reached_bound": false,
+      "count": 132365
+    },
+    {
+      "matched": 11,
+      "reached_bound": false,
+      "count": 16651
+    },
+    {
+      "matched": 12,
+      "reached_bound": false,
+      "count": 1781
+    },
+    {
+      "matched": 13,
+      "reached_bound": false,
+      "count": 450
+    },
+    {
+      "matched": 14,
+      "reached_bound": false,
+      "count": 330
+    },
+    {
+      "matched": 15,
+      "reached_bound": false,
+      "count": 273
+    },
+    {
+      "matched": 16,
+      "reached_bound": false,
+      "count": 220
+    },
+    {
+      "matched": 17,
+      "reached_bound": false,
+      "count": 165
+    },
+    {
+      "matched": 18,
+      "reached_bound": false,
+      "count": 103
+    },
+    {
+      "matched": 19,
+      "reached_bound": false,
+      "count": 72
+    },
+    {
+      "matched": 20,
+      "reached_bound": false,
+      "count": 42
+    },
+    {
+      "matched": 21,
+      "reached_bound": false,
+      "count": 5
+    },
+    {
+      "matched": 22,
+      "reached_bound": false,
+      "count": 1
+    },
+    {
+      "matched": 24,
+      "reached_bound": false,
+      "count": 1
+    }
+  ],
+  "instruction_model": {
+    "base": 59850587,
+    "new_min": 51222463,
+    "new_max": 55246502,
+    "method": "Final emitted scan instructions, excluding alignment NOPs. Bounds on total cost cover every limit consistent with each recorded scan length and bound outcome; the maximum deliberately charges scalar tails even when the original limit permitted a full group."
+  }
+}

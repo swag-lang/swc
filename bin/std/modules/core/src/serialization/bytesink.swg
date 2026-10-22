@@ -98,7 +98,7 @@ impl ByteSink
             try .flush()
         if .pending.count != WindowSize do
             .pending.resize(WindowSize)
-        Memory.copy(.pending.buffer + .pendingCount, bytes.buffer, count)
+        Memory.copy(.pending.buffer! + .pendingCount, bytes.buffer, count)
         .pendingCount += count
     }
 

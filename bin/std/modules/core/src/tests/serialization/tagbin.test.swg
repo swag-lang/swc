@@ -394,7 +394,7 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
             let keyLength = expect stream.readVarint()
             var key: String
             key.reserve(keyLength)
-            expect stream.readBytes(key.buffer, keyLength)
+            expect stream.readBytes(key.buffer!, keyLength)
             key.length = keyLength
             let typeSeek = stream.position()
             discard expect stream.readNative'u32()

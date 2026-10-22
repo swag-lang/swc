@@ -2651,7 +2651,7 @@ impl RenderCpu
         let storage = .findTexture(texture.handle)
         Swag.assert(storage != null, "texture is not owned by this renderer")
         let target = storage
-        Memory.copy(target.image.pixels.buffer, pixels, target.image.byteCount)
+        Memory.copy(target.image.pixels.storage(), pixels, target.image.byteCount)
     }
 
     // Reads a renderer-owned texture into the requested tightly packed format.

@@ -145,7 +145,7 @@ internal impl Properties
 
         for k in n
         {
-            if Memory.compare(cast(const [*] void?, .instanceAddr(item, k)), cast(const [*] void?, item.defaultData), sz) != 0 do
+            if Memory.compare(.instanceAddr(item, k)!, item.defaultData!, sz) != 0 do
                 return true
         }
 
@@ -184,7 +184,7 @@ internal impl Properties
         {
             let sz = .fieldSize(item)
             for k in n do
-                Memory.copy(cast([*] void?, .instanceAddr(item, k)), cast(const [*] void?, item.defaultData), sz)
+                Memory.copy(.instanceAddr(item, k)!, item.defaultData!, sz)
         }
 
         .refreshItem(item)

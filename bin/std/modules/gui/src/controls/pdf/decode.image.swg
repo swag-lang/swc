@@ -489,7 +489,7 @@ private func readSamplePlane(parser: *PdfParser, nodeId, resourcesId: u32)->Samp
 
     if depth == 8 and decodeId == InvalidNode and space.kind == .Rgb and space.components == 3
     {
-        Memory.copy(result.rgb.buffer, bytes.buffer, result.rgb.count)
+        Memory.copy(result.rgb.storage(), bytes.storage(), result.rgb.count)
         try applyColorKeyMask(parser, nodeId, &result, bytes.toSlice(), space, depth, rowBytes)
         return result
     }

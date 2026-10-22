@@ -89,7 +89,7 @@ internal impl PropFieldValue
                 return
             .bytes.resize(.n * .sz)
             for k in .n do
-                Memory.copy(cast([*] void?, (.bytes.buffer + k * .sz)), cast(const [*] void?, .addrs[k]), .sz)
+                Memory.copy(.bytes.storage() + k * .sz, .addrs[k]!, .sz)
         }
 
         .valid = true
@@ -111,7 +111,7 @@ internal impl PropFieldValue
         else
         {
             for k in .n do
-                Memory.copy(cast([*] void?, .addrs[k]), cast(const [*] void?, (.bytes.buffer + k * .sz)), .sz)
+                Memory.copy(.addrs[k]!, .bytes.storage() + k * .sz, .sz)
         }
     }
 

@@ -88,7 +88,7 @@ impl Encoder
         let cmp = try zlib.compress(.bufferToCompress.toSlice(), .userOptions.compressionLevel)
 
         .writePtr = .writeHeader(TypeIDat, cmp.count)
-        Memory.copy(.writePtr, cmp.buffer, cmp.count)
+        Memory.copy(.writePtr, cmp.storage(), cmp.count)
         .bufferToCompress.count = 0
 
         .finishChunk()
@@ -212,7 +212,7 @@ impl Encoder
             }
             else
             {
-                Memory.copy(.scanline, sl, cast(u64, scanlineWidth) - 1)
+                Memory.copy(.scanline!, sl, cast(u64, scanlineWidth) - 1)
             }
         }
 

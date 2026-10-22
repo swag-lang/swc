@@ -5,10 +5,10 @@ using Swag
 
 // Copies `size` bytes from `source` to `destination`, which must not overlap.
 //
-// A null pointer is accepted only when `size` is zero. Use [[Core.Memory.copyOverlapping]] for regions that
-// can overlap.
+// Both pointers must be non-null, including when `size` is zero.
+// Use [[Core.Memory.copyOverlapping]] for regions that can overlap.
 #[Inline]
-func copy(destination: [*] void?, source: const [*] void?, size: u64)
+func copy(destination: [*] void, source: const [*] void, size: u64)
 {
     if size do
         Swag.memcpy(destination, source, size)
@@ -16,9 +16,9 @@ func copy(destination: [*] void?, source: const [*] void?, size: u64)
 
 // Copies `size` bytes from `source` to `destination`, which may overlap.
 //
-// A null pointer is accepted only when `size` is zero.
+// Both pointers must be non-null, including when `size` is zero.
 #[Inline]
-func copyOverlapping(destination: [*] void?, source: const [*] void?, size: u64)
+func copyOverlapping(destination: [*] void, source: const [*] void, size: u64)
 {
     if size do
         Swag.memmove(destination, source, size)
@@ -27,9 +27,9 @@ func copyOverlapping(destination: [*] void?, source: const [*] void?, size: u64)
 // Compares `size` bytes of `left` and `right` lexicographically.
 //
 // Returns a negative value, zero, or a positive value when `left` orders before, equal to, or
-// after `right`. A zero `size` compares equal, and a null pointer is accepted only then.
+// after `right`. A zero `size` compares equal; both pointers must still be non-null.
 #[Inline]
-func compare(left, right: const [*] void?, size: u64)->s32
+func compare(left, right: const [*] void, size: u64)->s32
 {
     if not size do
         return 0

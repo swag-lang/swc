@@ -55,7 +55,8 @@ impl FileStream
     // Reads at most `length` bytes into `buffer` and returns the number of bytes read.
     //
     // The read is split into host-sized chunks and stops early only at the end of the file.
-    mtd read(buffer: *void?, length: u64)->u64 fail
+    // `buffer` must be non-null, including when `length` is zero.
+    mtd read(buffer: *void, length: u64)->u64 fail
     {
         Swag.assert(.isOpen())
         Swag.assert(.canRead)
@@ -72,7 +73,7 @@ impl FileStream
         }
 
         var total = 0'u64
-        let bytes = cast([*] u8, buffer!)
+        let bytes = cast([*] u8, buffer)
         while total < length
         {
             let chunk = cast(u32, Math.min(length - total, cast(u64, Swag.U32.Max)))
@@ -88,8 +89,8 @@ impl FileStream
     // Writes at most `length` bytes from `buffer` and returns the number of bytes written.
     //
     // The write is split into host-sized chunks and stops early only when the host accepts no
-    // more bytes.
-    mtd write(buffer: const *void?, length: u64)->u64 fail
+    // more bytes. `buffer` must be non-null, including when `length` is zero.
+    mtd write(buffer: const *void, length: u64)->u64 fail
     {
         Swag.assert(.isOpen())
         Swag.assert(.canWrite)
@@ -97,7 +98,7 @@ impl FileStream
             return 0
 
         var total = 0'u64
-        let bytes = cast(const [*] u8, buffer!)
+        let bytes = cast(const [*] u8, buffer)
         while total < length
         {
             let chunk   = cast(u32, Math.min(length - total, cast(u64, Swag.U32.Max)))

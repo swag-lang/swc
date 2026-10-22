@@ -117,7 +117,7 @@ impl String
         .grow(newCapacity)
         .length = newCapacity - 1
         let buffer = .buffer!
-        Memory.copy(buffer, value.buffer, .length)
+        Memory.copy(buffer, value!.buffer, .length)
         buffer[.length] = 0
     }
 
@@ -135,7 +135,9 @@ impl String
             return true
         if .length != other.count do
             return false
-        return Memory.compare(.buffer, other.buffer, .length) == 0
+        if not .length do
+            return true
+        return Memory.compare(.buffer!, other!.buffer, .length) == 0
     }
 
     // Compares the bytes of the string with `other`, returning -1, 0 or 1.
@@ -225,7 +227,7 @@ impl String
             .buffer   = null
             .capacity = 0
             .reserve(.length + 1)
-            Memory.copy(.buffer, oldBuffer, .length + 1)
+            Memory.copy(.buffer!, oldBuffer, .length + 1)
         }
     }
 
@@ -378,8 +380,9 @@ impl String
         while idx != Swag.U64.Max
         {
             .reserve(.length + byLength + 1)
-            Memory.copyOverlapping(.buffer + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
-            Memory.copy(.buffer + idx, by.buffer, byLength)
+            Memory.copyOverlapping(.buffer! + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
+            if byLength do
+                Memory.copy(.buffer + idx, by!.buffer, byLength)
             .length -= whatLength
             .length += byLength
             idx     += byLength
@@ -468,7 +471,7 @@ impl String
         }
 
         .grow(.length + insertedBytes + 1)
-        Memory.copyOverlapping(.buffer + byteIndex + insertedBytes, .buffer + byteIndex, .length - byteIndex + 1)
+        Memory.copyOverlapping(.buffer! + byteIndex + insertedBytes, .buffer + byteIndex, .length - byteIndex + 1)
         Memory.copy(.buffer + byteIndex, value.buffer, insertedBytes)
         .length += insertedBytes
     }
@@ -522,7 +525,7 @@ impl String
         let newLength = .length + concatLength + 1
         .grow(newLength)
         let buffer = .buffer!
-        Memory.copy(buffer + .length, value.buffer, concatLength)
+        Memory.copy(buffer + .length, value!.buffer, concatLength)
         .length         = newLength - 1
         buffer[.length] = 0
     }
@@ -585,7 +588,7 @@ impl String
         // Grow from inline storage into an allocation.
         elif .buffer == cast(&.padding[0])
         {
-            let oldBuffer = .buffer
+            let oldBuffer = .buffer!
             .buffer = cast(Memory.alloc(newCapacity, .allocator))
             Memory.copy(.buffer, oldBuffer, Math.min(newCapacity, .length + 1))
             .capacity = newCapacity

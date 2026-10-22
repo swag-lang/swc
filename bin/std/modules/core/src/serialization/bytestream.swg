@@ -92,10 +92,14 @@ public impl ByteStream
     }
 
     // Copies the next `count` bytes to `dest` and advances past them.
-    mtd readBytes(dest: *u8?, count: u64) fail
+    //
+    // `dest` must be non-null, including when `count` is zero.
+    mtd readBytes(dest: *u8, count: u64) fail
     {
         if .seek + count > .length() do
             fail OverflowError{"byte stream overflow"}
+        if not count do
+            return
         Memory.copy(dest, .data() + .seek, count)
         .seek += count
     }
@@ -186,7 +190,7 @@ public impl ByteStream
         if count > .remainingBytes().count do
             fail OverflowError{"sized string is longer than the remaining input"}
         result.reserve(count)
-        try .readBytes(result.buffer, count)
+        try .readBytes(result.buffer!, count)
         result.length = count
         return result
     }

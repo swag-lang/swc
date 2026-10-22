@@ -33,23 +33,32 @@ func globalsToDrop()->const [..] Swag.GlobalToDrop?
 func compiler()->Swag.ICompiler
 
 // Sets the `size` bytes at `dst` to `value`.
-func memset(dst: [*] void?, value: u8, size: u64)
+//
+// `dst` must be non-null, including when `size` is zero.
+func memset(dst: [*] void, value: u8, size: u64)
 
 // Copies `size` bytes from `src` to `dst`; the two blocks must not overlap.
-func memcpy(dst: [*] void?, src: const [*] void?, size: u64)
+//
+// Both pointers must be non-null, including when `size` is zero.
+func memcpy(dst: [*] void, src: const [*] void, size: u64)
 
 // Copies `size` bytes from `src` to `dst`, which may overlap.
-func memmove(dst: [*] void?, src: const [*] void?, size: u64)
+//
+// Both pointers must be non-null, including when `size` is zero.
+func memmove(dst: [*] void, src: const [*] void, size: u64)
 
-// Compares `size` bytes and returns -1, 0 when they are equal, or 1.
+// Compares `size` bytes and returns a negative value, zero, or a positive value.
+//
+// The sign gives the lexicographic order of the first differing unsigned bytes.
+// A zero `size` compares equal; both pointers must still be non-null.
 #[Swag.ReadOnly]
-func memcmp(dst, src: const [*] void?, size: u64)->s32
+func memcmp(dst, src: const [*] void, size: u64)->s32
 
 // Hints that the bytes at `addr` will be read soon, so the processor can start moving their cache line closer.
 //
 // It never faults and changes nothing the program can observe: `addr` may be null, dangling, or one past the
 // end of a buffer, and a target without a prefetch instruction treats the call as a no-op.
-func prefetch(addr: const [*] void?)
+func prefetch(addr: const [*] void)
 
 // Atomic read-modify-write operations. Each one returns the value `addr` held before it.
 #[Swag.Discardable]

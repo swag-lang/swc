@@ -851,7 +851,8 @@ func __failedExpect(loc: SourceCodeLocation)
     len      += 1
     str[len] = '['
     len      += 1
-    Swag.memcpy(&str[len], type.fullname.buffer, maxLen)
+    if maxLen do
+        Swag.memcpy(&str[len], type.fullname!.buffer, maxLen)
     len      += maxLen
     str[len] = ']'
     len      += 1
@@ -875,7 +876,7 @@ func __failedExpect(loc: SourceCodeLocation)
                 len      += 1
                 str[len] = ' '
                 len      += 1
-                Swag.memcpy(&str[len], val.message.buffer, maxLen)
+                Swag.memcpy(&str[len], val.message!.buffer, maxLen)
                 len += maxLen
             }
         }

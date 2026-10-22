@@ -13,7 +13,7 @@ impl Image
     {
         Swag.assert(srcImage.pixelFormat.hasAlpha() or mode != .SourceOver)
 
-        Memory.copy(dstImage.pixels.buffer, .pixels.buffer, .byteCount)
+        Memory.copy(dstImage.pixels.storage(), .pixels.storage(), .byteCount)
 
         let left   = Math.max(x, 0)
         let top    = Math.max(y, 0)

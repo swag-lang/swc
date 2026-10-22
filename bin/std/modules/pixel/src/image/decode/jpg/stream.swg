@@ -261,8 +261,8 @@ impl Decoder
 
             .huffNum[index].resize(17)
             .huffVal[index].resize(256)
-            Memory.copy(.huffNum[index].buffer, huffNumt, 17)
-            Memory.copy(.huffVal[index].buffer, huffValt, 256)
+            Memory.copy(.huffNum[index].storage(), huffNumt, 17)
+            Memory.copy(.huffVal[index].storage(), huffValt, 256)
         }
     }
 
@@ -531,7 +531,7 @@ impl Decoder
             }
 
             let bytesRead = size
-            Memory.copy(cast([*] u8, &.inBuf[0]) + .inBufLeft, .stream + .streamSeek, cast(u64, size))
+            Memory.copy(cast([*] u8, &.inBuf[0]) + .inBufLeft, .stream! + .streamSeek, cast(u64, size))
             .streamSeek += size
             .inBufLeft  += bytesRead
             if .inBufLeft >= InBufSize or .eofReached do

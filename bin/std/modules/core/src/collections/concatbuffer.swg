@@ -329,7 +329,7 @@ impl ConcatBuffer
             }
         }
 
-        var slicePtr = bytes.buffer
+        var slicePtr = bytes!.buffer
         if contiguous
         {
             let destination = .reserveInPlace(num)
@@ -345,7 +345,7 @@ impl ConcatBuffer
             let offset    = cast(u64, (.currentSP - bucket.data))
             let available = (.isAtEnd ? bucket.size : bucket.count) - offset
             let chunk     = Math.min(num, available)
-            Memory.copy(.currentSP, slicePtr, chunk)
+            Memory.copy(.currentSP!, slicePtr, chunk)
             if .isAtEnd do
                 bucket.count += chunk
             .currentSP, slicePtr += chunk
@@ -667,9 +667,9 @@ impl ConcatBuffer
 
         // Copy the active bytes before releasing any bucket.
         var destination = newData
-        for bucket in me
+        for bucket in me where bucket.count
         {
-            Memory.copy(destination, bucket.data, bucket.count)
+            Memory.copy(destination, bucket.data!, bucket.count)
             destination += bucket.count
         }
 

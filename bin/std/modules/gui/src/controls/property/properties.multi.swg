@@ -72,10 +72,10 @@ internal impl Properties
         if sz == 0 do
             return false
 
-        let a0 = cast(const [*] void?, item.dataInstances[0])
+        let a0 = item.dataInstances[0]
         for i in 1 until n
         {
-            if Memory.compare(a0, cast(const [*] void?, item.dataInstances[i]), sz) != 0 do
+            if Memory.compare(a0, item.dataInstances[i], sz) != 0 do
                 return true
         }
 
@@ -101,7 +101,7 @@ internal impl Properties
             return
 
         for i in 1 until n do
-            Memory.copy(cast([*] void?, item.dataInstances[i]), cast(const [*] void?, item.dataInstances[0]), sz)
+            Memory.copy(item.dataInstances[i], item.dataInstances[0], sz)
     }
 
     // Show the value box as "mixed" when the instances disagree (blank text + dash note),
@@ -129,10 +129,10 @@ internal impl Properties
         if n <= 1 or sz == 0 do
             return false
 
-        let a0 = cast(const [*] void?, (cast([*] u8?, item.dataInstances[0]) + byteOffset))
+        let a0 = cast([*] u8, item.dataInstances[0]) + byteOffset
         for i in 1 until n
         {
-            let ai = cast(const [*] void?, (cast([*] u8?, item.dataInstances[i]) + byteOffset))
+            let ai = cast([*] u8, item.dataInstances[i]) + byteOffset
             if Memory.compare(a0, ai, sz) != 0 do
                 return true
         }

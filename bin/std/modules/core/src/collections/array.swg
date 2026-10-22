@@ -63,7 +63,7 @@ impl Array
             }
             else
             {
-                Memory.copy(.buffer, oldBuffer, #sizeof(T) * .count)
+                Memory.copy(.buffer!, oldBuffer, #sizeof(T) * .count)
             }
         }
     }
@@ -160,7 +160,7 @@ impl Array
         }
         else
         {
-            Memory.copy(.buffer, dataof, #sizeof(T) * countof)
+            Memory.copy(.buffer!, dataof, #sizeof(T) * countof)
         }
 
         .count += countof
@@ -675,7 +675,7 @@ impl Array
         }
         else
         {
-            Memory.copy(buffer + oldCount, values.buffer, sliceCount * #sizeof(T))
+            Memory.copy(buffer + oldCount, values!.buffer, sliceCount * #sizeof(T))
         }
     }
 
@@ -701,7 +701,7 @@ impl Array
 
         #static if not (Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)) and not Reflection.hasDrop(T)
         {
-            Memory.copyOverlapping(.buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
+            Memory.copyOverlapping(.buffer! + index, .buffer + index + num, shiftCount * #sizeof(T))
         }
         else
         {
@@ -782,7 +782,7 @@ impl Array
         }
         else
         {
-            Memory.copyOverlapping(.buffer + index,
+            Memory.copyOverlapping(.buffer! + index,
                                    .buffer + index + numValues,
                                    #sizeof(T) * (.count - index))
         }

@@ -677,7 +677,7 @@ impl GlyphCache
         var src = bmpRef.buffer
         for bmpRef.rows
         {
-            Memory.copy(buffer, src, cast(u64, rowBytes))
+            Memory.copy(buffer, src!, cast(u64, rowBytes))
             src    += bmpRef.pitch
             buffer -= ca.width
         }

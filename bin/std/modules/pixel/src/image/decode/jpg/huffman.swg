@@ -77,7 +77,7 @@ internal impl Decoder
     {
         .huffNum[index].resize(17)
         .huffVal[index].resize(256)
-        Memory.copy(.huffNum[index].buffer, counts.buffer, 17)
-        Memory.copy(.huffVal[index].buffer, values.buffer, values.count)
+        Memory.copy(.huffNum[index].storage(), counts.buffer, 17)
+        Memory.copy(.huffVal[index].storage(), values.buffer, values.count)
     }
 }

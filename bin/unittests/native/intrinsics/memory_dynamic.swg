@@ -1,25 +1,25 @@
 #global private
 
 #[Swag.NoInline]
-func fillDynamic(target: [*] void?, value: u8, size: u64)
+func fillDynamic(target: [*] void, value: u8, size: u64)
 {
     Swag.memset(target, value, size)
 }
 
 #[Swag.NoInline]
-func copyDynamic(target: [*] void?, source: const [*] void?, size: u64)
+func copyDynamic(target: [*] void, source: const [*] void, size: u64)
 {
     Swag.memcpy(target, source, size)
 }
 
 #[Swag.NoInline]
-func moveDynamic(target: [*] void?, source: const [*] void?, size: u64)
+func moveDynamic(target: [*] void, source: const [*] void, size: u64)
 {
     Swag.memmove(target, source, size)
 }
 
 #[Swag.NoInline]
-func compareDynamic(left, right: const [*] void?, size: u64)->s32
+func compareDynamic(left, right: const [*] void, size: u64)->s32
 {
     return Swag.memcmp(left, right, size)
 }
@@ -54,10 +54,11 @@ func compareDynamic(left, right: const [*] void?, size: u64)->s32
     Swag.assert(data == [0, 1, 2, 3, 4, 5, 6, 5, 6, 9])
 
     moveDynamic(&data[0], &data[0], #sizeof(data))
-    fillDynamic(null, 0, 0)
-    copyDynamic(null, null, 0)
-    moveDynamic(null, null, 0)
-    Swag.assert(compareDynamic(null, null, 0) == 0)
+    fillDynamic(data, 0, 0)
+    copyDynamic(data, data, 0)
+    moveDynamic(data, data, 0)
+    Swag.assert(compareDynamic(data, data, 0) == 0)
+    Swag.assert(data == [0, 1, 2, 3, 4, 5, 6, 5, 6, 9])
 }
 
 #test

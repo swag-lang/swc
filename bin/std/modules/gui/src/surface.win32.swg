@@ -703,7 +703,7 @@ impl Surface
         }
 
         let image = .app.renderer.readRenderTarget(&.presentationTarget, 0, 0, .rc.width, .rc.height)
-        Memory.copy(.presentationPixels!, image.pixels.buffer, image.byteCount)
+        Memory.copy(.presentationPixels!, image.pixels.storage(), image.byteCount)
     }
 
     internal mtd publishNativePresentation()

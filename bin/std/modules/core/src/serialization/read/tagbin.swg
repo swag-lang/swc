@@ -210,7 +210,7 @@ private impl TagBin
         if count > .remaining() do
             fail SerializationError{"string runs past the end of the stream"}
         result.reserve(count)
-        try .stream.readBytes(result.buffer, count)
+        try .stream.readBytes(result.buffer!, count)
         result.length = count
         return result
     }
@@ -1083,7 +1083,8 @@ impl TagBin
                 bufArr.count = countElem[]
                 bufArr.reserve(byteCount)
                 bufArr.capacity = bufArr.count
-                try .stream.readBytes(bufArr.buffer, byteCount)
+                if byteCount do
+                    try .stream.readBytes(bufArr.buffer!, byteCount)
                 return true
             }
         }
@@ -1111,7 +1112,8 @@ impl TagBin
                 if byteLen != streamCount * te.sizeof do
                     fail SerializationError{"raw element layout changed"}
 
-                try .stream.readBytes(data, countElem[] * te.sizeof)
+                if countElem[] and te.sizeof do
+                    try .stream.readBytes(data!, countElem[] * te.sizeof)
 
                 // The stream can hold more elements than the array does now; skip them
                 // so the next value starts at the right position.
@@ -1166,7 +1168,7 @@ impl TagBin
                 fail Core.Errors.SerializationError{"string runs past the end of the stream"}
 
             result.reserve(count)
-            try .stream.readBytes(result.buffer, count)
+            try .stream.readBytes(result.buffer!, count)
             result.length = count
             return result
         }

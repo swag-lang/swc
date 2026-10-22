@@ -424,7 +424,7 @@ internal func openFile(path: string, preloadData: bool)->SoundFile fail
     if preloadData
     {
         result.data.resize(layout.dataSize)
-        if try stream.read(result.data.buffer, layout.dataSize) != layout.dataSize do
+        if try stream.read(result.data.toSlice()) != layout.dataSize do
             fail InvalidFormatError{"WAV audio data is truncated"}
     }
 

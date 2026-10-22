@@ -61,7 +61,7 @@ private impl PasswordEdit
         var mask: Array'u8
         mask.resize(.runeCount)
         if mask.count do
-            Swag.memset(mask.buffer, '*', mask.count)
+            Swag.memset(mask.storage(), '*', mask.count)
         .edit.setText(mask.count ? Swag.makeString(mask.buffer, mask.count) : "", false)
         .edit.setSelection(caret, caret)
     }

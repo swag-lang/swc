@@ -190,3 +190,22 @@ using Swag
     expect File.move(target.toString(), source.toString())
     Swag.assert((expect File.readAllText(target.toString())) == "again")
 }
+
+// Empty files and empty buffers need no absent pointer at the I/O boundary.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_file_empty.tmp")
+    defer discard catch File.delete(fileName)
+    var empty: Array'u8
+    let written = expect File.writeAllBytes(fileName, empty.toSlice())
+    Swag.assert(written == 0)
+    let bytes = expect File.readAllBytes(fileName)
+    Swag.assert(bytes.isEmpty())
+
+    var stream = expect File.open(fileName, .Open, .ReadWrite, .Read)
+    var byte: u8 = 0xA5
+    let read = expect stream.read(&byte, 0)
+    let write = expect stream.write(&byte, 0)
+    Swag.assert(read == 0 and write == 0 and byte == 0xA5)
+    Swag.assert(expect stream.position() == 0)
+}

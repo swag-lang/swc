@@ -10,7 +10,7 @@ impl Image
         {
             let dstImage = cast(*Image, userData)
             let w8       = image.width * image.bytesPerPixel
-            Memory.copy(dstImage.pixels.buffer + (image.height - y - 1) * w8, pix, cast(u64, w8))
+            Memory.copy(dstImage.pixels.storage() + (image.height - y - 1) * w8, pix, cast(u64, w8))
         }
     }
 

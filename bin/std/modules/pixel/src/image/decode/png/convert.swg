@@ -182,13 +182,13 @@ impl Decoder
         if pixelCount < PackedGrayscaleThreshold
         {
             var src = .safeDstPixels()
-            Memory.copy(result.pixels.buffer, src, pixelCount)
+            Memory.copy(result.pixels.storage(), src, pixelCount)
 
             return
         }
 
         var src = .safeDstPixels()
-        Memory.copy(result.pixels.buffer, src, pixelCount)
+        Memory.copy(result.pixels.storage(), src, pixelCount)
     }
 
     mtd convertGrayscaleTransparencyRgba(result: *Image, key: u8)
@@ -247,7 +247,7 @@ impl Decoder
         }
 
         var src = .safeDstPixels()
-        Memory.copy(result.pixels.buffer, src, pixelCount * 2)
+        Memory.copy(result.pixels.storage(), src, pixelCount * 2)
     }
 
     mtd convertRgbTransparencyRgba(result: *Image, key0, key1, key2: u8)

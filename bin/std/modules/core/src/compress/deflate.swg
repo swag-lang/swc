@@ -997,7 +997,7 @@ impl Deflate
             if outputBufStart == &d.outputBuf[0]
             {
                 result.resize(result.count + n)
-                Memory.copy(result.buffer + d.outBufOfs, d.outputBuf, cast(u64, n))
+                Memory.copy(result.buffer! + d.outBufOfs, d.outputBuf, cast(u64, n))
                 d.outBufOfs += n
             }
             else

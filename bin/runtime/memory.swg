@@ -82,12 +82,12 @@ func __memoryCopyBackward(target: [*] u8, source: const [*] u8, size: u64)
     }
 }
 
-func memset(dst: [*] void?, value: u8, size: u64)
+func memset(dst: [*] void, value: u8, size: u64)
 {
     if not size do
         return
 
-    let target = cast([*] u8, dst!)
+    let target = cast([*] u8, dst)
     var offset = 0'u64
 
     let word   = cast(u64, value) * 0x0101_0101_0101_0101
@@ -121,19 +121,19 @@ func memset(dst: [*] void?, value: u8, size: u64)
     }
 }
 
-func memcpy(dst: [*] void?, src: const [*] void?, size: u64)
+func memcpy(dst: [*] void, src: const [*] void, size: u64)
 {
     if size do
-        __memoryCopyForward(cast([*] u8, dst!), cast(const [*] u8, src!), size)
+        __memoryCopyForward(cast([*] u8, dst), cast(const [*] u8, src), size)
 }
 
-func memmove(dst: [*] void?, src: const [*] void?, size: u64)
+func memmove(dst: [*] void, src: const [*] void, size: u64)
 {
     if not size or dst == src do
         return
 
-    let target        = cast([*] u8, dst!)
-    let source        = cast(const [*] u8, src!)
+    let target        = cast([*] u8, dst)
+    let source        = cast(const [*] u8, src)
     let targetAddress = cast(u64, target)
     let sourceAddress = cast(u64, source)
     if targetAddress < sourceAddress or targetAddress - sourceAddress >= size do
@@ -143,13 +143,13 @@ func memmove(dst: [*] void?, src: const [*] void?, size: u64)
 }
 
 #[Swag.ReadOnly]
-func memcmp(left, right: const [*] void?, size: u64)->s32
+func memcmp(left, right: const [*] void, size: u64)->s32
 {
     if not size do
         return 0
 
-    let leftBytes  = cast(const [*] u8, left!)
-    let rightBytes = cast(const [*] u8, right!)
+    let leftBytes  = cast(const [*] u8, left)
+    let rightBytes = cast(const [*] u8, right)
     var offset     = 0'u64
     while size - offset >= MemoryVectorSize
     {

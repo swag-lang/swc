@@ -243,7 +243,7 @@ impl SoundFile
 
         if .isDataPreloaded()
         {
-            Memory.copy(result.buffer, .data.buffer + offset, wanted)
+            Memory.copy(result.storage(), .data.storage() + offset, wanted)
             return result
         }
 

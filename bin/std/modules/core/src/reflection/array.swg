@@ -67,7 +67,7 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
         return
     }
 
-    let removed = arrayView.buffer + index * elementBytes
+    let removed = arrayView.buffer! + index * elementBytes
     Memory.dropType(removed, elementType)
 
     if index != arrayView.count - 1
@@ -90,7 +90,7 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
     }
 
     arrayView.count -= 1
-    Memory.clear((arrayView.buffer + arrayView.count * elementBytes)!, elementBytes)
+    Memory.clear(arrayView.buffer + arrayView.count * elementBytes, elementBytes)
 }
 
 // Swaps the values at `indexA` and `indexB` in a contiguous buffer of `valueType` values.
@@ -153,7 +153,8 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         let newBuffer   = cast([*] u8, Memory.alloc(newCapacity * elementBytes, arrayView.allocator))
         Memory.clear(newBuffer, newCapacity * elementBytes)
 
-        Memory.copy(newBuffer, oldBuffer, arrayView.count * elementBytes)
+        if arrayView.count do
+            Memory.copy(newBuffer, oldBuffer!, arrayView.count * elementBytes)
         if hasPostMove(elementType)
         {
             var movedElement = newBuffer

@@ -90,7 +90,7 @@ func undoZipPredictor(data: [..] u8)
 
     for i in rangeTo(1'u64, data.count - 1) do
         reordered[i] = cast(u8, ((cast(u32, reordered[i - 1]) + reordered[i] + 128) & 0xFF))
-    Memory.copy(data.buffer, reordered.buffer, data.count)
+    Memory.copy(data.buffer, reordered.storage(), data.count)
 }
 
 func channelComponent(name: string)->s32

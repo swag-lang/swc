@@ -37,7 +37,7 @@ impl ImageMetadata
         let tagCount = Math.min(.tag.count, other.tag.count)
         if tagCount
         {
-            let tagCmp = Memory.compare(.tag.buffer, other.tag.buffer, tagCount)
+            let tagCmp = Memory.compare(.tag.storage(), other.tag.storage(), tagCount)
             if tagCmp do
                 return tagCmp
         }
@@ -49,7 +49,7 @@ impl ImageMetadata
         let valueCount = Math.min(.value.count, other.value.count)
         if valueCount
         {
-            let valueCmp = Memory.compare(.value.buffer, other.value.buffer, valueCount)
+            let valueCmp = Memory.compare(.value.storage(), other.value.storage(), valueCount)
             if valueCmp do
                 return valueCmp
         }

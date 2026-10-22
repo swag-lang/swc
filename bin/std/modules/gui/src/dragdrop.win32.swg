@@ -526,7 +526,7 @@ private func buildHDrop(data: *DragData)->HGLOBAL
     for &f in data.files
     {
         let wide = Utf16.fromUtf8(f.toString())
-        Memory.copy(cursor, wide.buffer, wide.count * 2)
+        Memory.copy(cursor, wide.storage(), wide.count * 2)
         cursor   += wide.count
         cursor[] = 0
         cursor   += 1
@@ -583,7 +583,7 @@ private func buildFileGroupDescriptor(data: *DragData)->HGLOBAL
 
         let entry = &descriptors[i]
         entry.dwFlags = FD_UNICODE | FD_PROGRESSUI
-        Memory.copy(&entry.cFileName[0], wide.buffer, kept * 2)
+        Memory.copy(&entry.cFileName[0], wide.storage(), kept * 2)
 
         if item.isReady()
         {
@@ -611,7 +611,7 @@ private func buildUnicodeText(data: *DragData)->HGLOBAL
         return null
     }
 
-    Memory.copy(buf, wide.buffer, wide.count * 2)
+    Memory.copy(buf, wide.storage(), wide.count * 2)
     buf[wide.count] = 0
     discard GlobalUnlock(hglob)
     return hglob

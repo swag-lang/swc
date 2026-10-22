@@ -9,7 +9,7 @@ impl Image
         dstImage.visitPixels(&f, stride: w)
         {
             let params = cast(*#decltype(f), userData!)
-            var srcPix = params.self.pixels.buffer + (y + params.y) * params.self.rowStride
+            var srcPix = params.self.pixels.storage() + (y + params.y) * params.self.rowStride
             srcPix += cast(u64, (params.x * image.bytesPerPixel))
             Memory.copy(pix, srcPix, cast(u64, image.rowStride))
         }

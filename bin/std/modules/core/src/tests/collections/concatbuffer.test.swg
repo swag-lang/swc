@@ -53,12 +53,12 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     let saved = buffer.position()
     let bytes = buffer.toArray()
     Swag.assert(bytes.count == 8)
-    Swag.assert(Memory.compare(bytes.buffer, "abcdefgh".buffer, 8) == 0)
+    Swag.assert(Memory.compare(bytes.storage(), "abcdefgh".buffer, 8) == 0)
     Swag.assert(buffer.position().bucket == saved.bucket)
     Swag.assert(buffer.position().pointer == saved.pointer)
     Swag.assert(buffer.toSlice() == null)
     buffer.release()
-    Swag.assert(Memory.compare(bytes.buffer, "abcdefgh".buffer, 8) == 0)
+    Swag.assert(Memory.compare(bytes.storage(), "abcdefgh".buffer, 8) == 0)
 }
 
 #test

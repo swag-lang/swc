@@ -29,12 +29,12 @@ impl Image
         let srcW = retainedWidth * .bytesPerPixel
         let srcH = retainedHeight
 
-        var dstPix = dstImage.pixels.buffer + dstY * dstImage.rowStride
+        var dstPix = dstImage.pixels.storage() + dstY * dstImage.rowStride
         dstPix += dstX * .bytesPerPixel
 
         for cy in srcH
         {
-            var srcPix = .pixels.buffer + (srcY + cy) * .rowStride
+            var srcPix = .pixels.storage() + (srcY + cy) * .rowStride
             srcPix += cast(u64, (srcX * .bytesPerPixel))
             Memory.copy(dstPix, srcPix, srcW)
             dstPix += dstImage.rowStride

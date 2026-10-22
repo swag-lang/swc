@@ -55,3 +55,16 @@ func pushAllocatorAcceptsNull()->bool
     Swag.assert(pushAllocatorAcceptsNull())
     Swag.assert(Swag.getContext().allocator != null)
 }
+
+// Zero-byte operations still take valid addresses and leave their storage unchanged.
+#test
+{
+    var source: [4] u8 = [1, 2, 3, 4]
+    var target: [4] u8 = [5, 6, 7, 8]
+    Memory.copy(target, source, 0)
+    Memory.copyOverlapping(target, target, 0)
+    Memory.set(target, 0xFF, 0)
+    Memory.clear(target, 0)
+    Swag.assert(Memory.compare(target, source, 0) == 0)
+    Swag.assert(target == [5, 6, 7, 8])
+}

@@ -214,7 +214,7 @@ internal impl IImageDecoder for Decoder
                 {
                     if rowBytes > buffer.count - offset do
                         fail InvalidFormatError{"PSD raw composite is truncated"}
-                    Memory.copy(row.buffer, source + offset, rowBytes)
+                    Memory.copy(row.storage(), source + offset, rowBytes)
                     offset += rowBytes
                 }
                 else

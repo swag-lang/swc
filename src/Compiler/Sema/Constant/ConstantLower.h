@@ -1,10 +1,10 @@
 #pragma once
-#include "Support/Core/DataSegment.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 
+class DataSegment;
 class Sema;
 class TypeInfo;
 

@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/DiagnosticDef.h"

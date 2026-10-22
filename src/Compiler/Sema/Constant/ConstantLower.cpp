@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 

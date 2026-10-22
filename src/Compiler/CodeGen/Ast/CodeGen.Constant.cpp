@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

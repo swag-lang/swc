@@ -26,6 +26,7 @@
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Main/Command/CommandLine.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();

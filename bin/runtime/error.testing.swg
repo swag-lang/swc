@@ -33,8 +33,9 @@ private func copyTransportTestMessage(text: string)->string
     var request: AllocatorRequest
     request.size = text.count
     allocator.alloc(&request)
-    Swag.memcpy(request.address, text.buffer, text.count)
-    return Swag.makeString(cast([*] u8, request.address!), text.count)
+    let bytes = cast([*] u8, request.address!)
+    Swag.memcpy(bytes, text.buffer, text.count)
+    return Swag.makeString(bytes, text.count)
 }
 
 private func failTransportTestMessage(message: string, drops: [*] AtomicValue'u32) fail

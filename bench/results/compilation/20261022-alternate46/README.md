@@ -14,6 +14,7 @@ the checkouts. No timing campaign or profiler runs; speed targets remain unverif
 | 4 | Read block-flow children directly from their AST spans | Five compound node types inherit the same span-only collector. Function-exit analysis visits the same references in order and short-circuits at the same first exit. Block-exit analysis reads only the final reference. Missing/empty spans still return false. The temporary child vector, its reference copies, possible allocation and destruction disappear; persistent storage is unchanged. | DevMode build; complete semantic selections: 297 ordinary and 350 expected-diagnostic inputs, including runtime, with expectations verified. These semantic stages execute no runtime test bodies. |
 | 4 | Reuse the reflected field CRC for its using-field descriptor | Both records describe the same stable identifier bytes. Reusing the already written CRC removes a second CRC-32 byte/bit walk, without adding storage or allocations. The compiler's `initStruct` loses one CRC call (four to three static call sites; 123 to 122 calls overall), keeps its 0xA48-byte stack reservation, and grows by 47 code bytes. No elapsed-time or peak-memory claim is made. | DevMode build; `dynamic_using_cycle` passes three native tests and its compile-time assertions, exercising reflected using-field graphs. |
 | 4 | Allocate walk-cache indices without clearing unread slots | Every index is assigned before its nonzero occupancy key can be queried, and growth reads old indices only for occupied keys. Initial and grown index arrays lose their zero pass. Key-array clearing, capacity, growth, entry addresses and query/version behavior are unchanged. The index array retains four bytes per slot; its unique pointer removes the unused vector size/capacity fields. | DevMode build; all 1,545 default C++ tests pass, including a new 4,096-root walk on a fresh worker, growth, relocation-version refresh and a subsequent query excluding the relocated root. |
+| 4, repair | Adapt native fixtures to non-null memory destinations | Three native inputs and the runtime's private error-transport test helper still passed nullable destinations to the now non-null `Swag.memcpy` API. Required buffers are narrowed before copying; the zero-size nullable-wrapper path and every test assertion remain. Error-message copies retain one non-null byte pointer for both copy and string construction. No compiler/API contract changes. | Stable formatting; the three inputs plus their allocator helper pass ten tests as a standalone selection; the complete native suite passes 3,924 tests and the expected idle/pending/hardware recovery probes, with outer exit zero. |
 
 Prompt-6 results are recorded in [health.md](health.md).
 
@@ -32,3 +33,27 @@ alone does not certify subsequent concurrent changes on `master`.
 The vector-intrinsic argument-view trial was discarded before validation: the
 borrowed indexed view removes copying but adds out-of-line indexing calls, so
 its aggregate work reduction was not established. No trial code is retained.
+
+## Five-batch correctness milestone
+
+Compiler source `e67975cde4` passes all 1,609 C++ tests with `--dev-full`,
+including filesystem coverage. Its first complete native attempt identifies
+three stale nullable-destination calls; the focused repair exposes and fixes
+the same call in the runtime's private transport test helper. With those four
+source repairs, the same compiler passes all 3,924 native tests. The recovery
+probes deliberately fail their child processes; the enclosing tool exits zero.
+These results precede concurrent prompt-2 call-copy scheduling changes and the
+later prompt-6 array-diagnostic cleanup. They are not a full-master rerun.
+
+Additional commands:
+
+```text
+bin/swc.dm.exe unittest --dev-full --num-cores 6
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --num-cores 6 --rebuild
+bin/swc.dm.exe test --artifact-kind executable --module-namespace Native -f bin/unittests/native/inline/nullable_parameter_widening.swg -f bin/unittests/native/compiler/ast_implicit_string_return.swg -f bin/unittests/native/runtime/error_storage.swg -f bin/unittests/native/runtime/default_allocator_helpers.swg --out-dir <external>/native-contract-out --work-dir <external>/native-contract-work --num-cores 6 --rebuild
+```
+
+`<external>` is the session's external `alternate46-20261022-0740` directory.
+The four repaired Swag files were formatted twice with the checkout-local
+compiler; final hashes were stable. The focused allocator helper is included
+explicitly because a filename-only filter would otherwise remove it.

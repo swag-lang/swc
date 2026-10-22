@@ -53,7 +53,7 @@ func optionalString(value: string?)->u64
 func copyPointers(destination: [*] void?, source: const [*] void?, size: u64)
 {
     if size do
-        Swag.memcpy(destination, source, size)
+        Swag.memcpy(destination!, source!, size)
 }
 
 func optionalSlicePointer(source: const [..] u8)

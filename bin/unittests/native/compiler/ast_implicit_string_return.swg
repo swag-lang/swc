@@ -43,7 +43,7 @@ impl AstGeneratedBuilder
         }
 
         Swag.assert(.length + cast(u64, value.count) <= .capacity)
-        Swag.memcpy(.buffer + .length, value.buffer, cast(u64, value.count))
+        Swag.memcpy(.buffer! + .length, value.buffer, cast(u64, value.count))
         .length += cast(u64, value.count)
     }
 

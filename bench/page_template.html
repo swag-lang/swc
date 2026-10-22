@@ -390,9 +390,12 @@ table.performance li.l-swagdev, table.performance li.l-swagdevjit { background: 
 table .trend { display: inline-block; width: 1em; margin: 0 2px; text-align: center; font: 700 .72rem/1 var(--mono); color: var(--faint); }
 table .trend.improved, .moves .improved { color: light-dark(#176E37, #AAFFC3); }
 table .trend.regressed, .moves .regressed { color: light-dark(#B42318, #FF7777); }
-.trend.noise { opacity: .4; }
 small.was { margin-left: 2px; color: var(--faint); font-size: .85em; }
-table.performance li.tie { border-bottom: 2px dotted var(--soft); }
+table.performance li.band-a { --band: light-dark(#E4ECF8, #233049); }
+table.performance li.band-b { --band: light-dark(#F4EAD6, #3D3322); }
+table.performance li.band, table.performance li.band.l-swag, table.performance li.band.l-swagjit,
+table.performance li.band.l-swagdev, table.performance li.band.l-swagdevjit { background: var(--band); }
+table.performance li.band-more { box-shadow: 4px 0 0 var(--band); }
 .speed-value { margin-left: auto; color: var(--fg); text-align: right; }
 .alloc-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr)); gap: 12px 30px; }
 .alloc-workload { border-top: 1px solid var(--line); padding: 0 0 12px; }
@@ -492,10 +495,10 @@ table.matrix td { min-width: 96px; }
         </div>
         <p class="cap">Each card compares Swag with its strongest rival in that family: the geometric mean, over the
         {{ntasks}} tasks, of Swag's median time divided by the rival's. Negative means Swag takes less time.
-        The arrow compares the card with the previous campaign: &uarr; Swag improved, &darr; Swag regressed.
-        It is full when the 95&nbsp;% interval of that change lies on one side of parity, faded when the change
-        stays within the noise; hover it for both values and the interval. The counts say, task by task, where
-        Swag is measurably faster or slower.
+        Beside it, the previous campaign's value. That value also moves when the rival does, so the arrow says
+        whether Swag itself moved, measured against its frozen reference (see Progress): &uarr; measurably better,
+        &darr; measurably worse, = no measurable change. The counts say, task by task, where Swag is measurably
+        faster or slower than the rival.
         Execution {{run_date}} (previous {{previous_run}}) &middot; compilation {{build_date}} (previous {{previous_build}}).</p>
     </div>
 </div>
@@ -511,7 +514,9 @@ table.matrix td { min-width: 96px; }
 <main class="wrap">
 <div class="reading-key" aria-label="How to read the measurements">
     <strong>Every value is a median &middot; every comparison has a 95&nbsp;% interval</strong>
-    <span>&minus; less time / + more time</span><span>green: measurably better &middot; red: measurably worse &middot; grey: no measurable difference</span>
+    <span>Arrows compare with the previous campaign: &uarr; measurably better &middot; &darr; measurably worse &middot;
+    = no measurable change &middot;
+    green / red: measurably better / worse than the reference or the rival &middot; grey: no measurable difference</span>
 </div>
 <details class="code-key"><summary>Compiler codes and modes</summary>{{runtime_legend}}</details>
 
@@ -521,9 +526,10 @@ table.matrix td { min-width: 96px; }
     in every campaign: the two are sampled back to back in every round, so they share the machine's state minute by minute.
     A change is the median of those paired ratios, per task, then the geometric mean over the tasks.
     No correction is applied between campaigns and none is needed: each point is a ratio measured inside one campaign.
-    Since every campaign is measured against the same reference, the move of a ratio between two campaigns is
-    what the work on the compiler changed in between: &uarr; better, &darr; worse, full when measurable, faded
-    within the noise. Hover a series for its per-task values. The shaded band is the 95&nbsp;% interval of the first curve.</p>
+    Since every campaign is measured against the same reference, a ratio that moves between two campaigns shows
+    what the work on the compiler changed in between. An arrow marks every measurable move; everything without
+    one did not measurably change. Hover a series for its per-task values. The shaded band is the 95&nbsp;% interval
+    of the first curve.</p>
     {{progress}}
 </section>
 
@@ -541,10 +547,10 @@ table.matrix td { min-width: 96px; }
     <div class="sh"><h2>Execution</h2></div>
     <p class="cap">Median time of the timed kernel, fastest to slowest; hover for the interval and the number of samples.
     Every sample is a fresh process pinned to the performance cores.
-    The arrow beside a Swag badge gives its place against the previous campaign ({{previous_run}}):
-    &uarr; gained, &darr; lost, = kept. A place counts only the runtimes measurably faster than Swag, so noise
-    cannot move it; runtimes underlined with dots are not measurably different from Swag and share its place,
-    whatever order their medians fall in. Hover for the places and the previous medians.</p>
+    A shaded band groups Swag with the runtimes next to it that are not measurably different from it: inside a band
+    the order is noise; neighbouring bands alternate shades. The arrow beside Swag compares its place with the
+    previous campaign ({{previous_run}}): &uarr; gained, &darr; lost, = kept; a band shares the place where it starts.
+    Hover for the intervals and the previous medians.</p>
     {{ex_performance}}
 </section>
 
@@ -554,7 +560,7 @@ table.matrix td { min-width: 96px; }
     optimization and linking or bytecode generation. Every toolchain is timed in the same state: its own caches warm
     (Swag's runtime machine code, Go's standard library, Zig's compiler_rt), the project's outputs removed.
     Java and C# CoreCLR produce bytecode. <code>hello</code> is a separate small program.
-    The arrow beside a Swag badge gives its place against the previous campaign ({{previous_build}}).</p>
+    Bands and places follow the same rules as for execution (previous campaign {{previous_build}}).</p>
     {{bu_performance}}
 </section>
 
@@ -562,7 +568,10 @@ table.matrix td { min-width: 96px; }
     <div class="sh"><h2>Allocator</h2></div>
     <p class="cap">Swag's runtime allocator, vendored mimalloc built with MSVC /O2, and the C runtime heap, in the same rounds.
     Each workload runs in a fresh pinned process; bars show the median nanoseconds per operation.
-    Swag uses <code>Memory.alloc</code>/<code>Memory.free</code>; its peak working set includes <code>core</code>.</p>
+    Swag uses <code>Memory.alloc</code>/<code>Memory.free</code>; its peak working set includes <code>core</code>.
+    mimalloc and the C runtime heap do not change between campaigns, so Swag's ratio to them shows how Swag's allocator
+    moved: &uarr; or &darr; beside Swag marks a workload where its ratios to both measurably moved the same way since the
+    previous campaign.</p>
     {{allocator}}
 </section>
 

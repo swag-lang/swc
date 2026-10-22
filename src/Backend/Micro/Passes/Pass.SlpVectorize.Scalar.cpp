@@ -585,11 +585,11 @@ bool SlpVectorize::exposeScalarValues(MicroPassContext& context)
 
 namespace
 {
-    bool rootResultIsScalar(const MicroPassContext& context, const MicroSsaState& ssa, const std::vector<uint8_t>& observed, const RootCandidate& root, bool replaceUses)
+    bool scalarResultIsReplaceable(const MicroPassContext& context, const MicroSsaState& ssa, const std::vector<uint8_t>& observed, MicroInstrRef reference, MicroReg destination, bool replaceUses)
     {
         uint32_t value;
-        if (!ssa.defValue(root.destination, root.reference, value) || observed[value] ||
-            context.builder->virtualRegForbiddenPhysRegs().contains(root.destination) || context.builder->shouldPreserveVirtualCopy(root.destination))
+        if (!ssa.defValue(destination, reference, value) || observed[value] ||
+            context.builder->virtualRegForbiddenPhysRegs().contains(destination) || context.builder->shouldPreserveVirtualCopy(destination))
             return false;
         for (const auto& use : ssa.valueInfo(value)->uses)
         {
@@ -606,10 +606,164 @@ namespace
             const auto* ops         = instruction->ops(*context.operands);
             const auto  modes       = MicroInstr::info(instruction->op).resolvedRegModes(ops);
             for (uint32_t operand = 0; operand < modes.size(); ++operand)
-                if (modes[operand] == MicroInstrRegMode::UseDef && ops[operand].reg == root.destination)
+                if (modes[operand] == MicroInstrRegMode::UseDef && ops[operand].reg == destination)
                     return false;
         }
         return true;
+    }
+
+    MicroSsaState::ReachingDef scalarLaneSource(const MicroPassContext& context, const MicroSsaState& ssa, MicroReg reg, MicroInstrRef at)
+    {
+        for (uint32_t depth = 0; depth < MicroPassHelpers::K_MAX_ROOT_CHAIN; ++depth)
+        {
+            const auto definition = ssa.reachingDef(reg, at);
+            if (!definition.valid() || definition.isPhi || !definition.inst || definition.inst->op != MicroInstrOpcode::LoadRegReg)
+                return definition;
+            const auto* ops = definition.inst->ops(*context.operands);
+            if (!ops[0].reg.isVirtualFloat() || !ops[1].reg.isVirtualFloat() ||
+                (ops[2].opBits != MicroOpBits::B64 && ops[2].opBits != MicroOpBits::B128))
+                return definition;
+            reg = ops[1].reg;
+            at  = definition.instRef;
+        }
+        return {};
+    }
+
+    // Scalar subtraction preserves its first input's upper lane; packed
+    // subtraction changes it. Replace only SSA values whose upper lanes are
+    // unobserved, and give both replacements fresh names to preserve aliases.
+    bool foldWholeVectorSubtracts(MicroPassContext& context)
+    {
+        if (!context.builder || !context.instructions || !context.operands || !context.encoder ||
+            !context.builder->backendBuildCfg().optimizes() || !context.builder->backendBuildCfg().vectorize ||
+            !context.builder->backendBuildCfg().math.noNaN || !context.builder->backendBuildCfg().math.noInf ||
+            !context.encoder->supportsNonDestructiveFloatBinary())
+            return false;
+        bool changed = false;
+        bool again   = true;
+        while (again)
+        {
+            again          = false;
+            bool candidate = false;
+            for (const auto& instruction : context.instructions->view())
+                if (instruction.op == MicroInstrOpcode::OpBinaryRegRegReg &&
+                    instruction.ops(*context.operands)[4].microOp == MicroOp::VecUnpackLo64)
+                {
+                    candidate = true;
+                    break;
+                }
+            if (!candidate)
+                break;
+            MicroSsaState ssa;
+            ssa.build(*context.builder, *context.instructions, *context.operands, context.encoder);
+            if (!ssa.isValid())
+                break;
+            const auto observed = observedUpperHalves(context, ssa);
+            uint32_t   next     = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+            if (next + 2 >= MicroReg::K_MAX_INDEX)
+                break;
+            for (auto it = context.instructions->view().begin(); it != context.instructions->view().end(); ++it)
+            {
+                if (it->op != MicroInstrOpcode::OpBinaryRegRegReg)
+                    continue;
+                const auto  packRef = it.current;
+                const auto* pack    = it->ops(*context.operands);
+                if (pack[3].opBits != MicroOpBits::B128 || pack[4].microOp != MicroOp::VecUnpackLo64 || !pack[0].reg.isVirtualFloat())
+                    continue;
+                const auto low  = ssa.reachingDef(pack[1].reg, packRef);
+                const auto high = ssa.reachingDef(pack[2].reg, packRef);
+                if (!low.valid() || low.isPhi || !high.valid() || high.isPhi || !low.inst || !high.inst ||
+                    low.inst->op != MicroInstrOpcode::OpBinaryRegRegReg || high.inst->op != MicroInstrOpcode::OpBinaryRegRegReg)
+                    continue;
+                const auto* lo = low.inst->ops(*context.operands);
+                const auto* hi = high.inst->ops(*context.operands);
+                if (!lo[0].reg.isVirtualFloat() || !hi[0].reg.isVirtualFloat() ||
+                    lo[3].opBits != MicroOpBits::B64 || hi[3].opBits != MicroOpBits::B64 ||
+                    lo[4].microOp != MicroOp::FloatSubtract || hi[4].microOp != MicroOp::FloatSubtract ||
+                    ssa.valueInfo(low.valueId)->blockIndex != ssa.valueInfo(high.valueId)->blockIndex ||
+                    !ssa.definitionDominates(low.valueId, high.instRef) ||
+                    !scalarResultIsReplaceable(context, ssa, observed, low.instRef, lo[0].reg, true) ||
+                    !scalarResultIsReplaceable(context, ssa, observed, high.instRef, hi[0].reg, true))
+                    continue;
+                const auto firstHigh  = scalarLaneSource(context, ssa, hi[1].reg, high.instRef);
+                const auto secondHigh = scalarLaneSource(context, ssa, hi[2].reg, high.instRef);
+                if (!firstHigh.valid() || firstHigh.isPhi || !secondHigh.valid() || secondHigh.isPhi || !firstHigh.inst || !secondHigh.inst ||
+                    firstHigh.inst->op != MicroInstrOpcode::OpBinaryRegRegImm || secondHigh.inst->op != MicroInstrOpcode::OpBinaryRegRegImm)
+                    continue;
+                const auto* a = firstHigh.inst->ops(*context.operands);
+                const auto* b = secondHigh.inst->ops(*context.operands);
+                if (a[2].opBits != MicroOpBits::B128 || b[2].opBits != MicroOpBits::B128 ||
+                    a[3].microOp != MicroOp::VecShiftRightBytes || b[3].microOp != MicroOp::VecShiftRightBytes ||
+                    a[4].valueU64 != 8 || b[4].valueU64 != 8)
+                    continue;
+                const auto av = ssa.reachingValueId(a[1].reg, firstHigh.instRef);
+                const auto bv = ssa.reachingValueId(b[1].reg, secondHigh.instRef);
+                if (av == MicroSsaState::K_INVALID_VALUE || bv == MicroSsaState::K_INVALID_VALUE ||
+                    scalarLaneSource(context, ssa, lo[1].reg, low.instRef).valueId != av || scalarLaneSource(context, ssa, lo[2].reg, low.instRef).valueId != bv ||
+                    ssa.reachingValueId(a[1].reg, low.instRef) != av || ssa.reachingValueId(b[1].reg, low.instRef) != bv)
+                    continue;
+                bool callBetween = false;
+                for (auto walk = MicroStorage::Iterator{context.instructions, low.instRef}; walk.current != packRef; ++walk)
+                    if (walk.current.isInvalid() || MicroInstr::info(walk->op).flags.has(MicroInstrFlagsE::IsCallInstruction))
+                    {
+                        callBetween = true;
+                        break;
+                    }
+                if (callBetween)
+                    continue;
+                const auto        lowReg      = lo[0].reg;
+                const auto        highReg     = hi[0].reg;
+                const auto        destination = pack[0].reg;
+                const auto        firstInput  = a[1].reg;
+                const auto        secondInput = b[1].reg;
+                const auto        vector      = MicroReg::virtualFloatReg(next++);
+                const auto        upper       = MicroReg::virtualFloatReg(next++);
+                MicroInstrOperand subtract[5] = {};
+                subtract[0].reg               = vector;
+                subtract[1].reg               = firstInput;
+                subtract[2].reg               = secondInput;
+                subtract[3].opBits            = MicroOpBits::B128;
+                subtract[4].microOp           = MicroOp::VecSubF64;
+                context.instructions->insertDerivedBefore(*context.operands, low.instRef, MicroInstrOpcode::OpBinaryRegRegReg, subtract);
+                MicroInstrOperand extract[5] = {};
+                extract[0].reg               = upper;
+                extract[1].reg               = vector;
+                extract[2].opBits            = MicroOpBits::B128;
+                extract[3].microOp           = MicroOp::VecShiftRightBytes;
+                extract[4].setImmediateValue(ApInt(uint64_t{8}, 64));
+                context.instructions->insertDerivedBefore(*context.operands, high.instRef, MicroInstrOpcode::OpBinaryRegRegImm, extract);
+                for (const auto& replacement : {std::pair{low.valueId, vector}, std::pair{high.valueId, upper}})
+                {
+                    const auto original = replacement.first == low.valueId ? lowReg : highReg;
+                    for (const auto& use : ssa.valueInfo(replacement.first)->uses)
+                    {
+                        if (use.kind != MicroSsaState::UseSite::Kind::Instruction)
+                            continue;
+                        auto*      instruction = context.instructions->ptr(use.instRef);
+                        auto*      ops         = instruction->ops(*context.operands);
+                        const auto modes       = MicroInstr::info(instruction->op).resolvedRegModes(ops);
+                        for (uint32_t operand = 0; operand < modes.size(); ++operand)
+                            if (modes[operand] == MicroInstrRegMode::Use && ops[operand].reg == original)
+                                ops[operand].reg = replacement.second;
+                    }
+                }
+                MicroInstrOperand copy[3] = {};
+                copy[0].reg               = destination;
+                copy[1].reg               = vector;
+                copy[2].opBits            = MicroOpBits::B128;
+                context.instructions->insertDerivedBefore(*context.operands, packRef, MicroInstrOpcode::LoadRegReg, copy);
+                context.instructions->erase(packRef);
+                context.instructions->erase(low.instRef);
+                context.instructions->erase(high.instRef);
+                context.builder->invalidateControlFlowGraph();
+                if (context.ssaState)
+                    context.ssaState->invalidate();
+                context.passChanged = true;
+                changed = again = true;
+                break;
+            }
+        }
+        return changed;
     }
 
     struct RootProducts
@@ -842,7 +996,7 @@ namespace
                 for (uint32_t firstIndex = 0; firstIndex < references.size() && !paired; ++firstIndex)
                 {
                     RootCandidate first;
-                    if (!readRoot(first, *context.instructions->ptr(references[firstIndex]), *context.operands, references[firstIndex]) || first.divide != (kind == 1) || !rootResultIsScalar(context, ssa, observed, first, true))
+                    if (!readRoot(first, *context.instructions->ptr(references[firstIndex]), *context.operands, references[firstIndex]) || first.divide != (kind == 1) || !scalarResultIsReplaceable(context, ssa, observed, first.reference, first.destination, true))
                         continue;
                     for (uint32_t secondIndex = firstIndex + 1; secondIndex < references.size() && secondIndex - firstIndex < K_ROOT_PAIR_WINDOW; ++secondIndex)
                     {
@@ -851,7 +1005,7 @@ namespace
                         if (instruction.op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::TerminatorInstruction) || flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction))
                             break;
                         RootCandidate second;
-                        if (!readRoot(second, instruction, *context.operands, references[secondIndex]) || second.divide != first.divide || second.destination == first.destination || !rootResultIsScalar(context, ssa, observed, second, false))
+                        if (!readRoot(second, instruction, *context.operands, references[secondIndex]) || second.divide != first.divide || second.destination == first.destination || !scalarResultIsReplaceable(context, ssa, observed, second.reference, second.destination, false))
                             continue;
                         RootHoistPlan plan;
                         plan.context      = &context;
@@ -872,6 +1026,11 @@ namespace
         }
         return changed;
     }
+}
+
+bool SlpVectorize::foldPackedLaneSubtracts(MicroPassContext& context)
+{
+    return foldWholeVectorSubtracts(context);
 }
 
 bool SlpVectorize::packRoots(MicroPassContext& context)

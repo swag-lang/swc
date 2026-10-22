@@ -5,6 +5,7 @@
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
+#include "Backend/Micro/Passes/Pass.SlpVectorize.Internal.h"
 #include "Support/Report/Assert.h"
 
 // Pre-RA instruction combiner on virtual registers.
@@ -323,7 +324,12 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     }
 
     if (ctx.actions.empty())
+    {
+        // Packed loop promotion exposes whole inputs only during the cleanup
+        // after SLP. Fold their scalar lanes once the ordinary combines settle.
+        SlpVectorize::foldPackedLaneSubtracts(context);
         return Result::Continue;
+    }
 
     for (const Action& action : ctx.actions)
     {

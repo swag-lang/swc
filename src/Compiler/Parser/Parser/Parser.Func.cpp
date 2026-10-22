@@ -20,7 +20,7 @@ namespace
     // Reject these rare bodies at parse time.
     void measureAutoInlineBody(AutoInlineBodyShape& result, const Ast& ast, AstNodeRef nodeRef, const Token* firstToken)
     {
-        if (result.blocked || nodeRef.isInvalid() || !ast.hasNode(nodeRef))
+        if (nodeRef.isInvalid() || !ast.hasNode(nodeRef))
             return;
 
         const AstNode& node = ast.node(nodeRef);
@@ -90,7 +90,11 @@ namespace
         SmallVector<AstNodeRef> children;
         node.collectChildrenFromAst(children, ast);
         for (const AstNodeRef childRef : children)
+        {
             measureAutoInlineBody(result, ast, childRef, firstToken);
+            if (result.blocked)
+                break;
+        }
     }
 }
 

@@ -4,7 +4,6 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.Peephole.Core.h"
 #include "Support/Core/RefTypes.h"
-#include <algorithm>
 
 SWC_BEGIN_NAMESPACE();
 

@@ -1,8 +1,6 @@
 #pragma once
 #include "Compiler/Sema/Core/Sema.h"
 
-#include <memory>
-
 SWC_BEGIN_NAMESPACE();
 
 namespace SemaDeclHelpers

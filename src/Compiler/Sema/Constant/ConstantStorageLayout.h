@@ -1,5 +1,4 @@
 #pragma once
-#include <cstdint>
 
 SWC_BEGIN_NAMESPACE();
 

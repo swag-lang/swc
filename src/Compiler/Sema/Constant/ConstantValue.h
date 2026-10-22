@@ -1,4 +1,5 @@
 #pragma once
+#include "Compiler/Lexer/SourceCodeRange.h"
 #include "Compiler/Sema/Type/TypeInfo.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Core/RefTypes.h"

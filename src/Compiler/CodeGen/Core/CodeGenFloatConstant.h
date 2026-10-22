@@ -2,7 +2,6 @@
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Support/Math/ApFloat.h"
-#include <bit>
 
 SWC_BEGIN_NAMESPACE();
 

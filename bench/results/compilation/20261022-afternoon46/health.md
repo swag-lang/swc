@@ -16,6 +16,7 @@ is unchanged. No timing or peak-memory measurement is made.
 | 6.5 | Share the wait-source reference fallback for AST and source-code references. Compile-time selectors keep the current-state check/read, guarded owner getter and invalid fallback in the same order. The two state assignments retain their order. No runtime member-pointer dispatch, storage or allocation is introduced. The containing wait-state helper retains 121 instructions, zero calls, its final instruction offset and 0x20-byte stack. | DevMode build; all 1,540 JIT tests pass in `devmode`, including the synchronized parser repair and nullable-target regression. |
 | 6.6 | Remove the builder-service include from `Symbol.Function.h`: its builder uses require only a forward declaration, while register values and instruction constants get their own direct leaf includes. Add the builder include to eleven implementations that actually use it, preserving unit-test guards. The header's project include closure falls from 68 to 63 headers, removing the builder, CFG, printer, storage and runtime-backend configuration services from 117 direct consumers. No declarations, field layouts or expressions change. | DevMode build, final guarded-test incremental build and complete Release build pass. This include-only batch is validated at its compilation boundary. Its source base is `8fcb9c07ae`, before later cast-target reuse and byte-pair alias integration. |
 | 6.7 | Move the unchanged `MicroRegPrintMode` enum to its own leaf header. Builder and pass contracts depend on that enum instead of the printer service. Keep the namespace, underlying type, enumerators, defaults and all function declarations. Give the prolog/epilog pass direct includes for its register, operand-bit and vector values, and forward-declare its call-convention reference. `MicroPass.h` has 3 project headers in its closure instead of 18 across 26 direct consumers. The builder's closure remains 25, replacing the printer with the leaf contract across 136 direct consumers. | Final DevMode and Release builds pass. Project XML parses and contains the new header exactly once; this repository has no root project filters file. The four implementation/test users of the printer already include it directly. This include-only batch uses source base `d98f7bf130`, before the latest non-null and indexed-assignment metadata batches are synchronized. |
+| 6.8 | Delete the file-local `clearClonedNodePayload` wrapper and call `AstNode::clearPayload` directly at its sole use in node copying. The wrapper adds no policy, conversion or lifetime. All 2,793 functions in the translation unit retain their instruction/call counts, final offsets and stack reservations, with the same emitted function set. | DevMode build; four JIT clone regression tests pass with their support and allocation-helper sources explicitly included. The initial substring-only selection omitted that helper and was replaced by the complete four-file input set. |
 
 Commands, from this worktree:
 
@@ -26,7 +27,7 @@ bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter switch
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm jit --num-cores 6 --rebuild
 ```
 
-The file-local batches 6.1 through 6.5 change no shared header, architecture or
+The file-local batches 6.1 through 6.5 and 6.8 change no shared header, architecture or
 conditional source surface, so DevMode is sufficient for them. Shared-header
 batches 6.6 and 6.7 also pass Release. Static object comparison uses the earlier
 session's unchanged switch source and the same configuration/toolchain.
@@ -65,3 +66,25 @@ loop integration. It precedes the JIT reference-fallback cleanup in batch 6.5.
 bin/swc.dm.exe unittest --dev-full --num-cores 6
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --num-cores 6 --rebuild
 ```
+
+## Sixteen-batch correctness milestone
+
+Revision `9837806b68fb82d52f652120b84eef848640dc3f` contains eight prompt-4
+savings, seven prompt-6 cleanups and the separate parser diagnostic repair,
+together with the synchronized prompt-2 work. Both DevMode and Release builds
+pass. Its DevMode compiler passes all 1,626 C++ tests with `--dev-full`, all
+1,540 JIT tests and all 3,929 native tests. The native recovery subprocesses
+deliberately fail for idle, pending-work and hardware cases; the enclosing tool
+exits zero. Each command has fresh load admission and an isolated external cache
+root. Batch 6.8 follows this milestone and has its own focused evidence above.
+
+```text
+bin/swc.dm.exe unittest --dev-full --num-cores 6
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm jit --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --num-cores 6 --rebuild
+bin/swc.dm.exe test --module-namespace Jit --no-output -f bin/unittests/jit/runtime/default_allocator_helpers.swg -f bin/unittests/jit/compiler/core_generic_clone_support.swg -f bin/unittests/jit/compiler/core_generic_clone_codegen.swg -f bin/unittests/jit/compiler/inject_expr_clone_state.swg --num-cores 6 --rebuild
+```
+
+The bounded session now retains seventeen batches across 32 files, including two
+reports and two regression-test sources. It does not certify the unbounded
+campaigns complete or any quantitative speed or memory target.

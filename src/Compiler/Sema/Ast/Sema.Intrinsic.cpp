@@ -64,31 +64,14 @@ namespace
         return Result::Error;
     }
 
-    const TypeInfo* normalizedIntrinsicOperandType(Sema& sema, const SemaNodeView& operandView)
-    {
-        if (!operandView.type())
-            return nullptr;
-
-        const TypeRef typeRef = sema.typeMgr().unwrapAliasEnum(sema.ctx(), operandView.typeRef());
-        return &sema.typeMgr().get(typeRef);
-    }
-
-    void markIntrinsicOperandAddressableStorage(Sema& sema, const SemaNodeView& operandView)
-    {
-        const TypeInfo* operandType = normalizedIntrinsicOperandType(sema, operandView);
-        if (!operandView.sym() || !operandView.sym()->isVariable() || !operandType || operandType->isPointerOrReference())
-            return;
-
-        auto& symVar = operandView.sym()->cast<SymbolVariable>();
-        symVar.markAddressableIfLocalOrParameter();
-    }
-
     Result semaIntrinsicLifecycleStmt(Sema& sema, AstNodeRef whatRef, AstNodeRef countRef)
     {
         const SemaNodeView whatView = sema.viewNodeTypeSymbol(whatRef);
         SWC_RESULT(SemaCheck::isValue(sema, whatView.nodeRef()));
 
-        const TypeInfo* whatType = normalizedIntrinsicOperandType(sema, whatView);
+        const TypeInfo* whatType = whatView.type();
+        if (whatType)
+            whatType = &whatType->unwrapAliasEnumTypeOrSelf(sema.ctx());
         if (countRef.isValid())
         {
             SemaNodeView countView = sema.viewNodeTypeConstant(countRef);
@@ -108,7 +91,11 @@ namespace
         if (!sema.isLValue(*whatView.node()))
             return SemaError::raise(sema, DiagnosticId::sema_err_take_address_not_lvalue, whatView.nodeRef());
 
-        markIntrinsicOperandAddressableStorage(sema, whatView);
+        if (whatView.sym() && whatView.sym()->isVariable() && whatType)
+        {
+            auto& symVar = whatView.sym()->cast<SymbolVariable>();
+            symVar.markAddressableIfLocalOrParameter();
+        }
 
         return Result::Continue;
     }

@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Backend/Native/NativeArtifactBuilder.h"
 #include "Backend/ABI/ABICall.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeRDataCollector.h"

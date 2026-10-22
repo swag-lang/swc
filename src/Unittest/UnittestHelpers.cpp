@@ -5,6 +5,7 @@
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITMemory.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"

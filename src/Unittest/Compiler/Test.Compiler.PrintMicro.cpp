@@ -73,6 +73,21 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         return count;
     }
 
+    // How many times 'needle' occurs in the listing of one function, or SIZE_MAX when the
+    // output lists no such function.
+    size_t occurrencesInListing(std::string_view output, std::string_view scopedName, std::string_view needle)
+    {
+        const size_t header = output.find(std::format("function : {}", scopedName));
+        if (header == std::string_view::npos)
+            return SIZE_MAX;
+        const size_t           next    = output.find("[micro]", header);
+        const std::string_view listing = output.substr(header, next == std::string_view::npos ? std::string_view::npos : next - header);
+        size_t                 count   = 0;
+        for (size_t pos = listing.find(needle); pos != std::string_view::npos; pos = listing.find(needle, pos + 1))
+            count++;
+        return count;
+    }
+
     // One parsed line of a listing: "NNN LLL <mnemonic and operands> | <comment>". A label line
     // has an id and no mnemonic.
     struct ListingLine
@@ -447,23 +462,10 @@ func writeAfterBorrowingCall(value: Pair)->u64
     SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
-    const auto checkedWrites = [&](std::string_view scopedName) {
-        const std::string_view output = run.output;
-        const size_t           header = output.find(std::format("function : {}", scopedName));
-        if (header == std::string_view::npos)
-            return SIZE_MAX;
-        const size_t           next    = output.find("[micro]", header);
-        const std::string_view listing = output.substr(header, next == std::string_view::npos ? std::string_view::npos : next - header);
-        size_t                 count   = 0;
-        for (size_t pos = listing.find("__valueBorrowWrite"); pos != std::string_view::npos; pos = listing.find("__valueBorrowWrite", pos + 1))
-            count++;
-        return count;
-    };
-
-    const size_t locals          = checkedWrites("writeLocals");
-    const size_t pointer         = checkedWrites("writeThroughPointer");
-    const size_t borrowingLocals = checkedWrites("writeBorrowingLocals");
-    const size_t afterCall       = checkedWrites("writeAfterBorrowingCall");
+    const size_t locals          = occurrencesInListing(run.output, "writeLocals", "__valueBorrowWrite");
+    const size_t pointer         = occurrencesInListing(run.output, "writeThroughPointer", "__valueBorrowWrite");
+    const size_t borrowingLocals = occurrencesInListing(run.output, "writeBorrowingLocals", "__valueBorrowWrite");
+    const size_t afterCall       = occurrencesInListing(run.output, "writeAfterBorrowingCall", "__valueBorrowWrite");
     if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || locals != 0 || pointer != 1 || borrowingLocals != 0 || afterCall != 0)
     {
         std::println(stderr, "[print micro value borrow writes] locals {}, pointer {}, borrowed parameter {}, after call {}\n{}", locals, pointer, borrowingLocals, afterCall, run.output);
@@ -529,21 +531,8 @@ func writeFrameWhileBorrowed(seed: u64)->u64
     SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
-    const auto checkedWrites = [&](std::string_view scopedName) {
-        const std::string_view output = run.output;
-        const size_t           header = output.find(std::format("function : {}", scopedName));
-        if (header == std::string_view::npos)
-            return SIZE_MAX;
-        const size_t           next    = output.find("[micro]", header);
-        const std::string_view listing = output.substr(header, next == std::string_view::npos ? std::string_view::npos : next - header);
-        size_t                 count   = 0;
-        for (size_t pos = listing.find("__valueBorrowWrite"); pos != std::string_view::npos; pos = listing.find("__valueBorrowWrite", pos + 1))
-            count++;
-        return count;
-    };
-
-    const size_t frame    = checkedWrites("writeFrameThroughPointer");
-    const size_t borrowed = checkedWrites("writeFrameWhileBorrowed");
+    const size_t frame    = occurrencesInListing(run.output, "writeFrameThroughPointer", "__valueBorrowWrite");
+    const size_t borrowed = occurrencesInListing(run.output, "writeFrameWhileBorrowed", "__valueBorrowWrite");
     if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || frame != 0 || borrowed == 0 || borrowed == SIZE_MAX)
     {
         std::println(stderr, "[print micro frame write checks] frame {}, while borrowed {}\n{}", frame, borrowed, run.output);
@@ -583,24 +572,66 @@ func readThroughCall(value: Pair)->u64 => readPair(value) + value.first
     SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
     fs::remove_all(directory, ec);
 
-    const auto registrations = [&](std::string_view scopedName) {
-        const std::string_view output = run.output;
-        const size_t           header = output.find(std::format("function : {}", scopedName));
-        if (header == std::string_view::npos)
-            return SIZE_MAX;
-        const size_t           next    = output.find("[micro]", header);
-        const std::string_view listing = output.substr(header, next == std::string_view::npos ? std::string_view::npos : next - header);
-        size_t                 count   = 0;
-        for (size_t pos = listing.find("__valueBorrowEnter"); pos != std::string_view::npos; pos = listing.find("__valueBorrowEnter", pos + 1))
-            count++;
-        return count;
-    };
-
-    const size_t reader = registrations("readPair");
-    const size_t caller = registrations("readThroughCall");
+    const size_t reader = occurrencesInListing(run.output, "readPair", "__valueBorrowEnter");
+    const size_t caller = occurrencesInListing(run.output, "readThroughCall", "__valueBorrowEnter");
     if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || reader != 0 || caller == 0 || caller == SIZE_MAX)
     {
         std::println(stderr, "[print micro unobserved borrows] reader {}, caller {}\n{}", reader, caller, run.output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+// A late global stays set once a store or a read guard has run, so the reads after it in the
+// same function need no guard of their own: one that starts by storing keeps none, one that
+// starts by reading keeps the guard of that first read only.
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroDropsSettledLateGlobalGuards)
+{
+    constexpr std::string_view SOURCE = R"(#global private
+struct Item { value: s32 }
+
+var g_storage: Item
+late var g_item: *Item
+
+#[Swag.NoInline]
+func readAfterStore(count: u32)->s32
+{
+    g_storage.value = 2
+    g_item = &g_storage
+    var total = g_item.value
+    for count do total += g_item.value
+    return total
+}
+
+#[Swag.NoInline]
+func readAfterRead(count: u32)->s32
+{
+    var total = g_item.value
+    for count do total += g_item.value
+    return total + g_item.value
+}
+
+#run
+{
+    Swag.assert(readAfterStore(3) == 8)
+    Swag.assert(readAfterRead(2) == 8)
+}
+)";
+
+    const fs::path  directory = (Os::getTemporaryPath() / "swc_unittest" / "print_micro_late_globals" / std::format("p{}", Os::currentProcessId())).lexically_normal();
+    std::error_code ec;
+    fs::remove_all(directory, ec);
+
+    PrintMicroRun          run;
+    const std::string_view requests[] = {"readAfterStore", "readAfterRead"};
+    SWC_RESULT(runPrintMicro(run, directory, SOURCE, "devmode", requests));
+    fs::remove_all(directory, ec);
+
+    const size_t afterStore = occurrencesInListing(run.output, "readAfterStore", "read of a 'late'");
+    const size_t afterRead  = occurrencesInListing(run.output, "readAfterRead", "read of a 'late'");
+    if (run.process != Os::ProcessRunResult::Ok || run.exitCode != 0 || afterStore != 0 || afterRead != 1)
+    {
+        std::println(stderr, "[print micro late globals] after store {}, after read {}\n{}", afterStore, afterRead, run.output);
         return Result::Error;
     }
 }

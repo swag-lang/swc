@@ -1210,6 +1210,12 @@ namespace
             return Result::Continue;
         }
         SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, matchedSymbols.span()));
+
+        // A qualified 'late' global ('Namespace.global') is guarded like a bare one.
+        if (matchedSymbols.size() == 1 && matchedSymbols[0]->isVariable() &&
+            matchedSymbols[0]->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
+            SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, targetNodeRef, Runtime::SafetyWhat::Null, SourceCodeRef{node.srcViewRef(), tokNameRef}));
+
         return Result::SkipChildren;
     }
 

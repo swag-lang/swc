@@ -502,6 +502,15 @@ Result AstMemberAccessExpr::codeGenPostNode(CodeGen& codeGen) const
     }
 
     codeGen.inheritPayload(codeGen.curNodeRef(), nodeRightRef, codeGen.transparentPayloadTypeRef());
+
+    // A qualified 'late' global ('Namespace.global') carries its read guard on this node.
+    if (rightSym && rightSym->isVariable() && rightSym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
+    {
+        const CodeGenNodePayload* payload = codeGen.safePayload(codeGen.curNodeRef());
+        if (payload && payload->isAddress())
+            SWC_RESULT(CodeGenSafety::emitLateReadCheck(codeGen, *this, payload->reg, rightSym->cast<SymbolVariable>().typeRef()));
+    }
+
     return Result::Continue;
 }
 

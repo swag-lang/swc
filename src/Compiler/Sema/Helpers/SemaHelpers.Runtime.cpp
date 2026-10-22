@@ -553,18 +553,33 @@ bool SemaHelpers::isLateInitAccess(Sema& sema, AstNodeRef nodeRef)
     return sym && sym->isVariable() && sym->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit);
 }
 
+namespace
+{
+    CodeGenLoweringPayload* lateReadGuardPayload(Sema& sema, AstNodeRef nodeRef)
+    {
+        if (nodeRef.isInvalid())
+            return nullptr;
+
+        const SemaNodeView view = sema.viewNode(nodeRef);
+        if (!view.node() || (view.node()->isNot(AstNodeId::MemberAccessExpr) && view.node()->isNot(AstNodeId::Identifier)))
+            return nullptr;
+
+        return sema.loweringPayload<CodeGenLoweringPayload>(view.nodeRef());
+    }
+}
+
+// True while the read at 'nodeRef' still carries the runtime guard of a late field or global.
+bool SemaHelpers::hasLateReadGuard(Sema& sema, AstNodeRef nodeRef)
+{
+    const CodeGenLoweringPayload* payload = lateReadGuardPayload(sema, nodeRef);
+    return payload && payload->hasRuntimeSafety(Runtime::SafetyWhat::Null);
+}
+
 // Non-reading consumers (assignment targets, address-of, null comparisons)
 // cancel the read guard on late fields and globals.
 void SemaHelpers::clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef)
 {
-    if (nodeRef.isInvalid())
-        return;
-
-    const SemaNodeView view = sema.viewNode(nodeRef);
-    if (!view.node() || (view.node()->isNot(AstNodeId::MemberAccessExpr) && view.node()->isNot(AstNodeId::Identifier)))
-        return;
-
-    if (auto* payload = sema.loweringPayload<CodeGenLoweringPayload>(view.nodeRef()))
+    if (auto* payload = lateReadGuardPayload(sema, nodeRef))
         payload->removeRuntimeSafety(Runtime::SafetyWhat::Null);
 }
 

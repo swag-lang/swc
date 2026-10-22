@@ -19,6 +19,7 @@
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Main/CompilerInstance.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Core/ByteArray.h"
 #include "Support/Core/PointerSet.h"
 #include "Support/Math/Hash.h"

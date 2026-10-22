@@ -12,6 +12,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
@@ -1036,25 +1037,11 @@ namespace
 
     Result defaultArgumentConstantRef(Sema& sema, ConstantRef& outCstRef, AstNodeRef callRef, const ResolvedCallArgument& resolvedArg)
     {
-        outCstRef = ConstantRef::invalid();
+        if (SemaCallArgument::tryResolveDefaultConstant(outCstRef, resolvedArg))
+            return Result::Continue;
 
-        switch (resolvedArg.defaultKind)
-        {
-            case CallArgumentDefaultKind::Constant:
-                outCstRef = resolvedArg.defaultCstRef;
-                return Result::Continue;
-
-            case CallArgumentDefaultKind::CallerLocation:
-            {
-                const SourceCodeRange codeRange = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
-                return ConstantHelpers::makeSourceCodeLocation(sema, outCstRef, codeRange, SemaHelpers::currentLocationFunction(sema));
-            }
-
-            case CallArgumentDefaultKind::None:
-                break;
-        }
-
-        return Result::Continue;
+        const SourceCodeRange codeRange = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
+        return ConstantHelpers::makeSourceCodeLocation(sema, outCstRef, codeRange, SemaHelpers::currentLocationFunction(sema));
     }
 
     bool constantPayloadFitsByteSize(const ConstantValue& value, uint64_t byteSize)

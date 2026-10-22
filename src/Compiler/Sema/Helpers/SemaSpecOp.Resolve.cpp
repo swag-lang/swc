@@ -47,23 +47,12 @@ namespace
     }
 #endif
 
-    TypeRef resolveIndexOperandTypeRef(Sema& sema, const SemaNodeView& argView)
-    {
-        TypeRef       indexTypeRef = argView.typeRef();
-        const TypeRef aliasTypeRef = argView.type()->unwrap(sema.ctx(), argView.typeRef(), TypeExpandE::Alias);
-        if (aliasTypeRef.isValid())
-            indexTypeRef = aliasTypeRef;
-
-        return indexTypeRef;
-    }
-
     Result checkSliceSpecOpBound(Sema& sema, AstNodeRef argRef, const SemaNodeView& argView, int64_t& constIndex, bool& hasConstIndex)
     {
         if (argRef.isInvalid())
             return Result::Continue;
 
-        const TypeRef   indexTypeRef = resolveIndexOperandTypeRef(sema, argView);
-        const TypeInfo* indexType    = &sema.typeMgr().get(indexTypeRef);
+        const TypeInfo* indexType = &argView.type()->unwrapAliasTypeOrSelf(sema.ctx());
         if (indexType->isReference())
             indexType = &sema.typeMgr().get(indexType->payloadTypeRef());
 
@@ -1736,17 +1725,15 @@ Result SemaSpecOp::tryResolveUnary(Sema& sema, const AstUnaryExpr& node, const S
     if (!operandView.type())
         return Result::Continue;
 
-    TypeRef         unwrappedTypeRef = operandView.typeRef();
-    const TypeInfo& operandValueType = *operandView.type();
-    if (operandValueType.isReference())
-        unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), operandValueType.payloadTypeRef());
-    else
-        unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), unwrappedTypeRef);
+    const TypeInfo* operandValueType = operandView.type();
+    if (operandValueType->isReference())
+    {
+        const TypeRef payloadTypeRef = operandValueType->payloadTypeRef();
+        if (payloadTypeRef.isValid())
+            operandValueType = &sema.typeMgr().get(payloadTypeRef);
+    }
 
-    if (!unwrappedTypeRef.isValid())
-        unwrappedTypeRef = operandView.typeRef();
-
-    const TypeInfo& operandType = sema.typeMgr().get(unwrappedTypeRef);
+    const TypeInfo& operandType = operandValueType->unwrapAliasTypeOrSelf(sema.ctx());
     if (!operandType.isStruct())
         return Result::Continue;
 

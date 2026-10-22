@@ -137,3 +137,35 @@ previous three batches, then interrupted because persistent external contention
 produced edit-loop median intervals of +/-42.4% and +/-87.8%. Its log is preserved
 outside the checkout. No result from that attempt is published or counted as a
 win. Runtime gains remain **unconfirmed** until an accepted campaign.
+
+## Preserve pairs through root products
+
+The independent-root packer now recognizes two scalar products using the low and
+high lanes of the same packed square root and its original packed inputs. It
+emits one packed multiply instead of two scalar multiplies, a high-lane extraction
+and the denominator repack. SSA checks preserve the ordered operands and their
+values at the insertion point. Shared products, numerator dependencies, mismatched
+lanes, redefined inputs, unknown values and nonmatching roots retain the old form.
+This uses the existing vectorization and finite-value math gates; it adds no new
+floating-point reassociation or approximation.
+
+Nbody's actual timestep changes **375 to 361 emitted instructions**, retaining
+**145 memory operands**, five packed roots, five packed divisions, frame layout,
+spills and calls. It executes 500,000 times, removing **7 million instructions**.
+There are five new packed multiplies, five fewer high-lane shifts and five fewer
+unpacks. One existing norm FMA becomes a multiply plus add under the same build
+contract, costing one instruction against the ideal fifteen-instruction cut; the
+net saving is fourteen. The benchmark checksum remains 169096566666. See emitted
+x64 [before](nbody-products-base.asm) and [after](nbody-products-new.asm).
+
+All twelve Release checksums pass. After pairing overloads and generated names,
+all other native task kernels and runtime paths retain their code. Compiler-side
+`#run` build-configuration adapters carry different process-local handles; their
+instruction and memory counts are unchanged. The [complete Micro comparison](products-microdiff.txt)
+includes these artifacts. All 1,547 in-memory C++ tests pass, including seven graph
+variants for valid pairing and rejected dependencies. The new native source fixture
+passes through JIT and native Release with Micro validation; 364 pairs match a
+non-optimized scalar function, including very small and large finite magnitudes.
+The incidental non-indexable-literal diagnostic was reviewed and corrected before
+fixing the rejected test source, with focused diagnostic coverage. Timing remains
+**unconfirmed** until an accepted grouped campaign.

@@ -22,3 +22,10 @@ struct(T) List
     var list: List'(s32)
     var item = list[0]     // swc-expected-error {{sema_err_type_not_indexable}}
 }
+
+#test
+{
+    for value in {1.0, 2.0}     // swc-expected-error {{sema_err_type_not_indexable}}
+    {
+    }
+}

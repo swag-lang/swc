@@ -1663,11 +1663,7 @@ Result SemaSpecOp::tryResolveIndexAssign(Sema& sema, const AstAssignStmt& node, 
     bool writesThroughPtr = false;
     if (indexedView.type())
     {
-        TypeRef indexedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), indexedView.typeRef());
-        if (!indexedTypeRef.isValid())
-            indexedTypeRef = indexedView.typeRef();
-
-        const TypeInfo& indexedType = sema.typeMgr().get(indexedTypeRef);
+        const TypeInfo& indexedType = indexedView.type()->unwrapAliasTypeOrSelf(sema.ctx());
         writesThroughPtr            = indexedType.isReferenceOrNonNullValuePointer();
     }
 

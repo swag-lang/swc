@@ -877,15 +877,21 @@ namespace
 
         // A comma-separated parameter list parses as a single VarDeclList child:
         // flatten it so each parameter is visited individually.
-        SmallVector<AstNodeRef> rawParams;
-        sourceAst.node(decl.nodeParamsRef).collectChildrenFromAst(rawParams, sourceAst);
+        const SpanRef rawParamsRef = sourceAst.node(decl.nodeParamsRef).cast<AstFunctionParamList>().spanChildrenRef;
+        if (!sourceAst.hasSpan(rawParamsRef))
+            return;
+
+        const auto              rawParams = sourceAst.nodeSpan(rawParamsRef);
         SmallVector<AstNodeRef> params;
-        for (const AstNodeRef rawRef : rawParams)
+        for (auto chunk = rawParams.chunksBegin(); chunk != rawParams.chunksEnd(); ++chunk)
         {
-            if (rawRef.isValid() && sourceAst.hasNode(rawRef) && sourceAst.node(rawRef).is(AstNodeId::VarDeclList))
-                sourceAst.node(rawRef).collectChildrenFromAst(params, sourceAst);
-            else
-                params.push_back(rawRef);
+            for (const AstNodeRef rawRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                if (rawRef.isValid() && sourceAst.hasNode(rawRef) && sourceAst.node(rawRef).is(AstNodeId::VarDeclList))
+                    sourceAst.node(rawRef).collectChildrenFromAst(params, sourceAst);
+                else
+                    params.push_back(rawRef);
+            }
         }
 
         for (AstNodeRef paramRef : params)
@@ -903,13 +909,15 @@ namespace
             if (!codeType || codeType->spanParamsRef.isInvalid())
                 continue;
 
-            SmallVector<AstNodeRef> codeParams;
-            sourceAst.appendNodes(codeParams, codeType->spanParamsRef);
-            for (const AstNodeRef codeParamRef : codeParams)
+            const auto codeParams = sourceAst.nodeSpan(codeType->spanParamsRef);
+            for (auto chunk = codeParams.chunksBegin(); chunk != codeParams.chunksEnd(); ++chunk)
             {
-                const auto* codeParam = sourceAst.node(codeParamRef).safeCast<AstCodeParam>();
-                if (codeParam)
-                    outParams.push_back({SourceCodeRef{codeParam->srcViewRef(), codeParam->tokNameRef}, codeParam->nodeTypeRef, codeParam->hasFlag(AstCodeParamFlagsE::Var)});
+                for (const AstNodeRef codeParamRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                {
+                    const auto* codeParam = sourceAst.node(codeParamRef).safeCast<AstCodeParam>();
+                    if (codeParam)
+                        outParams.push_back({SourceCodeRef{codeParam->srcViewRef(), codeParam->tokNameRef}, codeParam->nodeTypeRef, codeParam->hasFlag(AstCodeParamFlagsE::Var)});
+                }
             }
 
             if (!outParams.empty())

@@ -144,3 +144,48 @@ equality helpers retain their instruction/call counts, offsets and stack
 reservations. The DevMode build and permanent generated-equality input pass
 15 tests, including explicit self overloads, additive other-type overloads,
 nested/anonymous fields, ignored fields and compile-time assertions.
+
+## Twenty-five-batch correctness milestone
+
+The owner-lookup batch based on `4dc2e027b6` passes all 1,621 C++ tests
+with `--dev-full` and all 3,927 native tests. The recovery probes have their
+expected child failures and the enclosing native tool exits zero. This
+milestone includes both campaigns through owner lookup, plus the inherited
+post-RA loop integration; it precedes the code-parameter span change below.
+Both full suites use the same DevMode compiler and separate fresh caches.
+
+## Borrow declared code-parameter lists
+
+`appendDeclaredCodeParams` now reads the raw function parameter list and each
+`#code` binder list from their immutable AST spans. The parser/cloner preserve
+the function-list node kind. Valid-span handling, comma-list flattening,
+attribute unwrapping, descriptor order, mutable/type flags and the first
+nonempty declared binder list retain their previous behavior. The flattened
+parameter vector and output descriptors remain; the two temporary reference
+vectors, their initialization, copies and possible allocation/destruction
+disappear. No persistent storage is added. DevMode's helper stack falls from
+0x450 to 0x270 bytes; it has 652 instructions instead of 674, one more local
+direct call, and a final instruction offset 99 bytes smaller. Its inline-call
+caller keeps its instruction/call counts, final offset and 0x1CC8-byte stack.
+
+The DevMode build passes. The permanent `code_params` input passes its `#run`
+calls and compile-time assertions, covering default/explicit/partial binders,
+typed and mutable parameters, mixins, forwarding and single evaluation. It
+contains zero runtime test bodies. The permanent `code_binder` and
+`mixin_code_param` inputs also pass semantic checking and their assertions;
+those two semantic-only checks execute no runtime bodies.
+
+The completed code-parameter batch also passes all 1,557 default C++ tests
+and all 1,539 JIT tests. These checks use its DevMode compiler before the
+subsequent owner-lookup integration is synchronized into this worktree;
+the owner-lookup batch has the separate full C++/native coverage above.
+
+Additional focused commands:
+
+```text
+bin/swc.dm.exe test --artifact-kind executable --module-namespace Native -f bin/unittests/native/types/reference.swg -f bin/unittests/native/operators/compare.swg --out-dir <external>/equality-out --work-dir <external>/equality-work --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter generated_equality --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm jit --file-filter code_params --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm jit --num-cores 6 --rebuild
+bin/swc.dm.exe test -f bin/unittests/sema/compiler/code_binder.swg -f bin/unittests/sema/compiler/mixin_code_param.swg --sema-only --num-cores 6 --rebuild
+```

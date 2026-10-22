@@ -1039,6 +1039,81 @@ func checkIndex(value: *s32)->s32
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_TrailingCodeBlockSearchCrossesSpanChunks)
+{
+    std::string      source            = R"(#global private
+
+#[Swag.Macro]
+func execute(stmt: #code)
+{
+    #inject(stmt)
+}
+
+func trailingUse()
+{
+)";
+    constexpr size_t leadingStatements = PagedStore::K_DEFAULT_PAGE_SIZE / sizeof(AstNodeRef) + 1;
+    for (size_t index = 0; index < leadingStatements; ++index)
+        source += "    discard 0\n";
+    source += R"(    execute()
+    {
+        #assert(42 == 42)
+    }
+}
+
+#run
+{
+    trailingUse()
+}
+)";
+
+    const fs::path sourcePath = Unittest::makeTestSourcePath("Compiler", "TrailingCodeBlockChunks");
+    CommandLine    cmdLine;
+    cmdLine.command         = CommandKind::Sema;
+    cmdLine.name            = "compiler_trailing_code_block_chunks";
+    cmdLine.moduleNamespace = "CompilerTrailingChunks";
+    cmdLine.silent          = true;
+    cmdLine.numCores        = 6;
+    cmdLine.files.insert(sourcePath);
+    CommandLineParser::refreshBuildCfg(cmdLine);
+
+    const uint64_t    errorsBefore = Stats::getNumErrors();
+    RestoreErrorCount restoreErrors{errorsBefore};
+    CompilerInstance  compiler(ctx.global(), cmdLine);
+    Unittest::registerTestSource(compiler, sourcePath, source);
+    Command::sema(compiler);
+    if (Stats::getNumErrors() != errorsBefore)
+        return Result::Error;
+
+    for (SourceFile* file : compiler.files())
+    {
+        if (!FileSystem::pathEquals(file->path(), sourcePath))
+            continue;
+        const AstFunctionDecl* declaration = findFunctionDecl(file->ast(), "trailingUse");
+        if (!declaration || declaration->nodeBodyRef.isInvalid())
+        {
+            std::println(stderr, "trailing-block regression: missing function body");
+            return Result::Error;
+        }
+        const auto* body = file->ast().node(declaration->nodeBodyRef).safeCast<AstEmbeddedBlock>();
+        if (!body)
+        {
+            std::println(stderr, "trailing-block regression: unexpected body kind {}", Ast::nodeIdName(file->ast().node(declaration->nodeBodyRef).id()));
+            return Result::Error;
+        }
+        const auto statements = file->ast().nodeSpan(body->spanChildrenRef);
+        const auto first      = statements.chunksBegin();
+        if (first.total <= first->count)
+        {
+            std::println(stderr, "trailing-block regression: {} statements fit in the first {}-element chunk", first.total, first->count);
+            return Result::Error;
+        }
+        return Result::Continue;
+    }
+    return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_InMemorySourceRunsSemaWithoutDiskIO)
 {
     static constexpr std::string_view SOURCE     = R"(func A() {}

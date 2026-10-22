@@ -623,8 +623,7 @@ namespace
                 if (narrowedRef.isValid())
                 {
                     const SemaNodeView liveView = sema.viewType(narrowedRef);
-                    const TypeRef      liveRef  = liveView.typeRef().isValid() ? sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), liveView.typeRef()) : TypeRef::invalid();
-                    if (liveRef.isValid() && !sema.typeMgr().get(liveRef).isNullable())
+                    if (liveView.type() && !liveView.type()->unwrapAliasEnumTypeOrSelf(sema.ctx()).isNullable())
                         SWC_RESULT(reportNotNullAlreadyProven(sema, narrowedRef, liveView));
                 }
 

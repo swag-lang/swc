@@ -21,6 +21,7 @@ Prompt-6 batches and the ten-batch correctness milestone are recorded in
 | 4.4 | Search multi-assignment targets directly in their immutable AST chunks during nullable narrowing. `AssignList` inherits the span-only collector, and reference resolution does not mutate the list. Keep the same valid-span guard, target order and first matching target; remove the temporary reference vector, its copies, possible allocation and destruction. The helper's local code grows from 264 instructions/26 calls to 297/28 as span access moves into it, while its stack falls from 0x258 to 0x198 bytes and the separate collector/copy path disappears. No persistent storage is added. | DevMode build; the flow and inline narrowing inputs pass four JIT tests in `devmode`. The new case reassigns two previously narrowed pointers to every null/present combination and checks the absent-guard path. Formatting is stable on the second pass. |
 | 4.5 | Reuse the owner already resolved by member-access checking. A file-local inline policy helper receives that owner after the caller's public/non-field/absent-owner guards. Module/type checks, short-circuiting, diagnostics and the standalone access predicate remain. Remove the second owner-map lookup/cast and repeated public/absent-owner checks. The standalone predicate retains 74 instructions/four calls/0x38 stack bytes; checking changes from 96/eight/0xA8 to 86/eight/0xA0. No persistent storage or allocation is added. | DevMode build; the private/readonly access fixtures and their shared type definitions pass semantic expected-diagnostic checking (31 inputs including runtime, zero runtime test bodies). |
 | 4.6 | Normalize cast and type-pattern targets through their existing view metadata. Alias-only versus alias/enum expansion and the declared destination handles retain their original roles. Remove the initial and final type-table resolutions around normalization; no storage or allocation is added. Ordinary-cast processing changes from 1,274 instructions/172 calls to 1,234/168 with the same 0x660-byte stack; the `as` helper changes from 277/36/0x240 to 246/33/0x220, and type-pattern processing from 476/55/0x310 to 448/52/0x2F0. | DevMode build; five permanent dynamic-cast/type-pattern inputs pass 21 tests and their compile-time checks in `devmode`, including strict aliases, null targets, generic destinations and cast modes. |
+| 4.7 | Check a live non-null assertion through the view's existing metadata. View construction pairs the type pointer and handle, and alias/enum metadata normalization preserves the same invalid-view guard, fallback and nullable predicate. Remove two type-table resolutions without changing proof recording or diagnostics. The containing helper changes from 421 instructions/50 calls/0x170 stack bytes to 357/46/0x110. No storage or allocation is added. | DevMode build; the already-proven and invalid-operand fixtures pass expected-diagnostic checking (30 inputs including runtime, zero runtime test bodies). The flow/inline narrowing inputs also pass their four JIT tests in `devmode`. |
 
 Commands, from the corresponding campaign worktree:
 
@@ -72,3 +73,12 @@ bin/swc.dm.exe test --artifact-kind executable --module-namespace Native -f bin/
 ```
 
 `<external>` is this session's scratch directory outside the checkouts.
+
+```text
+bin/swc.dm.exe test -f bin/unittests/errors/sema/sema_err_notnull_already_proven.swg -f bin/unittests/errors/sema/sema_err_notnull_operand.swg --sema-only --num-cores 6 --rebuild
+```
+
+An uninitialized PDB filename-offset table trial was discarded: although it
+removed the initial zero pass, it increased the containing function's local
+instruction and call counts, leaving total work uncertain. No PDB trial source
+or timing claim is retained.

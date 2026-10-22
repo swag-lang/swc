@@ -360,17 +360,15 @@ namespace
 
         // A reference or a non-null single-value pointer to a container is looked through,
         // like member access: the operator receiver is the pointed-to object.
-        TypeRef         unwrappedTypeRef = view.typeRef();
-        const TypeInfo& valueType        = *view.type();
-        if (valueType.isReferenceOrNonNullValuePointer())
-            unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), valueType.payloadTypeRef());
-        else
-            unwrappedTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), unwrappedTypeRef);
+        const TypeInfo* valueType = view.type();
+        if (valueType->isReferenceOrNonNullValuePointer())
+        {
+            const TypeRef payloadTypeRef = valueType->payloadTypeRef();
+            if (payloadTypeRef.isValid())
+                valueType = &sema.typeMgr().get(payloadTypeRef);
+        }
 
-        if (!unwrappedTypeRef.isValid())
-            unwrappedTypeRef = view.typeRef();
-
-        const TypeInfo& type = sema.typeMgr().get(unwrappedTypeRef);
+        const TypeInfo& type = valueType->unwrapAliasTypeOrSelf(sema.ctx());
         if (!type.isStruct())
             return nullptr;
 

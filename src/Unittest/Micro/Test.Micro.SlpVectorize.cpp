@@ -3,10 +3,14 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroSsaState.h"
+#include "Backend/Micro/Passes/Pass.Legalize.h"
+#include "Backend/Micro/Passes/Pass.PrologEpilog.h"
+#include "Backend/Micro/Passes/Pass.RegisterAllocation.h"
 #include "Backend/Micro/Passes/Pass.SlpVectorize.Internal.h"
 #include "Backend/Micro/Passes/Pass.SlpVectorize.h"
 #include "Unittest/Unittest.h"
@@ -1387,6 +1391,163 @@ SWC_TEST_BEGIN(SlpVectorize_ReusesPackedRootProductsOnlyForMatchingValues)
                 ++products;
         if (products != (variant == 0 ? 1u : 0u))
             return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_FoldsOnlyMatchingWholeVectorLaneSubtracts)
+{
+    for (uint32_t variant = 0; variant < 20; ++variant)
+    {
+        MicroBuilder             builder(ctx);
+        X64Encoder               encoder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+        config.vectorize  = true;
+        config.math.noNaN = variant != 7;
+        config.math.noInf = true;
+        builder.setBackendBuildCfg(config);
+        const auto sp   = encoder.stackPointerReg();
+        const auto a    = MicroReg::virtualFloatReg(1);
+        const auto b    = MicroReg::virtualFloatReg(2);
+        const auto ah   = MicroReg::virtualFloatReg(3);
+        const auto bh   = MicroReg::virtualFloatReg(4);
+        const auto x    = MicroReg::virtualFloatReg(5);
+        const auto y    = MicroReg::virtualFloatReg(6);
+        const auto pair = MicroReg::virtualFloatReg(7);
+        builder.emitLoadVecRegMem(a, sp, 64, MicroOpBits::B128);
+        builder.emitLoadVecRegMem(b, sp, 80, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegImm(ah, a, ApInt(uint64_t{variant == 11 ? 4u : 8u}, 64), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegImm(bh, b, ApInt(uint64_t{8}, 64), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+        if (variant == 2)
+            builder.emitLoadVecRegMem(a, sp, 96, MicroOpBits::B128);
+        auto lowLeft   = variant == 12 ? b : a;
+        auto highLeft  = variant == 1 ? bh : ah;
+        auto highRight = variant == 14 ? MicroReg::virtualFloatReg(8) : variant == 1 ? ah
+                                                                                     : bh;
+        if (variant >= 15)
+        {
+            lowLeft = MicroReg::virtualFloatReg(8);
+            builder.emitLoadRegReg(lowLeft, a, variant == 19 ? MicroOpBits::B32 : MicroOpBits::B64);
+        }
+        if (variant >= 16)
+        {
+            highLeft = MicroReg::virtualFloatReg(9);
+            builder.emitLoadRegReg(highLeft, ah, MicroOpBits::B64);
+        }
+        if (variant >= 17)
+        {
+            highRight = MicroReg::virtualFloatReg(10);
+            builder.emitLoadRegReg(highRight, bh, MicroOpBits::B128);
+        }
+        if (variant == 18)
+            builder.emitLoadVecRegMem(a, sp, 96, MicroOpBits::B128);
+        builder.emitOpBinaryRegRegReg(x, lowLeft, variant == 12 ? a : b, MicroOp::FloatSubtract, variant == 9 ? MicroOpBits::B32 : MicroOpBits::B64);
+        const auto first = builder.instructions().lastInstructionRef();
+        if (variant == 8)
+            builder.emitCallReg(MicroReg::intReg(11), CallConvKind::Swag, 0, 0);
+        builder.emitOpBinaryRegRegReg(y, highLeft, highRight, variant == 10 ? MicroOp::FloatAdd : MicroOp::FloatSubtract, MicroOpBits::B64);
+        const auto second = builder.instructions().lastInstructionRef();
+        builder.emitOpBinaryRegRegReg(pair, variant == 13 ? MicroReg::virtualFloatReg(8) : x, y, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+        builder.emitStoreVecMemReg(sp, 128, pair, MicroOpBits::B128);
+        if (variant == 3 || variant == 4)
+            builder.emitStoreVecMemReg(sp, 144, variant == 3 ? x : y, MicroOpBits::B128);
+        if (variant == 6)
+            builder.emitOpBinaryRegReg(x, a, MicroOp::FloatMultiply, MicroOpBits::B64);
+        if (variant == 5)
+        {
+            const auto join = builder.createLabel();
+            builder.emitCmpRegImm(MicroReg::intReg(0), ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, join);
+            builder.emitLoadRegMem(x, sp, 160, MicroOpBits::B64);
+            builder.placeLabel(join);
+        }
+        builder.emitLoadMemReg(sp, 176, x, MicroOpBits::B64);
+        builder.emitLoadMemReg(sp, 184, y, MicroOpBits::B64);
+        builder.emitRet();
+        MicroPassContext context;
+        context.taskContext  = &ctx;
+        context.builder      = &builder;
+        context.instructions = &builder.instructions();
+        context.operands     = &builder.operands();
+        context.encoder      = &encoder;
+        const bool expected  = variant == 0 || (variant >= 15 && variant <= 17);
+        if (SlpVectorize::foldPackedLaneSubtracts(context) != expected)
+            return Result::Error;
+        if (expected && (builder.instructions().ptr(first) || builder.instructions().ptr(second)))
+            return Result::Error;
+        uint32_t packed = 0;
+        for (const auto& instruction : builder.instructions().view())
+            if (instruction.op == MicroInstrOpcode::OpBinaryRegRegReg && instruction.ops(builder.operands())[4].microOp == MicroOp::VecSubF64)
+                ++packed;
+        if (packed != static_cast<uint32_t>(expected))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(SlpVectorize_WholeVectorSubtractsPreserveScalarAndPackedResults)
+{
+    const std::array<double, 6> inputs = {0.0, -0.0, 1.25, -3.5, 1e-100, 1e100};
+    for (const auto left : inputs)
+    {
+        for (const auto right : inputs)
+        {
+            for (const bool alias : {false, true})
+            {
+                for (const bool optimize : {false, true})
+                {
+                    uint64_t                 values[8] = {std::bit_cast<uint64_t>(left), std::bit_cast<uint64_t>(right), std::bit_cast<uint64_t>(right), std::bit_cast<uint64_t>(left), 0, 0, 0, 0};
+                    MicroBuilder             builder(ctx);
+                    X64Encoder               encoder(ctx);
+                    Runtime::BuildCfgBackend config{};
+                    config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+                    config.vectorize  = true;
+                    config.math.noNaN = config.math.noInf = true;
+                    builder.setBackendBuildCfg(config);
+                    const auto data = CallConv::get(CallConvKind::C).intArgRegs[0];
+                    const auto a    = MicroReg::virtualFloatReg(1);
+                    const auto b    = MicroReg::virtualFloatReg(2);
+                    const auto ah   = MicroReg::virtualFloatReg(3);
+                    const auto bh   = MicroReg::virtualFloatReg(4);
+                    const auto x    = alias ? a : MicroReg::virtualFloatReg(5);
+                    const auto y    = alias ? ah : MicroReg::virtualFloatReg(6);
+                    const auto pair = MicroReg::virtualFloatReg(7);
+                    builder.emitLoadVecRegMem(a, data, 0, MicroOpBits::B128);
+                    builder.emitLoadVecRegMem(b, data, 16, MicroOpBits::B128);
+                    builder.emitOpBinaryRegRegImm(ah, a, ApInt(uint64_t{8}, 64), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+                    builder.emitOpBinaryRegRegImm(bh, b, ApInt(uint64_t{8}, 64), MicroOp::VecShiftRightBytes, MicroOpBits::B128);
+                    builder.emitOpBinaryRegRegReg(x, a, b, MicroOp::FloatSubtract, MicroOpBits::B64);
+                    builder.emitOpBinaryRegRegReg(y, ah, bh, MicroOp::FloatSubtract, MicroOpBits::B64);
+                    builder.emitOpBinaryRegRegReg(pair, x, y, MicroOp::VecUnpackLo64, MicroOpBits::B128);
+                    builder.emitStoreVecMemReg(data, 32, pair, MicroOpBits::B128);
+                    builder.emitLoadMemReg(data, 48, x, MicroOpBits::B64);
+                    builder.emitLoadMemReg(data, 56, y, MicroOpBits::B64);
+                    builder.emitRet();
+                    if (optimize)
+                    {
+                        MicroPassContext context;
+                        context.taskContext  = &ctx;
+                        context.builder      = &builder;
+                        context.instructions = &builder.instructions();
+                        context.operands     = &builder.operands();
+                        context.encoder      = &encoder;
+                        if (!SlpVectorize::foldPackedLaneSubtracts(context))
+                            return Result::Error;
+                    }
+                    SWC_RESULT(Backend::Unittest::runMicroPass<MicroLegalizePass>(builder, &encoder, CallConvKind::C));
+                    SWC_RESULT(Backend::Unittest::runMicroPass<MicroRegisterAllocationPass>(builder, &encoder, CallConvKind::C));
+                    SWC_RESULT(Backend::Unittest::runMicroPass<MicroPrologEpilogPass>(builder, &encoder, CallConvKind::C));
+                    SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values));
+                    const auto low  = std::bit_cast<uint64_t>(left - right);
+                    const auto high = std::bit_cast<uint64_t>(right - left);
+                    if (values[4] != low || values[5] != high || values[6] != low || values[7] != high)
+                        return Result::Error;
+                }
+            }
+        }
     }
     return Result::Continue;
 }

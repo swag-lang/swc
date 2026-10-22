@@ -26,15 +26,17 @@ prove it. Operating-system integrations live in
   window (std.gui.057), whatever the dirty area. Large-window traces with a small dirty box
   spent most of each frame presenting; those totals include driver backpressure and are not
   input-to-display measurements.
+- Reproducer: the user reports slow scrolling of `backlog/compiler.core.md` in Swag Scope
+  while the CPU is busy, with Typora remaining fluid on the same document under that load.
 - Constraint: the default OpenGL context is owned by the window thread, because a worker
   renderer let drawable reallocation overlap native sizing (std.gui.056). `Pixel.RenderThread`
   remains an explicit adapter. The default WGL swap interval is one. A partial copy cannot rely
   on preserved back buffers: the WGL pixel format grants neither swap-copy nor swap-exchange.
-- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input,
-  separating GPU execution from native-present wait. Measure whether surfaces that do not need
-  compositing can render directly into the presentation target, keeping the render target
-  where effects need it. Any asynchronous replacement must establish drawable ownership and
-  buffer lifetime during physical resizing.
+- Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input on
+  that document at matched CPU contention, separating recording, GPU readback and native-present
+  wait. Measure whether surfaces without compositing can render directly into the presentation
+  target, keeping the render target where effects need it. Any asynchronous replacement must
+  establish drawable ownership and buffer lifetime during physical resizing.
 - Done when: unnecessary surface copies and input-thread stalls have a measured policy,
   equivalent pixels, bounded resource ownership and frame queues, and real input-latency
   evidence.

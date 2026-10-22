@@ -15,11 +15,13 @@ using Core
 // frame, and stops the loop once that many frames have been measured. `swag.framestressbox=<side>`
 // narrows that repaint to one square travelling across the window, which is the shape of a dragged
 // widget and the case a window that repaints and presents whole hides.
+// `swag.framesynchronous` retains synchronous presentation for diagnostic comparisons.
 struct FrameTrace
 {
     enabled:   bool       // Whether the run records frames at all.
     stressing: bool       // Whether every frame invalidates its surfaces completely.
     boxSide:   f32        // Side of the moving box a partial stress invalidates, or zero for the whole surface.
+    synchronousPresentation: bool     // Diagnostic baseline requested by swag.framesynchronous.
     path:      String     // File the summary is written to, empty for standard output.
     maxFrames: u64        // Measured frames the stress run stops after, or zero when unbounded.
 
@@ -66,6 +68,7 @@ internal impl FrameTrace
 
         .enabled = true
         .path    = trace.value
+        .synchronousPresentation = findMarker("swag.framesynchronous").found
 
         let stress = findMarker("swag.framestress")
         if stress.found

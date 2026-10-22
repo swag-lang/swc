@@ -68,17 +68,20 @@ internal struct NativeSurface
     inDesktopLoop: bool
 
     // A discrete placement prepares its expensive frame before USER32 exposes the new size.
-    inDiscretePlacement: bool
-    preparingFrame:      bool
-    preparedFrame:       bool
-    presentedFrame:      bool
-    preparedWidth:       s32
-    preparedHeight:      s32
-    presentationTarget:  Pixel.RenderTarget
-    presentationDC:      HDC
-    presentationBitmap:  Gdi32.HBITMAP
-    presentationPixels:  *u8?
+    inDiscretePlacement:                   bool
+    preparingFrame:                        bool
+    preparedFrame:                         bool
+    presentedFrame:                        bool
+    preparedWidth:                         s32
+    preparedHeight:                        s32
+    presentationTarget:                    Pixel.RenderTarget
+    presentationDC:                        HDC
+    presentationBitmap:                    Gdi32.HBITMAP
+    presentationPixels:                    *u8?
     presentationWidth, presentationHeight: s32
+    readback:                              Pixel.RenderOglReadback
+    asynchronousPresentationFailed:        bool
+    presentationDirtyRect:                 Math.Rectangle
 }
 
 // Fixed notification-area icon id. A surface owns at most one tray icon.
@@ -581,6 +584,7 @@ private impl Surface
         if .rc.data
         {
             .app.renderer.setCurrentContext(.rc)
+            .readback.release()
             .app.renderer.deleteRenderTarget(&.presentationTarget)
         }
 
@@ -680,7 +684,76 @@ impl Surface
         .app.renderer.bindRenderTarget(&.presentationTarget)
     }
 
-    internal mtd prepareNativePresentation()
+    internal mtd canQueueNativePresentation()->bool =>
+        not .asynchronousPresentationFailed and
+        not .app.frameTrace.synchronousPresentation and
+        not .preparingFrame and
+        not .inDiscretePlacement and
+        not .inDesktopLoop and
+        .presentationWidth == .rc.width and
+        .presentationHeight == .rc.height and
+        .app.renderer is Pixel.RenderOgl
+
+    internal mtd cancelNativePresentation()
+    {
+        .app.renderer.setCurrentContext(.rc)
+        if .readback.isPending() do
+            .invalidate()
+        .readback.cancel()
+    }
+
+    internal mtd queueNativePresentation(target: const *Pixel.RenderTarget)->bool
+    {
+        .presentationDirtyRect = .paintPhysicalRect
+        if .presentationDirtyRect.isEmpty() or (.isDisabled and .app.fadeDisabledSurface) do
+            .presentationDirtyRect = {0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
+        let rect = .presentationDirtyRect
+        if .readback.submit(target, cast(s32, rect.x), cast(s32, rect.y), cast(s32, rect.width), cast(s32, rect.height)) do
+            return true
+        .asynchronousPresentationFailed = true
+        .readback.release()
+        return false
+    }
+
+    // A busy GPU holds one snapshot, never a queue of obsolete interaction states. Poll before
+    // recording another frame so dirty content stays coalesced while input continues to dispatch.
+    internal mtd advanceNativePresentation()->bool
+    {
+        if not .readback.isPending() do
+            return true
+        .app.renderer.setCurrentContext(.rc)
+        if not .canQueueNativePresentation()
+        {
+            .readback.cancel()
+            .invalidate()
+            return true
+        }
+
+        var watch: Time.Stopwatch
+        if .app.frameTrace.enabled do
+            watch.start()
+        let rect   = .presentationDirtyRect
+        let stride = cast(u64, .presentationWidth) * 4
+        let offset = cast(u64, (cast(f32, .presentationHeight) - rect.bottom())) * stride + cast(u64, rect.x) * 4
+        let pixels = Swag.makeSlice(cast([*] u8, .presentationPixels!) + offset,
+                                    stride * cast(u64, .presentationHeight) - offset)
+        if .readback.tryCopyTo(pixels, stride)
+        {
+            .publishNativePresentation()
+        }
+        elif .readback.hasFailed()
+        {
+            .asynchronousPresentationFailed = true
+            .readback.release()
+            .invalidate()
+        }
+
+        if .app.frameTrace.enabled do
+            .app.frameTrace.presentUs += watch.elapsedMicroseconds()
+        return not .readback.isPending()
+    }
+
+    internal mtd prepareNativePresentation(target: const *Pixel.RenderTarget)
     {
         // A persistent layered HWND lets USER32 publish geometry and pixels together. Its
         // bitmap is CPU-backed; keep it across repaints and copy the complete premultiplied
@@ -702,8 +775,9 @@ impl Surface
             .presentationHeight = .rc.height
         }
 
-        let image = .app.renderer.readRenderTarget(&.presentationTarget, 0, 0, .rc.width, .rc.height)
+        let image = .app.renderer.readRenderTarget(target, 0, 0, .rc.width, .rc.height)
         Memory.copy(.presentationPixels!, image.pixels.storage(), image.byteCount)
+        .presentationDirtyRect = {0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
     }
 
     internal mtd publishNativePresentation()
@@ -712,7 +786,21 @@ impl Surface
         let size        = SIZE{.presentationWidth, .presentationHeight}
         let source      = POINT{}
         let blend       = BLENDFUNCTION{AC_SRC_OVER, 0, 255, AC_SRC_ALPHA}
-        if not UpdateLayeredWindow(.hWnd, null, &destination, &size, .presentationDC, &source, 0, &blend, ULW_ALPHA) do
+        let dirty       = RECT{cast(s32, .presentationDirtyRect.x), cast(s32, .presentationDirtyRect.y),
+                               cast(s32, .presentationDirtyRect.right()), cast(s32, .presentationDirtyRect.bottom())}
+        with var info: UPDATELAYEREDWINDOWINFO
+        {
+            .cbSize   = #sizeof(UPDATELAYEREDWINDOWINFO)
+            .pptDst   = &destination
+            .psize    = &size
+            .hdcSrc   = me.presentationDC
+            .pptSrc   = &source
+            .pblend   = &blend
+            .dwFlags  = ULW_ALPHA
+            .prcDirty = &dirty
+        }
+
+        if not UpdateLayeredWindowIndirect(.hWnd, &info) do
             expect failWinError(GetLastError())
     }
 
@@ -1002,7 +1090,9 @@ impl Surface
         // paint completes (which is slow on the first frame because of the lazy
         // font/glyph generation it triggers). Painting while still hidden means the
         // window appears already showing correct content.
+        .preparingFrame = true
         .paint()
+        .preparingFrame = false
 
         if not .app.renderer.needsNativeWindow()
         {

@@ -91,11 +91,12 @@ struct Surface
     isDirty:   bool     // Whether a repaint is pending.
 
     // Recorded before a native placement and reported when its prepared image is presented.
-    paintRecordUs: u64
-    paintTargetUs: u64
-    paintArea:     u64
-    paintVertices: u64
-    paintBatches:  u64
+    paintRecordUs:     u64
+    paintTargetUs:     u64
+    paintArea:         u64
+    paintVertices:     u64
+    paintBatches:      u64
+    paintPhysicalRect: Math.Rectangle
 
     // What the last pass did with the window tree. A repaint covers one region, so most of a
     // tree is normally rejected before it records anything; these say how much.
@@ -431,6 +432,8 @@ impl Surface
     // deterministic root; native surfaces use the SurfaceWnd selected by paint().
     internal mtd paintWnd(root: *Wnd)
     {
+        if .app.renderer.needsNativeWindow() and not .advanceNativePresentation() do
+            return
         if .paintToRenderTarget(root) do
             .presentRenderTarget()
     }
@@ -439,6 +442,8 @@ impl Surface
     // The platform publishes its pixels and the new rectangle together.
     internal mtd prepareResizeFrame(root: *Wnd)->bool
     {
+        if .app.renderer.needsNativeWindow() do
+            .cancelNativePresentation()
         if not .paintToRenderTarget(root) do
             return false
         if .app.renderer.needsNativeWindow() do
@@ -539,10 +544,11 @@ impl Surface
         // Paint to surface render target. The direct scissor works in physical
         // render-target pixels, unlike painter clip rectangles which stay logical.
         var physClip = clipRect
-        physClip.x      = Math.round(clipRect.x * .dpiScale)
-        physClip.y      = Math.round(clipRect.y * .dpiScale)
-        physClip.width  = Math.round(clipRect.right() * .dpiScale) - physClip.x
-        physClip.height = Math.round(clipRect.bottom() * .dpiScale) - physClip.y
+        physClip.x         = Math.round(clipRect.x * .dpiScale)
+        physClip.y         = Math.round(clipRect.y * .dpiScale)
+        physClip.width     = Math.round(clipRect.right() * .dpiScale) - physClip.x
+        physClip.height    = Math.round(clipRect.bottom() * .dpiScale) - physClip.y
+        .paintPhysicalRect = Math.Rectangle.intersect(physClip, {0, 0, cast(f32, .rc.width), cast(f32, .rc.height)})
 
         with cxt
         {
@@ -571,6 +577,47 @@ impl Surface
         if tracing do
             traceWatch.restart()
 
+        let native       = .app.renderer.needsNativeWindow()
+        let asynchronous = native and publish and .canQueueNativePresentation()
+        var deferred: bool
+        if native and not (.isDisabled and .app.fadeDisabledSurface)
+        {
+            // The surface already contains the complete premultiplied frame. Read that target
+            // directly, rather than submitting another full-window texture copy first.
+            .colorDisabled = Argb.White
+            deferred       = asynchronous and .queueNativePresentation(&.rt)
+            if not deferred do
+                .prepareNativePresentation(&.rt)
+        }
+        else
+        {
+            .copyRenderTargetForPresentation()
+            if native
+            {
+                deferred = asynchronous and .queueNativePresentation(&.presentationTarget)
+                if not deferred do
+                    .prepareNativePresentation(&.presentationTarget)
+            }
+        }
+
+        var presentUs = 0'u64
+        if tracing do
+            presentUs = traceWatch.elapsedMicroseconds()
+        .app.renderer.end()
+        if publish and native and not deferred do
+            .publishNativePresentation()
+
+        if tracing
+        {
+            let swapUs = traceWatch.elapsedMicroseconds() - presentUs
+            .app.frameTrace.addSurface(.paintRecordUs, .paintTargetUs, presentUs, swapUs, .paintArea, .paintVertices, .paintBatches)
+            .app.frameTrace.addSavings(.app.rendererOgl.scratchClearedPixels, .app.rendererOgl.scratchFullPixels)
+        }
+    }
+
+    // Disabled surfaces need the tinting pass; software surfaces retain their ordinary blit.
+    private mtd copyRenderTargetForPresentation()
+    {
         // Paint render target to screen. This pass copies physical texels one to
         // one, so it runs unscaled: destination and source are both device pixels.
         .painter.begin()
@@ -606,23 +653,6 @@ impl Surface
         if .app.renderer.needsNativeWindow()
         {
             .app.renderer.unbindRenderTarget()
-            .prepareNativePresentation()
-        }
-
-        // The copy and the present are timed apart because they answer different questions: one
-        // is work the window asked for, the other is how long the display made it wait.
-        var presentUs = 0'u64
-        if tracing do
-            presentUs = traceWatch.elapsedMicroseconds()
-        .app.renderer.end()
-        if publish and .app.renderer.needsNativeWindow() do
-            .publishNativePresentation()
-
-        if tracing
-        {
-            let swapUs = traceWatch.elapsedMicroseconds() - presentUs
-            .app.frameTrace.addSurface(.paintRecordUs, .paintTargetUs, presentUs, swapUs, .paintArea, .paintVertices, .paintBatches)
-            .app.frameTrace.addSavings(.app.rendererOgl.scratchClearedPixels, .app.rendererOgl.scratchFullPixels)
         }
     }
 

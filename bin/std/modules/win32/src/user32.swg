@@ -855,6 +855,23 @@ struct BLENDFUNCTION
     }
 }
 
+struct UPDATELAYEREDWINDOWINFO
+{
+    public
+    {
+        cbSize:   DWORD
+        hdcDst:   HDC
+        pptDst:   const *POINT?
+        psize:    const *SIZE?
+        hdcSrc:   HDC
+        pptSrc:   const *POINT?
+        crKey:    COLORREF
+        pblend:   const *BLENDFUNCTION?
+        dwFlags:  DWORD
+        prcDirty: const *RECT?
+    }
+}
+
 struct SIZE
 {
     public
@@ -1172,6 +1189,7 @@ func GET_Y_LPARAM(lp: LPARAM)->s32
 
     // Publishes a layered window's bounds and premultiplied bitmap together.
     func UpdateLayeredWindow(hwnd: HWND, hdcDst: HDC, pptDst: const *POINT, psize: const *SIZE, hdcSrc: HDC, pptSrc: const *POINT, crKey: COLORREF, pblend: const *BLENDFUNCTION, dwFlags: DWORD)->BOOL
+    func UpdateLayeredWindowIndirect(hWnd: HWND, pULWInfo: const *UPDATELAYEREDWINDOWINFO)->BOOL
     func SetTimer(hWnd: HWND, nIDEvent: UINT_PTR, uElapse: UINT, lpTimerFunc: TIMERPROC?)->UINT_PTR
     func KillTimer(hWnd: HWND, uIDEvent: UINT_PTR)->BOOL
     func ValidateRect(hWnd: HWND, lpRect: const *RECT?)->BOOL

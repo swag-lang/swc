@@ -18,54 +18,40 @@ smallest coherent version that can ship and the existing controls or application
 prove it. Operating-system integrations live in
 [platform.portability.md](platform.portability.md).
 
-### std.gui.054 — Presenting a small update still copies the whole surface render target
+### std.gui.054 — Measure wheel-to-display latency under CPU contention
 
-- Evidence: `Surface.presentRenderTarget` (`surface.swg`) copies the whole surface render
-  target into a full-size presentation target (`bindNativePresentationTarget` in
-  `surface.win32.swg`), which `prepareNativePresentation` reads back whole for the layered
-  window (std.gui.057), whatever the dirty area. Large-window traces with a small dirty box
-  spent most of each frame presenting; those totals include driver backpressure and are not
-  input-to-display measurements.
+- Evidence: ordinary layered-window frames read only the dirty rectangle through one polled
+  OpenGL transfer, allowing event dispatch while the GPU is busy. This bounds the frame queue
+  and avoids waiting for completion during ordinary drawing, but message round-trip probes
+  do not measure wheel-to-display latency. Driver calls and USER32 publication can still take
+  time on the window thread.
 - Reproducer: the user reports slow scrolling of `backlog/compiler.core.md` in Swag Scope
   while the CPU is busy, with Typora remaining fluid on the same document under that load;
   the slowdown affects the entire application, not only Markdown.
-- Measured boundary: forced full repaints of an empty maximized Swag Scope window in
-  `devmode`, at 8.35 million physical pixels under concurrent machine load, averaged 196.68 ms
-  over 263 frames (5.08 fps): 2.83 ms recording, 2.46 ms target submission, 175.10 ms in the
-  copy/readback stage, and 14.32 ms in flush/native publication. The process priority was
-  Normal (base 8); the main thread was observed waiting with dynamic priorities 9 and 11,
-  while idle runtime workers were parked. This does not measure input latency or isolate
-  driver execution from scheduling inside the copy/readback stage.
 - Constraint: the default OpenGL context is owned by the window thread, because a worker
   renderer let drawable reallocation overlap native sizing (std.gui.056). `Pixel.RenderThread`
-  remains an explicit adapter. The default WGL swap interval is one. A partial copy cannot rely
-  on preserved back buffers: the WGL pixel format grants neither swap-copy nor swap-exchange.
+  remains an explicit adapter. Initial display and geometry changes still prepare a complete
+  frame synchronously to publish pixels and geometry together.
 - Next: timestamp input arrival, dispatch, and presentation under repeatable wheel input on
-  that document at matched CPU contention, separating recording, GPU readback and native-present
-  wait. Split the copy/readback stage into GPU submission, readback, and CPU bitmap copy,
-  correlating wall time with thread CPU and ready/wait states. Compare reading the existing
-  surface target directly against the redundant full-size presentation copy for enabled
-  windows; preserve disabled-window tinting and premultiplied alpha. Any asynchronous
-  replacement must establish drawable ownership and buffer lifetime during physical resizing.
-- Done when: unnecessary surface copies and input-thread stalls have a measured policy,
-  equivalent pixels, bounded resource ownership and frame queues, and real input-latency
-  evidence.
+  that document at matched CPU contention. Separate recording, GPU completion, bitmap copy and
+  native publication, and compare visible latency with Typora on the same display.
+- Done when: real scrolling has a measured input-to-display budget under matched contention,
+  including tail latency and any remaining window-thread stalls.
 - Related: std.gui.049, std.gui.056, std.gui.057, platform.portability.066
 
 ### std.gui.057 — Validate layered presentation across displays and live resizing
 
 - Evidence: rendering goes to an offscreen OpenGL target on a fixed-size hidden context host.
   The visible HWND stays layered, and `publishNativePresentation` (`surface.win32.swg`) hands
-  its complete premultiplied BGRA frame, position and size to USER32 in one
-  `UpdateLayeredWindow` call. Discrete placement prepares the frame before WM_NCCALCSIZE
-  publishes it. Every repaint reads the full frame back from the GPU into a persistent CPU
-  bitmap. Existing captures ran at 12–30 fps under load, so they cannot exclude a
-  one-refresh artifact.
+  premultiplied BGRA pixels, position and size to USER32 in one
+  `UpdateLayeredWindowIndirect` call. Ordinary updates transfer and publish only the dirty
+  rectangle; discrete placement prepares a complete frame before WM_NCCALCSIZE publishes it.
+  Existing captures ran at 12–30 fps under load, so they cannot exclude a one-refresh artifact.
 - Rejected: a DirectComposition presenter does not bind the HWND geometry change to its
   content commit, and cropped content appeared in every commit ordering tried.
 - Next: measure physical border-drag latency against std.gui.056 on both displays, and capture
   discrete placement at verified display cadence across DPI and adapter boundaries. Measure
-  sustained repaint cost before optimizing the readback or its temporary allocation. Keep the
+  sustained repaint cost with asynchronous dirty-region transfers. Keep the
   single-HWND publication contract for any faster presenter.
 - Capture constraint: target the verified Swag Scope HWND or its own window commands, never
   global full-screen shortcuts, and always include normal/full-screen/normal first.
@@ -519,8 +505,9 @@ preview. Validate requested settings against the capabilities supplied by platfo
 - Evidence: when a worker thread rendered, a physical border drag of a large Swag Scope window
   stalled for 0.9–3.3 s in `wglMakeCurrent`, drawing and `glFlush`. The worker sat in the
   Intel driver's `NtGdiDdDDIDestroyAllocation2` while the window thread was resizing. With the
-  context on the window thread there are no multi-second calls, but `glFlush + SwapBuffers`
-  still reaches 71–93 ms, and a full-surface copy remains (std.gui.054). The default renderer
+  context on the window thread there were no multi-second calls, but the previous presenter
+  still reached 71–93 ms in `glFlush + SwapBuffers`. Remeasure physical dragging with the
+  current layered presenter and its synchronous geometry frames (std.gui.057). The default renderer
   owns its context on the window thread, and `surface.renderthread.win32.test.swg` checks
   that ownership across resized paints.
 - Measurement constraint: use a DPI-aware probe that actually presses, moves, and releases the

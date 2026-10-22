@@ -1,5 +1,6 @@
 #pragma once
 #include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroRegPrintMode.h"
 #include "Backend/Micro/MicroStorage.h"
 #include "Support/Core/Utf8.h"
 
@@ -8,13 +9,6 @@ SWC_BEGIN_NAMESPACE();
 class TaskContext;
 class Encoder;
 class MicroBuilder;
-
-enum class MicroRegPrintMode : uint8_t
-{
-    Default,
-    Virtual,
-    Concrete,
-};
 
 class MicroPrinter
 {

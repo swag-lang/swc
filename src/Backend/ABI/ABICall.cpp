@@ -154,16 +154,6 @@ namespace
         return MicroOpBits::B64;
     }
 
-    MicroOpBits canonicalIntBits(uint8_t numBits)
-    {
-        if (!numBits)
-            return MicroOpBits::B64;
-
-        const MicroOpBits bits = microOpBitsFromBitWidth(numBits);
-        SWC_ASSERT(bits != MicroOpBits::Zero);
-        return bits;
-    }
-
     bool needsCanonicalIntExtension(uint8_t numBits)
     {
         return numBits && numBits < 64;
@@ -183,7 +173,7 @@ namespace
     // clears the upper half, free after a 32-bit write.
     void loadIntValueToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint8_t numBits)
     {
-        const MicroOpBits valueBits = canonicalIntBits(numBits);
+        const MicroOpBits valueBits = ABICall::valueBits(numBits);
         builder.emitLoadRegReg(dstReg, srcReg, valueBits == MicroOpBits::B32 ? MicroOpBits::B32 : MicroOpBits::B64);
     }
 
@@ -201,7 +191,7 @@ namespace
             return;
 
         SWC_ASSERT(ret.valuePtr != nullptr);
-        const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+        const MicroOpBits retBits = ABICall::valueBits(ret.numBits);
         builder.emitLoadRegPtrImm(regBase, reinterpret_cast<uint64_t>(ret.valuePtr));
         if (ret.isFloat)
             builder.emitLoadMemReg(regBase, 0, conv.floatReturn, retBits);
@@ -290,7 +280,7 @@ namespace
 
 void ABICall::loadCanonicalIntFromMemToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcBaseReg, uint64_t srcOffset, uint8_t numBits, bool isSigned)
 {
-    const MicroOpBits srcBits = canonicalIntBits(numBits);
+    const MicroOpBits srcBits = ABICall::valueBits(numBits);
     if (!needsCanonicalIntExtension(numBits))
     {
         builder.emitLoadRegMem(dstReg, srcBaseReg, srcOffset, srcBits);
@@ -305,7 +295,7 @@ void ABICall::loadCanonicalIntFromMemToReg(MicroBuilder& builder, MicroReg dstRe
 
 void ABICall::loadCanonicalIntToReg(MicroBuilder& builder, MicroReg dstReg, MicroReg srcReg, uint8_t numBits, bool isSigned)
 {
-    const MicroOpBits srcBits = canonicalIntBits(numBits);
+    const MicroOpBits srcBits = ABICall::valueBits(numBits);
     if (!needsCanonicalIntExtension(numBits))
     {
         builder.emitLoadRegReg(dstReg, srcReg, srcBits);
@@ -796,7 +786,7 @@ void ABICall::storeReturnRegsToReturnBuffer(MicroBuilder& builder, CallConvKind 
     SWC_ASSERT(!ret.isIndirect);
 
     const CallConv&   conv    = CallConv::get(callConvKind);
-    const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
+    const MicroOpBits retBits = ABICall::valueBits(ret.numBits);
 
     if (ret.isFloat)
         builder.emitLoadMemReg(outputStorageReg, 0, conv.floatReturn, retBits);
@@ -815,8 +805,7 @@ void ABICall::materializeValueToReturnRegs(MicroBuilder& builder, CallConvKind c
 
     if (ret.isFloat)
     {
-        const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
-        SWC_ASSERT(retBits != MicroOpBits::Zero);
+        const MicroOpBits retBits = ABICall::valueBits(ret.numBits);
 
         if (valueIsLValue)
             builder.emitLoadRegMem(conv.floatReturn, valueReg, 0, retBits);
@@ -857,8 +846,7 @@ void ABICall::materializeReturnToReg(MicroBuilder& builder, MicroReg dstReg, Cal
 
     if (ret.isFloat)
     {
-        const MicroOpBits retBits = ret.numBits ? microOpBitsFromBitWidth(ret.numBits) : MicroOpBits::B64;
-        SWC_ASSERT(retBits != MicroOpBits::Zero);
+        const MicroOpBits retBits = ABICall::valueBits(ret.numBits);
         builder.emitLoadRegReg(dstReg, conv.floatReturn, retBits);
     }
     else

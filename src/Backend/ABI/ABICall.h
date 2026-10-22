@@ -2,8 +2,10 @@
 #include "Backend/ABI/ABITypeNormalize.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroReg.h"
+#include "Backend/Micro/MicroTypes.h"
 #include "Backend/RuntimeBase.h"
 #include "Support/Core/RefTypes.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -20,6 +22,17 @@ namespace ABICall
     inline bool needsWindowsStackProbe(Runtime::TargetOs targetOs, uint64_t stackAdjust)
     {
         return stackAdjust > K_WINDOWS_STACK_PROBE_PAGE_SIZE && targetOs == Runtime::TargetOs::Windows;
+    }
+
+    // An unspecified scalar ABI width uses a full integer register.
+    inline MicroOpBits valueBits(uint8_t numBits)
+    {
+        if (!numBits)
+            return MicroOpBits::B64;
+
+        const MicroOpBits bits = microOpBitsFromBitWidth(numBits);
+        SWC_ASSERT(bits != MicroOpBits::Zero);
+        return bits;
     }
 
     struct ArgLayout

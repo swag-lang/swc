@@ -1112,8 +1112,7 @@ namespace
             const TypeInfo& returnTypeInfo = codeGen.ctx().typeMgr().get(returnTypeRef);
             SWC_ASSERT(!CodeGenFunctionHelpers::shouldMaterializeAddressBackedValue(codeGen, returnTypeInfo, normalizedRet.isIndirect, normalizedRet.isFloat, normalizedRet.numBits));
 
-            const MicroOpBits retBits = normalizedRet.numBits ? microOpBitsFromBitWidth(normalizedRet.numBits) : MicroOpBits::B64;
-            SWC_ASSERT(retBits != MicroOpBits::Zero);
+            const MicroOpBits retBits = ABICall::valueBits(normalizedRet.numBits);
 
             const MicroReg returnValueReg = codeGen.nextVirtualRegisterForType(returnTypeRef, returnTypeInfo);
             const TypeRef  exprTypeRef    = returnTypeInfo.isReference() ? codeGen.viewType(exprRef).typeRef() : TypeRef::invalid();

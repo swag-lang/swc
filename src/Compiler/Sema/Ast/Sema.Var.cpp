@@ -197,12 +197,7 @@ namespace
                 offset                                                  = addRes.second;
             }
             for (const DataSegmentRelocation& relocation : initializerRelocations)
-            {
-                if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
-                    segment.addFunctionRelocation(offset + relocation.offset, relocation.targetSymbol, relocation.allowUnresolvedFunction);
-                else
-                    segment.addRelocation(offset + relocation.offset, {.shardIndex = relocation.targetShardIndex, .offset = relocation.targetOffset});
-            }
+                segment.addRelocation(offset + relocation.offset, relocation);
         }
         else if (hasFunctionInit)
         {

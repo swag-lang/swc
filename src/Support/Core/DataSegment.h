@@ -99,6 +99,15 @@ public:
     void addRelocation(uint32_t offset, DataSegmentRef targetRef);
     void addFunctionRelocation(uint32_t offset, const SymbolFunction* targetSymbol, bool allowUnresolvedFunction = false);
 
+    // Add a relocation target at an absolute offset in this segment.
+    void addRelocation(uint32_t offset, const DataSegmentRelocation& target)
+    {
+        if (target.kind == DataSegmentRelocationKind::FunctionSymbol)
+            addFunctionRelocation(offset, target.targetSymbol, target.allowUnresolvedFunction);
+        else
+            addRelocation(offset, {.shardIndex = target.targetShardIndex, .offset = target.targetOffset});
+    }
+
     std::pair<uint32_t, std::byte*> reserveBytes(uint32_t size, uint32_t align, bool zeroInit);
     uint32_t                        reserveBlock(uint32_t size, uint32_t align, bool zeroInit);
 

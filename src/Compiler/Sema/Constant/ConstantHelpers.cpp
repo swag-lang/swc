@@ -443,12 +443,7 @@ ConstantRef ConstantHelpers::materializeAggregateConstructionConstant(Sema& sema
         std::memcpy(storage, construction.bytes.data(), size);
 
     for (const DataSegmentRelocation& relocation : construction.relocations)
-    {
-        if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
-            segment.addFunctionRelocation(offset + relocation.offset, relocation.targetSymbol, relocation.allowUnresolvedFunction);
-        else
-            segment.addRelocation(offset + relocation.offset, {.shardIndex = relocation.targetShardIndex, .offset = relocation.targetOffset});
-    }
+        segment.addRelocation(offset + relocation.offset, relocation);
 
     const ConstantValue result = makeMaterializedConstantValue(sema.ctx(), type, storageType, {storage, static_cast<size_t>(size)}, {.shardIndex = shardIndex, .offset = offset});
 

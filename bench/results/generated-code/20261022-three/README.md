@@ -250,3 +250,60 @@ small/large finite inputs, and destinations that alias their inputs. A source
 fixture that did not activate the new fold was removed rather than counted
 as positive coverage; the benchmark checksums cover the native source boundary.
 Runtime timing remains **unconfirmed** until an accepted grouped campaign.
+
+## Compare scans in memory, reload only for a swap
+
+A read-only indexed scan whose last value feeds later work now compares in
+memory and reloads that value at a proven common observation point. Every
+incoming path to the reload must carry the same original read and address;
+dominance alone would miss a killed value merging back or a reload reentered
+after a write. Uses, partial definitions, address changes, writes, calls and
+returns stop motion. Full definitions may kill a path. Integer result-width
+classification is shared with the existing post-RA dead-copy check. Only
+ordinary integer loads, matching compare widths, 64-bit addresses and unit
+steps qualify. Multiple frontiers, bypasses and unsupported CFGs decline it.
+All matching scans are handled before the pass indexes loop rotations, so
+the post-RA sweep budget does not leave other loops unrotated.
+
+Sort's two scans change **four to three emitted instructions per missed
+element**. Both final values are reloaded only on the swap path, before the
+first write, including when the two addresses alias. The rest of qsort keeps
+its code: **95 to 93 static instructions**, **23 to 25 explicit memory
+operands**, three saved integer registers and two calls. See emitted x64
+[before](sort-values-base.asm) and [after](sort-values-new.asm).
+
+The [execution-count model](sort-values-cost.json) reproduces the unchanged
+300,000-element generator and checksum 599499929. It counts 3,377,515 missed
+probes, 1,043,181 partition episodes and 1,022,129 swaps. Including entry and
+final probes and both reloads, scan work changes **19,769,146 to 16,349,527
+instructions**: 3,419,619 fewer. It adds **2,044,258 reads** of the final probed
+addresses. This instruction/read trade is explicit; the model does not assign
+cycle costs or establish a speedup.
+
+All 1,556 C++ tests pass, including twenty recognition/rejection shapes and
+2,522 before/after machine-code executions checking forward/backward scans,
+early stops, live exit flags, aliases, discarded values and a partial-register
+kill. All twelve Release checksums match. After overload/name pairing,
+all eleven other kernels and native runtime functions retain their code;
+compiler-side build adapters differ only in process-local handles. See the
+[complete Micro comparison](sort-values-microdiff.txt). Analysis is lazy after
+matching the exact loop shape. Each accepted split rebuilds the CFG/order and
+liveness; the frontier and reverse equivalence walks visit each edge once.
+The extra work is O(P*(N+E)) plus existing dominator construction for P splits
+in an N-instruction/E-edge function.
+
+Two short, 32-round diagnostics retained every sample and checked all binary
+hashes and checksums. They interleave new/old/competitor and reverse that order
+on alternate rounds, with an unchanged new/new control. These are **not full
+accepted campaigns** and compare existing competitor binaries from the prior
+accepted campaign, rather than rebuilding every language in the same hour.
+
+| Diagnostic | New/old ratio, 95% CI | New/competitor ratio, 95% CI | A/A ratio, 95% CI |
+| --- | --- | --- | --- |
+| [Nbody lane fold](nbody-lanes-probe.json) | 0.9394 [0.8365, 0.9911] | Zig: 1.026 [0.9286, 1.115] | 1.032 [0.9320, 1.133] |
+| [Sort scan values](sort-values-probe.json) | 0.9928 [0.9563, 1.064] | MSVC: 0.9936 [0.8556, 1.051] | 0.9425 [0.8631, 1.043] |
+
+Median measured foreign load was 3.86 and 3.41 cores respectively. Both targets
+are near their competitors in these probes; neither superiority nor a runtime
+gain beyond the broad A/A bands is established. Both batches are **landed,
+unconfirmed**, with no timing veto observed.

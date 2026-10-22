@@ -509,24 +509,16 @@ namespace
         out += std::format("{} = [0x{:016X}] -> <unreadable>\n", label, addr);
     }
 
-    AstNodeRef fallbackWaitNodeRef(const TaskContext& ctx, const SymbolFunction* ownerFunction)
+    template<auto StateMember, auto OwnerMember>
+    __forceinline auto fallbackWaitRef(const TaskContext& ctx, const SymbolFunction* ownerFunction)
     {
-        if (ctx.state().nodeRef.isValid())
-            return ctx.state().nodeRef;
+        using Ref = std::remove_cvref_t<decltype(ctx.state().*StateMember)>;
+        if ((ctx.state().*StateMember).isValid())
+            return ctx.state().*StateMember;
         if (ownerFunction)
-            return ownerFunction->declNodeRef();
+            return (ownerFunction->*OwnerMember)();
 
-        return AstNodeRef::invalid();
-    }
-
-    SourceCodeRef fallbackWaitCodeRef(const TaskContext& ctx, const SymbolFunction* ownerFunction)
-    {
-        if (ctx.state().codeRef.isValid())
-            return ctx.state().codeRef;
-        if (ownerFunction)
-            return ownerFunction->codeRefIfDeclared();
-
-        return SourceCodeRef::invalid();
+        return Ref::invalid();
     }
 
     const SymbolFunction* waitOwnerFunction(const TaskContext& ctx, const SymbolFunction* ownerFunction, const SymbolFunction& targetFunction)
@@ -597,8 +589,8 @@ namespace
 
         TaskState& wait   = ctx.state();
         wait.kind         = waitKind;
-        wait.nodeRef      = fallbackWaitNodeRef(ctx, ownerFunction);
-        wait.codeRef      = fallbackWaitCodeRef(ctx, ownerFunction);
+        wait.nodeRef      = fallbackWaitRef<&TaskState::nodeRef, &SymbolFunction::declNodeRef>(ctx, ownerFunction);
+        wait.codeRef      = fallbackWaitRef<&TaskState::codeRef, &SymbolFunction::codeRefIfDeclared>(ctx, ownerFunction);
         wait.symbol       = &targetFunction;
         wait.waiterSymbol = ownerFunction;
         if (waiterIsJitWait(waitKind) && wait.waiterSymbol == &targetFunction)

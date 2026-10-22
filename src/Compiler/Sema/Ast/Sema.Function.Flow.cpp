@@ -817,9 +817,7 @@ namespace
         if (!param.resolvedTypeRef.isValid())
             return false;
 
-        const TypeRef   resolvedTypeRef  = sema.typeMgr().unwrapAliasEnum(sema.ctx(), param.resolvedTypeRef);
-        const TypeRef   effectiveTypeRef = resolvedTypeRef.isValid() ? resolvedTypeRef : param.resolvedTypeRef;
-        const TypeInfo& paramType        = sema.typeMgr().get(effectiveTypeRef);
+        const TypeInfo& paramType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), param.resolvedTypeRef);
         return paramType.isCodeBlock() && paramType.payloadTypeRef() == sema.typeMgr().typeVoid();
     }
 

@@ -181,7 +181,6 @@ struct RenderOgl
         contextCount:          u32                // Number of live interface-created drawables.
         advancedBlending:      u8                 // Advanced blend-equation family supplied by the current context.
         advancedBarrierActive: bool               // Whether this context must keep later framebuffer touches in separate passes.
-        profilePassCount: u32
     }
 }
 
@@ -1841,32 +1840,8 @@ impl RenderOgl
 
         for i in 4 do
             glEnableVertexAttribArray(cast(GLuint, i))
-        var queries: Array'GLuint
-        if Env.hasArgument("profile.commands") and dc.commandBuffer.count > 200
-        {
-            .profilePassCount += 1
-            if .profilePassCount == 8
-            {
-                queries.resize(dc.commandBuffer.count)
-                glGenQueries(cast(GLsizei, queries.count), queries.buffer)
-            }
-        }
-        for cmd, cmdIdx in dc.commandBuffer
-        {
-            if not queries.isEmpty() do glBeginQuery(GL_TIME_ELAPSED, queries[cmdIdx])
+        for cmd, cmdIdx in dc.commandBuffer do
             .executeCommand(dc, cmd, cmdIdx)
-            if not queries.isEmpty() do glEndQuery(GL_TIME_ELAPSED)
-        }
-        if not queries.isEmpty()
-        {
-            for cmd, index in dc.commandBuffer
-            {
-                var nanoseconds: GLuint64
-                glGetQueryObjectui64v(queries[index], GL_QUERY_RESULT, &nanoseconds)
-                if nanoseconds > 100000 do Console.printf("command % %: % us\n", index, cmd.id, nanoseconds / 1000)
-            }
-            glDeleteQueries(cast(GLsizei, queries.count), queries.buffer)
-        }
         for i in 4 do
             glDisableVertexAttribArray(cast(GLuint, i))
         .finishAdvancedBlendPass()

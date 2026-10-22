@@ -21,8 +21,6 @@ struct RenderOglReadback
     sourceX:   s32
     byteCount: u64
     failed:    bool
-    profileWatch: Time.Stopwatch
-    profileDrawUs: u64
 
     width:  s32
     height: s32
@@ -111,10 +109,7 @@ impl RenderOglReadback
         .byteCount = cast(u64, bytes)
         if .mapping
         {
-            .profileDrawUs = 0
-            .profileWatch.restart()
             .startTransfer()
-            if Env.hasArgument("swag.readbacktrace") do Console.printf("directread %\n", .profileWatch.elapsedMicroseconds())
         }
         else
         {
@@ -122,7 +117,6 @@ impl RenderOglReadback
             .failed = .drawing == null
             glFlush()
         }
-        .profileWatch.restart()
         return not .failed
     }
 
@@ -148,18 +142,12 @@ impl RenderOglReadback
                 return false
             glDeleteSync(.drawing)
             .drawing = null
-            .profileDrawUs = .profileWatch.elapsedMicroseconds()
-            .profileWatch.restart()
             .startTransfer()
-            if Env.hasArgument("swag.readbacktrace") do Console.printf("readcall %\n", .profileWatch.elapsedMicroseconds())
-            .profileWatch.restart()
             return false
         }
 
         if not .ready(.transfer) do
             return false
-        let transferUs = .profileWatch.elapsedMicroseconds()
-        .profileWatch.restart()
         var previous: GLint
         glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &previous)
         glBindBuffer(GL_PIXEL_PACK_BUFFER, .buffer)
@@ -197,7 +185,6 @@ impl RenderOglReadback
 
         glDeleteSync(.transfer)
         .transfer = null
-        if Env.hasArgument("swag.readbacktrace") do Console.printf("readback draw % transfer % copy %\n", .profileDrawUs, transferUs, .profileWatch.elapsedMicroseconds())
         return true
     }
 

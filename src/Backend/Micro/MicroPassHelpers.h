@@ -72,6 +72,16 @@ namespace MicroPassHelpers
         return regTouchImpl<true>(inst, operands, reg, encoder, alsoDef);
     }
 
+    // Integer result width, before the architectural zero extension of a
+    // 32-bit definition. Later size operands describe inputs or addresses.
+    inline uint32_t integerResultBits(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (inst.op == MicroInstrOpcode::SetCondReg)
+            return 8;
+        const auto mask = MicroInstr::info(inst.op).opBitsMask;
+        return mask ? getNumBits(ops[std::countr_zero(mask)].opBits) : 64;
+    }
+
     struct RegDefinitionSummary
     {
         uint32_t count    = 0;

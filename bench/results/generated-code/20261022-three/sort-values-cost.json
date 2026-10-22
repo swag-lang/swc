@@ -1,0 +1,12 @@
+{
+  "partitions": 28258,
+  "episodes": 1043181,
+  "misses": 3377515,
+  "swaps": 1022129,
+  "no_swap": 21052,
+  "checksum": 599499929,
+  "old_instructions": 19769146,
+  "new_instructions": 16349527,
+  "saved_instructions": 3419619,
+  "extra_reads": 2044258
+}

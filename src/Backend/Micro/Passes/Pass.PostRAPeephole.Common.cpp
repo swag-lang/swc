@@ -199,14 +199,7 @@ namespace PostRaPeephole
                 if (!reg.isAnyInt())
                     return true;
 
-                // The first size operand names the register result; later
-                // sizes describe an extension source or indexed address.
-                // Size-free integer definitions are full-width except SETcc.
-                uint32_t writtenBits = 64;
-                if (inst->op == MicroInstrOpcode::SetCondReg)
-                    writtenBits = 8;
-                else if (info.opBitsMask)
-                    writtenBits = getNumBits(ops[std::countr_zero(info.opBitsMask)].opBits);
+                const uint32_t writtenBits = MicroPassHelpers::integerResultBits(*inst, ops);
                 if (writtenBits >= 32 || writtenBits >= getNumBits(materializedBits))
                     return true;
             }

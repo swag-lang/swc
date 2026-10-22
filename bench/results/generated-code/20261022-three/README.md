@@ -43,3 +43,33 @@ CSV candidate/base median 1.0418 with range 0.8181..1.7084 and unchanged A/A med
 median 0.9866. These dispersed observations do not establish a speedup or a
 reproducible slowdown. The batch is accepted on executed static work and remains
 **landed, unconfirmed** until the grouped campaign.
+
+## Dead floating clears
+
+The physical-register lane-demand analysis now removes a clear only when no lane
+of its result can reach an observation. Full definitions on every successor can
+kill that demand; partial scalar copies, aliased arithmetic inputs, calls,
+materialized control flow, claimed rewrites and unknown operations retain it.
+Clear removal runs after floating memory folding so a pending erased lifetime
+marker cannot obscure that sweep's reload fusion.
+
+Nbody's actual native timestep changes from **390 to 375 instructions**, with
+**145 memory operands**, five packed roots and five packed divisions unchanged.
+It executes 500,000 times: the batch removes 7.5 million zeroing instructions,
+without changing arithmetic, memory traffic, saved registers, spills or calls.
+The full main changes 753/339 to 738/339 instructions/memory operands. The
+out-of-line `advance`, unused by the fully inlined benchmark, loses one clear.
+[Before](nbody-clear-base.asm) and [after](nbody-clear-new.asm) are emitted x64.
+
+All twelve Release checksums pass. Other benchmark kernels and shared runtime
+paths are unchanged after overload ordinals and generated names are paired.
+The complete Micro comparison is in [clear-microdiff.txt](clear-microdiff.txt).
+Correctness: 1,542 in-memory C++ tests pass, including executed vector-lane and
+both-branch observations before/after optimization; 324 optimizer source tests
+pass through JIT and native in Release with `--validate-micro`. The final compiler
+has no temporary tracing instrumentation. Compiler build identity is unchanged.
+
+The analysis uses the existing four-bit lane lattice over the CFG, restricted
+to functions with unclaimed floating clears. This adds a candidate scan and one
+lane-demand solve after memory folding; unsupported control flow declines it.
+Timing is **not measured** for this batch; its runtime gain remains unconfirmed.

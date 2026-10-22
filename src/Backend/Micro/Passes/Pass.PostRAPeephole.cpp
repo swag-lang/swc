@@ -1223,6 +1223,8 @@ Result MicroPostRaPeepholePass::run(MicroPassContext& context)
     // Memory operands must not take register products away from contraction
     // or prevent a result copy from selecting the producer's destination.
     foldFloatMemoryOperands(ctx);
+    // A removed lifetime-ending clear must not hide a memory fold in this sweep.
+    optimizeFloatInstructions(ctx, true);
 
     if (ctx.actions.empty())
         return Result::Continue;

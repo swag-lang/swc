@@ -6989,6 +6989,87 @@ SWC_TEST_BEGIN(PostRAPeephole_ScalarClearTracksPackedLaneReads)
 }
 SWC_TEST_END()
 
+// Execute the full vector result: scalar copies preserve the cleared upper lanes,
+// while a three-operand arithmetic result takes them from its first input.
+SWC_TEST_BEGIN(PostRAPeephole_DeadFloatClearPreservesAllObservedLanes)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg left   = MicroReg::floatReg(0);
+    constexpr MicroReg right  = MicroReg::floatReg(1);
+    constexpr MicroReg result = MicroReg::floatReg(2);
+    for (uint32_t variant = 0; variant < 5; ++variant)
+    {
+        std::array<uint64_t, 8> expected{};
+        for (const bool optimize : {false, true})
+        {
+            std::array<uint64_t, 8> values = {0x4000000000000000, 0x4010000000000000, 0x4020000000000000, 0x4030000000000000};
+            MicroBuilder            builder(ctx);
+            builder.emitLoadRegMem(left, base, 0, MicroOpBits::B128);
+            builder.emitLoadRegMem(right, base, 16, MicroOpBits::B128);
+            builder.emitClearReg(result, MicroOpBits::B64);
+            // A disjoint load separates the clear from its eventual replacement.
+            builder.emitLoadRegMem(MicroReg::intReg(0), base, 48, MicroOpBits::B64);
+            if (variant == 3)
+                builder.emitLoadRegReg(result, left, MicroOpBits::B64);
+            else
+            {
+                if (variant == 4)
+                    builder.emitLoadMemReg(base, 48, result, MicroOpBits::B128);
+                builder.emitOpBinaryRegRegReg(result, variant == 1 ? result : left, variant == 2 ? result : right, MicroOp::FloatAdd, MicroOpBits::B64);
+            }
+            builder.emitLoadMemReg(base, 32, result, MicroOpBits::B128);
+            builder.emitRet();
+            SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+            if (!optimize)
+                expected = values;
+            else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != (variant == 0 ? 0u : 1u))
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_DeadFloatClearRequiresEverySuccessorToOverwrite)
+{
+    const MicroReg     base   = CallConv::get(CallConvKind::C).intArgRegs[0];
+    constexpr MicroReg source = MicroReg::floatReg(0);
+    constexpr MicroReg result = MicroReg::floatReg(2);
+    for (const bool bothPaths : {false, true})
+    {
+        for (const uint64_t taken : {0ull, 1ull})
+        {
+            std::array<uint64_t, 8> expected{};
+            for (const bool optimize : {false, true})
+            {
+                std::array<uint64_t, 8> values = {0x4000000000000000, 0x4010000000000000, taken};
+                MicroBuilder            builder(ctx);
+                const auto              alternate = builder.createLabel();
+                const auto              join      = builder.createLabel();
+                builder.emitLoadRegMem(source, base, 0, MicroOpBits::B128);
+                builder.emitClearReg(result, MicroOpBits::B64);
+                builder.emitCmpMemImm(base, 16, ApInt(0, 64), MicroOpBits::B64);
+                builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, alternate);
+                builder.emitLoadRegReg(result, source, MicroOpBits::B128);
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, join);
+                builder.placeLabel(alternate);
+                if (bothPaths)
+                    builder.emitLoadRegMem(result, base, 0, MicroOpBits::B128);
+                builder.placeLabel(join);
+                builder.emitLoadMemReg(base, 32, result, MicroOpBits::B128);
+                builder.emitRet();
+                SWC_RESULT(executeForwardingCase(ctx, builder, values.data(), optimize));
+                if (!optimize)
+                    expected = values;
+                else if (values != expected || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::ClearReg) != (bothPaths ? 0u : 1u))
+                    return Result::Error;
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

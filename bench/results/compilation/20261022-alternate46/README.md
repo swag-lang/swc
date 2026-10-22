@@ -104,3 +104,26 @@ A direct inline-constant span query was discarded: its stack iterator enlarged
 the helper frame by 64 bytes. The first string-hash trial kept an extra live
 hash and enlarged its frame by 16 bytes; the retained version reuses the input
 hash variable after preserving the original shard selection and keeps the frame.
+
+## Twenty-batch correctness milestone
+
+The combined source at `31080463a5` passes all 1,618 C++ tests with
+`--dev-full` and all 1,539 JIT tests. This milestone includes both campaigns
+through standard-header cleanup and trailing-block sibling traversal, together
+with the prompt-2 whole-vector lane differences already integrated on `master`.
+The DevMode compiler is built from that combined source; both checks use a fresh
+isolated cache. Subsequent batches have their own focused validation.
+
+## Reuse reference-comparison operand metadata
+
+`structReferenceForEquality` already checks the operand's cached type pointer.
+Dereference it instead of fetching its handle and resolving it through the type
+manager again. View construction and successful conversions keep the pointer
+and handle paired, including narrowing; the opposite operand is already read
+through the same cached metadata path. All guards, normalization, conversion
+order and results remain. No storage or allocation changes. The DevMode helper
+drops from 104 instructions and 14 calls to 96 instructions and 12 calls, keeps
+its 0x70-byte stack, and shortens its final instruction offset by 31 bytes.
+Its promotion and relational-node callers retain their instruction/call counts,
+final offsets and stack reservations. The DevMode build and both permanent
+native reference/comparison inputs pass all 37 tests and compile-time assertions.

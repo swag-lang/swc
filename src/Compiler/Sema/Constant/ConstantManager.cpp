@@ -295,10 +295,10 @@ namespace
         return publishInterned(stripe, std::move(canonical), result, routingHash);
     }
 
-    ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t routingHash, const TaskContext& ctx, const ConstantValue& value)
+    ConstantRef addCstString(const ConstantManager& manager, ConstantManager::Shard& shard, uint32_t hash, const TaskContext& ctx, const ConstantValue& value)
     {
-        ConstantManager::InternStripe& stripe = internStripe(shard, routingHash);
-        const ConstantRef              found  = findInterned(stripe, value, routingHash);
+        ConstantManager::InternStripe& stripe = internStripe(shard, hash);
+        const ConstantRef              found  = findInterned(stripe, value, hash);
         if (found.isValid())
             return found;
 
@@ -307,33 +307,33 @@ namespace
 
         {
             const std::unique_lock lk(stripe.mutex);
-            const ConstantRef      existing = findInterned(stripe, value, routingHash);
+            const ConstantRef      existing = findInterned(stripe, value, hash);
             if (existing.isValid())
                 return existing;
 
-            const bool preserveType = ctx.typeMgr().get(value.typeRef()).isString();
+            const uint32_t shardIndex   = hash & (ConstantStorageLayout::SHARD_COUNT - 1);
+            const bool     preserveType = ctx.typeMgr().get(value.typeRef()).isString();
             if (!preserveType)
             {
                 // Alias inputs can miss with their original type but normalize to an existing key.
                 // Check before allocating a constant that would be discarded at insertion.
                 const ConstantValue normalizedValue = ConstantValue::makeString(ctx, value.getString());
-                const ConstantRef   normalized      = findInterned(stripe, normalizedValue, Math::hash(normalizedValue.hash()));
+                hash                                = Math::hash(normalizedValue.hash());
+                const ConstantRef normalized        = findInterned(stripe, normalizedValue, hash);
                 if (normalized.isValid())
                     return normalized;
             }
 
-            const uint32_t                         shardIndex = routingHash & (ConstantStorageLayout::SHARD_COUNT - 1);
-            const std::pair<std::string_view, Ref> res        = shard.dataSegment.addString(value.getString());
-            ConstantValue                          strValue   = ConstantValue::makeString(ctx, res.first);
+            const std::pair<std::string_view, Ref> res      = shard.dataSegment.addString(value.getString());
+            ConstantValue                          strValue = ConstantValue::makeString(ctx, res.first);
             if (preserveType)
                 strValue.setTypeRef(value.typeRef());
             strValue.setDataSegmentRef({.shardIndex = shardIndex, .offset = res.second});
             localIndex = shard.dataSegment.add(strValue);
             ConstantManager::StoredConstant canonical(shard.dataSegment.ptr<ConstantValue>(localIndex));
             SWC_ASSERT(localIndex < ConstantStorageLayout::LOCAL_MASK);
-            result                    = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantStorageLayout::LOCAL_BITS) | localIndex});
-            const uint32_t storedHash = Math::hash(canonical->hash());
-            result                    = publishInterned(stripe, std::move(canonical), result, storedHash);
+            result = addCstFinalize(manager, ConstantRef{(shardIndex << ConstantStorageLayout::LOCAL_BITS) | localIndex});
+            result = publishInterned(stripe, std::move(canonical), result, hash);
         }
 
         return result;

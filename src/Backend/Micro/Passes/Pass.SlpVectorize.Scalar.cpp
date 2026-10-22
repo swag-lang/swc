@@ -612,10 +612,76 @@ namespace
         return true;
     }
 
+    struct RootProducts
+    {
+        MicroReg inputs = MicroReg::invalid();
+        MicroReg roots  = MicroReg::invalid();
+    };
+
+    // A pair of scalar products made from the two lanes of one packed square
+    // root is the same packed multiply, without two extractions and a repack.
+    // Match SSA values rather than register names: either input can have been
+    // redefined between producing the roots and consuming the products.
+    RootProducts packedRootProducts(const MicroPassContext& context, const MicroSsaState& ssa, const RootCandidate& first, const RootCandidate& second)
+    {
+        if (!first.divide)
+            return {};
+        const auto firstDef  = ssa.reachingDef(first.right, first.reference);
+        const auto secondDef = ssa.reachingDef(second.right, second.reference);
+        if (!firstDef.valid() || firstDef.isPhi || !secondDef.valid() || secondDef.isPhi ||
+            ssa.transitiveInstructionUseCount(firstDef.valueId, 2) != 1 ||
+            ssa.transitiveInstructionUseCount(secondDef.valueId, 2) != 1 ||
+            ssa.reachingValueId(first.left, first.reference) == firstDef.valueId ||
+            ssa.reachingValueId(second.left, second.reference) == secondDef.valueId)
+            return {};
+        const auto* firstProduct  = context.instructions->ptr(firstDef.instRef);
+        const auto* secondProduct = context.instructions->ptr(secondDef.instRef);
+        if (!firstProduct || !secondProduct || firstProduct->op != MicroInstrOpcode::OpBinaryRegRegReg ||
+            secondProduct->op != MicroInstrOpcode::OpBinaryRegRegReg)
+            return {};
+        const auto* firstOps  = firstProduct->ops(*context.operands);
+        const auto* secondOps = secondProduct->ops(*context.operands);
+        if (firstOps[3].opBits != MicroOpBits::B64 || secondOps[3].opBits != MicroOpBits::B64 ||
+            firstOps[4].microOp != MicroOp::FloatMultiply || secondOps[4].microOp != MicroOp::FloatMultiply)
+            return {};
+        const auto rootsDef = ssa.reachingDef(firstOps[2].reg, firstDef.instRef);
+        const auto highDef  = ssa.reachingDef(secondOps[2].reg, secondDef.instRef);
+        if (!rootsDef.valid() || rootsDef.isPhi || !highDef.valid() || highDef.isPhi)
+            return {};
+        const auto* roots = context.instructions->ptr(rootsDef.instRef);
+        const auto* high  = context.instructions->ptr(highDef.instRef);
+        if (!roots || !high || roots->op != MicroInstrOpcode::VecUnaryRegReg || high->op != MicroInstrOpcode::OpBinaryRegRegImm)
+            return {};
+        const auto* rootOps = roots->ops(*context.operands);
+        const auto* highOps = high->ops(*context.operands);
+        if (rootOps[2].opBits != MicroOpBits::B128 || rootOps[3].microOp != MicroOp::VecSqrtF64 ||
+            highOps[2].opBits != MicroOpBits::B128 || highOps[3].microOp != MicroOp::VecShiftRightBytes ||
+            highOps[4].valueU64 != 8 || ssa.reachingValueId(highOps[1].reg, highDef.instRef) != rootsDef.valueId ||
+            ssa.reachingValueId(rootOps[0].reg, first.reference) != rootsDef.valueId)
+            return {};
+        const auto inputDef = ssa.reachingDef(rootOps[1].reg, rootsDef.instRef);
+        if (!inputDef.valid() || inputDef.isPhi)
+            return {};
+        const auto* input = context.instructions->ptr(inputDef.instRef);
+        if (!input || input->op != MicroInstrOpcode::OpBinaryRegRegReg)
+            return {};
+        const auto* inputOps = input->ops(*context.operands);
+        if (ssa.reachingValueId(inputOps[1].reg, inputDef.instRef) == MicroSsaState::K_INVALID_VALUE ||
+            ssa.reachingValueId(inputOps[2].reg, inputDef.instRef) == MicroSsaState::K_INVALID_VALUE)
+            return {};
+        if (inputOps[3].opBits != MicroOpBits::B128 || inputOps[4].microOp != MicroOp::VecUnpackLo64 ||
+            ssa.reachingValueId(inputOps[1].reg, inputDef.instRef) != ssa.reachingValueId(firstOps[1].reg, firstDef.instRef) ||
+            ssa.reachingValueId(inputOps[2].reg, inputDef.instRef) != ssa.reachingValueId(secondOps[1].reg, secondDef.instRef) ||
+            ssa.reachingValueId(inputOps[0].reg, first.reference) != inputDef.valueId)
+            return {};
+        return {inputOps[0].reg, rootOps[0].reg};
+    }
+
     void emitRootPair(MicroPassContext& context, const MicroSsaState& ssa, const RootCandidate& first, const RootCandidate& second, const RootHoistPlan& plan)
     {
-        uint32_t             next    = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
-        uint32_t             nextInt = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
+        const auto           products = packedRootProducts(context, ssa, first, second);
+        uint32_t             next     = MicroPassHelpers::computeNextVirtualFloatRegIndex(context);
+        uint32_t             nextInt  = MicroPassHelpers::computeNextVirtualIntRegIndex(context);
         FlatKeyMap<MicroReg> names;
         for (const MicroInstrRef reference : plan.order)
         {
@@ -686,9 +752,10 @@ namespace
         context.instructions->insertDerivedBefore(*context.operands, first.reference, MicroInstrOpcode::OpBinaryRegRegReg, binary);
         if (first.divide)
         {
-            binary[0].reg = right;
-            binary[1].reg = first.right;
-            binary[2].reg = renamed(second.right);
+            binary[0].reg     = right;
+            binary[1].reg     = products.inputs.isValid() ? products.inputs : first.right;
+            binary[2].reg     = products.inputs.isValid() ? products.roots : renamed(second.right);
+            binary[4].microOp = products.inputs.isValid() ? MicroOp::VecMulF64 : MicroOp::VecUnpackLo64;
             context.instructions->insertDerivedBefore(*context.operands, first.reference, MicroInstrOpcode::OpBinaryRegRegReg, binary);
             binary[0].reg     = result;
             binary[1].reg     = left;

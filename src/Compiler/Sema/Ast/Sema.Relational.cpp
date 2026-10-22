@@ -562,7 +562,7 @@ namespace
             if (!self.type() || !other.type())
                 return Result::Continue;
 
-            const TypeInfo& selfType = sema.typeMgr().get(self.typeRef());
+            const TypeInfo& selfType = *self.type();
             if (!selfType.isReference())
                 return Result::Continue;
 

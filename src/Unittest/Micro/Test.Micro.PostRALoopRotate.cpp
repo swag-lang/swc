@@ -848,7 +848,8 @@ namespace
         builder.placeLabel(header);
         builder.emitCmpRegReg(index, limit, variant == 2 ? MicroOpBits::B32 : MicroOpBits::B64);
         builder.emitJumpToLabel(signedBound ? MicroCond::GreaterOrEqual : MicroCond::AboveOrEqual, MicroOpBits::B32, exit);
-        builder.emitLoadAmcRegMem(variant == 3 ? right : value, variant == 4 ? MicroOpBits::B16 : MicroOpBits::B8, left, index, variant == 5 ? 2 : 1, variant == 6 ? std::numeric_limits<int32_t>::max() : 0, MicroOpBits::B64);
+        builder.emitLoadAmcRegMem(variant == 3 ? right : value, variant == 4 ? MicroOpBits::B16 : MicroOpBits::B8, variant == 15 ? index : left, index, variant == 5 ? 2 : 1, variant == 6 ? std::numeric_limits<int32_t>::max() : 0, MicroOpBits::B64);
+        const auto        loadRef    = builder.instructions().lastInstructionRef();
         MicroInstrOperand compare[7] = {};
         compare[0].reg               = right;
         compare[1].reg               = index;
@@ -881,6 +882,15 @@ namespace
         builder.placeLabel(other);
         builder.emitClearReg(spare, MicroOpBits::B64);
         builder.emitRet();
+        if (variant == 16)
+        {
+            std::array<MicroInstrOperand, 7> packed;
+            std::copy_n(builder.instructions().ptr(loadRef)->ops(builder.operands()), 7, packed.begin());
+            const auto operandsRef   = builder.operands().append(packed);
+            auto*      instruction   = builder.instructions().ptr(loadRef);
+            instruction->opsRef      = operandsRef;
+            instruction->numOperands = 7;
+        }
     }
 }
 
@@ -888,7 +898,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_UnrollsOnlyProvenBoundedPairScans)
 {
     for (const bool signedBound : {false, true})
         for (const bool reuseLoad : {false, true})
-            for (uint32_t variant = 0; variant < 15; ++variant)
+            for (uint32_t variant = 0; variant < 17; ++variant)
             {
                 MicroBuilder             builder(ctx);
                 Runtime::BuildCfgBackend config{};
@@ -898,13 +908,40 @@ SWC_TEST_BEGIN(PostRALoopRotate_UnrollsOnlyProvenBoundedPairScans)
                 emitBoundedPairScan(builder, MicroCond::NotEqual, signedBound, reuseLoad, variant);
                 X64Encoder encoder(ctx);
                 SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
-                const auto expected = variant == 0 || (variant == 12 && !reuseLoad) ? 5u : 1u;
+                const auto expected = variant == 0 || variant == 16 || (variant == 12 && !reuseLoad) ? 5u : 1u;
                 if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != expected)
                     return Result::Error;
                 SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
                 if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != expected)
                     return Result::Error;
             }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopRotate_PairScanKeepsAnIndexUsedAsItsLoadBase)
+{
+    for (const bool reuseLoad : {false, true})
+    {
+        alignas(16) std::array<uint8_t, 32> left;
+        std::array<uint8_t, 32>             right;
+        left.fill(127);
+        right.fill(128);
+        for (size_t index = 0; index < 8; ++index)
+            left[2 * index] = 128;
+        const auto               first      = reinterpret_cast<uint64_t>(left.data()) / 2;
+        uint64_t                 values[10] = {reinterpret_cast<uint64_t>(left.data()), reinterpret_cast<uint64_t>(right.data()) - first, first, first + 8};
+        MicroBuilder             builder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+        builder.setBackendBuildCfg(config);
+        emitBoundedPairScan(builder, MicroCond::NotEqual, false, reuseLoad, 15);
+        X64Encoder encoder(ctx);
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+        SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values));
+        if (values[4] != first + 8)
+            return Result::Error;
+    }
     return Result::Continue;
 }
 SWC_TEST_END()

@@ -129,7 +129,7 @@ namespace
             if (paired)
             {
                 if (c[3].opBits != MicroOpBits::B64 || c[4].opBits != MicroOpBits::B8 || c[5].valueU64 != 1 ||
-                    !a[0].reg.isInt() || !a[1].reg.isInt() || a[2].reg != index ||
+                    !a[0].reg.isInt() || !a[1].reg.isInt() || a[1].reg == index || a[2].reg != index ||
                     a[3].opBits != MicroOpBits::B8 || a[4].opBits != MicroOpBits::B64 || a[5].valueU64 != 1 ||
                     c[2].reg != a[0].reg || a[0].reg == index || a[0].reg == limit ||
                     a[0].reg == a[1].reg || a[0].reg == c[0].reg)
@@ -207,9 +207,9 @@ namespace
             std::array<MicroInstrOperand, 3> byteExit     = {f[0], f[1], f[2]};
             std::array<MicroInstrOperand, 7> byteCompare;
             std::copy_n(c, 7, byteCompare.begin());
-            std::array<MicroInstrOperand, 8> byteLoad;
+            std::array<MicroInstrOperand, 7> byteLoad;
             if (paired)
-                std::copy_n(a, 8, byteLoad.begin());
+                std::copy_n(a, 7, byteLoad.begin());
             storage.insertDerivedBefore(operands, before, MicroInstrOpcode::CmpRegReg, bounds);
             storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, boundsExit);
             MicroInstrOperand label[1] = {};
@@ -1117,8 +1117,8 @@ namespace
             const auto dom = MicroPassHelpers::computeInstructionDominators(cfg, cfg.singleEntry());
             if (!dom.dominates(cfg.indexOf(order[at + 1]), cfg.indexOf(before)))
                 continue;
-            std::array<MicroInstrOperand, 8> savedLoad;
-            std::copy_n(l, 8, savedLoad.begin());
+            std::array<MicroInstrOperand, 7> savedLoad;
+            std::copy_n(l, 7, savedLoad.begin());
             MicroInstrOperand memoryCompare[7] = {};
             memoryCompare[0].reg               = base;
             memoryCompare[1].reg               = index;

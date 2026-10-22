@@ -94,6 +94,16 @@ namespace FileSystem
     Utf8   normalizeSystemMessage(const Utf8& msg);
     Utf8   normalizeSystemMessage(std::error_code ec);
     Utf8   appendFileUsers(Utf8 because, const fs::path& path);
+
+    inline Result createDirectories(TaskContext& ctx, const fs::path& path, DiagnosticId failureId)
+    {
+        std::error_code ec;
+        fs::create_directories(path, ec);
+        if (ec)
+            return reportPathError(ctx, failureId, path, normalizeSystemMessage(ec));
+
+        return Result::Continue;
+    }
 }
 
 SWC_END_NAMESPACE();

@@ -44,9 +44,8 @@ private:
 
     Utf8   artifactExtension() const;
     Utf8   objectExtension() const;
-    Result createOutDir(const fs::path& outDir) const;
+    Result createDirectories(const fs::path& path) const;
     Utf8   automaticWorkDirName(const Utf8& name) const;
-    Result createBuildDir(const fs::path& buildDir) const;
 
     Result prepareDataSections() const;
     Result buildStartupAndDataSectionsParallel() const;

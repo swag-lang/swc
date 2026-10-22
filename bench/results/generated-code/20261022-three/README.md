@@ -207,3 +207,46 @@ Executed physical-IR tests now share the existing JIT emission seam, and the old
 comparison-exit fixtures use an ordinary scratch register instead of RSP. Full
 comparison and correctness checks cover these mechanical changes as well.
 Timing remains **unconfirmed** until an accepted grouped campaign.
+
+## Reuse whole-vector lane differences
+
+When an unpack combines the low and high scalar differences of the same two
+vectors, the instruction combiner now reuses one packed subtraction. Scalar
+consumers keep the low result or extract the high result from that vector.
+SSA checks retain the ordered inputs, follow scalar copies, and require the full
+inputs to remain available. Observed upper lanes, meaningful phis, destructive
+uses, calls, redefined inputs, narrow copies and mismatched lanes decline the
+transformation. Fresh result names preserve destination/input aliases. The
+existing vectorization, finite-value math and non-destructive encoder gates
+apply; there is no new arithmetic reassociation or approximation.
+
+This runs after ordinary instruction combines settle. Packed loop promotion
+exposes the inputs during the cleanup after SLP, so recognizing it inside SLP
+alone has no effect. A direct-input-only prototype transformed one pair but
+added register traffic (361 to 363 instructions, 145 to 146 memory operands);
+it was not accepted. Following SSA scalar copies exposes all ten pairs.
+
+Nbody's actual timestep changes **361 to 340 emitted instructions** and
+**145 to 128 memory operands**, retaining five packed roots, five packed
+divisions and no calls. Its 500,000 iterations remove **10.5 million
+instructions and 8.5 million memory operands**. Stack operands fall 117 to
+100; body-address operands remain 27. Register allocation and existing FMA
+selection change, so these are final machine-code counts, not an estimate
+from replaced Micro nodes. The checksum remains 169096566666. See emitted
+x64 [before](nbody-lanes-base.asm) and [after](nbody-lanes-new.asm).
+
+All twelve Release checksums pass. After pairing overloads and generated
+names, all eleven other task kernels and shared runtime paths retain their
+code. Compiler-side build-configuration adapters differ only in process-local
+handles. The [full Micro comparison](lanes-microdiff.txt) includes every path.
+The scalar-lane proof rebuilds SSA after each disappearing unpack: at most
+one rebuild per accepted pair, plus a final scan. Its extra cost is O(P*N)
+instruction/use work plus the existing SSA construction cost for P pairs in
+an N-instruction function; functions without an unpack stop at the cheap scan.
+All 1,551 C++ tests pass, including twenty recognition/rejection graphs and
+144 before/after machine-code executions. The execution test compares both
+scalar results and both packed lanes bit for bit, including signed zeros,
+small/large finite inputs, and destinations that alias their inputs. A source
+fixture that did not activate the new fold was removed rather than counted
+as positive coverage; the benchmark checksums cover the native source boundary.
+Runtime timing remains **unconfirmed** until an accepted grouped campaign.

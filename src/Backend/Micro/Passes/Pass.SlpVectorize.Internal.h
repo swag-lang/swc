@@ -6,6 +6,7 @@ struct MicroPassContext;
 
 namespace SlpVectorize
 {
+    bool foldPackedLaneSubtracts(MicroPassContext& context);
     bool packRoots(MicroPassContext& context);
     bool exposeScalarValues(MicroPassContext& context);
 }

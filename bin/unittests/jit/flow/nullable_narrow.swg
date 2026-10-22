@@ -168,6 +168,18 @@ func narrowKillAssign(p, q: *NarrowNode?)->s32
     return -1
 }
 
+func narrowKillPair(p, q, nextP, nextQ: *NarrowNode?)->s32
+{
+    var first  = p
+    var second = q
+    if first and second
+    {
+        {first, second} = {nextP, nextQ}
+        return (first?.value orelse -10) + (second?.value orelse -100)
+    }
+    return -1000
+}
+
 // `if let` bindings are non-null inside the block.
 func narrowIfLet(o: *NarrowOwner)->s32
 {
@@ -363,6 +375,24 @@ func narrowAssertScoped(p: *NarrowNode?)->s32
 }
 
 func lendOwner(owner: *NarrowOwner) { discard owner }
+
+#test
+{
+    var first  = NarrowNode{value: 7}
+    var second = NarrowNode{value: 8}
+
+    let missingFirst  = narrowKillPair(&first, &second, null, &second)
+    let missingSecond = narrowKillPair(&first, &second, &first, null)
+    let missingBoth   = narrowKillPair(&first, &second, null, null)
+    let presentBoth   = narrowKillPair(&first, &second, &first, &second)
+    let absentGuard   = narrowKillPair(null, &second, &first, &second)
+
+    Swag.assert(missingFirst == -2)
+    Swag.assert(missingSecond == -93)
+    Swag.assert(missingBoth == -110)
+    Swag.assert(presentBoth == 15)
+    Swag.assert(absentGuard == -1000)
+}
 
 // Lending a struct in the true branch drops what was proven about its fields there, and after
 // the `if`. The false branch never lends it, so the proof made before the `if` still holds in it.

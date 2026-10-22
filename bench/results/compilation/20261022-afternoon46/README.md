@@ -15,6 +15,7 @@ campaign runs; compilation-speed targets remain unverified.
 | 4.2 | Reuse normalized metadata for overloaded slice bounds and unary operators. The existing alias-only metadata API preserves enum wrappers, reference handling and invalid-payload fallback. Bounds lose the generic expansion call for ordinary types and the final type-table lookup; unary resolution loses its redundant initial/final lookups. No storage or allocation is added. The bounds helper changes from 356 instructions/42 calls/0x128 stack bytes to 342/39/0x108; unary resolution changes from 313/31/0x2C8 to 239/24/0x290. | Incremental DevMode build; all 248 native spec-operator tests pass in `devmode`, including slice and unary operators. |
 | 4.3 | Allocate PE placement indices without first zeroing them. `iota` writes every slot before stable sorting or placement reads it. Preserve empty-list allocation behavior, byte capacity, sort stability and section order. Remove one four-byte zero write per section; no persistent storage or allocation is added. Placement changes from 264 instructions/16 calls to 250/15 with the same 0x1088-byte stack. Image emission and debug-info emission retain their original instruction/call counts and frames. | Incremental DevMode build; five-batch milestone below. |
 | 4, repair | A comma following a completed statement cannot start the next statement. Report the existing unexpected-token diagnostic on that comma instead of suggesting an unusable semicolon insertion. The recovery path and real missing-separator diagnostics remain. No accepted syntax or catalog wording changes. | The new two-case parser fixture fails with both old separator messages before the fix. DevMode rebuild; it and the existing missing-separator fixture pass expected-diagnostic verification (30 inputs including runtime, zero runtime test bodies). The original rejected narrowing probe also shows one precise comma underline and no separator help. |
+| 4.4 | Search multi-assignment targets directly in their immutable AST chunks during nullable narrowing. `AssignList` inherits the span-only collector, and reference resolution does not mutate the list. Keep the same valid-span guard, target order and first matching target; remove the temporary reference vector, its copies, possible allocation and destruction. The helper's local code grows from 264 instructions/26 calls to 297/28 as span access moves into it, while its stack falls from 0x258 to 0x198 bytes and the separate collector/copy path disappears. No persistent storage is added. | DevMode build; the flow and inline narrowing inputs pass four JIT tests in `devmode`. The new case reassigns two previously narrowed pointers to every null/present combination and checks the absent-guard path. Formatting is stable on the second pass. |
 
 Commands, from the corresponding campaign worktree:
 
@@ -51,4 +52,8 @@ The diagnostic repair is a separate defect batch, not a speed claim. Its command
 
 ```text
 bin/swc.dm.exe test -f bin/unittests/errors/parser/parser_err_unexpected_comma_after_statement.swg -f bin/unittests/errors/parser/parser_err_expected_sep_stmt.swg --syntax-only --verbose-verify --num-cores 6 --rebuild
+```
+
+```text
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm jit --file-filter nullable_narrow --num-cores 6 --rebuild
 ```

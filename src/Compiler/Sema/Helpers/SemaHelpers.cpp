@@ -669,13 +669,18 @@ TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef
                 // Multi-assign: each individual target of the list keeps its declared type.
                 if (leftRef.isValid() && sema.node(leftRef).is(AstNodeId::AssignList))
                 {
-                    SmallVector<AstNodeRef> targets;
-                    sema.node(leftRef).collectChildrenFromAst(targets, sema.ast());
-
-                    for (const AstNodeRef targetRef : targets)
+                    const SpanRef targetsRef = sema.node(leftRef).cast<AstAssignList>().spanChildrenRef;
+                    if (sema.ast().hasSpan(targetsRef))
                     {
-                        if (sema.resolvedNodeRef(targetRef) == nodeRef)
-                            return TypeRef::invalid();
+                        const auto targets = sema.ast().nodeSpan(targetsRef);
+                        for (auto chunk = targets.chunksBegin(); chunk != targets.chunksEnd(); ++chunk)
+                        {
+                            for (const AstNodeRef targetRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                            {
+                                if (sema.resolvedNodeRef(targetRef) == nodeRef)
+                                    return TypeRef::invalid();
+                            }
+                        }
                     }
                 }
             }

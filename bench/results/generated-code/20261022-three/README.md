@@ -307,3 +307,24 @@ Median measured foreign load was 3.86 and 3.41 cores respectively. Both targets
 are near their competitors in these probes; neither superiority nor a runtime
 gain beyond the broad A/A bands is established. Both batches are **landed,
 unconfirmed**, with no timing veto observed.
+
+## Rejected floating frame cache and campaign closure
+
+A final experiment cached invariant 32/64-bit floating frame loads in integer
+registers unused by the loop, then transferred their exact bits at each original
+load. It included unique unconditional loop-entry edges and preserved integer
+values observed after partial register writes. All 1,561 C++ tests passed,
+including nested-loop machine-code comparisons and partial-write rejection.
+
+All twelve Release benchmark checksums matched, but after pairing overloads and
+generated names every native task kernel and runtime body retained its code.
+Only process-local handles in compiler-side build adapters differed. Nbody's
+five mass-field loads remain blocked by unplaced pointer writes into the escaped
+frame object. Establishing their disjoint byte ranges requires an additional
+frame-alias proof; register availability alone does not enable the optimization.
+The experiment was reverted and has no implementation commit or claimed gain.
+
+The campaign stops at the user's request with the eight preceding batches
+integrated. Their static gains and correctness results remain recorded above.
+No accepted grouped timing campaign establishes that Swag leads all three
+targets or that the other benchmarks have no elapsed-time regression.

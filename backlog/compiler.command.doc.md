@@ -92,3 +92,14 @@ not the discovery.
   pages do not need, or the attribution shows that no doc-mode fast path exists and the
   remaining cost is left to compiler.core.002 and compiler.core.003.
 - Related: compiler.core.002, compiler.core.003
+
+### compiler.command.doc.009 — Filtering to a child reference page asserts while building the table of contents
+
+- Evidence: `swc.dm doc --workspace bin/reference --workspace-module language --file-filter
+  008_005_memory_and_atomic_intrinsics --num-cores 6` asserts `hasOpenItem` in
+  `DocGenerator.cpp:229`. `generateExamples` opens a nested list for the first selected
+  level-two file before any parent item exists. Generating the full language page succeeds.
+- Next: define table-of-contents handling for a filtered child without its chapter source and
+  cover the focused `doc` command at the command boundary.
+- Done when: an isolated child source generates valid HTML without an assertion or malformed
+  list nesting, and the complete reference keeps its chapter hierarchy.

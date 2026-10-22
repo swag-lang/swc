@@ -362,6 +362,10 @@ let renderer: IRenderer = &cpu
 - Never retain a borrow beyond its owner. Prefer non-null pointers (`*T`) for borrowed values,
   nullable pointers (`*T?`) only for real absence, and slices instead of pointer/count pairs
   outside native code.
+- Keep required pointer parameters non-null even when a zero byte count makes the operation a
+  no-op. Use slices for empty buffers and `Array.storage()` when a collection must provide a raw
+  non-null address. Do not accept a nullable pointer only to assert it before using it; preserve
+  nullability at native ABI boundaries and where absence has its own documented behavior.
 - Factor repeated alias checks into a named predicate, but keep the owning copy and its lifetime
   visible beside the mutation it protects. For example, `let copy = String.from(value)` owns
   bytes while an inferred `let copy = value` can only borrow them. Preserve the checked range,

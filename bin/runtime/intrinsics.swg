@@ -58,7 +58,7 @@ func memcmp(dst, src: const [*] void, size: u64)->s32
 //
 // It never faults and changes nothing the program can observe: `addr` may be null, dangling, or one past the
 // end of a buffer, and a target without a prefetch instruction treats the call as a no-op.
-func prefetch(addr: const [*] void)
+func prefetch(addr: const [*] void?)
 
 // Atomic read-modify-write operations. Each one returns the value `addr` held before it.
 #[Swag.Discardable]

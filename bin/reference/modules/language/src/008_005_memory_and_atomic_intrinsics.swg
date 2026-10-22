@@ -5,7 +5,7 @@
 
 'Swag.memcpy' copies non-overlapping bytes, 'Swag.memmove' supports overlap, 'Swag.memset'
 writes one byte value repeatedly, and 'Swag.memcmp' compares byte sequences. Counts
-are expressed in bytes.
+are expressed in bytes. All block pointers must be non-null, including when the count is zero.
 */
 #test
 {

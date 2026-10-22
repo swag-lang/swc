@@ -362,7 +362,7 @@ namespace Integration
         let sparseData = File.readAllBytes(sparse)
         verify(sparseData.count == 128 * 1024 + 17 + #sizeof(marker), "a sparse write must extend the file to the requested offset")
         verify(allZero(Swag.makeSlice(sparseData.buffer, 128 * 1024 + 17)), "sparse holes must read back as zero")
-        verify(Swag.memcmp(sparseData.buffer + 128 * 1024 + 17, &marker[0], #sizeof(marker)) == 0, "the sparse tail must retain its data")
+        verify(Swag.memcmp(sparseData.storage() + 128 * 1024 + 17, &marker[0], #sizeof(marker)) == 0, "the sparse tail must retain its data")
 
         let renamed = Path.combine(documents, "renamed.bin")
         trace("FS: file and directory rename")

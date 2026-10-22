@@ -165,6 +165,59 @@ SWC_TEST_BEGIN(SinkToUse_OperandClusterKeepsStableOrder)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(SinkToUse_CopiesCrossOnlyIndependentCalls)
+{
+    for (uint32_t variant = 0; variant < 8; ++variant)
+    {
+        MicroBuilder   builder(ctx);
+        const MicroReg source      = variant == 3 ? MicroReg::intReg(0) : MicroReg::virtualIntReg(1);
+        const MicroReg destination = variant == 4 ? MicroReg::intReg(8) : MicroReg::virtualIntReg(2);
+        const MicroReg target      = variant == 1 ? source : variant == 2 ? destination
+                                                                          : MicroReg::virtualIntReg(3);
+        const MicroReg argument    = CallConv::get(CallConvKind::C).intArgRegs[0];
+        builder.emitLoadRegImm(source, ApInt(7, 64), MicroOpBits::B64);
+        builder.emitLoadRegImm(destination, ApInt(11, 64), MicroOpBits::B64);
+        if (variant != 1 && variant != 2)
+            builder.emitLoadRegReg(target, MicroReg::intReg(11), MicroOpBits::B64);
+        builder.emitLoadRegReg(CallConv::get(CallConvKind::C).intArgRegs[1], source, MicroOpBits::B64);
+        builder.emitLoadRegReg(argument, destination, MicroOpBits::B64);
+        const auto staging = builder.instructions().lastInstructionRef();
+        builder.emitCallReg(target, CallConvKind::C, 3, 0);
+        const auto call = builder.instructions().lastInstructionRef();
+        if (variant == 6)
+            builder.placeLabel(builder.createLabel());
+        builder.emitLoadRegReg(destination, source, variant == 5 ? MicroOpBits::B32 : MicroOpBits::B64);
+        const auto copy = builder.instructions().lastInstructionRef();
+        builder.emitLoadMemReg(MicroReg::intReg(1), 0, destination, MicroOpBits::B64);
+        if (variant == 7)
+            builder.emitLoadMemReg(MicroReg::intReg(1), 8, source, MicroOpBits::B64);
+        builder.emitRet();
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroSinkToUsePass>(builder));
+        if (variant)
+        {
+            if (!builder.instructions().ptr(copy))
+                return Result::Error;
+            continue;
+        }
+        if (builder.instructions().ptr(copy))
+            return Result::Error;
+        const auto  preceding   = builder.instructions().findPreviousInstructionRef(call);
+        const auto* instruction = builder.instructions().ptr(preceding);
+        if (!instruction || instruction->op != MicroInstrOpcode::LoadRegReg)
+            return Result::Error;
+        const auto* ops = instruction->ops(builder.operands());
+        if (ops[0].reg != destination || ops[1].reg != source)
+            return Result::Error;
+        bool staged = false;
+        for (auto it = builder.instructions().view().begin(); it.current != preceding; ++it)
+            staged |= it.current == staging;
+        if (!staged)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

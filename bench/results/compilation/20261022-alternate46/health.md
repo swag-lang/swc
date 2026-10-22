@@ -45,6 +45,27 @@ string inputs pass semantic checking and compile-time assertions, without
 executing runtime tests. The permanent math-safety input passes 11 guarded
 tests and its expected-diagnostic verification in `devmode`.
 
+The mutable and const `SymbolFunction::ownerStruct` methods now share one
+file-local, const-preserving implementation. It retains the immediate-owner
+lookup, null result, implementation-owner classification and direct struct
+case in their original order. Deducing the map type preserves each cast's
+qualification without adding a const cast or changing an interface. The helper
+is fully inlined: each public method still has 18 instructions, no calls and
+no stack reservation, with a final instruction offset three bytes smaller.
+The DevMode executable remains 16,622,080 bytes after this batch and its
+inherited post-RA integration. This is source-maintenance evidence, not a
+compiler speed or peak-memory measurement.
+
+The owner-lookup batch, based on `4dc2e027b6`, passes its DevMode build,
+all 1,621 C++ tests with `--dev-full` and all 3,927 native tests. The latter
+includes the permanent equality and interface fixtures used by both owner
+overloads. Idle, pending-work and hardware-fault recovery probes deliberately
+stop their child processes; the enclosing native tool exits zero. These
+twenty-five-batch checks include the inherited post-RA loop integration and
+precede the following prompt-4 code-parameter span change. Each full suite
+uses its own fresh external cache. No Release-only surface changes in this
+file-local batch, so its build selection is DevMode only.
+
 Commands, from this worktree:
 
 ```text
@@ -57,6 +78,10 @@ bin/swc.exe test --workspace bin/unittests/workspace --workspace-module consumer
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter call_independent_arg_banks --num-cores 6 --rebuild
 bin/swc.exe --num-cores 6 tools/unittests.swgs native --file-filter call_independent_arg_banks --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm sema --file-filter sema_err_array_cast_ --num-cores 6 --rebuild
+bin/swc.dm.exe test --artifact-kind executable --module-namespace Native -f bin/unittests/native/compiler/callerlocation.swg -f bin/unittests/jit/compiler/source_code_loc.swg -f bin/unittests/jit/compiler/generic_realloc_default_args_codegen.swg --out-dir <external>/defaults-out --work-dir <external>/defaults-work --num-cores 6 --rebuild
+bin/swc.dm.exe test -f bin/unittests/sema/literals/string.swg -f bin/unittests/sema/literals/string_escape.swg --sema-only --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm safety --file-filter math --num-cores 6 --rebuild
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --num-cores 6 --rebuild
 ```
 
 The initial consumer command omitted `--no-test-jit` and failed while resolving

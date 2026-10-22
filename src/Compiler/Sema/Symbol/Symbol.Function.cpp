@@ -1406,44 +1406,38 @@ bool SymbolFunction::deepCompare(const SymbolFunction& otherFunc) const noexcept
     return true;
 }
 
-SymbolStruct* SymbolFunction::ownerStruct()
+namespace
 {
-    if (SymbolMap* symMap = ownerSymMap())
+    template<typename Map>
+    __forceinline auto ownerStructFromMap(Map* symMap) -> decltype(&symMap->template cast<SymbolStruct>())
     {
-        if (symMap->isImpl())
+        if (symMap)
         {
-            const auto& symImpl = symMap->cast<SymbolImpl>();
-            if (symImpl.isForStruct())
-                return symImpl.symStruct();
+            if (symMap->isImpl())
+            {
+                const auto& symImpl = symMap->template cast<SymbolImpl>();
+                if (symImpl.isForStruct())
+                    return symImpl.symStruct();
 
-            return nullptr;
+                return nullptr;
+            }
+
+            if (symMap->isStruct())
+                return &symMap->template cast<SymbolStruct>();
         }
 
-        if (symMap->isStruct())
-            return &symMap->cast<SymbolStruct>();
+        return nullptr;
     }
+}
 
-    return nullptr;
+SymbolStruct* SymbolFunction::ownerStruct()
+{
+    return ownerStructFromMap(ownerSymMap());
 }
 
 const SymbolStruct* SymbolFunction::ownerStruct() const
 {
-    if (const SymbolMap* symMap = ownerSymMap())
-    {
-        if (symMap->isImpl())
-        {
-            const auto& symImpl = symMap->cast<SymbolImpl>();
-            if (symImpl.isForStruct())
-                return symImpl.symStruct();
-
-            return nullptr;
-        }
-
-        if (symMap->isStruct())
-            return &symMap->cast<SymbolStruct>();
-    }
-
-    return nullptr;
+    return ownerStructFromMap(ownerSymMap());
 }
 
 const SymbolFunction* SymbolFunction::parentLexicalFunction() const

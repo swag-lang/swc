@@ -823,6 +823,181 @@ SWC_TEST_BEGIN(PostRALoopRotate_BoundedByteScanPreservesIndexAndExitFlags)
 }
 SWC_TEST_END()
 
+namespace
+{
+    void emitScanValueCase(MicroBuilder& builder, uint32_t variant)
+    {
+        const auto data      = CallConv::get(CallConvKind::C).intArgRegs[0];
+        const auto base      = MicroReg::intReg(8);
+        const auto index     = MicroReg::intReg(9);
+        const auto pivot     = MicroReg::intReg(10);
+        const auto value     = variant == 6 ? base : variant == 7 ? index
+                                                 : variant == 8   ? pivot
+                                                                  : MicroReg::intReg(0);
+        const auto flag      = MicroReg::intReg(11);
+        const auto threshold = MicroReg::intReg(3);
+        const auto header    = builder.createLabel();
+        const auto exit      = builder.createLabel();
+        const auto skip      = builder.createLabel();
+        const auto done      = builder.createLabel();
+        const auto other     = builder.createLabel();
+        builder.emitLoadRegMem(base, data, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(index, data, 8, MicroOpBits::B64);
+        builder.emitLoadRegMem(pivot, data, 16, MicroOpBits::B64);
+        builder.emitLoadRegMem(threshold, data, 24, MicroOpBits::B64);
+        if (variant == 13)
+        {
+            builder.emitCmpRegImm(threshold, ApInt(0, 64), MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, done);
+        }
+        builder.placeLabel(header);
+        builder.emitLoadAmcRegMem(value, variant == 3 ? MicroOpBits::B32 : MicroOpBits::B64, base, index, 8, 0, variant == 4 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitCmpRegReg(variant == 5 ? pivot : value, variant == 5 ? value : pivot, MicroOpBits::B64);
+        builder.emitJumpToLabel((variant == 1 || variant == 18) ? MicroCond::BelowOrEqual : MicroCond::AboveOrEqual, MicroOpBits::B32, exit);
+        builder.emitOpBinaryRegImm(index, ApInt(variant == 2 ? 2 : 1, 64), (variant == 1 || variant == 18) ? MicroOp::Subtract : MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, header);
+        builder.placeLabel(exit);
+        builder.emitSetCondReg(flag, MicroCond::Equal);
+        if (variant == 9)
+            builder.emitCallReg(flag, CallConvKind::C, 0, 0);
+        if (variant == 15)
+        {
+            builder.emitClearReg(value, MicroOpBits::B64);
+            builder.emitRet();
+            return;
+        }
+        builder.emitCmpRegReg(index, threshold, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, skip);
+        if (variant == 10)
+        {
+            builder.emitLoadMemReg(data, 64, value, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+        }
+        else if (variant == 11 || variant == 12 || variant == 13)
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+        else
+        {
+            builder.placeLabel(other);
+            builder.emitLoadAmcMemReg(base, index, 8, 0, MicroOpBits::B64, pivot, MicroOpBits::B64);
+            if (variant == 14)
+                builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, other);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, done);
+        }
+        builder.placeLabel(skip);
+        if (variant == 19)
+            builder.emitRet();
+        else if (variant == 10)
+            builder.emitLoadMemReg(data, 72, value, MicroOpBits::B64);
+        else if (variant == 11)
+            builder.emitLoadRegImm(value, ApInt(42, 64), MicroOpBits::B64);
+        else if (variant == 12)
+            builder.emitOpBinaryRegImm(base, ApInt(8, 64), MicroOp::Add, MicroOpBits::B64);
+        else if (variant != 13)
+            builder.emitClearReg(value, variant >= 17 ? MicroOpBits::B8 : MicroOpBits::B64);
+        builder.placeLabel(done);
+        builder.emitLoadMemReg(data, 32, value, MicroOpBits::B64);
+        builder.emitLoadMemReg(data, 40, index, MicroOpBits::B64);
+        builder.emitLoadMemReg(data, 48, flag, MicroOpBits::B8);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(PostRALoopRotate_SinksOnlyEquivalentScanValues)
+{
+    for (uint32_t variant = 0; variant < 20; ++variant)
+    {
+        MicroBuilder             builder(ctx);
+        X64Encoder               encoder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimLevel = variant == 16 ? Runtime::BuildCfgBackendOptimLevel::O1 : Runtime::BuildCfgBackendOptimLevel::O2;
+        builder.setBackendBuildCfg(config);
+        emitScanValueCase(builder, variant);
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+        const bool changed = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg) != 0;
+        if (changed != (variant <= 1))
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopRotate_PartialScanValueKillRetainsUpperBits)
+{
+    for (const bool optimize : {false, true})
+    {
+        std::array<uint64_t, 2>  items     = {0, std::numeric_limits<uint64_t>::max()};
+        uint64_t                 values[7] = {reinterpret_cast<uint64_t>(items.data()), 0, 50, 1, 0, 0, 0};
+        MicroBuilder             builder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+        builder.setBackendBuildCfg(config);
+        emitScanValueCase(builder, 17);
+        if (optimize)
+        {
+            X64Encoder encoder(ctx);
+            SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg))
+                return Result::Error;
+        }
+        SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values));
+        if (values[4] != 0xFFFFFFFFFFFFFF00 || values[5] != 1 || values[6] != 0 || items[1] != std::numeric_limits<uint64_t>::max())
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopRotate_ScanValuePreservesFlagsAndAliasedStores)
+{
+    for (uint64_t length = 1; length <= 9; ++length)
+    {
+        for (uint64_t start = 0; start < length; ++start)
+        {
+            for (const uint64_t pivot : {uint64_t{0}, uint64_t{1}, uint64_t{25}, uint64_t{50}, uint64_t{96}, uint64_t{100}, std::numeric_limits<uint64_t>::max()})
+            {
+                for (const bool descending : {false, true})
+                {
+                    for (const bool skip : {false, true})
+                    {
+                        for (const bool optimize : {false, true})
+                        {
+                            std::array<uint64_t, 12> items;
+                            for (uint64_t i = 0; i < items.size(); ++i)
+                                items[i] = (i * 73 + 11) % 97;
+                            items[descending ? 0 : length - 1] = descending ? 0 : std::numeric_limits<uint64_t>::max();
+                            auto     expected                  = items;
+                            uint64_t stop                      = start;
+                            while (descending ? items[stop] > pivot : items[stop] < pivot)
+                                stop = descending ? stop - 1 : stop + 1;
+                            const auto observed = items[stop];
+                            if (!skip)
+                                expected[stop] = pivot;
+                            uint64_t                 values[7] = {reinterpret_cast<uint64_t>(items.data()), start, pivot, skip ? stop : std::numeric_limits<uint64_t>::max(), 0xBAD, 0xBAD, 0xA5A5A5A5A5A5A500};
+                            MicroBuilder             builder(ctx);
+                            Runtime::BuildCfgBackend config{};
+                            config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+                            builder.setBackendBuildCfg(config);
+                            emitScanValueCase(builder, descending ? 1 : 0);
+                            if (optimize)
+                            {
+                                X64Encoder encoder(ctx);
+                                SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+                                if (!Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcReg))
+                                    return Result::Error;
+                            }
+                            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values));
+                            if (items != expected || values[4] != (skip ? 0 : observed) || values[5] != stop || values[6] != (0xA5A5A5A5A5A5A500 | static_cast<uint64_t>(observed == pivot)))
+                                return Result::Error;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

@@ -743,6 +743,31 @@ impl Surface
 
         .painter.resetTransform()
         .painter.setColorMaskColor()
+        if interior.isEmpty()
+        {
+            .paintBorderShape(body, radius, pen)
+            return
+        }
+
+        // An outline is sparse even when its bounding box covers the whole window. Keep its
+        // overlap-safe alpha clears on four disjoint edge strips, rather than clearing the
+        // document's entire viewport just to draw the two visible side edges.
+        let size = .size()
+        let strips: [4] Math.Rectangle = [
+            {0,                0,                 size.x,                    interior.y},
+            {0,                interior.bottom(), size.x,                    size.y - interior.bottom()},
+            {0,                interior.y,        interior.x,                interior.height},
+            {interior.right(), interior.y,        size.x - interior.right(), interior.height}]
+        for strip in strips where strip.intersects(.painter.clippingRect())
+        {
+            .painter.pushClippingRect(strip)
+            .paintBorderShape(body, radius, pen)
+            .painter.popClippingRect()
+        }
+    }
+
+    private mtd paintBorderShape(body: Math.Rectangle, radius: f32, pen: Pen)
+    {
         if radius > 0 do
             .painter.drawRoundRect(body, radius, radius, pen)
         else do

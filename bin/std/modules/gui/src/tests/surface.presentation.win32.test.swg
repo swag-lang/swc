@@ -17,9 +17,13 @@ using Core, Pixel, Win32
     Swag.assert(not surface.readback.isPending())
     Swag.assert(not surface.presentationTarget.colorBuffer.isValid())
 
+    app.rendererOgl.resetScratchCounters()
     surface.invalidate()
     surface.paint()
     Swag.assert(surface.readback.isPending())
+
+    // Border scratch stays on the perimeter, even when the whole window is repainted.
+    Swag.assert(app.rendererOgl.scratchClearedPixels < cast(u64, surface.rc.width) * cast(u64, surface.rc.height) / 2)
     surface.invalidate()
     var dispatched: bool
     surface.wnd.view.hookOnEvent = func|&dispatched|(_, evt)->bool
@@ -73,6 +77,11 @@ using Core, Pixel, Win32
     Swag.assert(not surface.readback.isPending() and not surface.asynchronousPresentationFailed)
     let partial = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
     Swag.assert(Slice.equals(pixels, partial.pixels.toSlice()))
+    Swag.assert(not surface.isDirty)
+    var bounds: RECT
+    let positioned = GetWindowRect(surface.win32Handle(), &bounds)
+    Swag.assert(positioned)
+    Swag.assert(bounds.left == 60 and bounds.top == 50 and bounds.right == 480 and bounds.bottom == 330)
 
     button.enable()
     surface.paint()

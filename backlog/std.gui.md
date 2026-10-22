@@ -42,10 +42,10 @@ prove it. Operating-system integrations live in
 ### std.gui.057 — Validate layered presentation across displays and live resizing
 
 - Evidence: rendering goes to an offscreen OpenGL target on a fixed-size hidden context host.
-  The visible HWND stays layered, and `publishNativePresentation` (`surface.win32.swg`) hands
-  premultiplied BGRA pixels, position and size to USER32 in one
-  `UpdateLayeredWindowIndirect` call. Ordinary updates transfer and publish only the dirty
-  rectangle; discrete placement prepares a complete frame before WM_NCCALCSIZE publishes it.
+  The visible HWND stays layered. Prepared geometry publishes premultiplied BGRA pixels,
+  position and size to USER32 in one `UpdateLayeredWindowIndirect` call. Ordinary updates
+  retain the HWND geometry and transfer and publish only the dirty rectangle; discrete
+  placement prepares a complete frame before WM_NCCALCSIZE publishes it.
   Existing captures ran at 12–30 fps under load, so they cannot exclude a one-refresh artifact.
 - Rejected: a DirectComposition presenter does not bind the HWND geometry change to its
   content commit, and cropped content appeared in every commit ordering tried.

@@ -735,8 +735,12 @@ private impl Application
     }
 
     // Processes one complete input, event, paint, and frame-callback cycle.
+    //
+    // Native surfaces yield after idle turns, waking for queued native input. Headless
+    // applications process the cycle without waiting.
     public mtd runFrame()
     {
+        let startedAt = Time.monotonicMicroseconds()
         .frameTrace.beginFrame()
         .timing.update()
         Memory.releaseTemporaryAllocations()
@@ -754,6 +758,8 @@ private impl Application
         .deletePointers()
 
         .sigFrame.call(me)
+        if .renderer.needsNativeWindow() and not .mustQuit do
+            .waitForNativeFrame(startedAt)
         .frameTrace.endFrame()
 
         if .maxRunFrame and .timing.frameCount >= .maxRunFrame
@@ -903,6 +909,7 @@ impl Application
     // Releases resources owned by this value.
     mtd opDrop()
     {
+        .releaseNativeFrameTimer()
         .animator.cancelAll()
         .setGlobalHotKeysEnabled(false)
 

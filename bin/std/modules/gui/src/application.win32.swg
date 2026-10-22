@@ -6,6 +6,9 @@ using Win32, Core, Pixel, Gdi32
 #[Swag.Opaque]
 struct ApplicationNative
 {
+    frameTimer: HANDLE
+    frameTimerAttempted: bool
+
     public
     {
         fileSmallIconsImage:     Image         // Strip of the 16-pixel shell icons fetched so far.
@@ -22,6 +25,53 @@ struct ApplicationNative
 
 impl Application
 {
+    internal mtd releaseNativeFrameTimer()
+    {
+        if .frameTimer do
+            CloseHandle(.frameTimer)
+        .frameTimer = null
+    }
+
+    // Idle turns still service animation and worker completions. Bound their polling rate
+    // without delaying native input, dirty content or an outstanding GPU transfer.
+    internal mtd waitForNativeFrame(startedAt: u64)
+    {
+        if .frameTrace.busyLoop do
+            return
+        const MinimumTurnUs = 1000'u64
+        let elapsed = Time.monotonicMicroseconds() - startedAt
+        if elapsed >= MinimumTurnUs do
+            return
+
+        for surface in .surfaces where not surface.isHidden and not surface.isMinimized
+        {
+            if surface.isDirty or surface.readback.isPending() do
+                return
+        }
+
+        if not .frameTimerAttempted
+        {
+            .frameTimerAttempted = true
+            .frameTimer = CreateWaitableTimerExW(null, null, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, SYNCHRONIZE | TIMER_MODIFY_STATE)
+        }
+
+        if .frameTimer
+        {
+            let dueTime: LARGE_INTEGER = -cast(s64, MinimumTurnUs - elapsed) * 10
+            if SetWaitableTimer(.frameTimer, &dueTime, 0, null, null, FALSE)
+            {
+                discard catch MsgWaitForMultipleObjectsEx(1, &.frameTimer, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE) as error
+                if error == null do
+                    return
+            }
+
+            .releaseNativeFrameTimer()
+        }
+
+        // Older hosts or an exhausted timer allocation can use the ordinary message wait.
+        discard catch MsgWaitForMultipleObjectsEx(0, null, 1, QS_ALLINPUT, MWMO_INPUTAVAILABLE)
+    }
+
     internal mtd refreshSystemMotionPreference()
     {
         var animationsEnabled = TRUE

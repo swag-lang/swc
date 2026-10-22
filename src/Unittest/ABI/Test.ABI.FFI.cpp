@@ -6,6 +6,7 @@
 #include "Backend/ABI/ABICall.h"
 #include "Backend/ABI/CallConv.h"
 #include "Backend/JIT/JIT.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"

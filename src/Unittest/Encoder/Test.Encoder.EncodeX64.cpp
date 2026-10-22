@@ -5,6 +5,7 @@
 
 #include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Encoder/X64Unwind.Windows.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/Passes/Pass.Emit.h"

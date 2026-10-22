@@ -5,6 +5,7 @@
 #include "Backend/JIT/JIT.h"
 #include "Backend/JIT/JITPatchJob.h"
 #include "Backend/Micro/MachineCodeCache.h"
+#include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"

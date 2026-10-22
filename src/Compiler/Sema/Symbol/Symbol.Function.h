@@ -1,7 +1,8 @@
 ﻿#pragma once
 #include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MachineCode.h"
-#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroInstr.h"
+#include "Backend/Micro/MicroReg.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Generic/GenericInstanceKey.h"
 #include "Compiler/Sema/Generic/GenericInstanceOrigin.h"
@@ -19,6 +20,7 @@
 SWC_BEGIN_NAMESPACE();
 
 class GenericInstanceStorage;
+class MicroBuilder;
 class SymbolStruct;
 class SymbolImpl;
 class SymbolInterface;

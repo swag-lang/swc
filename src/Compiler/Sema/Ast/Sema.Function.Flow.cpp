@@ -930,12 +930,20 @@ namespace
             if (!parentNode)
                 return AstNodeRef::invalid();
 
+            SpanRef childrenRef;
             switch (parentNode->id())
             {
                 case AstNodeId::EmbeddedBlock:
+                    childrenRef = parentNode->cast<AstEmbeddedBlock>().spanChildrenRef;
+                    break;
                 case AstNodeId::FunctionBody:
+                    childrenRef = parentNode->cast<AstFunctionBody>().spanChildrenRef;
+                    break;
                 case AstNodeId::SwitchCaseBody:
+                    childrenRef = parentNode->cast<AstSwitchCaseBody>().spanChildrenRef;
+                    break;
                 case AstNodeId::TopLevelBlock:
+                    childrenRef = parentNode->cast<AstTopLevelBlock>().spanChildrenRef;
                     break;
 
                 case AstNodeId::ErrorManagementStmt:
@@ -953,18 +961,32 @@ namespace
                     return AstNodeRef::invalid();
             }
 
-            SmallVector<AstNodeRef> children;
-            parentNode->collectChildrenFromAst(children, sema.ast());
+            const Ast& ast = sema.ast();
+            if (!ast.hasSpan(childrenRef))
+                return AstNodeRef::invalid();
 
-            bool wrappedInSingleStmtBlock = false;
-            for (size_t childIndex = 0; childIndex < children.size(); ++childIndex)
+            const auto children   = ast.nodeSpan(childrenRef);
+            auto       chunk      = children.chunksBegin();
+            const auto childCount = chunk.total;
+            size_t     nextIndex  = 0;
+            for (; chunk != children.chunksEnd(); ++chunk)
             {
-                if (children[childIndex] != searchRef)
+                const std::span nodes(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count);
+                const auto      found = std::ranges::find(nodes, searchRef);
+                if (found == nodes.end())
                     continue;
+                nextIndex = static_cast<size_t>(found - nodes.begin()) + 1;
+                break;
+            }
+            if (chunk == children.chunksEnd())
+                return AstNodeRef::invalid();
 
-                for (size_t nextIndex = childIndex + 1; nextIndex < children.size(); ++nextIndex)
+            for (; chunk != children.chunksEnd(); ++chunk)
+            {
+                const std::span nodes(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count);
+                for (; nextIndex < nodes.size(); ++nextIndex)
                 {
-                    const AstNodeRef siblingRef = children[nextIndex];
+                    const AstNodeRef siblingRef = nodes[nextIndex];
                     if (siblingRef.isInvalid() || siblingRef == searchRef)
                         continue;
 
@@ -976,12 +998,10 @@ namespace
 
                     return AstNodeRef::invalid();
                 }
-
-                wrappedInSingleStmtBlock = parentNode->is(AstNodeId::EmbeddedBlock) && children.size() == 1;
-                break;
+                nextIndex = 0;
             }
 
-            if (!wrappedInSingleStmtBlock)
+            if (parentNode->isNot(AstNodeId::EmbeddedBlock) || childCount != 1)
                 return AstNodeRef::invalid();
 
             searchRef = sema.visit().parentNodeRef(up);

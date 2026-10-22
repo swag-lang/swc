@@ -883,6 +883,203 @@ namespace
     }
 }
 
+namespace
+{
+    struct ScanReloadQuery
+    {
+        MicroInstrRef load;
+        MicroInstrRef compare;
+        MicroInstrRef exit;
+        MicroReg      value;
+        MicroReg      base;
+        MicroReg      index;
+        MicroOpBits   bits;
+    };
+
+    MicroInstrRef scanReloadFrontier(const MicroPassContext& context, const ScanReloadQuery& query)
+    {
+        const auto& cfg = context.builder->controlFlowGraph();
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+            return MicroInstrRef::invalid();
+        const auto refs = cfg.instructionRefs();
+        const auto at   = cfg.indexOf(query.exit);
+        if (at == MicroControlFlowGraph::K_NO_INDEX)
+            return MicroInstrRef::invalid();
+        SmallVector<uint8_t, 128> visited(refs.size(), 0);
+        SmallVector<uint32_t>     pending;
+        pending.push_back(at);
+        MicroInstrRef frontier;
+        while (!pending.empty())
+        {
+            const auto i = pending.back();
+            pending.pop_back();
+            if (visited[i])
+                continue;
+            visited[i]              = 1;
+            const auto* instruction = context.instructions->ptr(refs[i]);
+            if (!instruction)
+                return MicroInstrRef::invalid();
+            const auto  touch   = MicroPassHelpers::regTouch(*instruction, *context.operands, query.value, context.encoder);
+            const auto& info    = MicroInstr::info(instruction->op);
+            const auto* ops     = instruction->ops(*context.operands);
+            const auto  written = touch.def ? MicroPassHelpers::integerResultBits(*instruction, ops) : 0;
+            if (!touch.use && touch.def && (written >= 32 || written >= getNumBits(query.bits)))
+                continue;
+            const bool boundary = touch.use || touch.def || instruction->op == MicroInstrOpcode::Ret || info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                                  instruction->op == MicroInstrOpcode::Push || instruction->op == MicroInstrOpcode::Pop ||
+                                  MicroPassHelpers::regTouch(*instruction, *context.operands, query.base, context.encoder).def ||
+                                  MicroPassHelpers::regTouch(*instruction, *context.operands, query.index, context.encoder).def;
+            if (boundary)
+            {
+                if (frontier.isValid() && frontier != refs[i])
+                    return MicroInstrRef::invalid();
+                frontier = refs[i];
+                continue;
+            }
+            for (const auto next : cfg.successors(i))
+                pending.push_back(next);
+        }
+        return frontier;
+    }
+
+    // Every incoming path must carry the same original read and address to
+    // this point. A killed-value path can merge back here, and a frontier in
+    // another loop can execute again after a write: dominance alone proves
+    // neither property. Trace all predecessors up to the original load.
+    bool scanReloadIsEquivalent(const MicroPassContext& context, const ScanReloadQuery& query, MicroInstrRef before)
+    {
+        const auto& cfg  = context.builder->controlFlowGraph();
+        const auto  refs = cfg.instructionRefs();
+        const auto  at   = cfg.indexOf(before);
+        if (at == MicroControlFlowGraph::K_NO_INDEX || cfg.singleEntry() == MicroControlFlowGraph::K_NO_INDEX)
+            return false;
+        SmallVector<uint8_t, 128> visited(refs.size(), 0);
+        SmallVector<uint32_t>     pending;
+        for (const auto previous : cfg.predecessors(at))
+            pending.push_back(previous);
+        bool reachedLoad = false;
+        while (!pending.empty())
+        {
+            const auto i = pending.back();
+            pending.pop_back();
+            if (refs[i] == query.load)
+            {
+                reachedLoad = true;
+                continue;
+            }
+            if (i == at)
+                return false;
+            if (visited[i])
+                continue;
+            visited[i]              = 1;
+            const auto* instruction = context.instructions->ptr(refs[i]);
+            if (!instruction)
+                return false;
+            const auto& info       = MicroInstr::info(instruction->op);
+            const auto  valueTouch = MicroPassHelpers::regTouch(*instruction, *context.operands, query.value, context.encoder);
+            if (valueTouch.def || (valueTouch.use && refs[i] != query.compare) ||
+                info.flags.has(MicroInstrFlagsE::WritesMemory) || info.flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                instruction->op == MicroInstrOpcode::Push || instruction->op == MicroInstrOpcode::Pop ||
+                MicroPassHelpers::regTouch(*instruction, *context.operands, query.base, context.encoder).def ||
+                MicroPassHelpers::regTouch(*instruction, *context.operands, query.index, context.encoder).def ||
+                cfg.predecessors(i).empty())
+                return false;
+            for (const auto previous : cfg.predecessors(i))
+                pending.push_back(previous);
+        }
+        return reachedLoad;
+    }
+
+    // Keep only the comparison in a read-only scan. The final value is loaded
+    // where it is first observed, before any memory or address change; paths
+    // that discard it need no reload. The scan loses a separate load instruction
+    // and its memory compare can fuse with the conditional branch.
+    bool sinkScanCompareValue(MicroPassContext& context)
+    {
+        if (!context.encoder || !context.builder->backendBuildCfg().runsCostlyOptimizations())
+            return false;
+        auto&                      storage  = *context.instructions;
+        auto&                      operands = *context.operands;
+        std::vector<MicroInstrRef> order;
+        order.reserve(storage.count());
+        for (auto it = storage.view().begin(); it != storage.view().end(); ++it)
+            order.push_back(it.current);
+        MicroPassHelpers::MicroPhysLiveness liveness;
+        bool                                analyzed = false;
+        for (size_t at = 0; at + 6 < order.size(); ++at)
+        {
+            const auto* header  = storage.ptr(order[at]);
+            const auto* load    = storage.ptr(order[at + 1]);
+            const auto* compare = storage.ptr(order[at + 2]);
+            const auto* leave   = storage.ptr(order[at + 3]);
+            const auto* step    = storage.ptr(order[at + 4]);
+            const auto* back    = storage.ptr(order[at + 5]);
+            const auto* exit    = storage.ptr(order[at + 6]);
+            if (header->op != MicroInstrOpcode::Label || load->op != MicroInstrOpcode::LoadAmcRegMem ||
+                compare->op != MicroInstrOpcode::CmpRegReg || leave->op != MicroInstrOpcode::JumpCond ||
+                back->op != MicroInstrOpcode::JumpCond || exit->op != MicroInstrOpcode::Label)
+                continue;
+            const auto* h     = header->ops(operands);
+            const auto* l     = load->ops(operands);
+            const auto* c     = compare->ops(operands);
+            const auto* j     = leave->ops(operands);
+            const auto* s     = step->ops(operands);
+            const auto* b     = back->ops(operands);
+            const auto* e     = exit->ops(operands);
+            const auto  value = l[0].reg;
+            const auto  base  = l[1].reg;
+            const auto  index = l[2].reg;
+            if (!value.isInt() || !base.isInt() || !index.isInt() || !c[1].reg.isInt() ||
+                c[0].reg != value || value == base || value == index || value == c[1].reg ||
+                l[3].opBits != c[2].opBits || l[4].opBits != MicroOpBits::B64 ||
+                j[0].cpuCond == MicroCond::Unconditional || j[2].valueU64 != e[0].valueU64 ||
+                b[0].cpuCond != MicroCond::Unconditional || b[2].valueU64 != h[0].valueU64)
+                continue;
+            bool unitStep = false;
+            if (step->op == MicroInstrOpcode::OpUnaryReg)
+                unitStep = s[0].reg == index && s[1].opBits == MicroOpBits::B64 && (s[2].microOp == MicroOp::Add || s[2].microOp == MicroOp::Subtract);
+            else if (step->op == MicroInstrOpcode::OpBinaryRegImm)
+                unitStep = s[0].reg == index && s[1].opBits == MicroOpBits::B64 &&
+                           (s[2].microOp == MicroOp::Add || s[2].microOp == MicroOp::Subtract) && !s[3].hasWideImmediateValue() && s[3].valueU64 == 1;
+            if (!unitStep)
+                continue;
+            if (!analyzed)
+            {
+                MicroPassHelpers::computePhysicalLiveness(liveness, context, MicroPassHelpers::MicroPhysLivenessMode::LiveOutOnly);
+                analyzed = true;
+            }
+            const auto& cfg = context.builder->controlFlowGraph();
+            if (!liveness.valid || !liveness.isLiveOut(cfg.indexOf(order[at + 6]), value))
+                continue;
+            const ScanReloadQuery query{order[at + 1], order[at + 2], order[at + 6], value, base, index, l[3].opBits};
+            const auto            before = scanReloadFrontier(context, query);
+            if (before.isInvalid() || !scanReloadIsEquivalent(context, query, before))
+                continue;
+            const auto dom = MicroPassHelpers::computeInstructionDominators(cfg, cfg.singleEntry());
+            if (!dom.dominates(cfg.indexOf(order[at + 1]), cfg.indexOf(before)))
+                continue;
+            std::array<MicroInstrOperand, 8> savedLoad;
+            std::copy_n(l, 8, savedLoad.begin());
+            MicroInstrOperand memoryCompare[7] = {};
+            memoryCompare[0].reg               = base;
+            memoryCompare[1].reg               = index;
+            memoryCompare[2]                   = c[1];
+            memoryCompare[3]                   = l[4];
+            memoryCompare[4]                   = c[2];
+            memoryCompare[5]                   = l[5];
+            memoryCompare[6]                   = l[6];
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadAmcRegMem, savedLoad);
+            storage.insertDerivedBefore(operands, order[at + 2], MicroInstrOpcode::CmpAmcReg, memoryCompare);
+            storage.erase(order[at + 1]);
+            storage.erase(order[at + 2]);
+            context.builder->invalidateControlFlowGraph();
+            context.passChanged = true;
+            return true;
+        }
+        return false;
+    }
+}
+
 Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
 {
     SWC_ASSERT(context.instructions != nullptr);
@@ -895,6 +1092,12 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     MicroOperandStorage& operands = *context.operands;
     if (storage.count() < 4)
         return Result::Continue;
+
+    // Finish every scan split before indexing rotations: consuming one post-RA
+    // sweep per scan could otherwise leave unrelated loops unrotated.
+    while (sinkScanCompareValue(context))
+    {
+    }
 
     // Recognition does not mutate the listing. Index all incoming jumps once;
     // every header can then check its unique back edge without rescanning the function.

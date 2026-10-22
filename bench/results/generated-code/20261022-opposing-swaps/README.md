@@ -52,3 +52,13 @@ is O(F) for the configured factor. No analysis is run merely for a generic label
 
 Timing: **not measured** at acceptance; landed, unconfirmed. No benchmark source,
 workload, checksum or timing boundary changed. The combined session campaign follows.
+
+## Combined revision
+
+The Release compiler rebuilt after integration at `2fa118f4af` passes the
+full twelve-task comparison again. All checksums match; overload/lambda pairing
+again isolates the changes to Fannkuch main. The integrated LZ77 scan stays intact.
+Compiler SHA-256: `b2106d315fdf98b0587cc5a913ff7a96b4836b02eed209c8dd7b38883f5d4aca`.
+The official campaign wrapper now accepts `--out` and forwards an absolute path
+to preserve incomplete checkpoints. Its help, forwarding boundary and all 47
+benchmark harness tests pass.

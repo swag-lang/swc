@@ -73,3 +73,22 @@ match scan after overload/generated-name pairing, with all checksums matching.
 The target's final Micro instructions match the DevMode-driven candidate above.
 
 Release compiler SHA-256: `3a8a2771423198486205953bbfd1d8c347fc2889200776e74f0c6993713458ca`.
+
+## Reject a moving base and retain packed operand records
+
+The pair scan now declines a first load whose base is also its stepped index:
+its address advances twice per iteration, so adding one byte per cloned lane
+would change the computation. Both the recognition test and an emitted-code
+counterexample fail before the guard: an eight-element scan stops after its
+second comparison. With the guard the original scan reaches the bound.
+
+Indexed loads carry seven useful operands; generated records may contain
+exactly seven. Both grouping and scan-value sinking now copy those seven
+fields, including when the load's operand record is last in storage.
+
+All **1,560 in-memory C++ tests pass**, including 68 pair-scan graph variants,
+8,736 paired executions, and two executions of the moving-base counterexample.
+All twelve Release benchmark checksums match. The [new full comparison](alias-microdiff.txt)
+has identical task kernels and shared native runtime code to the integrated
+candidate after overload/generated-name pairing. The original static gain
+and its executed-work bounds are preserved. This follow-up adds no analysis.

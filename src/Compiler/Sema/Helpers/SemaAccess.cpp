@@ -71,6 +71,14 @@ namespace
         return false;
     }
 
+    __forceinline bool canAccessMemberInOwner(Sema& sema, const SymbolVariable& field, const SymbolStruct& ownerStruct, const SourceViewRef siteViewRef)
+    {
+        if (!inDeclaringModule(sema, field, siteViewRef))
+            return false;
+
+        return field.memberAccess() == MemberAccess::Internal || inDeclaringType(sema, ownerStruct, siteViewRef);
+    }
+
     template<typename AT>
     Diagnostic buildMemberDiagnostic(Sema& sema, DiagnosticId id, const SymbolVariable& field, const SymbolStruct& ownerStruct, const AT& at)
     {
@@ -95,10 +103,7 @@ bool SemaAccess::canAccessMember(Sema& sema, const SymbolVariable& field, const 
     if (!ownerStruct)
         return true;
 
-    if (!inDeclaringModule(sema, field, siteViewRef))
-        return false;
-
-    return field.memberAccess() == MemberAccess::Internal || inDeclaringType(sema, *ownerStruct, siteViewRef);
+    return canAccessMemberInOwner(sema, field, *ownerStruct, siteViewRef);
 }
 
 Result SemaAccess::checkMemberAccess(Sema& sema, const Symbol& sym, const SourceCodeRef& codeRef)
@@ -111,7 +116,7 @@ Result SemaAccess::checkMemberAccess(Sema& sema, const Symbol& sym, const Source
     if (!ownerStruct)
         return Result::Continue;
 
-    if (canAccessMember(sema, *field, codeRef.srcViewRef))
+    if (canAccessMemberInOwner(sema, *field, *ownerStruct, codeRef.srcViewRef))
         return Result::Continue;
 
     const DiagnosticId id = field->memberAccess() == MemberAccess::Internal ? DiagnosticId::sema_err_field_internal : DiagnosticId::sema_err_field_private;

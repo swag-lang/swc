@@ -450,10 +450,10 @@ Result NativeArtifactBuilder::prepareOutputFolders() const
 {
     NativeArtifactPaths paths;
     queryPaths(paths, static_cast<uint32_t>(builder_->objectDescriptions.size()));
-    SWC_RESULT(createBuildDir(paths.buildDir));
-    SWC_RESULT(createOutDir(paths.outDir));
+    SWC_RESULT(createDirectories(paths.buildDir));
+    SWC_RESULT(createDirectories(paths.outDir));
     if (!paths.staticLibraryPath.empty())
-        SWC_RESULT(createOutDir(paths.staticLibraryPath.parent_path()));
+        SWC_RESULT(createDirectories(paths.staticLibraryPath.parent_path()));
 
     return Result::Continue;
 }
@@ -599,12 +599,12 @@ Utf8 NativeArtifactBuilder::objectExtension() const
     SWC_UNREACHABLE();
 }
 
-Result NativeArtifactBuilder::createOutDir(const fs::path& outDir) const
+Result NativeArtifactBuilder::createDirectories(const fs::path& path) const
 {
     std::error_code ec;
-    fs::create_directories(outDir, ec);
+    fs::create_directories(path, ec);
     if (ec)
-        return builder_->reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(outDir), Diagnostic::ARG_BECAUSE, ec.message());
+        return builder_->reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(path), Diagnostic::ARG_BECAUSE, ec.message());
 
     return Result::Continue;
 }
@@ -655,16 +655,6 @@ Utf8 NativeArtifactBuilder::automaticWorkDirName(const Utf8& name) const
     // and incremental native builds operate in the same location.
     const uint32_t hash = static_cast<uint32_t>(std::hash<std::string_view>{}(key.view()));
     return std::format("{}_{:08x}", FileSystem::sanitizeFileName(name), hash);
-}
-
-Result NativeArtifactBuilder::createBuildDir(const fs::path& buildDir) const
-{
-    std::error_code ec;
-    fs::create_directories(buildDir, ec);
-    if (ec)
-        return builder_->reportError(DiagnosticId::cmd_err_native_work_dir_create_failed, Diagnostic::ARG_PATH, Utf8(buildDir), Diagnostic::ARG_BECAUSE, ec.message());
-
-    return Result::Continue;
 }
 
 Result NativeArtifactBuilder::prepareDataSections() const

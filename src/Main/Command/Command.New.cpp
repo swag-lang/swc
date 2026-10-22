@@ -38,15 +38,6 @@ namespace
         return Result::Continue;
     }
 
-    Result createDirectories(TaskContext& ctx, const fs::path& path)
-    {
-        std::error_code ec;
-        fs::create_directories(path, ec);
-        if (ec)
-            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_new_directory_create_failed, path, FileSystem::normalizeSystemMessage(ec));
-        return Result::Continue;
-    }
-
     Result writeStarterFile(TaskContext& ctx, const fs::path& path, const std::string_view content)
     {
         FileSystem::IoErrorInfo error;
@@ -143,7 +134,7 @@ namespace
 
         const fs::path parentPath = scriptPath.parent_path();
         if (!parentPath.empty())
-            SWC_RESULT(createDirectories(ctx, parentPath));
+            SWC_RESULT(FileSystem::createDirectories(ctx, parentPath, DiagnosticId::cmd_err_new_directory_create_failed));
 
         SWC_RESULT(writeStarterFile(ctx, scriptPath, HELLO_SOURCE));
         printCreatedScript(ctx, scriptPath);
@@ -165,7 +156,7 @@ namespace
         const fs::path modulePath    = workspacePath / "modules" / moduleName.c_str();
         const fs::path sourcePath    = modulePath / "src";
         SWC_RESULT(ensureTargetDoesNotExist(ctx, modulePath));
-        SWC_RESULT(createDirectories(ctx, sourcePath));
+        SWC_RESULT(FileSystem::createDirectories(ctx, sourcePath, DiagnosticId::cmd_err_new_directory_create_failed));
 
         if (writeStarterFile(ctx, modulePath / "module.swg", MODULE_SOURCE) != Result::Continue ||
             writeStarterFile(ctx, sourcePath / "main.swg", HELLO_SOURCE) != Result::Continue)

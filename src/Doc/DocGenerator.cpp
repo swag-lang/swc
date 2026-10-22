@@ -80,21 +80,6 @@ namespace
         return result;
     }
 
-    Result reportDocDirectoryError(TaskContext& ctx, const fs::path& path, const Utf8& because)
-    {
-        return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_doc_dir_create_failed, path, because);
-    }
-
-    Result ensureOutputDirectory(TaskContext& ctx, const fs::path& path)
-    {
-        std::error_code ec;
-        fs::create_directories(path, ec);
-        if (ec)
-            return reportDocDirectoryError(ctx, path, FileSystem::normalizeSystemMessage(ec));
-
-        return Result::Continue;
-    }
-
     Result writeDocumentationStyles(TaskContext& ctx, const DocPageOptions& options)
     {
         if (!ctx.cmdLine().outputDoc)
@@ -115,7 +100,7 @@ namespace
         if (!g_GeneratedStylesheets.insert(stylesheetKey).second)
             return Result::Continue;
 
-        if (ensureOutputDirectory(ctx, path.parent_path()) != Result::Continue || DocFile::write(ctx, path, DocPage::styles()) != Result::Continue)
+        if (FileSystem::createDirectories(ctx, path.parent_path(), DiagnosticId::cmd_err_doc_dir_create_failed) != Result::Continue || DocFile::write(ctx, path, DocPage::styles()) != Result::Continue)
         {
             g_GeneratedStylesheets.erase(stylesheetKey);
             return Result::Error;
@@ -438,7 +423,7 @@ Result DocGenerator::generate(GenerateResult& outResult) const
     DocPageOptions          options   = getPageOptions(compiler);
     const fs::path          outputDir = outputDirectory(compiler);
     if (ctx.cmdLine().outputDoc)
-        SWC_RESULT(ensureOutputDirectory(ctx, outputDir));
+        SWC_RESULT(FileSystem::createDirectories(ctx, outputDir, DiagnosticId::cmd_err_doc_dir_create_failed));
 
     if (options.css.empty())
         options.css = "style.css";

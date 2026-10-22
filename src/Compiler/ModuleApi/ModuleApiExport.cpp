@@ -104,12 +104,7 @@ namespace
         if (path.empty())
             return Result::Continue;
 
-        std::error_code ec;
-        fs::create_directories(path, ec);
-        if (ec)
-            return FileSystem::reportPathError(ctx, DiagnosticId::cmd_err_api_dir_create_failed, path, FileSystem::normalizeSystemMessage(ec));
-
-        return Result::Continue;
+        return FileSystem::createDirectories(ctx, path, DiagnosticId::cmd_err_api_dir_create_failed);
     }
 
     Result reportModuleApiDirectoryClearError(TaskContext& ctx, const fs::path& path, const Utf8& because)

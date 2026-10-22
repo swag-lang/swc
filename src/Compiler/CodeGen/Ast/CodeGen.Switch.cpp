@@ -363,12 +363,12 @@ namespace
         return codeGen.node(codeGen.ast().nthNode(caseBody.spanChildrenRef, count - 1)).is(AstNodeId::FallThroughStmt);
     }
 
-    SmallVector<AstNodeRef> collectSwitchCaseRefs(CodeGen& codeGen, const AstSwitchStmt& switchNode)
+    SmallVector<AstNodeRef> collectSwitchNodeRefs(CodeGen& codeGen, SpanRef spanRef)
     {
-        SmallVector<AstNodeRef> caseRefs;
-        if (switchNode.spanChildrenRef.isValid())
-            codeGen.ast().appendNodes(caseRefs, switchNode.spanChildrenRef);
-        return caseRefs;
+        SmallVector<AstNodeRef> refs;
+        if (spanRef.isValid())
+            codeGen.ast().appendNodes(refs, spanRef);
+        return refs;
     }
 
     Result emitDynamicStructSwitchCaseTests(CodeGen& codeGen, const SwitchStmtCodeGenPayload& switchState, AstNodeRef caseRef, MicroLabelRef successLabel, MicroLabelRef failLabel)
@@ -447,14 +447,6 @@ namespace
 
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, failLabel);
         return Result::Continue;
-    }
-
-    SmallVector<AstNodeRef> collectSwitchCaseExprRefs(CodeGen& codeGen, const AstSwitchCaseStmt& caseNode)
-    {
-        SmallVector<AstNodeRef> caseExprRefs;
-        if (caseNode.spanExprRef.isValid())
-            codeGen.ast().appendNodes(caseExprRefs, caseNode.spanExprRef);
-        return caseExprRefs;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -676,7 +668,7 @@ namespace
         {
             const auto&         caseNode     = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
             const MicroLabelRef bodyLabel    = switchCaseBodyLabel(switchState, caseRef);
-            const auto          caseExprRefs = collectSwitchCaseExprRefs(codeGen, caseNode);
+            const auto          caseExprRefs = collectSwitchNodeRefs(codeGen, caseNode.spanExprRef);
             for (const AstNodeRef caseExprRef : caseExprRefs)
             {
                 const std::optional<std::string_view> caseText = knownCaseText(codeGen, caseExprRef);
@@ -957,7 +949,7 @@ namespace
         {
             const auto&         caseNode     = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
             const MicroLabelRef bodyLabel    = switchCaseBodyLabel(switchState, caseRef);
-            const auto          caseExprRefs = collectSwitchCaseExprRefs(codeGen, caseNode);
+            const auto          caseExprRefs = collectSwitchNodeRefs(codeGen, caseNode.spanExprRef);
             for (const AstNodeRef caseExprRef : caseExprRefs)
             {
                 uint64_t lowKey  = 0;
@@ -1007,7 +999,7 @@ namespace
         {
             const auto&         caseNode     = codeGen.node(caseRef).cast<AstSwitchCaseStmt>();
             const MicroLabelRef bodyLabel    = switchCaseBodyLabel(switchState, caseRef);
-            const auto          caseExprRefs = collectSwitchCaseExprRefs(codeGen, caseNode);
+            const auto          caseExprRefs = collectSwitchNodeRefs(codeGen, caseNode.spanExprRef);
             for (const AstNodeRef caseExprRef : caseExprRefs)
             {
                 const SemaNodeView caseView = codeGen.viewConstant(caseExprRef);
@@ -1080,7 +1072,7 @@ namespace
         if (switchState.useStringCompare && !switchState.switchValuePayload.isAddress())
             return false;
 
-        SmallVector<AstNodeRef> caseRefs = collectSwitchCaseRefs(codeGen, switchNode);
+        SmallVector<AstNodeRef> caseRefs = collectSwitchNodeRefs(codeGen, switchNode.spanChildrenRef);
         if (caseRefs.empty())
             return false;
 
@@ -1242,7 +1234,7 @@ Result AstSwitchStmt::codeGenPreNode(CodeGen& codeGen) const
 
     // Build the whole case label graph up front so `fallthrough` and "next test" edges are stable before
     // any case body starts emitting code.
-    const auto caseRefs = collectSwitchCaseRefs(codeGen, *this);
+    const auto caseRefs = collectSwitchNodeRefs(codeGen, spanChildrenRef);
     for (const AstNodeRef caseRef : caseRefs)
     {
         SwitchCaseCodeGenPayload caseState;
@@ -1462,7 +1454,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     {
         if (spanExprRef.isValid())
         {
-            const auto caseExprRefs = collectSwitchCaseExprRefs(codeGen, *this);
+            const auto caseExprRefs = collectSwitchNodeRefs(codeGen, spanExprRef);
             const bool hasWhere     = nodeWhereRef.isValid();
             // A `where` clause only runs after one case expression matched, so all successful tests funnel
             // through a shared label before entering the body.
@@ -1495,7 +1487,7 @@ Result AstSwitchCaseStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     {
         if (spanExprRef.isValid())
         {
-            const auto          caseExprRefs = collectSwitchCaseExprRefs(codeGen, *this);
+            const auto          caseExprRefs = collectSwitchNodeRefs(codeGen, spanExprRef);
             const bool          hasWhere     = nodeWhereRef.isValid();
             const MicroLabelRef matchLabel   = hasWhere ? builder.createLabel() : caseState.bodyLabel;
             for (const AstNodeRef caseExprRef : caseExprRefs)

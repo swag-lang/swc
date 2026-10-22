@@ -881,16 +881,9 @@ namespace
         return false;
     }
 
-    bool payloadUsesCallerScope(const SemaInlinePayload* payload)
-    {
-        return payload &&
-               payload->sourceFunction &&
-               payload->sourceFunction->attributes().hasMacroOrMixin();
-    }
-
     const SemaInlinePayload* resolveReturnContextPayload(const SemaInlinePayload* payload, const bool directInlineBody)
     {
-        if (directInlineBody && payloadUsesCallerScope(payload) && !payload->returnsToCallerSite() && payload->returnTypeRef.isValid())
+        if (directInlineBody && SemaInline::usesCallerScope(payload) && !payload->returnsToCallerSite() && payload->returnTypeRef.isValid())
             return payload;
 
         return SemaInline::returnContextPayload(payload);

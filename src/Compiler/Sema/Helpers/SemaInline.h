@@ -90,6 +90,13 @@ namespace SemaInline
         return nullptr;
     }
 
+    inline bool usesCallerScope(const SemaInlinePayload* payload)
+    {
+        return payload &&
+               payload->sourceFunction &&
+               payload->sourceFunction->attributes().hasMacroOrMixin();
+    }
+
     inline bool hasReturnContext(const SemaInlinePayload& payload) { return !payload.returnsToCallerSite() && payload.returnTypeRef.isValid(); }
 
     inline SemaInlinePayload* returnContextPayload(SemaInlinePayload* payload)

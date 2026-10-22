@@ -166,22 +166,38 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
         offset += MemoryVectorSize
     }
 
-    while size - offset >= MemoryWordSize
+    // After the vector loop, compare the head and tail of the remaining range.
+    // Their overlap stays inside the range and avoids a separate test per tail bit.
+    let remaining = size - offset
+    if remaining >= MemoryWordSize
     {
         let leftWord   = cast(const *u64, (leftBytes + offset))[]
         let rightWord  = cast(const *u64, (rightBytes + offset))[]
         let difference = leftWord ^ rightWord
         if difference
         {
-            // On the supported little-endian target, the lowest set bit names the first byte.
             let index = Swag.trailingZeros(difference) / 8
             return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
         }
 
         offset += MemoryWordSize
+        if offset == size do
+            return 0
+
+        offset = size - MemoryWordSize
+        let leftTail       = cast(const *u64, (leftBytes + offset))[]
+        let rightTail      = cast(const *u64, (rightBytes + offset))[]
+        let tailDifference = leftTail ^ rightTail
+        if tailDifference
+        {
+            let index = Swag.trailingZeros(tailDifference) / 8
+            return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
+        }
+
+        return 0
     }
 
-    if size - offset >= 4
+    if remaining >= 4
     {
         let leftPart   = cast(const *u32, (leftBytes + offset))[]
         let rightPart  = cast(const *u32, (rightBytes + offset))[]
@@ -193,9 +209,23 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
         }
 
         offset += 4
+        if offset == size do
+            return 0
+
+        offset = size - 4
+        let leftTail       = cast(const *u32, (leftBytes + offset))[]
+        let rightTail      = cast(const *u32, (rightBytes + offset))[]
+        let tailDifference = leftTail ^ rightTail
+        if tailDifference
+        {
+            let index = cast(u64, Swag.trailingZeros(tailDifference)) / 8
+            return cast(s32, leftBytes[offset + index]) - cast(s32, rightBytes[offset + index])
+        }
+
+        return 0
     }
 
-    if size - offset >= 2
+    if remaining >= 2
     {
         let leftPart   = cast(const *u16, (leftBytes + offset))[]
         let rightPart  = cast(const *u16, (rightBytes + offset))[]
@@ -207,13 +237,13 @@ func memcmp(left, right: const [*] void?, size: u64)->s32
         }
 
         offset += 2
+        if offset == size do
+            return 0
+
+        return cast(s32, leftBytes[size - 1]) - cast(s32, rightBytes[size - 1])
     }
 
-    if offset < size
-    {
-        if leftBytes[offset] != rightBytes[offset] do
-            return cast(s32, leftBytes[offset]) - cast(s32, rightBytes[offset])
-    }
-
+    if remaining do
+        return cast(s32, leftBytes[offset]) - cast(s32, rightBytes[offset])
     return 0
 }

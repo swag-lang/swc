@@ -618,12 +618,15 @@ namespace
         if (!declAst)
             return false;
 
-        SmallVector<AstNodeRef> params;
-        declAst->node(decl->nodeParamsRef).collectChildrenFromAst(params, *declAst);
-        if (params.empty())
+        const SpanRef paramsRef = declAst->node(decl->nodeParamsRef).cast<AstFunctionParamList>().spanChildrenRef;
+        if (!declAst->hasSpan(paramsRef))
             return false;
 
-        const AstNode* paramNode = &declAst->node(params.front());
+        const auto params = declAst->nodeSpan(paramsRef).chunksBegin();
+        if (!params.total)
+            return false;
+
+        const AstNode* paramNode = &declAst->node(static_cast<const AstNodeRef*>(params->ptr)[0]);
         while (const auto* attrList = paramNode->safeCast<AstAttributeList>())
             paramNode = &declAst->node(attrList->nodeBodyRef);
         const auto* param = paramNode->safeCast<AstSingleVarDecl>();

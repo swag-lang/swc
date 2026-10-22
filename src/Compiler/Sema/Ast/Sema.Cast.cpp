@@ -158,9 +158,8 @@ Result AstCastExpr::semaPostNode(Sema& sema)
         runtimeTypeSource = compatible == Result::Error;
     }
 
-    const TypeInfo& source    = SemaHelpers::aliasEnumType(sema, srcTypeView);
-    const TypeRef   targetRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), nodeTypeView.typeRef());
-    const TypeInfo& target    = sema.typeMgr().get(targetRef);
+    const TypeInfo& source = SemaHelpers::aliasEnumType(sema, srcTypeView);
+    const TypeInfo& target = nodeTypeView.type()->unwrapAliasEnumTypeOrSelf(sema.ctx());
 
     if (!runtimeTarget && !runtimeTypeSource && source.isNullable() && target.isNonNullable() &&
         (source.kind() == target.kind() || (source.isAnyPointer() && target.isAnyPointer())) &&
@@ -335,8 +334,7 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
     const SemaNodeView exprTypeView = sema.viewType(nodeExprRef);
     const SemaNodeView nodeTypeView = sema.viewType(nodeTypeRef);
 
-    const TypeRef targetTypeRef = sema.typeMgr().unwrapAlias(sema.ctx(), nodeTypeView.typeRef());
-    if (sema.typeMgr().get(targetTypeRef).isInterface())
+    if (nodeTypeView.type()->unwrapAliasTypeOrSelf(sema.ctx()).isInterface())
     {
         // Share the cast node itself so conversions, borrowing, and lowering stay identical.
         auto [castRef, castNode] = sema.ast().makeNode<AstNodeId::CastExpr>(tokRef());
@@ -370,8 +368,7 @@ Result AstIsTypeExpr::semaPostNode(Sema& sema)
 {
     const SemaNodeView source            = sema.viewType(nodeExprRef);
     const SemaNodeView target            = sema.viewType(nodeTypeRef);
-    const TypeRef      targetRef         = sema.typeMgr().unwrapAlias(sema.ctx(), target.typeRef());
-    const TypeInfo&    targetType        = sema.typeMgr().get(targetRef);
+    const TypeInfo&    targetType        = target.type()->unwrapAliasTypeOrSelf(sema.ctx());
     const TypeRef      borrowedTargetRef = sema.typeMgr().addType(TypeInfo::makeValuePointer(target.typeRef(), TypeInfoFlagsE::Const));
     const bool         typeQuery         = !sema.isValue(nodeExprRef) || (SemaHelpers::isTypeLikeTypeRef(sema.ctx(), source.typeRef()) && !sema.typeMgr().isRuntimeTypeInfoPointer(sema.ctx(), borrowedTargetRef));
 

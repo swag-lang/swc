@@ -85,7 +85,7 @@ namespace WinFsp
         let label16 = Utf16.fromUtf8(cString(label.buffer))
         let count   = Math.min(label16.count, cast(u64, info.volumeLabel.count))
         if count do
-            Swag.memcpy(info.volumeLabel.buffer, label16.buffer, count * #sizeof(u16))
+            Swag.memcpy(info.volumeLabel.buffer, label16.storage(), count * #sizeof(u16))
         info.volumeLabelLength = cast(u16, (count * #sizeof(u16)))
         return StatusSuccess
     }
@@ -237,12 +237,12 @@ namespace WinFsp
 
         var storage: Array'u8
         storage.resize(bytes)
-        Swag.memset(storage.buffer, 0, bytes)
+        Swag.memset(storage.storage(), 0, bytes)
         let dirInfo = cast(*FspDirInfo, storage.storage())
         dirInfo.size     = cast(u16, bytes)
         dirInfo.fileInfo = info[]
         if name16.count > 1 do
-            Swag.memcpy(&dirInfo.fileName[0], name16.buffer, (name16.count - 1) * #sizeof(u16))
+            Swag.memcpy(&dirInfo.fileName[0], name16.storage(), (name16.count - 1) * #sizeof(u16))
         return (g_WinFsp.addDirInfo)(dirInfo, context.buffer, context.length, context.transferred)
     }
 
@@ -276,7 +276,7 @@ namespace WinFsp
         dirInfo.size     = cast(u16, bytes)
         dirInfo.fileInfo = info
         if name16.count > 1 do
-            Swag.memcpy(&dirInfo.fileName[0], name16.buffer, (name16.count - 1) * #sizeof(u16))
+            Swag.memcpy(&dirInfo.fileName[0], name16.storage(), (name16.count - 1) * #sizeof(u16))
         return StatusSuccess
     }
 

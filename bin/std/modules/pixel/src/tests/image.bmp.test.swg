@@ -1086,7 +1086,7 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         let bmp = expect source.encodeToBytes("image.bmp")
         let dib = expect source.encodeToBytes("image.bmp", Bmp.EncodeOptions{fileHeader: false})
         Swag.assert(bmp.count == dib.count + #sizeof(Bmp.FileHeader))
-        Swag.assert(Memory.compare(bmp.buffer + #sizeof(Bmp.FileHeader), dib.buffer, dib.count) == 0)
+        Swag.assert(Memory.compare(bmp.storage() + #sizeof(Bmp.FileHeader), dib.storage(), dib.count) == 0)
         Swag.assert(dib.count == #sizeof(Bmp.Header) + 24)
         let decoded = expect Image.decode("image.bmp", dib.toSlice())
         for y in source.height

@@ -330,7 +330,7 @@ impl Volume
 
         var locator = try Crypto.recordLocator(.keys.locator, locatorKind, recordId)
         defer Core.Crypto.secureClear(locator)
-        Swag.memcpy(record.buffer, &locator[0], HeaderLocatorCheckSize)
+        Swag.memcpy(record.storage(), &locator[0], HeaderLocatorCheckSize)
         Crypto.store32((record.buffer + HeaderLocatorCheckSize)!, cast(u32, plain.count) ^ Crypto.load32(&locator[HeaderLocatorCheckSize]))
 
         let nonce      = record[Crypto.RecordLocatorSize until HeaderRecordPrefixSize]

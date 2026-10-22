@@ -113,7 +113,7 @@ impl Node
         if securitySize > MaximumSecuritySize do
             fail volumeError(.Corrupted)
         result.security.resize(securitySize)
-        try reader.readBytes(result.security.buffer, securitySize)
+        try reader.readBytes(result.security.storage(), securitySize)
 
         let runCount = try reader.readLittleEndian'u64()
         if runCount > blockCount do

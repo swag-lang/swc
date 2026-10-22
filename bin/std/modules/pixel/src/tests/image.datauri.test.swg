@@ -14,7 +14,7 @@ using Swag, Core
     plain += Base64.encode(bytes.toSlice())
     let decoded = expect Image.fromDataUri(plain.toString())
     Swag.assert(decoded.width == 4 and decoded.height == 3)
-    Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 
     var withParameter: String = "data:image/png;name=figure;base64,"
     withParameter += Base64.encode(bytes.toSlice())

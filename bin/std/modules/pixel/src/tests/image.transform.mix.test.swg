@@ -47,7 +47,7 @@ using Swag, Core
 
     var expected: Array'u8
     expected.resize(dstPixels.count)
-    Memory.copy(expected.buffer, dstPixels.buffer, expected.count)
+    Memory.copy(expected.storage(), dstPixels.buffer, expected.count)
     for row in 2
     {
         let target = expected.storage() + cast(u64, (row + 1)) * 16
@@ -56,8 +56,8 @@ using Swag, Core
     }
 
     let clipped = dst.mixed(src, -1, 1, .Copy)
-    Swag.assert(Memory.compare(clipped.pixels.buffer, expected.buffer, expected.count) == 0)
+    Swag.assert(Memory.compare(clipped.pixels.storage(), expected.storage(), expected.count) == 0)
 
     let outside = dst.mixed(src, 8, -5, .Copy)
-    Swag.assert(Memory.compare(outside.pixels.buffer, dstPixels.buffer, dstPixels.count) == 0)
+    Swag.assert(Memory.compare(outside.pixels.storage(), dstPixels.buffer, dstPixels.count) == 0)
 }

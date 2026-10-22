@@ -21,7 +21,7 @@ private func simdTailSeed(width, height: s32, pf: PixelFormat)->Array'u8
 private func simdTailAssertBytes(image: const *Image, expected: const *Array'u8, stage: string, pf: PixelFormat, width: s32)
 {
     Swag.assert(image.byteCount == expected.count)
-    if Memory.compare(image.pixels.buffer, expected.buffer, expected.count) != 0
+    if Memory.compare(image.pixels.storage(), expected.storage(), expected.count) != 0
     {
         for index in expected.count
         {
@@ -91,7 +91,7 @@ private func simdTailCheckFilters(pf: PixelFormat, width: s32)
         {
             let srcOffset = (cast(u64, row) * cast(u64, width) + cast(u64, (width - x - 1))) * bytesPerPixel
             let dstOffset = (cast(u64, row) * cast(u64, width) + cast(u64, x)) * bytesPerPixel
-            Memory.copy(expected.buffer + dstOffset, source.buffer + srcOffset, bytesPerPixel)
+            Memory.copy(expected.storage() + dstOffset, source.storage() + srcOffset, bytesPerPixel)
         }
     }
 

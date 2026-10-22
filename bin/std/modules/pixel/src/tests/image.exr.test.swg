@@ -14,7 +14,7 @@ using Swag, Core
     let encoded = expect source.encode("memory.exr")
     let decoded = expect Image.decode("memory.exr", nnBytes(encoded.toSlice()))
     assertImage(decoded, 3, 2, .RGBF16)
-    Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 }
 
 #test
@@ -40,7 +40,7 @@ using Swag, Core
         let encoded = expect source.encode("gray.exr")
         let decoded = expect Image.decode("gray.exr", nnBytes(encoded.toSlice()))
         assertImage(decoded, 3, 2, format)
-        Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+        Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
     }
 }
 
@@ -55,7 +55,7 @@ using Swag, Core
     let encoded = expect source.encode("float.exr")
     let decoded = expect Image.decode("float.exr", nnBytes(encoded.toSlice()))
     assertImage(decoded, 2, 2, .RGBAF32)
-    Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 }
 
 #test

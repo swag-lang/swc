@@ -21,7 +21,7 @@ func ktx2Roundtrip(source: Image)->Image
             source.pixels.storage()[i] = cast(u8, ((i * 37 + 11) & 0xFF))
         let decoded = ktx2Roundtrip(source)
         assertImage(decoded, source.width, source.height, format)
-        Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+        Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
     }
 }
 
@@ -46,7 +46,7 @@ func ktx2Roundtrip(source: Image)->Image
 
     let decoded = expect Image.decode("zlib.ktx2", nnBytes(rebuilt.toSlice()))
     assertImage(decoded, 32, 32, .RGBA8)
-    Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 }
 
 #test

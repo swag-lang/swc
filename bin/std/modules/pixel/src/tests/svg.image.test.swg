@@ -8,7 +8,7 @@ using Swag, Core
 {
     var source = Image.create(2, 1, .RGBA8)
     let samples: [8] u8 = [255, 0, 0, 255, 0, 0, 255, 255]
-    Memory.copy(source.pixels.buffer, &samples, 8)
+    Memory.copy(source.pixels.storage(), &samples, 8)
     let bytes   = expect source.encodeToBytes("embedded.png")
     let svg     = Format.toString("<svg width='32' height='16'><image width='32' height='16' href='data:image/png;base64,%'/></svg>", Base64.encode(bytes.toSlice()))
     let drawing = expect Svg.Drawing.parse(svg.toString())
@@ -26,7 +26,7 @@ using Swag, Core
 {
     var source = Image.create(2, 1, .RGBA8)
     let samples: [8] u8 = [255, 0, 0, 255, 0, 0, 255, 255]
-    Memory.copy(source.pixels.buffer, &samples, 8)
+    Memory.copy(source.pixels.storage(), &samples, 8)
     let bytes   = expect source.encodeToBytes("embedded.png")
     let svg     = Format.toString("<svg width='64' height='16'><image width='32' height='16' transform='translate(32,0) scale(-1,1)' href='data:image/png;base64,%'/><rect x='32' width='8' height='16' fill='lime' transform='translate(96,0) scale(-1,1)'/></svg>", Base64.encode(bytes.toSlice()))
     let drawing = expect Svg.Drawing.parse(svg.toString())

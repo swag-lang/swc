@@ -738,7 +738,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.assert(img.pixelFormat == .RGBA8)
     Swag.assert(img.width == src.width)
     Swag.assert(img.height == src.height)
-    Swag.assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
 // PackBits also preserves BGR input after conversion to TIFF's RGB component order.
@@ -790,5 +790,5 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     Swag.assert(img.pixelFormat == .RGBA8)
     Swag.assert(img.width == src.width)
     Swag.assert(img.height == src.height)
-    Swag.assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }

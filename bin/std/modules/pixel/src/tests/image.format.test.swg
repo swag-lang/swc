@@ -178,9 +178,9 @@ const PackedFormats: [18] PixelFormat = [
         let mirrored = source.mirrored().mirrored()
         let flipped  = source.flipped().flipped()
         let turned   = source.rotated(.Clockwise90).rotated(.Clockwise270)
-        Swag.assert(Memory.compare(source.pixels.buffer, mirrored.pixels.buffer, source.byteCount) == 0)
-        Swag.assert(Memory.compare(source.pixels.buffer, flipped.pixels.buffer, source.byteCount) == 0)
-        Swag.assert(Memory.compare(source.pixels.buffer, turned.pixels.buffer, source.byteCount) == 0)
+        Swag.assert(Memory.compare(source.pixels.storage(), mirrored.pixels.storage(), source.byteCount) == 0)
+        Swag.assert(Memory.compare(source.pixels.storage(), flipped.pixels.storage(), source.byteCount) == 0)
+        Swag.assert(Memory.compare(source.pixels.storage(), turned.pixels.storage(), source.byteCount) == 0)
 
         let nearest = source.resized(7, 5, .Nearest)
         let smooth  = source.resized(3, 3, .Bilinear)

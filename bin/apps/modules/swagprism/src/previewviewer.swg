@@ -253,7 +253,7 @@ impl PreviewViewer
         let frame  = Atomic.get(&header.published)
         if frame == Atomic.get(&header.consumed) do
             return
-        Memory.copy(.image.pixels.buffer, .probe.channel.pixels(), Pipeline.FrameChannel.ByteCount)
+        Memory.copy(.image.pixels.storage(), .probe.channel.pixels(), Pipeline.FrameChannel.ByteCount)
         .renderUs = header.renderUs
         let firstFrame = .frameCount == 0
         .frameCount = frame

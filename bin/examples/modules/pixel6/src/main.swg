@@ -113,13 +113,13 @@ func flipImageVertical(image: *Image)
     var row = Array'u8{}
     row.resize(cast(u64, image.rowStride))
 
-    var top = image.pixels.buffer
-    var bot = image.pixels.buffer + image.rowStride * (image.height - 1)
+    var top = image.pixels.storage()
+    var bot = image.pixels.storage() + image.rowStride * (image.height - 1)
     for image.height / 2
     {
-        Memory.copy(row.buffer, top, cast(u64, image.rowStride))
+        Memory.copy(row.storage(), top, cast(u64, image.rowStride))
         Memory.copy(top, bot, cast(u64, image.rowStride))
-        Memory.copy(bot, row.buffer, cast(u64, image.rowStride))
+        Memory.copy(bot, row.storage(), cast(u64, image.rowStride))
         top += image.rowStride
         bot -= image.rowStride
     }

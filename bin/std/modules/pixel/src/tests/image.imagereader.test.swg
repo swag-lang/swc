@@ -11,7 +11,7 @@ using Swag, Core
     for index in [0'u32, 1, 2, 3, 1, 3]
     {
         let image = expect reader.read(index)
-        Swag.assert(Memory.compare(image.pixels.buffer, pixels.storage() + cast(u64, index) * 64, 64) == 0)
+        Swag.assert(Memory.compare(image.pixels.storage(), pixels.storage() + cast(u64, index) * 64, 64) == 0)
     }
 
     var poster = expect ImageReader.load(getTestDataPath("imageset-poster.apng"))
@@ -87,7 +87,7 @@ using Swag, Core
         {
             let frame = expect reader.read(index)
             Swag.assert(frame.width == 4 and frame.height == 4 and frame.pixelFormat == .RGBA8)
-            Swag.assert(Memory.compare(frame.pixels.buffer, expected.storage() + cast(u64, index) * 64, 64) == 0)
+            Swag.assert(Memory.compare(frame.pixels.storage(), expected.storage() + cast(u64, index) * 64, 64) == 0)
         }
 
         let retained = expect reader.read(2)

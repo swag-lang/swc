@@ -1012,7 +1012,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     let img = expect Image.decode("encoded-rle.tga", bytes, {})
     Swag.assert(img.pixelFormat == .BGR8)
-    Swag.assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
 // RLE encoding preserves alpha while converting RGBA input to TGA's BGRA order.

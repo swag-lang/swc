@@ -186,8 +186,8 @@ using Swag
 #test
 {
     var bytes: Array'u8
-    var stream = ByteStream.openWrite(&bytes)
-    var byte: u8 = 0xA5
+    var stream    = ByteStream.openWrite(&bytes)
+    var byte:  u8 = 0xA5
     expect stream.readBytes(&byte, 0)
     Swag.assert(byte == 0xA5 and stream.position() == 0)
 }

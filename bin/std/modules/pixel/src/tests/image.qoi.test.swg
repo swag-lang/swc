@@ -30,7 +30,7 @@ using Swag, Core
 
     let expected: [24] u8 = [1, 2, 3, 4, 1, 2, 3, 4, 1, 2, 3, 4,
                              10, 20, 30, 255, 11, 19, 30, 255, 15, 24, 36, 255]
-    Swag.assert(Memory.compare(image.pixels.buffer, expected.buffer, expected.count) == 0)
+    Swag.assert(Memory.compare(image.pixels.storage(), expected.buffer, expected.count) == 0)
 }
 
 // Round-trip every existing packed channel order without changing logical colors.

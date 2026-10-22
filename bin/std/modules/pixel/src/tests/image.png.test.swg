@@ -15,7 +15,7 @@ using Swag, Core
 
     let decoded = expect Image.decode("memory.png", bytes)
     assertImage(decoded, 2, 1, .RGBA8)
-    Swag.assert(Memory.compare(source.pixels.buffer, decoded.pixels.buffer, source.byteCount) == 0)
+    Swag.assert(Memory.compare(source.pixels.storage(), decoded.pixels.storage(), source.byteCount) == 0)
 }
 
 func assertPngPixelAt(img: Image, x, yFromBottom: s32, r, g, b, a: u8)
@@ -71,7 +71,7 @@ func assertEncodedPngRoundtrip(src: Image, expectedPf: PixelFormat, options: any
     Swag.assert(img.height == src.height)
     Swag.assert(img.pixelFormat == expectedPf)
     Swag.assert(img.pixels.count == src.pixels.count)
-    Swag.assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
 func fillSolidPngImage(img: *Image, r, g, b, a: u8)
@@ -1315,7 +1315,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
     discard expect File.writeAllBytes(path.toString(), cb)
     let img = expect Image.load(path.toString())
     Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
 // Default options enable filtering and Deflate compression, unlike an explicit
@@ -1335,7 +1335,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     compressed.makeLinear()
     let decoded = expect Image.decode("default-options.png", nnBytes(compressed.toSlice()), {})
-    Swag.assert(Memory.compare(src.pixels.buffer, decoded.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(Memory.compare(src.pixels.storage(), decoded.pixels.storage(), src.pixels.count) == 0)
 }
 
 // Encode Adam7-interlaced RGB and BGRA images, including odd dimensions that
@@ -1364,7 +1364,7 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 
     let decoded = expect Image.decode("adam7-rgb.png", rgbBytes, {})
     Swag.assert(decoded.pixelFormat == .RGB8)
-    Swag.assert(Memory.compare(rgb.pixels.buffer, decoded.pixels.buffer, rgb.pixels.count) == 0)
+    Swag.assert(Memory.compare(rgb.pixels.storage(), decoded.pixels.storage(), rgb.pixels.count) == 0)
 
     var bgra    = Image.create(9, 7, .BGRA8)
     let bgraBuf = bgra.pixels.storage()

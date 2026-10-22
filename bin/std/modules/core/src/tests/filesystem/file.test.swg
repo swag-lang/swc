@@ -202,10 +202,10 @@ using Swag
     let bytes = expect File.readAllBytes(fileName)
     Swag.assert(bytes.isEmpty())
 
-    var stream = expect File.open(fileName, .Open, .ReadWrite, .Read)
+    var stream   = expect File.open(fileName, .Open, .ReadWrite, .Read)
     var byte: u8 = 0xA5
-    let read = expect stream.read(&byte, 0)
-    let write = expect stream.write(&byte, 0)
+    let read     = expect stream.read(&byte, 0)
+    let write    = expect stream.write(&byte, 0)
     Swag.assert(read == 0 and write == 0 and byte == 0xA5)
     Swag.assert(expect stream.position() == 0)
 }

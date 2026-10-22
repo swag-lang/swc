@@ -53,14 +53,14 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
                 let actual   = source.resized(size[0], size[1], mode)
                 assertImage(actual, size[0], size[1], format)
                 Swag.assert(actual.alphaMode == source.alphaMode)
-                Swag.assert(Memory.compare(actual.pixels.buffer, expected.pixels.buffer, expected.byteCount) == 0)
+                Swag.assert(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
                 var inPlace = source
                 inPlace.resize(size[0], size[1], mode)
-                Swag.assert(Memory.compare(inPlace.pixels.buffer, expected.pixels.buffer, expected.byteCount) == 0)
+                Swag.assert(Memory.compare(inPlace.pixels.storage(), expected.pixels.storage(), expected.byteCount) == 0)
             }
         }
 
-        Swag.assert(Memory.compare(source.pixels.buffer, unchanged.pixels.buffer, source.byteCount) == 0)
+        Swag.assert(Memory.compare(source.pixels.storage(), unchanged.pixels.storage(), source.byteCount) == 0)
     }
 }
 
@@ -77,7 +77,7 @@ private func serialFilteredResize(source: const *Image, width, height: s32, mode
     parallel for |&source, reference| 7
     {
         let actual = source.resized(97, 71, .Bicubic)
-        Swag.assert(Memory.compare(actual.pixels.buffer, reference.pixels.buffer, reference.byteCount) == 0)
+        Swag.assert(Memory.compare(actual.pixels.storage(), reference.pixels.storage(), reference.byteCount) == 0)
     }
 }
 

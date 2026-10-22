@@ -71,7 +71,7 @@ namespace WinFsp
         free[]  = volume.freeBytes()
         let count = Math.min(volume.label.length, cast(u64, labelCapacity) - 1)
         if count do
-            Swag.memcpy(label, volume.label.buffer, count)
+            Swag.memcpy(label, volume.label.toString().buffer, count)
         label[count] = 0
         return StatusSuccess
     }
@@ -410,7 +410,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
         node.security.resize(securitySize)
         if securitySize do
-            Swag.memcpy(node.security.buffer, security!, securitySize)
+            Swag.memcpy(node.security.storage(), security!, securitySize)
         node.changeTime = volumeTimeNow()
         volume.touch(nodeId)
         return StatusSuccess

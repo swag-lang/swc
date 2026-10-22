@@ -23,7 +23,7 @@ using Core, Gui, Pixel
     let before     = viewer.image
     let firstFrame = viewer.frameCount
     awaitFrame(viewer, firstFrame + 2)
-    Swag.assert(Memory.compare(before.pixels.buffer, viewer.image.pixels.buffer, before.byteCount) != 0)
+    Swag.assert(Memory.compare(before.pixels.storage(), viewer.image.pixels.storage(), before.byteCount) != 0)
     host.click(window.panels[0].pauseButton.localToSurface(Math.Point{18, 18}))
     Swag.assert(viewer.paused and window.panels[0].pauseButton.isChecked)
     let pausedFrame = viewer.frameCount
@@ -52,7 +52,7 @@ using Core, Gui, Pixel
     let rect   = viewer.canvas.frameRect()
     host.click(viewer.canvas.localToSurface(Math.Point{rect.x + rect.width * 0.5, rect.y + rect.height * 204 / 400}))
     awaitFrame(viewer, viewer.frameCount + 2)
-    Swag.assert(Memory.compare(before.pixels.buffer, viewer.image.pixels.buffer, before.byteCount) != 0)
+    Swag.assert(Memory.compare(before.pixels.storage(), viewer.image.pixels.storage(), before.byteCount) != 0)
     window.shutdown()
 }
 

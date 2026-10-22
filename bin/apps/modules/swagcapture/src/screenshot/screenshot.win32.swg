@@ -290,6 +290,6 @@ func getScreenRectImage(drawCursor: bool, x, y, w, h: s32)->Image fail
     GdiFlush()
 
     var result = Image.create(w, h, PixelFormat.BGRA8)
-    Memory.copy(result.pixels.buffer, bits, result.byteCount)
+    Memory.copy(result.pixels.storage(), bits!, result.byteCount)
     return result
 }

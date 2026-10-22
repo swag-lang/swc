@@ -54,14 +54,14 @@ func ddsRoundtrip(source: Image)->Image
         rgba.pixels.storage()[i] = cast(u8, (i * 13))
     let decoded = ddsRoundtrip(rgba)
     assertImage(decoded, 2, 2, .RGBA8)
-    Swag.assert(Memory.compare(rgba.pixels.buffer, decoded.pixels.buffer, rgba.byteCount) == 0)
+    Swag.assert(Memory.compare(rgba.pixels.storage(), decoded.pixels.storage(), rgba.byteCount) == 0)
 
     var grayAlpha = Image.create(3, 2, .GrayAlpha8)
     for i in grayAlpha.byteCount do
         grayAlpha.pixels.storage()[i] = cast(u8, (i * 17))
     let decodedGray = ddsRoundtrip(grayAlpha)
     assertImage(decodedGray, 3, 2, .GrayAlpha8)
-    Swag.assert(Memory.compare(grayAlpha.pixels.buffer, decodedGray.pixels.buffer, grayAlpha.byteCount) == 0)
+    Swag.assert(Memory.compare(grayAlpha.pixels.storage(), decodedGray.pixels.storage(), grayAlpha.byteCount) == 0)
 }
 
 #test
@@ -72,7 +72,7 @@ func ddsRoundtrip(source: Image)->Image
         samples[i] = cast(u16, (i * 4001))
     let decoded = ddsRoundtrip(deep)
     assertImage(decoded, 2, 2, .RGBA16)
-    Swag.assert(Memory.compare(deep.pixels.buffer, decoded.pixels.buffer, deep.byteCount) == 0)
+    Swag.assert(Memory.compare(deep.pixels.storage(), decoded.pixels.storage(), deep.byteCount) == 0)
 
     var hdr    = Image.create(2, 1, .RGBAF32)
     let values = cast([*] f32, hdr.pixels.storage())
@@ -86,7 +86,7 @@ func ddsRoundtrip(source: Image)->Image
     values[7] = 0.75
     let decodedHdr = ddsRoundtrip(hdr)
     assertImage(decodedHdr, 2, 1, .RGBAF32)
-    Swag.assert(Memory.compare(hdr.pixels.buffer, decodedHdr.pixels.buffer, hdr.byteCount) == 0)
+    Swag.assert(Memory.compare(hdr.pixels.storage(), decodedHdr.pixels.storage(), hdr.byteCount) == 0)
 
     for format in [PixelFormat.Gray16, PixelFormat.GrayAlpha16, PixelFormat.GrayF16,
                    PixelFormat.GrayAlphaF16, PixelFormat.GrayF32, PixelFormat.GrayAlphaF32]
@@ -96,7 +96,7 @@ func ddsRoundtrip(source: Image)->Image
             gray.pixels.storage()[i] = cast(u8, ((i * 31 + 9) & 0xFF))
         let decodedGray = ddsRoundtrip(gray)
         assertImage(decodedGray, 3, 2, format)
-        Swag.assert(Memory.compare(gray.pixels.buffer, decodedGray.pixels.buffer, gray.byteCount) == 0)
+        Swag.assert(Memory.compare(gray.pixels.storage(), decodedGray.pixels.storage(), gray.byteCount) == 0)
     }
 }
 

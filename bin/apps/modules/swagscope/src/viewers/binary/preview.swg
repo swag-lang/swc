@@ -73,9 +73,9 @@ func reportIconContainer(image: *BinaryImage, report: *Report, previews: *Array'
         one.resize(22 + size)
         one[2] = cast(u8, kind)
         one[4] = 1
-        Memory.copy(one.buffer + 6, image.bytes.buffer + at, 16)
+        Memory.copy(one.storage() + 6, image.bytes.buffer + at, 16)
         writePreviewU32(&one, 18, 22)
-        Memory.copy(one.buffer + 22, image.bytes.buffer + offset, size)
+        Memory.copy(one.storage() + 22, image.bytes.buffer + offset, size)
         let decoded = catch Image.decode(kind == 1 ? "entry.ico" : "entry.cur", one.toSlice()) as decodeError
         if decodeError != null do
             continue

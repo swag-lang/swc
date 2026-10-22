@@ -54,7 +54,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
 
             host.runFrames(1)
             let image = host.render()
-            Memory.copy(channel.pixels(), image.pixels.buffer, FrameChannel.ByteCount)
+            Memory.copy(channel.pixels(), image.pixels.storage(), FrameChannel.ByteCount)
         }
         else
         {

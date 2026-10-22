@@ -213,7 +213,7 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
     let cb  = expect src.encode("memory.gif")
     let img = expect Image.decode("rgb.gif", nnBytes(cb.toSlice()), {})
     Swag.assert(img.pixelFormat == .RGB8)
-    Swag.assert(Memory.compare(src.pixels.buffer, img.pixels.buffer, src.pixels.count) == 0)
+    Swag.assert(Memory.compare(src.pixels.storage(), img.pixels.storage(), src.pixels.count) == 0)
 }
 
 // Encode RGBA8 with GIF's single transparent index.

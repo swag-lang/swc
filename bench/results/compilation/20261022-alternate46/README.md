@@ -127,3 +127,20 @@ its 0x70-byte stack, and shortens its final instruction offset by 31 bytes.
 Its promotion and relational-node callers retain their instruction/call counts,
 final offsets and stack reservations. The DevMode build and both permanent
 native reference/comparison inputs pass all 37 tests and compile-time assertions.
+
+## Read only the declared equality parameter
+
+`declaredEqualityTargetsOwner` inspects only the first declared parameter.
+The parser creates a `FunctionParamList`, and cloning preserves that node kind;
+its collector copies only its child span. Borrow its first chunk instead of
+copying the whole list into a temporary vector. Keep the same valid-span and
+empty-list behavior, attribute unwrapping, type walk and owner-name comparison.
+The unused tail is not traversed; vector initialization, copies and possible
+allocation/destruction disappear. Persistent storage is unchanged. DevMode's
+helper stack falls from 0x190 to 0xC0 bytes. Its local inlined access/validation
+code grows from 284 instructions and 29 calls to 307 instructions and 30 calls,
+with the called collector/copy/destructor paths removed. Its three containing
+equality helpers retain their instruction/call counts, offsets and stack
+reservations. The DevMode build and permanent generated-equality input pass
+15 tests, including explicit self overloads, additive other-type overloads,
+nested/anonymous fields, ignored fields and compile-time assertions.

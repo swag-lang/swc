@@ -24,6 +24,25 @@ the checkouts. No timing campaign or profiler runs; speed targets remain unverif
 
 Prompt-6 results are recorded in [health.md](health.md).
 
+The trailing-code-block sibling search now borrows the four accepted compound
+nodes' immutable child spans. It finds the call and following eligible sibling
+across chunks without constructing, filling or destroying a temporary vector.
+Invalid references, duplicate call references, the first blocking sibling and
+single-statement wrapper ascent retain their previous behavior. The containing
+DevMode helper drops from 299 instructions and 16 calls to 263 instructions and
+14 calls; its stack reservation falls from 0x180 to 0xD0 bytes. Its caller keeps
+the same instruction/call counts and 0xA0-byte stack. These comparisons include
+local assembler labels; an audit of earlier comparisons found one incomplete
+global-allocation call count, corrected to 57 in the health report.
+
+The DevMode build and all 1,552 default C++ tests pass. The new in-memory
+regression executes a trailing macro block after more than one page of statement
+references and verifies that its parsed body actually spans multiple chunks.
+Its initial postcondition incorrectly expected a synthesized `FunctionBody`
+instead of the parser's `EmbeddedBlock`; correcting that test assumption retains
+the multiple-chunk requirement. The permanent error-management trailing-block
+input also passes its JIT test, including wrapper ascent and block binding.
+
 Commands, from the corresponding campaign worktree:
 
 ```text

@@ -1,0 +1,4213 @@
+{
+  "kind": "targeted paired probe, not a full campaign",
+  "pin_mask": "0x55401",
+  "started": "2026-10-22T15:30:23.489092+00:00",
+  "panels": [
+    {
+      "task": "fannkuch",
+      "repetition": 1,
+      "files": {
+        "A": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\reversal-final-micro\\base\\fannkuch\\fannkuch.exe",
+          "sha256": "5580886503654e52e157a0035d08edcae4eee4397604b8da7b97b2eae32f5302"
+        },
+        "B": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\combined-micro\\new\\fannkuch\\fannkuch.exe",
+          "sha256": "ca01cbfb0fff801ebf9def3f6f59267c2750915f1aae506a296586d97a594954"
+        },
+        "AA1": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\reversal-final-micro\\base\\fannkuch\\fannkuch.exe",
+          "sha256": "5580886503654e52e157a0035d08edcae4eee4397604b8da7b97b2eae32f5302"
+        },
+        "AA2": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\reversal-final-micro\\base\\fannkuch\\fannkuch.exe",
+          "sha256": "5580886503654e52e157a0035d08edcae4eee4397604b8da7b97b2eae32f5302"
+        }
+      },
+      "warmups": [
+        {
+          "name": "A",
+          "ms": 11.38789998,
+          "check": 8629030,
+          "wall_ms": 29.9767,
+          "peak_bytes": 1855488,
+          "foreign_cores": 0.38074281985946634
+        },
+        {
+          "name": "B",
+          "ms": 11.37890003,
+          "check": 8629030,
+          "wall_ms": 27.6069,
+          "peak_bytes": 1863680,
+          "foreign_cores": 1.724585136984724
+        },
+        {
+          "name": "A",
+          "ms": 12.38089998,
+          "check": 8629030,
+          "wall_ms": 26.9909,
+          "peak_bytes": 1875968,
+          "foreign_cores": 3.2332682915319917
+        },
+        {
+          "name": "B",
+          "ms": 11.0363001,
+          "check": 8629030,
+          "wall_ms": 23.9884,
+          "peak_bytes": 1875968,
+          "foreign_cores": 1.9368013978568963
+        }
+      ],
+      "seed": 20261022,
+      "series": {
+        "A": {
+          "samples": [
+            {
+              "ms": 12.49990007,
+              "check": 8629030,
+              "wall_ms": 26.5336,
+              "peak_bytes": 1859584,
+              "foreign_cores": 1.863724464016274,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 11.7417,
+              "check": 8629030,
+              "wall_ms": 24.9045,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.9425113305251868,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 11.54510002,
+              "check": 8629030,
+              "wall_ms": 24.5851,
+              "peak_bytes": 1875968,
+              "foreign_cores": 0.9633406503339885,
+              "foreign_limit": 4.02,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 12.09869992,
+              "check": 8629030,
+              "wall_ms": 43.4699,
+              "peak_bytes": 1884160,
+              "foreign_cores": 0.9340068131459835,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 11.4508,
+              "check": 8629030,
+              "wall_ms": 25.1881,
+              "peak_bytes": 1851392,
+              "foreign_cores": 2.413798430492271,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 11.68710005,
+              "check": 8629030,
+              "wall_ms": 25.5131,
+              "peak_bytes": 1884160,
+              "foreign_cores": 1.4553566454552296,
+              "foreign_limit": 3.48,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 12.07920001,
+              "check": 8629030,
+              "wall_ms": 25.2519,
+              "peak_bytes": 1855488,
+              "foreign_cores": 2.356619504378972,
+              "foreign_limit": 3.48,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 12.89530005,
+              "check": 8629030,
+              "wall_ms": 27.6179,
+              "peak_bytes": 1859584,
+              "foreign_cores": 3.559458620835081,
+              "foreign_limit": 3.68,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 12.89739995,
+              "check": 8629030,
+              "wall_ms": 28.143,
+              "peak_bytes": 1863680,
+              "foreign_cores": 2.206035994162397,
+              "foreign_limit": 3.86,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 11.54009998,
+              "check": 8629030,
+              "wall_ms": 26.5271,
+              "peak_bytes": 1875968,
+              "foreign_cores": 1.3883458943364415,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 13.16570002,
+              "check": 8629030,
+              "wall_ms": 29.9602,
+              "peak_bytes": 1863680,
+              "foreign_cores": 3.183261642177719,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 12.32450001,
+              "check": 8629030,
+              "wall_ms": 30.909,
+              "peak_bytes": 1871872,
+              "foreign_cores": 1.1352710218423883,
+              "foreign_limit": 3.94,
+              "attempts": 2,
+              "round": 11
+            },
+            {
+              "ms": 11.55599998,
+              "check": 8629030,
+              "wall_ms": 26.2983,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.46405193763288083,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 11.4966,
+              "check": 8629030,
+              "wall_ms": 25.0461,
+              "peak_bytes": 1875968,
+              "foreign_cores": 1.9024022022372038,
+              "foreign_limit": 3.9,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 13.00700009,
+              "check": 8629030,
+              "wall_ms": 26.2829,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.4646632856849338,
+              "foreign_limit": 3.88,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 14.31650005,
+              "check": 8629030,
+              "wall_ms": 28.5065,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.8441497038991961,
+              "foreign_limit": 3.84,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 12.68849999,
+              "check": 8629030,
+              "wall_ms": 27.0453,
+              "peak_bytes": 1863680,
+              "foreign_cores": 1.3630614025616583,
+              "foreign_limit": 3.77,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 12.90049998,
+              "check": 8629030,
+              "wall_ms": 27.2595,
+              "peak_bytes": 1871872,
+              "foreign_cores": 1.7698062566017778,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 12.74270006,
+              "check": 8629030,
+              "wall_ms": 28.9478,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.8852615985710098,
+              "foreign_limit": 3.84,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 13.31070007,
+              "check": 8629030,
+              "wall_ms": 27.6901,
+              "peak_bytes": 1867776,
+              "foreign_cores": 1.3479394831545102,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 12.81119999,
+              "check": 8629030,
+              "wall_ms": 27.0755,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.44702119493519143,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 12.51189993,
+              "check": 8629030,
+              "wall_ms": 26.9419,
+              "peak_bytes": 1880064,
+              "foreign_cores": 2.742872193088201,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 14.36779997,
+              "check": 8629030,
+              "wall_ms": 28.1767,
+              "peak_bytes": 1888256,
+              "foreign_cores": 0.0,
+              "foreign_limit": 3.86,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 13.14519998,
+              "check": 8629030,
+              "wall_ms": 26.934,
+              "peak_bytes": 1884160,
+              "foreign_cores": 2.316599447841895,
+              "foreign_limit": 3.83,
+              "attempts": 1,
+              "round": 23
+            },
+            {
+              "ms": 13.02359998,
+              "check": 8629030,
+              "wall_ms": 30.2818,
+              "peak_bytes": 1863680,
+              "foreign_cores": 3.1922935558883063,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 14.74879996,
+              "check": 8629030,
+              "wall_ms": 35.211,
+              "peak_bytes": 1863680,
+              "foreign_cores": 1.0874305799286645,
+              "foreign_limit": 3.83,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 13.88450002,
+              "check": 8629030,
+              "wall_ms": 50.2881,
+              "peak_bytes": 1896448,
+              "foreign_cores": 0.8101199745098213,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 14.27100005,
+              "check": 8629030,
+              "wall_ms": 28.624,
+              "peak_bytes": 1875968,
+              "foreign_cores": 1.7502933513994,
+              "foreign_limit": 3.65,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 14.64780001,
+              "check": 8629030,
+              "wall_ms": 31.1652,
+              "peak_bytes": 1859584,
+              "foreign_cores": 0.8009637173347016,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 14.86979995,
+              "check": 8629030,
+              "wall_ms": 30.8097,
+              "peak_bytes": 1867776,
+              "foreign_cores": 0.0,
+              "foreign_limit": 3.68,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 13.03999999,
+              "check": 8629030,
+              "wall_ms": 31.6949,
+              "peak_bytes": 1867776,
+              "foreign_cores": 4.904671301614436,
+              "foreign_limit": 3.94,
+              "round": 11
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "B": {
+          "samples": [
+            {
+              "ms": 11.4967,
+              "check": 8629030,
+              "wall_ms": 25.2661,
+              "peak_bytes": 1880064,
+              "foreign_cores": 2.8825488159164405,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 11.30689995,
+              "check": 8629030,
+              "wall_ms": 24.5793,
+              "peak_bytes": 1859584,
+              "foreign_cores": 0.9980167409025752,
+              "foreign_limit": 4.87,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 11.5300999,
+              "check": 8629030,
+              "wall_ms": 25.9849,
+              "peak_bytes": 1867776,
+              "foreign_cores": 2.699340931944227,
+              "foreign_limit": 3.98,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 11.75539999,
+              "check": 8629030,
+              "wall_ms": 25.8471,
+              "peak_bytes": 1859584,
+              "foreign_cores": 0.9009242768952591,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 11.34779991,
+              "check": 8629030,
+              "wall_ms": 25.034,
+              "peak_bytes": 1884160,
+              "foreign_cores": 0.9418466214847012,
+              "foreign_limit": 3.72,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 11.04269992,
+              "check": 8629030,
+              "wall_ms": 24.9119,
+              "peak_bytes": 1859584,
+              "foreign_cores": 0.9760348305037776,
+              "foreign_limit": 3.48,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 11.67599997,
+              "check": 8629030,
+              "wall_ms": 25.8688,
+              "peak_bytes": 1884160,
+              "foreign_cores": 0.46798110728777503,
+              "foreign_limit": 3.49,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 12.37899996,
+              "check": 8629030,
+              "wall_ms": 27.1616,
+              "peak_bytes": 1880064,
+              "foreign_cores": 1.3761589095699005,
+              "foreign_limit": 3.59,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 11.44719997,
+              "check": 8629030,
+              "wall_ms": 26.7728,
+              "peak_bytes": 1880064,
+              "foreign_cores": 2.744895957796193,
+              "foreign_limit": 3.84,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 12.41139998,
+              "check": 8629030,
+              "wall_ms": 46.5793,
+              "peak_bytes": 1875968,
+              "foreign_cores": 2.2185463360892643,
+              "foreign_limit": 3.89,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 12.06819993,
+              "check": 8629030,
+              "wall_ms": 27.5494,
+              "peak_bytes": 1855488,
+              "foreign_cores": 3.0112852673398414,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 12.62329996,
+              "check": 8629030,
+              "wall_ms": 30.7364,
+              "peak_bytes": 1863680,
+              "foreign_cores": 3.887193034490922,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 11.5126,
+              "check": 8629030,
+              "wall_ms": 25.4969,
+              "peak_bytes": 1859584,
+              "foreign_cores": 1.4066438570563362,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 11.0693,
+              "check": 8629030,
+              "wall_ms": 24.7158,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.48037015484078904,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 11.76700008,
+              "check": 8629030,
+              "wall_ms": 25.4186,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.9374784402327017,
+              "foreign_limit": 3.88,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 12.57560006,
+              "check": 8629030,
+              "wall_ms": 27.2872,
+              "peak_bytes": 1880064,
+              "foreign_cores": 2.208193421407006,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 13.46809999,
+              "check": 8629030,
+              "wall_ms": 29.714,
+              "peak_bytes": 1855488,
+              "foreign_cores": 1.2378067743723733,
+              "foreign_limit": 3.74,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 12.23189989,
+              "check": 8629030,
+              "wall_ms": 27.5453,
+              "peak_bytes": 1875968,
+              "foreign_cores": 2.1940047920282004,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 12.97379995,
+              "check": 8629030,
+              "wall_ms": 26.435,
+              "peak_bytes": 1871872,
+              "foreign_cores": 1.3974433122136947,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 11.65520004,
+              "check": 8629030,
+              "wall_ms": 26.0318,
+              "peak_bytes": 1863680,
+              "foreign_cores": 0.0,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 12.7512,
+              "check": 8629030,
+              "wall_ms": 27.2731,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.44749873297400955,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 13.53400003,
+              "check": 8629030,
+              "wall_ms": 45.7112,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.587929846490548,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 12.79980002,
+              "check": 8629030,
+              "wall_ms": 26.7817,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.9120519268179081,
+              "foreign_limit": 3.86,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 12.06039998,
+              "check": 8629030,
+              "wall_ms": 26.093,
+              "peak_bytes": 1880064,
+              "foreign_cores": 1.8834037439646778,
+              "foreign_limit": 3.83,
+              "attempts": 1,
+              "round": 23
+            },
+            {
+              "ms": 13.76679994,
+              "check": 8629030,
+              "wall_ms": 32.1606,
+              "peak_bytes": 1884160,
+              "foreign_cores": 1.1201439514777451,
+              "foreign_limit": 3.81,
+              "attempts": 2,
+              "round": 24
+            },
+            {
+              "ms": 14.25900008,
+              "check": 8629030,
+              "wall_ms": 28.331,
+              "peak_bytes": 1851392,
+              "foreign_cores": 0.0,
+              "foreign_limit": 3.77,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 13.77830002,
+              "check": 8629030,
+              "wall_ms": 28.2266,
+              "peak_bytes": 1863680,
+              "foreign_cores": 0.40830458864887276,
+              "foreign_limit": 3.72,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 13.6219,
+              "check": 8629030,
+              "wall_ms": 27.7037,
+              "peak_bytes": 1875968,
+              "foreign_cores": 2.246643338853878,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 12.18640001,
+              "check": 8629030,
+              "wall_ms": 27.8164,
+              "peak_bytes": 1855488,
+              "foreign_cores": 0.44288548812132766,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 14.6166,
+              "check": 8629030,
+              "wall_ms": 30.8686,
+              "peak_bytes": 1859584,
+              "foreign_cores": 3.5802484841445,
+              "foreign_limit": 3.68,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 13.06679996,
+              "check": 8629030,
+              "wall_ms": 30.788,
+              "peak_bytes": 1880064,
+              "foreign_cores": 3.8269461143065597,
+              "foreign_limit": 3.81,
+              "round": 24
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "AA1": {
+          "samples": [
+            {
+              "ms": 11.3414001,
+              "check": 8629030,
+              "wall_ms": 28.6124,
+              "peak_bytes": 1867776,
+              "foreign_cores": 6.075916300504824,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 11.42939995,
+              "check": 8629030,
+              "wall_ms": 24.7843,
+              "peak_bytes": 1871872,
+              "foreign_cores": 1.439344855581769,
+              "foreign_limit": 5.38,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 11.7105,
+              "check": 8629030,
+              "wall_ms": 24.4947,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.48123565969560284,
+              "foreign_limit": 4.02,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 12.01169996,
+              "check": 8629030,
+              "wall_ms": 25.377,
+              "peak_bytes": 1859584,
+              "foreign_cores": 0.47770895477568587,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 12.1396,
+              "check": 8629030,
+              "wall_ms": 28.5748,
+              "peak_bytes": 1871872,
+              "foreign_cores": 2.149077926846301,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 11.2345001,
+              "check": 8629030,
+              "wall_ms": 25.0908,
+              "peak_bytes": 1875968,
+              "foreign_cores": 0.4952613403132294,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 11.62640005,
+              "check": 8629030,
+              "wall_ms": 27.2435,
+              "peak_bytes": 1863680,
+              "foreign_cores": 1.1788271333957263,
+              "foreign_limit": 3.5,
+              "attempts": 2,
+              "round": 6
+            },
+            {
+              "ms": 13.07570003,
+              "check": 8629030,
+              "wall_ms": 28.0482,
+              "peak_bytes": 1871872,
+              "foreign_cores": 1.311045785488694,
+              "foreign_limit": 3.77,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 11.47809997,
+              "check": 8629030,
+              "wall_ms": 28.7758,
+              "peak_bytes": 1871872,
+              "foreign_cores": 2.1542097042154844,
+              "foreign_limit": 3.88,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 12.53910002,
+              "check": 8629030,
+              "wall_ms": 27.7179,
+              "peak_bytes": 1880064,
+              "foreign_cores": 1.3187954023824866,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 12.50060007,
+              "check": 8629030,
+              "wall_ms": 27.9226,
+              "peak_bytes": 1859584,
+              "foreign_cores": 2.166377817857683,
+              "foreign_limit": 3.89,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 12.44049997,
+              "check": 8629030,
+              "wall_ms": 27.1123,
+              "peak_bytes": 1871872,
+              "foreign_cores": 2.238006439358088,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 11.4513,
+              "check": 8629030,
+              "wall_ms": 24.8667,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.8331467101529186,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 12.13359996,
+              "check": 8629030,
+              "wall_ms": 25.864,
+              "peak_bytes": 1875968,
+              "foreign_cores": 1.4044018065560195,
+              "foreign_limit": 3.89,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 12.35490001,
+              "check": 8629030,
+              "wall_ms": 26.059,
+              "peak_bytes": 1867776,
+              "foreign_cores": 1.3712515471751603,
+              "foreign_limit": 3.9,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 13.79629993,
+              "check": 8629030,
+              "wall_ms": 45.5367,
+              "peak_bytes": 1871872,
+              "foreign_cores": 1.1757446697845992,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 11.99110004,
+              "check": 8629030,
+              "wall_ms": 26.4839,
+              "peak_bytes": 1867776,
+              "foreign_cores": 0.918544906480133,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 12.22080004,
+              "check": 8629030,
+              "wall_ms": 25.9633,
+              "peak_bytes": 1863680,
+              "foreign_cores": 1.3702534395480015,
+              "foreign_limit": 3.77,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 13.19209998,
+              "check": 8629030,
+              "wall_ms": 27.5104,
+              "peak_bytes": 1871872,
+              "foreign_cores": 1.7308033147881794,
+              "foreign_limit": 3.84,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 14.39989998,
+              "check": 8629030,
+              "wall_ms": 28.5991,
+              "peak_bytes": 1855488,
+              "foreign_cores": 1.764400330110929,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 12.96189998,
+              "check": 8629030,
+              "wall_ms": 26.8728,
+              "peak_bytes": 1855488,
+              "foreign_cores": 1.8472051043234037,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 12.86890008,
+              "check": 8629030,
+              "wall_ms": 26.7689,
+              "peak_bytes": 1884160,
+              "foreign_cores": 0.921796277300972,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 12.78999995,
+              "check": 8629030,
+              "wall_ms": 28.587,
+              "peak_bytes": 1884160,
+              "foreign_cores": 0.8567159682115973,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 15.34759998,
+              "check": 8629030,
+              "wall_ms": 33.3171,
+              "peak_bytes": 1863680,
+              "foreign_cores": 3.6573833564555067,
+              "foreign_limit": 3.81,
+              "attempts": 2,
+              "round": 23
+            },
+            {
+              "ms": 12.86139991,
+              "check": 8629030,
+              "wall_ms": 29.2807,
+              "peak_bytes": 1884160,
+              "foreign_cores": 2.023885077016645,
+              "foreign_limit": 3.77,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 13.22219998,
+              "check": 8629030,
+              "wall_ms": 28.9755,
+              "peak_bytes": 1863680,
+              "foreign_cores": 2.085780649800514,
+              "foreign_limit": 3.83,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 14.17470002,
+              "check": 8629030,
+              "wall_ms": 28.8547,
+              "peak_bytes": 1884160,
+              "foreign_cores": 2.165789259206143,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 14.31759994,
+              "check": 8629030,
+              "wall_ms": 28.3109,
+              "peak_bytes": 1867776,
+              "foreign_cores": 0.8545442615133579,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 14.78339999,
+              "check": 8629030,
+              "wall_ms": 29.2751,
+              "peak_bytes": 1896448,
+              "foreign_cores": 1.260348297166162,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 15.18939994,
+              "check": 8629030,
+              "wall_ms": 29.3748,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.0,
+              "foreign_limit": 3.68,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 11.61729998,
+              "check": 8629030,
+              "wall_ms": 25.6906,
+              "peak_bytes": 1863680,
+              "foreign_cores": 4.348518485560882,
+              "foreign_limit": 3.5,
+              "round": 6
+            },
+            {
+              "ms": 12.95510004,
+              "check": 8629030,
+              "wall_ms": 28.1511,
+              "peak_bytes": 1892352,
+              "foreign_cores": 4.1284537055364785,
+              "foreign_limit": 3.81,
+              "round": 23
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "AA2": {
+          "samples": [
+            {
+              "ms": 22.63809997,
+              "check": 8629030,
+              "wall_ms": 36.8545,
+              "peak_bytes": 1880064,
+              "foreign_cores": 6.963971708755125,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 11.65490004,
+              "check": 8629030,
+              "wall_ms": 25.2409,
+              "peak_bytes": 1863680,
+              "foreign_cores": 1.5153682600412113,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 11.6062999,
+              "check": 8629030,
+              "wall_ms": 24.9061,
+              "peak_bytes": 1875968,
+              "foreign_cores": 1.439760426331628,
+              "foreign_limit": 4.19,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 11.8029,
+              "check": 8629030,
+              "wall_ms": 24.9674,
+              "peak_bytes": 1875968,
+              "foreign_cores": 0.935808061611154,
+              "foreign_limit": 3.98,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 11.93779998,
+              "check": 8629030,
+              "wall_ms": 25.5055,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.453071900412854,
+              "foreign_limit": 3.72,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 11.28830004,
+              "check": 8629030,
+              "wall_ms": 25.2184,
+              "peak_bytes": 1888256,
+              "foreign_cores": 0.489501943983275,
+              "foreign_limit": 3.72,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 11.74799993,
+              "check": 8629030,
+              "wall_ms": 25.4219,
+              "peak_bytes": 1875968,
+              "foreign_cores": 1.362784005080015,
+              "foreign_limit": 3.49,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 12.1985001,
+              "check": 8629030,
+              "wall_ms": 27.5807,
+              "peak_bytes": 1867776,
+              "foreign_cores": 2.238795281297613,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 12.37260003,
+              "check": 8629030,
+              "wall_ms": 27.4545,
+              "peak_bytes": 1867776,
+              "foreign_cores": 1.705767406587788,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 12.38520001,
+              "check": 8629030,
+              "wall_ms": 27.3857,
+              "peak_bytes": 1875968,
+              "foreign_cores": 2.560495978234411,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 12.24690001,
+              "check": 8629030,
+              "wall_ms": 28.6064,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.4142452648352121,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 13.14910001,
+              "check": 8629030,
+              "wall_ms": 27.8042,
+              "peak_bytes": 1855488,
+              "foreign_cores": 1.3031403258661334,
+              "foreign_limit": 3.94,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 11.41540008,
+              "check": 8629030,
+              "wall_ms": 27.2206,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.9180888494942621,
+              "foreign_limit": 3.92,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 12.01589999,
+              "check": 8629030,
+              "wall_ms": 25.505,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.9701383653088435,
+              "foreign_limit": 3.9,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 12.05669995,
+              "check": 8629030,
+              "wall_ms": 25.513,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.9561223965806598,
+              "foreign_limit": 3.89,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 12.59320008,
+              "check": 8629030,
+              "wall_ms": 25.8873,
+              "peak_bytes": 1859584,
+              "foreign_cores": 0.9568572210475337,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 13.24629993,
+              "check": 8629030,
+              "wall_ms": 27.1807,
+              "peak_bytes": 1863680,
+              "foreign_cores": 0.8866204005090418,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 12.46530004,
+              "check": 8629030,
+              "wall_ms": 25.8748,
+              "peak_bytes": 1867776,
+              "foreign_cores": 0.4661243224274093,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 12.8578,
+              "check": 8629030,
+              "wall_ms": 27.4385,
+              "peak_bytes": 1859584,
+              "foreign_cores": 1.3856946033085231,
+              "foreign_limit": 3.86,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 12.57419994,
+              "check": 8629030,
+              "wall_ms": 27.3754,
+              "peak_bytes": 1871872,
+              "foreign_cores": 2.232213010864199,
+              "foreign_limit": 3.86,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 12.093,
+              "check": 8629030,
+              "wall_ms": 26.9427,
+              "peak_bytes": 1871872,
+              "foreign_cores": 0.44654339733206133,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 12.87650003,
+              "check": 8629030,
+              "wall_ms": 27.8762,
+              "peak_bytes": 1855488,
+              "foreign_cores": 1.7612827772668793,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 14.84289998,
+              "check": 8629030,
+              "wall_ms": 29.1167,
+              "peak_bytes": 1875968,
+              "foreign_cores": 0.0,
+              "foreign_limit": 3.87,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 13.32350005,
+              "check": 8629030,
+              "wall_ms": 30.5006,
+              "peak_bytes": 1880064,
+              "foreign_cores": 0.8040094982672664,
+              "foreign_limit": 3.83,
+              "attempts": 1,
+              "round": 23
+            },
+            {
+              "ms": 13.14539998,
+              "check": 8629030,
+              "wall_ms": 28.9122,
+              "peak_bytes": 1896448,
+              "foreign_cores": 2.46706630537354,
+              "foreign_limit": 3.77,
+              "attempts": 2,
+              "round": 24
+            },
+            {
+              "ms": 12.85419997,
+              "check": 8629030,
+              "wall_ms": 31.4019,
+              "peak_bytes": 1871872,
+              "foreign_cores": 3.607508238161262,
+              "foreign_limit": 3.77,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 15.35640005,
+              "check": 8629030,
+              "wall_ms": 29.5395,
+              "peak_bytes": 1859584,
+              "foreign_cores": 1.2031694360889098,
+              "foreign_limit": 3.71,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 12.74789998,
+              "check": 8629030,
+              "wall_ms": 27.7636,
+              "peak_bytes": 1921024,
+              "foreign_cores": 0.4519474970217496,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 14.88679997,
+              "check": 8629030,
+              "wall_ms": 31.7676,
+              "peak_bytes": 1875968,
+              "foreign_cores": 1.1742852205861232,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 14.78060009,
+              "check": 8629030,
+              "wall_ms": 29.7501,
+              "peak_bytes": 1867776,
+              "foreign_cores": 1.276802639782298,
+              "foreign_limit": 3.65,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 13.6839,
+              "check": 8629030,
+              "wall_ms": 30.7671,
+              "peak_bytes": 1875968,
+              "foreign_cores": 4.276997647466628,
+              "foreign_limit": 3.77,
+              "round": 24
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        }
+      },
+      "waits_s": [
+        4.024632453918457,
+        4.031885147094727,
+        6.037985801696777,
+        2.014744520187378,
+        2.0065407752990723
+      ],
+      "foreign_median": 1.1894570529367545,
+      "BA": {
+        "value": 0.964794942732895,
+        "low": 0.9448622731692967,
+        "high": 0.9923511829848374,
+        "n": 30,
+        "se": 0.012102677478113262,
+        "exact": true
+      },
+      "AA": {
+        "value": 0.9907008300606068,
+        "low": 0.9758638224705471,
+        "high": 1.0104589451143133,
+        "n": 30,
+        "se": 0.00859782681157589,
+        "exact": true
+      },
+      "contended_share": 0.0
+    },
+    {
+      "task": "lz77",
+      "repetition": 1,
+      "files": {
+        "A": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\pair-micro\\base\\lz77\\lz77.exe",
+          "sha256": "70750ff7fb96f121c6ef4e760a7f17ae2ed8f48aa4488f85db3dda8a7cd2c4b0"
+        },
+        "B": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\combined-micro\\new\\lz77\\lz77.exe",
+          "sha256": "432ee65ce14e21a72804ae4849108d09df78732aee26318f006f58f237b6ef70"
+        },
+        "AA1": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\pair-micro\\base\\lz77\\lz77.exe",
+          "sha256": "70750ff7fb96f121c6ef4e760a7f17ae2ed8f48aa4488f85db3dda8a7cd2c4b0"
+        },
+        "AA2": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\pair-micro\\base\\lz77\\lz77.exe",
+          "sha256": "70750ff7fb96f121c6ef4e760a7f17ae2ed8f48aa4488f85db3dda8a7cd2c4b0"
+        }
+      },
+      "warmups": [
+        {
+          "name": "A",
+          "ms": 22.39960001,
+          "check": 622942003053,
+          "wall_ms": 42.59,
+          "peak_bytes": 6955008,
+          "foreign_cores": 0.6251875571130285
+        },
+        {
+          "name": "B",
+          "ms": 20.78000002,
+          "check": 622942003053,
+          "wall_ms": 43.4398,
+          "peak_bytes": 6950912,
+          "foreign_cores": 0.8287966838811169
+        },
+        {
+          "name": "A",
+          "ms": 20.58050002,
+          "check": 622942003053,
+          "wall_ms": 38.9077,
+          "peak_bytes": 6950912,
+          "foreign_cores": 1.6262218770746888
+        },
+        {
+          "name": "B",
+          "ms": 27.03899995,
+          "check": 622942003053,
+          "wall_ms": 49.1602,
+          "peak_bytes": 6955008,
+          "foreign_cores": 1.3648457658417015
+        }
+      ],
+      "seed": 20261023,
+      "series": {
+        "A": {
+          "samples": [
+            {
+              "ms": 19.49009998,
+              "check": 622942003053,
+              "wall_ms": 36.0444,
+              "peak_bytes": 6950912,
+              "foreign_cores": 1.0863041112490932,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 20.95969999,
+              "check": 622942003053,
+              "wall_ms": 41.1832,
+              "peak_bytes": 6963200,
+              "foreign_cores": 2.2008282177648653,
+              "foreign_limit": 3.18,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 23.18720007,
+              "check": 622942003053,
+              "wall_ms": 51.1706,
+              "peak_bytes": 6950912,
+              "foreign_cores": 1.8300140703144234,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 22.86110003,
+              "check": 622942003053,
+              "wall_ms": 48.1131,
+              "peak_bytes": 6959104,
+              "foreign_cores": 2.4504934940840295,
+              "foreign_limit": 3.59,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 22.61530003,
+              "check": 622942003053,
+              "wall_ms": 43.7447,
+              "peak_bytes": 6967296,
+              "foreign_cores": 2.382672441203562,
+              "foreign_limit": 3.73,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 20.92529996,
+              "check": 622942003053,
+              "wall_ms": 40.2252,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.9639964063245114,
+              "foreign_limit": 3.72,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 19.58369999,
+              "check": 622942003053,
+              "wall_ms": 37.5672,
+              "peak_bytes": 6955008,
+              "foreign_cores": 1.3491897307281773,
+              "foreign_limit": 3.58,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 22.61320001,
+              "check": 622942003053,
+              "wall_ms": 40.6091,
+              "peak_bytes": 7004160,
+              "foreign_cores": 0.6481708109187772,
+              "foreign_limit": 3.57,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 20.98819998,
+              "check": 622942003053,
+              "wall_ms": 38.6552,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.33835506427914736,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 20.00919997,
+              "check": 622942003053,
+              "wall_ms": 44.51,
+              "peak_bytes": 6955008,
+              "foreign_cores": 1.2214689293455674,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 21.49219997,
+              "check": 622942003053,
+              "wall_ms": 42.1241,
+              "peak_bytes": 6963200,
+              "foreign_cores": 3.0952729994899517,
+              "foreign_limit": 3.57,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 19.99449998,
+              "check": 622942003053,
+              "wall_ms": 37.6398,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.34359613815774304,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 19.88449995,
+              "check": 622942003053,
+              "wall_ms": 39.9535,
+              "peak_bytes": 6946816,
+              "foreign_cores": 0.32309760122161174,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 20.57269996,
+              "check": 622942003053,
+              "wall_ms": 38.6282,
+              "peak_bytes": 6946816,
+              "foreign_cores": 1.3489858883204604,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 20.08529997,
+              "check": 622942003053,
+              "wall_ms": 38.2559,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.6399714932741908,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 19.96860001,
+              "check": 622942003053,
+              "wall_ms": 36.711,
+              "peak_bytes": 6967296,
+              "foreign_cores": 2.10076972240915,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 19.94100004,
+              "check": 622942003053,
+              "wall_ms": 38.3083,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.3412242579571942,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 20.76739992,
+              "check": 622942003053,
+              "wall_ms": 39.6344,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.6413795511558333,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 20.53819993,
+              "check": 622942003053,
+              "wall_ms": 38.0213,
+              "peak_bytes": 6955008,
+              "foreign_cores": 2.015985963861916,
+              "foreign_limit": 3.48,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 19.88189993,
+              "check": 622942003053,
+              "wall_ms": 39.1367,
+              "peak_bytes": 6975488,
+              "foreign_cores": 0.9861611349864934,
+              "foreign_limit": 3.48,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 20.38280002,
+              "check": 622942003053,
+              "wall_ms": 39.1833,
+              "peak_bytes": 6963200,
+              "foreign_cores": 0.31033571854871594,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 21.00030007,
+              "check": 622942003053,
+              "wall_ms": 39.0929,
+              "peak_bytes": 6971392,
+              "foreign_cores": 0.6645825364677891,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 21.00999991,
+              "check": 622942003053,
+              "wall_ms": 40.7437,
+              "peak_bytes": 6967296,
+              "foreign_cores": 0.9361145499425717,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 19.51649995,
+              "check": 622942003053,
+              "wall_ms": 37.8417,
+              "peak_bytes": 6963200,
+              "foreign_cores": 0.6657676138489022,
+              "foreign_limit": 3.46,
+              "attempts": 2,
+              "round": 23
+            },
+            {
+              "ms": 20.95389995,
+              "check": 622942003053,
+              "wall_ms": 38.2327,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.3416577559736263,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 20.75510006,
+              "check": 622942003053,
+              "wall_ms": 43.4318,
+              "peak_bytes": 6967296,
+              "foreign_cores": 0.6105841083292625,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 23.94950006,
+              "check": 622942003053,
+              "wall_ms": 41.618,
+              "peak_bytes": 6979584,
+              "foreign_cores": 2.2274833272999994,
+              "foreign_limit": 3.42,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 24.43400002,
+              "check": 622942003053,
+              "wall_ms": 43.5451,
+              "peak_bytes": 6946816,
+              "foreign_cores": 0.3008377246402864,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 23.6955001,
+              "check": 622942003053,
+              "wall_ms": 46.2801,
+              "peak_bytes": 6971392,
+              "foreign_cores": 1.092212438248,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 19.46540002,
+              "check": 622942003053,
+              "wall_ms": 37.2266,
+              "peak_bytes": 6955008,
+              "foreign_cores": 0.6846658950501386,
+              "foreign_limit": 3.48,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 42.31269995,
+              "check": 622942003053,
+              "wall_ms": 82.1393,
+              "peak_bytes": 7004160,
+              "foreign_cores": 8.537940330452054,
+              "foreign_limit": 3.46,
+              "round": 23
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "B": {
+          "samples": [
+            {
+              "ms": 20.67950007,
+              "check": 622942003053,
+              "wall_ms": 39.0283,
+              "peak_bytes": 6938624,
+              "foreign_cores": 0.328905129853169,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 19.26950004,
+              "check": 622942003053,
+              "wall_ms": 36.7822,
+              "peak_bytes": 6938624,
+              "foreign_cores": 1.0053597748944731,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 21.56560007,
+              "check": 622942003053,
+              "wall_ms": 40.4683,
+              "peak_bytes": 6946816,
+              "foreign_cores": 1.2854474996042646,
+              "foreign_limit": 3.34,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 20.77800001,
+              "check": 622942003053,
+              "wall_ms": 42.426,
+              "peak_bytes": 6959104,
+              "foreign_cores": 1.5444057397781081,
+              "foreign_limit": 3.55,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 22.55950007,
+              "check": 622942003053,
+              "wall_ms": 43.3769,
+              "peak_bytes": 6946816,
+              "foreign_cores": 1.2152936446724425,
+              "foreign_limit": 3.79,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 20.85690002,
+              "check": 622942003053,
+              "wall_ms": 37.3071,
+              "peak_bytes": 6975488,
+              "foreign_cores": 0.6925391913605352,
+              "foreign_limit": 3.75,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 21.41509997,
+              "check": 622942003053,
+              "wall_ms": 38.2568,
+              "peak_bytes": 6942720,
+              "foreign_cores": 1.013853293655091,
+              "foreign_limit": 3.59,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 20.211,
+              "check": 622942003053,
+              "wall_ms": 38.3315,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.3291913160460639,
+              "foreign_limit": 3.58,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 21.1446,
+              "check": 622942003053,
+              "wall_ms": 39.466,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.3310893423871693,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 22.53800002,
+              "check": 622942003053,
+              "wall_ms": 40.4441,
+              "peak_bytes": 6975488,
+              "foreign_cores": 1.899815390031056,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 21.14179998,
+              "check": 622942003053,
+              "wall_ms": 39.7656,
+              "peak_bytes": 6955008,
+              "foreign_cores": 1.31562882764369,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 19.31919996,
+              "check": 622942003053,
+              "wall_ms": 39.1773,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.3359803208223804,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 19.16569995,
+              "check": 622942003053,
+              "wall_ms": 38.8262,
+              "peak_bytes": 6959104,
+              "foreign_cores": 1.3571938872993137,
+              "foreign_limit": 3.49,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 19.39509995,
+              "check": 622942003053,
+              "wall_ms": 36.6106,
+              "peak_bytes": 6963200,
+              "foreign_cores": 0.34160024066452294,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 21.17109997,
+              "check": 622942003053,
+              "wall_ms": 38.147,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.333927457442978,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 21.23199997,
+              "check": 622942003053,
+              "wall_ms": 40.5846,
+              "peak_bytes": 6955008,
+              "foreign_cores": 1.299551915444698,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 21.59500006,
+              "check": 622942003053,
+              "wall_ms": 39.8411,
+              "peak_bytes": 6963200,
+              "foreign_cores": 0.6469550680701571,
+              "foreign_limit": 3.62,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 20.09690006,
+              "check": 622942003053,
+              "wall_ms": 43.1801,
+              "peak_bytes": 6946816,
+              "foreign_cores": 0.5995940029443906,
+              "foreign_limit": 3.62,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 22.11220004,
+              "check": 622942003053,
+              "wall_ms": 40.3757,
+              "peak_bytes": 6938624,
+              "foreign_cores": 0.9470462272175796,
+              "foreign_limit": 3.49,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 20.75599995,
+              "check": 622942003053,
+              "wall_ms": 37.7473,
+              "peak_bytes": 6955008,
+              "foreign_cores": 0.3413778339259119,
+              "foreign_limit": 3.48,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 19.87139997,
+              "check": 622942003053,
+              "wall_ms": 39.5049,
+              "peak_bytes": 6963200,
+              "foreign_cores": 1.9225760697924976,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 21.88880008,
+              "check": 622942003053,
+              "wall_ms": 41.8968,
+              "peak_bytes": 6934528,
+              "foreign_cores": 1.2419792990738976,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 19.92459991,
+              "check": 622942003053,
+              "wall_ms": 39.566,
+              "peak_bytes": 6963200,
+              "foreign_cores": 1.214542642446893,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 22.03580004,
+              "check": 622942003053,
+              "wall_ms": 47.538,
+              "peak_bytes": 6942720,
+              "foreign_cores": 1.6621809937812404,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 23
+            },
+            {
+              "ms": 19.78099998,
+              "check": 622942003053,
+              "wall_ms": 44.084,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.30260716629684065,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 22.37800008,
+              "check": 622942003053,
+              "wall_ms": 45.4134,
+              "peak_bytes": 6942720,
+              "foreign_cores": 0.889443374281099,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 19.72109999,
+              "check": 622942003053,
+              "wall_ms": 40.0907,
+              "peak_bytes": 6926336,
+              "foreign_cores": 2.624324758236686,
+              "foreign_limit": 3.42,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 20.71870002,
+              "check": 622942003053,
+              "wall_ms": 42.2679,
+              "peak_bytes": 6967296,
+              "foreign_cores": 0.6172937050588221,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 27.52210002,
+              "check": 622942003053,
+              "wall_ms": 52.9348,
+              "peak_bytes": 6967296,
+              "foreign_cores": 2.172146785705639,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 19.88340006,
+              "check": 622942003053,
+              "wall_ms": 36.4984,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.6969363794839311,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "AA1": {
+          "samples": [
+            {
+              "ms": 21.2967,
+              "check": 622942003053,
+              "wall_ms": 38.0915,
+              "peak_bytes": 6955008,
+              "foreign_cores": 0.6794157685800661,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 21.74220001,
+              "check": 622942003053,
+              "wall_ms": 40.4116,
+              "peak_bytes": 6967296,
+              "foreign_cores": 3.268370333501125,
+              "foreign_limit": 3.34,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 20.44360002,
+              "check": 622942003053,
+              "wall_ms": 58.0213,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.4641670469961891,
+              "foreign_limit": 3.34,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 23.82290002,
+              "check": 622942003053,
+              "wall_ms": 44.8651,
+              "peak_bytes": 6955008,
+              "foreign_cores": 1.175841997818983,
+              "foreign_limit": 3.69,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 21.78120008,
+              "check": 622942003053,
+              "wall_ms": 40.283,
+              "peak_bytes": 6959104,
+              "foreign_cores": 1.592600140469188,
+              "foreign_limit": 3.75,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 21.77980007,
+              "check": 622942003053,
+              "wall_ms": 39.0916,
+              "peak_bytes": 6950912,
+              "foreign_cores": 1.0049330153112994,
+              "foreign_limit": 3.7,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 22.32979995,
+              "check": 622942003053,
+              "wall_ms": 39.4569,
+              "peak_bytes": 6955008,
+              "foreign_cores": 0.9138228496754122,
+              "foreign_limit": 3.59,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 20.93440003,
+              "check": 622942003053,
+              "wall_ms": 38.535,
+              "peak_bytes": 6975488,
+              "foreign_cores": 0.6570550898421045,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 22.61710004,
+              "check": 622942003053,
+              "wall_ms": 39.4576,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.986507731225557,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 21.60209999,
+              "check": 622942003053,
+              "wall_ms": 41.7795,
+              "peak_bytes": 6955008,
+              "foreign_cores": 0.9047149401814806,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 21.05829993,
+              "check": 622942003053,
+              "wall_ms": 37.8583,
+              "peak_bytes": 6971392,
+              "foreign_cores": 0.6800263745463998,
+              "foreign_limit": 3.57,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 21.66049997,
+              "check": 622942003053,
+              "wall_ms": 38.4058,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.6837505846040374,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 21.52279997,
+              "check": 622942003053,
+              "wall_ms": 40.3287,
+              "peak_bytes": 6967296,
+              "foreign_cores": 0.6419962078772513,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 20.05029994,
+              "check": 622942003053,
+              "wall_ms": 38.3863,
+              "peak_bytes": 7008256,
+              "foreign_cores": 1.3132431646148184,
+              "foreign_limit": 3.5,
+              "attempts": 3,
+              "round": 13
+            },
+            {
+              "ms": 23.66469998,
+              "check": 622942003053,
+              "wall_ms": 40.2515,
+              "peak_bytes": 6963200,
+              "foreign_cores": 1.626790770674545,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 20.52460006,
+              "check": 622942003053,
+              "wall_ms": 37.6675,
+              "peak_bytes": 6955008,
+              "foreign_cores": 2.596916938018639,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 23.75299996,
+              "check": 622942003053,
+              "wall_ms": 42.9277,
+              "peak_bytes": 6971392,
+              "foreign_cores": 2.1799399694965658,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 24.58729991,
+              "check": 622942003053,
+              "wall_ms": 45.5153,
+              "peak_bytes": 6946816,
+              "foreign_cores": 1.4677590848875701,
+              "foreign_limit": 3.62,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 20.69370006,
+              "check": 622942003053,
+              "wall_ms": 39.6724,
+              "peak_bytes": 6963200,
+              "foreign_cores": 0.6108920588962256,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 20.88590001,
+              "check": 622942003053,
+              "wall_ms": 42.0318,
+              "peak_bytes": 6983680,
+              "foreign_cores": 0.3072309882036846,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 21.65889996,
+              "check": 622942003053,
+              "wall_ms": 63.3244,
+              "peak_bytes": 6959104,
+              "foreign_cores": 1.2688397328223742,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 22.63879997,
+              "check": 622942003053,
+              "wall_ms": 43.3096,
+              "peak_bytes": 6971392,
+              "foreign_cores": 0.9091296976884863,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 21.64570009,
+              "check": 622942003053,
+              "wall_ms": 42.641,
+              "peak_bytes": 6971392,
+              "foreign_cores": 2.7687427884212505,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 46.00900004,
+              "check": 622942003053,
+              "wall_ms": 103.5766,
+              "peak_bytes": 6959104,
+              "foreign_cores": 10.266554429524808,
+              "foreign_limit": 3.46,
+              "attempts": 4,
+              "contended": true,
+              "round": 23
+            },
+            {
+              "ms": 21.15559997,
+              "check": 622942003053,
+              "wall_ms": 41.6858,
+              "peak_bytes": 6946816,
+              "foreign_cores": 1.2323721482751602,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 21.69760002,
+              "check": 622942003053,
+              "wall_ms": 61.0953,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.44097123794935633,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 22.12490002,
+              "check": 622942003053,
+              "wall_ms": 42.9462,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.8844740149531094,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 23.2562999,
+              "check": 622942003053,
+              "wall_ms": 46.6305,
+              "peak_bytes": 6971392,
+              "foreign_cores": 2.5699341909723494,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 20.68189997,
+              "check": 622942003053,
+              "wall_ms": 39.0907,
+              "peak_bytes": 6967296,
+              "foreign_cores": 0.9763428221773442,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 19.77879996,
+              "check": 622942003053,
+              "wall_ms": 36.6003,
+              "peak_bytes": 6950912,
+              "foreign_cores": 1.8911809467409917,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 22.21880003,
+              "check": 622942003053,
+              "wall_ms": 43.3576,
+              "peak_bytes": 6959104,
+              "foreign_cores": 4.934516070038719,
+              "foreign_limit": 3.5,
+              "round": 13
+            },
+            {
+              "ms": 21.87639999,
+              "check": 622942003053,
+              "wall_ms": 64.7943,
+              "peak_bytes": 6955008,
+              "foreign_cores": 3.8113112902350323,
+              "foreign_limit": 3.5,
+              "round": 13
+            },
+            {
+              "ms": 41.62089992,
+              "check": 622942003053,
+              "wall_ms": 87.3578,
+              "peak_bytes": 6963200,
+              "foreign_cores": 14.894750972031819,
+              "foreign_limit": 3.46,
+              "round": 23
+            },
+            {
+              "ms": 72.38349994,
+              "check": 622942003053,
+              "wall_ms": 176.5649,
+              "peak_bytes": 6955008,
+              "foreign_cores": 15.389254179252383,
+              "foreign_limit": 3.46,
+              "round": 23
+            },
+            {
+              "ms": 38.1925999,
+              "check": 622942003053,
+              "wall_ms": 79.3108,
+              "peak_bytes": 6983680,
+              "foreign_cores": 9.19756415052421,
+              "foreign_limit": 3.46,
+              "round": 23
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "AA2": {
+          "samples": [
+            {
+              "ms": 20.50810005,
+              "check": 622942003053,
+              "wall_ms": 38.122,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.33949825931727795,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 19.23980005,
+              "check": 622942003053,
+              "wall_ms": 38.9055,
+              "peak_bytes": 6967296,
+              "foreign_cores": 0.676270794897976,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 23.61230005,
+              "check": 622942003053,
+              "wall_ms": 46.7007,
+              "peak_bytes": 6938624,
+              "foreign_cores": 1.8506893426285445,
+              "foreign_limit": 3.18,
+              "attempts": 2,
+              "round": 2
+            },
+            {
+              "ms": 22.60870009,
+              "check": 622942003053,
+              "wall_ms": 41.2807,
+              "peak_bytes": 6967296,
+              "foreign_cores": 2.228904119556594,
+              "foreign_limit": 3.68,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 18.3001,
+              "check": 622942003053,
+              "wall_ms": 35.5255,
+              "peak_bytes": 6963200,
+              "foreign_cores": 1.0735929352688225,
+              "foreign_limit": 3.79,
+              "attempts": 2,
+              "round": 4
+            },
+            {
+              "ms": 21.6777001,
+              "check": 622942003053,
+              "wall_ms": 38.8332,
+              "peak_bytes": 6955008,
+              "foreign_cores": 0.3238261439539761,
+              "foreign_limit": 3.68,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 21.69839991,
+              "check": 622942003053,
+              "wall_ms": 39.0441,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.32879577601150123,
+              "foreign_limit": 3.63,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 21.55130007,
+              "check": 622942003053,
+              "wall_ms": 63.7847,
+              "peak_bytes": 6938624,
+              "foreign_cores": 1.506991060198508,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 21.78459999,
+              "check": 622942003053,
+              "wall_ms": 41.0696,
+              "peak_bytes": 6955008,
+              "foreign_cores": 1.2594915288822686,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 22.07240008,
+              "check": 622942003053,
+              "wall_ms": 44.0788,
+              "peak_bytes": 6950912,
+              "foreign_cores": 1.7621253021048366,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 21.65510005,
+              "check": 622942003053,
+              "wall_ms": 40.8196,
+              "peak_bytes": 6946816,
+              "foreign_cores": 0.9369809121126278,
+              "foreign_limit": 3.58,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 19.39370006,
+              "check": 622942003053,
+              "wall_ms": 36.4894,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.3500804341801192,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 21.32200007,
+              "check": 622942003053,
+              "wall_ms": 39.2779,
+              "peak_bytes": 6946816,
+              "foreign_cores": 0.6538942806442887,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 23.30560004,
+              "check": 622942003053,
+              "wall_ms": 42.1454,
+              "peak_bytes": 6959104,
+              "foreign_cores": 2.129272903998361,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 21.87130006,
+              "check": 622942003053,
+              "wall_ms": 41.9324,
+              "peak_bytes": 6971392,
+              "foreign_cores": 1.5784231347583204,
+              "foreign_limit": 3.5,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 21.4804,
+              "check": 622942003053,
+              "wall_ms": 38.9668,
+              "peak_bytes": 6959104,
+              "foreign_cores": 1.000093873709333,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 22.52140001,
+              "check": 622942003053,
+              "wall_ms": 42.1815,
+              "peak_bytes": 6963200,
+              "foreign_cores": 1.25269831404808,
+              "foreign_limit": 3.62,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 20.67340002,
+              "check": 622942003053,
+              "wall_ms": 38.735,
+              "peak_bytes": 6959104,
+              "foreign_cores": 1.6561696408803228,
+              "foreign_limit": 3.54,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 20.26629995,
+              "check": 622942003053,
+              "wall_ms": 41.6775,
+              "peak_bytes": 6950912,
+              "foreign_cores": 0.9370445963492692,
+              "foreign_limit": 3.51,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 20.90869995,
+              "check": 622942003053,
+              "wall_ms": 40.4015,
+              "peak_bytes": 6975488,
+              "foreign_cores": 0.9825334363684278,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 20.18200001,
+              "check": 622942003053,
+              "wall_ms": 47.1187,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.5623274768782798,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 21.99259994,
+              "check": 622942003053,
+              "wall_ms": 40.7146,
+              "peak_bytes": 6959104,
+              "foreign_cores": 0.6457532164245873,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 20.19030007,
+              "check": 622942003053,
+              "wall_ms": 38.15,
+              "peak_bytes": 6963200,
+              "foreign_cores": 1.364819540641881,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 70.18349995,
+              "check": 622942003053,
+              "wall_ms": 132.6138,
+              "peak_bytes": 6950912,
+              "foreign_cores": 15.141304973698283,
+              "foreign_limit": 3.46,
+              "attempts": 4,
+              "contended": true,
+              "round": 23
+            },
+            {
+              "ms": 21.96819999,
+              "check": 622942003053,
+              "wall_ms": 41.2379,
+              "peak_bytes": 6963200,
+              "foreign_cores": 0.3206509476365845,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 25.27709992,
+              "check": 622942003053,
+              "wall_ms": 44.8646,
+              "peak_bytes": 6955008,
+              "foreign_cores": 1.7561902167989756,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 21.14289999,
+              "check": 622942003053,
+              "wall_ms": 44.0191,
+              "peak_bytes": 6955008,
+              "foreign_cores": 0.9167986872521124,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 25.88840004,
+              "check": 622942003053,
+              "wall_ms": 44.8229,
+              "peak_bytes": 6955008,
+              "foreign_cores": 0.0,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 21.44819999,
+              "check": 622942003053,
+              "wall_ms": 38.7393,
+              "peak_bytes": 6955008,
+              "foreign_cores": 2.3673320089044676,
+              "foreign_limit": 3.46,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 20.95340006,
+              "check": 622942003053,
+              "wall_ms": 39.2305,
+              "peak_bytes": 6967296,
+              "foreign_cores": 0.335830118987436,
+              "foreign_limit": 3.44,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 22.18500001,
+              "check": 622942003053,
+              "wall_ms": 54.2004,
+              "peak_bytes": 6959104,
+              "foreign_cores": 5.624623657012033,
+              "foreign_limit": 3.18,
+              "round": 2
+            },
+            {
+              "ms": 21.14690002,
+              "check": 622942003053,
+              "wall_ms": 40.5348,
+              "peak_bytes": 6987776,
+              "foreign_cores": 3.8941376061873676,
+              "foreign_limit": 3.79,
+              "round": 4
+            },
+            {
+              "ms": 20.50069999,
+              "check": 622942003053,
+              "wall_ms": 41.5488,
+              "peak_bytes": 6959104,
+              "foreign_cores": 3.691010268157659,
+              "foreign_limit": 3.46,
+              "round": 23
+            },
+            {
+              "ms": 57.98340007,
+              "check": 622942003053,
+              "wall_ms": 124.63,
+              "peak_bytes": 6950912,
+              "foreign_cores": 17.0248657556803,
+              "foreign_limit": 3.46,
+              "round": 23
+            },
+            {
+              "ms": 71.47089997,
+              "check": 622942003053,
+              "wall_ms": 145.3143,
+              "peak_bytes": 6967296,
+              "foreign_cores": 17.505888784202494,
+              "foreign_limit": 3.46,
+              "round": 23
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        }
+      },
+      "waits_s": [
+        4.0263447761535645,
+        4.036328554153442,
+        4.016613721847534,
+        2.0090835094451904,
+        15.238791704177856,
+        15.57244348526001,
+        15.53005051612854,
+        15.383269786834717,
+        15.80026388168335,
+        15.297555685043335,
+        15.161404609680176,
+        15.233901262283325,
+        3.0155441761016846
+      ],
+      "foreign_median": 0.961694524697462,
+      "BA": {
+        "value": 0.9971319390612453,
+        "low": 0.9638512408253949,
+        "high": 1.054059436584058,
+        "n": 30,
+        "se": 0.02208072510326295,
+        "exact": true
+      },
+      "AA": {
+        "value": 0.9850083646852534,
+        "low": 0.9556156172858494,
+        "high": 1.0294682455248756,
+        "n": 30,
+        "se": 0.018372459931848287,
+        "exact": true
+      },
+      "contended_share": 0.016666666666666666
+    },
+    {
+      "task": "wordfreq",
+      "repetition": 1,
+      "files": {
+        "A": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\pair-micro\\base\\wordfreq\\wordfreq.exe",
+          "sha256": "e64fa9ed677403fa4cffd204db5627f87aca20a1cb0ad5e637c724738bc3f862"
+        },
+        "B": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\combined-micro\\new\\wordfreq\\wordfreq.exe",
+          "sha256": "6eaf390c0a1897e88ac80f00130cbe48fe380fc6ac3856eae2f8093ed040ea9e"
+        },
+        "AA1": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\pair-micro\\base\\wordfreq\\wordfreq.exe",
+          "sha256": "e64fa9ed677403fa4cffd204db5627f87aca20a1cb0ad5e637c724738bc3f862"
+        },
+        "AA2": {
+          "path": "C:\\Users\\chris\\AppData\\Local\\swc-agent-builds\\prompt2-20261022-1515\\pair-micro\\base\\wordfreq\\wordfreq.exe",
+          "sha256": "e64fa9ed677403fa4cffd204db5627f87aca20a1cb0ad5e637c724738bc3f862"
+        }
+      },
+      "warmups": [
+        {
+          "name": "A",
+          "ms": 48.25610004,
+          "check": 130489,
+          "wall_ms": 105.7719,
+          "peak_bytes": 26681344,
+          "foreign_cores": 0.41230829305868005
+        },
+        {
+          "name": "B",
+          "ms": 61.83439994,
+          "check": 130489,
+          "wall_ms": 122.3249,
+          "peak_bytes": 26677248,
+          "foreign_cores": 2.8246140619200206
+        },
+        {
+          "name": "A",
+          "ms": 51.63890007,
+          "check": 130489,
+          "wall_ms": 114.7591,
+          "peak_bytes": 26685440,
+          "foreign_cores": 3.26981244923691
+        },
+        {
+          "name": "B",
+          "ms": 48.04579995,
+          "check": 130489,
+          "wall_ms": 109.7214,
+          "peak_bytes": 26664960,
+          "foreign_cores": 1.969913588428888
+        }
+      ],
+      "seed": 20261024,
+      "series": {
+        "A": {
+          "samples": [
+            {
+              "ms": 51.84860004,
+              "check": 130489,
+              "wall_ms": 110.904,
+              "peak_bytes": 26669056,
+              "foreign_cores": 1.0394828869236736,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 52.62610002,
+              "check": 130489,
+              "wall_ms": 111.1075,
+              "peak_bytes": 26669056,
+              "foreign_cores": 2.844418775659532,
+              "foreign_limit": 3.95,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 52.93799995,
+              "check": 130489,
+              "wall_ms": 113.2276,
+              "peak_bytes": 26677248,
+              "foreign_cores": 2.013391470058594,
+              "foreign_limit": 4.79,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 55.14740001,
+              "check": 130489,
+              "wall_ms": 120.439,
+              "peak_bytes": 26669056,
+              "foreign_cores": 2.0174183425064642,
+              "foreign_limit": 4.23,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 56.97459995,
+              "check": 130489,
+              "wall_ms": 122.2943,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.6411128215394253,
+              "foreign_limit": 4.39,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 57.10920005,
+              "check": 130489,
+              "wall_ms": 123.514,
+              "peak_bytes": 26685440,
+              "foreign_cores": 1.8340641472009793,
+              "foreign_limit": 4.23,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 54.03330002,
+              "check": 130489,
+              "wall_ms": 116.1357,
+              "peak_bytes": 26685440,
+              "foreign_cores": 3.208479706401135,
+              "foreign_limit": 4.27,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 51.32269999,
+              "check": 130489,
+              "wall_ms": 109.7795,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.6848135781351887,
+              "foreign_limit": 4.4,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 50.31179998,
+              "check": 130489,
+              "wall_ms": 108.1507,
+              "peak_bytes": 26681344,
+              "foreign_cores": 0.9159924960933361,
+              "foreign_limit": 4.29,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 50.34449999,
+              "check": 130489,
+              "wall_ms": 108.6666,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.960122637933012,
+              "foreign_limit": 4.29,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 51.71549995,
+              "check": 130489,
+              "wall_ms": 113.3524,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.6537743495159747,
+              "foreign_limit": 4.33,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 52.85860004,
+              "check": 130489,
+              "wall_ms": 116.5882,
+              "peak_bytes": 26689536,
+              "foreign_cores": 2.702961973836563,
+              "foreign_limit": 4.31,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 52.62499989,
+              "check": 130489,
+              "wall_ms": 114.7524,
+              "peak_bytes": 26685440,
+              "foreign_cores": 2.2210797657076973,
+              "foreign_limit": 4.35,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 57.25259997,
+              "check": 130489,
+              "wall_ms": 122.6301,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.0561619021148916,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 50.26300007,
+              "check": 130489,
+              "wall_ms": 113.3994,
+              "peak_bytes": 26685440,
+              "foreign_cores": 0.6324692080980052,
+              "foreign_limit": 4.38,
+              "attempts": 2,
+              "round": 14
+            },
+            {
+              "ms": 52.59019998,
+              "check": 130489,
+              "wall_ms": 111.4653,
+              "peak_bytes": 26673152,
+              "foreign_cores": 0.5210530442103833,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 59.26330003,
+              "check": 130489,
+              "wall_ms": 152.0523,
+              "peak_bytes": 26669056,
+              "foreign_cores": 1.6301442751115467,
+              "foreign_limit": 4.35,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 50.30150001,
+              "check": 130489,
+              "wall_ms": 109.4871,
+              "peak_bytes": 26677248,
+              "foreign_cores": 0.12690479010427766,
+              "foreign_limit": 4.2,
+              "attempts": 2,
+              "round": 17
+            },
+            {
+              "ms": 50.59899995,
+              "check": 130489,
+              "wall_ms": 112.5417,
+              "peak_bytes": 26693632,
+              "foreign_cores": 1.414682406505981,
+              "foreign_limit": 4.2,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 70.2366,
+              "check": 130489,
+              "wall_ms": 135.6054,
+              "peak_bytes": 26685440,
+              "foreign_cores": 0.5360878930171825,
+              "foreign_limit": 4.17,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 50.60239998,
+              "check": 130489,
+              "wall_ms": 115.0629,
+              "peak_bytes": 26693632,
+              "foreign_cores": 0.379245424815936,
+              "foreign_limit": 4.17,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 55.81490009,
+              "check": 130489,
+              "wall_ms": 136.9074,
+              "peak_bytes": 26685440,
+              "foreign_cores": 2.348312665636012,
+              "foreign_limit": 3.92,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 50.88469991,
+              "check": 130489,
+              "wall_ms": 117.784,
+              "peak_bytes": 26693632,
+              "foreign_cores": 0.4867430655575249,
+              "foreign_limit": 3.95,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 52.78750008,
+              "check": 130489,
+              "wall_ms": 115.7432,
+              "peak_bytes": 26669056,
+              "foreign_cores": 0.615480728599362,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 23
+            },
+            {
+              "ms": 49.32719993,
+              "check": 130489,
+              "wall_ms": 109.5113,
+              "peak_bytes": 26673152,
+              "foreign_cores": 0.907026751524864,
+              "foreign_limit": 3.95,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 49.40529994,
+              "check": 130489,
+              "wall_ms": 107.6409,
+              "peak_bytes": 26677248,
+              "foreign_cores": 0.13493674166645148,
+              "foreign_limit": 3.65,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 50.34449999,
+              "check": 130489,
+              "wall_ms": 106.8084,
+              "peak_bytes": 26681344,
+              "foreign_cores": 0.42487410119182906,
+              "foreign_limit": 3.38,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 56.4604,
+              "check": 130489,
+              "wall_ms": 114.282,
+              "peak_bytes": 26689536,
+              "foreign_cores": 1.9682218768532989,
+              "foreign_limit": 3.32,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 52.69799998,
+              "check": 130489,
+              "wall_ms": 114.2578,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.6546014827866515,
+              "foreign_limit": 3.32,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 56.12089997,
+              "check": 130489,
+              "wall_ms": 112.7134,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.876531250674304,
+              "foreign_limit": 3.22,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 58.6035999,
+              "check": 130489,
+              "wall_ms": 124.0112,
+              "peak_bytes": 26669056,
+              "foreign_cores": 5.267227036849139,
+              "foreign_limit": 4.38,
+              "round": 14
+            },
+            {
+              "ms": 65.58049994,
+              "check": 130489,
+              "wall_ms": 132.1841,
+              "peak_bytes": 26673152,
+              "foreign_cores": 5.427849030294117,
+              "foreign_limit": 4.2,
+              "round": 17
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "B": {
+          "samples": [
+            {
+              "ms": 49.67649991,
+              "check": 130489,
+              "wall_ms": 108.2789,
+              "peak_bytes": 26660864,
+              "foreign_cores": 1.7336144087120067,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 51.45549995,
+              "check": 130489,
+              "wall_ms": 112.0125,
+              "peak_bytes": 26660864,
+              "foreign_cores": 3.5051766547766205,
+              "foreign_limit": 3.92,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 56.62569997,
+              "check": 130489,
+              "wall_ms": 121.7275,
+              "peak_bytes": 26697728,
+              "foreign_cores": 1.4312572842219755,
+              "foreign_limit": 4.51,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 56.14499992,
+              "check": 130489,
+              "wall_ms": 120.6433,
+              "peak_bytes": 26685440,
+              "foreign_cores": 1.6703101698079015,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 59.70600003,
+              "check": 130489,
+              "wall_ms": 126.7279,
+              "peak_bytes": 26656768,
+              "foreign_cores": 1.7201418240058532,
+              "foreign_limit": 4.26,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 53.43500001,
+              "check": 130489,
+              "wall_ms": 119.9738,
+              "peak_bytes": 26669056,
+              "foreign_cores": 2.819992014036964,
+              "foreign_limit": 4.23,
+              "attempts": 2,
+              "round": 5
+            },
+            {
+              "ms": 50.74659991,
+              "check": 130489,
+              "wall_ms": 112.1831,
+              "peak_bytes": 26664960,
+              "foreign_cores": 2.975187657370419,
+              "foreign_limit": 4.29,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 51.35920004,
+              "check": 130489,
+              "wall_ms": 111.7956,
+              "peak_bytes": 26669056,
+              "foreign_cores": 1.4238022461065567,
+              "foreign_limit": 4.46,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 50.69539999,
+              "check": 130489,
+              "wall_ms": 107.0258,
+              "peak_bytes": 26685440,
+              "foreign_cores": 0.675531367286885,
+              "foreign_limit": 4.31,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 51.28410005,
+              "check": 130489,
+              "wall_ms": 109.755,
+              "peak_bytes": 26689536,
+              "foreign_cores": 1.6869681223111628,
+              "foreign_limit": 4.31,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 52.1341,
+              "check": 130489,
+              "wall_ms": 113.2195,
+              "peak_bytes": 26681344,
+              "foreign_cores": 2.277071649861004,
+              "foreign_limit": 4.31,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 52.3184,
+              "check": 130489,
+              "wall_ms": 114.8802,
+              "peak_bytes": 26669056,
+              "foreign_cores": 2.2421488922135633,
+              "foreign_limit": 4.33,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 57.26899998,
+              "check": 130489,
+              "wall_ms": 119.8739,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.8720716124565258,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 54.45230007,
+              "check": 130489,
+              "wall_ms": 119.4578,
+              "peak_bytes": 26660864,
+              "foreign_cores": 2.382860485010346,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 58.20630002,
+              "check": 130489,
+              "wall_ms": 125.3381,
+              "peak_bytes": 26677248,
+              "foreign_cores": 2.2622501747085644,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 51.54280004,
+              "check": 130489,
+              "wall_ms": 113.679,
+              "peak_bytes": 26697728,
+              "foreign_cores": 0.3866626741000343,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 62.20869999,
+              "check": 130489,
+              "wall_ms": 122.3463,
+              "peak_bytes": 26689536,
+              "foreign_cores": 1.4066248658429916,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 56.16100004,
+              "check": 130489,
+              "wall_ms": 122.88,
+              "peak_bytes": 26673152,
+              "foreign_cores": 0.7110546819312709,
+              "foreign_limit": 4.24,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 51.99059995,
+              "check": 130489,
+              "wall_ms": 110.8058,
+              "peak_bytes": 26681344,
+              "foreign_cores": 0.622140641278423,
+              "foreign_limit": 4.2,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 52.24290001,
+              "check": 130489,
+              "wall_ms": 113.0034,
+              "peak_bytes": 26669056,
+              "foreign_cores": 0.3858910810704566,
+              "foreign_limit": 4.17,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 52.11309996,
+              "check": 130489,
+              "wall_ms": 118.4602,
+              "peak_bytes": 26685440,
+              "foreign_cores": 0.7375739437447634,
+              "foreign_limit": 4.16,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 51.20759993,
+              "check": 130489,
+              "wall_ms": 116.4665,
+              "peak_bytes": 26697728,
+              "foreign_cores": 1.2409825241128272,
+              "foreign_limit": 3.96,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 57.55500006,
+              "check": 130489,
+              "wall_ms": 130.9132,
+              "peak_bytes": 26664960,
+              "foreign_cores": 1.6915787338774328,
+              "foreign_limit": 3.92,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 53.3271,
+              "check": 130489,
+              "wall_ms": 121.9453,
+              "peak_bytes": 26685440,
+              "foreign_cores": 0.597693533839458,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 23
+            },
+            {
+              "ms": 48.9848,
+              "check": 130489,
+              "wall_ms": 107.493,
+              "peak_bytes": 26681344,
+              "foreign_cores": 0.26304625249928915,
+              "foreign_limit": 3.99,
+              "attempts": 2,
+              "round": 24
+            },
+            {
+              "ms": 48.11550002,
+              "check": 130489,
+              "wall_ms": 109.817,
+              "peak_bytes": 26669056,
+              "foreign_cores": 0.5258649848690583,
+              "foreign_limit": 3.75,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 54.42399997,
+              "check": 130489,
+              "wall_ms": 119.0935,
+              "peak_bytes": 26701824,
+              "foreign_cores": 0.8542766158736275,
+              "foreign_limit": 3.4,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 56.76780001,
+              "check": 130489,
+              "wall_ms": 133.2769,
+              "peak_bytes": 26664960,
+              "foreign_cores": 2.167477709122121,
+              "foreign_limit": 3.32,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 54.00670005,
+              "check": 130489,
+              "wall_ms": 121.0962,
+              "peak_bytes": 26664960,
+              "foreign_cores": 1.578411602661306,
+              "foreign_limit": 3.32,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 65.92259998,
+              "check": 130489,
+              "wall_ms": 139.9232,
+              "peak_bytes": 26673152,
+              "foreign_cores": 2.321406986260997,
+              "foreign_limit": 3.22,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 60.0381,
+              "check": 130489,
+              "wall_ms": 132.3385,
+              "peak_bytes": 26685440,
+              "foreign_cores": 4.4039349277512985,
+              "foreign_limit": 4.23,
+              "round": 5
+            },
+            {
+              "ms": 77.42260001,
+              "check": 130489,
+              "wall_ms": 143.7427,
+              "peak_bytes": 26685440,
+              "foreign_cores": 4.333802868368376,
+              "foreign_limit": 3.99,
+              "round": 24
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "AA1": {
+          "samples": [
+            {
+              "ms": 52.20719997,
+              "check": 130489,
+              "wall_ms": 112.6998,
+              "peak_bytes": 26689536,
+              "foreign_cores": 1.1582882784618413,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 51.9207,
+              "check": 130489,
+              "wall_ms": 109.8575,
+              "peak_bytes": 26681344,
+              "foreign_cores": 2.8635763097749742,
+              "foreign_limit": 3.88,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 52.52020003,
+              "check": 130489,
+              "wall_ms": 112.6785,
+              "peak_bytes": 26669056,
+              "foreign_cores": 3.3946209096712874,
+              "foreign_limit": 4.09,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 55.31980004,
+              "check": 130489,
+              "wall_ms": 121.2598,
+              "peak_bytes": 26685440,
+              "foreign_cores": 1.7623757321559523,
+              "foreign_limit": 4.51,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 56.76379998,
+              "check": 130489,
+              "wall_ms": 122.7417,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.0411152604975145,
+              "foreign_limit": 4.25,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 53.68689995,
+              "check": 130489,
+              "wall_ms": 134.661,
+              "peak_bytes": 26693632,
+              "foreign_cores": 2.387743082041508,
+              "foreign_limit": 4.25,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 53.42179991,
+              "check": 130489,
+              "wall_ms": 113.9954,
+              "peak_bytes": 26664960,
+              "foreign_cores": 2.906619367975028,
+              "foreign_limit": 4.33,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 53.66069998,
+              "check": 130489,
+              "wall_ms": 112.8932,
+              "peak_bytes": 26685440,
+              "foreign_cores": 2.5693836376282513,
+              "foreign_limit": 4.42,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 50.65730005,
+              "check": 130489,
+              "wall_ms": 109.5745,
+              "peak_bytes": 26669056,
+              "foreign_cores": 0.7833788322575086,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 49.72689995,
+              "check": 130489,
+              "wall_ms": 110.7551,
+              "peak_bytes": 26689536,
+              "foreign_cores": 2.0532346247254423,
+              "foreign_limit": 4.27,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 50.64809998,
+              "check": 130489,
+              "wall_ms": 110.4763,
+              "peak_bytes": 26693632,
+              "foreign_cores": 1.6640628774979298,
+              "foreign_limit": 4.33,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 53.28240001,
+              "check": 130489,
+              "wall_ms": 133.4341,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.8569227473058876,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 51.31160002,
+              "check": 130489,
+              "wall_ms": 111.7662,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.5398210036388849,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 55.96579995,
+              "check": 130489,
+              "wall_ms": 125.5936,
+              "peak_bytes": 26669056,
+              "foreign_cores": 2.111198185222667,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 49.68659999,
+              "check": 130489,
+              "wall_ms": 107.0576,
+              "peak_bytes": 26677248,
+              "foreign_cores": 0.26830068212815067,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 52.06160003,
+              "check": 130489,
+              "wall_ms": 110.2969,
+              "peak_bytes": 26689536,
+              "foreign_cores": 0.5231522053977411,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 53.24090004,
+              "check": 130489,
+              "wall_ms": 115.3431,
+              "peak_bytes": 26677248,
+              "foreign_cores": 0.6246437034272696,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 52.97449999,
+              "check": 130489,
+              "wall_ms": 117.197,
+              "peak_bytes": 26681344,
+              "foreign_cores": 1.487990134043782,
+              "foreign_limit": 4.31,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 58.5246,
+              "check": 130489,
+              "wall_ms": 121.361,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.553233170871998,
+              "foreign_limit": 4.19,
+              "attempts": 2,
+              "round": 18
+            },
+            {
+              "ms": 56.02470005,
+              "check": 130489,
+              "wall_ms": 129.6797,
+              "peak_bytes": 26673152,
+              "foreign_cores": 0.9038603509155796,
+              "foreign_limit": 4.17,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 49.6119,
+              "check": 130489,
+              "wall_ms": 112.2098,
+              "peak_bytes": 26693632,
+              "foreign_cores": 0.12872584069052442,
+              "foreign_limit": 4.09,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 59.86629997,
+              "check": 130489,
+              "wall_ms": 134.8964,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.308988247324158,
+              "foreign_limit": 4.05,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 57.12539994,
+              "check": 130489,
+              "wall_ms": 117.5364,
+              "peak_bytes": 26693632,
+              "foreign_cores": 1.4846052378274492,
+              "foreign_limit": 3.92,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 60.36060001,
+              "check": 130489,
+              "wall_ms": 121.172,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.9909650467287687,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 23
+            },
+            {
+              "ms": 51.73960002,
+              "check": 130489,
+              "wall_ms": 113.648,
+              "peak_bytes": 26673152,
+              "foreign_cores": 0.5108233242289104,
+              "foreign_limit": 3.86,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 55.11439999,
+              "check": 130489,
+              "wall_ms": 117.9837,
+              "peak_bytes": 26685440,
+              "foreign_cores": 0.12388032001200376,
+              "foreign_limit": 3.81,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 46.45919998,
+              "check": 130489,
+              "wall_ms": 126.4242,
+              "peak_bytes": 26681344,
+              "foreign_cores": 0.23278733228912463,
+              "foreign_limit": 3.48,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 55.82719995,
+              "check": 130489,
+              "wall_ms": 113.8281,
+              "peak_bytes": 26677248,
+              "foreign_cores": 2.0373835431949234,
+              "foreign_limit": 3.32,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 51.6729001,
+              "check": 130489,
+              "wall_ms": 109.7727,
+              "peak_bytes": 26677248,
+              "foreign_cores": 0.0,
+              "foreign_limit": 3.32,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 54.7512999,
+              "check": 130489,
+              "wall_ms": 118.9411,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.3592092506282591,
+              "foreign_limit": 3.26,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 66.28399994,
+              "check": 130489,
+              "wall_ms": 132.4693,
+              "peak_bytes": 26681344,
+              "foreign_cores": 5.383388680486644,
+              "foreign_limit": 4.19,
+              "round": 18
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        },
+        "AA2": {
+          "samples": [
+            {
+              "ms": 50.41329993,
+              "check": 130489,
+              "wall_ms": 127.8846,
+              "peak_bytes": 26669056,
+              "foreign_cores": 1.3802647896996485,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 0
+            },
+            {
+              "ms": 54.1985,
+              "check": 130489,
+              "wall_ms": 110.2258,
+              "peak_bytes": 26669056,
+              "foreign_cores": 1.4534785394807173,
+              "foreign_limit": 8.0,
+              "attempts": 1,
+              "round": 1
+            },
+            {
+              "ms": 52.52230004,
+              "check": 130489,
+              "wall_ms": 113.5361,
+              "peak_bytes": 26677248,
+              "foreign_cores": 3.0519962505539078,
+              "foreign_limit": 4.23,
+              "attempts": 1,
+              "round": 2
+            },
+            {
+              "ms": 57.21610005,
+              "check": 130489,
+              "wall_ms": 122.5661,
+              "peak_bytes": 26664960,
+              "foreign_cores": 3.190615602121716,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 3
+            },
+            {
+              "ms": 56.67409999,
+              "check": 130489,
+              "wall_ms": 121.9057,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.6402096165203945,
+              "foreign_limit": 4.23,
+              "attempts": 1,
+              "round": 4
+            },
+            {
+              "ms": 50.35659997,
+              "check": 130489,
+              "wall_ms": 110.7214,
+              "peak_bytes": 26677248,
+              "foreign_cores": 1.7853630427670277,
+              "foreign_limit": 4.26,
+              "attempts": 1,
+              "round": 5
+            },
+            {
+              "ms": 54.00599993,
+              "check": 130489,
+              "wall_ms": 114.422,
+              "peak_bytes": 26677248,
+              "foreign_cores": 2.665121809986681,
+              "foreign_limit": 4.31,
+              "attempts": 1,
+              "round": 6
+            },
+            {
+              "ms": 52.31339997,
+              "check": 130489,
+              "wall_ms": 112.2855,
+              "peak_bytes": 26689536,
+              "foreign_cores": 1.9003306473667154,
+              "foreign_limit": 4.51,
+              "attempts": 1,
+              "round": 7
+            },
+            {
+              "ms": 51.60100001,
+              "check": 130489,
+              "wall_ms": 109.1358,
+              "peak_bytes": 26673152,
+              "foreign_cores": 0.7870201692245732,
+              "foreign_limit": 4.33,
+              "attempts": 1,
+              "round": 8
+            },
+            {
+              "ms": 51.50269996,
+              "check": 130489,
+              "wall_ms": 111.5946,
+              "peak_bytes": 26681344,
+              "foreign_cores": 2.3352283633985187,
+              "foreign_limit": 4.29,
+              "attempts": 1,
+              "round": 9
+            },
+            {
+              "ms": 52.83289996,
+              "check": 130489,
+              "wall_ms": 113.4837,
+              "peak_bytes": 26677248,
+              "foreign_cores": 2.124909905112963,
+              "foreign_limit": 4.31,
+              "attempts": 1,
+              "round": 10
+            },
+            {
+              "ms": 51.03019997,
+              "check": 130489,
+              "wall_ms": 109.5305,
+              "peak_bytes": 26685440,
+              "foreign_cores": 1.3024121911757223,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 11
+            },
+            {
+              "ms": 51.8133,
+              "check": 130489,
+              "wall_ms": 111.9676,
+              "peak_bytes": 26685440,
+              "foreign_cores": 1.8755761761483094,
+              "foreign_limit": 4.35,
+              "attempts": 1,
+              "round": 12
+            },
+            {
+              "ms": 59.08060004,
+              "check": 130489,
+              "wall_ms": 131.8188,
+              "peak_bytes": 26681344,
+              "foreign_cores": 3.3268839005272843,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 13
+            },
+            {
+              "ms": 51.36399996,
+              "check": 130489,
+              "wall_ms": 111.8221,
+              "peak_bytes": 26705920,
+              "foreign_cores": 0.7758898938454302,
+              "foreign_limit": 4.37,
+              "attempts": 1,
+              "round": 14
+            },
+            {
+              "ms": 51.11849995,
+              "check": 130489,
+              "wall_ms": 112.4941,
+              "peak_bytes": 26689536,
+              "foreign_cores": 0.6388868448849808,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 15
+            },
+            {
+              "ms": 63.68300004,
+              "check": 130489,
+              "wall_ms": 131.6058,
+              "peak_bytes": 26689536,
+              "foreign_cores": 1.9637551874541546,
+              "foreign_limit": 4.36,
+              "attempts": 1,
+              "round": 16
+            },
+            {
+              "ms": 53.4208999,
+              "check": 130489,
+              "wall_ms": 117.2987,
+              "peak_bytes": 26681344,
+              "foreign_cores": 0.49939114233406595,
+              "foreign_limit": 4.27,
+              "attempts": 1,
+              "round": 17
+            },
+            {
+              "ms": 61.52480002,
+              "check": 130489,
+              "wall_ms": 124.4365,
+              "peak_bytes": 26681344,
+              "foreign_cores": 2.5328123535948794,
+              "foreign_limit": 4.19,
+              "attempts": 1,
+              "round": 18
+            },
+            {
+              "ms": 72.75980001,
+              "check": 130489,
+              "wall_ms": 145.9611,
+              "peak_bytes": 26693632,
+              "foreign_cores": 1.7093381839322905,
+              "foreign_limit": 4.17,
+              "attempts": 1,
+              "round": 19
+            },
+            {
+              "ms": 50.32010004,
+              "check": 130489,
+              "wall_ms": 121.0626,
+              "peak_bytes": 26697728,
+              "foreign_cores": 0.4850981721574933,
+              "foreign_limit": 4.14,
+              "attempts": 1,
+              "round": 20
+            },
+            {
+              "ms": 51.69939995,
+              "check": 130489,
+              "wall_ms": 117.2044,
+              "peak_bytes": 26673152,
+              "foreign_cores": 0.3678221708410223,
+              "foreign_limit": 4.01,
+              "attempts": 1,
+              "round": 21
+            },
+            {
+              "ms": 59.1341001,
+              "check": 130489,
+              "wall_ms": 150.8204,
+              "peak_bytes": 26689536,
+              "foreign_cores": 2.0584283105724714,
+              "foreign_limit": 3.92,
+              "attempts": 1,
+              "round": 22
+            },
+            {
+              "ms": 55.25969993,
+              "check": 130489,
+              "wall_ms": 122.4456,
+              "peak_bytes": 26669056,
+              "foreign_cores": 1.5340991059885818,
+              "foreign_limit": 3.95,
+              "attempts": 2,
+              "round": 23
+            },
+            {
+              "ms": 53.49339999,
+              "check": 130489,
+              "wall_ms": 113.892,
+              "peak_bytes": 26685440,
+              "foreign_cores": 0.6351641507080542,
+              "foreign_limit": 3.91,
+              "attempts": 1,
+              "round": 24
+            },
+            {
+              "ms": 54.23310003,
+              "check": 130489,
+              "wall_ms": 114.2728,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.2575655143531472,
+              "foreign_limit": 3.77,
+              "attempts": 1,
+              "round": 25
+            },
+            {
+              "ms": 50.51480001,
+              "check": 130489,
+              "wall_ms": 110.4266,
+              "peak_bytes": 26681344,
+              "foreign_cores": 0.8995320377122759,
+              "foreign_limit": 3.41,
+              "attempts": 1,
+              "round": 26
+            },
+            {
+              "ms": 51.44770001,
+              "check": 130489,
+              "wall_ms": 110.9827,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.8338094944639336,
+              "foreign_limit": 3.32,
+              "attempts": 1,
+              "round": 27
+            },
+            {
+              "ms": 50.06710009,
+              "check": 130489,
+              "wall_ms": 108.7953,
+              "peak_bytes": 26689536,
+              "foreign_cores": 0.5302964739650995,
+              "foreign_limit": 3.26,
+              "attempts": 1,
+              "round": 28
+            },
+            {
+              "ms": 58.39120003,
+              "check": 130489,
+              "wall_ms": 120.6848,
+              "peak_bytes": 26673152,
+              "foreign_cores": 1.4455245402286223,
+              "foreign_limit": 3.3,
+              "attempts": 1,
+              "round": 29
+            }
+          ],
+          "set_aside": [
+            {
+              "ms": 66.09639991,
+              "check": 130489,
+              "wall_ms": 132.2765,
+              "peak_bytes": 26685440,
+              "foreign_cores": 4.015046919822403,
+              "foreign_limit": 3.95,
+              "round": 23
+            }
+          ],
+          "plan": {
+            "min": 20,
+            "max": 30,
+            "target": 0.01,
+            "budget_ms": 4000
+          }
+        }
+      },
+      "waits_s": [
+        4.032206296920776,
+        4.023137807846069,
+        4.028188228607178,
+        2.0124282836914062,
+        3.0253825187683105,
+        4.034255027770996
+      ],
+      "foreign_median": 0.8769043267929517,
+      "BA": {
+        "value": 1.0091582007505222,
+        "low": 0.9897802809837716,
+        "high": 1.029854314826907,
+        "n": 30,
+        "se": 0.009795508477083327,
+        "exact": true
+      },
+      "AA": {
+        "value": 1.0126052063802273,
+        "low": 0.9840096243420975,
+        "high": 1.0351629951319339,
+        "n": 30,
+        "se": 0.012507585058858977,
+        "exact": true
+      },
+      "contended_share": 0.0
+    }
+  ],
+  "warmups": [],
+  "incomplete": true,
+  "stop_reason": "Second panel aborted under sustained external load; only the three completed first panels are retained. No complete session campaign."
+}

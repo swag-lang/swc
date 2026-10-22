@@ -62,3 +62,34 @@ Compiler SHA-256: `b2106d315fdf98b0587cc5a913ff7a96b4836b02eed209c8dd7b38883f5d4
 The official campaign wrapper now accepts `--out` and forwards an absolute path
 to preserve incomplete checkpoints. Its help, forwarding boundary and all 47
 benchmark harness tests pass.
+
+## Reuse the first exchange value
+
+A bounded reverse-CFG proof now recognizes the first value already held in the
+right-index register, on every path entering the prefix. It accepts an exact
+64-bit load or store of that value and crosses only provably disjoint fixed
+offsets through the same base. Calls, ambiguous/overlapping stores, changed
+addresses or values, repeated CFG nodes, missing entry definitions and a live
+first temporary decline. No allocation-disjointness assumption is introduced.
+The query bounds each predecessor path to 32 instructions; its visited rows
+are O(N) storage and work is at most O(N+E) per candidate. It runs only after
+shape, offset, liveness and entry eligibility have succeeded.
+
+Fannkuch's first exchange now has **6 instructions and 3 memory accesses**;
+subsequent peeled exchanges retain 7 and 4. The final disassembly confirms
+that the upper store directly uses the already available index value. This
+removes one more instruction and read per reversal: **1,911,505** of each.
+Combined entry/exchange work is **33,667,726 vs 42,027,339 instructions**
+(**19.89% fewer**) and **16,234,907 vs 18,146,412 memory accesses**.
+This is static executed work, not elapsed-time performance.
+
+All 1,562 C++ tests pass, now covering 54 eligibility graphs and 6,174
+before/after executions, including load/store availability, disjoint writes,
+overlap rejection, changed values/bases and a live first temporary. The expanded
+source fixture passes JIT/native Release and guarded DevMode (6,208 expected
+array values per execution mode). The final Release compiler passes all twelve
+checksums. Canonical pairing changes only Fannkuch main: 202 -> 201 instructions,
+76 -> 75 memory accesses, unchanged nine calls and unchanged remaining kernels
+and runtime. See `reuse-microdiff.txt` and `reuse-after.asm`.
+
+Timing of this final complement: **not measured at acceptance**.

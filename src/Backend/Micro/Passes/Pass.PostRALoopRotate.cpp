@@ -70,6 +70,51 @@ namespace
     // duplicating for the one jump the rotation removes.
     using MicroOptimizationLimits::PostRALoopRotate::K_MAX_TEST_RUN;
 
+    // Prove that every path into a peeled prefix still carries its first value.
+    // Start at its fallthrough predecessor, excluding the old scalar back edge.
+    // Only fixed, disjoint stores through that same base may cross the proof.
+    bool hasEntryLoadedValue(const MicroPassContext& context, const MicroControlFlowGraph& cfg, uint32_t start, MicroReg base, MicroReg value, int64_t offset)
+    {
+        constexpr uint32_t                         K_ENTRY_VALUE_LOOKBACK = 32;
+        SmallVector<std::pair<uint32_t, uint32_t>> pending;
+        pending.push_back({start, 0});
+        std::vector<uint8_t> visited(cfg.instructionCount(), 0);
+        while (!pending.empty())
+        {
+            const auto [index, distance] = pending.back();
+            pending.pop_back();
+            if (index >= visited.size() || visited[index] || distance >= K_ENTRY_VALUE_LOOKBACK)
+                return false;
+            visited[index]   = 1;
+            const auto* inst = context.instructions->ptr(cfg.instructionRefs()[index]);
+            const auto* ops  = inst->ops(*context.operands);
+            if (inst->op == MicroInstrOpcode::LoadRegMem && ops[0].reg == value && ops[1].reg == base && ops[2].opBits == MicroOpBits::B64 && ops[3].valueU64 == static_cast<uint64_t>(offset))
+                continue;
+            if (inst->op == MicroInstrOpcode::LoadMemReg && ops[0].reg == base)
+            {
+                const auto writeOffset = static_cast<int64_t>(ops[3].valueU64);
+                if (ops[1].reg == value && ops[2].opBits == MicroOpBits::B64 && writeOffset == offset)
+                    continue;
+                if (writeOffset < INT32_MIN || writeOffset > INT32_MAX ||
+                    (writeOffset < offset + 8 && writeOffset + getNumBytes(ops[2].opBits) > offset))
+                    return false;
+            }
+            else if (MicroInstr::info(inst->op).flags.has(MicroInstrFlagsE::WritesMemory))
+                return false;
+            const auto flags = MicroInstr::info(inst->op).flags;
+            if (flags.has(MicroInstrFlagsE::IsCallInstruction) ||
+                MicroPassHelpers::regTouch(*inst, *context.operands, value, context.encoder).def ||
+                MicroPassHelpers::regTouch(*inst, *context.operands, base, context.encoder).def)
+                return false;
+            const auto& predecessors = cfg.predecessors(index);
+            if (predecessors.empty())
+                return false;
+            for (const auto predecessor : predecessors)
+                pending.push_back({predecessor, distance + 1});
+        }
+        return true;
+    }
+
     // Peel a swap loop whose indices converge by one element per iteration.
     // A constant left seed gives the prefix direct addresses without extending
     // any register lifetime. Live indices or exit flags keep the original loop.
@@ -202,6 +247,9 @@ namespace
             if (liveness.isLiveOut(at + 10, left) || liveness.isLiveOut(at + 10, right))
                 continue;
 
+            const bool reuseFirstValue = a[3].opBits == MicroOpBits::B64 &&
+                                         !liveness.isLiveOut(at + 10, a[0].reg) &&
+                                         hasEntryLoadedValue(context, cfg, cfg.indexOf(order[at - 1]), a[1].reg, right, firstOffset);
             const auto                       before    = order[at];
             const auto                       exitId    = e[0].valueU64;
             const auto                       bodyId    = builder.createLabel().get();
@@ -234,7 +282,9 @@ namespace
             {
                 lowerRead[3].valueU64  = static_cast<uint64_t>(firstOffset + static_cast<int64_t>(lane * stride));
                 lowerWrite[3].valueU64 = lowerRead[3].valueU64;
-                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadRegMem, lowerRead);
+                if (lane || !reuseFirstValue)
+                    storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadRegMem, lowerRead);
+                upperWrite[2].reg = !lane && reuseFirstValue ? right : lowerRead[0].reg;
                 storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadAmcRegMem, upperRead);
                 storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadMemReg, lowerWrite);
                 storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadAmcMemReg, upperWrite);

@@ -1,0 +1,42 @@
+
+  ◆  swag        run • tools • devmode
+  ✓  module      win32 • 46 files • 127 ms
+  ✓  module      xinput • 41 files • 56 ms
+  ✓  module      core • 376 files • core.dll • 1 s 949 ms
+  ✓  workspace   std [2 roots] • 3 modules • 2 s 538 ms
+  ✓  checked     44 files • 225_202 tokens • 315 ms
+  ✓  tuned       649 functions • 217 reused functions • 2 s 570 ms
+
+[1/2] Measure
+---------------
+machine             : Intel(R) Core(TM) Ultra 9 185H, Windows 10.0 build 26300, AC, power mode best performance
+compiler under test : C:\Users\chris\AppData\Local\swc-agent-builds\prompt2-20261022-1515\worktree\bin\swc.exe
+  installed as      : C:\Users\chris\AppData\Local\swc-agent-builds\prompt2-20261022-1515\worktree\bench\out\installs\subject (sha256 b2106d315fdf98b0)
+reference           : r1, commit dd211f6eeb, frozen 2026-10-21
+preparing Swag dependencies outside the clock...
+warming Go's standard-library build cache outside the clock...
+machine quiet (1.2 foreign cores), starting
+warming up 30 s on the reference workload...
+== hello world, source to executable ==
+  swag-devmode         interference: 10.1 foreign cores (limit 8.0), waited 15 s for quiet, machine still busy (4.7)
+  zig                  interference: 5.3 foreign cores (limit 4.6), waited 3 s for quiet
+  zig                  interference: 4.9 foreign cores (limit 4.4), waited 2 s for quiet
+  swag-release         interference: 8.5 foreign cores (limit 4.5), waited 4 s for quiet
+  swag-devmode         interference: 6.5 foreign cores (limit 4.7), waited 3 s for quiet
+  cpp-msvc             interference: 4.6 foreign cores (limit 4.5), waited 3 s for quiet
+  zig                  median     342.71  +/-11.2 %  n=12   2 taken again
+  d-ldc                median     178.86  +/-9.1 %  n=12 
+  odin                 median     291.94  +/-7.4 %  n=12 
+  go                   median     710.67  +/-11.1 %  n=8  
+  java-hotspot         median     573.44  +/-6.8 %  n=9  
+  cpp-clang-cl         median     155.94  +/-11.1 %  n=12 
+  cpp-msvc             median     160.81  +/-8.5 %  n=12   1 taken again
+  rust                 median     199.88  +/-6.4 %  n=12 
+  swift                median     382.33  +/-11.8 %  n=12 
+  csharp-aot           median    7014.58  +/-4.5 %  n=4  
+  csharp-jit           median    3380.35  +/-7.0 %  n=5  
+  swag-release         median     168.35  +/-10.2 %  n=20   1 taken again
+  ref-release          median     169.76  +/-11.3 %  n=20 
+  swag-devmode         median     213.02  +/-11.9 %  n=20   2 taken again
+  ref-devmode          median     211.46  +/-13.4 %  n=20 
+== the edit-build loop ==

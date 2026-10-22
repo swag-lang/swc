@@ -1179,7 +1179,24 @@ namespace
         const auto header = builder.createLabel();
         const auto exit   = builder.createLabel();
         builder.emitLoadRegMem(base, data, 0, MicroOpBits::B64);
-        builder.emitLoadRegMem(right, data, 8, MicroOpBits::B64);
+        if (variant >= 19 && variant < 24)
+            builder.emitLoadRegMem(right, base, static_cast<uint64_t>(seed * 8), MicroOpBits::B64);
+        else
+            builder.emitLoadRegMem(right, data, 8, MicroOpBits::B64);
+        if (variant >= 24)
+        {
+            builder.emitLoadMemReg(base, static_cast<uint64_t>(seed * 8), variant == 26 ? data : right, MicroOpBits::B64);
+            for (int64_t lane = 1; lane <= 8; ++lane)
+                builder.emitLoadMemReg(base, static_cast<uint64_t>((seed + lane) * 8), right, MicroOpBits::B64);
+            if (variant == 25)
+                builder.emitLoadMemReg(base, static_cast<uint64_t>(seed * 8 + 4), right, MicroOpBits::B64);
+        }
+        if (variant == 20)
+            builder.emitLoadMemReg(data, 32, base, MicroOpBits::B64);
+        if (variant == 21)
+            builder.emitClearReg(right, MicroOpBits::B64);
+        if (variant == 22)
+            builder.emitLoadRegMem(base, data, 0, MicroOpBits::B64);
         if (variant == 11)
             builder.emitLoadRegMem(left, data, 16, MicroOpBits::B64);
         else if (variant == 12)
@@ -1204,6 +1221,8 @@ namespace
         builder.emitOpUnaryReg(right, variant == 7 ? MicroOp::Add : MicroOp::Subtract, MicroOpBits::B64);
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, header);
         builder.placeLabel(exit);
+        if (variant == 23)
+            builder.emitLoadMemReg(data, 16, first, MicroOpBits::B64);
         if (variant == 1)
             builder.emitLoadMemReg(data, 16, left, MicroOpBits::B64);
         if (variant == 2)
@@ -1221,7 +1240,7 @@ namespace
 SWC_TEST_BEGIN(PostRALoopRotate_PeelsOnlyUnobservedOpposingIndices)
 {
     for (const bool signedBound : {false, true})
-        for (uint32_t variant = 0; variant < 19; ++variant)
+        for (uint32_t variant = 0; variant < 27; ++variant)
         {
             MicroBuilder             builder(ctx);
             Runtime::BuildCfgBackend config{};
@@ -1233,7 +1252,8 @@ SWC_TEST_BEGIN(PostRALoopRotate_PeelsOnlyUnobservedOpposingIndices)
             const auto reads = Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem);
             X64Encoder encoder(ctx);
             SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
-            const auto expected = reads + (variant == 0 || variant == 16 ? 4 : 0);
+            const auto expected = reads + (variant == 19 || variant == 24 ? 3 : variant == 0 || variant == 16 || variant >= 20 ? 4
+                                                                                                                               : 0);
             if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != expected)
                 return Result::Error;
             SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
@@ -1253,33 +1273,39 @@ SWC_TEST_BEGIN(PostRALoopRotate_OpposingPrefixPreservesSwapsAndTail)
                 continue;
             for (uint32_t length = 0; length <= 48; ++length)
                 for (const uint32_t factor : {2u, 3u, 4u})
-                    for (const bool optimize : {false, true})
-                    {
-                        std::array<uint64_t, 128> items;
-                        for (size_t index = 0; index < items.size(); ++index)
-                            items[index] = 0x1234000000000000ull + index;
-                        auto       expected = items;
-                        const auto first    = expected.begin() + 32 + seed;
-                        std::reverse(first, first + length);
-                        const auto               last      = !signedBound && !seed && !length ? 0 : seed + length - 1;
-                        uint64_t                 values[5] = {reinterpret_cast<uint64_t>(items.data() + 32), static_cast<uint64_t>(last)};
-                        MicroBuilder             builder(ctx);
-                        Runtime::BuildCfgBackend config{};
-                        config.optimLevel                     = Runtime::BuildCfgBackendOptimLevel::O2;
-                        config.optimizer.unroll.partialFactor = factor;
-                        builder.setBackendBuildCfg(config);
-                        emitOpposingSwapLoop(builder, seed, signedBound);
-                        if (optimize)
+                    for (const uint32_t variant : {0u, 19u, 24u})
+                        for (const bool optimize : {false, true})
                         {
-                            X64Encoder encoder(ctx);
-                            SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
-                            if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 2 + factor)
+                            std::array<uint64_t, 128> items;
+                            for (size_t index = 0; index < items.size(); ++index)
+                                items[index] = 0x1234000000000000ull + index;
+                            const auto last = !signedBound && !seed && !length ? 0 : seed + length - 1;
+                            if (variant == 19)
+                                items[32 + seed] = static_cast<uint64_t>(last);
+                            if (variant == 24)
+                                for (int64_t lane = 0; lane <= 8; ++lane)
+                                    items[32 + seed + lane] = static_cast<uint64_t>(last);
+                            auto       expected = items;
+                            const auto first    = expected.begin() + 32 + seed;
+                            std::reverse(first, first + length);
+                            uint64_t                 values[5] = {reinterpret_cast<uint64_t>(items.data() + 32), static_cast<uint64_t>(last)};
+                            MicroBuilder             builder(ctx);
+                            Runtime::BuildCfgBackend config{};
+                            config.optimLevel                     = Runtime::BuildCfgBackendOptimLevel::O2;
+                            config.optimizer.unroll.partialFactor = factor;
+                            builder.setBackendBuildCfg(config);
+                            emitOpposingSwapLoop(builder, seed, signedBound, variant);
+                            if (optimize)
+                            {
+                                X64Encoder encoder(ctx);
+                                SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+                                if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::LoadRegMem) != 2 + factor - (variant == 19 || variant == 24 ? 1 : 0))
+                                    return Result::Error;
+                            }
+                            SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values));
+                            if (items != expected)
                                 return Result::Error;
                         }
-                        SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values));
-                        if (items != expected)
-                            return Result::Error;
-                    }
         }
     return Result::Continue;
 }

@@ -731,16 +731,6 @@ namespace
         outPreparedArg.isAddressed = argPayload.isAddress() && !normalizedArg.isIndirect && !passAddressRef;
     }
 
-    MicroOpBits preparedArgDirectCopyBits(const ABICall::PreparedArg& arg)
-    {
-        if (!arg.numBits)
-            return MicroOpBits::B64;
-
-        const MicroOpBits bits = microOpBitsFromBitWidth(arg.numBits);
-        SWC_ASSERT(bits != MicroOpBits::Zero);
-        return bits;
-    }
-
     void doIsolatePreparedRegisterArgSources(CodeGen& codeGen, const CallConv& callConv, SmallVector<ABICall::PreparedArg>& args)
     {
         MicroBuilder&             builder = codeGen.builder();
@@ -799,7 +789,7 @@ namespace
                 argLaneSourceReg = codeGen.nextVirtualIntRegister();
             }
 
-            builder.emitLoadRegReg(argLaneSourceReg, arg.srcReg, preparedArgDirectCopyBits(arg));
+            builder.emitLoadRegReg(argLaneSourceReg, arg.srcReg, ABICall::valueBits(arg.numBits));
             builder.preserveVirtualCopy(argLaneSourceReg);
             arg.srcReg             = argLaneSourceReg;
             arg.constrainToArgLane = true;

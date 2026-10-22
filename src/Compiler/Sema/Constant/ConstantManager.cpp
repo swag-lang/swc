@@ -1017,8 +1017,8 @@ namespace
     // a node per lookup costs more than the answer it returns.
     struct WalkedAllocations
     {
-        std::vector<uint64_t> keys;
-        std::vector<uint32_t> entryIndices;
+        std::vector<uint64_t>       keys;
+        std::unique_ptr<uint32_t[]> entryIndices;
         // A deque, so an entry handed out stays put when the next one is recorded.
         std::deque<ConstantManager::WalkedAllocation> entries;
         size_t                                        used = 0;
@@ -1026,7 +1026,7 @@ namespace
         WalkedAllocations()
         {
             keys.resize(1024);
-            entryIndices.resize(1024);
+            entryIndices = std::make_unique_for_overwrite<uint32_t[]>(keys.size());
         }
 
         ConstantManager::WalkedAllocation& slotFor(const uint64_t key)
@@ -1054,9 +1054,9 @@ namespace
         void grow()
         {
             std::vector<uint64_t> oldKeys         = std::move(keys);
-            std::vector<uint32_t> oldEntryIndices = std::move(entryIndices);
+            auto                  oldEntryIndices = std::move(entryIndices);
             keys.assign(oldKeys.size() * 2, 0);
-            entryIndices.assign(oldKeys.size() * 2, 0);
+            entryIndices = std::make_unique_for_overwrite<uint32_t[]>(keys.size());
 
             const size_t mask = keys.size() - 1;
             for (size_t i = 0; i < oldKeys.size(); ++i)

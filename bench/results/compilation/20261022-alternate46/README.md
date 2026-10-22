@@ -13,6 +13,7 @@ the checkouts. No timing campaign or profiler runs; speed targets remain unverif
 | --- | --- | --- | --- |
 | 4 | Read block-flow children directly from their AST spans | Five compound node types inherit the same span-only collector. Function-exit analysis visits the same references in order and short-circuits at the same first exit. Block-exit analysis reads only the final reference. Missing/empty spans still return false. The temporary child vector, its reference copies, possible allocation and destruction disappear; persistent storage is unchanged. | DevMode build; complete semantic selections: 297 ordinary and 350 expected-diagnostic inputs, including runtime, with expectations verified. These semantic stages execute no runtime test bodies. |
 | 4 | Reuse the reflected field CRC for its using-field descriptor | Both records describe the same stable identifier bytes. Reusing the already written CRC removes a second CRC-32 byte/bit walk, without adding storage or allocations. The compiler's `initStruct` loses one CRC call (four to three static call sites; 123 to 122 calls overall), keeps its 0xA48-byte stack reservation, and grows by 47 code bytes. No elapsed-time or peak-memory claim is made. | DevMode build; `dynamic_using_cycle` passes three native tests and its compile-time assertions, exercising reflected using-field graphs. |
+| 4 | Allocate walk-cache indices without clearing unread slots | Every index is assigned before its nonzero occupancy key can be queried, and growth reads old indices only for occupied keys. Initial and grown index arrays lose their zero pass. Key-array clearing, capacity, growth, entry addresses and query/version behavior are unchanged. The index array retains four bytes per slot; its unique pointer removes the unused vector size/capacity fields. | DevMode build; all 1,545 default C++ tests pass, including a new 4,096-root walk on a fresh worker, growth, relocation-version refresh and a subsequent query excluding the relocated root. |
 
 Prompt-6 results are recorded in [health.md](health.md).
 
@@ -20,6 +21,7 @@ Commands, from the corresponding campaign worktree:
 
 ```text
 MSBuild.exe swc.vcxproj /t:Build /p:Configuration=DevMode /p:Platform=x64 /m:6 /p:SwcCompileJobs=6
+bin/swc.dm.exe unittest --num-cores 6
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm sema --num-cores 6 --rebuild
 bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --file-filter dynamic_using_cycle --num-cores 6 --rebuild
 ```

@@ -245,7 +245,7 @@ SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentTicks)
     DiagnosticBuilder builder(localCtx, diag);
     const Utf8        text = builder.build();
 
-    if (text.find("type 'List'(s32)' does not support indexing") == Utf8::npos)
+    if (text.find("type 'List'(s32)' is not indexable") == Utf8::npos)
         return Result::Error;
 }
 SWC_TEST_END()
@@ -361,7 +361,7 @@ SWC_TEST_BEGIN(Compiler_DiagnosticEscapesQuotedArgumentWithoutBreakingHelpSplit)
     DiagnosticBuilder builder(localCtx, diag);
     const Utf8        text = builder.build();
 
-    if (text.find("type 'List'(s32); [help] fake' does not support indexing") == Utf8::npos)
+    if (text.find("type 'List'(s32); [help] fake' is not indexable") == Utf8::npos)
         return Result::Error;
 
     size_t helpCount = 0;

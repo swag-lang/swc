@@ -227,7 +227,7 @@ SWC_DIAG_DEF(sema_err_field_private, Error, "field '{sym}' is private to '{type}
 SWC_DIAG_DEF(sema_err_field_internal, Error, "field '{sym}' of '{type}' is internal to the module that declares it; [help] use the public surface of '{type}', or declare the field 'public'")
 SWC_DIAG_DEF(sema_err_field_readonly, Error, "field '{sym}' of '{type}' is read-only outside the type that declares it; [help] read it here, and write it from an 'impl {type}' or through a public method")
 SWC_DIAG_DEF(sema_err_readonly_on_private, Error, "'private' already restricts writes to the declaring type; [help] remove 'readonly', or write 'internal readonly' to keep reads inside the module")
-SWC_DIAG_DEF(sema_err_type_not_indexable, Error, "type '{type}' does not support indexing; [help] use an indexable type, or define indexing behavior")
+SWC_DIAG_DEF(sema_err_type_not_indexable, Error, "type '{type}' is not indexable; [help] use an array or slice, or define 'opIndex' or 'opIndexPtr' for this type")
 SWC_DIAG_DEF(sema_err_index_not_int, Error, "index needs an integer, found '{type}'")
 SWC_DIAG_DEF(sema_err_index_enum_mismatch, Error, "array needs an index of enum type '{requested-type}', found '{type}'")
 SWC_DIAG_DEF(sema_err_index_too_large, Error, "index does not fit in 64 bits")

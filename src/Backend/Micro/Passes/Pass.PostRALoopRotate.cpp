@@ -69,6 +69,93 @@ namespace
     // duplicating for the one jump the rotation removes.
     using MicroOptimizationLimits::PostRALoopRotate::K_MAX_TEST_RUN;
 
+    // On the taken edge, neither operand changes before the repeated comparison.
+    // Keeping its ordered operands and width also keeps every arithmetic flag.
+    bool threadRepeatedCompareExits(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
+    {
+        auto&                builder  = *context.builder;
+        auto&                storage  = builder.instructions();
+        auto&                operands = builder.operands();
+        bool                 changed  = false;
+        FlatKeyMap<uint32_t> continuations;
+        FlatKeyMap<uint32_t> labelOrdinals;
+        for (uint32_t index = 0; index < order.size(); ++index)
+        {
+            const auto* inst = storage.ptr(order[index]);
+            uint32_t    label;
+            if (tryGetLabelId(label, *inst, inst->ops(operands)))
+                labelOrdinals.emplace(label, index);
+        }
+        for (size_t ordinal = 1; ordinal < order.size(); ++ordinal)
+        {
+            const auto  jumpRef = order[ordinal];
+            const auto* jump    = storage.ptr(jumpRef);
+            const auto* cmp     = storage.ptr(order[ordinal - 1]);
+            if (!jump || jump->op != MicroInstrOpcode::JumpCond || !cmp || cmp->op != MicroInstrOpcode::CmpRegReg)
+                continue;
+            const auto* jumpOps = jump->ops(operands);
+            const auto* cmpOps  = cmp->ops(operands);
+            MicroCond   inverse;
+            if (!cmpOps[0].reg.isAnyInt() || !cmpOps[1].reg.isAnyInt() ||
+                !MicroPassHelpers::invertLayoutBranchCondition(inverse, jumpOps[0].cpuCond))
+                continue;
+            uint32_t joinId;
+            if (!tryGetJumpTargetLabelId(joinId, *jump, jumpOps))
+                continue;
+            const auto* join = labelOrdinals.find(joinId);
+            if (!join || *join <= ordinal)
+                continue;
+            size_t next = *join + 1;
+            while (next < order.size() && storage.ptr(order[next])->op == MicroInstrOpcode::Label)
+                ++next;
+            if (next + 2 >= order.size())
+                continue;
+            const auto* repeated = storage.ptr(order[next]);
+            const auto* branch   = storage.ptr(order[next + 1]);
+            if (!repeated || repeated->op != MicroInstrOpcode::CmpRegReg || !branch || branch->op != MicroInstrOpcode::JumpCond)
+                continue;
+            const auto* repeatedOps = repeated->ops(operands);
+            const auto* branchOps   = branch->ops(operands);
+            if (repeatedOps[0].reg != cmpOps[0].reg || repeatedOps[1].reg != cmpOps[1].reg || repeatedOps[2].opBits != cmpOps[2].opBits)
+                continue;
+            uint32_t targetId;
+            if (branchOps[0].cpuCond == jumpOps[0].cpuCond)
+            {
+                if (!tryGetJumpTargetLabelId(targetId, *branch, branchOps) || targetId == joinId)
+                    continue;
+            }
+            else if (branchOps[0].cpuCond == inverse)
+            {
+                const auto  pastRef = order[next + 2];
+                const auto* known   = continuations.find(pastRef.get());
+                if (known)
+                    targetId = *known;
+                else
+                {
+                    const auto* past = storage.ptr(pastRef);
+                    if (!tryGetLabelId(targetId, *past, past->ops(operands)))
+                    {
+                        targetId = builder.createLabel().get();
+                        MicroInstrOperand label[1];
+                        label[0].valueU64 = targetId;
+                        storage.insertDerivedBefore(operands, pastRef, MicroInstrOpcode::Label, label);
+                    }
+                    continuations.emplace(pastRef.get(), targetId);
+                }
+            }
+            else
+                continue;
+            storage.ptr(jumpRef)->ops(operands)[2].valueU64 = targetId;
+            changed                                         = true;
+        }
+        if (changed)
+        {
+            builder.invalidateControlFlowGraph();
+            context.passChanged = true;
+        }
+        return changed;
+    }
+
     // Thread a repeated indexed zero test when the two returns of an inlined
     // search already establish its result. A path through a read-only call is
     // admissible, but a write to the cell or either address register is not.
@@ -664,6 +751,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     if (!hasJumpCond)
         return Result::Continue;
 
+    if (threadRepeatedCompareExits(context, order))
+        return Result::Continue;
     if (threadRepeatedIndexedZeroTest(context, order))
         return Result::Continue;
     if (placeShortLoopStep(context, order))

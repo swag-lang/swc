@@ -73,3 +73,30 @@ The analysis uses the existing four-bit lane lattice over the CFG, restricted
 to functions with unclaimed floating clears. This adds a candidate scan and one
 lane-demand solve after memory folding; unsupported control flow declines it.
 Timing is **not measured** for this batch; its runtime gain remains unconfirmed.
+
+## Repeated integer comparison exits
+
+A taken conditional edge can bypass an identical ordered integer comparison at
+its destination when the destination branch has the same or opposite condition.
+Both comparisons read the same physical registers at the same width, so this
+also preserves carry, overflow and every other arithmetic flag. Floating,
+different-width, swapped-operand and intervening-flag-writer cases retain their
+code. The transformation runs after register allocation; a pre-allocation trial
+added a saved register and was discarded.
+
+Sort's qsort retains 99 instructions, 23 memory operands and two call sites.
+Its five saved registers, frame, spills, scans and swap instructions are unchanged.
+The no-swap partition exit bypasses one compare and one conditional jump: **two
+fewer executed instructions on that exit**, with no added work on any other path.
+This now matches MSVC's direct exit shape, while retaining Swag's two-store swap
+without reloading the values scanned. [Before](sort-exit-base.asm) and
+[after](sort-exit-new.asm) show the emitted native branch targets.
+
+All twelve Release checksums pass; no other task kernel or runtime path changes
+after overload ordinals and generated names are paired. The complete comparison
+is in [thread-microdiff.txt](thread-microdiff.txt). All 1,544 in-memory C++ tests
+pass, including signed/unsigned conditions at four widths and negative flag cases.
+The new `repeated_compare_exits` source test passes through JIT and native Release
+with Micro validation, covering 16,641 signed cursor ranges and extreme inputs.
+The analysis indexes labels and scans candidate edges in linear time. Timing is
+**not measured** for this batch; the grouped campaign owns the runtime verdict.

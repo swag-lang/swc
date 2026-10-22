@@ -562,6 +562,17 @@ namespace
 
         return SemaError::raise(sema, DiagnosticId::sema_err_not_type, sema.curNodeRef());
     }
+
+    // Late globals start as zero storage behind a non-null exposed type, so a read is guarded
+    // at runtime; pure stores, address-taking and null tests clear the guard. No cross-function
+    // proof exists, but the flow post-pass drops a guard that an earlier store or read settles.
+    Result setupLateGlobalReadGuard(Sema& sema, const SourceCodeRef& codeRef)
+    {
+        SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef));
+        if (sema.isCurrentFunction())
+            sema.noteInitFlowCandidate();
+        return Result::Continue;
+    }
 }
 
 Result AstIdentifier::semaPostNode(Sema& sema) const
@@ -604,7 +615,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             // Pre-resolved late globals skip ordinary lookup. Install their read guard
             // here as well, including when an inline clone preserves the symbol.
             if (storedSymbol->isVariable() && storedSymbol->cast<SymbolVariable>().hasExtraFlag(SymbolVariableFlagsE::LateInit))
-                SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef()));
+                SWC_RESULT(setupLateGlobalReadGuard(sema, codeRef()));
 
             return Result::Continue;
         }
@@ -819,11 +830,8 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             return Result::Error;
         }
 
-        // Late globals start as zero storage behind a non-null exposed type.
-        // Guard reads at runtime; pure stores, address-taking and null tests clear
-        // the guard. Cross-function analysis cannot prove these globals set.
         if (symVar.hasExtraFlag(SymbolVariableFlagsE::LateInit))
-            SWC_RESULT(SemaHelpers::setupRuntimeSafetyPanic(sema, sema.curNodeRef(), Runtime::SafetyWhat::Null, codeRef()));
+            SWC_RESULT(setupLateGlobalReadGuard(sema, codeRef()));
     }
 
     if (sym && requiresExplicitClosureCapture(sema, *sym))

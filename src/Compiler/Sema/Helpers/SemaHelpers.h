@@ -104,6 +104,7 @@ namespace SemaHelpers
 
     Result setupRuntimeSafetyPanic(Sema& sema, AstNodeRef nodeRef, Runtime::SafetyWhat safetyKind, const SourceCodeRef& codeRef);
     bool   isLateInitAccess(Sema& sema, AstNodeRef nodeRef);
+    bool   hasLateReadGuard(Sema& sema, AstNodeRef nodeRef);
     void   clearLateFieldReadGuard(Sema& sema, AstNodeRef nodeRef);
     bool   binaryOpNeedsOverflowSafety(TokenId canonicalOp, AstModifierFlags modifierFlags);
     Result checkConstantShiftAmount(Sema& sema, AstNodeRef nodeRef, const TypeInfo& valueType, const SemaNodeView& amountView, AstNodeRef amountNodeRef);

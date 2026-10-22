@@ -98,6 +98,8 @@ namespace
         SmallVector<uint64_t, 8> must;
         SmallVector<uint64_t, 8> may;
 
+        uint64_t lateGlobals = 0; // late globals proven set on every path, one bit per Walker::lateGlobals_ entry
+
         uint64_t getMust(uint32_t i) const { return i < must.size() ? must[i] : K_ALL_BITS; }
         uint64_t getMay(uint32_t i) const { return i < may.size() ? may[i] : K_ALL_BITS; }
 
@@ -130,6 +132,8 @@ namespace
         // intersection keeps them, the 'may' union saturates them.
         for (uint32_t i = common; i < dst.may.size32(); i++)
             dst.may[i] = K_ALL_BITS;
+
+        dst.lateGlobals &= src.lateGlobals;
     }
 
     enum class FlowExit : uint8_t
@@ -242,6 +246,10 @@ namespace
         uint32_t handledDepth_ = 0; // catch/expect wrappers
         uint32_t inlineDepth_  = 0; // inline/mixin expansions: 'return' exits the expansion, not the function
 
+        uint32_t conditionalDepth_ = 0; // operands that run on some paths only: and/or, ?:, orelse, Swag.assert
+        uint32_t compileTimeDepth_ = 0; // compiler directives: not this function's runtime flow
+        uint32_t memberNameDepth_  = 0; // the member named on the right of a member access
+
         uint32_t nodeCount_  = 0;
         uint32_t errorCount_ = 0;
 
@@ -265,6 +273,35 @@ namespace
         };
 
         SmallVector<NullableLocal, 8> nullableLocals_;
+
+        // 'late' globals this function touches. Every store into one is non-null and nothing
+        // clears it, so once a store completed or a read guard passed, no later read on the
+        // path can observe null, whatever runs in between: these facts are never invalidated.
+        struct LateGlobal
+        {
+            const SymbolVariable* sym = nullptr;
+        };
+
+        SmallVector<LateGlobal, 8> lateGlobals_;
+
+        // Facts of the statement being walked. The walk does not follow the evaluation order
+        // of an expression's operands, so a fact applies only from the next statement on.
+        uint64_t pendingLateGlobals_ = 0;
+
+        // An inline expansion runs inside one statement of its caller. Its own statements see
+        // its own facts in order, but the caller gains them only once that statement completes,
+        // joined over every 'return' that resumes after the expansion. Every node of an
+        // expansion carries its payload, so the expansion opens where that payload first appears.
+        struct InlineFrame
+        {
+            const SemaInlinePayload* payload             = nullptr;
+            uint64_t                 entryLateGlobals    = 0;
+            uint64_t                 outerPending        = 0;
+            uint64_t                 returnedLateGlobals = K_ALL_BITS;
+            bool                     returned            = false;
+        };
+
+        SmallVector<InlineFrame, 4> inlineFrames_;
 
         // Shape-based proof that an expression's value cannot be null (the nodes are
         // retyped in place by implicit widening, so declared types are consulted).
@@ -795,6 +832,110 @@ namespace
 
         // -------------------------------------------------------------------------
 
+        // The bit of a late global in FlowState::lateGlobals, or -1 for any other symbol and
+        // beyond the capacity of the bitset.
+        int32_t lateGlobalIndex(const SymbolVariable* symVar)
+        {
+            if (!symVar || !symVar->hasGlobalStorage() || !symVar->hasExtraFlag(SymbolVariableFlagsE::LateInit))
+                return -1;
+
+            const int32_t index = indexOfVariable(lateGlobals_, symVar);
+            if (index >= 0)
+                return index;
+            if (lateGlobals_.size() >= 64)
+                return -1;
+
+            lateGlobals_.push_back({symVar});
+            return static_cast<int32_t>(lateGlobals_.size() - 1);
+        }
+
+        // Only code certain to run, at runtime and in this function's own flow, proves a global set.
+        bool provesLateGlobals() const
+        {
+            return !deferDepth_ && !handledDepth_ && !conditionalDepth_ && !compileTimeDepth_;
+        }
+
+        void commitLateGlobals(FlowState& state)
+        {
+            state.lateGlobals |= pendingLateGlobals_;
+            pendingLateGlobals_ = 0;
+        }
+
+        // Opens a frame when 'payload' starts an expansion that is not already open.
+        bool enterInlineLateGlobals(const FlowState& state, const SemaInlinePayload* payload)
+        {
+            if (!payload)
+                return false;
+            for (const InlineFrame& frame : inlineFrames_)
+            {
+                if (frame.payload == payload)
+                    return false;
+            }
+
+            InlineFrame frame;
+            frame.payload          = payload;
+            frame.entryLateGlobals = state.lateGlobals;
+            frame.outerPending     = pendingLateGlobals_;
+            inlineFrames_.push_back(frame);
+            pendingLateGlobals_ = 0;
+            return true;
+        }
+
+        void returnFromInlineLateGlobals(FlowState& state)
+        {
+            if (inlineFrames_.empty())
+                return;
+
+            commitLateGlobals(state);
+            InlineFrame& frame = inlineFrames_.back();
+            frame.returnedLateGlobals &= state.lateGlobals;
+            frame.returned = true;
+        }
+
+        void leaveInlineLateGlobals(FlowState& state, FlowExit exit)
+        {
+            commitLateGlobals(state);
+            const InlineFrame frame = inlineFrames_.back();
+            inlineFrames_.pop_back();
+
+            uint64_t exitLateGlobals = state.lateGlobals;
+            if (frame.returned)
+                exitLateGlobals = exit == FlowExit::Normal ? exitLateGlobals & frame.returnedLateGlobals : frame.returnedLateGlobals;
+
+            state.lateGlobals   = frame.entryLateGlobals;
+            pendingLateGlobals_ = frame.outerPending | (exitLateGlobals & ~frame.entryLateGlobals);
+        }
+
+        // A late global read keeps its guard until an earlier statement proves the global set;
+        // a guarded read that certainly runs proves it for the statements that follow.
+        bool walkLateGlobalRead(const FlowState& state, AstNodeRef ref)
+        {
+            const int32_t index = lateGlobalIndex(identifierVariable(ref));
+            if (index < 0)
+                return false;
+
+            // A qualified read ('Namespace.global') runs the guard of its member access, not
+            // the one its name might carry: neither proves anything here.
+            if (memberNameDepth_ || !SemaHelpers::hasLateReadGuard(*sema_, ref))
+                return true;
+
+            const uint64_t bit = 1ull << index;
+            if (state.lateGlobals & bit)
+            {
+                // Compile-time code does not run where the fact holds.
+                if (!compileTimeDepth_)
+                    SemaHelpers::clearLateFieldReadGuard(*sema_, ref);
+            }
+            else if (provesLateGlobals())
+            {
+                pendingLateGlobals_ |= bit;
+            }
+
+            return true;
+        }
+
+        // -------------------------------------------------------------------------
+
         void trackFullInitReceiver(FlowState& state)
         {
             if (sym_->specOpKind() != SpecOpKind::OpSet && sym_->specOpKind() != SpecOpKind::OpSetLiteral)
@@ -1127,14 +1268,21 @@ namespace
 
             // An inline/mixin expansion is a region of its own: a 'return' inside it
             // resumes the caller's flow right after the expansion.
-            const bool inlineRoot = sema_->hasInlinePayload(ref) || (rawRef != ref && sema_->hasInlinePayload(rawRef));
+            const SemaInlinePayload* inlinePayload = sema_->inlinePayload(ref);
+            if (!inlinePayload && rawRef != ref)
+                inlinePayload = sema_->inlinePayload(rawRef);
+
+            const bool inlineRoot = inlinePayload != nullptr;
             if (inlineRoot)
                 inlineDepth_++;
+            const bool lateExpansion = enterInlineLateGlobals(state, inlinePayload);
 
             activeRefs_.push_back(ref);
             FlowExit exit = walkDispatch(ref, node, state);
             activeRefs_.pop_back();
 
+            if (lateExpansion)
+                leaveInlineLateGlobals(state, exit);
             if (inlineRoot)
             {
                 inlineDepth_--;
@@ -1195,7 +1343,10 @@ namespace
                 {
                     const auto& ifStmt = node.cast<AstIfVarDecl>();
                     walk(ifStmt.nodeVarRef, state);
+
+                    conditionalDepth_++;
                     walk(ifStmt.nodeWhereRef, state);
+                    conditionalDepth_--;
 
                     return walkBranches(ifStmt.nodeIfBlockRef, ifStmt.nodeElseBlockRef, state);
                 }
@@ -1240,7 +1391,12 @@ namespace
                     }
 
                     walk(exprRef, state);
+
+                    // The filter runs once per element, and there may be none.
+                    conditionalDepth_++;
                     walk(whereRef, state);
+                    conditionalDepth_--;
+
                     walkLoopBody(loopBodyRef, state, /*maySkip*/ true);
 
                     return FlowExit::Normal;
@@ -1278,6 +1434,10 @@ namespace
                     {
                         checkDropsOnExit(state, ref, 0);
                         noteReturnValue(returnStmt.nodeExprRef);
+                    }
+                    else
+                    {
+                        returnFromInlineLateGlobals(state);
                     }
 
                     return FlowExit::Jumped;
@@ -1360,8 +1520,20 @@ namespace
                 }
 
                 case AstNodeId::CallExpr:
-                case AstNodeId::IntrinsicCallExpr:
                     return walkCall(ref, node, state);
+
+                case AstNodeId::IntrinsicCallExpr:
+                {
+                    // An assertion evaluates nothing when assertions are off.
+                    const bool isAssert = node.cast<AstIntrinsicCallExpr>().intrinsicId == TokenId::IntrinsicAssert;
+                    if (isAssert)
+                        conditionalDepth_++;
+                    const FlowExit exit = walkCall(ref, node, state);
+                    if (isAssert)
+                        conditionalDepth_--;
+
+                    return exit;
+                }
 
                 case AstNodeId::IntrinsicInit:
                     return walkIntrinsicInit(node.cast<AstIntrinsicInit>(), state);
@@ -1389,11 +1561,80 @@ namespace
 
                 case AstNodeId::Identifier:
                 {
+                    if (walkLateGlobalRead(state, ref))
+                        return FlowExit::Normal;
+
                     AccessPath path;
                     if (accessPath(ref, path))
                         checkRead(state, ref, path);
 
                     return FlowExit::Normal;
+                }
+
+                case AstNodeId::LogicalExpr:
+                {
+                    const auto& logical = node.cast<AstLogicalExpr>();
+                    walk(logical.nodeLeftRef, state);
+
+                    conditionalDepth_++;
+                    walk(logical.nodeRightRef, state);
+                    conditionalDepth_--;
+
+                    return FlowExit::Normal;
+                }
+
+                case AstNodeId::NullCoalescingExpr:
+                {
+                    const auto& coalescing = node.cast<AstNullCoalescingExpr>();
+                    walk(coalescing.nodeLeftRef, state);
+
+                    conditionalDepth_++;
+                    walk(coalescing.nodeRightRef, state);
+                    conditionalDepth_--;
+
+                    return FlowExit::Normal;
+                }
+
+                case AstNodeId::ConditionalExpr:
+                {
+                    const auto& conditional = node.cast<AstConditionalExpr>();
+                    walk(conditional.nodeCondRef, state);
+
+                    conditionalDepth_++;
+                    walk(conditional.nodeTrueRef, state);
+                    walk(conditional.nodeFalseRef, state);
+                    conditionalDepth_--;
+
+                    return FlowExit::Normal;
+                }
+
+                case AstNodeId::OptionalChainExpr:
+                {
+                    conditionalDepth_++;
+                    const FlowExit exit = walkChildren(node, state);
+                    conditionalDepth_--;
+
+                    return exit;
+                }
+
+                case AstNodeId::CompilerExpression:
+                case AstNodeId::CompilerCall:
+                case AstNodeId::CompilerCallOne:
+                case AstNodeId::CompilerRunBlock:
+                case AstNodeId::CompilerRunExpr:
+                case AstNodeId::CompilerCodeBlock:
+                case AstNodeId::CompilerCodeExpr:
+                case AstNodeId::CompilerScope:
+                case AstNodeId::CompilerInject:
+                case AstNodeId::CompilerIf:
+                case AstNodeId::CompilerSwitch:
+                case AstNodeId::CompilerSwitchCase:
+                {
+                    compileTimeDepth_++;
+                    const FlowExit exit = walkChildren(node, state);
+                    compileTimeDepth_--;
+
+                    return exit;
                 }
 
                 case AstNodeId::MemberAccessExpr:
@@ -1408,6 +1649,18 @@ namespace
                         // Still walk index expressions for their own reads.
                         if (node.is(AstNodeId::IndexExpr))
                             walk(node.cast<AstIndexExpr>().nodeArgRef, state);
+
+                        return FlowExit::Normal;
+                    }
+
+                    if (node.is(AstNodeId::MemberAccessExpr))
+                    {
+                        const auto& member = node.cast<AstMemberAccessExpr>();
+                        walk(member.nodeLeftRef, state);
+
+                        memberNameDepth_++;
+                        walk(member.nodeRightRef, state);
+                        memberNameDepth_--;
 
                         return FlowExit::Normal;
                     }
@@ -1512,6 +1765,7 @@ namespace
                     continue;
 
                 exit = walk(childRef, state);
+                commitLateGlobals(state);
                 if (exit != FlowExit::Normal)
                     break;
             }
@@ -1535,11 +1789,16 @@ namespace
 
         FlowExit walkBranches(AstNodeRef thenRef, AstNodeRef elseRef, FlowState& state)
         {
+            // The condition has run on both branches.
+            commitLateGlobals(state);
+
             FlowState      thenState = state;
             const FlowExit thenExit  = thenRef.isValid() ? walk(thenRef, thenState) : FlowExit::Normal;
+            commitLateGlobals(thenState);
 
             FlowState      elseState = state;
             const FlowExit elseExit  = elseRef.isValid() ? walk(elseRef, elseState) : FlowExit::Normal;
+            commitLateGlobals(elseState);
 
             const bool thenFlows = thenExit == FlowExit::Normal;
             const bool elseFlows = elseExit == FlowExit::Normal;
@@ -1568,6 +1827,9 @@ namespace
 
         FlowExit walkLoopBody(AstNodeRef bodyRef, FlowState& state, bool maySkip, AstNodeRef postRef = AstNodeRef::invalid())
         {
+            // The loop condition has run before the first iteration and after the loop.
+            commitLateGlobals(state);
+
             BreakCtx ctx;
             ctx.acceptsContinue = true;
             ctx.blockDepth      = blockDepth_;
@@ -1578,6 +1840,7 @@ namespace
             walk(bodyRef, bodyState);
             if (postRef.isValid())
                 walk(postRef, bodyState);
+            commitLateGlobals(bodyState);
 
             loopDepth_--;
             breakables_.pop_back();
@@ -1610,6 +1873,7 @@ namespace
         FlowExit walkSwitch(AstNodeRef switchRef, const AstSwitchStmt& switchStmt, FlowState& state)
         {
             walk(switchStmt.nodeExprRef, state);
+            commitLateGlobals(state);
 
             const bool exhaustive = SemaSwitch::alwaysMatchesACase(*sema_, switchRef, switchStmt);
 
@@ -1653,7 +1917,15 @@ namespace
                     if (caseChildRef.isInvalid())
                         continue;
 
+                    // A match expression or filter runs only while no earlier one matched.
+                    const bool matchPart = caseChildRef != caseStmt.nodeBodyRef;
+                    if (matchPart)
+                        conditionalDepth_++;
                     exit = walk(caseChildRef, caseState);
+                    if (matchPart)
+                        conditionalDepth_--;
+
+                    commitLateGlobals(caseState);
                     if (exit != FlowExit::Normal)
                         break;
                 }
@@ -1700,6 +1972,18 @@ namespace
                 return FlowExit::Normal;
 
             const AstNode& leftNode = sema_->node(leftRef);
+
+            // A completed store makes a late global non-null for the statements that follow.
+            if (tokenId == TokenId::SymEqual && leftNode.is(AstNodeId::Identifier))
+            {
+                const int32_t index = lateGlobalIndex(identifierVariable(leftRef));
+                if (index >= 0)
+                {
+                    if (provesLateGlobals())
+                        pendingLateGlobals_ |= 1ull << index;
+                    return FlowExit::Normal;
+                }
+            }
 
             // Multi-assign / destructuring: every element is a whole definition (the
             // list lowering never drops destinations).

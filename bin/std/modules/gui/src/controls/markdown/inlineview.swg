@@ -7,7 +7,7 @@ using Core, Pixel
 // uses, so a line one engine leaves ragged is left ragged by the other for the same reason.
 private const JustifyLimit = 2.0
 
-// A malformed or unusually long paragraph must not pin an oversized retained texture.
+// A malformed or unusually long block must not pin an oversized retained texture.
 private const MaxRenderCacheDim = 4096
 
 #[Swag.EnumFlags]
@@ -1339,6 +1339,8 @@ impl IWnd for InlineView
         .images.loadingPhase = Math.fract(.images.loadingPhase + .timing().deltaSeconds * .themeMetrics().spinner_Speed)
         discard .layout(rect.width)
 
+        // Lists, headings and code stay unchanged during scrolling just as prose does. Image
+        // blocks keep painting so asynchronous loading and its spinner can advance.
         let transform   = painter.transform()
         let width       = cast(s32, Math.ceil(rect.width))
         let height      = cast(s32, Math.ceil(rect.height))
@@ -1346,7 +1348,7 @@ impl IWnd for InlineView
         let padding     = cast(s32, Math.ceil(1 / scale))
         let layerWidth  = width + padding
         let layerHeight = height + padding
-        let canCache    = .kind == .Paragraph and
+        let canCache    = .kind != .Rule and
                           .images.entries.isEmpty() and
                           width > 0 and
                           height > 0 and

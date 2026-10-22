@@ -1,0 +1,58 @@
+== fannkuch independent panel 1
+  AA1                  interference: 4.3 foreign cores (limit 3.5), waited 4 s for quiet
+  A                    interference: 4.9 foreign cores (limit 3.9), waited 4 s for quiet
+  AA1                  interference: 4.1 foreign cores (limit 3.8), waited 6 s for quiet
+  B                    interference: 3.8 foreign cores (limit 3.8), waited 2 s for quiet
+  AA2                  interference: 4.3 foreign cores (limit 3.8), waited 2 s for quiet
+  A                    median      12.85  +/-3.2 %  n=30   1 taken again
+  B                    median      12.21  +/-4.4 %  n=30   1 taken again
+  AA1                  median      12.52  +/-3.8 %  n=30   2 taken again
+  AA2                  median      12.52  +/-3.1 %  n=30   1 taken again
+RESULT fannkuch 1 {'value': 0.964794942732895, 'low': 0.9448622731692967, 'high': 0.9923511829848374, 'n': 30, 'se': 0.012102677478113262, 'exact': True} {'value': 0.9907008300606068, 'low': 0.9758638224705471, 'high': 1.0104589451143133, 'n': 30, 'se': 0.00859782681157589, 'exact': True} contended 0.0
+== lz77 independent panel 1
+  AA2                  interference: 5.6 foreign cores (limit 3.2), waited 4 s for quiet
+  AA2                  interference: 3.9 foreign cores (limit 3.8), waited 4 s for quiet
+  AA1                  interference: 4.9 foreign cores (limit 3.5), waited 4 s for quiet
+  AA1                  interference: 3.8 foreign cores (limit 3.5), waited 2 s for quiet
+  AA2                  interference: 3.7 foreign cores (limit 3.5), waited 15 s for quiet, machine still busy (12.4)
+  AA2                  interference: 17.0 foreign cores (limit 3.5), waited 16 s for quiet, machine still busy (14.2)
+  AA2                  interference: 17.5 foreign cores (limit 3.5), waited 16 s for quiet, machine still busy (14.2)
+  AA2                  interference: 15.1 foreign cores (limit 3.5), waited 15 s for quiet, machine still busy (8.6)
+  AA1                  interference: 14.9 foreign cores (limit 3.5), waited 16 s for quiet, machine still busy (18.5)
+  AA1                  interference: 15.4 foreign cores (limit 3.5), waited 15 s for quiet, machine still busy (7.9)
+  AA1                  interference: 9.2 foreign cores (limit 3.5), waited 15 s for quiet, machine still busy (9.5)
+  AA1                  interference: 10.3 foreign cores (limit 3.5), waited 15 s for quiet, machine still busy (6.8)
+  A                    interference: 8.5 foreign cores (limit 3.5), waited 3 s for quiet
+  A                    median      20.76  +/-2.4 %  n=30   1 taken again
+  B                    median      20.82  +/-3.2 %  n=30 
+  AA1                  median      21.66  +/-2.2 %  n=30   5 taken again
+  AA2                  median      21.60  +/-2.3 %  n=30   5 taken again
+RESULT lz77 1 {'value': 0.9971319390612453, 'low': 0.9638512408253949, 'high': 1.054059436584058, 'n': 30, 'se': 0.02208072510326295, 'exact': True} {'value': 0.9850083646852534, 'low': 0.9556156172858494, 'high': 1.0294682455248756, 'n': 30, 'se': 0.018372459931848287, 'exact': True} contended 0.016666666666666666
+== wordfreq independent panel 1
+  B                    interference: 4.4 foreign cores (limit 4.2), waited 4 s for quiet
+  A                    interference: 5.3 foreign cores (limit 4.4), waited 4 s for quiet
+  A                    interference: 5.4 foreign cores (limit 4.2), waited 4 s for quiet
+  AA1                  interference: 5.4 foreign cores (limit 4.2), waited 2 s for quiet
+  AA2                  interference: 4.0 foreign cores (limit 4.0), waited 3 s for quiet
+  B                    interference: 4.3 foreign cores (limit 4.0), waited 4 s for quiet
+  A                    median      52.63  +/-3.0 %  n=30   2 taken again
+  B                    median      52.82  +/-4.4 %  n=30   2 taken again
+  AA1                  median      53.26  +/-3.0 %  n=30   1 taken again
+  AA2                  median      52.68  +/-2.6 %  n=30   1 taken again
+RESULT wordfreq 1 {'value': 1.0091582007505222, 'low': 0.9897802809837716, 'high': 1.029854314826907, 'n': 30, 'se': 0.009795508477083327, 'exact': True} {'value': 1.0126052063802273, 'low': 0.9840096243420975, 'high': 1.0351629951319339, 'n': 30, 'se': 0.012507585058858977, 'exact': True} contended 0.0
+== fannkuch independent panel 2
+  AA2                  interference: 5.6 foreign cores (limit 5.5), waited 16 s for quiet, machine still busy (19.8)
+  AA2                  interference: 23.1 foreign cores (limit 5.5), waited 16 s for quiet, machine still busy (16.6)
+  AA2                  interference: 14.3 foreign cores (limit 5.5), waited 16 s for quiet, machine still busy (15.9)
+  AA2                  interference: 15.6 foreign cores (limit 5.5), waited 15 s for quiet, machine still busy (13.7)
+  AA1                  interference: 16.0 foreign cores (limit 5.5), waited 15 s for quiet, machine still busy (13.8)
+  AA1                  interference: 9.8 foreign cores (limit 5.5), waited 16 s for quiet, machine still busy (13.7)
+  AA1                  interference: 9.4 foreign cores (limit 5.5), waited 15 s for quiet, machine still busy (6.8)
+  AA1                  interference: 8.6 foreign cores (limit 5.5), waited 15 s for quiet, machine still busy (13.3)
+  B                    interference: 18.4 foreign cores (limit 5.5), waited 15 s for quiet, machine still busy (16.8)
+  B                    interference: 17.6 foreign cores (limit 5.5), waited 16 s for quiet, machine still busy (19.8)
+  B                    interference: 18.7 foreign cores (limit 5.5), waited 15 s for quiet, machine still busy (17.8)
+  B                    interference: 14.2 foreign cores (limit 5.5), waited 16 s for quiet, machine still busy (19.3)
+  A                    interference: 19.7 foreign cores (limit 5.5), waited 15 s for quiet, machine still busy (20.0)
+  A                    interference: 16.8 foreign cores (limit 5.5), waited 16 s for quiet, machine still busy (17.6)
+  A                    interference: 18.3 foreign cores (limit 5.5), waited 15 s for quiet, machine still busy (20.1)

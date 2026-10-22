@@ -18,5 +18,9 @@
   "saved": 6448108,
   "fraction_saved": 0.153426511252592,
   "memory_accesses_each": 18146412,
-  "note": "entry plus exchange and exit checks; excludes outer flip update/reload and alignment NOPs. k=1..8 uses no scalar tail."
+  "note": "entry plus exchange and exit checks; excludes outer flip update/reload and alignment NOPs. k=1..8 uses no scalar tail.",
+  "after_entry_reuse_instructions": 33667726,
+  "after_entry_reuse_memory_accesses": 16234907,
+  "combined_instructions_saved": 8359613,
+  "combined_fraction_saved": 0.19890892925673928
 }

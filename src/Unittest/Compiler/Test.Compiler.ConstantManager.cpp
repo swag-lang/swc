@@ -370,26 +370,32 @@ SWC_TEST_BEGIN(ConstantManager_PreservesStringNormalizationOnRepeatedInputs)
     aliasSymbol->setTypeRef(aliasType);
     const TypeRef nullableType = ctx.typeMgr().addType(TypeInfo::makeString(TypeInfoFlagsE::Nullable));
 
-    for (const TypeRef inputType : {aliasType, nullableType})
+    const std::string longText(4097, 'x');
+    const std::array  texts = {std::string_view{}, std::string_view{"normalized-canonical-string"}, std::string_view{"embedded\0null", 13}, std::string_view{"utf8-\xC3\xA9"}, std::string_view{longText}};
+
+    for (const TypeRef inputType : {ctx.typeMgr().typeString(), aliasType, nullableType})
     {
-        ConstantValue value = ConstantValue::makeString(ctx, "normalized-canonical-string");
-        value.setTypeRef(inputType);
-        const ConstantRef    first        = manager.addConstant(ctx, value);
-        const ConstantValue& stored       = manager.get(first);
-        const DataSegment&   segment      = manager.shardDataSegment(first.get() >> ConstantStorageLayout::LOCAL_BITS);
-        const uint32_t       extent       = segment.extentSize();
-        const TypeRef        expectedType = inputType == aliasType ? ctx.typeMgr().typeString() : nullableType;
-        if (stored.typeRef() != expectedType || stored.getString() != value.getString() || value.typeRef() != inputType)
-            return Result::Error;
-        for (uint32_t repeat = 0; repeat < 8; ++repeat)
+        for (const std::string_view text : texts)
         {
-            const ConstantRef hit = manager.addConstant(ctx, value);
-            if (hit != first || &manager.get(hit) != &stored || segment.extentSize() != extent)
+            ConstantValue value = ConstantValue::makeString(ctx, text);
+            value.setTypeRef(inputType);
+            const ConstantRef    first        = manager.addConstant(ctx, value);
+            const ConstantValue& stored       = manager.get(first);
+            const DataSegment&   segment      = manager.shardDataSegment(first.get() >> ConstantStorageLayout::LOCAL_BITS);
+            const uint32_t       extent       = segment.extentSize();
+            const TypeRef        expectedType = inputType == aliasType ? ctx.typeMgr().typeString() : inputType;
+            if (stored.typeRef() != expectedType || stored.getString() != value.getString() || value.typeRef() != inputType)
                 return Result::Error;
+            for (uint32_t repeat = 0; repeat < 8; ++repeat)
+            {
+                const ConstantRef hit = manager.addConstant(ctx, value);
+                if (hit != first || &manager.get(hit) != &stored || segment.extentSize() != extent)
+                    return Result::Error;
 #if SWC_HAS_REF_DEBUG_INFO
-            if (first.dbgPtr != &stored || hit.dbgPtr != &stored)
-                return Result::Error;
+                if (first.dbgPtr != &stored || hit.dbgPtr != &stored)
+                    return Result::Error;
 #endif
+            }
         }
     }
 }

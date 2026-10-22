@@ -92,3 +92,33 @@ All twelve Release benchmark checksums match. The [new full comparison](alias-mi
 has identical task kernels and shared native runtime code to the integrated
 candidate after overload/generated-name pairing. The original static gain
 and its executed-work bounds are preserved. This follow-up adds no analysis.
+
+## Session validation and interrupted compilation campaign
+
+The combined compiler sources at `2b4aa93c37` were rebuilt as Release. Their
+[final twelve-task comparison](session-final-microdiff.txt) preserves every task
+kernel and native runtime body of the corrected candidate after pairing; all
+checksums pass. The full standard-library documentation command also passes
+through all twelve modules with fresh caches, with both DevMode and Release
+compilers. Release was checked again after synchronization. All 47 benchmark
+harness tests pass.
+
+The first combined build/run campaign was stopped after `doc_std/subject`
+exited with code 3 and a Windows exception report before writing HTML. Its
+[retained log](full-campaign-stopped.log) contains only the old driver's
+truncated excerpt, so the failing instruction and compiler task are unavailable.
+The original Release subject subsequently passed twice; the preserved pre-change
+compiler passed; the corrected DevMode and Release compilers passed; and the
+final combined Release compiler passed. These passes do not establish the cause
+of the original fault. It remains an investigation lead, not a claimed fix or
+an accepted full compilation campaign.
+
+The moving-base counterexample above is independently reproduced and repaired;
+no matching reproducer connects it to that documentation fault. Failure output
+is now retained in full, and explicit `--out` files retain incomplete checkpoints
+between tasks. Neither incomplete nor failed campaigns are published as accepted
+measurements. The session resumes with all twelve execution tasks, ordered to
+measure the near-tie workloads first, with the same frozen reference and six
+Swag compiler workers. Compilation throughput is not inferred from that panel.
+
+Final Release compiler SHA-256: `87b72b50a2f51dbf5fdbbeafc6d6e98c6cc49e307dcfcb34ffe827b85dc8eaae`.

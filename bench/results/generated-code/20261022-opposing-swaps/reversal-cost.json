@@ -1,0 +1,22 @@
+{
+  "checksum": 8629030,
+  "permutations": 362880,
+  "last_index_histogram": {
+    "1": 273821,
+    "2": 261717,
+    "3": 260091,
+    "4": 254603,
+    "5": 245865,
+    "6": 227550,
+    "7": 206418,
+    "8": 181440
+  },
+  "reverse_entries": 1911505,
+  "swaps": 4536603,
+  "before_executed_reverse_instructions": 42027339,
+  "after_executed_reverse_instructions": 35579231,
+  "saved": 6448108,
+  "fraction_saved": 0.153426511252592,
+  "memory_accesses_each": 18146412,
+  "note": "entry plus exchange and exit checks; excludes outer flip update/reload and alignment NOPs. k=1..8 uses no scalar tail."
+}

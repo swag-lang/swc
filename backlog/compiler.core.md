@@ -4,6 +4,20 @@ This backlog covers the compiler front end, back end, and workspace build engine
 
 Entries stay in one flat list. Keep only measurements that affect the next action; refresh them before relying on them.
 
+### compiler.core.088 — Capture the intermittent standard-library documentation exception
+
+- Evidence: `doc --workspace <private std> --rebuild --num-cores 6` exited with code 3 and a
+  Windows exception report before producing HTML in a combined benchmark campaign. The old
+  driver truncated the report before retaining the failing task and instruction. The same
+  Release subject subsequently completed twice; the preserved pre-change compiler and the
+  corrected DevMode and Release compilers also completed. No reduced case identifies the cause.
+- Next: repeat the compiler workload with complete failure capture, preserving its compiler,
+  runtime, module outputs and cache state. Use the first full exception report to distinguish
+  host compilation from generated setup code and reduce that exact boundary. Do not attribute
+  the fault to an optimization without a matching reproducer.
+- Done when: a reduced regression fails before a root-cause repair and passes afterwards,
+  with the complete documentation command green under both compiler executables.
+
 ### compiler.core.087 — Make machine-code cache keys independent of worker scheduling
 
 - Evidence: with six workers, rebuilding the same benchmark task with an unchanged compiler and

@@ -70,6 +70,201 @@ namespace
     // duplicating for the one jump the rotation removes.
     using MicroOptimizationLimits::PostRALoopRotate::K_MAX_TEST_RUN;
 
+    // Peel a swap loop whose indices converge by one element per iteration.
+    // A constant left seed gives the prefix direct addresses without extending
+    // any register lifetime. Live indices or exit flags keep the original loop.
+    bool peelOpposingIndexSwaps(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
+    {
+        auto& builder = *context.builder;
+        if (!context.encoder || !builder.backendBuildCfg().runsCostlyOptimizations())
+            return false;
+        const auto         limits                          = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll);
+        const auto         factor                          = limits.partialFactor;
+        constexpr uint64_t K_PREFIX_ITERATION_INSTRUCTIONS = 7; // four memory accesses, a step and a compare/branch pair
+        if (factor < 2 || factor > limits.maxOrdinaryTotalInstructions / K_PREFIX_ITERATION_INSTRUCTIONS)
+            return false;
+        auto&                               storage  = *context.instructions;
+        auto&                               operands = *context.operands;
+        MicroPassHelpers::MicroPhysLiveness liveness;
+        FlatKeyMap<uint32_t>                jumpCounts;
+        bool                                analyzed = false;
+        for (uint32_t at = 1; at + 10 < order.size(); ++at)
+        {
+            const auto* header = storage.ptr(order[at]);
+            if (header->op != MicroInstrOpcode::Label)
+                continue;
+            const auto* bound     = storage.ptr(order[at + 1]);
+            const auto* leave     = storage.ptr(order[at + 2]);
+            const auto* first     = storage.ptr(order[at + 3]);
+            const auto* second    = storage.ptr(order[at + 4]);
+            const auto* putFirst  = storage.ptr(order[at + 5]);
+            const auto* putSecond = storage.ptr(order[at + 6]);
+            const auto* advance   = storage.ptr(order[at + 7]);
+            const auto* retreat   = storage.ptr(order[at + 8]);
+            const auto* back      = storage.ptr(order[at + 9]);
+            const auto* exit      = storage.ptr(order[at + 10]);
+            if (bound->op != MicroInstrOpcode::CmpRegReg || leave->op != MicroInstrOpcode::JumpCond ||
+                first->op != MicroInstrOpcode::LoadAmcRegMem || second->op != MicroInstrOpcode::LoadAmcRegMem ||
+                putFirst->op != MicroInstrOpcode::LoadAmcMemReg || putSecond->op != MicroInstrOpcode::LoadAmcMemReg ||
+                advance->op != MicroInstrOpcode::OpUnaryReg || retreat->op != MicroInstrOpcode::OpUnaryReg ||
+                back->op != MicroInstrOpcode::JumpCond || exit->op != MicroInstrOpcode::Label)
+                continue;
+            const auto* h           = header->ops(operands);
+            const auto* b           = bound->ops(operands);
+            const auto* j           = leave->ops(operands);
+            const auto* a           = first->ops(operands);
+            const auto* c           = second->ops(operands);
+            const auto* s           = putFirst->ops(operands);
+            const auto* t           = putSecond->ops(operands);
+            const auto* p           = advance->ops(operands);
+            const auto* q           = retreat->ops(operands);
+            const auto* k           = back->ops(operands);
+            const auto* e           = exit->ops(operands);
+            const auto  left        = b[0].reg;
+            const auto  right       = b[1].reg;
+            const bool  signedBound = j[0].cpuCond == MicroCond::GreaterOrEqual;
+            if ((!signedBound && j[0].cpuCond != MicroCond::AboveOrEqual) || b[2].opBits != MicroOpBits::B64 ||
+                !left.isInt() || !right.isInt() || left == right || left == CallConv::get(context.callConvKind).stackPointer || right == CallConv::get(context.callConvKind).stackPointer ||
+                j[2].valueU64 != e[0].valueU64 || k[0].cpuCond != MicroCond::Unconditional || k[2].valueU64 != h[0].valueU64 ||
+                p[0].reg != left || p[1].opBits != MicroOpBits::B64 || p[2].microOp != MicroOp::Add ||
+                q[0].reg != right || q[1].opBits != MicroOpBits::B64 || q[2].microOp != MicroOp::Subtract)
+                continue;
+            if (!a[0].reg.isInt() || !c[0].reg.isInt() || a[0].reg == c[0].reg ||
+                !a[1].reg.isInt() || !c[1].reg.isInt() || a[2].reg != left || c[2].reg != right ||
+                a[3].opBits != c[3].opBits || a[4].opBits != MicroOpBits::B64 || c[4].opBits != MicroOpBits::B64 ||
+                s[0].reg != a[1].reg || s[1].reg != left || s[2].reg != c[0].reg || s[3].opBits != MicroOpBits::B64 || s[4].opBits != a[3].opBits || s[5].valueU64 != a[5].valueU64 || s[6].valueU64 != a[6].valueU64 ||
+                t[0].reg != c[1].reg || t[1].reg != right || t[2].reg != a[0].reg || t[3].opBits != MicroOpBits::B64 || t[4].opBits != c[3].opBits || t[5].valueU64 != c[5].valueU64 || t[6].valueU64 != c[6].valueU64)
+                continue;
+            const auto& conv = CallConv::get(context.callConvKind);
+            if (a[1].reg == conv.stackPointer || c[1].reg == conv.stackPointer)
+                continue;
+            bool aliasesIndex = false;
+            for (const auto reg : {a[0].reg, c[0].reg, a[1].reg, c[1].reg})
+                aliasesIndex |= reg == left || reg == right;
+            if (aliasesIndex || a[0].reg == a[1].reg || a[0].reg == c[1].reg || c[0].reg == a[1].reg || c[0].reg == c[1].reg ||
+                (a[5].valueU64 != 1 && a[5].valueU64 != 2 && a[5].valueU64 != 4 && a[5].valueU64 != 8))
+                continue;
+
+            std::optional<uint64_t> seed;
+            for (uint32_t distance = 1; distance <= limits.initializerLookback && distance <= at; ++distance)
+            {
+                const auto* previous = storage.ptr(order[at - distance]);
+                const auto  flags    = MicroInstr::info(previous->op).flags;
+                if (previous->op == MicroInstrOpcode::Label || flags.has(MicroInstrFlagsE::JumpInstruction) || flags.has(MicroInstrFlagsE::IsCallInstruction) || flags.has(MicroInstrFlagsE::TerminatorInstruction))
+                    break;
+                if (!MicroPassHelpers::regTouch(*previous, operands, left, context.encoder).def)
+                    continue;
+                const auto* init = previous->ops(operands);
+                if (previous->op == MicroInstrOpcode::ClearReg && (init[1].opBits == MicroOpBits::B32 || init[1].opBits == MicroOpBits::B64))
+                    seed = 0;
+                else if (previous->op == MicroInstrOpcode::LoadRegImm && !init[2].hasWideImmediateValue() && (init[1].opBits == MicroOpBits::B32 || init[1].opBits == MicroOpBits::B64))
+                    seed = init[2].valueU64 & getBitsMask(init[1].opBits);
+                break;
+            }
+            if (!seed || (!signedBound && *seed > UINT64_MAX - factor))
+                continue;
+            const auto initial      = static_cast<int64_t>(*seed);
+            const auto displacement = static_cast<int64_t>(a[6].valueU64);
+            const auto stride       = a[5].valueU64;
+            if (initial < INT32_MIN || initial > INT32_MAX - static_cast<int64_t>(factor) || displacement < INT32_MIN || displacement > INT32_MAX)
+                continue;
+            const auto firstOffset = displacement + initial * static_cast<int64_t>(stride);
+            const auto lastOffset  = firstOffset + static_cast<int64_t>((factor - 1) * stride);
+            if (firstOffset < INT32_MIN || lastOffset > INT32_MAX)
+                continue;
+
+            const auto& cfg = builder.controlFlowGraph();
+            if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness() ||
+                !MicroPassHelpers::areCpuFlagsDeadAfterInCfg(builder, order[at + 10]))
+                continue;
+            bool addressTaken = false;
+            for (const auto target : cfg.addressTakenLabelIndices())
+                addressTaken |= target >= at && target <= at + 10;
+            if (addressTaken)
+                continue;
+            if (!analyzed)
+            {
+                MicroPassHelpers::computePhysicalLiveness(liveness, context, MicroPassHelpers::MicroPhysLivenessMode::LiveOutOnly);
+                if (!liveness.valid)
+                    return false;
+                for (const auto ref : order)
+                {
+                    const auto* instruction = storage.ptr(ref);
+                    uint32_t    target;
+                    if (tryGetJumpTargetLabelId(target, *instruction, instruction->ops(operands)))
+                        ++jumpCounts.getOrInsert(target);
+                }
+                analyzed = true;
+            }
+            const auto* incoming = jumpCounts.find(static_cast<uint32_t>(h[0].valueU64));
+            if (!incoming || *incoming != 1)
+                continue;
+            if (liveness.isLiveOut(at + 10, left) || liveness.isLiveOut(at + 10, right))
+                continue;
+
+            const auto                       before    = order[at];
+            const auto                       exitId    = e[0].valueU64;
+            const auto                       bodyId    = builder.createLabel().get();
+            const auto                       leaveCond = signedBound ? MicroCond::LessOrEqual : MicroCond::BelowOrEqual;
+            std::array<MicroInstrOperand, 7> upperRead;
+            std::copy_n(c, 7, upperRead.begin());
+            std::array<MicroInstrOperand, 7> upperWrite;
+            std::copy_n(t, 7, upperWrite.begin());
+            std::array<MicroInstrOperand, 3> upperStep    = {q[0], q[1], q[2]};
+            std::array<MicroInstrOperand, 3> scalarBounds = {b[0], b[1], b[2]};
+            MicroInstrOperand                lowerRead[4] = {};
+            lowerRead[0].reg                              = a[0].reg;
+            lowerRead[1].reg                              = a[1].reg;
+            lowerRead[2].opBits                           = a[3].opBits;
+            MicroInstrOperand lowerWrite[4]               = {};
+            lowerWrite[0].reg                             = s[0].reg;
+            lowerWrite[1].reg                             = s[2].reg;
+            lowerWrite[2].opBits                          = s[4].opBits;
+            MicroInstrOperand test[3]                     = {};
+            test[0].reg                                   = right;
+            test[1].opBits                                = MicroOpBits::B64;
+            test[2].setImmediateValue(ApInt(*seed, 64));
+            MicroInstrOperand stop[3] = {};
+            stop[0].cpuCond           = leaveCond;
+            stop[1].opBits            = MicroOpBits::B32;
+            stop[2].valueU64          = exitId;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::CmpRegImm, test);
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, stop);
+            for (uint64_t lane = 0; lane < factor; ++lane)
+            {
+                lowerRead[3].valueU64  = static_cast<uint64_t>(firstOffset + static_cast<int64_t>(lane * stride));
+                lowerWrite[3].valueU64 = lowerRead[3].valueU64;
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadRegMem, lowerRead);
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadAmcRegMem, upperRead);
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadMemReg, lowerWrite);
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadAmcMemReg, upperWrite);
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::OpUnaryReg, upperStep);
+                test[2].setImmediateValue(ApInt(*seed + lane + 1, 64));
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::CmpRegImm, test);
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, stop);
+            }
+            MicroInstrOperand resume[3] = {};
+            resume[0].reg               = left;
+            resume[1].opBits            = MicroOpBits::B64;
+            resume[2].setImmediateValue(ApInt(*seed + factor, 64));
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadRegImm, resume);
+            stop[0].cpuCond  = MicroCond::Unconditional;
+            stop[2].valueU64 = bodyId;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, stop);
+            MicroInstrOperand label[1] = {};
+            label[0].valueU64          = bodyId;
+            storage.insertDerivedBefore(operands, order[at + 3], MicroInstrOpcode::Label, label);
+            storage.insertDerivedBefore(operands, order[at + 9], MicroInstrOpcode::CmpRegReg, scalarBounds);
+            auto* backOps       = storage.ptr(order[at + 9])->ops(operands);
+            backOps[0].cpuCond  = signedBound ? MicroCond::Less : MicroCond::Below;
+            backOps[2].valueU64 = bodyId;
+            builder.invalidateControlFlowGraph();
+            context.passChanged = true;
+            return true;
+        }
+        return false;
+    }
+
     // Probe each byte in source order, but amortize the bound test across a group.
     // Exit stubs advance the index with LEA so the original byte-comparison flags
     // survive. The original loop remains the short tail and receives extra incoming
@@ -1190,6 +1385,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
         return Result::Continue;
 
     if (unrollBoundedByteScan(context, order))
+        return Result::Continue;
+    if (peelOpposingIndexSwaps(context, order))
         return Result::Continue;
     if (threadRepeatedCompareExits(context, order))
         return Result::Continue;

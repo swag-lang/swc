@@ -18,6 +18,59 @@
 
 SWC_BEGIN_NAMESPACE();
 
+bool MicroPassHelpers::isRegisterLiveAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg, bool ignoreImplicitBackedgeUses)
+{
+    SWC_ASSERT(context.builder);
+    const MicroControlFlowGraph& cfg = context.builder->controlFlowGraph();
+    if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        return true;
+
+    const std::span<const MicroInstrRef> instructionRefs  = cfg.instructionRefs();
+    const uint32_t                       instructionIndex = cfg.indexOf(instRef);
+    if (instructionIndex == MicroControlFlowGraph::K_NO_INDEX)
+        return true;
+
+    SmallVector<uint8_t, 128> visited(instructionRefs.size(), 0);
+    SmallVector<uint32_t>     pending;
+    for (const uint32_t successor : cfg.successors(instructionIndex))
+        pending.push_back(successor);
+
+    while (!pending.empty())
+    {
+        const uint32_t index = pending.back();
+        pending.pop_back();
+        if (index >= instructionRefs.size() || visited[index])
+            continue;
+        visited[index] = 1;
+
+        const MicroInstr* instruction = context.instructions->ptr(instructionRefs[index]);
+        if (!instruction)
+            return true;
+
+        // Back around a loop at the instruction being rewritten: the
+        // rewrite loads the fixed register right before it, so a read the
+        // encoder adds implicitly - the rax a `mul` takes - sees that load,
+        // not the value this probe asks about. Saving the register around
+        // a loop's multiply or divide otherwise kept a dead value cycling.
+        if (ignoreImplicitBackedgeUses && instructionRefs[index] == instRef)
+        {
+            if (!MicroPassHelpers::regTouch(*instruction, *context.operands, reg, nullptr).use)
+                continue;
+        }
+
+        const MicroPassHelpers::RegTouch touch = MicroPassHelpers::regTouch(*instruction, *context.operands, reg, context.encoder);
+        if (touch.use)
+            return true;
+        if (touch.def)
+            continue;
+
+        for (const uint32_t successor : cfg.successors(index))
+            pending.push_back(successor);
+    }
+
+    return false;
+}
+
 MicroPassHelpers::FramePrivacy MicroPassHelpers::analyzeFramePrivacy(const MicroPassContext& context, std::span<const MicroInstrRef> refs, std::span<const MicroInstrUseDef> useDefs, const FlatKeyMap<RegDefinitionSummary>& definitions, bool collectEscapes)
 {
     FramePrivacy   result;

@@ -2,6 +2,7 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Encoder/X64Encoder.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
@@ -658,7 +659,7 @@ SWC_TEST_BEGIN(PostRALoopRotate_ThreadsIdenticalRegisterComparisonExits)
                 builder.placeLabel(join);
                 builder.emitCmpRegReg(left, right, bits);
                 builder.emitJumpToLabel(opposite ? inverse : condition, MicroOpBits::B32, exit);
-                builder.emitSetCondReg(MicroReg::intReg(4), MicroCond::Below);
+                builder.emitSetCondReg(MicroReg::intReg(10), MicroCond::Below);
                 builder.emitLoadMemReg(output, 8, left, bits);
                 builder.placeLabel(exit);
                 builder.emitLoadMemReg(output, 16, right, bits);
@@ -699,12 +700,124 @@ SWC_TEST_BEGIN(PostRALoopRotate_RepeatedRegisterExitKeepsDifferentFlags)
         builder.emitJumpToLabel(variant == 2 ? MicroCond::Below : MicroCond::Greater, MicroOpBits::B32, exit);
         builder.emitLoadMemReg(output, 8, left, MicroOpBits::B64);
         builder.placeLabel(exit);
-        builder.emitSetCondReg(MicroReg::intReg(4), MicroCond::Below);
+        builder.emitSetCondReg(MicroReg::intReg(10), MicroCond::Below);
         builder.emitRet();
         SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder));
         const auto* jump = builder.instructions().ptr(early);
         if (!jump || jump->op != MicroInstrOpcode::JumpCond || jump->ops(builder.operands())[2].valueU64 != join.get())
             return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+namespace
+{
+    void emitBoundedByteScan(MicroBuilder& builder, MicroCond condition, uint32_t variant = 0)
+    {
+        const auto data   = CallConv::get(CallConvKind::C).intArgRegs[0];
+        const auto base   = MicroReg::intReg(3);
+        const auto index  = MicroReg::intReg(8);
+        const auto limit  = MicroReg::intReg(9);
+        const auto header = builder.createLabel();
+        const auto exit   = builder.createLabel();
+        const auto other  = builder.createLabel();
+        builder.emitLoadRegMem(base, data, 0, MicroOpBits::B64);
+        builder.emitLoadRegMem(index, data, 8, MicroOpBits::B64);
+        builder.emitLoadRegMem(limit, data, 16, MicroOpBits::B64);
+        if (variant == 9)
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, header);
+        builder.placeLabel(header);
+        builder.emitCmpRegReg(index, limit, variant == 3 ? MicroOpBits::B32 : MicroOpBits::B64);
+        builder.emitJumpToLabel(variant == 2 ? MicroCond::GreaterOrEqual : MicroCond::AboveOrEqual, MicroOpBits::B32, exit);
+        builder.emitCmpRegImm(index, ApInt(128, 8), MicroOpBits::B8);
+        const auto        old        = builder.instructions().lastInstructionRef();
+        MicroInstrOperand compare[7] = {};
+        compare[0].reg               = base;
+        compare[1].reg               = index;
+        compare[2].opBits            = variant == 4 ? MicroOpBits::B16 : MicroOpBits::B8;
+        compare[3].opBits            = MicroOpBits::B64;
+        compare[4].valueU64          = variant == 5 ? 2 : 1;
+        compare[5].valueU64          = variant == 11 ? std::numeric_limits<int32_t>::max() : 0;
+        compare[6].setImmediateValue(ApInt(128, 8));
+        builder.instructions().insertDerivedBefore(builder.operands(), old, MicroInstrOpcode::CmpAmcImm, compare);
+        builder.instructions().erase(old);
+        builder.emitJumpToLabel(condition, MicroOpBits::B32, variant == 8 ? other : exit);
+        builder.emitOpBinaryRegImm(index, ApInt(variant == 6 ? 2 : 1, 64), MicroOp::Add, MicroOpBits::B64);
+        builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, header);
+        builder.placeLabel(exit);
+        builder.emitSetCondReg(MicroReg::intReg(10), MicroCond::Equal);
+        builder.emitLoadMemReg(data, 24, index, MicroOpBits::B64);
+        builder.emitLoadMemReg(data, 32, MicroReg::intReg(10), MicroOpBits::B8);
+        if (variant == 7)
+            for (const auto reg : CallConv::get(CallConvKind::C).intTransientRegs)
+                builder.emitLoadMemReg(data, 64 + reg.index() * 8, reg, MicroOpBits::B64);
+        builder.placeLabel(other);
+        builder.emitClearReg(MicroReg::intReg(0), MicroOpBits::B64);
+        builder.emitRet();
+    }
+}
+
+SWC_TEST_BEGIN(PostRALoopRotate_UnrollsOnlyProvenBoundedByteScans)
+{
+    for (uint32_t variant = 0; variant < 13; ++variant)
+    {
+        MicroBuilder             builder(ctx);
+        Runtime::BuildCfgBackend config{};
+        config.optimLevel                     = variant == 12 ? Runtime::BuildCfgBackendOptimLevel::O1 : Runtime::BuildCfgBackendOptimLevel::O2;
+        config.optimizer.unroll.partialFactor = variant == 10 ? 1 : 0;
+        builder.setBackendBuildCfg(config);
+        emitBoundedByteScan(builder, variant == 1 ? MicroCond::NotEqual : MicroCond::Equal, variant);
+        X64Encoder encoder(ctx);
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+        const auto expected = variant < 2 ? 5u : 1u;
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcImm) != expected)
+            return Result::Error;
+        SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+        if (Backend::Unittest::countOpcode(builder, MicroInstrOpcode::CmpAmcImm) != expected)
+            return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRALoopRotate_BoundedByteScanPreservesIndexAndExitFlags)
+{
+    for (const auto condition : {MicroCond::Equal, MicroCond::NotEqual})
+    {
+        for (uint64_t length = 0; length <= 17; ++length)
+        {
+            for (uint64_t start = 0; start <= length + 1; ++start)
+            {
+                for (uint64_t match = start; match <= length + 1; ++match)
+                {
+                    for (const bool optimize : {false, true})
+                    {
+                        std::array<uint8_t, 64> bytes;
+                        bytes.fill(condition == MicroCond::Equal ? 127 : 128);
+                        const auto offset = length % 7;
+                        if (match < length)
+                            bytes[offset + match] = condition == MicroCond::Equal ? 128 : 127;
+                        uint64_t                 values[5] = {reinterpret_cast<uint64_t>(bytes.data() + offset), start, length, 0, 0xA5A5A5A5A5A5A500};
+                        MicroBuilder             builder(ctx);
+                        Runtime::BuildCfgBackend config{};
+                        config.optimLevel = Runtime::BuildCfgBackendOptimLevel::O2;
+                        builder.setBackendBuildCfg(config);
+                        emitBoundedByteScan(builder, condition);
+                        if (optimize)
+                        {
+                            X64Encoder encoder(ctx);
+                            SWC_RESULT(Backend::Unittest::runMicroPass<MicroPostRaLoopRotatePass>(builder, &encoder, CallConvKind::C));
+                        }
+                        SWC_RESULT(Backend::Unittest::executeMicroCase(ctx, builder, values));
+                        const auto expected = start > length ? start : std::min(match, length);
+                        const auto equal    = expected == length || (expected < length && condition == MicroCond::Equal);
+                        if (values[3] != expected || values[4] != (0xA5A5A5A5A5A5A500 | static_cast<uint64_t>(equal)))
+                            return Result::Error;
+                    }
+                }
+            }
+        }
     }
     return Result::Continue;
 }

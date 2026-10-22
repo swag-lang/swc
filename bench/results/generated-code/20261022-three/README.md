@@ -169,3 +169,41 @@ non-optimized scalar function, including very small and large finite magnitudes.
 The incidental non-indexable-literal diagnostic was reviewed and corrected before
 fixing the rejected test source, with focused diagnostic coverage. Timing remains
 **unconfirmed** until an accepted grouped campaign.
+
+## Amortize bounds in byte sentinel scans
+
+A bounded unsigned byte scan now tests the bound once per four bytes. Every byte
+comparison still branches immediately on the sentinel, in source order: there is
+no wider load, read ahead or read after the first match. A free transient integer
+register holds the last safe group start; otherwise the original loop stays.
+The original scalar loop handles short tails. Flag-neutral exit stubs preserve
+the index and comparison flags; later peepholes may use INC only when those flags
+are dead. Signed/narrow bounds, nonunit steps/scales, mismatched exits, displaced
+address overflow, multiple header entries and unavailable scratch registers decline
+it. O2 uses the existing partial-unroll factor and its existing cap.
+
+CSV's four scans change from **five instructions per missed byte to eleven per
+four missed bytes**, excluding alignment padding. Entry checks, the scalar tail
+and early-exit stubs are included in an [executed instruction model](scan-cost.json)
+over the unchanged 400,000-row generator: **112,710,023 to 78,185,533 instructions**
+for these scans, a reduction of 34,524,490. Both sides read the same 22,862,004 bytes.
+The full main grows 852 to 952 static instructions and 221 to 237 static memory
+operands because the scalar tails remain; its frame, spills, saved registers,
+arithmetic and eleven calls are unchanged. See emitted x64 [before](csv-scans-base.asm)
+and [after](csv-scans-new.asm). These counts are static evidence, not a timing claim.
+
+All twelve checksums pass. After overload/name pairing, every other task kernel
+and shared runtime path keeps its code; only the CSV scan regions change, plus
+process-local handles in compiler-side build-configuration adapters. The [full
+Micro comparison](scan-microdiff.txt) records every path. All 1,549 in-memory C++
+tests pass: thirteen recognition/rejection shapes and 5,316 executions before/after
+optimization check byte alignment, every early-match lane, short tails, empty and
+inverted bounds, the final index and live exit flags. The native source fixture
+checks 15,538 scan answers through JIT and native Release with Micro validation.
+
+The previous call-copy liveness walk is shared with legalization instead of
+keeping two CFG walks, preserving legalization's implicit-backedge-use policy.
+Executed physical-IR tests now share the existing JIT emission seam, and the older
+comparison-exit fixtures use an ordinary scratch register instead of RSP. Full
+comparison and correctness checks cover these mechanical changes as well.
+Timing remains **unconfirmed** until an accepted grouped campaign.

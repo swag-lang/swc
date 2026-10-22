@@ -4,14 +4,11 @@
 
 #include "Backend/ABI/CallConv.h"
 #include "Backend/Encoder/X64Encoder.h"
-#include "Backend/JIT/JIT.h"
-#include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/MicroPassManager.h"
 #include "Backend/Micro/MicroPrinter.h"
-#include "Backend/Micro/Passes/Pass.Emit.h"
 #include "Backend/Micro/Passes/Pass.Legalize.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.Internal.h"
 #include "Backend/Micro/Passes/Pass.PostRAPeephole.h"
@@ -63,22 +60,7 @@ namespace
         if (optimize)
             SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
 
-        MicroEmitPass    emit;
-        MicroPassManager passes;
-        passes.addStartPass(emit);
-        MicroPassContext passContext;
-        passContext.callConvKind = CallConvKind::C;
-        SWC_RESULT(builder.runPasses(passes, &encoder, passContext));
-
-        ByteArray code;
-        code.resize(encoder.size());
-        encoder.copyTo(code);
-        JITMemory memory;
-        SWC_RESULT(JIT::emit(ctx, memory, code, {}, {}));
-        using TestFn  = void (*)(uint64_t*);
-        const auto fn = reinterpret_cast<TestFn>(memory.entryPoint());
-        fn(values);
-        return Result::Continue;
+        return Backend::Unittest::executeMicroCase(ctx, builder, values);
     }
 
     Result runLegalizePass(MicroBuilder& builder, Encoder& encoder)

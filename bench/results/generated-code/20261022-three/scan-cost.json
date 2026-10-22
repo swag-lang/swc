@@ -1,0 +1,34 @@
+{
+  "kind": "executed instruction model, not a timing measurement",
+  "rows": 400000,
+  "source": "unchanged swagnat csvagg/common generators, seed 12345",
+  "model": "final x64 scan: base 5 instructions per missed byte; fast group 11 per four missed bytes; entry, tail and exit stubs counted",
+  "scans": {
+    "newline": {
+      "base_instructions": 66466043,
+      "new_instructions": 40480251,
+      "bytes_read": 13373208
+    },
+    "id": {
+      "base_instructions": 13044450,
+      "new_instructions": 11355880,
+      "bytes_read": 2688890
+    },
+    "region": {
+      "base_instructions": 11599530,
+      "new_instructions": 10349402,
+      "bytes_read": 2399906
+    },
+    "date": {
+      "base_instructions": 21600000,
+      "new_instructions": 16000000,
+      "bytes_read": 4400000
+    }
+  },
+  "total": {
+    "base_instructions": 112710023,
+    "new_instructions": 78185533,
+    "bytes_read": 22862004,
+    "instructions_removed": 34524490
+  }
+}

@@ -2,6 +2,9 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Encoder/X64Encoder.h"
+#include "Backend/JIT/JIT.h"
+#include "Backend/JIT/JITMemory.h"
 #include "Backend/Micro/MicroInstr.h"
 #include "Backend/Micro/MicroPassContext.h"
 #include "Backend/Micro/MicroPassManager.h"
@@ -15,6 +18,31 @@ SWC_BEGIN_NAMESPACE();
 
 namespace Backend::Unittest
 {
+    Result executeMicroCase(TaskContext& ctx, MicroBuilder& builder, uint64_t* values)
+    {
+        X64Encoder encoder(ctx);
+        for (const auto& instruction : builder.instructions().view())
+        {
+            MicroConformanceIssue issue;
+            if (encoder.queryConformanceIssue(issue, instruction, instruction.ops(builder.operands())))
+                return Result::Error;
+        }
+        MicroEmitPass    emit;
+        MicroPassManager passes;
+        passes.addStartPass(emit);
+        MicroPassContext context;
+        context.callConvKind = CallConvKind::C;
+        SWC_RESULT(builder.runPasses(passes, &encoder, context));
+        ByteArray code;
+        code.resize(encoder.size());
+        encoder.copyTo(code);
+        JITMemory memory;
+        SWC_RESULT(JIT::emit(ctx, memory, code, {}, {}));
+        using TestFn = void (*)(uint64_t*);
+        reinterpret_cast<TestFn>(memory.entryPoint())(values);
+        return Result::Continue;
+    }
+
     Result parseExpected(const char* text, std::vector<ExpectedByte>& result)
     {
         if (!text || !*text)

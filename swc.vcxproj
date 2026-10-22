@@ -638,6 +638,7 @@
         <ClInclude Include="src\Backend\Micro\MicroTypes.h"/>
         <ClInclude Include="src\Backend\Micro\MicroInstr.h"/>
         <ClInclude Include="src\Backend\Micro\MicroPrinter.h"/>
+        <ClInclude Include="src\Backend\Micro\MicroRegPrintMode.h"/>
         <ClInclude Include="src\Backend\Micro\MicroBuilder.h"/>
         <ClInclude Include="src\Backend\Micro\MachineCode.h"/>
         <ClInclude Include="src\Backend\Micro\MachineCodeCache.h"/>

@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/Micro/MicroPrinter.h"
+#include "Backend/Micro/MicroRegPrintMode.h"
 #include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();

@@ -1,9 +1,14 @@
 #pragma once
 #include "Backend/Micro/MicroPassManager.h"
+#include "Backend/Micro/MicroReg.h"
+#include "Backend/Micro/MicroTypes.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
+#include "Support/Core/SmallVector.h"
 
 SWC_BEGIN_NAMESPACE();
+
+struct CallConv;
 
 class MicroPrologEpilogPass final : public MicroPass
 {

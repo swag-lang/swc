@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Runtime.h"
+#include "Backend/RuntimeBackendConfig.h"
 #include "Compiler/ModuleApi/ModuleApiExport.Internal.h"
 #include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -43,19 +44,6 @@ namespace
 
     Result buildSanitizedRootSnippet(TaskContext& ctx, Utf8& outSnippet, const ModuleApiGeneratedRoot& root, std::string_view eol);
     void   collectMissingFunctionAttributes(SmallVector<Utf8>& ioAttributes, const SymbolFunction& symbolFunction, bool hasExportedBody, const Utf8& snippet);
-
-    bool supportsGeneratedModuleApiForeignFunctions(const CompilerInstance& compiler)
-    {
-        switch (compiler.buildCfg().backendKind)
-        {
-            case Runtime::BuildCfgBackendKind::StaticLibrary:
-            case Runtime::BuildCfgBackendKind::SharedLibrary:
-                return true;
-
-            default:
-                return false;
-        }
-    }
 
     bool isExportedBodySymbolAvailable(TaskContext& ctx, const SymbolFunction& function, const Symbol& symbol)
     {
@@ -712,7 +700,7 @@ namespace
             return false;
         if (symbolFunction.attributes().hasRtFlag(RtAttributeFlagsE::PlaceHolder))
             return false;
-        if (symbolFunction.supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
+        if (symbolFunction.supportsPublicApiForeignExport() && Runtime::backendKindIsLibrary(ctx.compiler().buildCfg().backendKind))
             return false;
 
         const SourceFile* sourceFile = ctx.compiler().sourceViewFile(symbolFunction);
@@ -1337,7 +1325,7 @@ namespace ModuleApiExport
                 return buildSanitizedRootSnippet(ctx, outSnippet, root, eol);
             }
 
-            if (symbolFunction->supportsPublicApiForeignExport() && supportsGeneratedModuleApiForeignFunctions(ctx.compiler()))
+            if (symbolFunction->supportsPublicApiForeignExport() && Runtime::backendKindIsLibrary(ctx.compiler().buildCfg().backendKind))
             {
                 outSnippet = buildFunctionSnippet(ctx, root, eol);
                 return Result::Continue;

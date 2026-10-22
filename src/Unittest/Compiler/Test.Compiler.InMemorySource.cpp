@@ -52,6 +52,12 @@ namespace
         }
     };
 
+    bool sameSourceRange(const SourceCodeRange& lhs, const SourceCodeRange& rhs)
+    {
+        return lhs.srcView == rhs.srcView && lhs.offset == rhs.offset && lhs.len == rhs.len &&
+               lhs.line == rhs.line && lhs.column == rhs.column;
+    }
+
     constexpr std::string_view GENERIC_UNION_DEDUCTION_SOURCE = R"(#global private
 
 union(T) ValueOrPtr
@@ -197,6 +203,131 @@ SWC_TEST_BEGIN(Compiler_EofDiagnosticsKeepFileAndTaskState)
                 return Result::Error;
         }
         if (compilerCtx.hasError())
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AstSourceRangesKeepCachedStartCoordinates)
+{
+    struct TestCase
+    {
+        std::string_view source;
+        std::string_view sameLineSpan;
+    };
+    constexpr TestCase cases[] = {
+        {"\t/*\xC3\xA9*/ left + right\n", "left + right"},
+        {"\tleft +\n right\n", "left +"},
+        {"\tleft\n + right\n", "+ right"},
+        {"\tleft + right", "left + right"},
+    };
+
+    for (const uint32_t tabSize : {4u, 8u})
+    {
+        CommandLine cmdLine;
+        cmdLine.tabSize = tabSize;
+        CompilerInstance compiler(ctx.global(), cmdLine);
+        TaskContext      compilerCtx(compiler);
+        uint32_t         sourceIndex = 0;
+
+        for (const TestCase& test : cases)
+        {
+            for (const uint32_t lineOffset : {0u, 7u})
+            {
+                for (const bool haveLines : {true, false})
+                {
+                    SourceFile& file = Unittest::addTestSource(compilerCtx, "Compiler", std::format("AstRangeCoordinates_{}", sourceIndex++), test.source);
+                    SWC_RESULT(file.loadContent(compilerCtx));
+                    SourceView& view = file.ast().srcView();
+                    Lexer       lexer;
+                    lexer.tokenize(compilerCtx, view, LexerFlagsE::Default);
+                    view.setLineOffset(lineOffset);
+                    if (!haveLines)
+                        view.lines().clear();
+
+                    TokenRef leftToken;
+                    TokenRef rightToken;
+                    TokenRef operatorToken;
+                    for (uint32_t index = 0; index < view.numTokens(); ++index)
+                    {
+                        const TokenRef token{index};
+                        if (view.token(token).id == TokenId::EndOfFile)
+                            continue;
+                        const std::string_view text = view.tokenString(token);
+                        if (text == "left")
+                            leftToken = token;
+                        else if (text == "right")
+                            rightToken = token;
+                        else if (text == "+")
+                            operatorToken = token;
+                    }
+                    if (leftToken.isInvalid() || rightToken.isInvalid() || operatorToken.isInvalid())
+                        return Result::Error;
+
+                    Ast& ast                     = file.ast();
+                    const auto [leftRef, left]   = ast.makeNode<AstNodeId::Identifier>(leftToken);
+                    const auto [rightRef, right] = ast.makeNode<AstNodeId::Identifier>(rightToken);
+                    const auto [rootRef, root]   = ast.makeNode<AstNodeId::BinaryExpr>(operatorToken);
+                    SWC_UNUSED(left);
+                    SWC_UNUSED(right);
+                    SWC_UNUSED(rootRef);
+                    root->nodeLeftRef  = leftRef;
+                    root->nodeRightRef = rightRef;
+
+                    const size_t    start = haveLines ? test.source.find(test.sameLineSpan) : test.source.find("left");
+                    const size_t    len   = haveLines ? test.sameLineSpan.size() : test.source.find("right") + 5 - start;
+                    SourceCodeRange expected;
+                    expected.fromOffset(compilerCtx, view, static_cast<uint32_t>(start), static_cast<uint32_t>(len));
+                    if (!sameSourceRange(root->codeRangeWithChildren(compilerCtx, ast, view), expected) ||
+                        !sameSourceRange(root->codeRangeWithChildren(compilerCtx, ast), expected))
+                        return Result::Error;
+                }
+            }
+        }
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_AstSourceRangesPreserveBoundaryFallbacks)
+{
+    CommandLine cmdLine;
+    cmdLine.tabSize = 4;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    uint32_t         sourceIndex = 0;
+
+    for (const std::string_view source : {std::string_view{}, std::string_view{" \tleft"}})
+    {
+        SourceFile& file = Unittest::addTestSource(compilerCtx, "Compiler", std::format("AstRangeFallback_{}", sourceIndex++), source);
+        SWC_RESULT(file.loadContent(compilerCtx));
+        Ast&        ast  = file.ast();
+        SourceView& view = ast.srcView();
+        Lexer       lexer;
+        lexer.tokenize(compilerCtx, view, LexerFlagsE::Default);
+        view.setLineOffset(7);
+
+        for (const TokenRef token : {TokenRef::invalid(), TokenRef{view.numTokens()}, TokenRef{view.numTokens() - 1}})
+        {
+            const auto [nodeRef, node] = ast.makeNode<AstNodeId::Identifier>(token);
+            SWC_UNUSED(nodeRef);
+            if (!sameSourceRange(node->codeRangeWithChildren(compilerCtx, ast, view), {}))
+                return Result::Error;
+        }
+
+        const auto [nodeRef, node] = ast.makeNode<AstNodeId::Identifier>(TokenRef{0});
+        SWC_UNUSED(nodeRef);
+        if (!source.empty())
+        {
+            // An incomplete token retains the existing best-effort range at the view's start.
+            view.tokens()[0].byteLength = static_cast<uint32_t>(source.size() + 1);
+            SourceCodeRange expected;
+            expected.fromOffset(compilerCtx, view, 0, 1);
+            if (!sameSourceRange(node->codeRangeWithChildren(compilerCtx, ast, view), expected))
+                return Result::Error;
+        }
+
+        view.tokens().clear();
+        if (!sameSourceRange(node->codeRangeWithChildren(compilerCtx, ast, view), {}))
             return Result::Error;
     }
 }

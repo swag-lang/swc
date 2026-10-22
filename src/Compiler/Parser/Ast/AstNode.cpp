@@ -128,7 +128,19 @@ SourceCodeRange AstNode::codeRangeWithChildren(const TaskContext& ctx, const Ast
     const uint32_t endByte  = endLoc.offset + endLoc.len;
     const uint32_t spanLen  = endByte > startOff ? (endByte - startOff) : 1u;
 
-    codeRange.fromOffset(ctx, view, startOff, spanLen);
+    if (startLoc.srcView == &view)
+    {
+        const size_t sourceSize = view.stringView().size();
+        if (startOff > sourceSize || spanLen > sourceSize - startOff)
+            return codeRange;
+
+        codeRange     = startLoc;
+        codeRange.len = spanLen;
+    }
+    else
+    {
+        codeRange.fromOffset(ctx, view, startOff, spanLen);
+    }
 
     return codeRange;
 }

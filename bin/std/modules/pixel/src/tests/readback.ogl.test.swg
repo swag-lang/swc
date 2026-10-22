@@ -31,22 +31,24 @@ using Core, Ogl
     var actual   = Image.create(21, 29, .BGRA8)
     var readback: RenderOglReadback
     defer readback.release()
-    for 3
+    for width in [21's32, 32's32, 21's32]
     {
-        let submitted = readback.submit(&target, 3, 5, 21, 29)
+        let cropped   = gpu.readRenderTarget(&target, 3, 5, width, 29)
+        var image     = Image.create(width, 29, .BGRA8)
+        let submitted = readback.submit(&target, 3, 5, width, 29)
         Swag.assert(submitted and readback.isPending() and not readback.hasFailed())
         var copied: bool
         var watch:  Time.Stopwatch
         watch.start()
         while not copied and watch.elapsedMilliseconds() < 2000
         {
-            copied = readback.tryCopyTo(actual.pixels.toSlice())
+            copied = readback.tryCopyTo(image.pixels.toSlice())
             if not copied do
                 Threading.Thread.sleep(1'ms)
         }
 
         Swag.assert(copied and not readback.isPending() and not readback.hasFailed())
-        Swag.assert(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
+        Swag.assert(Slice.equals(image.pixels.toSlice(), cropped.pixels.toSlice()))
         var buffer, framebuffer: GLint
         glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &buffer)
         glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &framebuffer)

@@ -37,6 +37,7 @@ alias GLhalf = u16
     func glGetVertexAttribIuiv(index: GLuint, pname: GLenum, params: *GLuint?)
     func glIsEnabledi(cap: GLenum, index: GLuint)->GLboolean
     func glIsVertexArray(array: GLuint)->GLboolean
+    func glMapBufferRange(target: GLenum, offset: GLintptr, length: GLsizeiptr, access: GLbitfield)->*void?
     func glTexParameterIiv(target: GLenum, pname: GLenum, params: const *GLint?)
     func glTexParameterIuiv(target: GLenum, pname: GLenum, params: const *GLuint?)
     func glTransformFeedbackVaryings(program: GLuint, count: GLsizei, varyings: *(const *GLchar?)?, bufferMode: GLenum)

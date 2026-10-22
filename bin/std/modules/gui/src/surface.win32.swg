@@ -721,7 +721,11 @@ impl Surface
     {
         if not .readback.isPending() do
             return true
+        var contextWatch: Time.Stopwatch
+        contextWatch.start()
         .app.renderer.setCurrentContext(.rc)
+        if Env.hasArgument("swag.readbacktrace") and contextWatch.elapsedMicroseconds() > 1000 do
+            Console.printf("context %\n", contextWatch.elapsedMicroseconds())
         if not .canQueueNativePresentation()
         {
             .readback.cancel()
@@ -800,8 +804,12 @@ impl Surface
             .prcDirty = &dirty
         }
 
+        var profileWatch: Time.Stopwatch
+        profileWatch.start()
         if not UpdateLayeredWindowIndirect(.hWnd, &info) do
             expect failWinError(GetLastError())
+        if Env.hasArgument("swag.readbacktrace") do
+            Console.printf("publication %\n", profileWatch.elapsedMicroseconds())
     }
 
     private mtd applyNativeDwmStyle()

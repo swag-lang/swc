@@ -36,6 +36,7 @@ internal namespace PrivOgl
         func wglCreateContext(hDc: HDC)->HGLRC
         func wglDeleteContext(hRc: HGLRC)->BOOL
         func wglGetCurrentContext()->HGLRC
+        func wglGetCurrentDC()->HDC
         func wglMakeCurrent(hDc: HDC, hRc: HGLRC)->BOOL
         func wglShareLists(hRc0, hRc1: HGLRC)->BOOL
     }
@@ -58,6 +59,7 @@ internal namespace PrivOgl
     }
 
     func wglGetCurrentContext()->HGLRC => PrivOgl.wglGetCurrentContext()
+    func wglGetCurrentDC()->HDC => PrivOgl.wglGetCurrentDC()
 
     func wglMakeCurrent(hDc: HDC, hRc: HGLRC) fail
     {

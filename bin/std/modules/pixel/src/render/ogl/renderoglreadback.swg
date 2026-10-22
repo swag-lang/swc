@@ -13,6 +13,7 @@ struct RenderOglReadback
 {
     buffer:    GLuint
     capacity:  s64
+    mapping:   *void?
     drawing:   GLsync
     transfer:  GLsync
     source:    GLuint
@@ -20,6 +21,8 @@ struct RenderOglReadback
     sourceX:   s32
     byteCount: u64
     failed:    bool
+    profileWatch: Time.Stopwatch
+    profileDrawUs: u64
 
     width:  s32
     height: s32
@@ -30,7 +33,7 @@ impl RenderOglReadback
     // Asserts that the owned OpenGL resources were released before this value goes away.
     mtd opDrop()
     {
-        Swag.assert(.buffer == 0 and not .drawing and not .transfer)
+        Swag.assert(.buffer == 0 and not .mapping and not .drawing and not .transfer)
     }
 
     // Reports whether a submitted rectangle has not yet been copied or cancelled.
@@ -51,21 +54,44 @@ impl RenderOglReadback
         Swag.assert(x <= target.colorBuffer.width - width and y <= target.colorBuffer.height - height)
         let bytes = cast(s64, width) * height * 4
         Swag.assert(bytes <= Swag.S32.Max)
-        if not .buffer do
-            glGenBuffers(1, &.buffer)
-        if not .buffer
-        {
-            .failed = true
-            return false
-        }
-
         if .capacity < bytes
         {
             var previous: GLint
             glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &previous)
+            .releaseBuffer()
+            glGenBuffers(1, &.buffer)
+            if not .buffer
+            {
+                .failed = true
+                return false
+            }
+
             glBindBuffer(GL_PIXEL_PACK_BUFFER, .buffer)
             defer glBindBuffer(GL_PIXEL_PACK_BUFFER, cast(GLuint, previous))
-            glBufferData(GL_PIXEL_PACK_BUFFER, bytes, null, GL_STREAM_READ)
+            var major, minor: GLint
+            glGetIntegerv(GL_MAJOR_VERSION, &major)
+            glGetIntegerv(GL_MINOR_VERSION, &minor)
+            let persistent = major > 4 or
+                             (major == 4 and minor >= 4) or
+                             RenderOgl.hasExtension("GL_ARB_buffer_storage")
+            if persistent
+            {
+                // Keep CPU-readable storage mapped: on discrete adapters, mapping a mutable
+                // GPU-local PBO after every transfer adds another driver migration or copy.
+                const Flags = GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT
+                glBufferStorage(GL_PIXEL_PACK_BUFFER, bytes, null, Flags | GL_CLIENT_STORAGE_BIT)
+                .mapping = glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, bytes, Flags)
+                if not .mapping
+                {
+                    .failed = true
+                    return false
+                }
+            }
+            else
+            {
+                glBufferData(GL_PIXEL_PACK_BUFFER, bytes, null, GL_STREAM_READ)
+            }
+
             var allocated: GLint
             glGetBufferParameteriv(GL_PIXEL_PACK_BUFFER, GL_BUFFER_SIZE, &allocated)
             if allocated < bytes
@@ -83,17 +109,29 @@ impl RenderOglReadback
         .sourceX   = x
         .sourceY   = target.colorBuffer.height - height - y
         .byteCount = cast(u64, bytes)
-        .drawing   = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
-        .failed    = .drawing == null
-        glFlush()
+        if .mapping
+        {
+            .profileDrawUs = 0
+            .profileWatch.restart()
+            .startTransfer()
+            if Env.hasArgument("swag.readbacktrace") do Console.printf("directread %\n", .profileWatch.elapsedMicroseconds())
+        }
+        else
+        {
+            .drawing = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
+            .failed = .drawing == null
+            glFlush()
+        }
+        .profileWatch.restart()
         return not .failed
     }
 
     // Copies a completed transfer into borrowed bytes, optionally preserving row padding.
     //
     // Returns false while work is pending, when empty, or on failure; [[Pixel.RenderOglReadback.hasFailed]]
-    // distinguishes failure. Every fence poll uses a zero timeout. The pixel transfer itself is
-    // submitted only after drawing completes, so requesting it cannot wait on queued drawing.
+    // distinguishes failure. Every fence poll uses a zero timeout; completion covers drawing
+    // and the pixel transfer. Contexts without persistent readable storage submit the transfer
+    // only after drawing completes, avoiding a synchronous read into GPU-local buffer storage.
     // `rowStride` is in bytes; zero means tightly packed. It must cover one row, and
     // `destination` must hold all rows. Bytes after each row's pixels are left unchanged.
     mtd tryCopyTo(destination: [..] u8, rowStride: u64 = 0)->bool
@@ -110,23 +148,29 @@ impl RenderOglReadback
                 return false
             glDeleteSync(.drawing)
             .drawing = null
+            .profileDrawUs = .profileWatch.elapsedMicroseconds()
+            .profileWatch.restart()
             .startTransfer()
+            if Env.hasArgument("swag.readbacktrace") do Console.printf("readcall %\n", .profileWatch.elapsedMicroseconds())
+            .profileWatch.restart()
             return false
         }
 
         if not .ready(.transfer) do
             return false
+        let transferUs = .profileWatch.elapsedMicroseconds()
+        .profileWatch.restart()
         var previous: GLint
         glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &previous)
         glBindBuffer(GL_PIXEL_PACK_BUFFER, .buffer)
         defer glBindBuffer(GL_PIXEL_PACK_BUFFER, cast(GLuint, previous))
-        if stride == rowBytes
+        if not .mapping and stride == rowBytes
         {
             glGetBufferSubData(GL_PIXEL_PACK_BUFFER, 0, cast(s64, .byteCount), destination.buffer)
         }
         else
         {
-            let mapped = glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY)
+            let mapped = .mapping orelse glMapBuffer(GL_PIXEL_PACK_BUFFER, GL_READ_ONLY)
             if not mapped
             {
                 .failed = true
@@ -134,9 +178,17 @@ impl RenderOglReadback
             }
 
             let source = cast(const [*] u8, mapped)
-            for row in cast(u64, .height) do
-                Memory.copy(destination.buffer + row * stride, source + row * rowBytes, rowBytes)
-            if glUnmapBuffer(GL_PIXEL_PACK_BUFFER) == GL_FALSE
+            if stride == rowBytes
+            {
+                Memory.copy(destination.buffer, source, .byteCount)
+            }
+            else
+            {
+                for row in cast(u64, .height) do
+                    Memory.copy(destination.buffer + row * stride, source + row * rowBytes, rowBytes)
+            }
+
+            if not .mapping and glUnmapBuffer(GL_PIXEL_PACK_BUFFER) == GL_FALSE
             {
                 .failed = true
                 return false
@@ -145,6 +197,7 @@ impl RenderOglReadback
 
         glDeleteSync(.transfer)
         .transfer = null
+        if Env.hasArgument("swag.readbacktrace") do Console.printf("readback draw % transfer % copy %\n", .profileDrawUs, transferUs, .profileWatch.elapsedMicroseconds())
         return true
     }
 
@@ -165,16 +218,31 @@ impl RenderOglReadback
     mtd release()
     {
         .cancel()
-        if .buffer do
-            glDeleteBuffers(1, &.buffer)
-        .buffer   = 0
-        .capacity = 0
-        .failed   = false
+        .releaseBuffer()
+        .failed = false
     }
 }
 
 private impl RenderOglReadback
 {
+    mtd releaseBuffer()
+    {
+        if .mapping
+        {
+            var previous: GLint
+            glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &previous)
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, .buffer)
+            discard glUnmapBuffer(GL_PIXEL_PACK_BUFFER)
+            glBindBuffer(GL_PIXEL_PACK_BUFFER, cast(GLuint, previous))
+            .mapping = null
+        }
+
+        if .buffer do
+            glDeleteBuffers(1, &.buffer)
+        .buffer   = 0
+        .capacity = 0
+    }
+
     mtd ready(fence: GLsync)->bool
     {
         let state = glClientWaitSync(fence, 0, 0)

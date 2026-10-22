@@ -60,6 +60,10 @@ const ATTACH_PARENT_PROCESS = cast #bit (DWORD, -1)
 const FALSE = 0
 const TRUE  = 1
 
+const CREATE_WAITABLE_TIMER_HIGH_RESOLUTION = 0x00000002'u32
+const TIMER_MODIFY_STATE = 0x0002'u32
+const SYNCHRONIZE = 0x00100000'u32
+
 const MEM_COMMIT  = 0x1000'u32
 const MEM_RESERVE = 0x2000'u32
 const MEM_RELEASE = 0x8000'u32
@@ -674,6 +678,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 
     func CreateWaitableTimerA(lpTimerAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, lpTimerName: LPCSTR)->HANDLE
     func CreateWaitableTimerW(lpTimerAttributes: *SECURITY_ATTRIBUTES?, bManualReset: BOOL, lpTimerName: LPCWSTR)->HANDLE
+    func CreateWaitableTimerExW(lpTimerAttributes: *SECURITY_ATTRIBUTES?, lpTimerName: LPCWSTR, dwFlags, dwDesiredAccess: DWORD)->HANDLE
     func CancelWaitableTimer(hTimer: HANDLE)->BOOL
     func SetWaitableTimer(hTimer: HANDLE, lpDueTime: const *LARGE_INTEGER, lPeriod: LONG, pfnCompletionRoutine: *void?, lpArgToCompletionRoutine: LPVOID, fResume: BOOL)->BOOL
 

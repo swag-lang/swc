@@ -5,6 +5,17 @@ using Swag
 
 #test
 {
+    let timer = CreateWaitableTimerExW(null, null, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, SYNCHRONIZE | TIMER_MODIFY_STATE)
+    Swag.assert(timer != null)
+    defer CloseHandle(timer)
+    let dueTime: LARGE_INTEGER = -10000
+    Swag.assert(SetWaitableTimer(timer, &dueTime, 0, null, null, FALSE) != 0)
+    let ready = expect MsgWaitForMultipleObjectsEx(1, &timer, 1000, 0, 0)
+    Swag.assert(ready == WAIT_OBJECT_0)
+}
+
+#test
+{
     let event = expect CreateEventW(null, TRUE, TRUE, null)
     defer CloseHandle(event)
     let ready = expect MsgWaitForMultipleObjectsEx(1, &event, 0, QS_ALLINPUT, MWMO_INPUTAVAILABLE)

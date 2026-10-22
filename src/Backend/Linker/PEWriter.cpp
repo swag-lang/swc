@@ -487,7 +487,8 @@ void PEWriter::assignLayout()
     const uint32_t headersSize  = peHeadersSize(sectionCount);
     headersSize_                = headersSize;
 
-    std::vector<uint32_t> order(sections_.size());
+    const auto          orderStorage = sections_.empty() ? nullptr : std::make_unique_for_overwrite<uint32_t[]>(sections_.size());
+    std::span<uint32_t> order(orderStorage.get(), sections_.size());
     std::ranges::iota(order, 0u);
     std::ranges::stable_sort(order, [this](uint32_t left, uint32_t right) {
         return sectionLayoutRank(sections_[left].name.view()) < sectionLayoutRank(sections_[right].name.view());

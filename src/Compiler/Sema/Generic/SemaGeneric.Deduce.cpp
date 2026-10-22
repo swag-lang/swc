@@ -770,12 +770,18 @@ namespace
         if (bodyRef.isInvalid())
             return;
 
-        SmallVector<AstNodeRef> fields;
-        sema.node(bodyRef).collectChildrenFromAst(fields, sema.ast());
-        outFields.reserve(fields.size());
+        const auto& body = sema.node(bodyRef).cast<AstAggregateBody>();
+        if (!sema.ast().hasSpan(body.spanChildrenRef))
+            return;
 
-        for (const AstNodeRef fieldRef : fields)
-            appendFunctionParamDesc(sema, fieldRef, outFields);
+        const auto fields = sema.ast().nodeSpan(body.spanChildrenRef);
+        auto       chunk  = fields.chunksBegin();
+        outFields.reserve(chunk.total);
+        for (; chunk != fields.chunksEnd(); ++chunk)
+        {
+            for (const AstNodeRef fieldRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+                appendFunctionParamDesc(sema, fieldRef, outFields);
+        }
     }
 
     Result deduceFromAnonymousStructPattern(Sema& sema, std::span<const SemaGeneric::GenericParamDesc> params, std::span<SemaGeneric::GenericResolvedArg> resolvedArgs, AstNodeRef patternRef, const TypeInfo& argType, AstNodeRef argExprRef, uint32_t callArgIndex, CastFailure* outFailure, DeductionMode mode)

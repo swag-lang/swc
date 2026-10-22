@@ -917,7 +917,7 @@ namespace
                 const uint32_t      usingElemOffset = usingFieldsOffset + static_cast<uint32_t>(usingIndex * sizeof(Runtime::TypeValue));
 
                 usingTv.name.length = storage.addString(usingElemOffset, offsetof(Runtime::TypeValue, name.ptr), fieldName);
-                usingTv.crc         = Math::crc32(fieldName);
+                usingTv.crc         = tv.crc;
                 usingTv.offset      = symField->offset();
                 usingTv.flags       = enumOr(usingTv.flags, Runtime::TypeValueFlags::HasUsing);
 

@@ -4,6 +4,7 @@
 #include "Backend/Native/NativeBackendBuilder.h"
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeRDataCollector.h"
+#include "Backend/RuntimeBackendConfig.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantStorageLayout.h"
@@ -244,15 +245,8 @@ Result NativeArtifactBuilder::build() const
 
 Result NativeArtifactBuilder::buildRuntimeHook(TaskContext& ctx) const
 {
-    switch (builder_->compiler().buildCfg().backendKind)
-    {
-        case Runtime::BuildCfgBackendKind::SharedLibrary:
-        case Runtime::BuildCfgBackendKind::StaticLibrary:
-            break;
-
-        default:
-            return Result::Continue;
-    }
+    if (!Runtime::backendKindIsLibrary(builder_->compiler().buildCfg().backendKind))
+        return Result::Continue;
 
     CompilerInstance& compiler = builder_->compiler();
 

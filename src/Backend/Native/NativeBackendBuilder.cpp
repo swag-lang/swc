@@ -9,6 +9,7 @@
 #include "Backend/Native/NativeNames.h"
 #include "Backend/Native/NativeObjFileWriter.h"
 #include "Backend/Native/SymbolSort.h"
+#include "Backend/RuntimeBackendConfig.h"
 #include "Backend/RuntimeName.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/CodeGen/Core/CodeGenJob.h"
@@ -321,19 +322,6 @@ namespace
     {
         const uint32_t scopeHash = builder.scopedSymbolNames().scopeHash;
         return std::format("__swc_fn_{:08x}_{:06}_{:08x}", scopeHash, ordinal, Math::hash(info.sortKey));
-    }
-
-    bool supportsExportedPublicFunctionSymbols(const NativeBackendBuilder& builder)
-    {
-        switch (builder.compiler().buildCfg().backendKind)
-        {
-            case Runtime::BuildCfgBackendKind::StaticLibrary:
-            case Runtime::BuildCfgBackendKind::SharedLibrary:
-                return true;
-
-            default:
-                return false;
-        }
     }
 
     SymbolFunction* createRuntimeDependencyHookSymbol(NativeBackendBuilder& builder, const NativeRuntimeDependency& dependency)
@@ -879,7 +867,7 @@ namespace
         builder.functionInfos.reserve(functions.size());
         builder.functionBySymbol.reserve(functions.size());
         const NativeFunctionInfoOptions infoOptions{
-            .supportsExportedFunctions = supportsExportedPublicFunctionSymbols(builder),
+            .supportsExportedFunctions = Runtime::backendKindIsLibrary(builder.compiler().buildCfg().backendKind),
             .includeDebugNames         = builder.compiler().buildCfg().backend.debugInfo,
             .sortKeys                  = &sortKeys,
         };
@@ -945,7 +933,7 @@ namespace
             return builder.reportError(DiagnosticId::cmd_err_native_codegen_source_missing);
 
         const NativeFunctionInfoOptions infoOptions{
-            .supportsExportedFunctions = supportsExportedPublicFunctionSymbols(builder),
+            .supportsExportedFunctions = Runtime::backendKindIsLibrary(builder.compiler().buildCfg().backendKind),
             .includeDebugNames         = builder.compiler().buildCfg().backend.debugInfo,
         };
 
@@ -1653,7 +1641,7 @@ Result NativeBackendBuilder::prepare()
     // that reaches, so both start from those roots: a function nothing calls, such as an equality
     // operator a struct is given whether or not anything compares it, is never lowered.
     const bool                   executable = compiler_->buildCfg().backendKind == Runtime::BuildCfgBackendKind::Executable;
-    const bool                   library    = supportsExportedPublicFunctionSymbols(*this);
+    const bool                   library    = Runtime::backendKindIsLibrary(compiler().buildCfg().backendKind);
     std::vector<SymbolFunction*> functions;
     if (executable || library)
     {

@@ -1,0 +1,126 @@
+py : Could not find platform independent libraries <prefix>
+Au caractère Ligne:2 : 1
++ py -3 bench/microdiff.py --base 'C:/Users/chris/AppData/Local/swc-age ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Could not find ...raries <prefix>:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+== wordfreq: checksum 130489, 12 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.AtomicValue.add                           12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.add#2                         11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.load                          2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.load#2                        3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub                           13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub#2                         12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== csvagg: checksum 24828641, 7 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Csvagg.__main_db8f50ff02f41022                 852 instr / 221 mem / 11 calls -> 952 instr / 237 mem / 11 calls   LOSS
+      loop 10: 5 instr / 1 mem / 0 calls -> 11 instr / 4 mem / 0 calls   LOSS
+      loop 11: 5 instr / 1 mem / 0 calls -> 6 instr / 1 mem / 0 calls   LOSS
+      loop 12: 5 instr / 1 mem / 0 calls -> 11 instr / 4 mem / 0 calls   LOSS
+      loop 13: 5 instr / 1 mem / 0 calls -> 6 instr / 1 mem / 0 calls   LOSS
+      loop 14: 9 instr / 1 mem / 0 calls -> 11 instr / 4 mem / 0 calls   LOSS
+      loop 15: 9 instr / 1 mem / 0 calls -> 6 instr / 1 mem / 0 calls
+      loop 16: 7 instr / 1 mem / 0 calls -> 11 instr / 4 mem / 0 calls   LOSS
+      loop 17: 15 instr / 4 mem / 0 calls -> 6 instr / 1 mem / 0 calls
+      loop 18: 6 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+      loop 19: 16 instr / 6 mem / 1 calls -> 9 instr / 1 mem / 0 calls
+      loop 20: 191 instr / 57 mem / 1 calls -> 7 instr / 1 mem / 0 calls
+      loop 21: 4 instr / 1 mem / 0 calls -> 15 instr / 4 mem / 0 calls   LOSS
+      loop 22: 4 instr / 1 mem / 0 calls -> 6 instr / 1 mem / 0 calls   LOSS
+      loop 23: 8 instr / 3 mem / 0 calls -> 16 instr / 6 mem / 1 calls   LOSS
+      loop 24: 4 instr / 1 mem / 0 calls -> 291 instr / 73 mem / 1 calls   LOSS
+      loop 25: 43 instr / 17 mem / 1 calls -> 4 instr / 1 mem / 0 calls
+      loop 26: 57 instr / 24 mem / 1 calls -> 4 instr / 1 mem / 0 calls
+      loop 27: 49 instr / 9 mem / 0 calls -> 8 instr / 3 mem / 0 calls
+      loop 28: - -> 4 instr / 1 mem / 0 calls
+      loop 29: - -> 43 instr / 17 mem / 1 calls
+      loop 30: - -> 57 instr / 24 mem / 1 calls
+      loop 31: - -> 49 instr / 9 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== sha256: checksum 2503168387, 6 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== dijkstra: checksum 4431000, 4 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== raytrace: checksum 56061776, 8 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.atomicGet                                 3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.atomicGet#2                               2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== leven: checksum 67441, 6 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== chacha: checksum 633277775, 6 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== nbody: checksum 169096566666, 6 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== fannkuch: checksum 8629030, 10 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.AtomicValue.add                           11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.add#2                         12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.load                          3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.load#2                        2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== binarytrees: checksum 674478, 6 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== lz77: checksum 622942003053, 4 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)
+== sort: checksum 599499929, 4 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_3831ac700dfbb551         removed (1 instr / 0 mem / 0 calls)
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_f251a36eb8baa5f0                    removed (30 instr / 5 mem / 2 calls)

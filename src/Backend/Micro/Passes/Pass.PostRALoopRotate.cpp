@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Backend/Micro/Passes/Pass.PostRALoopRotate.h"
+#include "Backend/ABI/CallConv.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Backend/Micro/MicroControlFlowGraph.h"
 #include "Backend/Micro/MicroLabelHelpers.h"
@@ -68,6 +69,181 @@ namespace
     // A header carrying more than this around its compare is not worth
     // duplicating for the one jump the rotation removes.
     using MicroOptimizationLimits::PostRALoopRotate::K_MAX_TEST_RUN;
+
+    // Probe each byte in source order, but amortize the bound test across a group.
+    // Exit stubs advance the index with LEA so the original byte-comparison flags
+    // survive. The original loop remains the short tail and receives extra incoming
+    // edges, which prevents unrolling that same tail again on a later sweep.
+    bool unrollBoundedByteScan(MicroPassContext& context, const std::vector<MicroInstrRef>& order)
+    {
+        auto& builder = *context.builder;
+        if (!builder.backendBuildCfg().runsCostlyOptimizations())
+            return false;
+        const auto factor = MicroOptimizationLimits::resolveUnroll(context.optimizer().unroll).partialFactor;
+        if (factor < 2)
+            return false;
+        auto&                               storage  = *context.instructions;
+        auto&                               operands = *context.operands;
+        const auto&                         conv     = CallConv::get(context.callConvKind);
+        MicroPassHelpers::MicroPhysLiveness liveness;
+        FlatKeyMap<uint32_t>                jumpCounts;
+        bool                                analyzed = false;
+        for (uint32_t at = 0; at + 7 < order.size(); ++at)
+        {
+            const auto* header  = storage.ptr(order[at]);
+            const auto* bound   = storage.ptr(order[at + 1]);
+            const auto* leave   = storage.ptr(order[at + 2]);
+            const auto* compare = storage.ptr(order[at + 3]);
+            const auto* found   = storage.ptr(order[at + 4]);
+            const auto* step    = storage.ptr(order[at + 5]);
+            const auto* back    = storage.ptr(order[at + 6]);
+            const auto* exit    = storage.ptr(order[at + 7]);
+            if (header->op != MicroInstrOpcode::Label || bound->op != MicroInstrOpcode::CmpRegReg ||
+                leave->op != MicroInstrOpcode::JumpCond || compare->op != MicroInstrOpcode::CmpAmcImm ||
+                found->op != MicroInstrOpcode::JumpCond || back->op != MicroInstrOpcode::JumpCond || exit->op != MicroInstrOpcode::Label)
+                continue;
+            const auto* h     = header->ops(operands);
+            const auto* b     = bound->ops(operands);
+            const auto* l     = leave->ops(operands);
+            const auto* c     = compare->ops(operands);
+            const auto* f     = found->ops(operands);
+            const auto* s     = step->ops(operands);
+            const auto* k     = back->ops(operands);
+            const auto* e     = exit->ops(operands);
+            const auto  index = b[0].reg;
+            const auto  limit = b[1].reg;
+            if (!index.isInt() || !limit.isInt() || index == limit || !c[0].reg.isInt() || c[0].reg == index ||
+                b[2].opBits != MicroOpBits::B64 || l[0].cpuCond != MicroCond::AboveOrEqual ||
+                c[1].reg != index || c[2].opBits != MicroOpBits::B8 || c[3].opBits != MicroOpBits::B64 || c[4].valueU64 != 1 ||
+                (f[0].cpuCond != MicroCond::Equal && f[0].cpuCond != MicroCond::NotEqual) ||
+                l[2].valueU64 != e[0].valueU64 || f[2].valueU64 != e[0].valueU64 ||
+                k[0].cpuCond != MicroCond::Unconditional || k[2].valueU64 != h[0].valueU64)
+                continue;
+            bool unitStep = false;
+            if (step->op == MicroInstrOpcode::OpUnaryReg)
+                unitStep = s[0].reg == index && s[1].opBits == MicroOpBits::B64 && s[2].microOp == MicroOp::Add;
+            else if (step->op == MicroInstrOpcode::OpBinaryRegImm)
+                unitStep = s[0].reg == index && s[1].opBits == MicroOpBits::B64 && s[2].microOp == MicroOp::Add &&
+                           !s[3].hasWideImmediateValue() && s[3].valueU64 == 1;
+            else if (step->op == MicroInstrOpcode::LoadAddrRegMem)
+                unitStep = s[0].reg == index && s[1].reg == index && s[2].opBits == MicroOpBits::B64 && s[3].valueU64 == 1;
+            const auto displacement = static_cast<int64_t>(c[5].valueU64);
+            if (!unitStep || displacement < std::numeric_limits<int32_t>::min() ||
+                displacement > std::numeric_limits<int32_t>::max() - static_cast<int64_t>(factor - 1))
+                continue;
+            if (!analyzed)
+            {
+                const auto& cfg = builder.controlFlowGraph();
+                if (cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.supportsDeadCodeLiveness())
+                    return false;
+                MicroPassHelpers::computePhysicalLiveness(liveness, context);
+                if (!liveness.valid)
+                    return false;
+                for (const auto ref : order)
+                {
+                    const auto* inst = storage.ptr(ref);
+                    uint32_t    target;
+                    if (tryGetJumpTargetLabelId(target, *inst, inst->ops(operands)))
+                        ++jumpCounts.getOrInsert(target);
+                }
+                analyzed = true;
+            }
+            const auto* incoming = jumpCounts.find(static_cast<uint32_t>(h[0].valueU64));
+            if (!incoming || *incoming != 1)
+                continue;
+            MicroReg scratch;
+            for (const auto reg : conv.intTransientRegs)
+            {
+                const auto bit = MicroPassHelpers::MicroPhysLiveness::bitOf(reg);
+                if (bit < MicroPassHelpers::MicroPhysLiveness::K_INVALID_BIT && !(liveness.liveIn[at] & (1ull << bit)))
+                {
+                    scratch = reg;
+                    break;
+                }
+            }
+            if (!scratch.isValid())
+                continue;
+
+            const auto            before   = order[at];
+            const auto            after    = order[at + 7];
+            const auto            headerId = h[0].valueU64;
+            const auto            exitId   = e[0].valueU64;
+            const auto            fastId   = builder.createLabel().get();
+            SmallVector<uint64_t> exits;
+            for (uint64_t lane = 1; lane < factor; ++lane)
+                exits.push_back(builder.createLabel().get());
+            std::array<MicroInstrOperand, 3> bounds     = {b[0], b[1], b[2]};
+            std::array<MicroInstrOperand, 3> boundsExit = {l[0], l[1], l[2]};
+            std::array<MicroInstrOperand, 3> byteExit   = {f[0], f[1], f[2]};
+            std::array<MicroInstrOperand, 7> byteCompare;
+            std::copy_n(c, 7, byteCompare.begin());
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::CmpRegReg, bounds);
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, boundsExit);
+            MicroInstrOperand copy[3] = {};
+            copy[0].reg               = scratch;
+            copy[1].reg               = limit;
+            copy[2].opBits            = MicroOpBits::B64;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadRegReg, copy);
+            MicroInstrOperand distance[4] = {};
+            distance[0].reg               = scratch;
+            distance[1].reg               = index;
+            distance[2].opBits            = MicroOpBits::B64;
+            distance[3].microOp           = MicroOp::Subtract;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::OpBinaryRegReg, distance);
+            MicroInstrOperand minimum[3] = {};
+            minimum[0].reg               = scratch;
+            minimum[1].opBits            = MicroOpBits::B64;
+            minimum[2].setImmediateValue(ApInt(factor, 64));
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::CmpRegImm, minimum);
+            MicroInstrOperand tail[3] = {boundsExit[0], boundsExit[1], boundsExit[2]};
+            tail[0].cpuCond           = MicroCond::Below;
+            tail[2].valueU64          = headerId;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, tail);
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadRegReg, copy);
+            MicroInstrOperand limitAdjust[4] = {};
+            limitAdjust[0].reg               = scratch;
+            limitAdjust[1].opBits            = MicroOpBits::B64;
+            limitAdjust[2].microOp           = MicroOp::Subtract;
+            limitAdjust[3].setImmediateValue(ApInt(factor - 1, 64));
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::OpBinaryRegImm, limitAdjust);
+            MicroInstrOperand label[1] = {};
+            label[0].valueU64          = fastId;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::Label, label);
+            bounds[1].reg = scratch;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::CmpRegReg, bounds);
+            tail[0].cpuCond = MicroCond::AboveOrEqual;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, tail);
+            for (uint64_t lane = 0; lane < factor; ++lane)
+            {
+                byteCompare[5].valueU64 = static_cast<uint64_t>(displacement) + lane;
+                byteExit[2].valueU64    = lane ? exits[lane - 1] : exitId;
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::CmpAmcImm, byteCompare);
+                storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, byteExit);
+            }
+            MicroInstrOperand advance[4] = {};
+            advance[0].reg               = index;
+            advance[1].reg               = index;
+            advance[2].opBits            = MicroOpBits::B64;
+            advance[3].valueU64          = factor;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::LoadAddrRegMem, advance);
+            tail[0].cpuCond  = MicroCond::Unconditional;
+            tail[2].valueU64 = fastId;
+            storage.insertDerivedBefore(operands, before, MicroInstrOpcode::JumpCond, tail);
+            for (uint64_t lane = 1; lane < factor; ++lane)
+            {
+                label[0].valueU64 = exits[lane - 1];
+                storage.insertDerivedBefore(operands, after, MicroInstrOpcode::Label, label);
+                advance[3].valueU64 = lane;
+                storage.insertDerivedBefore(operands, after, MicroInstrOpcode::LoadAddrRegMem, advance);
+                tail[2].valueU64 = exitId;
+                storage.insertDerivedBefore(operands, after, MicroInstrOpcode::JumpCond, tail);
+            }
+            builder.invalidateControlFlowGraph();
+            context.passChanged = true;
+            return true;
+        }
+        return false;
+    }
 
     // On the taken edge, neither operand changes before the repeated comparison.
     // Keeping its ordered operands and width also keeps every arithmetic flag.
@@ -751,6 +927,8 @@ Result MicroPostRaLoopRotatePass::run(MicroPassContext& context)
     if (!hasJumpCond)
         return Result::Continue;
 
+    if (unrollBoundedByteScan(context, order))
+        return Result::Continue;
     if (threadRepeatedCompareExits(context, order))
         return Result::Continue;
     if (threadRepeatedIndexedZeroTest(context, order))

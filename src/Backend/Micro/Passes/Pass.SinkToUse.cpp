@@ -101,35 +101,6 @@ namespace
         return true;
     }
 
-    bool sourceDiesAtCopy(const MicroPassContext& context, MicroInstrRef copy, MicroReg source)
-    {
-        const auto& cfg = context.builder->controlFlowGraph();
-        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
-            return false;
-        const auto refs = cfg.instructionRefs();
-        const auto at   = cfg.indexOf(copy);
-        if (at == MicroControlFlowGraph::K_NO_INDEX)
-            return false;
-        SmallVector<uint8_t, 128> visited(refs.size(), 0);
-        SmallVector<uint32_t>     pending;
-        pending.append(cfg.successors(at).data(), cfg.successors(at).size());
-        while (!pending.empty())
-        {
-            const auto index = pending.back();
-            pending.pop_back();
-            if (visited[index])
-                continue;
-            visited[index]          = 1;
-            const auto* instruction = context.instructions->ptr(refs[index]);
-            const auto  touch       = MicroPassHelpers::regTouch(*instruction, *context.operands, source, context.encoder);
-            if (touch.use)
-                return false;
-            if (!touch.def)
-                pending.append(cfg.successors(index).data(), cfg.successors(index).size());
-        }
-        return true;
-    }
-
     // Argument staging has already consumed the old destination. Copying a
     // virtual value before a call can therefore end the source's live range at
     // the call, while the destination already needs to survive it. Neither
@@ -163,7 +134,7 @@ namespace
                     if (std::ranges::find(callUseDef.uses, reg) != callUseDef.uses.end() ||
                         std::ranges::find(callUseDef.defs, reg) != callUseDef.defs.end())
                         conflict = true;
-                if (conflict || !sourceDiesAtCopy(context, copyRef, ops[1].reg))
+                if (conflict || MicroPassHelpers::isRegisterLiveAfterInstruction(context, copyRef, ops[1].reg))
                     break;
                 const auto              next          = storage.findNextInstructionRef(copyRef);
                 const MicroInstrOperand replacement[] = {ops[0], ops[1], ops[2]};

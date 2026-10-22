@@ -323,6 +323,11 @@ namespace MicroPassHelpers
     // K_INVALID_NODE when there is no entry or more than one.
     uint32_t findSingleCfgEntry(const MicroControlFlowGraph& cfg);
 
+    // Follow all successors until a definition kills the value. Unknown control
+    // flow answers live. Legalization may ignore encoder-added reads when a
+    // back edge reaches the instruction whose fixed operands it will reload.
+    bool isRegisterLiveAfterInstruction(const MicroPassContext& context, MicroInstrRef instRef, MicroReg reg, bool ignoreImplicitBackedgeUses = false);
+
     // Exact physical-register liveness over the per-instruction CFG, for the
     // passes that run after register allocation. A backward fixed point seeded
     // at the exits with the ABI live-out set (return registers, callee-saved

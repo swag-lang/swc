@@ -499,11 +499,10 @@ namespace
 
     SpanRef cloneSpan(Sema& sema, SpanRef spanRef, const SemaClone::CloneContext& cloneContext);
 
-    template<AstNodeId ID, auto Member, typename T>
-    AstNodeRef cloneSingleMember(Sema& sema, const T& node, const CloneContext& cloneContext)
+    // End each field's temporary clone context before cloning the next field.
+    template<auto Member, typename T>
+    __forceinline void cloneInlineMember(Sema& sema, T& cloned, const T& node, const CloneContext& cloneContext)
     {
-        const AstNodeRef newRef = cloneNodeCopy<ID>(sema, node);
-        auto&            cloned = sema.node(newRef).cast<T>();
         if constexpr (std::is_same_v<std::remove_cvref_t<decltype(node.*Member)>, AstNodeRef>)
             cloned.*Member = cloneNodeRef(sema, node.*Member, cloneContextAsInline(cloneContext));
         else
@@ -511,30 +510,15 @@ namespace
             static_assert(std::is_same_v<std::remove_cvref_t<decltype(node.*Member)>, SpanRef>);
             cloned.*Member = cloneSpan(sema, node.*Member, cloneContextAsInline(cloneContext));
         }
-        return newRef;
     }
 
     // Retain the callbacks' original call boundaries, including the larger variable nodes.
-    template<AstNodeId ID, auto FirstMember, auto SecondMember, typename T>
-    __forceinline AstNodeRef cloneNodePair(Sema& sema, const T& node, const CloneContext& cloneContext)
+    template<AstNodeId ID, auto... Members, typename T>
+    __forceinline AstNodeRef cloneNodeMembers(Sema& sema, const T& node, const CloneContext& cloneContext)
     {
         const AstNodeRef newRef = cloneNodeCopy<ID>(sema, node);
         auto&            cloned = sema.node(newRef).cast<T>();
-        cloned.*FirstMember     = cloneNodeRef(sema, node.*FirstMember, cloneContextAsInline(cloneContext));
-        cloned.*SecondMember    = cloneNodeRef(sema, node.*SecondMember, cloneContextAsInline(cloneContext));
-        return newRef;
-    }
-
-    // A struct, interface or union declaration: its generic parameters, constraints and body are
-    // cloned as an inline context.
-    template<AstNodeId ID, typename T>
-    AstNodeRef cloneAggregateDecl(Sema& sema, const T& node, const CloneContext& cloneContext)
-    {
-        const AstNodeRef newRef     = cloneNodeCopy<ID>(sema, node);
-        auto&            cloned     = sema.node(newRef).cast<T>();
-        cloned.spanGenericParamsRef = cloneSpan(sema, node.spanGenericParamsRef, cloneContextAsInline(cloneContext));
-        cloned.spanWhereRef         = cloneSpan(sema, node.spanWhereRef, cloneContextAsInline(cloneContext));
-        cloned.nodeBodyRef          = cloneNodeRef(sema, node.nodeBodyRef, cloneContextAsInline(cloneContext));
+        (cloneInlineMember<Members>(sema, cloned, node, cloneContext), ...);
         return newRef;
     }
 
@@ -1581,17 +1565,12 @@ AstNodeRef AstInvalid::semaClone(Sema& sema, const CloneContext& cloneContext) c
 
 AstNodeRef AstFile::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::File>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstFile>();
-    cloned.spanGlobalsRef   = cloneSpan(sema, spanGlobalsRef, cloneContextAsInline(cloneContext));
-    cloned.spanUsingsRef    = cloneSpan(sema, spanUsingsRef, cloneContextAsInline(cloneContext));
-    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::File, &AstFile::spanGlobalsRef, &AstFile::spanUsingsRef, &AstFile::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstTopLevelBlock::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::TopLevelBlock, &AstTopLevelBlock::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::TopLevelBlock, &AstTopLevelBlock::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstEmbeddedBlock::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1605,12 +1584,7 @@ AstNodeRef AstEmbeddedBlock::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstImpl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::Impl>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstImpl>();
-    cloned.nodeIdentRef     = cloneNodeRef(sema, nodeIdentRef, cloneContextAsInline(cloneContext));
-    cloned.nodeForRef       = cloneNodeRef(sema, nodeForRef, cloneContextAsInline(cloneContext));
-    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::Impl, &AstImpl::nodeIdentRef, &AstImpl::nodeForRef, &AstImpl::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstNamespaceDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1624,7 +1598,7 @@ AstNodeRef AstNamespaceDecl::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstUsingNamespaceStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::UsingNamespaceStmt, &AstUsingNamespaceStmt::nodeNameRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::UsingNamespaceStmt, &AstUsingNamespaceStmt::nodeNameRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerGlobal::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1644,36 +1618,32 @@ AstNodeRef AstCompilerImport::semaClone(Sema& sema, const CloneContext& cloneCon
 
 AstNodeRef AstFunctionBody::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::FunctionBody, &AstFunctionBody::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::FunctionBody, &AstFunctionBody::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAttribute::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::Attribute, &AstAttribute::nodeCallRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::Attribute, &AstAttribute::nodeCallRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAttributeList::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::AttributeList>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstAttributeList>();
-    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
-    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::AttributeList, &AstAttributeList::spanChildrenRef, &AstAttributeList::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstUsingDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::UsingDecl, &AstUsingDecl::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::UsingDecl, &AstUsingDecl::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAccessModifier::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::AccessModifier, &AstAccessModifier::nodeWhatRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::AccessModifier, &AstAccessModifier::nodeWhatRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAttrDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::AttrDecl, &AstAttrDecl::nodeParamsRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::AttrDecl, &AstAttrDecl::nodeParamsRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstFunctionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1714,7 +1684,7 @@ AstNodeRef AstFunctionDecl::semaClone(Sema& sema, const CloneContext& cloneConte
 
 AstNodeRef AstFunctionParamList::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::FunctionParamList, &AstFunctionParamList::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::FunctionParamList, &AstFunctionParamList::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstFunctionParamMe::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1725,22 +1695,22 @@ AstNodeRef AstFunctionParamMe::semaClone(Sema& sema, const CloneContext& cloneCo
 
 AstNodeRef AstVarDeclList::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::VarDeclList, &AstVarDeclList::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::VarDeclList, &AstVarDeclList::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstElseStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::ElseStmt, &AstElseStmt::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::ElseStmt, &AstElseStmt::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstElseIfStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::ElseIfStmt, &AstElseIfStmt::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::ElseIfStmt, &AstElseIfStmt::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstSwitchCaseBody::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::SwitchCaseBody, &AstSwitchCaseBody::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::SwitchCaseBody, &AstSwitchCaseBody::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAssignList::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1761,12 +1731,12 @@ AstNodeRef AstAssignIgnore::semaClone(Sema& sema, const CloneContext& cloneConte
 
 AstNodeRef AstReturnStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::ReturnStmt, &AstReturnStmt::nodeExprRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::ReturnStmt, &AstReturnStmt::nodeExprRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstSingleVarDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodePair<AstNodeId::SingleVarDecl, &AstSingleVarDecl::nodeTypeRef, &AstSingleVarDecl::nodeInitRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::SingleVarDecl, &AstSingleVarDecl::nodeTypeRef, &AstSingleVarDecl::nodeInitRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstMultiVarDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1792,48 +1762,37 @@ AstNodeRef AstVarDeclDestructuring::semaClone(Sema& sema, const CloneContext& cl
 
 AstNodeRef AstAssignStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodePair<AstNodeId::AssignStmt, &AstAssignStmt::nodeLeftRef, &AstAssignStmt::nodeRightRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::AssignStmt, &AstAssignStmt::nodeLeftRef, &AstAssignStmt::nodeRightRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstIfStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::IfStmt>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstIfStmt>();
-    cloned.nodeConditionRef = cloneNodeRef(sema, nodeConditionRef, cloneContextAsInline(cloneContext));
-    cloned.nodeIfBlockRef   = cloneNodeRef(sema, nodeIfBlockRef, cloneContextAsInline(cloneContext));
-    cloned.nodeElseBlockRef = cloneNodeRef(sema, nodeElseBlockRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::IfStmt, &AstIfStmt::nodeConditionRef, &AstIfStmt::nodeIfBlockRef, &AstIfStmt::nodeElseBlockRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstIfVarDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::IfVarDecl>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstIfVarDecl>();
-    cloned.nodeVarRef       = cloneNodeRef(sema, nodeVarRef, cloneContextAsInline(cloneContext));
-    cloned.nodeWhereRef     = cloneNodeRef(sema, nodeWhereRef, cloneContextAsInline(cloneContext));
-    cloned.nodeIfBlockRef   = cloneNodeRef(sema, nodeIfBlockRef, cloneContextAsInline(cloneContext));
-    cloned.nodeElseBlockRef = cloneNodeRef(sema, nodeElseBlockRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::IfVarDecl, &AstIfVarDecl::nodeVarRef, &AstIfVarDecl::nodeWhereRef, &AstIfVarDecl::nodeIfBlockRef, &AstIfVarDecl::nodeElseBlockRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstWithStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodePair<AstNodeId::WithStmt, &AstWithStmt::nodeExprRef, &AstWithStmt::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::WithStmt, &AstWithStmt::nodeExprRef, &AstWithStmt::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstWithVarDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodePair<AstNodeId::WithVarDecl, &AstWithVarDecl::nodeVarRef, &AstWithVarDecl::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::WithVarDecl, &AstWithVarDecl::nodeVarRef, &AstWithVarDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstDeferStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::DeferStmt, &AstDeferStmt::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::DeferStmt, &AstDeferStmt::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstWhileStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodePair<AstNodeId::WhileStmt, &AstWhileStmt::nodeExprRef, &AstWhileStmt::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::WhileStmt, &AstWhileStmt::nodeExprRef, &AstWhileStmt::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstForeachStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1849,13 +1808,7 @@ AstNodeRef AstForeachStmt::semaClone(Sema& sema, const CloneContext& cloneContex
 
 AstNodeRef AstForCStyleStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ForCStyleStmt>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstForCStyleStmt>();
-    cloned.nodeVarDeclRef   = cloneNodeRef(sema, nodeVarDeclRef, cloneContextAsInline(cloneContext));
-    cloned.nodeExprRef      = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    cloned.nodePostStmtRef  = cloneNodeRef(sema, nodePostStmtRef, cloneContextAsInline(cloneContext));
-    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::ForCStyleStmt, &AstForCStyleStmt::nodeVarDeclRef, &AstForCStyleStmt::nodeExprRef, &AstForCStyleStmt::nodePostStmtRef, &AstForCStyleStmt::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstForStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1871,17 +1824,12 @@ AstNodeRef AstForStmt::semaClone(Sema& sema, const CloneContext& cloneContext) c
 
 AstNodeRef AstParallelForStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ParallelForStmt>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstParallelForStmt>();
-    cloned.nodeBeginRef     = cloneNodeRef(sema, nodeBeginRef, cloneContextAsInline(cloneContext));
-    cloned.nodeEndRef       = cloneNodeRef(sema, nodeEndRef, cloneContextAsInline(cloneContext));
-    cloned.nodeClosureRef   = cloneNodeRef(sema, nodeClosureRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::ParallelForStmt, &AstParallelForStmt::nodeBeginRef, &AstParallelForStmt::nodeEndRef, &AstParallelForStmt::nodeClosureRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstInfiniteLoopStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::InfiniteLoopStmt, &AstInfiniteLoopStmt::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::InfiniteLoopStmt, &AstInfiniteLoopStmt::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstErrorManagementStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1926,64 +1874,42 @@ AstNodeRef AstFallThroughStmt::semaClone(Sema& sema, const CloneContext& cloneCo
 
 AstNodeRef AstSwitchStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::SwitchStmt>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstSwitchStmt>();
-    cloned.nodeExprRef      = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    cloned.spanChildrenRef  = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::SwitchStmt, &AstSwitchStmt::nodeExprRef, &AstSwitchStmt::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstSwitchCaseStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::SwitchCaseStmt>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstSwitchCaseStmt>();
-    cloned.nodeWhereRef     = cloneNodeRef(sema, nodeWhereRef, cloneContextAsInline(cloneContext));
-    cloned.spanExprRef      = cloneSpan(sema, spanExprRef, cloneContextAsInline(cloneContext));
-    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::SwitchCaseStmt, &AstSwitchCaseStmt::nodeWhereRef, &AstSwitchCaseStmt::spanExprRef, &AstSwitchCaseStmt::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerExpression::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::CompilerExpression, &AstCompilerExpression::nodeExprRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::CompilerExpression, &AstCompilerExpression::nodeExprRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerIf::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerIf>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstCompilerIf>();
-    cloned.nodeConditionRef = cloneNodeRef(sema, nodeConditionRef, cloneContextAsInline(cloneContext));
-    cloned.nodeIfBlockRef   = cloneNodeRef(sema, nodeIfBlockRef, cloneContextAsInline(cloneContext));
-    cloned.nodeElseBlockRef = cloneNodeRef(sema, nodeElseBlockRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::CompilerIf, &AstCompilerIf::nodeConditionRef, &AstCompilerIf::nodeIfBlockRef, &AstCompilerIf::nodeElseBlockRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerSwitch::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerSwitch>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstCompilerSwitch>();
-    cloned.nodeExprRef      = cloneNodeRef(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    cloned.spanCasesRef     = cloneSpan(sema, spanCasesRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::CompilerSwitch, &AstCompilerSwitch::nodeExprRef, &AstCompilerSwitch::spanCasesRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerSwitchCase::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerSwitchCase>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstCompilerSwitchCase>();
-    cloned.spanExprRef      = cloneSpan(sema, spanExprRef, cloneContextAsInline(cloneContext));
-    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::CompilerSwitchCase, &AstCompilerSwitchCase::spanExprRef, &AstCompilerSwitchCase::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerScope::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::CompilerScope, &AstCompilerScope::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::CompilerScope, &AstCompilerScope::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerRunBlock::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::CompilerRunBlock, &AstCompilerRunBlock::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::CompilerRunBlock, &AstCompilerRunBlock::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerCodeBlock::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -1998,21 +1924,17 @@ AstNodeRef AstCompilerCodeBlock::semaClone(Sema& sema, const CloneContext& clone
 
 AstNodeRef AstCompilerShortFunc::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CompilerShortFunc>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstCompilerShortFunc>();
-    cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
-    cloned.spanPartsRef     = cloneSpan(sema, spanPartsRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::CompilerShortFunc, &AstCompilerShortFunc::nodeBodyRef, &AstCompilerShortFunc::spanPartsRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerFunc::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::CompilerFunc, &AstCompilerFunc::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::CompilerFunc, &AstCompilerFunc::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerMessageFunc::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodePair<AstNodeId::CompilerMessageFunc, &AstCompilerMessageFunc::nodeParamRef, &AstCompilerMessageFunc::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::CompilerMessageFunc, &AstCompilerMessageFunc::nodeParamRef, &AstCompilerMessageFunc::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerInject::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2112,7 +2034,7 @@ AstNodeRef AstIntrinsicCall::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstIntrinsicCallVariadic::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::IntrinsicCallVariadic, &AstIntrinsicCallVariadic::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::IntrinsicCallVariadic, &AstIntrinsicCallVariadic::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstIntrinsicInit::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2154,7 +2076,7 @@ AstNodeRef AstIntrinsicPostMove::semaClone(Sema& sema, const CloneContext& clone
 
 AstNodeRef AstAliasDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::AliasDecl, &AstAliasDecl::nodeExprRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::AliasDecl, &AstAliasDecl::nodeExprRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstParenExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2181,7 +2103,7 @@ AstNodeRef AstCountOfExpr::semaClone(Sema& sema, const CloneContext& cloneContex
 
 AstNodeRef AstDiscardExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::DiscardExpr, &AstDiscardExpr::spanExprRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::DiscardExpr, &AstDiscardExpr::spanExprRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstErrorManagementExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2442,46 +2364,42 @@ AstNodeRef AstMemberAccessExpr::semaClone(Sema& sema, const CloneContext& cloneC
 
 AstNodeRef AstQualifiedType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::QualifiedType, &AstQualifiedType::nodeTypeRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::QualifiedType, &AstQualifiedType::nodeTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstMoveRefType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::MoveRefType, &AstMoveRefType::nodePointeeTypeRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::MoveRefType, &AstMoveRefType::nodePointeeTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstValuePointerType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::ValuePointerType, &AstValuePointerType::nodePointeeTypeRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::ValuePointerType, &AstValuePointerType::nodePointeeTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstBlockPointerType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::BlockPointerType, &AstBlockPointerType::nodePointeeTypeRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::BlockPointerType, &AstBlockPointerType::nodePointeeTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstSliceType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::SliceType, &AstSliceType::nodePointeeTypeRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::SliceType, &AstSliceType::nodePointeeTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstArrayType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef   = cloneNodeCopy<AstNodeId::ArrayType>(sema, *this);
-    auto&            cloned   = sema.node(newRef).cast<AstArrayType>();
-    cloned.spanDimensionsRef  = cloneSpan(sema, spanDimensionsRef, cloneContextAsInline(cloneContext));
-    cloned.nodePointeeTypeRef = cloneNodeRef(sema, nodePointeeTypeRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::ArrayType, &AstArrayType::spanDimensionsRef, &AstArrayType::nodePointeeTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstSimdType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::SimdType, &AstSimdType::nodeArrayTypeRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::SimdType, &AstSimdType::nodeArrayTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstNamedType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::NamedType, &AstNamedType::nodeIdentRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::NamedType, &AstNamedType::nodeIdentRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstBuiltinType::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2504,21 +2422,17 @@ AstNodeRef AstVariadicType::semaClone(Sema& sema, const CloneContext& cloneConte
 
 AstNodeRef AstTypedVariadicType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::TypedVariadicType, &AstTypedVariadicType::nodeTypeRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::TypedVariadicType, &AstTypedVariadicType::nodeTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCodeType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    const AstNodeRef newRef = cloneNodeCopy<AstNodeId::CodeType>(sema, *this);
-    auto&            cloned = sema.node(newRef).cast<AstCodeType>();
-    cloned.nodeTypeRef      = cloneNodeRef(sema, nodeTypeRef, cloneContextAsInline(cloneContext));
-    cloned.spanParamsRef    = cloneSpan(sema, spanParamsRef, cloneContextAsInline(cloneContext));
-    return newRef;
+    return cloneNodeMembers<AstNodeId::CodeType, &AstCodeType::nodeTypeRef, &AstCodeType::spanParamsRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCodeParam::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::CodeParam, &AstCodeParam::nodeTypeRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::CodeParam, &AstCodeParam::nodeTypeRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstQuotedExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2540,17 +2454,17 @@ AstNodeRef AstQuotedListExpr::semaClone(Sema& sema, const CloneContext& cloneCon
 
 AstNodeRef AstGenericParamList::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::GenericParamList, &AstGenericParamList::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::GenericParamList, &AstGenericParamList::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstGenericParamValue::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodePair<AstNodeId::GenericParamValue, &AstGenericParamValue::nodeTypeRef, &AstGenericParamValue::nodeAssignRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::GenericParamValue, &AstGenericParamValue::nodeTypeRef, &AstGenericParamValue::nodeAssignRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstGenericParamType::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::GenericParamType, &AstGenericParamType::nodeAssignRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::GenericParamType, &AstGenericParamType::nodeAssignRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCastExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2629,52 +2543,52 @@ AstNodeRef AstStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext
     // Keep local generic declarations intact when they are cloned as part of an
     // enclosing generic/function instantiation. Actual generic struct instances
     // still clear their own generic signature in createGenericInstanceSymbol.
-    return cloneAggregateDecl<AstNodeId::StructDecl>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::StructDecl, &AstStructDecl::spanGenericParamsRef, &AstStructDecl::spanWhereRef, &AstStructDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstInterfaceDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneAggregateDecl<AstNodeId::InterfaceDecl>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::InterfaceDecl, &AstInterfaceDecl::spanGenericParamsRef, &AstInterfaceDecl::spanWhereRef, &AstInterfaceDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstUnionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneAggregateDecl<AstNodeId::UnionDecl>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::UnionDecl, &AstUnionDecl::spanGenericParamsRef, &AstUnionDecl::spanWhereRef, &AstUnionDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAnonymousStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::AnonymousStructDecl, &AstAnonymousStructDecl::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::AnonymousStructDecl, &AstAnonymousStructDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAnonymousUnionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::AnonymousUnionDecl, &AstAnonymousUnionDecl::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::AnonymousUnionDecl, &AstAnonymousUnionDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAggregateBody::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::AggregateBody, &AstAggregateBody::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::AggregateBody, &AstAggregateBody::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstInterfaceBody::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::InterfaceBody, &AstInterfaceBody::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::InterfaceBody, &AstInterfaceBody::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstEnumBody::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::EnumBody, &AstEnumBody::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::EnumBody, &AstEnumBody::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstEnumDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodePair<AstNodeId::EnumDecl, &AstEnumDecl::nodeTypeRef, &AstEnumDecl::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::EnumDecl, &AstEnumDecl::nodeTypeRef, &AstEnumDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstEnumValue::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::EnumValue, &AstEnumValue::nodeInitRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::EnumValue, &AstEnumValue::nodeInitRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstSuffixLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2734,7 +2648,7 @@ AstNodeRef AstConstraintExpr::semaClone(Sema& sema, const CloneContext& cloneCon
 
 AstNodeRef AstConstraintBlock::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneSingleMember<AstNodeId::ConstraintBlock, &AstConstraintBlock::spanChildrenRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::ConstraintBlock, &AstConstraintBlock::spanChildrenRef>(sema, *this, cloneContext);
 }
 
 SWC_END_NAMESPACE();

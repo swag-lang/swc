@@ -17,8 +17,6 @@ the checkouts. Every build/test has fresh machine-load admission and a six-worke
 | Share relocation-target insertion | Two payload producers used the same function-symbol/data-offset dispatch. A header-side `DataSegment::addRelocation` overload retains that dispatch, target shard/offset/symbol fields and unresolved-function flag. Callers retain their loops and absolute-offset arithmetic. Each insertion still takes the same lock, appends the same record and updates the same index/version; no descriptor layout or relocation format changes. The aggregate materializer retains 337 instructions, 30 calls, its final offset and 0x138-byte stack; global allocation retains its 57 calls and 0x1B0-byte stack, with one fewer instruction. | DevMode and Release builds; two permanent union-constant/global-function-pointer inputs pass eight native tests in `devmode`. |
 | Centralize standard includes and make source-range dependencies direct | Remove 18 standard-library includes from 14 project headers. Their translation units already receive those declarations through the required PCH; add the sole missing central declaration, `<cstring>`, there. The early CPU guard and vendored mimalloc translation unit do not consume the changed headers. `TypeInfo.h` declares no source-range type, so remove that dependency and include its declaration directly in four headers that actually use it. No declarations, expressions, type layouts or runtime behavior change. | Complete DevMode and Release builds, including both PCH rebuilds. These dependency-only edits are validated at their compilation boundary. |
 
-Commands, from this worktree:
-
 The default-argument constant selection is now shared by semantic execution
 and call code generation in `SemaCallArgument::tryResolveDefaultConstant`.
 It initializes the same invalid reference, selects the same explicit constant,
@@ -33,6 +31,21 @@ their compile-time assertions, including `#run` and generic allocator calls.
 Two template/callback trials were discarded: they redistributed work into
 callers and enlarged stack frames. The retained plain inline selector shares
 the duplicated switch without introducing a callback or template instance.
+
+The raw-string and unescaped-string arms now share their identical constant
+construction. The raw guard still short-circuits the escaped-token query, and
+multiline normalization and escape decoding retain their original order.
+Square-root and logarithm domain checks likewise share the identical compare
+and conditional-jump emission; their predicates retain the same order and
+short-circuiting, and the asin/acos arm is unchanged. These edits select the
+same Micro operations and descriptors for every input. The literal function
+keeps its 0x1E0-byte stack; the math helper keeps its direct-call count and
+reduces its stack from 0x78 to 0x70 bytes. DevMode builds; both permanent
+string inputs pass semantic checking and compile-time assertions, without
+executing runtime tests. The permanent math-safety input passes 11 guarded
+tests and its expected-diagnostic verification in `devmode`.
+
+Commands, from this worktree:
 
 ```text
 MSBuild.exe swc.vcxproj /t:Build /p:Configuration=DevMode /p:Platform=x64 /m:6 /p:SwcCompileJobs=6

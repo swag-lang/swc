@@ -732,6 +732,31 @@ namespace
         return std::ranges::any_of(children, [&](AstNodeRef childRef) { return loopBodyBreaksOut(sema, childRef); });
     }
 
+    bool compoundStopsLocalFlow(Sema& sema, SpanRef childrenRef, SemaHelpers::LocalFlowStop stop)
+    {
+        if (!sema.ast().hasSpan(childrenRef))
+            return false;
+
+        const auto children = sema.ast().nodeSpan(childrenRef);
+        if (!children.size())
+            return false;
+
+        // Block checks need only the final statement; function checks accept any exit.
+        if (stop != SemaHelpers::LocalFlowStop::Function)
+            return SemaHelpers::stopsLocalFlow(sema, sema.ast().nthNode(childrenRef, children.size() - 1), stop);
+
+        for (auto chunk = children.chunksBegin(); chunk != children.chunksEnd(); ++chunk)
+        {
+            for (const AstNodeRef childRef : std::span(static_cast<const AstNodeRef*>(chunk->ptr), chunk->count))
+            {
+                if (SemaHelpers::stopsLocalFlow(sema, childRef, stop))
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     bool endsWithFallthrough(Sema& sema, AstNodeRef bodyRef)
     {
         if (bodyRef.isInvalid())
@@ -853,23 +878,19 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
         }
 
         case AstNodeId::EmbeddedBlock:
+            return compoundStopsLocalFlow(sema, node.cast<AstEmbeddedBlock>().spanChildrenRef, stop);
+
         case AstNodeId::FunctionBody:
+            return compoundStopsLocalFlow(sema, node.cast<AstFunctionBody>().spanChildrenRef, stop);
+
         case AstNodeId::SwitchCaseBody:
+            return compoundStopsLocalFlow(sema, node.cast<AstSwitchCaseBody>().spanChildrenRef, stop);
+
         case AstNodeId::ElseStmt:
+            return compoundStopsLocalFlow(sema, node.cast<AstElseStmt>().spanChildrenRef, stop);
+
         case AstNodeId::ElseIfStmt:
-        {
-            SmallVector<AstNodeRef> children;
-            node.collectChildrenFromAst(children, sema.ast());
-            if (children.empty())
-                return false;
-
-            // Any function-exiting statement stops the body. Block checks use
-            // only the last statement; unreachable-code checking handles earlier jumps.
-            if (stop != LocalFlowStop::Function)
-                return stopsLocalFlow(sema, children.back(), stop);
-
-            return std::ranges::any_of(children, [&](AstNodeRef childRef) { return stopsLocalFlow(sema, childRef, stop); });
-        }
+            return compoundStopsLocalFlow(sema, node.cast<AstElseIfStmt>().spanChildrenRef, stop);
 
         // These statements contain bodies but are not block-level jumps.
         // Inspect them only for function exits, avoiding false unreachable reports.

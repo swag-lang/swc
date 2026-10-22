@@ -13,6 +13,7 @@ is unchanged. No timing or peak-memory measurement is made.
 | 6.2 | Share forty single-child/span AST clone callbacks through a file-local, compile-time member selector. Each retains its exact node kind, copied payload reset, field, inline clone context, node-versus-span routine and operation order. Node and span selection adds no runtime branch or indirection. All forty emitted callbacks retain their instruction counts, call counts, final instruction offsets and stack reservations; no helper is outlined. The DevMode executable remains 16,658,944 bytes, including the inherited owner-metadata change. | Incremental DevMode build; the complete JIT suite passes all 1,539 tests in `devmode`. |
 | 6.3 | Share eight two-child AST clone callbacks with compile-time member selectors, retaining both field order and each inline clone context. Explicit inlining preserves the original callback boundary for the larger variable-declaration node. Forty-seven of the forty-eight shared callbacks retain their instruction/call counts, final offsets and stack frames; the variable callback changes from 145 instructions/10 calls/0x58 stack bytes to 118/8/0x48. No clone helper is outlined and no runtime dispatch is introduced. | Incremental DevMode build; the final compiler passes all 1,539 JIT tests in `devmode`, including the inherited byte-pair loop integration. |
 | 6.4 | Unify node/span cloning across 66 callbacks, including fifteen mixed or longer child lists and the three aggregate declarations. Compile-time field selectors preserve every field, operation order and inline context. Each field assignment remains a separate full expression. Token spans, conditional children and distinct callable contexts keep their own policies. Sixty-one callbacks retain their complete code shape; the two conditional callbacks shrink, and three aggregate callbacks absorb their old outlined helper, removing that extra boundary. No callback's effective stack grows and no generic helper is outlined. | DevMode build; the final compiler passes all 1,539 JIT tests in `devmode`. Its source starts at `5ee1abfc1d`, before the later prompt-4 parser repair and narrowing-target batch are synchronized. |
+| 6.5 | Share the wait-source reference fallback for AST and source-code references. Compile-time selectors keep the current-state check/read, guarded owner getter and invalid fallback in the same order. The two state assignments retain their order. No runtime member-pointer dispatch, storage or allocation is introduced. The containing wait-state helper retains 121 instructions, zero calls, its final instruction offset and 0x20-byte stack. | DevMode build; all 1,540 JIT tests pass in `devmode`, including the synchronized parser repair and nullable-target regression. |
 
 Commands, from this worktree:
 
@@ -41,3 +42,18 @@ caller-owned-diagnostic factoring trials grew the pair builders' stack by
 16 bytes and changed scalar instruction counts. These layout/work differences
 block retaining those trials under this mechanical campaign; all trial source
 was reverted. No diagnostic text, span or expectation changes are retained.
+
+## Ten-batch correctness milestone
+
+The prompt-4 compiler source at `bfc51d7dac` passes all 1,623 C++ tests with
+`--dev-full` and all 3,928 native tests in `devmode`. The idle, pending-work
+and hardware recovery probes have their deliberate child failures and the
+enclosing tool exits zero. Both checks use separate fresh external cache roots.
+This milestone includes the 66-callback clone policy, statement-comma repair,
+nullable assignment-target traversal, member-owner reuse and inherited byte-pair
+loop integration. It precedes the JIT reference-fallback cleanup in batch 6.5.
+
+```text
+bin/swc.dm.exe unittest --dev-full --num-cores 6
+bin/swc.dm.exe --num-cores 6 tools/unittests.swgs dm native --num-cores 6 --rebuild
+```

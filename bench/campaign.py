@@ -74,6 +74,7 @@ def main():
                     help="require and measure bin/swc.exe without building")
     ap.add_argument("--swc-cores", type=int, default=0,
                     help="cap Swag compiler workers; 0 uses the compiler default")
+    ap.add_argument("--out", help="also retain raw results and incomplete checkpoints at this path")
     ap.add_argument("--report-only", action="store_true",
                     help="regenerate the page from the existing history, measure nothing")
     phase = ap.add_mutually_exclusive_group()
@@ -113,6 +114,8 @@ def main():
         extra += ["--label", args.label]
     if args.swc_cores:
         extra += ["--swc-cores", str(args.swc_cores)]
+    if args.out:
+        extra += ["--out", os.path.abspath(args.out)]
     if args.quick:
         extra.append("--quick")
     if args.build:

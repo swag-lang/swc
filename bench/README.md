@@ -41,7 +41,7 @@ minutes on the benchmark laptop and needs it plugged in and otherwise idle. Othe
 `compile.py`, `parsecache.py` and `cachecheck.py` are investigation tools that record nothing;
 their usage is in their own headers.
 
-`driver.py --out <path>` also preserves completed sections and tasks between measurements.
+`tools/bench.swgs --out <path>` (or `driver.py --out <path>`) also preserves completed sections and tasks between measurements.
 These checkpoints carry `incomplete: true` until the campaign finishes and are never published
 as accepted campaigns. A command error keeps its complete report in the log and raw output.
 

@@ -19,6 +19,21 @@ the checkouts. Every build/test has fresh machine-load admission and a six-worke
 
 Commands, from this worktree:
 
+The default-argument constant selection is now shared by semantic execution
+and call code generation in `SemaCallArgument::tryResolveDefaultConstant`.
+It initializes the same invalid reference, selects the same explicit constant,
+and leaves caller locations to their original execution context. Both private
+wrappers keep their source-range, function-context and failure propagation.
+The two DevMode wrappers and their three containing callers retain their
+instruction/call counts, final offsets and stack reservations. The linked
+DevMode executable remains 16,622,080 bytes. DevMode and Release builds pass;
+three permanent caller-location/default-argument inputs pass 18 tests and
+their compile-time assertions, including `#run` and generic allocator calls.
+
+Two template/callback trials were discarded: they redistributed work into
+callers and enlarged stack frames. The retained plain inline selector shares
+the duplicated switch without introducing a callback or template instance.
+
 ```text
 MSBuild.exe swc.vcxproj /t:Build /p:Configuration=DevMode /p:Platform=x64 /m:6 /p:SwcCompileJobs=6
 MSBuild.exe swc.vcxproj /t:Build /p:Configuration=Release /p:Platform=x64 /m:6 /p:SwcCompileJobs=6

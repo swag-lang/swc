@@ -20,6 +20,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaCallArgument.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
@@ -810,25 +811,11 @@ namespace
 
     Result defaultArgumentConstantRef(CodeGen& codeGen, ConstantRef& outCstRef, AstNodeRef callRef, const ResolvedCallArgument& arg)
     {
-        outCstRef = ConstantRef::invalid();
+        if (SemaCallArgument::tryResolveDefaultConstant(outCstRef, arg))
+            return Result::Continue;
 
-        switch (arg.defaultKind)
-        {
-            case CallArgumentDefaultKind::Constant:
-                outCstRef = arg.defaultCstRef;
-                return Result::Continue;
-
-            case CallArgumentDefaultKind::CallerLocation:
-            {
-                const SourceCodeRange codeRange = codeGen.node(callRef).codeRangeWithChildren(codeGen.ctx(), codeGen.ast());
-                return ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), outCstRef, codeRange, currentLocationFunction(codeGen));
-            }
-
-            case CallArgumentDefaultKind::None:
-                break;
-        }
-
-        return Result::Continue;
+        const SourceCodeRange codeRange = codeGen.node(callRef).codeRangeWithChildren(codeGen.ctx(), codeGen.ast());
+        return ConstantHelpers::makeSourceCodeLocation(codeGen.sema(), outCstRef, codeRange, currentLocationFunction(codeGen));
     }
 
     // An explicit '#move' argument bound to a by-value aggregate parameter: move the source

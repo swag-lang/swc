@@ -808,15 +808,16 @@ namespace PostRaPeephole
     // Solve demands over straight-line blocks so a scalar use beyond a branch
     // does not make all four lanes live. The same proof permits contraction when
     // the product is dead in every lane and the floating policy allows FMA.
+    // The lane proof also removes clears whose entire result is overwritten.
     // Pending rewrites stay opaque.
-    void optimizeFloatInstructions(Context& ctx)
+    void optimizeFloatInstructions(Context& ctx, bool eraseClears)
     {
         if (!ctx.builder)
             return;
         const auto& cfg = ctx.builder->controlFlowGraph();
         if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
             return;
-        const bool allowFusion = ctx.encoder && ctx.encoder->supportsFusedFloatMultiplyAdd() && ctx.builder->backendBuildCfg().math.fma;
+        const bool allowFusion = !eraseClears && ctx.encoder && ctx.encoder->supportsFusedFloatMultiplyAdd() && ctx.builder->backendBuildCfg().math.fma;
         const auto refs        = cfg.instructionRefs();
         bool       candidate   = false;
         for (const auto ref : refs)
@@ -824,15 +825,20 @@ namespace PostRaPeephole
             const auto* inst = ctx.storage->ptr(ref);
             if (ctx.isClaimed(ref))
                 continue;
+            const auto* ops = inst->ops(*ctx.operands);
+            if (eraseClears && inst->op == MicroInstrOpcode::ClearReg && ops && ops[0].reg.isFloat())
+            {
+                candidate = true;
+                break;
+            }
             FloatBinary binary;
             if (allowFusion && floatBinary(binary, *inst, *ctx.operands) && (binary.op == MicroOp::FloatAdd || binary.op == MicroOp::FloatSubtract))
             {
                 candidate = true;
                 break;
             }
-            if (inst->op != MicroInstrOpcode::LoadRegReg)
+            if (eraseClears || inst->op != MicroInstrOpcode::LoadRegReg)
                 continue;
-            const auto* ops = inst->ops(*ctx.operands);
             if (ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
                 (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
             {
@@ -871,8 +877,14 @@ namespace PostRaPeephole
                     i -= 2;
                     continue;
                 }
+                if (eraseClears && inst->op == MicroInstrOpcode::ClearReg && !ctx.isClaimed(ref) && ops[0].reg.isFloat() &&
+                    !demand.lanes[ops[0].reg.index()] && ctx.claimAll({ref}))
+                {
+                    ctx.emitErase(ref);
+                    continue;
+                }
                 bool widen = false;
-                if (inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
+                if (!eraseClears && inst->op == MicroInstrOpcode::LoadRegReg && !ctx.isClaimed(ref) &&
                     ops[0].reg.isFloat() && ops[1].reg.isFloat() && ops[0].reg != ops[1].reg &&
                     (ops[2].opBits == MicroOpBits::B32 || ops[2].opBits == MicroOpBits::B64))
                     widen = !(demand.lanes[ops[0].reg.index()] & ~FloatLaneDemand::mask(ops[2].opBits));

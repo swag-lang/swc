@@ -1042,14 +1042,20 @@ void Parser::expectEndStatement()
     if (consumeIf(TokenId::SymSemiColon).isValid())
         return;
 
-    const Diagnostic diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
-    SourceCodeRange  codeRange = curToken_[-1].codeRange(*ctx_, ast_->srcView());
-    codeRange.column += codeRange.len;
-    codeRange.offset += codeRange.len;
-    codeRange.len = 1;
-    diag.last().addSpan(codeRange, "");
-    diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_next_statement, DiagnosticSeverity::Note);
-    diag.report(*ctx_);
+    // A comma cannot start a statement, so inserting ';' cannot repair this boundary.
+    if (is(TokenId::SymComma))
+        raiseError(DiagnosticId::parser_err_unexpected_token, ref());
+    else
+    {
+        const Diagnostic diag      = reportError(DiagnosticId::parser_err_expected_sep_stmt, ref().offset(-1));
+        SourceCodeRange  codeRange = curToken_[-1].codeRange(*ctx_, ast_->srcView());
+        codeRange.column += codeRange.len;
+        codeRange.offset += codeRange.len;
+        codeRange.len = 1;
+        diag.last().addSpan(codeRange, "");
+        diag.last().addSpan(ast_->srcView().tokenCodeRange(*ctx_, ref()), DiagnosticId::parser_note_next_statement, DiagnosticSeverity::Note);
+        diag.report(*ctx_);
+    }
     skipTo({TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket, TokenId::SymSemiColon}, SkipUntilFlagsE::EolBefore);
 }
 

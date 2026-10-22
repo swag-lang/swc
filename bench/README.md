@@ -41,6 +41,10 @@ minutes on the benchmark laptop and needs it plugged in and otherwise idle. Othe
 `compile.py`, `parsecache.py` and `cachecheck.py` are investigation tools that record nothing;
 their usage is in their own headers.
 
+`driver.py --out <path>` also preserves completed sections and tasks between measurements.
+These checkpoints carry `incomplete: true` until the campaign finishes and are never published
+as accepted campaigns. A command error keeps its complete report in the log and raw output.
+
 For every generated-code optimization batch, run `microdiff.py --verbose` over all twelve tasks
 against a preserved pre-change compiler. This rebuilds each task once per compiler with isolated
 temporary caches and executes it once to check its checksum; it takes no timing samples. Review

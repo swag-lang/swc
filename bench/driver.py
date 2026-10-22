@@ -56,7 +56,15 @@ def log(message=""):
 
 def process_error(r):
     output = "\n".join(s.rstrip() for s in (r["stdout"], r["stderr"]) if s)
-    return "exit=%d\n%s" % (r["exit"], output[-4000:])
+    return "exit=%d\n%s" % (r["exit"], output)
+
+
+def write_campaign(path, results, *, incomplete=False):
+    record = results | {"incomplete": True} if incomplete else results
+    temporary = str(path) + ".tmp"
+    with open(temporary, "w", encoding="utf-8") as output:
+        json.dump(record, output, indent=1)
+    os.replace(temporary, path)
 
 
 class Campaign:
@@ -222,6 +230,7 @@ class Campaign:
                     self.loop_sample(job)
                 except (sampler.SampleError, RuntimeError) as error:
                     errors[role] = str(error)
+                    log("  %s/%s: %s" % (wid, role, error))
             units = [tuple(r for r in ("subject", "reference") if r in jobs and r not in errors)]
             series = sampler.run_rounds([u for u in units if u], lambda n, _: self.loop_sample(jobs[n]),
                                         self.plan("loop"), "wall_ms", self.rng, self.waits,
@@ -232,7 +241,7 @@ class Campaign:
             for role in jobs:
                 s = series.get(role)
                 e = s.estimate() if s else None
-                line += "  %s %s" % (role, ("%.1f ms (n=%d)" % (e.value, e.n)) if e else errors.get(role, "-")[:60])
+                line += "  %s %s" % (role, ("%.1f ms (n=%d)" % (e.value, e.n)) if e else errors.get(role, "-").partition("\n")[0][:60])
             log(line)
         return out
 
@@ -417,10 +426,14 @@ def main(argv=None):
         results["hello_build"] = campaign.measure_builds({n: make() for n, make in hello.items() if n not in gone})
         log("== the edit-build loop ==")
         results["loop"] = campaign.measure_loop()
+        if args.out:
+            write_campaign(args.out, results, incomplete=True)
     if measure_run:
         log("== hello world, time to first output ==")
         specs = {n: s for n, s in tc.make_hello_runs(t, roles, args.swc_cores).items() if n not in gone}
         results["hello_run"] = campaign.measure_hello_runs(specs)
+        if args.out:
+            write_campaign(args.out, results, incomplete=True)
 
     for task in tasks:
         results["calibration"]["probes"][task] = probe()
@@ -453,6 +466,8 @@ def main(argv=None):
                     values = [s[key] for s in record["samples"]]
                     summary.append("%s %s %.1f" % (name, family, sorted(values)[len(values) // 2]))
         log("  " + "  ".join(summary))
+        if args.out:
+            write_campaign(args.out, results, incomplete=True)
 
     if measure_run:
         results["calibration"]["probes"]["allocator"] = probe()
@@ -488,8 +503,7 @@ def main(argv=None):
         "%.0f s waited for quiet" % (q["accepted"], q["set_aside"], q["contended"], 100 * q["contended_share"],
                                      q["quiet_waits_s"]))
     if args.out:
-        with open(args.out, "w", encoding="utf-8") as f:
-            json.dump(results, f, indent=1)
+        write_campaign(args.out, results)
         log("raw campaign also written to %s" % args.out)
     bad = campaign_errors(results)
     if bad:
@@ -515,8 +529,7 @@ def main(argv=None):
     folder = os.path.join(tc.BENCH, "results", "rejected" if rejected else "")
     os.makedirs(folder, exist_ok=True)
     raw = os.path.join(folder, "%s.json" % stamp)
-    with open(raw, "w", encoding="utf-8") as f:
-        json.dump(results, f, indent=1)
+    write_campaign(raw, results)
     if rejected:
         log("campaign archived in results/rejected/%s.json and NOT recorded: the machine was busy or "
             "changed power state" % stamp)

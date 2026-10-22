@@ -181,12 +181,6 @@ namespace
         return false;
     }
 
-    void computeKnownValues(std::vector<KnownValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
-    {
-        const KnownValueContext context{&ssaState, &storage, &operands};
-        computeSsaValueFixedPoint<KnownValue, KnownValueTraits>(outValues, outFlags, ssaState, context, tryInferInstructionConstant);
-    }
-
     void buildProgramLayout(ProgramLayout& outLayout, const MicroStorage& storage, const MicroOperandStorage& operands, RetainedCountTable* outLabelReferences = nullptr, bool* outIndirectJump = nullptr)
     {
         outLayout.order.clear();
@@ -8105,7 +8099,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
             {
                 SWC_ASSERT(context.ssaValueScratch != nullptr);
                 MicroSsaValueScratch& scratch = *context.ssaValueScratch;
-                computeKnownValues(scratch.knownValues, scratch.flags, *ssaState, storage, operands);
+                computeSsaKnownValues<tryInferInstructionConstant>(scratch.knownValues, scratch.flags, *ssaState, storage, operands);
                 lateChanged |= foldDecidedBooleans(storage, operands, *ssaState, scratch.knownValues, scratch.flags);
             }
         }
@@ -8139,7 +8133,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     auto&                 knownValues = scratch.knownValues;
     auto&                 knownFlags  = scratch.flags;
     if (ssaState && ssaState->isValid())
-        computeKnownValues(knownValues, knownFlags, *ssaState, storage, operands);
+        computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
 
     bool changed = false;
 

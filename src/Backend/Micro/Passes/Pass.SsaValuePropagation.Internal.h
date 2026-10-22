@@ -164,4 +164,13 @@ void computeSsaValueFixedPoint(std::vector<T_VALUE>& outValues, std::vector<uint
     }
 }
 
+using MicroSsaTryInferKnownValueFn = SsaTryInferInstructionFn<MicroSsaKnownValue, MicroSsaKnownValueTraits, MicroSsaKnownValueContext>;
+
+template<MicroSsaTryInferKnownValueFn TryInferInstruction>
+inline void computeSsaKnownValues(std::vector<MicroSsaKnownValue>& outValues, std::vector<uint8_t>& outFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
+{
+    const MicroSsaKnownValueContext context{&ssaState, &storage, &operands};
+    computeSsaValueFixedPoint<MicroSsaKnownValue, MicroSsaKnownValueTraits>(outValues, outFlags, ssaState, context, TryInferInstruction);
+}
+
 SWC_END_NAMESPACE();

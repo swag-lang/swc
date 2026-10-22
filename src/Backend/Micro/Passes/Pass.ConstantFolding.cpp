@@ -616,12 +616,6 @@ namespace
         }
     }
 
-    void computeKnownValues(std::vector<KnownValue>& knownValues, std::vector<uint8_t>& knownFlags, const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
-    {
-        const KnownValueContext context{&ssaState, &storage, &operands};
-        computeSsaValueFixedPoint<KnownValue, KnownValueTraits>(knownValues, knownFlags, ssaState, context, tryInferInstructionConstant);
-    }
-
     bool tryFoldCopyFromKnown(const MicroSsaState& ssaState, const std::vector<KnownValue>& knownValues, const std::vector<uint8_t>& knownFlags, MicroInstrRef instRef, MicroInstr& inst, MicroInstrOperand* ops)
     {
         if (inst.op != MicroInstrOpcode::LoadRegReg)
@@ -974,7 +968,7 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     MicroSsaValueScratch& scratch     = *context.ssaValueScratch;
     auto&                 knownValues = scratch.knownValues;
     auto&                 knownFlags  = scratch.flags;
-    computeKnownValues(knownValues, knownFlags, *ssaState, storage, operands);
+    computeSsaKnownValues<tryInferInstructionConstant>(knownValues, knownFlags, *ssaState, storage, operands);
 
     // Publish only this run's addresses and context pointers to the constant-load folds. The
     // address table starts fresh: clearing a kept one would cost its largest size ever, not

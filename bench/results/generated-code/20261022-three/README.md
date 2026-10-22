@@ -100,3 +100,40 @@ The new `repeated_compare_exits` source test passes through JIT and native Relea
 with Micro validation, covering 16,641 signed cursor ranges and extreme inputs.
 The analysis indexes labels and scans candidate edges in linear time. Timing is
 **not measured** for this batch; the grouped campaign owns the runtime verdict.
+
+## Copies across calls
+
+After ABI arguments have been staged, a full-width copy between independent
+virtual integer registers can precede the call. The source must be dead on every
+successor after the copy, including loop back edges; physical operands, partial
+writes and copies involving an indirect call target are left in place. This runs
+once on converged pre-allocation code and preserves the order of copy chains.
+
+Sort's recursive qsort changes **99 to 95 emitted instructions**, with its 23
+explicit memory operands and two call sites unchanged. Its cursors now use
+transient registers: only three persistent registers are saved, instead of five.
+Every invocation avoids two pushes and two pops, including the insertion-sort
+leaves. Scans, swaps, arithmetic and recursion stay the same. See emitted x64
+[before](sort-copy-base.asm) and [after](sort-copy-new.asm).
+
+All twelve checksums pass; [the full Micro comparison](copy-microdiff.txt) covers
+both kernels and reachable runtime code. Wordfreq's qsort has the same executed
+instructions, spills, memory accesses and calls, with renamed registers and its
+recursive cursor copy moved before the call. The other eleven task kernels are
+unchanged. Shared runtime differences were inspected: allocator release and task
+recycling add one entry copy, with their loop body counts and spill traffic
+unchanged; thread joining adds one argument copy; TLS heap initialization trades
+one saved register for an entry branch/copy. Error-context traversal retains its
+counts, and error-message traversal loses a saved register and two instructions.
+Heap retirement moves one existing spill reload before a call. These paths are
+outside the benchmark kernels' timed regions. Atomic overload order and generated
+function hashes were paired before review; they do not represent changes.
+
+All 1,545 in-memory C++ tests pass. The new source fixture passes through JIT and
+native Release with Micro validation, checking call arguments, the loop-carried
+result, and an observable trace for 2,145 input/iteration combinations. No temporary
+instrumentation remains. A grouped full timing campaign was started after the
+previous three batches, then interrupted because persistent external contention
+produced edit-loop median intervals of +/-42.4% and +/-87.8%. Its log is preserved
+outside the checkout. No result from that attempt is published or counted as a
+win. Runtime gains remain **unconfirmed** until an accepted campaign.

@@ -1,0 +1,247 @@
+py : Could not find platform independent libraries <prefix>
+Au caractère Ligne:2 : 1
++ py -3 bench/microdiff.py --base 'C:\Users\chris\AppData\Local\swc-age ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Could not find ...raries <prefix>:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+== wordfreq: checksum 130489, 20 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Wordfreq.qsort                                 125 instr / 50 mem / 3 calls -> 125 instr / 50 mem / 3 calls
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.add                           11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.add#2                         12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.load                          3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.load#2                        2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub#2                         13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== csvagg: checksum 24828641, 23 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.add                           12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.add#2                         11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.load                          2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.load#2                        3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store                         2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.store#2                       3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub                           13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub#2                         12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.atomicGet                                 2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.atomicGet#2                               3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== sha256: checksum 2503168387, 11 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== dijkstra: checksum 4431000, 17 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub#2                         13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== raytrace: checksum 56061776, 13 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== leven: checksum 67441, 15 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.load                          3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.load#2                        2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub#2                         13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== chacha: checksum 633277775, 11 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== nbody: checksum 169096566666, 21 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.add                           11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.add#2                         12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.load                          3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.load#2                        2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub#2                         13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.atomicGet                                 3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.atomicGet#2                               2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== fannkuch: checksum 8629030, 11 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== binarytrees: checksum 674478, 15 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.add                           12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.add#2                         11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.AtomicValue.sub#2                         12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== lz77: checksum 622942003053, 21 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.add                           11 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls   LOSS
+      loop 0: 7 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.add#2                         12 instr / 2 mem / 0 calls -> 11 instr / 2 mem / 0 calls
+      loop 0: 8 instr / 1 mem / 0 calls -> 7 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store                         3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.store#2                       2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub                           12 instr / 2 mem / 0 calls -> 13 instr / 2 mem / 0 calls   LOSS
+      loop 0: 8 instr / 1 mem / 0 calls -> 9 instr / 1 mem / 0 calls   LOSS
+  Swag.AtomicValue.sub#2                         13 instr / 2 mem / 0 calls -> 12 instr / 2 mem / 0 calls
+      loop 0: 9 instr / 1 mem / 0 calls -> 8 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.atomicGet                                 3 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.atomicGet#2                               2 instr / 1 mem / 0 calls -> 3 instr / 1 mem / 0 calls   LOSS
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)
+== sort: checksum 599499929, 14 changed/added/removed function(s), 0 changed with equal counts (use --verbose)
+  Sort.qsort                                     99 instr / 23 mem / 2 calls -> 95 instr / 23 mem / 2 calls
+  Allocator.releaseAll                           140 instr / 29 mem / 15 calls -> 141 instr / 29 mem / 15 calls   LOSS
+  Allocator.retireThreadHeap                     102 instr / 24 mem / 7 calls -> 102 instr / 24 mem / 7 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper      2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.AtomicValue.swagLifecycleInitWrapper#2    2 instr / 1 mem / 0 calls -> 2 instr / 1 mem / 0 calls
+  Swag.runWork.__lambda_36dfcba39d3e6bbd         added (1 instr / 0 mem / 0 calls)
+  Swag.runWork.__lambda_cddaf4473693b7fb         removed (1 instr / 0 mem / 0 calls)
+  Swag.setFastThreadHeap                         30 instr / 2 mem / 3 calls -> 31 instr / 2 mem / 3 calls   LOSS
+  TaskGroup.recycle                              22 instr / 5 mem / 2 calls -> 23 instr / 5 mem / 2 calls   LOSS
+  __hostThreadJoin                               16 instr / 0 mem / 2 calls -> 17 instr / 0 mem / 2 calls   LOSS
+  __releaseErrContext                            94 instr / 23 mem / 6 calls -> 94 instr / 23 mem / 6 calls
+  __releaseErrMessages                           53 instr / 9 mem / 5 calls -> 51 instr / 9 mem / 5 calls
+      loop 2: 43 instr / 8 mem / 5 calls -> 42 instr / 8 mem / 5 calls
+  __run_expr_b3f0713fe681801b                    added (30 instr / 5 mem / 2 calls)
+  __run_expr_b9be6eede70a152f                    removed (30 instr / 5 mem / 2 calls)

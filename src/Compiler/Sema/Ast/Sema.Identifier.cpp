@@ -200,13 +200,6 @@ namespace
         return false;
     }
 
-    bool inlinePayloadUsesCallerScope(const SemaInlinePayload* inlinePayload)
-    {
-        return inlinePayload &&
-               inlinePayload->sourceFunction &&
-               inlinePayload->sourceFunction->attributes().hasMacroOrMixin();
-    }
-
     bool functionOrLexicalParentUsesCallerScope(const SymbolFunction* function)
     {
         while (function)
@@ -242,7 +235,7 @@ namespace
         if (inlinePayload != frameInlinePayload && inlinePayloadBindsSourceVariable(inlinePayload, symVar))
             return nullptr;
 
-        if (inlinePayloadUsesCallerScope(inlinePayload))
+        if (SemaInline::usesCallerScope(inlinePayload))
         {
             const SymbolFunction* callerFn = sema.currentFunction();
             if (callerFn && callerFn->ownsVariable(symVar))
@@ -733,7 +726,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
             // has no such incoming argument.
             for (const auto* payload = SemaHelpers::effectiveInlinePayload(sema); payload; payload = payload->parentInlinePayload)
             {
-                if (!payload->sourceFunction || inlinePayloadUsesCallerScope(payload))
+                if (!payload->sourceFunction || SemaInline::usesCallerScope(payload))
                     continue;
 
                 const SemaClone::ParamBinding* binding = nullptr;
@@ -792,7 +785,7 @@ Result AstIdentifier::semaPostNode(Sema& sema) const
         const IdentifierRef meId = sema.idMgr().predefined(IdentifierManager::PredefinedName::Me);
 
         const bool isMacroInjectClosureCapture = macroInjectStoredSymbol == sym && hasFlag(AstIdentifierFlagsE::InClosureCapture);
-        const bool isCallerScopeClosureCapture = hasFlag(AstIdentifierFlagsE::InClosureCapture) && (inlinePayloadUsesCallerScope(sema.frame().currentInlinePayload()) || functionOrLexicalParentUsesCallerScope(sema.currentFunction()));
+        const bool isCallerScopeClosureCapture = hasFlag(AstIdentifierFlagsE::InClosureCapture) && (SemaInline::usesCallerScope(sema.frame().currentInlinePayload()) || functionOrLexicalParentUsesCallerScope(sema.currentFunction()));
         const bool isImplicitReceiver          = symVar.idRef() == meId;
         const bool isCompilerDefined           = hasFlag(AstIdentifierFlagsE::InCompilerDefined);
 

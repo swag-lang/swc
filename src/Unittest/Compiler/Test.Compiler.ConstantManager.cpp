@@ -622,6 +622,38 @@ SWC_TEST_BEGIN(ConstantManager_ChecksSharedRelocationGraphsPerQuery)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ConstantManager_RelocationWalkHandlesTableGrowth)
+{
+    ConstantManager                 manager;
+    auto&                           segment = manager.shardDataSegment(0);
+    std::array<DataSegmentRef, 4096> roots;
+    for (DataSegmentRef& root : roots)
+        root = {.shardIndex = 0, .offset = segment.reserveSpan<uint64_t>(1).first};
+
+    auto* function = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), ctx.idMgr().addIdentifier("relocation_growth_target"), SymbolFlagsE::Zero);
+    bool  failed   = false;
+
+    // A fresh worker starts with an empty walk cache, so these roots force its table to grow.
+    std::thread worker([&] {
+        if (manager.hasUnpublishedFunctionRelocations(roots))
+        {
+            failed = true;
+            return;
+        }
+
+        segment.addFunctionRelocation(roots.back().offset, function, true);
+        if (!manager.hasUnpublishedFunctionRelocations(roots))
+            failed = true;
+        if (manager.hasUnpublishedFunctionRelocations(std::span(roots).first(roots.size() - 1)))
+            failed = true;
+    });
+    worker.join();
+
+    if (failed)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ConstantManager_SourceLocationsShareCompleteStorage)
 {
     ConstantManager             manager;

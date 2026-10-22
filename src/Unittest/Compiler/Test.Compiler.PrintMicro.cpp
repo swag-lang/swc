@@ -2,6 +2,8 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Micro/MicroBuilder.h"
+#include "Backend/Micro/MicroPrinter.h"
 #include "Support/Os/Os.h"
 #include "Unittest/Compiler/CompilerTestFile.h"
 #include "Unittest/Unittest.h"
@@ -150,6 +152,40 @@ namespace Inner { func addTwo(value: s32)->s32 => value + 2 }
         return loop;
     }
 }
+
+SWC_TEST_BEGIN(Compiler_PrintMicroShowsIndexedExtensions)
+{
+    for (const bool isSigned : {false, true})
+    {
+        MicroBuilder builder(ctx);
+        builder.emitLoadAmcRegMem(MicroReg::virtualIntReg(0), MicroOpBits::B64, MicroReg::virtualIntReg(1), MicroReg::virtualIntReg(2), 4, 32, MicroOpBits::B8);
+        auto* inst        = builder.instructions().ptr(builder.instructions().lastInstructionRef());
+        inst->op          = isSigned ? MicroInstrOpcode::LoadSignedExtAmcRegMem : MicroInstrOpcode::LoadZeroExtAmcRegMem;
+        inst->numOperands = 7;
+
+        const Utf8 listing = MicroPrinter::format(ctx, builder.instructions(), builder.operands());
+        if (listing.find("operand(s)") != Utf8::npos || listing.find(isSigned ? "sign_extend" : "zero_extend") == Utf8::npos)
+            return Result::Error;
+        for (const auto token : {"[", "0x4", "0x20", "b64", "b8"})
+        {
+            if (listing.find(token) == Utf8::npos)
+                return Result::Error;
+        }
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(Compiler_PrintMicroShowsThreeAddressImmediateOperands)
+{
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryRegRegImm(MicroReg::virtualIntReg(0), MicroReg::virtualIntReg(1), ApInt(0x12345, 64), MicroOp::MultiplySigned, MicroOpBits::B64);
+    const Utf8 listing = MicroPrinter::format(ctx, builder.instructions(), builder.operands());
+    if (listing.find("operand(s)") != Utf8::npos || listing.find("0x12345") == Utf8::npos || listing.find("b64") == Utf8::npos)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
 
 SWC_FILESYSTEM_TEST_BEGIN(Compiler_PrintMicroSelectsFunctionsFromTheCommandLine)
 {

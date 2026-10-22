@@ -919,6 +919,9 @@ namespace
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::LoadZeroExtRegMem:
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memBaseOffsetString(ops[1].reg, ops[4].valueU64, regPrintMode, encoder), false, ops[2].opBits, ops[3].opBits);
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), memAmcString(ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder), inst.op == MicroInstrOpcode::LoadSignedExtAmcRegMem, ops[3].opBits, ops[4].opBits);
             case MicroInstrOpcode::LoadSignedExtRegReg:
                 return naturalExtendInstruction(regName(ops[0].reg, regPrintMode, encoder), regName(ops[1].reg, regPrintMode, encoder), true, ops[2].opBits, ops[3].opBits);
             case MicroInstrOpcode::AddCarryRegImm:
@@ -2019,6 +2022,15 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegMemCastBits(out, ctx, ops, 0, 1, 2, 3, 4, regPrintMode, encoder);
                 break;
 
+            case MicroInstrOpcode::LoadSignedExtAmcRegMem:
+            case MicroInstrOpcode::LoadZeroExtAmcRegMem:
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendMemAmc(out, ctx, ops[1].reg, ops[2].reg, ops[5].valueU64, ops[6].valueU64, regPrintMode, encoder);
+                appendSep(out);
+                appendTypeBitsCast(out, ctx, ops[3].opBits, ops[4].opBits);
+                break;
+
             case MicroInstrOpcode::LoadSignedExtRegReg:
             case MicroInstrOpcode::LoadZeroExtRegReg:
                 appendRegRegCastBits(out, ctx, ops, 0, 1, 2, 3, regPrintMode, encoder);
@@ -2129,6 +2141,18 @@ Utf8 MicroPrinter::format(const TaskContext& ctx, const MicroStorage& instructio
                 appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
                 appendSep(out);
                 appendTypeBits(out, ctx, ops[1].opBits);
+                break;
+
+            case MicroInstrOpcode::OpBinaryRegRegImm:
+                appendColored(out, ctx, SyntaxColor::Code, microOpName(ops[3].microOp));
+                appendSep(out);
+                appendRegister(out, ctx, ops[0].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendRegister(out, ctx, ops[1].reg, regPrintMode, encoder);
+                appendSep(out);
+                appendImmediate(out, ctx, hexU64(ops[4].valueU64), false);
+                appendSep(out);
+                appendTypeBits(out, ctx, ops[2].opBits);
                 break;
 
             case MicroInstrOpcode::OpBinaryRegReg:

@@ -41,6 +41,14 @@ minutes on the benchmark laptop and needs it plugged in and otherwise idle. Othe
 `compile.py`, `parsecache.py` and `cachecheck.py` are investigation tools that record nothing;
 their usage is in their own headers.
 
+For every generated-code optimization batch, run `microdiff.py --verbose` over all twelve tasks
+against a preserved pre-change compiler. This rebuilds each task once per compiler with isolated
+temporary caches and executes it once to check its checksum; it takes no timing samples. Review
+changed hot loops, frame traffic, calls and dependencies, including equal-count changes and
+added/removed functions. Use `--save-dir C:\tmp\micro-review` to retain both listings and build
+outputs in a new directory. Static counts flag possible losses; they do not establish runtime
+performance. Long timing campaigns belong at campaign milestones.
+
 ## What a campaign measures
 
 Twelve workloads written in every language, each printing the same checksum:

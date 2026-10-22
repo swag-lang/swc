@@ -258,8 +258,8 @@ change the hypothesis or the task instead of measuring more.
 Static evidence is only safe when it covers everything the batch changed. A batch judged only on
 its target loop and a few hand-picked sentinels can add memory operands to shared paths such as
 the allocator fast paths, and an instruction cut on a target can have no measurable effect.
-Check the affected code and the paths it can reach. Run the full cross-task comparison
-periodically and whenever a change materially broadens its reach, not after every narrow batch.
+Check the affected code and the paths it can reach. Run the full twelve-task Micro comparison
+for every optimization batch, including narrow batches; this needs no timing campaign.
 
 GOAL
 
@@ -325,11 +325,12 @@ THE LOOP
   4. Verify the batch once: rebuild the needed compiler executable, run the smallest focused
      correctness suite that covers the changed path, and check the target benchmark checksum.
      Inspect the final generated hot path against the baseline. A checksum mismatch or semantic
-     failure rejects the batch. If the mechanism can affect shared code outside the target,
-     inspect its actual callers and one or two relevant sentinels now; reserve the full twelve-task
-     `microdiff.py` for every third accepted batch, before integrating a broader pass change, or
-     when evidence shows the affected scope is wider than expected. Reuse existing dumps and
-     results when sources and compiler revision have not changed.
+     failure rejects the batch. Run the full twelve-task `microdiff.py --verbose` comparison for
+     every batch, using separate caches and forced regeneration. Inspect every changed hot path
+     and reachable shared runtime path, including added/removed functions and changes with equal
+     counts. Reuse existing dumps only when sources, runtime, configuration and compiler revision
+     have not changed. This check compiles once per side and runs each task once for its checksum;
+     it does not measure a runtime improvement.
 
   5. Commit an accepted batch immediately after this verification, with the evidence in the commit
      body. Do not hold a verified change for a full campaign or another unrelated test suite. Keep
@@ -353,8 +354,8 @@ A batch is accepted when all of these hold:
     operands, spills, calls, or a shorter loop-carried dependency chain. Unchanged or cold code
     shrinking does not count.
   - No static loss on a hot path the mechanism can reach. Establish the scope from the pass's
-    eligibility and actual callers; at the periodic twelve-task comparison, fix or narrow any
-    newly exposed hot loss before integrating. A trade (fewer pushes for more spills, one path
+    eligibility and actual callers; in each batch's twelve-task comparison, fix or narrow any
+    newly exposed hot loss before accepting it. A trade (fewer pushes for more spills, one path
     shorter and another longer) needs a per-execution cost estimate, weighted by its trip count;
     state that weighting in the commit.
   - General: the eligibility test is a data-flow, aliasing, range or loop property, never a
@@ -362,9 +363,9 @@ A batch is accepted when all of these hold:
 
 Commit an accepted batch with "[prompt 2]" and evidence in the message body: "Evidence: static,
 <task> hot loop <before> -> <after> <unit> per iteration" or "Evidence: measured, <ratio> vs
-A/A <spread>". Include a concise scope, checksum and focused-test summary. Add a twelve-task
-microdiff summary only when one was run. A batch accepted on static evidence is a landed change,
-not a proven speedup; report it that way until a campaign shows its task move.
+A/A <spread>". Include a concise scope, checksum, focused-test and twelve-task Micro comparison
+summary. A batch accepted on static evidence is a landed change, not a proven speedup; report
+it that way until a campaign shows its task move.
 
 Timing can only veto. A batch is reverted or revised when a timing shows a clear slowdown
 beyond its unchanged A/A control in two independent runs, on a target or a sentinel, even when
@@ -372,11 +373,11 @@ it executes fewer instructions. A noisy, drifting or missing measurement has no 
 acceptance: record "not measured" and move on. Never wait for a quiet window; continue with the
 next hypothesis while the machine is busy.
 
-Placement is not the batch. When a task's time moves while microdiff shows its hot functions
-unchanged, the move comes from where the code landed in the image, and neither credits nor
-blames the batch. The emitter already aligns loop headers and keeps loop-closing branch pairs
-inside their 32-byte window; any further placement sensitivity is a compiler defect: find which
-instruction group sits badly (disassemble both images, compare the hot loop's offsets modulo 32
+When a task's time moves while microdiff shows its hot functions unchanged, investigate the
+measurement, runtime callees and final emitted code before attributing the move to placement.
+Identical listings do not prove the cause. The emitter already aligns loop headers and keeps
+loop-closing branch pairs inside their 32-byte window; any further placement sensitivity is a
+compiler defect: find which instruction group sits badly (disassemble both images, compare the hot loop's offsets modulo 32
 and 64) and fix the emitter, following LLVM's handling of the case.
 
 Not accepted: a change whose only effect is code size, cold code, Micro instruction totals or

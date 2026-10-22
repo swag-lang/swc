@@ -785,11 +785,21 @@ new language syntax.
 - Rejected: hoisting every invariant field load across a read-only call, and inlining
   `mapInit` to expose the mask constant. Both enlarged the probe or `main` with spills,
   frame reloads and jumps.
+- Regression lead: [protocol 3 csvagg samples](../bench/results/20261021-173259.json) put
+  native Release at a 22.694 ms median against Odin's 20.861 ms. Earlier protocol 2 reports
+  selected minima, so their displayed advantage is not a paired regression measurement.
+  The preserved October 12 and October 19 timed row loops have 194 instructions and 60
+  memory operands, including indexed extensions; the current loop has 191 and 57. The
+  byte-scan loops retain their instruction and memory counts. This narrows the lead to
+  executed dependencies, callees, emitted layout or measurement rather than a larger row loop.
 - Next: compare wordfreq's complete probe paths and measure its retained mask at a clean
   paired campaign milestone. For csvagg, compare the successful `memcmp` and occupied-slot
-  update with Zig's executed path, focusing on register and frame traffic.
+  update with Odin's executed path, focusing on dependencies, register and frame traffic;
+  inspect emitted layout against the preserved compiler before attributing the reported
+  slowdown to an optimization pass. Use the twelve-task static comparison for each candidate.
 - Done when: a focused rule retains the mask without increasing spill traffic and improves
-  paired wordfreq runs, or measurements show that retaining it is not profitable.
+  paired wordfreq runs, or measurements show that retaining it is not profitable; csvagg's
+  reported gap is attributed to an executed-path difference or a measurement effect.
 
 ### compiler.optimization.092 — Reuse one relocation base for indexed constant arrays
 

@@ -485,7 +485,7 @@ namespace PostRaPeephole
 
     namespace
     {
-        bool findUniqueMemoryRelocation(Context& ctx, MicroRelocation*& out, MicroInstrRef ref, MicroReg base)
+        bool findUniqueMemoryRelocation(Context& ctx, MicroRelocation*& out, MicroInstrRef ref, MicroReg base, MicroInstrRef withoutRelocation = MicroInstrRef::invalid())
         {
             out = nullptr;
             if (!base.isInstructionPointer())
@@ -494,6 +494,8 @@ namespace PostRaPeephole
                 return false;
             for (MicroRelocation& relocation : ctx.builder->codeRelocations())
             {
+                if (withoutRelocation.isValid() && relocation.instructionRef == withoutRelocation)
+                    return false;
                 if (relocation.instructionRef != ref)
                     continue;
                 if (out || relocation.form != MicroRelocation::Form::Relative32)
@@ -636,12 +638,8 @@ namespace PostRaPeephole
             if (upperSource != accumulate.dst && (demand.lanes[accumulate.dst.index()] & ~FloatLaneDemand::mask(accumulate.bits)))
                 return false;
             MicroRelocation* relocation = nullptr;
-            if (multiply.memory && !findUniqueMemoryRelocation(ctx, relocation, multiplyRef, multiply.right))
+            if (multiply.memory && !findUniqueMemoryRelocation(ctx, relocation, multiplyRef, multiply.right, accumulateRef))
                 return false;
-            if (relocation)
-                for (const auto& other : ctx.builder->codeRelocations())
-                    if (other.instructionRef == accumulateRef)
-                        return false;
             if (!encoderAcceptsAsIs(ctx, opcode, std::span{fused, numOperands}))
                 return false;
             auto before = demand;

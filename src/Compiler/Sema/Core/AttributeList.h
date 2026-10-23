@@ -1,5 +1,5 @@
 #pragma once
-#include "Backend/ABI/CallConv.h"
+#include "Backend/ABI/CallConvKind.h"
 #include "Backend/RuntimeSafety.h"
 #include "Compiler/Sema/Helpers/SemaSafety.h"
 #include "Support/Core/Flags.h"

@@ -1,32 +1,10 @@
 #pragma once
+#include "Backend/ABI/CallConvKind.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Support/Core/SmallVector.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
-
-enum class CallConvKind : uint8_t
-{
-    // Target C ABI for the selected platform.
-    C,
-    // Concrete Windows x64 ABI.
-    WindowsX64,
-    // Swag's default compiled/JIT ABI for the current target runtime.
-    Swag,
-};
-
-constexpr bool isValidCallConvKind(CallConvKind kind) noexcept
-{
-    switch (kind)
-    {
-        case CallConvKind::C:
-        case CallConvKind::WindowsX64:
-        case CallConvKind::Swag:
-            return true;
-    }
-
-    return false;
-}
 
 enum class StructArgPassingKind : uint8_t
 {

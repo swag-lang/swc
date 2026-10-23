@@ -57,7 +57,6 @@ struct MicroReg
     static constexpr MicroReg invalid() { return MicroReg(MicroRegKind::Invalid, 0); }
     static constexpr MicroReg intReg(uint32_t index) { return MicroReg(MicroRegKind::Int, index); }
     static constexpr MicroReg floatReg(uint32_t index) { return MicroReg(MicroRegKind::Float, index); }
-    static constexpr MicroReg virtualReg(uint32_t index) { return MicroReg(MicroRegKind::VirtualInt, index); }
     static constexpr MicroReg virtualIntReg(uint32_t index) { return MicroReg(MicroRegKind::VirtualInt, index); }
     static constexpr MicroReg virtualFloatReg(uint32_t index) { return MicroReg(MicroRegKind::VirtualFloat, index); }
     static constexpr MicroReg instructionPointer() { return MicroReg(MicroRegKind::Special, static_cast<uint32_t>(MicroRegSpecial::InstructionPointer)); }

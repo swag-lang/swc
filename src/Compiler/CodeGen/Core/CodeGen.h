@@ -519,7 +519,6 @@ public:
 
     MicroReg nextVirtualRegisterForType(TypeRef typeRef);
     MicroReg nextVirtualRegisterForType(TypeRef typeRef, const TypeInfo& typeInfo);
-    MicroReg nextVirtualRegister() { return MicroReg::virtualReg(nextVirtualRegister_++); }
     MicroReg nextVirtualIntRegister() { return MicroReg::virtualIntReg(nextVirtualRegister_++); }
     MicroReg nextVirtualFloatRegister() { return MicroReg::virtualFloatReg(nextVirtualRegister_++); }
 

@@ -665,7 +665,7 @@ namespace InstructionCombine
     // other threads are not the guard's to detect.
     void runDropUnobservedBorrows(Context& ctx, const FlatKeyMap<uint32_t>& borrowArgs)
     {
-        if (!ctx.builder || ctx.builder->codeRelocations().empty() || !ctx.passContext || !ctx.passContext->taskContext || !ctx.passContext->taskContext->hasCompiler())
+        if (borrowArgs.empty() || !ctx.builder || !ctx.passContext || !ctx.passContext->taskContext || !ctx.passContext->taskContext->hasCompiler())
             return;
 
         struct BorrowCall

@@ -374,7 +374,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     // get a stored state. Intermediate instructions need only the invalid index.
     inState_.clear();
     inState_.resize(numStates);
-    computeChainLiveness();
+    computeChainLiveness(stateHeadIndices);
 
     if (const SymbolFunction* function = context_.sanitizerFunction; function && needsReleaseProvenance_)
     {
@@ -436,7 +436,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     return reported_;
 }
 
-void Sanitizer::computeChainLiveness()
+void Sanitizer::computeChainLiveness(const std::span<const uint32_t> stateHeadIndices)
 {
     const MicroControlFlowGraph& cfg       = *cfg_;
     const uint32_t               n         = cfg.instructionCount();
@@ -459,11 +459,9 @@ void Sanitizer::computeChainLiveness()
     std::vector<ChainFacts> chains(numStates);
     std::vector<uint32_t>   defStamp;
     MicroInstrUseDef        useDef;
-    for (uint32_t head = 0; head < n; head++)
+    for (const uint32_t head : stateHeadIndices)
     {
         const uint32_t stateIndex = headStateIndex_[head];
-        if (stateIndex == K_NO_STATE)
-            continue;
 
         ChainFacts& chain = chains[stateIndex];
         const auto  stamp = stateIndex + 1;

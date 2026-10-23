@@ -221,7 +221,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Constants</span><span class="toc-count">1221</span></summary>
+<summary><span class="toc-label">Constants</span><span class="toc-count">1222</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-constants">All Constants</a></li>
 <li><a href="#Win32_AC_SRC_ALPHA">Win32.AC_SRC_ALPHA</a></li>
@@ -404,6 +404,7 @@
 <li><a href="#Win32_ERROR_NO_MORE_FILES">Win32.ERROR_NO_MORE_FILES</a></li>
 <li><a href="#Win32_ERROR_NOT_FOUND">Win32.ERROR_NOT_FOUND</a></li>
 <li><a href="#Win32_ERROR_OPERATION_ABORTED">Win32.ERROR_OPERATION_ABORTED</a></li>
+<li><a href="#Win32_ERROR_PATH_NOT_FOUND">Win32.ERROR_PATH_NOT_FOUND</a></li>
 <li><a href="#Win32_ERROR_SUCCESS">Win32.ERROR_SUCCESS</a></li>
 <li><a href="#Win32_FALSE">Win32.FALSE</a></li>
 <li><a href="#Win32_FD_ACCESSTIME">Win32.FD_ACCESSTIME</a></li>
@@ -2252,6 +2253,8 @@
 <tr><td class="code-type"><a href="#Win32_ERROR_NO_MORE_FILES">Win32.ERROR_NO_MORE_FILES</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_ERROR_NOT_FOUND">Win32.ERROR_NOT_FOUND</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_ERROR_OPERATION_ABORTED">Win32.ERROR_OPERATION_ABORTED</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Win32_ERROR_PATH_NOT_FOUND">Win32.ERROR_PATH_NOT_FOUND</a></td><td><p>The system cannot find the path specified.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Win32_ERROR_SUCCESS">Win32.ERROR_SUCCESS</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_FALSE">Win32.FALSE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_FD_ACCESSTIME">Win32.FD_ACCESSTIME</a></td><td></td></tr>
@@ -4146,6 +4149,8 @@
 <tr><td class="code-type"><a href="#Win32_ERROR_NO_MORE_FILES">Win32.ERROR_NO_MORE_FILES</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_ERROR_NOT_FOUND">Win32.ERROR_NOT_FOUND</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_ERROR_OPERATION_ABORTED">Win32.ERROR_OPERATION_ABORTED</a></td><td></td></tr>
+<tr><td class="code-type"><a href="#Win32_ERROR_PATH_NOT_FOUND">Win32.ERROR_PATH_NOT_FOUND</a></td><td><p>The system cannot find the path specified.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Win32_ERROR_SUCCESS">Win32.ERROR_SUCCESS</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_FALSE">Win32.FALSE</a></td><td></td></tr>
 <tr><td class="code-type"><a href="#Win32_FD_ACCESSTIME">Win32.FD_ACCESSTIME</a></td><td></td></tr>
@@ -8243,7 +8248,7 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_E_POINTER">E_POINTER</a></span>                    = <span class="SKwd">cast</span> <span class="SItr">#bit</span> (<span class="SCst"><a href="#Win32_HRESULT">HRESULT</a></span>, <span class="SNum">0x80004003</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_DEVICE_NOT_CONNECTED" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_DEVICE_NOT_CONNECTED</span> <a class="api-item-permalink" href="#Win32_ERROR_DEVICE_NOT_CONNECTED" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L11">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_DEVICE_NOT_CONNECTED" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_DEVICE_NOT_CONNECTED</span> <a class="api-item-permalink" href="#Win32_ERROR_DEVICE_NOT_CONNECTED" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L12">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_DEVICE_NOT_CONNECTED">ERROR_DEVICE_NOT_CONNECTED</a></span> = <span class="SNum">1167</span></span></div>
 </section>
 <section class="api-symbol">
@@ -8251,39 +8256,44 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_FILE_NOT_FOUND">ERROR_FILE_NOT_FOUND</a></span>       = <span class="SNum">2</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_INSUFFICIENT_BUFFER" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_INSUFFICIENT_BUFFER</span> <a class="api-item-permalink" href="#Win32_ERROR_INSUFFICIENT_BUFFER" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L5">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_INSUFFICIENT_BUFFER" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_INSUFFICIENT_BUFFER</span> <a class="api-item-permalink" href="#Win32_ERROR_INSUFFICIENT_BUFFER" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L6">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_INSUFFICIENT_BUFFER">ERROR_INSUFFICIENT_BUFFER</a></span>  = <span class="SNum">122</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_INVALID_NAME" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_INVALID_NAME</span> <a class="api-item-permalink" href="#Win32_ERROR_INVALID_NAME" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L6">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_INVALID_NAME" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_INVALID_NAME</span> <a class="api-item-permalink" href="#Win32_ERROR_INVALID_NAME" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L7">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_INVALID_NAME">ERROR_INVALID_NAME</a></span>         = <span class="SNum">123</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_IO_PENDING" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_IO_PENDING</span> <a class="api-item-permalink" href="#Win32_ERROR_IO_PENDING" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L10">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_IO_PENDING" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_IO_PENDING</span> <a class="api-item-permalink" href="#Win32_ERROR_IO_PENDING" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L11">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_IO_PENDING">ERROR_IO_PENDING</a></span>           = <span class="SNum">997</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_MORE_DATA" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_MORE_DATA</span> <a class="api-item-permalink" href="#Win32_ERROR_MORE_DATA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L8">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_MORE_DATA" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_MORE_DATA</span> <a class="api-item-permalink" href="#Win32_ERROR_MORE_DATA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L9">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_MORE_DATA">ERROR_MORE_DATA</a></span>            = <span class="SNum">234</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_NO_DATA" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_NO_DATA</span> <a class="api-item-permalink" href="#Win32_ERROR_NO_DATA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L7">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_NO_DATA" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_NO_DATA</span> <a class="api-item-permalink" href="#Win32_ERROR_NO_DATA" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L8">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_NO_DATA">ERROR_NO_DATA</a></span>              = <span class="SNum">232</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_NO_MORE_FILES" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_NO_MORE_FILES</span> <a class="api-item-permalink" href="#Win32_ERROR_NO_MORE_FILES" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L4">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_NO_MORE_FILES" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_NO_MORE_FILES</span> <a class="api-item-permalink" href="#Win32_ERROR_NO_MORE_FILES" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L5">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_NO_MORE_FILES">ERROR_NO_MORE_FILES</a></span>        = <span class="SNum">18</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_NOT_FOUND" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_NOT_FOUND</span> <a class="api-item-permalink" href="#Win32_ERROR_NOT_FOUND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L12">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_NOT_FOUND" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_NOT_FOUND</span> <a class="api-item-permalink" href="#Win32_ERROR_NOT_FOUND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L13">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_NOT_FOUND">ERROR_NOT_FOUND</a></span>            = <span class="SNum">1168</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_OPERATION_ABORTED" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_OPERATION_ABORTED</span> <a class="api-item-permalink" href="#Win32_ERROR_OPERATION_ABORTED" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L9">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_OPERATION_ABORTED" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_OPERATION_ABORTED</span> <a class="api-item-permalink" href="#Win32_ERROR_OPERATION_ABORTED" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L10">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_OPERATION_ABORTED">ERROR_OPERATION_ABORTED</a></span>    = <span class="SNum">995</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-const"><span id="Win32_ERROR_SUCCESS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_SUCCESS</span> <a class="api-item-permalink" href="#Win32_ERROR_SUCCESS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L14">src</a></div>
+<div class="api-item api-item-const"><span id="Win32_ERROR_PATH_NOT_FOUND" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_PATH_NOT_FOUND</span> <a class="api-item-permalink" href="#Win32_ERROR_PATH_NOT_FOUND" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L4">src</a></div>
+<p>The system cannot find the path specified.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_PATH_NOT_FOUND">ERROR_PATH_NOT_FOUND</a></span>       = <span class="SNum">3</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-const"><span id="Win32_ERROR_SUCCESS" class="api-item-title"><span class="api-item-title-kind">const</span> <span class="api-item-title-strong">Win32.ERROR_SUCCESS</span> <a class="api-item-permalink" href="#Win32_ERROR_SUCCESS" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/win32/src/errors.swg#L15">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">const</span> <span class="SCst"><a href="#Win32_ERROR_SUCCESS">ERROR_SUCCESS</a></span> = <span class="SNum">0</span></span></div>
 </section>
 <section class="api-symbol">
@@ -15046,6 +15056,7 @@
 "c|Win32.ERROR_NO_MORE_FILES|Win32_ERROR_NO_MORE_FILES|",
 "c|Win32.ERROR_NOT_FOUND|Win32_ERROR_NOT_FOUND|",
 "c|Win32.ERROR_OPERATION_ABORTED|Win32_ERROR_OPERATION_ABORTED|",
+"c|Win32.ERROR_PATH_NOT_FOUND|Win32_ERROR_PATH_NOT_FOUND|The system cannot find the path specified.",
 "c|Win32.ERROR_SUCCESS|Win32_ERROR_SUCCESS|",
 "c|Win32.FALSE|Win32_FALSE|",
 "c|Win32.FD_ACCESSTIME|Win32_FD_ACCESSTIME|",

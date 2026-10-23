@@ -3,6 +3,16 @@
 
 using Swag
 
+func createSandboxTestJunction(link, target: string)->bool
+{
+    let fontsDir   = Env.realSpecialDirectory(.Font)
+    let windowsDir = Path.directoryName(fontsDir.toString())
+    let shell      = Path.combine(windowsDir, "System32", "cmd.exe")
+    let arguments  = Format.toString("/c mklink /J \"%\" \"%\"", link, target)
+    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) else { return false }
+    return process.exitCode() == 0
+}
+
 // Containment, not prefix matching. 'sandboxed' starts with 'sandbox' but is not inside it,
 // and that difference is the whole value of the check.
 #test
@@ -217,4 +227,28 @@ using Swag
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(not File.exists("C:/Windows/swag-sandbox-escape.txt"))
+}
+
+// A directory junction cannot redirect an allowed sandbox write into the granted corpus.
+#test
+{
+    if not Env.isSandboxed() do
+        return
+
+    let holding    = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("sandbox-reparse-%", Guid64.random()))
+    let target     = Path.combine(Env.corpusRoot(), Format.toString("sandbox-reparse-target-%", Guid64.random()))
+    let link       = Path.combine(holding.toString(), "linked")
+    let targetFile = Path.combine(target.toString(), "keep.txt")
+    expect Directory.create(holding.toString())
+    expect Directory.create(target.toString())
+    defer discard catch Directory.delete(holding.toString(), recurse: true)
+    defer discard catch Directory.delete(target.toString(), recurse: true)
+    discard expect File.writeAllText(targetFile.toString(), "keep")
+
+    Swag.assert(createSandboxTestJunction(link.toString(), target.toString()))
+
+    var errorOutcome: Swag.Error
+    discard catch File.writeAllText(Path.combine(link.toString(), "escaped.txt"), "escape") as &errorOutcome
+    Swag.assert(errorOutcome.value() is Errors.SandboxError)
+    Swag.assert(expect File.readAllText(targetFile.toString()) == "keep")
 }

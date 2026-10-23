@@ -123,3 +123,42 @@ internal func absolutePath(path: string)->String
     Path.normalize(&result)
     return result
 }
+
+// Reports whether an existing component of `path` is a reparse point.
+internal func containsReparsePoint(path: string)->bool fail
+{
+    let full         = absolutePath(path)
+    let fullPath     = full.toString()
+    let rootLength   = cast(u64, Path.rootLength(fullPath))
+    var segmentBegin = rootLength
+
+    for index in fullPath.count where index >= rootLength
+    {
+        let c = index < fullPath.count ? fullPath[index] : 0'u8
+        if c != '/' and index != fullPath.count - 1 do
+            continue
+
+        let end = c == '/' ? index : index + 1
+        if end > segmentBegin
+        {
+            let prefix = fullPath[until end]
+            var attributes: File.FileAttributes
+            var outcome:    Swag.Error
+            catch { attributes = try File.attributes(prefix) } as &outcome
+            let error = outcome.value()
+            if error != null
+            {
+                if error is Errors.FileNotFoundError do
+                    return false
+                try outcome.raise()
+            }
+
+            if attributes.has(.ReparsePoint) do
+                return true
+        }
+
+        segmentBegin = index + 1
+    }
+
+    return false
+}

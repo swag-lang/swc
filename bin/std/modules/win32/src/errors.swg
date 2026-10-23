@@ -1,6 +1,7 @@
 #global export
 
 const ERROR_FILE_NOT_FOUND       = 2
+const ERROR_PATH_NOT_FOUND       = 3     // The system cannot find the path specified.
 const ERROR_NO_MORE_FILES        = 18
 const ERROR_INSUFFICIENT_BUFFER  = 122
 const ERROR_INVALID_NAME         = 123

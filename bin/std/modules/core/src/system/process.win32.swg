@@ -262,32 +262,31 @@ private func prepareChildStream(redirection: StreamRedirection, parentEnd, owned
     return ownedChildEnd[]
 }
 
-// Builds the zero-terminated block of 'name=value' entries the system expects.
-//
-// The entries are ordered without regard to case, which is how the system reads them back.
-private func buildEnvironmentBlock(environment: const *ProcessEnvironment)->Array'u16
-{
-    var entries: Array'String
-    for name, value in environment.variables do
-        entries.add(Format.toString("%=%", name.toString(), value.toString()))
-    entries.sort(func||(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
-
-    var result: retval
-    for entry in entries do
-        result.add(Utf16.toZeroTerminated(entry.toString()).toSlice())
-
-    // One more zero closes the block. It is the whole block when there is no variable at all,
-    // which is a legitimate request: the child then starts with nothing.
-    result.add(0)
-    return result
-}
-
 // Starts the process `info` describes, returning as soon as it is running.
 //
 // The executable is resolved from the command line, so a bare name is searched along the
 // executable search path and a path containing spaces needs no quoting from the caller.
 func startProcess(info: StartInfo)->Process fail
 {
+    // Builds the zero-terminated block of 'name=value' entries expected by CreateProcessW.
+    // Windows reads the entries without regard to case, so sort them that way.
+    func buildEnvironmentBlock(environment: const *ProcessEnvironment)->Array'u16
+    {
+        var entries: Array'String
+        for name, value in environment.variables do
+            entries.add(Format.toString("%=%", name.toString(), value.toString()))
+        entries.sort(func||(a, b) => Utf8.compare(a.toSlice(), b.toSlice(), .Latin1NoCase))
+
+        var result: retval
+        for entry in entries do
+            result.add(Utf16.toZeroTerminated(entry.toString()).toSlice())
+
+        // One more zero closes the block. It is the whole block when there is no variable at all,
+        // which is a legitimate request: the child then starts with nothing.
+        result.add(0)
+        return result
+    }
+
     Swag.assert(info.fileName != null, "missing process filename")
 
     var result: retval

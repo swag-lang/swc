@@ -108,3 +108,17 @@ func(T) checkCompleteNumberConversion(overflowText: string)
     checkCompleteNumberConversion'f32("1e39")
     checkCompleteNumberConversion'f64("1e400")
 }
+
+// Decimal accumulation detects overflow before multiplication, even when wrapping would increase
+// the intermediate value and leave an apparently representable result.
+#test
+{
+    let unsigned = expect StrConv.parseU64("30000000000000000000")
+    Swag.assert(unsigned.ovf and unsigned.eat == 20)
+
+    let positive = expect StrConv.parseS64("25000000000000000000")
+    Swag.assert(positive.ovf and positive.eat == 20)
+
+    let negative = expect StrConv.parseS64("-25000000000000000000")
+    Swag.assert(negative.ovf and negative.eat == 21)
+}

@@ -155,34 +155,23 @@ func parseU64(str: string)->{ value: u64, eat: u32, ovf: bool } fail
     var buffer        = str.buffer
     var consumedBytes = 0'u32
     var value         = 0'u64
+    let maxValue      = Swag.U64.Max
+    let maxQuotient   = maxValue / 10
+    let maxRemainder  = maxValue % 10
 
     if not Latin1.isDigit(buffer[]) do
         fail SyntaxError{}
     while consumedBytes < byteCount and Latin1.isDigit(buffer[])
     {
-        let scaledValue = value * #wrap 10
-        if scaledValue < value
+        let digit = cast(u64, (buffer[] - '0'u8))
+        if value > maxQuotient or (value == maxQuotient and digit > maxRemainder)
         {
             result.ovf = true
-            value      = Swag.U64.Max
+            value      = maxValue
         }
         else
         {
-            value = scaledValue
-        }
-
-        if not result.ovf
-        {
-            let digit = cast(u64, (buffer[] - '0'u8))
-            if value + #wrap digit < value
-            {
-                result.ovf = true
-                value      = Swag.U64.Max
-            }
-            else
-            {
-                value += digit
-            }
+            value = value * 10 + digit
         }
 
         buffer, consumedBytes += 1
@@ -272,31 +261,19 @@ func parseS64(str: string)->{ value: s64, eat: u32, ovf: bool } fail
     // Accumulate the magnitude, continuing through overflowing digits.
     if not Latin1.isDigit(buffer[]) do
         fail SyntaxError{}
+    let maxQuotient  = maxValue / 10
+    let maxRemainder = maxValue % 10
     while consumedBytes < byteCount and Latin1.isDigit(buffer[])
     {
-        let scaledValue = value * #wrap 10
-        if scaledValue < value
+        let digit = cast(u64, (buffer[] - '0'u8))
+        if value > maxQuotient or (value == maxQuotient and digit > maxRemainder)
         {
             result.ovf = true
             value      = Swag.U64.Max
         }
         else
         {
-            value = scaledValue
-        }
-
-        if not result.ovf
-        {
-            let digit = cast(u64, (buffer[] - '0'u8))
-            if value + digit > maxValue
-            {
-                result.ovf = true
-                value      = maxValue
-            }
-            else
-            {
-                value += digit
-            }
+            value = value * 10 + digit
         }
 
         buffer, consumedBytes += 1

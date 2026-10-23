@@ -268,6 +268,8 @@ private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLeng
 // `salt` holds at least 8 bytes and should hold 16. `destination` holds at least
 // 4 bytes. `parameters.memoryKib` is at least eight times `parameters.parallelism`,
 // and the derivation allocates that many kibibytes.
+// Fails with [[Core.Errors.BadParameterError]] when a password, salt, associated-data, or
+// destination length exceeds Argon2's 32-bit fields.
 //
 // The same password, salt, parameters, and destination length always produce the
 // same bytes, on every platform. Independent lanes share the runtime worker pool when
@@ -293,6 +295,12 @@ public func argon2id(password, salt: const [..] u8, parameters: Argon2Parameters
 // exactly to reproduce the tag.
 public func argon2id(password, salt, secret, associatedData: const [..] u8, parameters: Argon2Parameters, destination: [..] u8) fail
 {
+    if password.count > Swag.U32.Max or
+       salt.count > Swag.U32.Max or
+       associatedData.count > Swag.U32.Max or
+       destination.count > Swag.U32.Max do
+        fail Errors.BadParameterError{"Argon2 byte lengths exceed the 32-bit limit"}
+
     if destination.count < Argon2MinTagSize do
         fail Errors.BadParameterError{"Argon2 needs a tag of at least 4 bytes"}
     if salt.count < Argon2MinSaltSize do

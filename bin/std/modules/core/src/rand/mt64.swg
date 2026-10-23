@@ -46,11 +46,14 @@ public impl MersenneTwister64
         }
     }
 
-    // Seeds the generator with a key made of several 64-bit values.
+    // Seeds the generator with a key made of several 64-bit values. An empty key selects the
+    // reference default seed.
     #[Swag.Safety(.Overflow, false)]
     mtd seedU64(seed: const [..] u64)
     {
         let keyLength = seed.count
+        if not keyLength do
+            return .seedU64(DefaultSeed)
 
         .seedU64(19650218)
         var i = 1

@@ -18,6 +18,18 @@ using Swag
 
 #test
 {
+    var emptySeed: Array'u64
+    var empty:     Random.MersenneTwister64
+    var seeded:    Random.MersenneTwister64
+
+    empty.seedU64(emptySeed.toSlice())
+    seeded.seedU64(5489)
+    for 3 do
+        Swag.assert(empty.nextU64() == seeded.nextU64())
+}
+
+#test
+{
     var rng: Random.MersenneTwister64
     rng.seedU64(5489)
 

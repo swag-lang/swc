@@ -251,19 +251,22 @@ private func alignUp(value: u64, alignment: u32)->u64
     return remainder ? value + effective - remainder : value
 }
 
-private func makeId(text: string)->Guid128
-{
-    var result: Guid128
-    let valid = Guid128.tryParse(text, &result)
-    Swag.assert(valid)
-    return result
-}
-
 // Returns the identifier for an uncompressed chunk.
 func noCodecId()->Guid128 => {}
 
 // Returns the predefined zlib/Deflate codec identifier.
-func deflateCodecId()->Guid128 => makeId("21bf86c9-55f7-4c90-a454-2f070a0f6e9b")
+func deflateCodecId()->Guid128
+{
+    func makeId(text: string)->Guid128
+    {
+        var result: Guid128
+        let valid = Guid128.tryParse(text, &result)
+        Swag.assert(valid)
+        return result
+    }
+
+    return makeId("21bf86c9-55f7-4c90-a454-2f070a0f6e9b")
+}
 
 private func encodeHeader(header: const *Header)->Array'u8 fail
 {

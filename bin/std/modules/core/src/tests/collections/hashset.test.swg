@@ -156,6 +156,14 @@ func assertReverseIntSetIteration(values: HashSet's32)->bool
 #test
 {
     var values: HashSet's32
+    let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
+    Swag.assert(result.raised)
+    Swag.assert(result.message() == "HashSet capacity exceeds addressable memory")
+}
+
+#test
+{
+    var values: HashSet's32
 
     Swag.assert(values.toggle(10))
     Swag.assert(values.contains(10))

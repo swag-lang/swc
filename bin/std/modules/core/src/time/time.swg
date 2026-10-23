@@ -109,68 +109,49 @@ func dateToTicks(year, month, day: u16)->Ticks
     Swag.assert(1 <= month and month <= 12)
     Swag.assert(1 <= day and day <= daysInMonth(year, month))
 
-    let days = isLeapYear(year) ? DaysToMonth366.buffer : DaysToMonth365.buffer
-    let y    = cast(u64, (year - 1))
-    let n    = y * 365 + #wrap y / 4 + #wrap y / 400 + #wrap days[month - 1] + #wrap day - 1 - #wrap y / 100
-    return n * TicksPerDay
+    let monthStartDays = isLeapYear(year) ? DaysToMonth366.buffer : DaysToMonth365.buffer
+    let completeYears  = cast(u64, (year - 1))
+    let daysSinceYear1 = completeYears * 365 + #wrap completeYears / 4 + #wrap completeYears / 400 +
+                         #wrap monthStartDays[month - 1] + #wrap day - 1 - #wrap completeYears / 100
+    return daysSinceYear1 * TicksPerDay
 }
 
 // Returns the Gregorian date that contains `ticks`.
 func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
 {
-    // n = number of days since 1/1/0001
-    var n = ticks / TicksPerDay
+    var remainingDays = ticks / TicksPerDay
 
-    // y400 = number of whole 400-year periods since 1/1/0001
-    let y400 = n / DaysPer400Years
+    let complete400YearCycles = remainingDays / DaysPer400Years
+    remainingDays -= complete400YearCycles * DaysPer400Years
 
-    // n = day number within 400-year period
-    n -= y400 * DaysPer400Years
+    var complete100YearCycles = remainingDays / DaysPer100Years
+    if complete100YearCycles == 4 do
+        complete100YearCycles = 3
+    remainingDays -= complete100YearCycles * DaysPer100Years
 
-    // y100 = number of whole 100-year periods within 400-year period
-    var y100 = n / DaysPer100Years
+    let complete4YearCycles = remainingDays / DaysPer4Years
+    remainingDays -= complete4YearCycles * DaysPer4Years
 
-    // Last 100-year period has an extra day, so decrement result if 4
-    if y100 == 4 do
-        y100 = 3
+    var yearsWithin4YearCycle = remainingDays / DaysPerYear
+    if yearsWithin4YearCycle == 4 do
+        yearsWithin4YearCycle = 3
+    remainingDays -= yearsWithin4YearCycle * DaysPerYear
 
-    // n = day number within 100-year period
-    n -= y100 * DaysPer100Years
+    // These cycle counts are relative to year 1, so the leap-year calculation differs from isLeapYear.
+    let leapYear       = yearsWithin4YearCycle == 3 and (complete4YearCycles != 24 or complete100YearCycles == 3)
+    let monthStartDays = leapYear ? DaysToMonth366.buffer : DaysToMonth365.buffer
 
-    // y4 = number of whole 4-year periods within 100-year period
-    let y4 = n / DaysPer4Years
+    // All months have fewer than 32 days, so this is a conservative starting estimate.
+    var month = (remainingDays >> 5) + 1
+    while remainingDays >= monthStartDays[month] do
+        month += 1
 
-    // n = day number within 4-year period
-    n -= y4 * DaysPer4Years
-
-    // y1 = number of whole years within 4-year period
-    var y1 = n / DaysPerYear
-
-    // Last year has an extra day, so decrement result if 4
-    if y1 == 4 do
-        y1 = 3
-
-    // n = day number within year
-    n -= y1 * DaysPerYear
-
-    // dayOfYear = n + 1;
-    // Leap year calculation looks different from IsLeapYear since y1, y4,
-    // and y100 are relative to year 1, not year 0
-    let leapYear = y1 == 3 and (y4 != 24 or y100 == 3)
-    let days     = leapYear ? DaysToMonth366.buffer : DaysToMonth365.buffer
-
-    // All months have less than 32 days, so n >> 5 is a good conservative
-    // estimate for the month
-    var m = (n >> 5) + 1
-
-    // m = 1-based month number
-    while n >= days[m] do
-        m += 1
-
+    let completeYears = complete400YearCycles * 400 + complete100YearCycles * 100 +
+                        complete4YearCycles * 4 + yearsWithin4YearCycle
     var result: retval
-    result.year  = cast((y400 * 400 + y100 * 100 + y4 * 4 + y1 + 1))
-    result.month = cast(m)
-    result.day   = cast((n - days[m - 1] + 1))
+    result.year  = cast((completeYears + 1))
+    result.month = cast(month)
+    result.day   = cast((remainingDays - monthStartDays[month - 1] + 1))
     return result
 }
 

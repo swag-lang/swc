@@ -460,7 +460,7 @@ Result MicroValueBorrowFastPathPass::run(MicroPassContext& context)
             argumentSources.getOrInsert(relocation.instructionRef.get()) = index;
     }
     thread_local MicroSsaState guardSsa;
-    guardSsa.clear();
+    guardSsa.clear(static_cast<uint32_t>(context.instructions->slotCount()));
     const MicroSsaState& ssa = *MicroSsaState::ensureFor(context, guardSsa);
 
     uint32_t nextInt   = 0;

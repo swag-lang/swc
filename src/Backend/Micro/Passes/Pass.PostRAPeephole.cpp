@@ -633,17 +633,21 @@ namespace
                 // slot's last value. A later loop-latch store is also a valid
                 // source; the store we move is the source on the first trip.
                 pending.assign(1, branchIndex);
-                FlatKeySet visited;
-                bool       valid = true;
+                size_t visitedCount = 0;
+                bool   valid        = true;
                 while (!pending.empty() && valid)
                 {
                     const uint32_t index = pending.back();
                     pending.pop_back();
-                    if (!visited.insert(index) || visited.size() > MicroOptimizationLimits::PostRAPeephole::K_MAX_STACK_VALUE_VISITS)
+                    // The previous traversal marked its visited nodes as 1. Mark this walk as 2;
+                    // a repeated index still rejects the proof, without a separate hash set.
+                    if (index >= seen.size() || seen[index] == 2 ||
+                        ++visitedCount > MicroOptimizationLimits::PostRAPeephole::K_MAX_STACK_VALUE_VISITS)
                     {
                         valid = false;
                         break;
                     }
+                    seen[index]            = 2;
                     const MicroInstr* inst = storage.ptr(refs[index]);
                     if (!inst)
                     {

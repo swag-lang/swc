@@ -69,6 +69,7 @@ func delete(dirName: string, recurse = false) fail
 }
 
 // Returns the entries of `dirName` selected by `options`, or an empty array when `dirName` is null.
+// A missing directory or a native enumeration failure reports an error.
 //
 // When both `matchExtension` and `matchFileName` are set, an entry matching either one is kept.
 func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileInfo) fail

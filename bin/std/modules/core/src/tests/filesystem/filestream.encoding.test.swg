@@ -36,3 +36,34 @@
         Swag.assert(end.isEmpty())
     }
 }
+
+// A final partial UTF-16 or UTF-32 unit is consumed and shown as a replacement character.
+#test
+{
+    let fileName = CoreTests.makeFilesystemTestPath("core_truncated_text_unit.tmp")
+    defer discard catch File.delete(fileName)
+
+    for encoding in [Text.Encoding.Utf16Le, .Utf32Le]
+    {
+        var bytes: Array'u8
+        bytes.add('A')
+        bytes.resize(encoding == .Utf16Le ? 2 : 4)
+        let tailCount = encoding == .Utf16Le ? 1 : 3
+        for tailIndex in tailCount
+        {
+            let tailLength = tailIndex + 1
+            bytes.resize(encoding == .Utf16Le ? 2 : 4)
+            for tailLength do
+                bytes.add(0xA5)
+
+            discard expect File.writeAllBytes(fileName, bytes.toSlice())
+            var stream = expect File.openRead(fileName)
+
+            Swag.assert(expect stream.readTextChunk(4, encoding) == "A")
+            Swag.assert(expect stream.readTextChunk(4, encoding) == "\uFFFD")
+            Swag.assert(expect stream.position() == bytes.count)
+            Swag.assert(expect stream.readTextChunk(4, encoding).isEmpty())
+            stream.close()
+        }
+    }
+}

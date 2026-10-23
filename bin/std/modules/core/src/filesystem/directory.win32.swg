@@ -52,8 +52,14 @@ internal func enumerateOneNative(dirName: string)->Array'(File.FileInfo) fail
                                        .FindExSearchNameMatch,
                                        null,
                                        FIND_FIRST_EX_LARGE_FETCH)
-    if handle == INVALID_HANDLE_VALUE do
-        return result
+    if handle == INVALID_HANDLE_VALUE
+    {
+        let error = GetLastError()
+        if error == ERROR_FILE_NOT_FOUND do
+            return result
+        try failWinError(error)
+    }
+
     defer expect FindClose(handle)
 
     for

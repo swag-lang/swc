@@ -213,3 +213,19 @@ using Swag
     Swag.assert(read == 0 and write == 0 and byte == 0xA5)
     Swag.assert(expect stream.position() == 0)
 }
+
+// Creation modes enforce the write sandbox even when the requested handle is read-only.
+#test
+{
+    if not Env.isSandboxed() do
+        return
+
+    let directory = Path.combine(Env.realSpecialDirectory(.Temp).toString(), Format.toString("swag-open-mode-%", Guid64.random()))
+    let fileName  = Path.combine(directory.toString(), "read-only-create.tmp")
+    var errOutcome: Swag.Error
+    discard catch File.open(fileName.toString(), .Create, .Read, .Read) as &errOutcome
+
+    let err = errOutcome.value()
+    Swag.assert(err is Errors.SandboxError)
+    Swag.assert(not File.exists(fileName.toString()))
+}

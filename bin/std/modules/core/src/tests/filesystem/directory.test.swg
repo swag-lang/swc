@@ -70,3 +70,14 @@ using Swag
         Swag.assert(name == "." or name == "..")
     }
 }
+
+// A directory that cannot be opened reports an error instead of looking empty.
+#test
+{
+    let dirName = Path.combine(CoreTests.makeFilesystemTestPath("core_directory_missing"), Guid64.random().toString())
+    Swag.assert(not Directory.exists(dirName))
+
+    var errOutcome: Swag.Error
+    discard catch Directory.enumerate(dirName, {}) as &errOutcome
+    Swag.assert(errOutcome.value() != null)
+}

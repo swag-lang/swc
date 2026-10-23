@@ -10,6 +10,27 @@ func filledBytes(count: u64, value: u8)->Array'u8
     return result
 }
 
+func expectLengthRejected(password, salt, associatedData: const [..] u8, destination: [..] u8)
+{
+    discard catch Crypto.argon2id(password, salt, "", associatedData, {memoryKib: 8, iterations: 1, parallelism: 1}, destination) as error
+    Swag.assert(error is Errors.BadParameterError)
+}
+
+#test
+{
+    var source      = [0'u8]
+    let oversized   = Swag.makeSlice(source.buffer, cast(u64, Swag.U32.Max) + 1)
+    let password    = cast(const [..] u8, "password")
+    let salt        = cast(const [..] u8, "12345678")
+    var destination = [0'u8, 0, 0, 0]
+
+    expectLengthRejected(oversized, salt, "", destination)
+    expectLengthRejected(password, oversized, "", destination)
+    expectLengthRejected(password, salt, oversized, destination)
+    expectLengthRejected(password, salt, "", oversized)
+    Swag.assert(source[0] == 0)
+}
+
 #test
 {
     // RFC 9106 section 5.3, the Argon2id reference vector: p=4, t=3, m=32 KiB,

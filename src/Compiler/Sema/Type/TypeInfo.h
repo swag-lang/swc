@@ -324,7 +324,6 @@ public:
     bool isCharRune() const noexcept { return isChar() || isRune(); }
     bool isIntLike() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::IntLike); }
     bool isNumericIntLike() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::NumericIntLike); }
-    bool isNumericSigned() const noexcept { return isIntSigned(); }
     bool isPointerLike() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::PointerLike); }
     bool isConvertibleToBool() const noexcept { return isBool() || isPointerLike() || isIntLike() || isFloat() || isEnumFlags(); }
     bool isScalarNumeric() const noexcept { return isIntLike() || isFloat(); }

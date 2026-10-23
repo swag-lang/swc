@@ -80,6 +80,20 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
     return score
 }
 
+#[Swag.Safety(.BoundCheck, true), Swag.Safety(.Overflow, false)]
+func callArrayPtr2(values: *Array's32, x, y, w: u64)
+{
+    #assert(#safety(Swag.SafetyWhat.BoundCheck))
+    #assert(not #safety(Swag.SafetyWhat.Overflow))
+    discard values[].ptr2(x, y, w)
+}
+
+func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
+{
+    let result = Swag.catchPanic(func|values, x, y, w|() { callArrayPtr2(values, x, y, w) })
+    return result.raised
+}
+
 #test
 {
     var values: Array's32
@@ -152,6 +166,13 @@ func visitStructArrayReverse(values: *Array'ArrayVisitProbe)->s32
 
     let bottomRight = values.ptr2(1, 1, 2)
     bottomRight[] = 7
+
+    #static if #safety(Swag.SafetyWhat.BoundCheck)
+    {
+        let rejectedRowOverflow    = arrayPtr2Rejects(&values, Swag.U64.Max, 1, 2)
+        let rejectedColumnOverflow = arrayPtr2Rejects(&values, 1, Swag.U64.Max / 2 + 1, 2)
+        Swag.assert(rejectedRowOverflow and rejectedColumnOverflow)
+    }
 
     let expectedGrid: [4] s32 = [9, 1, 3, 7]
     Swag.assert(Slice.equals(values.toSlice(), expectedGrid))

@@ -46,7 +46,12 @@ public impl DateTimeFormatInfo
     }
 
     // Returns the localized full name of a day of the week.
-    mtd const dayName(day: Time.DayOfWeek)->string => .dayNames[cast(u32, day)]
+    // Panics when `day` is outside the supported range.
+    mtd const dayName(day: Time.DayOfWeek)->string
+    {
+        Swag.assert(cast(u32, day) < .dayNames.count, "day is outside the supported range")
+        return .dayNames[cast(u32, day)]
+    }
 
     internal mtd const matches(pattern: string, index: u64, token: string)->bool
     {

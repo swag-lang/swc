@@ -1,10 +1,11 @@
 #pragma once
-#include "Backend/ABI/CallConv.h"
 #include "Support/Core/RefTypes.h"
 
 SWC_BEGIN_NAMESPACE();
 
+class TaskContext;
 class TypeInfo;
+struct CallConv;
 
 namespace ABITypeNormalize
 {

@@ -1,8 +1,9 @@
 #pragma once
-#include "Backend/ABI/CallConv.h"
+#include "Backend/ABI/CallConvKind.h"
 #include "Backend/Micro/MicroReg.h"
 #include "Backend/RuntimeBackendConfig.h"
 #include "Support/Core/RefTypes.h"
+#include "Support/Core/SmallVector.h"
 #include "Support/Core/Utf8.h"
 
 SWC_BEGIN_NAMESPACE();

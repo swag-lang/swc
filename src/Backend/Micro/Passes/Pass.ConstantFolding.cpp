@@ -961,7 +961,9 @@ Result MicroConstantFoldingPass::run(MicroPassContext& context)
     std::optional<MicroSsaState> localSsaState;
     MicroSsaState&               ssaScratch = context.ssaState ? *context.ssaState : localSsaState.emplace();
     const MicroSsaState*         ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
-    if (!ssaState || !ssaState->isValid())
+    // Every fold below needs a virtual definition and its reaching value; a valid
+    // empty SSA value table cannot provide one, so skip propagation and the rewrite scan.
+    if (!ssaState || !ssaState->isValid() || ssaState->values().empty())
         return Result::Continue;
 
     SWC_ASSERT(context.ssaValueScratch != nullptr);

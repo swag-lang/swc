@@ -400,8 +400,7 @@ impl String
     {
         if not .length do
             return 0
-        let buffer = .buffer!
-        return buffer[.length - 1]
+        return .buffer![.length - 1]
     }
 
     // Removes `byteCount` bytes starting at `byteIndex`.
@@ -422,9 +421,8 @@ impl String
         if not byteCount do
             return
         Debug.safetyBoundCheck(byteCount <= .length, "index out of range")
-        let buffer = .buffer!
-        .length         -= byteCount
-        buffer[.length] = 0
+        .length -= byteCount
+        .buffer![.length] = 0
     }
 
     // Inserts the byte `value` at `byteIndex`, which may be the length to append it.

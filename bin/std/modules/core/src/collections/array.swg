@@ -475,8 +475,7 @@ impl Array
     {
         .grow(.count + num)
         .count += num
-        let buffer = .buffer!
-        return buffer + .count - num
+        return .buffer! + .count - num
     }
 
     // Appends `num` default-initialized elements and returns the address of the first one.
@@ -484,8 +483,7 @@ impl Array
     {
         .grow(.count + num)
         .count += num
-        let buffer = .buffer!
-        let res    = buffer + .count - num
+        let res = .buffer! + .count - num
         Swag.init(res, num)
         return res
     }
@@ -836,8 +834,7 @@ impl Array
     mtd const front()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        let buffer         = .buffer!
-        let result: retval = buffer[0]
+        let result: retval = .buffer![0]
         return result
     }
 
@@ -856,8 +853,7 @@ impl Array
     mtd const back()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        let buffer         = .buffer!
-        let result: retval = buffer[.count - 1]
+        let result: retval = .buffer![.count - 1]
         return result
     }
 
@@ -867,8 +863,7 @@ impl Array
     mtd backPtr()->*T
     {
         Swag.assert(.count > 0, "array is empty")
-        let buffer = .buffer!
-        return buffer + .count - 1
+        return .buffer! + .count - 1
     }
 
     // Removes the last element and returns it.
@@ -877,9 +872,8 @@ impl Array
     mtd popBack()->T
     {
         Swag.assert(.count > 0, "array is empty")
-        let buffer = .buffer!
         var result: retval
-        result = #relocate buffer[.count - 1]
+        result = #relocate .buffer![.count - 1]
         .count -= 1
         return result
     }

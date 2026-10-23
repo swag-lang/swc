@@ -57,7 +57,7 @@ impl BitStream
         // Fast path: a single unaligned 64-bit load refills the buffer to at least
         // 56 bits at once, as long as 8 bytes remain so the load stays in bounds.
         // This avoids the per-byte loop for the bulk of the stream.
-        if .numBits <= 56 and .curByte + 8 <= (.stream).count
+        if .numBits <= 56 and .curByte <= (.stream).count and (.stream).count - .curByte >= 8
         {
             let chunk = cast(const *u64, .currentPointer()!)[]
             .codeBuffer |= chunk << #wrap .numBits

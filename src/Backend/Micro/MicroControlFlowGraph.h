@@ -18,8 +18,7 @@ public:
     const EdgeList&                predecessors(uint32_t instructionIndex) const { return predecessors_[instructionIndex]; }
     // The label index is populated only when the instruction stream contains labels.
     bool hasLabels() const { return !labelToInstructionIndex_.empty(); }
-    // Targets whose address is materialized anywhere in the instruction stream,
-    // sorted by instruction index as the CFG walks the stream to collect them.
+    // Targets whose address is materialized anywhere in the instruction stream.
     std::span<const uint32_t> addressTakenLabelIndices() const { return addressTakenLabelIndices_.span(); }
     bool                      hasUnsupportedControlFlowForCfgLiveness() const { return hasUnsupportedControlFlowForCfgLiveness_; }
     bool                      supportsDeadCodeLiveness() const { return supportsDeadCodeLiveness_; }

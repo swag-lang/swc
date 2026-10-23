@@ -196,8 +196,9 @@ namespace InstructionCombine
                 return false;
             // The join is entered by the guard's jump, and by the report falling into it
             // unless the report ends in a trap.
-            const auto& incoming = cfg.predecessors(joinIndex);
-            if (incoming.empty() || incoming.size() > 2 || std::ranges::binary_search(cfg.addressTakenLabelIndices(), joinIndex))
+            const auto  addressTaken = cfg.addressTakenLabelIndices();
+            const auto& incoming     = cfg.predecessors(joinIndex);
+            if (incoming.empty() || incoming.size() > 2 || std::ranges::find(addressTaken, joinIndex) != addressTaken.end())
                 return false;
             const uint32_t jumpIndex = incoming[0] == joinIndex - 1 ? incoming.back() : incoming[0];
             if (jumpIndex >= joinIndex - 1 || (incoming.size() == 2 && incoming[0] != joinIndex - 1 && incoming[1] != joinIndex - 1))

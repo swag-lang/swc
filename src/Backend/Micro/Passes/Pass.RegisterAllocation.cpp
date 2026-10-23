@@ -855,7 +855,7 @@ void MicroRegisterAllocationPass::computeGuardedCallPositions()
                     // A back edge, indirect entry or unconditional predecessor
                     // does not establish that same guarded-entry shape.
                     regionIsGuard = !controlFlowGraph_->hasUnsupportedControlFlowForCfgLiveness() &&
-                                    !std::ranges::binary_search(controlFlowGraph_->addressTakenLabelIndices(), inner);
+                                    std::ranges::find(controlFlowGraph_->addressTakenLabelIndices(), inner) == controlFlowGraph_->addressTakenLabelIndices().end();
                     for (const uint32_t pred : controlFlowGraph_->predecessors(inner))
                     {
                         if (!regionIsGuard || pred == idx)

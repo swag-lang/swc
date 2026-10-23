@@ -61,56 +61,6 @@ private func quarterRound4(state: *[16] Math.Simd.U32x4, a, b, c, d: u32)
     state[][b] = rotate32(state[][b], 7)
 }
 
-private func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8)
-{
-    var initial: [16] Math.Simd.U32x4
-    initial[0] = Math.Simd.splat(0x61707865'u32)
-    initial[1] = Math.Simd.splat(0x3320646E'u32)
-    initial[2] = Math.Simd.splat(0x79622D32'u32)
-    initial[3] = Math.Simd.splat(0x6B206574'u32)
-    for i in 8 do
-        initial[4 + i] = Math.Simd.splat(load32(key.buffer + i * 4))
-    initial[12] = cast(Math.Simd.U32x4, [counter, counter + 1, counter + 2, counter + 3])
-    initial[13] = Math.Simd.splat(load32(nonce.buffer))
-    initial[14] = Math.Simd.splat(load32(nonce.buffer + 4))
-    initial[15] = Math.Simd.splat(load32(nonce.buffer + 8))
-
-    var state = initial
-    for 10
-    {
-        quarterRound4(&state, 0, 4, 8, 12)
-        quarterRound4(&state, 1, 5, 9, 13)
-        quarterRound4(&state, 2, 6, 10, 14)
-        quarterRound4(&state, 3, 7, 11, 15)
-        quarterRound4(&state, 0, 5, 10, 15)
-        quarterRound4(&state, 1, 6, 11, 12)
-        quarterRound4(&state, 2, 7, 8, 13)
-        quarterRound4(&state, 3, 4, 9, 14)
-    }
-
-    var stream: [4 * ChaCha20BlockSize] u8
-    for word in 16
-    {
-        let value = state[word] + initial[word]
-        for lane in 4
-        {
-            let offset = lane * ChaCha20BlockSize + word * 4
-            store32(&stream[offset], value[lane])
-        }
-    }
-
-    var offset = 0
-    while offset < 4 * ChaCha20BlockSize
-    {
-        Math.Simd.store(destination + offset, Math.Simd.load(source + offset) ^ Math.Simd.load(&stream[offset]))
-        offset += #sizeof(Math.Simd.U8x16)
-    }
-
-    secureClear(initial)
-    secureClear(state)
-    secureClear(stream)
-}
-
 // Produces one IETF ChaCha20 key-stream block for `counter`.
 //
 // Fails with [[Core.Errors.BadParameterError]] when `key` does not hold 32 bytes or `nonce` 12.
@@ -165,6 +115,56 @@ func chacha20Block(key: const [..] u8, counter: u32, nonce: const [..] u8)->[Cha
 // input needs more blocks than the counter range starting at `initialCounter` provides.
 func chacha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, initialCounter = 0'u32) fail
 {
+    func chacha20XorFour(key, nonce: const [..] u8, counter: u32, source: const [*] u8, destination: [*] u8)
+    {
+        var initial: [16] Math.Simd.U32x4
+        initial[0] = Math.Simd.splat(0x61707865'u32)
+        initial[1] = Math.Simd.splat(0x3320646E'u32)
+        initial[2] = Math.Simd.splat(0x79622D32'u32)
+        initial[3] = Math.Simd.splat(0x6B206574'u32)
+        for i in 8 do
+            initial[4 + i] = Math.Simd.splat(load32(key.buffer + i * 4))
+        initial[12] = cast(Math.Simd.U32x4, [counter, counter + 1, counter + 2, counter + 3])
+        initial[13] = Math.Simd.splat(load32(nonce.buffer))
+        initial[14] = Math.Simd.splat(load32(nonce.buffer + 4))
+        initial[15] = Math.Simd.splat(load32(nonce.buffer + 8))
+
+        var state = initial
+        for 10
+        {
+            quarterRound4(&state, 0, 4, 8, 12)
+            quarterRound4(&state, 1, 5, 9, 13)
+            quarterRound4(&state, 2, 6, 10, 14)
+            quarterRound4(&state, 3, 7, 11, 15)
+            quarterRound4(&state, 0, 5, 10, 15)
+            quarterRound4(&state, 1, 6, 11, 12)
+            quarterRound4(&state, 2, 7, 8, 13)
+            quarterRound4(&state, 3, 4, 9, 14)
+        }
+
+        var stream: [4 * ChaCha20BlockSize] u8
+        for word in 16
+        {
+            let value = state[word] + initial[word]
+            for lane in 4
+            {
+                let offset = lane * ChaCha20BlockSize + word * 4
+                store32(&stream[offset], value[lane])
+            }
+        }
+
+        var offset = 0
+        while offset < 4 * ChaCha20BlockSize
+        {
+            Math.Simd.store(destination + offset, Math.Simd.load(source + offset) ^ Math.Simd.load(&stream[offset]))
+            offset += #sizeof(Math.Simd.U8x16)
+        }
+
+        secureClear(initial)
+        secureClear(state)
+        secureClear(stream)
+    }
+
     if key.count != ChaCha20KeySize do
         fail Errors.BadParameterError{"ChaCha20 needs a 32-byte key"}
     if nonce.count != ChaCha20NonceSize do

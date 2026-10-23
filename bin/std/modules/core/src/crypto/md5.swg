@@ -1,6 +1,15 @@
 #global namespace Hash
 #global #[Swag.Safety(.Overflow, false)]
 
+internal func addInputLength(count: *[2] u32, length: u64)
+{
+    let lowBits = cast(u32, length << 3)
+    count[][0] += lowBits
+    if count[][0] < lowBits do
+        count[][1] += 1
+    count[][1] += cast(u32, length >> 29)
+}
+
 // Computes an MD5 digest incrementally.
 //
 // MD5 is suitable for compatibility and non-adversarial checksums only. Do not
@@ -49,26 +58,20 @@ public impl Md5
     // Includes `data` in the running digest.
     mtd update(data: const [..] u8)
     {
-        // Only deal with 32 bits size
-        Swag.assert(data.count <= Swag.U32.Max)
-
         let input    = data.buffer
-        let inputLen = cast(u32, data.count)
+        let inputLen = data.count
 
         var index = (.count[0] >> 3) & 0x3F
-        .count[0] += inputLen << 3
-        if .count[0] < inputLen << 3 do
-            .count[1] += 1
-        .count[1] += inputLen >> 29
+        addInputLength(&.count, inputLen)
 
-        var i       = 0'u32
+        var i       = 0'u64
         let partLen = 64 - index
         if inputLen >= partLen
         {
             Memory.copy(&.buffer[index], input, cast(u64, partLen))
             transform(.state, &.buffer[0])
             i = partLen
-            while i + 63 < inputLen
+            while inputLen - i >= 64
             {
                 transform(.state, input + i)
                 i += 64
@@ -77,7 +80,7 @@ public impl Md5
             index = 0
         }
 
-        Memory.copy(&.buffer[index], input + i, cast(u64, inputLen) - i)
+        Memory.copy(&.buffer[index], input + i, inputLen - i)
     }
 
     // Computes the MD5 digest of `buffer` in one operation.

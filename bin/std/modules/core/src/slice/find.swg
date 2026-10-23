@@ -46,21 +46,6 @@ private func findByte(values: const [*] u8, count: u64, value: u8)->u64
     return Swag.U64.Max
 }
 
-#[Swag.Inline]
-private func verifyByteCandidates(values, subslice: const [*] u8, subCount, baseOffset: u64, candidateMask: u32)->u64
-{
-    var mask = candidateMask
-    while mask
-    {
-        let offset = baseOffset + Math.trailingZeros(mask)
-        if Memory.compare(values + offset, subslice, subCount) == 0 do
-            return offset
-        mask &= mask - 1
-    }
-
-    return Swag.U64.Max
-}
-
 // Returns the index of an element equal to `value` in a slice sorted in ascending order.
 //
 // The search is binary, so it takes logarithmic time. When several elements equal `value`, the
@@ -113,6 +98,21 @@ func(T, V) findLinear(values: const [..] T?, value: V)->u64
 // An empty `subslice` occurs at index 0.
 func findSubslice(values, subslice: const [..] u8)->u64
 {
+    #[Swag.Inline]
+    func verifyByteCandidates(values, subslice: const [*] u8, subCount, baseOffset: u64, candidateMask: u32)->u64
+    {
+        var mask = candidateMask
+        while mask
+        {
+            let offset = baseOffset + Math.trailingZeros(mask)
+            if Memory.compare(values + offset, subslice, subCount) == 0 do
+                return offset
+            mask &= mask - 1
+        }
+
+        return Swag.U64.Max
+    }
+
     let valueCount = values.count
     let subCount   = subslice.count
     if not subCount do

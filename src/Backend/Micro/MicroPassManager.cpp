@@ -59,11 +59,6 @@ namespace
     using MicroOptimizationLimits::Pipeline::K_OPT_ITERATION_ON;
     using MicroOptimizationLimits::Pipeline::K_RA_ITERATION_ON;
 
-    std::string backendOptimizeLevelName(const Runtime::BuildCfgBackend& backendCfg)
-    {
-        return std::string{optimLevelName(backendCfg.optimLevel)};
-    }
-
     std::string passStageName(const MicroPass& pass, bool before)
     {
         return std::format("{}-{}", before ? "pre" : "post", pass.name());
@@ -87,7 +82,7 @@ namespace
     std::string backendOptimizeWithInstructionStats(const MicroPassContext& context, const MicroBuilder& builder)
     {
         const Runtime::BuildCfgBackend& backendCfg = builder.backendBuildCfg();
-        std::string                     optimize   = backendOptimizeLevelName(backendCfg);
+        std::string                     optimize   = std::string{optimLevelName(backendCfg.optimLevel)};
         if (!backendCfg.optimizes())
             return optimize;
 

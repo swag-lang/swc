@@ -126,7 +126,7 @@ impl ArrayPtr
     mtd deleteAt(index: u64, num: u64 = 1)
     {
         // Check the range before deleting anything: a bad index must not free unrelated objects.
-        Debug.safetyBoundCheck(index + num <= .count, "index out of range")
+        Debug.safetyBoundCheck(isRangeInBounds(.count, index, num), "index out of range")
         let buffer = .storage()
         for i in num do
             Memory.delete(buffer[index + i], .allocator)

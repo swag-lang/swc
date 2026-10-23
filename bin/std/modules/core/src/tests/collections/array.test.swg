@@ -96,6 +96,15 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 
 #test
 {
+    Swag.assert(isRangeInBounds(4, 0, 4))
+    Swag.assert(isRangeInBounds(4, 4, 0))
+    Swag.assert(not isRangeInBounds(4, 5, 0))
+    Swag.assert(not isRangeInBounds(4, Swag.U64.Max, 1))
+    Swag.assert(not isRangeInBounds(4, 1, Swag.U64.Max))
+}
+
+#test
+{
     var values: Array's32
     Swag.assert(values.isEmpty())
 

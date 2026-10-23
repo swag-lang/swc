@@ -2,6 +2,8 @@
 
 using Swag
 
+internal func isRangeInBounds(count, index, length: u64)->bool => index <= count and length <= count - index
+
 // A growable, contiguous array of elements of type `T`.
 //
 // The array owns its elements and its buffer, which grows as elements are added and is released
@@ -219,8 +221,7 @@ impl Array
     {
         let indexIsValid = x < .count and (not w or y <= (.count - x - 1) / w)
         Debug.safetyBoundCheck(indexIsValid, "index out of range")
-        let buffer = .buffer!
-        return buffer + x + y * w
+        return .buffer! + x + y * w
     }
 
     // Reallocates the buffer to `newCapacity` elements, relocating the existing ones.
@@ -697,7 +698,7 @@ impl Array
     {
         if not num do
             return
-        Debug.safetyBoundCheck(index + num <= .count, "index out of range")
+        Debug.safetyBoundCheck(isRangeInBounds(.count, index, num), "index out of range")
         let shiftCount = .count - (index + num)
 
         #static if not (Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)) and not Reflection.hasDrop(T)
@@ -759,7 +760,7 @@ impl Array
     {
         if not numValues do
             return
-        Debug.safetyBoundCheck(index + numValues <= .count, "index out of range")
+        Debug.safetyBoundCheck(isRangeInBounds(.count, index, numValues), "index out of range")
         .count -= numValues
 
         #static if Reflection.hasDrop(T)

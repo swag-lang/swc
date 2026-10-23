@@ -452,7 +452,7 @@ impl StaticArray
     {
         if not num do
             return
-        Swag.assert(index + num <= .count, "index out of range")
+        Swag.assert(isRangeInBounds(.count, index, num), "index out of range")
         let oldCount   = .count
         let shiftCount = .count - (index + num)
 
@@ -531,7 +531,7 @@ impl StaticArray
     {
         if not numValues do
             return
-        Swag.assert(index + numValues <= .count, "index out of range")
+        Swag.assert(isRangeInBounds(.count, index, numValues), "index out of range")
         let oldCount = .count
         .count -= numValues
 

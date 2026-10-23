@@ -182,23 +182,6 @@ private func releaseHandle(handle: *ProcessHandle)
     handle[] = null
 }
 
-// Opens the null device, which throws writes away and reads as an empty stream.
-private func openNullDevice()->HANDLE fail
-{
-    var attributes: SECURITY_ATTRIBUTES
-    attributes.nLength        = #sizeof(SECURITY_ATTRIBUTES)
-    attributes.bInheritHandle = TRUE
-
-    let name = Utf16.toZeroTerminated("NUL")
-    return try CreateFileW(name.buffer,
-                           GENERIC_READ | GENERIC_WRITE,
-                           FILE_SHARE_READ | FILE_SHARE_WRITE,
-                           &attributes,
-                           OPEN_EXISTING,
-                           0,
-                           null)
-}
-
 // Creates one redirection pipe and hands each end to its side.
 //
 // `childWrites` tells which end the child receives: the writing one for a stream it produces,
@@ -242,6 +225,23 @@ private func inheritableStandardHandle(which: DWORD)->HANDLE
 // stream left out of it would reach the child as no stream at all.
 private func prepareChildStream(redirection: StreamRedirection, parentEnd, ownedChildEnd: *ProcessHandle, standardHandle: DWORD, anyRedirection: bool, childWrites: bool)->ProcessHandle fail
 {
+    // Opens the null device, which throws writes away and reads as an empty stream.
+    func openNullDevice()->HANDLE fail
+    {
+        var attributes: SECURITY_ATTRIBUTES
+        attributes.nLength        = #sizeof(SECURITY_ATTRIBUTES)
+        attributes.bInheritHandle = TRUE
+
+        let name = Utf16.toZeroTerminated("NUL")
+        return try CreateFileW(name.buffer,
+                               GENERIC_READ | GENERIC_WRITE,
+                               FILE_SHARE_READ | FILE_SHARE_WRITE,
+                               &attributes,
+                               OPEN_EXISTING,
+                               0,
+                               null)
+    }
+
     switch #complete redirection
     {
     case .Pipe:

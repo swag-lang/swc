@@ -85,8 +85,7 @@ impl Array
         Debug.safetyBoundCheck(lower <= upper, "lower bound greater than upper bound")
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
         Debug.safetyBoundCheck(upper < .count, "upper bound out of range")
-        let buffer = .buffer!
-        return Swag.makeSlice(buffer + lower, (upper + 1) - lower)
+        return Swag.makeSlice(.buffer! + lower, (upper + 1) - lower)
     }
 
     // Returns the address of the element at `index`.
@@ -94,8 +93,7 @@ impl Array
     mtd const opIndexPtr(index: u64)->const *T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        let buffer = .buffer!
-        return buffer + index
+        return .buffer! + index
     }
 
     // Returns the mutable address of the element at `index`.
@@ -103,8 +101,7 @@ impl Array
     mtd opIndexPtr(index: u64)->*T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        let buffer = .buffer!
-        return buffer + index
+        return .buffer! + index
     }
 
     // Assigns a copy of `value` to the element at `index`.
@@ -113,8 +110,7 @@ impl Array
         where Reflection.canCopy(T)
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        let buffer = .buffer!
-        buffer[index] = value
+        .buffer![index] = value
     }
 
     // Applies a compound assignment such as `+=` or `-=` to the element at `index`.

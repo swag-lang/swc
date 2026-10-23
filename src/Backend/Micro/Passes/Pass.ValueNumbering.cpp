@@ -729,6 +729,10 @@ Result MicroValueNumberingPass::run(MicroPassContext& context)
     const MicroSsaState*         ssaState   = MicroSsaState::ensureFor(context, ssaScratch);
     if (!ssaState || !ssaState->isValid())
         return Result::Continue;
+    // Every candidate key and rewrite is rooted in an SSA value for a virtual
+    // register. Without values, numbering cannot match or rewrite an instruction.
+    if (ssaState->values().empty())
+        return Result::Continue;
 
     MicroPassHelpers::MicroDomTree dom;
     bool                           dominatorsReady = false;

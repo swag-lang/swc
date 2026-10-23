@@ -45,3 +45,13 @@ six-worker `core_rebuild` rounds measured no process-peak reduction: maximum wor
 934.2 MiB baseline and 933.7 MiB candidate, and peak commit was 953.1 and 953.4 MiB. Paired median
 ratios were 1.054 wall time, 1.008 CPU time, and 1.000 for both memory measures. The source change
 was reverted because it did not improve the campaign's peak-memory target.
+
+Rejected follow-up: the register allocator released retained instruction-indexed liveness buffers
+when the next function was less than half the prior function's size (with a 4096-instruction
+floor). This is safe at the start of a new allocation run because the default pass pipeline is
+thread-local and reused across functions. The candidate passed the native suite (3,937 tests), but
+three alternating six-worker `core_rebuild` pairs did not reduce peak working set: candidate was
+930.3 MiB and baseline 930.2 MiB. Peak commit was 942.2 MiB candidate and 954.6 MiB baseline, but
+paired median ratios were highly variable: candidate/baseline 1.170 wall, 1.256 CPU, 0.987 commit,
+and 0.999 working set. With no resident-memory reduction and an inconclusive commit change, the
+scratch-release change was reverted rather than retain possible per-function reallocation cost.

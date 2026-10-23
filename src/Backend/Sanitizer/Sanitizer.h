@@ -110,9 +110,6 @@ private:
         std::string_view what;
     };
 
-    // Compute properties that require a full instruction scan: registers defined exactly
-    // once, and whether the stack-base register is mutated in place.
-    void            computeFunctionProperties();
     bool            hasSingleDefinition(MicroReg reg) const;
     const TypeInfo* declaredPointerType(TypeRef typeRef, uint64_t offset) const;
     const TypeInfo* stackSlotPointerType(int64_t slot) const;

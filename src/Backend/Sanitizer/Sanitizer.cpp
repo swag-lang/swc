@@ -185,47 +185,6 @@ const TypeInfo* Sanitizer::stackSlotPointerType(const int64_t slot) const
     return declaredPointerType(extent->sym->typeRef(), static_cast<uint64_t>(slot - extent->start));
 }
 
-void Sanitizer::computeFunctionProperties()
-{
-    definitionCounts_       = {};
-    stackBaseStable_        = true;
-    needsReleaseProvenance_ = false;
-    hasMoveInvalidation_    = false;
-    hasCall_                = false;
-
-    const uint32_t n                = cfg_->instructionCount();
-    const bool     inspectStackBase = stackBaseReg_.isValid();
-    for (uint32_t i = 0; i < n; i++)
-    {
-        const MicroInstr& inst = *context_.instructions->ptr(cfg_->instructionRefs()[i]);
-        needsReleaseProvenance_ |= inst.op == MicroInstrOpcode::SanityRelease;
-        hasMoveInvalidation_ |= inst.op == MicroInstrOpcode::SanityInvalidate;
-        const MicroInstrDef& def = MicroInstr::info(inst.op);
-        hasCall_ |= def.flags.has(MicroInstrFlagsE::IsCallInstruction);
-        const MicroInstrOperand* ops = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
-        if (!ops)
-            continue;
-
-        if (inspectStackBase && stackBaseStable_ &&
-            (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryRegReg) &&
-            ops[0].reg == stackBaseReg_)
-            stackBaseStable_ = false;
-
-        const auto modes    = def.resolvedRegModes(ops);
-        const auto regCount = std::min(static_cast<size_t>(inst.numOperands), modes.size());
-        for (size_t r = 0; r < regCount; r++)
-        {
-            // Only virtual-register counts are queried by the provenance checks.
-            if ((modes[r] == MicroInstrRegMode::Def || modes[r] == MicroInstrRegMode::UseDef) && ops[r].reg.isVirtual())
-            {
-                uint8_t& count = definitionCounts_.getOrInsert(ops[r].reg.packed);
-                if (count < 2)
-                    ++count;
-            }
-        }
-    }
-}
-
 bool Sanitizer::hasSingleDefinition(const MicroReg reg) const
 {
     const uint8_t* count = definitionCounts_.find(reg.packed);
@@ -307,11 +266,68 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     reached_.assign(n, 0);
     inWorklist_.assign(n, 0);
 
-    // In-place mutations of the stack-base register (call-area frame shapes fold a
-    // local's offset into it) invalidate the absolute extents used by the bound check.
-    // Compute that property alongside the definition counts instead of scanning the
-    // complete instruction stream a second time.
-    computeFunctionProperties();
+    // Function properties and chain heads use the same CFG instruction order. Collect
+    // both in one walk instead of revisiting the complete instruction stream.
+    definitionCounts_       = {};
+    stackBaseStable_        = true;
+    needsReleaseProvenance_ = false;
+    hasMoveInvalidation_    = false;
+    hasCall_                = false;
+
+    headStateIndex_.assign(n, K_NO_STATE);
+    headStateIndex_[0] = 0;
+    SmallVector<uint32_t, 8> stateHeadIndices{0};
+    uint32_t                 numStates        = 1;
+    const bool               inspectStackBase = stackBaseReg_.isValid();
+    for (uint32_t i = 0; i < n; i++)
+    {
+        const MicroInstr& inst = *context_.instructions->ptr(cfg.instructionRefs()[i]);
+        needsReleaseProvenance_ |= inst.op == MicroInstrOpcode::SanityRelease;
+        hasMoveInvalidation_ |= inst.op == MicroInstrOpcode::SanityInvalidate;
+        const MicroInstrDef& def = MicroInstr::info(inst.op);
+        hasCall_ |= def.flags.has(MicroInstrFlagsE::IsCallInstruction);
+        const MicroInstrOperand* ops = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
+        if (ops)
+        {
+            if (inspectStackBase && stackBaseStable_ &&
+                (inst.op == MicroInstrOpcode::OpBinaryRegImm || inst.op == MicroInstrOpcode::OpBinaryRegReg) &&
+                ops[0].reg == stackBaseReg_)
+                stackBaseStable_ = false;
+
+            const auto modes    = def.resolvedRegModes(ops);
+            const auto regCount = std::min(static_cast<size_t>(inst.numOperands), modes.size());
+            for (size_t r = 0; r < regCount; r++)
+            {
+                // Only virtual-register counts are queried by the provenance checks.
+                if ((modes[r] == MicroInstrRegMode::Def || modes[r] == MicroInstrRegMode::UseDef) && ops[r].reg.isVirtual())
+                {
+                    uint8_t& count = definitionCounts_.getOrInsert(ops[r].reg.packed);
+                    if (count < 2)
+                        ++count;
+                }
+            }
+        }
+
+        if (i == 0)
+            continue;
+        const MicroControlFlowGraph::EdgeList& preds = cfg.predecessors(i);
+        if (preds.size() >= 2)
+        {
+            headStateIndex_[i] = numStates++;
+            stateHeadIndices.push_back(i);
+            continue;
+        }
+        if (preds.size() == 1)
+        {
+            const MicroInstr&    predInst = *context_.instructions->ptr(cfg.instructionRefs()[preds[0]]);
+            const MicroInstrDef& predDef  = MicroInstr::info(predInst.op);
+            if (cfg.successors(preds[0]).size() != 1 || predDef.flags.has(MicroInstrFlagsE::ConditionalJump))
+            {
+                headStateIndex_[i] = numStates++;
+                stateHeadIndices.push_back(i);
+            }
+        }
+    }
 
     // A function without an invalidation cannot acquire a moved-from range. Keep
     // its ordinary reads and writes out of the move check entirely.
@@ -337,36 +353,6 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
             if (rel.targetSymbol &&
                 (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
                 callTargets_.set(rel.instructionRef, rel.targetSymbol);
-        }
-    }
-
-    // Chain heads are the only points where states are stored and joined: the entry,
-    // any merge point (several predecessors), and any target of a branching
-    // predecessor. Everything between two heads is a straight-line chain whose states
-    // are recomputed on the fly — storing a state per instruction (and copying it on
-    // every worklist iteration) made big loopy functions take minutes.
-    headStateIndex_.assign(n, K_NO_STATE);
-    headStateIndex_[0] = 0;
-    SmallVector<uint32_t, 8> stateHeadIndices{0};
-    uint32_t                 numStates = 1;
-    for (uint32_t i = 1; i < n; i++)
-    {
-        const MicroControlFlowGraph::EdgeList& preds = cfg.predecessors(i);
-        if (preds.size() >= 2)
-        {
-            headStateIndex_[i] = numStates++;
-            stateHeadIndices.push_back(i);
-            continue;
-        }
-        if (preds.size() == 1)
-        {
-            const MicroInstr&    predInst = *context_.instructions->ptr(cfg.instructionRefs()[preds[0]]);
-            const MicroInstrDef& predDef  = MicroInstr::info(predInst.op);
-            if (cfg.successors(preds[0]).size() != 1 || predDef.flags.has(MicroInstrFlagsE::ConditionalJump))
-            {
-                headStateIndex_[i] = numStates++;
-                stateHeadIndices.push_back(i);
-            }
         }
     }
 

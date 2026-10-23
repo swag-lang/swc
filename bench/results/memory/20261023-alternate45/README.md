@@ -70,3 +70,11 @@ peak commit was 947.9 and 962.0 MiB. Paired median candidate/baseline ratios wer
 1.035 CPU, 0.991 commit, and 0.979 working set. This initial check suggests about 19 MiB lower
 working-set peak, with a small and unconfirmed timing cost; it is incremental evidence, not a
 campaign-wide result.
+
+Rejected follow-up: `CoffSymbolRecord` temporarily borrowed the symbol-name storage already owned
+by the object description, section relocations, debug result, or builder, avoiding per-record name
+copies. The candidate passed the native suite (3,937 tests), but three alternating six-worker
+`core_rebuild` pairs did not lower process peaks: maximum working set was 923.3 MiB candidate and
+914.4 MiB baseline; peak commit was 949.3 and 936.8 MiB. Paired median candidate/baseline ratios
+were 1.120 wall, 1.101 CPU, 1.007 commit, and 1.013 working set. The sample is variable, but it
+shows no memory gain, so the change was reverted.

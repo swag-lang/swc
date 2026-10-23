@@ -84,7 +84,7 @@ public impl ByteStream
     // Reads a value of type `T` laid out as the host stores it, and advances past it.
     mtd(T) readNative()->T fail
     {
-        if .seek + #sizeof(T) > .length() do
+        if #sizeof(T) > .length() - .seek do
             fail OverflowError{"byte stream overflow"}
         let val = cast(const *T, (.data() + .seek))[]
         .seek += #sizeof(T)
@@ -96,7 +96,7 @@ public impl ByteStream
     // `dest` must be non-null, including when `count` is zero.
     mtd readBytes(dest: *u8, count: u64) fail
     {
-        if .seek + count > .length() do
+        if count > .length() - .seek do
             fail OverflowError{"byte stream overflow"}
         if not count do
             return

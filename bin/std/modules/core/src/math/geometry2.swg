@@ -17,6 +17,40 @@ func ellipseContainsPoint(point, center: Vector2, radiusX, radiusY: f32)->bool
 // same side of all three edges.
 func triangleContainsPoint(point, a, b, c: Vector2)->bool
 {
+    let area = (b - a).cross(c - a)
+    if area == 0
+    {
+        // A degenerate triangle is its convex hull: the segment between its farthest vertices,
+        // or a single point when all three vertices coincide.
+        var start = a
+        var end   = b
+        var span  = (b - a).lengthSquared()
+
+        let acSpan = (c - a).lengthSquared()
+        if acSpan > span
+        {
+            end  = c
+            span = acSpan
+        }
+
+        let bcSpan = (c - b).lengthSquared()
+        if bcSpan > span
+        {
+            start = b
+            end   = c
+            span  = bcSpan
+        }
+
+        let direction = end - start
+        let offset    = point - start
+        if span == 0 do
+            return point.x == start.x and point.y == start.y
+
+        return direction.cross(offset) == 0 and
+               offset.dot(direction) >= 0 and
+               offset.dot(direction) <= span
+    }
+
     let ax  = c.x - b.x
     let ay  = c.y - b.y
     let bx  = a.x - c.x

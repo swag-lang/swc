@@ -46,6 +46,19 @@ func expectNear(actual, expected: f32)
 #test
 {
     let a = Math.Vector2{0, 0}
+    let b = Math.Vector2{5, 0}
+    let c = Math.Vector2{10, 0}
+
+    Swag.assert(Math.Geometry.triangleContainsPoint(Math.Vector2{7, 0}, a, b, c))
+    Swag.assert(not Math.Geometry.triangleContainsPoint(Math.Vector2{7, 1}, a, b, c))
+    Swag.assert(not Math.Geometry.triangleContainsPoint(Math.Vector2{11, 0}, a, b, c))
+    Swag.assert(Math.Geometry.triangleContainsPoint(a, a, a, a))
+    Swag.assert(not Math.Geometry.triangleContainsPoint(Math.Vector2{4, 4}, a, a, a))
+}
+
+#test
+{
+    let a = Math.Vector2{0, 0}
     let b = Math.Vector2{10, 0}
 
     expectNear(Math.Geometry.distanceFromPointToLine(Math.Vector2{5, 3}, a, b), 3)

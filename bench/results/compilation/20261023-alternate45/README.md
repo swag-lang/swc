@@ -1,7 +1,7 @@
 # Alternating compiler speed and memory, 2026-10-23
 
-This session alternated prompts 4 and 5 in separate worktrees and ended at 11:18 Europe/Paris
-at the user's request; the original plan was to continue until 12:00. The campaigns use separate
+This session alternates prompts 4 and 5 in separate worktrees until 12:00 Europe/Paris. The
+campaigns use separate
 external worktrees under `%LOCALAPPDATA%/swc-agent-builds/alternate45-20261023-0730`, with
 checkout-local compilers and at most six compiler workers. Prompt 4 does not use timing or
 profiling; every retained speed change has a structural proof.

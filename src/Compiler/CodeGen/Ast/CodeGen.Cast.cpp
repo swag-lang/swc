@@ -419,7 +419,7 @@ namespace
                 return Result::Continue;
             }
 
-            if (readType.isNumericSigned())
+            if (readType.isIntSigned())
             {
                 builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
                 return Result::Continue;
@@ -1882,7 +1882,7 @@ namespace
                 return Result::Continue;
             }
 
-            if (resolvedSrcType.isNumericSigned())
+            if (resolvedSrcType.isIntSigned())
                 builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
             else
                 builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
@@ -1929,7 +1929,7 @@ namespace
                 return Result::Continue;
             }
 
-            if (resolvedSrcType.isNumericSigned())
+            if (resolvedSrcType.isIntSigned())
             {
                 builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
                 return Result::Continue;

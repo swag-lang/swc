@@ -815,7 +815,7 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
             return dstReg;
         }
 
-        if (srcType.isNumericSigned())
+        if (srcType.isIntSigned())
         {
             builder.emitLoadSignedExtendRegReg(dstReg, srcReg, dstOpBits, srcOpBits);
             return dstReg;

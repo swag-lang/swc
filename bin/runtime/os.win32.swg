@@ -532,6 +532,11 @@ func __printString(message: string?)
 #[Swag.Safety(.ValueBorrow, false)]
 func __raiseException666(message: string?, loc: Swag.SourceCodeLocation, kind: Swag.ExceptionKind)
 {
+    // JIT assertions normally raise an exception for the compiler to report. An active panic
+    // catcher owns the assertion, so route it through the same hook as a native assertion.
+    if kind == .Assert and Swag.getContext().panicCatch do
+        Swag.panic(message, loc)
+
     // In a native binary there is no compiler above us to catch the exception:
     // route the failure through the panic path (which the native #test runner
     // hooks), instead of dying silently on an unhandled SEH exception.

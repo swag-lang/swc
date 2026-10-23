@@ -69,6 +69,15 @@ its element type, its options, its result shape — belong in the same file.
   requires. Before writing any geometric, textual, or numeric helper, check whether the type
   already offers it or should.
 
+### Keep one-caller helpers local
+
+For an implementation helper with a single call site, declare it as a local function inside its
+caller. Swag supports nested functions; use that scope to keep private detail with the code that
+owns it instead of making readers navigate to a module-level declaration. Keep a helper at module
+or type scope when it has multiple callers, is an intentional API or callback target, owns
+type-specific behavior, or benefits from independent recursion or testing. If a helper is only
+extracted to make one caller's phases readable, keep the extraction local.
+
 ### Keep constructors as composition outlines
 
 A constructor for a window, service, or other aggregate should reveal the object it creates before

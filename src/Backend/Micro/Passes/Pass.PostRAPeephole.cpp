@@ -380,6 +380,9 @@ namespace
         std::vector<uint32_t> frameAccesses;
         std::vector<uint32_t> sameStores;
         std::vector<int64_t>  frameDepth;
+        std::vector<uint8_t>  reachesRead;
+        std::vector<uint8_t>  seen;
+        std::vector<uint32_t> pending;
         const auto            collectFrameAccesses = [&] {
             frameAccessesCollected = true;
             // Outgoing-call adjustments change the meaning of a displacement.
@@ -535,7 +538,7 @@ namespace
 
             // Every candidate targets the same reload in the unchanged CFG.
             // Collect its reverse reachability only when the first one needs it.
-            std::vector<uint8_t> reachesRead;
+            reachesRead.clear();
             for (uint32_t labelIndex = storeIndex + 1; labelIndex < reloadIndex; ++labelIndex)
             {
                 const MicroInstr* label = storage.ptr(refs[labelIndex]);
@@ -555,9 +558,9 @@ namespace
                 // The target must dominate its only reader, even through the
                 // loop back edge. Otherwise delaying the write leaves a path
                 // that can observe an older slot value.
-                std::vector<uint32_t> pending = {0};
-                std::vector<uint8_t>  seen(refs.size(), 0);
-                bool                  dominates = true;
+                pending.assign(1, 0);
+                seen.assign(refs.size(), 0);
+                bool dominates = true;
                 while (!pending.empty() && dominates)
                 {
                     const uint32_t index = pending.back();

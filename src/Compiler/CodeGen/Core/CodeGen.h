@@ -192,7 +192,7 @@ public:
     void          setCurrentLoopHasContinueJump(bool value) { currentLoopHasContinueJump_ = value; }
 
     const InlineContext& currentInlineContext() const { return inlineContext_; }
-    InlineContext&       currentInlineContextRef() { return inlineContext_; }
+    InlineContext&       currentInlineContext() { return inlineContext_; }
     void                 setCurrentInlineContext(AstNodeRef rootNodeRef, const SemaInlinePayload* payload, MicroLabelRef doneLabel);
     void                 clearCurrentInlineContext() { inlineContext_ = {}; }
     AstNodeRef           currentInlineBoundaryRootRef() const { return inlineBoundaryRootRef_; }

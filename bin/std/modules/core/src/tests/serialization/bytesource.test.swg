@@ -109,14 +109,14 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(source.isAtEnd())
 }
 
-// A line ends at a line feed whichever end-of-line convention wrote it, and a line that never
-// ends is refused at its bound rather than read to the end of the stream.
+// CRLF and LF lines each accept their exact byte limit; a line that never ends is refused at its
+// bound rather than read to the end of the stream.
 #test
 {
     let text   = "first\r\nsecond\nunterminated"
     var source = ByteSource.openMemory(cast(const [..] u8, text))
-    Swag.assert(expect source.readLine(16) == "first")
-    Swag.assert(expect source.readLine(16) == "second")
+    Swag.assert(expect source.readLine(6) == "first")
+    Swag.assert(expect source.readLine(6) == "second")
     Swag.assert(source.position() == 14)
 
     discard catch source.readLine(4) as tooLong

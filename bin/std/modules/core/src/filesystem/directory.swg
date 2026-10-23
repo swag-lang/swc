@@ -25,6 +25,8 @@ struct EnumerationOptions
 // many levels are missing.
 func create(dirName: string, recurse = false) fail
 {
+    if not dirName.count do
+        fail Errors.BadParameterError{}
     try Env.guardWrite(dirName)
     if not recurse
     {
@@ -52,6 +54,8 @@ func create(dirName: string, recurse = false) fail
 // Directory reparse points are removed without traversing their targets.
 func delete(dirName: string, recurse = false) fail
 {
+    if not dirName.count do
+        fail Errors.BadParameterError{}
     try Env.guardWrite(dirName)
 
     if recurse
@@ -85,6 +89,8 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
     var result: retval
     if dirName == null do
         return result
+    if not dirName.count do
+        fail Errors.BadParameterError{}
 
     var stack: Array'String
     stack.add(dirName)

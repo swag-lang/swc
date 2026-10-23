@@ -93,6 +93,22 @@ func createDirectoryJunction(link, target: string)->bool
     Swag.assert(errOutcome.value() != null)
 }
 
+// Empty paths are rejected before they can act like the current directory.
+#test
+{
+    var createError: Swag.Error
+    discard catch Directory.create("", recurse: true) as &createError
+    Swag.assert(createError.value() is Errors.BadParameterError)
+
+    var deleteError: Swag.Error
+    discard catch Directory.delete("", recurse: true) as &deleteError
+    Swag.assert(deleteError.value() is Errors.BadParameterError)
+
+    var enumerateError: Swag.Error
+    discard catch Directory.enumerate("", {}) as &enumerateError
+    Swag.assert(enumerateError.value() is Errors.BadParameterError)
+}
+
 // Recursive deletion removes a directory link without walking into its target.
 #test
 {

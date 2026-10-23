@@ -28,5 +28,11 @@ using Core
     Swag.assert(bindingTest == 2)
     let archivedEvidence = Tool.auditForeignImports("bench/results/generated-code/20261005-runtime-layout/probes/avx_probe.swgs", imports)
     Swag.assert(archivedEvidence == 0)
+
+    let processPath      = "bin/std/modules/core/src/system/process.win32.swg"
+    let processSource    = try File.readAllText(processPath)
+    let nativeTypeErrors = Tool.auditPortabilitySource(processPath, processSource.toString())
+    Swag.assert(nativeTypeErrors == 0)
+
     Console.println("native import ownership regression checks passed")
 }

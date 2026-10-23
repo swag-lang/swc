@@ -153,17 +153,19 @@ private const NativeDeclarationApprovals = [
 
 private struct PortabilityParseState
 {
-    blockComment:   bool
-    multilineText:  bool
-    globalPublic:   bool
-    pendingOpaque:  bool
-    pendingPrivate: bool
-    pendingScope:   bool
-    pendingPublic:  bool
-    privateDepth:   s32
-    publicDepth:    s32
-    publicStruct:   bool
-    publicOpaque:   bool
+    blockComment:    bool
+    multilineText:   bool
+    globalPublic:    bool
+    pendingOpaque:   bool
+    pendingPrivate:  bool
+    pendingScope:    bool
+    pendingFunction: bool
+    pendingPublic:   bool
+    functionDepth:   s32
+    privateDepth:    s32
+    publicDepth:     s32
+    publicStruct:    bool
+    publicOpaque:    bool
 }
 
 // Runs the source-only portability boundary audit.
@@ -249,6 +251,12 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
     let fullName = Path.combine(context.root.toString(), path)
     let content  = try File.readAllText(fullName.toString())
 
+    return auditPortabilitySource(path, content.toString())
+}
+
+// Checks one source against the platform boundary, including the visibility of native types.
+public func auditPortabilitySource(path: string, content: string)->u32
+{
     let interop     = isUnderAny(path, NativeInteropRoots)
     let native      = interop or isApprovedPath(path, NativeSourceFiles) or isUnderAny(path, NativeSourceRoots)
     let importPoint = interop or isApprovedPath(path, NativeImportFiles)
@@ -258,7 +266,7 @@ private func auditPortabilityFile(context: *Context, path: string)->u32 fail
     var errors: u32
     var lineNumber = 0'u64
 
-    for rawLine in Tokenize.splitLines(content.toString())
+    for rawLine in Tokenize.splitLines(content)
     {
         lineNumber += 1
         let rawTrimmed = Latin1.trim(rawLine)
@@ -342,7 +350,7 @@ public func auditForeignImports(path: string, content: string)->u32
 
 private func auditPublicNativeDeclaration(path: string, line: string, lineNumber: u64, nativeType: string, approved: bool, state: *PortabilityParseState)->u32
 {
-    if nativeType.count == 0 or approved or state.privateDepth != 0 do
+    if nativeType.count == 0 or approved or state.functionDepth != 0 or state.privateDepth != 0 do
         return 0
 
     let privateLine = startsWithAccess(line, "private") or startsWithAccess(line, "internal")
@@ -378,8 +386,31 @@ private func auditPublicNativeDeclaration(path: string, line: string, lineNumber
 
 private func updatePublicScope(line: string, state: *PortabilityParseState)
 {
-    let opens  = countByte(line, '{')
-    let closes = countByte(line, '}')
+    let opens         = countByte(line, '{')
+    let closes        = countByte(line, '}')
+    let depthChange   = cast(s32, opens) - cast(s32, closes)
+    let wasInFunction = state.functionDepth != 0
+    let privateLine   = startsWithAccess(line, "private") or startsWithAccess(line, "internal")
+
+    if wasInFunction do
+        state.functionDepth += depthChange
+    if state.functionDepth <= 0 do
+        state.functionDepth = 0
+
+    if state.pendingFunction
+    {
+        if not wasInFunction and opens > closes do
+            state.functionDepth = depthChange
+        if opens > closes or closes > 0 or isDeclaration(line) do
+            state.pendingFunction = false
+    }
+    elif isCallableDeclaration(line)
+    {
+        if not wasInFunction and opens > closes do
+            state.functionDepth = depthChange
+        elif not containsText(line, "=>") and not wasInFunction do
+            state.pendingFunction = true
+    }
 
     if state.pendingScope and opens > closes
     {
@@ -401,7 +432,7 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
 
     if state.privateDepth != 0
     {
-        state.privateDepth += cast(s32, opens) - cast(s32, closes)
+        state.privateDepth += depthChange
         if state.privateDepth <= 0 do
             state.privateDepth = 0
         return
@@ -410,7 +441,7 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
     if state.pendingPrivate and opens > closes
     {
         state.pendingPrivate = false
-        state.privateDepth   = cast(s32, opens) - cast(s32, closes)
+        state.privateDepth   = depthChange
         return
     }
 
@@ -433,7 +464,6 @@ private func updatePublicScope(line: string, state: *PortabilityParseState)
         return
     }
 
-    let privateLine = startsWithAccess(line, "private") or startsWithAccess(line, "internal")
     if privateLine and containsText(line, "#[")
     {
         if opens > closes do

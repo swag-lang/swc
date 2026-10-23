@@ -54,21 +54,15 @@ Result MicroSanityPass::run(MicroPassContext& context)
     // The reported error fails the build (or is matched by a test's expected-error
     // marker); a function that legitimately produced no code because it errored is
     // skipped by the backend's missing-code validation.
-    Sanitizer sanitizer(context);
-    if (sanitizer.run(enabledChecks.span()))
+    Sanitizer                     sanitizer(context);
+    SmallVector<MicroInstrRef, 8> markersToRemove;
+    if (sanitizer.run(enabledChecks.span(), markersToRemove))
         return Result::Error;
 
     // Release markers must not keep argument registers or
     // request setup alive through optimization and register allocation.
-    for (auto it = context.instructions->view().begin(); it != context.instructions->view().end();)
-    {
-        const auto current = it++;
-        if (current->op == MicroInstrOpcode::SanityRelease || current->op == MicroInstrOpcode::SanityIntDivision)
-        {
-            context.instructions->erase(current.current);
-            context.passChanged = true;
-        }
-    }
+    for (const MicroInstrRef marker : markersToRemove)
+        context.passChanged |= context.instructions->erase(marker);
     return Result::Continue;
 }
 

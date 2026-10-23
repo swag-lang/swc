@@ -143,9 +143,10 @@ func decode(text: string)->Array'u8 fail
     }
 
     var digits: [4] u8
-    var count = 0'u32
-    var ended = false
-    var index = 0'u64
+    var count   = 0'u32
+    var ended   = false
+    var padding = 0'u32
+    var index   = 0'u64
     while index < text.count
     {
         // Only a complete, unpadded group can take the vector path.
@@ -168,7 +169,17 @@ func decode(text: string)->Array'u8 fail
             continue
         if value == '='
         {
-            ended = true
+            if not ended
+            {
+                if count != 2 and count != 3 do
+                    fail Errors.InvalidFormatError{"invalid base64 padding"}
+                ended = true
+            }
+
+            let expectedPadding = 4 - count
+            padding += 1
+            if padding > expectedPadding do
+                fail Errors.InvalidFormatError{"too much base64 padding"}
             continue
         }
 
@@ -196,6 +207,8 @@ func decode(text: string)->Array'u8 fail
     // A final group of two or three digits spells one or two bytes; a lone digit spells nothing.
     if count == 1 do
         fail Errors.InvalidFormatError{"truncated base64 data"}
+    if padding and padding != 4 - count do
+        fail Errors.InvalidFormatError{"incomplete base64 padding"}
     if count >= 2
     {
         let firstByte = cast(u8, ((cast(u32, digits[0]) << 2) | (cast(u32, digits[1]) >> 4)))

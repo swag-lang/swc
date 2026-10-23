@@ -83,6 +83,19 @@ func base64Reference(bytes: const [..] u8)->String
     discard catch Base64.decode("Zg==Zg") as &afterPaddingOutcome
     let afterPadding = afterPaddingOutcome.value()
     Swag.assert(afterPadding != null)
+
+    var missingPaddingOutcome: Swag.Error
+    discard catch Base64.decode("Zg=") as &missingPaddingOutcome
+    let missingPadding = missingPaddingOutcome.value()
+    Swag.assert(missingPadding != null)
+    var excessPaddingOutcome: Swag.Error
+    discard catch Base64.decode("Zm9v=") as &excessPaddingOutcome
+    let excessPadding = excessPaddingOutcome.value()
+    Swag.assert(excessPadding != null)
+    var misplacedPaddingOutcome: Swag.Error
+    discard catch Base64.decode("Z=g=") as &misplacedPaddingOutcome
+    let misplacedPadding = misplacedPaddingOutcome.value()
+    Swag.assert(misplacedPadding != null)
 }
 
 // Every short tail crosses the 12/16-byte packed boundaries and round-trips

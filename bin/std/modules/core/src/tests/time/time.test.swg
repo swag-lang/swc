@@ -105,6 +105,13 @@ using Swag
 
 #test
 {
+    let outOfRangeTicks  = Time.MaxTicks + 1
+    let rejectedOverflow = Swag.catchPanic(func|outOfRangeTicks|() { discard Time.ticksToDate(outOfRangeTicks) }).raised
+    Swag.assert(rejectedOverflow)
+}
+
+#test
+{
     for monthIdx in 12
     {
         let month = cast(u16, monthIdx) + 1

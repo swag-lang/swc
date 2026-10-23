@@ -8293,7 +8293,7 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
 
         // With no labels, the linear terminator sweep above removes every
         // unreachable instruction. A rewrite may have changed that layout.
-        if (context.builder && (structuralChanged || scanCache.scan.layout.hasAnyLabel))
+        if (context.builder && scanCache.scan.layout.hasAnyLabel)
         {
             const bool erasedUnreachable = eraseCfgUnreachable(*context.builder, storage, operands);
             if (erasedUnreachable)

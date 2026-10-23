@@ -160,8 +160,7 @@ impl String
     mtd opIndexSet(index: u64, value: u8)
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
-        let buffer = .buffer!
-        buffer[index] = value
+        .buffer![index] = value
     }
 
     // Appends `value` with `+=`: a string, a rune or a byte, or a slice of them appended in order.
@@ -246,8 +245,7 @@ impl String
     mtd const opIndex(index: u64)->u8
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
-        let buffer = .buffer!
-        return buffer[index]
+        return .buffer![index]
     }
 
     // Returns a mutable borrowed view of the UTF-8 bytes.

@@ -37,6 +37,8 @@ Result MicroSanityPass::run(MicroPassContext& context)
         return Result::Continue;
     if (!context.instructions || !context.operands || !context.taskContext || !context.builder)
         return Result::Continue;
+    if (context.instructions->count() == 0)
+        return Result::Continue;
 
     // Register every available check, then keep only those whose safety guard is enabled
     // for this function. Adding a check is: subclass SanitizerCheck and list it here.

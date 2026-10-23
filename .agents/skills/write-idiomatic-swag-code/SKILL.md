@@ -412,6 +412,11 @@ through it directly, and only a whole-value read or write opens the place with t
 - Call through a short receiver directly: `.parent!.invalidate()`, not
   `let parent = .parent!` followed by `parent.invalidate()`. Likewise, return a direct result
   instead of declaring `let result = operation()` only to return it on the next line.
+- Inline a one-use local that only renames a value already clear in its expression. For example,
+  return `.buffer! + x + y * w` directly instead of binding `let buffer = .buffer!` first. The
+  same applies to a one-use arithmetic intermediate when its name adds no domain meaning. Keep
+  the local when it names a meaningful unit or step, prevents repeated evaluation, makes a long
+  expression easier to inspect, or preserves a needed ownership, lifetime, or evaluation boundary.
 - A single use is a review cue, not proof that a local is redundant. Keep names that explain a
   unit, condition, or algorithmic step; keep owners, snapshots, addresses, and intentional copies.
   Preserve `retval`, contextual types, overload selection, evaluation order, and drop timing.

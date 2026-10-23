@@ -255,12 +255,25 @@ void Sanitizer::markEscapesFromCallArguments(SmallVector<int64_t>& outReceived, 
     }
 }
 
-bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
+bool Sanitizer::run(std::span<SanitizerCheck* const> checks, SmallVector<MicroInstrRef, 8>& outMarkersToRemove)
 {
+    outMarkersToRemove.clear();
     const MicroControlFlowGraph& cfg = context_.builder->controlFlowGraph();
     const uint32_t               n   = cfg.instructionCount();
-    if (n == 0 || n > K_MAX_INSTRUCTIONS || checks.empty())
+    if (n == 0)
         return reported_;
+    if (n > K_MAX_INSTRUCTIONS || checks.empty())
+    {
+        // The pass still removes these markers when analysis is skipped.
+        for (uint32_t i = 0; i < n; ++i)
+        {
+            const MicroInstrRef ref  = cfg.instructionRefs()[i];
+            const MicroInstr&   inst = *context_.instructions->ptr(ref);
+            if (inst.op == MicroInstrOpcode::SanityRelease || inst.op == MicroInstrOpcode::SanityIntDivision)
+                outMarkersToRemove.push_back(ref);
+        }
+        return reported_;
+    }
 
     cfg_ = &cfg;
     reached_.assign(n, 0);
@@ -282,6 +295,8 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     for (uint32_t i = 0; i < n; i++)
     {
         const MicroInstr& inst = *context_.instructions->ptr(cfg.instructionRefs()[i]);
+        if (inst.op == MicroInstrOpcode::SanityRelease || inst.op == MicroInstrOpcode::SanityIntDivision)
+            outMarkersToRemove.push_back(cfg.instructionRefs()[i]);
         needsReleaseProvenance_ |= inst.op == MicroInstrOpcode::SanityRelease;
         hasMoveInvalidation_ |= inst.op == MicroInstrOpcode::SanityInvalidate;
         const MicroInstrDef& def = MicroInstr::info(inst.op);

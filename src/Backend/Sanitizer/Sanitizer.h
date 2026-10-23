@@ -40,8 +40,9 @@ class Sanitizer
 public:
     explicit Sanitizer(MicroPassContext& context);
 
-    // Runs the data-flow, then every check. Returns true if any check reported.
-    bool run(std::span<SanitizerCheck* const> checks);
+    // Runs the data-flow, then every check. Returns true if any check reported and records
+    // temporary markers for removal in instruction order, even when analysis is skipped.
+    bool run(std::span<SanitizerCheck* const> checks, SmallVector<MicroInstrRef, 8>& outMarkersToRemove);
 
     // Queries usable by checks against a converged state.
     SanitizerValue                 getReg(const SanitizerState& state, MicroReg reg) const;

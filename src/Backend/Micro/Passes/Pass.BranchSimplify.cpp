@@ -8120,6 +8120,8 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     scanCache.invalidate();
     scanCache.ensureLayout(storage, operands);
     const bool hasConditionalJump = scanCache.scan.layout.hasConditionalJump;
+    // Every branch-shaped transform needs a conditional jump, a condition result, or a label.
+    // Keep the linear dead-tail cleanup, which also applies to straight-line code.
     if (!hasConditionalJump && !scanCache.scan.layout.hasSetCondition && !scanCache.scan.layout.hasAnyLabel)
     {
         const bool deadTailChanged = eraseDeadInstructionsAfterTerminators(storage, operands);

@@ -72,11 +72,17 @@ impl ByteSink
     mtd const position()->u64 => .written
 
     // Appends `bytes` to the stream.
+    //
+    // Fails with [[Core.Errors.OverflowError]] before appending if the stream position would
+    // exceed U64.Max.
     mtd write(bytes: const [..] u8) fail
     {
         let count = bytes.count
         if not count do
             return
+
+        if count > Swag.U64.Max - .written do
+            fail OverflowError{"byte sink write exceeds the stream position limit"}
 
         .written += count
         if not .isFile

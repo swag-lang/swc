@@ -11,4 +11,6 @@ campaign was run.
 | Return before sanitizer setup for empty Micro functions | Constructing a `Sanitizer`, preparing local-variable extents and requesting the CFG before its existing zero-instruction return | `MicroSanityPass` now checks the same instruction count before setup. The old `Sanitizer::run` returned immediately when the CFG contained no instructions, so no checks or marker cleanup could occur. | Incremental DevMode build; all 85 sanity tests passed. |
 | Visit sanitizer chain heads directly during the converged check walk | Scanning every instruction index again just to find the reached chain heads | The pass records each head while assigning its state index, in ascending program order. The final check walk visits that same ordered subset and applies the same `reached_` test. | Incremental DevMode build; all 1,627 C++ tests and 85 sanity tests passed. |
 
+| Reuse the ordered chain-head list for liveness analysis | Scanning every instruction index again to skip non-head instructions before collecting chain facts | `stateHeadIndices` already contains every state head exactly once in ascending instruction order. Iterating it preserves the chain traversal order while removing the full-index scan and sentinel check. | DevMode build; all 1,627 C++ tests and 85 sanity tests passed. |
+
 The change is structural; no elapsed-time or memory claim is made.

@@ -172,7 +172,7 @@ private:
     // stored state keeps only the live ones: without this every head held every register
     // the function had defined so far, which made the stored states grow with the
     // square of a function's length.
-    void            computeChainLiveness();
+    void            computeChainLiveness(std::span<const uint32_t> stateHeadIndices);
     bool            locationOwnerPassed(const SanitizerState& state, const SanitizerLocation& location, CallConvKind callConvKind) const;
     void            pruneDeadRegs(SanitizerState& state, const uint64_t* live) const;
     const uint64_t* chainLiveIn(uint32_t stateIndex) const { return liveWords_ ? chainLiveIn_.data() + static_cast<size_t>(stateIndex) * liveWords_ : nullptr; }

@@ -220,27 +220,11 @@ private func writeU32(buffer: *Array'u8, value: u32)
         buffer.add(Math.byteAt(value, i))
 }
 
-private func writeU64(buffer: *Array'u8, value: u64)
-{
-    for i in 8 do
-        buffer.add(Math.byteAt(value, i))
-}
-
-private func readU16(buffer: const [..] u8, offset: u64)->u16 => Math.make16(buffer[offset + 1], buffer[offset])
-
 private func readU32(buffer: const [..] u8, offset: u64)->u32
 {
     var result: u32
     for i in 4 do
         result |= cast(u32, buffer[offset + i]) << (i * 8)
-    return result
-}
-
-private func readU64(buffer: const [..] u8, offset: u64)->u64
-{
-    var result: u64
-    for i in 8 do
-        result |= cast(u64, buffer[offset + i]) << (i * 8)
     return result
 }
 
@@ -406,6 +390,12 @@ impl Writer
     // Writes the complete container to a temporary peer and atomically replaces `fileName`.
     mtd saveAtomic(fileName: string) fail
     {
+        func writeU64(buffer: *Array'u8, value: u64)
+        {
+            for i in 8 do
+                buffer.add(Math.byteAt(value, i))
+        }
+
         .header.chunks.clear()
         for chunk in .chunks do
             .header.chunks.add(chunk.info)
@@ -486,6 +476,16 @@ impl Reader
     // Initializes this reader and reads only the SCC prefix and header.
     mtd initialize(fileName: string, limits: ReadLimits = {}) fail
     {
+        func readU16(buffer: const [..] u8, offset: u64)->u16 => Math.make16(buffer[offset + 1], buffer[offset])
+
+        func readU64(buffer: const [..] u8, offset: u64)->u64
+        {
+            var result: u64
+            for i in 8 do
+                result |= cast(u64, buffer[offset + i]) << (i * 8)
+            return result
+        }
+
         func decodeHeader(bytes: const [..] u8)->Header fail
         {
             var decoder: Decoder'Read.TagBin

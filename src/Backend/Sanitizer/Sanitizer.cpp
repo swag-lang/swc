@@ -347,6 +347,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     // every worklist iteration) made big loopy functions take minutes.
     headStateIndex_.assign(n, K_NO_STATE);
     headStateIndex_[0] = 0;
+    SmallVector<uint32_t, 8> stateHeadIndices{0};
     uint32_t numStates = 1;
     for (uint32_t i = 1; i < n; i++)
     {
@@ -354,6 +355,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         if (preds.size() >= 2)
         {
             headStateIndex_[i] = numStates++;
+            stateHeadIndices.push_back(i);
             continue;
         }
         if (preds.size() == 1)
@@ -361,7 +363,10 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
             const MicroInstr&    predInst = *context_.instructions->ptr(cfg.instructionRefs()[preds[0]]);
             const MicroInstrDef& predDef  = MicroInstr::info(predInst.op);
             if (cfg.successors(preds[0]).size() != 1 || predDef.flags.has(MicroInstrFlagsE::ConditionalJump))
+            {
                 headStateIndex_[i] = numStates++;
+                stateHeadIndices.push_back(i);
+            }
         }
     }
 
@@ -422,9 +427,9 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
         return reported_;
 
     uint64_t checkSteps = 0;
-    for (uint32_t i = 0; i < n; i++)
+    for (const uint32_t i : stateHeadIndices)
     {
-        if (headStateIndex_[i] != K_NO_STATE && reached_[i])
+        if (reached_[i])
             walkChain(i, std::move(inState_[headStateIndex_[i]]), enabledChecks.span(), nullptr, checkSteps);
     }
 

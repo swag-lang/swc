@@ -231,25 +231,6 @@ private func lastIndexOfAnyAscii(src: const [*] u8, length: u64, what: const [..
     return Swag.U64.Max
 }
 
-private func lastIndexOfSubslice(src: const [*] u8, length: u64, what: const [..] u8)->u64
-{
-    let whatLength   = what.count
-    let lastByte     = what[whatLength - 1 to]
-    var searchLength = length
-    while searchLength >= whatLength
-    {
-        let endIndex = lastIndexOfAnyAscii(src, searchLength, lastByte)
-        if endIndex == Swag.U64.Max or endIndex + 1 < whatLength do
-            return Swag.U64.Max
-        let startIndex = endIndex + 1 - whatLength
-        if Memory.compare(src + startIndex, what.buffer, whatLength) == 0 do
-            return startIndex
-        searchLength = endIndex
-    }
-
-    return Swag.U64.Max
-}
-
 private func indexOfSubsliceNoCase(src: const [*] u8, length: u64, what: const [..] u8)->u64
 {
     const VectorSize = #sizeof(Simd.U8x16)
@@ -1195,6 +1176,25 @@ func lastIndexOfAny(src: const [..] u8, what: const [..] u8)->u64
 // `src`.
 func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonType.Latin1)->u64
 {
+    func lastIndexOfSubslice(src: const [*] u8, length: u64, what: const [..] u8)->u64
+    {
+        let whatLength   = what.count
+        let lastByte     = what[whatLength - 1 to]
+        var searchLength = length
+        while searchLength >= whatLength
+        {
+            let endIndex = lastIndexOfAnyAscii(src, searchLength, lastByte)
+            if endIndex == Swag.U64.Max or endIndex + 1 < whatLength do
+                return Swag.U64.Max
+            let startIndex = endIndex + 1 - whatLength
+            if Memory.compare(src + startIndex, what.buffer, whatLength) == 0 do
+                return startIndex
+            searchLength = endIndex
+        }
+
+        return Swag.U64.Max
+    }
+
     let length = src.count
     if not length do
         return Swag.U64.Max

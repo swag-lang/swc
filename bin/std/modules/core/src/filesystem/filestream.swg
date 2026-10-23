@@ -265,21 +265,24 @@ impl FileStream
         var target = Math.min(maxBytes, fileSize - start)
         target -= target % unit
         if not target do
-            return {}
+            target = fileSize - start
 
         var bytes: Array'u8
         bytes.resize(target)
-        let count = try .read(bytes.toSlice())
-        bytes.resize(count - count % unit)
-        if bytes.isEmpty()
+        let count         = try .read(bytes.toSlice())
+        let completeCount = count - count % unit
+        if not count
         {
             try .seek(.Begin, start)
             return {}
         }
 
+        bytes.resize(completeCount)
+
         // A high surrogate at the very end spells a character whose second half is in the next
-        // segment. Leaving it there costs two bytes and keeps every segment self-contained.
-        if unit == 2 and bytes.count >= 2
+        // segment. Leaving it there costs two bytes and keeps every segment self-contained. When
+        // the file ends in a partial unit, that high surrogate is malformed instead.
+        if unit == 2 and not (count != completeCount) and bytes.count >= 2
         {
             let littleEndian = Math.make16(bytes[bytes.count - 1], bytes[bytes.count - 2])
             let lastUnit     = cast(u32, encoding == .Utf16Le ? littleEndian : Math.byteSwap(littleEndian))
@@ -287,8 +290,17 @@ impl FileStream
                 bytes.resize(bytes.count - 2)
         }
 
+        let decoded = Text.decode(bytes.toSlice(), encoding)
+        if count != completeCount
+        {
+            try .seek(.Begin, start + count)
+            var result = decoded
+            result += "\uFFFD"
+            return result
+        }
+
         try .seek(.Begin, start + bytes.count)
-        return Text.decode(bytes.toSlice(), encoding)
+        return decoded
     }
 
     // Writes at most the size of `buffer` and returns the number of bytes written.

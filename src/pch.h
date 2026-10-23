@@ -15,6 +15,7 @@
 #include <condition_variable>
 #include <cstdint>
 #include <cstring>
+#include <cwctype>
 #include <deque>
 #include <filesystem>
 #include <format>

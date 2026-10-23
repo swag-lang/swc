@@ -86,3 +86,12 @@ showed no peak-memory reduction: maximum working set was 924.7 MiB candidate and
 baseline; peak commit was 940.7 MiB candidate and 937.9 MiB baseline. Paired median ratios were
 0.944 wall time, 0.931 CPU time, 0.999 commit, and 1.006 working set. Because the process peaks did
 not improve, the source change was reverted.
+
+Rejected follow-up: the per-worker SSA propagation scratch temporarily cleared its known-value,
+canonical-value, flags, and erase vectors at every function boundary, releasing their capacities
+after an outlier function when any exceeded twice the next function's instruction-slot count (with
+a 4096-entry floor). Three alternating six-worker `core_rebuild` pairs did not reduce process
+peaks: maximum working set was 923.7 MiB candidate and 921.7 MiB baseline; peak commit was 943.6
+MiB candidate and 941.2 MiB baseline. Paired median candidate/baseline ratios were 0.618 wall,
+0.629 CPU, 1.007 commit, and 1.011 working set. Timing varied widely across pairs, and neither
+memory measure improved, so the change was reverted.

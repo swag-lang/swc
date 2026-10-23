@@ -104,6 +104,10 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     // A lone surrogate is the file's error and becomes the replacement character.
     let lone: [2] u8 = [0x3D, 0xD8]
     Swag.assert(Text.decode(lone, .Utf16Le) == "�")
+
+    // Invalid UTF-8 bytes are replaced instead of copied into the returned string.
+    let invalidUtf8: [3] u8 = [0x61, 0xFF, 0x62]
+    Swag.assert(Text.decode(invalidUtf8, .Utf8) == "a�b")
 }
 
 // Endian conversion processes complete vectors and scalar tails identically for UTF-16 and

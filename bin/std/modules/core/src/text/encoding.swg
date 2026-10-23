@@ -238,7 +238,9 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
     switch #complete encoding
     {
     case .Utf8:
-        return String.from(cast(string, bytes))
+        if Utf8.isValid(bytes) do
+            return String.from(cast(string, bytes))
+        return Utf8.fromUnicode(Unicode.fromUtf8(bytes).toSlice())
 
     case .Windows1252:
         var runes: Array'rune

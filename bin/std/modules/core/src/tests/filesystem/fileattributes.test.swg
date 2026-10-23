@@ -49,3 +49,17 @@ func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)
     Swag.assert(not attributes.has(Offline))
     Swag.assert(not attributes.has(NotContentIndexed))
 }
+
+// Metadata queries translate a missing path into the same Core error.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("core_file_info_missing")
+
+    var infoErrorOutcome: Swag.Error
+    discard catch File.info(path.toString()) as &infoErrorOutcome
+    Swag.assert(infoErrorOutcome.value() is Errors.FileNotFoundError)
+
+    var attributesErrorOutcome: Swag.Error
+    discard catch File.attributes(path.toString()) as &attributesErrorOutcome
+    Swag.assert(attributesErrorOutcome.value() is Errors.FileNotFoundError)
+}

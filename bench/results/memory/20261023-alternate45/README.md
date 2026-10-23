@@ -78,3 +78,11 @@ copies. The candidate passed the native suite (3,937 tests), but three alternati
 914.4 MiB baseline; peak commit was 949.3 and 936.8 MiB. Paired median candidate/baseline ratios
 were 1.120 wall, 1.101 CPU, 1.007 commit, and 1.013 working set. The sample is variable, but it
 shows no memory gain, so the change was reverted.
+
+Rejected follow-up: trivially destructible auxiliary CodeGen payloads temporarily used the
+per-function payload arena instead of the compiler worker's longer-lived thread arena. Three
+alternating six-worker `core_rebuild` pairs against binaries built from the same source revision
+showed no peak-memory reduction: maximum working set was 924.7 MiB candidate and 924.4 MiB
+baseline; peak commit was 940.7 MiB candidate and 937.9 MiB baseline. Paired median ratios were
+0.944 wall time, 0.931 CPU time, 0.999 commit, and 1.006 working set. Because the process peaks did
+not improve, the source change was reverted.

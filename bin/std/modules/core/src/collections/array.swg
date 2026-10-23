@@ -205,8 +205,7 @@ impl Array
     mtd ptr1(x: u64)->*T
     {
         Debug.safetyBoundCheck(x < .count, "index out of range")
-        let buffer = .buffer!
-        return buffer + x
+        return .buffer! + x
     }
 
     // Returns the mutable address of the element at column `x` and row `y` of a grid `w` elements wide.

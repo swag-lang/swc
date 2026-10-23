@@ -41,3 +41,35 @@ func(T) roundTripSerializedField(value: T)->T fail
     Swag.assert(payload.number == 7)
     Swag.assert(payload.active)
 }
+
+#test
+{
+    var buffer:     ConcatBuffer
+    var encoder:    Serialization.Encoder'Serialization.Write.TagBin
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var serializer: Serialization.Serializer
+    var first  = 17's32
+    var second = -9's32
+
+    expect serializer.startWrite(&encoder, &buffer)
+    expect serializer.beginSection(.Ordered)
+    expect serializer.serialize("first", &first)
+    expect serializer.endSection()
+    expect serializer.beginSection(.Ordered)
+    expect serializer.serialize("second", &second)
+    expect serializer.endSection()
+    expect serializer.end()
+
+    first  = 0
+    second = 0
+    expect serializer.startRead(&decoder, buffer.toSlice()!)
+    expect serializer.beginSection(.Ordered)
+    expect serializer.serialize("first", &first)
+    expect serializer.endSection()
+    expect serializer.beginSection(.Ordered)
+    expect serializer.serialize("second", &second)
+    expect serializer.endSection()
+    expect serializer.end()
+
+    Swag.assert(first == 17 and second == -9)
+}

@@ -41,7 +41,8 @@ struct XmlPayload
         "<p><active>true</active><id>7</id><name></name><counts></counts><pair><x>0</x><y>0</y></pair></p>",
         "<p><id>7</id><active>true</active><name>n</nom><counts></counts><pair><x>0</x><y>0</y></pair></p>",
         "<p><id>7</id><active>true</active><name>&nbsp;</name><counts></counts><pair><x>0</x><y>0</y></pair></p>",
-        "<p><id>-7</id><active>true</active><name></name><counts></counts><pair><x>0</x><y>0</y></pair></p>"]
+        "<p><id>-7</id><active>true</active><name></name><counts></counts><pair><x>0</x><y>0</y></pair></p>",
+        "<p><id>7</id><active>true</active><name></name><counts></counts><pair><x>0</x><y>0</y></pair></p> trailing"]
 
     for input in InvalidXml
     {

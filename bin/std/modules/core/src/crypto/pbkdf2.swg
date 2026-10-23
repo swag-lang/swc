@@ -3,19 +3,20 @@
 
 using Core.Errors
 
-private func accumulateDigest(result, current: [*] u8)
-{
-    const VectorSize = #sizeof(Math.Simd.U8x16)
-    Math.Simd.store(result, Math.Simd.load(result) ^ Math.Simd.load(current))
-    Math.Simd.store(result + VectorSize, Math.Simd.load(result + VectorSize) ^ Math.Simd.load(current + VectorSize))
-}
-
 // Derives a key from `password` and `salt` with PBKDF2-HMAC-SHA-256 and fills `destination` with it.
 //
 // `iterations` must be at least 1; zero fails with [[Core.Errors.BadParameterError]]. An empty
 // `destination` succeeds without writing. Intermediate digests are cleared before returning.
 func pbkdf2HmacSha256(password, salt: const [..] u8, iterations: u32, destination: [..] u8) fail
 {
+    #[Swag.Inline]
+    func accumulateDigest(result, current: [*] u8)
+    {
+        const VectorSize = #sizeof(Math.Simd.U8x16)
+        Math.Simd.store(result, Math.Simd.load(result) ^ Math.Simd.load(current))
+        Math.Simd.store(result + VectorSize, Math.Simd.load(result + VectorSize) ^ Math.Simd.load(current + VectorSize))
+    }
+
     if not iterations do
         fail BadParameterError{"PBKDF2 needs at least one iteration"}
     if not destination.count do

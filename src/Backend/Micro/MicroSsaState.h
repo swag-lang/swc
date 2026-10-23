@@ -71,6 +71,7 @@ public:
     static const MicroSsaState* ensureFor(const MicroPassContext& context, MicroSsaState& localState);
 
     void clear();
+    void clear(uint32_t nextFunctionSlotCount);
     void invalidate();
     bool isValid() const { return valid_; }
 

@@ -321,6 +321,22 @@ void MicroSsaState::resetForBuild(MicroStorage& storage)
         instrInfos_.resize(storage.slotCount());
 }
 
+void MicroSsaState::clear(const uint32_t nextFunctionSlotCount)
+{
+    // A worker may finish a very large function and keep all of its SSA scratch
+    // buffers while compiling much smaller functions. Drop that outlier instead
+    // of making every later function carry its peak capacity.
+    constexpr uint32_t K_MIN_RETAINED_INSTRUCTIONS = 4096;
+    const uint64_t     retainedLimit               = std::max<uint64_t>(K_MIN_RETAINED_INSTRUCTIONS, static_cast<uint64_t>(nextFunctionSlotCount) * 2);
+    if (instrInfos_.capacity() > retainedLimit)
+    {
+        *this = {};
+        return;
+    }
+
+    clear();
+}
+
 void MicroSsaState::clear()
 {
     storage_            = nullptr;

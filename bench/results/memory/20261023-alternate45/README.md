@@ -1,0 +1,28 @@
+# Compiler memory, 2026-10-23
+
+The change retains `MicroSsaState` buffers across functions of similar size but drops the entire
+thread-local state when its instruction-info capacity exceeds twice the next function's Micro
+instruction-slot count (with a 4096-slot floor). This prevents a large function from making every
+later small function's optimization on that worker carry its retained SSA buffers through the rest
+of the module.
+
+The external sampled heap profile on one six-worker DevMode `core` rebuild showed its largest
+sampled allocation groups under `MicroSsaState::build`, including the constant-folding and
+value-borrow fast-path passes. The instrumented run peaked at 1141 MiB working set, versus about
+999 MiB without instrumentation, so that profile is attribution evidence only. Its estimated live
+requested bytes are sampled allocator data, not resident memory.
+
+The table compares a clean compiler built from the shared pre-change source revision against the
+candidate, in three alternating rounds, with six compiler workers. Working set and commit are the
+largest observed peaks across each compiler's three rounds; wall and CPU are medians. The runner's
+paired median ratios are candidate divided by baseline.
+
+| Workload | Baseline wall | Candidate wall | Baseline peak working set | Candidate peak working set | Baseline commit peak | Candidate commit peak |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `core_rebuild` | 7360 ms | 6338 ms | 1008.9 MiB | 957.4 MiB | 1028.7 MiB | 978.5 MiB |
+| `hello_build` | 259 ms | 258 ms | 139.8 MiB | 138.1 MiB | 262.4 MiB | 260.6 MiB |
+
+For `core_rebuild`, the paired median candidate/baseline ratios were 0.861 for wall time, 0.832
+for CPU time, 0.944 for commit peak, and 0.940 for working-set peak. For `hello_build`, they were
+0.992, 1.064, 1.008, and 1.001 respectively. Three rounds are an initial check, not a campaign
+wide result. Both workloads remain above their 250 MiB and 50 MiB working-set targets.

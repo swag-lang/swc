@@ -315,8 +315,8 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 
 ### compiler.core.005 — Set and enforce a compiler memory budget
 
-- Evidence: parallel compiler jobs retain high-water allocations across semantic analysis, code generation, and the Micro pipeline. The current peak and largest retained owners need a fresh measurement.
-- Next: measure peak memory for a six-worker `core` DevMode rebuild and a representative hello build, then attribute the largest retained allocations before selecting one reduction.
+- Evidence: a six-worker DevMode `core` rebuild measured 1008.9 MiB peak working set and 7360 ms median wall time before the SSA capacity change, and 957.4 MiB and 6338 ms after it (three alternating rounds, same source revision). A hello build measured 139.8 MiB and 259 ms before, and 138.1 MiB and 258 ms after. Both workloads remain above the 250 MiB and 50 MiB targets. An external sampled heap profile points to retained `MicroSsaState` buffers, but its instrumentation raised the observed peak to 1141 MiB and its sampled live-byte totals do not represent resident memory.
+- Next: attribute the remaining peak outside the SSA buffers and choose the next retained block from fresh evidence; measure Release and the benchmark-task workloads before making a campaign-wide memory claim.
 - Done when: the campaign publishes host-normalized memory limits, every selected workload stays within them, and a regression report names the responsible subsystem.
 - Related: compiler.core.004, compiler.core.007.
 ### compiler.core.003 — Code-generation invalidation is module-wide

@@ -195,10 +195,11 @@ impl ByteSource
     // Reads a big-endian integer of type `T`.
     mtd(T) readBigEndian()->T fail => Math.bigEndianToNative(try .readNative'T())
 
-    // Reads the bytes up to the next line feed and returns the line without it.
+    // Reads bytes up to the next line feed and returns the line without its terminator.
     //
     // A trailing carriage return is removed, so a stream written with either end-of-line
-    // convention parses the same. Fails when the line reaches `maxBytes` or the stream ends
+    // convention parses the same. `maxBytes` limits bytes before the line feed, including a
+    // trailing carriage return. Fails when that count exceeds `maxBytes` or the stream ends
     // before the terminator, which is how a text header of a binary stream stays bounded.
     mtd readLine(maxBytes: u64)->String fail
     {

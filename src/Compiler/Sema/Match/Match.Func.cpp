@@ -1725,15 +1725,12 @@ namespace
         SmallVector<AstNodeRef> scratchArgs;
     };
 
-    void releaseCallShapeScratch(GenericCallShapeContext& shapeContext)
+    void clearCallShapeScratch(GenericCallShapeContext& shapeContext)
     {
         shapeContext.mapping.paramArgs.clear();
-        shapeContext.mapping.paramArgs.shrink_to_fit();
         shapeContext.mapping.variadicArgs.clear();
-        shapeContext.mapping.variadicArgs.shrink_to_fit();
         shapeContext.mapping.hasNamed = false;
         shapeContext.scratchArgs.clear();
-        shapeContext.scratchArgs.shrink_to_fit();
     }
 
     Result tryBuildCandidate(Sema& sema, SymbolFunction& fn, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode, Candidate& outCandidate, MatchFailure& outFail, CallArgMapping& mapping);
@@ -2310,7 +2307,7 @@ namespace
                 }
 
                 const bool shapeFailed = check ? (check->ufcsChecked ? check->ufcsFailure.active : check->primaryFailure.active) : localFailure.active;
-                releaseCallShapeScratch(shapeContext);
+                clearCallShapeScratch(shapeContext);
                 if (!shapeFailed && ++matchingShapes > 1)
                     break;
             }
@@ -2350,7 +2347,7 @@ namespace
                     a.fail                   = std::move(fail);
                 }
 
-                releaseCallShapeScratch(shapeContext);
+                clearCallShapeScratch(shapeContext);
                 if (a.candidate.viable)
                     outViable.push_back(&a);
                 continue;
@@ -2374,7 +2371,7 @@ namespace
                 a.fail                   = std::move(fail);
             }
 
-            releaseCallShapeScratch(shapeContext);
+            clearCallShapeScratch(shapeContext);
             if (a.candidate.viable)
                 outViable.push_back(&a);
         }

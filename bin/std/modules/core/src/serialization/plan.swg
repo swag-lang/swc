@@ -40,6 +40,57 @@ public struct Plan
 
 public impl Plan
 {
+    private mtd build(structType: const *Swag.TypeInfoStruct) fail
+    {
+        .structType = structType
+
+        let version = Reflection.attributeValue(structType, Serialization.Version, "v")
+        if version != null
+        {
+            .version    = assume cast (u32, version)
+            .hasVersion = true
+        }
+
+        let {pod, _} = isPodFinal(structType)
+        .podFinal  = pod
+        .hasCustom = Reflection.hasInterface(structType, ISerialize)
+
+        for field in structType.fields
+        {
+            if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize) do
+                continue
+            Swag.assert(field.pointedType != null)
+
+            with var planned: PlanField
+            {
+                .value = field
+                .key   = wireFieldKey(field)
+                if .key == "" do
+                    fail SerializationError{"serialized field needs a non-empty key", field: field}
+                .wireCrc    = wireTypeCrc(field.pointedType)
+                .compressed = Reflection.hasAttribute(field, Compress) or
+                              Reflection.hasAttribute(field.pointedType, Compress)
+            }
+
+            for existing in .fields where existing.key == planned.key
+            {
+                let message = Format.toString("serialized struct [[%]] fields [[%]] and [[%]] use key [[%]]",
+                                              structType.fullname,
+                                              existing.value.name,
+                                              field.name,
+                                              planned.key)
+                fail SerializationError{Errors.mkString(message), field: field}
+            }
+
+            .fields.add(#move planned)
+        }
+
+        // Populate borrowed lookup views only after the field array has reached its final
+        // allocation. Growing an array of owned strings can relocate their buffers.
+        for &planned, fieldIndex in .fields do
+            .keyToIndex.add(planned.key.toString(), fieldIndex)
+    }
+
     // Returns the plan field whose wire key is `key`, or null when there is none.
     mtd const fieldByKey(key: string)->const *PlanField?
     {
@@ -58,57 +109,6 @@ private
     var g_Plans:    HashTable'(u64, *Plan)
     var g_PlanPool: ArrayPtr'Plan
     var g_PlanLock: Swag.RWLock
-}
-
-private func buildPlan(plan: *Plan, structType: const *Swag.TypeInfoStruct) fail
-{
-    plan.structType = structType
-
-    let version = Reflection.attributeValue(structType, Serialization.Version, "v")
-    if version != null
-    {
-        plan.version    = assume cast (u32, version)
-        plan.hasVersion = true
-    }
-
-    let {pod, _} = isPodFinal(structType)
-    plan.podFinal  = pod
-    plan.hasCustom = Reflection.hasInterface(structType, ISerialize)
-
-    for field in structType.fields
-    {
-        if Reflection.hasAttribute(field, NoSerialize) or Reflection.hasAttribute(field.pointedType, NoSerialize) do
-            continue
-        Swag.assert(field.pointedType != null)
-
-        with var planned: PlanField
-        {
-            .value = field
-            .key   = wireFieldKey(field)
-            if .key == "" do
-                fail SerializationError{"serialized field needs a non-empty key", field: field}
-            .wireCrc    = wireTypeCrc(field.pointedType)
-            .compressed = Reflection.hasAttribute(field, Compress) or
-                          Reflection.hasAttribute(field.pointedType, Compress)
-        }
-
-        for existing in plan.fields where existing.key == planned.key
-        {
-            let message = Format.toString("serialized struct [[%]] fields [[%]] and [[%]] use key [[%]]",
-                                          structType.fullname,
-                                          existing.value.name,
-                                          field.name,
-                                          planned.key)
-            fail SerializationError{Errors.mkString(message), field: field}
-        }
-
-        plan.fields.add(#move planned)
-    }
-
-    // Populate borrowed lookup views only after the field array has reached its final
-    // allocation. Growing an array of owned strings can relocate their buffers.
-    for &planned, fieldIndex in plan.fields do
-        plan.keyToIndex.add(planned.key.toString(), fieldIndex)
 }
 
 // Returns the shared serialization plan of a struct type, building it on first use.
@@ -132,7 +132,7 @@ public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
         return existing.value
 
     let plan = g_PlanPool.addNew()
-    try buildPlan(plan, structType)
+    try plan.build(structType)
     g_Plans.add(key, plan)
     return plan
 }

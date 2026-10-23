@@ -10,21 +10,6 @@ tls
     private var g_RngInit: bool     // Whether the generator of this thread is seeded
 }
 
-// Seeds the generator of the calling thread on first use, from the clocks and the MAC address.
-#[Swag.Inline]
-private func initRng()
-{
-    if not g_RngInit
-    {
-        var seed: [3] u64
-        seed[0] = Time.monotonicMilliseconds()
-        seed[1] = Time.monotonicMicroseconds()
-        seed[2] = Hardware.macAddress()
-        g_Rng.seedU64(seed)
-        g_RngInit = true
-    }
-}
-
 // Stores a 128-bit identifier and creates RFC 4122 version-4 UUID values.
 struct Guid128
 {
@@ -57,6 +42,21 @@ impl Guid128
     // address: unique enough for identities, but predictable, so never a secret or a token.
     func random()->Guid128
     {
+        // Seeds this thread's generator on first use from the clocks and the MAC address.
+        #[Swag.Inline]
+        func initRng()
+        {
+            if not g_RngInit
+            {
+                var seed: [3] u64
+                seed[0] = Time.monotonicMilliseconds()
+                seed[1] = Time.monotonicMicroseconds()
+                seed[2] = Hardware.macAddress()
+                g_Rng.seedU64(seed)
+                g_RngInit = true
+            }
+        }
+
         initRng()
         var result: retval
         result.words[0] = g_Rng.nextU64()

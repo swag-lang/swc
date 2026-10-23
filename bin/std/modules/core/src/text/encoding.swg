@@ -102,24 +102,6 @@ private func countZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     return result
 }
 
-// Returns whether `bytes` is valid UTF-8, tolerating a sequence cut by the end of the probe.
-private func isValidUtf8Prefix(bytes: const [..] u8)->bool
-{
-    if Utf8.isValid(bytes) do
-        return true
-
-    // A probe is a prefix of a file, so its last character can be incomplete. Only a
-    // three-byte tail can be, since that is the longest UTF-8 sequence minus one byte.
-    let count = bytes.count
-    for back in 1 to 3 where back < count
-    {
-        if Utf8.isValid(bytes[0 until count - back]) do
-            return true
-    }
-
-    return false
-}
-
 // Decides how `probe` spells its characters.
 //
 // A byte-order mark answers on its own. Without one the content decides, in the order a wrong
@@ -132,6 +114,23 @@ private func isValidUtf8Prefix(bytes: const [..] u8)->bool
 // binary file also gets an answer here, so ask [[Core.Text.looksLikeText]] before showing it.
 func detectEncoding(probe: const [..] u8)->Encoding
 {
+    // A probe may end inside the last character of a file. Only a three-byte tail can be
+    // incomplete, since that is the longest UTF-8 sequence minus one byte.
+    func isValidUtf8Prefix(bytes: const [..] u8)->bool
+    {
+        if Utf8.isValid(bytes) do
+            return true
+
+        let count = bytes.count
+        for back in 1 to 3 where back < count
+        {
+            if Utf8.isValid(bytes[0 until count - back]) do
+                return true
+        }
+
+        return false
+    }
+
     // UTF-32 LE opens with the two bytes of UTF-16 LE, so it has to be tested first.
     for candidate in [Encoding.Utf32Le, .Utf32Be, .Utf8, .Utf16Le, .Utf16Be] where hasBom(probe, candidate) do
         return candidate

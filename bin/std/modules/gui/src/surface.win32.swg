@@ -739,7 +739,7 @@ impl Surface
                                     stride * cast(u64, .presentationHeight) - offset)
         if .readback.tryCopyTo(pixels, stride)
         {
-            .publishNativePresentation(updatePlacement: false)
+            .publishNativePresentation()
         }
         elif .readback.hasFailed()
         {
@@ -780,7 +780,7 @@ impl Surface
         .presentationDirtyRect = {0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
     }
 
-    internal mtd publishNativePresentation(updatePlacement = true)
+    internal mtd publishNativePresentation()
     {
         let destination = POINT{cast(s32, .position.x), cast(s32, .position.y)}
         let size        = SIZE{.presentationWidth, .presentationHeight}
@@ -790,16 +790,12 @@ impl Surface
                                cast(s32, .presentationDirtyRect.right()), cast(s32, .presentationDirtyRect.bottom())}
         with var info: UPDATELAYEREDWINDOWINFO
         {
-            .cbSize = #sizeof(UPDATELAYEREDWINDOWINFO)
+            .cbSize   = #sizeof(UPDATELAYEREDWINDOWINFO)
 
-            // Ordinary frames keep the current HWND geometry. Only a prepared placement
-            // publishes position and size together with its new image.
-            if updatePlacement
-            {
-                .pptDst = &destination
-                .psize  = &size
-            }
-
+            // Every frame names its position and size. Without them the call still succeeds,
+            // but the compositor keeps showing the previous image.
+            .pptDst   = &destination
+            .psize    = &size
             .hdcSrc   = me.presentationDC
             .pptSrc   = &source
             .pblend   = &blend

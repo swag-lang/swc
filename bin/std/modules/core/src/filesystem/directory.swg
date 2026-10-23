@@ -9,7 +9,7 @@ struct EnumerationOptions
         matchExtension: string?            // Extension an entry must have, dot included (e.g. ".txt")
         matchFileName:  string?            // Exact file name an entry must have
         skipAttributes         = File.FileAttributes.None     // Entries carrying any of these attributes are skipped
-        recurse                = false     // Whether to enumerate subdirectories too
+        recurse                = false     // Whether to enumerate subdirectories without following reparse points
         wantFiles              = true      // Whether to return files
         wantDirectories        = true      // Whether to return directories
         wantSpecialDirectories = false     // Whether to return the "." and ".." entries
@@ -49,6 +49,7 @@ func create(dirName: string, recurse = false) fail
 // Deletes `dirName`, optionally deleting its complete contents first.
 //
 // Recursive deletion is not atomic: entries removed before a later failure stay removed.
+// Directory reparse points are removed without traversing their targets.
 func delete(dirName: string, recurse = false) fail
 {
     try Env.guardWrite(dirName)
@@ -58,10 +59,17 @@ func delete(dirName: string, recurse = false) fail
         let entries = try enumerate(dirName, {})
         for entry in entries
         {
-            if entry.isDirectory() do
-                try delete(entry.fullName, recurse: true)
-            else do
+            if entry.isDirectory()
+            {
+                if entry.attributes.has(File.FileAttributes.ReparsePoint) do
+                    try deleteEmptyNative(entry.fullName)
+                else do
+                    try delete(entry.fullName, recurse: true)
+            }
+            else
+            {
                 try File.delete(entry.fullName)
+            }
         }
     }
 
@@ -93,7 +101,10 @@ func enumerate(dirName: string?, options: EnumerationOptions)->Array'(File.FileI
             let special  = fileName == "." or fileName == ".."
             let isDir    = entry.isDirectory()
 
-            if isDir and not special and options.recurse do
+            if isDir and
+               not special and
+               options.recurse and
+               not entry.attributes.has(File.FileAttributes.ReparsePoint) do
                 stack.add(entry.fullName)
 
             var wanted: bool

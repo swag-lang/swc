@@ -4,6 +4,17 @@
 
 using Swag
 
+// Creates a directory junction when the host supports it.
+func createDirectoryJunction(link, target: string)->bool
+{
+    let fontsDir   = Env.realSpecialDirectory(.Font)
+    let windowsDir = Path.directoryName(fontsDir.toString())
+    let shell      = Path.combine(windowsDir, "System32", "cmd.exe")
+    let arguments  = Format.toString("/c mklink /J \"%\" \"%\"", link, target)
+    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) else { return false }
+    return process.exitCode() == 0
+}
+
 #test
 {
     let dirName = CoreTests.makeFilesystemTestPath("core_invalid?dir")
@@ -80,4 +91,26 @@ using Swag
     var errOutcome: Swag.Error
     discard catch Directory.enumerate(dirName, {}) as &errOutcome
     Swag.assert(errOutcome.value() != null)
+}
+
+// Recursive deletion removes a directory link without walking into its target.
+#test
+{
+    let root       = CoreTests.makeFilesystemTestPath("core_directory_link_root")
+    let target     = CoreTests.makeFilesystemTestPath("core_directory_link_target")
+    let link       = Path.combine(root, "linked")
+    let targetFile = Path.combine(target, "keep.txt")
+    expect Directory.create(root)
+    expect Directory.create(target)
+    defer
+    {
+        discard catch Directory.delete(root, recurse: true)
+        discard catch Directory.delete(target, recurse: true)
+    }
+
+    discard expect File.writeAllText(targetFile.toString(), "keep")
+
+    Swag.assert(createDirectoryJunction(link.toString(), target.toString()))
+    expect Directory.delete(root, recurse: true)
+    Swag.assert(File.exists(targetFile.toString()))
 }

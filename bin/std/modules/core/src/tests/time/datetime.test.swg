@@ -221,7 +221,9 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 {
     for text in ["Sunday January 1 0", "Sunday February 1 0", "Sunday January 0 2024", "Sunday February 30 2024"]
     {
-        discard catch Time.DateTime.parse(text) as error
+        var errorOutcome: Swag.Error
+        discard catch Time.DateTime.parse(text) as &errorOutcome
+        let error = errorOutcome.value()
         Swag.assert(error is Errors.SyntaxError)
     }
 

@@ -220,14 +220,18 @@ using Swag
     stream.setPosition(1)
 
     var byte: u8 = 0xA5
-    catch stream.readBytes(&byte, Swag.U64.Max) as error
+    var oversizedReadOutcome: Swag.Error
+    discard catch stream.readBytes(&byte, Swag.U64.Max) as &oversizedReadOutcome
+    let error = oversizedReadOutcome.value()
     Swag.assert(error is Errors.OverflowError)
     Swag.assert(byte == 0xA5 and stream.position() == 1)
 
     let next = expect stream.readNative'u8()
     Swag.assert(next == 0x20 and stream.position() == 2)
 
-    discard catch stream.readNative'u32() as nativeError
+    var nativeReadOutcome: Swag.Error
+    discard catch stream.readNative'u32() as &nativeReadOutcome
+    let nativeError = nativeReadOutcome.value()
     Swag.assert(nativeError is Errors.OverflowError)
     Swag.assert(stream.position() == 2)
 
@@ -237,7 +241,9 @@ using Swag
     Swag.assert(stream.position() == input.count)
 
     expect stream.readBytes(&byte, 0)
-    catch stream.readBytes(&byte, 1) as endError
+    var endReadOutcome: Swag.Error
+    discard catch stream.readBytes(&byte, 1) as &endReadOutcome
+    let endError = endReadOutcome.value()
     Swag.assert(endError is Errors.OverflowError)
     Swag.assert(byte == 0xA5 and stream.position() == input.count)
 }

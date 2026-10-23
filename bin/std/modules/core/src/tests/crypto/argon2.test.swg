@@ -12,7 +12,9 @@ func filledBytes(count: u64, value: u8)->Array'u8
 
 func expectLengthRejected(password, salt, associatedData: const [..] u8, destination: [..] u8)
 {
-    discard catch Crypto.argon2id(password, salt, "", associatedData, {memoryKib: 8, iterations: 1, parallelism: 1}, destination) as error
+    var errorOutcome: Swag.Error
+    discard catch Crypto.argon2id(password, salt, "", associatedData, {memoryKib: 8, iterations: 1, parallelism: 1}, destination) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is Errors.BadParameterError)
 }
 

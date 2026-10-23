@@ -2192,8 +2192,8 @@ Result CodeGen::preNode(AstNode& node)
             SymbolVariable* resultStorageSym = nullptr;
             if (CodeGenFunctionHelpers::tryUseDirectVarInitStorage(*this, currentNodeRef, inlinePayload->returnTypeRef, resultStorageReg, resultStorageSym))
             {
-                frame.currentInlineContextRef().resultStorageReg = resultStorageReg;
-                frame.currentInlineContextRef().resultStorageSym = resultStorageSym;
+                frame.currentInlineContext().resultStorageReg = resultStorageReg;
+                frame.currentInlineContext().resultStorageSym = resultStorageSym;
             }
         }
 
@@ -2209,14 +2209,14 @@ Result CodeGen::preNode(AstNode& node)
             frame.setCurrentInlineContext(targetInlinePayload->inlineRootRef, targetInlinePayload, doneLabel);
             if (matchingInlineCtx)
             {
-                frame.currentInlineContextRef().resultStorageReg = matchingInlineCtx->resultStorageReg;
-                frame.currentInlineContextRef().resultStorageSym = matchingInlineCtx->resultStorageSym;
+                frame.currentInlineContext().resultStorageReg = matchingInlineCtx->resultStorageReg;
+                frame.currentInlineContext().resultStorageSym = matchingInlineCtx->resultStorageSym;
             }
 
             // Without an outer frame, this is a locally compiled function (for example
             // inside a macro). Place any return's doneLabel at this boundary because
             // the enclosing expansion cannot place it.
-            frame.currentInlineContextRef().noOuterDoneLabel = matchingInlineCtx == nullptr;
+            frame.currentInlineContext().noOuterDoneLabel = matchingInlineCtx == nullptr;
         }
         else
         {

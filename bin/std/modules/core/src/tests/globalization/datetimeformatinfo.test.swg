@@ -5,6 +5,12 @@ using Swag
 
 #test
 {
+    let format: Globalization.DateTimeFormatInfo
+    Swag.assert(not format.matches("pattern", Swag.U64.Max, "x"))
+}
+
+#test
+{
     let value = Time.DateTime{2024, 2, 29, 13, 5, 9, 0}
 
     let en = Globalization.CultureInfo.fromName("en-US")

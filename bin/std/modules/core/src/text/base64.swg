@@ -6,39 +6,6 @@ using Swag, Math
 private const EncodeGather  = cast(Simd.U8x16, [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
 private const DecodeScatter = cast(Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 
-#[Swag.Inline]
-private func decodeBlock(input: const [*] u8)->{ decoded: Simd.U8x16, valid: bool }
-{
-    let bytes      = Simd.load(input)
-    let upperMask  = (bytes >= Simd.splat('A'u8)) & (bytes <= Simd.splat('Z'u8))
-    let lowerMask  = (bytes >= Simd.splat('a'u8)) & (bytes <= Simd.splat('z'u8))
-    let digitMask  = (bytes >= Simd.splat('0'u8)) & (bytes <= Simd.splat('9'u8))
-    let symbolMask = (bytes == Simd.splat('+'u8)) | (bytes == Simd.splat('-'u8)) |
-                     (bytes == Simd.splat('/'u8)) | (bytes == Simd.splat('_'u8))
-    if not Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask) do
-        return {decoded: Simd.splat(0'u8), valid: false}
-
-    // Map both alphabets to the same six-bit digits.
-    var values = Simd.splat(0'u8)
-    values = Simd.select(upperMask, bytes - 'A', values)
-    values = Simd.select(lowerMask, bytes - 'a' + 26, values)
-    values = Simd.select(digitMask, bytes - '0' + 52, values)
-    values = Simd.select((bytes == Simd.splat('+'u8)) | (bytes == Simd.splat('-'u8)),
-                         Simd.splat(62'u8),
-                         values)
-    values = Simd.select((bytes == Simd.splat('/'u8)) | (bytes == Simd.splat('_'u8)),
-                         Simd.splat(63'u8),
-                         values)
-
-    // Reassemble each four-digit group into three contiguous bytes.
-    let sextets    = cast #bit(Simd.U32x4, values)
-    let firstByte  = ((sextets & 63) << 2) | (((sextets >> 8) & 63) >> 4)
-    let secondByte = (((sextets >> 8) & 15) << 4) | (((sextets >> 16) & 63) >> 2)
-    let thirdByte  = (((sextets >> 16) & 3) << 6) | ((sextets >> 24) & 63)
-    let packed     = firstByte | (secondByte << 8) | (thirdByte << 16)
-    return {decoded: Simd.shuffle(cast #bit(Simd.U8x16, packed), DecodeScatter), valid: true}
-}
-
 // Encodes bytes as standard base64 text, with `=` padding and no line breaks.
 func encode(bytes: const [..] u8)->String
 {
@@ -140,6 +107,39 @@ func decode(text: string)->Array'u8 fail
         if value == '/' or value == '_' do
             return 63
         return 255
+    }
+
+    #[Swag.Inline]
+    func decodeBlock(input: const [*] u8)->{ decoded: Simd.U8x16, valid: bool }
+    {
+        let bytes      = Simd.load(input)
+        let upperMask  = (bytes >= Simd.splat('A'u8)) & (bytes <= Simd.splat('Z'u8))
+        let lowerMask  = (bytes >= Simd.splat('a'u8)) & (bytes <= Simd.splat('z'u8))
+        let digitMask  = (bytes >= Simd.splat('0'u8)) & (bytes <= Simd.splat('9'u8))
+        let symbolMask = (bytes == Simd.splat('+'u8)) | (bytes == Simd.splat('-'u8)) |
+                         (bytes == Simd.splat('/'u8)) | (bytes == Simd.splat('_'u8))
+        if not Simd.allTrue(upperMask | lowerMask | digitMask | symbolMask) do
+            return {decoded: Simd.splat(0'u8), valid: false}
+
+        // Map both alphabets to the same six-bit digits.
+        var values = Simd.splat(0'u8)
+        values = Simd.select(upperMask, bytes - 'A', values)
+        values = Simd.select(lowerMask, bytes - 'a' + 26, values)
+        values = Simd.select(digitMask, bytes - '0' + 52, values)
+        values = Simd.select((bytes == Simd.splat('+'u8)) | (bytes == Simd.splat('-'u8)),
+                             Simd.splat(62'u8),
+                             values)
+        values = Simd.select((bytes == Simd.splat('/'u8)) | (bytes == Simd.splat('_'u8)),
+                             Simd.splat(63'u8),
+                             values)
+
+        // Reassemble each four-digit group into three contiguous bytes.
+        let sextets    = cast #bit(Simd.U32x4, values)
+        let firstByte  = ((sextets & 63) << 2) | (((sextets >> 8) & 63) >> 4)
+        let secondByte = (((sextets >> 8) & 15) << 4) | (((sextets >> 16) & 63) >> 2)
+        let thirdByte  = (((sextets >> 16) & 3) << 6) | ((sextets >> 24) & 63)
+        let packed     = firstByte | (secondByte << 8) | (thirdByte << 16)
+        return {decoded: Simd.shuffle(cast #bit(Simd.U8x16, packed), DecodeScatter), valid: true}
     }
 
     var digits: [4] u8

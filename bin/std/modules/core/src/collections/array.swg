@@ -217,7 +217,8 @@ impl Array
     #[Inline]
     mtd ptr2(x, y, w: u64)->*T
     {
-        Debug.safetyBoundCheck(x + y * w < .count, "index out of range")
+        let indexIsValid = x < .count and (not w or y <= (.count - x - 1) / w)
+        Debug.safetyBoundCheck(indexIsValid, "index out of range")
         let buffer = .buffer!
         return buffer + x + y * w
     }

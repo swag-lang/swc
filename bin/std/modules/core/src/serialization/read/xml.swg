@@ -15,7 +15,6 @@ public struct Xml
     internal
     {
         stream:    ByteStream         // Input cursor.
-        line, col: u64 = 1            // One-based source position.
         stackTags: Array'(string)     // Borrowed open element names.
     }
 }
@@ -84,9 +83,24 @@ public impl Xml
     {
         var err: retval
         err.message = Errors.mkString(val)
-        err.line    = .line
-        err.col     = .col
         err.seek    = .stream.seek
+        err.line    = 1
+        err.col     = 1
+
+        let data = .stream.data()
+        for i in err.seek
+        {
+            if data[i] == '\n'
+            {
+                err.line += 1
+                err.col  = 1
+            }
+            else
+            {
+                err.col += 1
+            }
+        }
+
         return err
     }
 
@@ -96,16 +110,6 @@ public impl Xml
         while c and Latin1.isSpace(c)
         {
             .stream.advance()
-            if c == '\n'
-            {
-                .line += 1
-                .col  = 1
-            }
-            else
-            {
-                .col += 1
-            }
-
             c = .stream.peekU8()
         }
     }
@@ -114,8 +118,6 @@ public impl Xml
     mtd startRead(input: const [..] u8) fail
     {
         .stream = ByteStream.openRead(input)
-        .line   = 1
-        .col    = 1
         .stackTags.clear()
     }
 

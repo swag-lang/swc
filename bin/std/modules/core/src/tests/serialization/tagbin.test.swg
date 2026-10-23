@@ -10,6 +10,14 @@ struct TagBinFinalPoint
     y: s16
 }
 
+#[Serialization.Final]
+struct TagBinEmptyFinal {}
+
+struct TagBinEmptyArray
+{
+    values: Array'TagBinEmptyFinal
+}
+
 struct TagBinPair
 {
     x: s32
@@ -1000,6 +1008,19 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     Swag.assert(decoded.first == 1130)
     Swag.assert(decoded.second == 1138)
+}
+
+#test
+{
+    var payload: TagBinEmptyArray
+    payload.values.resize(128)
+
+    let bytes   = encodeTagBin(payload)
+    var decoder: Serialization.Decoder'Serialization.Read.TagBin
+    let decoded = expect decoder.readAll'TagBinEmptyArray(bytes.toSlice())
+    defer Memory.delete(decoded)
+
+    Swag.assert(decoded.values.count == 128)
 }
 
 func readTagBinCompressedSizes(bytes: const [..] u8, fieldName: string)->{ uncompressed: u64, compressed: u64 }

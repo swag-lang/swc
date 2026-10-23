@@ -54,6 +54,19 @@ struct XmlPayload
     }
 }
 
+#test
+{
+    let invalidXml: String = "<p>\n<id>7</id>\n<active>true</active>\n<name>x\ny&nbsp;</name><counts></counts><pair><x>0</x><y>0</y></pair></p>"
+    var decoder:    Serialization.Decoder'Serialization.Read.Xml
+    var errOutcome: Swag.Error
+    discard catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as &errOutcome
+    let err = errOutcome.value()
+    Swag.assert(err is SyntaxError)
+
+    let syntax = assume cast(*SyntaxError, err)
+    Swag.assert(syntax.line == 5 and syntax.col == 3)
+}
+
 // Numeric dispatch keeps the value width and leaves the following tag unread.
 func(T) xmlAssertNative(input: string, expected: T)
 {

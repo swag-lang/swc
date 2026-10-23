@@ -191,6 +191,7 @@ void Sanitizer::computeFunctionProperties()
     stackBaseStable_        = true;
     needsReleaseProvenance_ = false;
     hasMoveInvalidation_    = false;
+    hasCall_                = false;
 
     const uint32_t n                = cfg_->instructionCount();
     const bool     inspectStackBase = stackBaseReg_.isValid();
@@ -200,6 +201,7 @@ void Sanitizer::computeFunctionProperties()
         needsReleaseProvenance_ |= inst.op == MicroInstrOpcode::SanityRelease;
         hasMoveInvalidation_ |= inst.op == MicroInstrOpcode::SanityInvalidate;
         const MicroInstrDef&     def = MicroInstr::info(inst.op);
+        hasCall_ |= def.flags.has(MicroInstrFlagsE::IsCallInstruction);
         const MicroInstrOperand* ops = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
         if (!ops)
             continue;
@@ -328,11 +330,14 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     // Resolve call targets up front: checks identify what a call invokes, and the
     // fixpoint needs to know which calls never return.
     callTargets_ = {};
-    for (const MicroRelocation& rel : context_.builder->codeRelocations())
+    if (hasCall_)
     {
-        if (rel.targetSymbol &&
-            (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
-            callTargets_.set(rel.instructionRef, rel.targetSymbol);
+        for (const MicroRelocation& rel : context_.builder->codeRelocations())
+        {
+            if (rel.targetSymbol &&
+                (rel.kind == MicroRelocation::Kind::LocalFunctionAddress || rel.kind == MicroRelocation::Kind::ForeignFunctionAddress))
+                callTargets_.set(rel.instructionRef, rel.targetSymbol);
+        }
     }
 
     // Chain heads are the only points where states are stored and joined: the entry,

@@ -220,6 +220,7 @@ private:
     std::vector<LocalSlotExtent> localSlots_;
     bool                         needsReleaseProvenance_ = false;
     bool                         hasMoveInvalidation_    = false;
+    bool                         hasCall_                = false;
     bool                         stackBaseStable_        = true;
     // Call target of the instruction currently going through the transfer function
     // (set by the fixpoint loop): lets the call effect apply the callee's summaries.

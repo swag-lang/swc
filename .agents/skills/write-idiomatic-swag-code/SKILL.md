@@ -409,17 +409,21 @@ through it directly, and only a whole-value read or write opens the place with t
 
 ## Remove Relay Locals
 
-- Call through a short receiver directly: `.parent!.invalidate()`, not
-  `let parent = .parent!` followed by `parent.invalidate()`. Likewise, return a direct result
-  instead of declaring `let result = operation()` only to return it on the next line.
-- Inline a one-use local that only renames a value already clear in its expression. For example,
-  return `.buffer! + x + y * w` directly instead of binding `let buffer = .buffer!` first. The
-  same applies to a one-use arithmetic intermediate when its name adds no domain meaning. Keep
-  the local when it names a meaningful unit or step, prevents repeated evaluation, makes a long
-  expression easier to inspect, or preserves a needed ownership, lifetime, or evaluation boundary.
-- A single use is a review cue, not proof that a local is redundant. Keep names that explain a
-  unit, condition, or algorithmic step; keep owners, snapshots, addresses, and intentional copies.
-  Preserve `retval`, contextual types, overload selection, evaluation order, and drop timing.
+- Before adding a local, ask what it contributes beyond another name for the same value. A local
+  that only relays a receiver, field, call result, or arithmetic expression to one nearby use adds
+  a step without adding meaning; compose the expression directly. For example, call
+  `.parent!.invalidate()` instead of binding `.parent!` just to call through it, return
+  `operation()` instead of binding it just to return it, and write
+  `return .buffer! + x + y * w` instead of binding `.buffer!` to `buffer` first. Apply this to
+  alias chains too: remove relay steps rather than shortening each temporary's name.
+- Keep a local when it names a meaningful domain value, unit, condition, or algorithmic step; when
+  several operations reuse it; or when it makes a long expression easier to inspect. Keep it too
+  when it captures a snapshot, address, owner, intentional copy, or required evaluation, ownership,
+  lifetime, or drop boundary. A single use is a review cue, not proof that a local is redundant.
+- When removing a relay, preserve contextual types, overload selection, evaluation count and order,
+  short-circuiting, failure behavior, and drop timing. A local may affect these even when its name
+  appears only once. Prefer the direct form only after checking that the surrounding contract stays
+  visible and unchanged.
 - For one optional call, use `.surface?.invalidateRect(.paintExtent(.surfaceRect()))` instead of
   copying `.surface` to a local and guarding the call with `if`. The receiver is evaluated once;
   arguments and the rest of the chain run only when it is present. Keep `!` for a required value:

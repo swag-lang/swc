@@ -158,47 +158,46 @@ private func nextAddresses(addresses, input: [*] u64, zero: const [*] u64)
     compress(addresses, zero, addresses, false)
 }
 
-// Maps a pseudo-random value onto a block that is already final, following the
-// RFC 9106 indexing rules. `index` counts from the start of the current segment,
-// not from the start of the lane. `sameLane` selects the larger window that only
-// the current lane may use, because its recent blocks are already final.
-private func referenceIndex(random: u64, pass, slice, index, segmentLength, laneLength: u64, sameLane: bool)->u64
-{
-    var areaSize: u64
-    if not pass
-    {
-        if not slice do
-            areaSize = index - 1
-        elif sameLane do
-            areaSize = slice * segmentLength + index - 1
-        else do
-            areaSize = slice * segmentLength - (index ? 0 : 1)
-    }
-    elif sameLane
-    {
-        areaSize = laneLength - segmentLength + index - 1
-    }
-    else
-    {
-        areaSize = laneLength - segmentLength - (index ? 0 : 1)
-    }
-
-    // The squared scaling biases the choice towards recent blocks, which is what
-    // keeps a low-memory attacker recomputing.
-    let low      = truncate32(random)
-    let scaled   = (low * low) >> 32
-    let relative = areaSize - 1 - ((areaSize * scaled) >> 32)
-
-    var start = 0'u64
-    if pass and slice != Argon2SyncPoints - 1 do
-        start = (slice + 1) * segmentLength
-    return (start + relative) % laneLength
-}
-
 // A segment owns its destination blocks and scratch. References into other lanes only
 // reach completed slices, so joining each slice makes those reads safe.
 private func fillSegment(blocks: [*] u64, lanes, passes, segmentLength, laneLength, blockCount, pass, slice, lane: u64)
 {
+    // Maps a pseudo-random value onto a block that is already final, following the RFC 9106
+    // indexing rules. `index` counts from the current segment's start. `sameLane` selects the
+    // larger reference window, whose most recent blocks are already final.
+    func referenceIndex(random: u64, pass, slice, index, segmentLength, laneLength: u64, sameLane: bool)->u64
+    {
+        var areaSize: u64
+        if not pass
+        {
+            if not slice do
+                areaSize = index - 1
+            elif sameLane do
+                areaSize = slice * segmentLength + index - 1
+            else do
+                areaSize = slice * segmentLength - (index ? 0 : 1)
+        }
+        elif sameLane
+        {
+            areaSize = laneLength - segmentLength + index - 1
+        }
+        else
+        {
+            areaSize = laneLength - segmentLength - (index ? 0 : 1)
+        }
+
+        // Squared scaling biases the choice towards recent blocks, which makes low-memory
+        // attackers recompute more often.
+        let low      = truncate32(random)
+        let scaled   = (low * low) >> 32
+        let relative = areaSize - 1 - ((areaSize * scaled) >> 32)
+
+        var start = 0'u64
+        if pass and slice != Argon2SyncPoints - 1 do
+            start = (slice + 1) * segmentLength
+        return (start + relative) % laneLength
+    }
+
     var zero:      [Argon2Words] u64
     var input:     [Argon2Words] u64
     var addresses: [Argon2Words] u64

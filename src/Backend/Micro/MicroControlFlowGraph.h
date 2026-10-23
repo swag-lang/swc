@@ -16,6 +16,8 @@ public:
     const EdgeList&                successors(uint32_t instructionIndex) const { return successors_[instructionIndex]; }
     std::span<const EdgeList>      predecessors() const { return predecessors_; }
     const EdgeList&                predecessors(uint32_t instructionIndex) const { return predecessors_[instructionIndex]; }
+    // The label index is populated only when the instruction stream contains labels.
+    bool hasLabels() const { return !labelToInstructionIndex_.empty(); }
     // Targets whose address is materialized anywhere in the instruction stream,
     // sorted by instruction index as the CFG walks the stream to collect them.
     std::span<const uint32_t> addressTakenLabelIndices() const { return addressTakenLabelIndices_.span(); }

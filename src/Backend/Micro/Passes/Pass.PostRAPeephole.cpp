@@ -43,7 +43,7 @@ namespace
         auto&       storage  = *context.instructions;
         auto&       operands = *context.operands;
         const auto& cfg      = context.builder->controlFlowGraph();
-        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.hasLabels())
             return false;
         const auto refs = cfg.instructionRefs();
         for (uint32_t index = 0; index + 2 < refs.size(); ++index)
@@ -110,7 +110,7 @@ namespace
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
         const auto&          cfg      = context.builder->controlFlowGraph();
-        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.hasLabels())
             return false;
 
         const auto      refs = cfg.instructionRefs();
@@ -371,7 +371,7 @@ namespace
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
         const auto&          cfg      = context.builder->controlFlowGraph();
-        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.hasLabels())
             return false;
 
         const auto     refs  = cfg.instructionRefs();
@@ -950,7 +950,7 @@ namespace
         MicroStorage&        storage  = *context.instructions;
         MicroOperandStorage& operands = *context.operands;
         const auto&          cfg      = context.builder->controlFlowGraph();
-        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness())
+        if (!cfg.supportsDeadCodeLiveness() || cfg.hasUnsupportedControlFlowForCfgLiveness() || !cfg.hasLabels())
             return false;
 
         const auto                                       refs = cfg.instructionRefs();

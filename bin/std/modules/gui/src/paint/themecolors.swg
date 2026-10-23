@@ -318,8 +318,8 @@ struct ThemeColors
         tabItem_SelectedText:             Color     // Label of the selected tab.
         tabItem_HotText:                  Color     // Label of a hovered tab.
         tabItem_Text:                     Color     // Label of a tab at rest.
-        tabItem_FlatSelected:             Color     // Ground of the selected flat tab.
-        tabItem_FlatHot:                  Color     // Ground of a hovered flat tab.
+        tabItem_FlatSelected:             Color     // Rule under the selected flat tab.
+        tabItem_FlatHot:                  Color     // Rule under a hovered flat tab.
         tabItem_RoundSelected:            Color     // Ground of the selected round tab.
         tabItem_RoundHot:                 Color     // Ground of a hovered round tab.
         tabItem_ButtonSelected:           Color     // Ground of the selected button tab.
@@ -916,8 +916,8 @@ impl ThemeColors
         .tabItem_SelectedText             = p.text
         .tabItem_HotText                  = p.text
         .tabItem_Text                     = p.softText
-        .tabItem_FlatSelected             = p.selectPressed
-        .tabItem_FlatHot                  = p.selectHot
+        .tabItem_FlatSelected             = signature.mark
+        .tabItem_FlatHot                  = alternate.mark
         .tabItem_RoundSelected            = p.selectPressed
         .tabItem_RoundHot                 = p.selectHot
         .tabItem_ButtonSelected           = p.selectPressed

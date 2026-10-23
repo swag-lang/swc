@@ -553,14 +553,20 @@ impl MainWindow
     {
         with .tabs = Tab.create(me)
         {
-            .dockStyle = .Center
-            .margin    = {32, 16, 32, 16}
+            .dockStyle       = .Center
+            .margin          = {32, 16, 32, 16}
+            .backgroundStyle = .Panel
             .setForm(.Flat)
+            .setForms(.Flat, .Flat, .None)
             .setPageTransitions(true)
             .addItem(appStrings().ui_CreateTab, view: me.createNewVaultCard(me.tabs))
             .addItem(appStrings().ui_OpenTab, view: me.createOpenVaultCard(me.tabs))
             .addItem(appStrings().ui_MountedTab, view: me.createMountedDrivesCard(me.tabs))
             .addItem(appStrings().ui_OptionsTab, view: me.createOptionsCard(me.tabs))
+
+            // One stationary ground joins the strip and the pages; only their content fades.
+            for item in .items do
+                item!.view!.backgroundStyle = .Transparent
             .sigSelectionChanged += func|window = me|(_) { window.arrangeCards() }
         }
     }
@@ -602,6 +608,16 @@ impl MainWindow
     // window down, then refresh forms whose translated text changed without resizing them.
     mtd arrangeCards()
     {
+        // The trailing column covers either one action or the three key-file cells.
+        let metrics      = .themeMetrics()
+        let cell         = Math.max(.createCard.form.options.fieldHeight, metrics.comboBox_Height)
+        let controlWidth = Math.max(.browseCreate.itf.measureContent({}).x,
+                                    .createUnit.itf.measureContent({}).x)
+        let width = Math.max(controlWidth, cell * 3 + metrics.dialog_BtnPadding * 2)
+        .browseCreate.preferredSize.x = width
+        .createUnit.preferredSize.x   = width
+        .createKeyFiles.actionWidth   = width
+
         .applyLayout()
         .createCard.endForm()
         .mountCard.endForm()

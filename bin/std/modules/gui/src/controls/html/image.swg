@@ -6,6 +6,10 @@ using Core, Pixel
 private const HtmlSvgRasterLimit  = 4096.0
 private const HtmlSvgRasterPixels = 8 * 1024 * 1024'u64
 
+// A photo embedded in one SVG must not hold every lighter gallery image behind its decoder.
+// Bound concurrent parsing because each drawing may own full-resolution decoded photographs.
+private const HtmlImageParseLimit = 4'u64
+
 // Resolves an offline resource without accepting URL schemes, UNC paths, or device namespaces.
 internal func htmlLocalResourcePath(basePath, source: string)->String
 {
@@ -39,14 +43,14 @@ struct HtmlImageEntry
     loaded:       bool
     uploaded:     bool
     isVector:     bool
-    needsParsing: bool     // SVG dimensions are ready; contents still belong to the next raster job.
+    needsParsing: bool     // SVG dimensions are ready; contents still belong to the next parse job.
 }
 
 // Stable storage keeps the worker independent of cache moves and entry-array growth.
-struct HtmlImageRaster
+struct HtmlImageParse
 {
     drawing:  Svg.Drawing
-    task:     Swag.Task'Image
+    task:     Swag.Task
     slot:     u32
     fileName: String
 }
@@ -55,8 +59,8 @@ struct HtmlImageRaster
 //
 // A reference that cannot be resolved is remembered as a failure, so a broken `src` repeated a
 // hundred times costs one attempt rather than one attempt per layout. Asynchronous caches reserve
-// SVG dimensions first and prepare visible drawings on a worker. Texture uploads always belong
-// to paint, when the surface renderer exists.
+// SVG dimensions first and prepare visible drawings on a bounded set of workers. Rasterization
+// and texture uploads belong to paint, when the surface renderer exists.
 struct HtmlImageCache
 {
     basePath:     String
@@ -64,7 +68,7 @@ struct HtmlImageCache
     index:        HashTable'(String, u32)
     renderer:     IRenderer?
     asynchronous: bool
-    raster:       *HtmlImageRaster?
+    parsing:      Array'(*HtmlImageParse)
     loadingPhase: f32
 }
 
@@ -73,7 +77,7 @@ impl HtmlImageCache
     // Releases every texture this cache uploaded.
     mtd release()
     {
-        .finishRaster()
+        .finishParsing(wait: true)
         let renderer = .renderer
         if renderer
         {
@@ -87,21 +91,23 @@ impl HtmlImageCache
         .renderer = null
     }
 
-    // Only completion and retirement join the worker; painting polls before calling this.
-    mtd finishRaster()
+    // Paint publishes completed drawings without waiting for another image's decoder.
+    // Retirement joins every worker before the cache or its entries can move out of scope.
+    mtd finishParsing(wait = false)
     {
-        let raster = .raster
-        if not raster do
-            return
-        raster.task.wait()
-        let entry = &.entries[raster.slot]
-        let image = catch raster.task.take() as error
-        entry.image        = image
-        entry.loaded       = error == null
-        entry.needsParsing = false
-        entry.drawing      = #move raster.drawing
-        Memory.delete(raster)
-        .raster = null
+        for index in reversed(.parsing.count)
+        {
+            let parsing = .parsing[index]
+            if not wait and parsing.task.isPending() do
+                continue
+            catch parsing.task.take() as error
+            let entry = &.entries[parsing.slot]
+            entry.loaded       = error == null
+            entry.needsParsing = false
+            entry.drawing      = #move parsing.drawing
+            Memory.delete(parsing)
+            .parsing.removeAt(index)
+        }
     }
 
     mtd paintLoading(wnd: *Wnd, painter: *Painter, frame: Math.Rectangle)
@@ -216,8 +222,7 @@ impl HtmlImageCache
     // Layout only parses the source; invisible vectors do not allocate or render a bitmap.
     mtd texture(renderer: IRenderer, source: string, pixelWidth, pixelHeight: f32)->*Texture?
     {
-        if .raster and not .raster.task.isPending() do
-            .finishRaster()
+        .finishParsing()
         let entry = .fetch(source)
         if not entry do
             return null
@@ -238,27 +243,23 @@ impl HtmlImageCache
                     entry.uploaded = false
                 }
 
-                if .asynchronous
+                if .asynchronous and entry.needsParsing
                 {
-                    // One raster per document cache bounds memory even for a gallery of SVGs.
-                    // The worker owns the drawing and CPU renderer; GPU calls stay on the UI.
-                    if not .raster
+                    // Parse visible drawings off-thread, then rasterize through the surface
+                    // renderer. A software raster here bypasses the application's GPU entirely.
+                    let slot = .index.find(String.from(source)).value
+                    for parsing in .parsing where parsing.slot == slot do
+                        return null
+                    if .parsing.count < HtmlImageParseLimit
                     {
-                        let raster = Memory.new'HtmlImageRaster()
-                        raster.slot    = .index.find(String.from(source)).value
-                        raster.drawing = #move entry.drawing
-                        if entry.needsParsing do
-                            raster.fileName = htmlLocalResourcePath(.basePath.toString(), source)
-                        .raster = raster
-                        raster.task.submit(func|raster, width, height|()->Image fail
+                        let parsing = Memory.new'HtmlImageParse()
+                        parsing.slot     = slot
+                        parsing.fileName = htmlLocalResourcePath(.basePath.toString(), source)
+                        .parsing.add(parsing)
+                        parsing.task.submit(func|parsing|() fail
                         {
-                            if not raster.fileName.isEmpty()
-                            {
-                                let text = try File.readAllText(raster.fileName)
-                                raster.drawing = try Svg.Drawing.parse(text.toString())
-                            }
-
-                            return raster.drawing.rasterize(width, height)
+                            let text = try File.readAllText(parsing.fileName)
+                            parsing.drawing = try Svg.Drawing.parse(text.toString())
                         })
                     }
 

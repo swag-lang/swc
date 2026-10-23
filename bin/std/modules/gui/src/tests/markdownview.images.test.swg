@@ -43,20 +43,22 @@ using Swag, Core, Pixel
         let first  = view.blocks[0].wnd.position
         let second = view.blocks[1].wnd.position
         var image  = host.render(view)
-        Swag.assert(inline.images.raster != null and html.images.raster != null)
+        Swag.assert(not inline.images.parsing.isEmpty() and not html.images.parsing.isEmpty())
         Swag.assert(not inline.images.entries[0].uploaded and not html.images.entries[0].uploaded)
         Pixel.Testing.assertImageGolden(&image, Format.toString("markdownview.images.loading.%", name).toString())
 
         // Waiting belongs to the test harness; an actual frame only polls the tasks.
-        for 3 where inline.images.raster != null or html.images.raster != null
+        for 3 where not inline.images.parsing.isEmpty() or not html.images.parsing.isEmpty()
         {
-            inline.images.raster?.task.wait()
-            html.images.raster?.task.wait()
+            for parsing in inline.images.parsing do
+                parsing.task.wait()
+            for parsing in html.images.parsing do
+                parsing.task.wait()
             Swag.assert(host.surface.isDirty)
             host.surface.paintWnd(view)
         }
 
-        Swag.assert(inline.images.raster == null and html.images.raster == null)
+        Swag.assert(inline.images.parsing.isEmpty() and html.images.parsing.isEmpty())
         Swag.assert(inline.images.entries[0].uploaded and html.images.entries[0].uploaded)
         Swag.assert(html.images.entries.count == 2 and html.images.entries[1].uploaded)
         Swag.assert(view.blocks[0].wnd.position == first and view.blocks[1].wnd.position == second)
@@ -97,34 +99,36 @@ using Swag, Core, Pixel
     if Swag.jit()
     {
         discard host.render(view)
-        Swag.assert(html.images.raster != null and not html.images.entries[0].uploaded)
+        Swag.assert(not html.images.parsing.isEmpty() and not html.images.entries[0].uploaded)
         Swag.assert(host.surface.isDirty)
-        html.images.raster?.task.wait()
+        for parsing in html.images.parsing do
+            parsing.task.wait()
         host.surface.paintWnd(view)
-        Swag.assert(html.images.raster == null and html.images.entries[0].uploaded)
+        Swag.assert(html.images.parsing.isEmpty() and html.images.entries[0].uploaded)
         Swag.assert(html.images.entries[0].image.pixelColor(60, 30).argb == 0xFF285078)
         return
     }
 
     // Hold completion beyond the first paint so unrelated initial invalidations cannot hide
     // a loading indicator that stops requesting frames once the rest of the surface is idle.
-    let raster = Memory.new'HtmlImageRaster()
-    html.images.raster = raster
-    raster.task.submit(func|gate = &gate, started = &started|()->Image
+    let parsing = Memory.new'HtmlImageParse()
+    html.images.parsing.add(parsing)
+    parsing.task.submit(func|parsing, gate = &gate, started = &started|() fail
     {
         started.release()
         gate.acquire()
-        return Image.create(120, 60, .RGBA8)
+        parsing.drawing = try Svg.Drawing.parse("<svg width='120' height='60'><rect width='120' height='60' fill='#285078'/></svg>")
     })
     defer
     {
         gate.release()
-        html.images.raster?.task.wait()
+        for parsing in html.images.parsing do
+            parsing.task.wait()
     }
 
     started.acquire()
     discard host.render(view)
-    Swag.assert(html.images.raster != null and not html.images.entries[0].uploaded)
+    Swag.assert(not html.images.parsing.isEmpty() and not html.images.entries[0].uploaded)
 
     // The surface loop consumes only the region the loading image invalidated.
     for 4
@@ -136,13 +140,13 @@ using Swag, Core, Pixel
     }
 
     gate.release()
-    raster.task.wait()
+    parsing.task.wait()
     host.surface.paintWnd(view)
-    Swag.assert(html.images.raster == null and html.images.entries[0].uploaded)
+    Swag.assert(html.images.parsing.isEmpty() and html.images.entries[0].uploaded)
 }
 
-// Raster jobs survive entry-array growth, publish on the UI thread, grow at a new DPI,
-// reuse a sufficiently large texture, and join before a cache is cleared or destroyed.
+// Parsing survives entry-array growth and prepares no software bitmap. Paint uses the
+// surface renderer at the latest DPI, reuses its texture, and retirement joins parsing.
 #test
 {
     let fileName = Testing.tempFilePath("markdown-image-worker-", ".svg")
@@ -156,29 +160,88 @@ using Swag, Core, Pixel
     cache.asynchronous = true
 
     let pending = cache.texture(host.app.renderer, fileName.toString(), 120, 60)
-    Swag.assert(pending == null and cache.raster != null and not cache.entries[0].uploaded)
+    Swag.assert(pending == null and not cache.parsing.isEmpty() and not cache.entries[0].uploaded)
     for index in 64 do
         discard cache.fetch(Format.toString("missing-image-%.png", index).toString())
-    cache.raster.task.wait()
+    cache.parsing[0].task.wait()
+    Swag.assert(cache.parsing[0].drawing.shapeCount() == 1 and not cache.entries[0].image.isValid())
     let ready = cache.texture(host.app.renderer, fileName.toString(), 120, 60)
-    Swag.assert(ready != null and cache.raster == null and cache.entries[0].uploaded)
+    Swag.assert(ready != null and cache.parsing.isEmpty() and cache.entries[0].uploaded)
     Swag.assert(cache.entries[0].image.width == 120)
 
     let larger = cache.texture(host.app.renderer, fileName.toString(), 240, 120)
-    Swag.assert(larger == null and cache.raster != null and not cache.entries[0].uploaded)
-    cache.raster.task.wait()
-    let resized = cache.texture(host.app.renderer, fileName.toString(), 240, 120)
-    Swag.assert(resized != null and cache.entries[0].image.width == 240)
+    Swag.assert(larger != null and cache.parsing.isEmpty() and cache.entries[0].image.width == 240)
     let pixels  = cast(u64, cache.entries[0].image.pixels.buffer)
     let smaller = cache.texture(host.app.renderer, fileName.toString(), 60, 30)
-    Swag.assert(smaller != null and cache.raster == null)
+    Swag.assert(smaller != null and cache.parsing.isEmpty())
     Swag.assert(cast(u64, cache.entries[0].image.pixels.buffer) == pixels)
 
+    cache.clear()
     discard cache.texture(host.app.renderer, fileName.toString(), 480, 240)
     cache.clear()
-    Swag.assert(cache.raster == null and cache.entries.isEmpty() and cache.index.isEmpty())
+    Swag.assert(cache.parsing.isEmpty() and cache.entries.isEmpty() and cache.index.isEmpty())
     discard cache.texture(host.app.renderer, fileName.toString(), 120, 60)
-    Swag.assert(cache.raster != null)
+    Swag.assert(not cache.parsing.isEmpty())
+}
+
+// A gallery publishes a light image while an earlier photograph is still decoding.
+// Saturated parsing also keeps its bound and never schedules the same source twice.
+#test
+{
+    // A gated task cannot yield the caller in JIT execution; native tests exercise the overlap.
+    if Swag.jit() do
+        return
+    const Source = "<svg width='120' height='60'><rect width='120' height='60' fill='#285078'/></svg>"
+    let fileName = Testing.tempFilePath("markdown-gallery-", ".svg")
+    discard expect File.writeAllText(fileName, Source)
+    defer discard catch File.delete(fileName)
+    var slowGate, fastGate, started: Swag.Semaphore
+    var host: Testing.HeadlessHost
+    host.setup(320, 240)
+    defer host.shutdown()
+    var cache: HtmlImageCache
+    cache.asynchronous = true
+    defer
+    {
+        for 3 do
+            slowGate.release()
+        fastGate.release()
+        cache.release()
+    }
+
+    // Distinct authored references can name the same local file.
+    var sources: Array'String
+    var relative = String.from(Path.fileName(fileName.toString())!)
+    for index in 5
+    {
+        sources.add(Path.combine(Path.directoryName(fileName.toString())!, relative.toString()))
+        relative = Format.toString("./%", relative.toString())
+        discard cache.fetch(sources[index].toString())
+        if index == 4 do
+            continue
+        let parsing = Memory.new'HtmlImageParse()
+        parsing.slot = cast(u32, index)
+        cache.parsing.add(parsing)
+        parsing.task.submit(func|parsing, gate = index == 1 ? &fastGate : &slowGate, started = &started|() fail
+        {
+            started.release()
+            gate.acquire()
+            parsing.drawing = try Svg.Drawing.parse(Source)
+        })
+    }
+
+    for 4 do
+        started.acquire()
+    let duplicate = cache.texture(host.app.renderer, sources[0].toString(), 120, 60)
+    Swag.assert(duplicate == null and cache.parsing.count == 4)
+    let saturated = cache.texture(host.app.renderer, sources[4].toString(), 120, 60)
+    Swag.assert(saturated == null and cache.parsing.count == 4)
+    fastGate.release()
+    cache.parsing[1].task.wait()
+    let ready = cache.texture(host.app.renderer, sources[1].toString(), 120, 60)
+    Swag.assert(ready != null and cache.parsing.count == 3 and not cache.entries[0].uploaded)
+    let next = cache.texture(host.app.renderer, sources[4].toString(), 120, 60)
+    Swag.assert(next == null and cache.parsing.count == 4)
 }
 
 // File preparation publishes dimensions without decoding SVG contents. A later read failure
@@ -211,10 +274,42 @@ using Swag, Core, Pixel
     Swag.assert(cache.entries[0].drawing.shapeCount() == 0)
     expect File.delete(imagePath)
     discard host.render(view)
-    Swag.assert(cache.raster != null)
-    cache.raster.task.wait()
+    Swag.assert(not cache.parsing.isEmpty())
+    cache.parsing[0].task.wait()
     discard host.render(view)
-    Swag.assert(cache.raster == null and not cache.entries[0].loaded)
+    Swag.assert(cache.parsing.isEmpty() and not cache.entries[0].loaded)
     discard host.render(view)
-    Swag.assert(cache.raster == null and cache.entries.count == 1)
+    Swag.assert(cache.parsing.isEmpty() and cache.entries.count == 1)
+}
+
+// The asynchronous cache uses the native renderer after parsing, preserving transparency
+// and supersampling while a DPI change made during parsing selects the final raster size.
+#[Swag.TestTag("integration.renderer.opengl")]
+#test
+{
+    const Source = "<svg width='120' height='60'><rect x='4' y='4' width='80' height='40' fill='#285078'/><rect x='40' y='20' width='70' height='30' fill='#E06030' opacity='.5'/></svg>"
+    let fileName = Testing.tempFilePath("markdown-image-gpu-", ".svg")
+    discard expect File.writeAllText(fileName, Source)
+    defer discard catch File.delete(fileName)
+    var window  = expect Env.createWindow({identifier: "markdown-image-test", title: "Markdown image test", width: 240, height: 120})
+    var backend:  RenderOgl
+    let renderer: IRenderer = &backend
+    var context = expect renderer.createContext(window.nativeRenderHandle(), 240, 120)
+    defer renderer.deleteContext(&context)
+    renderer.setCurrentContext(context)
+    renderer.init()
+
+    var cache: HtmlImageCache
+    cache.asynchronous = true
+    let pending = cache.texture(renderer, fileName.toString(), 120, 60)
+    Swag.assert(pending == null and not cache.parsing.isEmpty())
+    cache.parsing[0].task.wait()
+    Swag.assert(not cache.entries[0].image.isValid())
+    let ready = cache.texture(renderer, fileName.toString(), 240, 120)
+    Swag.assert(ready != null and cache.entries[0].image.width == 240)
+    let drawing  = expect Svg.Drawing.parse(Source)
+    let expected = drawing.rasterize(240, 120)
+
+    // The two backends round supersampled translucent colors within two channel levels.
+    Pixel.Testing.assertImagesNear(&expected, &cache.entries[0].image, "markdownview.images.ogl", {maxChannelDelta: 2})
 }

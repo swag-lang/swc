@@ -291,8 +291,8 @@ For example, Unicode case mapping uses a low bit to select a member of an upper/
 Keep that bit operation explicit, and name the pair offset and case offset when their combination
 otherwise needs a long explanatory comment. Retain the explanation of the invariant; remove
 only narration that the new names make redundant.
-Adding or adopting such helpers is a semantic refactoring with focused tests, outside the
-strictly visual campaign in `backlog/repo.prompts.md`.
+Adding or adopting such helpers is a semantic refactoring with focused tests. In campaign 7
+of `backlog/repo.prompts.md`, keep it distinct from presentation-only batches.
 
 The same mechanical fallback applies to a long chain of conditions: the default
 `logical-chain-column-limit = 100` splits at least three operands joined by the same `and` or

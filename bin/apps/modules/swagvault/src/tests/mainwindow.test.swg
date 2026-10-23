@@ -207,6 +207,14 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
         window.showTab(0)
         assertFormEndsInsideCard(&window.createCard)
+        let browse = window.browseCreate.position
+        let unit   = window.createUnit.position
+        let keys   = window.createKeyFiles
+        Swag.assert(Math.abs(browse.x - unit.x) <= 0.5)
+        Swag.assert(Math.abs(browse.width - unit.width) <= 0.5)
+        Swag.assert(Math.abs(keys.position.x + keys.add.position.x - browse.x) <= 0.5)
+        Swag.assert(Math.abs(keys.files.position.right() - window.createSize.position.right()) <= 0.5)
+        Swag.assert(window.tabs.viewForm == .None)
 
         window.showTab(1)
         assertFormEndsInsideCard(&window.mountCard)
@@ -222,6 +230,35 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     }
 
     window.showTab(0)
+}
+
+// The page ground stays still under the tab strip while its content arrives.
+#[Swag.TestTag("animation.vault")]
+#test
+{
+    for variant in [AppearanceTheme.Dark, AppearanceTheme.Light]
+    {
+        var host: Testing.HeadlessHost
+        let window = testSetupMainWindow(&host, 1.5)
+        defer host.shutdown()
+        window.themeIndex = cast(u32, variant)
+        window.applyTheme()
+        host.setReducedMotion(false)
+        host.settleAnimations(window)
+
+        let strip  = window.tabs.surfaceRect()
+        let x      = cast(u32, (strip.x + strip.width / 2) * 1.5)
+        let y      = cast(u32, (strip.y + window.themeMetrics().tabBar_FlatHeight + 8) * 1.5)
+        let before = host.render(&host.surfaceWnd)
+        let ground = before.pixelColor(x, y)
+        window.showTab(1)
+        for 4
+        {
+            host.advanceAnimations(0.025)
+            let frame = host.render(&host.surfaceWnd)
+            Swag.assert(frame.pixelColor(x, y) == ground)
+        }
+    }
 }
 
 // A language switch re-labels the complete surface.

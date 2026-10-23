@@ -5,6 +5,46 @@ using Swag, Core
 
 var TabHeadlessSelChangedCount: u32
 
+// Flat tabs keep one contrasted selection rule while it travels, with a separate hover rule.
+#test
+{
+    for palette in [ThemeColors.darkPalette(), ThemeColors.lightPalette(), ThemeColors.swagDarkPalette()]
+    {
+        var host: Testing.HeadlessHost
+        host.setup(320, 120)
+        defer host.shutdown()
+        host.theme.colors.apply(palette)
+        host.setReducedMotion(false)
+
+        let tab = Tab.create(&host.root, {0, 0, 320, 120})
+        tab.setForms(.Flat, .Flat, .None)
+        for name in ["Create", "Open", "Mounted", "Options"] do
+            tab.addItem(name)
+        host.settleAnimations()
+
+        let colors = tab.themeColors()
+        Swag.assert(colors.tabItem_FlatSelected.contrastRatio(colors.tabBar_FlatBk) >= 3.5)
+        Swag.assert(colors.tabItem_FlatHot.contrastRatio(colors.tabBar_FlatBk) >= 3.5)
+
+        tab.setSelectedIndex(3)
+        host.advanceAnimations(tab.themeMetrics().motion_QuickSeconds * 0.5)
+        let halfway = host.render()
+        let rail    = tab.selectionRail
+        let y       = cast(u32, rail.y + rail.height / 2)
+        Swag.assert(rail.x > 8 and rail.x < 248)
+        Swag.assert(halfway.pixelColor(cast(u32, rail.x + rail.width / 2), y) == colors.tabItem_FlatSelected)
+        Swag.assert(halfway.pixelColor(4, y) == colors.tabBar_FlatBk)
+        Swag.assert(halfway.pixelColor(316, y) == colors.tabBar_FlatBk)
+
+        host.finishAnimations()
+        host.moveMouse({40, tab.barHeight / 2})
+        host.settleAnimations()
+        let hovered = host.render()
+        Swag.assert(hovered.pixelColor(40, y) == colors.tabItem_FlatHot)
+        Swag.assert(hovered.pixelColor(280, y) == colors.tabItem_FlatSelected)
+    }
+}
+
 // Adding tabs and selecting one updates the index and fires sigSelectionChanged.
 #test
 {

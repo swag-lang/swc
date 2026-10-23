@@ -81,7 +81,11 @@ ships; history lives in Git, not here.
   or requested scale. `ImageReader` can select an existing DDS/KTX2 level without decoding the
   base image; it cannot ask a decoder to produce an arbitrary thumbnail or crop. A caller must
   decode the selected image and transform it afterwards.
-- Next: define requested output size, source rectangle, and orientation behavior as decoder
+- Evidence: an external manuscript gallery embeds JPEG photographs in roughly 1 MiB SVGs.
+  Preparing two such drawings takes roughly 1–2 seconds each in devmode even for a 280-pixel
+  thumbnail; `Svg.Parser.loadImage` always decodes the photograph at its full resolution.
+- Next: profile the embedded JPEG decode separately from SVG parsing, then define requested
+  output size, source rectangle, and orientation behavior as decoder
   capabilities with a documented fallback path.
 - Done when: a caller can request a bounded thumbnail or region, determine whether the codec
   honored it natively, and receive the same pixels as the defined full-decode fallback within the

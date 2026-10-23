@@ -18,7 +18,8 @@ struct KeyFileField
         remove:   *IconButton
     }
 
-    paths: Array'String
+    paths:       Array'String
+    actionWidth: f32     // Shared trailing column, or zero for tightly spaced action cells.
 }
 
 // Writes 64 bytes from the system's secure random generator to a new file at `path`.
@@ -41,19 +42,23 @@ impl IWnd for KeyFileField
     {
         if .remove == null do
             return
-        let room = .clientRect()
-        let gap  = .themeMetrics().dialog_BtnPadding
-        let cell = room.height
+        let room     = .clientRect()
+        let cell     = room.height
+        let count    = .generate.isVisible() ? 3'f32 : 2'f32
+        let fieldGap = .themeMetrics().dialog_BtnPadding
+        let gap      = Math.max(fieldGap,
+                                (.actionWidth - count * cell) / (count - 1))
 
         var right = room.right()
         for button in [.remove, .generate, .add] where button.isVisible()
         {
             right -= cell
             button.arrange({right, room.y, cell, cell})
-            right -= gap
+            if button != .add do
+                right -= gap
         }
 
-        .files.arrange({room.x, room.y, Math.max(0, right - room.x), room.height})
+        .files.arrange({room.x, room.y, Math.max(0, right - fieldGap - room.x), room.height})
     }
 }
 

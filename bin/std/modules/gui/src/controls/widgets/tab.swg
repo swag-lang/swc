@@ -143,29 +143,15 @@ impl IWnd for Tab
         var colorText:     Color
         var colorBorder:   Color
 
-        // A tab says it is the selected one exactly once, in the vocabulary of its own form. A
-        // round, button or push-button tab is a shape, and the shape carries the state; the
-        // accent rule drawn across it as well cuts through the form and reports the same thing
-        // twice. Only a tab with no shape of its own is marked by the rule — and there the rule
-        // takes the place of the neutral underline instead of stacking a second bar under it.
-        let railed = colors.activeRail.a != 0 and (.itemForm == .Flat or .itemForm == .Transparent)
-
         switch #complete .itemForm
         {
         case .Flat:
             if idx == .selectedIndex
             {
-                if not railed
-                {
-                    subRect  = &rects.tabItem_FlatSelected
-                    colorImg = colors.tabItem_FlatSelected
-                }
-
                 colorText = colors.tabItem_SelectedText
             }
             elif idx == .hotIndex
             {
-                subRect   = &rects.tabItem_FlatSelected
                 colorImg  = colors.tabItem_FlatHot
                 colorText = colors.tabItem_HotText
             }
@@ -251,6 +237,8 @@ impl IWnd for Tab
         v.aniImg.apply(me, colorImg)
         v.aniBorder.apply(me, colorBorder)
 
+        if .itemForm == .Flat and idx == .hotIndex and idx != .selectedIndex do
+            painter.fillRect(.selectionRailRect(idx), v.aniImg.cur())
         if subRect do
             theme.drawSubRect(painter, labelPos, subRect, v.aniImg.cur())
         if subRectBorder do
@@ -338,9 +326,14 @@ impl IWnd for Tab
             // Paint selected item
             .paintItem(painter, .items[.selectedIndex]!, .selectedIndex)
 
-            let railed = colors.activeRail.a != 0 and (.itemForm == .Flat or .itemForm == .Transparent)
-            if railed and .hasSelectionRail do
-                painter.fillRect(.selectionRail, colors.activeRail)
+            // Flat tabs always select with one moving rule. Shaped tabs carry their own state.
+            if .hasSelectionRail
+            {
+                if .itemForm == .Flat do
+                    painter.fillRect(.selectionRail, colors.tabItem_FlatSelected)
+                elif .itemForm == .Transparent and colors.activeRail.a != 0 do
+                    painter.fillRect(.selectionRail, colors.activeRail)
+            }
         }
     }
 

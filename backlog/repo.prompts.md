@@ -1,6 +1,6 @@
 # Campaign Prompts
 
-Eight campaigns, one prompt each, ready to copy into a fresh session. The first seven are not
+Seven campaigns, one prompt each, ready to copy into a fresh session. These are not individual
 tasks: each one is a target that takes many rounds to reach, and each prompt is written to keep an
 agent working through the rounds instead of stopping at the first thing that does not work.
 
@@ -14,7 +14,7 @@ and use a fresh source inventory for code-quality campaigns.
 ## Backlog policy for every campaign
 
 The backlog is a shrinking list of unfinished work, not a campaign diary. This rule applies to all
-eight prompts, including campaign-specific protocols below. Keep each entry focused on one
+seven prompts, including campaign-specific protocols below. Keep each entry focused on one
 unresolved outcome and the minimum evidence needed to choose its next action.
 
 - Add a new entry only for a new, concrete, actionable issue that remains unresolved; search the
@@ -37,13 +37,13 @@ findings. Put campaign results in their reports and Git history.
 | [4. Compilation speed](#4-compilation-speed) | The fastest thing that does this work |
 | [5. Compiler memory](#5-compiler-memory) | A fraction of the resident set, at the same speed |
 | [6. Compiler code health](#6-compiler-code-health) | Apply risk-free mechanical cleanup to swc itself |
-| [7. Swag code and API quality](#7-swag-code-and-api-quality) | Make all of `bin/` an exemplary showcase of idiomatic Swag |
-| [8. Swag visual readability](#8-swag-visual-readability) | Periodically review all of `bin/` for clearer layout without changing logic |
+| [7. Swag code health](#7-swag-code-health) | Clean up the substance and presentation of all Swag code under `bin/`, including APIs |
 
-Campaign 8 is a repeatable visual pass with its own narrower protocol. Campaign 7 owns semantic
-refactoring, factoring helpers, adopting `with`, and API changes; campaign 8 changes only how the
-existing code is presented. Its completion means the current inventory was reviewed, not that
-readability can be proved perfect forever.
+Campaign 6 cleans up swc itself; campaign 7 cleans up all project-owned Swag code under `bin/`,
+in both substance and presentation. Semantic refactoring, API quality, and visual readability
+belong to the same campaign and coverage inventory. A formatter pass alone completes neither
+review; keep presentation-only edits distinct from refactors, defect repairs, and contract changes
+so each receives the right evidence.
 
 Campaigns 4 and 5 constrain each other on purpose: speed must not cost memory, and memory must not
 cost speed. They may run concurrently in separate worktrees; campaign 5 and the dedicated benchmark
@@ -984,27 +984,32 @@ result. Report structural dependency counts when useful, but no timing or memory
 
 ---
 
-## 7. Swag code and API quality
+## 7. Swag code health
 
 ```
-Read and follow the shared working protocol for prompts 2–7 in backlog/repo.prompts.md.
+Read and follow the shared working protocol for prompts 2 through 7 in backlog/repo.prompts.md.
 
-You are running a repository-wide Swag code and API quality campaign across bin/. Read AGENTS.md,
-then the skills modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code,
-design-swag-bin-modules, and write-swag-public-api-docs. Read tools/README.md, backlog/README.md,
-and the relevant domain backlogs. Apply the application, visual identity, theme, dialog, compiler
-message, and syntax-reflection skills whenever a batch enters their scope.
+You are running the Swag code-health campaign for all of bin/: clean up both the substance and
+presentation of its code, just as prompt 6 cleans up swc itself. Read AGENTS.md, then the skills
+modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code and its
+references/readability.md, design-swag-bin-modules, and write-swag-public-api-docs. Read
+tools/README.md, backlog/README.md, and the relevant domain backlogs. Apply the application,
+visual identity, theme, dialog, compiler message, and syntax-reflection skills whenever a batch
+enters their scope. The shared protocol governs isolation, commits, integration, and defect repair
+for the entire campaign, including presentation-only batches.
 
 GOAL
 
-Make bin/ the reference showcase for the Swag language. A reader should be able to copy its code
-and learn the best current language idioms, clear design, safe resource handling, and coherent
-APIs. This is an implementation campaign: clean up, improve, refactor, simplify, and finish the
-code and its public contracts. An inventory of problems alone does not satisfy the goal.
+Make bin/ the reference showcase for the Swag language, in both substance and form. A reader
+should be able to copy its code and learn the best current language idioms, clear design, safe
+resource handling, coherent APIs, and readable layout. This is an implementation campaign:
+clean up, improve, refactor, simplify, and finish the code, its public contracts, and the way it
+reads. An inventory of problems alone does not satisfy the goal.
 
-Quality is judged by correctness, clarity, consistency, useful API completeness, and the code a
-caller actually writes. Shorter code is valuable when it expresses the same intent more clearly;
-line count and use of the newest syntax are not goals of their own.
+Quality is judged by correctness, clarity, consistency, useful API completeness, visual reading
+effort, and the code a caller actually writes. Shorter code is valuable when it expresses the
+same intent more clearly; line count, uniform shapes, and use of the newest syntax are not goals
+of their own. Keep already clear code unchanged; do not manufacture churn to demonstrate progress.
 
 COVER ALL OF BIN/
 
@@ -1012,20 +1017,60 @@ Inventory the actual tree, including every project-owned .swg and .swgs source, 
 and public API. Cover runtime, every standard module, every application, examples, standalone
 scripts, executable language-reference pages, compiler suites, module tests, and test helpers.
 Discover additional directories from the tree instead of treating this list as exhaustive.
+Do not exclude bin/unittests/ as a whole: review its code while preserving each test's purpose.
 
-Keep a coverage table outside the checkout with each area, reviewed files and API
-families, findings, retained changes, validation, and remaining work. Every project-owned source
-must receive a semantic review; a pattern search or formatter pass alone is not review. Inspect
-public declarations together with implementations, documentation, tests, and representative callers.
-Inspect every member of a repeated family before marking that family complete.
+Keep a coverage table outside every checkout with one row per source file, its area and API
+families, separate semantic and visual review status, findings, retained changes, validation,
+and remaining work. For each review dimension use pending, reviewed unchanged, changed and
+validated, or excluded with a precise reason. Every project-owned source must receive both
+reviews; a pattern search or formatter pass alone is not review. Read complete functions and
+related operations, then their neighbours and module entry points. Inspect public declarations
+together with implementations, documentation, tests, and representative callers. Inspect every
+member of a repeated family before marking that family complete.
 
 Classify generated sources, vendored sources, binary assets, fixtures, and compilation artifacts
 explicitly. Review project-owned generation inputs and integration code; regenerate derived output
-through its owning tool. Preserve upstream code and fixtures whose unusual form is intentional.
-Compiler regression inputs may deliberately use awkward syntax, redundant code, or failing code:
-preserve the exact behavior they test instead of modernizing away their purpose.
+through its owning tool. Do not hand-edit bin/help or other generated output. Preserve upstream
+code and fixtures whose unusual form is intentional. Compiler regression inputs may deliberately
+use awkward syntax, redundant code, invalid code, or unusual layout: preserve the exact behavior
+they test instead of modernizing away their purpose. Justify exemptions individually rather than
+exempting all tests, and keep exclusions separate from reviewed counts.
 
-WHAT TO IMPROVE
+RESUME A PREVIOUS PASS
+
+Keep durable campaign state in a session directory outside every checkout, such as
+$env:TEMP/swc-code-health-YYYYMMDD. Store coverage.json and validation-summary.json there, with
+the worktree, branch, current_commit, per-file review evidence, and exact validation commands and
+results. Update both after every validated batch. On resumption, load the matching session state
+before making a fresh inventory, even if its branch or worktree has been removed. Compare the
+recorded revision and file contents with the current base; retain only evidence that still applies,
+and return changed or uncertain files to pending in each affected review dimension.
+
+If resuming an older swc-readability-* session, import its per-file visual evidence after checking
+it against current sources. Its reviewed files still need semantic review, and its excluded
+unittest files join the full inventory as pending; old formatter runs do not prove visual review.
+Inspect any pending.patch against its recorded base before restoring it as unvalidated work.
+If no prior state exists, record that this is a new pass. Keep campaign state and routine progress
+out of the backlog, following the shared backlog policy.
+
+PRIORITIZE BROAD VALUE, THEN REVIEW COMPLETE AREAS
+
+Start from existing evidence and make a useful edit promptly, as required by the shared protocol.
+Build the inventory incrementally; do not delay implementation for a whole-tree opening sweep.
+Inspect recurring reading obstacles and existing formatter rules when they offer broad value.
+Consider a global formatter improvement only when syntax and layout can decide it, authored
+intent is preserved, and the pattern recurs across many files. Measure candidate counts and
+inspect representative positive and negative cases before changing a rule. Inspect every changed
+file and confirm second-pass stability afterward. Keep focused formatter regression coverage,
+including single-line-argument-column-limit when affected. A formatter cannot choose business
+phases, invent useful names, extract helpers, or judge whether a purpose comment helps.
+
+Prefer broad, low-noise improvements over scattered cosmetic edits. Start deep reviews at public
+bin/std and bin/runtime APIs and their important internal paths, then bin/apps/, bin/examples/,
+reference sources, standalone scripts, compiler suites, and every remaining owned source. Let
+concrete defects and high-value evidence adjust this order without dropping any area from coverage.
+
+WHAT TO IMPROVE - SUBSTANCE
 
   - Idiomatic Swag: apply the current language reference and write-idiomatic-swag-code to value
     returns, inference, ownership and moves, borrowing, cleanup, error propagation, interfaces,
@@ -1061,23 +1106,73 @@ WHAT TO IMPROVE
     structure choices. Measure changes whose performance depends on workload; preserve deliberate
     fast paths unless evidence supports the replacement. Do not trade clarity for speculative speed.
 
+WHAT TO IMPROVE - PRESENTATION
+
+  - Group related statements into paragraphs. Add one blank line when the purpose changes;
+    remove blanks that scatter one calculation, initialization, guard group, or cleanup pair.
+  - Give substantial phases a short, accurate purpose comment when it helps the reader breathe.
+    Keep the comment attached to the following code. Remove obsolete or narrating comments;
+    avoid banners, commentary quotas, and numbered descriptions of every statement.
+  - Make long statements readable by breaking at argument, parameter, condition, or component
+    boundaries. Aim near 100 columns and review lines over 120, with justified exceptions for
+    indivisible literals, meaningful data rows, and imposed signatures. Layout changes must
+    preserve every operator, parenthesis, operand, and their order. Do not split strings or
+    change literal contents just to satisfy a width target.
+  - Keep short, obvious accessors and delegations compact. Expand existing braced bodies when
+    signature and body together become hard to read. Do not pack substantial logic onto one line
+    merely because it is one statement or a neighbour is compact.
+  - Keep sibling declarations of one purpose together; separate unrelated groups and let the
+    formatter align them. A presentation-only edit preserves declaration order, useful names,
+    and type boundaries. A deliberate reorganization belongs in a refactoring batch.
+  - Re-read the entire function after formatting, then its neighbours and module entry points.
+    Balance horizontal density against vertical sprawl. Return to difficult functions after a
+    later batch to check that the layout still reads naturally. Do not oscillate between equally
+    readable layouts. Names, width searches, and the optional readability rubric find candidates;
+    none proves that a function has been understood.
+
+DISTINGUISH THE KIND OF CHANGE
+
+Presentation-only batches change whitespace, layout, and ordinary explanatory comments while
+preserving logic. Renames, helper extraction, new locals or with blocks, expression-body rewrites,
+reordered declarations or imports, and API changes are also in scope for this campaign, but they
+are refactors or contract changes and require the corresponding review and validation. Keep
+behavioral defect repairs in separate focused batches under the shared protocol. Do not disguise
+a semantic change as formatting or defer a concrete defect to a separate visual campaign.
+
+Swag layout and comments can be significant. Preserve token boundaries, source-sensitive macros,
+#curlocation and line-number expectations, directive and attribute attachment, generated-code
+inputs, documentation contracts, diagnostic markers, formatter controls, and fixture text.
+An ordinary comment must not accidentally become documentation for another declaration. Preserve
+literal bytes, including multiline strings, during layout changes. Equal non-whitespace text
+alone does not prove equivalence: newlines can affect parsing and source locations. Revert any
+cleanup whose equivalence is uncertain, then investigate its contract before attempting a refactor.
+If a formatter blocks useful layout, reduce and fix its owning rule with focused coverage instead
+of adding filler to defeat it.
+
 THE LOOP
 
   1. Pick one cohesive area or cross-module API family from the coverage table. Read its full
-     implementation and callers, establish the current contract, and identify concrete weaknesses.
-  2. State the intended improvement and the narrowest validation that observes it. Distinguish a
-     behavior-preserving refactor from a bug fix or public contract change.
+     implementation and callers, establish the current contract, and identify semantic weaknesses
+     and visual reading obstacles. Review complete functions and related operations.
+  2. State the intended improvement and the narrowest validation that observes it. Distinguish
+     presentation-only changes, behavior-preserving refactors, bug fixes, and public contract changes.
   3. Implement the complete improvement, including all affected consumers and documentation.
      Search the repository for stale names, duplicated alternatives, and obsolete usage patterns.
      Keep unrelated cleanup in separate, reviewable batches.
-  4. Review the diff for correctness, idiomatic language use, ownership, API consistency, and
-     teaching value. Remove cosmetic churn, accidental generated changes, and line-ending noise.
+  4. Format selected files with the checkout-local compiler, inspect every resulting change, and
+     confirm a second pass is stable. Review correctness, idiomatic language use, ownership, API
+     consistency, teaching value, and reading effort. Re-read formatted functions beyond the diff.
+     Remove cosmetic churn, accidental generated changes, and line-ending noise. Preserve fixture
+     intent; fix or report an unresolved formatter conflict rather than accepting a harmful rewrite.
   5. Run the validation selected by validate-swag-changes: the owning module's focused tests,
      compiler regression boundary, affected consumer, example/script smoke, or reference page.
-     Add configurations, compiler builds, and broader coverage only when the changed behavior
-     requires them. Inspect affected goldens; never promote a difference merely to make tests pass.
-  6. Update coverage and continue through every remaining area. A green build, one cleaned module,
-     or a large diff does not mean the whole tree has been reviewed.
+     Do not rebuild the compiler for comments and whitespace alone. Exercise source-sensitive
+     inputs when affected and inspect documentation output when comments can reach it. Add
+     configurations, compiler builds, and broader coverage only when the changed behavior requires
+     them. Inspect affected goldens; never weaken tests or promote differences merely to pass.
+  6. Update semantic and visual coverage and validation evidence, commit the retained batch, and
+     integrate it under the shared protocol. Continue through every remaining area. A green build,
+     one cleaned module, or a large diff does not mean the whole tree has been reviewed.
 
 IMPROVE THE PLATFORM WHEN IT GETS IN THE WAY
 
@@ -1090,198 +1185,32 @@ and implementation are resolved.
 
 THE CAMPAIGN MAY END ONLY WHEN
 
-  - Every project-owned Swag source and public API family under bin/ has been reviewed, with
-    explicit coverage and justified exclusions for generated or upstream material.
+  - Every project-owned Swag source and public API family under bin/ has received semantic and
+    visual review, with explicit per-file coverage and justified exclusions for generated or
+    upstream material and intentional fixtures. No directory is silently omitted.
   - Every actionable improvement found in scope is implemented and validated; every remaining
     design or external blocker is identified precisely and prevents a claim of full completion.
   - APIs, implementations, callers, tests, examples, and documentation agree, with no stale names,
     partial migration, unexplained duplicate implementation, or obsolete recommended idiom.
+  - A final reread finds no further justified visual improvement in the reviewed code. Formatting
+    is stable, and presentation-only batches preserve logic and source-sensitive behavior.
   - Validation selected from the complete final diff is green, including affected consumers and
     inspected golden outputs. No disabled test, weakened assertion, or unreviewed golden hides a
     regression. Earlier evidence is rerun when a later change invalidates it.
-  - Formatting is consistent, required generated documentation is current, and no temporary output,
-    accidental upstream edit, or line-ending-only change remains in the final diff.
+  - Required generated documentation is current, and no temporary output, accidental upstream edit,
+    or line-ending-only change remains in the final diff.
 
 Do not stop after the easy style fixes or the first directory. Continue until the coverage table
-accounts for the whole tree. If completion is blocked, deliver the validated improvements and
-state exactly what remains; never claim that bin/ is perfect on the strength of a sample.
+accounts for the whole tree in both dimensions. If completion is blocked, deliver the validated
+improvements and state exactly what remains. If the user specifies a time limit, stop at that
+limit and report reviewed and unreviewed areas; elapsed time does not establish whole-tree coverage.
+Never claim that bin/ is perfect on the strength of a sample or a formatter invocation.
 
 REPORT
 
-Report the worktree and branch, reviewed areas and exclusions, meaningful before/after examples,
-refactorings and simplifications, API contract changes and caller migrations, defects fixed,
-platform findings, documentation updates, and every validation command and result. Include the
-final coverage table and any remaining blockers so the whole-tree review can be verified.
-```
-
----
-
-## 8. Swag visual readability
-
-```
-Review project-owned Swag source under bin/ and improve its visual readability without changing
-its logic. Exclude `bin/unittests/` from readability review; its tests may still serve as
-validation. This is a periodic presentation pass, with the separate protocol below;
-the shared protocol for campaigns 2-7 does not apply.
-
-Backlog: keep only unresolved outcomes and the minimum evidence needed for their next action. Search
-before adding a new, actionable issue. Update an existing entry only when new evidence changes its
-next action while it remains unresolved; delete it when complete, disproved, or no longer wanted.
-Never use backlog entries as this campaign's log. Keep readability coverage and validation state in
-the external session files described below.
-
-Read AGENTS.md, modify-swag-codebase, validate-swag-changes, write-idiomatic-swag-code, and its
-references/readability.md first. Follow tools/README.md for command syntax. Keep repository
-comments and documentation in English.
-
-WORK IN ISOLATION
-
-Create a unique branch and worktree outside the main checkout from the current master commit.
-Preserve other working trees and uncommitted work. Use this worktree's compiler and outputs;
-follow load admission and the six-worker cap before every build or test. Keep SWC_BUILD_NUM
-unchanged. Keep review inventories, logs, and probes outside every checkout. Unless integration
-has been requested separately, leave the result in the campaign worktree for review. When the
-user requests commits in `master`, integrate each coherent validated batch into `master` and
-commit it there before continuing. Merge the validated batch directly, allowing a normal merge
-commit when branches diverge; do not first incorporate concurrent `master` changes into the
-campaign branch or rebuild and retest because `master` advanced. Only conflicts require resolution
-in the campaign worktree and focused validation of affected resolutions before integration.
-If `master` advances again, retry the merge without restarting validation unless new conflicts
-require it. After integration succeeds, synchronize the campaign worktree once with the resulting
-`master`, then start the next batch; include affected integration checks in that batch's validation
-without an immediate rebuild or test round just for synchronization. Further concurrent commits
-wait for the next integration cycle. Keep validation evidence tied to the revision actually tested.
-Preserve unrelated work in the target checkout.
-
-RESUME A PREVIOUS PASS
-
-Keep the durable campaign state in a session directory outside every checkout, named
-`$env:TEMP/swc-readability-YYYYMMDD`. Store `coverage.json`,
-`excluded-unittest-files.txt`, and `validation-summary.json` there. If a later run starts after
-the campaign worktree or branch has been removed, find the newest `swc-readability-*` session
-directory and load those files before creating a new worktree. Continue each file from its saved
-status; do not reset reviewed counts or treat old commits and formatter runs as proof of review.
-Check `current_commit` and the file's current contents against the new `master`: retain a saved
-status only when its evidence still applies, and return changed or uncertain files to `pending`.
-If the session directory contains `pending.patch`, compare its recorded base with the new `master`,
-inspect the patch, and restore those edits into the new worktree as pending work; never treat them as
-validated merely because they were present in the previous worktree.
-Append each exact validation command and result to `validation-summary.json`, then update
-`coverage.json` after every validated batch. If no prior session state exists, create a fresh
-inventory and record that this is a new pass.
-
-GLOBAL GAINS, THEN HIGH-VALUE DEEP REVIEWS
-
-First inspect the formatter's existing rules and the source patterns that cause the most repeated
-reading friction. Consider a global formatter rule only when it can decide from syntax and layout,
-preserves authored intent, and fixes a recurring pattern across many in-scope files. Before
-implementing one, measure candidate counts and inspect representative positive and negative cases;
-afterward inspect every changed file, confirm idempotence, and retain only expected rewrites.
-Prefer a few broad, low-noise improvements over a large number of isolated cosmetic edits.
-Do not add a formatter rule for choices that require knowing a code block's purpose, inventing a
-name, or judging whether a comment helps.
-The Swag style's `single-line-argument-column-limit` wraps authored one-line calls above 100
-columns while leaving authored multiline calls and non-call expressions alone. Keep its focused
-formatter regression and inspect the complete diff from any broad pass that applies it.
-
-After global improvements, review modules and their entry points in this order: public `bin/std`
-and `bin/runtime` APIs, `bin/apps/`, then `bin/examples/`; continue with reference sources,
-standalone project scripts, and other owned Swag sources. Within each area, start with public or
-widely used entry points, then follow their important internal paths. Review complete functions
-and related operations rather than spending a pass on scattered line-length outliers.
-
-INVENTORY, THEN REVIEW THE PRIORITY AREAS
-
-Inventory tracked `.swg` and `.swgs` files under `bin/`, excluding the entire `bin/unittests/`
-subtree. Include runtime, std, apps, examples, standalone scripts, module descriptors, and
-reference sources. Discover additional in-scope areas from the tree. Keep a coverage table with
-one row per in-scope file: pending, reviewed unchanged, changed and validated, or excluded with
-a precise reason. Include the module, outstanding concerns, and validation evidence. Record the
-excluded unittest file count separately so it cannot inflate reviewed coverage. A search or
-formatter run is not review.
-
-Classify generated files, vendored files, intentional fixtures, and artifacts explicitly.
-Do not hand-edit bin/help or other generated output. Inspect its owning source where relevant.
-Preserve deliberately awkward or invalid compiler fixtures and formatter inputs; their original
-layout may be the behavior being tested. Inspect each exemption rather than exempting all tests.
-
-IMPROVE WHAT THE READER SEES
-
-  - Group related statements into paragraphs. Add one blank line when the purpose changes;
-    remove blanks that scatter one calculation, initialization, guard group, or cleanup pair.
-  - Give substantial phases a short, accurate purpose comment when it helps the reader breathe.
-    Keep the comment attached to the following code. Remove obsolete or narrating comments;
-    avoid banners, commentary quotas, and numbered descriptions of every statement.
-  - Make long statements readable by breaking at argument, parameter, condition, or component
-    boundaries. Aim near 100 columns and review lines over 120, with justified exceptions for
-    indivisible literals, meaningful data rows, and imposed signatures. Preserve every operator,
-    parenthesis, operand, and their order. Never split a string or change literal contents.
-  - Keep short, obvious accessors and delegations compact. Expand the layout of existing braced
-    bodies when signature and body together become hard to read. Do not pack substantial logic
-    onto one line merely because it is one statement or a neighbour is compact.
-  - Keep existing sibling declarations of one purpose together; separate unrelated groups.
-    Let the formatter align them. Preserve declaration order, useful names, and type boundaries.
-  - Re-read the entire function after formatting, then its neighbours and the module entry points.
-    Balance horizontal density against vertical sprawl. A lower line count is not the goal.
-
-STRICT EQUIVALENCE BOUNDARY
-
-Only whitespace, layout, and ordinary explanatory comments belong in this pass. Do not rename
-symbols, move declarations or statements, extract helpers, introduce locals or with blocks,
-rewrite => into return or vice versa, change control flow, reorder imports, or modify any API,
-type, literal, operator, cast, attribute, ownership operation, error path, or runtime behavior.
-Those may improve readability but belong in campaign 7, with their own equivalence review.
-
-Swag layout and comments can be significant. Preserve token boundaries, source-sensitive macros,
-#curlocation and line-number expectations, directive and attribute attachment, generated-code
-inputs, documentation contracts, diagnostic markers, formatter controls, and fixture text.
-An ordinary comment must not accidentally become documentation for another declaration. Keep
-literal bytes unchanged, including multiline strings. Do not assume equal non-whitespace text
-proves equivalence: newlines can affect parsing and source locations.
-
-Use names, line-length searches, and the optional readability rubric to find candidates, never
-as evidence that a function was understood. Record semantic refactoring candidates separately
-without implementing them here. If a formatter prevents a useful layout, reduce the case and
-report it for a separate formatter change instead of inserting filler to defeat it. Revert any
-edit whose equivalence is uncertain. Report concrete defects separately; do not expand this
-visual-only campaign into a behavioral repair campaign.
-
-WORK IN COHERENT BATCHES
-
-  1. Read one module or cohesive area, function by function. Mark its reading obstacles.
-  2. Apply the smallest useful visual changes and inspect the diff against the equivalence rules.
-     Keep already clear code unchanged; do not manufacture churn to demonstrate progress.
-  3. Format only the selected files with the checkout-local compiler. Inspect all resulting
-     changes and discard out-of-scope automatic rewrites. A second pass must be stable; if that
-     conflicts with preserving logic or fixture intent, leave the file and report the conflict.
-  4. Validate the smallest boundary selected by validate-swag-changes. Do not rebuild the compiler
-     for comments and whitespace alone. Exercise source-sensitive inputs when affected, and
-     review documentation output only if a comment change can reach it. Never weaken tests or
-     update an expectation merely to accept a source-location regression.
-  5. Read the formatted function again without relying on the diff. Check surrounding functions
-     and update coverage. Return to the difficult functions after a later batch to test whether
-     the new layout still reads naturally. Keep only improvements that survive that reread.
-  6. Continue through every in-scope file in the inventory. Send regular before/after examples explaining
-     the reading benefit and why logic is preserved. Report remaining coverage honestly.
-  7. Commit each coherent validated batch. When integration into master has been requested,
-     integrate those batches regularly instead of keeping all completed work until the end.
-     Follow WORK IN ISOLATION: merge first, resolve and validate only actual conflicts before
-     integration, then synchronize for the next batch. Preserve the target checkout's unrelated
-     uncommitted work.
-
-STOPPING CONDITION
-
-The pass is complete when every inventoried in-scope project-owned source has been reviewed or explicitly
-excluded for a concrete reason, every retained change is within the visual-only boundary,
-formatting is stable, selected checks pass, and a final reread finds no further justified visual
-improvement in scope. Do not oscillate between equally readable layouts. If a time limit is
-specified, stop at that limit and report the reviewed and unreviewed areas; elapsed time does
-not establish whole-tree coverage or perfect readability.
-
-REPORT
-
-Give the worktree and branch, coverage table, changed and unchanged areas, exclusions, several
-representative before/after examples, exact validation commands and results, and remaining
-semantic-refactoring candidates. State any incomplete coverage or uncertain case explicitly.
-Do not claim a repository-wide pass based on a sample or a formatter invocation alone.
+Report the worktree and branch, reviewed areas, unchanged areas and exclusions, meaningful
+before/after examples explaining both design and reading benefits, refactorings and simplifications,
+API contract changes and caller migrations, defects fixed, platform findings, documentation updates,
+and every validation command and result. Include the final semantic and visual coverage table and
+any remaining blockers or uncertain cases so the whole-tree review can be verified.
 ```

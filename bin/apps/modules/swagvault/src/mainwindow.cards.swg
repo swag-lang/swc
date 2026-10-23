@@ -57,6 +57,8 @@ impl MainWindow
         {
             .dockStyle = .Center
             .setTextAlignment(.Left, .Center)
+            .style.setFont(me.theme().createDefaultFont(12, .Italic), .Regular)
+            .style.addStyleSheetColors("label_TextLight $label_TextFaint")
         }
 
         footerRow.applyLayout()

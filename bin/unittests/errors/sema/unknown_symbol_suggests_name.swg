@@ -14,7 +14,7 @@ func suggestType(_: SuggestPiont)->s32 => 0     // swc-expected-error {{sema_err
 func suggestLocal()->s32
 {
     var total = 0
-    for i in 0 until 10 do totl += i     // swc-expected-error {{unknown symbol 'totl'; [help] use 'total' instead}}
+    for i in 0 until 10 do totl += i     // swc-expected-error {{unknown name 'totl'; [help] use 'total' instead}}
     return total
 }
 

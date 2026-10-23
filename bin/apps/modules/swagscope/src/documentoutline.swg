@@ -9,6 +9,8 @@ struct DocumentOutlineStrings
     empty:   string = "No outline in this document."     // Status of a document without headings.
     loading: string = "Reading outline…"     // Status while the headings are read.
     close:   string = "Close outline"        // Tooltip of the close button.
+    filter:  string = "Filter headings by name" // Placeholder of the heading filter.
+    noMatch: string = "No headings match."     // Status when the heading filter has no result.
 }
 
 private const FrenchOutlineStringsName = "lang/fr/scope.outline.tweak"
@@ -36,6 +38,7 @@ struct DocumentOutline
     {
         title:       *Label
         status:      *Label
+        filterBox:   *EditBox
         closeButton: *IconButton
         toggle:      *IconButton
         list:        *ListCtrl
@@ -46,6 +49,7 @@ struct DocumentOutline
     load:         Viewer.BackgroundLoad'(Array'DocumentHeading)
     failure:      String
     markdownFile: String
+    filter:       String
     loaded:       bool
     headings:     Array'DocumentHeading
     sigSelected:  SigArray'func||(*DocumentOutline, u64)
@@ -100,6 +104,16 @@ impl DocumentOutline
             .margin.y  = 8
         }
 
+        with result.filterBox = EditBox.create(result, "", {0, 0, 0, size})
+        {
+            .dockStyle = .Top
+            .margin    = {0, 8, 0, 0}
+            .setIcon(theme.icon(.Search, themeRowIconSize(&theme.metrics)))
+            .setPlaceholder(g_DocumentOutlineStrings.filter)
+            .updateFlags(.ClearButton)
+            .sigTextChanged += func|panel = result|(edit) { panel.setFilter(edit.text()) }
+        }
+
         with result.list = ListCtrl.createSimple(result, {}, "scope.outline.list")
         {
             .dockStyle       = .Center
@@ -109,6 +123,7 @@ impl DocumentOutline
             .setFirstColumnIconMargin(false)
             .setIndentWidth(16)
             .updateFlags(.HotTrack | .Ellipsis)
+            .scrollWnd.updateFlags(.CompactBars)
             .sigSelectionChanged += func|panel = result|(list)
             {
                 if let line = list.selectedLine() do
@@ -189,15 +204,33 @@ impl DocumentOutline
 
         .headings.clear()
         .headings.add(headings)
-        .clear()
-        for heading in headings do
-            .add(heading.title, heading.level, heading.sourceOffset)
+        .rebuildRows()
         .refresh()
+    }
+
+    // Recreates only headings whose titles contain the local outline filter.
+    mtd setFilter(filter: string)
+    {
+        if .filter == filter do
+            return
+        .filter = filter
+        .rebuildRows()
+        .refresh()
+    }
+
+    private mtd rebuildRows()
+    {
+        .clear()
+        let filter = .filter.toString()
+        for heading in .headings where .filter.isEmpty() or
+            heading.title.indexOf(filter, comparisonType: .Latin1NoCase) != Swag.U64.Max do
+            .add(heading.title, heading.level, heading.sourceOffset)
     }
 
     mtd refresh()
     {
         .title.setText(g_DocumentOutlineStrings.title)
+        .filterBox.setPlaceholder(g_DocumentOutlineStrings.filter)
         .toggle.toolTip      = g_DocumentOutlineStrings.title
         .closeButton.toolTip = g_DocumentOutlineStrings.close
         var statusText: String
@@ -205,10 +238,12 @@ impl DocumentOutline
             statusText = .failure.toString()
         elif .load.isPending() do
             statusText = g_DocumentOutlineStrings.loading
+        elif not .headings.isEmpty() and not .filter.isEmpty() and .rows.isEmpty() do
+            statusText = g_DocumentOutlineStrings.noMatch
         else do
             statusText = g_DocumentOutlineStrings.empty
         .status.setText(statusText)
-        .status.show(.levels.isEmpty())
+        .status.show(.levels.isEmpty() or (not .headings.isEmpty() and not .filter.isEmpty() and .rows.isEmpty()))
         .list.computeLayout()
         .applyLayout()
     }

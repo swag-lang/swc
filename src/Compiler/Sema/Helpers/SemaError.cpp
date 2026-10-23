@@ -443,6 +443,7 @@ Result SemaError::raiseRuntimeUsesCompilerOnlySymbol(Sema& sema, AstNodeRef atNo
         diag.addArgument(Diagnostic::ARG_WHAT, currentFn->getFullScopedName(sema.ctx()));
 
     diag.addNote(DiagnosticId::sema_note_compiler_only_symbol);
+    diag.last().addArgument(Diagnostic::ARG_SYM_FAM, symbol.toFamily());
     diag.last().addSpan(symbol.codeRange(sema.ctx()));
 
     diag.report(sema.ctx());

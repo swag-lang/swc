@@ -19,6 +19,7 @@ ui_Recent       Récents
 ui_ClearHistory Effacer l'historique
 ui_ConfirmClearHistory Tout l'historique des fichiers sera effacé.
 ui_Folder       Dossier
+ui_FilterFiles  Filtrer les fichiers par nom
 ui_FolderHistory Dossiers récents
 ui_MenuLocate       Afficher ce fichier dans son dossier
 ui_MenuOpenDefault  Ouvrir avec l'application par défaut

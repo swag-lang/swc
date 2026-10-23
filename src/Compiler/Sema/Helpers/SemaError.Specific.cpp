@@ -318,16 +318,21 @@ Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::sp
 {
     TaskContext& ctx  = sema.ctx();
     auto         diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, atNodeRef, ReportLocation::Children);
-    diag.addArgument(Diagnostic::ARG_SYM, symbols.front()->name(ctx));
+    const Symbol* firstSymbol = symbols.front();
+    Utf8          what        = firstSymbol->toFamily() + " name";
+    diag.addArgument(Diagnostic::ARG_SYM, firstSymbol->name(ctx));
 
     for (const auto* other : symbols)
     {
+        if (other->kind() != firstSymbol->kind())
+            what = "name";
         diag.addNote(DiagnosticId::sema_note_could_be);
         diag.last().addArgument(Diagnostic::ARG_SYM, other->name(ctx));
         diag.last().addArgument(Diagnostic::ARG_A_SYM_FAM, Utf8Helper::addArticleAAn(other->toFamily()));
         diag.last().addSpan(other->codeRange(ctx));
     }
 
+    diag.addArgument(Diagnostic::ARG_WHAT, what);
     diag.report(ctx);
     return Result::Error;
 }

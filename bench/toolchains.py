@@ -581,7 +581,7 @@ def _mirror_sources(src, dst):
                 shutil.copyfile(os.path.join(folder, name), target)
 
 
-def make_compiler_workloads(install, cores=0, admit=None, tag=None):
+def make_compiler_workloads(install, cores=0, admit=None, tag=None, machine_archive=None):
     """(id -> workload) for the edit-build loop of one installation.
 
     A workload is a timed command plus an untimed `prepare` that puts the tree in the
@@ -592,7 +592,12 @@ def make_compiler_workloads(install, cores=0, admit=None, tag=None):
     compiler_args = swc_worker_args(cores)
     build_core = [install.swc, "build", "--workspace", install.std, "--workspace-module", "core",
                   "--build-cfg", "devmode"] + compiler_args
+    delta_std = os.path.join(install.work, "workspace", "core_delta")
+    build_std_delta = [install.swc, "build", "--workspace", delta_std, "--build-cfg", "devmode"] + compiler_args
+    build_core_delta = [install.swc, "build", "--workspace", delta_std, "--workspace-module", "core",
+                        "--build-cfg", "devmode"] + compiler_args
     touched = os.path.join(install.std, TOUCHED_FILE)
+    delta_source = os.path.join(delta_std, "modules", "core", "src", "cache.delta.swg")
     doc_out = os.path.join(OUT, "doc_" + tag)
     format_out = os.path.join(OUT, "format_" + tag)
     temp = install.temp("loop")
@@ -623,9 +628,45 @@ def make_compiler_workloads(install, cores=0, admit=None, tag=None):
         for tree in FORMAT_TREES:
             _mirror_sources(os.path.join(install.root, tree), os.path.join(format_out, tree))
 
+    delta_state = WarmState(os.path.join(install.work, "cache", "core_delta"))
+    delta_env = {"TEMP": delta_state.live, "TMP": delta_state.live, "SWAG_PATH": install.root}
+    delta_count = 0
+    delta_warmed = False
+
+    def prepare_delta(run_env):
+        nonlocal delta_count, delta_warmed
+        if not delta_warmed:
+            delta_state.reset()
+            rm(delta_std)
+            shutil.copytree(install.std, delta_std, ignore=shutil.ignore_patterns(".output", ".tmp", ".git"))
+            rm(delta_source)
+            if admit:
+                admit()
+            result = subprocess.run(build_std_delta, cwd=install.root, env=run_env, capture_output=True, text=True)
+            if result.returncode:
+                raise RuntimeError("warm core_delta build failed (exit %d):\n%s" %
+                                   (result.returncode, (result.stdout + result.stderr)[-1200:]))
+            if machine_archive:
+                archives = glob.glob(os.path.join(delta_state.live, "swag", "machine", "*.bin"))
+                if len(archives) != 1:
+                    raise RuntimeError("warm core_delta build produced %d machine archives" % len(archives))
+                shutil.copyfile(machine_archive, archives[0])
+            delta_state.capture()
+            delta_warmed = True
+
+        delta_state.restore()
+        rm(os.path.join(delta_std, ".output", "core"))
+        rm(os.path.join(delta_std, ".tmp", "core"))
+        value = 1 + delta_count % 2
+        delta_count += 1
+        with open(delta_source, "w", encoding="utf-8", newline="\n") as source:
+            source.write("#global namespace CacheDelta\nfunc changedValue()->u32 => %d\n" % value)
+
     return {
         "core_rebuild": {"cmd": build_core + ["--rebuild"], "cwd": install.root, "env": env, "prepare": None,
                          "what": "std/core, every file, from nothing"},
+        "core_delta": {"cmd": build_core_delta, "cwd": install.root, "env": delta_env, "prepare": prepare_delta,
+                       "what": "std/core after one function changes, against a restored machine-code archive"},
         "core_noop": {"cmd": build_core, "cwd": install.root, "env": env, "prepare": warm,
                       "what": "std/core again, nothing changed"},
         "core_touch": {"cmd": build_core, "cwd": install.root, "env": env, "prepare": touch,

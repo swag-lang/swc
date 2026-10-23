@@ -97,11 +97,17 @@ impl ViewerWindow
     private mtd fillFileList(list: *ListCtrl, files: const [..] String)->u32
     {
         let scrollPosition = list.scrollWnd.scrollPosition()
+        let filter         = .folderFilter.toString()
         var currentIndex   = Swag.U32.Max
         list.clear()
         for one, index in files
         {
             let name        = one[].toString()
+            let displayName = Path.fileName(name) orelse name
+            if list == .folderList and not .folderFilter.isEmpty() and
+               Utf8.indexOf(displayName, filter, comparisonType: .Latin1NoCase) == Swag.U64.Max do
+                continue
+
             var pluginIndex = Swag.U64.Max
             var icon: Icon
             if .index.namePlugin(name, &pluginIndex)
@@ -110,19 +116,31 @@ impl ViewerWindow
                 icon = .pluginIcon(plugin, themeRowIconSize(.themeMetrics()))
             }
 
-            let line = list.createLine(Path.fileName(name) orelse name, icon)
+            let line = list.createLine(displayName, icon)
+            if list == .folderList do
+                line.userData0 = cast(*void, index + 1)
             if list == .folderList and .isFolderReading() and .folderReadingFiles.contains(one[]) do
                 line.colorFg = .themeColors().label_TextLight
             if .currentFile == name
             {
-                currentIndex = cast(u32, index)
-                list.selectLine(cast(u32, index))
+                currentIndex = line.index
+                list.selectLine(line.index)
             }
         }
 
         list.computeLayout()
         list.scrollWnd.setScrollPos(scrollPosition)
         return currentIndex
+    }
+
+    // Rebuilds the folder list when its name filter changes, keeping the filter local to this pane.
+    mtd setFolderFilter(filter: string)
+    {
+        if .folderFilter == filter do
+            return
+        .folderFilter = filter
+        if .panelVisible do
+            .refreshFileLists()
     }
 
     // Rebuilds both sections of the panel from what the window already knows.
@@ -156,7 +174,9 @@ impl ViewerWindow
         let line = list.selectedLine()
         if not line do
             return
-        let index = line.index
+        var index = line.index
+        if list == .folderList and line.userData0 do
+            index = cast(u32, cast(u64, line.userData0) - 1)
         if index >= files.count do
             return
 
@@ -293,7 +313,9 @@ impl ViewerWindow
         let selected = list.selectedLines()
         if selected.isEmpty() or not selected[0] do
             return
-        let index = selected[0]!.index
+        var index = selected[0]!.index
+        if list == .folderList and selected[0]!.userData0 do
+            index = cast(u32, cast(u64, selected[0]!.userData0) - 1)
         if index >= files.count do
             return
         let fileName = files[index].toString()

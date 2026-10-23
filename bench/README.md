@@ -39,7 +39,9 @@ minutes on the benchmark laptop and needs it plugged in and otherwise idle. Othe
 | `python -B -m unittest discover -s bench` | the harness's own tests, on synthetic data |
 
 `compile.py`, `parsecache.py` and `cachecheck.py` are investigation tools that record nothing;
-their usage is in their own headers.
+their usage is in their own headers. `compile.py --only core_delta --machine-archive <path>` warms
+the standard-library machine-code archive, seeds the supplied archive, then measures `core` after
+one function changes against the restored archive.
 
 `tools/bench.swgs --out <path>` (or `driver.py --out <path>`) also preserves completed sections and tasks between measurements.
 These checkpoints carry `incomplete: true` until the campaign finishes and are never published

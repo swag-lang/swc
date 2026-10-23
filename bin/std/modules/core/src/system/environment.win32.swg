@@ -509,11 +509,12 @@ public func enableDpiAwareness()
     discard SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2)
 }
 
-private func getWindowFromHandle(hWnd: HWND)->*Window? => cast(*Window?, cast #bit (u64, GetWindowLongPtrA(hWnd, GWLP_USERDATA)))
-
 #[Swag.CallingConvention(.C)]
 private func envWindowProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRESULT
 {
+    #[Swag.Inline]
+    func getWindowFromHandle(hWnd: HWND)->*Window? => cast(*Window?, cast #bit (u64, GetWindowLongPtrA(hWnd, GWLP_USERDATA)))
+
     if msg == WM_CREATE
     {
         let createStruct = cast(*CREATESTRUCTA, cast #bit (u64, lParam))

@@ -69,22 +69,6 @@ using Swag
     }
 }
 
-#[Inline, ConstExpr]
-private func isLowerUtf8(c: u8)->bool
-{
-    if isAscii(c) and isLower(c) do
-        return true
-    return cast(bool, (CharProperties[c] & .LowerUtf8))
-}
-
-#[Inline, ConstExpr]
-private func isUpperUtf8(c: u8)->bool
-{
-    if isAscii(c) and isUpper(c) do
-        return true
-    return cast(bool, (CharProperties[c] & .UpperUtf8))
-}
-
 private func spaceMaskAt(data: const [*] u8)->u32
 {
     let value    = Math.Simd.load(data)
@@ -217,6 +201,14 @@ func makeLower(buffer: [..] u8)
 #[Inline]
 private func upperUtf8Byte(buffer: const [..] u8, index: u64)->u8
 {
+    #[Inline, ConstExpr]
+    func isLowerUtf8(c: u8)->bool
+    {
+        if isAscii(c) and isLower(c) do
+            return true
+        return cast(bool, (CharProperties[c] & .LowerUtf8))
+    }
+
     let value = buffer[index]
     if isAscii(value) do
         return toUpper(value)
@@ -229,6 +221,14 @@ private func upperUtf8Byte(buffer: const [..] u8, index: u64)->u8
 #[Inline]
 private func lowerUtf8Byte(buffer: const [..] u8, index: u64)->u8
 {
+    #[Inline, ConstExpr]
+    func isUpperUtf8(c: u8)->bool
+    {
+        if isAscii(c) and isUpper(c) do
+            return true
+        return cast(bool, (CharProperties[c] & .UpperUtf8))
+    }
+
     let value = buffer[index]
     if isAscii(value) do
         return toLower(value)

@@ -46,6 +46,7 @@ public impl DateTimeFormatInfo
     }
 
     // Returns the localized full name of a day of the week.
+    //
     // Panics when `day` is outside the supported range.
     mtd const dayName(day: Time.DayOfWeek)->string
     {
@@ -157,16 +158,18 @@ public impl DateTimeFormatInfo
         return result
     }
 
-    // Formats the date of `value` with `longDatePattern` when `long` is set,
-    // `shortDatePattern` otherwise.
+    // Formats a date using a long or short pattern.
+    //
+    // The long flag selects the long pattern; otherwise, the short pattern is used.
     mtd const formatDate(value: Time.DateTime, long = false)->String
     {
         Swag.assert(value.isValid(), "cannot format an invalid date")
         return .formatPattern(value, long ? .longDatePattern : .shortDatePattern)
     }
 
-    // Formats the time of `value` with `longTimePattern` when `withSeconds` is set,
-    // `shortTimePattern` otherwise.
+    // Formats a time using a long or short pattern.
+    //
+    // The withSeconds flag selects the long pattern; otherwise, the short pattern is used.
     mtd const formatTime(value: Time.DateTime, withSeconds = true)->String
     {
         Swag.assert(value.isValid(), "cannot format an invalid time")

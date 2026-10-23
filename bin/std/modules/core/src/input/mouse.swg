@@ -22,8 +22,9 @@ struct Mouse
 
 impl Mouse
 {
-    // Sets whether `button` is down in the current state, for an input backend or a test harness
-    // that feeds buttons itself. The previous state and the click timing are left untouched.
+    // Sets the current button state for an input backend or test harness.
+    //
+    // The previous state and click timing are left untouched.
     mtd setCurrentButtonState(button: MouseButton, pressed: bool)
     {
         .currentState.setPressed(button, pressed)
@@ -36,8 +37,9 @@ impl Mouse
         .doubleClicked[button] = doubleClicked
     }
 
-    // Sets the previous and current cursor positions, for an input backend or a test harness
-    // that moves the cursor itself.
+    // Sets the previous and current cursor positions.
+    //
+    // An input backend or test harness calls this to supply positions directly.
     mtd setPositions(previous, current: Point)
     {
         .previousState.setPosition(previous)

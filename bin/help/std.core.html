@@ -3762,11 +3762,11 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_dayName">DateTimeFormatInfo.dayName</a></td><td><p>Returns the localized full name of a day of the week.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatDate">DateTimeFormatInfo.formatDate</a></td><td><p>Formats the date of <span class="code-inline">value</span> with <span class="code-inline">longDatePattern</span> when <span class="code-inline">long</span> is set,</p>
+<tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatDate">DateTimeFormatInfo.formatDate</a></td><td><p>Formats a date using a long or short pattern.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatDateTime">DateTimeFormatInfo.formatDateTime</a></td><td><p>Formats a date and time separated by one space.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatTime">DateTimeFormatInfo.formatTime</a></td><td><p>Formats the time of <span class="code-inline">value</span> with <span class="code-inline">longTimePattern</span> when <span class="code-inline">withSeconds</span> is set,</p>
+<tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatTime">DateTimeFormatInfo.formatTime</a></td><td><p>Formats a time using a long or short pattern.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_monthName">DateTimeFormatInfo.monthName</a></td><td><p>Returns the localized full name of a month numbered from 1 through 12.</p>
 </td></tr>
@@ -4498,7 +4498,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_releaseAllKeys">Keyboard.releaseAllKeys</a></td><td><p>Presents every key of the current state as released.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Input_Keyboard_setCurrentKeyState">Keyboard.setCurrentKeyState</a></td><td><p>Sets whether <span class="code-inline">key</span> is down in the current state, for an input backend or a test harness</p>
+<tr><td class="code-type"><a href="#Core_Input_Keyboard_setCurrentKeyState">Keyboard.setCurrentKeyState</a></td><td><p>Sets the current key state for an input backend or test harness.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_update">Keyboard.update</a></td><td><p>Captures a new state, keeping the previous one, and repeats the presses of held keys.</p>
 </td></tr>
@@ -4858,9 +4858,9 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Mouse_previousPosition">Mouse.previousPosition</a></td><td><p>Returns the cursor position before the latest update.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Input_Mouse_setCurrentButtonState">Mouse.setCurrentButtonState</a></td><td><p>Sets whether <span class="code-inline">button</span> is down in the current state, for an input backend or a test harness</p>
+<tr><td class="code-type"><a href="#Core_Input_Mouse_setCurrentButtonState">Mouse.setCurrentButtonState</a></td><td><p>Sets the current button state for an input backend or test harness.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Input_Mouse_setPositions">Mouse.setPositions</a></td><td><p>Sets the previous and current cursor positions, for an input backend or a test harness</p>
+<tr><td class="code-type"><a href="#Core_Input_Mouse_setPositions">Mouse.setPositions</a></td><td><p>Sets the previous and current cursor positions.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Mouse_update">Mouse.update</a></td><td><p>Captures a new state, keeping the previous one, and detects double-clicks.</p>
 </td></tr>
@@ -11640,11 +11640,11 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 <tbody>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_dayName">dayName</a></td><td><p>Returns the localized full name of a day of the week.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatDate">formatDate</a></td><td><p>Formats the date of <span class="code-inline">value</span> with <span class="code-inline">longDatePattern</span> when <span class="code-inline">long</span> is set,</p>
+<tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatDate">formatDate</a></td><td><p>Formats a date using a long or short pattern.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatDateTime">formatDateTime</a></td><td><p>Formats a date and time separated by one space.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatTime">formatTime</a></td><td><p>Formats the time of <span class="code-inline">value</span> with <span class="code-inline">longTimePattern</span> when <span class="code-inline">withSeconds</span> is set,</p>
+<tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_formatTime">formatTime</a></td><td><p>Formats a time using a long or short pattern.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Globalization_DateTimeFormatInfo_monthName">monthName</a></td><td><p>Returns the localized full name of a month numbered from 1 through 12.</p>
 </td></tr>
@@ -12007,7 +12007,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_releaseAllKeys">releaseAllKeys</a></td><td><p>Presents every key of the current state as released.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Input_Keyboard_setCurrentKeyState">setCurrentKeyState</a></td><td><p>Sets whether <span class="code-inline">key</span> is down in the current state, for an input backend or a test harness</p>
+<tr><td class="code-type"><a href="#Core_Input_Keyboard_setCurrentKeyState">setCurrentKeyState</a></td><td><p>Sets the current key state for an input backend or test harness.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Keyboard_update">update</a></td><td><p>Captures a new state, keeping the previous one, and repeats the presses of held keys.</p>
 </td></tr>
@@ -12091,9 +12091,9 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Mouse_previousPosition">previousPosition</a></td><td><p>Returns the cursor position before the latest update.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Input_Mouse_setCurrentButtonState">setCurrentButtonState</a></td><td><p>Sets whether <span class="code-inline">button</span> is down in the current state, for an input backend or a test harness</p>
+<tr><td class="code-type"><a href="#Core_Input_Mouse_setCurrentButtonState">setCurrentButtonState</a></td><td><p>Sets the current button state for an input backend or test harness.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Input_Mouse_setPositions">setPositions</a></td><td><p>Sets the previous and current cursor positions, for an input backend or a test harness</p>
+<tr><td class="code-type"><a href="#Core_Input_Mouse_setPositions">setPositions</a></td><td><p>Sets the previous and current cursor positions.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Input_Mouse_update">update</a></td><td><p>Captures a new state, keeping the previous one, and detects double-clicks.</p>
 </td></tr>
@@ -17928,7 +17928,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">load</span>(name: <span class="STpe">string</span>)-&gt;<span class="SFct">Array</span>'<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.close</span> <a class="api-item-permalink" href="#Core_ByteSink_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L191">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.close</span> <a class="api-item-permalink" href="#Core_ByteSink_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L197">src</a></div>
 <p>Flushes the stream and releases the file; repeated calls do nothing.</p>
 <p>This is the operation whose failure decides whether the stream is complete, so an encoder calls it explicitly rather than leaving it to destruction: a sink that leaves scope unclosed drops whatever its window still holds.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">close</span>() <span class="SKwd">fail</span></span></div>
@@ -17945,12 +17945,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createMemory</span>(buffer: *<span class="SCst"><a href="#Core_ConcatBuffer">ConcatBuffer</a></span>)-&gt;<span class="SCst"><a href="#Core_ByteSink">ByteSink</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.flush</span> <a class="api-item-permalink" href="#Core_ByteSink_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L178">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_flush" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.flush</span> <a class="api-item-permalink" href="#Core_ByteSink_flush" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L184">src</a></div>
 <p>Hands every buffered byte to the file; a memory sink has nothing to flush.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">flush</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_patch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.patch</span> <a class="api-item-permalink" href="#Core_ByteSink_patch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L151">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_patch" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.patch</span> <a class="api-item-permalink" href="#Core_ByteSink_patch" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L157">src</a></div>
 <p>Rewrites bytes this sink already accepted, at <span class="code-inline">offset</span> bytes from the start of its stream.</p>
 <p>A container header carries totals a codec only learns once the last piece is written: a file size, a frame count, the size of the chunk holding the frames. Patching is how those fields are filled without holding the stream: the encoder writes a placeholder in the header, remembers where it went, and overwrites it here.</p>
 <p>The patched range must lie entirely inside what the sink already wrote; a range reaching past the end fails rather than extending the stream. The write position is unchanged, so appending resumes exactly where it stopped.</p>
@@ -17967,33 +17967,34 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">position</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.write</span> <a class="api-item-permalink" href="#Core_ByteSink_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L75">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_write" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.write</span> <a class="api-item-permalink" href="#Core_ByteSink_write" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L78">src</a></div>
 <p>Appends <span class="code-inline">bytes</span> to the stream.</p>
+<p>Fails with <a href="#Core_Errors_OverflowError">Core.Errors.OverflowError</a> before appending if the stream position would exceed U64.Max.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">write</span>(bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeBigEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeBigEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeBigEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L136">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeBigEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeBigEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeBigEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L142">src</a></div>
 <p>Appends an integer of type <span class="code-inline">T</span> in big-endian byte order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">T</span>) <span class="SFct">writeBigEndian</span>(value: <span class="SCst">T</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeByte</span> <a class="api-item-permalink" href="#Core_ByteSink_writeByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L112">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeByte</span> <a class="api-item-permalink" href="#Core_ByteSink_writeByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L118">src</a></div>
 <p>Appends one byte.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeByte</span>(value: <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeLittleEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeLittleEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeLittleEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L130">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeLittleEndian" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeLittleEndian</span> <a class="api-item-permalink" href="#Core_ByteSink_writeLittleEndian" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L136">src</a></div>
 <p>Appends an integer of type <span class="code-inline">T</span> in little-endian byte order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">T</span>) <span class="SFct">writeLittleEndian</span>(value: <span class="SCst">T</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeNative</span> <a class="api-item-permalink" href="#Core_ByteSink_writeNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L123">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeNative</span> <a class="api-item-permalink" href="#Core_ByteSink_writeNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L129">src</a></div>
 <p>Appends one value of type <span class="code-inline">T</span> laid out as the host stores it.</p>
 <p>This is the write for a binary layout declared as a struct, or for an integer whose byte order is the host's. Use <a href="#Core_ByteSink_writeLittleEndian">Core.ByteSink.writeLittleEndian</a> or <a href="#Core_ByteSink_writeBigEndian">Core.ByteSink.writeBigEndian</a> for a persisted or transmitted integer.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">T</span>) <span class="SFct">writeNative</span>(value: <span class="SCst">T</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_ByteSink_writeText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeText</span> <a class="api-item-permalink" href="#Core_ByteSink_writeText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L106">src</a></div>
+<div class="api-item api-item-func"><span id="Core_ByteSink_writeText" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">ByteSink.writeText</span> <a class="api-item-permalink" href="#Core_ByteSink_writeText" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/bytesink.swg#L112">src</a></div>
 <p>Appends the bytes of <span class="code-inline">text</span> to the stream.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">writeText</span>(text: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
@@ -18881,8 +18882,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dayOfWeek</span>()-&gt;<span class="SCst"><a href="#Core_Time_DayOfWeek">DayOfWeek</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_dayOfWeekName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.dayOfWeekName</span> <a class="api-item-permalink" href="#Core_Time_DateTime_dayOfWeekName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L157">src</a></div>
-<p>Returns the English name of <span class="code-inline">day</span>. Panics when <span class="code-inline">day</span> is outside the supported range.</p>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_dayOfWeekName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.dayOfWeekName</span> <a class="api-item-permalink" href="#Core_Time_DateTime_dayOfWeekName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L158">src</a></div>
+<p>Returns the English name of <span class="code-inline">day</span>.</p>
+<p>Panics when <span class="code-inline">day</span> is outside the supported range.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">dayOfWeekName</span>(day: <span class="SCst"><a href="#Core_Time_DayOfWeek">DayOfWeek</a></span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
@@ -18901,7 +18903,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">now</span>()-&gt;<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.parse</span> <a class="api-item-permalink" href="#Core_Time_DateTime_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L219">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_parse" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.parse</span> <a class="api-item-permalink" href="#Core_Time_DateTime_parse" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L220">src</a></div>
 <p>Parses a date, optionally followed by a time, at the start of <span class="code-inline">str</span> and returns it with the number of bytes consumed.</p>
 <p>The date is either <span class="code-inline">YYYY-MM-DD</span> or <span class="code-inline">DAYOFWEEK MONTH DAY YYYY</span> with English names, and the time, after one space, is <span class="code-inline">HH:MM</span>, optionally followed by <span class="code-inline">:SS</span> and <span class="code-inline">.ZZZ</span>. These are the layouts <a href="#Core_Time_DateTime_toString">Core.Time.DateTime.toString</a> writes. With <span class="code-inline">checkDate</span>, the day of the week must match the date and every component must be in range. Fails with a <a href="#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a> otherwise.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parse</span>(str: <span class="STpe">string</span>, checkDate = <span class="SKwd">true</span>)-&gt;{ value: <span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>, eat: <span class="STpe">u32</span> } <span class="SKwd">fail</span></span></div>
@@ -18912,7 +18914,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setNow</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_DateTime_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.toString</span> <a class="api-item-permalink" href="#Core_Time_DateTime_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L329">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_DateTime_toString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTime.toString</span> <a class="api-item-permalink" href="#Core_Time_DateTime_toString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/datetime.swg#L330">src</a></div>
 <p>Returns this value as text in the layout <span class="code-inline">fmt</span> selects.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">toString</span>(fmt = <span class="SCst"><a href="#Core_Time_DateTimeFormat">DateTimeFormat</a></span>.<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
@@ -18922,23 +18924,26 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">utcNow</span>()-&gt;<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Globalization_DateTimeFormatInfo_dayName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTimeFormatInfo.dayName</span> <a class="api-item-permalink" href="#Core_Globalization_DateTimeFormatInfo_dayName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/globalization/datetimeformatinfo.swg#L50">src</a></div>
-<p>Returns the localized full name of a day of the week. Panics when <span class="code-inline">day</span> is outside the supported range.</p>
+<div class="api-item api-item-func"><span id="Core_Globalization_DateTimeFormatInfo_dayName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTimeFormatInfo.dayName</span> <a class="api-item-permalink" href="#Core_Globalization_DateTimeFormatInfo_dayName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/globalization/datetimeformatinfo.swg#L51">src</a></div>
+<p>Returns the localized full name of a day of the week.</p>
+<p>Panics when <span class="code-inline">day</span> is outside the supported range.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">dayName</span>(day: <span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_DayOfWeek">DayOfWeek</a></span>)-&gt;<span class="STpe">string</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Globalization_DateTimeFormatInfo_formatDate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTimeFormatInfo.formatDate</span> <a class="api-item-permalink" href="#Core_Globalization_DateTimeFormatInfo_formatDate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/globalization/datetimeformatinfo.swg#L162">src</a></div>
-<p>Formats the date of <span class="code-inline">value</span> with <span class="code-inline">longDatePattern</span> when <span class="code-inline">long</span> is set, <span class="code-inline">shortDatePattern</span> otherwise.</p>
+<div class="api-item api-item-func"><span id="Core_Globalization_DateTimeFormatInfo_formatDate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTimeFormatInfo.formatDate</span> <a class="api-item-permalink" href="#Core_Globalization_DateTimeFormatInfo_formatDate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/globalization/datetimeformatinfo.swg#L164">src</a></div>
+<p>Formats a date using a long or short pattern.</p>
+<p>The long flag selects the long pattern; otherwise, the short pattern is used.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">formatDate</span>(value: <span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>, long = <span class="SKwd">false</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Globalization_DateTimeFormatInfo_formatDateTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTimeFormatInfo.formatDateTime</span> <a class="api-item-permalink" href="#Core_Globalization_DateTimeFormatInfo_formatDateTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/globalization/datetimeformatinfo.swg#L177">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Globalization_DateTimeFormatInfo_formatDateTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTimeFormatInfo.formatDateTime</span> <a class="api-item-permalink" href="#Core_Globalization_DateTimeFormatInfo_formatDateTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/globalization/datetimeformatinfo.swg#L180">src</a></div>
 <p>Formats a date and time separated by one space.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">formatDateTime</span>(value: <span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>, longDate = <span class="SKwd">false</span>, withSeconds = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Globalization_DateTimeFormatInfo_formatTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTimeFormatInfo.formatTime</span> <a class="api-item-permalink" href="#Core_Globalization_DateTimeFormatInfo_formatTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/globalization/datetimeformatinfo.swg#L170">src</a></div>
-<p>Formats the time of <span class="code-inline">value</span> with <span class="code-inline">longTimePattern</span> when <span class="code-inline">withSeconds</span> is set, <span class="code-inline">shortTimePattern</span> otherwise.</p>
+<div class="api-item api-item-func"><span id="Core_Globalization_DateTimeFormatInfo_formatTime" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">DateTimeFormatInfo.formatTime</span> <a class="api-item-permalink" href="#Core_Globalization_DateTimeFormatInfo_formatTime" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/globalization/datetimeformatinfo.swg#L173">src</a></div>
+<p>Formats a time using a long or short pattern.</p>
+<p>The withSeconds flag selects the long pattern; otherwise, the short pattern is used.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">formatTime</span>(value: <span class="SCst"><a href="#namespace_Core_Time">Time</a></span>.<span class="SCst"><a href="#Core_Time_DateTime">DateTime</a></span>, withSeconds = <span class="SKwd">true</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
@@ -21002,29 +21007,29 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">NT</span>) <span class="SFct">writeNative</span>(value: <span class="SCst">NT</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.clear</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L94">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.clear</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L95">src</a></div>
 <p>Releases every key in both states and stops every repetition.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyJustPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyJustPressed</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyJustPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L106">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyJustPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyJustPressed</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyJustPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L107">src</a></div>
 <p>Returns whether <span class="code-inline">key</span> became pressed, or repeated, during the latest update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isKeyJustPressed</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyJustReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyJustReleased</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyJustReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L112">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyJustReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyJustReleased</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyJustReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L113">src</a></div>
 <p>Returns whether <span class="code-inline">key</span> became released during the latest update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isKeyJustReleased</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyPressed</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L103">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyPressed</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L104">src</a></div>
 <p>Returns whether <span class="code-inline">key</span> is pressed in the latest state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isKeyPressed</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Returns whether <span class="code-inline">key</span> is down right now, according to the operating system.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isKeyPressed</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyReleased</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L109">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_isKeyReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.isKeyReleased</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_isKeyReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L110">src</a></div>
 <p>Returns whether <span class="code-inline">key</span> is released in the latest state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isKeyReleased</span>(key: <span class="SCst">Key</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -21039,23 +21044,24 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">keyToVirtualKey</span>(key: <span class="SCst">Key</span>)-&gt;<span class="SCst"><a href="#Core_Input_VirtualKey">VirtualKey</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_pressedModifiers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.pressedModifiers</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_pressedModifiers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_pressedModifiers" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.pressedModifiers</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_pressedModifiers" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L116">src</a></div>
 <p>Returns the modifier flags active in the latest state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">pressedModifiers</span>()-&gt;<span class="SCst"><a href="#Core_Input_KeyModifiers">KeyModifiers</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_releaseAllKeys" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.releaseAllKeys</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_releaseAllKeys" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L38">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_releaseAllKeys" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.releaseAllKeys</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_releaseAllKeys" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L39">src</a></div>
 <p>Presents every key of the current state as released.</p>
 <p>The next <a href="#Core_Input_Keyboard_update">Core.Input.Keyboard.update</a> resumes from the real device, so this quiets exactly one update. Use it when the polled device must not reach the consumer, such as an application whose keyboard belongs to another one for as long as it is not active.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseAllKeys</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_setCurrentKeyState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.setCurrentKeyState</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_setCurrentKeyState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L28">src</a></div>
-<p>Sets whether <span class="code-inline">key</span> is down in the current state, for an input backend or a test harness that feeds keys itself. The previous state and the repeat timing are left untouched.</p>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_setCurrentKeyState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.setCurrentKeyState</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_setCurrentKeyState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L29">src</a></div>
+<p>Sets the current key state for an input backend or test harness.</p>
+<p>The previous state and repeat timing are left untouched.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCurrentKeyState</span>(key: <span class="SCst">Key</span>, pressed: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Keyboard_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.update</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Keyboard_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Keyboard.update</span> <a class="api-item-permalink" href="#Core_Input_Keyboard_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/keyboard.swg#L55">src</a></div>
 <p>Captures a new state, keeping the previous one, and repeats the presses of held keys.</p>
 <p>While <span class="code-inline">repeatEnabled</span> is set, a key held for <span class="code-inline">initialRepeatDelayMs</span>, then every <span class="code-inline">repeatIntervalMs</span> after that, reports a new press through <a href="#Core_Input_Keyboard_isKeyJustPressed">Core.Input.Keyboard.isKeyJustPressed</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">update</span>()</span></div>
@@ -22252,64 +22258,66 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SFct">seedU64</span>(seed: <span class="SKwd">const</span> [..] <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.clear</span> <a class="api-item-permalink" href="#Core_Input_Mouse_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L78">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_clear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.clear</span> <a class="api-item-permalink" href="#Core_Input_Mouse_clear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L80">src</a></div>
 <p>Resets both states and forgets the detected double-clicks.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">clear</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonDoubleClick" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonDoubleClick</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonDoubleClick" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L86">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonDoubleClick" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonDoubleClick</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonDoubleClick" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L88">src</a></div>
 <p>Returns whether <span class="code-inline">button</span> completed a double-click during the latest update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isButtonDoubleClick</span>(button: <span class="SCst"><a href="#Core_Input_MouseButton">MouseButton</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonJustPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonJustPressed</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonJustPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L105">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonJustPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonJustPressed</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonJustPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L107">src</a></div>
 <p>Returns whether <span class="code-inline">button</span> became pressed during the latest update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isButtonJustPressed</span>(button: <span class="SCst"><a href="#Core_Input_MouseButton">MouseButton</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonJustReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonJustReleased</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonJustReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L111">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonJustReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonJustReleased</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonJustReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L113">src</a></div>
 <p>Returns whether <span class="code-inline">button</span> became released during the latest update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isButtonJustReleased</span>(button: <span class="SCst"><a href="#Core_Input_MouseButton">MouseButton</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonPressed</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L89">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonPressed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonPressed</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonPressed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L91">src</a></div>
 <p>Returns whether <span class="code-inline">button</span> is currently pressed according to the operating system.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isButtonPressed</span>(button: <span class="SCst"><a href="#Core_Input_MouseButton">MouseButton</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 <p>Returns whether <span class="code-inline">button</span> is pressed in the latest state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isButtonPressed</span>(button: <span class="SCst"><a href="#Core_Input_MouseButton">MouseButton</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonReleased</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L108">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_isButtonReleased" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.isButtonReleased</span> <a class="api-item-permalink" href="#Core_Input_Mouse_isButtonReleased" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L110">src</a></div>
 <p>Returns whether <span class="code-inline">button</span> is released in the latest state.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isButtonReleased</span>(button: <span class="SCst"><a href="#Core_Input_MouseButton">MouseButton</a></span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_movement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.movement</span> <a class="api-item-permalink" href="#Core_Input_Mouse_movement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L120">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_movement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.movement</span> <a class="api-item-permalink" href="#Core_Input_Mouse_movement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L122">src</a></div>
 <p>Returns the cursor movement since the previous update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">movement</span>()-&gt;<span class="SCst"><a href="#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.position</span> <a class="api-item-permalink" href="#Core_Input_Mouse_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L117">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_position" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.position</span> <a class="api-item-permalink" href="#Core_Input_Mouse_position" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L119">src</a></div>
 <p>Returns the current cursor position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">position</span>()-&gt;<span class="SCst"><a href="#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_previousPosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.previousPosition</span> <a class="api-item-permalink" href="#Core_Input_Mouse_previousPosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L114">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_previousPosition" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.previousPosition</span> <a class="api-item-permalink" href="#Core_Input_Mouse_previousPosition" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L116">src</a></div>
 <p>Returns the cursor position before the latest update.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">previousPosition</span>()-&gt;<span class="SCst"><a href="#Core_Math_Point">Point</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_setCurrentButtonState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.setCurrentButtonState</span> <a class="api-item-permalink" href="#Core_Input_Mouse_setCurrentButtonState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L27">src</a></div>
-<p>Sets whether <span class="code-inline">button</span> is down in the current state, for an input backend or a test harness that feeds buttons itself. The previous state and the click timing are left untouched.</p>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_setCurrentButtonState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.setCurrentButtonState</span> <a class="api-item-permalink" href="#Core_Input_Mouse_setCurrentButtonState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L28">src</a></div>
+<p>Sets the current button state for an input backend or test harness.</p>
+<p>The previous state and click timing are left untouched.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setCurrentButtonState</span>(button: <span class="SCst"><a href="#Core_Input_MouseButton">MouseButton</a></span>, pressed: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_setPositions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.setPositions</span> <a class="api-item-permalink" href="#Core_Input_Mouse_setPositions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L41">src</a></div>
-<p>Sets the previous and current cursor positions, for an input backend or a test harness that moves the cursor itself.</p>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_setPositions" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.setPositions</span> <a class="api-item-permalink" href="#Core_Input_Mouse_setPositions" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L43">src</a></div>
+<p>Sets the previous and current cursor positions.</p>
+<p>An input backend or test harness calls this to supply positions directly.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setPositions</span>(previous, current: <span class="SCst"><a href="#Core_Math_Point">Point</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Input_Mouse_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.update</span> <a class="api-item-permalink" href="#Core_Input_Mouse_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Input_Mouse_update" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Mouse.update</span> <a class="api-item-permalink" href="#Core_Input_Mouse_update" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/input/mouse.swg#L56">src</a></div>
 <p>Captures a new state, keeping the previous one, and detects double-clicks.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">update</span>()</span></div>
 </section>
@@ -25831,12 +25839,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">dateToTicks</span>(year, month, day: <span class="STpe">u16</span>)-&gt;<span class="SCst"><a href="#Core_Time_Ticks">Ticks</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_daysInMonth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Time.daysInMonth</span> <a class="api-item-permalink" href="#Core_Time_daysInMonth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/time.swg#L165">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_daysInMonth" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Time.daysInMonth</span> <a class="api-item-permalink" href="#Core_Time_daysInMonth" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/time.swg#L166">src</a></div>
 <p>Returns the number of days of <span class="code-inline">month</span> in <span class="code-inline">year</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">daysInMonth</span>(year, month: <span class="STpe">u16</span>)-&gt;<span class="STpe">u16</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_isLeapYear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Time.isLeapYear</span> <a class="api-item-permalink" href="#Core_Time_isLeapYear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/time.swg#L162">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Time_isLeapYear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Time.isLeapYear</span> <a class="api-item-permalink" href="#Core_Time_isLeapYear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/time.swg#L163">src</a></div>
 <p>Returns whether <span class="code-inline">year</span> is a leap year of the Gregorian calendar.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isLeapYear</span>(year: <span class="STpe">u16</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -25861,8 +25869,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">monotonicTicks</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Time_ticksToDate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Time.ticksToDate</span> <a class="api-item-permalink" href="#Core_Time_ticksToDate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/time.swg#L121">src</a></div>
-<p>Returns the Gregorian date that contains <span class="code-inline">ticks</span>, within years 1 through 9999. Panics when <span class="code-inline">ticks</span> exceeds the supported calendar range.</p>
+<div class="api-item api-item-func"><span id="Core_Time_ticksToDate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Time.ticksToDate</span> <a class="api-item-permalink" href="#Core_Time_ticksToDate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/time/time.swg#L122">src</a></div>
+<p>Returns the Gregorian date that contains <span class="code-inline">ticks</span>, within years 1 through 9999.</p>
+<p>Panics when <span class="code-inline">ticks</span> exceeds the supported calendar range.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">ticksToDate</span>(ticks: <span class="SCst"><a href="#Core_Time_Ticks">Ticks</a></span>)-&gt;{ year: <span class="STpe">u16</span>, month: <span class="STpe">u16</span>, day: <span class="STpe">u16</span> }</span></div>
 </section>
 <section class="api-symbol">
@@ -29540,9 +29549,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Globalization.CurrencyFormatInfo.format|Core_Globalization_CurrencyFormatInfo_format|Formats an amount with this currency convention and the supplied numeric convention.",
 "f|Core.Globalization.currentCulture|Core_Globalization_currentCulture|Returns the mutable process-wide culture settings, initialized to en-US on first use.",
 "f|Core.Globalization.DateTimeFormatInfo.dayName|Core_Globalization_DateTimeFormatInfo_dayName|Returns the localized full name of a day of the week.",
-"f|Core.Globalization.DateTimeFormatInfo.formatDate|Core_Globalization_DateTimeFormatInfo_formatDate|Formats the date of value with longDatePattern when long is set,",
+"f|Core.Globalization.DateTimeFormatInfo.formatDate|Core_Globalization_DateTimeFormatInfo_formatDate|Formats a date using a long or short pattern.",
 "f|Core.Globalization.DateTimeFormatInfo.formatDateTime|Core_Globalization_DateTimeFormatInfo_formatDateTime|Formats a date and time separated by one space.",
-"f|Core.Globalization.DateTimeFormatInfo.formatTime|Core_Globalization_DateTimeFormatInfo_formatTime|Formats the time of value with longTimePattern when withSeconds is set,",
+"f|Core.Globalization.DateTimeFormatInfo.formatTime|Core_Globalization_DateTimeFormatInfo_formatTime|Formats a time using a long or short pattern.",
 "f|Core.Globalization.DateTimeFormatInfo.monthName|Core_Globalization_DateTimeFormatInfo_monthName|Returns the localized full name of a month numbered from 1 through 12.",
 "f|Core.Globalization.NumberFormatInfo.format|Core_Globalization_NumberFormatInfo_format|Formats an unsigned decimal integer, optionally applying this culture's grouping rules.",
 "f|Core.Input.formatKeyShortcut|Core_Input_formatKeyShortcut|Formats modifiers and key as a display-ready shortcut such as Ctrl+S.",
@@ -29566,7 +29575,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Input.Keyboard.keyToVirtualKey|Core_Input_Keyboard_keyToVirtualKey|Returns the Windows virtual-key code of key, or zero when it has none.",
 "f|Core.Input.Keyboard.pressedModifiers|Core_Input_Keyboard_pressedModifiers|Returns the modifier flags active in the latest state.",
 "f|Core.Input.Keyboard.releaseAllKeys|Core_Input_Keyboard_releaseAllKeys|Presents every key of the current state as released.",
-"f|Core.Input.Keyboard.setCurrentKeyState|Core_Input_Keyboard_setCurrentKeyState|Sets whether key is down in the current state, for an input backend or a test harness",
+"f|Core.Input.Keyboard.setCurrentKeyState|Core_Input_Keyboard_setCurrentKeyState|Sets the current key state for an input backend or test harness.",
 "f|Core.Input.Keyboard.update|Core_Input_Keyboard_update|Captures a new state, keeping the previous one, and repeats the presses of held keys.",
 "f|Core.Input.Keyboard.virtualKeyToKey|Core_Input_Keyboard_virtualKeyToKey|Returns the key of the Windows virtual-key code vkey, or Key.None when it has none.",
 "f|Core.Input.KeyboardState.clear|Core_Input_KeyboardState_clear|Marks every key as released.",
@@ -29580,8 +29589,8 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Input.Mouse.movement|Core_Input_Mouse_movement|Returns the cursor movement since the previous update.",
 "f|Core.Input.Mouse.position|Core_Input_Mouse_position|Returns the current cursor position.",
 "f|Core.Input.Mouse.previousPosition|Core_Input_Mouse_previousPosition|Returns the cursor position before the latest update.",
-"f|Core.Input.Mouse.setCurrentButtonState|Core_Input_Mouse_setCurrentButtonState|Sets whether button is down in the current state, for an input backend or a test harness",
-"f|Core.Input.Mouse.setPositions|Core_Input_Mouse_setPositions|Sets the previous and current cursor positions, for an input backend or a test harness",
+"f|Core.Input.Mouse.setCurrentButtonState|Core_Input_Mouse_setCurrentButtonState|Sets the current button state for an input backend or test harness.",
+"f|Core.Input.Mouse.setPositions|Core_Input_Mouse_setPositions|Sets the previous and current cursor positions.",
 "f|Core.Input.Mouse.update|Core_Input_Mouse_update|Captures a new state, keeping the previous one, and detects double-clicks.",
 "f|Core.Input.mousePosition|Core_Input_mousePosition|Returns the cursor position in physical desktop pixels.",
 "f|Core.Input.MouseState.clear|Core_Input_MouseState_clear|Releases every button, forgets the recorded presses, and samples the current cursor position.",

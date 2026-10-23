@@ -797,7 +797,7 @@ impl TagBin
                 .stream.setPosition(sec.afterFatSeek)
             }
         }
-        else
+        elif sec.kind == .Unordered
         {
             // Count the stream fields the decode never requested; they are data a
             // rewrite of the value would lose.

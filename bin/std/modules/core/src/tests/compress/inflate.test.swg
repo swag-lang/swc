@@ -228,3 +228,34 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     let overlong = overlongOutcome.value()
     Swag.assert(overlong is Errors.InvalidFormatError)
 }
+
+// Distance symbols 30 and 31 are reserved; a fixed-Huffman stream that selects 30 fails.
+#test
+{
+    let reservedDistance: [3] u8 = [0x03, 0x1F, 0x00]
+    var inflater:         Compress.Inflate
+    var decoded:          Array'u8
+    var errorOutcome:     Swag.Error
+    catch inflater.decompress(&decoded, reservedDistance) as &errorOutcome
+    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.assert(decoded.isEmpty())
+}
+
+// A stream may use no back-reference farther away than the window announced by its container.
+#test
+{
+    var input: [128] u8
+    for index in input.count do
+        input[index] = cast(u8, index & 1)
+
+    var deflater: Compress.Deflate
+    deflater.init(.BestCompression)
+    var compressed: Array'u8
+    expect deflater.compress(&compressed, input)
+
+    var inflater:     Compress.Inflate
+    var decoded:      Array'u8
+    var errorOutcome: Swag.Error
+    catch inflater.decompress(&decoded, compressed.toSlice(), winSize: 1) as &errorOutcome
+    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
+}

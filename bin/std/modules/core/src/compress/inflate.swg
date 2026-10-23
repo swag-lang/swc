@@ -368,6 +368,10 @@ impl Inflate
                 dvalue = repeatZ.value[b1]
             }
 
+            // RFC 1951 reserves distance symbols 30 and 31.
+            if dvalue >= 30 do
+                fail InvalidFormatError{"bad distance"}
+
             var distance = cast(u64, DistBase[dvalue])
             let dextra   = cast(u32, DistExtra[dvalue])
             if dextra
@@ -377,6 +381,8 @@ impl Inflate
                 nb       -= #wrap dextra
             }
 
+            if distance > .windowSize do
+                fail InvalidFormatError{"bad distance"}
             if count < distance do
                 fail InvalidFormatError{"bad distance"}
             if not length do
@@ -450,10 +456,11 @@ impl Inflate
 
     // Decompresses the Deflate data in `buf` and appends it to `result`.
     //
-    // `winSize` is the window size announced by the container, clamped to
-    // [[Core.Compress.Inflate.MaxDistance]]. Fails with [[Core.Errors.InvalidFormatError]]
-    // for malformed data, and with [[Core.Errors.UnsupportedFormatError]] when the call would
-    // append more than `maxOutputSize` bytes.
+    // `winSize` is the maximum back-reference distance, clamped to
+    // [[Core.Compress.Inflate.MaxDistance]], and must be nonzero. Fails with
+    // [[Core.Errors.InvalidFormatError]] for malformed data or a distance beyond that window,
+    // and with [[Core.Errors.UnsupportedFormatError]] when the call would append more than
+    // `maxOutputSize` bytes.
     public mtd decompress(result: *Array'u8, buf: const [..] u8, winSize: u32 = MaxDistance, maxOutputSize: u64 = Swag.U64.Max) fail
     {
         .stream.reset(buf)

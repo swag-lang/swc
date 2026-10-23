@@ -169,33 +169,6 @@ func windows1252Rune(value: u8)->rune
     return cast(rune, value)
 }
 
-// Reorders complete big-endian UTF-32 units into native little-endian rune storage.
-private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
-{
-    const SwapBytes = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
-    var result: retval
-    result.resize(bytes.count / 4)
-    let source      = bytes.buffer
-    let destination = result.storage()
-    var offset      = 0'u64
-
-    while offset + 4 <= result.count
-    {
-        Math.Simd.store(cast([*] u8, (destination + offset)),
-                        Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
-        offset += 4
-    }
-
-    while offset < result.count
-    {
-        let unit = source + 4 * offset
-        destination[offset] = cast(rune, Math.make32(unit[0], unit[1], unit[2], unit[3]))
-        offset += 1
-    }
-
-    return result
-}
-
 // Converts `bytes` to UTF-8, reading them as `encoding` spells characters.
 //
 // `bytes` must start and end on a character boundary; [[Core.FileStream.readTextChunk]] is what
@@ -230,6 +203,33 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
         while offset < result.count
         {
             destination[offset] = Math.make16(source[2 * offset], source[2 * offset + 1])
+            offset += 1
+        }
+
+        return result
+    }
+
+    // Reorders complete big-endian UTF-32 units into native little-endian rune storage.
+    func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
+    {
+        const SwapBytes = cast(Math.Simd.U8x16, [3'u8, 2, 1, 0, 7, 6, 5, 4, 11, 10, 9, 8, 15, 14, 13, 12])
+        var result: retval
+        result.resize(bytes.count / 4)
+        let source      = bytes.buffer
+        let destination = result.storage()
+        var offset      = 0'u64
+
+        while offset + 4 <= result.count
+        {
+            Math.Simd.store(cast([*] u8, (destination + offset)),
+                            Math.Simd.shuffle(Math.Simd.load(source + 4 * offset), SwapBytes))
+            offset += 4
+        }
+
+        while offset < result.count
+        {
+            let unit = source + 4 * offset
+            destination[offset] = cast(rune, Math.make32(unit[0], unit[1], unit[2], unit[3]))
             offset += 1
         }
 

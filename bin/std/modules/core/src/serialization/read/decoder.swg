@@ -186,13 +186,18 @@ impl Decoder
 
             if objType
             {
-                itf.itable = Swag.tableOf(objType, itfType)
+                let dynamicType = objType!
+                typeVal.pointedType = dynamicType
+                let obj = Memory.new(dynamicType)
 
-                typeVal.pointedType = objType
-                itf.obj = Memory.new(objType)
-                if not itf.obj do
-                    fail SerializationError{"cannot allocate interface object"}
-                try .readTypeValue(typeVal, itf.obj)
+                var decoded = false
+                defer #fail if not decoded do
+                    Memory.delete(obj, dynamicType)
+
+                try .readTypeValue(typeVal, obj)
+                itf.itable = Swag.tableOf(dynamicType, itfType)
+                itf.obj    = obj
+                decoded    = true
             }
 
             return

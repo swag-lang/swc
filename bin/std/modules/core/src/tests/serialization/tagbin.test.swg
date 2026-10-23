@@ -193,6 +193,50 @@ public struct TagBinInterfaceProbe
     }
 }
 
+var g_TagBinFailedInterfaceDrops = 0
+
+public interface ITagBinFailingScore
+{
+    mtd score()->s32
+}
+
+#[Serialization.TypeKey("core.test.tagbin-failing-score")]
+struct TagBinFailingInterfaceProbe
+{
+    value: s32
+}
+
+impl ITagBinFailingScore for TagBinFailingInterfaceProbe
+{
+    mtd impl score()->s32 => .value
+}
+
+impl TagBinFailingInterfaceProbe
+{
+    mtd opDrop() { g_TagBinFailedInterfaceDrops += 1 }
+}
+
+public impl Serialization.ISerialize for TagBinFailingInterfaceProbe
+{
+    mtd impl read(_: Serialization.IDecoder)->bool fail
+    {
+        fail SerializationError{"intentional interface decode failure"}
+    }
+
+    mtd impl write(_: Serialization.IEncoder)->bool fail => false
+
+    mtd impl readElement(_: TypeValue, _: *void?, _: Serialization.IDecoder)->bool fail => false
+
+    mtd impl writeElement(_: TypeValue, _: const *void?, _: Serialization.IEncoder)->bool fail => false
+
+    mtd impl postRead(_: *void?, _: Serialization.IDecoder) fail {}
+}
+
+struct TagBinFailingInterfacePayload
+{
+    value: ITagBinFailingScore?
+}
+
 public impl ITagBinScore for TagBinInterfaceProbe
 {
     mtd impl score()->s32        => .value + 5
@@ -710,6 +754,26 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     let score = decoded.score!
     Swag.assert(score.score() == 37)
     Swag.assert(score.labelText() == "iface")
+}
+
+#test
+{
+    var concrete = TagBinFailingInterfaceProbe{value: 23}
+    let payload  = TagBinFailingInterfacePayload{value: cast(ITagBinFailingScore, concrete)}
+
+    Reflection.registerType(#typeof(TagBinFailingInterfaceProbe))
+    Reflection.registerType(#typeof(TagBinFailingInterfacePayload))
+
+    let bytes = encodeTagBin(payload)
+    g_TagBinFailedInterfaceDrops = 0
+
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var errOutcome: Swag.Error
+    discard catch decoder.readAll'TagBinFailingInterfacePayload(bytes.toSlice()) as &errOutcome
+    let err = errOutcome.value()
+
+    Swag.assert(err != null)
+    Swag.assert(g_TagBinFailedInterfaceDrops == 1)
 }
 
 #test

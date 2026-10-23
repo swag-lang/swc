@@ -214,9 +214,25 @@ struct TagBinFailingInterfaceProbe
     value: s32
 }
 
+#[Serialization.TypeKey("core.test.tagbin-earlier-score")]
+struct TagBinEarlierInterfaceProbe
+{
+    value: s32
+}
+
 impl ITagBinFailingScore for TagBinFailingInterfaceProbe
 {
     mtd impl score()->s32 => .value
+}
+
+impl ITagBinFailingScore for TagBinEarlierInterfaceProbe
+{
+    mtd impl score()->s32 => .value
+}
+
+impl TagBinEarlierInterfaceProbe
+{
+    mtd opDrop() { g_TagBinFailedInterfaceDrops += 1 }
 }
 
 impl TagBinFailingInterfaceProbe
@@ -243,6 +259,12 @@ public impl Serialization.ISerialize for TagBinFailingInterfaceProbe
 struct TagBinFailingInterfacePayload
 {
     value: ITagBinFailingScore?
+}
+
+struct TagBinLaterFailurePayload
+{
+    earlier: ITagBinFailingScore?
+    failing: ITagBinFailingScore?
 }
 
 public impl ITagBinScore for TagBinInterfaceProbe
@@ -782,6 +804,30 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     Swag.assert(err != null)
     Swag.assert(g_TagBinFailedInterfaceDrops == 1)
+}
+
+#test
+{
+    var earlier = TagBinEarlierInterfaceProbe{value: 11}
+    var failing = TagBinFailingInterfaceProbe{value: 23}
+    let payload = TagBinLaterFailurePayload{
+        earlier: cast(ITagBinFailingScore, earlier),
+        failing: cast(ITagBinFailingScore, failing)}
+
+    Reflection.registerType(#typeof(TagBinEarlierInterfaceProbe))
+    Reflection.registerType(#typeof(TagBinFailingInterfaceProbe))
+    Reflection.registerType(#typeof(TagBinLaterFailurePayload))
+
+    let bytes = encodeTagBin(payload)
+    g_TagBinFailedInterfaceDrops = 0
+
+    var decoder:    Serialization.Decoder'Serialization.Read.TagBin
+    var errOutcome: Swag.Error
+    discard catch decoder.readAll'TagBinLaterFailurePayload(bytes.toSlice()) as &errOutcome
+    let err = errOutcome.value()
+
+    Swag.assert(err != null)
+    Swag.assert(g_TagBinFailedInterfaceDrops == 2)
 }
 
 #test

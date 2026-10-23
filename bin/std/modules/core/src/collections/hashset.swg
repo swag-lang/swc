@@ -96,10 +96,19 @@ impl HashSet
 {
     private func normalizeCapacity(newCapacity: u64)->u64
     {
+        let target      = Math.max(newCapacity, 32'u64)
+        let maxCapacity = Swag.U64.Max / #sizeof(HashSetEntry'(K))
+        if target > maxCapacity do
+            Swag.panic("HashSet capacity exceeds addressable memory", #curlocation)
+
         var result = 32'u64
-        let target = Math.max(newCapacity, result)
-        while result < target do
-            result <<= 1
+        while result < target
+        {
+            if result > maxCapacity / 2 do
+                Swag.panic("HashSet capacity exceeds addressable memory", #curlocation)
+            result *= 2
+        }
+
         return result
     }
 
@@ -267,7 +276,7 @@ impl HashSet
     // Grows the set to at least `newCapacity` slots, rehashing every key.
     //
     // The slot count is rounded up to a power of two of at least 32. Requests at or below the
-    // current capacity do nothing.
+    // current capacity do nothing. A request that cannot fit in an addressable allocation panics.
     mtd reserve(newCapacity: u64)
     {
         let reqCapacity = normalizeCapacity(newCapacity)

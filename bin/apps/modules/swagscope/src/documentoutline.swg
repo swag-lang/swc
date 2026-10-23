@@ -5,12 +5,12 @@ using Core, Gui
 // Visible strings of the document outline.
 struct DocumentOutlineStrings
 {
-    title:   string = "Outline"              // Title of the panel and tooltip of its toggle.
+    title:   string = "Outline"                          // Title of the panel and tooltip of its toggle.
     empty:   string = "No outline in this document."     // Status of a document without headings.
-    loading: string = "Reading outline…"     // Status while the headings are read.
-    close:   string = "Close outline"        // Tooltip of the close button.
-    filter:  string = "Filter headings by name" // Placeholder of the heading filter.
-    noMatch: string = "No headings match."     // Status when the heading filter has no result.
+    loading: string = "Reading outline…"                 // Status while the headings are read.
+    close:   string = "Close outline"                    // Tooltip of the close button.
+    filter:  string = "Filter headings by name"          // Placeholder of the heading filter.
+    noMatch: string = "No headings match."               // Status when the heading filter has no result.
 }
 
 private const FrenchOutlineStringsName = "lang/fr/scope.outline.tweak"
@@ -223,7 +223,7 @@ impl DocumentOutline
         .clear()
         let filter = .filter.toString()
         for heading in .headings where .filter.isEmpty() or
-            heading.title.indexOf(filter, comparisonType: .Latin1NoCase) != Swag.U64.Max do
+                                       heading.title.indexOf(filter, comparisonType: .Latin1NoCase) != Swag.U64.Max do
             .add(heading.title, heading.level, heading.sourceOffset)
     }
 

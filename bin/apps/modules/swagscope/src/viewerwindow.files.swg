@@ -104,7 +104,8 @@ impl ViewerWindow
         {
             let name        = one[].toString()
             let displayName = Path.fileName(name) orelse name
-            if list == .folderList and not .folderFilter.isEmpty() and
+            if list == .folderList and
+               not .folderFilter.isEmpty() and
                Utf8.indexOf(displayName, filter, comparisonType: .Latin1NoCase) == Swag.U64.Max do
                 continue
 

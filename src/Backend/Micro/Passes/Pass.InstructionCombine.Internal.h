@@ -335,7 +335,7 @@ namespace InstructionCombine
 
     void runStoreToLoadForwarding(Context& ctx);
     void runDeadStoreElimination(Context& ctx);
-    void runDropUnobservedBorrows(Context& ctx);
+    void runDropUnobservedBorrows(Context& ctx, const FlatKeyMap<uint32_t>& borrowArgs);
 }
 
 SWC_END_NAMESPACE();

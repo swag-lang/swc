@@ -6,6 +6,9 @@
 #include "Backend/Micro/MicroPassHelpers.h"
 #include "Backend/Micro/Passes/Pass.InstructionCombine.Internal.h"
 #include "Backend/Micro/Passes/Pass.SlpVectorize.Internal.h"
+#include "Compiler/Sema/Symbol/IdentifierManager.h"
+#include "Compiler/Sema/Symbol/Symbol.h"
+#include "Main/TaskContext.h"
 #include "Support/Report/Assert.h"
 
 // Pre-RA instruction combiner on virtual registers.
@@ -280,13 +283,35 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
     ctx.ssa          = ssa;
     ctx.builder      = context.builder;
     ctx.stackPointer = CallConv::get(context.callConvKind).stackPointer;
+    FlatKeyMap<uint32_t> borrowArgs;
     if (ctx.builder)
     {
-        ctx.relocated.reserve(ctx.builder->codeRelocations().size());
-        for (const MicroRelocation& reloc : ctx.builder->codeRelocations())
+        const auto& relocations = ctx.builder->codeRelocations();
+        ctx.relocated.reserve(relocations.size());
+        const bool    hasCompiler = context.taskContext && context.taskContext->hasCompiler();
+        IdentifierRef enterBorrowId;
+        IdentifierRef leaveBorrowId;
+        if (!relocations.empty() && hasCompiler)
+        {
+            const IdentifierManager& idMgr = context.taskContext->idMgr();
+            enterBorrowId                  = idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowEnter);
+            leaveBorrowId                  = idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowLeave);
+        }
+        for (const MicroRelocation& reloc : relocations)
         {
             if (reloc.instructionRef.isValid())
+            {
                 ctx.relocated.insert(reloc.instructionRef.get());
+                if (hasCompiler && reloc.targetSymbol)
+                {
+                    const IdentifierRef idRef = reloc.targetSymbol->idRef();
+                    // Registration passes four arguments; release passes the record alone.
+                    if (idRef == enterBorrowId)
+                        borrowArgs.getOrInsert(reloc.instructionRef.get()) = 4;
+                    else if (idRef == leaveBorrowId)
+                        borrowArgs.getOrInsert(reloc.instructionRef.get()) = 1;
+                }
+            }
         }
     }
 
@@ -303,7 +328,7 @@ Result MicroInstructionCombinePass::run(MicroPassContext& context)
         runStoreToLoadForwarding(ctx);
     if (hasSecondStore)
         runDeadStoreElimination(ctx);
-    runDropUnobservedBorrows(ctx);
+    runDropUnobservedBorrows(ctx, borrowArgs);
 
     runSelectNarrowing(ctx);
 

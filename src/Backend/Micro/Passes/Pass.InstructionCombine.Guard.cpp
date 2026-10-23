@@ -663,14 +663,10 @@ namespace InstructionCombine
     // of them while its borrows are open, so it registers none: a function reading the string or
     // the struct it received by value no longer pays for the registry on every call. Writes from
     // other threads are not the guard's to detect.
-    void runDropUnobservedBorrows(Context& ctx)
+    void runDropUnobservedBorrows(Context& ctx, const FlatKeyMap<uint32_t>& borrowArgs)
     {
         if (!ctx.builder || ctx.builder->codeRelocations().empty() || !ctx.passContext || !ctx.passContext->taskContext || !ctx.passContext->taskContext->hasCompiler())
             return;
-
-        const IdentifierManager& idMgr   = ctx.passContext->taskContext->idMgr();
-        const IdentifierRef      enterId = idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowEnter);
-        const IdentifierRef      leaveId = idMgr.runtimeFunction(IdentifierManager::RuntimeFunctionKind::ValueBorrowLeave);
 
         struct BorrowCall
         {
@@ -678,18 +674,6 @@ namespace InstructionCombine
             uint32_t      argCount;
         };
         SmallVector<BorrowCall, 8> borrowCalls;
-        FlatKeyMap<uint32_t>       borrowArgs;
-        for (const MicroRelocation& relocation : ctx.builder->codeRelocations())
-        {
-            if (relocation.instructionRef.isInvalid() || !relocation.targetSymbol)
-                continue;
-            const IdentifierRef idRef = relocation.targetSymbol->idRef();
-            // Record, address, size and source location; the release takes the record alone.
-            if (idRef == enterId)
-                borrowArgs.getOrInsert(relocation.instructionRef.get()) = 4;
-            else if (idRef == leaveId)
-                borrowArgs.getOrInsert(relocation.instructionRef.get()) = 1;
-        }
         if (borrowArgs.empty())
             return;
 

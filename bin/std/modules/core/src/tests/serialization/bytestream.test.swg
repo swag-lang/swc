@@ -5,7 +5,7 @@ using Swag
 
 #test
 {
-    let input: [4] u8 = [0x10, 0x20, 0x30, 0x40]
+    let input = [0x10'u8, 0x20, 0x30, 0x40]
 
     var stream = ByteStream.openRead(input)
     Swag.assert(stream.length() == 4)
@@ -190,4 +190,34 @@ using Swag
     var byte:  u8 = 0xA5
     expect stream.readBytes(&byte, 0)
     Swag.assert(byte == 0xA5 and stream.position() == 0)
+}
+
+// Oversized reads fail before touching the destination or advancing the cursor.
+#test
+{
+    let input  = [0x10'u8, 0x20, 0x30, 0x40]
+    var stream = ByteStream.openRead(input)
+    stream.setPosition(1)
+
+    var byte: u8 = 0xA5
+    catch stream.readBytes(&byte, Swag.U64.Max) as error
+    Swag.assert(error is Errors.OverflowError)
+    Swag.assert(byte == 0xA5 and stream.position() == 1)
+
+    let next = expect stream.readNative'u8()
+    Swag.assert(next == 0x20 and stream.position() == 2)
+
+    discard catch stream.readNative'u32() as nativeError
+    Swag.assert(nativeError is Errors.OverflowError)
+    Swag.assert(stream.position() == 2)
+
+    var tail: [2] u8
+    expect stream.readBytes(&tail[0], tail.count)
+    Swag.assert(Slice.equals(tail, [0x30, 0x40]))
+    Swag.assert(stream.position() == input.count)
+
+    expect stream.readBytes(&byte, 0)
+    catch stream.readBytes(&byte, 1) as endError
+    Swag.assert(endError is Errors.OverflowError)
+    Swag.assert(byte == 0xA5 and stream.position() == input.count)
 }

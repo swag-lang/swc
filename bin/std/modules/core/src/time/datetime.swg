@@ -222,8 +222,9 @@ impl DateTime
             try parseSep(&buf, ' ', &result.eat)
             result.value.year = try parseU16(&buf, &result.eat)
 
-            // The written weekday must agree with the numeric date.
-            if checkDate and dayOfWeek != result.value.dayOfWeek() do
+            // Validate the date before using it to check the written weekday.
+            if checkDate and
+               (not result.value.isValid() or dayOfWeek != result.value.dayOfWeek()) do
                 fail SyntaxError{}
         }
         elif buf.count >= 10 and

@@ -6574,7 +6574,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_Read_Xml_endElement">Xml.endElement</a></td><td><p>Reads the end tag of the current element.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Serialization_Read_Xml_endRoot">Xml.endRoot</a></td><td><p>Reads the tag that closes the document, which must match the opening one.</p>
+<tr><td class="code-type"><a href="#Core_Serialization_Read_Xml_endRoot">Xml.endRoot</a></td><td><p>Reads the matching root close tag and rejects non-whitespace data after it.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_Read_Xml_endSection">Xml.endSection</a></td><td><p>Reads the tag that closes a section.</p>
 </td></tr>
@@ -13618,7 +13618,7 @@ environment.<span class="SFct">set</span>(<span class="SStr">"SWAG_PATH"</span>,
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_Read_Xml_endElement">endElement</a></td><td><p>Reads the end tag of the current element.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Serialization_Read_Xml_endRoot">endRoot</a></td><td><p>Reads the tag that closes the document, which must match the opening one.</p>
+<tr><td class="code-type"><a href="#Core_Serialization_Read_Xml_endRoot">endRoot</a></td><td><p>Reads the matching root close tag and rejects non-whitespace data after it.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Serialization_Read_Xml_endSection">endSection</a></td><td><p>Reads the tag that closes a section.</p>
 </td></tr>
@@ -18986,12 +18986,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">log</span>(msg: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.end</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L335">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_end" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.end</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_end" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L340">src</a></div>
 <p>Finishes reading, and fails when a strict decode met corrupt payloads.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">end</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_readAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.readAll</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_readAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L352">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_readAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.readAll</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_readAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L357">src</a></div>
 <p>Reads a whole document whose root is a <span class="code-inline">TR</span> struct and returns it in a new allocation.</p>
 <p>Success returns a non-null pointer. The caller owns it and releases it with <a href="#Core_Memory_delete">Core.Memory.delete</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">TR</span>) <span class="SFct">readAll</span>(input: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;*<span class="SCst">TR</span> <span class="SKwd">fail</span></span></div>
@@ -19007,7 +19007,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readTypeValue</span>(typedVal: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>, data: [*] <span class="STpe">void</span>?) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.start</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L317">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Decoder_start" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Decoder.start</span> <a class="api-item-permalink" href="#Core_Serialization_Decoder_start" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/decoder.swg#L322">src</a></div>
 <p>Starts reading <span class="code-inline">input</span>, which stays borrowed until <a href="#Core_Serialization_Decoder_end">Core.Serialization.Decoder.end</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">start</span>(input: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>) <span class="SKwd">fail</span></span></div>
 <p>Starts deserialization with a reflected root type.</p>
@@ -27468,7 +27468,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setIdentity</span>(id: <span class="SCst"><a href="#Core_Guid128">Guid128</a></span>, generation: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_beginElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.beginElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_beginElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L164">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_beginElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.beginElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_beginElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L167">src</a></div>
 <p>Reads the start tag of the element <span class="code-inline">val</span> and fails when it names another element.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginElement</span>(val: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -27483,28 +27483,28 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSection</span>(<span class="SKwd">_</span>: <span class="SCst"><a href="#Core_Serialization_SectionKind">SectionKind</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_beginSequence" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.beginSequence</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_beginSequence" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L186">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_beginSequence" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.beginSequence</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_beginSequence" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L189">src</a></div>
 <p>Returns false, so the decoder reads the elements one by one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginSequence</span>(<span class="SKwd">_</span>: <span class="STpe">typeinfo</span>, <span class="SKwd">_</span>: *<span class="STpe">u8</span>, <span class="SKwd">_</span>: *<span class="STpe">u64</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_beginStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.beginStruct</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_beginStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L180">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_beginStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.beginStruct</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_beginStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L183">src</a></div>
 <p>Returns false, so the decoder reads the fields of the struct.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginStruct</span>(<span class="SKwd">_</span>: <span class="STpe">typeinfo</span>, <span class="SKwd">_</span>: <span class="SKwd">const</span> *<span class="STpe">u8</span>)-&gt;<span class="STpe">bool</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_beginValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.beginValue</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_beginValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L192">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_beginValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.beginValue</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_beginValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L195">src</a></div>
 <p>Does nothing: an XML value needs no opening mark.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">beginValue</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L173">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endElement" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endElement</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endElement" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L176">src</a></div>
 <p>Reads the end tag of the current element.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endElement</span>(<span class="SKwd">_</span>: <span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endRoot" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endRoot</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endRoot" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L158">src</a></div>
-<p>Reads the tag that closes the document, which must match the opening one.</p>
+<p>Reads the matching root close tag and rejects non-whitespace data after it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endRoot</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
@@ -27513,17 +27513,17 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSection</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endSequence" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endSequence</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endSequence" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L189">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endSequence" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endSequence</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endSequence" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L192">src</a></div>
 <p>Does nothing: the sequence ends before the next tag.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endSequence</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endStruct</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L183">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endStruct" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endStruct</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endStruct" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L186">src</a></div>
 <p>Does nothing: the struct ends with its last element.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endStruct</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endValue</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L195">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_endValue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.endValue</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_endValue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L198">src</a></div>
 <p>Does nothing: an XML value needs no closing mark.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">endValue</span>() <span class="SKwd">fail</span></span></div>
 </section>
@@ -27533,7 +27533,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">isTextual</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_readNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.readNative</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_readNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L199">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Serialization_Read_Xml_readNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Xml.readNative</span> <a class="api-item-permalink" href="#Core_Serialization_Read_Xml_readNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/serialization/read/xml.swg#L202">src</a></div>
 <p>Reads a native value at the current XML position.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span>(<span class="SCst">NT</span>) <span class="SFct">readNative</span>()-&gt;<span class="SCst">NT</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -30241,7 +30241,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Serialization.Read.Xml.beginStruct|Core_Serialization_Read_Xml_beginStruct|Returns false, so the decoder reads the fields of the struct.",
 "f|Core.Serialization.Read.Xml.beginValue|Core_Serialization_Read_Xml_beginValue|Does nothing: an XML value needs no opening mark.",
 "f|Core.Serialization.Read.Xml.endElement|Core_Serialization_Read_Xml_endElement|Reads the end tag of the current element.",
-"f|Core.Serialization.Read.Xml.endRoot|Core_Serialization_Read_Xml_endRoot|Reads the tag that closes the document, which must match the opening one.",
+"f|Core.Serialization.Read.Xml.endRoot|Core_Serialization_Read_Xml_endRoot|Reads the matching root close tag and rejects non-whitespace data after it.",
 "f|Core.Serialization.Read.Xml.endSection|Core_Serialization_Read_Xml_endSection|Reads the tag that closes a section.",
 "f|Core.Serialization.Read.Xml.endSequence|Core_Serialization_Read_Xml_endSequence|Does nothing: the sequence ends before the next tag.",
 "f|Core.Serialization.Read.Xml.endStruct|Core_Serialization_Read_Xml_endStruct|Does nothing: the struct ends with its last element.",

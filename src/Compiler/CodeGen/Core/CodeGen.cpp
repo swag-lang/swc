@@ -1016,7 +1016,7 @@ CodeGenNodePayload& CodeGen::setPayload(AstNodeRef nodeRef, TypeRef typeRef)
 
     CodeGenNodePayload& nodePayload = ensureNodePayload<CodeGenNodePayload>(nodeRef);
 
-    nodePayload.reg           = nextVirtualRegister();
+    nodePayload.reg           = nextVirtualIntRegister();
     nodePayload.sourceCodeRef = payloadNode.codeRef();
     if (const auto* memberAccess = payloadNode.safeCast<AstMemberAccessExpr>())
     {

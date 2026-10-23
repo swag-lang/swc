@@ -2113,6 +2113,12 @@ namespace
         Const,
     };
 
+    struct ReceiverConstnessCache
+    {
+        bool computed = false;
+        bool isConst  = false;
+    };
+
     ReceiverConstness candidateReceiverConstness(Sema& sema, const Candidate& candidate)
     {
         if (!candidate.fn || candidate.fn->parameters().empty())
@@ -2145,7 +2151,7 @@ namespace
         return !sema.isLValue(receiverRef);
     }
 
-    int compareReceiverConstness(Sema& sema, const Candidate& a, const Candidate& b, AstNodeRef ufcsArg)
+    int compareReceiverConstness(Sema& sema, const Candidate& a, const Candidate& b, AstNodeRef ufcsArg, ReceiverConstnessCache& receiverConstness)
     {
         if (ufcsArg.isInvalid())
             return 0;
@@ -2158,8 +2164,13 @@ namespace
         // UFCS/member calls should favor the overload whose receiver mutability matches the
         // call-site receiver. This keeps mutable methods preferred from mutable contexts while
         // still selecting const overloads for const receivers and temporaries.
-        const bool preferConstReceiver = receiverArgIsConst(sema, ufcsArg);
-        if (preferConstReceiver)
+        if (!receiverConstness.computed)
+        {
+            receiverConstness.isConst  = receiverArgIsConst(sema, ufcsArg);
+            receiverConstness.computed = true;
+        }
+
+        if (receiverConstness.isConst)
             return aConstness == ReceiverConstness::Const ? -1 : 1;
 
         return aConstness == ReceiverConstness::Mutable ? -1 : 1;
@@ -2173,7 +2184,7 @@ namespace
         return a.fn->isMethod() ? -1 : 1;
     }
 
-    int compareCallCandidates(Sema& sema, const Candidate& a, const Candidate& b, AstNodeRef ufcsArg)
+    int compareCallCandidates(Sema& sema, const Candidate& a, const Candidate& b, AstNodeRef ufcsArg, ReceiverConstnessCache& receiverConstness)
     {
         if (ufcsArg.isValid())
         {
@@ -2190,7 +2201,7 @@ namespace
         if (cmp != 0)
             return cmp;
 
-        return compareReceiverConstness(sema, a, b, ufcsArg);
+        return compareReceiverConstness(sema, a, b, ufcsArg, receiverConstness);
     }
 
     bool canKeepFirstSpecialOpTie(const Candidate& a, const Candidate& b)
@@ -2379,7 +2390,7 @@ namespace
         return Result::Continue;
     }
 
-    const Attempt* bestAttemptNoDiagnostics(Sema& sema, const SmallVector<const Attempt*>& viable, AstNodeRef ufcsArg)
+    const Attempt* bestAttemptNoDiagnostics(Sema& sema, const SmallVector<const Attempt*>& viable, AstNodeRef ufcsArg, ReceiverConstnessCache& receiverConstness)
     {
         if (viable.empty())
             return nullptr;
@@ -2387,7 +2398,7 @@ namespace
         const Attempt* best = viable[0];
         for (size_t i = 1; i < viable.size(); ++i)
         {
-            if (compareCallCandidates(sema, viable[i]->candidate, best->candidate, ufcsArg) < 0)
+            if (compareCallCandidates(sema, viable[i]->candidate, best->candidate, ufcsArg, receiverConstness) < 0)
                 best = viable[i];
         }
 
@@ -2396,8 +2407,9 @@ namespace
 
     bool fallbackHasBetterCandidate(Sema& sema, const SmallVector<const Attempt*>& currentViable, const SmallVector<const Attempt*>& fallbackViable, AstNodeRef ufcsArg)
     {
-        const Attempt* currentBest  = bestAttemptNoDiagnostics(sema, currentViable, ufcsArg);
-        const Attempt* fallbackBest = bestAttemptNoDiagnostics(sema, fallbackViable, ufcsArg);
+        ReceiverConstnessCache receiverConstness;
+        const Attempt*         currentBest  = bestAttemptNoDiagnostics(sema, currentViable, ufcsArg, receiverConstness);
+        const Attempt*         fallbackBest = bestAttemptNoDiagnostics(sema, fallbackViable, ufcsArg, receiverConstness);
         if (!currentBest || !fallbackBest)
             return false;
         if (!currentBest->candidate.fn || !fallbackBest->candidate.fn)
@@ -2413,7 +2425,7 @@ namespace
         if (fallbackBest->candidate.fn->isMethod())
             return false;
 
-        return compareCallCandidates(sema, fallbackBest->candidate, currentBest->candidate, ufcsArg) < 0;
+        return compareCallCandidates(sema, fallbackBest->candidate, currentBest->candidate, ufcsArg, receiverConstness) < 0;
     }
 
     Result maybeReplaceWithBetterCallFallback(Sema& sema, const SemaNodeView& nodeCallee, CandidateAttempts& current, std::span<AstNodeRef> args, AstNodeRef ufcsArg, Match::ResolveCallMode mode)
@@ -2496,10 +2508,11 @@ namespace
 
     Result raiseAmbiguousBest(Sema& sema, AstNodeRef calleeRef, const SmallVector<const Attempt*>& viable, const Candidate& best, AstNodeRef ufcsArg)
     {
+        ReceiverConstnessCache receiverConstness;
         SmallVector<const Symbol*> ambiguousSymbols;
         for (const Attempt* a : viable)
         {
-            if (compareCallCandidates(sema, a->candidate, best, ufcsArg) == 0)
+            if (compareCallCandidates(sema, a->candidate, best, ufcsArg, receiverConstness) == 0)
                 ambiguousSymbols.push_back(a->candidate.fn);
         }
 
@@ -2535,10 +2548,11 @@ namespace
 
         outSelected    = viable[0];
         bool ambiguous = false;
+        ReceiverConstnessCache receiverConstness;
 
         for (size_t i = 1; i < viable.size(); ++i)
         {
-            const int cmp = compareCallCandidates(sema, viable[i]->candidate, outSelected->candidate, ufcsArg);
+            const int cmp = compareCallCandidates(sema, viable[i]->candidate, outSelected->candidate, ufcsArg, receiverConstness);
             if (cmp < 0)
             {
                 outSelected = viable[i];

@@ -103,55 +103,100 @@ void CompilerCacheStore::flush()
             replace_ = false;
         return;
     }
-    Entries merged;
-    if (!replace_)
-        load().appendTo(merged);
-    for (const auto& [key, bytes] : pending_)
-        merged.insert_or_assign(key, bytes);
-    size_t extent = K_HEADER_SIZE;
-    for (const auto& [key, bytes] : merged)
-        extent += K_INDEX_ENTRY_SIZE + bytes.bytes.size();
+    const Archive          current = replace_ ? Archive{} : load();
+    std::vector<EntryView> merged  = mergeEntries(current, pending_);
+    size_t                 extent;
+    bool                   fitsArchive = measureExtent(merged, extent);
     // Keep the newest working set when the archive reaches its size bound.
-    if (extent > K_MAX_ARCHIVE_SIZE)
+    if (!fitsArchive)
     {
-        merged = pending_;
-        extent = K_HEADER_SIZE;
-        for (const auto& [key, bytes] : merged)
-            extent += K_INDEX_ENTRY_SIZE + bytes.bytes.size();
+        std::vector<EntryView> recent;
+        recent.reserve(pending_.size());
+        for (const auto& [key, record] : pending_)
+            recent.push_back({key.view(), record.bytes});
+        std::ranges::sort(recent, {}, &EntryView::key);
+        merged      = std::move(recent);
+        fitsArchive = measureExtent(merged, extent);
     }
-    if (extent > K_MAX_ARCHIVE_SIZE)
+    if (!fitsArchive)
         return;
-    std::vector<Utf8> keys;
-    keys.reserve(merged.size());
-    for (const auto& [key, bytes] : merged)
-        keys.push_back(key);
-    std::ranges::sort(keys);
+
     ByteArray archive;
-    archive.reserve(std::min(extent, K_MAX_ARCHIVE_SIZE));
+    archive.reserve(extent);
     archive.appendLe64(K_STORE_MAGIC);
-    archive.appendLe32(static_cast<uint32_t>(keys.size()));
+    archive.appendLe32(static_cast<uint32_t>(merged.size()));
     archive.appendLe32(0);
-    for (const Utf8& key : keys)
+    for (const EntryView& entry : merged)
     {
-        const auto& bytes = merged.at(key).bytes;
-        archive.append(key.view());
-        archive.appendLe32(static_cast<uint32_t>(bytes.size()));
+        archive.append(entry.key);
+        archive.appendLe32(static_cast<uint32_t>(entry.bytes.size()));
     }
-    for (const Utf8& key : keys)
-        archive.append(merged.at(key).bytes.span());
+    for (const EntryView& entry : merged)
+        archive.append(entry.bytes.span());
 
     // Retain this generation in memory before replacing the file. Releasing our
     // previous mappings lets the ordinary rename succeed when no other compiler
     // is still reading that generation. Outstanding reader records keep it alive.
     const auto published = std::make_shared<const ByteArray>(std::move(archive));
     archive_             = Archive::decode(Record{published, ByteView(published->span())});
-    merged.clear();
     FileSystem::IoErrorInfo error;
     if (published->size() <= K_MAX_ARCHIVE_SIZE && FileSystem::writeBinaryFileAtomic(path_, published->data(), published->size(), error, FileSystem::FileReplacement::Mapped) == Result::Continue)
     {
         pending_.clear();
         replace_ = false;
     }
+}
+
+std::vector<CompilerCacheStore::EntryView> CompilerCacheStore::mergeEntries(const Archive& archive, const Entries& pendingEntries)
+{
+    // Keep archived keys mapped and sort only the pending delta before the linear merge.
+    std::vector<const Entries::value_type*> pending;
+    pending.reserve(pendingEntries.size());
+    for (const auto& entry : pendingEntries)
+        pending.push_back(&entry);
+    std::ranges::sort(pending, [](const auto* left, const auto* right) { return left->first < right->first; });
+
+    std::vector<EntryView> merged;
+    merged.reserve(archive.offsets.size() + pending.size());
+    size_t archiveIndex = 0;
+    size_t pendingIndex = 0;
+    while (archiveIndex < archive.offsets.size() || pendingIndex < pending.size())
+    {
+        const size_t           archiveKeyOffset = K_HEADER_SIZE + archiveIndex * K_INDEX_ENTRY_SIZE;
+        const std::string_view archiveKey       = archiveIndex < archive.offsets.size()
+                                                      ? std::string_view(reinterpret_cast<const char*>(archive.record.bytes.data() + archiveKeyOffset), K_KEY_SIZE)
+                                                      : std::string_view{};
+        if (pendingIndex == pending.size() || (archiveIndex < archive.offsets.size() && archiveKey < pending[pendingIndex]->first.view()))
+        {
+            const uint32_t length = archive.record.bytes.readLe32(archiveKeyOffset + K_KEY_SIZE);
+            merged.push_back({archiveKey, ByteView(archive.record.bytes.span().subspan(archive.offsets[archiveIndex], length))});
+            ++archiveIndex;
+        }
+        else if (archiveIndex == archive.offsets.size() || pending[pendingIndex]->first.view() < archiveKey)
+        {
+            const auto& [key, record] = *pending[pendingIndex++];
+            merged.push_back({key.view(), record.bytes});
+        }
+        else
+        {
+            const auto& [key, record] = *pending[pendingIndex++];
+            merged.push_back({key.view(), record.bytes});
+            ++archiveIndex;
+        }
+    }
+    return merged;
+}
+
+bool CompilerCacheStore::measureExtent(const std::vector<EntryView>& entries, size_t& extent)
+{
+    extent = K_HEADER_SIZE;
+    for (const EntryView& entry : entries)
+    {
+        if (extent > K_MAX_ARCHIVE_SIZE - K_INDEX_ENTRY_SIZE || entry.bytes.size() > K_MAX_ARCHIVE_SIZE - extent - K_INDEX_ENTRY_SIZE)
+            return false;
+        extent += K_INDEX_ENTRY_SIZE + entry.bytes.size();
+    }
+    return true;
 }
 
 CompilerCacheStore::Archive CompilerCacheStore::load() const
@@ -215,18 +260,6 @@ CompilerCacheStore::Record CompilerCacheStore::Archive::read(const Utf8& key) co
             first = cursor + 1;
     }
     return {};
-}
-
-void CompilerCacheStore::Archive::appendTo(Entries& out) const
-{
-    out.reserve(out.size() + offsets.size());
-    for (size_t index = 0; index < offsets.size(); ++index)
-    {
-        const size_t keyOffset = K_HEADER_SIZE + index * K_INDEX_ENTRY_SIZE;
-        Utf8         key(std::string_view(reinterpret_cast<const char*>(record.bytes.data() + keyOffset), K_KEY_SIZE));
-        const auto   length = record.bytes.readLe32(keyOffset + K_KEY_SIZE);
-        out.insert_or_assign(std::move(key), Record{record.owner, ByteView(record.bytes.span().subspan(offsets[index], length))});
-    }
 }
 
 SWC_END_NAMESPACE();

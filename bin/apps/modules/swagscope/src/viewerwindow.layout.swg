@@ -237,7 +237,7 @@ impl ViewerWindow
             .updateFlags(.HotTrack | .Ellipsis)
             .scrollWnd.padding.x = 0
             .scrollWnd.padding.z = 0
-            .scrollWnd.updateFlags(.DisableHorizontal)
+            .scrollWnd.updateFlags(.DisableHorizontal | .CompactBars)
         }
 
         return list
@@ -355,6 +355,16 @@ impl ViewerWindow
             .dockStyle = .Center
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .Center)
+        }
+
+        with .folderFilterBox = EditBox.create(.folderPane, "", {0, 0, 0, compactSize})
+        {
+            .dockStyle = .Top
+            .margin    = {8, 4, 8, 4}
+            .setIcon(.theme().icon(.Search, themeRowIconSize(.themeMetrics())))
+            .setPlaceholder(appStrings().ui_FilterFiles)
+            .updateFlags(.ClearButton)
+            .sigTextChanged += func|window = me|(edit) { window.setFolderFilter(edit.text()) }
         }
 
         with .folderList = createFileList(.folderPane, rowIconSize)

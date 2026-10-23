@@ -130,11 +130,17 @@ Utf8 Symbol::toFamily() const
 {
     switch (kind_)
     {
+        case SymbolKind::Module: return "module";
         case SymbolKind::Namespace: return "namespace";
         case SymbolKind::Variable: return "variable";
         case SymbolKind::Constant: return "constant";
         case SymbolKind::Enum: return "enum";
         case SymbolKind::EnumValue: return "enum value";
+        case SymbolKind::Struct: return "struct";
+        case SymbolKind::Interface: return "interface";
+        case SymbolKind::Alias: return "alias";
+        case SymbolKind::Function: return "function";
+        case SymbolKind::Impl: return "implementation";
         default: return "symbol";
     }
 }

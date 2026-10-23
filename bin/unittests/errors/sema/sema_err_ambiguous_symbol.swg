@@ -11,7 +11,7 @@ func Amb(a: s32) { discard a }
 
 #test
 {
-    #assert(#nameof(Amb) == "Amb")     // swc-expected-error {{sema_err_ambiguous_symbol}}
+    #assert(#nameof(Amb) == "Amb")     // swc-expected-error {{ambiguous function name 'Amb'}}
 }
 
 namespace N
@@ -56,4 +56,12 @@ func DeclOnly(a: s32)
 #test
 {
     #assert(#nameof(DeclOnly) == "DeclOnly")     // swc-expected-error {{sema_err_ambiguous_symbol}}
+}
+
+func AmbiguousFamily() {}     // swc-expected-note {{could refer to a function 'AmbiguousFamily'}}
+func AmbiguousFamily(value: s32) { discard value }     // swc-expected-note {{could refer to a function 'AmbiguousFamily'}}
+
+#test
+{
+    #assert(#nameof(AmbiguousFamily) == "AmbiguousFamily")     // swc-expected-error {{ambiguous function name 'AmbiguousFamily'}}
 }

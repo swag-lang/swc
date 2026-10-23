@@ -25,16 +25,26 @@ public:
     static void                flushAll();
 
 private:
+    friend struct CompilerCacheStoreTestAccess;
+
     using Entries = std::unordered_map<Utf8, Record>;
+    struct EntryView
+    {
+        std::string_view key;
+        ByteView         bytes;
+    };
+
     struct Archive
     {
         Record                record;
         std::vector<uint32_t> offsets;
 
         Record         read(const Utf8& key) const;
-        void           appendTo(Entries& out) const;
         static Archive decode(Record record);
     };
+
+    static std::vector<EntryView> mergeEntries(const Archive& archive, const Entries& pending);
+    static bool                   measureExtent(const std::vector<EntryView>& entries, size_t& extent);
 
     explicit CompilerCacheStore(bool rebuild);
     Archive load() const;

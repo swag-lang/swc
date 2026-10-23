@@ -31,7 +31,7 @@ import winproc
 
 
 AVAILABLE_WORKLOADS = ["core_rebuild", "core_noop", "core_touch", "hello_build",
-                       "doc_std", "format_tree"]
+                       "core_delta", "doc_std", "format_tree"]
 
 
 def measure(workload, env, admit=None):
@@ -94,6 +94,7 @@ def main():
     ap.add_argument("--reps", type=int, default=5, help="rounds; every round measures every workload")
     ap.add_argument("--only", default="",
                     help="comma-separated workload ids (%s)" % ", ".join(AVAILABLE_WORKLOADS))
+    ap.add_argument("--machine-archive", help="seed core_delta with this machine-code archive")
     ap.add_argument("--swc-cores", type=int, default=0,
                     help="explicit compiler worker cap (default: compiler-selected)")
     ap.add_argument("--admit", action="store_true",
@@ -122,7 +123,7 @@ def main():
     plans = {}
     for tag, path in binaries:
         install = installs.beside(path, "compile_" + tag)
-        plans[tag] = tc.make_compiler_workloads(install, args.swc_cores, admit)
+        plans[tag] = tc.make_compiler_workloads(install, args.swc_cores, admit, machine_archive=args.machine_archive)
         if "hello_build" in ids:
             plans[tag]["hello_build"] = make_hello_workload(install, args.swc_cores)
     samples = {tag: {wid: [] for wid in ids} for tag, _ in binaries}

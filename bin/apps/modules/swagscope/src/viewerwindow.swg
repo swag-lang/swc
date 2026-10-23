@@ -78,6 +78,7 @@ struct ViewerWindow
         folderPane:          *Wnd
         folderHistoryButton: *IconButton
         folderLabel:         *Label
+        folderFilterBox:     *EditBox
         folderList:          *ListCtrl
     }
 
@@ -161,6 +162,7 @@ struct ViewerWindow
     playPauseKeyDown:    bool
     recent:              Array'String
     folderHistory:       Array'ViewerFolderHistory
+    folderFilter:        String
     preferences:         Array'ViewerPreference
     panelVisible:        bool
     recentPaneSize:      f32 = RecentHeight
@@ -948,6 +950,7 @@ impl ViewerWindow
         .filesButton.toolTip         = texts.ui_Files
         .kindButton.toolTip          = texts.ui_SameKind
         .folderHistoryButton.toolTip = texts.ui_FolderHistory
+        .folderFilterBox.setPlaceholder(texts.ui_FilterFiles)
         .recentClearButton.toolTip   = texts.ui_ClearHistory
         .viewerCombo.toolTip         = texts.ui_Viewer
         .searchPrevious.toolTip      = texts.ui_SearchPrevious

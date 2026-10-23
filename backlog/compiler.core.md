@@ -24,25 +24,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   inputs publishes new variants on every build (`lz77` release: archive 133 552, 139 986,
   149 665, 151 156, 158 489, 162 528 bytes over six builds); with one worker the second build hits
   every entry. `MachineCodeCache::inputKey` hashes the pre-optimization Micro stream, which
-  therefore depends on the order workers finish. Every miss republishes the whole shared archive
-  (compiler.core.086), so the archive grows across sessions and each build pays for it.
+  therefore depends on the order workers finish. Every miss republishes the whole shared archive,
+  so the archive grows across sessions and each build pays for it.
 - Next: dump the keys and their input streams for one function across two six-worker builds and
   find the first differing instruction or operand.
 - Done when: two six-worker builds of the same inputs produce the same keys, so the second build
   publishes nothing.
-- Related: compiler.core.086, compiler.core.085.
-
-### compiler.core.086 — Merge archive publications without rebuilding every key
-
-- Evidence: `CompilerCacheStore::Archive::appendTo` materializes a string and hash node for
-  every persisted record when publishing even a small set of new variants. The sorted mapped
-  index already provides the ordering needed to merge those records with pending writes.
-- Next: measure publication separately from lookup on a large working set, then merge the
-  sorted archive and pending records directly if that cost justifies the change.
-- Done when: publishing a small delta avoids per-existing-record key and hash-node allocations,
-  improves complete compilation on crowded archives, and preserves replacement, size-bound
-  eviction, corruption recovery, mapped readers and concurrent publication.
-
+- Related: compiler.core.085.
 
 ### compiler.core.085 — Build shared libraries to identical bytes
 

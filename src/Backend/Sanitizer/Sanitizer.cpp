@@ -348,7 +348,7 @@ bool Sanitizer::run(std::span<SanitizerCheck* const> checks)
     headStateIndex_.assign(n, K_NO_STATE);
     headStateIndex_[0] = 0;
     SmallVector<uint32_t, 8> stateHeadIndices{0};
-    uint32_t numStates = 1;
+    uint32_t                 numStates = 1;
     for (uint32_t i = 1; i < n; i++)
     {
         const MicroControlFlowGraph::EdgeList& preds = cfg.predecessors(i);

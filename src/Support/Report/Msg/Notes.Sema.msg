@@ -65,7 +65,7 @@ SWC_DIAG_DEF(sema_note_not_viable, Note, "this candidate does not accept the cal
 SWC_DIAG_DEF(sema_note_auto_scope_hint, Note, "possible auto scope type: '{type}'")
 SWC_DIAG_DEF(sema_note_not_constant, Note, "'{sym}' is not a compile-time constant (it is {a-sym-fam})")
 SWC_DIAG_DEF(sema_note_not_constant, Note, "this subexpression is not a compile-time constant")
-SWC_DIAG_DEF(sema_note_compiler_only_symbol, Note, "compile-time-only symbol '{sym}' is declared here")
+SWC_DIAG_DEF(sema_note_compiler_only_symbol, Note, "compile-time-only {sym-fam} '{sym}' is declared here")
 SWC_DIAG_DEF(sema_note_too_many_overloads, Note, "... and {value} more overloads")
 SWC_DIAG_DEF(sema_note_spec_op_reserved, Note, "function names starting with 'op' followed by an uppercase letter are reserved for operator overloading")
 SWC_DIAG_DEF(sema_note_expected_signature, Note, "expected signature: '{value}'")

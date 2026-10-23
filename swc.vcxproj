@@ -134,6 +134,7 @@
         <ClCompile Include="src\Main\EditorService.cpp"/>
         <ClCompile Include="src\Support\Math\Sha256.cpp"/>
         <ClCompile Include="src\Unittest\ABI\Test.ABI.FFI.cpp"/>
+        <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CacheStore.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.ConstantManager.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandFormat.cpp"/>
         <ClCompile Include="src\Unittest\Compiler\Test.Compiler.CommandNew.cpp"/>

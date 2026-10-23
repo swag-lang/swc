@@ -27,6 +27,7 @@ struct AppStrings
     ui_ClearHistory:                   string = "Clear history"                               // Tooltip of the clear-history button.
     ui_ConfirmClearHistory:            string = "The whole file history will be cleared."     // Consequence stated before confirming that the recent list is emptied.
     ui_Folder:                         string = "Folder"                                      // Panel section listing the current folder, before one is open.
+    ui_FilterFiles:                    string = "Filter files by name"                       // Placeholder of the current-folder file filter.
     ui_FolderHistory:                  string = "Recent folders"                              // Tooltip of the folder-history menu button.
     ui_MenuLocate:                     string = "Show this file in its folder"                // Panel menu entry selecting the file in the system file explorer.
     ui_MenuOpenDefault:                string = "Open with default application"               // File menu entry launching the registered system handler.

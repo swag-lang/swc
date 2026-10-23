@@ -153,6 +153,7 @@ impl DateTime
     }
 
     // Returns the English name of `day`.
+    //
     // Panics when `day` is outside the supported range.
     func dayOfWeekName(day: DayOfWeek)->string
     {

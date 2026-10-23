@@ -23,8 +23,9 @@ struct Keyboard
 
 impl Keyboard
 {
-    // Sets whether `key` is down in the current state, for an input backend or a test harness
-    // that feeds keys itself. The previous state and the repeat timing are left untouched.
+    // Sets the current key state for an input backend or test harness.
+    //
+    // The previous state and repeat timing are left untouched.
     mtd setCurrentKeyState(key: Key, pressed: bool)
     {
         .currentState.setPressed(key, pressed)

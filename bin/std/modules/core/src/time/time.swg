@@ -117,6 +117,7 @@ func dateToTicks(year, month, day: u16)->Ticks
 }
 
 // Returns the Gregorian date that contains `ticks`, within years 1 through 9999.
+//
 // Panics when `ticks` exceeds the supported calendar range.
 func ticksToDate(ticks: Ticks)->{ year: u16, month: u16, day: u16 }
 {

@@ -26,3 +26,15 @@ For `core_rebuild`, the paired median candidate/baseline ratios were 0.861 for w
 for CPU time, 0.944 for commit peak, and 0.940 for working-set peak. For `hello_build`, they were
 0.992, 1.064, 1.008, and 1.001 respectively. Three rounds are an initial check, not a campaign
 wide result. Both workloads remain above their 250 MiB and 50 MiB working-set targets.
+
+## Incremental CodeGen payload lifetime check
+
+After the SSA change, both compilers were built from the same source revision. The candidate
+places trivial `CodeGenNodePayload` objects in an arena owned by the per-function `CodeGen` job;
+paused jobs retain that arena until they resume and finish. Three alternating six-worker
+`core_rebuild` rounds measured a 933.7 MiB candidate peak working set versus 940.6 MiB baseline,
+and a 953.1 MiB candidate peak commit versus 965.8 MiB baseline. Paired median candidate/baseline
+ratios were 0.837 wall time, 0.771 CPU time, 0.980 commit peak, and 0.986 working-set peak.
+The resident-memory reduction is modest, while the paired timing indicates no speed cost in this
+sample. This is an incremental check on the existing SSA candidate, not a fresh comparison against
+the original compiler or a campaign-wide result.

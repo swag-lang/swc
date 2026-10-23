@@ -10,6 +10,7 @@
 #include "Support/Core/PointerSet.h"
 #include "Support/Core/RefTypes.h"
 #include "Support/Core/Result.h"
+#include "Support/Memory/Arena.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -349,7 +350,15 @@ public:
         T*                         payload  = static_cast<T*>(payloads.find(nodeRef));
         if (!payload)
         {
-            payload  = ctx().allocate<T>();
+            if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
+            {
+                static_assert(std::is_trivially_destructible_v<T>);
+                payload = nodePayloadArena_.make<T>();
+            }
+            else
+            {
+                payload = ctx().allocate<T>();
+            }
             *payload = {};
             if constexpr (std::is_base_of_v<CodeGenNodePayload, T>)
                 mergeLoweringNodePayloadMetadata(*payload, queryNodeRef, nodeRef);
@@ -556,6 +565,8 @@ private:
 
     RefPointerMap<AstNodeRef> nodePayloads_;
     RefPointerMap<AstNodeRef> auxNodePayloads_;
+    // These payloads only serve this CodeGen job, including while it is paused.
+    Arena                     nodePayloadArena_{512};
 
     PointerMap<SymbolVariable, VariablePayloadState>        variablePayloads_;
     SmallVector<std::unique_ptr<VariablePayloadState[]>, 4> variablePayloadChunks_;

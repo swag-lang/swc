@@ -44,6 +44,13 @@ func fillMd5Pattern(buffer: [..] u8)
 
 #test
 {
+    var count: [2] u32 = [0xFFFFFFF0, 4]
+    Hash.addInputLength(&count, 0x1_0000_0003)
+    Swag.assert(count[0] == 8 and count[1] == 13)
+}
+
+#test
+{
     assertMd5("", "D41D8CD98F00B204E9800998ECF8427E")
     assertMd5("a", "0CC175B9C0F1B6A831C399E269772661")
     assertMd5("abc", "900150983CD24FB0D6963F7D28E17F72")

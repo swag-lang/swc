@@ -409,7 +409,7 @@ impl String
     {
         if not byteCount do
             return
-        Debug.safetyBoundCheck(byteIndex + byteCount <= .length, "index out of range")
+        Debug.safetyBoundCheck(byteIndex <= .length and byteCount <= .length - byteIndex, "index out of range")
         let buffer = .buffer!
         Memory.copyOverlapping(buffer + byteIndex, buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
         .length         -= byteCount

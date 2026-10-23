@@ -77,6 +77,25 @@ namespace
         return isCopyInstruction(inst, ops) && ops[0].reg == ops[1].reg && !(ops[0].reg.isInt() && ops[2].opBits == MicroOpBits::B32);
     }
 
+    bool hasForwardableVirtualCopy(const MicroSsaState& ssaState, const MicroStorage& storage, const MicroOperandStorage& operands)
+    {
+        for (const MicroSsaState::ValueInfo& valueInfo : ssaState.values())
+        {
+            if (!valueInfo.instRef.isValid())
+                continue;
+
+            const MicroInstr* inst = storage.ptr(valueInfo.instRef);
+            if (!inst)
+                continue;
+
+            const MicroInstrOperand* ops = inst->ops(operands);
+            if (ops && isForwardableVirtualCopy(*inst, ops))
+                return true;
+        }
+
+        return false;
+    }
+
     bool tryGetCanonicalReachingValue(CanonicalValue& outValue, const CanonicalValueContext& context, const std::vector<CanonicalValue>& canonicalValues, const std::vector<uint8_t>& canonicalFlags, MicroReg reg, MicroInstrRef instRef)
     {
         SWC_ASSERT(context.ssaState != nullptr);
@@ -285,9 +304,13 @@ Result MicroCopyEliminationPass::run(MicroPassContext& context)
     MicroSsaValueScratch& scratch         = *context.ssaValueScratch;
     auto&                 canonicalValues = scratch.canonicalValues;
     auto&                 canonicalFlags  = scratch.flags;
-    computeCanonicalValues(canonicalValues, canonicalFlags, *ssaState, storage, operands);
 
-    const bool rewroteUses = rewriteCanonicalUses(context.builder, *ssaState, canonicalValues, canonicalFlags, storage, operands);
+    bool rewroteUses = false;
+    if (!ssaState->phis().empty() || hasForwardableVirtualCopy(*ssaState, storage, operands))
+    {
+        computeCanonicalValues(canonicalValues, canonicalFlags, *ssaState, storage, operands);
+        rewroteUses = rewriteCanonicalUses(context.builder, *ssaState, canonicalValues, canonicalFlags, storage, operands);
+    }
 
     if (rewroteUses)
     {

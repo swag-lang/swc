@@ -76,6 +76,7 @@ impl Bundle
     // Loads the bytes of `name` from the first provider that owns it.
     //
     // The returned bytes are always owned by the caller, embedded content included.
+    // Disk names must be relative and cannot contain empty, `.` or `..` path segments.
     // Fails with [[Core.Errors.FileNotFoundError]] when no provider knows `name`, or
     // with the underlying filesystem error when a disk read goes wrong.
     mtd const load(name: string)->Array'u8 fail
@@ -151,6 +152,9 @@ impl Bundle
     // string when no folder does.
     private mtd const diskPath(name: string)->String
     {
+        if not isSafeDiskName(name) do
+            return ""
+
         for folder in .folders
         {
             let path = Path.combine(folder[], name)
@@ -159,6 +163,35 @@ impl Bundle
         }
 
         return ""
+    }
+
+    private func isSafeDiskName(name: string)->bool
+    {
+        if not name.count or not Path.isValidPathName(name) do
+            return false
+        if Path.isRooted(name) or name[name.count - 1] == '/' do
+            return false
+
+        var segmentBegin = 0'u64
+        for index in name.count
+        {
+            let c = name[index]
+            if c == '\\' do
+                return false
+            if c != '/' and index != name.count - 1 do
+                continue
+
+            let end     = c == '/' ? index : index + 1
+            let segment = name[segmentBegin until end]
+            if not segment.count or
+               segment == "." or
+               segment == ".." or
+               not Path.isValidFileName(segment) do
+                return false
+            segmentBegin = index + 1
+        }
+
+        return true
     }
 
     private mtd const findEmbedded(name: string)->const *EmbeddedResource?

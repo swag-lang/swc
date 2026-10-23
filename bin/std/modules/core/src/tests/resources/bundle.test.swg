@@ -131,3 +131,24 @@ const EmbeddedOther = [111'u8, 107]
     Swag.assert(names.count == 1)
     Swag.assert(names[0] == "lang/fr.tweak")
 }
+
+// Disk resource names cannot escape their registered folder through parent segments.
+#test
+{
+    let root    = CoreTests.makeFilesystemTestPath("core_bundle_containment")
+    let outside = Format.toString("%-outside.txt", root.toString())
+    expect Directory.create(root)
+    defer discard catch Directory.delete(root, recurse: true)
+    defer discard catch File.delete(outside.toString())
+    discard expect File.writeAllText(outside.toString(), "outside")
+
+    let name = Format.toString("../%", Path.fileName(outside.toString()) orelse "")
+
+    var bundle: Resources.Bundle
+    bundle.addFolder(root.toString())
+    Swag.assert(not bundle.has(name.toString()) and not bundle.isOverridden(name.toString()))
+
+    var errorOutcome: Swag.Error
+    discard catch bundle.load(name.toString()) as &errorOutcome
+    Swag.assert(errorOutcome.value() is Errors.FileNotFoundError)
+}

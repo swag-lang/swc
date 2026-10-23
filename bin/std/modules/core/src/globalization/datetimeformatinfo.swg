@@ -55,7 +55,9 @@ public impl DateTimeFormatInfo
 
     internal mtd const matches(pattern: string, index: u64, token: string)->bool
     {
-        if index + token.count > pattern.count do
+        if index > pattern.count do
+            return false
+        if token.count > pattern.count - index do
             return false
         let patternToken  = cast(const [..] u8, pattern[index until index + token.count])
         let expectedToken = cast(const [..] u8, token)

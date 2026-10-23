@@ -431,10 +431,10 @@ namespace
         // a sweep; runPass invalidates it as soon as any transform mutates IR.
         if (useSharedSsa)
         {
-            // Retain the large analysis buffers across functions on this worker.
-            // clear() drops all function-specific state before a new pipeline reads it.
+            // Reuse analysis buffers across similar functions, but discard an
+            // outlier before a much smaller function's optimization starts.
             thread_local MicroSsaState ssaState;
-            ssaState.clear();
+            ssaState.clear(static_cast<uint32_t>(context.instructions->slotCount()));
             context.ssaState = &ssaState;
         }
 

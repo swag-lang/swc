@@ -60,14 +60,21 @@ func set(dest: [*] void, value: u8, size: u64)
 
 // Rounds `value` up to a multiple of `alignment`, which must be a power of two.
 //
-// An alignment of zero uses the native pointer alignment.
+// An alignment of zero uses the native pointer alignment. Panics if the rounded value cannot fit
+// in `u64`.
 #[Inline]
 func align(value: u64, alignment: u32)->u64
 {
     Swag.assert(not alignment or not (alignment & (alignment - 1)), "alignment must be a power of two")
     let effectiveAlignment = alignment != 0 ? alignment : cast(u32, #sizeof(*void))
-    let mask = cast(u64, effectiveAlignment) - 1
-    return (value + mask) & ~mask
+    let mask      = cast(u64, effectiveAlignment) - 1
+    let remainder = value & mask
+    if not remainder do
+        return value
+
+    let increment = cast(u64, effectiveAlignment) - remainder
+    Swag.assert(value <= Swag.U64.Max - increment, "aligned value exceeds addressable range")
+    return value + increment
 }
 
 // Rounds `value` up to an address that is a multiple of `alignment`, which must be a power of two.

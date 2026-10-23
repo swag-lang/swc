@@ -51,6 +51,14 @@ func pushAllocatorAcceptsNull()->bool
 
 #test
 {
+    Swag.assert(Memory.align(Swag.U64.Max - 7, 8) == Swag.U64.Max - 7)
+    let result = Swag.catchPanic(func||() { discard Memory.align(Swag.U64.Max, 8) })
+    Swag.assert(result.raised)
+    Swag.assert(result.message() == "aligned value exceeds addressable range")
+}
+
+#test
+{
     Swag.assert(Swag.getContext().allocator != null)
     Swag.assert(pushAllocatorAcceptsNull())
     Swag.assert(Swag.getContext().allocator != null)

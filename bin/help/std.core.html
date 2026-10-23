@@ -22111,9 +22111,9 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">update</span>(data: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_align" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.align</span> <a class="api-item-permalink" href="#Core_Memory_align" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L65">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_align" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.align</span> <a class="api-item-permalink" href="#Core_Memory_align" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L66">src</a></div>
 <p>Rounds <span class="code-inline">value</span> up to a multiple of <span class="code-inline">alignment</span>, which must be a power of two.</p>
-<p>An alignment of zero uses the native pointer alignment.</p>
+<p>An alignment of zero uses the native pointer alignment. Panics if the rounded value cannot fit in <span class="code-inline">u64</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[Inline]</span>
 <span class="SKwd">func</span> <span class="SFct">align</span>(value: <span class="STpe">u64</span>, alignment: <span class="STpe">u32</span>)-&gt;<span class="STpe">u64</span></span></div>
 <p>Rounds <span class="code-inline">value</span> up to an address that is a multiple of <span class="code-inline">alignment</span>, which must be a power of two.</p>
@@ -22216,7 +22216,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
              loc = <span class="SCmp">#callerlocation</span>)-&gt;[*] <span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_releaseTemporaryAllocations" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.releaseTemporaryAllocations</span> <a class="api-item-permalink" href="#Core_Memory_releaseTemporaryAllocations" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L78">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_releaseTemporaryAllocations" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.releaseTemporaryAllocations</span> <a class="api-item-permalink" href="#Core_Memory_releaseTemporaryAllocations" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L85">src</a></div>
 <p>Releases every allocation owned by the context's temporary allocator.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">releaseTemporaryAllocations</span>()</span></div>
 </section>
@@ -22233,13 +22233,13 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tempAlloc</span>(size: <span class="STpe">u64</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;[*] <span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_withAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.withAllocator</span> <a class="api-item-permalink" href="#Core_Memory_withAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L85">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_withAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.withAllocator</span> <a class="api-item-permalink" href="#Core_Memory_withAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L92">src</a></div>
 <p>Runs <span class="code-inline">stmt</span> with <span class="code-inline">allocator</span> installed as the context allocator, then restores the previous context.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">withAllocator</span>(allocator: <span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>?, stmt: <span class="SItr">#code</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_withTemporaryAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.withTemporaryAllocator</span> <a class="api-item-permalink" href="#Core_Memory_withTemporaryAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L99">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_withTemporaryAllocator" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.withTemporaryAllocator</span> <a class="api-item-permalink" href="#Core_Memory_withTemporaryAllocator" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/memory.swg#L106">src</a></div>
 <p>Runs <span class="code-inline">stmt</span> with the temporary allocator installed as the context allocator, then restores the previous context.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Macro]</span>
 <span class="SKwd">func</span> <span class="SFct">withTemporaryAllocator</span>(stmt: <span class="SItr">#code</span>)</span></div>

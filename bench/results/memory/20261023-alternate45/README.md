@@ -38,3 +38,10 @@ ratios were 0.837 wall time, 0.771 CPU time, 0.980 commit peak, and 0.986 workin
 The resident-memory reduction is modest, while the paired timing indicates no speed cost in this
 sample. This is an incremental check on the existing SSA candidate, not a fresh comparison against
 the original compiler or a campaign-wide result.
+
+Rejected follow-up: moving object-file buffers from `NativeObjDescription` into the prepared
+`LinkJob` removed the copy in `collectArchiveMembers` by construction, but five alternating
+six-worker `core_rebuild` rounds measured no process-peak reduction: maximum working set was
+934.2 MiB baseline and 933.7 MiB candidate, and peak commit was 953.1 and 953.4 MiB. Paired median
+ratios were 1.054 wall time, 1.008 CPU time, and 1.000 for both memory measures. The source change
+was reverted because it did not improve the campaign's peak-memory target.

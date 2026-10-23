@@ -422,7 +422,7 @@ private impl Panel
             {
                 item.colorBk = .themeColors().edit_SelectedBk
                 item.colorFg = .themeColors().label_Text
-                if .searchLength and .searchOffset + .searchLength <= value.count
+                if .searchLength and Viewer.isByteRangeInBounds(value.count, .searchOffset, .searchLength)
                 {
                     let markedStart = Math.max(.searchOffset, range.start)
                     let markedEnd   = Math.min(.searchOffset + .searchLength, range.end)
@@ -506,7 +506,7 @@ impl Panel
             return false
 
         let value = .document.rows[.searchRow].cells[.searchColumn].toString()
-        if .searchOffset + .searchLength > value.count do
+        if not Viewer.isByteRangeInBounds(value.count, .searchOffset, .searchLength) do
             return false
 
         let range       = cellPreviewRange(value, .searchOffset)

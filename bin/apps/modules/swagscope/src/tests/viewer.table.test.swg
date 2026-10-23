@@ -5,6 +5,14 @@ using Core, Pixel, Gui, Viewers
 
 #test
 {
+    Swag.assert(Viewer.isByteRangeInBounds(4, 0, 4))
+    Swag.assert(Viewer.isByteRangeInBounds(4, 4, 0))
+    Swag.assert(not Viewer.isByteRangeInBounds(4, Swag.U64.Max, 1))
+    Swag.assert(not Viewer.isByteRangeInBounds(4, 1, Swag.U64.Max))
+}
+
+#test
+{
     Table.registerTexts(&g_App)
 
     const Source = "name;note;value\r\nalpha;\"two; parts\";1\r\nbeta;\"two\"\" quotes\";2\r\ngamma;\"two\r\nlines\";3\r\n"
@@ -71,6 +79,9 @@ using Core, Pixel, Gui, Viewers
                 view.searchLength == 5)
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds(matches[0], &bounds) and not bounds.isEmpty())
+    view.searchOffset = Swag.U64.Max
+    view.searchLength = 1
+    Swag.assert(not result.searchBounds(matches[0], &bounds))
     result.clearSearch()
     Swag.assert(not result.searchBounds(matches[0], &bounds))
 }

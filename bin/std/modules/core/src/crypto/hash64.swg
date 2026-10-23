@@ -67,5 +67,5 @@ public func(T) hash64(value: T)->u64
     elif Reflection.isInteger(T) do
         return murmur3(cast(u64, value))
     else do
-        return 0
+        return murmur3(cast(const [*] u8, &value), #sizeof(T), 0)
 }

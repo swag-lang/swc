@@ -107,5 +107,5 @@ public func(T) hash32(value: T)->u32
     elif #sizeof(T) == 4 do
         return murmur3(cast #bit (u32, value))
     else do
-        return 0
+        return hashBytes32(Swag.makeSlice(cast(const [*] u8, &value), #sizeof(T)))
 }

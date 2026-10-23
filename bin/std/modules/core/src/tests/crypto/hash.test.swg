@@ -82,6 +82,9 @@ const EXPECTED_BOTH_HASH64    = 0x0123_4567_DEAD_BEF6'u64
 
     Swag.assert(Hash.hash32(bothHash) == EXPECTED_BOTH_HASH32)
     Swag.assert(Hash.hash64(bothHash) == EXPECTED_BOTH_HASH64)
+
+    Swag.assert(Hash.hash32(false) != Hash.hash32(true))
+    Swag.assert(Hash.hash64(false) != Hash.hash64(true))
 }
 
 #assert(Hash.hashBytes32("abc") == Hash.hashBytes32("abc"))

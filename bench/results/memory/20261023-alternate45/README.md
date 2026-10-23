@@ -90,8 +90,8 @@ not improve, the source change was reverted.
 Rejected follow-up: the per-worker SSA propagation scratch temporarily cleared its known-value,
 canonical-value, flags, and erase vectors at every function boundary, releasing their capacities
 after an outlier function when any exceeded twice the next function's instruction-slot count (with
-a 4096-entry floor). Three alternating six-worker `core_rebuild` pairs did not reduce process
+a 4096-entry floor). Six alternating six-worker `core_rebuild` pairs did not reduce process
 peaks: maximum working set was 923.7 MiB candidate and 921.7 MiB baseline; peak commit was 943.6
-MiB candidate and 941.2 MiB baseline. Paired median candidate/baseline ratios were 0.618 wall,
-0.629 CPU, 1.007 commit, and 1.011 working set. Timing varied widely across pairs, and neither
+MiB candidate and 941.2 MiB baseline. Paired median candidate/baseline ratios were 1.137 wall,
+1.139 CPU, 1.008 commit, and 1.005 working set. Timing varied widely across pairs, and neither
 memory measure improved, so the change was reverted.

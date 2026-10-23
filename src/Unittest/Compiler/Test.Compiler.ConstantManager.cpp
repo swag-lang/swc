@@ -630,8 +630,8 @@ SWC_TEST_END()
 
 SWC_TEST_BEGIN(ConstantManager_RelocationWalkHandlesTableGrowth)
 {
-    ConstantManager                 manager;
-    auto&                           segment = manager.shardDataSegment(0);
+    ConstantManager                  manager;
+    auto&                            segment = manager.shardDataSegment(0);
     std::array<DataSegmentRef, 4096> roots;
     for (DataSegmentRef& root : roots)
         root = {.shardIndex = 0, .offset = segment.reserveSpan<uint64_t>(1).first};

@@ -136,9 +136,9 @@ bool MicroBuilder::invalidateRelocationForInstruction(MicroInstrRef instructionR
         if (reloc.instructionRef != instructionRef)
             continue;
 
-        reloc.instructionRef = MicroInstrRef::invalid();
+        reloc.instructionRef   = MicroInstrRef::invalid();
         hasRelocationsToPrune_ = true;
-        changed              = true;
+        changed                = true;
     }
 
     return changed;
@@ -146,7 +146,7 @@ bool MicroBuilder::invalidateRelocationForInstruction(MicroInstrRef instructionR
 
 bool MicroBuilder::pruneDeadRelocations()
 {
-    const auto removed = std::erase_if(relocations_, [this](const MicroRelocation& reloc) {
+    const auto removed     = std::erase_if(relocations_, [this](const MicroRelocation& reloc) {
         return !instructions_.ptr(reloc.instructionRef);
     });
     hasRelocationsToPrune_ = false;

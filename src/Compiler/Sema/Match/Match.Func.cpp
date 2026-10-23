@@ -2520,7 +2520,7 @@ namespace
 
     Result raiseAmbiguousBest(Sema& sema, AstNodeRef calleeRef, const SmallVector<const Attempt*>& viable, const Candidate& best, AstNodeRef ufcsArg)
     {
-        ReceiverConstnessCache receiverConstness;
+        ReceiverConstnessCache     receiverConstness;
         SmallVector<const Symbol*> ambiguousSymbols;
         for (const Attempt* a : viable)
         {
@@ -2558,8 +2558,8 @@ namespace
         if (viable.empty())
             return raiseNoSelection(sema, nodeCallee, functions, attempts, args, ufcsArg);
 
-        outSelected    = viable[0];
-        bool ambiguous = false;
+        outSelected                      = viable[0];
+        bool                   ambiguous = false;
         ReceiverConstnessCache receiverConstness;
 
         for (size_t i = 1; i < viable.size(); ++i)

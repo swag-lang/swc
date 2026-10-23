@@ -200,7 +200,7 @@ void Sanitizer::computeFunctionProperties()
         const MicroInstr& inst = *context_.instructions->ptr(cfg_->instructionRefs()[i]);
         needsReleaseProvenance_ |= inst.op == MicroInstrOpcode::SanityRelease;
         hasMoveInvalidation_ |= inst.op == MicroInstrOpcode::SanityInvalidate;
-        const MicroInstrDef&     def = MicroInstr::info(inst.op);
+        const MicroInstrDef& def = MicroInstr::info(inst.op);
         hasCall_ |= def.flags.has(MicroInstrFlagsE::IsCallInstruction);
         const MicroInstrOperand* ops = inst.numOperands ? inst.ops(*context_.operands) : nullptr;
         if (!ops)

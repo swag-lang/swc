@@ -12,8 +12,8 @@
 #include "Compiler/Sema/Symbol/Symbols.h"
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
-#include "Support/Core/DataSegment.h"
 #include "Support/Core/ByteArray.h"
+#include "Support/Core/DataSegment.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 

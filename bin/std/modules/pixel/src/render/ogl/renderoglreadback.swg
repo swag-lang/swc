@@ -114,9 +114,10 @@ impl RenderOglReadback
         else
         {
             .drawing = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)
-            .failed = .drawing == null
+            .failed  = .drawing == null
             glFlush()
         }
+
         return not .failed
     }
 

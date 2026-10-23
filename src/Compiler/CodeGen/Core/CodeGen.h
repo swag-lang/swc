@@ -568,7 +568,7 @@ private:
     RefPointerMap<AstNodeRef> nodePayloads_;
     RefPointerMap<AstNodeRef> auxNodePayloads_;
     // These payloads only serve this CodeGen job, including while it is paused.
-    Arena                     nodePayloadArena_{512};
+    Arena nodePayloadArena_{512};
 
     PointerMap<SymbolVariable, VariablePayloadState>        variablePayloads_;
     SmallVector<std::unique_ptr<VariablePayloadState[]>, 4> variablePayloadChunks_;

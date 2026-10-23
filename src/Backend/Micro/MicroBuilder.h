@@ -53,28 +53,28 @@ public:
     MicroOperandStorage&       operands() { return operands_; }
     const MicroOperandStorage& operands() const { return operands_; }
 
-    Utf8                                                       formatInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
-    void                                                       printInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
-    void                                                       setFlags(MicroBuilderFlags flags) { flags_ = flags; }
-    MicroBuilderFlags                                          flags() const { return flags_; }
-    bool                                                       hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
-    void                                                       setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
-    const SourceCodeRef&                                       currentDebugSourceCodeRef() const { return currentDebugSourceInfo_.sourceCodeRef; }
-    void                                                       setCurrentDebugNoStep(bool value);
-    bool                                                       currentDebugNoStep() const { return currentDebugSourceInfo_.debugNoStep; }
-    void                                                       setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
-    bool                                                       hasPrintPassOptions() const { return !printPassOptions_.empty(); }
-    void                                                       setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
-    const Runtime::BuildCfgBackend&                            backendBuildCfg() const { return backendBuildCfg_; }
-    void                                                       setRetUsesAbiRegs(bool usesIntReturnReg, bool usesFloatReturnReg);
-    bool                                                       usesIntReturnRegOnRet() const { return usesIntReturnRegOnRet_; }
-    bool                                                       usesFloatReturnRegOnRet() const { return usesFloatReturnRegOnRet_; }
-    void                                                       setPrintSymbol(const Symbol* symbol) { printSymbol_ = symbol; }
-    void                                                       releaseMemory();
-    Utf8                                                       printSymbolName() const;
-    Utf8                                                       printFilePath() const;
-    uint32_t                                                   printSourceLine() const;
-    void                                                       clearRelocations()
+    Utf8                            formatInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    void                            printInstructions(MicroRegPrintMode regPrintMode = MicroRegPrintMode::Default, const Encoder* encoder = nullptr) const;
+    void                            setFlags(MicroBuilderFlags flags) { flags_ = flags; }
+    MicroBuilderFlags               flags() const { return flags_; }
+    bool                            hasFlag(MicroBuilderFlagsE flag) const { return flags_.has(flag); }
+    void                            setCurrentDebugSourceCodeRef(const SourceCodeRef& sourceCodeRef);
+    const SourceCodeRef&            currentDebugSourceCodeRef() const { return currentDebugSourceInfo_.sourceCodeRef; }
+    void                            setCurrentDebugNoStep(bool value);
+    bool                            currentDebugNoStep() const { return currentDebugSourceInfo_.debugNoStep; }
+    void                            setPrintPassOptions(std::span<const Utf8> options) { printPassOptions_.assign(options.begin(), options.end()); }
+    bool                            hasPrintPassOptions() const { return !printPassOptions_.empty(); }
+    void                            setBackendBuildCfg(const Runtime::BuildCfgBackend& value) { backendBuildCfg_ = value; }
+    const Runtime::BuildCfgBackend& backendBuildCfg() const { return backendBuildCfg_; }
+    void                            setRetUsesAbiRegs(bool usesIntReturnReg, bool usesFloatReturnReg);
+    bool                            usesIntReturnRegOnRet() const { return usesIntReturnRegOnRet_; }
+    bool                            usesFloatReturnRegOnRet() const { return usesFloatReturnRegOnRet_; }
+    void                            setPrintSymbol(const Symbol* symbol) { printSymbol_ = symbol; }
+    void                            releaseMemory();
+    Utf8                            printSymbolName() const;
+    Utf8                            printFilePath() const;
+    uint32_t                        printSourceLine() const;
+    void                            clearRelocations()
     {
         relocations_.clear();
         hasRelocationsToPrune_ = false;

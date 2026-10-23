@@ -3,14 +3,14 @@
 struct Trace
 {
     checksum: s64
-    calls: u64
+    calls:    u64
 }
 
 #[Swag.NoInline]
 func record(trace: *Trace, current, next: s64)
 {
     trace.checksum ^= current * 3 + next * 5
-    trace.calls += 1
+    trace.calls    += 1
 }
 
 #[Swag.Optimize(true), Swag.NoInline]
@@ -33,7 +33,7 @@ func advance(trace: *Trace, seed, steps: s64)->s64
         for steps in 0's64 to 64
         {
             var expected = Trace{}
-            var current = seed
+            var current  = seed
             for i in 0 until steps
             {
                 let next = current + i + 3

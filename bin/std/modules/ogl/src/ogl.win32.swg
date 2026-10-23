@@ -59,7 +59,7 @@ internal namespace PrivOgl
     }
 
     func wglGetCurrentContext()->HGLRC => PrivOgl.wglGetCurrentContext()
-    func wglGetCurrentDC()->HDC => PrivOgl.wglGetCurrentDC()
+    func wglGetCurrentDC()->HDC        => PrivOgl.wglGetCurrentDC()
 
     func wglMakeCurrent(hDc: HDC, hRc: HGLRC) fail
     {

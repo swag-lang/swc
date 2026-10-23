@@ -10,8 +10,8 @@ func reversePrefix(items: [*] u64, last: s64)
         let first = items[left]
         items[left]  = items[right]
         items[right] = first
-        left  += 1
-        right -= 1
+        left         += 1
+        right        -= 1
     }
 }
 
@@ -25,8 +25,8 @@ func reverseFromFirst(items: [*] u64)
         let first = items[left]
         items[left]  = items[right]
         items[right] = first
-        left  += 1
-        right -= 1
+        left         += 1
+        right        -= 1
     }
 }
 

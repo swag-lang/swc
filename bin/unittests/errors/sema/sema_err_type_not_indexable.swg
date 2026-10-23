@@ -26,6 +26,5 @@ struct(T) List
 #test
 {
     for value in {1.0, 2.0}     // swc-expected-error {{sema_err_type_not_indexable}}
-    {
-    }
+    {}
 }

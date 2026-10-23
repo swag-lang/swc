@@ -790,7 +790,7 @@ impl Surface
                                cast(s32, .presentationDirtyRect.right()), cast(s32, .presentationDirtyRect.bottom())}
         with var info: UPDATELAYEREDWINDOWINFO
         {
-            .cbSize   = #sizeof(UPDATELAYEREDWINDOWINFO)
+            .cbSize = #sizeof(UPDATELAYEREDWINDOWINFO)
 
             // Every frame names its position and size. Without them the call still succeeds,
             // but the compositor keeps showing the previous image.

@@ -3,6 +3,8 @@
 
 using Core, Gui
 
+internal func isByteRangeInBounds(count, offset, length: u64)->bool => offset <= count and length <= count - offset
+
 // Options shared by file-backed and plugin-owned text searches.
 struct SearchOptions
 {
@@ -264,7 +266,7 @@ func clearRichEditMatch(editor: *RichEditCtrl)
 // marker.
 func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string, offset, length: u64, result: *Math.Rectangle)->bool
 {
-    if offset + length > text.count do
+    if not isByteRangeInBounds(text.count, offset, length) do
         return false
 
     let slot = list.cellTextRect(index, column)

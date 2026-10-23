@@ -222,6 +222,9 @@ impl Array
     // Reallocates the buffer to `newCapacity` elements, relocating the existing ones.
     private mtd realloc(newCapacity: u64)
     {
+        if newCapacity > Swag.U64.Max / #sizeof(T) do
+            Swag.panic("Array capacity exceeds addressable memory", #curlocation)
+
         if not .allocator do
             .allocator = Swag.getContext().allocator
 
@@ -326,7 +329,7 @@ impl Array
     // Sets the capacity to at least `newCapacity`, keeping the elements already stored.
     //
     // Asking for a capacity of zero is the one exception: it releases the buffer and empties the
-    // array, which is what 'free' does.
+    // array, which is what 'free' does. A request that cannot fit in an addressable allocation panics.
     mtd reserve(newCapacity: u64)
     {
         if not newCapacity

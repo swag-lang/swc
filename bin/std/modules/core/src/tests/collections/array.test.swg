@@ -142,6 +142,14 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
     Swag.assert(values.count == 0)
 }
 
+#test
+{
+    var values: Array's32
+    let result = Swag.catchPanic(func|&values|() { values.reserve(Swag.U64.Max) })
+    Swag.assert(result.raised)
+    Swag.assert(result.message() == "Array capacity exceeds addressable memory")
+}
+
 // The collection protocol follows the language rule for scalar bindings: copy the value.
 #test
 {

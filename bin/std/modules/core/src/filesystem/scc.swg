@@ -287,48 +287,6 @@ private func findCodec(codecs: Array'ICodec, id: Guid128)->ICodec?
     return null
 }
 
-private func encodePayload(codecs: Array'ICodec, codecId: Guid128, source: const [..] u8)->Array'u8 fail
-{
-    if codecId.isNull()
-    {
-        var result: retval
-        result.add(source)
-        return result
-    }
-
-    if codecId == deflateCodecId()
-    {
-        var codec: Core.Compress.ZLib
-        return try codec.compress(source, .BestSpeed)
-    }
-
-    let codec = findCodec(codecs, codecId)
-    if not codec do
-        fail UnsupportedFormatError{"SCC has no encoder for the selected chunk codec"}
-    return try codec.encode(source)
-}
-
-private func decodePayload(codecs: Array'ICodec, info: const *ChunkInfo, source: const [..] u8)->Array'u8 fail
-{
-    if info.codecId.isNull()
-    {
-        var result: retval
-        result.add(source)
-        return result
-    }
-
-    if info.codecId == deflateCodecId()
-    {
-        var codec: Core.Compress.ZLib
-        return try codec.decompress(source, info.decodedSize)
-    }
-
-    let codec = findCodec(codecs, info.codecId)
-    if not codec do
-        fail UnsupportedFormatError{"SCC has no decoder for this chunk codec"}
-    return try codec.decode(source, info.decodedSize)
-}
-
 private func validateManifest(manifest: const *Manifest, chunks: const [..] ChunkInfo) fail
 {
     var chunkIds: HashSet'Guid128
@@ -401,6 +359,27 @@ impl Writer
     // Adds an independently addressable payload and returns its stable chunk identifier.
     mtd addChunk(source: const [..] u8, options: ChunkOptions)->Guid128 fail
     {
+        func encodePayload(codecs: Array'ICodec, codecId: Guid128, source: const [..] u8)->Array'u8 fail
+        {
+            if codecId.isNull()
+            {
+                var result: retval
+                result.add(source)
+                return result
+            }
+
+            if codecId == deflateCodecId()
+            {
+                var codec: Core.Compress.ZLib
+                return try codec.compress(source, .BestSpeed)
+            }
+
+            let codec = findCodec(codecs, codecId)
+            if not codec do
+                fail UnsupportedFormatError{"SCC has no encoder for the selected chunk codec"}
+            return try codec.encode(source)
+        }
+
         var id = options.id
         if id.isNull() do
             id = Guid128.random()
@@ -658,6 +637,27 @@ impl Reader
     // Reads, verifies, and decompresses one chunk into owned bytes.
     mtd readChunk(id: Guid128)->Array'u8 fail
     {
+        func decodePayload(codecs: Array'ICodec, info: const *ChunkInfo, source: const [..] u8)->Array'u8 fail
+        {
+            if info.codecId.isNull()
+            {
+                var result: retval
+                result.add(source)
+                return result
+            }
+
+            if info.codecId == deflateCodecId()
+            {
+                var codec: Core.Compress.ZLib
+                return try codec.decompress(source, info.decodedSize)
+            }
+
+            let codec = findCodec(codecs, info.codecId)
+            if not codec do
+                fail UnsupportedFormatError{"SCC has no decoder for this chunk codec"}
+            return try codec.decode(source, info.decodedSize)
+        }
+
         let info = .findChunk(id)
         if not info do
             fail BadParameterError{"SCC has no chunk with this identifier"}

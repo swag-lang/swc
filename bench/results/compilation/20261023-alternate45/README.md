@@ -21,3 +21,8 @@ profiling; every retained speed change has a structural proof.
 
 Prompt 4 makes no elapsed-time or memory claim. Prompt 5's measured before-and-after results are
 in the linked memory report.
+
+Rejected follow-up: a straight-line early return in branch simplification assumed that no labels
+and no conditional jumps ruled out every applicable transform. The C++ suite disproved that
+assumption: 1,624 tests passed, while three failed, including branchless condition-set fusion and
+dead-tail removal after `ret`. The guard was removed.

@@ -154,10 +154,13 @@ public impl Xml
         discard try .readStartTag()
     }
 
-    // Reads the tag that closes the document, which must match the opening one.
+    // Reads the matching root close tag and rejects non-whitespace data after it.
     mtd endRoot() fail
     {
         try .readEndTag()
+        .zapBlanks()
+        if .stream.position() != .stream.length() do
+            fail .getError("XML document has trailing data")
     }
 
     // Reads the start tag of the element `val` and fails when it names another element.

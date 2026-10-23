@@ -169,32 +169,6 @@ func windows1252Rune(value: u8)->rune
     return cast(rune, value)
 }
 
-// Reorders complete big-endian UTF-16 units into native little-endian storage.
-private func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
-{
-    const SwapBytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
-    var result: retval
-    result.resize(bytes.count / 2)
-    let source      = bytes.buffer
-    let destination = result.storage()
-    var offset      = 0'u64
-
-    while offset + 8 <= result.count
-    {
-        Math.Simd.store(destination + offset,
-                        cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes)))
-        offset += 8
-    }
-
-    while offset < result.count
-    {
-        destination[offset] = Math.make16(source[2 * offset], source[2 * offset + 1])
-        offset += 1
-    }
-
-    return result
-}
-
 // Reorders complete big-endian UTF-32 units into native little-endian rune storage.
 private func decodeUtf32BeRunes(bytes: const [..] u8)->Array'rune
 {
@@ -235,6 +209,32 @@ func decode(bytes: const [..] u8, encoding: Encoding)->String
 {
     if not bytes.count do
         return {}
+
+    // Reorders complete big-endian UTF-16 units into native little-endian storage.
+    func decodeUtf16BeUnits(bytes: const [..] u8)->Array'u16
+    {
+        const SwapBytes = cast(Math.Simd.U8x16, [1'u8, 0, 3, 2, 5, 4, 7, 6, 9, 8, 11, 10, 13, 12, 15, 14])
+        var result: retval
+        result.resize(bytes.count / 2)
+        let source      = bytes.buffer
+        let destination = result.storage()
+        var offset      = 0'u64
+
+        while offset + 8 <= result.count
+        {
+            Math.Simd.store(destination + offset,
+                            cast #bit(Math.Simd.U16x8, Math.Simd.shuffle(Math.Simd.load(source + 2 * offset), SwapBytes)))
+            offset += 8
+        }
+
+        while offset < result.count
+        {
+            destination[offset] = Math.make16(source[2 * offset], source[2 * offset + 1])
+            offset += 1
+        }
+
+        return result
+    }
 
     switch #complete encoding
     {

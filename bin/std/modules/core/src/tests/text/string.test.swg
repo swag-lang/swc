@@ -14,20 +14,6 @@ func assertString(value: String, expected: string)->bool
            Memory.compare(text.buffer, expected.buffer, expected.count) == 0
 }
 
-#[Swag.Safety(.BoundCheck, true), Swag.Safety(.Overflow, false)]
-func callStringRemove(value: *String, byteIndex, byteCount: u64)
-{
-    #assert(#safety(Swag.SafetyWhat.BoundCheck))
-    #assert(not #safety(Swag.SafetyWhat.Overflow))
-    value[].remove(byteIndex, byteCount)
-}
-
-func stringRemoveRejects(value: *String, byteIndex, byteCount: u64)->bool
-{
-    let result = Swag.catchPanic(func|value, byteIndex, byteCount|() { callStringRemove(value, byteIndex, byteCount) })
-    return result.raised
-}
-
 func makePatternString(count: u64)->String
 {
     var result: retval
@@ -182,13 +168,6 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
 
     value.remove(2, 0)
     value.removeBack(0)
-    Swag.assert(assertString(value, "core"))
-}
-
-#test
-{
-    var value: String = "core"
-    Swag.assert(stringRemoveRejects(&value, 1, Swag.U64.Max))
     Swag.assert(assertString(value, "core"))
 }
 

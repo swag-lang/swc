@@ -68,6 +68,13 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     return expected
 }
 
+#[Swag.Safety(.Overflow, false)]
+func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) fail
+{
+    #assert(not #safety(Swag.SafetyWhat.Overflow))
+    try sink.write(bytes)
+}
+
 // A file sink holds one window and produces exactly the stream that was written to it.
 #test
 {
@@ -100,6 +107,22 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     Swag.assert(actual.count == 6 + expected.count)
     Swag.assert(Slice.equals(actual.toSlice()[0 until 6], cast(const [..] u8, "prefix")))
     Swag.assert(Slice.equals(actual.toSlice()[6 until actual.count], expected.toSlice()))
+}
+
+// An unrepresentable position fails before the memory sink changes its buffer or cursor.
+#test
+{
+    var buffer: ConcatBuffer
+    buffer.addBytes("prefix")
+
+    var sink = ByteSink.createMemory(&buffer)
+    sink.written = Swag.U64.Max - 1
+
+    var overflowOutcome: Swag.Error
+    discard catch writeByteSinkAtOverflowingPosition(&sink, [0xAA'u8, 0xBB]) as &overflowOutcome
+    Swag.assert(overflowOutcome.value() is OverflowError)
+    Swag.assert(sink.position() == Swag.U64.Max - 1)
+    Swag.assert(buffer.toString() == "prefix")
 }
 
 // A struct is written as it is laid out, and a flush hands the window to the file without

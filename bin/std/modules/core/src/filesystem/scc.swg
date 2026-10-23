@@ -280,14 +280,6 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
     return result
 }
 
-private func decodeHeader(bytes: const [..] u8)->Header fail
-{
-    var decoder: Decoder'Read.TagBin
-    let decoded = try decoder.readAll'Header(bytes)
-    defer Memory.delete(decoded)
-    return #move decoded[]
-}
-
 private func findCodec(codecs: Array'ICodec, id: Guid128)->ICodec?
 {
     for codec in codecs where codec.id() == id do
@@ -515,6 +507,14 @@ impl Reader
     // Initializes this reader and reads only the SCC prefix and header.
     mtd initialize(fileName: string, limits: ReadLimits = {}) fail
     {
+        func decodeHeader(bytes: const [..] u8)->Header fail
+        {
+            var decoder: Decoder'Read.TagBin
+            let decoded = try decoder.readAll'Header(bytes)
+            defer Memory.delete(decoded)
+            return #move decoded[]
+        }
+
         .limits = limits
         .stream = try File.openRead(fileName)
 

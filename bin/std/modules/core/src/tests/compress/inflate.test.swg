@@ -241,6 +241,17 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     Swag.assert(decoded.isEmpty())
 }
 
+// A dynamic block cannot announce more than 286 literal/length codes.
+#test
+{
+    let tooManyCodes: [3] u8 = [0x05, 0xF8, 0x00]
+    var inflater:     Compress.Inflate
+    var decoded:      Array'u8
+    var errorOutcome: Swag.Error
+    catch inflater.decompress(&decoded, tooManyCodes) as &errorOutcome
+    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
+}
+
 // A stream may use no back-reference farther away than the window announced by its container.
 #test
 {

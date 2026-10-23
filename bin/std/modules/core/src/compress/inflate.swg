@@ -515,6 +515,9 @@ impl Inflate
                 let hlit  = .stream.readBitsUnchecked(5) + 257
                 let hdist = .stream.readBitsUnchecked(5) + 1
                 let hclen = .stream.readBitsUnchecked(4) + 4
+                if hlit > 286 do
+                    fail InvalidFormatError{"invalid code count"}
+
                 for i in hclen
                 {
                     let s = cast(u8, .stream.readBits(3))

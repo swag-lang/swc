@@ -3374,7 +3374,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_BitStream_isEof">BitStream.isEof</a></td><td><p>Returns whether a refill reached the end of the source.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Compress_BitStream_peekBits">BitStream.peekBits</a></td><td><p>Returns the next <span class="code-inline">width</span> bits without consuming them, refilling the bit buffer when needed.</p>
+<tr><td class="code-type"><a href="#Core_Compress_BitStream_peekBits">BitStream.peekBits</a></td><td><p>Returns up to 32 bits without consuming them, refilling the bit buffer when needed.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_BitStream_peekBitsUnchecked">BitStream.peekBitsUnchecked</a></td><td><p>Returns the next <span class="code-inline">width</span> bits without consuming them; the bit buffer must already hold them.</p>
 </td></tr>
@@ -9152,7 +9152,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_BitStream_isEof">isEof</a></td><td><p>Returns whether a refill reached the end of the source.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Compress_BitStream_peekBits">peekBits</a></td><td><p>Returns the next <span class="code-inline">width</span> bits without consuming them, refilling the bit buffer when needed.</p>
+<tr><td class="code-type"><a href="#Core_Compress_BitStream_peekBits">peekBits</a></td><td><p>Returns up to 32 bits without consuming them, refilling the bit buffer when needed.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Compress_BitStream_peekBitsUnchecked">peekBitsUnchecked</a></td><td><p>Returns the next <span class="code-inline">width</span> bits without consuming them; the bit buffer must already hold them.</p>
 </td></tr>
@@ -17755,7 +17755,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SFct">bytePosition</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_consumeBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.consumeBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_consumeBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L140">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_consumeBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.consumeBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_consumeBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L146">src</a></div>
 <p>Discards the next <span class="code-inline">width</span> buffered bits.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">consumeBits</span>(width: <span class="STpe">u8</span>)</span></div>
@@ -17767,7 +17767,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SFct">currentPointer</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_discardToNextByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.discardToNextByte</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_discardToNextByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L148">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_discardToNextByte" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.discardToNextByte</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_discardToNextByte" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L154">src</a></div>
 <p>Discards the buffered bits up to the next byte boundary.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">discardToNextByte</span>()</span></div>
@@ -17779,39 +17779,41 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">mtd</span> <span class="SFct">isEof</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_peekBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.peekBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_peekBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L107">src</a></div>
-<p>Returns the next <span class="code-inline">width</span> bits without consuming them, refilling the bit buffer when needed.</p>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_peekBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.peekBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_peekBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L109">src</a></div>
+<p>Returns up to 32 bits without consuming them, refilling the bit buffer when needed.</p>
+<p><span class="code-inline">width</span> must be at most 32 because the result is a <span class="code-inline">u32</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">peekBits</span>(width: <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_peekBitsUnchecked" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.peekBitsUnchecked</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_peekBitsUnchecked" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L115">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_peekBitsUnchecked" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.peekBitsUnchecked</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_peekBitsUnchecked" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L120">src</a></div>
 <p>Returns the next <span class="code-inline">width</span> bits without consuming them; the bit buffer must already hold them.</p>
+<p><span class="code-inline">width</span> must be at most 32 because the result is a <span class="code-inline">u32</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">peekBitsUnchecked</span>(width: <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_read32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.read32</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_read32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L176">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_read32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.read32</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_read32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L182">src</a></div>
 <p>Reads and consumes the next four bytes into <span class="code-inline">dest</span>, in stream order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read32</span>(dest: [*] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_read32Be" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.read32Be</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_read32Be" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L189">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_read32Be" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.read32Be</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_read32Be" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L195">src</a></div>
 <p>Reads and consumes the next four bytes as a big-endian 32-bit value stored at <span class="code-inline">dest</span> in native byte order.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">read32Be</span>(dest: [*] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_readBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.readBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_readBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L123">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_readBits" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.readBits</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_readBits" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L129">src</a></div>
 <p>Reads and consumes the next <span class="code-inline">width</span> bits, refilling the bit buffer when needed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Inline]</span>
 <span class="SKwd">mtd</span> <span class="SFct">readBits</span>(width: <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_readBitsUnchecked" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.readBitsUnchecked</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_readBitsUnchecked" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L131">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_readBitsUnchecked" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.readBitsUnchecked</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_readBitsUnchecked" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L137">src</a></div>
 <p>Reads and consumes the next <span class="code-inline">width</span> bits, which the bit buffer must already hold.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readBitsUnchecked</span>(width: <span class="STpe">u8</span>)-&gt;<span class="STpe">u32</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_readBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.readBytes</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_readBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L166">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_readBytes" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.readBytes</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_readBytes" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L172">src</a></div>
 <p>Reads and consumes the next <span class="code-inline">count</span> bytes into <span class="code-inline">dest</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">readBytes</span>(count: <span class="STpe">u8</span>, dest: [*] <span class="STpe">u8</span>)</span></div>
 </section>
@@ -17826,7 +17828,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">reset</span>(buffer: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Compress_BitStream_revert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.revert</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_revert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L157">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Compress_BitStream_revert" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">BitStream.revert</span> <a class="api-item-permalink" href="#Core_Compress_BitStream_revert" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/compress/bitstream.swg#L163">src</a></div>
 <p>Gives the whole bytes held in the bit buffer back to the source.</p>
 <p>The buffer must hold a whole number of bytes. Reading then resumes at the first byte not yet consumed, which <a href="#Core_Compress_BitStream_currentPointer">Core.Compress.BitStream.currentPointer</a> addresses.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">revert</span>()</span></div>
@@ -29310,7 +29312,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Compress.BitStream.currentPointer|Core_Compress_BitStream_currentPointer|Returns a borrowed pointer to the next source byte not yet loaded into the bit buffer.",
 "f|Core.Compress.BitStream.discardToNextByte|Core_Compress_BitStream_discardToNextByte|Discards the buffered bits up to the next byte boundary.",
 "f|Core.Compress.BitStream.isEof|Core_Compress_BitStream_isEof|Returns whether a refill reached the end of the source.",
-"f|Core.Compress.BitStream.peekBits|Core_Compress_BitStream_peekBits|Returns the next width bits without consuming them, refilling the bit buffer when needed.",
+"f|Core.Compress.BitStream.peekBits|Core_Compress_BitStream_peekBits|Returns up to 32 bits without consuming them, refilling the bit buffer when needed.",
 "f|Core.Compress.BitStream.peekBitsUnchecked|Core_Compress_BitStream_peekBitsUnchecked|Returns the next width bits without consuming them; the bit buffer must already hold them.",
 "f|Core.Compress.BitStream.read32|Core_Compress_BitStream_read32|Reads and consumes the next four bytes into dest, in stream order.",
 "f|Core.Compress.BitStream.read32Be|Core_Compress_BitStream_read32Be|Reads and consumes the next four bytes as a big-endian 32-bit value stored at dest in native byte order.",

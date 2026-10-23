@@ -71,7 +71,10 @@ impl ZLib
         let winSize = 1'u32 << (cinfo + 8)
 
         // FLG: the header check bits, the preset dictionary flag, and the informative level.
-        let flg   = bs.readU8()
+        let flg = bs.readU8()
+        if ((cast(u32, cmf) << 8) | cast(u32, flg)) % 31 do
+            fail InvalidFormatError{"invalid header"}
+
         let fdict = (flg >> 5) & 1
         if fdict do
             fail UnsupportedFormatError{"unsupported dictionary"}

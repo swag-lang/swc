@@ -102,18 +102,24 @@ impl BitStream
         }
     }
 
-    // Returns the next `width` bits without consuming them, refilling the bit buffer when needed.
+    // Returns up to 32 bits without consuming them, refilling the bit buffer when needed.
+    //
+    // `width` must be at most 32 because the result is a `u32`.
     #[Swag.Inline]
     mtd peekBits(width: u8)->u32
     {
+        Swag.assert(width <= 32, "bit width exceeds 32 bits")
         if .numBits < width do
             .refill()
         return cast(u32, (.codeBuffer & ((1'u64 << width) - 1)))
     }
 
     // Returns the next `width` bits without consuming them; the bit buffer must already hold them.
+    //
+    // `width` must be at most 32 because the result is a `u32`.
     mtd peekBitsUnchecked(width: u8)->u32
     {
+        Swag.assert(width <= 32, "bit width exceeds 32 bits")
         Swag.assert(.numBits >= width)
         return cast(u32, (.codeBuffer & ((1'u64 << width) - 1)))
     }

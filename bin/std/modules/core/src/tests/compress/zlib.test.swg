@@ -85,6 +85,15 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     Swag.assert(badMethodResult.isEmpty())
     Swag.assert((errB is Errors.InvalidFormatError))
 
+    let badHeader:        [6] u8 = [0x78, 0x9D, 0, 0, 0, 0]
+    var badHeaderReader:  Compress.ZLib
+    var errHeaderOutcome: Swag.Error
+    var badHeaderResult:  #decltype(expect badHeaderReader.decompress(badHeader))
+    catch { badHeaderResult = try badHeaderReader.decompress(badHeader) } as &errHeaderOutcome
+    let errHeader = errHeaderOutcome.value()
+    Swag.assert(badHeaderResult.isEmpty())
+    Swag.assert(errHeader is Errors.InvalidFormatError)
+
     let dictionary:       [6] u8 = [0x78, 0x20, 0, 0, 0, 0]
     var dictionaryReader: Compress.ZLib
     var errCOutcome:      Swag.Error

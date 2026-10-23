@@ -3,6 +3,16 @@
 
 using Swag
 
+func callBitStreamPeek32(stream: *Compress.BitStream)
+{
+    discard stream.peekBits(33)
+}
+
+func callBitStreamPeekUnchecked32(stream: *Compress.BitStream)
+{
+    discard stream.peekBitsUnchecked(33)
+}
+
 #test
 {
     let input: [3] u8 = [0xCA, 0x74, 0x05]
@@ -23,6 +33,22 @@ using Swag
     Swag.assert(stream.readBits(8) == 0x05)
     Swag.assert(stream.currentPointer() == start + 3)
     Swag.assert(stream.isEof())
+}
+
+#test
+{
+    let input:  [5] u8 = [0x10, 0x20, 0x30, 0x40, 0x50]
+    var stream: Compress.BitStream
+    stream.reset(input)
+
+    let checked = Swag.catchPanic(func|&stream|() { callBitStreamPeek32(&stream) })
+    Swag.assert(checked.raised)
+    Swag.assert(checked.message() == "bit width exceeds 32 bits")
+
+    stream.refill()
+    let unchecked = Swag.catchPanic(func|&stream|() { callBitStreamPeekUnchecked32(&stream) })
+    Swag.assert(unchecked.raised)
+    Swag.assert(unchecked.message() == "bit width exceeds 32 bits")
 }
 
 #test

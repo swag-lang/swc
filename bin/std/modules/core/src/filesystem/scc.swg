@@ -281,7 +281,8 @@ private func validateManifest(manifest: const *Manifest, chunks: const [..] Chun
         chunkIds.add(chunk.id)
     }
 
-    var entryKinds: HashTable'(Guid128, EntryKind)
+    var entryKinds:  HashTable'(Guid128, EntryKind)
+    var entryParent: HashTable'(Guid128, Guid128)
     for entry in manifest.entries
     {
         if entry.id.isNull() or entryKinds.contains(entry.id) do
@@ -289,6 +290,7 @@ private func validateManifest(manifest: const *Manifest, chunks: const [..] Chun
         if entry.parentId == entry.id do
             fail InvalidFormatError{"SCC virtual entry cannot be its own parent"}
         entryKinds.add(entry.id, entry.kind)
+        entryParent.add(entry.id, entry.parentId)
         if not entry.primaryChunk.isNull() and not chunkIds.contains(entry.primaryChunk) do
             fail InvalidFormatError{"SCC virtual entry references an unknown primary chunk"}
         for chunkId in entry.variantChunks where not chunkIds.contains(chunkId) do
@@ -304,6 +306,30 @@ private func validateManifest(manifest: const *Manifest, chunks: const [..] Chun
             fail InvalidFormatError{"SCC virtual entry references an unknown parent"}
         if parent.value != .Directory do
             fail InvalidFormatError{"SCC virtual entry parent must be a directory"}
+    }
+
+    var visitState: HashTable'(Guid128, u8)
+    for entry in manifest.entries
+    {
+        var path: Array'Guid128
+        var current = entry.id
+        while not current.isNull()
+        {
+            let state = visitState.tryFind(current)
+            if state
+            {
+                if state.value == 1 do
+                    fail InvalidFormatError{"SCC virtual directory hierarchy contains a cycle"}
+                break
+            }
+
+            visitState.add(current, 1)
+            path.add(current)
+            current = entryParent.find(current).value
+        }
+
+        for id in path do
+            visitState.add(id, 2)
     }
 }
 

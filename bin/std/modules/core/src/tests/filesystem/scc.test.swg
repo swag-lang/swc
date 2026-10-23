@@ -216,3 +216,31 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     let bytes = expect File.readAllBytes(path)
     Swag.assert(Slice.equals(bytes.toSlice(), "keep me"))
 }
+
+// Cyclic virtual-directory parents are rejected before the destination is replaced.
+#test
+{
+    let path = CoreTests.makeFilesystemTestPath("core_scc_parent_cycle.tmp")
+    defer discard catch File.delete(path)
+    expect File.writeAllText(path, "keep me")
+
+    var first: Scc.Entry
+    first.id       = sccTestId("31f70d3c-9bca-45da-8778-31cb33af6342")
+    first.kind     = .Directory
+    first.parentId = sccTestId("a6e29ee0-9f62-4e9b-bb0c-63972f34bb33")
+
+    var second: Scc.Entry
+    second.id       = first.parentId
+    second.kind     = .Directory
+    second.parentId = first.id
+
+    var writer: Scc.Writer
+    writer.initialize(sccTestId("9bc2db82-bfb6-4b85-98b2-6090f870e3cf"))
+    writer.manifest().entries.add(first)
+    writer.manifest().entries.add(second)
+
+    var errorOutcome: Swag.Error
+    discard catch writer.saveAtomic(path) as &errorOutcome
+    Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
+    Swag.assert((expect File.readAllText(path)) == "keep me")
+}

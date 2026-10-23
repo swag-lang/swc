@@ -191,38 +191,38 @@ private func addCrcTypeIdentity(crc: u32, type: typeinfo?)
     g_HashCrcToType.add(crc, type)
 }
 
-private func registerStableTypeKeyNoLock(type: typeinfo)
-{
-    if type.kind != .Struct do
-        return
-
-    let key = attributeValue(type, Serialization.TypeKey, "name")
-    if key == null do
-        return
-
-    let stableKey = assume cast (string, key)
-    let existing  = g_HashKeyToType.tryFind(stableKey)
-    if not existing
-    {
-        g_HashKeyToType.add(stableKey, type)
-        return
-    }
-
-    // Reflection can expose the same logical type through distinct module-local
-    // descriptors. Prefer the descriptor registered most recently so an interface's
-    // runtime itable and the serialization registry agree by pointer identity.
-    if existing.value and existing.value.fullname == type.fullname
-    {
-        g_HashKeyToType.add(stableKey, type)
-        return
-    }
-
-    // Null is sticky: it records that two distinct logical types declared this key.
-    g_HashKeyToType.add(stableKey, null)
-}
-
 private func registerTypeNoLock(type: typeinfo?)->bool
 {
+    func registerStableTypeKeyNoLock(type: typeinfo)
+    {
+        if type.kind != .Struct do
+            return
+
+        let key = attributeValue(type, Serialization.TypeKey, "name")
+        if key == null do
+            return
+
+        let stableKey = assume cast (string, key)
+        let existing  = g_HashKeyToType.tryFind(stableKey)
+        if not existing
+        {
+            g_HashKeyToType.add(stableKey, type)
+            return
+        }
+
+        // Reflection can expose the same logical type through distinct module-local
+        // descriptors. Prefer the descriptor registered most recently so an interface's
+        // runtime itable and the serialization registry agree by pointer identity.
+        if existing.value and existing.value.fullname == type.fullname
+        {
+            g_HashKeyToType.add(stableKey, type)
+            return
+        }
+
+        // Null is sticky: it records that two distinct logical types declared this key.
+        g_HashKeyToType.add(stableKey, null)
+    }
+
     if not type do
         return false
 

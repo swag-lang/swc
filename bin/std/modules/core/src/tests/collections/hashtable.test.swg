@@ -237,6 +237,14 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     Swag.assert(table[74] == 740)
 }
 
+#test
+{
+    var table: HashTable'(s32, s32)
+    let result = Swag.catchPanic(func|&table|() { table.reserve(Swag.U64.Max) })
+    Swag.assert(result.raised)
+    Swag.assert(result.message() == "HashTable capacity exceeds addressable memory")
+}
+
 // A key or a value read from the table itself can be inserted back: growing rehashes the entries
 // they live in, so they are taken out first.
 #test

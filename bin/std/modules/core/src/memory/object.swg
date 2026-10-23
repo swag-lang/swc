@@ -3,6 +3,13 @@
 
 using Swag
 
+private func checkedArraySize(elementSize, count: u64, loc: Swag.SourceCodeLocation)->u64
+{
+    if elementSize and count > Swag.U64.Max / elementSize do
+        Swag.panic("memory region size exceeds addressable range", loc)
+    return elementSize * count
+}
+
 // Allocates a value of the runtime type `type` and default-initializes it.
 //
 // Panics when the type cannot be default-initialized.
@@ -59,28 +66,30 @@ func delete(ptr: *void?, type: typeinfo, allocator: IAllocator? = null, hint: st
 
 // Allocates `num` contiguous values of `T` and default-initializes them.
 //
-// `num` must not be zero.
+// `num` must not be zero. Panics if the total byte size exceeds the addressable range.
 func(T) new(num: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: string? = null, loc = #callerlocation)->[*] T
 {
     Swag.assert(num > 0)
 
-    let userHint = hint orelse #stringof(T)
-    let ptr      = cast([*] T, alloc(#sizeof(T) * num, allocator, alignment, userHint, loc))
+    let userHint  = hint orelse #stringof(T)
+    let byteCount = checkedArraySize(#sizeof(T), num, loc)
+    let ptr       = cast([*] T, alloc(byteCount, allocator, alignment, userHint, loc))
     Swag.init(ptr, num)
     return ptr
 }
 
 // Drops the `num` contiguous values at `ptr` and releases their storage.
 //
-// A null `ptr` does nothing.
+// A null `ptr` does nothing. Panics if the total byte size exceeds the addressable range.
 func(T) delete(ptr: [*] T?, num: u64, allocator: IAllocator? = null, hint: string? = null, loc = #callerlocation)
 {
     if not ptr do
         return
     Swag.assert(num > 0)
 
-    let userHint = hint orelse #stringof(T)
-    assertIsAllocated(ptr, #sizeof(T) * num, allocator, userHint, loc)
+    let userHint  = hint orelse #stringof(T)
+    let byteCount = checkedArraySize(#sizeof(T), num, loc)
+    assertIsAllocated(ptr, byteCount, allocator, userHint, loc)
     Swag.drop(ptr, num)
-    free(ptr, #sizeof(T) * num, allocator, userHint, loc)
+    free(ptr, byteCount, allocator, userHint, loc)
 }

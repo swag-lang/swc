@@ -22168,7 +22168,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span> <span class="SFct">copyOverlapping</span>(destination: [*] <span class="STpe">void</span>, source: <span class="SKwd">const</span> [*] <span class="STpe">void</span>, size: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_delete" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.delete</span> <a class="api-item-permalink" href="#Core_Memory_delete" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/object.swg#L33">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_delete" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.delete</span> <a class="api-item-permalink" href="#Core_Memory_delete" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/object.swg#L40">src</a></div>
 <p>Drops the value at <span class="code-inline">ptr</span> and releases its storage.</p>
 <p>The storage must come from <span class="code-inline">allocator</span>, or from the context allocator when it is null. A null <span class="code-inline">ptr</span> does nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">delete</span>(ptr: *<span class="SCst">T</span>?, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>, hint: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
@@ -22176,7 +22176,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <p>A null <span class="code-inline">ptr</span> does nothing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">delete</span>(ptr: *<span class="STpe">void</span>?, type: <span class="STpe">typeinfo</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>, hint: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 <p>Drops the <span class="code-inline">num</span> contiguous values at <span class="code-inline">ptr</span> and releases their storage.</p>
-<p>A null <span class="code-inline">ptr</span> does nothing.</p>
+<p>A null <span class="code-inline">ptr</span> does nothing. Panics if the total byte size exceeds the addressable range.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">delete</span>(ptr: [*] <span class="SCst">T</span>?, num: <span class="STpe">u64</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>, hint: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
@@ -22193,14 +22193,14 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">freeAll</span>(allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>?, hint: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Memory_new" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.new</span> <a class="api-item-permalink" href="#Core_Memory_new" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/object.swg#L9">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Memory_new" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Memory.new</span> <a class="api-item-permalink" href="#Core_Memory_new" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/memory/object.swg#L16">src</a></div>
 <p>Allocates a value of the runtime type <span class="code-inline">type</span> and default-initializes it.</p>
 <p>Panics when the type cannot be default-initialized.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">new</span>(type: <span class="STpe">typeinfo</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;*<span class="STpe">u8</span></span></div>
 <p>Allocates one value of <span class="code-inline">T</span> and default-initializes it.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">new</span>(allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;*<span class="SCst">T</span></span></div>
 <p>Allocates <span class="code-inline">num</span> contiguous values of <span class="code-inline">T</span> and default-initializes them.</p>
-<p><span class="code-inline">num</span> must not be zero.</p>
+<p><span class="code-inline">num</span> must not be zero. Panics if the total byte size exceeds the addressable range.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">new</span>(num: <span class="STpe">u64</span>, allocator: <span class="SCst"><a href="swag.runtime.html#Swag_IAllocator">IAllocator</a></span>? = <span class="SKwd">null</span>, alignment: <span class="STpe">u32</span> = <span class="SNum">0</span>, hint: <span class="STpe">string</span>? = <span class="SKwd">null</span>, loc = <span class="SCmp">#callerlocation</span>)-&gt;[*] <span class="SCst">T</span></span></div>
 </section>
 <section class="api-symbol">

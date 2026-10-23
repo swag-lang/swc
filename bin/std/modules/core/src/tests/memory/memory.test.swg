@@ -59,6 +59,20 @@ func pushAllocatorAcceptsNull()->bool
 
 #test
 {
+    let count     = Swag.U64.Max / #sizeof(s32) + 1
+    let allocated = Swag.catchPanic(func|count|() { discard Memory.new's32(count) })
+    Swag.assert(allocated.raised)
+    Swag.assert(allocated.message() == "memory region size exceeds addressable range")
+
+    let value = Memory.new's32()
+    defer Memory.delete(value)
+    let released = Swag.catchPanic(func|value, count|() { Memory.delete(value, count) })
+    Swag.assert(released.raised)
+    Swag.assert(released.message() == "memory region size exceeds addressable range")
+}
+
+#test
+{
     Swag.assert(Swag.getContext().allocator != null)
     Swag.assert(pushAllocatorAcceptsNull())
     Swag.assert(Swag.getContext().allocator != null)

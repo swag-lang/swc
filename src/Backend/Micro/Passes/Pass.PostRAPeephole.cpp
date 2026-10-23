@@ -388,6 +388,7 @@ namespace
             // Outgoing-call adjustments change the meaning of a displacement.
             // Give every access an address relative to the entry stack pointer
             // before deciding which stores and readers share a spill slot.
+            // An address-taken label makes every candidate opaque below.
             if (refs.empty() || !cfg.addressTakenLabelIndices().empty())
             {
                 anySlotOpaque = true;
@@ -543,8 +544,7 @@ namespace
             {
                 const MicroInstr* label = storage.ptr(refs[labelIndex]);
                 if (!label || label->op != MicroInstrOpcode::Label || cfg.predecessors(labelIndex).size() != 1 ||
-                    frameDepth[labelIndex] != frameDepth[storeIndex] ||
-                    std::ranges::find(cfg.addressTakenLabelIndices(), labelIndex) != cfg.addressTakenLabelIndices().end())
+                    frameDepth[labelIndex] != frameDepth[storeIndex])
                     continue;
                 const MicroInstr* targetFirst = storage.ptr(refs[labelIndex + 1]);
                 if (!targetFirst || targetFirst->op == MicroInstrOpcode::Label)

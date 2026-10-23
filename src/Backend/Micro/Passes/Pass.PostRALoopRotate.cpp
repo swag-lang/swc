@@ -711,9 +711,8 @@ namespace
             if (!tryGetJumpTargetLabelId(branchTarget, *branch, branchOps) ||
                 branchTarget == emptyId || branchTarget == matchId)
                 continue;
-            const auto addressTaken = cfg.addressTakenLabelIndices();
-            if (std::ranges::find(addressTaken, at - 2) != addressTaken.end() ||
-                std::ranges::find(addressTaken, at - 1) != addressTaken.end())
+            if (std::ranges::binary_search(cfg.addressTakenLabelIndices(), at - 2) ||
+                std::ranges::binary_search(cfg.addressTakenLabelIndices(), at - 1))
                 continue;
 
             // This rewrite removes matchLabel. Every explicit edge to it

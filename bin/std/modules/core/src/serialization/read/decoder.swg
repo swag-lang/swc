@@ -83,6 +83,12 @@ enum DecoderFlags
     IgnoreStructFieldError     // Skips a struct field that fails to decode, leaving it at its default value, instead of failing the read.
 }
 
+private struct DecodedInterfaceAllocation
+{
+    ptr:  *void
+    type: typeinfo
+}
+
 /*
 Decodes reflected Swag values through a format backend such as [[Core.Serialization.Read.TagBin]] or [[Core.Serialization.Read.Json]].
 
@@ -101,6 +107,12 @@ struct(T) Decoder
     {
         serializer: T     // Format backend.
         flags:      DecoderFlags = None     // Optional decoding behavior.
+    }
+
+    internal
+    {
+        readAllAllocations:      Array'DecodedInterfaceAllocation
+        trackReadAllAllocations: bool
     }
 }
 
@@ -195,6 +207,8 @@ impl Decoder
                     Memory.delete(obj, dynamicType)
 
                 try .readTypeValue(typeVal, obj)
+                if .trackReadAllAllocations do
+                    .readAllAllocations.add({ptr: obj, type: dynamicType})
                 itf.itable = Swag.tableOf(dynamicType, itfType)
                 itf.obj    = obj
                 decoded    = true
@@ -358,6 +372,21 @@ impl Decoder
     {
         Swag.assert(Reflection.isStruct(TR))
 
+        .readAllAllocations.clear()
+        .trackReadAllAllocations = true
+        var decoded = false
+        defer #fail
+        {
+            .trackReadAllAllocations = false
+            if not decoded
+            {
+                for &allocation in .readAllAllocations do
+                    Memory.delete(allocation.ptr, allocation.type)
+            }
+
+            .readAllAllocations.clear()
+        }
+
         try .start(input, TR)
 
         let val = Memory.new'TR()
@@ -366,6 +395,7 @@ impl Decoder
         try .readTypedContent(val, TR)
 
         try .end()
+        decoded = true
         return val
     }
 }

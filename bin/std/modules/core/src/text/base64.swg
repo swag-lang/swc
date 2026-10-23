@@ -3,22 +3,6 @@
 
 using Swag, Math
 
-// The sextet one text byte spells, 255 for a byte outside both alphabets.
-private func digitValue(value: u8)->u8
-{
-    if value >= 'A' and value <= 'Z' do
-        return value - 'A'
-    if value >= 'a' and value <= 'z' do
-        return value - 'a' + 26
-    if value >= '0' and value <= '9' do
-        return value - '0' + 52
-    if value == '+' or value == '-' do
-        return 62
-    if value == '/' or value == '_' do
-        return 63
-    return 255
-}
-
 private const EncodeGather  = cast(Simd.U8x16, [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80, 8, 7, 6, 0x80, 11, 10, 9, 0x80])
 private const DecodeScatter = cast(Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 
@@ -141,6 +125,22 @@ func decode(text: string)->Array'u8 fail
 {
     var result: retval
     result.reserve((text.count / 4 + 1) * 3 + 16)
+
+    // Returns the sextet a byte spells, or 255 for a byte outside both alphabets.
+    func digitValue(value: u8)->u8
+    {
+        if value >= 'A' and value <= 'Z' do
+            return value - 'A'
+        if value >= 'a' and value <= 'z' do
+            return value - 'a' + 26
+        if value >= '0' and value <= '9' do
+            return value - '0' + 52
+        if value == '+' or value == '-' do
+            return 62
+        if value == '/' or value == '_' do
+            return 63
+        return 255
+    }
 
     var digits: [4] u8
     var count = 0'u32

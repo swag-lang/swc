@@ -1263,7 +1263,7 @@ namespace PostRaPeephole
         // arithmetic instruction can carry it instead, but only when this is
         // the one ordinary rel32 relocation the memory form expects.
         MicroRelocation* loadRelocation = nullptr;
-        if ((base.isInstructionPointer() && !isFloat) || !findUniqueMemoryRelocation(ctx, loadRelocation, loadRef, base))
+        if (base.isInstructionPointer() && !isFloat)
             return false;
 
         // The integer rewrite is probed against the encoder before it lands.
@@ -1327,10 +1327,8 @@ namespace PostRaPeephole
         if (!opInst)
             return false;
 
-        if (loadRelocation)
-            for (const MicroRelocation& relocation : ctx.builder->codeRelocations())
-                if (&relocation != loadRelocation && relocation.instructionRef == opRef)
-                    return false;
+        if (!findUniqueMemoryRelocation(ctx, loadRelocation, loadRef, base, opRef))
+            return false;
 
         const MicroInstrOperand* consumerOps = ctx.operandsFor(opRef);
         if (!consumerOps)

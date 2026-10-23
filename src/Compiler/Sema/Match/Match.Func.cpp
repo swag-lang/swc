@@ -2195,6 +2195,21 @@ namespace
             const int receiverKindCmp = compareReceiverKind(a, b, ufcsArg);
             if (receiverKindCmp != 0)
                 return receiverKindCmp;
+
+            // When both candidates used the same call shape, the comparison above already
+            // compared every explicit-argument rank and the default/generic tie-breakers.
+            // Only a bound UFCS receiver rank remains to be compared in the full call shape.
+            if (a.ufcsUsed == b.ufcsUsed)
+            {
+                if (a.ufcsUsed)
+                {
+                    SWC_ASSERT(!a.perArg.empty() && !b.perArg.empty());
+                    if (a.perArg.front() != b.perArg.front())
+                        return a.perArg.front() < b.perArg.front() ? -1 : 1;
+                }
+
+                return compareReceiverConstness(sema, a, b, ufcsArg, receiverConstness);
+            }
         }
 
         const int cmp = compareCandidates(a, b);

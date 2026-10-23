@@ -5,7 +5,7 @@ using Swag
 
 #test
 {
-    let input: [4] u8 = [0x10, 0x20, 0x30, 0x40]
+    let input = [0x10'u8, 0x20, 0x30, 0x40]
 
     var stream = ByteStream.openRead(input)
     Swag.assert(stream.length() == 4)
@@ -195,8 +195,8 @@ using Swag
 // Oversized reads fail before touching the destination or advancing the cursor.
 #test
 {
-    let input: [4] u8 = [0x10, 0x20, 0x30, 0x40]
-    var stream        = ByteStream.openRead(input)
+    let input  = [0x10'u8, 0x20, 0x30, 0x40]
+    var stream = ByteStream.openRead(input)
     stream.setPosition(1)
 
     var byte: u8 = 0xA5

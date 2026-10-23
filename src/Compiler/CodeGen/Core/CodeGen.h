@@ -276,7 +276,7 @@ public:
     SemaNodeView view(AstNodeRef nodeRef, EnumFlags<SemaNodeViewPartE> part) { return sema().view(nodeRef, part); }
 
     AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) { return sema().resolvedNodeRef(nodeRef); }
-    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) const { return const_cast<CodeGen*>(this)->resolvedNodeRef(nodeRef); }
+    AstNodeRef resolvedNodeRef(AstNodeRef nodeRef) const { return sema().resolvedNodeRef(nodeRef); }
 
     SemaNodeView viewZero(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Zero); }
     SemaNodeView viewNode(AstNodeRef nodeRef) { return view(nodeRef, SemaNodeViewPartE::Node); }

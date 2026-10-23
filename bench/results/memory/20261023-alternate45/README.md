@@ -55,3 +55,18 @@ three alternating six-worker `core_rebuild` pairs did not reduce peak working se
 paired median ratios were highly variable: candidate/baseline 1.170 wall, 1.256 CPU, 0.987 commit,
 and 0.999 working set. With no resident-memory reduction and an inconclusive commit change, the
 scratch-release change was reverted rather than retain possible per-function reallocation cost.
+
+## Incremental ValueBorrow SSA lifetime check
+
+The value-borrow fast path keeps its own thread-local `MicroSsaState`. It previously called
+`clear()` without the next function's slot count, so it could not apply the existing outlier-release
+policy used by the shared pre-RA SSA state. The candidate passes the function's slot count to
+`clear`, preserving reuse for similarly sized functions and releasing an oversized state before a
+much smaller guarded function.
+
+Three alternating six-worker `core_rebuild` pairs compared the candidate with the same source
+revision before this change. Maximum working set was 923.1 MiB candidate and 942.1 MiB baseline;
+peak commit was 947.9 and 962.0 MiB. Paired median candidate/baseline ratios were 1.017 wall,
+1.035 CPU, 0.991 commit, and 0.979 working set. This initial check suggests about 19 MiB lower
+working-set peak, with a small and unconfirmed timing cost; it is incremental evidence, not a
+campaign-wide result.

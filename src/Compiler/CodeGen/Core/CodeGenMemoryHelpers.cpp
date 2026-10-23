@@ -7,6 +7,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenIntegerConversion.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -800,29 +801,9 @@ MicroReg CodeGenMemoryHelpers::materializeScalarPayloadForStore(CodeGen& codeGen
             return dstReg;
         }
 
-        const uint32_t srcWidth = getNumBits(srcOpBits);
-        const uint32_t dstWidth = getNumBits(dstOpBits);
-        const MicroReg dstReg   = codeGen.nextVirtualIntRegister();
-        if (srcWidth == dstWidth)
-        {
-            builder.emitLoadRegReg(dstReg, srcReg, dstOpBits);
-            return dstReg;
-        }
-
-        if (srcWidth > dstWidth)
-        {
-            builder.emitLoadRegReg(dstReg, srcReg, dstOpBits);
-            return dstReg;
-        }
-
-        if (srcType.isIntSigned())
-        {
-            builder.emitLoadSignedExtendRegReg(dstReg, srcReg, dstOpBits, srcOpBits);
-            return dstReg;
-        }
-
-        builder.emitLoadZeroExtendRegReg(dstReg, srcReg, dstOpBits, srcOpBits);
-        return dstReg;
+        MicroReg convertedReg = srcReg;
+        CodeGenIntegerConversion::convertOperand(codeGen, convertedReg, srcType, srcOpBits, dstOpBits);
+        return convertedReg;
     }
 
     if (srcIntLikeType && dstFloatType)

@@ -105,6 +105,26 @@ impl Bundle
     {
         var result: retval
 
+        // Converts an absolute enumerated path back to a `/`-separated resource name.
+        func relativeResourceName(root, fullName: string)->String
+        {
+            var result: retval
+
+            // The enumeration returns `root` verbatim as the path prefix. A root spelled with a
+            // trailing separator already ends with it; otherwise one follows it.
+            var relativeName = fullName
+            if fullName.count > root.count and Utf8.startsWith(fullName, root)
+            {
+                relativeName = fullName[root.count to]
+                if Path.isDirectorySeparator(relativeName[0]) do
+                    relativeName = relativeName[1 to]
+            }
+
+            result = relativeName
+            result.replace("\\", "/")
+            return result
+        }
+
         for folder in .folders
         {
             let files = catch Directory.enumerate(folder[], {recurse: true, wantDirectories: false}) as enumErr
@@ -149,24 +169,4 @@ impl Bundle
             return entry
         return null
     }
-}
-
-// Converts an absolute enumerated path back to a `/`-separated resource name.
-private func relativeResourceName(root: string, fullName: string)->String
-{
-    var result: retval
-
-    // The enumeration returns `root` verbatim as the path prefix. A root spelled with a
-    // trailing separator already ends with it; otherwise one follows it.
-    var relativeName = fullName
-    if fullName.count > root.count and Utf8.startsWith(fullName, root)
-    {
-        relativeName = fullName[root.count to]
-        if Path.isDirectorySeparator(relativeName[0]) do
-            relativeName = relativeName[1 to]
-    }
-
-    result = relativeName
-    result.replace("\\", "/")
-    return result
 }

@@ -75,6 +75,19 @@ using Swag
 
 #test
 {
+    let input = [0x10'u8, 0x20, 0x30, 0x40]
+
+    var stream: Compress.BitStream
+    stream.reset(input)
+    stream.curByte = Swag.U64.Max - 3
+    stream.refill()
+
+    Swag.assert(stream.isEof())
+    Swag.assert(stream.bytePosition() == Swag.U64.Max - 3)
+}
+
+#test
+{
     let input: [3] u8 = [0xAA, 0xBB, 0xCC]
     let start         = cast(const [*] u8, input.buffer)
 

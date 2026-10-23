@@ -15,6 +15,20 @@
 
 SWC_BEGIN_NAMESPACE();
 
+namespace
+{
+    // Checks have no per-run state; each invocation receives its own Sanitizer.
+    NullDerefCheck        nullDerefCheck;
+    DivByZeroCheck        divByZeroCheck;
+    FloatDomainCheck      floatDomainCheck;
+    IntOverflowCheck      intOverflowCheck;
+    StackEscapeCheck      stackEscapeCheck;
+    UseAfterMoveCheck     useAfterMoveCheck;
+    BoundCheckCheck       boundCheckCheck;
+    UseAfterFreeCheck     useAfterFreeCheck;
+    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck, &useAfterMoveCheck, &boundCheckCheck, &useAfterFreeCheck};
+}
+
 Result MicroSanityPass::run(MicroPassContext& context)
 {
     context.passChanged = false;
@@ -26,16 +40,6 @@ Result MicroSanityPass::run(MicroPassContext& context)
 
     // Register every available check, then keep only those whose safety guard is enabled
     // for this function. Adding a check is: subclass SanitizerCheck and list it here.
-    NullDerefCheck        nullDerefCheck;
-    DivByZeroCheck        divByZeroCheck;
-    FloatDomainCheck      floatDomainCheck;
-    IntOverflowCheck      intOverflowCheck;
-    StackEscapeCheck      stackEscapeCheck;
-    UseAfterMoveCheck     useAfterMoveCheck;
-    BoundCheckCheck       boundCheckCheck;
-    UseAfterFreeCheck     useAfterFreeCheck;
-    SanitizerCheck* const allChecks[] = {&nullDerefCheck, &divByZeroCheck, &floatDomainCheck, &intOverflowCheck, &stackEscapeCheck, &useAfterMoveCheck, &boundCheckCheck, &useAfterFreeCheck};
-
     SmallVector<SanitizerCheck*> enabledChecks;
     for (SanitizerCheck* check : allChecks)
         if (context.sanitizerSafetyMask & static_cast<uint16_t>(check->safety()))

@@ -231,55 +231,6 @@ private func lastIndexOfAnyAscii(src: const [*] u8, length: u64, what: const [..
     return Swag.U64.Max
 }
 
-private func lastIndexOfSubsliceNoCase(src: const [*] u8, length: u64, what: const [..] u8)->u64
-{
-    const VectorSize = #sizeof(Simd.U8x16)
-    var needles: [2] u8
-    needles[0] = what[0]
-    needles[1] = what[0]
-    var hasAlternate = false
-    if Latin1.isLower(what[0])
-    {
-        needles[1]   = Latin1.toUpper(what[0])
-        hasAlternate = true
-    }
-    elif Latin1.isUpper(what[0])
-    {
-        needles[1]   = Latin1.toLower(what[0])
-        hasAlternate = true
-    }
-
-    let whatLength = what.count
-    let needle0    = Simd.splat(needles[0])
-    let needle1    = Simd.splat(needles[1])
-    var offset     = length - whatLength + 1
-    while offset >= VectorSize
-    {
-        offset -= VectorSize
-        let values = Simd.load(src + offset)
-        var mask   = Simd.bitmask(values == needle0)
-        if hasAlternate do
-            mask |= Simd.bitmask(values == needle1)
-        while mask
-        {
-            let bit       = 31 - Math.leadingZeros(mask)
-            let candidate = offset + bit
-            if compare(Swag.makeSlice(src + candidate, whatLength), what, .Latin1NoCase) == 0 do
-                return candidate
-            mask &= ~(1'u32 << bit)
-        }
-    }
-
-    while offset
-    {
-        offset -= 1
-        if compare(Swag.makeSlice(src + offset, whatLength), what, .Latin1NoCase) == 0 do
-            return offset
-    }
-
-    return Swag.U64.Max
-}
-
 // Decodes the last rune of `buffer` and returns it with the number of bytes it occupies.
 //
 // An invalid or truncated trailing sequence returns `RuneError` with `eat` 1, and an empty
@@ -1195,6 +1146,55 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
         return Swag.U64.Max
     }
 
+    func findSubsliceNoCase(src: const [*] u8, length: u64, what: const [..] u8)->u64
+    {
+        const VectorSize = #sizeof(Simd.U8x16)
+        var needles: [2] u8
+        needles[0] = what[0]
+        needles[1] = what[0]
+        var hasAlternate = false
+        if Latin1.isLower(what[0])
+        {
+            needles[1]   = Latin1.toUpper(what[0])
+            hasAlternate = true
+        }
+        elif Latin1.isUpper(what[0])
+        {
+            needles[1]   = Latin1.toLower(what[0])
+            hasAlternate = true
+        }
+
+        let whatLength = what.count
+        let needle0    = Simd.splat(needles[0])
+        let needle1    = Simd.splat(needles[1])
+        var offset     = length - whatLength + 1
+        while offset >= VectorSize
+        {
+            offset -= VectorSize
+            let values = Simd.load(src + offset)
+            var mask   = Simd.bitmask(values == needle0)
+            if hasAlternate do
+                mask |= Simd.bitmask(values == needle1)
+            while mask
+            {
+                let bit       = 31 - Math.leadingZeros(mask)
+                let candidate = offset + bit
+                if compare(Swag.makeSlice(src + candidate, whatLength), what, .Latin1NoCase) == 0 do
+                    return candidate
+                mask &= ~(1'u32 << bit)
+            }
+        }
+
+        while offset
+        {
+            offset -= 1
+            if compare(Swag.makeSlice(src + offset, whatLength), what, .Latin1NoCase) == 0 do
+                return offset
+        }
+
+        return Swag.U64.Max
+    }
+
     let length = src.count
     if not length do
         return Swag.U64.Max
@@ -1206,7 +1206,7 @@ func lastIndexOf(src: const [..] u8, what: string, comparisonType = ComparisonTy
     if comparisonType == .Latin1 or comparisonType == .Unicode do
         return lastIndexOfSubslice(src.buffer, length, what)
     if comparisonType == .Latin1NoCase do
-        return lastIndexOfSubsliceNoCase(src.buffer, length, what)
+        return findSubsliceNoCase(src.buffer, length, what)
 
     var idx    = length - lengthStr
     var dataof = src.buffer + idx

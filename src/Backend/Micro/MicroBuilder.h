@@ -74,9 +74,14 @@ public:
     Utf8                                                       printSymbolName() const;
     Utf8                                                       printFilePath() const;
     uint32_t                                                   printSourceLine() const;
-    void                                                       clearRelocations() { relocations_.clear(); }
+    void                                                       clearRelocations()
+    {
+        relocations_.clear();
+        hasRelocationsToPrune_ = false;
+    }
     void                                                       addRelocation(const MicroRelocation& relocation);
     bool                                                       invalidateRelocationForInstruction(MicroInstrRef instructionRef);
+    bool                                                       hasRelocationsToPrune() const { return hasRelocationsToPrune_; }
     bool                                                       pruneDeadRelocations();
     std::vector<MicroRelocation>&                              codeRelocations() { return relocations_; }
     const std::vector<MicroRelocation>&                        codeRelocations() const { return relocations_; }
@@ -194,6 +199,7 @@ private:
     Runtime::BuildCfgBackend     backendBuildCfg_{};
     std::vector<MicroInstrRef>   labels_;
     std::vector<MicroRelocation> relocations_;
+    bool                         hasRelocationsToPrune_ = false;
     // A builder is made for every function lowered, and an empty node-based table still
     // allocates: each of these exists once something is recorded in it.
     std::optional<std::unordered_map<MicroReg, SmallVector<MicroReg>>> virtualRegForbiddenPhysRegs_;

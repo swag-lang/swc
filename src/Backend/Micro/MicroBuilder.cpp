@@ -137,6 +137,7 @@ bool MicroBuilder::invalidateRelocationForInstruction(MicroInstrRef instructionR
             continue;
 
         reloc.instructionRef = MicroInstrRef::invalid();
+        hasRelocationsToPrune_ = true;
         changed              = true;
     }
 
@@ -148,6 +149,7 @@ bool MicroBuilder::pruneDeadRelocations()
     const auto removed = std::erase_if(relocations_, [this](const MicroRelocation& reloc) {
         return !instructions_.ptr(reloc.instructionRef);
     });
+    hasRelocationsToPrune_ = false;
 
     // Nothing is keyed by an erased instruction any more, so its slot can be
     // handed out again. Doing this here and nowhere else is what keeps a

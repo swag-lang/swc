@@ -287,7 +287,8 @@ namespace
                 context.builder->invalidateControlFlowGraph();
         }
 
-        if (context.passChanged && context.builder)
+        if (context.passChanged && context.builder &&
+            (storageRevisionAfter != storageRevisionBefore || context.builder->hasRelocationsToPrune()))
             context.builder->pruneDeadRelocations();
 
         if (context.passChanged && context.ssaState)

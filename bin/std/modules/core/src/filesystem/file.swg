@@ -68,7 +68,7 @@ func touch(fullName: string) fail
 // Opens a file with the requested creation, access, and sharing policy.
 func open(fullName: string, mode: FileMode, access: FileAccess, share: FileShare)->FileStream fail
 {
-    if access & .Write do
+    if mode != .Open or access.has(.Write) do
         try Env.guardWrite(fullName)
 
     let canRead  = access.has(.Read)

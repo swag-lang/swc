@@ -68,9 +68,7 @@ func propagates(present: bool)->s32 fail
 // Catch and inspect.
 func catchesAndInspects(present: bool)->s32
 {
-    let value = catch load(present) as failure
-    if failure != null do
-        return -assume cast(LoadError, failure).code
+    let value = catch load(present) as failure else { return -assume cast(LoadError, failure).code }
     return value
 }
 

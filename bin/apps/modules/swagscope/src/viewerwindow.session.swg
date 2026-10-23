@@ -579,8 +579,7 @@ impl ViewerWindow
         }
 
         let host: Viewer.Host = &pluginHost
-        catch next.create(plugin, host) as viewerError
-        if viewerError != null
+        catch next.create(plugin, host) as viewerError else
         {
             next.failureReason = Viewer.failureText(viewerError)
             if next.failureReason.isEmpty() do

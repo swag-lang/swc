@@ -27,7 +27,9 @@ func captured(capture: const *DirectoryCapture, name: string)->bool
 
 func statusForError(kind: ErrorKind)->s32
 {
-    catch raiseVolumeError(kind) as err
+    var errOutcome: Swag.Error
+    catch raiseVolumeError(kind) as &errOutcome
+    let err = errOutcome.value()
     return WinFsp.statusFromError(err)
 }
 
@@ -214,7 +216,9 @@ func statusForError(kind: ErrorKind)->s32
     // mounting would hang rather than fail. The guardian refuses outright in
     // this build, and the mounting harness is not even compiled into it.
     Swag.assert(not WinFsp.canRequestElevation())
-    discard catch WinFsp.ensurePortableGuardian() as elevationRefused
+    var elevationRefusedOutcome: Swag.Error
+    discard catch WinFsp.ensurePortableGuardian() as &elevationRefusedOutcome
+    let elevationRefused = elevationRefusedOutcome.value()
     Swag.assert(elevationRefused != null)
 }
 

@@ -96,9 +96,7 @@ func acquireEngine(kind = DriverKind.Default)->bool
 
     if not isEngineCreated()
     {
-        catch createEngine(kind) as createError
-        if createError != null do
-            return false
+        catch createEngine(kind) else { return false }
         g_ViewerOwnsEngine = true
     }
 
@@ -679,9 +677,11 @@ impl Panel
             return
         let target = Math.clamp(seconds, 0, .duration)
         let frame  = cast(u64, Math.round(target * cast(f32, .sound.sampleRateHz())))
-        catch .voice!.seekSampleFrame(frame) as seekError
-        if seekError != null do
+        catch .voice!.seekSampleFrame(frame) else
+        {
             return
+        }
+
         .elapsed = target
         .refreshTransport()
     }
@@ -722,16 +722,20 @@ impl Panel
 
         if .playing
         {
-            catch .voice!.pause() as pauseError
-            if pauseError != null do
+            catch .voice!.pause() else
+            {
                 return
+            }
+
             .playing = false
         }
         else
         {
-            catch .voice!.play() as playError
-            if playError != null do
+            catch .voice!.play() else
+            {
                 return
+            }
+
             .playing = true
         }
 
@@ -742,9 +746,10 @@ impl Panel
     {
         if .voice
         {
-            catch .voice.stop() as stopError
-            if stopError != null do
+            catch .voice.stop() else
+            {
                 return
+            }
         }
 
         .playing = false
@@ -788,9 +793,7 @@ impl IWnd for Panel
             return
         }
 
-        catch .completeOpen() as openError
-        if openError != null do
-            .services.failed(me, Viewer.failureText(openError))
+        catch .completeOpen() as openError else { .services.failed(me, Viewer.failureText(openError)) }
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)

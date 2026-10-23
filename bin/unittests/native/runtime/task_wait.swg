@@ -107,9 +107,11 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
     var valid = false
     let ready = withBlockedWorkers(func|&valid|()
     {
-        var succeeded: Swag.AtomicValue'u32
-        var failed:    Swag.AtomicValue'u32
-        catch dropGroupWhileFailing(&succeeded, &failed) as error
+        var succeeded:    Swag.AtomicValue'u32
+        var failed:       Swag.AtomicValue'u32
+        var errorOutcome: Swag.Error
+        catch dropGroupWhileFailing(&succeeded, &failed) as &errorOutcome
+        let error = errorOutcome.value()
         valid = error != null and (error is ParentFailure)
         if valid do
             valid = assume cast(const *ParentFailure, error).value == 42
@@ -128,7 +130,9 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
     var parentFailed: Swag.AtomicValue'u32
     for path in 3'u32
     {
-        catch leaveTaskScope(&completed, &succeeded, &failed, &parentFailed, path) as error
+        var errorOutcome: Swag.Error
+        catch leaveTaskScope(&completed, &succeeded, &failed, &parentFailed, path) as &errorOutcome
+        let error = errorOutcome.value()
         Swag.assert((error != null) == (path == 2))
         Swag.assert(completed.load() == path + 1)
         Swag.assert(succeeded.load() == path + 1 and failed.load() == 0)
@@ -160,9 +164,11 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
     var valid = false
     let ready = withBlockedWorkers(func|&valid|()
     {
-        var succeeded: Swag.AtomicValue'u32
-        var failed:    Swag.AtomicValue'u32
-        catch joinWhileFailing(&succeeded, &failed) as error
+        var succeeded:    Swag.AtomicValue'u32
+        var failed:       Swag.AtomicValue'u32
+        var errorOutcome: Swag.Error
+        catch joinWhileFailing(&succeeded, &failed) as &errorOutcome
+        let error = errorOutcome.value()
         valid = error != null and (error is ParentFailure)
         if valid do
             valid = assume cast(const *ParentFailure, error).value == 42

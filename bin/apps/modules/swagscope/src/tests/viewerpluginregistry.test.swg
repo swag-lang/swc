@@ -270,12 +270,16 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     Swag.assert(session.view != null and session.failureReason.isEmpty())
 
     var duplicate = testPlugin()
-    discard catch registry.register(#move duplicate) as duplicateError
+    var duplicateErrorOutcome: Swag.Error
+    discard catch registry.register(#move duplicate) as &duplicateErrorOutcome
+    let duplicateError = duplicateErrorOutcome.value()
     Swag.assert(duplicateError != null)
 
     var incompatible = testPlugin("future", ".future")
     incompatible.apiVersion = Viewer.ApiVersion + 1
-    discard catch registry.register(#move incompatible) as versionError
+    var versionErrorOutcome: Swag.Error
+    discard catch registry.register(#move incompatible) as &versionErrorOutcome
+    let versionError = versionErrorOutcome.value()
     Swag.assert(versionError != null)
 }
 

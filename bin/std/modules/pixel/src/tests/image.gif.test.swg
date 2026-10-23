@@ -184,11 +184,15 @@ func assertEncodedGifRoundtrip(src: Image, expectedPf: PixelFormat)
 {
     let bad: [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
     var img: Image
-    img = catch Image.decode("bad.gif", Swag.makeSlice(&bad[0], bad.count), {}) as err11
+    var err11Outcome: Swag.Error
+    catch { img = try Image.decode("bad.gif", Swag.makeSlice(&bad[0], bad.count), {}) } as &err11Outcome
+    let err11 = err11Outcome.value()
     Swag.assert(err11 != null)
 
     let bytes = expect File.readAllBytes(getTestDataPath("test.gif"))
-    img = catch Image.decode("truncated.gif", Swag.makeSlice(bytes.buffer, 32), {}) as err13
+    var err13Outcome: Swag.Error
+    catch { img = try Image.decode("truncated.gif", Swag.makeSlice(bytes.buffer, 32), {}) } as &err13Outcome
+    let err13 = err13Outcome.value()
     Swag.assert(err13 != null)
 }
 

@@ -126,7 +126,9 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
 #test
 {
     let fixture = expect File.readAllBytes(videoFixturePath("ffmpeg-mjpeg.mp4").toString())
-    discard catch Reader.openMemory("short.mp4", fixture.toSlice()[0 until 96]) as truncated
+    var truncatedOutcome: Swag.Error
+    discard catch Reader.openMemory("short.mp4", fixture.toSlice()[0 until 96]) as &truncatedOutcome
+    let truncated = truncatedOutcome.value()
     Swag.assert((truncated is InvalidFormatError))
 
     var unsupported = fixture
@@ -137,7 +139,9 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
     Swag.assert(objectType < unsupported.count)
     unsupported[objectType] = 0x21
 
-    discard catch Reader.openMemory("h264.mp4", unsupported.toSlice()) as codec
+    var codecOutcome: Swag.Error
+    discard catch Reader.openMemory("h264.mp4", unsupported.toSlice()) as &codecOutcome
+    let codec = codecOutcome.value()
     Swag.assert((codec is UnsupportedFormatError))
 }
 

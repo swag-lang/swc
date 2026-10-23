@@ -68,14 +68,23 @@ func checkedPresence(value: *s32?)->s32 fail
 
 #test
 {
-    var base: CastCallBase
-    let mismatch = catch checkedCastCall(&base) as mismatchError
+    var base:     CastCallBase
+    var mismatchErrorOutcome: Swag.Error
+    var mismatch: #decltype(expect checkedCastCall(&base))
+    catch { mismatch = try checkedCastCall(&base) } as &mismatchErrorOutcome
+    let mismatchError = mismatchErrorOutcome.value()
     Swag.assert(mismatch == 0 and mismatchError != null)
-    let absent = catch checkedCastCall(null) as nullError
+    var nullErrorOutcome: Swag.Error
+    var absent: #decltype(expect checkedCastCall(null))
+    catch { absent = try checkedCastCall(null) } as &nullErrorOutcome
+    let nullError = nullErrorOutcome.value()
     Swag.assert(absent == 0 and nullError != null)
     var number: s32 = 27
     Swag.assert(expect checkedPresence(&number) == 27)
-    let absentNumber = catch checkedPresence(null) as presenceError
+    var presenceErrorOutcome: Swag.Error
+    var absentNumber:         #decltype(expect checkedPresence(null))
+    catch { absentNumber = try checkedPresence(null) } as &presenceErrorOutcome
+    let presenceError = presenceErrorOutcome.value()
     Swag.assert(absentNumber == 0 and presenceError != null)
 }
 
@@ -87,7 +96,10 @@ func checkedPresence(value: *s32?)->s32 fail
     var number: s32 = 37
     let boxed:  any = number
     Swag.assert(expect cast(s32, boxed) == 37)
-    let wrong = catch cast(*CastCallChild?, boxed) as error
+    var errorOutcome: Swag.Error
+    var wrong:        #decltype(expect cast(*CastCallChild?, boxed))
+    catch { wrong = try cast(*CastCallChild?, boxed) } as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(wrong == null and error != null)
 }
 #[Swag.Safety(.Assume, false), Swag.Safety(.DynCast, false), Swag.Safety(.Null, false)]
@@ -103,9 +115,12 @@ func nullableStaticInterface(value: *CastCallChild?)->ICastCall?
 
 #test
 {
-    let missing: string? = null
-    let boxed:   any     = missing
-    let length           = catch checkedBoxedString(boxed) as error
+    let missing:      string? = null
+    let boxed:        any     = missing
+    var errorOutcome: Swag.Error
+    var length:       #decltype(expect checkedBoxedString(boxed))
+    catch { length = try checkedBoxedString(boxed) } as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(length == 0 and error != null)
     Swag.assert(nullableStaticInterface(null) == null)
     var child: CastCallChild
@@ -120,7 +135,10 @@ func checkedInterfacePresence(value: ICastCall?)->s32 fail
 
 #test
 {
-    let absent = catch checkedInterfacePresence(null) as error
+    var errorOutcome: Swag.Error
+    var absent:       #decltype(expect checkedInterfacePresence(null))
+    catch { absent = try checkedInterfacePresence(null) } as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(absent == 0 and error != null)
     var child: CastCallChild
     Swag.assert(expect checkedInterfacePresence(cast(ICastCall, &child)) == 42)

@@ -47,15 +47,13 @@ impl Document
     {
         .close()
 
-        .stream = catch File.openReadLive(fileName) as openError
-        if openError != null
+        .stream = catch File.openReadLive(fileName) as openError else
         {
             .failRead(Viewer.failureText(openError))
             return false
         }
 
-        let size = catch .stream.size() as sizeError
-        if sizeError != null
+        let size = catch .stream.size() as sizeError else
         {
             .failRead(Viewer.failureText(sizeError))
             .stream.close()
@@ -102,16 +100,14 @@ impl Document
         let start       = wantedStart / WindowAlign * WindowAlign
         let wanted      = Math.min(WindowSize, .fileSize - start)
         .window.resize(wanted)
-        catch .stream.seek(.Begin, start) as seekError
-        if seekError != null
+        catch .stream.seek(.Begin, start) as seekError else
         {
             .failRead(Viewer.failureText(seekError))
             .window.clear()
             return false
         }
 
-        let read = catch .stream.read(.window.toSlice()) as readError
-        if readError != null
+        let read = catch .stream.read(.window.toSlice()) as readError else
         {
             .failRead(Viewer.failureText(readError))
             .window.clear()
@@ -156,16 +152,14 @@ impl Document
 
         let wanted = Math.min(count, .fileSize - offset)
         result.resize(wanted)
-        catch .stream.seek(.Begin, offset) as seekError
-        if seekError != null
+        catch .stream.seek(.Begin, offset) as seekError else
         {
             .failRead(Viewer.failureText(seekError))
             result.clear()
             return result
         }
 
-        let read = catch .stream.read(result.toSlice()) as readError
-        if readError != null
+        let read = catch .stream.read(result.toSlice()) as readError else
         {
             .failRead(Viewer.failureText(readError))
             result.clear()

@@ -107,8 +107,11 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 // An image with no pixels cannot be drawn over.
 #test
 {
-    var empty: Image
-    var canvas = catch ImageCanvas.create(empty) as err
+    var empty:      Image
+    var errOutcome: Swag.Error
+    var canvas:     #decltype(expect ImageCanvas.create(empty))
+    catch { canvas = try ImageCanvas.create(empty) } as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }
 

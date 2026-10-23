@@ -36,8 +36,7 @@ namespace WinFsp
             .holdsRuntime       = true
             g_WinFsp.mountCount += 1
 
-            discard catch registerPortableWinFsp() as registerError
-            if registerError != null
+            discard catch registerPortableWinFsp() as registerError else
             {
                 .stop()
                 fail registerError

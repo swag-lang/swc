@@ -364,7 +364,9 @@ impl TagBin
             .compressor.init(.compressionLevel, .compressionStrategy, .compressionFlags)
 
             var compressBuffer: Array'u8
-            catch .compressor.compress(&compressBuffer, bodyBytes) as err
+            var errOutcome:     Swag.Error
+            catch .compressor.compress(&compressBuffer, bodyBytes) as &errOutcome
+            let err = errOutcome.value()
 
             if err != null or compressBuffer.count >= bodyBytes.count
             {
@@ -579,7 +581,9 @@ impl TagBin
         .compressor.init(.compressionLevel, .compressionStrategy, .compressionFlags)
 
         var compressBuffer: Array'u8
-        catch .compressor.compress(&compressBuffer, childBytes.toSlice()) as err
+        var errOutcome:     Swag.Error
+        catch .compressor.compress(&compressBuffer, childBytes.toSlice()) as &errOutcome
+        let err = errOutcome.value()
 
         if compressBuffer.count >= childBytes.length or err != null
         {

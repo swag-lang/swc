@@ -51,9 +51,10 @@ struct BalanceFailure { index: u64 }
 // before the caller catches the error, and no block may visit an index twice.
 #test
 {
-    var visits:  [2053] Swag.AtomicValue'u32
-    var entered: Swag.AtomicValue'u32
-    var left:    Swag.AtomicValue'u32
+    var visits:       [2053] Swag.AtomicValue'u32
+    var entered:      Swag.AtomicValue'u32
+    var left:         Swag.AtomicValue'u32
+    var errorOutcome: Swag.Error
     catch parallel for |&visits, &entered, &left| index in visits.count
     {
         entered.add(1)
@@ -62,7 +63,8 @@ struct BalanceFailure { index: u64 }
         let value = expectedValue(index, 4096)
         if index == 1796 do
             fail BalanceFailure{value}
-    } as error
+    } as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error != null and (error is BalanceFailure))
     Swag.assert(assume cast(const *BalanceFailure, error).index == expectedValue(1796, 4096))
     Swag.assert(entered.load() == left.load())

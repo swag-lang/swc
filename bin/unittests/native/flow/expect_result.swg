@@ -47,9 +47,6 @@ func uncheckedExpectPointer()->*s32 => expect requiredPointer()
     let pointer = expect requiredPointer()
     #assert(#typeof(pointer) == *s32)
     Swag.assert(pointer[] == 42)
-    let testTry = try requiredPointer()
-    #assert(#typeof(testTry) == *s32)
-    Swag.assert(testTry == pointer)
     Swag.assert(uncheckedExpectPointer()[] == 42)
     Swag.assert((expect absentSuccess()) == null)
 }
@@ -65,7 +62,9 @@ func uncheckedExpectPointer()->*s32 => expect requiredPointer()
     Swag.assert(drops == 1)
 
     drops = 0
-    catch consumeFailure() as error
+    var errorOutcome: Swag.Error
+    catch consumeFailure() as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error != null)
     Swag.assert(drops == 0, "an error produces no result to destroy")
 }

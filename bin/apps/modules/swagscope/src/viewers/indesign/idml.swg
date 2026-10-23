@@ -310,8 +310,8 @@ private func parseNumber(text: string)->{ value: f32, valid: bool }
     let trimmed = Latin1.trim(text)
     if not trimmed.count do
         return {}
-    let parsed = catch StrConv.parseF32(trimmed) as parseError
-    if parseError != null or parsed.eat != trimmed.count or parsed.ovf do
+    let parsed = catch StrConv.parseF32(trimmed) else { return {} }
+    if parsed.eat != trimmed.count or parsed.ovf do
         return {}
     return {parsed.value, true}
 }
@@ -724,8 +724,8 @@ func embeddedGraphicDataUri(item: string)->String
 
     // Metadata packets also use Contents CDATA. Retain only actual image payloads so a malformed
     // embedded item can still fall through to its ordinary local link.
-    let bytes = catch Base64.decode(payload) as decodeError
-    if decodeError != null or bytes.isEmpty() do
+    let bytes = catch Base64.decode(payload) else { return {} }
+    if bytes.isEmpty() do
         return {}
     return Format.toString("data:%;base64,%", mime, payload)
 }
@@ -813,7 +813,10 @@ private func localGraphicSource(path: string, loaded: *u64)->String
     let mime = graphicMimeType(path)
     if not mime.count do
         return {}
-    let info = catch File.info(path) as infoError
+    var infoErrorOutcome: Swag.Error
+    var info: #decltype(expect File.info(path))
+    catch { info = try File.info(path) } as &infoErrorOutcome
+    let infoError = infoErrorOutcome.value()
     if infoError != null or
        info.size > LinkedGraphicDataLimit or
        info.size > LinkedGraphicsDataLimit - loaded[] do
@@ -821,7 +824,10 @@ private func localGraphicSource(path: string, loaded: *u64)->String
     var options: DecodeOptions
     options.decodePixels   = false
     options.decodeMetadata = false
-    let probe = catch Image.load(path, options) as probeError
+    var probeErrorOutcome: Swag.Error
+    var probe: #decltype(expect Image.load(path, options))
+    catch { probe = try Image.load(path, options) } as &probeErrorOutcome
+    let probeError = probeErrorOutcome.value()
     if probeError != null or
        probe.width <= 0 or
        probe.height <= 0 or
@@ -899,8 +905,8 @@ private func entity(text: string)->rune
     }
     elif text.count > 1 and text[0] == '#'
     {
-        let parsed = catch StrConv.parseU32(text[1 to]) as parseError
-        if parseError == null and not parsed.ovf and parsed.eat == text.count - 1 do
+        let parsed = catch StrConv.parseU32(text[1 to]) else { return 0xFFFD }
+        if not parsed.ovf and parsed.eat == text.count - 1 do
             return cast(rune, parsed.value)
     }
 
@@ -1246,9 +1252,7 @@ private func loadColors(fileName: string, archive: const *Archive.Zip)->HashTabl
     let entry = archive.tryFindEntry("Resources/Graphic.xml")
     if not entry do
         return result
-    let source = catch readEntry(fileName, archive, entry.path) as readError
-    if readError != null do
-        return result
+    let source = catch readEntry(fileName, archive, entry.path) else { return result }
 
     var cursor = 0'u64
     while true
@@ -1321,9 +1325,7 @@ private func loadTextStyles(fileName: string, archive: const *Archive.Zip, color
     let entry = archive.tryFindEntry("Resources/Styles.xml")
     if not entry do
         return result
-    let source = catch readEntry(fileName, archive, entry.path) as readError
-    if readError != null do
-        return result
+    let source = catch readEntry(fileName, archive, entry.path) else { return result }
 
     var cursor = 0'u64
     while true
@@ -1749,8 +1751,11 @@ private func loadMasters(fileName: string, archive: const *Archive.Zip, designMa
         let end = Utf8.indexOf(designMap, '>'rune, start)
         if end == Swag.U64.Max do
             break
-        let path   = attribute(designMap[start until end + 1], "src")
-        let source = catch readEntry(fileName, archive, path) as readError
+        let path = attribute(designMap[start until end + 1], "src")
+        var readErrorOutcome: Swag.Error
+        var source: #decltype(expect readEntry(fileName, archive, path))
+        catch { source = try readEntry(fileName, archive, path) } as &readErrorOutcome
+        let readError = readErrorOutcome.value()
         if readError == null
         {
             let masterStart = Utf8.indexOf(source, "<MasterSpread ")
@@ -1794,9 +1799,7 @@ func load(fileName: string, limits: LoadLimits = {})->Document fail
     var stories: HashTable'(String, String)
     for entry in archive.entries where Utf8.startsWith(entry.path, "Stories/") and Utf8.endsWith(entry.path, ".xml")
     {
-        let source = catch readEntry(fileName, &archive, entry.path) as readError
-        if readError != null do
-            continue
+        let source     = catch readEntry(fileName, &archive, entry.path) else { continue }
         let storyStart = Utf8.indexOf(source, "<Story ")
         let storyEnd   = storyStart == Swag.U64.Max ? Swag.U64.Max : Utf8.indexOf(source, '>'rune, storyStart)
         if storyEnd == Swag.U64.Max do

@@ -60,8 +60,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
         return
     }
 
-    let expected = catch File.readAllText(path, normalizeEol: true) as errRead
-    if errRead != null
+    let expected = catch File.readAllText(path, normalizeEol: true) else
     {
         Console.println("[golden] cannot read ", path)
         Swag.assert(false)
@@ -133,8 +132,7 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
         return
     }
 
-    let expected = catch Image.load(path.toString()) as errRead
-    if errRead != null
+    let expected = catch Image.load(path.toString()) else
     {
         Console.println("[golden] cannot read ", path)
         Swag.assert(false)
@@ -241,8 +239,7 @@ private
         let dir = Path.directoryName(path)
         if dir != null and not Directory.exists(dir)
         {
-            catch Directory.create(dir) as errDir
-            if errDir != null
+            catch Directory.create(dir) else
             {
                 Console.println("[image] cannot create ", dir)
                 reportSandboxRefusal(dir)
@@ -250,8 +247,7 @@ private
             }
         }
 
-        discard catch image.save(path) as errWrite
-        if errWrite != null
+        discard catch image.save(path) else
         {
             Console.println("[image] cannot write ", path)
             reportSandboxRefusal(path)
@@ -303,8 +299,7 @@ private
         let dir = Path.directoryName(path)
         if dir != null and not Directory.exists(dir)
         {
-            catch Directory.create(dir) as errDir
-            if errDir != null
+            catch Directory.create(dir) else
             {
                 Console.println("[golden] cannot create ", dir)
                 reportSandboxRefusal(dir)
@@ -312,8 +307,7 @@ private
             }
         }
 
-        discard catch File.writeAllBytes(path, Swag.makeSlice(text.buffer, text.count)) as errWrite
-        if errWrite != null
+        discard catch File.writeAllBytes(path, Swag.makeSlice(text.buffer, text.count)) else
         {
             Console.println("[golden] cannot write ", path)
             reportSandboxRefusal(path)

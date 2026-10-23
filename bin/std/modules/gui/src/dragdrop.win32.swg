@@ -545,9 +545,7 @@ private func buildDib(data: *DragData)->HGLOBAL
     if not image do
         return null
 
-    let bytes = catch image.encodeToBytes("drag.bmp", Bmp.EncodeOptions{fileHeader: false}) as encodeError
-    if encodeError != null do
-        return null
+    let bytes = catch image.encodeToBytes("drag.bmp", Bmp.EncodeOptions{fileHeader: false}) else { return null }
     return toGlobalBlock(bytes.toSlice())
 }
 
@@ -1126,8 +1124,11 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
         .bmiHeader.biCompression = BI_RGB
     }
 
-    var raw: *void?
-    let bmp = catch CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0) as err
+    var raw:        *void?
+    var errOutcome: Swag.Error
+    var bmp:        #decltype(expect CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0))
+    catch { bmp = try CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0) } as &errOutcome
+    let err = errOutcome.value()
     if err != null or not bmp or not raw do
         return result
 

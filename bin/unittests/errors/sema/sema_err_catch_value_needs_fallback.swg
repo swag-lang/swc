@@ -26,11 +26,10 @@ func catchFallbackCall()
     catchFallbackArgument(catch catchFallbackCount())     // swc-expected-error {{sema_err_catch_value_needs_fallback}}
 }
 
-// A discarded result, a capture, and an explicit fallback are all accepted.
+// A discarded result and an explicit fallback are accepted.
 func catchFallbackAccepted()->s32
 {
     discard catch catchFallbackCount()
-    let captured = catch catchFallbackCount() as err
-    discard err
+    let captured = catch catchFallbackCount() as err else cast(s32, err != null)
     return captured + (catch catchFallbackCount() else 0)
 }

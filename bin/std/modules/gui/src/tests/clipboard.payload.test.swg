@@ -18,13 +18,17 @@ using Swag, Core
     // Every incomplete header and payload fails before any out-of-bounds read or slice.
     for size in encoded.count
     {
-        discard catch Clipboard.TypedPayload.decode(encoded.toSlice()[0 until size]) as error
+        var errorOutcome: Swag.Error
+        discard catch Clipboard.TypedPayload.decode(encoded.toSlice()[0 until size]) as &errorOutcome
+        let error = errorOutcome.value()
         Swag.assert(error != null)
     }
 
     for i in 8 do
         encoded[4 + i] = 255
-    discard catch Clipboard.TypedPayload.decode(encoded.toSlice()) as oversized
+    var oversizedOutcome: Swag.Error
+    discard catch Clipboard.TypedPayload.decode(encoded.toSlice()) as &oversizedOutcome
+    let oversized = oversizedOutcome.value()
     Swag.assert(oversized != null)
 
     let empty      = Clipboard.TypedPayload{crc: type.crc}

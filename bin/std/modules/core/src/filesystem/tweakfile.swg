@@ -137,9 +137,7 @@ impl TweakFile
             {
                 remaining = Tokenize.eatCount(remaining, 1)
                 var folderName = ""
-                catch { folderName = try StrConv.parseIdentifier(remaining) } as folderErr
-                if folderErr != null do
-                    fail SyntaxError{"invalid folder name", line: lineIndex + 1}
+                catch { folderName = try StrConv.parseIdentifier(remaining) } else { fail SyntaxError{"invalid folder name", line: lineIndex + 1} }
 
                 // Each folder line selects afresh: an unknown name must not fall back to the
                 // folder an earlier line selected.
@@ -171,9 +169,7 @@ impl TweakFile
             // Value declaration
             remaining = Tokenize.eatSpaces(remaining)
             var fieldName = ""
-            catch { fieldName = try parseName(remaining) } as nameErr
-            if nameErr != null do
-                fail SyntaxError{"invalid value name", line: lineIndex + 1}
+            catch { fieldName = try parseName(remaining) } else { fail SyntaxError{"invalid value name", line: lineIndex + 1} }
 
             // Search value in folder type
             let path = resolveName(currentFolder.type, fieldName)
@@ -195,9 +191,7 @@ impl TweakFile
             {
                 remaining = Tokenize.eatCount(remaining, 1)
                 var sourceName = ""
-                catch { sourceName = try parseName(remaining) } as refErr
-                if refErr != null do
-                    fail SyntaxError{"invalid reference name", line: lineIndex + 1}
+                catch { sourceName = try parseName(remaining) } else { fail SyntaxError{"invalid reference name", line: lineIndex + 1} }
 
                 let sourcePath = resolveName(currentFolder.type, sourceName)
                 if not sourcePath.type
@@ -227,9 +221,11 @@ impl TweakFile
             catch
             {
                 remaining = try StrConv.parseValue(destination, path.type, remaining)
-            } as valueErr
-            if valueErr != null do
+            }
+            else
+            {
                 fail SyntaxError{"invalid value", line: lineIndex + 1}
+            }
 
             // Ensure nothing invalid follows the value
             if remaining.count and not Latin1.isSpace(remaining[0]) and remaining[0] != '#' do

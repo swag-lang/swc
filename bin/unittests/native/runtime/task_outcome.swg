@@ -26,14 +26,18 @@ struct OutcomeFailure
 {
     var valued: Swag.Task'u64
     valued.submit(func()->u64 fail { fail OutcomeFailure{3} })
-    discard catch valued.take() as error
+    var errorOutcome: Swag.Error
+    discard catch valued.take() as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is OutcomeFailure)
     if error is OutcomeFailure as failure do
         Swag.assert(failure.code == 3)
 
     var plain: Swag.Task
     plain.submit(func() fail { fail OutcomeFailure{4} })
-    catch plain.take() as plainError
+    var plainErrorOutcome: Swag.Error
+    catch plain.take() as &plainErrorOutcome
+    let plainError = plainErrorOutcome.value()
     Swag.assert(plainError is OutcomeFailure)
     if plainError is OutcomeFailure as plainFailure do
         Swag.assert(plainFailure.code == 4)
@@ -288,7 +292,9 @@ impl OwnedOutcome
         })
     }
 
-    catch group.join() as error
+    var errorOutcome: Swag.Error
+    catch group.join() as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is OutcomeFailure and stopped.load() == 3)
 
     group.spawn(func|&fresh|() { if not Swag.isCancelled() do fresh.add(1) })
@@ -337,7 +343,9 @@ impl OwnedOutcome
         })
     }
 
-    catch Swag.whenAll(tasks) as error
+    var errorOutcome: Swag.Error
+    catch Swag.whenAll(tasks) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is OutcomeFailure)
     Swag.assert(Swag.jit() or stopped.load() == 2)
 }
@@ -356,8 +364,41 @@ impl OwnedOutcome
     var failing: [2] Swag.Task'u32
     failing[0].submit(func()->u32 fail { fail OutcomeFailure{3} })
     failing[1].submit(func()->u32 fail { fail OutcomeFailure{4} })
-    discard catch Swag.whenAny(failing) as error
+    var errorOutcome: Swag.Error
+    discard catch Swag.whenAny(failing) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is OutcomeFailure)
     if error is OutcomeFailure as failure do
         Swag.assert(failure.code == 3)
+}
+
+// The task's capture ends before take() reads its copied message.
+func failWithTaskMessage()->s32 fail
+{
+    let context = Swag.getContext()
+    if not context.errorAllocator.capacity do
+        context.errorAllocator.setCapacity(64, context.allocator!)
+    let allocator = Swag.makeInterface(&context.errorAllocator, Swag.ScratchAllocator, Swag.IAllocator)
+    let text      = "a task retains the copied text of its failure"
+    var request: Swag.AllocatorRequest
+    request.size = text.count
+    allocator.alloc(&request)
+    let bytes = cast([*] u8, request.address!)
+    Swag.memcpy(bytes, text.buffer, text.count)
+    fail Swag.BaseError{Swag.makeString(bytes, text.count)}
+}
+
+#test
+{
+    var task: Swag.Task's32
+    task.submit(func()->s32 fail { return try failWithTaskMessage() })
+    task.wait()
+    var handled = false
+    discard catch task.take() as error else
+    {
+        handled = true
+        let failure = assume cast(Swag.BaseError, error)
+        Swag.assert(failure.message == "a task retains the copied text of its failure")
+    }
+    Swag.assert(handled)
 }

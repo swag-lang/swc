@@ -55,7 +55,10 @@ func clampByte(value: s32)->u8 => cast(u8, Math.clamp(value, 0, 255))
 
 private func parsePositiveU32(value, field: string)->u32 fail
 {
-    let parsed = catch StrConv.toU32(value) as parseError
+    var parseErrorOutcome: Swag.Error
+    var parsed: #decltype(expect StrConv.toU32(value))
+    catch { parsed = try StrConv.toU32(value) } as &parseErrorOutcome
+    let parseError = parseErrorOutcome.value()
     if parseError != null or not parsed do
         fail InvalidFormatError{Errors.mkString(Format.toString("YUV4MPEG2 % needs a positive integer", field))}
     return parsed
@@ -348,7 +351,9 @@ private impl Decoder
         if not frameCount do
             return false
 
-        catch .checkFrameAt(source, .firstMarker + (frameCount - 1) * .frameStride) as probeError
+        var probeErrorOutcome: Swag.Error
+        catch .checkFrameAt(source, .firstMarker + (frameCount - 1) * .frameStride) as &probeErrorOutcome
+        let probeError = probeErrorOutcome.value()
         return probeError == null
     }
 

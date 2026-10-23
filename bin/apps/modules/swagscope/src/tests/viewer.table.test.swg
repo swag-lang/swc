@@ -42,7 +42,9 @@ using Core, Pixel, Gui, Viewers
                 document.columns[1] == "second" and
                 document.columns[2] == "Column 3")
 
-    discard catch Table.parseDocument("name,value\n\"unfinished", ',') as quoteError
+    var quoteErrorOutcome: Swag.Error
+    discard catch Table.parseDocument("name,value\n\"unfinished", ',') as &quoteErrorOutcome
+    let quoteError = quoteErrorOutcome.value()
     Swag.assert(quoteError != null)
 }
 

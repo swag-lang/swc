@@ -61,7 +61,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Types</span><span class="toc-count">93</span></summary>
+<summary><span class="toc-label">Types</span><span class="toc-count">94</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-types">All Types</a></li>
 <li><a href="#Pixel_Bmp_EncodeOptions">Bmp.EncodeOptions</a></li>
@@ -116,6 +116,7 @@
 <li><a href="#Pixel_RenderContext">Pixel.RenderContext</a></li>
 <li><a href="#Pixel_RenderCpu">Pixel.RenderCpu</a></li>
 <li><a href="#Pixel_RenderOgl">Pixel.RenderOgl</a></li>
+<li><a href="#Pixel_RenderOglReadback">Pixel.RenderOglReadback</a></li>
 <li><a href="#Pixel_RenderTarget">Pixel.RenderTarget</a></li>
 <li><a href="#Pixel_RenderTargetHandle">Pixel.RenderTargetHandle</a></li>
 <li><a href="#Pixel_RenderTargetSurfaceHandle">Pixel.RenderTargetSurfaceHandle</a></li>
@@ -236,7 +237,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">477</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">484</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Pixel_Argb_fromName">Argb.fromName</a></li>
@@ -651,6 +652,13 @@
 <li><a href="#Pixel_RenderOgl_resetScratchCounters">RenderOgl.resetScratchCounters</a></li>
 <li><a href="#Pixel_RenderOgl_setShader">RenderOgl.setShader</a></li>
 <li><a href="#Pixel_RenderOgl_supportsAdvancedBlending">RenderOgl.supportsAdvancedBlending</a></li>
+<li><a href="#Pixel_RenderOglReadback_cancel">RenderOglReadback.cancel</a></li>
+<li><a href="#Pixel_RenderOglReadback_hasFailed">RenderOglReadback.hasFailed</a></li>
+<li><a href="#Pixel_RenderOglReadback_isPending">RenderOglReadback.isPending</a></li>
+<li><a href="#Pixel_RenderOglReadback_opDrop">RenderOglReadback.opDrop</a></li>
+<li><a href="#Pixel_RenderOglReadback_release">RenderOglReadback.release</a></li>
+<li><a href="#Pixel_RenderOglReadback_submit">RenderOglReadback.submit</a></li>
+<li><a href="#Pixel_RenderOglReadback_tryCopyTo">RenderOglReadback.tryCopyTo</a></li>
 <li><a href="#Pixel_RenderThread_close">RenderThread.close</a></li>
 <li><a href="#Pixel_RenderThread_isReady">RenderThread.isReady</a></li>
 <li><a href="#Pixel_RenderThread_isStarted">RenderThread.isStarted</a></li>
@@ -1256,6 +1264,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <tr><td class="code-type"><a href="#Pixel_RenderCpu">Pixel.RenderCpu</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Executes <a href="#Pixel_Painter">Pixel.Painter</a> command streams into deterministic CPU-owned pixel buffers.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl">Pixel.RenderOgl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Executes <a href="#Pixel_Painter">Pixel.Painter</a> command streams through OpenGL.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback">Pixel.RenderOglReadback</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Transfers one OpenGL render-target rectangle to CPU memory without waiting for GPU completion.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderTarget">Pixel.RenderTarget</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Identifies an off-screen color target and its optional depth/stencil surface.</p>
 </td></tr>
@@ -2309,6 +2319,20 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_supportsAdvancedBlending">RenderOgl.supportsAdvancedBlending</a></td><td><p>Reports whether the current context provides advanced blend equations.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_cancel">RenderOglReadback.cancel</a></td><td><p>Cancels a pending transfer without waiting, retaining buffer storage for later submissions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_hasFailed">RenderOglReadback.hasFailed</a></td><td><p>Reports a failed allocation or GPU transfer; release the value before retrying.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_isPending">RenderOglReadback.isPending</a></td><td><p>Reports whether a submitted rectangle has not yet been copied or cancelled.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_opDrop">RenderOglReadback.opDrop</a></td><td><p>Asserts that the owned OpenGL resources were released before this value goes away.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_release">RenderOglReadback.release</a></td><td><p>Cancels pending work and releases the owned buffer without waiting for the GPU.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_submit">RenderOglReadback.submit</a></td><td><p>Submits an in-bounds rectangle in top-left target coordinates without waiting for it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_tryCopyTo">RenderOglReadback.tryCopyTo</a></td><td><p>Copies a completed transfer into borrowed bytes, optionally preserving row padding.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderThread_close">RenderThread.close</a></td><td><p>Drains pending work and joins the worker. Delete all renderer contexts before calling it.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderThread_isReady">RenderThread.isReady</a></td><td><p>Reports whether another frame can start without waiting for presentation.</p>
@@ -2553,6 +2577,8 @@ layer.<span class="SFct">draw</span>({dstRect: {<span class="SNum">0</span>, <sp
 <tr><td class="code-type"><a href="#Pixel_RenderCpu">Pixel.RenderCpu</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Executes <a href="#Pixel_Painter">Pixel.Painter</a> command streams into deterministic CPU-owned pixel buffers.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl">Pixel.RenderOgl</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Executes <a href="#Pixel_Painter">Pixel.Painter</a> command streams through OpenGL.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback">Pixel.RenderOglReadback</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Transfers one OpenGL render-target rectangle to CPU memory without waiting for GPU completion.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderTarget">Pixel.RenderTarget</a></td><td><span class="kind-chip kind-struct">struct</span></td><td><p>Identifies an off-screen color target and its optional depth/stencil surface.</p>
 </td></tr>
@@ -5140,6 +5166,33 @@ painter.<span class="SFct">end</span>()</span></div>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_setShader">setShader</a></td><td><p>Makes <span class="code-inline">shader</span> the current OpenGL program, or the built-in antialiased program when <span class="code-inline">null</span>.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Pixel_RenderOgl_supportsAdvancedBlending">supportsAdvancedBlending</a></td><td><p>Reports whether the current context provides advanced blend equations.</p>
+</td></tr>
+</tbody>
+</table>
+<section class="api-symbol">
+<div class="api-item api-item-struct"><span id="Pixel_RenderOglReadback" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Pixel.RenderOglReadback</span> <a class="api-item-permalink" href="#Pixel_RenderOglReadback" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderoglreadback.swg#L12">src</a></div>
+<p>Transfers one OpenGL render-target rectangle to CPU memory without waiting for GPU completion.</p>
+<p>Keep the owning OpenGL context current for every operation. The source target must remain alive and unchanged until the transfer finishes or is cancelled. Pixels are tightly packed BGRA8, bottom row first, as in <a href="#Pixel_IRenderer_readRenderTarget">Pixel.IRenderer.readRenderTarget</a>. Call <a href="#Pixel_RenderOglReadback_release">Pixel.RenderOglReadback.release</a> before destroying the context or dropping this value.</p>
+<div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Opaque, </span><span class="SNsp">Swag</span>.<span class="SAtr">NoCopy]</span>
+<span class="SKwd">struct</span> <span class="SCst"><a href="#Pixel_RenderOglReadback">RenderOglReadback</a></span></span></div>
+</section>
+<h3 id="Pixel_RenderOglReadback_methods">Methods</h3>
+<table class="api-summary">
+<thead><tr><th>Name</th><th>Description</th></tr></thead>
+<tbody>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_cancel">cancel</a></td><td><p>Cancels a pending transfer without waiting, retaining buffer storage for later submissions.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_hasFailed">hasFailed</a></td><td><p>Reports a failed allocation or GPU transfer; release the value before retrying.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_isPending">isPending</a></td><td><p>Reports whether a submitted rectangle has not yet been copied or cancelled.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_opDrop">opDrop</a></td><td><p>Asserts that the owned OpenGL resources were released before this value goes away.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_release">release</a></td><td><p>Cancels pending work and releases the owned buffer without waiting for the GPU.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_submit">submit</a></td><td><p>Submits an in-bounds rectangle in top-left target coordinates without waiting for it.</p>
+</td></tr>
+<tr><td class="code-type"><a href="#Pixel_RenderOglReadback_tryCopyTo">tryCopyTo</a></td><td><p>Copies a completed transfer into borrowed bytes, optionally preserving row padding.</p>
 </td></tr>
 </tbody>
 </table>
@@ -10113,6 +10166,44 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">supportsAdvancedBlending</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOglReadback_cancel" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOglReadback.cancel</span> <a class="api-item-permalink" href="#Pixel_RenderOglReadback_cancel" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderoglreadback.swg#L192">src</a></div>
+<p>Cancels a pending transfer without waiting, retaining buffer storage for later submissions.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">cancel</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOglReadback_hasFailed" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOglReadback.hasFailed</span> <a class="api-item-permalink" href="#Pixel_RenderOglReadback_hasFailed" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderoglreadback.swg#L41">src</a></div>
+<p>Reports a failed allocation or GPU transfer; release the value before retrying.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">hasFailed</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOglReadback_isPending" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOglReadback.isPending</span> <a class="api-item-permalink" href="#Pixel_RenderOglReadback_isPending" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderoglreadback.swg#L38">src</a></div>
+<p>Reports whether a submitted rectangle has not yet been copied or cancelled.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isPending</span>()-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOglReadback_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOglReadback.opDrop</span> <a class="api-item-permalink" href="#Pixel_RenderOglReadback_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderoglreadback.swg#L32">src</a></div>
+<p>Asserts that the owned OpenGL resources were released before this value goes away.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOglReadback_release" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOglReadback.release</span> <a class="api-item-permalink" href="#Pixel_RenderOglReadback_release" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderoglreadback.swg#L205">src</a></div>
+<p>Cancels pending work and releases the owned buffer without waiting for the GPU.</p>
+<p>Calling this on an empty value is harmless. The owning context must still be current.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">release</span>()</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOglReadback_submit" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOglReadback.submit</span> <a class="api-item-permalink" href="#Pixel_RenderOglReadback_submit" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderoglreadback.swg#L48">src</a></div>
+<p>Submits an in-bounds rectangle in top-left target coordinates without waiting for it.</p>
+<p>Returns false if OpenGL refuses the resources. Only one transfer may be pending. Buffer storage is reused across submissions of the same or smaller size. The positive rectangle must fit in a signed 32-bit byte count at four bytes per pixel.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">submit</span>(target: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_RenderTarget">RenderTarget</a></span>, x, y, width, height: <span class="STpe">s32</span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Pixel_RenderOglReadback_tryCopyTo" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderOglReadback.tryCopyTo</span> <a class="api-item-permalink" href="#Pixel_RenderOglReadback_tryCopyTo" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/ogl/renderoglreadback.swg#L131">src</a></div>
+<p>Copies a completed transfer into borrowed bytes, optionally preserving row padding.</p>
+<p>Returns false while work is pending, when empty, or on failure; <a href="#Pixel_RenderOglReadback_hasFailed">Pixel.RenderOglReadback.hasFailed</a> distinguishes failure. Every fence poll uses a zero timeout; completion covers drawing and the pixel transfer. Contexts without persistent readable storage submit the transfer only after drawing completes, avoiding a synchronous read into GPU-local buffer storage. <span class="code-inline">rowStride</span> is in bytes; zero means tightly packed. It must cover one row, and <span class="code-inline">destination</span> must hold all rows. Bytes after each row's pixels are left unchanged.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">tryCopyTo</span>(destination: [..] <span class="STpe">u8</span>, rowStride: <span class="STpe">u64</span> = <span class="SNum">0</span>)-&gt;<span class="STpe">bool</span></span></div>
+</section>
+<section class="api-symbol">
 <div class="api-item api-item-func"><span id="Pixel_RenderThread_close" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">RenderThread.close</span> <a class="api-item-permalink" href="#Pixel_RenderThread_close" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/render/renderthread.swg#L120">src</a></div>
 <p>Drains pending work and joins the worker. Delete all renderer contexts before calling it.</p>
 <p>Repeated calls do nothing. The adapter may subsequently be started with another backend.</p>
@@ -10333,13 +10424,13 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertGoldenText</span>(text: <span class="STpe">string</span>, name: <span class="STpe">string</span>, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Testing_assertImageGolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertImageGolden</span> <a class="api-item-permalink" href="#Pixel_Testing_assertImageGolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L118">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Testing_assertImageGolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertImageGolden</span> <a class="api-item-permalink" href="#Pixel_Testing_assertImageGolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L117">src</a></div>
 <p>Compares owned pixels against the PNG golden named <span class="code-inline">name</span>.</p>
 <p>Goldens live beside the calling test under <span class="code-inline">goldens/&lt;name&gt;.png</span>. A missing golden is created and passes, like <a href="#Pixel_Testing_assertGolden">Pixel.Testing.assertGolden</a>. A mismatch writes <span class="code-inline">&lt;name&gt;.actual.png</span>, reports its first differing pixel, and fails. <a href="#Pixel_Testing_ImageGoldenOptions">Pixel.Testing.ImageGoldenOptions</a> can tolerate bounded codec or raster differences; both limits default to exact comparison. The check remains active when Pixel is built as a release dependency. Goldens are recorded from devmode, and the release preset contracts multiply-add into FMA, which rounds antialiased samples slightly differently: a release build also accepts a channel delta of two and four pixels beyond it, for a glyph that crosses into its neighbouring quarter-pixel phase.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertImageGolden</span>(image: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Image">Image</a></span>, name: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_Testing_ImageGoldenOptions">ImageGoldenOptions</a></span> = {}, loc = <span class="SCmp">#callerlocation</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_Testing_assertImagesNear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertImagesNear</span> <a class="api-item-permalink" href="#Pixel_Testing_assertImagesNear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L87">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_Testing_assertImagesNear" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Testing.assertImagesNear</span> <a class="api-item-permalink" href="#Pixel_Testing_assertImagesNear" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/testing/goldenstore.swg#L86">src</a></div>
 <p>Compares two owned pixel buffers with the same bounded tolerance as image goldens.</p>
 <p><span class="code-inline">expected</span> and <span class="code-inline">actual</span> must be valid images. Dimensions must match exactly. A channel delta at or below <a href="#Pixel_Testing_ImageGoldenOptions_maxChannelDelta">Pixel.Testing.ImageGoldenOptions.maxChannelDelta</a> is accepted; at most <a href="#Pixel_Testing_ImageGoldenOptions_maxDifferentPixels">Pixel.Testing.ImageGoldenOptions.maxDifferentPixels</a> pixels may exceed it. A failed comparison writes <span class="code-inline">&lt;name&gt;.expected.png</span> and <span class="code-inline">&lt;name&gt;.actual.png</span> beside the calling test. The check remains active when Pixel is built as a release dependency.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assertImagesNear</span>(expected, actual: <span class="SKwd">const</span> *<span class="SCst"><a href="#Pixel_Image">Image</a></span>, name: <span class="STpe">string</span>, options: <span class="SCst"><a href="#Pixel_Testing_ImageGoldenOptions">ImageGoldenOptions</a></span> = {}, loc = <span class="SCmp">#callerlocation</span>)</span></div>
@@ -10412,7 +10503,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">create</span>(fullName: <span class="STpe">string</span>, bytes: <span class="SKwd">const</span> [..] <span class="STpe">u8</span>)-&gt;*<span class="SCst"><a href="#Pixel_TypeFace">TypeFace</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Pixel_TypeFace_createFromHfont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.createFromHfont</span> <a class="api-item-permalink" href="#Pixel_TypeFace_createFromHfont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.win32.swg#L91">src</a></div>
+<div class="api-item api-item-func"><span id="Pixel_TypeFace_createFromHfont" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">TypeFace.createFromHfont</span> <a class="api-item-permalink" href="#Pixel_TypeFace_createFromHfont" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/pixel/src/text/typeface.win32.swg#L97">src</a></div>
 <p>Creates or reuses a cached typeface from a borrowed Windows font handle.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">createFromHfont</span>(fullName: <span class="STpe">string</span>, hfont: <span class="SCst"><a href="std.gdi32.html#Gdi32_HFONT">HFONT</a></span>)-&gt;*<span class="SCst"><a href="#Pixel_TypeFace">TypeFace</a></span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -11077,6 +11168,7 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "v|Pixel.RenderOgl.shaderResolve|Pixel_RenderOgl_shaderResolve|Built-in supersampling-resolve shader.",
 "v|Pixel.RenderOgl.shaderSimple|Pixel_RenderOgl_shaderSimple|Built-in non-antialiased shader.",
 "v|Pixel.RenderOgl.shaderYuv|Pixel_RenderOgl_shaderYuv|Built-in planar 4:2:0 shader.",
+"s|Pixel.RenderOglReadback|Pixel_RenderOglReadback|Transfers one OpenGL render-target rectangle to CPU memory without waiting for GPU completion.",
 "s|Pixel.ShaderAA|Pixel_ShaderAA|Describes the standard program with per-vertex antialiasing coverage.",
 "v|Pixel.ShaderAA.base|Pixel_ShaderAA_base|Shared program and uniform handles.",
 "s|Pixel.ShaderBase|Pixel_ShaderBase|Stores a shader program and the uniform locations shared by Pixel shaders.",
@@ -12081,6 +12173,13 @@ painter.<span class="SFct">resetClippingRegion</span>()</span></div>
 "f|Pixel.RenderOgl.resetScratchCounters|Pixel_RenderOgl_resetScratchCounters|Resets the scratch-clear counters, so a caller measures a frame rather than a session.",
 "f|Pixel.RenderOgl.setShader|Pixel_RenderOgl_setShader|Makes shader the current OpenGL program, or the built-in antialiased program when null.",
 "f|Pixel.RenderOgl.supportsAdvancedBlending|Pixel_RenderOgl_supportsAdvancedBlending|Reports whether the current context provides advanced blend equations.",
+"f|Pixel.RenderOglReadback.cancel|Pixel_RenderOglReadback_cancel|Cancels a pending transfer without waiting, retaining buffer storage for later submissions.",
+"f|Pixel.RenderOglReadback.hasFailed|Pixel_RenderOglReadback_hasFailed|Reports a failed allocation or GPU transfer; release the value before retrying.",
+"f|Pixel.RenderOglReadback.isPending|Pixel_RenderOglReadback_isPending|Reports whether a submitted rectangle has not yet been copied or cancelled.",
+"f|Pixel.RenderOglReadback.opDrop|Pixel_RenderOglReadback_opDrop|Asserts that the owned OpenGL resources were released before this value goes away.",
+"f|Pixel.RenderOglReadback.release|Pixel_RenderOglReadback_release|Cancels pending work and releases the owned buffer without waiting for the GPU.",
+"f|Pixel.RenderOglReadback.submit|Pixel_RenderOglReadback_submit|Submits an in-bounds rectangle in top-left target coordinates without waiting for it.",
+"f|Pixel.RenderOglReadback.tryCopyTo|Pixel_RenderOglReadback_tryCopyTo|Copies a completed transfer into borrowed bytes, optionally preserving row padding.",
 "f|Pixel.Svg.Document.addPath|Pixel_Svg_Document_addPath|Appends one filled shape built from every contour of paths.",
 "f|Pixel.Svg.Document.bodyText|Pixel_Svg_Document_bodyText|Returns only the shape elements, without the enclosing svg element.",
 "f|Pixel.Svg.Document.create|Pixel_Svg_Document_create|Creates an empty document with positive dimensions.",

@@ -680,25 +680,37 @@ private impl EditBox
             switch .inputMode
             {
             case .SignedInteger:
-                let val = catch StrConv.parseS64(.textStorage) as err
+                var errOutcome: Swag.Error
+                var val:        #decltype(expect StrConv.parseS64(.textStorage))
+                catch { val = try StrConv.parseS64(.textStorage) } as &errOutcome
+                let err = errOutcome.value()
                 res = .classifyParseResult(err, val.eat, val.ovf)
                 if res == .Valid and (val.value < .minMaxS64.min or val.value > .minMaxS64.max) do
                     res = .InvalidVisible
 
             case .UnsignedInteger:
-                let val = catch StrConv.parseU64(.textStorage) as err
+                var errOutcome: Swag.Error
+                var val:        #decltype(expect StrConv.parseU64(.textStorage))
+                catch { val = try StrConv.parseU64(.textStorage) } as &errOutcome
+                let err = errOutcome.value()
                 res = .classifyParseResult(err, val.eat, val.ovf)
                 if res == .Valid and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
                     res = .InvalidVisible
 
             case .Hexadecimal:
-                let val = catch StrConv.parseX64(.textStorage) as err
+                var errOutcome: Swag.Error
+                var val:        #decltype(expect StrConv.parseX64(.textStorage))
+                catch { val = try StrConv.parseX64(.textStorage) } as &errOutcome
+                let err = errOutcome.value()
                 res = .classifyParseResult(err, val.eat, val.ovf)
                 if res == .Valid and (val.value < .minMaxU64.min or val.value > .minMaxU64.max) do
                     res = .InvalidVisible
 
             case .FloatingPoint:
-                let val = catch StrConv.parseF64(.textStorage) as err
+                var errOutcome: Swag.Error
+                var val:        #decltype(expect StrConv.parseF64(.textStorage))
+                catch { val = try StrConv.parseF64(.textStorage) } as &errOutcome
+                let err = errOutcome.value()
                 res = .classifyParseResult(err, val.eat, val.ovf)
                 if res == .Valid and (val.value < .minMaxF64.min or val.value > .minMaxF64.max) do
                     res = .InvalidVisible

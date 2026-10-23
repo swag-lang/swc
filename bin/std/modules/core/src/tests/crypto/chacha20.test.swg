@@ -160,7 +160,9 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     // Reject the whole request before submitting work when the last block would wrap.
     Memory.set(actual.storage(), 0xA5, actual.count)
     let tooLong = actual.toSlice()[until 65537]
-    discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as overflowError
+    var overflowErrorOutcome: Swag.Error
+    discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as &overflowErrorOutcome
+    let overflowError = overflowErrorOutcome.value()
     Swag.assert((overflowError is Errors.OverflowError))
     for index in actual.count do
         Swag.assert(actual[index] == 0xA5)
@@ -192,7 +194,9 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     expect Crypto.chacha20Xor(key, nonce, lastBlock, lastBlock, Swag.U32.Max)
 
     var twoBlocks: [Crypto.ChaCha20BlockSize + 1] u8
-    discard catch Crypto.chacha20Xor(key, nonce, twoBlocks, twoBlocks, Swag.U32.Max) as overflowError
+    var overflowErrorOutcome: Swag.Error
+    discard catch Crypto.chacha20Xor(key, nonce, twoBlocks, twoBlocks, Swag.U32.Max) as &overflowErrorOutcome
+    let overflowError = overflowErrorOutcome.value()
     Swag.assert((overflowError is Errors.OverflowError))
 }
 
@@ -204,13 +208,19 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     let nonce = testNonce()
 
     var out: [16] u8
-    discard catch Crypto.chacha20Block(key[until 31], 0, nonce) as keyError
+    var keyErrorOutcome: Swag.Error
+    discard catch Crypto.chacha20Block(key[until 31], 0, nonce) as &keyErrorOutcome
+    let keyError = keyErrorOutcome.value()
     Swag.assert((keyError is Errors.BadParameterError))
-    discard catch Crypto.chacha20Block(key, 0, nonce[until 11]) as nonceError
+    var nonceErrorOutcome: Swag.Error
+    discard catch Crypto.chacha20Block(key, 0, nonce[until 11]) as &nonceErrorOutcome
+    let nonceError = nonceErrorOutcome.value()
     Swag.assert((nonceError is Errors.BadParameterError))
 
     var shorter: [8] u8
-    discard catch Crypto.chacha20Xor(key, nonce, out, shorter) as sizeError
+    var sizeErrorOutcome: Swag.Error
+    discard catch Crypto.chacha20Xor(key, nonce, out, shorter) as &sizeErrorOutcome
+    let sizeError = sizeErrorOutcome.value()
     Swag.assert((sizeError is Errors.BadParameterError))
 
     // An empty message is not an error and touches nothing.

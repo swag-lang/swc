@@ -85,8 +85,11 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
     }
 
     Swag.assert(indexed > 40)
-    var reader   = expect Reader.open(corpusPdfPath("pdfbox-jpeg-rgb.pdf"))
-    let overflow = catch reader.loadPageText(reader.pageCount()) as rangeError
+    var reader = expect Reader.open(corpusPdfPath("pdfbox-jpeg-rgb.pdf"))
+    var rangeErrorOutcome: Swag.Error
+    var overflow: #decltype(expect reader.loadPageText(reader.pageCount()))
+    catch { overflow = try reader.loadPageText(reader.pageCount()) } as &rangeErrorOutcome
+    let rangeError = rangeErrorOutcome.value()
     Swag.assert(rangeError != null and overflow.isEmpty())
 }
 

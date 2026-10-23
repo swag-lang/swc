@@ -1499,6 +1499,8 @@ namespace
                 case AstNodeId::ErrorManagementExpr:
                 case AstNodeId::ErrorManagementStmt:
                 {
+                    const AstNodeRef captureRef = node.is(AstNodeId::ErrorManagementExpr) ? node.cast<AstErrorManagementExpr>().nodeCaptureRef : node.cast<AstErrorManagementStmt>().nodeCaptureRef;
+                    walk(captureRef, state);
                     const AstNodeRef innerRef = node.is(AstNodeId::ErrorManagementExpr) ? node.cast<AstErrorManagementExpr>().nodeExprRef : node.cast<AstErrorManagementStmt>().nodeBodyRef;
                     const TokenId    tokenId  = tokenIdOf(node, TokenId::KwdCatch);
                     if (tokenId == TokenId::KwdTry)
@@ -1512,9 +1514,26 @@ namespace
                         return exit;
                     }
 
+                    const FlowState before = state;
                     handledDepth_++;
                     const FlowExit exit = walk(innerRef, state);
                     handledDepth_--;
+
+                    if (tokenId == TokenId::KwdCatch)
+                    {
+                        const AstNodeRef handlerRef = node.is(AstNodeId::ErrorManagementExpr) ? node.cast<AstErrorManagementExpr>().nodeFallbackRef : node.cast<AstErrorManagementStmt>().nodeHandlerRef;
+                        FlowState        failure    = before;
+                        joinInto(failure, state);
+                        const FlowExit handlerExit = walk(handlerRef, failure);
+                        if (handlerExit == FlowExit::Normal)
+                        {
+                            if (exit == FlowExit::Normal)
+                                joinInto(state, failure);
+                            else
+                                state = std::move(failure);
+                            return FlowExit::Normal;
+                        }
+                    }
 
                     return exit;
                 }

@@ -85,8 +85,12 @@ func returnStoredText(text: string)->string? fail
     let baseline = allocator.stats().countAlloc
     var shortValid, longValid: bool
     {
-        catch failStoredText("short") as shortError
-        catch failStoredText("a long retained message stored beyond the small bump buffer") as longError
+        var shortErrorOutcome: Swag.Error
+        catch failStoredText("short") as &shortErrorOutcome
+        let shortError = shortErrorOutcome.value()
+        var longErrorOutcome: Swag.Error
+        catch failStoredText("a long retained message stored beyond the small bump buffer") as &longErrorOutcome
+        let longError = longErrorOutcome.value()
         context.errorAllocator.release()
         if shortError is BaseError as error do
             shortValid = error.message == "short"
@@ -214,7 +218,9 @@ func failStoredTextWithCleanup() fail
     let baseline = allocator.stats().countAlloc
     var pairValid, cleanupValid: bool
     {
-        catch failNestedStoredText() as paired
+        var pairedOutcome: Swag.Error
+        catch failNestedStoredText() as &pairedOutcome
+        let paired = pairedOutcome.value()
         if paired is PairedStoredError as error do
             pairValid = error.message == "before the successful child" and
                         error.second == "returned from the successful child"
@@ -222,7 +228,9 @@ func failStoredTextWithCleanup() fail
     let afterPair = allocator.stats().countAlloc
     storedTextCleanupCount = 0
     {
-        catch failStoredTextWithCleanup() as original
+        var originalOutcome: Swag.Error
+        catch failStoredTextWithCleanup() as &originalOutcome
+        let original = originalOutcome.value()
         if original is BaseError as error do
             cleanupValid = error.message == "the original failure survives cleanup"
     }
@@ -285,10 +293,12 @@ func failStoredTextWithCleanup() fail
     let baseline = allocator.stats().countAlloc
     var valid: bool
     {
+        var transportedOutcome: Swag.Error
         catch parallel for || 1
         {
             try failStoredText("the copied parallel error retains its message")
-        } as transported
+        } as &transportedOutcome
+        let transported = transportedOutcome.value()
         context.errorAllocator.release()
         if transported is BaseError as error do
             valid = error.message == "the copied parallel error retains its message"

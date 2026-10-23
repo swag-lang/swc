@@ -155,17 +155,17 @@ impl LibraryWnd
             if rating do
                 capture.rating = rating[]
             capture.changed = true
-            discard catch capture.save() as saveErr
-            if saveErr != null
+            discard catch capture.save() as saveErr else
             {
                 MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, saveErr)
                 return
             }
 
             .refreshPreviewMetadata(file, capture)
-        } as err
-        if err != null do
+        } as err else
+        {
             MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, err)
+        }
     }
 
     // Asks for the tags of the selected captures and writes them to every one. A single capture
@@ -273,8 +273,7 @@ impl LibraryWnd
         Cursor.activateWait()
         for file in files
         {
-            discard catch .exportCapture(file, dialog.selectedPath()) as err
-            if err != null
+            discard catch .exportCapture(file, dialog.selectedPath()) as err else
             {
                 MessageDlg.error(.main.surface, appStrings().msg_FailedExportCaptures, err)
                 return

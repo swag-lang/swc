@@ -35,8 +35,7 @@ func reportSccContainer(image: *BinaryImage, report: *Report, fileName: string)
     report.formatName = "SCC"
 
     var reader: Scc.Reader
-    catch reader.initialize(fileName) as openError
-    if openError != null
+    catch reader.initialize(fileName) else
     {
         report.note(texts.scc_Unreadable)
         report.summary = Format.toString("SCC %.% · %", major, minor, texts.scc_Unreadable)

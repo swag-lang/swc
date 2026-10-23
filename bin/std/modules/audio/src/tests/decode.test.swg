@@ -30,8 +30,10 @@ func audioPcmPacketSound()->SoundFile fail
     Swag.assert(voice.streamCurSeek == file.payloadSize())
 
     let first = expect file.packet(0)
-    let malformed: [1] SoundPacket = [{first.sourceOffset, 3, 1}]
-    discard catch SoundFile.openPcmPacketStream(file.sourcePath(), .Pcm16, 44_100, 2, malformed) as chunkSize
+    let malformed:        [1] SoundPacket = [{first.sourceOffset, 3, 1}]
+    var chunkSizeOutcome: Swag.Error
+    discard catch SoundFile.openPcmPacketStream(file.sourcePath(), .Pcm16, 44_100, 2, malformed) as &chunkSizeOutcome
+    let chunkSize = chunkSizeOutcome.value()
     Swag.assert((chunkSize is Errors.InvalidFormatError))
 }
 

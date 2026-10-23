@@ -24,8 +24,7 @@ namespace WinFsp
             .volume     = try Volume.open(path, password, readOnly, protectionPassword)
             .volumeOpen = true
             traceWinFspStage("calling WinFspMount.start from MountedVolume.open")
-            discard catch .mount.start(&.volume, mountPoint) as mountError
-            if mountError != null
+            discard catch .mount.start(&.volume, mountPoint) as mountError else
             {
                 discard catch .close()
                 fail mountError
@@ -60,8 +59,7 @@ namespace WinFsp
 func mountVaultNative(path: string, password: const [..] u8, destination: string, readOnly: bool, protectionPassword: const [..] u8)->*void fail
 {
     let mounted = Memory.new'WinFsp.MountedVolume()
-    discard catch mounted.open(path, password, destination, readOnly, protectionPassword) as mountError
-    if mountError != null
+    discard catch mounted.open(path, password, destination, readOnly, protectionPassword) as mountError else
     {
         Memory.delete(mounted)
         fail mountError
@@ -74,10 +72,10 @@ func mountVaultNative(path: string, password: const [..] u8, destination: string
 func unmountVaultNative(handle: *void) fail
 {
     let mounted = cast(*WinFsp.MountedVolume, handle)
-    discard catch mounted.close() as unmountError
+    var unmountErrorOutcome: Swag.Error
+    discard catch mounted.close() as &unmountErrorOutcome
     Memory.delete(mounted)
-    if unmountError != null do
-        fail unmountError
+    try unmountErrorOutcome.raise()
 }
 
 func mountedVaultSpaceNative(handle: *void)->MountedVaultSpace

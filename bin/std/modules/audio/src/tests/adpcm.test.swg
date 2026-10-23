@@ -89,6 +89,8 @@ private func adpcmAssertExact(name: string, encoding: SoundFileEncoding, sampleR
 // A `fmt ` chunk that declares ADPCM without a block alignment cannot be indexed.
 #test
 {
-    discard catch SoundFile.load(audioGetTestDataPath("malformed_adpcm.wav")) as err
+    var errOutcome: Swag.Error
+    discard catch SoundFile.load(audioGetTestDataPath("malformed_adpcm.wav")) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert((err is Errors.InvalidFormatError))
 }

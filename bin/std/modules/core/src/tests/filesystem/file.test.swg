@@ -29,7 +29,9 @@ using Swag
     let replaced = expect stream.readUtf8Chunk(4)
     Swag.assert(replaced == "new")
     expect File.delete(fileName)
-    discard catch stream.size() as missing
+    var missingOutcome: Swag.Error
+    discard catch stream.size() as &missingOutcome
+    let missing = missingOutcome.value()
     Swag.assert(missing != null and stream.isOpen())
     stream.close()
     stream.close()
@@ -122,7 +124,9 @@ using Swag
     defer stream.close()
 
     Swag.assert((expect stream.readUtf8Chunk(16)) == "a")
-    discard catch stream.readUtf8Chunk(16) as err
+    var errOutcome: Swag.Error
+    discard catch stream.readUtf8Chunk(16) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err is Errors.InvalidFormatError)
     Swag.assert(expect stream.position() == 1)
 }

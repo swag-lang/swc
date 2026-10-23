@@ -253,16 +253,12 @@ impl Panel
     // A file that cannot be read reports the default probe, which accepts nothing.
     func probe(fileName: string)->Probe
     {
-        var stream = catch File.openReadLive(fileName) as openError
-        if openError != null do
-            return {}
+        var stream = catch File.openReadLive(fileName) else { return {} }
         defer stream.close()
 
         var bytes: Array'u8
         bytes.resize(Viewer.ProbeHeadSize)
-        let count = catch stream.read(bytes.toSlice()) as readError
-        if readError != null do
-            return {}
+        let count = catch stream.read(bytes.toSlice()) else { return {} }
         bytes.resize(count)
         return probeHead(bytes.toSlice())
     }
@@ -569,7 +565,10 @@ impl IWnd for Panel
         // A count that was asked to stop, or that describes an interpretation the reader has
         // since left, is replaced rather than shown.
         let stopped = .statisticsTask.isCancelled()
-        let counted = catch .statisticsTask.take() as countError
+        var countErrorOutcome: Swag.Error
+        var counted: #decltype(expect .statisticsTask.take())
+        catch { counted = try .statisticsTask.take() } as &countErrorOutcome
+        let countError = countErrorOutcome.value()
         if .retiring do
             return
         if stopped or .statisticsEncoding != .encoding or .statisticsStart != .contentStart
@@ -828,7 +827,10 @@ impl Panel
     // Measures the file and starts reading its first chunk, or shows why it cannot be read.
     private mtd startReading()
     {
-        var stream = catch File.openReadLive(.fileName) as openError
+        var openErrorOutcome: Swag.Error
+        var stream: #decltype(expect File.openReadLive(.fileName))
+        catch { stream = try File.openReadLive(.fileName) } as &openErrorOutcome
+        let openError = openErrorOutcome.value()
         defer stream.close()
         if openError != null
         {
@@ -836,8 +838,7 @@ impl Panel
             return
         }
 
-        let size = catch stream.size() as sizeError
-        if sizeError != null
+        let size = catch stream.size() else
         {
             .showReadError()
             return

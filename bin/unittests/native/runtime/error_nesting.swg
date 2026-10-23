@@ -32,7 +32,9 @@ func nestedFailures(levels: u32)->u32 fail
 #test
 {
     let depth = Swag.getContext().errorIndex
-    discard catch nestedFailures(100) as error
+    var errorOutcome: Swag.Error
+    discard catch nestedFailures(100) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error != null)
     Swag.assert(Swag.getContext().errorIndex == depth)
 }

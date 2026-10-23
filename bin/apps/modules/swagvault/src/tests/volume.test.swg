@@ -24,20 +24,20 @@ func raiseCryptoBatchTestError(marker: u32) fail
     task.submit(func|&batch|()
     {
         {
-            catch raiseCryptoBatchTestError(17) as first
-            batch.keepFirstError(first)
+            catch raiseCryptoBatchTestError(17) as first else { batch.keepFirstError(first) }
         }
 
         {
-            catch raiseCryptoBatchTestError(23) as later
-            batch.keepFirstError(later)
+            catch raiseCryptoBatchTestError(23) as later else { batch.keepFirstError(later) }
         }
     })
     task.wait()
 
     var retained = batch.error
     batch.error.reset()
-    catch retained.raise() as failure
+    var failureOutcome: Swag.Error
+    catch retained.raise() as &failureOutcome
+    let failure = failureOutcome.value()
     Swag.assert(failure is CryptoBatchTestError)
     if failure is CryptoBatchTestError as typed
     {
@@ -45,7 +45,9 @@ func raiseCryptoBatchTestError(marker: u32) fail
         Swag.assert(typed.message == "batch failure 17")
     }
 
-    catch batch.error.raise() as empty
+    var emptyOutcome: Swag.Error
+    catch batch.error.raise() as &emptyOutcome
+    let empty = emptyOutcome.value()
     Swag.assert(empty == null)
 }
 
@@ -61,7 +63,9 @@ func testContainerPath(tag: string)->String
 
 func rejectsPassword(path: string, password: const [..] u8)->bool
 {
-    discard catch Volume.open(path, password) as openError
+    var openErrorOutcome: Swag.Error
+    discard catch Volume.open(path, password) as &openErrorOutcome
+    let openError = openErrorOutcome.value()
     return openError != null
 }
 
@@ -371,42 +375,70 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let nestedId   = expect volume.createNode("\\folder\\nested", true, FileAttributeDirectory, emptyBytes())
     let readOnlyId = expect volume.createNode("\\readonly.bin", false, FileAttributeReadOnly, emptyBytes())
 
-    discard catch volume.createNode("\\FOLDER", true, 0, emptyBytes()) as duplicateError
+    var duplicateErrorOutcome: Swag.Error
+    discard catch volume.createNode("\\FOLDER", true, 0, emptyBytes()) as &duplicateErrorOutcome
+    let duplicateError = duplicateErrorOutcome.value()
     Swag.assert(duplicateError != null)
-    discard catch volume.createNode("\\missing\\file", false, 0, emptyBytes()) as parentError
+    var parentErrorOutcome: Swag.Error
+    discard catch volume.createNode("\\missing\\file", false, 0, emptyBytes()) as &parentErrorOutcome
+    let parentError = parentErrorOutcome.value()
     Swag.assert(parentError != null)
-    discard catch volume.createNode("\\.", false, 0, emptyBytes()) as nameError
+    var nameErrorOutcome: Swag.Error
+    discard catch volume.createNode("\\.", false, 0, emptyBytes()) as &nameErrorOutcome
+    let nameError = nameErrorOutcome.value()
     Swag.assert(nameError != null)
-    discard catch volume.createNode("\\readonly.bin\\child", false, 0, emptyBytes()) as notDirectoryError
+    var notDirectoryErrorOutcome: Swag.Error
+    discard catch volume.createNode("\\readonly.bin\\child", false, 0, emptyBytes()) as &notDirectoryErrorOutcome
+    let notDirectoryError = notDirectoryErrorOutcome.value()
     Swag.assert(notDirectoryError != null)
 
     let data:   [1] u8 = [7]
     var output: [1] u8
-    discard catch volume.writeNode(readOnlyId, 0, data, false, false) as readOnlyError
+    var readOnlyErrorOutcome: Swag.Error
+    discard catch volume.writeNode(readOnlyId, 0, data, false, false) as &readOnlyErrorOutcome
+    let readOnlyError = readOnlyErrorOutcome.value()
     Swag.assert(readOnlyError != null)
-    discard catch volume.readNode(folderId, 0, output) as readDirectoryError
+    var readDirectoryErrorOutcome: Swag.Error
+    discard catch volume.readNode(folderId, 0, output) as &readDirectoryErrorOutcome
+    let readDirectoryError = readDirectoryErrorOutcome.value()
     Swag.assert(readDirectoryError != null)
-    discard catch volume.writeNode(folderId, 0, data, false, false) as writeDirectoryError
+    var writeDirectoryErrorOutcome: Swag.Error
+    discard catch volume.writeNode(folderId, 0, data, false, false) as &writeDirectoryErrorOutcome
+    let writeDirectoryError = writeDirectoryErrorOutcome.value()
     Swag.assert(writeDirectoryError != null)
-    discard catch volume.resizeNode(folderId, 1) as resizeDirectoryError
+    var resizeDirectoryErrorOutcome: Swag.Error
+    discard catch volume.resizeNode(folderId, 1) as &resizeDirectoryErrorOutcome
+    let resizeDirectoryError = resizeDirectoryErrorOutcome.value()
     Swag.assert(resizeDirectoryError != null)
-    discard catch volume.deleteNode(folderId) as nonEmptyError
+    var nonEmptyErrorOutcome: Swag.Error
+    discard catch volume.deleteNode(folderId) as &nonEmptyErrorOutcome
+    let nonEmptyError = nonEmptyErrorOutcome.value()
     Swag.assert(nonEmptyError != null)
-    discard catch volume.deleteNode(1) as rootDeleteError
+    var rootDeleteErrorOutcome: Swag.Error
+    discard catch volume.deleteNode(1) as &rootDeleteErrorOutcome
+    let rootDeleteError = rootDeleteErrorOutcome.value()
     Swag.assert(rootDeleteError != null)
-    discard catch volume.renameNode(1, "\\root", false) as rootRenameError
+    var rootRenameErrorOutcome: Swag.Error
+    discard catch volume.renameNode(1, "\\root", false) as &rootRenameErrorOutcome
+    let rootRenameError = rootRenameErrorOutcome.value()
     Swag.assert(rootRenameError != null)
-    discard catch volume.renameNode(folderId, "\\folder\\nested\\moved", false) as cycleError
+    var cycleErrorOutcome: Swag.Error
+    discard catch volume.renameNode(folderId, "\\folder\\nested\\moved", false) as &cycleErrorOutcome
+    let cycleError = cycleErrorOutcome.value()
     Swag.assert(cycleError != null)
 
     let firstId  = expect volume.createNode("\\first.bin", false, 0, emptyBytes())
     let secondId = expect volume.createNode("\\second.bin", false, 0, emptyBytes())
-    discard catch volume.renameNode(firstId, "\\second.bin", false) as collisionError
+    var collisionErrorOutcome: Swag.Error
+    discard catch volume.renameNode(firstId, "\\second.bin", false) as &collisionErrorOutcome
+    let collisionError = collisionErrorOutcome.value()
     Swag.assert(collisionError != null)
     expect volume.renameNode(firstId, "\\second.bin", true)
     Swag.assert(volume.nodeById(secondId) == null)
     Swag.assert(volume.resolve("\\second.bin")!.id == firstId)
-    discard catch volume.renameNode(firstId, "\\folder", true) as typeError
+    var typeErrorOutcome: Swag.Error
+    discard catch volume.renameNode(firstId, "\\folder", true) as &typeErrorOutcome
+    let typeError = typeErrorOutcome.value()
     Swag.assert(typeError != null)
 
     expect volume.deleteNode(nestedId)
@@ -446,22 +478,32 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     let path = testContainerPath("validation")
     defer discard catch File.delete(path)
 
-    var smallAttempt = catch Volume.create(path, testPassword(), MinimumSize - 1) as sizeError
+    var sizeErrorOutcome: Swag.Error
+    var smallAttempt:     #decltype(expect Volume.create(path, testPassword(), MinimumSize - 1))
+    catch { smallAttempt = try Volume.create(path, testPassword(), MinimumSize - 1) } as &sizeErrorOutcome
+    let sizeError = sizeErrorOutcome.value()
     smallAttempt.close()
     Swag.assert(sizeError != null)
     Swag.assert(not File.exists(path))
 
     var original = expect Volume.create(path, testPassword(), MinimumSize)
     original.close()
-    var duplicate = catch Volume.create(path, testPassword(), MinimumSize) as duplicateError
+    var duplicateErrorOutcome: Swag.Error
+    var duplicate: #decltype(expect Volume.create(path, testPassword(), MinimumSize))
+    catch { duplicate = try Volume.create(path, testPassword(), MinimumSize) } as &duplicateErrorOutcome
+    let duplicateError = duplicateErrorOutcome.value()
     duplicate.close()
     Swag.assert(duplicateError != null)
     Swag.assert(File.exists(path))
 
-    discard catch Volume.open(path, emptyBytes()) as openEmptyError
+    var openEmptyErrorOutcome: Swag.Error
+    discard catch Volume.open(path, emptyBytes()) as &openEmptyErrorOutcome
+    let openEmptyError = openEmptyErrorOutcome.value()
     Swag.assert(openEmptyError != null)
     let missingPath = testContainerPath("missing")
-    discard catch Volume.open(missingPath, testPassword()) as missingError
+    var missingErrorOutcome: Swag.Error
+    discard catch Volume.open(missingPath, testPassword()) as &missingErrorOutcome
+    let missingError = missingErrorOutcome.value()
     Swag.assert(missingError != null)
 
     var reopened = expect Volume.open(path, testPassword())
@@ -735,12 +777,18 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     // The last remaining password cannot be removed: a container no password
     // opens is unrecoverable.
-    discard catch last.removePassword(thirdPassword()) as lastError
+    var lastErrorOutcome: Swag.Error
+    discard catch last.removePassword(thirdPassword()) as &lastErrorOutcome
+    let lastError = lastErrorOutcome.value()
     Swag.assert(lastError != null)
 
-    discard catch last.addPassword(thirdPassword()) as duplicateError
+    var duplicateErrorOutcome: Swag.Error
+    discard catch last.addPassword(thirdPassword()) as &duplicateErrorOutcome
+    let duplicateError = duplicateErrorOutcome.value()
     Swag.assert(duplicateError != null)
-    discard catch last.changePassword(secondPassword(), testPassword()) as wrongCurrentError
+    var wrongCurrentErrorOutcome: Swag.Error
+    discard catch last.changePassword(secondPassword(), testPassword()) as &wrongCurrentErrorOutcome
+    let wrongCurrentError = wrongCurrentErrorOutcome.value()
     Swag.assert(wrongCurrentError != null)
     last.close()
 }
@@ -814,7 +862,10 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     progress.cancel()
     Swag.assert(progress.isCanceled())
 
-    var stopped = catch Volume.create(path, testPassword(), MinimumSize, &progress) as cancelError
+    var cancelErrorOutcome: Swag.Error
+    var stopped: #decltype(expect Volume.create(path, testPassword(), MinimumSize, &progress))
+    catch { stopped = try Volume.create(path, testPassword(), MinimumSize, &progress) } as &cancelErrorOutcome
+    let cancelError = cancelErrorOutcome.value()
     stopped.close()
     Swag.assert(cancelError != null)
     Swag.assert(assume cast(Swagvault.Error, cancelError).kind == .Canceled)
@@ -899,7 +950,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     // A second way in still has to be a password: an unprotected slot beside a protected one
     // would undo the protection without saying so.
-    discard catch protected.addPassword(emptyBytes()) as emptyAddError
+    var emptyAddErrorOutcome: Swag.Error
+    discard catch protected.addPassword(emptyBytes()) as &emptyAddErrorOutcome
+    let emptyAddError = emptyAddErrorOutcome.value()
     Swag.assert(emptyAddError != null)
 
     // Taking the protection back off is the same call the other way round.
@@ -930,9 +983,13 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     // A container can only grow, and only by something: neither of those is a size a caller
     // can reasonably have meant.
-    discard catch volume.grow(MinimumSize) as sameError
+    var sameErrorOutcome: Swag.Error
+    discard catch volume.grow(MinimumSize) as &sameErrorOutcome
+    let sameError = sameErrorOutcome.value()
     Swag.assert(sameError != null)
-    discard catch volume.grow(MinimumSize - 1) as smallerError
+    var smallerErrorOutcome: Swag.Error
+    discard catch volume.grow(MinimumSize - 1) as &smallerErrorOutcome
+    let smallerError = smallerErrorOutcome.value()
     Swag.assert(smallerError != null)
 
     let grownSize = MinimumSize + 64 * BlockRecordSize
@@ -980,7 +1037,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     var stopped = expect Volume.open(path, testPassword())
     let previousPhysical = stopped.physicalSize
-    discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as cancelError
+    var cancelErrorOutcome: Swag.Error
+    discard catch stopped.grow(MinimumSize + 64 * BlockRecordSize, &progress) as &cancelErrorOutcome
+    let cancelError = cancelErrorOutcome.value()
     Swag.assert(cancelError != null)
     Swag.assert(assume cast(Swagvault.Error, cancelError).kind == .Canceled)
     Swag.assert(stopped.containerSize == MinimumSize)
@@ -1069,7 +1128,9 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     var progress: VolumeProgress
     progress.cancel()
     let previousPhysical = volume.physicalSize
-    discard catch volume.resize(MinimumSize, &progress) as cancelError
+    var cancelErrorOutcome: Swag.Error
+    discard catch volume.resize(MinimumSize, &progress) as &cancelErrorOutcome
+    let cancelError = cancelErrorOutcome.value()
     Swag.assert(cancelError != null and assume cast(Swagvault.Error, cancelError).kind == .Canceled)
     Swag.assert(volume.containerSize == InitialSize)
     volume.close()
@@ -1156,25 +1217,45 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
         return false
     }
 
-    discard catch volume.writeNode(nodeId, 0, stored, false, false) as writeError
+    var writeErrorOutcome: Swag.Error
+    discard catch volume.writeNode(nodeId, 0, stored, false, false) as &writeErrorOutcome
+    let writeError = writeErrorOutcome.value()
     Swag.assert(refuses(writeError))
-    discard catch volume.createNode("\\second.txt", false, FileAttributeNormal, emptyBytes()) as createError
+    var createErrorOutcome: Swag.Error
+    discard catch volume.createNode("\\second.txt", false, FileAttributeNormal, emptyBytes()) as &createErrorOutcome
+    let createError = createErrorOutcome.value()
     Swag.assert(refuses(createError))
-    catch volume.renameNode(nodeId, "\\other.txt", false) as renameError
+    var renameErrorOutcome: Swag.Error
+    catch volume.renameNode(nodeId, "\\other.txt", false) as &renameErrorOutcome
+    let renameError = renameErrorOutcome.value()
     Swag.assert(refuses(renameError))
-    catch volume.resizeNode(nodeId, 0) as resizeError
+    var resizeErrorOutcome: Swag.Error
+    catch volume.resizeNode(nodeId, 0) as &resizeErrorOutcome
+    let resizeError = resizeErrorOutcome.value()
     Swag.assert(refuses(resizeError))
-    catch volume.deleteNode(nodeId) as deleteError
+    var deleteErrorOutcome: Swag.Error
+    catch volume.deleteNode(nodeId) as &deleteErrorOutcome
+    let deleteError = deleteErrorOutcome.value()
     Swag.assert(refuses(deleteError))
-    catch volume.commit() as commitError
+    var commitErrorOutcome: Swag.Error
+    catch volume.commit() as &commitErrorOutcome
+    let commitError = commitErrorOutcome.value()
     Swag.assert(refuses(commitError))
-    catch volume.checkpoint() as checkpointError
+    var checkpointErrorOutcome: Swag.Error
+    catch volume.checkpoint() as &checkpointErrorOutcome
+    let checkpointError = checkpointErrorOutcome.value()
     Swag.assert(refuses(checkpointError))
-    catch volume.changePassword(testPassword(), secondPassword()) as passwordError
+    var passwordErrorOutcome: Swag.Error
+    catch volume.changePassword(testPassword(), secondPassword()) as &passwordErrorOutcome
+    let passwordError = passwordErrorOutcome.value()
     Swag.assert(refuses(passwordError))
-    discard catch volume.addPassword(secondPassword()) as addPasswordError
+    var addPasswordErrorOutcome: Swag.Error
+    discard catch volume.addPassword(secondPassword()) as &addPasswordErrorOutcome
+    let addPasswordError = addPasswordErrorOutcome.value()
     Swag.assert(refuses(addPasswordError))
-    catch volume.removePassword(testPassword()) as removePasswordError
+    var removePasswordErrorOutcome: Swag.Error
+    catch volume.removePassword(testPassword()) as &removePasswordErrorOutcome
+    let removePasswordError = removePasswordErrorOutcome.value()
     Swag.assert(refuses(removePasswordError))
 
     // And nothing was staged either: a read-only mount that quietly marked the container dirty

@@ -34,7 +34,9 @@ func checkedValue(ok: bool)->s32 fail
 
 #test
 {
-    catch checkedVoid(false) as err
+    var errOutcome: Swag.Error
+    catch checkedVoid(false) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert((err is InlineError))
     Swag.assert(assume cast(InlineError, err).code == 7)
     expect checkedVoid(true)
@@ -43,7 +45,9 @@ func checkedValue(ok: bool)->s32 fail
 #test
 {
     expect checkedVoid(true)
-    catch checkedVoid(false) as err
+    var errOutcome: Swag.Error
+    catch checkedVoid(false) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert((err is InlineError))
 }
 
@@ -51,13 +55,17 @@ func checkedValue(ok: bool)->s32 fail
 {
     let value = expect checkedValue(true)
     Swag.assert(value == 42)
-    discard catch checkedValue(false) as err
+    var errOutcome: Swag.Error
+    discard catch checkedValue(false) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert((err is InlineError))
 }
 
 #test
 {
-    discard catch checkedValue(false) as err
+    var errOutcome: Swag.Error
+    discard catch checkedValue(false) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert((err is InlineError))
     let value = expect checkedValue(true)
     Swag.assert(value == 42)
@@ -89,13 +97,17 @@ func checkedInjection() fail
 
 #test
 {
-    catch checkedMacro() as err
+    var errOutcome: Swag.Error
+    catch checkedMacro() as &errOutcome
+    let err = errOutcome.value()
     Swag.assert((err is InlineError))
 }
 
 #test
 {
-    catch checkedInjection() as err
+    var errOutcome: Swag.Error
+    catch checkedInjection() as &errOutcome
+    let err = errOutcome.value()
     Swag.assert((err is InlineError))
 }
 
@@ -109,7 +121,7 @@ func identity(value: s32)->s32 => value
 {
     var reached = false
     defer Swag.assert(reached)
-    let value = identity(try checkedValue(true))
+    let value = identity(expect checkedValue(true))
     Swag.assert(value == 42)
     reached = true
 }
@@ -119,6 +131,6 @@ func identity(value: s32)->s32 => value
 {
     var reached = false
     defer Swag.assert(reached)
-    injectStatement(#code { try checkedVoid(true) })
+    injectStatement(#code { expect checkedVoid(true) })
     reached = true
 }

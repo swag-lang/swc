@@ -576,7 +576,9 @@ impl IAllocator for LibraryRejectAllocator
     expect image.save(imagePath)
 
     let previousRoot = Library.getFolder()
-    discard catch g_Library.setFolder(capturePath) as invalidRootError
+    var invalidRootErrorOutcome: Swag.Error
+    discard catch g_Library.setFolder(capturePath) as &invalidRootErrorOutcome
+    let invalidRootError = invalidRootErrorOutcome.value()
     Swag.assert(invalidRootError != null)
     Swag.assert(Library.getFolder() == previousRoot)
 

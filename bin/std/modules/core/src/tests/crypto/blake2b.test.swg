@@ -97,19 +97,27 @@ func assertBlake2b(data: const [..] u8, expected: string)
 #test
 {
     // The digest length is validated at both ends of the sequence.
-    discard catch Hash.Blake2b.create(0) as emptyDigest
+    var emptyDigestOutcome: Swag.Error
+    discard catch Hash.Blake2b.create(0) as &emptyDigestOutcome
+    let emptyDigest = emptyDigestOutcome.value()
     Swag.assert(emptyDigest != null)
-    discard catch Hash.Blake2b.create(Hash.Blake2bMaxDigestSize + 1) as hugeDigest
+    var hugeDigestOutcome: Swag.Error
+    discard catch Hash.Blake2b.create(Hash.Blake2bMaxDigestSize + 1) as &hugeDigestOutcome
+    let hugeDigest = hugeDigestOutcome.value()
     Swag.assert(hugeDigest != null)
 
     var hash = expect Hash.Blake2b.create(32)
     var wrong: [16] u8
-    discard catch hash.finalize(wrong) as lengthMismatch
+    var lengthMismatchOutcome: Swag.Error
+    discard catch hash.finalize(wrong) as &lengthMismatchOutcome
+    let lengthMismatch = lengthMismatchOutcome.value()
     Swag.assert(lengthMismatch != null)
 
-    var oversizedKey: [Hash.Blake2bMaxKeySize + 1] u8
-    var digest:       [32] u8
-    discard catch Hash.Blake2b.computeKeyed(oversizedKey, "abc", digest) as hugeKey
+    var oversizedKey:   [Hash.Blake2bMaxKeySize + 1] u8
+    var digest:         [32] u8
+    var hugeKeyOutcome: Swag.Error
+    discard catch Hash.Blake2b.computeKeyed(oversizedKey, "abc", digest) as &hugeKeyOutcome
+    let hugeKey = hugeKeyOutcome.value()
     Swag.assert(hugeKey != null)
 }
 

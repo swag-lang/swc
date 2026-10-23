@@ -32,7 +32,9 @@ func plainDouble(value: u64)->u64 => value * 2
     // The widened value is still a fallible callable: a body that does fail keeps failing.
     let seven = expect produce(func()->u64 => 7)
     Swag.assert(seven == 7)
-    discard catch produce(func()->u64 fail { fail WideningFailure{3} }) as error
+    var errorOutcome: Swag.Error
+    discard catch produce(func()->u64 fail { fail WideningFailure{3} }) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is WideningFailure)
 }
 
@@ -46,6 +48,8 @@ func failAfterWidenedCall(counter: func||()) fail
 #test
 {
     var hits = 0'u32
-    catch failAfterWidenedCall(func|&hits|() { hits += 1 }) as error
+    var errorOutcome: Swag.Error
+    catch failAfterWidenedCall(func|&hits|() { hits += 1 }) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is WideningFailure and hits == 1)
 }

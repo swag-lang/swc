@@ -134,6 +134,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
         {.name = PredefinedName::RuntimeEndErr, .str = "__endErr"},
         {.name = PredefinedName::RuntimeBindErr, .str = "__bindErr"},
         {.name = PredefinedName::RuntimeClearErr, .str = "__clearErr"},
+        {.name = PredefinedName::RuntimeStoreErr, .str = "__storeErr"},
 
         {.name = PredefinedName::RuntimeFailedExpect, .str = "__failedExpect"},
         {.name = PredefinedName::RuntimeFailedCast, .str = "__failedCast"},
@@ -190,6 +191,7 @@ void IdentifierManager::setup(const TaskContext& ctx)
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::EndErr)]       = predefined(PredefinedName::RuntimeEndErr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::BindErr)]      = predefined(PredefinedName::RuntimeBindErr);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::ClearErr)]     = predefined(PredefinedName::RuntimeClearErr);
+    runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::StoreErr)]     = predefined(PredefinedName::RuntimeStoreErr);
 
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedExpect)] = predefined(PredefinedName::RuntimeFailedExpect);
     runtimeFunctions_[static_cast<size_t>(RuntimeFunctionKind::FailedCast)]   = predefined(PredefinedName::RuntimeFailedCast);

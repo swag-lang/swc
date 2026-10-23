@@ -100,7 +100,9 @@ impl HtmlImageCache
             let parsing = .parsing[index]
             if not wait and parsing.task.isPending() do
                 continue
-            catch parsing.task.take() as error
+            var errorOutcome: Swag.Error
+            catch parsing.task.take() as &errorOutcome
+            let error = errorOutcome.value()
             let entry = &.entries[parsing.slot]
             entry.loaded       = error == null
             entry.needsParsing = false
@@ -158,9 +160,7 @@ impl HtmlImageCache
 
         if Utf8.startsWith(source, "data:")
         {
-            let embedded = catch Image.fromDataUri(source) as decodeError
-            if decodeError != null do
-                return null
+            let embedded = catch Image.fromDataUri(source) else { return null }
             .entries[slot].image       = embedded
             .entries[slot].naturalSize = {cast(f32, embedded.width), cast(f32, embedded.height)}
             .entries[slot].loaded      = true
@@ -173,14 +173,10 @@ impl HtmlImageCache
 
         if Path.lowercaseExtension(fileName.toString()) == ".svg"
         {
-            let text = catch File.readAllText(fileName) as readError
-            if readError != null do
-                return null
+            let text = catch File.readAllText(fileName) else { return null }
             if .asynchronous
             {
-                let size = catch Svg.parseImageSize(text.toString()) as sizeError
-                if sizeError != null do
-                    return null
+                let size = catch Svg.parseImageSize(text.toString()) else { return null }
                 .entries[slot].naturalSize  = size
                 .entries[slot].isVector     = true
                 .entries[slot].loaded       = true
@@ -188,7 +184,10 @@ impl HtmlImageCache
                 return &.entries[slot]
             }
 
-            let drawing = catch Svg.Drawing.parse(text.toString()) as parseError
+            var parseErrorOutcome: Swag.Error
+            var drawing: #decltype(expect Svg.Drawing.parse(text.toString()))
+            catch { drawing = try Svg.Drawing.parse(text.toString()) } as &parseErrorOutcome
+            let parseError = parseErrorOutcome.value()
             if parseError != null or drawing.width <= 0 or drawing.height <= 0 do
                 return null
             .entries[slot].naturalSize = drawing.naturalSize()
@@ -198,9 +197,7 @@ impl HtmlImageCache
             return &.entries[slot]
         }
 
-        let image = catch Image.load(fileName.toString()) as loadError
-        if loadError != null do
-            return null
+        let image = catch Image.load(fileName.toString()) else { return null }
 
         .entries[slot].image       = image
         .entries[slot].naturalSize = {cast(f32, image.width), cast(f32, image.height)}

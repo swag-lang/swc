@@ -149,9 +149,11 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
         var expression = options.expression
         if not expression
         {
-            catch localExpression.compile(query, ignoreCase: not options.matchCase) as expressionError
-            if expressionError != null do
+            catch localExpression.compile(query, ignoreCase: not options.matchCase) else
+            {
                 return
+            }
+
             expression = &localExpression
         }
 
@@ -189,7 +191,9 @@ func patternIsValid(query: string, options: SearchOptions)->bool
 {
     if not options.regularExpression or not query.count do
         return true
-    discard catch Parser.RegExp.create(query, ignoreCase: not options.matchCase) as expressionError
+    var expressionErrorOutcome: Swag.Error
+    discard catch Parser.RegExp.create(query, ignoreCase: not options.matchCase) as &expressionErrorOutcome
+    let expressionError = expressionErrorOutcome.value()
     return expressionError == null
 }
 

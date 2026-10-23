@@ -115,9 +115,7 @@ func loadImages(fileName: string, archive: const *Archive.Zip)->Array'EmbeddedIm
            entry.uncompressedSize > ImageLimit - total do
             continue
 
-        let bytes = catch Archive.Zip.loadEntry(fileName, entry) as imageError
-        if imageError != null do
-            continue
+        let bytes = catch Archive.Zip.loadEntry(fileName, entry) else { continue }
 
         var image: EmbeddedImage
         image.path      = entry.path
@@ -175,7 +173,10 @@ func loadContent(fileName: string)->Content fail
     var styleSource: String
     if styles != null and styles.uncompressedSize <= ContentLimit
     {
-        let styleBytes = catch Archive.Zip.loadEntry(fileName, styles) as stylesError
+        var stylesErrorOutcome: Swag.Error
+        var styleBytes:         #decltype(expect Archive.Zip.loadEntry(fileName, styles))
+        catch { styleBytes = try Archive.Zip.loadEntry(fileName, styles) } as &stylesErrorOutcome
+        let stylesError = stylesErrorOutcome.value()
         if stylesError == null and Utf8.isValid(styleBytes.toSlice()) do
             styleSource = cast(string, styleBytes.toSlice())
     }
@@ -183,7 +184,10 @@ func loadContent(fileName: string)->Content fail
     var metadata: Metadata
     if meta != null and meta.uncompressedSize <= MetadataLimit
     {
-        let metadataBytes = catch Archive.Zip.loadEntry(fileName, meta) as metadataError
+        var metadataErrorOutcome: Swag.Error
+        var metadataBytes:        #decltype(expect Archive.Zip.loadEntry(fileName, meta))
+        catch { metadataBytes = try Archive.Zip.loadEntry(fileName, meta) } as &metadataErrorOutcome
+        let metadataError = metadataErrorOutcome.value()
         if metadataError == null and Utf8.isValid(metadataBytes.toSlice()) do
             metadata = catch parseMetadata(cast(string, metadataBytes.toSlice())) else {}
     }

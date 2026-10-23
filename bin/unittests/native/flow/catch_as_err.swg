@@ -1,10 +1,7 @@
 #global private
 
-// 'catch e as err' captures the caught error into a fresh local 'err' (of type '? any')
-// bound in the ENCLOSING scope: null when the fallible operand succeeds, the caught error when
-// it fails (dismissed afterwards). It replaces the removed ambient error intrinsic — the error is now
-// always obtained by an explicit named capture, never a global. Works as a statement and, in
-// expression position, as 'let x = catch f() as err' (result + captured error together).
+// A local capture belongs to the failure handler. An explicit Swag.Error owner
+// retains an error for later inspection and becomes empty on success.
 
 struct CatchAsErrError
 {
@@ -28,18 +25,14 @@ func catchAsErrCount(ok: bool)->s32 fail
 // Statement form: capture, then branch on the named error.
 func catchAsErrRun(ok: bool)->s32
 {
-    catch catchAsErrMayFail(ok) as err
-    if err != null do
-        return assume cast(CatchAsErrError, err).code
+    catch catchAsErrMayFail(ok) as err else { return assume cast(CatchAsErrError, err).code }
     return 1000
 }
 
-// Expression form: 'x' is the result (default on failure), 'err' the captured error.
+// A value expression either succeeds or returns from its failure handler.
 func catchAsErrValue(ok: bool)->s32
 {
-    let x = catch catchAsErrCount(ok) as err
-    if err != null do
-        return -assume cast(CatchAsErrError, err).code
+    let x = catch catchAsErrCount(ok) as err else { return -assume cast(CatchAsErrError, err).code }
     return x
 }
 
@@ -55,10 +48,8 @@ func catchAsErrValue(ok: bool)->s32
     Swag.assert(catchAsErrValue(false) == -7)
 }
 
-// An 'as err' capture keeps its runtime lowering even when the operand folds to a compile-time
-// constant. An inlined fallible call whose body is a plain 'return value' folds to that value; if
-// the node collapsed onto the constant, codegen would emit the constant INSTEAD of the fallible
-// wrapper and never seed the capture slot, so 'err' would read back uninitialized stack.
+// An explicit owner keeps its runtime lowering when an inline fallible call folds
+// to a constant: the successful catch must still clear a previous stored error.
 #[Swag.Inline]
 func catchAsErrInlineFoldable(value: s32)->s32 fail
 {
@@ -67,7 +58,9 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
 
 #test
 {
-    let x = catch catchAsErrInlineFoldable(63) as err
+    var errOutcome: Swag.Error
+    let x   = catch catchAsErrInlineFoldable(63) as &errOutcome else 0
+    let err = errOutcome.value()
     Swag.assert(x == 63)
     Swag.assert(err == null)
 }
@@ -75,7 +68,9 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
 #test
 {
     // Same through the statement form, where the result is discarded entirely.
-    discard catch catchAsErrInlineFoldable(11) as err
+    var errOutcome: Swag.Error
+    discard catch catchAsErrInlineFoldable(11) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err == null)
 }
 
@@ -85,10 +80,14 @@ func catchAsErrInlineVoid() fail {}
 func catchAsErrInlineCaptures()
 {
     // Void inline callee: the statement and block forms of the capture.
-    catch catchAsErrInlineVoid() as err
+    var errOutcome: Swag.Error
+    catch catchAsErrInlineVoid() as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err == null)
 
-    catch { discard try catchAsErrInlineFoldable(9) } as err2
+    var err2Outcome: Swag.Error
+    discard catch catchAsErrInlineFoldable(9) as &err2Outcome
+    let err2 = err2Outcome.value()
     Swag.assert(err2 == null)
 }
 
@@ -98,12 +97,13 @@ func catchAsErrInlineCaptures()
 }
 
 // The captured error is dismissed after the catch, so a following fallible flow starts clean;
-// re-raising is explicit via 'fail err'.
+// re-raising a saved outcome is explicit via its owner.
 func catchAsErrReraise(ok: bool)->s32 fail
 {
-    catch catchAsErrMayFail(ok) as err
-    if err != null and ok == false do
-        fail err
+    var errOutcome: Swag.Error
+    catch catchAsErrMayFail(ok) as &errOutcome
+    if not errOutcome.isEmpty() and ok == false do
+        try errOutcome.raise()
     return 5
 }
 
@@ -111,9 +111,7 @@ func catchAsErrReraise(ok: bool)->s32 fail
 {
     Swag.assert(catch catchAsErrReraise(true) == 5 else false)
     var seen = 0
-    discard catch catchAsErrReraise(false) as err
-    if err != null do
-        seen = assume cast(CatchAsErrError, err).code
+    discard catch catchAsErrReraise(false) as err else { seen = assume cast(CatchAsErrError, err).code }
     Swag.assert(seen == 7)
 }
 
@@ -134,7 +132,9 @@ func catchAsErrSuccessWithFailDefer() fail
 {
     // Reusing an error-stack slot after a handled capture must not restore the old error when a
     // nested `expect` succeeds; in particular, the surrounding successful frame stays no-fail.
-    catch catchAsErrMayFail(false) as previousError
+    var previousErrorOutcome: Swag.Error
+    catch catchAsErrMayFail(false) as &previousErrorOutcome
+    let previousError = previousErrorOutcome.value()
     Swag.assert(previousError != null)
 
     catchAsErrFailDeferCount = 0

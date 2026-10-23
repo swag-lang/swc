@@ -151,13 +151,16 @@ struct ParallelInputError
 
 #test
 {
-    var values: [8] u64
+    var values:       [8] u64
+    var errorOutcome: Swag.Error
     catch parallel for |&values| index in 8
     {
         if index == 3 do
             fail ParallelInputError{index}
         values[index] = index + 1
-    } as error
+    } as &errorOutcome
+
+    let error = errorOutcome.value()
     Swag.assert(error != null and (error is ParallelInputError))
     Swag.assert(values[3] == 0)
 

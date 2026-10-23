@@ -139,9 +139,11 @@ impl Library
 
     func emptyTrash()
     {
-        let files = catch enumerateTrash() as err
-        if err != null do
+        let files = catch enumerateTrash() else
+        {
             return
+        }
+
         for fi in files do
             discard catch File.delete(fi.fullName)
     }
@@ -200,9 +202,11 @@ impl Library
 
     mtd addFile(name: String)
     {
-        let file = catch File.info(name) as err
-        if err != null do
+        let file = catch File.info(name) else
+        {
             return
+        }
+
         .files.add(file)
         .revision += 1
     }

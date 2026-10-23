@@ -155,14 +155,20 @@ func htmlDecodeEntity(source: string, start: u64, inAttribute = false)->HtmlEnti
         var number: u64
         if hexadecimal
         {
-            let parsed = catch StrConv.parseX64(digits) as parseError
+            var parseErrorOutcome: Swag.Error
+            var parsed: #decltype(expect StrConv.parseX64(digits))
+            catch { parsed = try StrConv.parseX64(digits) } as &parseErrorOutcome
+            let parseError = parseErrorOutcome.value()
             if parseError != null or parsed.ovf or parsed.eat != digits.count do
                 return result
             number = parsed.value
         }
         else
         {
-            let parsed = catch StrConv.parseU64(digits) as parseError
+            var parseErrorOutcome: Swag.Error
+            var parsed: #decltype(expect StrConv.parseU64(digits))
+            catch { parsed = try StrConv.parseU64(digits) } as &parseErrorOutcome
+            let parseError = parseErrorOutcome.value()
             if parseError != null or parsed.ovf or parsed.eat != digits.count do
                 return result
             number = parsed.value

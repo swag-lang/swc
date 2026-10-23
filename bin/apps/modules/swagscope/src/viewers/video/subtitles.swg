@@ -123,9 +123,10 @@ func loadSidecars(fileName: string, result: *Array'*Subtitle.Track)
     if not folder or not stem do
         return
 
-    let files = catch Directory.enumerateFiles(folder) as listError
-    if listError != null do
+    let files = catch Directory.enumerateFiles(folder) else
+    {
         return
+    }
 
     var candidates: Array'String
     for file in files where not file.isDirectory() and hasSubtitleExtension(file.fullName)

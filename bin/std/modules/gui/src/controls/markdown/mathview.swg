@@ -14,9 +14,7 @@ internal impl MathView
 {
     func create(owner: *View, parent: *Wnd, source: string)->*MathView?
     {
-        let expression = catch MathExpression.parse(source) as parseError
-        if parseError != null do
-            return null
+        let expression = catch MathExpression.parse(source) else { return null }
 
         let result = Wnd.create'MathView(parent, "gui.markdown.math")
         result.backgroundStyle = .View

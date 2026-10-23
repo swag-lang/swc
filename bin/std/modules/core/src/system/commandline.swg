@@ -288,10 +288,12 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
         {
             try requireNextValue(typeField)
             var remaining = ""
-            catch
-            {
+            var errOutcome: Swag.Error
+            catch {
                 remaining = try StrConv.parseValue(destination, typeField, tokens[argumentIndex + 1].value)
-            } as err
+            } as &errOutcome
+
+            let err = errOutcome.value()
             argumentIndex += 1
 
             if err != null or remaining.count do
@@ -331,9 +333,7 @@ func(T) parse(st: *T, args: const [..] string, options = ParseOptions{})->Result
 
             if not collectedValues.isEmpty()
             {
-                catch { discard try StrConv.parseValue(destination, typeField, collectedValues.toString()) } as err
-                if err != null do
-                    fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", argument))}
+                catch { discard try StrConv.parseValue(destination, typeField, collectedValues.toString()) } else { fail SyntaxError{Errors.mkString(Format.toString("invalid value for option [[%]]", argument))} }
             }
         }
         else

@@ -1049,7 +1049,9 @@ impl Surface
             // cannot be resized can put it back.
             let declaredSize = Math.Point{.position.width, .position.height}
 
-            catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state) as err
+            var errOutcome: Swag.Error
+            catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state) as &errOutcome
+            let err = errOutcome.value()
             if err == null and ser.isReading()
             {
                 // Bounds were saved in physical pixels of the monitor of that

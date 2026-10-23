@@ -412,7 +412,10 @@ internal impl PdfView
             // A page whose own boxes cannot be read still holds its place in the column: the
             // reader is given the size of the page before it rather than a collapsed row that
             // cannot be scrolled onto.
-            var size = catch .reader.pageSize(index) as sizeError
+            var sizeErrorOutcome: Swag.Error
+            var size: #decltype(expect .reader.pageSize(index))
+            catch { size = try .reader.pageSize(index) } as &sizeErrorOutcome
+            let sizeError = sizeErrorOutcome.value()
             if sizeError != null or
                size.x <= 0 or
                size.y <= 0 or
@@ -827,7 +830,9 @@ internal impl PdfView
             // keeps item clips axis-aligned.
             let pageToSurface = Math.Transform2{scale, 0, 0, scale, base.tx + box.x, base.ty + box.y}
             .pageLock.lock()
-            catch Pdf.drawPageItems(painter, &entry.page, pageToSurface, devicePerPoint, flatten, &entry.fonts, "", entry.textures.toSlice()) as pageError
+            var pageErrorOutcome: Swag.Error
+            catch Pdf.drawPageItems(painter, &entry.page, pageToSurface, devicePerPoint, flatten, &entry.fonts, "", entry.textures.toSlice()) as &pageErrorOutcome
+            let pageError = pageErrorOutcome.value()
             .pageLock.unlock()
             painter.setTransform(base)
             if pageError != null and not .reportedPaintError
@@ -1547,9 +1552,7 @@ impl PdfView
         var expression: Parser.RegExp
         if options.regularExpression
         {
-            catch expression.compile(text, ignoreCase: options.comparison == .Latin1NoCase) as expressionError
-            if expressionError != null do
-                return true
+            catch expression.compile(text, ignoreCase: options.comparison == .Latin1NoCase) else { return true }
         }
 
         .ensureDocumentText()

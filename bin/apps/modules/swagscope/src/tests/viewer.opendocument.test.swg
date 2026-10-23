@@ -256,11 +256,15 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     for 25 do
         repeatedRows += "<table:table-row table:number-rows-repeated='4096'><table:table-cell office:value='1'/></table:table-row>"
     let rowSource = openDocumentXml(Format.toString("<office:spreadsheet><table:table table:name='Bounded'>%</table:table></office:spreadsheet>", repeatedRows))
-    discard catch OpenDocument.parseContent(rowSource, .Spreadsheet) as rowError
+    var rowErrorOutcome: Swag.Error
+    discard catch OpenDocument.parseContent(rowSource, .Spreadsheet) as &rowErrorOutcome
+    let rowError = rowErrorOutcome.value()
     Swag.assert(rowError != null and Utf8.contains(Errors.message(rowError), "100,000 rows"))
 
     let cellSource = openDocumentXml("<office:spreadsheet><table:table table:name='Bounded'><table:table-row table:number-rows-repeated='4096'><table:table-cell table:number-columns-repeated='256' office:value='1'/></table:table-row></table:table></office:spreadsheet>")
-    discard catch OpenDocument.parseContent(cellSource, .Spreadsheet) as cellError
+    var cellErrorOutcome: Swag.Error
+    discard catch OpenDocument.parseContent(cellSource, .Spreadsheet) as &cellErrorOutcome
+    let cellError = cellErrorOutcome.value()
     Swag.assert(cellError != null and Utf8.contains(Errors.message(cellError), "1,000,000 cells"))
 }
 

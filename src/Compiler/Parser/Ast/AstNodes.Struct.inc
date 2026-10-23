@@ -1444,14 +1444,15 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 struct AstErrorManagementExpr : AstNodeT<AstNodeId::ErrorManagementExpr>
 {
     AstNodeRef nodeExprRef;
+    AstNodeRef nodeCaptureRef; // explicit owner address in 'as &owner'
 
     // 'catch e else V' value used when 'e' fails; invalid otherwise.
     AstNodeRef nodeFallbackRef;
 
-    // Optional local name for a caught error, as in catch f() as err.
+    // Optional error binding, visible only in the fallback or handler.
     TokenRef errNameTokRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeFallbackRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCaptureRef, nodeExprRef, nodeFallbackRef}); }
 
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
@@ -1784,12 +1785,13 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 struct AstErrorManagementStmt : AstNodeT<AstNodeId::ErrorManagementStmt>
 {
     AstNodeRef nodeBodyRef;
+    AstNodeRef nodeCaptureRef; // explicit owner address in 'as &owner'
     AstNodeRef nodeHandlerRef; // 'catch e else { H }' failure handler; invalid otherwise
 
-    // Optional local name for the caught error.
+    // Optional error binding, visible only in the handler.
     TokenRef errNameTokRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeBodyRef, nodeHandlerRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCaptureRef, nodeBodyRef, nodeHandlerRef}); }
 
     static Result semaPreNode(Sema& sema);
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;

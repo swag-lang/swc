@@ -411,8 +411,7 @@ impl MainWnd
                 loaded.title   = title
                 loaded.changed = true
                 .saveCapture(loaded)
-            } as err
-            if err != null
+            } as err else
             {
                 MessageDlg.error(.surface!, appStrings().msg_FailedRename, err)
                 return
@@ -442,17 +441,17 @@ impl MainWnd
             defer Memory.delete(loaded)
             loaded.editView = .editWnd.editView
             Clipboard.addImage(loaded.toImage())
-        } as err
-        if err != null do
+        } as err else
+        {
             MessageDlg.error(.surface!, appStrings().msg_FailedCopyImage, err)
+        }
     }
 
     // Opens the image file `arg`: the capture it was exported from when Swag Capture wrote it,
     // otherwise a new capture linked to the file.
     mtd loadExternalImage(arg: String)
     {
-        let imgToLoad = catch Image.load(arg) as err
-        if err != null
+        let imgToLoad = catch Image.load(arg) as err else
         {
             MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedLoadFile, arg), err)
             return

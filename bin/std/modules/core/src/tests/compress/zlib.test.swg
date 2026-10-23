@@ -67,21 +67,30 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 
 #test
 {
-    let tooSmall: [5] u8 = [0x78, 0x9C, 0, 0, 0]
-    var reader:   Compress.ZLib
-    let tooSmallResult   = catch reader.decompress(tooSmall) as errA
+    let tooSmall:       [5] u8 = [0x78, 0x9C, 0, 0, 0]
+    var reader:         Compress.ZLib
+    var errAOutcome:    Swag.Error
+    var tooSmallResult: #decltype(expect reader.decompress(tooSmall))
+    catch { tooSmallResult = try reader.decompress(tooSmall) } as &errAOutcome
+    let errA = errAOutcome.value()
     Swag.assert(tooSmallResult.isEmpty())
     Swag.assert((errA is Errors.InvalidFormatError))
 
     let badMethod:       [6] u8 = [0x79, 0x9C, 0, 0, 0, 0]
     var badMethodReader: Compress.ZLib
-    let badMethodResult         = catch badMethodReader.decompress(badMethod) as errB
+    var errBOutcome:     Swag.Error
+    var badMethodResult: #decltype(expect badMethodReader.decompress(badMethod))
+    catch { badMethodResult = try badMethodReader.decompress(badMethod) } as &errBOutcome
+    let errB = errBOutcome.value()
     Swag.assert(badMethodResult.isEmpty())
     Swag.assert((errB is Errors.InvalidFormatError))
 
     let dictionary:       [6] u8 = [0x78, 0x20, 0, 0, 0, 0]
     var dictionaryReader: Compress.ZLib
-    let dictionaryResult         = catch dictionaryReader.decompress(dictionary) as errC
+    var errCOutcome:      Swag.Error
+    var dictionaryResult: #decltype(expect dictionaryReader.decompress(dictionary))
+    catch { dictionaryResult = try dictionaryReader.decompress(dictionary) } as &errCOutcome
+    let errC = errCOutcome.value()
     Swag.assert(dictionaryResult.isEmpty())
     Swag.assert((errC is Errors.UnsupportedFormatError))
 }
@@ -97,8 +106,11 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
 
     compressed[compressed.count - 1] ^= 0x5A
 
-    var reader: Compress.ZLib
-    let decoded = catch reader.decompress(compressed.toSlice()) as err6
+    var reader:      Compress.ZLib
+    var err6Outcome: Swag.Error
+    var decoded:     #decltype(expect reader.decompress(compressed.toSlice()))
+    catch { decoded = try reader.decompress(compressed.toSlice()) } as &err6Outcome
+    let err6 = err6Outcome.value()
     Swag.assert(decoded.isEmpty())
     Swag.assert((err6 is Errors.InvalidFormatError))
 }

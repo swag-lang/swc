@@ -467,14 +467,24 @@ func verifyImportedDiscardable()
 
 func verifyImportedPropagate()
 {
-    let generic = catch depPropagateGeneric(5's32, true) as genericSuccess
+    var genericSuccessOutcome: Swag.Error
+    var generic: #decltype(expect depPropagateGeneric(5's32, true))
+    catch { generic = try depPropagateGeneric(5's32, true) } as &genericSuccessOutcome
+    let genericSuccess = genericSuccessOutcome.value()
     Swag.assert(generic == 5 and genericSuccess == null)
-    discard catch depPropagateGeneric(5's32, false) as genericFailure
+    var genericFailureOutcome: Swag.Error
+    discard catch depPropagateGeneric(5's32, false) as &genericFailureOutcome
+    let genericFailure = genericFailureOutcome.value()
     Swag.assert(genericFailure is DepPropagateError)
 
-    let inlined = catch depPropagateInline(true) as inlineSuccess
+    var inlineSuccessOutcome: Swag.Error
+    var inlined: #decltype(expect depPropagateInline(true))
+    catch { inlined = try depPropagateInline(true) } as &inlineSuccessOutcome
+    let inlineSuccess = inlineSuccessOutcome.value()
     Swag.assert(inlined == 21 and inlineSuccess == null)
-    discard catch depPropagateInline(false) as inlineFailure
+    var inlineFailureOutcome: Swag.Error
+    discard catch depPropagateInline(false) as &inlineFailureOutcome
+    let inlineFailure = inlineFailureOutcome.value()
     Swag.assert(inlineFailure is DepPropagateError)
 }
 
@@ -511,12 +521,16 @@ func verifyRuntimeTypeCrossDllIdentity()
     Swag.assert(hit == 1)
 
     // A fallible import that succeeds must leave the capture null.
-    catch ctxSharedMayFailNothing() as none
+    var noneOutcome: Swag.Error
+    catch ctxSharedMayFailNothing() as &noneOutcome
+    let none = noneOutcome.value()
     Swag.assert(none == null)
 
     // An error raised in the DLL carries the DLL's descriptor; classifying, walking and casting
     // it here uses this executable's.
-    catch ctxSharedRaiseSystemError() as raised
+    var raisedOutcome: Swag.Error
+    catch ctxSharedRaiseSystemError() as &raisedOutcome
+    let raised = raisedOutcome.value()
     Swag.assert(raised != null)
     Swag.assert((raised is Swag.SystemError))
     Swag.assert((raised is Swag.BaseError))

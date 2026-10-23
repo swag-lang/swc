@@ -13,6 +13,49 @@ namespace
         return node.is(AstNodeId::ErrorManagementExpr) && ast.srcView().token(node.tokRef()).id == TokenId::SymBang;
     }
 
+    // Keep aggregate replacements such as {x: 1} and {-1, false} as values.
+    // Statement keywords and top-level assignments distinguish failure handlers.
+    bool isCatchHandlerBlock(const Token* open, const Token* end)
+    {
+        if (open->id != TokenId::SymLeftCurly || open + 1 >= end)
+            return false;
+        const Token* first = open + 1;
+        if (first->id == TokenId::SymRightCurly || Token::isLiteral(first->id) || first->id == TokenId::SymMinus || first->id == TokenId::SymPlus || first->id == TokenId::SymAmpersand || first->id == TokenId::SymTilde)
+            return false;
+        if (first->id == TokenId::Identifier && first + 1 < end && first[1].id == TokenId::SymColon)
+            return false;
+        if (Token::isKeyword(first->id))
+            return true;
+
+        uint32_t depth   = 0;
+        bool     hasCall = false;
+        for (const Token* token = first; token < end; ++token)
+        {
+            const TokenId id = token->id;
+            if (!depth)
+            {
+                if (id == TokenId::SymComma)
+                    return false;
+                if (Token::isOpAssign(id) || id == TokenId::SymSemiColon)
+                    return true;
+                if (id == TokenId::SymRightCurly)
+                    return hasCall;
+            }
+            if (id == TokenId::SymLeftParen || id == TokenId::SymLeftBracket || id == TokenId::SymLeftCurly)
+            {
+                hasCall |= !depth && id == TokenId::SymLeftParen;
+                ++depth;
+            }
+            else if (id == TokenId::SymRightParen || id == TokenId::SymRightBracket || id == TokenId::SymRightCurly)
+            {
+                if (!depth)
+                    break;
+                --depth;
+            }
+        }
+        return true;
+    }
+
     bool canStartSubType(TokenId id)
     {
         if (Token::isType(id))
@@ -1221,14 +1264,19 @@ AstNodeRef Parser::parseErrorManagementExpr()
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementExpr>(opTokRef);
     nodePtr->nodeExprRef    = parseExpression();
 
-    // The result and the optional caught error have separate bindings in the enclosing scope.
-    // 'else V' names the value the expression yields when the operand fails.
+    // The capture belongs only to the fallback. A block fallback must leave the
+    // surrounding flow; an expression fallback supplies the replacement value.
     if (ast_->srcView().token(opTokRef).id == TokenId::KwdCatch)
     {
         if (consumeIf(TokenId::KwdAs).isValid())
-            nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        {
+            if (is(TokenId::SymAmpersand))
+                nodePtr->nodeCaptureRef = parseExpression();
+            else
+                nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        }
         if (consumeIf(TokenId::KwdElse).isValid())
-            nodePtr->nodeFallbackRef = parseExpression();
+            nodePtr->nodeFallbackRef = isCatchHandlerBlock(curToken_, lastToken_) ? parseDoCurlyBlock() : parseExpression();
     }
 
     // 'expect f()!' asserts the RESULT is not null, not the fallible call. These keywords

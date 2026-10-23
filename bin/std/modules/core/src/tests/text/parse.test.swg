@@ -7,21 +7,29 @@ using Swag
 #test
 {
     let text = "-5"
-    discard catch StrConv.parseS64(text[until 1]) as signOnly
+    var signOnlyOutcome: Swag.Error
+    discard catch StrConv.parseS64(text[until 1]) as &signOnlyOutcome
+    let signOnly = signOnlyOutcome.value()
     Swag.assert(signOnly != null)
 
     let {value, eat, _} = expect StrConv.parseS64(text)
     Swag.assert(value == -5 and eat == 2)
 
-    discard catch StrConv.parseF64(text[until 1]) as floatSignOnly
+    var floatSignOnlyOutcome: Swag.Error
+    discard catch StrConv.parseF64(text[until 1]) as &floatSignOnlyOutcome
+    let floatSignOnly = floatSignOnlyOutcome.value()
     Swag.assert(floatSignOnly != null)
 }
 
 // An empty text is not a number, whatever its type.
 #test
 {
-    discard catch StrConv.toS32("") as emptyInt
-    discard catch StrConv.toF64("") as emptyFloat
+    var emptyIntOutcome: Swag.Error
+    discard catch StrConv.toS32("") as &emptyIntOutcome
+    let emptyInt = emptyIntOutcome.value()
+    var emptyFloatOutcome: Swag.Error
+    discard catch StrConv.toF64("") as &emptyFloatOutcome
+    let emptyFloat = emptyFloatOutcome.value()
     Swag.assert(emptyInt != null)
     Swag.assert(emptyFloat != null)
     Swag.assert(expect StrConv.toF64("2.5") == 2.5)
@@ -68,16 +76,22 @@ func(T) checkCompleteNumberConversion(overflowText: string)
     let value = expect StrConv.toNum'T("12")
     Swag.assert(value == cast(T, 12))
 
-    discard catch StrConv.toNum'T("12x") as trailing
+    var trailingOutcome: Swag.Error
+    discard catch StrConv.toNum'T("12x") as &trailingOutcome
+    let trailing = trailingOutcome.value()
     Swag.assert(trailing is Errors.SyntaxError)
 
-    discard catch StrConv.toNum'T(overflowText) as overflow
+    var overflowOutcome: Swag.Error
+    discard catch StrConv.toNum'T(overflowText) as &overflowOutcome
+    let overflow = overflowOutcome.value()
     Swag.assert(overflow is Errors.OverflowError)
 
     // Overflow keeps priority when unconsumed text follows the number too.
     var overflowWithSuffix = String.from(overflowText)
     overflowWithSuffix.append("x")
-    discard catch StrConv.toNum'T(overflowWithSuffix.toString()) as both
+    var bothOutcome: Swag.Error
+    discard catch StrConv.toNum'T(overflowWithSuffix.toString()) as &bothOutcome
+    let both = bothOutcome.value()
     Swag.assert(both is Errors.OverflowError)
 }
 

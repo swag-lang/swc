@@ -172,8 +172,7 @@ impl ViewerWindow
             var expression: Parser.RegExp
             if options.regularExpression
             {
-                catch expression.compile(.searchQuery, ignoreCase: not options.matchCase) as expressionError
-                if expressionError != null
+                catch expression.compile(.searchQuery, ignoreCase: not options.matchCase) else
                 {
                     .searchComplete = true
                     .refreshSearchReadout()
@@ -250,9 +249,7 @@ impl ViewerWindow
         var expression: Parser.RegExp
         if options.regularExpression
         {
-            catch expression.compile(.searchQuery, ignoreCase: not options.matchCase) as expressionError
-            if expressionError != null do
-                return true
+            catch expression.compile(.searchQuery, ignoreCase: not options.matchCase) else { return true }
             options.expression = &expression
         }
 
@@ -530,8 +527,7 @@ impl ViewerWindow
 
     mtd beginSearch()
     {
-        .searchStream = catch File.openReadLive(.currentFile) as openError
-        if openError != null
+        .searchStream = catch File.openReadLive(.currentFile) else
         {
             .finishSearch()
             return
@@ -564,8 +560,7 @@ impl ViewerWindow
 
         var bytes: Array'u8
         bytes.resize(SearchChunkSize)
-        let count = catch .searchStream.read(bytes.toSlice()) as readError
-        if readError != null
+        let count = catch .searchStream.read(bytes.toSlice()) else
         {
             .finishSearch()
             return

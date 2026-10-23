@@ -22,65 +22,79 @@ func count(name: string?)->u64 fail
 
 /**
 # Catching Errors
-'catch' handles the error locally. To inspect the error, capture it with 'as err':
-this binds a fresh local (of type `any?`) that is null on success and holds the
-caught error on failure. The capture is visible in the enclosing scope, after the
-catch, so each capture in a given scope needs its own name. On failure, the result
-of a capturing 'catch' is the default value of its type; read it only when 'err'
-is null, or name the replacement with 'else', described below.
+'catch' handles an error locally. A value expression names its replacement with
+'else V'. To inspect the error, write 'as err' before 'else': the borrowed
+'any' binding is visible only inside that fallback or handler. The handler
+runs only on failure, so its error is non-null. Separate handlers can reuse a name.
 
-The captured payload stays alive until that scope ends, including across later
-failures. Copies of the 'any' view and pointers derived from it borrow that lifetime
-and cannot escape it. Use 'fail err' to propagate the captured error to a caller.
-To retain an error after its capture ends, give it an explicit [[Swag.Error]] owner.
+A failed call produces no result. A block handler used in a value expression
+must leave the surrounding flow with 'return', 'fail', 'break', or 'continue'.
+No 'catch' supplies an implicit zero or requires a defaultable result type.
+Use a named aggregate literal or parentheses when an aggregate replacement
+could be read as a handler block, such as a single call inside braces.
+
+Copies of the error view and pointers derived from it borrow the handler's
+lifetime and cannot escape it. Use 'fail err' to propagate the caught error.
+To retain it after the handler ends, give it an explicit [[Swag.Error]] owner.
 */
 #test
 {
-    let value = catch count(null) as err
-    Swag.assert(value == 0)
-    Swag.assert(err != null)
-
-    let e = assume cast(MyError, err)
-    Swag.assert(e.code == 7)
-    Swag.assert(e.message == "name cannot be null")
+    let value = catch count(null) as err else assume cast(MyError, err).code
+    Swag.assert(value == 7)
+    let other = catch count(null) as err else assume cast(MyError, err).code + 1
+    Swag.assert(other == 8)
 }
 
 /**
 # Retaining Errors
 [[Swag.Error.capture]] copies a live caught payload and retains its runtime message
-storage. The owner may then outlive the catch scope, including a worker thread.
-Other borrowed fields in the payload still need their original owners, and the
-backing allocator must remain alive until every error owner and raised capture ends.
+storage. The owner may then outlive the handler, including a worker thread.
+Other borrowed fields still need their original owners, and the backing allocator
+must remain alive until every error owner and raised capture ends.
 
-'try saved.raise()' propagates the retained error with its original dynamic type.
-To inspect it, catch that call. The new capture owns its own lifetime, so resetting
-'saved' does not invalidate it. An empty owner raises no error. Copying an owner
-shares its retained payload; access to the same owner across threads needs
-synchronization.
+To store the outcome directly, declare the owner and write 'as &saved'. The
+owner address is evaluated once before the operand. Failure retains the handled
+payload without copying it; success resets the owner to empty. This form declares
+no error binding and needs no handler when the call's result is discarded.
+A result that is read still needs an explicit replacement or a handler that leaves
+the surrounding flow.
+
+[[Swag.Error.value]] borrows the retained error for later inspection; an empty
+owner returns null. Resetting, replacing, or dropping the owner invalidates that
+view. 'try saved.raise()' propagates the retained error with its dynamic type.
+Copying an owner shares its retained payload. Access to the same owner across
+threads needs synchronization.
 */
 #test
 {
     var saved: Swag.Error
-    {
-        discard catch count(null) as err
-        saved.capture(err)
-    }
-
-    catch saved.raise() as err
-    saved.reset()
-    Swag.assert(saved.isEmpty())
+    discard catch count(null) as &saved
+    let err = saved.value()
     Swag.assert(err is MyError)
-    let e = assume cast(MyError, err)
-    Swag.assert(e.code == 7)
-    Swag.assert(e.message == "name cannot be null")
+    Swag.assert(assume cast(MyError, err).code == 7)
+
+    catch saved.raise() as err else
+    {
+        saved.reset()
+        Swag.assert(saved.isEmpty())
+        Swag.assert(assume cast(MyError, err).message == "name cannot be null")
+    }
+}
+
+#test
+{
+    var saved: Swag.Error
+    let value = catch count(null) as &saved else 17
+    Swag.assert(value == 17 and not saved.isEmpty())
+    let other = catch count("ready") as &saved else 0
+    Swag.assert(other == 5 and saved.isEmpty())
 }
 
 /**
 # Handling on Failure with 'catch ... else'
-'catch e else { H }' runs the anonymous handler 'H' only when 'e' fails. 'H'
-cannot inspect the error (capture it with 'as err' for that); it is evaluated
-lazily — only on the failure path — and may divert control flow (e.g. an early
-'return'). To read the caught error, use the 'as err' capture form instead.
+'catch e else { H }' runs the handler 'H' only when 'e' fails. Add 'as err'
+before 'else' to inspect the error inside 'H'. A handler on a statement may
+finish normally. A handler on a value expression must leave the surrounding flow.
 */
 func recordTrace(name: string?, out: *s32) fail
 {
@@ -110,9 +124,9 @@ and is evaluated only on the failure path, after an 'as err' capture is bound, s
 can read the error. Because the replacement is written, the result type needs no
 default: a non-null pointer can be caught too.
 
-A failure never becomes a value silently. A 'catch' without a capture or 'else' cannot
-be read: the compiler rejects it. When the result is not needed, write 'discard catch',
-which handles the error and drops both.
+A failure never becomes a value silently. A 'catch' without 'else' cannot be read:
+the compiler rejects it, including with a persistent capture. When the result is not
+needed, write 'discard catch': success drops its result and failure drops its error.
 */
 func safeCount(name: string?)->u64
 {
@@ -148,14 +162,18 @@ func propagateCount(name: string?)->u64 fail
 
 #test
 {
-    let value = catch propagateCount("abc") as err
+    var errOutcome: Swag.Error
+    let value = catch propagateCount("abc") as &errOutcome else 0
+    let err   = errOutcome.value()
     Swag.assert(value == 3)
     Swag.assert(err == null)
 }
 
 #test
 {
-    let value = catch propagateCount(null) as err
+    var errOutcome: Swag.Error
+    let value = catch propagateCount(null) as &errOutcome else 0
+    let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(err != null)
     Swag.assert(assume cast(MyError, err).code == 7)
@@ -175,7 +193,9 @@ func explicitTryCount(name: string?)->u64 fail
 
 #test
 {
-    let value = catch explicitTryCount(null) as err
+    var errOutcome: Swag.Error
+    let value = catch explicitTryCount(null) as &errOutcome else 0
+    let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(err != null)
     Swag.assert(assume cast(MyError, err).code == 7)
@@ -201,11 +221,13 @@ func blockTry(name0: string?, name1: string?)->u64 fail
 
 func blockCatchCode()->s32
 {
-    catch
-    {
+    var errOutcome: Swag.Error
+    catch {
         discard try count("ok")
         discard try count(null)
-    } as err
+    } as &errOutcome
+
+    let err = errOutcome.value()
 
     if err == null do
         return -1
@@ -226,7 +248,9 @@ func blockCatchElse(name: string?)->u64
 
 #test
 {
-    let value = catch blockTry("ab", null) as err
+    var errOutcome: Swag.Error
+    let value = catch blockTry("ab", null) as &errOutcome else 0
+    let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(err != null)
     Swag.assert(assume cast(MyError, err).code == 7)
@@ -271,12 +295,14 @@ func implicitTotal(name0: string?, name1: string?)->u64 fail
 
 #test
 {
-    let both = try implicitTotal("ab", "cde")
+    let both = expect implicitTotal("ab", "cde")
     Swag.assert(both == 7)
-    let caught = try implicitTotal("ab", null)
+    let caught = expect implicitTotal("ab", null)
     Swag.assert(caught == 4)
 
-    let value = catch implicitTotal(null, "cde") as err
+    var errOutcome: Swag.Error
+    let value = catch implicitTotal(null, "cde") as &errOutcome else 0
+    let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(assume cast(MyError, err).code == 7)
 }
@@ -294,18 +320,17 @@ constructing a replacement, and 'expect' stops without one. Both accept result
 types with no default, including non-null pointers. A successful nullable result
 remains nullable: 'expect' checks success, not presence.
 
-A capturing 'catch' without 'else' resumes with a default result and therefore needs
-a result type with a safe default. A non-null pointer has none; give the replacement
-with 'else', propagate with 'try', or require success with 'expect'.
+A 'catch' expression names its replacement with 'else', or uses a block handler
+that leaves the surrounding flow. It accepts non-null results without a default.
 
-Inside '#test', 'try' is equivalent to 'expect', so both forms keep the
-success path concise when failure is not expected. An inlined function keeps
-its own error propagation: 'try' in its body still passes failures to the
-caller's handler.
+Inside '#test', write 'expect' when an error must stop the test. 'try' follows
+the ordinary propagation rule and needs an enclosing error-handling block.
+An inlined function keeps its own error propagation: 'try' in its body still
+passes failures to the caller's handler.
 */
 #test
 {
-    let value = try count("swag")
+    let value = expect count("swag")
     Swag.assert(value == 4)
 }
 
@@ -370,7 +395,9 @@ func deferOnFail(name: string?)->u64 fail
 #test
 {
     DeferTrace = 0
-    let value = catch deferOnFail(null) as err
+    var errOutcome: Swag.Error
+    let value = catch deferOnFail(null) as &errOutcome else 0
+    let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(err != null)
     Swag.assert(DeferTrace == 1)

@@ -180,7 +180,10 @@ impl Reader
                     {
                         entry.pageIndex = page.value
                         let source = .sources[page.value]
-                        let region = catch pageBox(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate) as boxError
+                        var boxErrorOutcome: Swag.Error
+                        var region: #decltype(expect pageBox(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate))
+                        catch { region = try pageBox(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate) } as &boxErrorOutcome
+                        let boxError = boxErrorOutcome.value()
                         if boxError == null
                         {
                             let mode = String.from(.parser.name(values[1]))

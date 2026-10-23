@@ -773,7 +773,9 @@ func assertPngDecodeFails(fileName: string, encoded: *ConcatBuffer)
 {
     let bytes = encoded.toArray()
     var image: Image
-    image = catch Image.decode(fileName, nnBytes(bytes.toSlice()), {}) as decodeError
+    var decodeErrorOutcome: Swag.Error
+    catch { image = try Image.decode(fileName, nnBytes(bytes.toSlice()), {}) } as &decodeErrorOutcome
+    let decodeError = decodeErrorOutcome.value()
     Swag.assert(decodeError != null)
 }
 
@@ -1204,11 +1206,15 @@ func buildPng16(width, height: s32, colorType: u8, interlace: bool, samples: con
 {
     let bad: [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
     var img: Image
-    img = catch Image.decode("bad.png", Swag.makeSlice(&bad[0], bad.count), {}) as err11
+    var err11Outcome: Swag.Error
+    catch { img = try Image.decode("bad.png", Swag.makeSlice(&bad[0], bad.count), {}) } as &err11Outcome
+    let err11 = err11Outcome.value()
     Swag.assert(err11 != null)
 
     let bytes = expect File.readAllBytes(getTestDataPath("rgb.png"))
-    img = catch Image.decode("truncated.png", Swag.makeSlice(bytes.buffer, 32), {}) as err13
+    var err13Outcome: Swag.Error
+    catch { img = try Image.decode("truncated.png", Swag.makeSlice(bytes.buffer, 32), {}) } as &err13Outcome
+    let err13 = err13Outcome.value()
     Swag.assert(err13 != null)
 }
 

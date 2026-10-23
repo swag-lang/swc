@@ -43,7 +43,10 @@ impl Read
             if Swag.isCancelled() do
                 return
             discard try stream.seek(.Begin, .start)
-            var chunk = catch stream.readTextChunk(.limit, .encoding) as readError
+            var readErrorOutcome: Swag.Error
+            var chunk: #decltype(expect stream.readTextChunk(.limit, .encoding))
+            catch { chunk = try stream.readTextChunk(.limit, .encoding) } as &readErrorOutcome
+            let readError = readErrorOutcome.value()
             if readError == null
             {
                 .end  = try stream.position()
@@ -90,8 +93,7 @@ impl Read
         let request = me
         .submit(func|request|()
         {
-            catch request.read() as readError
-            if readError != null
+            catch request.read() as readError else
             {
                 request.failed = true
                 request.error  = Viewer.failureText(readError)

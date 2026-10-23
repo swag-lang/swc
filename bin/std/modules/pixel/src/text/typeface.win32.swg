@@ -31,8 +31,11 @@ impl TypeFace
         let previousObject = SelectObject(hdc, cast(hfont))
         defer SelectObject(hdc, previousObject)
 
-        var table  = 0'u32
-        let collectionLength = catch GetFontData(hdc, TtcfTableTag, 0, null, 0) as err
+        var table = 0'u32
+        var errOutcome:       Swag.Error
+        var collectionLength: #decltype(expect GetFontData(hdc, TtcfTableTag, 0, null, 0))
+        catch { collectionLength = try GetFontData(hdc, TtcfTableTag, 0, null, 0) } as &errOutcome
+        let err    = errOutcome.value()
         var length = collectionLength
 
         if err != null or not collectionLength or collectionLength == GDI_ERROR do
@@ -78,7 +81,10 @@ impl TypeFace
         {
             for index in count
             {
-                let name = catch Face.familyNameAt(bytes, index) as err
+                var errOutcome: Swag.Error
+                var name:       #decltype(expect Face.familyNameAt(bytes, index))
+                catch { name = try Face.familyNameAt(bytes, index) } as &errOutcome
+                let err = errOutcome.value()
                 if err == null and not Latin1.compare(name, family, ignoreCase: true) do
                     return try Face.loadAt(bytes, index, allocator)
             }

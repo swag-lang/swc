@@ -40,15 +40,23 @@ using Swag, Core
 // decode of garbage: wrong scheme, missing base64 marker, unknown media type, broken payload.
 #test
 {
-    discard catch Image.fromDataUri("data:text/plain;base64,aGk=") as notImage
+    var notImageOutcome: Swag.Error
+    discard catch Image.fromDataUri("data:text/plain;base64,aGk=") as &notImageOutcome
+    let notImage = notImageOutcome.value()
     Swag.assert(notImage != null)
 
-    discard catch Image.fromDataUri("data:image/png,plain") as notBase64
+    var notBase64Outcome: Swag.Error
+    discard catch Image.fromDataUri("data:image/png,plain") as &notBase64Outcome
+    let notBase64 = notBase64Outcome.value()
     Swag.assert(notBase64 != null)
 
-    discard catch Image.fromDataUri("data:image/unknown;base64,aGk=") as noCodec
+    var noCodecOutcome: Swag.Error
+    discard catch Image.fromDataUri("data:image/unknown;base64,aGk=") as &noCodecOutcome
+    let noCodec = noCodecOutcome.value()
     Swag.assert(noCodec != null)
 
-    discard catch Image.fromDataUri("data:image/png;base64,!!!") as badPayload
+    var badPayloadOutcome: Swag.Error
+    discard catch Image.fromDataUri("data:image/png;base64,!!!") as &badPayloadOutcome
+    let badPayload = badPayloadOutcome.value()
     Swag.assert(badPayload != null)
 }

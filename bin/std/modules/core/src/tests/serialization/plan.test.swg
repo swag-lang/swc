@@ -25,7 +25,9 @@ func buildSerializationPlan(type: typeinfo) fail
 // The captured error keeps both source field names and their conflicting wire key.
 #test
 {
-    catch buildSerializationPlan(DuplicatePlanKeys) as error
+    var errorOutcome: Swag.Error
+    catch buildSerializationPlan(DuplicatePlanKeys) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is Errors.SerializationError)
     let message = Errors.message(error)
     Swag.assert(Utf8.contains(message, #typeof(DuplicatePlanKeys).fullname!))
@@ -34,7 +36,9 @@ func buildSerializationPlan(type: typeinfo) fail
 
 #test
 {
-    catch buildSerializationPlan(EmptyPlanKey) as error
+    var errorOutcome: Swag.Error
+    catch buildSerializationPlan(EmptyPlanKey) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error is Errors.SerializationError)
     Swag.assert(Errors.message(error) == "serialized field needs a non-empty key")
 }

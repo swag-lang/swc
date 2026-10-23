@@ -64,7 +64,9 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
 
     var validCodes = true
     {
-        catch signal.raise() as error
+        var errorOutcome: Swag.Error
+        catch signal.raise() as &errorOutcome
+        let error = errorOutcome.value()
         if error is SystemError as value do
             validCodes = validCodes and value.errorID == 6
         else do
@@ -74,7 +76,9 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
     let afterSignalCatch = allocator.stats().countAlloc
 
     {
-        catch reset.raise() as error
+        var errorOutcome: Swag.Error
+        catch reset.raise() as &errorOutcome
+        let error = errorOutcome.value()
         if error is SystemError as value do
             validCodes = validCodes and value.errorID == 6
         else do
@@ -84,7 +88,9 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
     let afterResetCatch = allocator.stats().countAlloc
 
     {
-        catch wait.raise() as error
+        var errorOutcome: Swag.Error
+        catch wait.raise() as &errorOutcome
+        let error = errorOutcome.value()
         if error is SystemError as value do
             validCodes = validCodes and value.errorID == 6
         else do
@@ -95,7 +101,9 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
 
     {
         let noDetail = Sync.EventStatus{succeeded: false, errorCode: 0}
-        catch noDetail.raise() as error
+        var errorOutcome: Swag.Error
+        catch noDetail.raise() as &errorOutcome
+        let error = errorOutcome.value()
         if error is SystemError as value do
             validCodes = validCodes and value.errorID == 0 and value.message != null
         else do

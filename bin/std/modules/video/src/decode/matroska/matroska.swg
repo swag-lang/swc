@@ -458,8 +458,7 @@ private impl Layout
                 if hasTracks and targets.cues != NoOffset
                 {
                     let mark = cursor.position
-                    catch .parseMetadataElement(cursor, targets.cues, CuesId, segment) as cuesError
-                    if cuesError != null
+                    catch .parseMetadataElement(cursor, targets.cues, CuesId, segment) else
                     {
                         .cues.clear()
                         try cursor.seek(mark)
@@ -1896,7 +1895,9 @@ private impl Decoder
         index.soundWorker.start(.Background)
         index.soundIndex.submit(func|index|()
         {
-            catch buildSoundIndex(index) as indexError
+            var indexErrorOutcome: Swag.Error
+            catch buildSoundIndex(index) as &indexErrorOutcome
+            let indexError = indexErrorOutcome.value()
             Atomic.exchange(&index.soundStatus, indexError != null ? SoundIndexFailed : SoundIndexReady)
         },
                                 executor: &index.soundWorker)

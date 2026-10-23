@@ -39,15 +39,13 @@ impl BinaryImage
         .truncated = false
         .failureReason.clear()
 
-        var file = catch File.MappedFile.openSnapshot(fileName, LoadLimit) as openError
-        if openError != null
+        var file = catch File.MappedFile.openSnapshot(fileName, LoadLimit) as openError else
         {
             .failureReason = Viewer.failureText(openError)
             return false
         }
 
-        let metadata = catch File.info(fileName) as sizeError
-        if sizeError != null
+        let metadata = catch File.info(fileName) as sizeError else
         {
             .failureReason = Viewer.failureText(sizeError)
             return false
@@ -55,8 +53,7 @@ impl BinaryImage
 
         .fileSize = metadata.size
 
-        .region = catch file.mapAll() as mapError
-        if mapError != null
+        .region = catch file.mapAll() as mapError else
         {
             .failureReason = Viewer.failureText(mapError)
             return false

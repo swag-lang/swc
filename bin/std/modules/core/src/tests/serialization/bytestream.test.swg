@@ -68,13 +68,17 @@ using Swag
     // Truncated in the middle of a continuation.
     let cut: [1] u8 = [0x80]
     var truncated   = ByteStream.openRead(cut)
-    discard catch truncated.readVarint() as errcut
+    var errcutOutcome: Swag.Error
+    discard catch truncated.readVarint() as &errcutOutcome
+    let errcut = errcutOutcome.value()
     Swag.assert(errcut != null)
 
     // More than 64 bits of payload is refused.
     let long: [11] u8 = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01]
     var overlong      = ByteStream.openRead(long)
-    discard catch overlong.readVarint() as errlong
+    var errlongOutcome: Swag.Error
+    discard catch overlong.readVarint() as &errlongOutcome
+    let errlong = errlongOutcome.value()
     Swag.assert(errlong != null)
 }
 
@@ -177,7 +181,9 @@ using Swag
     writer.writeSizedString("too long")
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    discard catch reader.readSizedString(4) as err
+    var errOutcome: Swag.Error
+    discard catch reader.readSizedString(4) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }
 
@@ -190,7 +196,9 @@ using Swag
     buffer.resize(buffer.count - 2)
 
     var reader = ByteStream.openRead(buffer.toSlice())
-    discard catch reader.readSizedString() as err
+    var errOutcome: Swag.Error
+    discard catch reader.readSizedString() as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }
 

@@ -63,6 +63,8 @@ func ktx2Roundtrip(source: Image)->Image
                 not header.isValid())
 
     const Invalid: [12] u8 = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    discard catch Image.decode("bad.ktx2", Invalid) as error
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("bad.ktx2", Invalid) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error != null)
 }

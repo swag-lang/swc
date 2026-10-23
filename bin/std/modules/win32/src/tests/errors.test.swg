@@ -6,14 +6,18 @@ using Swag
 // A checked native sentinel remains a failure even when GetLastError supplies no detail.
 #test
 {
-    catch failWinError(0) as missingCode
+    var missingCodeOutcome: Swag.Error
+    catch failWinError(0) as &missingCodeOutcome
+    let missingCode = missingCodeOutcome.value()
     Swag.assert((missingCode is SystemError))
     let missing = assume cast (*SystemError, missingCode)
     Swag.assert(missing.errorID == 0)
     Swag.assert(missing.message == "the Windows operation failed without an error code")
 
     const InvalidHandleError = 6'u32
-    catch failWinError(InvalidHandleError) as invalidHandle
+    var invalidHandleOutcome: Swag.Error
+    catch failWinError(InvalidHandleError) as &invalidHandleOutcome
+    let invalidHandle = invalidHandleOutcome.value()
     Swag.assert((invalidHandle is SystemError))
     let invalid = assume cast (*SystemError, invalidHandle)
     Swag.assert(invalid.errorID == InvalidHandleError)
@@ -44,7 +48,9 @@ using Swag
     var messagesValid = true
     for 32
     {
-        catch failWinError(InvalidHandleError) as error
+        var errorOutcome: Swag.Error
+        catch failWinError(InvalidHandleError) as &errorOutcome
+        let error = errorOutcome.value()
         if error is SystemError as value do
             messagesValid = messagesValid and value.message != null and value.message.count != 0
         else do
@@ -59,7 +65,9 @@ using Swag
     var retainedValid:  bool
     var retainedBlocks: u64
     {
-        catch failWinError(InvalidHandleError) as retained
+        var retainedOutcome: Swag.Error
+        catch failWinError(InvalidHandleError) as &retainedOutcome
+        let retained = retainedOutcome.value()
         context.errorAllocator.release()
         retainedBlocks = allocator.stats().countAlloc
         if retained is SystemError as value do

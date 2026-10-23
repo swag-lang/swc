@@ -8,16 +8,14 @@ using Win32
 internal func createNative(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
-    catch CreateDirectoryW(winPath.buffer, null) as err
-    try Errors.transformWinErrors(err, dirName)
+    catch CreateDirectoryW(winPath.buffer, null) as err else { try Errors.transformWinErrors(err, dirName) }
 }
 
 // Removes an empty directory on Windows, failing if it cannot be removed.
 internal func deleteEmptyNative(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
-    catch RemoveDirectoryW(winPath.buffer) as err
-    try Errors.transformWinErrors(err, dirName)
+    catch RemoveDirectoryW(winPath.buffer) as err else { try Errors.transformWinErrors(err, dirName) }
 }
 
 // Returns whether `dirName` names an existing directory.
@@ -28,8 +26,8 @@ func exists(dirName: string)->bool
     if dirName.count == 0 do
         return false
     let winPath    = Utf16.toZeroTerminated(dirName)
-    let attributes = catch GetFileAttributesW(winPath.buffer) as err
-    if err != null or attributes == 0xFFFFFFFF do
+    let attributes = catch GetFileAttributesW(winPath.buffer) else { return false }
+    if attributes == 0xFFFFFFFF do
         return false
     return (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0
 }
@@ -105,8 +103,7 @@ func currentPath()->String fail
 func setCurrentPath(dirName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(dirName)
-    catch SetCurrentDirectoryW(winPath.buffer) as err
-    try Errors.transformWinErrors(err, dirName)
+    catch SetCurrentDirectoryW(winPath.buffer) as err else { try Errors.transformWinErrors(err, dirName) }
 }
 
 // Returns the root of every logical drive, such as `C:\`.
@@ -151,7 +148,9 @@ func volumes()->Array'String fail
     for
     {
         var requiredLength: DWORD
-        catch GetVolumePathNamesForVolumeNameA(volumeName, driveName, MAX_PATH, &requiredLength) as err
+        var errOutcome:     Swag.Error
+        catch GetVolumePathNamesForVolumeNameA(volumeName, driveName, MAX_PATH, &requiredLength) as &errOutcome
+        let err = errOutcome.value()
         if err == null
         {
             let length = cast(cstring, driveName).count

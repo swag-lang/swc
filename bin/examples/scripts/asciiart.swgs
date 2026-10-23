@@ -29,7 +29,9 @@ func openImage(surface: *Surface?)
     if dlg.doModal() != Dialog.BtnOk do
         return
 
-    g_Img = catch Image.load(dlg.selectedPath()) as err
+    var errOutcome: Swag.Error
+    catch { g_Img = try Image.load(dlg.selectedPath()) } as &errOutcome
+    let err = errOutcome.value()
     if err != null do
         MessageDlg.error(surface, "Failed to load image", err)
 }

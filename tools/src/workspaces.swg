@@ -64,9 +64,7 @@ private func hasUnitTests(moduleDir: string)->bool
 
 private func holdsTestSource(directory: string)->bool
 {
-    let entries = catch Directory.enumerateFiles(directory, ".swg", recurse: true) as err
-    if err != null do
-        return false
+    let entries = catch Directory.enumerateFiles(directory, ".swg", recurse: true) else { return false }
 
     for entry in entries
     {
@@ -360,9 +358,7 @@ private func scriptFiles(scriptsDir: string)->Array'String
 {
     var result: retval
 
-    let entries = catch Directory.enumerateFiles(scriptsDir, ".swgs") as err
-    if err != null do
-        return result
+    let entries = catch Directory.enumerateFiles(scriptsDir, ".swgs") else { return result }
 
     for entry in entries do
         result.add(entry.fullName)

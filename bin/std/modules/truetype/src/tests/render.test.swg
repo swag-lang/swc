@@ -155,7 +155,9 @@ using Swag, Core
 
     discard expect face.setPixelSize(0, 20)
     discard expect face.loadChar('A', .Default)
-    discard catch face.loadGlyph(face.glyphCount + 1, .Default) as err15
+    var err15Outcome: Swag.Error
+    discard catch face.loadGlyph(face.glyphCount + 1, .Default) as &err15Outcome
+    let err15 = err15Outcome.value()
     Swag.assert(err15 != null)
 }
 

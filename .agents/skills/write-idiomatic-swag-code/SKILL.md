@@ -391,7 +391,7 @@ let renderer: IRenderer = &cpu
 - In a `fail` function, put what only a failure must undo in `defer #fail`, right after the
   change it undoes: a window hidden for a screen grab is shown again, a half-written file is
   removed. It replaces the success flag when the success path needs no rollback at all.
-- The command that starts a user action reports its failure (`catch ... as err`, then a message
+- The command that starts a user action reports its failure (`catch ... as err else { ... }`, with a message
   naming what failed). A bare `catch action()` makes a failed save, load, or capture look like
   nothing happened.
 - Call the operation directly when its result is part of the logic — a commit whose failure must
@@ -542,11 +542,13 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   `expect`, and `assume` stand out. Do not write `try` inside it: the compiler reports it as
   redundant. Keep explicit `try` in code that builds state by hand and must undo it on failure,
   where each exit point matters to the reader.
-- A `catch` expression supplies an implicit default on failure. Use
-  `let value = catch operation() as error` only when the result type has that default, and guard
-  the error before consuming the result. For a non-nullable `string` or pointer, keep an explicitly
-  initialized local and assign it inside `catch { value = try operation() }`. That initializer
-  represents a required state, not disposable boilerplate. Preserve translated errors and lifetimes.
+- A `catch` expression names its replacement with `else value`, or uses `else { ... }`
+  to leave the surrounding flow on failure. Its result needs no implicit default.
+  `as error` binds a borrowed error only inside that fallback or handler; handlers can reuse
+  the same name. Keep immediate recovery there. For delayed inspection, declare a
+  `Swag.Error` owner and write `catch operation() as &owner`, with an explicit `else value`
+  when reading the result. The owner is empty on success and retains the error on failure.
+  Borrow `.value()` only while that owner is alive and has not been replaced or reset.
 - Use `assume operation()` only when the caller guarantees success. `.Assume` safety checks
   that invariant; disabling it removes the caller's error check. Use `expect` when failure
   must terminate in every configuration. Neither form constructs a default result.
@@ -614,7 +616,7 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Use `try cast(T, value)` to propagate a conversion error, or `expect cast(T, value)`
   to panic on failure in every build configuration. Keep statically resolved conversions
   as `cast(T, value)`; a contextual conversion is `cast(value)`.
-- Use `catch cast(*T?, value)` when the nullable conversion result is itself needed.
+- Use `catch cast(*T?, value) else null` when the nullable conversion result is itself needed.
   Prefer type patterns when the purpose is testing compatibility or selecting a branch.
 - Use `assume cast(T, boxed)` or `assume cast(*T, value)` only when the concrete type
   is an established invariant. `.Assume` safety checks that assertion; disabling it
@@ -641,6 +643,8 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Follow successful fixture setup immediately with its cleanup `defer`; do not leave teardown at
   the bottom of a test where an assertion or early return can bypass it.
 - Use `expect` for failures that make a test invalid and `try` in examples that propagate failure.
+  A `#test` body does not change `try` into `expect`: propagation still needs a function declared
+  with `fail` or an enclosing error-handling block.
 - Keep required side effects outside `Swag.assert`: ordinary release builds and explicit safety
   overrides can omit the entire assertion, including its condition. The `test` command enables
   assertions by default even in release. Execute actions, allocations, mutations, and asynchronous flushes

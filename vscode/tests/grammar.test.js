@@ -93,7 +93,13 @@ test('dynamic casts and type patterns share the language vocabulary', () => {
     for (const name of ['typeIs', 'typeAs']) {
         assert.ok(!scopesAt(`Swag.${name}(target, source)`, 5).includes('entity.name.function.intrinsic'), name);
     }
-    assert.ok(scopesAt('catch err as context', 10).includes('keyword.control'));
+    for (const line of ['catch read() as error else 0', 'catch read() as &saved else 0']) {
+        assert.ok(scopesAt(line, line.indexOf('as')).includes('keyword.control'), line);
+        assert.ok(scopesAt(line, line.indexOf('else')).includes('keyword.control'), line);
+        if (line.includes('&')) {
+            assert.ok(scopesAt(line, line.indexOf('&')).includes('keyword.operator'), line);
+        }
+    }
 });
 
 test('intrinsic member names require an accessor and a complete identifier', () => {

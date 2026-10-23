@@ -23,7 +23,9 @@ using Swag, Core, Gui
     let expectedFirst = Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024))
     var firstMessage: String
     {
-        catch window.operation.error.raise() as firstError
+        var firstErrorOutcome: Swag.Error
+        catch window.operation.error.raise() as &firstErrorOutcome
+        let firstError = firstErrorOutcome.value()
         Swag.assert(firstError != null and not isCanceledError(firstError))
         firstMessage = caughtMessage(firstError)
         Swag.assert(firstMessage == expectedFirst)
@@ -36,7 +38,9 @@ using Swag, Core, Gui
     window.operation.task.submit(func|window|() { window.runOperation() })
     window.operation.task.wait()
     {
-        catch window.operation.error.raise() as canceledError
+        var canceledErrorOutcome: Swag.Error
+        catch window.operation.error.raise() as &canceledErrorOutcome
+        let canceledError = canceledErrorOutcome.value()
         Swag.assert(canceledError != null and isCanceledError(canceledError))
         let message = caughtMessage(canceledError)
         Swag.assert(message == appStrings().msg_OperationStopped)
@@ -604,7 +608,9 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 
     func messageFor(kind: ErrorKind)->String
     {
-        catch raiseVolumeError(kind) as err
+        var errOutcome: Swag.Error
+        catch raiseVolumeError(kind) as &errOutcome
+        let err = errOutcome.value()
         return caughtMessage(err)
     }
 

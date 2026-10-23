@@ -93,8 +93,7 @@ internal impl MappedRegion
     mtd flushNative() fail
     {
         try FlushViewOfFile(.view, .length)
-        catch FlushFileBuffers(cast(HANDLE, .fileHandle)) as err
-        try Errors.transformWinErrors(err)
+        catch FlushFileBuffers(cast(HANDLE, .fileHandle)) as err else { try Errors.transformWinErrors(err) }
     }
 
     // Unlocking pages that were never locked is the documented way to remove them from the

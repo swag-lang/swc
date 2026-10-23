@@ -24,7 +24,10 @@ func assumedVoid(value: *s32) fail { value[] += 1 }
 
 func internallyHandledOperation()->s32 fail
 {
-    let result = catch assumedOperation(-1) as error
+    var errorOutcome: Swag.Error
+    var result:       #decltype(expect assumedOperation(-1))
+    catch { result = try assumedOperation(-1) } as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(result == 0 and error != null)
     return 42
 }
@@ -69,7 +72,10 @@ func assumedBlock(value: *s32)
     {
         Swag.assert(assume internallyHandledOperation() == 42)
         // A later checked operation still owns its failure.
-        let failed = catch assumedOperation(-1) as error
+        var errorOutcome: Swag.Error
+        var failed:       #decltype(expect assumedOperation(-1))
+        catch { failed = try assumedOperation(-1) } as &errorOutcome
+        let error = errorOutcome.value()
         Swag.assert(failed == 0 and error != null)
     }
 }

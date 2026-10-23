@@ -11,11 +11,17 @@ using Swag, Core
     {
         var image = Image.create(3, 2, format)
         image.clear()
-        discard catch image.encode("image.bmp") as bmpError
+        var bmpErrorOutcome: Swag.Error
+        discard catch image.encode("image.bmp") as &bmpErrorOutcome
+        let bmpError = bmpErrorOutcome.value()
         Swag.assert(bmpError != null)
-        discard catch image.encode("image.tga") as tgaError
+        var tgaErrorOutcome: Swag.Error
+        discard catch image.encode("image.tga") as &tgaErrorOutcome
+        let tgaError = tgaErrorOutcome.value()
         Swag.assert(tgaError != null)
-        discard catch image.encode("image.tga", Tga.EncodeOptions{rle: true}) as rleError
+        var rleErrorOutcome: Swag.Error
+        discard catch image.encode("image.tga", Tga.EncodeOptions{rle: true}) as &rleErrorOutcome
+        let rleError = rleErrorOutcome.value()
         Swag.assert(rleError != null)
     }
 }

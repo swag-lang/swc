@@ -319,7 +319,7 @@
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">tourClamp</span>(<span class="SNum">0.25</span>'<span class="STpe">f32</span>, <span class="SNum">0.0</span>, <span class="SNum">1.0</span>) == <span class="SNum">0.25</span>)
 }</span></div>
 <h3 id="_001_002_language_tour_swg_Recoverable_Errors">Recoverable Errors</h3>
-<p>A function marked <span class="code-inline">fail</span> may return an error instead of its normal result. <span class="code-inline">try</span> propagates that error, while <span class="code-inline">catch</span> handles it locally; capture it with 'as err' to inspect it.</p>
+<p>A function marked <span class="code-inline">fail</span> may return an error instead of its normal result. <span class="code-inline">try</span> propagates that error, while <span class="code-inline">catch</span> handles it locally: <span class="code-inline">else</span> names the value to use instead. An 'as err' binding belongs to the handler; a declared <span class="code-inline">Swag.Error</span> retains an error for later inspection with 'as &amp;err'.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tourDivide</span>(numerator, denominator: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> <span class="SKwd">fail</span>
 {
     <span class="SLgc">if</span> denominator == <span class="SNum">0</span> <span class="SLgc">do</span>
@@ -329,11 +329,12 @@
 
 <span class="SFct">#test</span>
 {
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">try</span> <span class="SFct">tourDivide</span>(<span class="SNum">12</span>, <span class="SNum">3</span>) == <span class="SNum">4</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">expect</span> <span class="SFct">tourDivide</span>(<span class="SNum">12</span>, <span class="SNum">3</span>) == <span class="SNum">4</span>)
 
-    <span class="SKwd">let</span> fallback = <span class="SKwd">catch</span> <span class="SFct">tourDivide</span>(<span class="SNum">12</span>, <span class="SNum">0</span>) <span class="SLgc">as</span> err
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(fallback == <span class="SNum">0</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
+    <span class="SKwd">var</span> err: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">let</span> fallback = <span class="SKwd">catch</span> <span class="SFct">tourDivide</span>(<span class="SNum">12</span>, <span class="SNum">0</span>) <span class="SLgc">as</span> &amp;err <span class="SLgc">else</span> -<span class="SNum">1</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(fallback == -<span class="SNum">1</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> err.<span class="SFct">isEmpty</span>())
 }</span></div>
 <h3 id="_001_002_language_tour_swg_Compile-Time_Programming">Compile-Time Programming</h3>
 <p>Swag uses the same language during compilation. <span class="code-inline">#run</span> evaluates an expression at compile time; <span class="code-inline">#assert</span> then verifies the resulting constant before code generation starts.</p>
@@ -2277,7 +2278,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> button: <span class="SCst">CastButton</span>
     <span class="SKwd">let</span> node:   *<span class="SCst">CastNode</span> = &amp;button
-    <span class="SKwd">let</span> found = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node)
+    <span class="SKwd">let</span> found = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node) <span class="SLgc">else</span> <span class="SKwd">null</span>
     <span class="SLgc">if</span> found != <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found.label == <span class="SStr">"Apply"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found != <span class="SKwd">null</span>)
@@ -3670,7 +3671,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a: <span class="STpe">any</span> = <span class="SNum">6</span>
-    <span class="SKwd">let</span> ptr    = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a)
+    <span class="SKwd">let</span> ptr    = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a) <span class="SLgc">else</span> <span class="SKwd">null</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[] == <span class="SNum">6</span>)
 }</span></div>
@@ -5236,13 +5237,16 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> values: [<span class="SNum">8</span>] <span class="STpe">u64</span>
+    <span class="SKwd">var</span> values:       [<span class="SNum">8</span>] <span class="STpe">u64</span>
+    <span class="SKwd">var</span> errorOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
     <span class="SKwd">catch</span> <span class="SLgc">parallel</span> <span class="SLgc">for</span> |&amp;values| index <span class="SLgc">in</span> <span class="SNum">8</span>
     {
         <span class="SLgc">if</span> index == <span class="SNum">3</span> <span class="SLgc">do</span>
             <span class="SKwd">fail</span> <span class="SCst">ParallelInputError</span>{index}
         values[index] = index + <span class="SNum">1</span>
-    } <span class="SLgc">as</span> error
+    } <span class="SLgc">as</span> &amp;errorOutcome
+
+    <span class="SKwd">let</span> error = errorOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(error != <span class="SKwd">null</span> <span class="SLgc">and</span> (error <span class="SLgc">is</span> <span class="SCst">ParallelInputError</span>))
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(values[<span class="SNum">3</span>] == <span class="SNum">0</span>)
 
@@ -7560,7 +7564,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>The complete family is indexed in the keyword chapter. Domain checks such as a negative square root depend on the active safety and sanity configuration.</p>
 <h3 id="_008_005_memory_and_atomic_intrinsics_swg">Memory and Atomic Intrinsics</h3>
 <h3 id="_008_005_memory_and_atomic_intrinsics_swg_Raw_Memory">Raw Memory</h3>
-<p><span class="code-inline">Swag.memcpy</span> copies non-overlapping bytes, <span class="code-inline">Swag.memmove</span> supports overlap, <span class="code-inline">Swag.memset</span> writes one byte value repeatedly, and <span class="code-inline">Swag.memcmp</span> compares byte sequences. Counts are expressed in bytes.</p>
+<p><span class="code-inline">Swag.memcpy</span> copies non-overlapping bytes, <span class="code-inline">Swag.memmove</span> supports overlap, <span class="code-inline">Swag.memset</span> writes one byte value repeatedly, and <span class="code-inline">Swag.memcmp</span> compares byte sequences. Counts are expressed in bytes. All block pointers must be non-null, including when the count is zero.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> source      = [<span class="SNum">1</span>'<span class="STpe">u8</span>, <span class="SNum">2</span>, <span class="SNum">3</span>, <span class="SNum">4</span>]
@@ -8919,39 +8923,46 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">return</span> name.count
 }</span></div>
 <h3 id="_013_001_error_management_swg_Catching_Errors">Catching Errors</h3>
-<p><span class="code-inline">catch</span> handles the error locally and returns the default value for the result type. To inspect the error, capture it with 'as err': this binds a fresh local (of type <span class="code-inline">any?</span>) that is null on success and holds the caught error on failure. The capture is visible in the enclosing scope, after the catch, so each capture in a given scope needs its own name.</p>
-<p>The captured payload stays alive until that scope ends, including across later failures. Copies of the <span class="code-inline">any</span> view and pointers derived from it borrow that lifetime and cannot escape it. Use 'fail err' to propagate the captured error to a caller. To retain an error after its capture ends, give it an explicit <a href="swag.runtime.html#Swag_Error">Swag.Error</a> owner.</p>
+<p><span class="code-inline">catch</span> handles an error locally. A value expression names its replacement with 'else V'. To inspect the error, write 'as err' before <span class="code-inline">else</span>: the borrowed <span class="code-inline">any</span> binding is visible only inside that fallback or handler. The handler runs only on failure, so its error is non-null. Separate handlers can reuse a name.</p>
+<p>A failed call produces no result. A block handler used in a value expression must leave the surrounding flow with <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">break</span>, or <span class="code-inline">continue</span>. No <span class="code-inline">catch</span> supplies an implicit zero or requires a defaultable result type. Use a named aggregate literal or parentheses when an aggregate replacement could be read as a handler block, such as a single call inside braces.</p>
+<p>Copies of the error view and pointers derived from it borrow the handler's lifetime and cannot escape it. Use 'fail err' to propagate the caught error. To retain it after the handler ends, give it an explicit <a href="swag.runtime.html#Swag_Error">Swag.Error</a> owner.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
-
-    <span class="SKwd">let</span> e = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.code == <span class="SNum">7</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.message == <span class="SStr">"name cannot be null"</span>)
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err <span class="SLgc">else</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">7</span>)
+    <span class="SKwd">let</span> other = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err <span class="SLgc">else</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code + <span class="SNum">1</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(other == <span class="SNum">8</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Retaining_Errors">Retaining Errors</h3>
-<p><a href="swag.runtime.html#Swag_Error_capture">Swag.Error.capture</a> copies a live caught payload and retains its runtime message storage. The owner may then outlive the catch scope, including a worker thread. Other borrowed fields in the payload still need their original owners, and the backing allocator must remain alive until every error owner and raised capture ends.</p>
-<p>'try saved.raise()' propagates the retained error with its original dynamic type. To inspect it, catch that call. The new capture owns its own lifetime, so resetting <span class="code-inline">saved</span> does not invalidate it. An empty owner raises no error. Copying an owner shares its retained payload; access to the same owner across threads needs synchronization.</p>
+<p><a href="swag.runtime.html#Swag_Error_capture">Swag.Error.capture</a> copies a live caught payload and retains its runtime message storage. The owner may then outlive the handler, including a worker thread. Other borrowed fields still need their original owners, and the backing allocator must remain alive until every error owner and raised capture ends.</p>
+<p>To store the outcome directly, declare the owner and write 'as &amp;saved'. The owner address is evaluated once before the operand. Failure retains the handled payload without copying it; success resets the owner to empty. This form declares no error binding and needs no handler when the call's result is discarded. A result that is read still needs an explicit replacement or a handler that leaves the surrounding flow.</p>
+<p><a href="swag.runtime.html#Swag_Error_value">Swag.Error.value</a> borrows the retained error for later inspection; an empty owner returns null. Resetting, replacing, or dropping the owner invalidates that view. 'try saved.raise()' propagates the retained error with its dynamic type. Copying an owner shares its retained payload. Access to the same owner across threads needs synchronization.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> saved: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    {
-        <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
-        saved.<span class="SFct">capture</span>(err)
-    }
-
-    <span class="SKwd">catch</span> saved.<span class="SFct">raise</span>() <span class="SLgc">as</span> err
-    saved.<span class="SFct">reset</span>()
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(saved.<span class="SFct">isEmpty</span>())
+    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;saved
+    <span class="SKwd">let</span> err = saved.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err <span class="SLgc">is</span> <span class="SCst">MyError</span>)
-    <span class="SKwd">let</span> e = <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.code == <span class="SNum">7</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(e.message == <span class="SStr">"name cannot be null"</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
+
+    <span class="SKwd">catch</span> saved.<span class="SFct">raise</span>() <span class="SLgc">as</span> err <span class="SLgc">else</span>
+    {
+        saved.<span class="SFct">reset</span>()
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(saved.<span class="SFct">isEmpty</span>())
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).message == <span class="SStr">"name cannot be null"</span>)
+    }
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> saved: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;saved <span class="SLgc">else</span> <span class="SNum">17</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">17</span> <span class="SLgc">and</span> <span class="SLgc">not</span> saved.<span class="SFct">isEmpty</span>())
+    <span class="SKwd">let</span> other = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SStr">"ready"</span>) <span class="SLgc">as</span> &amp;saved <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(other == <span class="SNum">5</span> <span class="SLgc">and</span> saved.<span class="SFct">isEmpty</span>())
 }</span></div>
 <h3 id="_013_001_error_management_swg_Handling_on_Failure_with__catch_____else_">Handling on Failure with 'catch ... else'</h3>
-<p>'catch e else { H }' runs the anonymous handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails. <span class="code-inline">H</span> cannot inspect the error (capture it with 'as err' for that); it is evaluated lazily — only on the failure path — and may divert control flow (e.g. an early <span class="code-inline">return</span>). To read the caught error, use the 'as err' capture form instead.</p>
+<p>'catch e else { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails. Add 'as err' before <span class="code-inline">else</span> to inspect the error inside <span class="code-inline">H</span>. A handler on a statement may finish normally. A handler on a value expression must leave the surrounding flow.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="STpe">string</span>?, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
 {
     out[] = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, (<span class="SKwd">try</span> <span class="SFct">count</span>(name)))
@@ -8972,17 +8983,29 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(seen == -<span class="SNum">2</span>)     <span class="SCmt">// failure: the handler ran instead</span>
 }</span></div>
-<h3 id="_013_001_error_management_swg_Dismissing_Errors">Dismissing Errors</h3>
-<p>To dismiss a failure and continue with the type default, use <span class="code-inline">catch</span> without a capture: the error is handled and dropped, and the expression yields the default value for the result type. To keep the error, add an 'as err' capture; to use a custom fallback, capture and branch ('var x = catch f() as err; if err != null do x = V').</p>
+<h3 id="_013_001_error_management_swg_Replacing_a_Failed_Result_with__else_">Replacing a Failed Result with <span class="code-inline">else</span></h3>
+<p>'catch e else V' yields <span class="code-inline">V</span> when <span class="code-inline">e</span> fails. <span class="code-inline">V</span> converts to the result type of <span class="code-inline">e</span> and is evaluated only on the failure path, after an 'as err' capture is bound, so it can read the error. Because the replacement is written, the result type needs no default: a non-null pointer can be caught too.</p>
+<p>A failure never becomes a value silently. A <span class="code-inline">catch</span> without <span class="code-inline">else</span> cannot be read: the compiler rejects it, including with a persistent capture. When the result is not needed, write 'discard catch': success drops its result and failure drops its error.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">safeCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
 {
-    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name)
+    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name) <span class="SLgc">else</span> <span class="SNum">0</span>
+}
+
+<span class="SKwd">func</span> <span class="SFct">countOrCode</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
+{
+    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name) <span class="SLgc">as</span> err <span class="SLgc">else</span> <span class="SKwd">cast</span>(<span class="STpe">u64</span>, <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code)
 }
 
 <span class="SFct">#test</span>
 {
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">safeCount</span>(<span class="SStr">"hello"</span>) == <span class="SNum">5</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">safeCount</span>(<span class="SKwd">null</span>) == <span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">countOrCode</span>(<span class="SKwd">null</span>) == <span class="SNum">7</span>)
+
+    <span class="SKwd">let</span> required = <span class="SKwd">catch</span> <span class="SFct">loadRequiredValue</span>() <span class="SLgc">else</span> &amp;requiredValue
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(required[] == <span class="SNum">42</span>)
+
+    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Propagating_Errors">Propagating Errors</h3>
 <p><span class="code-inline">try</span> propagates the current error to the caller, so it belongs inside a function that can itself return an error.</p>
@@ -8993,14 +9016,18 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SStr">"abc"</span>) <span class="SLgc">as</span> err
+    <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SStr">"abc"</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">3</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err == <span class="SKwd">null</span>)
 }
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
+    <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
@@ -9014,7 +9041,9 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
+    <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
@@ -9035,11 +9064,13 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SKwd">func</span> <span class="SFct">blockCatchCode</span>()-&gt;<span class="STpe">s32</span>
 {
-    <span class="SKwd">catch</span>
-    {
+    <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">catch</span> {
         <span class="SKwd">discard</span> <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SStr">"ok"</span>)
         <span class="SKwd">discard</span> <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SKwd">null</span>)
-    } <span class="SLgc">as</span> err
+    } <span class="SLgc">as</span> &amp;errOutcome
+
+    <span class="SKwd">let</span> err = errOutcome.<span class="SFct">value</span>()
 
     <span class="SLgc">if</span> err == <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SLgc">return</span> -<span class="SNum">1</span>
@@ -9060,7 +9091,9 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">blockTry</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>) <span class="SLgc">as</span> err
+    <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">blockTry</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
@@ -9081,29 +9114,31 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SKwd">func</span> <span class="SFct">implicitTotal</span>(name0: <span class="STpe">string</span>?, name1: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SKwd">let</span> first  = <span class="SFct">count</span>(name0)
-    <span class="SKwd">let</span> second = <span class="SKwd">catch</span> <span class="SFct">count</span>(name1)
+    <span class="SKwd">let</span> second = <span class="SKwd">catch</span> <span class="SFct">count</span>(name1) <span class="SLgc">else</span> <span class="SNum">0</span>
     <span class="SLgc">return</span> first + second + <span class="SFct">count</span>(<span class="SStr">"ok"</span>)
 }
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> both = <span class="SKwd">try</span> <span class="SFct">implicitTotal</span>(<span class="SStr">"ab"</span>, <span class="SStr">"cde"</span>)
+    <span class="SKwd">let</span> both = <span class="SKwd">expect</span> <span class="SFct">implicitTotal</span>(<span class="SStr">"ab"</span>, <span class="SStr">"cde"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(both == <span class="SNum">7</span>)
-    <span class="SKwd">let</span> caught = <span class="SKwd">try</span> <span class="SFct">implicitTotal</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>)
+    <span class="SKwd">let</span> caught = <span class="SKwd">expect</span> <span class="SFct">implicitTotal</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(caught == <span class="SNum">4</span>)
 
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">implicitTotal</span>(<span class="SKwd">null</span>, <span class="SStr">"cde"</span>) <span class="SLgc">as</span> err
+    <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">implicitTotal</span>(<span class="SKwd">null</span>, <span class="SStr">"cde"</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Expect">Expect</h3>
 <p><span class="code-inline">expect</span> returns the successful result or panics. This contract holds in every build configuration, including release and code with safety guards disabled. A panic hook may report the error or transfer control, but returning from the hook terminates the process. Use <span class="code-inline">expect</span> for an invariant, not for an ordinary failure that the caller should recover from.</p>
 <p>A failed function produces no result. <span class="code-inline">try</span> propagates its error without constructing a replacement, and <span class="code-inline">expect</span> stops without one. Both accept result types with no default, including non-null pointers. A successful nullable result remains nullable: <span class="code-inline">expect</span> checks success, not presence.</p>
-<p><span class="code-inline">catch</span> resumes with a default result and therefore needs a result type with a safe default. A non-null pointer has none; propagate it with <span class="code-inline">try</span> or require success with <span class="code-inline">expect</span>.</p>
-<p>Inside <span class="code-inline">#test</span>, <span class="code-inline">try</span> is equivalent to <span class="code-inline">expect</span>, so both forms keep the success path concise when failure is not expected. An inlined function keeps its own error propagation: <span class="code-inline">try</span> in its body still passes failures to the caller's handler.</p>
+<p>A <span class="code-inline">catch</span> expression names its replacement with <span class="code-inline">else</span>, or uses a block handler that leaves the surrounding flow. It accepts non-null results without a default.</p>
+<p>Inside <span class="code-inline">#test</span>, write <span class="code-inline">expect</span> when an error must stop the test. <span class="code-inline">try</span> follows the ordinary propagation rule and needs an enclosing error-handling block. An inlined function keeps its own error propagation: <span class="code-inline">try</span> in its body still passes failures to the caller's handler.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> value = <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SStr">"swag"</span>)
+    <span class="SKwd">let</span> value = <span class="SKwd">expect</span> <span class="SFct">count</span>(<span class="SStr">"swag"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">4</span>)
 }
 
@@ -9148,7 +9183,9 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SCst">DeferTrace</span> = <span class="SNum">0</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">deferOnFail</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err
+    <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">deferOnFail</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SCst">DeferTrace</span> == <span class="SNum">1</span>)
@@ -11568,7 +11605,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Catching Errors|_013_001_error_management_swg_Catching_Errors|",
 "h|Retaining Errors|_013_001_error_management_swg_Retaining_Errors|",
 "h|Handling on Failure with 'catch ... else'|_013_001_error_management_swg_Handling_on_Failure_with__catch_____else_|",
-"h|Dismissing Errors|_013_001_error_management_swg_Dismissing_Errors|",
+"h|Replacing a Failed Result with else|_013_001_error_management_swg_Replacing_a_Failed_Result_with__else_|",
 "h|Propagating Errors|_013_001_error_management_swg_Propagating_Errors|",
 "h|Explicit Error Handling|_013_001_error_management_swg_Explicit_Error_Handling|",
 "h|Error-Handling Blocks|_013_001_error_management_swg_Error-Handling_Blocks|",

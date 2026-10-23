@@ -2815,6 +2815,15 @@ namespace
             case AstNodeId::IndexExpr:
                 return indexEscapeInfo(sema, resolvedRef, node.cast<AstIndexExpr>().nodeExprRef, budget);
 
+            case AstNodeId::ErrorManagementExpr:
+            {
+                const auto&    expression = node.cast<AstErrorManagementExpr>();
+                SemaEscapeInfo info       = expressionEscapeInfoRec(sema, expression.nodeExprRef, budget);
+                if (expression.nodeFallbackRef.isValid() && sema.node(expression.nodeFallbackRef).isNot(AstNodeId::EmbeddedBlock))
+                    info = mergeEscapeInfo(sema, info, expressionEscapeInfoRec(sema, expression.nodeFallbackRef, budget));
+                return info;
+            }
+
             case AstNodeId::IndexListExpr:
                 return indexEscapeInfo(sema, resolvedRef, node.cast<AstIndexListExpr>().nodeExprRef, budget);
 
@@ -3100,6 +3109,29 @@ namespace
         return Result::Error;
     }
 
+    void recordDeferredScopeEscape(Sema& sema, const SymbolVariable& destination, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what)
+    {
+        SemaEscapeDeferredCallSnapshot escaping;
+        for (const auto& snapshot : info.deferredCalls)
+        {
+            if (!snapshot)
+                continue;
+            for (const SemaEscapeDeferredCheck& candidate : snapshot->checks)
+            {
+                if (candidate.staticSource || candidate.routeOnly || !candidate.borrowedVar || !isLocalVariableStorage(sema, *candidate.borrowedVar))
+                    continue;
+                if (!localStorageOutlivesBorrow(sema, destination, *candidate.borrowedVar))
+                    continue;
+
+                SemaEscapeDeferredCheck check = candidate;
+                check.diagId                  = DiagnosticId::sanity_err_borrow_scope_escape;
+                check.valueName               = destination.name(sema.ctx());
+                escaping.checks.push_back(std::move(check));
+            }
+        }
+        commitDeferredCallBorrows(sema, escaping, atNodeRef, what, false, std::nullopt);
+    }
+
     Result storeOrReportDestinationInfo(Sema& sema, const SymbolVariable& dstVar, AstNodeRef atNodeRef, const SemaEscapeInfo& info, std::string_view what, const SemaEscapeProjection* projection = nullptr)
     {
         // A borrow of a temporary outlives it as soon as it is bound anywhere.
@@ -3125,6 +3157,11 @@ namespace
             // outlive the borrowed storage within the same function frame.
             if (info.isLocalBorrow() && localStorageOutlivesBorrow(sema, dstVar, *info.sourceVar))
                 return reportBorrowScopeEscape(sema, atNodeRef, info, dstVar);
+
+            // Accessor results can still have an unresolved return summary. Record the
+            // lexical escape now, while both local scopes are known, and judge its guards later.
+            if (info.isDeferredCallBorrow())
+                recordDeferredScopeEscape(sema, dstVar, atNodeRef, info, what);
 
             // Materialized cast storage belongs to its creation scope; a shallower destination
             // outlives it. Inline expansions materialize in the enclosing statement with
@@ -5235,66 +5272,107 @@ namespace SemaEscape
     // Record structural changes while flow state proves which views are live. Later
     // statements are not resolved yet, so defer checking whether those views are read
     // after the mutation (for example, reading v after 'v = s; s.append(...)').
+    namespace
+    {
+        void recordBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn, const SemaEscapeProjection& mutationProjection)
+        {
+            const SymbolVariable* root = mutationProjection.root;
+
+            const SourceCodeRange mutationRange = sema.node(callRef).codeRange(sema.ctx());
+            if (!mutationRange.srcView)
+                return;
+
+            // Arguments and the managed operand run before the mutation. The explicit
+            // target is written after that operand, before the fallback that runs after it.
+            const AstNode& mutationNode  = sema.node(callRef);
+            AstNodeRef     evaluationRef = callRef;
+            if (mutationNode.is(AstNodeId::ErrorManagementExpr))
+                evaluationRef = mutationNode.cast<AstErrorManagementExpr>().nodeCaptureRef;
+            else if (mutationNode.is(AstNodeId::ErrorManagementStmt))
+                evaluationRef = mutationNode.cast<AstErrorManagementStmt>().nodeCaptureRef;
+            const SourceCodeRange evaluationRange   = evaluationRef == callRef ? mutationNode.codeRangeWithChildren(sema.ctx(), sema.ast()) : subtreeRange(sema, evaluationRef);
+            const uint32_t        evaluationEndSpan = evaluationRange.srcView == mutationRange.srcView ? evaluationRange.offset + evaluationRange.len : mutationRange.offset + mutationRange.len;
+
+            // Only owning payloads can move or be freed here. Views of a plain aggregate
+            // survive changes to its fields because there is no payload to reallocate.
+            if (!designatedStorageHasOwningLifecycle(sema, root->typeRef()))
+                return;
+
+            for (const auto& [viewVar, info] : sema.variableEscapeInfos())
+            {
+                if (!viewVar || viewVar == root)
+                    continue;
+                if (!isLocalVariableStorage(sema, *viewVar) || !isInvalidationJudgeableOwner(sema, *root))
+                    continue;
+                if (viewAliasesVariableItself(sema, *viewVar, *root) && !info.viaOwnedPayload && !info.isDeferredCallBorrow())
+                    continue;
+
+                SmallVector4<SemaEscapeDeferredGuard> guards;
+                const SymbolVariable*                 borrowedField = nullptr;
+                if (!viewRoutesToStorage(sema, info, mutationProjection, guards, borrowedField))
+                    continue;
+
+                SemaEscapeProjection   sourceProjection;
+                SemaBorrowInvalidation record;
+                record.viewVar                 = viewVar;
+                record.sourceVar               = root;
+                record.callee                  = &calledFn;
+                record.bodyRef                 = currentAnalysisBodyRef(sema);
+                record.mutationRef             = callRef;
+                record.mutationRange           = mutationRange;
+                record.evaluationEndOffset     = evaluationEndSpan;
+                const AstNode& mutation        = sema.node(callRef);
+                record.mutationName            = mutation.is(AstNodeId::ErrorManagementExpr) || mutation.is(AstNodeId::ErrorManagementStmt) ? std::string_view("catch") : calledFn.name(sema.ctx());
+                record.borrowedPayloadField    = borrowedField ? borrowedField : (ownedPayloadProjection(sema, info, sourceProjection) ? firstProjectionField(sourceProjection) : nullptr);
+                record.receiverProjectionField = firstProjectionField(mutationProjection);
+
+                for (const SemaEscapeDetachedPayloadField& detached : info.detachedOwnedPayloadFields)
+                {
+                    if (detached.owner == mutationProjection.root && detached.field)
+                        record.detachedPayloadFields.push_back(detached.field);
+                }
+
+                record.guards = guards;
+                sema.addBorrowInvalidation(record);
+            }
+        }
+    }
+
     void noteBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn)
     {
         if (!isStructuralMutationCallee(sema, calledFn))
             return;
+        SemaEscapeProjection projection;
+        if (mutatedReceiverProjection(sema, callRef, projection))
+            recordBorrowInvalidation(sema, callRef, calledFn, projection);
+    }
 
-        SemaEscapeProjection mutationProjection;
-        if (!mutatedReceiverProjection(sema, callRef, mutationProjection))
+    void noteBorrowInvalidation(Sema& sema, AstNodeRef mutationRef, AstNodeRef ownerAddressRef, const SymbolFunction& calledFn)
+    {
+        const AstNodeRef resolvedRef = sema.resolvedNodeRef(ownerAddressRef);
+        if (resolvedRef.isInvalid())
             return;
-
-        const SymbolVariable* root = mutationProjection.root;
-
-        const SourceCodeRange mutationRange = sema.node(callRef).codeRange(sema.ctx());
-        if (!mutationRange.srcView)
+        const AstNode&       address  = sema.node(resolvedRef);
+        const AstNodeRef     ownerRef = address.is(AstNodeId::UnaryExpr) && sema.token(address.codeRef()).id == TokenId::SymAmpersand ? address.cast<AstUnaryExpr>().nodeExprRef : resolvedRef;
+        SemaEscapeProjection projection;
+        if (!storageProjection(sema, ownerRef, projection))
             return;
-
-        // The whole call expression, arguments included: a view named in them is read
-        // before the callee runs, so it is not a read of storage the callee moved.
-        const SourceCodeRange evaluationRange   = sema.node(callRef).codeRangeWithChildren(sema.ctx(), sema.ast());
-        const uint32_t        evaluationEndSpan = evaluationRange.srcView == mutationRange.srcView ? evaluationRange.offset + evaluationRange.len : mutationRange.offset + mutationRange.len;
-
-        // Only owning payloads can move or be freed here. Views of a plain aggregate
-        // survive changes to its fields because there is no payload to reallocate.
-        if (!designatedStorageHasOwningLifecycle(sema, root->typeRef()))
+        normalizeProjectionRoot(sema, projection);
+        if (!projection.root)
             return;
+        recordBorrowInvalidation(sema, mutationRef, calledFn, projection);
 
-        for (const auto& [viewVar, info] : sema.variableEscapeInfos())
+        // Capturing through a caller-owned place replaces its payload on both paths.
+        // Publish that effect even though the runtime call is implicit in the AST.
+        SymbolFunction*       function  = sema.currentFunction();
+        const SymbolVariable* parameter = signatureParameterFor(sema, *projection.root);
+        size_t                index     = 0;
+        if (function && parameter && findCallerParameterIndex(*function, *parameter, index))
         {
-            if (!viewVar || viewVar == root)
-                continue;
-            if (!isLocalVariableStorage(sema, *viewVar) || !isInvalidationJudgeableOwner(sema, *root))
-                continue;
-            if (viewAliasesVariableItself(sema, *viewVar, *root))
-                continue;
-
-            SmallVector4<SemaEscapeDeferredGuard> guards;
-            const SymbolVariable*                 borrowedField = nullptr;
-            if (!viewRoutesToStorage(sema, info, mutationProjection, guards, borrowedField))
-                continue;
-
-            SemaEscapeProjection   sourceProjection;
-            SemaBorrowInvalidation record;
-            record.viewVar                 = viewVar;
-            record.sourceVar               = root;
-            record.callee                  = &calledFn;
-            record.bodyRef                 = currentAnalysisBodyRef(sema);
-            record.mutationRef             = callRef;
-            record.mutationRange           = mutationRange;
-            record.evaluationEndOffset     = evaluationEndSpan;
-            record.mutationName            = calledFn.name(sema.ctx());
-            record.borrowedPayloadField    = borrowedField ? borrowedField : (ownedPayloadProjection(sema, info, sourceProjection) ? firstProjectionField(sourceProjection) : nullptr);
-            record.receiverProjectionField = firstProjectionField(mutationProjection);
-
-            for (const SemaEscapeDetachedPayloadField& detached : info.detachedOwnedPayloadFields)
-            {
-                if (detached.owner == mutationProjection.root && detached.field)
-                    record.detachedPayloadFields.push_back(detached.field);
-            }
-
-            record.guards = guards;
-            sema.addBorrowInvalidation(record);
+            if (const SymbolVariable* field = firstProjectionField(projection))
+                function->addReallocatesParamField(index, *field);
+            else
+                function->addReallocatesParam(index);
         }
     }
 

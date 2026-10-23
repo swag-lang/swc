@@ -101,10 +101,8 @@ private func readFrameIndex(source: *ByteSource,
     {
         try source.seek(byteOffset)
         let probe  = try source.peek(HeaderBytes)
-        let header = catch readHeader(probe) as err
-        if err != null
-        {
-            // Tags and padding sit between frames often enough that one bad byte is not the end
+        let header = catch readHeader(probe) else
+        {     // Tags and padding sit between frames often enough that one bad byte is not the end
             // of the stream; a run of them is.
             byteOffset += 1
             continue

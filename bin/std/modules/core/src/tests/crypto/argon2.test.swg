@@ -111,21 +111,31 @@ func expectLengthRejected(password, salt, associatedData: const [..] u8, destina
     let salt = filledBytes(16, 0x11)
     var tag: [32] u8
 
-    discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 0, parallelism: 1}, tag) as noPass
+    var noPassOutcome: Swag.Error
+    discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 0, parallelism: 1}, tag) as &noPassOutcome
+    let noPass = noPassOutcome.value()
     Swag.assert(noPass != null)
 
-    discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 0}, tag) as noLane
+    var noLaneOutcome: Swag.Error
+    discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 0}, tag) as &noLaneOutcome
+    let noLane = noLaneOutcome.value()
     Swag.assert(noLane != null)
 
-    discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 4, iterations: 1, parallelism: 1}, tag) as tooLittleMemory
+    var tooLittleMemoryOutcome: Swag.Error
+    discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 4, iterations: 1, parallelism: 1}, tag) as &tooLittleMemoryOutcome
+    let tooLittleMemory = tooLittleMemoryOutcome.value()
     Swag.assert(tooLittleMemory != null)
 
     let shortSalt = filledBytes(Crypto.Argon2MinSaltSize - 1, 0x11)
-    discard catch Crypto.argon2id("password", shortSalt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, tag) as shortSaltError
+    var shortSaltErrorOutcome: Swag.Error
+    discard catch Crypto.argon2id("password", shortSalt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, tag) as &shortSaltErrorOutcome
+    let shortSaltError = shortSaltErrorOutcome.value()
     Swag.assert(shortSaltError != null)
 
     var shortTag: [Crypto.Argon2MinTagSize - 1] u8
-    discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, shortTag) as shortTagError
+    var shortTagErrorOutcome: Swag.Error
+    discard catch Crypto.argon2id("password", salt.toSlice(), {memoryKib: 32, iterations: 1, parallelism: 1}, shortTag) as &shortTagErrorOutcome
+    let shortTagError = shortTagErrorOutcome.value()
     Swag.assert(shortTagError != null)
 }
 

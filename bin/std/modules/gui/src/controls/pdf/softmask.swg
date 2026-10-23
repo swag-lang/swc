@@ -113,9 +113,12 @@ internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->Sof
     // The backdrop is stated in the group's own colour space, so it is reduced the same way a
     // colour operator's operands are.
     let group = parser.dict(groupId, "Group")
-    let space = catch resolveImageSpace(parser, parser.dictRaw(group, "CS"), parser.dict(groupId, "Resources"), 0) as spaceError
+    var spaceErrorOutcome: Swag.Error
+    var space: #decltype(expect resolveImageSpace(parser, parser.dictRaw(group, "CS"), parser.dict(groupId, "Resources"), 0))
+    catch { space = try resolveImageSpace(parser, parser.dictRaw(group, "CS"), parser.dict(groupId, "Resources"), 0) } as &spaceErrorOutcome
+    let spaceError = spaceErrorOutcome.value()
     var values: [8] f32
-    let count = Math.min(parser.nodes[backdropId].values.count, 8'u64)
+    let count      = Math.min(parser.nodes[backdropId].values.count, 8'u64)
     for i in count do
         values[i] = cast(f32, parser.number(parser.nodes[backdropId].values[i]))
     if spaceError == null do

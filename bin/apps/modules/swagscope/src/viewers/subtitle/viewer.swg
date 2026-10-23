@@ -156,7 +156,10 @@ private impl Panel
         let dialog  = EditDlg.createSingleLine(.surface!, {title: texts().ui_GoToCue, message: message, text: "1"})
         if dialog.doModal() != Dialog.BtnOk do
             return
-        let cue = catch StrConv.toU64(dialog.text()) as parseError
+        var parseErrorOutcome: Swag.Error
+        var cue: #decltype(expect StrConv.toU64(dialog.text()))
+        catch { cue = try StrConv.toU64(dialog.text()) } as &parseErrorOutcome
+        let parseError = parseErrorOutcome.value()
         if parseError == null and cue and cue <= .cueText.count do
             discard .revealCue(cue - 1)
     }
@@ -245,7 +248,10 @@ func timeSeconds(text: string, result: *f64)->bool
     {
         if not part.count do
             return false
-        let value = catch StrConv.toF64(part) as parseError
+        var parseErrorOutcome: Swag.Error
+        var value: #decltype(expect StrConv.toF64(part))
+        catch { value = try StrConv.toF64(part) } as &parseErrorOutcome
+        let parseError = parseErrorOutcome.value()
         if parseError != null or value < 0 or not Math.isFinite(value) do
             return false
         if index and value >= 60 do
@@ -271,7 +277,8 @@ func createViewer(host: Viewer.Host)
         host.setDetails(formatText(view.track!.sourceFormat()))
 
         host.setSearch(Viewer.searchApi(view))
-    } as createError
-    if createError != null do
+    } as createError else
+    {
         host.reject(Viewer.failureText(createError))
+    }
 }

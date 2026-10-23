@@ -214,7 +214,9 @@ func writeZipFixture()->String
     defer discard catch File.delete(archiveFile)
     discard expect File.writeAllBytes(archiveFile, bytes.toSlice())
 
-    discard catch Archive.Zip.load(archiveFile) as archiveError
+    var archiveErrorOutcome: Swag.Error
+    discard catch Archive.Zip.load(archiveFile) as &archiveErrorOutcome
+    let archiveError = archiveErrorOutcome.value()
     Swag.assert(archiveError is Errors.UnsupportedFormatError)
 }
 
@@ -230,7 +232,9 @@ func writeZipFixture()->String
     let archive = expect Archive.Zip.load(archiveFile)
     let output  = Gui.Testing.tempFilePath("scope-archive-crc-entry-", ".txt")
     defer discard catch File.delete(output)
-    catch Archive.Zip.extractEntry(archiveFile, &archive.entries[1], output) as extractError
+    var extractErrorOutcome: Swag.Error
+    catch Archive.Zip.extractEntry(archiveFile, &archive.entries[1], output) as &extractErrorOutcome
+    let extractError = extractErrorOutcome.value()
     Swag.assert(extractError is Errors.InvalidFormatError)
 }
 

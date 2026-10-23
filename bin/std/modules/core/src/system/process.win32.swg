@@ -389,15 +389,25 @@ func startProcess(info: StartInfo)->Process fail
 
     if placeBeforeStart
     {
-        // A placement that fails must not leave a suspended process behind, so the thread is
-        // resumed on the way out whether the placement worked or not.
+        // A failed placement has no Process owner to return, so terminate the still-suspended
+        // child instead of resuming it into an unobserved run.
+        var started = false
         defer
         {
-            discard catch ResumeThread(information.hThread)
+            if not started
+            {
+                discard catch TerminateProcess(cast(HANDLE, result.handle), 1)
+                discard catch WaitForSingleObject(cast(HANDLE, result.handle), INFINITE)
+            }
+
             CloseHandle(information.hThread)
         }
 
         try result.placeStartedProcess(info)
+        let resumeCount = try ResumeThread(information.hThread)
+        if resumeCount == Swag.U32.Max do
+            try failWinError(GetLastError())
+        started = true
         return result
     }
 

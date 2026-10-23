@@ -223,6 +223,24 @@ func systemExecutablePath(name: string)->String
     Swag.assert(process.exitCode() == 3)
 }
 
+#test
+{
+    // A placement failure must kill the suspended child before it can perform its first action.
+    let shell         = systemExecutablePath("cmd.exe")
+    let tempDirectory = Env.getSpecialDirectory(.Temp)
+    let marker        = Path.combine(tempDirectory.toString(), Format.toString("core_process_%.tmp", Guid64.random()).toString())
+    defer discard catch File.delete(marker)
+
+    let arguments = Format.toString("/c echo started > \"%\"", marker.toString())
+    let info      = Env.StartInfo{fileName: shell.toString(), arguments: arguments.toString(), affinityMask: 0x8000000000000000}
+    var outcome: Swag.Error
+    discard catch Env.runProcess(info) as &outcome
+    Swag.assert(outcome.value() != null)
+
+    Threading.Thread.sleep(Time.Duration.fromMilliseconds(200))
+    Swag.assert(not File.exists(marker.toString()))
+}
+
 // A child refused a console of its own still runs, and both of its streams still arrive.
 //
 // Nothing here can observe the console that was not built: what the flag is for is the cost of

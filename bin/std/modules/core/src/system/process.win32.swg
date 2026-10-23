@@ -182,40 +182,6 @@ private func releaseHandle(handle: *ProcessHandle)
     handle[] = null
 }
 
-// Creates one redirection pipe and hands each end to its side.
-//
-// `childWrites` tells which end the child receives: the writing one for a stream it produces,
-// and the reading one for the standard input it consumes. Both ends are stored before anything
-// else can fail, so the caller releases them even when this reports an error.
-private func createRedirectionPipe(parentEnd, childEnd: *ProcessHandle, childWrites: bool) fail
-{
-    var attributes: SECURITY_ATTRIBUTES
-    attributes.nLength        = #sizeof(SECURITY_ATTRIBUTES)
-    attributes.bInheritHandle = TRUE
-
-    var readEnd, writeEnd: HANDLE
-    try CreatePipe(&readEnd, &writeEnd, &attributes, 0)
-
-    parentEnd[] = childWrites ? readEnd : writeEnd
-    childEnd[]  = childWrites ? writeEnd : readEnd
-
-    // Only the child's end may be inherited. A duplicate of this side living in the child would
-    // hold the pipe open after the child exits, and the reader would never see the end of it.
-    try SetHandleInformation(cast(HANDLE, parentEnd[]), HANDLE_FLAG_INHERIT, 0)
-}
-
-// Returns the standard handle a child inherits, normalizing the absence of one to null.
-//
-// A process detached from any console has no such handle, and the system rejects the invalid
-// value where it accepts nothing at all.
-private func inheritableStandardHandle(which: DWORD)->HANDLE
-{
-    let handle = GetStdHandle(which)
-    if handle == INVALID_HANDLE_VALUE do
-        return null
-    return handle
-}
-
 // Prepares one standard stream of the child and returns the handle it is given.
 //
 // `parentEnd` receives the end the current process keeps, and stays null unless the stream is
@@ -225,6 +191,34 @@ private func inheritableStandardHandle(which: DWORD)->HANDLE
 // stream left out of it would reach the child as no stream at all.
 private func prepareChildStream(redirection: StreamRedirection, parentEnd, ownedChildEnd: *ProcessHandle, standardHandle: DWORD, anyRedirection: bool, childWrites: bool)->ProcessHandle fail
 {
+    // Creates one redirection pipe and hands each end to its side. Both ends are stored before
+    // anything else can fail, so the caller releases them even when this reports an error.
+    func createRedirectionPipe(parentEnd, childEnd: *ProcessHandle, childWrites: bool) fail
+    {
+        var attributes: SECURITY_ATTRIBUTES
+        attributes.nLength        = #sizeof(SECURITY_ATTRIBUTES)
+        attributes.bInheritHandle = TRUE
+
+        var readEnd, writeEnd: HANDLE
+        try CreatePipe(&readEnd, &writeEnd, &attributes, 0)
+
+        parentEnd[] = childWrites ? readEnd : writeEnd
+        childEnd[]  = childWrites ? writeEnd : readEnd
+
+        // Only the child's end may be inherited. A duplicate of this side living in the child
+        // would hold the pipe open after the child exits, and the reader would never see the end.
+        try SetHandleInformation(cast(HANDLE, parentEnd[]), HANDLE_FLAG_INHERIT, 0)
+    }
+
+    // Normalizes a missing standard handle to null for a process detached from any console.
+    func inheritableStandardHandle(which: DWORD)->HANDLE
+    {
+        let handle = GetStdHandle(which)
+        if handle == INVALID_HANDLE_VALUE do
+            return null
+        return handle
+    }
+
     // Opens the null device, which throws writes away and reads as an empty stream.
     func openNullDevice()->HANDLE fail
     {

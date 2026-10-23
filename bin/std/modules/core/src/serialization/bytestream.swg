@@ -171,8 +171,12 @@ public impl ByteStream
     //
     // This is the framing [[Core.ByteStream.readSizedString]] expects. The count is a byte count,
     // not a character count.
+    // Panics when `value` exceeds the maximum encodable byte count.
     mtd writeSizedString(value: string)
     {
+        if value.count > Swag.U32.Max do
+            Swag.panic("sized string exceeds the 32-bit byte-count limit", #curlocation)
+
         .writeLittleEndian(cast(u32, value.count))
         .writeBytes(cast(const [..] u8, value))
     }

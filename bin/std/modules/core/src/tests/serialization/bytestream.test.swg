@@ -157,6 +157,18 @@ using Swag
     Swag.assert(reader.isEof() or reader.position() == buffer.count)
 }
 
+#test
+{
+    let source    = [0'u8]
+    let oversized = Swag.makeString(source.buffer, cast(u64, Swag.U32.Max) + 1)
+    var buffer: Array'u8
+    var writer    = ByteStream.openWrite(&buffer)
+
+    let rejected = Swag.catchPanic(func|&writer, oversized|() { writer.writeSizedString(oversized) })
+    Swag.assert(rejected.raised and rejected.message() == "sized string exceeds the 32-bit byte-count limit")
+    Swag.assert(buffer.isEmpty())
+}
+
 // A stored count beyond the cap must fail instead of reserving it.
 #test
 {

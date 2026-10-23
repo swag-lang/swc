@@ -15,7 +15,6 @@
 #include "Main/TaskContext.h"
 #include "Support/Math/ApInt.h"
 #include "Support/Report/Assert.h"
-#include <optional>
 
 // Pre-RA branch simplification and CFG cleanup.
 //

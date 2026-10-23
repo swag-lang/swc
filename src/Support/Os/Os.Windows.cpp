@@ -9,7 +9,6 @@
 #include "Support/Report/LogColor.h"
 #include "Support/Report/Logger.h"
 #include <RestartManager.h>
-#include <cwctype>
 #include <dbghelp.h>
 #include <psapi.h>
 

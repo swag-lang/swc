@@ -153,7 +153,12 @@ impl DateTime
     }
 
     // Returns the English name of `day`.
-    func dayOfWeekName(day: DayOfWeek)->string => DayOfWeekNames[cast(u32, day)]
+    // Panics when `day` is outside the supported range.
+    func dayOfWeekName(day: DayOfWeek)->string
+    {
+        Swag.assert(cast(u32, day) < DayOfWeekNames.count, "day is outside the supported range")
+        return DayOfWeekNames[cast(u32, day)]
+    }
 
     // Parses an 8-bit unsigned integer from the buffer and adds the consumed bytes to `eat`.
     internal func parseU8(buf: *string, eat: *u32)->u16 fail

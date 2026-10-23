@@ -526,7 +526,19 @@ std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind, cons
 
 const std::byte* CompilerInstance::dataSegmentAddress(const DataSegmentKind kind, const uint32_t offset) const
 {
-    return const_cast<CompilerInstance*>(this)->dataSegmentAddress(kind, offset);
+    switch (kind)
+    {
+        case DataSegmentKind::GlobalZero:
+            return globalZeroSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::GlobalInit:
+            return globalInitSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::Compiler:
+            return compilerSegment_.ptr<std::byte>(offset);
+        case DataSegmentKind::Zero:
+            return constantSegment_.ptr<std::byte>(offset);
+    }
+
+    SWC_UNREACHABLE();
 }
 
 Result CompilerInstance::setupSema(TaskContext& ctx)

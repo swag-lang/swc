@@ -6,6 +6,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenIntegerConversion.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
@@ -403,29 +404,17 @@ namespace
         if (srcIntLikeType && dstIntLikeType)
         {
             SWC_RESULT(CodeGenSafety::emitIntLikeCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, readType, dstType));
-            dstPayload.reg = codeGen.nextVirtualIntRegister();
 
             if (dstType.isBool())
             {
+                dstPayload.reg = codeGen.nextVirtualIntRegister();
                 CodeGenCompareHelpers::emitTruthyBool(codeGen, dstPayload.reg, srcReg, readType, srcOpBits);
                 return Result::Continue;
             }
 
-            const uint32_t srcWidth = getNumBits(srcOpBits);
-            const uint32_t dstWidth = getNumBits(dstOpBits);
-            if (srcWidth == dstWidth || srcWidth > dstWidth)
-            {
-                builder.emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
-                return Result::Continue;
-            }
-
-            if (readType.isIntSigned())
-            {
-                builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
-                return Result::Continue;
-            }
-
-            builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+            MicroReg convertedReg = srcReg;
+            CodeGenIntegerConversion::convertOperand(codeGen, convertedReg, readType, srcOpBits, dstOpBits);
+            dstPayload.reg = convertedReg;
             return Result::Continue;
         }
 
@@ -1907,35 +1896,17 @@ namespace
             SWC_RESULT(CodeGenSafety::emitIntLikeCastOverflowCheck(codeGen, codeGen.node(codeGen.curNodeRef()), srcReg, resolvedSrcType, resolvedDstType));
 
             CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-            dstPayload.reg                 = codeGen.nextVirtualIntRegister();
 
             if (resolvedDstType.isBool())
             {
+                dstPayload.reg = codeGen.nextVirtualIntRegister();
                 CodeGenCompareHelpers::emitTruthyBool(codeGen, dstPayload.reg, srcReg, resolvedSrcType, srcOpBits);
                 return Result::Continue;
             }
 
-            const uint32_t srcWidth = getNumBits(srcOpBits);
-            const uint32_t dstWidth = getNumBits(dstOpBits);
-            if (srcWidth == dstWidth)
-            {
-                builder.emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
-                return Result::Continue;
-            }
-
-            if (srcWidth > dstWidth)
-            {
-                builder.emitLoadRegReg(dstPayload.reg, srcReg, dstOpBits);
-                return Result::Continue;
-            }
-
-            if (resolvedSrcType.isIntSigned())
-            {
-                builder.emitLoadSignedExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
-                return Result::Continue;
-            }
-
-            builder.emitLoadZeroExtendRegReg(dstPayload.reg, srcReg, dstOpBits, srcOpBits);
+            MicroReg convertedReg = srcReg;
+            CodeGenIntegerConversion::convertOperand(codeGen, convertedReg, resolvedSrcType, srcOpBits, dstOpBits);
+            dstPayload.reg = convertedReg;
             return Result::Continue;
         }
 

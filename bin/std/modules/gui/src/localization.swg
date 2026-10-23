@@ -417,9 +417,7 @@ private func parseStringsContent(type: typeinfo, data: [*] u8, content: string, 
             continue
 
         var id = ""
-        catch { id = try StrConv.parseIdentifier(one) } as idErr
-        if idErr != null do
-            fail SyntaxError{"invalid string key", line: idx + 1}
+        catch { id = try StrConv.parseIdentifier(one) } else { fail SyntaxError{"invalid string key", line: idx + 1} }
 
         let field = Reflection.findField(type, id)
         if not field do

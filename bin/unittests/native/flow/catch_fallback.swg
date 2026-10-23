@@ -75,11 +75,9 @@ func fallbackCode(err: any?)->s32 => err == null ? 0 : assume cast(FallbackError
 {
     let value = catch fallbackCount(false) as err else fallbackCode(err)
     Swag.assert(value == 11)
-    Swag.assert(err != null)
 
     let other = catch fallbackCount(true) as otherErr else fallbackCode(otherErr)
     Swag.assert(other == 4)
-    Swag.assert(otherErr == null)
 }
 
 // An aggregate fallback is the one written, not zeroed storage.

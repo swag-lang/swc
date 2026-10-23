@@ -49,9 +49,13 @@ impl Volume
                                                  nonce,
                                                  ciphertext,
                                                  tag,
-                                                 batch.plain[plainOffset until plainOffset + BlockSize]) as openError
-            batch.keepFirstError(openError)
-            if openError == null and not opened do
+                                                 batch.plain[plainOffset until plainOffset + BlockSize]) as openError else
+            {
+                batch.keepFirstError(openError)
+                continue
+            }
+
+            if not opened do
                 Atomic.add(&batch.invalidTags, 1)
         }
 
@@ -88,8 +92,10 @@ impl Volume
                                                            batch.plain[plainOffset until plainOffset + BlockSize],
                                                            Crypto.associatedData(DataKind, batch.physical + index),
                                                            ciphertext,
-                                                           tag) as sealError
-            batch.keepFirstError(sealError)
+                                                           tag) as sealError else
+            {
+                batch.keepFirstError(sealError)
+            }
         }
 
         try batch.error.raise()

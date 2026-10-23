@@ -159,8 +159,7 @@ impl MediaInfoData
                 // JPEG splits APP1 at its first NUL, leaving the second prefix NUL in value.
                 let bytes      = record.toSlice()
                 let payload    = bytes.count and bytes[0] == 0 ? bytes[1 to] : bytes
-                let properties = catch Exif.decode(payload) as error
-                if error != null
+                let properties = catch Exif.decode(payload) as error else
                 {
                     .add(.Unavailable, Viewer.failureText(error))
                     continue

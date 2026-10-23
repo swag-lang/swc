@@ -128,7 +128,9 @@ func failureResult() fail
 #test
 {
     trace = 0
-    catch failureResult() as error
+    var errorOutcome: Swag.Error
+    catch failureResult() as &errorOutcome
+    let error = errorOutcome.value()
     if error do trace = trace * 10 + 9
     Swag.assert(trace == 69)
 }
@@ -138,7 +140,9 @@ func failureResult() fail
 {
     trace = 0
     failDuringDrop = true
-    catch failureResult() as error
+    var errorOutcome: Swag.Error
+    catch failureResult() as &errorOutcome
+    let error = errorOutcome.value()
     failDuringDrop = false
     Swag.assert(trace == 6)
     Swag.assert(error != null)

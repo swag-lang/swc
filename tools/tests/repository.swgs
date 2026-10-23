@@ -411,13 +411,17 @@ func checkSetupPath() fail
 
     var unreadable: SetupMemoryEnvironment
     unreadable.rejectRead = true
-    discard catch Tool.Setup.configureEnvironment(&unreadable, directory) as readError
+    var readErrorOutcome: Swag.Error
+    discard catch Tool.Setup.configureEnvironment(&unreadable, directory) as &readErrorOutcome
+    let readError = readErrorOutcome.value()
     Swag.assert(readError != null)
     Swag.assert(unreadable.pathWrites == 0 and unreadable.swagWrites == 0 and unreadable.notifications == 0)
 
     var unwritable: SetupMemoryEnvironment
     unwritable.rejectPathWrite = true
-    discard catch Tool.Setup.configureEnvironment(&unwritable, directory) as pathError
+    var pathErrorOutcome: Swag.Error
+    discard catch Tool.Setup.configureEnvironment(&unwritable, directory) as &pathErrorOutcome
+    let pathError = pathErrorOutcome.value()
     Swag.assert(pathError != null)
     Swag.assert(unwritable.pathWrites == 1 and unwritable.swagWrites == 0 and unwritable.notifications == 0)
 
@@ -425,7 +429,9 @@ func checkSetupPath() fail
     // requires notification. The original error must reach the caller.
     var partial: SetupMemoryEnvironment
     partial.rejectSwagWrite = true
-    discard catch Tool.Setup.configureEnvironment(&partial, directory) as swagError
+    var swagErrorOutcome: Swag.Error
+    discard catch Tool.Setup.configureEnvironment(&partial, directory) as &swagErrorOutcome
+    let swagError = swagErrorOutcome.value()
     Swag.assert(swagError != null)
     Swag.assert(partial.userPath.text.toString() == directory)
     Swag.assert(partial.pathWrites == 1 and partial.swagWrites == 1 and partial.notifications == 1)
@@ -529,7 +535,9 @@ func checkFormatCoverage() fail
         Swag.assert(output.contains("CAPTURE_SUCCESS"))
         var failure: Tool.Arguments
         failure.add(["/d", "/c", "echo CAPTURE_MARKER& echo CAPTURE_DIAGNOSTIC 1>&2& exit 42"])
-        discard catch context.captureProgram(shell.toString(), failure) as err
+        var errOutcome: Swag.Error
+        discard catch context.captureProgram(shell.toString(), failure) as &errOutcome
+        let err = errOutcome.value()
         Swag.assert(err != null)
         Swag.assert(Utf8.contains(Errors.message(err), "exited with code 42"))
         Console.println("capture failure was detected")
@@ -602,7 +610,9 @@ func checkFormatCoverage() fail
     let sameCompiler = expect Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true)
     Swag.assert(not sameCompiler.didRun)
     relaunched.compiler = Path.combine(root.toString(), "a-different-compiler.exe")
-    discard catch Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true) as relaunchError
+    var relaunchErrorOutcome: Swag.Error
+    discard catch Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true) as &relaunchErrorOutcome
+    let relaunchError = relaunchErrorOutcome.value()
     Swag.assert(relaunchError != null)
     Swag.assert(Utf8.contains(Errors.message(relaunchError), "the relaunched tool is running under"))
     var reportedExecutable = String.from(executable)

@@ -107,9 +107,7 @@ impl Bundle
 
         for folder in .folders
         {
-            let files = catch Directory.enumerate(folder[], {recurse: true, wantDirectories: false}) as enumErr
-            if enumErr != null do
-                continue
+            let files = catch Directory.enumerate(folder[], {recurse: true, wantDirectories: false}) else { continue }
 
             for file in files
             {

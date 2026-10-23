@@ -324,8 +324,8 @@ func htmlParseNumber(text: string)->{ value: f32, eat: u64 }
     if not digits do
         return result
 
-    let parsed = catch StrConv.parseF64(text[0 until index]) as parseError
-    if parseError != null or parsed.ovf do
+    let parsed = catch StrConv.parseF64(text[0 until index]) else { return result }
+    if parsed.ovf do
         return result
 
     result.value = cast(f32, parsed.value)

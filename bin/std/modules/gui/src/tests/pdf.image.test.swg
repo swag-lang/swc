@@ -289,7 +289,9 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
     let content = "q 10 0 0 10 0 0 cm /Im0 Do Q"
     let bytes   = singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice())
-    discard catch Document.decode(bytes.toSlice()) as codecError
+    var codecErrorOutcome: Swag.Error
+    discard catch Document.decode(bytes.toSlice()) as &codecErrorOutcome
+    let codecError = codecErrorOutcome.value()
     Swag.assert(codecError != null)
 }
 

@@ -94,7 +94,10 @@ private func themeTypeFace(res: const *Resources.Bundle, name: string, embedded:
 {
     if res.isOverridden(name)
     {
-        let bytes = catch res.load(name) as loadErr
+        var loadErrOutcome: Swag.Error
+        var bytes: #decltype(expect res.load(name))
+        catch { bytes = try res.load(name) } as &loadErrOutcome
+        let loadErr = loadErrOutcome.value()
         if loadErr == null
         {
             var overrideName: String = name
@@ -173,10 +176,16 @@ private func themeDrawing(resources: const *Resources.Bundle, name: string, embe
 {
     if resources.isOverridden(name)
     {
-        let bytes = catch resources.load(name) as loadErr
+        var loadErrOutcome: Swag.Error
+        var bytes: #decltype(expect resources.load(name))
+        catch { bytes = try resources.load(name) } as &loadErrOutcome
+        let loadErr = loadErrOutcome.value()
         if loadErr == null and not bytes.isEmpty()
         {
-            let drawing = catch Svg.Drawing.parse(Swag.makeString(bytes.storage(), bytes.count)) as parseErr
+            var parseErrOutcome: Swag.Error
+            var drawing:         #decltype(expect Svg.Drawing.parse(Swag.makeString(bytes.storage(), bytes.count)))
+            catch { drawing = try Svg.Drawing.parse(Swag.makeString(bytes.storage(), bytes.count)) } as &parseErrOutcome
+            let parseErr = parseErrOutcome.value()
             if parseErr == null do
                 return drawing
         }
@@ -546,7 +555,10 @@ impl Theme
         if not .res.cjkTypeFaceResolved
         {
             .res.cjkTypeFaceResolved = true
-            let face = catch systemCjkTypeFace() as loadError
+            var loadErrorOutcome: Swag.Error
+            var face: #decltype(expect systemCjkTypeFace())
+            catch { face = try systemCjkTypeFace() } as &loadErrorOutcome
+            let loadError = loadErrorOutcome.value()
             if loadError == null do
                 .res.cjkTypeFace = face
         }

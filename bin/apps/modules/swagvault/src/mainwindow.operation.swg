@@ -368,8 +368,7 @@ impl MainWindow
         var hiddenCredential: VaultCredential
         if .operation.createHidden or .operation.protectHidden
         {
-            hiddenCredential = catch .operation.hiddenAccess.derive() as hiddenError
-            if hiddenError != null
+            hiddenCredential = catch .operation.hiddenAccess.derive() as hiddenError else
             {
                 .operation.error.capture(hiddenError)
                 .operation.access.clear()
@@ -380,8 +379,7 @@ impl MainWindow
         var current: VaultCredential
         if .operation.kind != .None and .operation.kind != .Unmount
         {
-            current = catch .operation.access.derive() as accessError
-            if accessError != null
+            current = catch .operation.access.derive() as accessError else
             {
                 .operation.error.capture(accessError)
                 .operation.access.clear()
@@ -403,20 +401,24 @@ impl MainWindow
                                                        hiddenCredential.toSlice(),
                                                        .operation.size,
                                                        &.operation.progress,
-                                                       .operation.outerReserve) as createError
-                .operation.error.capture(createError)
-                if createError == null do
-                    volume.close()
+                                                       .operation.outerReserve) as &.operation.error else
+                {
+                    break
+                }
+
+                volume.close()
             }
             else
             {
                 var volume = catch Volume.create(.operation.path,
                                                  current.toSlice(),
                                                  .operation.size,
-                                                 &.operation.progress) as createError
-                .operation.error.capture(createError)
-                if createError == null do
-                    volume.close()
+                                                 &.operation.progress) as &.operation.error else
+                {
+                    break
+                }
+
+                volume.close()
             }
 
         case .Mount:
@@ -425,61 +427,42 @@ impl MainWindow
                                        current.toSlice(),
                                        .operation.mount,
                                        .operation.readOnly,
-                                       hiddenCredential.toSlice()) as mountError
-            .operation.error.capture(mountError)
-            if mountError != null
+                                       hiddenCredential.toSlice()) as &.operation.error else
             {
                 Memory.delete(mounted)
                 .operation.volume = null
+                break
             }
-            else
-            {
-                .operation.volume = mounted
-            }
+
+            .operation.volume = mounted
 
         case .Unmount:
             let mounted = .operation.volume
             if mounted
             {
-                discard catch mounted.close() as unmountError
-                .operation.error.capture(unmountError)
+                discard catch mounted.close() as &.operation.error
                 Memory.delete(mounted)
                 .operation.volume = null
             }
 
         case .Resize:
-            var volume = catch Volume.open(.operation.path, current.toSlice()) as openError
-            .operation.error.capture(openError)
-            if openError == null
+            var volume = catch Volume.open(.operation.path, current.toSlice()) as &.operation.error else { break }
+            if .operation.camouflageOnly
             {
-                if .operation.camouflageOnly
-                {
-                    discard catch volume.reapplyCamouflage(&.operation.progress) as resizeError
-                    .operation.error.capture(resizeError)
-                }
-                else
-                {
-                    discard catch volume.resize(.operation.size, &.operation.progress) as resizeError
-                    .operation.error.capture(resizeError)
-                }
-
-                volume.close()
+                discard catch volume.reapplyCamouflage(&.operation.progress) as &.operation.error
             }
+            else
+            {
+                discard catch volume.resize(.operation.size, &.operation.progress) as &.operation.error
+            }
+
+            volume.close()
 
         case .ChangeAccess:
-            var replacement = catch .operation.replacement.derive() as deriveError
-            .operation.error.capture(deriveError)
-            if deriveError != null do
-                break
-
-            var volume = catch Volume.open(.operation.path, current.toSlice()) as openError
-            .operation.error.capture(openError)
-            if openError == null
-            {
-                discard catch volume.changePassword(current.toSlice(), replacement.toSlice()) as changeError
-                .operation.error.capture(changeError)
-                volume.close()
-            }
+            var replacement = catch .operation.replacement.derive() as &.operation.error else { break }
+            var volume      = catch Volume.open(.operation.path, current.toSlice()) as &.operation.error else { break }
+            discard catch volume.changePassword(current.toSlice(), replacement.toSlice()) as &.operation.error
+            volume.close()
         }
 
         .operation.access.clear()
@@ -511,7 +494,9 @@ impl MainWindow
     mtd finishOperation()
     {
         .operation.task.wait()
-        catch .operation.error.raise() as operationError
+        var operationErrorOutcome: Swag.Error
+        catch .operation.error.raise() as &operationErrorOutcome
+        let operationError = operationErrorOutcome.value()
         .stopTimer(&.operation.timer)
         .showBusy(false)
 
@@ -579,9 +564,7 @@ impl MainWindow
             let mounted = .operation.volume
             if mounted
             {
-                discard catch mounted.close() as closeError
-                if closeError != null do
-                    .setStatus(.AutoUnmountStopped)
+                discard catch mounted.close() else { .setStatus(.AutoUnmountStopped) }
                 Memory.delete(mounted)
                 .operation.volume = null
             }

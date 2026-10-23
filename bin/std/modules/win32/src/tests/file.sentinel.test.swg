@@ -28,8 +28,12 @@ using Swag
     let sizeLow = expect GetFileSize(file, &sizeHigh)
     Swag.assert(sizeLow == INVALID_FILE_SIZE and sizeHigh == 0)
 
-    discard catch SetFilePointer(INVALID_HANDLE_VALUE, 0, &high, FILE_BEGIN) as seekError
+    var seekErrorOutcome: Swag.Error
+    discard catch SetFilePointer(INVALID_HANDLE_VALUE, 0, &high, FILE_BEGIN) as &seekErrorOutcome
+    let seekError = seekErrorOutcome.value()
     Swag.assert((seekError is SystemError))
-    discard catch GetFileSize(INVALID_HANDLE_VALUE, &sizeHigh) as sizeError
+    var sizeErrorOutcome: Swag.Error
+    discard catch GetFileSize(INVALID_HANDLE_VALUE, &sizeHigh) as &sizeErrorOutcome
+    let sizeError = sizeErrorOutcome.value()
     Swag.assert((sizeError is SystemError))
 }

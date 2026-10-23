@@ -117,7 +117,9 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     var res: Resources.Bundle
     registerDefaultStrings(&res)
 
-    discard catch applyLanguage(&res, "xx") as err
+    var errOutcome: Swag.Error
+    discard catch applyLanguage(&res, "xx") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(err is Core.Errors.BadParameterError)
     Swag.assert(activeLanguage() == "en")
@@ -131,7 +133,9 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     registerDefaultStrings(&res)
     registerLanguage("xx", "Xhosa")
 
-    discard catch applyLanguage(&res, "xx") as err
+    var errOutcome: Swag.Error
+    discard catch applyLanguage(&res, "xx") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(err is Core.Errors.FileNotFoundError)
     Swag.assert(activeLanguage() == "en")
@@ -165,12 +169,16 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
 {
     expect validateStrings'TestStrings("hello Bonjour\n")
 
-    discard catch validateStrings'TestStrings("helo Bonjour\n") as err
+    var errOutcome: Swag.Error
+    discard catch validateStrings'TestStrings("helo Bonjour\n") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(err is Core.Errors.SyntaxError)
     Swag.assert(assume cast (const *Core.Errors.SyntaxError, err).line == 1)
 
-    discard catch validateStrings'TestStrings("hello ok\n1bad value\n") as err2
+    var err2Outcome: Swag.Error
+    discard catch validateStrings'TestStrings("hello ok\n1bad value\n") as &err2Outcome
+    let err2 = err2Outcome.value()
     Swag.assert(err2 != null)
     Swag.assert(assume cast (const *Core.Errors.SyntaxError, err2).line == 2)
 }
@@ -190,7 +198,9 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     Swag.assert(theme.rects.btnPush_Hot.corner == 5)
 
     // An unknown key is a sheet error carrying its line.
-    discard catch theme.applySheet("/ThemeColors\nnotAColor 0xFF000000\n") as err
+    var errOutcome: Swag.Error
+    discard catch theme.applySheet("/ThemeColors\nnotAColor 0xFF000000\n") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(err is Core.Errors.SyntaxError)
 }
@@ -207,7 +217,9 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     expect theme.loadSheet(&res, "themes/custom.tweak")
     Swag.assert(theme.metrics.btnPush_Width == 123)
 
-    discard catch theme.loadSheet(&res, "themes/missing.tweak") as err
+    var errOutcome: Swag.Error
+    discard catch theme.loadSheet(&res, "themes/missing.tweak") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(err is Core.Errors.FileNotFoundError)
 }

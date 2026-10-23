@@ -117,7 +117,7 @@ using Swag, Core, Pixel
     {
         started.release()
         gate.acquire()
-        parsing.drawing = try Svg.Drawing.parse("<svg width='120' height='60'><rect width='120' height='60' fill='#285078'/></svg>")
+        parsing.drawing = expect Svg.Drawing.parse("<svg width='120' height='60'><rect width='120' height='60' fill='#285078'/></svg>")
     })
     defer
     {
@@ -226,7 +226,7 @@ using Swag, Core, Pixel
         {
             started.release()
             gate.acquire()
-            parsing.drawing = try Svg.Drawing.parse(Source)
+            parsing.drawing = expect Svg.Drawing.parse(Source)
         })
     }
 

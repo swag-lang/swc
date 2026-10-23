@@ -1832,6 +1832,7 @@ AstNodeRef AstErrorManagementStmt::semaClone(Sema& sema, const CloneContext& clo
     const AstNodeRef newRef = cloneNodeCopy<AstNodeId::ErrorManagementStmt>(sema, *this);
     auto&            cloned = sema.node(newRef).cast<AstErrorManagementStmt>();
     cloned.nodeBodyRef      = cloneNodeRef(sema, nodeBodyRef, cloneContextAsInline(cloneContext));
+    cloned.nodeCaptureRef   = cloneNodeRef(sema, nodeCaptureRef, cloneContextAsInline(cloneContext));
     if (nodeHandlerRef.isValid())
         cloned.nodeHandlerRef = cloneNodeRef(sema, nodeHandlerRef, cloneContextAsInline(cloneContext));
     return newRef;
@@ -2103,9 +2104,10 @@ AstNodeRef AstDiscardExpr::semaClone(Sema& sema, const CloneContext& cloneContex
 
 AstNodeRef AstErrorManagementExpr::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    auto [newRef, newPtr] = sema.ast().makeNode<AstNodeId::ErrorManagementExpr>(tokRef());
-    newPtr->nodeExprRef   = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
-    newPtr->errNameTokRef = errNameTokRef;
+    auto [newRef, newPtr]  = sema.ast().makeNode<AstNodeId::ErrorManagementExpr>(tokRef());
+    newPtr->nodeExprRef    = SemaClone::cloneAst(sema, nodeExprRef, cloneContextAsInline(cloneContext));
+    newPtr->errNameTokRef  = errNameTokRef;
+    newPtr->nodeCaptureRef = cloneNodeRef(sema, nodeCaptureRef, cloneContextAsInline(cloneContext));
     if (nodeFallbackRef.isValid())
         newPtr->nodeFallbackRef = SemaClone::cloneAst(sema, nodeFallbackRef, cloneContextAsInline(cloneContext));
     return newRef;

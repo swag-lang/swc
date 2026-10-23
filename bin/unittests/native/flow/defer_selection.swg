@@ -66,7 +66,7 @@ func deferredSelections(value: *s32?, box: *SelectionValue?, left: bool, raise: 
     g_LeftCalls     = 0
     g_RightCalls    = 0
 
-    try deferredSelections(&value, &box, true, false)
+    expect deferredSelections(&value, &box, true, false)
     Swag.assert(g_Selected == 31)
     Swag.assert(g_FallbackCalls == 0 and g_LeftCalls == 1 and g_RightCalls == 0)
 
@@ -74,7 +74,7 @@ func deferredSelections(value: *s32?, box: *SelectionValue?, left: bool, raise: 
     Swag.assert(g_Selected == 96)
     Swag.assert(g_FallbackCalls == 1 and g_LeftCalls == 1 and g_RightCalls == 1)
 
-    try deferredSelections(null, null, false, false)
+    expect deferredSelections(null, null, false, false)
     Swag.assert(g_Selected == 161)
     Swag.assert(g_FallbackCalls == 2 and g_LeftCalls == 1 and g_RightCalls == 2)
 

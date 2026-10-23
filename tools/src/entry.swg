@@ -20,8 +20,7 @@ public func launch(name: string, loc = #callerlocation)->s32
     let toolsDir = Path.directoryName(script) orelse ""
     let root     = Path.directoryName(toolsDir) orelse ""
 
-    let code = catch dispatch(name, root, script, scriptArguments()) as err
-    if err != null
+    let code = catch dispatch(name, root, script, scriptArguments()) as err else
     {
         Console.println("error: ", Errors.message(err))
         return 1

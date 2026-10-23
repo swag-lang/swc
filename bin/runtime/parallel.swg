@@ -137,9 +137,7 @@ internal func __parallelRangeFallible(begin, end: u64, body: func||(u64, u64) fa
     let entry     = cast(u64, cast(const *ClosureValue, &body).invoke)
     let partition = func|&body, &failure|(first, last: u64)
     {
-        catch body(first, last) as error
-        if error != null do
-            failure.record(error)
+        catch body(first, last) as error else { failure.record(error) }
     }
 
     parallelRange(begin, end, partition, entry)

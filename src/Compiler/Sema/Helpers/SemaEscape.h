@@ -29,6 +29,7 @@ namespace SemaEscape
     // Record structural storage changes while local views are live; iteration
     // mutation checks apply the same rule specifically to loops.
     void noteBorrowInvalidation(Sema& sema, AstNodeRef callRef, const SymbolFunction& calledFn);
+    void noteBorrowInvalidation(Sema& sema, AstNodeRef mutationRef, AstNodeRef ownerAddressRef, const SymbolFunction& calledFn);
 
     // Check later view reads after the entire body has resolved.
     Result reportBorrowInvalidations(Sema& sema, AstNodeRef declRef);

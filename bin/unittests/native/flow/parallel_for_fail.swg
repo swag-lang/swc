@@ -27,16 +27,20 @@ func failCopied() fail
 // Error transport owns a copy and releases it after re-raising on the caller.
 #test
 {
-    catch failCopied() as serialError
+    var serialErrorOutcome: Swag.Error
+    catch failCopied() as &serialErrorOutcome
+    let serialError = serialErrorOutcome.value()
     Swag.assert(serialError != null and (serialError is CopiedLoopFailure))
     let serialGeneration = assume cast(const *CopiedLoopFailure, serialError).generation
     for &drops in copiedErrorDrops do
         drops.store(0)
 
+    var errorOutcome: Swag.Error
     catch parallel for || 1
     {
         try failCopied()
-    } as error
+    } as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error != null and (error is CopiedLoopFailure))
     let generation = assume cast(const *CopiedLoopFailure, error).generation
     Swag.assert(generation == serialGeneration + 2)
@@ -73,7 +77,9 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         Swag.assert(values[index] == index + 1)
     Swag.assert(unwound.load() == 0)
 
-    catch fillFallible(values, 128, &unwound) as error
+    var errorOutcome: Swag.Error
+    catch fillFallible(values, 128, &unwound) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error != null and (error is LoopFailure))
     let detail = assume cast(const *LoopFailure, error)
     Swag.assert(detail.index == 128)
@@ -82,10 +88,12 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
     Swag.assert(unwound.load() == 1)
     Swag.assert(values[128] == 129)
 
+    var emptyErrorOutcome: Swag.Error
     catch parallel for || index in 0
     {
         try failAt(index)
-    } as emptyError
+    } as &emptyErrorOutcome
+    let emptyError = emptyErrorOutcome.value()
     Swag.assert(emptyError == null)
 }
 
@@ -93,15 +101,17 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
 #test
 {
     Swag.setWorkerCount(4)
-    var active:   Swag.AtomicValue'u32
-    var finished: Swag.AtomicValue'u32
+    var active:       Swag.AtomicValue'u32
+    var finished:     Swag.AtomicValue'u32
+    var errorOutcome: Swag.Error
     catch parallel for |&active, &finished| index in 1024
     {
         active.add(1)
         defer active.sub(1)
         defer #fail finished.add(1)
         try failAt(index)
-    } as error
+    } as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error != null and (error is LoopFailure))
     Swag.assert(active.load() == 0 and finished.load() > 0)
     let detail = assume cast(const *LoopFailure, error)
@@ -130,7 +140,8 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
 // Nested failures cross two joins; both loops retain their captured frames through cleanup.
 #test
 {
-    var active: Swag.AtomicValue'u32
+    var active:       Swag.AtomicValue'u32
+    var errorOutcome: Swag.Error
     catch parallel for |&active| row in 8
     {
         active.add(1)
@@ -140,7 +151,8 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
             if column == 3 do
                 try failAt(row * 8 + column)
         }
-    } as error
+    } as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(active.load() == 0)
     Swag.assert(error != null and (error is LoopFailure))
     let detail = assume cast(const *LoopFailure, error)
@@ -157,11 +169,13 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         {
             group.spawn(func|&results, row|()
             {
+                var errorOutcome: Swag.Error
                 catch parallel for |row| index in 257
                 {
                     if index == 128 do
                         try failAt(row * 1000 + index)
-                } as error
+                } as &errorOutcome
+                let error = errorOutcome.value()
                 if error != null and (error is LoopFailure) do
                     results[row] = assume cast(const *LoopFailure, error).index
             })

@@ -207,7 +207,9 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     var window = expect SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {timelineStartSeconds: 125.5, displayName: "Commentary", language: "eng"})
     Swag.assert(window.timelineStartSeconds() == 125.5 and window.sampleFrameCount() == full.sampleFrameCount())
     Swag.assert(window.displayName() == "Commentary" and window.language() == "eng")
-    discard catch SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {timelineStartSeconds: -1}) as invalidTimeline
+    var invalidTimelineOutcome: Swag.Error
+    discard catch SoundFile.openPacketStream(path, .AacLc, 44_100, 2, packets.count * 1024, packets.toSlice(), Config, {timelineStartSeconds: -1}) as &invalidTimelineOutcome
+    let invalidTimeline = invalidTimelineOutcome.value()
     Swag.assert((invalidTimeline is BadParameterError))
 
     discard expect createNoSoundEngine()

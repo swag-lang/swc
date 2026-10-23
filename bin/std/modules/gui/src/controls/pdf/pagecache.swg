@@ -308,8 +308,7 @@ impl PdfPageCache
                 return
             }
 
-            var opened = catch Pdf.Reader.open(.fileName.toString()) as openError
-            if openError != null
+            var opened = catch Pdf.Reader.open(.fileName.toString()) as openError else
             {
                 .readerError = Errors.message(openError)
                 .loadFailure = .readerError
@@ -320,8 +319,7 @@ impl PdfPageCache
             .readerReady = true
         }
 
-        var page = catch .reader.loadPage(.loadIndex) as pageError
-        if pageError != null
+        var page = catch .reader.loadPage(.loadIndex) as pageError else
         {
             .loadFailure = Errors.message(pageError)
             return

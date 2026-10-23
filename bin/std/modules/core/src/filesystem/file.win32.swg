@@ -8,8 +8,7 @@ using Win32
 internal func deleteNative(fullName: string) fail
 {
     let winPath = Utf16.toZeroTerminated(fullName)
-    catch DeleteFileW(winPath.buffer) as err
-    try Errors.transformWinErrors(err, fullName)
+    catch DeleteFileW(winPath.buffer) as err else { try Errors.transformWinErrors(err, fullName) }
 }
 
 // Moves `oldName` to `newName`, replacing an existing file and permitting a cross-volume copy.
@@ -17,8 +16,7 @@ internal func moveNative(newName, oldName: string) fail
 {
     let winOld = Utf16.toZeroTerminated(oldName)
     let winNew = Utf16.toZeroTerminated(newName)
-    catch MoveFileExW(winOld.buffer, winNew.buffer, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) as err
-    try Errors.transformWinErrors(err, oldName)
+    catch MoveFileExW(winOld.buffer, winNew.buffer, MOVEFILE_REPLACE_EXISTING | MOVEFILE_COPY_ALLOWED) as err else { try Errors.transformWinErrors(err, oldName) }
 }
 
 // Opens an existing file exclusively and sets its modification time to the current UTC time.
@@ -32,8 +30,12 @@ internal func touchNative(fullName: string) fail
                                    null,
                                    OPEN_EXISTING,
                                    FILE_ATTRIBUTE_NORMAL,
-                                   null) as err
-    try Errors.transformWinErrors(err, fullName)
+                                   null) as err else
+    {
+        try Errors.transformWinErrors(err, fullName)
+        fail err
+    }
+
     defer CloseHandle(handle)
 
     var fileTime:   FILETIME
@@ -51,8 +53,8 @@ func exists(fullName: string)->bool
     if fullName.count == 0 do
         return false
     let winPath    = Utf16.toZeroTerminated(fullName)
-    let attributes = catch GetFileAttributesW(winPath.buffer) as err
-    if err != null or attributes == 0xFFFFFFFF do
+    let attributes = catch GetFileAttributesW(winPath.buffer) else { return false }
+    if attributes == 0xFFFFFFFF do
         return false
     return (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0
 }
@@ -101,7 +103,11 @@ internal func openNative(fullName: string, mode: FileMode, access: FileAccess, s
                                     securityPtr,
                                     creationMode,
                                     FILE_ATTRIBUTE_NORMAL,
-                                    null) as err
-    try Errors.transformWinErrors(err, fullName)
+                                    null) as err else
+    {
+        try Errors.transformWinErrors(err, fullName)
+        fail err
+    }
+
     return cast(FileHandle, handle)
 }

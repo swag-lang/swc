@@ -108,7 +108,9 @@ using Swag, Core
     expect theme.applySheet(sheet)
     Swag.assert(theme.colors.url_Text == theme.colors.hilight)
 
-    catch theme.applySheet("/ThemePalette\nalternate.mark $railed") as err
+    var errOutcome: Swag.Error
+    catch theme.applySheet("/ThemePalette\nalternate.mark $railed") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }
 
@@ -155,9 +157,13 @@ using Swag, Core
     var theme: Theme
     theme.setDark()
 
-    catch theme.applySheet("/ThemePalette\nsignature.mark 0xFF000000\nnotAToken 3") as err
+    var errOutcome: Swag.Error
+    catch theme.applySheet("/ThemePalette\nsignature.mark 0xFF000000\nnotAToken 3") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 
-    catch theme.applySheet("/ThemePalette\nsignature.notAPart 0xFF000000") as pathErr
+    var pathErrOutcome: Swag.Error
+    catch theme.applySheet("/ThemePalette\nsignature.notAPart 0xFF000000") as &pathErrOutcome
+    let pathErr = pathErrOutcome.value()
     Swag.assert(pathErr != null)
 }

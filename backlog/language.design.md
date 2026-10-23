@@ -107,25 +107,6 @@ in its module backlog; a general request for better names is not a missing langu
 - Related: language.design.024 owns implicit copies at consuming boundaries. `expect` already
   accepts non-defaultable results; this entry concerns resetting consumed sources.
 
-### language.design.010 — A capturing `catch` without `else` yields zeroed storage on failure
-
-- Evidence: a bare `catch` whose result is read is rejected (`sema_err_catch_value_needs_fallback`),
-  and `catch f() else V` names the replacement. A capturing `let v = catch f() as err` without
-  `else` still yields storage zeroed by `emitZeroFallibleExprResult`
-  ([CodeGen.Function.Post.cpp](../src/Compiler/CodeGen/Ast/CodeGen.Function.Post.cpp)): struct
-  field initializers do not run, and an enum without a zero member holds a value outside its set.
-  The [reference](../bin/reference/modules/language/src/013_001_error_management.swg) tells the
-  reader to use it only when `err` is null; about 270 `bin/` sites read the result beside an
-  `if err != null` test.
-- Proposed contract: no `catch` synthesizes a result. A capturing handler either names the
-  replacement with `else`, or binds the error where the result is unreachable on failure.
-- Next: decide the capture form together with language.design.025: a handler-scoped binding that
-  makes the result unreachable on failure, or `else` required whenever the result is read. Then
-  migrate the capture sites, and remove `emitZeroFallibleExprResult` with the `catch` branch of
-  the type-default check in `AstErrorManagementExpr::semaPostNode`.
-- Done when: no `catch` produces a value the source did not write, and a result type without a
-  default needs no special rule under `catch`.
-
 ### language.design.036 — Struct equality compares float members by their bytes
 
 - Evidence: the [operators reference](../bin/reference/modules/language/src/003_006_operators.swg)
@@ -383,22 +364,6 @@ in its module backlog; a general request for better names is not a missing langu
   language.design.021 and language.design.022 and conversion categories with language.design.023.
 - Done when: one promotion/comparison table is selected and tested at constant, JIT, guarded native
   and release boundaries, without configuration-dependent changes to signedness meaning.
-
-### language.design.030 — Inside `#test`, `try` means `expect`
-
-- Evidence: the error-management reference explicitly defines `try` inside `#test` as `expect`.
-  Success returns the same value; failure terminates the test instead of propagating to a caller.
-  Moving the expression into a fallible helper therefore changes its failure path.
-- Elsewhere: Swift distinguishes propagation (`try`) from asserting success (`try!`) in the
-  spelling ([Swift error handling](https://raw.githubusercontent.com/swiftlang/swift-book/main/TSPL.docc/LanguageGuide/ErrorHandling.md)).
-- Proposed contract: Try propagates in every context; the test runner owns a fallible test body and reports
-  an unhandled error as a failed test. Expect remains an invariant assertion. Inline decisions
-  must not change either contract, and fixtures still finish their deferred cleanup.
-- Next: Prototype the fallible test boundary on direct, helper and inline-helper calls. Compare
-  failure attribution and cleanup with the existing alias, including non-defaultable results
-  that try already supports outside tests. Update the documented alias only with runner coverage.
-- Done when: try has the same propagation meaning inside and outside tests, the runner reports its
-  failures with source context, and cleanup and successful result types remain unchanged.
 
 ### language.design.019 — `if let` combines binding with an implicit truthiness test
 
@@ -688,35 +653,6 @@ in its module backlog; a general request for better names is not a missing langu
   diagnostic. Non-defaultable source reset is language.design.035.
 - Done when: the selected owning-call contract exposes every nontrivial duplication and
   intentional transfer, without making ordinary borrowed struct calls consume or allocate.
-
-### language.design.025 — A `catch ... as err` capture is a declaration that leaks into the enclosing scope
-
-- Evidence: `as err` "binds a fresh local ... visible in the enclosing scope, after the catch, so
-  each capture in a given scope needs its own name"
-  ([013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)).
-  The declaration is written inside an expression, in the middle of an initializer, and its effect
-  reaches outward past the statement it appears in. Other binding constructs use different scopes: `if let`
-  scopes its binding to the branch, `for` to the body, `switch ... as` to the case. The consequence
-  the reference states — two catches in one scope collide — is the visible half; the invisible half
-  is that the name is live for the rest of the block whether or not it was read, so an unused-capture policy would have to examine the enclosing scope.
-- Evidence: the reference's own paragraph, and its `blockCatchCode` example, where `err` is declared
-  by a `catch { ... } as err` block and tested two statements later
-  ([013_001_error_management.swg](../bin/reference/modules/language/src/013_001_error_management.swg)).
-- Elsewhere: Go returns an error into an ordinary short declaration, whose rules permit reuse of an
-  existing name when at least one non-blank name is new
-  ([Go short declarations](https://go.dev/ref/spec#Short_variable_declarations)).
-  Rust match bindings instead belong to the arm and its guard
-  ([Rust match bindings](https://doc.rust-lang.org/reference/expressions/match-expr.html)).
-- Proposed contract: Give a handler's error binding the handler's lexical scope. If a caller needs to
-  retain success/failure for later statements, it must declare that result explicitly in the
-  outer scope. Existing error values and type patterns suffice for inspecting dynamic errors;
-  static error-set typing is not required to fix binding scope.
-- Next: Count later reads and deferred captures of catch-as locals. Specify a migration to scoped
-  handlers for local recovery and explicit stored outcomes for delayed inspection. Test two
-  handlers using the same error name, shadowing, success paths, borrowed payloads and cleanup.
-- Done when: handler-only errors cannot leak into the enclosing block, intentionally stored errors
-  have an explicit owner/lifetime, and the migration preserves delayed inspection.
-- Related: [language.design.010](#languagedesign010--a-capturing-catch-without-else-yields-zeroed-storage-on-failure)
 
 ### language.design.022 — The cost of value-dependent float inference is unmeasured
 

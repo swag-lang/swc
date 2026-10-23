@@ -95,7 +95,9 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     var bytes: Array'u8
     bytes.add("fLaC")
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
-    discard catch SoundFile.load(path.toString()) as err
+    var errOutcome: Swag.Error
+    discard catch SoundFile.load(path.toString()) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }
 

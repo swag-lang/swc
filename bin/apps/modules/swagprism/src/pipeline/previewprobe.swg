@@ -43,8 +43,7 @@ impl PreviewProbe
         .request = request
         .task.submit(func|probe = me, cache|()
         {
-            catch probe.run(cache) as error
-            if error != null
+            catch probe.run(cache) else
             {
                 probe.failed      = true
                 probe.diagnostics = appStrings().msg_PreviewNotRun

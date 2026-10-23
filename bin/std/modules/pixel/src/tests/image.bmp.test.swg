@@ -770,7 +770,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
-    img = catch Image.load(path.toString()) as err34
+    var err34Outcome: Swag.Error
+    catch { img = try Image.load(path.toString()) } as &err34Outcome
+    let err34 = err34Outcome.value()
     Swag.assert(err34 != null)
 }
 
@@ -792,7 +794,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
-    img = catch Image.load(path.toString()) as err36
+    var err36Outcome: Swag.Error
+    catch { img = try Image.load(path.toString()) } as &err36Outcome
+    let err36 = err36Outcome.value()
     Swag.assert(err36 != null)
 }
 
@@ -821,7 +825,9 @@ func addBmpPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     discard expect File.writeAllBytes(path.toString(), cb)
     var img: Image
-    img = catch Image.load(path.toString()) as err38
+    var err38Outcome: Swag.Error
+    catch { img = try Image.load(path.toString()) } as &err38Outcome
+    let err38 = err38Outcome.value()
     Swag.assert(err38 != null)
 }
 

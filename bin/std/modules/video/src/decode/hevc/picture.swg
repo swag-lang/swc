@@ -723,8 +723,7 @@ private func runWppRow(job: *WppRowJob)
         return
     }
 
-    catch job.worker!.decodeWavefrontRow(job) as rowError
-    if rowError != null
+    catch job.worker!.decodeWavefrontRow(job) as rowError else
     {
         job.errorText = Errors.message(rowError)
         Atomic.exchange(job.failed, 1)

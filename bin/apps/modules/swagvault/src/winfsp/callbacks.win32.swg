@@ -87,7 +87,9 @@ namespace WinFsp
             return StatusInvalidParameter
         volume.label = value
         volume.touchScalars()
-        discard catch volume.commit() as err
+        var errOutcome: Swag.Error
+        discard catch volume.commit() as &errOutcome
+        let err = errOutcome.value()
         return err == null ? StatusSuccess : statusFromError(err)
     }
 
@@ -119,15 +121,11 @@ namespace WinFsp
         var securityBytes = cast(const [..] u8, "")
         if securitySize do
             securityBytes = Swag.makeSlice(cast(const [*] u8, security!), securitySize)
-        let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) as err
-        if err != null do
-            return statusFromError(err)
+        let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) as err else { return statusFromError(err) }
         nodeId[] = id
         if not directory and allocationSize
         {
-            discard catch volume.resizeNode(id, 0) as resizeErr
-            if resizeErr != null do
-                return statusFromError(resizeErr)
+            discard catch volume.resizeNode(id, 0) as resizeErr else { return statusFromError(resizeErr) }
         }
 
         return fillInfo(volume, id, info)
@@ -153,7 +151,9 @@ namespace WinFsp
         node.changeTime    = volumeTimeNow()
         node.lastWriteTime = node.changeTime
         volume.touch(nodeId)
-        discard catch volume.commit() as err
+        var errOutcome: Swag.Error
+        discard catch volume.commit() as &errOutcome
+        let err = errOutcome.value()
         return err == null ? fillInfo(volume, nodeId, info) : statusFromError(err)
     }
 
@@ -215,9 +215,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
-        let count = catch volume.readNode(nodeId, offset, Swag.makeSlice(cast([*] u8, buffer!), length)) as err
-        if err != null do
-            return statusFromError(err)
+        let count = catch volume.readNode(nodeId, offset, Swag.makeSlice(cast([*] u8, buffer!), length)) as err else { return statusFromError(err) }
         transferred[] = count
         return StatusSuccess
     }
@@ -266,9 +264,7 @@ namespace WinFsp
                 return StatusDiskFull
         }
 
-        let count = catch volume.writeNode(nodeId, offset, Swag.makeSlice(cast(const [*] u8, buffer!), length), writeToEnd != 0, constrained != 0) as err
-        if err != null do
-            return statusFromError(err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull)
+        let count = catch volume.writeNode(nodeId, offset, Swag.makeSlice(cast(const [*] u8, buffer!), length), writeToEnd != 0, constrained != 0) as err else { return statusFromError(err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull) }
         transferred[] = count
         return fillInfo(volume, nodeId, info)
     }
@@ -279,9 +275,7 @@ namespace WinFsp
         let volume = cast(*Volume, context!)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
-        discard catch volume.commit() as err
-        if err != null do
-            return statusFromError(err)
+        discard catch volume.commit() as err else { return statusFromError(err) }
         if nodeId do
             return fillInfo(volume, nodeId, info)
         return StatusSuccess
@@ -346,9 +340,7 @@ namespace WinFsp
            node.blockSearch(node.size / BlockSize).found and
            not volume.freeBlockCount() do
             return StatusDiskFull
-        discard catch volume.resizeNode(nodeId, targetSize) as err
-        if err != null do
-            return statusFromError(err)
+        discard catch volume.resizeNode(nodeId, targetSize) as err else { return statusFromError(err) }
         return fillInfo(volume, nodeId, info)
     }
 
@@ -376,7 +368,9 @@ namespace WinFsp
         let volume = cast(*Volume, context!)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
-        discard catch volume.renameNode(nodeId, cString(newPath), replace != 0) as err
+        var errOutcome: Swag.Error
+        discard catch volume.renameNode(nodeId, cString(newPath), replace != 0) as &errOutcome
+        let err = errOutcome.value()
         return err == null ? StatusSuccess : statusFromError(err, StatusAccessDenied)
     }
 

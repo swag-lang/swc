@@ -70,9 +70,7 @@ impl Capture
             return false
 
         var reader: Scc.Reader
-        catch reader.initialize(file) as openError
-        if openError != null do
-            return false
+        catch reader.initialize(file) else { return false }
         return reader.kind() == containerKind()
     }
 

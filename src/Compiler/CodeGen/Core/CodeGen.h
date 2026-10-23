@@ -476,6 +476,8 @@ public:
     void initializeLocalStorageAtScopeEntry(const SymbolVariable& symVar);
     void registerImplicitParameterDrops(std::span<const CodeGenFunctionHelpers::FunctionParameterInfo> paramInfos);
 
+    AstNodeRef currentFallibleScope();
+
     bool   hasDeferredStatements() const { return hasDeferredStatements_; }
     Result emitDeferredActionsForReturn();
     Result emitDeferredActionsUntilScopeRef(AstNodeRef scopeRef, bool popErrorScope = true);

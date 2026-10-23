@@ -290,14 +290,20 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
 #test
 {
-    discard catch Reader.openMemory("bad.avi", "not a riff file at all") as notRiff
-    discard catch Reader.openMemory("bad.avi", "RIFFsizeWAVEfmt ") as notAvi
+    var notRiffOutcome: Swag.Error
+    discard catch Reader.openMemory("bad.avi", "not a riff file at all") as &notRiffOutcome
+    let notRiff = notRiffOutcome.value()
+    var notAviOutcome: Swag.Error
+    discard catch Reader.openMemory("bad.avi", "RIFFsizeWAVEfmt ") as &notAviOutcome
+    let notAvi = notAviOutcome.value()
     Swag.assert((notRiff is InvalidFormatError))
     Swag.assert((notAvi is InvalidFormatError))
 
     // A container this module reads, truncated to its headers, has no frame to decode.
     var whole = expect File.readAllBytes(videoFixturePath("ffmpeg-rawvideo-bgr24.avi"))
-    discard catch Reader.openMemory("short.avi", whole.toSlice()[0 until 2048]) as truncated
+    var truncatedOutcome: Swag.Error
+    discard catch Reader.openMemory("short.avi", whole.toSlice()[0 until 2048]) as &truncatedOutcome
+    let truncated = truncatedOutcome.value()
     Swag.assert(truncated != null)
 }
 

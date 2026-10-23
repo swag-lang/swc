@@ -135,8 +135,7 @@ private impl KeyFileField
             return
 
         var path = dialog.selectedPath()
-        discard catch writeRandomKeyFile(path) as generationError
-        if generationError != null
+        discard catch writeRandomKeyFile(path) as generationError else
         {
             MessageDlg.error(.surface, appStrings().msg_KeyFileCreateFailed, generationError)
             return

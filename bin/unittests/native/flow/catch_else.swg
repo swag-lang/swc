@@ -22,8 +22,7 @@ var g_catchElseTrace = 0
 func catchElseRun(ok: bool)->s32
 {
     g_catchElseTrace = 0
-    catch catchElseMayFail(ok) as err
-    if err != null
+    catch catchElseMayFail(ok) as err else
     {
         g_catchElseTrace = 1
         let e = assume cast(CatchElseError, err)

@@ -158,10 +158,14 @@ const PackedFormats: [18] PixelFormat = [
 
     var img = Image.create(2, 2, .RGBA8)
     img.clear()
-    discard catch img.encode("capture.unknown") as errEncode
+    var errEncodeOutcome: Swag.Error
+    discard catch img.encode("capture.unknown") as &errEncodeOutcome
+    let errEncode = errEncodeOutcome.value()
     Swag.assert(errEncode != null)
 
-    discard catch Image.decode("capture.unknown", img.pixels.toSlice()) as errDecode
+    var errDecodeOutcome: Swag.Error
+    discard catch Image.decode("capture.unknown", img.pixels.toSlice()) as &errDecodeOutcome
+    let errDecode = errDecodeOutcome.value()
     Swag.assert(errDecode != null)
 }
 

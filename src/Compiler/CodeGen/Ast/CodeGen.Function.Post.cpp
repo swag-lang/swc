@@ -429,71 +429,6 @@ namespace
             builder.emitLoadRegReg(dstPayload.reg, srcPayload.reg, storeBits);
     }
 
-    Result makeZeroConstantRefForType(CodeGen& codeGen, ConstantRef& outCstRef, TypeRef typeRef)
-    {
-        outCstRef = ConstantRef::invalid();
-        if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
-            return Result::Continue;
-
-        TaskContext&    ctx            = codeGen.ctx();
-        const TypeInfo& originalType   = codeGen.typeMgr().get(typeRef);
-        const TypeInfo& typeInfo       = originalType.unwrapAliasEnumTypeOrSelf(ctx);
-        const TypeRef   storageTypeRef = typeInfo.typeRef();
-        const uint64_t  sizeOf         = typeInfo.sizeOf(codeGen.ctx());
-        SWC_ASSERT(sizeOf && sizeOf <= std::numeric_limits<uint32_t>::max());
-        if (!sizeOf || sizeOf > std::numeric_limits<uint32_t>::max())
-            return raiseInternalCodeGenError(codeGen, "zero constant storage size is outside the supported range");
-
-        SmallVector<std::byte> rawBytes;
-        rawBytes.resize(sizeOf);
-
-        ConstantValue zeroValue;
-        if (typeInfo.isStruct() || typeInfo.isAny() || typeInfo.isInterface())
-            zeroValue = ConstantValue::makeStructBorrowed(ctx, storageTypeRef, std::span{rawBytes.data(), rawBytes.size()});
-        else if (typeInfo.isArray())
-            zeroValue = ConstantValue::makeArrayBorrowed(ctx, storageTypeRef, std::span{rawBytes.data(), rawBytes.size()});
-        else
-            zeroValue = ConstantValue::make(ctx, rawBytes.data(), storageTypeRef, ConstantValue::PayloadOwnership::Borrowed);
-
-        if (zeroValue.kind() == ConstantKind::Invalid)
-            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized zero constant");
-
-        if (isEnumOrAliasEnum(codeGen, originalType))
-        {
-            const ConstantRef storageCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
-            if (storageCstRef.isInvalid())
-                return raiseInternalCodeGenError(codeGen, "cannot cache the synthesized enum zero constant");
-
-            zeroValue = ConstantValue::makeEnumValue(ctx, storageCstRef, typeRef);
-        }
-        else
-        {
-            zeroValue.setTypeRef(typeRef);
-        }
-
-        outCstRef = codeGen.cstMgr().addConstant(ctx, zeroValue);
-        if (!outCstRef.isValid())
-            return raiseInternalCodeGenError(codeGen, "cannot cache the synthesized zero constant");
-
-        return Result::Continue;
-    }
-
-    Result emitZeroFallibleExprResult(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, TypeRef typeRef)
-    {
-        if (!typeRef.isValid() || typeRef == codeGen.typeMgr().typeVoid())
-            return Result::Continue;
-
-        ConstantRef zeroCstRef = ConstantRef::invalid();
-        SWC_RESULT(makeZeroConstantRefForType(codeGen, zeroCstRef, typeRef));
-
-        CodeGenNodePayload zeroPayload;
-        if (!CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, zeroPayload, typeRef, zeroCstRef))
-            return raiseInternalCodeGenError(codeGen, "cannot materialize the synthesized zero fallible result payload");
-
-        assignFallibleExprResult(codeGen, resultPayload, zeroPayload, typeRef);
-        return Result::Continue;
-    }
-
     Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
     {
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
@@ -615,7 +550,18 @@ namespace
                     return raiseInternalCodeGenError(codeGen, "missing catch error owner or runtime helper '__catchErr'", nodeRef);
 
                 const MicroReg args[] = {codeGen.resolveLocalStackPayload(*lowering->errHandlerOwnerSym).reg};
-                return CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *catchErr, args);
+                SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *catchErr, args));
+
+                const AstNode&   node       = codeGen.node(nodeRef);
+                const AstNodeRef captureRef = node.is(AstNodeId::ErrorManagementExpr) ? node.cast<AstErrorManagementExpr>().nodeCaptureRef : node.cast<AstErrorManagementStmt>().nodeCaptureRef;
+                if (captureRef.isValid())
+                {
+                    const SymbolFunction* storeErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::StoreErr);
+                    SWC_ASSERT(storeErr);
+                    const MicroReg storeArgs[] = {codeGen.payload(captureRef).reg};
+                    SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *storeErr, storeArgs));
+                }
+                return Result::Continue;
             }
 
             case FallibleHandlerKind::Assume:
@@ -682,6 +628,27 @@ namespace
         const SymbolVariable* valueStorage = exprPayload.runtimeStorageSym;
         if (valueStorage && valueStorage != nodeStorage && codeGen.hasTemporaryDrop(*valueStorage))
             codeGen.cancelTemporaryDrop(*valueStorage);
+    }
+
+    Result emitDiscardedCallResult(CodeGen& codeGen, AstNodeRef exprRef, TypeRef typeRef)
+    {
+        if (!CodeGenFunctionHelpers::isOwnedCallResult(codeGen, exprRef) || !codeGen.hasLifecycle(typeRef, CodeGen::LifecycleKind::Drop))
+            return Result::Continue;
+
+        const CodeGenNodePayload& exprPayload = codeGen.payload(exprRef);
+        MicroReg                  addressReg  = exprPayload.reg;
+        if (!exprPayload.isAddress())
+        {
+            // Small aggregates can arrive in a register. Their destructor still
+            // needs an address, using the wrapper's existing result storage.
+            const SymbolVariable* storage = codeGen.runtimeStorageSymbol(codeGen.curNodeRef());
+            SWC_ASSERT(storage != nullptr);
+            // A cached address can have been defined only on the other catch edge.
+            addressReg = codeGen.resolveLocalStackPayload(*storage, false).reg;
+            SWC_RESULT(emitPayloadToAddress(codeGen, addressReg, exprPayload, typeRef));
+        }
+        cancelReturnedTemporaryDrops(codeGen, exprRef, exprPayload);
+        return codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::Drop, addressReg);
     }
 
     const SymbolVariable* returnExprRetValVariable(CodeGen& codeGen, AstNodeRef exprRef);
@@ -1253,6 +1220,11 @@ namespace
                 return handlerTarget;
         }
 
+        // Lazy handlers have their own visitor. The live cleanup scopes preserve
+        // enclosing handlers even when those ancestors are absent from that visitor.
+        if (tryResolveFallibleHandlerTarget(codeGen, codeGen.currentFallibleScope(), handlerTarget))
+            return handlerTarget;
+
         for (size_t frameIndex = codeGen.frames().size(); frameIndex != 0; --frameIndex)
         {
             const CodeGenFrame& frame = codeGen.frames()[frameIndex - 1];
@@ -1467,26 +1439,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPreNode(CodeGen& codeGen, AstN
     payload->fallibleFailLabel = builder.createLabel();
     payload->fallibleDoneLabel = builder.createLabel();
 
-    // The capture belongs to the enclosing scope. Its owner must be initialized and registered
-    // before the wrapper opens its temporary scope, otherwise catch completion would drop it.
     const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(nodeRef);
-    if (lowering && lowering->errBindingSym)
-    {
-        const SymbolFunction* clearErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::ClearErr);
-        if (!clearErr || !lowering->errOwnerSym)
-            return raiseInternalCodeGenError(codeGen, "missing catch capture owner or runtime helper '__clearErr'", nodeRef);
-
-        codeGen.initializeLocalStorageAtScopeEntry(*lowering->errBindingSym);
-        codeGen.initializeLocalStorageAtScopeEntry(*lowering->errOwnerSym);
-
-        const MicroReg args[] = {
-            codeGen.resolveLocalStackPayload(*lowering->errBindingSym).reg,
-            codeGen.resolveLocalStackPayload(*lowering->errOwnerSym).reg,
-        };
-        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *clearErr, args));
-        codeGen.registerImplicitDrop(*lowering->errOwnerSym);
-    }
-
     if (lowering && lowering->errHandlerOwnerSym)
     {
         const SymbolVariable& handlerOwner = *lowering->errHandlerOwnerSym;
@@ -1524,6 +1477,8 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     const TypeRef             resultType     = codeGen.transparentPayloadTypeRef();
     const bool                hasResult      = resultType.isValid() && resultType != codeGen.typeMgr().typeVoid();
     const bool                hasFallthrough = !codeGen.currentInstructionBlocksFallthrough();
+    const AstNodeRef          parentRef      = codeGen.visit().parentNodeRef(0);
+    const bool                isDiscarded    = parentRef.isValid() && codeGen.node(parentRef).is(AstNodeId::DiscardExpr);
     MicroBuilder&             builder        = codeGen.builder();
     SWC_ASSERT(kind != FallibleHandlerKind::None);
 
@@ -1544,6 +1499,13 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     const CodeGenLoweringPayload* lowering = codeGen.loweringPayload(ownerRef);
     if (hasFallthrough)
     {
+        if (hasResult && isDiscarded)
+        {
+            // Only success constructed a result. Destroy it before joining the failure
+            // path, which may have no result at all, including for non-defaultable types.
+            SWC_RESULT(emitDiscardedCallResult(codeGen, nodeRef, resultType));
+        }
+
         SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, false));
         if (kind == FallibleHandlerKind::Catch)
             codeGen.registerImplicitDrop(*lowering->errHandlerOwnerSym);
@@ -1568,7 +1530,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, true));
     const auto*      expression  = codeGen.node(ownerRef).safeCast<AstErrorManagementExpr>();
     const AstNodeRef fallbackRef = expression ? expression->nodeFallbackRef : AstNodeRef::invalid();
-    if (hasResult && kind == FallibleHandlerKind::Catch)
+    if (hasResult && kind == FallibleHandlerKind::Catch && fallbackRef.isValid() && codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock))
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
         const SymbolVariable*     resultStorage = resultPayload.runtimeStorageSym;
@@ -1586,18 +1548,33 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
 
         // An inlined callee whose only exit is fail emits no success-path definition
         // of the result register. Define its address here too, from the local stack
-        // base that dominates both paths, before zeroing and joining consumers.
+        // base that dominates both paths, before writing the explicit fallback.
         if (resultPayload.isAddress() && resultStorage && codeGen.localStackBaseReg().isValid() &&
             resultStorage->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
             builder.emitLoadAddressRegMem(resultPayload.reg, codeGen.localStackBaseReg(), resultStorage->offset(), MicroOpBits::B64);
         }
-
-        if (fallbackRef.isInvalid())
-            SWC_RESULT(emitZeroFallibleExprResult(codeGen, resultPayload, resultType));
     }
 
-    // Retain the handled record in the enclosing capture owner, then expose its borrowed any.
+    // A captured view and its owner exist only on the failure path. Register their
+    // cleanup in the handler scope so every handler exit releases the payload.
+    if (lowering && lowering->errBindingSym)
+    {
+        const SymbolFunction* clearErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::ClearErr);
+        if (!clearErr || !lowering->errOwnerSym)
+            return raiseInternalCodeGenError(codeGen, "missing catch capture owner or runtime helper '__clearErr'", nodeRef);
+
+        codeGen.initializeLocalStorageAtScopeEntry(*lowering->errBindingSym);
+        codeGen.initializeLocalStorageAtScopeEntry(*lowering->errOwnerSym);
+
+        const MicroReg args[] = {
+            codeGen.resolveLocalStackPayload(*lowering->errBindingSym).reg,
+            codeGen.resolveLocalStackPayload(*lowering->errOwnerSym).reg,
+        };
+        SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *clearErr, args));
+        codeGen.registerImplicitDrop(*lowering->errOwnerSym);
+    }
+
     const SymbolVariable* const errSym = lowering ? lowering->errBindingSym : nullptr;
     if (errSym)
     {
@@ -1612,12 +1589,18 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *bindErr, args));
     }
 
+    // The operand's handler is finished. Errors raised by its fallback go outward.
+    payload->fallibleFailLabel = MicroLabelRef::invalid();
+
     // 'catch e else V': evaluated on the failure path only, after the capture is bound so 'V'
     // can read it. It writes the result slot the success value inherited, joining both paths.
-    if (hasResult && fallbackRef.isValid())
+    if (fallbackRef.isValid())
     {
         SWC_RESULT(codeGen.emitNodeNow(fallbackRef));
-        assignFallibleExprResult(codeGen, codeGen.payload(nodeRef), codeGen.payload(fallbackRef), resultType);
+        if (isDiscarded && codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock))
+            SWC_RESULT(emitDiscardedCallResult(codeGen, fallbackRef, resultType));
+        else if (codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock))
+            assignFallibleExprResult(codeGen, codeGen.payload(nodeRef), codeGen.payload(fallbackRef), resultType);
     }
 
     // 'catch e else { H }': the anonymous lazy handler runs here (failure path only).
@@ -1628,8 +1611,7 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
             SWC_RESULT(codeGen.emitNodeNow(handlerRef));
     }
 
-    // The handler owner dismisses ambient state and releases its record. A named capture retains
-    // a separate reference until its enclosing scope ends.
+    // Both owners release their references when the handler ends.
     if (kind == FallibleHandlerKind::Catch)
         SWC_RESULT(codeGen.popDeferScope());
 

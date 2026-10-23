@@ -28,7 +28,9 @@ using Swag
     Swag.assert(empty == WAIT_TIMEOUT)
 
     let invalid = INVALID_HANDLE_VALUE
-    discard catch MsgWaitForMultipleObjectsEx(1, &invalid, 0, 0, 0) as error
+    var errorOutcome: Swag.Error
+    discard catch MsgWaitForMultipleObjectsEx(1, &invalid, 0, 0, 0) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert((error is SystemError))
 }
 
@@ -37,7 +39,9 @@ using Swag
     var animations: BOOL
     expect SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animations, 0)
     Swag.assert(animations == TRUE or animations == FALSE)
-    catch SystemParametersInfoW(U32.Max, 0, null, 0) as error
+    var errorOutcome: Swag.Error
+    catch SystemParametersInfoW(U32.Max, 0, null, 0) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert((error is SystemError))
     Swag.assert(#sizeof(DWM_BLURBEHIND) == 24)
     Swag.assert(#offsetof(DWM_BLURBEHIND.hRgnBlur) == 8)

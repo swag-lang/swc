@@ -45,8 +45,10 @@ struct XmlPayload
 
     for input in InvalidXml
     {
-        var decoder: Serialization.Decoder'Serialization.Read.Xml
-        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as err
+        var decoder:    Serialization.Decoder'Serialization.Read.Xml
+        var errOutcome: Swag.Error
+        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as &errOutcome
+        let err = errOutcome.value()
         Swag.assert(err != null)
     }
 }

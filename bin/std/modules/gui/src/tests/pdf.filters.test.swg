@@ -25,7 +25,9 @@ using Core, Pdf
 
     // A clear code followed by code 259, which no entry defines yet.
     let unknownCode: [3] u8 = [0x80, 0x40, 0xC0]
-    discard catch decodeLzw(unknownCode) as undefinedError
+    var undefinedErrorOutcome: Swag.Error
+    discard catch decodeLzw(unknownCode) as &undefinedErrorOutcome
+    let undefinedError = undefinedErrorOutcome.value()
     Swag.assert(undefinedError != null)
 }
 
@@ -45,9 +47,13 @@ using Core, Pdf
     Swag.assert(partial.count == 2)
     Swag.assert(cast(string, partial.toSlice()) == "Hi")
 
-    discard catch decodeAscii85("!~") as terminatorError
+    var terminatorErrorOutcome: Swag.Error
+    discard catch decodeAscii85("!~") as &terminatorErrorOutcome
+    let terminatorError = terminatorErrorOutcome.value()
     Swag.assert(terminatorError != null)
-    discard catch decodeAscii85("!~>") as incompleteError
+    var incompleteErrorOutcome: Swag.Error
+    discard catch decodeAscii85("!~>") as &incompleteErrorOutcome
+    let incompleteError = incompleteErrorOutcome.value()
     Swag.assert(incompleteError != null)
 }
 
@@ -59,7 +65,9 @@ using Core, Pdf
     Swag.assert(cast(string, runLength.toSlice()) == "ABCZZZ")
 
     let truncated: [3] u8 = [4, 'A', 'B']
-    discard catch decodeRunLength(truncated) as truncatedError
+    var truncatedErrorOutcome: Swag.Error
+    discard catch decodeRunLength(truncated) as &truncatedErrorOutcome
+    let truncatedError = truncatedErrorOutcome.value()
     Swag.assert(truncatedError != null)
 }
 
@@ -72,7 +80,9 @@ using Core, Pdf
     let odd = expect decodeAsciiHex("4>")
     Swag.assert(odd.count == 1 and odd[0] == 0x40)
 
-    discard catch decodeAsciiHex("4Z>") as hexError
+    var hexErrorOutcome: Swag.Error
+    discard catch decodeAsciiHex("4Z>") as &hexErrorOutcome
+    let hexError = hexErrorOutcome.value()
     Swag.assert(hexError != null)
 }
 
@@ -159,6 +169,8 @@ using Core, Pdf
         Swag.assert(decoded[index] == 0xFF)
 
     params.columns = 0
-    discard catch decodeCcittFax(encoded.toSlice(), params) as widthError
+    var widthErrorOutcome: Swag.Error
+    discard catch decodeCcittFax(encoded.toSlice(), params) as &widthErrorOutcome
+    let widthError = widthErrorOutcome.value()
     Swag.assert(widthError != null)
 }

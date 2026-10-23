@@ -41,7 +41,10 @@ impl ViewerChoiceLoad
         let operation = me
         .submit(func|operation|()
         {
-            var absolute = catch Path.absolute(operation.fileName) as pathError
+            var pathErrorOutcome: Swag.Error
+            var absolute:         #decltype(expect Path.absolute(operation.fileName))
+            catch { absolute = try Path.absolute(operation.fileName) } as &pathErrorOutcome
+            let pathError = pathErrorOutcome.value()
             if pathError != null do
                 absolute = operation.fileName
             operation.result.absoluteFileName = #move absolute
@@ -49,7 +52,10 @@ impl ViewerChoiceLoad
             if operation.result.exists
             {
                 operation.result.choices = operation.index!.choices(operation.result.absoluteFileName)
-                let info = catch File.info(operation.result.absoluteFileName) as infoError
+                var infoErrorOutcome: Swag.Error
+                var info: #decltype(expect File.info(operation.result.absoluteFileName))
+                catch { info = try File.info(operation.result.absoluteFileName) } as &infoErrorOutcome
+                let infoError = infoErrorOutcome.value()
                 if infoError == null
                 {
                     operation.result.fileSize = StrConv.toDisplaySize(info.size)
@@ -63,9 +69,11 @@ impl ViewerChoiceLoad
             let folder = Path.directoryName(operation.result.absoluteFileName)
             if not folder do
                 return
-            let files = catch Directory.enumerateFiles(folder) as listError
-            if listError != null do
+            let files = catch Directory.enumerateFiles(folder) else
+            {
                 return
+            }
+
             for file in files where not file.isDirectory() do
                 operation.result.folderFiles.add(file.fullName)
 

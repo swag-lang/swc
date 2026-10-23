@@ -169,7 +169,9 @@ impl BackgroundLoad
         Swag.assert(.isDone())
         .started = false
         .owner   = null
-        value[]  = catch .task.take() as loadError
+        var loadErrorOutcome: Swag.Error
+        catch { value[] = try .task.take() } as &loadErrorOutcome
+        let loadError = loadErrorOutcome.value()
         return Viewer.failureText(loadError)
     }
 

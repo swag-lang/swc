@@ -303,10 +303,12 @@ func failRecoveryPanic() fail
         local.panic = previous.panic
         Swag.setContext(local)
     }
-    catch failRecoveryError() as error
-    if error is RecoveryError as value do
-        recoveryGeneration = value.generation
-    expect failRecoveryPanic()
+    catch failRecoveryError() as error else
+    {
+        if error is RecoveryError as value do
+            recoveryGeneration = value.generation
+        expect failRecoveryPanic()
+    }
 }
 
 #test
@@ -316,8 +318,7 @@ func failRecoveryPanic() fail
     Swag.assert(context.errorCaptures == null)
     Swag.assert(context.errorIndex == 0 and context.hasError == 0 and context.curError == null)
     Swag.assert(recoveryDrops[recoveryGeneration].load() == 1)
-    catch failRecoveryError() as error
-    Swag.assert((error is RecoveryError))
+    catch failRecoveryError() as error else { Swag.assert((error is RecoveryError)) }
     Swag.print("captured error recovery completed\n")
 }
 )SWAG";
@@ -355,8 +356,7 @@ func failValue()->s32 fail { fail Swag.BaseError{"terminal expect"} }
 func hook(message: string?, location: Swag.SourceCodeLocation)
 {
     if message == null or location.lineStart == 0 do return
-    discard catch failValue() as error
-    if error != null do Swag.print("expect hook observed the error\n")
+    discard catch failValue() else { Swag.print("expect hook observed the error\n") }
 }
 
 #[Swag.Safety(.All, false)]
@@ -382,7 +382,7 @@ func hook(message: string?, location: Swag.SourceCodeLocation)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(Compiler_TestOwnedTryTerminatesThroughInlineExpansion)
+SWC_FILESYSTEM_TEST_BEGIN(Compiler_ExplicitExpectTerminatesThroughInlineExpansion)
 {
     const RecoveryTestDirectory directory;
     for (const bool injection : {false, true})
@@ -392,7 +392,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Compiler_TestOwnedTryTerminatesThroughInlineExpansion)
         std::string    source        = R"SWAG(
 #global private
 #[Swag.NoInline]
-func raiseError()->s32 fail { fail Swag.BaseError{"terminal test-owned try"} }
+func raiseError()->s32 fail { fail Swag.BaseError{"terminal explicit expect"} }
 #[Swag.Inline]
 func propagate()->s32 fail => try raiseError()
 #[Swag.Inline]
@@ -403,23 +403,23 @@ func injectStatement(statement: #code) { #inject(statement) }
 #test
 {
 )SWAG";
-        source += injection ? "    injectStatement(#code { discard try propagate() })\n" : "    discard identity(try propagate())\n";
+        source += injection ? "    injectStatement(#code { discard expect propagate() })\n" : "    discard identity(expect propagate())\n";
         source += R"SWAG(
-    Swag.print("test-owned try resumed\n")
+    Swag.print("explicit expect resumed\n")
 }
-#test { Swag.print("test-owned try recovery completed\n") }
+#test { Swag.print("explicit expect recovery completed\n") }
 )SWAG";
         SWC_RESULT(CompilerTestFile::writeText(sourcePath, source));
         std::string output;
         uint32_t    failedTests = 0;
         if (runNativeFailure(ctx, output, failedTests, sourcePath, "release") != Result::Continue ||
-            output.find("terminal test-owned try") == std::string::npos ||
-            output.find("test-owned try resumed") != std::string::npos ||
-            output.find("test-owned try recovery completed") == std::string::npos ||
+            output.find("terminal explicit expect") == std::string::npos ||
+            output.find("explicit expect resumed") != std::string::npos ||
+            output.find("explicit expect recovery completed") == std::string::npos ||
             failedTests != 1 ||
             output.find("hardware exception") != std::string::npos)
         {
-            std::println(stderr, "[terminal test-owned try, injection={}] {}", injection, output);
+            std::println(stderr, "[terminal explicit expect, injection={}] {}", injection, output);
             return Result::Error;
         }
     }

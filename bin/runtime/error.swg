@@ -20,10 +20,9 @@ namespace Swag
     // ```swag
     // var saved: Swag.Error
     // {
-    //     catch { fail 42's32 } as error
-    //     saved.capture(error)
+    //     catch { fail 42's32 } as error else do saved.capture(error)
     // }
-    // catch saved.raise() as error
+    // let error = saved.value()
     // Swag.assert(error is s32)
     // ```
     #[Opaque]
@@ -49,7 +48,8 @@ namespace Swag
 
         // Replaces the retained error with a copy of a live caught value.
         //
-        // Call while `error` still belongs to its catch scope on the current thread.
+        // Pass the handler binding while its catch scope is alive on the current thread.
+        // Copy an existing owner directly instead of capturing its [[Swag.Error.value]] view.
         // Its dynamic payload and copied message storage are retained independently of that
         // scope. A null value resets this owner. The new copy is made before the old one drops.
         mtd capture(error: any?)
@@ -64,6 +64,7 @@ namespace Swag
         // Releases this owner's reference and restores the empty state.
         //
         // Other owner copies and errors already raised from them remain valid.
+        #[BorrowSummary(0, reallocates: 1)]
         mtd reset()
         {
             Swag.drop(me, 1)
@@ -72,6 +73,18 @@ namespace Swag
 
         // Reports whether this owner has no retained error.
         mtd const isEmpty()->bool => .record == null
+
+        // Borrows the retained dynamic error, or returns null when this owner is empty.
+        //
+        // The view and pointers derived from it stay valid until this owner is reset,
+        // replaced, or dropped. Copy the owner when the error must live independently.
+        #[BorrowSummary(1, returnsPayload: 1, observesExternal: false)]
+        mtd const value()->any?
+        {
+            if .record do
+                return .record.value
+            return null
+        }
 
         // Raises a copy of the retained error, or succeeds when this owner is empty.
         //
@@ -685,8 +698,21 @@ func __bindErr(dst: *(any?), owner: *ErrorCapture)
     __registerErrCapture(owner, context)
 }
 
-// Reset a 'catch e as err' capture slot before the fallible call runs, so a successful
-// call leaves 'err' null (the failure path overwrites it via '__bindErr').
+// Fill an explicit error owner from this catch's handled record, or clear it on success.
+#[Swag.BorrowSummary(0, reallocates: 1)]
+func __storeErr(owner: *Error)
+{
+    let handler = Swag.getContext().errorCaptures
+    var record: *ErrorRecord?
+    if handler and handler.handler and handler.record do
+        record = handler.record
+    if record do
+        record.references.add(1)
+    owner.reset()
+    owner.record = record
+}
+
+// Initialize a handler's capture owner before '__bindErr' attaches its borrowed view.
 func __clearErr(dst: *(any?), owner: *ErrorCapture)
 {
     owner.opDrop()

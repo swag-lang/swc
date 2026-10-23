@@ -176,11 +176,17 @@ func addImage(image: Image)
     discard EmptyClipboard()
 
     // Pixel owns DIB channel ordering, row padding, and straight-alpha conversion.
-    let dib = catch image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}) as dibError
+    var dibErrorOutcome: Swag.Error
+    var dib: #decltype(expect image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}))
+    catch { dib = try image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}) } as &dibErrorOutcome
+    let dibError = dibErrorOutcome.value()
     if dibError == null do
         addNativeData(CF_DIB, dib.toSlice())
 
-    let png = catch image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}) as pngError
+    var pngErrorOutcome: Swag.Error
+    var png: #decltype(expect image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}))
+    catch { png = try image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}) } as &pngErrorOutcome
+    let pngError = pngErrorOutcome.value()
     if pngError == null do
         addNativeData(g_PngFormat, png.toSlice())
 }

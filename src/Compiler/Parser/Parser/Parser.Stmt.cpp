@@ -603,12 +603,16 @@ AstNodeRef Parser::parseErrorManagementStmt()
     else
         nodePtr->nodeBodyRef = parseExpression();
 
-    // Both expression and block catches can bind the caught error in the enclosing scope.
+    // A capture is visible only inside the failure handler.
     if (opTokenId == TokenId::KwdCatch && consumeIf(TokenId::KwdAs).isValid())
-        nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-    // 'catch e else { H }' / 'catch e else do H': the anonymous lazy handler H runs only when 'e'
-    // fails (it cannot inspect the error — use 'as err' for that). Emitted on the failure path only.
-    else if (opTokenId == TokenId::KwdCatch && consumeIf(TokenId::KwdElse).isValid())
+    {
+        if (is(TokenId::SymAmpersand))
+            nodePtr->nodeCaptureRef = parseExpression();
+        else
+            nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+    }
+    // The handler runs only on failure, with the optional capture in scope.
+    if (opTokenId == TokenId::KwdCatch && consumeIf(TokenId::KwdElse).isValid())
         nodePtr->nodeHandlerRef = parseDoCurlyBlock();
 
     return nodeRef;

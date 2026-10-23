@@ -32,6 +32,7 @@ public:
         EndErr,
         BindErr,
         ClearErr,
+        StoreErr,
 
         FailedExpect,
         FailedCast,
@@ -184,6 +185,7 @@ public:
         RuntimeEndErr,
         RuntimeBindErr,
         RuntimeClearErr,
+        RuntimeStoreErr,
 
         RuntimeFailedExpect,
         RuntimeFailedCast,

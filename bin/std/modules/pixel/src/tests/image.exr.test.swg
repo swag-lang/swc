@@ -119,6 +119,8 @@ using Swag, Core
 #test
 {
     const Invalid: [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
-    discard catch Image.decode("bad.exr", Invalid) as error
+    var errorOutcome: Swag.Error
+    discard catch Image.decode("bad.exr", Invalid) as &errorOutcome
+    let error = errorOutcome.value()
     Swag.assert(error != null)
 }

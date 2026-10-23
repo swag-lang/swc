@@ -34,7 +34,9 @@ using Swag
 
     var inflater: Compress.Inflate
     var decoded:  Array'u8
-    catch inflater.decompress(&decoded, compressed.toSlice(), maxOutputSize: 128) as limitError
+    var limitErrorOutcome: Swag.Error
+    catch inflater.decompress(&decoded, compressed.toSlice(), maxOutputSize: 128) as &limitErrorOutcome
+    let limitError = limitErrorOutcome.value()
     Swag.assert((limitError is Errors.UnsupportedFormatError))
     Swag.assert(decoded.count <= 128)
 }
@@ -206,9 +208,11 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var compressed: Array'u8
     expect deflater.compress(&compressed, original)
 
-    var inflater: Compress.Inflate
-    var decoded:  Array'u8
-    catch inflater.decompress(&decoded, compressed.toSlice()[until compressed.count / 2]) as truncated
+    var inflater:         Compress.Inflate
+    var decoded:          Array'u8
+    var truncatedOutcome: Swag.Error
+    catch inflater.decompress(&decoded, compressed.toSlice()[until compressed.count / 2]) as &truncatedOutcome
+    let truncated = truncatedOutcome.value()
     Swag.assert(truncated is Errors.InvalidFormatError)
 }
 
@@ -216,9 +220,11 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
 #test
 {
     // Final stored block announcing 0xFFFF bytes, followed by two.
-    let stored:   [7] u8 = [0x01, 0xFF, 0xFF, 0x00, 0x00, 0x41, 0x42]
-    var inflater: Compress.Inflate
-    var decoded:  Array'u8
-    catch inflater.decompress(&decoded, stored) as overlong
+    let stored:          [7] u8 = [0x01, 0xFF, 0xFF, 0x00, 0x00, 0x41, 0x42]
+    var inflater:        Compress.Inflate
+    var decoded:         Array'u8
+    var overlongOutcome: Swag.Error
+    catch inflater.decompress(&decoded, stored) as &overlongOutcome
+    let overlong = overlongOutcome.value()
     Swag.assert(overlong is Errors.InvalidFormatError)
 }

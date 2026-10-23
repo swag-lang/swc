@@ -68,7 +68,9 @@ func exifFixture(little: bool)->Array'u8
     let bytes = exifFixture(true)
     for length in bytes.count
     {
-        discard catch Exif.decode(bytes.toSlice()[until length]) as error
+        var errorOutcome: Swag.Error
+        discard catch Exif.decode(bytes.toSlice()[until length]) as &errorOutcome
+        let error = errorOutcome.value()
         Swag.assert(error != null)
     }
 }
@@ -78,15 +80,21 @@ func exifFixture(little: bool)->Array'u8
 {
     var bytes = exifFixture(true)
     exifNumber(&bytes, 42, 8, 4, true)
-    discard catch Exif.decode(bytes.toSlice()) as cycle
+    var cycleOutcome: Swag.Error
+    discard catch Exif.decode(bytes.toSlice()) as &cycleOutcome
+    let cycle = cycleOutcome.value()
     Swag.assert(cycle != null)
     exifNumber(&bytes, 42, 64, 4, true)
     exifNumber(&bytes, 18, 0xFFFFFFFF, 4, true)
-    discard catch Exif.decode(bytes.toSlice()) as offset
+    var offsetOutcome: Swag.Error
+    discard catch Exif.decode(bytes.toSlice()) as &offsetOutcome
+    let offset = offsetOutcome.value()
     Swag.assert(offset != null)
     exifNumber(&bytes, 18, 50, 4, true)
     exifNumber(&bytes, 14, 0xFFFFFFFF, 4, true)
-    discard catch Exif.decode(bytes.toSlice()) as count
+    var countOutcome: Swag.Error
+    discard catch Exif.decode(bytes.toSlice()) as &countOutcome
+    let count = countOutcome.value()
     Swag.assert(count != null)
 }
 

@@ -385,8 +385,7 @@ impl Volume
         result.containerSize = result.physicalSize
         result.blockCount    = (result.physicalSize - DataOffset) / BlockRecordSize
 
-        discard catch result.unlock(password) as outerError
-        if outerError != null
+        discard catch result.unlock(password) else
         {
             let region = try HiddenLocator.find(&result.file.stream, password)
             result.file.base     = region.first
@@ -426,9 +425,7 @@ impl Volume
         // caller must not be able to tell a wrong password from a damaged
         // container, from an older format version, or from which field gave up
         // first.
-        discard catch result.restore(selected.plain.toSlice()) as parseError
-        if parseError != null do
-            fail volumeError(.PasswordOrDamaged)
+        discard catch result.restore(selected.plain.toSlice()) else { fail volumeError(.PasswordOrDamaged) }
 
         if result.file.protectedEnd do
             try result.validateHiddenRegion({result.file.protectedFirst, result.file.protectedEnd - result.file.protectedFirst})

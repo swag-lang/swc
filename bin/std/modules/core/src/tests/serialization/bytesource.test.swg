@@ -57,14 +57,22 @@ func writeSourceFixture(name: string, count: u64)->String
     // At the end there is nothing to peek at, and asking for nothing is not an error.
     discard expect source.peek(0)
 
-    discard catch source.readByte() as pastEnd
+    var pastEndOutcome: Swag.Error
+    discard catch source.readByte() as &pastEndOutcome
+    let pastEnd = pastEndOutcome.value()
     Swag.assert(pastEnd is InvalidFormatError)
-    discard catch source.seek(9) as pastSeek
+    var pastSeekOutcome: Swag.Error
+    discard catch source.seek(9) as &pastSeekOutcome
+    let pastSeek = pastSeekOutcome.value()
     Swag.assert(pastSeek is InvalidFormatError)
-    catch checkPeek(&source, 1) as pastPeek
+    var pastPeekOutcome: Swag.Error
+    catch checkPeek(&source, 1) as &pastPeekOutcome
+    let pastPeek = pastPeekOutcome.value()
     Swag.assert(pastPeek is InvalidFormatError)
     expect source.seek(6)
-    discard catch source.skip(3) as pastSkip
+    var pastSkipOutcome: Swag.Error
+    discard catch source.skip(3) as &pastSkipOutcome
+    let pastSkip = pastSkipOutcome.value()
     Swag.assert(pastSkip is InvalidFormatError)
 
     // An at-most read stops at the end and reports how much it delivered.
@@ -119,10 +127,14 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(expect source.readLine(16) == "second")
     Swag.assert(source.position() == 14)
 
-    discard catch source.readLine(4) as tooLong
+    var tooLongOutcome: Swag.Error
+    discard catch source.readLine(4) as &tooLongOutcome
+    let tooLong = tooLongOutcome.value()
     Swag.assert(tooLong is InvalidFormatError)
     expect source.seek(14)
-    discard catch source.readLine(64) as noTerminator
+    var noTerminatorOutcome: Swag.Error
+    discard catch source.readLine(64) as &noTerminatorOutcome
+    let noTerminator = noTerminatorOutcome.value()
     Swag.assert(noTerminator is InvalidFormatError)
 }
 
@@ -218,7 +230,9 @@ func writeSourceFixture(name: string, count: u64)->String
     let tail = expect source.peek(3)
     Swag.assert(tail.count == 3)
     Swag.assert(sourceMatches(tail, Count - 3))
-    catch checkPeek(&source, 4) as pastEnd
+    var pastEndOutcome: Swag.Error
+    catch checkPeek(&source, 4) as &pastEndOutcome
+    let pastEnd = pastEndOutcome.value()
     Swag.assert(pastEnd is InvalidFormatError)
 
     // A peek consumes nothing, so the read that follows starts where the peek looked.
@@ -246,6 +260,8 @@ func writeSourceFixture(name: string, count: u64)->String
 #test
 {
     let fileName = CoreTests.makeFilesystemTestPath("bytesource_missing.bin")
-    discard catch ByteSource.openFile(fileName.toString()) as err
+    var errOutcome: Swag.Error
+    discard catch ByteSource.openFile(fileName.toString()) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }

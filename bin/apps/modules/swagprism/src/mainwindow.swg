@@ -326,7 +326,9 @@ impl MainWindow
         .commandBar.formatButton.enable(false)
         .formatTask.submit(func|window = me|()
         {
-            window.formatResult = catch window.formatter.format(window.formatSource) as error
+            var errorOutcome: Swag.Error
+            catch { window.formatResult = try window.formatter.format(window.formatSource) } as &errorOutcome
+            let error = errorOutcome.value()
             if error != null do
                 window.formatResult.failed = true
         },

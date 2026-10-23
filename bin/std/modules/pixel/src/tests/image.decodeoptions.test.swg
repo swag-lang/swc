@@ -10,11 +10,15 @@ using Swag, Core.Errors
     options.maxDecodedBytes = 24
     expect options.checkImage(2, 3, .RGBA8)
     options.maxDecodedBytes = 23
-    discard catch options.checkImage(2, 3, .RGBA8) as tooLarge
+    var tooLargeOutcome: Swag.Error
+    discard catch options.checkImage(2, 3, .RGBA8) as &tooLargeOutcome
+    let tooLarge = tooLargeOutcome.value()
     Swag.assert((tooLarge is UnsupportedFormatError))
 
     // The pixel count fits u64, but multiplying it by sixteen bytes would wrap to zero.
-    discard catch options.checkImage(1 << 30, 1 << 30, .RGBAF32) as overflow
+    var overflowOutcome: Swag.Error
+    discard catch options.checkImage(1 << 30, 1 << 30, .RGBAF32) as &overflowOutcome
+    let overflow = overflowOutcome.value()
     Swag.assert((overflow is UnsupportedFormatError))
 
     options.maxDecodedBytes = 0

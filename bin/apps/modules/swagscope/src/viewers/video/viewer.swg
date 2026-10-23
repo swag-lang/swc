@@ -450,8 +450,7 @@ impl Panel
         if .resumeAudioAfterSeek
         {
             let sample = soundSample(.audio, .currentSeconds())
-            catch .voice.seekSampleFrame(sample) as seekError
-            if seekError != null
+            catch .voice.seekSampleFrame(sample) as seekError else
             {
                 .resumeAudioAfterSeek = false
                 .playing = false
@@ -464,8 +463,7 @@ impl Panel
 
         .resumeAudioAfterSeek = false
         .audioRangePending    = false
-        catch .voice.play() as playError
-        if playError != null
+        catch .voice.play() as playError else
         {
             .playing = false
             .refreshTransport()
@@ -967,8 +965,7 @@ private impl Panel
 // Keeping both phases on one runtime context avoids moving codec allocations between thread caches.
 private func runViewerDecode(view: *Panel)
 {
-    var video = catch Reader.open(view.openFileName) as openError
-    if openError != null
+    var video = catch Reader.open(view.openFileName) as openError else
     {
         view.openFailure = Viewer.failureText(openError)
         Atomic.exchange(&view.openState, OpenFailed)
@@ -1017,7 +1014,8 @@ func createViewer(host: Viewer.Host)
         }
 
         host.setLifecycle(lifecycle)
-    } as createError
-    if createError != null do
+    } as createError else
+    {
         host.reject(Viewer.failureText(createError))
+    }
 }

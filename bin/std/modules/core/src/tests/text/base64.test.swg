@@ -71,11 +71,17 @@ func base64Reference(bytes: const [..] u8)->String
 // Malformed input is reported rather than decoded into something else.
 #test
 {
-    discard catch Base64.decode("Zm9v!") as badCharacter
+    var badCharacterOutcome: Swag.Error
+    discard catch Base64.decode("Zm9v!") as &badCharacterOutcome
+    let badCharacter = badCharacterOutcome.value()
     Swag.assert(badCharacter != null)
-    discard catch Base64.decode("Z") as truncated
+    var truncatedOutcome: Swag.Error
+    discard catch Base64.decode("Z") as &truncatedOutcome
+    let truncated = truncatedOutcome.value()
     Swag.assert(truncated != null)
-    discard catch Base64.decode("Zg==Zg") as afterPadding
+    var afterPaddingOutcome: Swag.Error
+    discard catch Base64.decode("Zg==Zg") as &afterPaddingOutcome
+    let afterPadding = afterPaddingOutcome.value()
     Swag.assert(afterPadding != null)
 }
 

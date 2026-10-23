@@ -626,7 +626,9 @@ private impl Decoder
         if not layout.indexSize do
             return false
 
-        catch .readIndexEntries(source, layout, dataId, compressedId) as indexError
+        var indexErrorOutcome: Swag.Error
+        catch .readIndexEntries(source, layout, dataId, compressedId) as &indexErrorOutcome
+        let indexError = indexErrorOutcome.value()
         if indexError == null and not .frames.isEmpty() do
             return true
 
@@ -814,7 +816,10 @@ private func probeIndexBase(source: *ByteSource, layout: const *Layout, id: u32,
 // offsets from somewhere else.
 private func matchesChunkId(source: *ByteSource, offset: u64, id: u32)->bool
 {
-    let found = catch readChunkIdAt(source, offset) as probeError
+    var probeErrorOutcome: Swag.Error
+    var found: #decltype(expect readChunkIdAt(source, offset))
+    catch { found = try readChunkIdAt(source, offset) } as &probeErrorOutcome
+    let probeError = probeErrorOutcome.value()
     return probeError == null and found == id
 }
 

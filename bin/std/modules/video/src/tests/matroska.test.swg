@@ -239,7 +239,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.assert(not Reader.canOpen("clip.webm"))
 
     const Truncated: [5] u8 = [0x1A, 0x45, 0xDF, 0xA3, 0x80]
-    discard catch Reader.openMemory("broken.mkv", Truncated) as truncated
+    var truncatedOutcome: Swag.Error
+    discard catch Reader.openMemory("broken.mkv", Truncated) as &truncatedOutcome
+    let truncated = truncatedOutcome.value()
     Swag.assert((truncated is InvalidFormatError))
 }
 
@@ -261,7 +263,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.assert(clusterOffset != Swag.U64.Max)
     bytes[clusterOffset] = 0
 
-    discard catch Reader.openMemory("unsupported.mkv", bytes.toSlice()) as unsupported
+    var unsupportedOutcome: Swag.Error
+    discard catch Reader.openMemory("unsupported.mkv", bytes.toSlice()) as &unsupportedOutcome
+    let unsupported = unsupportedOutcome.value()
     Swag.assert((unsupported is UnsupportedFormatError))
 }
 
@@ -281,7 +285,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 
     var reader = expect Reader.open(fileName)
     Swag.assert(reader.frameCount() == 0)
-    discard catch reader.decodeFrame(0) as clusterError
+    var clusterErrorOutcome: Swag.Error
+    discard catch reader.decodeFrame(0) as &clusterErrorOutcome
+    let clusterError = clusterErrorOutcome.value()
     Swag.assert((clusterError is InvalidFormatError))
 }
 
@@ -291,7 +297,9 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     reader.requestCancel()
-    discard catch reader.decodeFrame(0) as cancelled
+    var cancelledOutcome: Swag.Error
+    discard catch reader.decodeFrame(0) as &cancelledOutcome
+    let cancelled = cancelledOutcome.value()
     Swag.assert((cancelled is BadParameterError))
 }
 

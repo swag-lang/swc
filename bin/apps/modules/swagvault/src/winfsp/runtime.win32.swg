@@ -52,9 +52,11 @@ namespace WinFsp
     {
         #static if not #hastag("vault.integration") do
             return
-        var stream = catch File.open(winFspStageLogPath(), .Append, .Write, .Read) as openError
-        if openError != null do
+        var stream = catch File.open(winFspStageLogPath(), .Append, .Write, .Read) else
+        {
             return
+        }
+
         discard catch stream.write(message.buffer, message.count)
         discard catch stream.write(("\n").buffer, 1)
         stream.close()
@@ -64,9 +66,7 @@ namespace WinFsp
     func beginWinFspLog()->NativeHandle
     {
         let logPath16 = Utf16.toZeroTerminated(winFspLogPath())
-        let handle    = catch CreateFileW(logPath16.buffer, GenericWrite, ShareRead, null, 2, NormalFile, null) as error
-        if error != null do
-            return InvalidHandle
+        let handle    = catch CreateFileW(logPath16.buffer, GenericWrite, ShareRead, null, 2, NormalFile, null) else { return InvalidHandle }
         if handle != InvalidHandle do
             (g_WinFsp.setDebugLogHandle)(handle)
         return handle
@@ -84,9 +84,7 @@ namespace WinFsp
     // What the WinFsp debug log says, or where to find it when it cannot be read.
     func winFspLogDetail()->String
     {
-        var detail = catch File.readAllText(winFspLogPath()) as readError
-        if readError != null do
-            return Format.toString("Diagnostic log: %", winFspLogPath())
+        var detail = catch File.readAllText(winFspLogPath()) else { return Format.toString("Diagnostic log: %", winFspLogPath()) }
         detail.trim()
         return detail.isEmpty() ? Format.toString("Diagnostic log: %", winFspLogPath()) : detail
     }
@@ -155,8 +153,7 @@ namespace WinFsp
         }
 
         traceWinFspStage("resolving WinFsp exports")
-        discard catch resolveWinFspApi() as resolveError
-        if resolveError != null
+        discard catch resolveWinFspApi() as resolveError else
         {
             discard FreeLibrary(g_WinFsp.module)
             g_WinFsp.module = null

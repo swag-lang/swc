@@ -178,9 +178,7 @@ public impl Context
 
         let workspaceDir = Path.combine(.binDir.toString(), workspace)
         let unitsDir     = Path.combine(workspaceDir.toString(), "modules")
-        let entries      = catch Directory.enumerateDirectories(unitsDir.toString()) as err
-        if err != null do
-            return result
+        let entries      = catch Directory.enumerateDirectories(unitsDir.toString()) else { return result }
 
         for entry in entries
         {

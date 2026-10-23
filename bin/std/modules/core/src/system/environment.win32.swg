@@ -31,8 +31,8 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     if what == SpecialDirectory.Temp
     {
         var a: [MAX_PATH] u8
-        let len = catch GetTempPathA(MAX_PATH, &a[0]) as err
-        if err != null or len >= MAX_PATH do
+        let len = catch GetTempPathA(MAX_PATH, &a[0]) else { return "" }
+        if len >= MAX_PATH do
             return ""
 
         var result: retval = cast(string, a[until len])
@@ -59,8 +59,10 @@ public func realSpecialDirectory(what: SpecialDirectory)->String
     case .UserMusic:      v = CSIDL_MYMUSIC
     }
 
-    var result: retval
-    catch Win32.SHGetSpecialFolderPathA(null, &a[0], v, FALSE) as err
+    var result:     retval
+    var errOutcome: Swag.Error
+    catch Win32.SHGetSpecialFolderPathA(null, &a[0], v, FALSE) as &errOutcome
+    let err = errOutcome.value()
     if err == null
     {
         result = cast(string, Swag.makeSlice(&a[0], cast(cstring, &a[0]).count))
@@ -139,7 +141,9 @@ public func showInFileExplorer(path: string)->bool
 
     let explorer = Utf16.toZeroTerminated("explorer.exe")
     let params   = Utf16.toZeroTerminated(x)
-    discard catch ShellExecuteW(null, null, explorer.buffer, params.buffer, null, SW_SHOW) as err
+    var errOutcome: Swag.Error
+    discard catch ShellExecuteW(null, null, explorer.buffer, params.buffer, null, SW_SHOW) as &errOutcome
+    let err = errOutcome.value()
     return err == null
 }
 
@@ -162,7 +166,9 @@ public func openFileWith(path: string)->bool
 
     let host   = Utf16.toZeroTerminated("rundll32.exe")
     let params = Utf16.toZeroTerminated(x)
-    discard catch ShellExecuteW(null, null, host.buffer, params.buffer, null, SW_SHOW) as err
+    var errOutcome: Swag.Error
+    discard catch ShellExecuteW(null, null, host.buffer, params.buffer, null, SW_SHOW) as &errOutcome
+    let err = errOutcome.value()
     return err == null
 }
 
@@ -178,7 +184,9 @@ public func openFile(path: string)->bool
     normalized.replace("/", "\\")
 
     let file = Utf16.toZeroTerminated(normalized.toString())
-    discard catch ShellExecuteW(null, null, file.buffer, null, null, SW_SHOW) as err
+    var errOutcome: Swag.Error
+    discard catch ShellExecuteW(null, null, file.buffer, null, null, SW_SHOW) as &errOutcome
+    let err = errOutcome.value()
     return err == null
 }
 
@@ -195,7 +203,9 @@ public func openUrl(url: string)->bool
 
     // A 'string' view has no terminator of its own, and the wide call keeps non-ASCII URLs intact.
     let wideUrl = Utf16.toZeroTerminated(url)
-    discard catch ShellExecuteW(null, null, wideUrl.buffer, null, null, SW_SHOW) as err
+    var errOutcome: Swag.Error
+    discard catch ShellExecuteW(null, null, wideUrl.buffer, null, null, SW_SHOW) as &errOutcome
+    let err = errOutcome.value()
     return err == null
 }
 
@@ -217,8 +227,8 @@ public func getSystemMetric(what: SystemMetric)->s32
 public func userLocaleName()->String
 {
     var name16: [LOCALE_NAME_MAX_LENGTH] u16
-    let len = catch GetUserDefaultLocaleName(&name16[0], LOCALE_NAME_MAX_LENGTH) as err
-    if err != null or len <= 1 do
+    let len = catch GetUserDefaultLocaleName(&name16[0], LOCALE_NAME_MAX_LENGTH) else { return "" }
+    if len <= 1 do
         return ""
 
     // The returned length includes the terminating zero.

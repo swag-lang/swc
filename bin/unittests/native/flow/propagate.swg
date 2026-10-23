@@ -34,11 +34,18 @@ func propagateSum(first, second: bool)->s32 fail
 
 #test
 {
-    let sum = catch propagateSum(true, true) as err
+    var errOutcome: Swag.Error
+    var sum:        #decltype(expect propagateSum(true, true))
+    catch { sum = try propagateSum(true, true) } as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(sum == 20 and err == null)
-    discard catch propagateSum(true, false) as second
+    var secondOutcome: Swag.Error
+    discard catch propagateSum(true, false) as &secondOutcome
+    let second = secondOutcome.value()
     Swag.assert(propagateErrorCode(second) == 2)
-    discard catch propagateSum(false, true) as first
+    var firstOutcome: Swag.Error
+    discard catch propagateSum(false, true) as &firstOutcome
+    let first = firstOutcome.value()
     Swag.assert(propagateErrorCode(first) == 1)
 }
 
@@ -46,7 +53,9 @@ func propagateSum(first, second: bool)->s32 fail
 #[Swag.Propagate]
 func propagateAfterCatch(ok: bool)->s32 fail
 {
-    let recovered = catch propagateCount(false, 3) as err
+    var errOutcome: Swag.Error
+    let recovered = catch propagateCount(false, 3) as &errOutcome else 0
+    let err       = errOutcome.value()
     Swag.assert(recovered == 0 and propagateErrorCode(err) == 3)
     return propagateCount(ok, 4)
 }
@@ -54,7 +63,9 @@ func propagateAfterCatch(ok: bool)->s32 fail
 #test
 {
     Swag.assert((catch propagateAfterCatch(true) else 0) == 10)
-    discard catch propagateAfterCatch(false) as err
+    var errOutcome: Swag.Error
+    discard catch propagateAfterCatch(false) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(propagateErrorCode(err) == 4)
 }
 
@@ -67,10 +78,7 @@ func propagateIntoBlock(ok: bool)->s32 fail
     {
         discard propagateCount(ok, 5)
         reached = 1
-    } as err
-
-    if err != null do
-        return -propagateErrorCode(err)
+    } as err else { return -propagateErrorCode(err) }
     return reached + propagateCount(true)
 }
 
@@ -104,11 +112,15 @@ func propagateNested(reader: *PropagateReader, boxed: any)->s32 fail
     var reader: PropagateReader
     Swag.assert((catch propagateNested(&reader, 5's32) else 0) == 15)
 
-    discard catch propagateNested(&reader, "text") as castError
+    var castErrorOutcome: Swag.Error
+    discard catch propagateNested(&reader, "text") as &castErrorOutcome
+    let castError = castErrorOutcome.value()
     Swag.assert(castError != null and propagateErrorCode(castError) == 0)
 
     reader.fails = true
-    discard catch propagateNested(&reader, 5's32) as readError
+    var readErrorOutcome: Swag.Error
+    discard catch propagateNested(&reader, 5's32) as &readErrorOutcome
+    let readError = readErrorOutcome.value()
     Swag.assert(propagateErrorCode(readError) == 6)
 }
 
@@ -144,11 +156,15 @@ func(T) propagateGeneric(value: T, ok: bool)->T fail
 #test
 {
     Swag.assert((catch propagateInline(true) else 0) == 11)
-    discard catch propagateInline(false) as inlineError
+    var inlineErrorOutcome: Swag.Error
+    discard catch propagateInline(false) as &inlineErrorOutcome
+    let inlineError = inlineErrorOutcome.value()
     Swag.assert(propagateErrorCode(inlineError) == 8)
 
     Swag.assert((catch propagateGeneric(3's32, true) else 0) == 3)
-    discard catch propagateGeneric(1.5'f32, false) as genericError
+    var genericErrorOutcome: Swag.Error
+    discard catch propagateGeneric(1.5'f32, false) as &genericErrorOutcome
+    let genericError = genericErrorOutcome.value()
     Swag.assert(propagateErrorCode(genericError) == 9)
 }
 
@@ -162,6 +178,8 @@ func(T) propagateGeneric(value: T, ok: bool)->T fail
 #test
 {
     Swag.assert((catch propagateBlockSecond(true) else 0) == 20)
-    discard catch propagateBlockSecond(false) as err
+    var errOutcome: Swag.Error
+    discard catch propagateBlockSecond(false) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(propagateErrorCode(err) == 10)
 }

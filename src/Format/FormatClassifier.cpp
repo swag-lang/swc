@@ -1337,6 +1337,7 @@ namespace
                     const uint32_t policy = pieceOfNodeToken(node);
                     if (policy != INVALID_PIECE && Token::isKeyword(model_->piece(policy).id))
                         addRole(policy, FormatRoleE::ControlKeyword);
+                    classifyElseBody(node.cast<AstErrorManagementExpr>().nodeFallbackRef, span.minPiece, nodeRef);
                     break;
                 }
 

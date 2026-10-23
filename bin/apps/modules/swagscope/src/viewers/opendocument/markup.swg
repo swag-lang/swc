@@ -72,7 +72,10 @@ func positiveAttribute(attributes, name: string, maximum: u64)->u64
     let value = attribute(attributes, name)
     if value.isEmpty() do
         return 1
-    let parsed = catch StrConv.parseU64(value) as parseError
+    var parseErrorOutcome: Swag.Error
+    var parsed: #decltype(expect StrConv.parseU64(value))
+    catch { parsed = try StrConv.parseU64(value) } as &parseErrorOutcome
+    let parseError = parseErrorOutcome.value()
     if parseError != null or parsed.eat != value.count or not parsed.value do
         return 1
     return Math.min(parsed.value, maximum)
@@ -113,7 +116,10 @@ func imageDimension(attributes, name: string)->String
     if not end do
         return {}
 
-    let parsed = catch StrConv.parseF64(value[0 until end]) as parseError
+    var parseErrorOutcome: Swag.Error
+    var parsed: #decltype(expect StrConv.parseF64(value[0 until end]))
+    catch { parsed = try StrConv.parseF64(value[0 until end]) } as &parseErrorOutcome
+    let parseError = parseErrorOutcome.value()
     if parseError != null or parsed.ovf do
         return {}
 
@@ -213,8 +219,8 @@ func fontSize(attributes: string)->String
     if not end do
         return {}
 
-    let parsed = catch StrConv.parseF64(value[0 until end]) as parseError
-    if parseError != null or parsed.ovf do
+    let parsed = catch StrConv.parseF64(value[0 until end]) else { return {} }
+    if parsed.ovf do
         return {}
 
     let unit = String.from(value[end to]).toLower()
@@ -575,7 +581,10 @@ private impl Reader
         if payload.count > InlineImagePayloadLimit do
             return {}
 
-        let bytes = catch Base64.decode(payload) as decodeError
+        var decodeErrorOutcome: Swag.Error
+        var bytes: #decltype(expect Base64.decode(payload))
+        catch { bytes = try Base64.decode(payload) } as &decodeErrorOutcome
+        let decodeError = decodeErrorOutcome.value()
         if decodeError != null or
            bytes.isEmpty() or
            bytes.count > ImageLimit or

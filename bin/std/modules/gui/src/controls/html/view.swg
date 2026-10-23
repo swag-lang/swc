@@ -363,9 +363,11 @@ internal impl HtmlView
         if fileName.isEmpty() do
             return
 
-        let content = catch File.readAllText(fileName.toString()) as readError
-        if readError != null do
+        let content = catch File.readAllText(fileName.toString()) else
+        {
             return
+        }
+
         .sheet.parse(content.toString())
     }
 
@@ -479,11 +481,8 @@ internal impl HtmlView
         if .fileSize < HtmlVirtualSourceThreshold or .encoding != .Utf8 do
             return false
 
-        let contentStart = catch .stream.position() as positionError
-        if positionError != null do
-            return false
-        let probe = catch .stream.readTextChunk(HtmlVirtualProbeSize, .encoding) as readError
-        if readError != null
+        let contentStart = catch .stream.position() else { return false }
+        let probe        = catch .stream.readTextChunk(HtmlVirtualProbeSize, .encoding) else
         {
             discard catch .stream.seek(.Begin, contentStart)
             return false
@@ -536,17 +535,18 @@ internal impl HtmlView
         let requested = Math.clamp(requestedOffset, .virtualContentStart, .fileSize)
         let wanted    = requested > .virtualContentStart + HtmlVirtualLookBehind ? requested - HtmlVirtualLookBehind : .virtualContentStart
 
-        .stream = catch File.openReadLive(.fileName.toString()) as openError
-        if openError != null do
-            return false
+        .stream = catch File.openReadLive(.fileName.toString()) else { return false }
         let actual = Math.min(wanted, .fileSize)
         discard catch .stream.seek(.Begin, actual)
         var bytes: Array'u8
         bytes.resize(Math.min(HtmlVirtualWindowSize + HtmlVirtualLookBehind * 2, .fileSize - actual))
-        let count = catch .stream.read(bytes.toSlice()) as readError
-        .stream.close()
-        if readError != null do
+        let count = catch .stream.read(bytes.toSlice()) else
+        {
+            .stream.close()
             return false
+        }
+
+        .stream.close()
         bytes.resize(count)
         let chunk = Text.decode(bytes.toSlice(), .Utf8)
 
@@ -637,8 +637,8 @@ internal impl HtmlView
     {
         var probe: Array'u8
         probe.resize(HtmlCharsetProbeSize)
-        let count = catch .stream.read(probe.toSlice()) as readError
-        probe.resize(readError == null ? count : 0)
+        let count = catch .stream.read(probe.toSlice()) else 0
+        probe.resize(count)
 
         var result       = Text.detectEncoding(probe.toSlice())
         var contentStart = 0'u64
@@ -655,9 +655,7 @@ internal impl HtmlView
 
         // A stream that cannot rewind cannot stream the document; the next read reports that
         // through the existing failure path, and the encoding answer no longer matters.
-        catch .stream.seek(.Begin, contentStart) as seekError
-        if seekError != null do
-            return .Utf8
+        catch .stream.seek(.Begin, contentStart) else { return .Utf8 }
 
         return result
     }
@@ -667,7 +665,9 @@ internal impl HtmlView
     {
         if not .sourceDone
         {
-            let chunk = catch .stream.readTextChunk(HtmlStreamChunkSize, .encoding) as readError
+            var readOutcome: Swag.Error
+            let chunk     = catch .stream.readTextChunk(HtmlStreamChunkSize, .encoding) as &readOutcome else String{}
+            let readError = readOutcome.value()
             if readError != null
             {
                 .reportLoadFailure(Errors.message(readError))
@@ -1484,8 +1484,7 @@ internal impl HtmlView
         .scroll.setScrollPos(0, 0)
         .sigDocumentChanged.call(me)
 
-        .stream = catch File.openReadLive(fileName) as openError
-        if openError != null
+        .stream = catch File.openReadLive(fileName) as openError else
         {
             .reportLoadFailure(Errors.message(openError))
             .finishSource("<p>Unable to read this HTML document.</p>")
@@ -1493,7 +1492,10 @@ internal impl HtmlView
             return
         }
 
-        let size = catch .stream.size() as sizeError
+        var sizeErrorOutcome: Swag.Error
+        var size: #decltype(expect .stream.size())
+        catch { size = try .stream.size() } as &sizeErrorOutcome
+        let sizeError = sizeErrorOutcome.value()
         if sizeError == null
         {
             .fileSize = size

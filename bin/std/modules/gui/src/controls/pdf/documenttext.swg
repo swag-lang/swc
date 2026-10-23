@@ -82,7 +82,10 @@ impl DocumentText
     // rather than leaving a search waiting for it.
     private mtd extract()
     {
-        var reader = catch Reader.open(.fileName.toString()) as openError
+        var openErrorOutcome: Swag.Error
+        var reader: #decltype(expect Reader.open(.fileName.toString()))
+        catch { reader = try Reader.open(.fileName.toString()) } as &openErrorOutcome
+        let openError = openErrorOutcome.value()
         if openError == null
         {
             let count = Math.min(reader.pageCount(), .pages.count)
@@ -90,7 +93,10 @@ impl DocumentText
             {
                 if Atomic.get(&.cancel) != 0 do
                     return
-                var text = catch reader.loadPageText(index) as pageError
+                var pageErrorOutcome: Swag.Error
+                var text: #decltype(expect reader.loadPageText(index))
+                catch { text = try reader.loadPageText(index) } as &pageErrorOutcome
+                let pageError = pageErrorOutcome.value()
                 if pageError == null do
                     .pages[index] = #move text
                 Atomic.exchange(&.ready, cast(u32, (index + 1)))

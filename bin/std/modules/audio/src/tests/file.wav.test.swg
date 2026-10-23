@@ -154,18 +154,26 @@ using Swag, Core
 
 #test
 {
-    discard catch SoundFile.load("audio.unsupported") as err9
+    var err9Outcome: Swag.Error
+    discard catch SoundFile.load("audio.unsupported") as &err9Outcome
+    let err9 = err9Outcome.value()
     Swag.assert((err9 is Errors.UnsupportedFormatError))
 }
 
 #test
 {
-    discard catch SoundFile.load(audioGetTestDataPath("malformed_adpcm.wav")) as err10
+    var err10Outcome: Swag.Error
+    discard catch SoundFile.load(audioGetTestDataPath("malformed_adpcm.wav")) as &err10Outcome
+    let err10 = err10Outcome.value()
     Swag.assert((err10 is Errors.InvalidFormatError))
 
-    discard catch SoundFile.load(audioGetTestDataPath("not_wave.wav")) as err11
+    var err11Outcome: Swag.Error
+    discard catch SoundFile.load(audioGetTestDataPath("not_wave.wav")) as &err11Outcome
+    let err11 = err11Outcome.value()
     Swag.assert((err11 is Errors.InvalidFormatError))
 
-    discard catch SoundFile.load(audioGetTestDataPath("truncated_fmt.wav")) as err12
+    var err12Outcome: Swag.Error
+    discard catch SoundFile.load(audioGetTestDataPath("truncated_fmt.wav")) as &err12Outcome
+    let err12 = err12Outcome.value()
     Swag.assert((err12 is Errors.InvalidFormatError))
 }

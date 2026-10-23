@@ -61,11 +61,16 @@ using Swag, Core
     let first   = cast(const *u32, (tiff.storage() + 4))[]
     let entries = cast(const *u16, (tiff.storage() + first))[]
     cast(*u32, (tiff.storage() + first + 2 + cast(u64, entries) * 12))[] = first
-    var reader = catch ImageReader.decode("cycle.tiff", tiff.toSlice()) as cycleError
+    var cycleErrorOutcome: Swag.Error
+    var reader: #decltype(expect ImageReader.decode("cycle.tiff", tiff.toSlice()))
+    catch { reader = try ImageReader.decode("cycle.tiff", tiff.toSlice()) } as &cycleErrorOutcome
+    let cycleError = cycleErrorOutcome.value()
     Swag.assert(cycleError != null)
     var dds = expect File.readAllBytes(getTestDataPath("imageset-array.dds"))
     cast(*u32, (dds.storage() + 140))[] = Swag.U32.Max
-    reader = catch ImageReader.decode("oversized.dds", dds.toSlice()) as arrayError
+    var arrayErrorOutcome: Swag.Error
+    catch { reader = try ImageReader.decode("oversized.dds", dds.toSlice()) } as &arrayErrorOutcome
+    let arrayError = arrayErrorOutcome.value()
     Swag.assert(arrayError != null)
 }
 
@@ -94,7 +99,10 @@ using Swag, Core
         reader.close()
         reader.close()
         Swag.assert(not reader.isOpen() and retained.isValid())
-        var invalid = catch reader.read(0) as error
+        var errorOutcome: Swag.Error
+        var invalid:      #decltype(expect reader.read(0))
+        catch { invalid = try reader.read(0) } as &errorOutcome
+        let error = errorOutcome.value()
         Swag.assert(error != null)
     }
 }
@@ -191,7 +199,10 @@ using Swag, Core
     Swag.assert(reader.info.frames.count == 1)
     let decoded = expect reader.read(0)
     Swag.assert(decoded.pixelColor(0, 0).argb == 0xFFFF0000)
-    var missing = catch reader.read(1) as rangeError
+    var rangeErrorOutcome: Swag.Error
+    var missing: #decltype(expect reader.read(1))
+    catch { missing = try reader.read(1) } as &rangeErrorOutcome
+    let rangeError = rangeErrorOutcome.value()
     Swag.assert(rangeError != null)
 
     for name in ["imageset-animation.webp", "imageset-animation.apng", "imageset-animation.gif", "imageset-pages-raw.tiff", "imageset-icons.ico", "imageset-array.dds", "imageset-array.ktx2", "imageset-parts.exr", "imageset-layers-0.psd"]
@@ -199,16 +210,25 @@ using Swag, Core
         var probe = expect ImageReader.load(getTestDataPath(name), {decodePixels: false})
         let image = expect probe.read(0)
         Swag.assert(image.width > 0 and image.height > 0 and image.pixels.isEmpty())
-        var limited = catch ImageReader.load(getTestDataPath(name), {maxFrames: 1}) as frameError
+        var frameErrorOutcome: Swag.Error
+        var limited: #decltype(expect ImageReader.load(getTestDataPath(name), {maxFrames: 1}))
+        catch { limited = try ImageReader.load(getTestDataPath(name), {maxFrames: 1}) } as &frameErrorOutcome
+        let frameError = frameErrorOutcome.value()
         Swag.assert(frameError != null)
-        limited = catch ImageReader.load(getTestDataPath(name), {maxPixels: 1}) as pixelError
+        var pixelErrorOutcome: Swag.Error
+        catch { limited = try ImageReader.load(getTestDataPath(name), {maxPixels: 1}) } as &pixelErrorOutcome
+        let pixelError = pixelErrorOutcome.value()
         Swag.assert(pixelError != null)
-        limited = catch ImageReader.load(getTestDataPath(name), {maxInputBytes: 4}) as inputError
+        var inputErrorOutcome: Swag.Error
+        catch { limited = try ImageReader.load(getTestDataPath(name), {maxInputBytes: 4}) } as &inputErrorOutcome
+        let inputError = inputErrorOutcome.value()
         Swag.assert(inputError != null)
         let bytes = expect File.readAllBytes(getTestDataPath(name))
         for length in [0'u64, 4, 12]
         {
-            limited = catch ImageReader.decode(name, Swag.makeSlice(bytes.storage(), length)) as truncatedError
+            var truncatedErrorOutcome: Swag.Error
+            catch { limited = try ImageReader.decode(name, Swag.makeSlice(bytes.storage(), length)) } as &truncatedErrorOutcome
+            let truncatedError = truncatedErrorOutcome.value()
             Swag.assert(truncatedError != null)
         }
     }

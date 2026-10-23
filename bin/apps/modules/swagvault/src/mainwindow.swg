@@ -459,7 +459,10 @@ func parseCapacity(text: string, unitIndex: u32)->ContainerSize
 {
     var result: retval
 
-    let parsed = catch StrConv.parseU64(text) as parseError
+    var parseErrorOutcome: Swag.Error
+    var parsed: #decltype(expect StrConv.parseU64(text))
+    catch { parsed = try StrConv.parseU64(text) } as &parseErrorOutcome
+    let parseError = parseErrorOutcome.value()
     if parseError != null or parsed.ovf or parsed.eat != text.count or not parsed.value
     {
         result.error = appStrings().msg_SizeInvalid

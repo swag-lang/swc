@@ -15,21 +15,29 @@ func audioStartNoSoundEngine()
 #test
 {
     Swag.assert(not isEngineCreated())
-    discard catch outputVolume() as errNoEngine
+    var errNoEngineOutcome: Swag.Error
+    discard catch outputVolume() as &errNoEngineOutcome
+    let errNoEngine = errNoEngineOutcome.value()
     Swag.assert((errNoEngine is Errors.BadParameterError))
 
     discard expect createEngine(.NoSound)
     Swag.assert(isEngineCreated())
     Swag.assert(activeDriverKind() == .NoSound)
 
-    discard catch createEngine(.NoSound) as errDuplicate
+    var errDuplicateOutcome: Swag.Error
+    discard catch createEngine(.NoSound) as &errDuplicateOutcome
+    let errDuplicate = errDuplicateOutcome.value()
     Swag.assert((errDuplicate is Errors.BadParameterError))
 
-    catch checkBusCreation(0) as errChannels
+    var errChannelsOutcome: Swag.Error
+    catch checkBusCreation(0) as &errChannelsOutcome
+    let errChannels = errChannelsOutcome.value()
     Swag.assert((errChannels is Errors.BadParameterError))
 
-    var emptyFile: SoundFile
-    catch checkVoiceCreation(&emptyFile) as errFile
+    var emptyFile:      SoundFile
+    var errFileOutcome: Swag.Error
+    catch checkVoiceCreation(&emptyFile) as &errFileOutcome
+    let errFile = errFileOutcome.value()
     Swag.assert((errFile is Errors.BadParameterError))
 
     destroyEngine()
@@ -82,7 +90,9 @@ func audioStartNoSoundEngine()
     audioAssertFloat(expect child.volume(), 0.5, 0.0002)
     audioAssertFloat(expect child.volumeDb(), -6.0206, 0.0002)
     var invalidParent: Bus
-    catch checkBusCreation(1, &invalidParent) as err12
+    var err12Outcome:  Swag.Error
+    catch checkBusCreation(1, &invalidParent) as &err12Outcome
+    let err12 = err12Outcome.value()
     Swag.assert((err12 is Errors.BadParameterError))
 
     child.destroy()
@@ -112,7 +122,9 @@ func audioStartNoSoundEngine()
     discard expect voice.setFrequencyRatio(1.75)
     audioAssertFloat(handle.frequencyRatio, 1.75)
     audioAssertFloat(expect voice.frequencyRatio(), 1.75)
-    discard catch voice.setFrequencyRatio(0) as errInvalidRatio
+    var errInvalidRatioOutcome: Swag.Error
+    discard catch voice.setFrequencyRatio(0) as &errInvalidRatioOutcome
+    let errInvalidRatio = errInvalidRatioOutcome.value()
     Swag.assert((errInvalidRatio is Errors.BadParameterError))
 
     let safeBus0 = expect Bus.create(2)

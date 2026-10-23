@@ -103,9 +103,7 @@ func day4BWithExplicitChecks()
                     validFields |= 4
 
             case "hgt":
-                let height = catch StrConv.parseS32(fieldValue) as err
-                if err != null do
-                    break
+                let height = catch StrConv.parseS32(fieldValue) else { break }
                 if height.eat == fieldValue.count do
                     break
                 let unit = fieldValue[height.eat to]
@@ -119,7 +117,9 @@ func day4BWithExplicitChecks()
             case "hcl":
                 if fieldValue.count != 7 or fieldValue[0] != '#' do
                     break
-                discard catch StrConv.parseX64(fieldValue[1 to]) as err
+                var errOutcome: Swag.Error
+                discard catch StrConv.parseX64(fieldValue[1 to]) as &errOutcome
+                let err = errOutcome.value()
                 if err == null do
                     validFields |= 16
 
@@ -128,7 +128,9 @@ func day4BWithExplicitChecks()
                     validFields |= 32
 
             case "pid":
-                discard catch StrConv.toS32(fieldValue) as err
+                var errOutcome: Swag.Error
+                discard catch StrConv.toS32(fieldValue) as &errOutcome
+                let err = errOutcome.value()
                 if err == null and fieldValue.count == 9 do
                     validFields |= 64
             }

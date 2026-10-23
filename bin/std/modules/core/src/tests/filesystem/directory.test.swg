@@ -8,7 +8,9 @@ using Swag
 {
     let dirName = CoreTests.makeFilesystemTestPath("core_invalid?dir")
 
-    discard catch Directory.create(dirName) as err
+    var errOutcome: Swag.Error
+    discard catch Directory.create(dirName) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(err is Errors.InvalidFileNameError)
     Swag.assert(not Directory.exists(dirName))
@@ -25,7 +27,9 @@ using Swag
     Swag.assert(Directory.exists(leaf))
     expect Directory.create(leaf, recurse: true)
 
-    discard catch Directory.create(leaf) as err
+    var errOutcome: Swag.Error
+    discard catch Directory.create(leaf) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }
 

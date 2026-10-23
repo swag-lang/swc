@@ -66,7 +66,9 @@ using Swag, Core
     let bytes = loadFontBytes("arial.ttf")
     Swag.assert((expect Face.familyNameAt(bytes.toSlice(), 0)) == "Arial")
 
-    discard catch Face.familyNameAt(bytes.toSlice(), 1) as errBeyond
+    var errBeyondOutcome: Swag.Error
+    discard catch Face.familyNameAt(bytes.toSlice(), 1) as &errBeyondOutcome
+    let errBeyond = errBeyondOutcome.value()
     Swag.assert(errBeyond != null)
 }
 
@@ -74,7 +76,9 @@ using Swag, Core
 #test
 {
     let bytes = buildFontCollection(["arial.ttf", "arialbd.ttf"])
-    catch checkFaceLoadAt(bytes.toSlice(), 2) as errRange
+    var errRangeOutcome: Swag.Error
+    catch checkFaceLoadAt(bytes.toSlice(), 2) as &errRangeOutcome
+    let errRange = errRangeOutcome.value()
     Swag.assert(errRange != null)
 }
 
@@ -82,7 +86,9 @@ using Swag, Core
 #test
 {
     let bytes = loadFontBytes("arial.ttf")
-    catch checkFaceLoadAt(bytes.toSlice(), 1) as errSingle
+    var errSingleOutcome: Swag.Error
+    catch checkFaceLoadAt(bytes.toSlice(), 1) as &errSingleOutcome
+    let errSingle = errSingleOutcome.value()
     Swag.assert(errSingle != null)
 }
 
@@ -90,13 +96,19 @@ using Swag, Core
 // reason loading it does.
 #test
 {
-    catch checkFaceLoad(WoffBytes) as errWoff
+    var errWoffOutcome: Swag.Error
+    catch checkFaceLoad(WoffBytes) as &errWoffOutcome
+    let errWoff = errWoffOutcome.value()
     Swag.assert(errWoff != null)
 
-    catch checkFaceLoad(Woff2Bytes) as errWoff2
+    var errWoff2Outcome: Swag.Error
+    catch checkFaceLoad(Woff2Bytes) as &errWoff2Outcome
+    let errWoff2 = errWoff2Outcome.value()
     Swag.assert(errWoff2 != null)
 
-    discard catch Face.countFaces(WoffBytes) as errCount
+    var errCountOutcome: Swag.Error
+    discard catch Face.countFaces(WoffBytes) as &errCountOutcome
+    let errCount = errCountOutcome.value()
     Swag.assert(errCount != null)
 }
 
@@ -104,7 +116,9 @@ using Swag, Core
 // on its signature, and still counts as the one face its header declares.
 #test
 {
-    catch checkFaceLoad(OpenTypeCffBytes) as errCff
+    var errCffOutcome: Swag.Error
+    catch checkFaceLoad(OpenTypeCffBytes) as &errCffOutcome
+    let errCff = errCffOutcome.value()
     Swag.assert(errCff != null)
 
     let count = expect Face.countFaces(OpenTypeCffBytes)

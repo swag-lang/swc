@@ -179,8 +179,7 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
         return result
     }
 
-    var stream = catch File.openReadLive(fileName) as openError
-    if openError != null
+    var stream = catch File.openReadLive(fileName) as openError else
     {
         result.failureReason = Viewer.failureText(openError)
         return result
@@ -188,8 +187,7 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
 
     defer stream.close()
 
-    catch stream.seek(.Begin, range.offset) as seekError
-    if seekError != null
+    catch stream.seek(.Begin, range.offset) as seekError else
     {
         result.failureReason = Viewer.failureText(seekError)
         return result
@@ -212,8 +210,7 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
 
         let wanted = Math.min(remaining, AnalysisChunkSize)
         bytes.resize(wanted)
-        let count = catch stream.read(bytes.toSlice()) as readError
-        if readError != null
+        let count = catch stream.read(bytes.toSlice()) as readError else
         {
             result.failureReason = Viewer.failureText(readError)
             break

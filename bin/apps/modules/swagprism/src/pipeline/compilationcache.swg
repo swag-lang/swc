@@ -98,9 +98,7 @@ impl CompilationCache
         .entries.add(entry)
         entry.task.submit(func|entry|()
         {
-            catch entry.run() as error
-            if error != null do
-                entry.result = {text: appStrings().msg_BuildFailed, failed: true}
+            catch entry.run() else { entry.result = {text: appStrings().msg_BuildFailed, failed: true} }
         })
         return {cache: me, artifact: entry}
     }

@@ -426,10 +426,8 @@ private impl TagBin
             sec.fatCount     = fatCount
             sec.afterFatSeek = 0
 
-            catch .loadSectionFat(sec) as err
-            if err != null
-            {
-                // The section is already live, so hand it back before reporting.
+            catch .loadSectionFat(sec) as err else
+            {     // The section is already live, so hand it back before reporting.
                 .releaseSection()
                 fail err
             }
@@ -547,7 +545,9 @@ private impl TagBin
         let input = Swag.makeSlice(rem.buffer, compressedSize)
 
         var decompressor: Core.Compress.Inflate
-        catch decompressor.decompress(decompressedBuffer, input) as err
+        var errOutcome:   Swag.Error
+        catch decompressor.decompress(decompressedBuffer, input) as &errOutcome
+        let err = errOutcome.value()
         if err != null or decompressedBuffer.count != uncompressedSize
         {
             .releaseTmpBuf(decompressedBuffer)
@@ -669,7 +669,9 @@ private impl TagBin
                     .bodyBuffer.reserve(uncompressedSize)
 
                 var decompressor: Core.Compress.Inflate
-                catch decompressor.decompress(&.bodyBuffer, Swag.makeSlice(rem.buffer, compressedSize)) as err
+                var errOutcome:   Swag.Error
+                catch decompressor.decompress(&.bodyBuffer, Swag.makeSlice(rem.buffer, compressedSize)) as &errOutcome
+                let err = errOutcome.value()
                 if err != null or .bodyBuffer.count != uncompressedSize do
                     fail SerializationError{"corrupted compressed body"}
 
@@ -892,17 +894,18 @@ impl TagBin
             Swag.assert(sf.key == wireFieldKey(val))
             sec.posIndex += 1
 
-            catch .enterElementPayload(sf.flags.has(.Compressed), val) as err
-            if err == null do
-                return true
+            catch .enterElementPayload(sf.flags.has(.Compressed), val) as err else
+            {
+                // A corrupt payload does not condemn the rest of the struct: the fat was
+                // written anyway, so demote the section to the indexed path and let every
+                // remaining field seek its own position.
+                try .loadShapedFat(sec)
+                sec.positional        = false
+                .diag.recoveredFields += 1
+                fail err
+            }
 
-            // A corrupt payload does not condemn the rest of the struct: the fat was
-            // written anyway, so demote the section to the indexed path and let every
-            // remaining field seek its own position.
-            try .loadShapedFat(sec)
-            sec.positional        = false
-            .diag.recoveredFields += 1
-            fail err
+            return true
         }
 
         // Shaped indexed path.

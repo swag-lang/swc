@@ -1277,6 +1277,7 @@ impl Allocator
     }
 
     // Multiplicative mixing reaches changing address bits even for strongly aligned reservations.
+    //
     // The golden-ratio product wraps on purpose; scale its high word into the shard count.
     #[Swag.Inline, Swag.Safety(.Overflow, false)]
     mtd shardOf(header: *AllocatorHeader)->*AllocatorHeaderShard

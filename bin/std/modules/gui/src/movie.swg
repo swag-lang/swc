@@ -70,8 +70,7 @@ private impl Movie
         }
         else
         {
-            var frame = catch .reader.read(cast(u32, index)) as error
-            if error != null
+            var frame = catch .reader.read(cast(u32, index)) as error else
             {
                 .failureReason = Errors.message(error)
                 .isPaused      = true

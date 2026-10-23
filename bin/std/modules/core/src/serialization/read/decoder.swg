@@ -256,11 +256,10 @@ impl Decoder
                                             idecoder))
                 {
                     let fieldData = cast([*] u8, data) + field.value.offset
-                    let readField = catch .serializer.beginElement(field.value) as beginErr
 
-                    // A failed 'beginElement' has already unwound itself, so there is
-                    // no element left open to close. Only pair the two once it returned.
-                    if beginErr != null
+                    // A failed beginElement has already unwound itself. Pair it with
+                    // endElement only after it has returned successfully.
+                    let readField = catch .serializer.beginElement(field.value) as beginErr else
                     {
                         if not (.flags & .IgnoreStructFieldError) do
                             fail beginErr
@@ -273,17 +272,15 @@ impl Decoder
                     if not readField do
                         continue
 
-                    catch .readTypedContent(fieldData, fieldType) as readErr
-                    if readErr != null and (.flags & .IgnoreStructFieldError)
+                    catch .readTypedContent(fieldData, fieldType) as readErr else
                     {
+                        if not (.flags & .IgnoreStructFieldError) do
+                            fail readErr
                         #static if T == Read.TagBin do
                             .serializer.diag.fieldErrors += 1
                         Reflection.reset(fieldData, fieldType)
                         continue
                     }
-
-                    if readErr != null and not (.flags & .IgnoreStructFieldError) do
-                        fail readErr
                 }
             }
 

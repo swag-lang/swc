@@ -177,8 +177,7 @@ impl Panel
             return
 
         let oldPosition = .editor.scrollPosition()
-        let chunk       = catch .stream.readUtf8Chunk(StreamChunkSize) as readError
-        if readError != null
+        let chunk       = catch .stream.readUtf8Chunk(StreamChunkSize) as readError else
         {
             .showReadError(Viewer.failureText(readError))
             return
@@ -197,7 +196,10 @@ impl Panel
         }
 
         .editor.addText(chunk)
-        let position = catch .stream.position() as positionError
+        var positionErrorOutcome: Swag.Error
+        var position: #decltype(expect .stream.position())
+        catch { position = try .stream.position() } as &positionErrorOutcome
+        let positionError = positionErrorOutcome.value()
         if positionError == null do
             .bytesRead = position
         .hasText = true
@@ -220,13 +222,10 @@ impl Panel
         let start     = requested > RevealContextSize ? requested - RevealContextSize : 0
         for adjustment in 4
         {
-            .stream = catch File.openReadLive(.fileName) as openError
-            if openError != null do
-                return false
+            .stream = catch File.openReadLive(.fileName) else { return false }
             let actual = Math.min(start + adjustment, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            let chunk = catch .stream.readUtf8Chunk(ResidentWindowSize) as readError
-            if readError != null
+            let chunk = catch .stream.readUtf8Chunk(ResidentWindowSize) else
             {
                 .stream.close()
                 continue
@@ -235,7 +234,10 @@ impl Panel
             let previousHeight = Math.max(.virtualHeight, .editor.scrollableClientRect().height)
             .residentStart = actual
             .editor.setText(chunk)
-            let position = catch .stream.position() as positionError
+            var positionErrorOutcome: Swag.Error
+            var position: #decltype(expect .stream.position())
+            catch { position = try .stream.position() } as &positionErrorOutcome
+            let positionError = positionErrorOutcome.value()
             .bytesRead     = positionError == null ? position : actual + chunk.length
             .hasText       = not chunk.isEmpty()
             .virtualHeight = previousHeight
@@ -464,15 +466,13 @@ impl Panel
     // Opens the source stream and reads its first chunk, or records why it cannot be read.
     private mtd startReading()
     {
-        .stream = catch File.openReadLive(.fileName) as openError
-        if openError != null
+        .stream = catch File.openReadLive(.fileName) as openError else
         {
             .showReadError(Viewer.failureText(openError))
             return
         }
 
-        let size = catch .stream.size() as sizeError
-        if sizeError != null
+        let size = catch .stream.size() as sizeError else
         {
             .showReadError(Viewer.failureText(sizeError))
             return

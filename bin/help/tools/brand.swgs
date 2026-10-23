@@ -262,10 +262,7 @@ func wrote(path: string)
         try writeMark(Path.combine(ROOT, "imgs/swag_mark.svg"), Path.combine(ROOT, "imgs/swag_mark.png"), 512)
         try writeIcon(Path.combine(ROOT, "imgs/swag_icon.png"), 256)
         try writeFavicon(Path.combine(ROOT, "favicon.svg"), Path.combine(ROOT, "favicon.ico"))
-    }
-        as err
-
-    if err != null
+    } as err else
     {
         Swag.print("  ✖  brand       ", err, "\n")
         return

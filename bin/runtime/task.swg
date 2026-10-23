@@ -302,15 +302,11 @@ private impl Task
 
         #static if T == void
         {
-            catch body() as error
-            if error != null do
-                .failure.capture(error)
+            catch body() as error else { .failure.capture(error) }
         }
         else
         {
-            .result = catch body() as error
-            if error != null do
-                .failure.capture(error)
+            catch { .result = try body() } as error else { .failure.capture(error) }
         }
     }
 }
@@ -627,9 +623,7 @@ private func runFallibleChild(child: *GroupChild)
     if not body do
         return
 
-    catch body() as error
-    if error != null do
-        child.group!.recordFailure(error)
+    catch body() as error else { child.group!.recordFailure(error) }
 }
 
 // Waits for every task of `tasks`. As soon as one of them fails, the others are asked to stop;

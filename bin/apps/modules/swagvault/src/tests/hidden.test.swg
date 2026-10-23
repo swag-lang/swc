@@ -34,9 +34,13 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     // Every path, including metadata, batched data, and camouflage, meets this storage boundary.
     var byte: [1] u8 = [42]
     expect protected.file.writeAllAt(first - 1, byte)
-    discard catch protected.file.writeAllAt(first, byte) as collision
+    var collisionOutcome: Swag.Error
+    discard catch protected.file.writeAllAt(first, byte) as &collisionOutcome
+    let collision = collisionOutcome.value()
     Swag.assert(collision != null and protected.file.protectionTriggered)
-    discard catch protected.requireWritable() as later
+    var laterOutcome: Swag.Error
+    discard catch protected.requireWritable() as &laterOutcome
+    let later = laterOutcome.value()
     Swag.assert(later != null)
     protected.close()
 
@@ -53,7 +57,9 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     expect HiddenLocator.erase(&reopened.file.stream, alternate)
     expect reopened.changePassword(InnerPassword, "replacement hidden access")
     reopened.close()
-    discard catch Volume.open(path, InnerPassword) as revoked
+    var revokedOutcome: Swag.Error
+    discard catch Volume.open(path, InnerPassword) as &revokedOutcome
+    let revoked = revokedOutcome.value()
     Swag.assert(revoked != null)
     var changed = expect Volume.open(path, "replacement hidden access", true)
     Swag.assert(changed.resolve("\\secret.txt") != null)
@@ -75,31 +81,51 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     defer discard catch File.delete(path)
     var outer = expect Volume.create(path, "outer", DataOffset + 256 * BlockRecordSize)
     outer.close()
-    discard catch Volume.createHidden(path, "outer", "outer", MinimumSize) as same
+    var sameOutcome: Swag.Error
+    discard catch Volume.createHidden(path, "outer", "outer", MinimumSize) as &sameOutcome
+    let same = sameOutcome.value()
     Swag.assert(same != null)
-    discard catch Volume.createHidden(path, "outer", "", MinimumSize) as empty
+    var emptyOutcome: Swag.Error
+    discard catch Volume.createHidden(path, "outer", "", MinimumSize) as &emptyOutcome
+    let empty = emptyOutcome.value()
     Swag.assert(empty != null)
-    discard catch Volume.createHidden(path, "outer", "hidden", DataOffset + 256 * BlockRecordSize) as full
+    var fullOutcome: Swag.Error
+    discard catch Volume.createHidden(path, "outer", "hidden", DataOffset + 256 * BlockRecordSize) as &fullOutcome
+    let full = fullOutcome.value()
     Swag.assert(full != null)
-    discard catch Volume.createHidden(path, "outer", "hidden", Swag.U64.Max) as overflow
+    var overflowOutcome: Swag.Error
+    discard catch Volume.createHidden(path, "outer", "hidden", Swag.U64.Max) as &overflowOutcome
+    let overflow = overflowOutcome.value()
     Swag.assert(overflow != null)
     var canceled: VolumeProgress
     canceled.begin(0)
     canceled.cancel()
-    discard catch Volume.createHidden(path, "outer", "hidden", MinimumSize, &canceled) as cancellation
+    var cancellationOutcome: Swag.Error
+    discard catch Volume.createHidden(path, "outer", "hidden", MinimumSize, &canceled) as &cancellationOutcome
+    let cancellation = cancellationOutcome.value()
     Swag.assert(cancellation != null)
     var hidden = expect Volume.createHidden(path, "outer", "hidden", MinimumSize)
-    discard catch hidden.grow(MinimumSize * 2) as grow
+    var growOutcome: Swag.Error
+    discard catch hidden.grow(MinimumSize * 2) as &growOutcome
+    let grow = growOutcome.value()
     Swag.assert(grow != null)
-    discard catch hidden.file.writeAllAt(hidden.file.limit, "x") as bounds
+    var boundsOutcome: Swag.Error
+    discard catch hidden.file.writeAllAt(hidden.file.limit, "x") as &boundsOutcome
+    let bounds = boundsOutcome.value()
     Swag.assert(bounds != null)
     hidden.close()
-    discard catch Volume.open(path, "outer", protectionPassword: "incorrect") as wrong
+    var wrongOutcome: Swag.Error
+    discard catch Volume.open(path, "outer", protectionPassword: "incorrect") as &wrongOutcome
+    let wrong = wrongOutcome.value()
     Swag.assert(wrong != null)
     var protected = expect Volume.open(path, "outer", protectionPassword: "hidden")
-    discard catch protected.shrink(MinimumSize) as shrink
+    var shrinkOutcome: Swag.Error
+    discard catch protected.shrink(MinimumSize) as &shrinkOutcome
+    let shrink = shrinkOutcome.value()
     Swag.assert(shrink != null)
-    discard catch protected.reapplyCamouflage() as camouflage
+    var camouflageOutcome: Swag.Error
+    discard catch protected.reapplyCamouflage() as &camouflageOutcome
+    let camouflage = camouflageOutcome.value()
     Swag.assert(camouflage != null)
     protected.close()
 }
@@ -127,7 +153,9 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     normal.close()
 
     // These writes reached the hidden header: without the option, they deliberately succeed.
-    discard catch Volume.open(path, "hidden") as overwritten
+    var overwrittenOutcome: Swag.Error
+    discard catch Volume.open(path, "hidden") as &overwrittenOutcome
+    let overwritten = overwrittenOutcome.value()
     Swag.assert(overwritten != null)
     var reopened = expect Volume.open(path, "outer", true)
     Swag.assert(reopened.resolve("\\ordinary.bin")!.size == data.count)
@@ -148,14 +176,18 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     var credential = expect access.derive()
     var outer      = expect Volume.create(path, "outer", DataOffset + 256 * BlockRecordSize)
     outer.close()
-    discard catch Volume.createHidden(path, "outer", credential.toSlice(), MinimumSize, outerReserve: 256 * BlockSize) as reserve
+    var reserveOutcome: Swag.Error
+    discard catch Volume.createHidden(path, "outer", credential.toSlice(), MinimumSize, outerReserve: 256 * BlockSize) as &reserveOutcome
+    let reserve = reserveOutcome.value()
     Swag.assert(reserve != null)
     var hidden       = expect Volume.createHidden(path, "outer", credential.toSlice(), MinimumSize)
     let file         = expect hidden.createNode("\\secret", false, FileAttributeNormal, "")
     let bytesWritten = expect hidden.writeNode(file, 0, "secret", false, false)
     Swag.assert(bytesWritten == 6)
     hidden.close()
-    discard catch Volume.open(path, "hidden password") as missingKey
+    var missingKeyOutcome: Swag.Error
+    discard catch Volume.open(path, "hidden password") as &missingKeyOutcome
+    let missingKey = missingKeyOutcome.value()
     Swag.assert(missingKey != null)
     var protected = expect Volume.open(path, "outer", protectionPassword: credential.toSlice())
     let ordinary  = expect protected.createNode("\\ordinary", false, FileAttributeNormal, "")
@@ -165,8 +197,7 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     var collision = false
     for 32
     {
-        discard catch protected.writeNode(ordinary, offset, data.toSlice(), false, false) as error
-        if error != null
+        discard catch protected.writeNode(ordinary, offset, data.toSlice(), false, false) else
         {
             collision = true
             break
@@ -186,6 +217,8 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
     reopened.close()
     expect File.writeAllBytes(keyPath, "changed key-file bytes")
     var changed = expect access.derive()
-    discard catch Volume.open(path, "outer", protectionPassword: changed.toSlice()) as wrongKey
+    var wrongKeyOutcome: Swag.Error
+    discard catch Volume.open(path, "outer", protectionPassword: changed.toSlice()) as &wrongKeyOutcome
+    let wrongKey = wrongKeyOutcome.value()
     Swag.assert(wrongKey != null)
 }

@@ -549,7 +549,10 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     }
                     else
                     {
-                        let parsed = catch StrConv.parseU64(current.marker) as parseError
+                        var parseErrorOutcome: Swag.Error
+                        var parsed: #decltype(expect StrConv.parseU64(current.marker))
+                        catch { parsed = try StrConv.parseU64(current.marker) } as &parseErrorOutcome
+                        let parseError = parseErrorOutcome.value()
                         counters.add({current.indent, parseError == null ? parsed.value : 1})
                     }
 

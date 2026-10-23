@@ -354,6 +354,8 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let swapped14 = expect Dts.frameInfo(littleEndian14.toSlice())
     Swag.assert(swapped14.frameBytes == packedInfo.frameBytes and swapped14.speakerMask == packedInfo.speakerMask)
 
-    discard catch Dts.frameInfo(bytes.toSlice()[0 until 8]) as err
+    var errOutcome: Swag.Error
+    discard catch Dts.frameInfo(bytes.toSlice()[0 until 8]) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }

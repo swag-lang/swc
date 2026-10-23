@@ -173,8 +173,8 @@ impl IActionUI for ActionFile
                 loaded.linkedImage = ""
                 loaded.changed     = true
                 catch loaded.save() else {}
-            } as loadError
-            if loadError != null
+            }
+            else
             {
                 MessageDlg.error(main.surface!, appStrings().msg_FailedDuplicate)
                 break
@@ -365,7 +365,10 @@ impl MainWnd
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let image = catch Image.load(dialog.selectedPath()) as err
+        var errOutcome: Swag.Error
+        var image:      #decltype(expect Image.load(dialog.selectedPath()))
+        catch { image = try Image.load(dialog.selectedPath()) } as &errOutcome
+        let err = errOutcome.value()
         if err != null do
             MessageDlg.error(.surface, appStrings().msg_FailedLoadImage, err)
         else do
@@ -494,8 +497,7 @@ impl MainWnd
         md.value = capture.file.toSlice()
         img.metadata.add(md)
 
-        catch img.save(nameFile, optImg) as err
-        if err != null
+        catch img.save(nameFile, optImg) as err else
         {
             MessageDlg.error(.surface!, appStrings().msg_FailedSaveFile, err)
             return

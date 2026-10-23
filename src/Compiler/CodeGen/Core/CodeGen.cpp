@@ -1618,6 +1618,18 @@ bool CodeGen::openLocalValueBorrowMayCover(const SymbolVariable& local)
     return false;
 }
 
+AstNodeRef CodeGen::currentFallibleScope()
+{
+    for (size_t index = deferScopes_.size(); index != 0; --index)
+    {
+        const AstNodeRef          scopeRef = deferScopes_[index - 1].scopeRef;
+        const CodeGenNodePayload* payload  = safePayload(scopeRef);
+        if (payload && payload->hasFallibleWrapper() && payload->fallibleFailLabel.isValid())
+            return scopeRef;
+    }
+    return AstNodeRef::invalid();
+}
+
 void CodeGen::registerErrorScopePop()
 {
     SWC_ASSERT(!deferScopes_.empty());
@@ -2162,7 +2174,9 @@ void CodeGen::setVisitors()
 Result CodeGen::preNode(AstNode& node)
 {
     builder().setCurrentDebugSourceCodeRef(node.codeRef());
-    if (node.id() == AstNodeId::Attribute)
+    // Compiler queries have already resolved their result during semantic analysis.
+    // In particular, a #decltype operand names a type without running that operand.
+    if (node.id() == AstNodeId::Attribute || node.id() == AstNodeId::CompilerCallOne)
         return Result::SkipChildren;
 
     const AstNodeIdInfo& info = Ast::nodeIdInfos(node.id());

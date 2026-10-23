@@ -118,7 +118,9 @@ impl Panel
             .inFlight   += 1
         }
 
-        catch .decodeIntoSlot(slot, index) as decodeError
+        var decodeErrorOutcome: Swag.Error
+        catch .decodeIntoSlot(slot, index) as &decodeErrorOutcome
+        let decodeError = decodeErrorOutcome.value()
 
         Sync.scopedLock(&.queueLock)
         .inFlight -= 1
@@ -201,8 +203,7 @@ impl Panel
         .frameIndex    = .slots[cast(u64, chosen)].index
         .hasFrame      = true
         .awaitingFrame = false
-        catch .finishMetadata() as metadataError
-        if metadataError != null
+        catch .finishMetadata() as metadataError else
         {
             .services.failed(me, Viewer.failureText(metadataError))
             return false
@@ -296,8 +297,7 @@ impl Panel
             if coversRange and not resumeAudio
             {
                 let sample = soundSample(.audio, .elapsed)
-                catch .voice.seekSampleFrame(sample) as seekError
-                if seekError != null
+                catch .voice.seekSampleFrame(sample) as seekError else
                 {
                     .playing = false
                     .audioRangePending = false
@@ -334,8 +334,7 @@ impl Panel
             .audioRangePending = not soundCovers(.audio, 0)
             if not .audioRangePending
             {
-                catch .voice.seekSampleFrame(soundSample(.audio, 0)) as seekError
-                if seekError != null
+                catch .voice.seekSampleFrame(soundSample(.audio, 0)) as seekError else
                 {
                     .playing = false
                     catch .voice.pause()
@@ -418,17 +417,14 @@ impl Panel
     {
         if not .openFinished
         {
-            catch .completeOpen() as openError
-            if openError != null do
-                .services.failed(me, Viewer.failureText(openError))
+            catch .completeOpen() as openError else { .services.failed(me, Viewer.failureText(openError)) }
             return
         }
 
         if not .video.isOpen() do
             return
 
-        catch .finishMetadata() as metadataError
-        if metadataError != null
+        catch .finishMetadata() as metadataError else
         {
             .services.failed(me, Viewer.failureText(metadataError))
             return

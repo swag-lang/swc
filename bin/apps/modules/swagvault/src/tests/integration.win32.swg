@@ -40,7 +40,9 @@ namespace Integration
         if args.count < 3 do
             return 2
         let payload = "VISIBLE"
-        discard catch File.writeAllText(args[2], payload) as writeError
+        var writeErrorOutcome: Swag.Error
+        discard catch File.writeAllText(args[2], payload) as &writeErrorOutcome
+        let writeError = writeErrorOutcome.value()
         return writeError == null ? 0 : 1
     }
 
@@ -134,9 +136,7 @@ namespace Integration
     {
         let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
-        catch MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) as error
-        if error != null do
-            fail harnessError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error)))
+        catch MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) as error else { fail harnessError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error))) }
     }
 
     func setAttributes(path: string, attributes: u32) fail
@@ -148,8 +148,11 @@ namespace Integration
 
     func attributes(path: string)->u32
     {
-        let path16     = Utf16.toZeroTerminated(path)
-        let attributes = catch GetFileAttributesW(path16.buffer) as error
+        let path16 = Utf16.toZeroTerminated(path)
+        var errorOutcome: Swag.Error
+        var attributes:   #decltype(expect GetFileAttributesW(path16.buffer))
+        catch { attributes = try GetFileAttributesW(path16.buffer) } as &errorOutcome
+        let error = errorOutcome.value()
         return error != null ? INVALID_FILE_ATTRIBUTES : attributes
     }
 
@@ -176,9 +179,7 @@ namespace Integration
     func removeDirectory(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        catch RemoveDirectoryW(path16.buffer) as error
-        if error != null do
-            fail harnessError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error)))
+        catch RemoveDirectoryW(path16.buffer) as error else { fail harnessError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error))) }
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -196,9 +197,11 @@ namespace Integration
 
     func trace(message: string)
     {
-        var stream = catch File.open(resultPath(), .Append, .Write, .Read) as openError
-        if openError != null do
+        var stream = catch File.open(resultPath(), .Append, .Write, .Read) else
+        {
             return
+        }
+
         discard catch stream.write(message.buffer, message.count)
         discard catch stream.write(("\n").buffer, 1)
         stream.close()
@@ -238,8 +241,7 @@ namespace Integration
             if .mountedActive do
                 fail harnessError("The integration volume is already mounted.")
             let mounted = Memory.new'WinFsp.MountedVolume()
-            discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword) as mountError
-            if mountError != null
+            discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword) as mountError else
             {
                 Memory.delete(mounted)
                 fail mountError
@@ -254,12 +256,12 @@ namespace Integration
             if not .mountedActive do
                 return
             let mounted = .mounted!
-            discard catch mounted.close() as closeError
+            var closeErrorOutcome: Swag.Error
+            discard catch mounted.close() as &closeErrorOutcome
             Memory.delete(mounted)
             .mounted       = null
             .mountedActive = false
-            if closeError != null do
-                fail closeError
+            try closeErrorOutcome.raise()
         }
 
         mtd cleanup()
@@ -409,7 +411,9 @@ namespace Integration
         File.writeAllBytes(readOnlyPath, first)
         setAttributes(readOnlyPath, FileAttributeReadOnly)
         verify((attributes(readOnlyPath) & FileAttributeReadOnly) != 0, "read-only attributes must be reported")
-        discard catch File.writeAllBytes(readOnlyPath, second) as readonlyError
+        var readonlyErrorOutcome: Swag.Error
+        discard catch File.writeAllBytes(readOnlyPath, second) as &readonlyErrorOutcome
+        let readonlyError = readonlyErrorOutcome.value()
         verify(readonlyError != null, "writes to read-only files must be rejected")
         setAttributes(readOnlyPath, FileAttributeNormal)
         File.writeAllBytes(readOnlyPath, second)
@@ -452,7 +456,9 @@ namespace Integration
         {
             let source   = Path.combine(bulk, Format.toString("item-%.bin", index))
             let source16 = Utf16.toZeroTerminated(source)
-            catch MoveFileExW(source16.buffer, occupied16.buffer, 0) as collision
+            var collisionOutcome: Swag.Error
+            catch MoveFileExW(source16.buffer, occupied16.buffer, 0) as &collisionOutcome
+            let collision = collisionOutcome.value()
             var error: u64
             if collision is Swag.SystemError as system do
                 error = system.errorID
@@ -499,7 +505,9 @@ namespace Integration
         verify(not Directory.exists(driveRoot(box.mountPoint)), "the drive letter must disappear after unmount")
 
         var rejected: WinFsp.MountedVolume
-        discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as passwordError
+        var passwordErrorOutcome: Swag.Error
+        discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as &passwordErrorOutcome
+        let passwordError = passwordErrorOutcome.value()
         rejected.close()
         verify(passwordError != null, "a wrong password must not mount the container")
         verify(not Directory.exists(driveRoot(box.mountPoint)), "a rejected password must not leave a drive mounted")
@@ -553,8 +561,7 @@ namespace Integration
         var written  = 0'u64
         for 64
         {
-            discard catch stream.writeAllAt(written, chunk.toSlice()) as writeError
-            if writeError != null
+            discard catch stream.writeAllAt(written, chunk.toSlice()) else
             {
                 stopped = true
                 break
@@ -673,15 +680,13 @@ namespace Integration
     func run()->bool
     {
         g_Failure.clear()
-        var box = catch Sandbox.create() as createError
-        if createError != null
+        var box = catch Sandbox.create() as createError else
         {
             g_Failure = errorMessage(createError)
             return false
         }
 
-        discard catch runInSandbox(&box) as scenarioError
-        if scenarioError != null
+        discard catch runInSandbox(&box) as scenarioError else
         {
             g_Failure = errorMessage(scenarioError)
             trace(Format.toString("FAIL-EARLY: %", g_Failure))

@@ -52,7 +52,9 @@ using Swag
     let inside = Path.combine(root, "guarded.txt")
     expect Env.guardWrite(inside.toString())
 
-    catch Env.guardWrite("C:/Windows/System32/nope.txt") as err
+    var errOutcome: Swag.Error
+    catch Env.guardWrite("C:/Windows/System32/nope.txt") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(not Env.isInsideSandbox("C:/Windows/System32/nope.txt"))
 }
@@ -72,7 +74,9 @@ using Swag
     expect Env.guardWrite(inside.toString())
 
     Swag.assert(not Env.isInsideCorpus("C:/Windows/System32/nope.txt"))
-    catch Env.guardWrite("C:/Windows/System32/nope.txt") as err
+    var errOutcome: Swag.Error
+    catch Env.guardWrite("C:/Windows/System32/nope.txt") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }
 
@@ -80,7 +84,9 @@ using Swag
 // was never configured into one that contains everything.
 #test
 {
-    catch Env.grantCorpus("") as err
+    var errOutcome: Swag.Error
+    catch Env.grantCorpus("") as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 }
 
@@ -94,7 +100,9 @@ using Swag
 
     expect Env.grantCorpus(corpus)
 
-    catch Env.grantCorpus(Env.getSpecialDirectory(.Temp).toString()) as err
+    var errOutcome: Swag.Error
+    catch Env.grantCorpus(Env.getSpecialDirectory(.Temp).toString()) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Env.corpusRoot() == corpus)
 }
@@ -168,7 +176,9 @@ using Swag
 
     let heldPath = Path.combine(root.toString(), "held.bin")
     var held     = expect File.open(heldPath.toString(), .Create, .Write, .Read)
-    catch Env.clearLeftoverDefaultRoot(root.toString()) as err
+    var errOutcome: Swag.Error
+    catch Env.clearLeftoverDefaultRoot(root.toString()) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
 
     held.close()
@@ -202,7 +212,9 @@ using Swag
     discard expect File.writeAllBytes(path.toString(), payload)
     Swag.assert(File.exists(path.toString()))
 
-    discard catch File.writeAllBytes("C:/Windows/swag-sandbox-escape.txt", payload) as err
+    var errOutcome: Swag.Error
+    discard catch File.writeAllBytes("C:/Windows/swag-sandbox-escape.txt", payload) as &errOutcome
+    let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(not File.exists("C:/Windows/swag-sandbox-escape.txt"))
 }

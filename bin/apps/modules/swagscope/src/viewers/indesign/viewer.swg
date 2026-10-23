@@ -418,7 +418,10 @@ private impl Panel
 
     mtd goToTypedPage(text: string)->bool
     {
-        let parsed = catch StrConv.parseU64(text) as parseError
+        var parseErrorOutcome: Swag.Error
+        var parsed: #decltype(expect StrConv.parseU64(text))
+        catch { parsed = try StrConv.parseU64(text) } as &parseErrorOutcome
+        let parseError = parseErrorOutcome.value()
         if parseError != null or
            parsed.eat != text.count or
            parsed.ovf or

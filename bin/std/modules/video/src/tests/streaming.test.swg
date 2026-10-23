@@ -149,7 +149,9 @@ func barsAssertFrame(frame: Image, index: u64)
     expect reader.decodeFrameInto(&frame, 256)
     barsAssertFrame(frame, 256)
 
-    discard catch reader.decodeFrame(BarsFrameCount) as pastEnd
+    var pastEndOutcome: Swag.Error
+    discard catch reader.decodeFrame(BarsFrameCount) as &pastEndOutcome
+    let pastEnd = pastEndOutcome.value()
     Swag.assert((pastEnd is BadParameterError))
 }
 
@@ -259,6 +261,8 @@ const HoleFrameCount = 600'u64
     expect reader.decodeFrameInto(&frame, HoleFrameCount - 1)
     videoAssertGray(frame.pixelColor(HoleWidth - 1, HoleHeight - 1), videoLumaToGray(200))
 
-    discard catch reader.decodeFrame(HoleFrameCount / 2) as holeError
+    var holeErrorOutcome: Swag.Error
+    discard catch reader.decodeFrame(HoleFrameCount / 2) as &holeErrorOutcome
+    let holeError = holeErrorOutcome.value()
     Swag.assert((holeError is InvalidFormatError))
 }

@@ -39,9 +39,11 @@ func create(dirName: string, recurse = false) fail
         try create(parent, recurse: true)
 
     // Another process may create the same directory between the check and the call.
-    catch createNative(dirName) as err
-    if err != null and not exists(dirName) do
-        fail err
+    catch createNative(dirName) as err else
+    {
+        if not exists(dirName) do
+            fail err
+    }
 }
 
 // Deletes `dirName`, optionally deleting its complete contents first.

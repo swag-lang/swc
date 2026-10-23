@@ -52,13 +52,14 @@ impl Probe
         for
         {
             session = Path.combine(owned, Guid64.highEntropy().toString())
-            catch Directory.create(session) as createError
-            if createError == null do
+            var createErrorOutcome: Swag.Error
+            catch Directory.create(session) as &createErrorOutcome
+            if createErrorOutcome.isEmpty() do
                 break
 
             // Creating the directory claims it. A colliding name belongs to another probe.
             if not Directory.exists(session) do
-                fail createError
+                try createErrorOutcome.raise()
         }
 
         // The compiler names the module after its folder, and that name prefixes every function it
@@ -205,7 +206,10 @@ cache away for nothing. A file that cannot be read back is written.
 */
 func writeIfChanged(path: string, content: string) fail
 {
-    let existing = catch File.readAllText(path) as readError
+    var readErrorOutcome: Swag.Error
+    var existing:         #decltype(expect File.readAllText(path))
+    catch { existing = try File.readAllText(path) } as &readErrorOutcome
+    let readError = readErrorOutcome.value()
     if readError == null and existing == content do
         return
     discard try File.writeAllBytes(path, content)

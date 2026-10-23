@@ -127,39 +127,39 @@ private func indexOfByte(src: const [*] u8, length: u64, what: u8)->u64
     return Swag.U64.Max
 }
 
-// Searches for either of two bytes, which is what a scanner that has to notice one thing while
-// looking for another asks for.
-private func indexOfEitherByte(src: const [*] u8, length: u64, first, second: u8)->u64
-{
-    const VectorSize = #sizeof(Simd.U8x16)
-
-    var offset = 0'u64
-    if length >= VectorSize
-    {
-        let needle0 = Simd.splat(first)
-        let needle1 = Simd.splat(second)
-        while length - offset >= VectorSize
-        {
-            let values = Simd.load(src + offset)
-            let mask   = Simd.bitmask(values == needle0) | Simd.bitmask(values == needle1)
-            if mask do
-                return offset + Math.trailingZeros(mask)
-            offset += VectorSize
-        }
-    }
-
-    while offset < length
-    {
-        if src[offset] == first or src[offset] == second do
-            return offset
-        offset += 1
-    }
-
-    return Swag.U64.Max
-}
-
 private func indexOfAnyAscii(src: const [*] u8, length: u64, what: const [..] u8)->u64
 {
+    // The two-needle case has no other caller, so keep its vector scan with this dispatch.
+    #[Swag.Inline]
+    func indexOfEitherByte(src: const [*] u8, length: u64, first, second: u8)->u64
+    {
+        const VectorSize = #sizeof(Simd.U8x16)
+
+        var offset = 0'u64
+        if length >= VectorSize
+        {
+            let needle0 = Simd.splat(first)
+            let needle1 = Simd.splat(second)
+            while length - offset >= VectorSize
+            {
+                let values = Simd.load(src + offset)
+                let mask   = Simd.bitmask(values == needle0) | Simd.bitmask(values == needle1)
+                if mask do
+                    return offset + Math.trailingZeros(mask)
+                offset += VectorSize
+            }
+        }
+
+        while offset < length
+        {
+            if src[offset] == first or src[offset] == second do
+                return offset
+            offset += 1
+        }
+
+        return Swag.U64.Max
+    }
+
     const VectorSize = #sizeof(Simd.U8x16)
     let count = what.count
     if count == 1 do

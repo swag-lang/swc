@@ -18,6 +18,25 @@ struct ParseOuter
     keep = true
 }
 
+#[Swag.EnumFlags]
+enum ParseValueFlags: u32
+{
+    Read  = 1
+    Write = 2
+    Exec  = 4
+}
+
+// Reading flags replaces the previous value before combining the names in this text.
+#test
+{
+    var flags = ParseValueFlags.Exec
+    discard expect StrConv.parseValue(&flags, #typeof(ParseValueFlags), "Read | Write")
+    Swag.assert(flags == ParseValueFlags.Read | ParseValueFlags.Write)
+
+    discard expect StrConv.parseValue(&flags, #typeof(ParseValueFlags), "Read")
+    Swag.assert(flags == ParseValueFlags.Read)
+}
+
 // A struct decodes as a brace-enclosed field list in declaration order, nesting included.
 #test
 {

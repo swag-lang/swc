@@ -71,6 +71,16 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
         if rawType != string and enumType.sizeof > 8 do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported enum type [[%]]", rawType.name))}
         let enumFlags = Reflection.hasAttribute(enumType, EnumFlags)
+        if enumFlags
+        {
+            switch enumType.sizeof
+            {
+            case 1: cast(*u8, patch)[] = 0
+            case 2: cast(*u16, patch)[] = 0
+            case 4: cast(*u32, patch)[] = 0
+            case 8: cast(*u64, patch)[] = 0
+            }
+        }
 
         for
         {

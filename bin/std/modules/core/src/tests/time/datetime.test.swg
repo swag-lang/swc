@@ -201,3 +201,17 @@ func assertDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     assertDateTime(unchecked.value, 2024, 2, 29, 0, 0, 0, 0)
     Swag.assert(unchecked.eat == 23)
 }
+
+// Named dates reject invalid calendar values before computing their weekday.
+#test
+{
+    for text in ["Sunday January 1 0", "Sunday February 1 0", "Sunday January 0 2024", "Sunday February 30 2024"]
+    {
+        discard catch Time.DateTime.parse(text) as error
+        Swag.assert(error is Errors.SyntaxError)
+    }
+
+    let unchecked = expect Time.DateTime.parse("Sunday January 1 0", checkDate: false)
+    assertDateTime(unchecked.value, 0, 1, 1, 0, 0, 0, 0)
+    Swag.assert(unchecked.eat == 18)
+}

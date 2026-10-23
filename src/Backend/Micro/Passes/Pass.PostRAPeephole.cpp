@@ -27,13 +27,6 @@ namespace
 {
     using namespace PostRaPeephole;
 
-    bool isAddressTakenLabel(const MicroControlFlowGraph& cfg, const uint32_t labelIndex)
-    {
-        // The CFG records label targets in instruction order, so binary search avoids
-        // rescanning the complete address-taken list for each candidate label.
-        return std::ranges::binary_search(cfg.addressTakenLabelIndices(), labelIndex);
-    }
-
     // A register comparison and its branch preserve the loaded value. Either
     // outgoing edge may reuse it, provided no other edge enters the reload.
     bool eraseGuardedReload(MicroPassContext& context)
@@ -72,7 +65,8 @@ namespace
                 while (at != 0 && at < refs.size())
                 {
                     const auto& predecessors = cfg.predecessors(at);
-                    if (predecessors.size() != 1 || predecessors[0] != previous || isAddressTakenLabel(cfg, at))
+                    if (predecessors.size() != 1 || predecessors[0] != previous ||
+                        std::ranges::find(cfg.addressTakenLabelIndices(), at) != cfg.addressTakenLabelIndices().end())
                         break;
                     const auto* target = storage.ptr(refs[at]);
                     if (target->op == MicroInstrOpcode::Label)
@@ -132,7 +126,7 @@ namespace
             if (!label || label->op != MicroInstrOpcode::Label || !at ||
                 !at[0].reg.isInt() || at[1].reg != conv.stackPointer || at[0].reg == at[1].reg ||
                 at[2].opBits != MicroOpBits::B64 ||
-                isAddressTakenLabel(cfg, labelIndex))
+                std::ranges::find(cfg.addressTakenLabelIndices(), labelIndex) != cfg.addressTakenLabelIndices().end())
                 continue;
 
             const auto& incoming = cfg.predecessors(labelIndex);
@@ -547,7 +541,7 @@ namespace
                 const MicroInstr* label = storage.ptr(refs[labelIndex]);
                 if (!label || label->op != MicroInstrOpcode::Label || cfg.predecessors(labelIndex).size() != 1 ||
                     frameDepth[labelIndex] != frameDepth[storeIndex] ||
-                    isAddressTakenLabel(cfg, labelIndex))
+                    std::ranges::find(cfg.addressTakenLabelIndices(), labelIndex) != cfg.addressTakenLabelIndices().end())
                     continue;
                 const MicroInstr* targetFirst = storage.ptr(refs[labelIndex + 1]);
                 if (!targetFirst || targetFirst->op == MicroInstrOpcode::Label)
@@ -1000,7 +994,8 @@ namespace
                     const MicroInstr* targetInst = storage.ptr(refs[target]);
                     const MicroInstr* nextInst   = storage.ptr(refs[target + 1]);
                     if (!targetInst || targetInst->op != MicroInstrOpcode::Label ||
-                        !nextInst || nextInst->op == MicroInstrOpcode::Label || isAddressTakenLabel(cfg, target))
+                        !nextInst || nextInst->op == MicroInstrOpcode::Label ||
+                        std::ranges::find(cfg.addressTakenLabelIndices(), target) != cfg.addressTakenLabelIndices().end())
                         break;
 
                     if (!livenessReady)

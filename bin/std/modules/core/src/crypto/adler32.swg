@@ -80,7 +80,7 @@ public impl Adler32
             var byteOffset = 0'u64
 
             // Reduce both sums before their accumulated values can overflow.
-            while byteOffset + BytesPerReduction <= byteCount
+            while byteCount - byteOffset >= BytesPerReduction
             {
                 for BlocksPerReduction
                 {
@@ -95,7 +95,7 @@ public impl Adler32
             // Finish the partial reduction block, including its scalar tail.
             if byteOffset < byteCount
             {
-                while byteOffset + 16 <= byteCount
+                while byteCount - byteOffset >= 16
                 {
                     updateAdlerBlock16(input + byteOffset, &byteSum, &weightedSum)
                     byteOffset += 16

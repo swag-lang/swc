@@ -8120,6 +8120,17 @@ Result MicroBranchSimplifyPass::run(MicroPassContext& context)
     scanCache.invalidate();
     scanCache.ensureLayout(storage, operands);
     const bool hasConditionalJump = scanCache.scan.layout.hasConditionalJump;
+    if (!hasConditionalJump && !scanCache.scan.layout.hasSetCondition && !scanCache.scan.layout.hasAnyLabel)
+    {
+        const bool deadTailChanged = eraseDeadInstructionsAfterTerminators(storage, operands);
+        if (deadTailChanged)
+        {
+            if (context.builder)
+                context.builder->invalidateControlFlowGraph();
+            context.passChanged = true;
+        }
+        return Result::Continue;
+    }
 
     // The pre-RA loop provides shared SSA. Construct a fallback only when this
     // pass runs standalone, instead of initializing its many buffers every run.

@@ -380,6 +380,9 @@ namespace
         std::vector<uint32_t> frameAccesses;
         std::vector<uint32_t> sameStores;
         std::vector<int64_t>  frameDepth;
+        std::vector<uint8_t>  reachesRead;
+        std::vector<uint8_t>  seen;
+        std::vector<uint32_t> pending;
         const auto            collectFrameAccesses = [&] {
             frameAccessesCollected = true;
             // Outgoing-call adjustments change the meaning of a displacement.
@@ -535,7 +538,7 @@ namespace
 
             // Every candidate targets the same reload in the unchanged CFG.
             // Collect its reverse reachability only when the first one needs it.
-            std::vector<uint8_t> reachesRead;
+            reachesRead.clear();
             for (uint32_t labelIndex = storeIndex + 1; labelIndex < reloadIndex; ++labelIndex)
             {
                 const MicroInstr* label = storage.ptr(refs[labelIndex]);
@@ -555,9 +558,9 @@ namespace
                 // The target must dominate its only reader, even through the
                 // loop back edge. Otherwise delaying the write leaves a path
                 // that can observe an older slot value.
-                std::vector<uint32_t> pending = {0};
-                std::vector<uint8_t>  seen(refs.size(), 0);
-                bool                  dominates = true;
+                pending.assign(1, 0);
+                seen.assign(refs.size(), 0);
+                bool dominates = true;
                 while (!pending.empty() && dominates)
                 {
                     const uint32_t index = pending.back();
@@ -630,17 +633,21 @@ namespace
                 // slot's last value. A later loop-latch store is also a valid
                 // source; the store we move is the source on the first trip.
                 pending.assign(1, branchIndex);
-                FlatKeySet visited;
-                bool       valid = true;
+                size_t visitedCount = 0;
+                bool   valid        = true;
                 while (!pending.empty() && valid)
                 {
                     const uint32_t index = pending.back();
                     pending.pop_back();
-                    if (!visited.insert(index) || visited.size() > MicroOptimizationLimits::PostRAPeephole::K_MAX_STACK_VALUE_VISITS)
+                    // The previous traversal marked its visited nodes as 1. Mark this walk as 2;
+                    // a repeated index still rejects the proof, without a separate hash set.
+                    if (index >= seen.size() || seen[index] == 2 ||
+                        ++visitedCount > MicroOptimizationLimits::PostRAPeephole::K_MAX_STACK_VALUE_VISITS)
                     {
                         valid = false;
                         break;
                     }
+                    seen[index]            = 2;
                     const MicroInstr* inst = storage.ptr(refs[index]);
                     if (!inst)
                     {

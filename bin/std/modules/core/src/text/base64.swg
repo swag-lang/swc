@@ -7,24 +7,6 @@ private const EncodeGather  = cast(Simd.U8x16, [2'u8, 1, 0, 0x80, 5, 4, 3, 0x80,
 private const DecodeScatter = cast(Simd.U8x16, [0'u8, 1, 2, 4, 5, 6, 8, 9, 10, 12, 13, 14, 0x80, 0x80, 0x80, 0x80])
 
 #[Swag.Inline]
-private func encodeBlock(input: const [*] u8)->Simd.U8x16
-{
-    let gathered = cast #bit(Simd.U32x4, Simd.shuffle(Simd.load(input), EncodeGather))
-    let sextets  = (gathered >> 18) |
-                   (((gathered >> 12) & 63) << 8) |
-                   (((gathered >> 6) & 63) << 16) |
-                   ((gathered & 63) << 24)
-    let values = cast #bit(Simd.U8x16, sextets)
-
-    // Translate the digit ranges, then replace the two punctuation characters.
-    var encoded = values + 'A'
-    encoded += Simd.select(values > Simd.splat(25'u8), Simd.splat(6'u8), Simd.splat(0'u8))
-    encoded += Simd.select(values > Simd.splat(51'u8), Simd.splat(181'u8), Simd.splat(0'u8))
-    encoded = Simd.select(values == Simd.splat(62'u8), Simd.splat('+'u8), encoded)
-    return Simd.select(values == Simd.splat(63'u8), Simd.splat('/'u8), encoded)
-}
-
-#[Swag.Inline]
 private func decodeBlock(input: const [*] u8)->{ decoded: Simd.U8x16, valid: bool }
 {
     let bytes      = Simd.load(input)
@@ -61,6 +43,24 @@ private func decodeBlock(input: const [*] u8)->{ decoded: Simd.U8x16, valid: boo
 func encode(bytes: const [..] u8)->String
 {
     const Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+    #[Swag.Inline]
+    func encodeBlock(input: const [*] u8)->Simd.U8x16
+    {
+        let gathered = cast #bit(Simd.U32x4, Simd.shuffle(Simd.load(input), EncodeGather))
+        let sextets  = (gathered >> 18) |
+                       (((gathered >> 12) & 63) << 8) |
+                       (((gathered >> 6) & 63) << 16) |
+                       ((gathered & 63) << 24)
+        let values = cast #bit(Simd.U8x16, sextets)
+
+        // Translate the digit ranges, then replace the two punctuation characters.
+        var encoded = values + 'A'
+        encoded += Simd.select(values > Simd.splat(25'u8), Simd.splat(6'u8), Simd.splat(0'u8))
+        encoded += Simd.select(values > Simd.splat(51'u8), Simd.splat(181'u8), Simd.splat(0'u8))
+        encoded = Simd.select(values == Simd.splat(62'u8), Simd.splat('+'u8), encoded)
+        return Simd.select(values == Simd.splat(63'u8), Simd.splat('/'u8), encoded)
+    }
 
     var result: retval
     let count       = bytes.count

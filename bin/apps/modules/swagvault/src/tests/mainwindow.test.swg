@@ -212,8 +212,11 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
         let keys   = window.createKeyFiles
         Swag.assert(Math.abs(browse.x - unit.x) <= 0.5)
         Swag.assert(Math.abs(browse.width - unit.width) <= 0.5)
-        Swag.assert(Math.abs(keys.position.x + keys.add.position.x - browse.x) <= 0.5)
-        Swag.assert(Math.abs(keys.files.position.right() - window.createSize.position.right()) <= 0.5)
+        Swag.assert(Math.abs(browse.width - window.browseCreate.itf.measureContent({}).x) <= 1)
+        Swag.assert(window.createUnit.textHorizontalAlignment == .Center)
+        let toolGap = window.themeMetrics().dialog_BtnPadding
+        Swag.assert(Math.abs(keys.generate.position.x - keys.add.position.right() - toolGap) <= 0.5)
+        Swag.assert(Math.abs(keys.remove.position.x - keys.generate.position.right() - toolGap) <= 0.5)
         Swag.assert(window.tabs.viewForm == .None)
 
         window.showTab(1)

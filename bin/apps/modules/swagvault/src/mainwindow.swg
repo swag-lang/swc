@@ -608,15 +608,8 @@ impl MainWindow
     // window down, then refresh forms whose translated text changed without resizing them.
     mtd arrangeCards()
     {
-        // The trailing column covers either one action or the three key-file cells.
-        let metrics      = .themeMetrics()
-        let cell         = Math.max(.createCard.form.options.fieldHeight, metrics.comboBox_Height)
-        let controlWidth = Math.max(.browseCreate.itf.measureContent({}).x,
-                                    .createUnit.itf.measureContent({}).x)
-        let width = Math.max(controlWidth, cell * 3 + metrics.dialog_BtnPadding * 2)
-        .browseCreate.preferredSize.x = width
-        .createUnit.preferredSize.x   = width
-        .createKeyFiles.actionWidth   = width
+        // Match the unit to the translated action; the key-file tools keep their compact rhythm.
+        .createUnit.preferredSize.x = .browseCreate.measure({}).preferred.x
 
         .applyLayout()
         .createCard.endForm()

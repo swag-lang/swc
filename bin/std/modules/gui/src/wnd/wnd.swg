@@ -1261,13 +1261,14 @@ impl Wnd
     // Returns the component-wise sum of legacy and container layout margins.
     mtd layoutMargin()->Math.Vector4 => .margin + .layoutSpec.margin
 
-    // Resolves minimum, preferred, and maximum size for the available space.
+    // Resolves local style and minimum, preferred, and maximum size for the available space.
     //
     // An axis the author left unsized is answered by [[Gui.IWnd.measureContent]], so a
     // button widens with its caption and a wrapped paragraph grows taller in a language
     // that says the same thing in more words. An axis carrying an explicit size keeps it.
     mtd measure(available: Math.Point)->SizeHint
     {
+        .computeStyle()
         var result: retval
 
         result.min   = .minSize

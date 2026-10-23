@@ -10,6 +10,29 @@ const ComboHeadless_Item3 = "ComboHeadless.Item3"
 var ComboHeadlessChangedCount: u32
 var ComboHeadlessLastIdx:      u32
 
+// Selection alignment moves only the text inside the field, leaving the arrow in place.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(440, 60)
+    defer host.shutdown()
+    host.theme.colors.setLight()
+
+    for alignment, index in [StringHorzAlignment.Left, .Center, .Right]
+    {
+        let combo = ComboBox.create(&host.root, {10 + cast(f32, index) * 145, 14, 130, 32})
+        Swag.assert(combo.textHorizontalAlignment == .Left)
+        combo.addItem("MiB")
+        combo.setSelectedIndex(0, notify: false)
+        combo.setTextAlignment(alignment)
+    }
+
+    host.settleAnimations()
+    var image = host.render()
+    Pixel.Testing.assertImageGolden(&image, "combobox.alignment")
+}
+
 func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     ComboHeadlessChangedCount += 1

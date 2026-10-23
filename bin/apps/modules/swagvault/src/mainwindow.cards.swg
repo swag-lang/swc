@@ -172,7 +172,11 @@ impl MainWindow
             setMachineFont(me.createSize)
         }
 
-        .createUnit = VaultForm.addCapacityUnit(form)
+        with .createUnit = VaultForm.addCapacityUnit(form)
+        {
+            .style.setStyleSheetMetrics("comboBox_Width 0")
+            .setTextAlignment(.Center)
+        }
 
         // The password is optional, and the card explains that above rather than under the
         // field: it is a fact about what this card produces, not a note about one control.

@@ -49,6 +49,7 @@ struct ComboBox
             items:   ArrayPtr'ComboBoxItem             // Entries in display order.
             selectedIndex = Swag.U32.Max               // Selected item index, or U32.Max when empty.
             editBox: *EditBox?     // Embedded editor in editable mode, otherwise null.
+            textHorizontalAlignment = StringHorzAlignment.Left     // Horizontal alignment of selected text in selection mode.
         }
     }
 
@@ -189,7 +190,7 @@ impl IWnd for ComboBox
                 itemRect.moveLeft(.maxIconSize + metrics.comboBox_IconTextMargin)
 
             theme.setTextColors(&format, .aniText.cur())
-            format.horzAlignment = .Left
+            format.horzAlignment = .textHorizontalAlignment
             format.vertAlignment = .OpticalCenter
             format.flags         = .Clip
             format.font          = .font()
@@ -418,6 +419,17 @@ private impl ComboBox
 
 impl ComboBox
 {
+    // Aligns the selected text within the space between the icon column and the drop-down arrow.
+    //
+    // This affects selection mode only; editable text and popup entries keep their own layout.
+    mtd setTextAlignment(horizontal: StringHorzAlignment)
+    {
+        if .textHorizontalAlignment == horizontal do
+            return
+        .textHorizontalAlignment = horizontal
+        .invalidate()
+    }
+
     // Creates a selection or editable combo box with optional presentation flags.
     #[Swag.Discardable]
     func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, mode = ComboBoxMode.Selection, flags = ComboBoxFlags.None)->*ComboBox

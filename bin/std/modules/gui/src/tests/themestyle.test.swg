@@ -2,6 +2,25 @@
 
 using Swag, Core, Pixel
 
+// Local metric overrides take effect during measurement, before the first paint.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(320, 100)
+    defer host.shutdown()
+
+    let combo = ComboBox.create(&host.root)
+    combo.addItem("MiB")
+    combo.style.setStyleSheetMetrics("comboBox_Width 0")
+    let compact = combo.measure({})
+    Swag.assert(compact.preferred.x < host.theme.metrics.comboBox_Width)
+    Swag.assert(compact.preferred.x >= Painter.measureString("MiB", nnFont(combo.font().regular)).width)
+
+    combo.style.setStyleSheetMetrics("comboBox_Width 180")
+    let wider = combo.measure({})
+    Swag.assert(wider.preferred.x == 180)
+}
+
 // Style-sheet overrides accumulate one line at a time, and every change marks the style dirty.
 #test
 {

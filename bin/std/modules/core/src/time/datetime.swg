@@ -107,11 +107,7 @@ impl DateTime
     // Returns whether every component is in range and the day exists in its month.
     mtd const isValid()->bool
     {
-        if .year == 0 or .year > 9999 do
-            return false
-        if .month == 0 or .month > 12 do
-            return false
-        if .day == 0 or .day > daysInMonth(.year, .month) do
+        if not .isDateValid() do
             return false
         if .hour >= 24 do
             return false
@@ -124,9 +120,22 @@ impl DateTime
         return true
     }
 
-    // Returns the day of the week of this date.
+    private mtd const isDateValid()->bool
+    {
+        if .year == 0 or .year > 9999 do
+            return false
+        if .month == 0 or .month > 12 do
+            return false
+        if .day == 0 or .day > daysInMonth(.year, .month) do
+            return false
+        return true
+    }
+
+    // Returns the day of the week of this date. Panics when the date components are invalid.
     mtd const dayOfWeek()->DayOfWeek
     {
+        Swag.assert(.isDateValid(), "invalid date")
+
         // Count from March so the leap day falls at the end of the year.
         let marchMonth: u32 = (.month + 9) % 12
         let marchYear:  u32 = .year - marchMonth / 10

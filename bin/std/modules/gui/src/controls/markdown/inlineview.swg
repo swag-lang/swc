@@ -636,19 +636,31 @@ impl InlineView
     {
         switch .kind
         {
-        case .Heading1: return {0, 8, 0, 2}
-        case .Heading2: return {0, 8, 0, 2}
-        case .Code:     return {18, 14, 18, 14}
-        case .Table:    return {16, 12, 16, 12}
+        case .Heading1, .Heading2, .Heading3, .Heading4, .Heading5, .Heading6:
+            let index = cast(u32, .kind) - cast(u32, BlockKind.Heading1)
+            return {0, .owner.documentStyle.headingTopSpacing[index], 0, .owner.documentStyle.headingBottomSpacing[index]}
+
+        case .Code:
+            return {18, 14, 18, 14}
+
+        case .Table:
+            return {16, 12, 16, 12}
 
         case .Quote, .AlertNote, .AlertTip, .AlertImportant,
              .AlertWarning, .AlertCaution:
             return {18, 10, 10, 10}
 
-        case .Metadata:        return {12, 8, 12, 8}
-        case .TableOfContents: return {18, 12, 18, 12}
-        case .Footnote:        return {0, 4, 0, 4}
-        default:               return {0, 2, 0, 2}
+        case .Metadata:
+            return {12, 8, 12, 8}
+
+        case .TableOfContents:
+            return {18, 12, 18, 12}
+
+        case .Footnote:
+            return {0, 4, 0, 4}
+
+        default:
+            return {0, 2, 0, 2}
         }
     }
 

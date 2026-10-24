@@ -409,8 +409,8 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
     Swag.assert(view.findText("Footnotes remain readable"))
 }
 
-// Exercises the application-bound appearance and every shipped document profile headlessly,
-// including page color, typography, reading measure, and Whitey's centered headings.
+// Exercises every shipped appearance headlessly, including page color, typography, reading
+// measure, and Whitey's bold, spaced, centered headings.
 #test
 {
     let source = expect File.readAllText(markdownFixturePath())
@@ -430,8 +430,15 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
         view.computeStyle()
         Swag.assert(view.themeColors().view_Bk.argb == backgrounds[themeIndex])
         Swag.assert(view.documentStyle.lineHeight >= 1.5)
-        if themeIndex == 5 do
+        if themeIndex == 5
+        {
             Swag.assert(view.documentStyle.headingAlignment == .Center)
+            for style in view.documentStyle.headingFontStyles do
+                Swag.assert(style == .Bold)
+            Swag.assert(view.documentStyle.headingTopSpacing[0] == 34 and view.documentStyle.headingBottomSpacing[0] == 22)
+            Swag.assert(view.documentStyle.headingTopSpacing[5] == 18 and view.documentStyle.headingBottomSpacing[5] == 10)
+        }
+
         Testing.assertContentFits(view)
         var image = host.render(view)
         Swag.assert(image.isValid())

@@ -1547,6 +1547,68 @@ SWC_TEST_BEGIN(PostRAPeephole_FoldsPointerAddIntoNextLoad)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(PostRAPeephole_FoldsFrameAddressPlusStackPointerIntoNextLoad)
+{
+    constexpr MicroReg table    = MicroReg::intReg(0);
+    constexpr MicroReg position = MicroReg::intReg(10);
+    const MicroReg     stack    = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    MicroBuilder builder(ctx);
+    builder.emitLoadAddressRegMem(table, position, 0xFFFFFFFFFFFFFFFF, MicroOpBits::B64);
+    builder.emitLoadRegReg(position, table, MicroOpBits::B64);
+    builder.emitOpBinaryRegReg(table, stack, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegMem(table, table, 0, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitLoadMemReg(stack, 16, table, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    bool folded = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadZeroExtAmcRegMem)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        folded |= ops && ops[0].reg == table && ops[1].reg == stack && ops[2].reg == table &&
+                  ops[5].valueU64 == 1 && ops[6].valueU64 == 0;
+    }
+    if (!folded || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+    {
+        MicroPrinter::print(ctx, builder.instructions(), builder.operands(), MicroRegPrintMode::Concrete, &encoder, &builder);
+        return Result::Error;
+    }
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(PostRAPeephole_FoldsPointerAddOfStackPointerIntoNextLoad)
+{
+    constexpr MicroReg table = MicroReg::intReg(10);
+    const MicroReg     stack = CallConv::get(CallConvKind::Swag).stackPointer;
+
+    MicroBuilder builder(ctx);
+    builder.emitOpBinaryRegReg(table, stack, MicroOp::Add, MicroOpBits::B64);
+    builder.emitLoadZeroExtendRegMem(table, table, 5, MicroOpBits::B32, MicroOpBits::B8);
+    builder.emitLoadMemReg(stack, 16, table, MicroOpBits::B64);
+    builder.emitRet();
+
+    X64Encoder encoder(ctx);
+    SWC_RESULT(runPostRaPeepholePass(builder, &encoder));
+    bool folded = false;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadZeroExtAmcRegMem)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        folded |= ops && ops[0].reg == table && ops[1].reg == stack && ops[2].reg == table &&
+                  ops[5].valueU64 == 1 && ops[6].valueU64 == 5;
+    }
+    if (!folded || Backend::Unittest::countOpcode(builder, MicroInstrOpcode::OpBinaryRegReg) != 0)
+        return Result::Error;
+    return Result::Continue;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(PostRAPeephole_FoldsAddIntoFieldAddress)
 {
     constexpr MicroReg object  = MicroReg::intReg(8);

@@ -330,3 +330,16 @@ is the current scorecard.
 - Done when: an inlined body is judged by its own `Swag.Sanity` attributes in both
   directions, and the sanity suite passes with the new cases.
 - Related: compiler.safety.019.
+
+### compiler.safety.033 — Invalidate payload borrows when a tagged union changes its case
+
+- Evidence: `let p = &u.circle; u = .Rect{w: 1, h: 2}; p.radius` compiles and reads the bytes of
+  the rectangle. View invalidation (`sanity_err_borrow_invalidated`, recorded by
+  `SemaEscape::noteBorrowInvalidation`) is tied to structural-mutation callees, and a tagged-union
+  assignment is not one. Payload access itself is checked: only a view taken earlier escapes it.
+- Next: record an invalidation of the union's payload views on every tagged-union assignment,
+  where `SemaTagged::noteAssignedCase` already kills the case proofs, and add sanity tests for a
+  view read after a transition, through a pointer and through a `using` holder.
+- Done when: a payload view read after a transition of its union is diagnosed, and a view taken
+  after the transition is not.
+- Related: language.design.002.

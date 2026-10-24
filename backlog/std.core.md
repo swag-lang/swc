@@ -323,4 +323,16 @@ new module rather than growth inside `core`.
 - Done when: the script names of UAX #24 resolve, a test matches text in two scripts, and the
   tables are generated rather than hand-written.
 - Related: std.core.019
+### std.core.036 — Move the regex program and syntax nodes to tagged unions after measuring
+
+- Evidence: `Regex.Inst` ([program.swg](../bin/std/modules/core/src/text/regexp/program.swg))
+  shares `next` across kinds and keeps `lo`, `hi`, `assertion`, `alt` and `slot` meaningful for one
+  kind each; `Regex.Node` and `Regex.Prefilter` are wide structs commented form by form. They sit
+  on the hot paths of every regex engine.
+- Next: prototype `Inst` as `next` beside a union tagged by `InstKind`, compare the generated
+  loops of the regex benchmark tasks, and migrate only if layout and loops do not regress.
+- Done when: the regex types state their forms as tagged unions without a benchmark regression,
+  or the measurement rejects the change and this entry is removed.
+- Related: language.design.002.
+
 ---

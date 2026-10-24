@@ -79,7 +79,9 @@ values that no `case` lists carry no member at all.
 
 A position that expects a tagged union lends its tag to a leading dot. `.Circle{radius: 2}`
 builds the member of that case from the braces, then writes the tag and the member together.
-A case named without braces takes the default its member declares, or its type's default.
+Braces holding a single value of the member's own type hold that value as it is, and a member
+that is not a struct takes its one value the same way. A case named without braces takes the
+default its member declares, or its type's default.
 
 A tagged union has no default case of its own: a value of it must be built from a case. The
 declaration that holds it can give it one, as `= .None` does above.
@@ -104,6 +106,37 @@ declaration that holds it can give it one, as `= .None` does above.
 
     bounds.mode = .Unsigned{max: 50}
     Swag.assert(bounds.unsigned.max == 50)
+}
+
+/**
+A tagged union can also be declared with a name, the tag type following it. It is then a type
+like any other, which a function takes, returns or stores.
+*/
+
+#test
+{
+    enum ValueKind { None, Number, Point }
+    struct Point { x, y: s32 }
+
+    union Value(ValueKind)
+    {
+        case .Number:
+        number: s32
+        case .Point:
+        point: Point
+    }
+
+    func makePoint(x, y: s32)->Value => .Point{x: x, y: y}
+
+    let p     = Point{x: 1, y: 2}
+    var value = makePoint(3, 4)
+    Swag.assert(value is .Point)
+
+    value = .Point{p}
+    Swag.assert(value.point.y == 2)
+
+    value = .Number{7}
+    Swag.assert(value.number == 7)
 }
 
 /**

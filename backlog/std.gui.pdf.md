@@ -440,4 +440,16 @@ language work belongs in [compiler.core.md](compiler.core.md) and [language.desi
   a decoded font program is shared between the pages that reference the same font object, and a
   `Document` load of the corpus costs one copy per distinct program.
 
+### std.gui.pdf.043 — Store a page item's representation in a tagged union
+
+- Evidence: `Pdf.Item` keeps its text (`String` and two arrays), path (`LinePathList`) and image
+  (`Image`) storage alive whatever its `kind`, and its accessors test `kind` by hand
+  ([item.swg](../bin/std/modules/gui/src/controls/pdf/item.swg)).
+- Next: move the text, path and image members under `union(ItemKind)`, keeping the transform,
+  colors, clip, blend and mask beside it; turn `createText`, `createPath` and `createImage` into
+  case transitions and the `kind` tests into `is` and `switch`; run the PDF tests and the Swag
+  Scope PDF viewer tests.
+- Done when: an item holds only its own kind's storage, and the PDF module and viewer tests pass.
+- Related: language.design.002.
+
 ---

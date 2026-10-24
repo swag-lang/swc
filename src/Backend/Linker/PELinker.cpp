@@ -177,19 +177,20 @@ namespace
         return !outSymbolName.empty();
     }
 
-    void appendLinkSymbolAliases(LinkImage& image, std::unordered_map<Utf8, size_t>& symbolIndices, const std::vector<LinkSymbolAlias>& aliases)
+    void appendLinkSymbolAliases(LinkImage& image, std::unordered_map<std::string_view, size_t>& symbolIndices, const std::vector<LinkSymbolAlias>& aliases)
     {
         for (const LinkSymbolAlias& alias : aliases)
         {
-            const auto it = symbolIndices.find(alias.canonicalName);
+            const auto it = symbolIndices.find(alias.canonicalName.view());
             SWC_ASSERT(it != symbolIndices.end());
             if (it == symbolIndices.end())
                 continue;
 
             LinkSymbol symbol = image.symbols[it->second];
             symbol.name       = alias.name;
-            symbolIndices.emplace(symbol.name, image.symbols.size());
+            const size_t symbolIndex = image.symbols.size();
             image.symbols.push_back(std::move(symbol));
+            symbolIndices.emplace(image.symbols.back().name.view(), symbolIndex);
         }
     }
 
@@ -199,12 +200,16 @@ namespace
         if (aliases.empty() && additionalAliases.empty())
             return;
 
-        std::unordered_map<Utf8, size_t> symbolIndices;
-        symbolIndices.reserve(image.symbols.size() + aliases.size() + additionalAliases.size());
-        for (size_t i = 0; i < image.symbols.size(); ++i)
-            symbolIndices.emplace(image.symbols[i].name, i);
+        const size_t symbolCount = image.symbols.size();
+        const size_t aliasCount  = aliases.size() + additionalAliases.size();
+        image.symbols.reserve(symbolCount + aliasCount);
 
-        image.symbols.reserve(image.symbols.size() + aliases.size() + additionalAliases.size());
+        // The map borrows symbol names, so reserve the vector before taking views.
+        std::unordered_map<std::string_view, size_t> symbolIndices;
+        symbolIndices.reserve(symbolCount + aliasCount);
+        for (size_t i = 0; i < image.symbols.size(); ++i)
+            symbolIndices.emplace(image.symbols[i].name.view(), i);
+
         appendLinkSymbolAliases(image, symbolIndices, aliases);
         appendLinkSymbolAliases(image, symbolIndices, additionalAliases);
     }

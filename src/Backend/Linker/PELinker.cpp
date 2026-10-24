@@ -620,14 +620,15 @@ namespace
             textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_32BYTES;
 
             if (description.startup)
+            {
                 textSection.bytes.appendAligned(description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
-            for (NativeFunctionInfo* info : description.functions)
-                textSection.bytes.appendAligned(info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
-
-            if (description.startup)
                 SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
-            for (const NativeFunctionInfo* info : description.functions)
+            }
+            for (NativeFunctionInfo* info : description.functions)
+            {
+                textSection.bytes.appendAligned(info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
                 SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols));
+            }
 
             return Result::Continue;
         }

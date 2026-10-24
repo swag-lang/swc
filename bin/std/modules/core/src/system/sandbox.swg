@@ -359,12 +359,8 @@ internal func guardWrite(path: string) fail
         return
     if isInsideSandbox(path) or isInsideCorpus(path)
     {
-        #static if #os == Swag.TargetOs.Windows
-        {
-            if try containsReparsePoint(path) do
-                fail SandboxError{"refusing to write through a reparse point", path: absolutePath(path).toString()}
-        }
-
+        if try containsReparsePoint(path) do
+            fail SandboxError{"refusing to write through a reparse point", path: absolutePath(path).toString()}
         return
     }
 

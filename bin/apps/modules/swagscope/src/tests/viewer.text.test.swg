@@ -70,7 +70,8 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 
     view.applyEncoding(.Utf16Le)
     let changedDetails = view.detailsText()
-    Swag.assert(changedDetails == Format.toString(PlainText.texts().ui_Details, "UTF-16 LE"))
+    let currentLine    = Format.toString(PlainText.texts().ui_CurrentLine, view.editor.cursorLogicalLineIndex() + 1)
+    Swag.assert(changedDetails == Format.toString(PlainText.texts().ui_Details, "UTF-16 LE", currentLine))
 
     let oldEncodingTip = String.from(view.encodingCombo.toolTip)
     expect host.app.setLanguage("fr")

@@ -599,8 +599,10 @@ namespace
         // Reads only the description and the builder, so descriptions can be built in parallel.
         Result buildDescription(NativeImageDescriptionSections& out, const NativeObjDescription& description) const
         {
-            SWC_RESULT(buildTextSection(out.textSection, description));
-            return buildUnwindSections(out.unwind, description);
+            std::vector<DebugInfoFunctionRecord> debugFunctions;
+            debugFunctions.reserve(description.functions.size() + (description.startup ? 1u : 0u));
+            SWC_RESULT(buildTextSection(out.textSection, description, debugFunctions));
+            return buildUnwindSections(out.unwind, description, debugFunctions);
         }
 
         // Places a built description; the image depends on the order descriptions are placed in.
@@ -614,7 +616,7 @@ namespace
         }
 
     private:
-        Result buildTextSection(NativeSectionData& textSection, const NativeObjDescription& description) const
+        Result buildTextSection(NativeSectionData& textSection, const NativeObjDescription& description, std::vector<DebugInfoFunctionRecord>& debugFunctions) const
         {
             textSection.name            = ".text";
             textSection.characteristics = IMAGE_SCN_CNT_CODE | IMAGE_SCN_MEM_EXECUTE | IMAGE_SCN_MEM_READ | IMAGE_SCN_ALIGN_32BYTES;
@@ -623,11 +625,13 @@ namespace
             {
                 textSection.bytes.appendAligned(description.startup->textOffset, description.startup->code.bytes, description.startup->code.codeAlignment);
                 SWC_RESULT(appendCodeRelocations(textSection, description.startup->textOffset, description.startup->debugName, description.startup->code, description.allowUnresolvedSymbols));
+                debugFunctions.push_back({.symbolName = description.startup->symbolName, .debugName = description.startup->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = &description.startup->code});
             }
             for (NativeFunctionInfo* info : description.functions)
             {
                 textSection.bytes.appendAligned(info->textOffset, info->machineCode->bytes, info->machineCode->codeAlignment);
                 SWC_RESULT(appendCodeRelocations(textSection, info->textOffset, info->debugName, *info->machineCode, description.allowUnresolvedSymbols));
+                debugFunctions.push_back({.symbolName = info->symbolName, .debugName = info->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = info->machineCode});
             }
 
             return Result::Continue;
@@ -681,16 +685,8 @@ namespace
             return Result::Continue;
         }
 
-        Result buildUnwindSections(DebugInfoObjectResult& debugInfoResult, const NativeObjDescription& description) const
+        Result buildUnwindSections(DebugInfoObjectResult& debugInfoResult, const NativeObjDescription& description, const std::vector<DebugInfoFunctionRecord>& debugFunctions) const
         {
-            std::vector<DebugInfoFunctionRecord> debugFunctions;
-            debugFunctions.reserve(description.functions.size() + (description.startup ? 1u : 0u));
-
-            if (description.startup)
-                debugFunctions.push_back({.symbolName = description.startup->symbolName, .debugName = description.startup->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = &description.startup->code});
-            for (const NativeFunctionInfo* info : description.functions)
-                debugFunctions.push_back({.symbolName = info->symbolName, .debugName = info->debugName, .returnTypeRef = TypeRef::invalid(), .machineCode = info->machineCode});
-
             const DebugInfoObjectRequest debugInfoRequest = {
                 .ctx             = &builder_->ctx(),
                 .targetOs        = builder_->ctx().cmdLine().targetOs,

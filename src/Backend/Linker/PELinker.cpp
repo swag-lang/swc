@@ -1189,7 +1189,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     std::unordered_set<std::string_view> foldedFunctionSymbols;
     foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliasMap, functionAliases, foldedFunctionSymbols);
     dropFoldedFunctions(debugInfo, ioSymbols, foldedFunctionSymbols);
-    if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
+    if (!mergeCoffObjectsIntoImage(image, diag, std::move(pulledObjects)))
         return builder_->reportError(diag);
 
     addLinkSymbolAliases(image, readOnlyDataAliases, functionAliases);
@@ -1824,7 +1824,7 @@ Result PELinker::tryPrepareIncrementalLink(bool& outPrepared, LinkJob& outJob, c
     }
 
     Diagnostic mergeDiag;
-    if (!mergeCoffObjectsIntoImage(outJob.image, mergeDiag, objects))
+    if (!mergeCoffObjectsIntoImage(outJob.image, mergeDiag, std::move(objects)))
         return Result::Continue;
 
     std::set<Utf8>        searchNames(libraryNames.begin(), libraryNames.end());

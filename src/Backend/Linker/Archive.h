@@ -42,6 +42,9 @@ public:
     // If the member at the given offset is a short-import record, decodes it and returns true.
     bool tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint32_t headerOffset) const;
 
+    // Decodes a short-import record from member bytes already returned by memberData().
+    bool tryReadImport(ArchiveImport& outImport, std::span<const std::byte> data) const;
+
     // The file the archive was read from. The debug records of its members are grouped under it.
     const fs::path& sourcePath() const { return sourcePath_; }
     void            setSourcePath(fs::path path) { sourcePath_ = std::move(path); }

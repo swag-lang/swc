@@ -1432,13 +1432,13 @@ impl RenderOgl
             }
 
         case .StartFont:
-            .setShader(&.shaderFont)
+            .selectProgram(&.shaderFont)
 
         case .StartMsdfFont:
-            .setShader(&.shaderFontMsdf)
+            .selectProgram(&.shaderFontMsdf)
 
         case .EndFont:
-            .setShader(&.shaderAA)
+            .selectProgram(&.shaderAA)
 
         case .BindTextureFont:
             let params = &cmd.textureFont
@@ -1746,13 +1746,13 @@ impl RenderOgl
             switch #complete params.id
             {
             case .Default:
-                .setShader(&.shaderAA)
+                .selectProgram(&.shaderAA)
 
             case .Simple:
-                .setShader(&.shaderSimple)
+                .selectProgram(&.shaderSimple)
 
             case .Blur:
-                .setShader(&.shaderBlur)
+                .selectProgram(&.shaderBlur)
                 glUniform1i(cast(GLint, .shaderBlur.axis), params.axis)
 
                 // The blur samples target texels; a logical radius must cover the
@@ -1760,13 +1760,13 @@ impl RenderOgl
                 glUniform1f(cast(GLint, .shaderBlur.radius), params.radius * .contentScale)
 
             case .Resolve:
-                .setShader(&.shaderResolve)
+                .selectProgram(&.shaderResolve)
                 glUniform1i(cast(GLint, .shaderResolve.factor), params.factor)
             }
 
         case .SetShader:
             let params = &cmd.shader
-            .setShader(params.shader)
+            .selectProgram(params.shader)
 
         case .SetShaderParam:
             let params = &cmd.shaderParam
@@ -1825,8 +1825,9 @@ impl RenderOgl
         glBufferData(GL_ARRAY_BUFFER, byteSize, null, GL_STREAM_DRAW)
         glBufferSubData(GL_ARRAY_BUFFER, 0, byteSize, dc.vertexBuffer.buffer)
 
-        // Default shader
-        .setShader(&.shaderAA)
+        // Default shader; a planar picture drawn last in the previous submission no longer
+        // holds a program to restore.
+        .selectProgram(&.shaderAA)
         let curShader = .curShader!
         .computeMatrices(curShader.mvp, curShader.mdl)
 
@@ -1856,6 +1857,19 @@ impl RenderOgl
         for i in 4 do
             glDisableVertexAttribArray(cast(GLuint, i))
         .finishAdvancedBlendPass()
+    }
+
+    // Makes `shader` the program of the commands that follow, as a painter command asks.
+    //
+    // A planar texture swaps in its own program and restores the displaced one when the next
+    // texture is bound; a program chosen after it supersedes that restore. Otherwise the reset
+    // that follows a font program's start would bring back the program the picture displaced,
+    // and the glyphs would be drawn by it: text right after a video frame came out as raw,
+    // blurred distance fields.
+    mtd selectProgram(shader: *ShaderBase?)
+    {
+        .planarPrevShader = null
+        .setShader(shader)
     }
 
     // Makes `shader` the current OpenGL program, or the built-in antialiased program when `null`.

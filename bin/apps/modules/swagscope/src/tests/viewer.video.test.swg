@@ -1092,3 +1092,58 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 12)
 }
+
+// Bright, middle, and dark bands: the pictures subtitle text has to stay readable over.
+struct SubtitleBackdropProbe
+{
+    using wnd: Wnd
+}
+
+impl IWnd for SubtitleBackdropProbe
+{
+    mtd impl onPaint(evt: *PaintEvent)
+    {
+        let painter = evt.paintContext.painter
+        let rect    = .clientRect()
+        let band    = Math.floor(rect.width / 3)
+        painter.fillRect(0, 0, band, rect.height, Color.fromArgb(0xFFF2EFE6))
+        painter.fillRect(band, 0, band, rect.height, Color.fromArgb(0xFF8A8F96))
+        painter.fillRect(2 * band, 0, rect.width - 2 * band, rect.height, Color.fromArgb(0xFF101418))
+    }
+}
+
+func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, dpiScale: f32, golden: string)
+{
+    let savedSettings = Film.g_SubtitleSettings
+    defer Film.g_SubtitleSettings = savedSettings
+    Film.g_SubtitleSettings        = {}
+    Film.g_SubtitleSettings.effect = effect
+    Film.g_SubtitleSettings.size   = size
+
+    var host: Testing.HeadlessHost
+    host.setup(900, 240, dpiScale)
+    defer host.shutdown()
+    let backdrop = Wnd.create'SubtitleBackdropProbe(&host.root)
+    backdrop.dockStyle = .Center
+    let overlay = Film.SubtitleOverlay.create(backdrop)
+    overlay.setSubtitle("Vous ne passerez pas, dit Gandalf.\nTout le monde descend, Jérôme !")
+    host.root.applyLayout()
+
+    var image = host.render(&host.root)
+    Pixel.Testing.assertImageGolden(&image, golden)
+}
+
+// Every readability effect over every kind of picture. The outline and the shadow keep their
+// proportions from the normal size to the largest one on a high-density screen, and the
+// backdrop of two lines is one shape, with no darker band where the lines meet.
+#[Swag.TestTag("golden")]
+#test
+{
+    assertSubtitleEffect(.Outline, .Normal, 1, "viewer.video.subtitle.outline")
+    assertSubtitleEffect(.Shadow, .Normal, 1, "viewer.video.subtitle.shadow")
+    assertSubtitleEffect(.Background, .Normal, 1, "viewer.video.subtitle.background")
+    assertSubtitleEffect(.None, .Normal, 1, "viewer.video.subtitle.none")
+    assertSubtitleEffect(.Outline, .VeryLarge, 1.5, "viewer.video.subtitle.outline.large.hidpi")
+    assertSubtitleEffect(.Shadow, .VeryLarge, 1.5, "viewer.video.subtitle.shadow.large.hidpi")
+    assertSubtitleEffect(.Background, .VeryLarge, 1.5, "viewer.video.subtitle.background.large.hidpi")
+}

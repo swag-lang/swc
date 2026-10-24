@@ -8,6 +8,19 @@ private
     const SeekOverlaySize    = Math.Point{112, 64}
     const SeekOverlayOffsetY = 56.0
     const SeekOverlayLifetime: Time.Duration = 650'ms
+
+    // Subtitle readability effects are proportional to the text, so every text size keeps the
+    // same look. Widths are distance-field units (0.1 is 4% of the em); offsets and paddings
+    // are fractions of the font size.
+    const SubtitleLineGap        = 4'f32
+    const SubtitleEdgeColor      = 0xE6000000'u32
+    const SubtitleBackdropColor  = 0xA6000000'u32
+    const SubtitleOutlineWidth   = 0.18'f32
+    const SubtitleShadowOffset   = 0.06'f32
+    const SubtitleShadowDilate   = 0.08'f32
+    const SubtitleShadowSoftness = 0.3'f32
+    const SubtitleBackdropPadX   = 0.3'f32
+    const SubtitleBackdropPadY   = 0.1'f32
 }
 
 private func subtitleFontSize(size: SubtitleSize)->u32
@@ -19,6 +32,51 @@ private func subtitleFontSize(size: SubtitleSize)->u32
     case .Large:     return 36
     case .VeryLarge: return 46
     }
+}
+
+// Outlines the backdrop of subtitle `lines`, drawn from `top` and centered on `centerX`.
+//
+// Each line gets its own box, as wide as its text, and the boxes of consecutive lines meet
+// halfway across the gap between them. The whole block is one contour, so a translucent fill
+// covers every pixel once: separate boxes would darken the band where they overlap or touch.
+private func subtitleBackdrop(lines: const [..] string, font: *Font, centerX, top: f32)->LinePath
+{
+    let padX    = Math.round(cast(f32, font.size) * SubtitleBackdropPadX)
+    let padY    = Math.round(cast(f32, font.size) * SubtitleBackdropPadY)
+    let advance = font.height + SubtitleLineGap
+
+    var rows: Array'f32
+    rows.add(top - padY)
+    for index in 1 until lines.count do
+        rows.add(Math.round(top + cast(f32, index) * advance - SubtitleLineGap * 0.5))
+    rows.add(Math.round(top + cast(f32, lines.count - 1) * advance + font.height + padY))
+
+    var lefts:  Array'f32
+    var rights: Array'f32
+    for line in lines
+    {
+        let width = Painter.measureString(line, font).width
+        let left  = Math.floor(centerX - width * 0.5) - padX
+        lefts.add(left)
+        rights.add(left + width + 2 * padX)
+    }
+
+    var result: retval
+    result.start(rights[0], rows[0])
+    for index in lines.count
+    {
+        result.lineTo(rights[index], rows[index])
+        result.lineTo(rights[index], rows[index + 1])
+    }
+
+    for index in reversed(lines.count)
+    {
+        result.lineTo(lefts[index], rows[index + 1])
+        result.lineTo(lefts[index], rows[index])
+    }
+
+    result.close()
+    return result
 }
 
 // Draws `text` in `color` at the eight positions `offset` pixels around (`x`, `y`).
@@ -64,9 +122,8 @@ private impl IWnd for SubtitleOverlay
         if lines.isEmpty() do
             return
 
-        let lineGap = 4'f32
-        let height  = cast(f32, lines.count) * font.height + cast(f32, lines.count - 1) * lineGap
-        let inset   = Math.max(24'f32, rect.height * 0.06)
+        let height = cast(f32, lines.count) * font.height + cast(f32, lines.count - 1) * SubtitleLineGap
+        let inset  = Math.max(24'f32, rect.height * 0.06)
         var y: f32
         switch g_SubtitleSettings.position
         {
@@ -75,25 +132,40 @@ private impl IWnd for SubtitleOverlay
         case .Top:    y = inset
         }
 
-        y = Math.max(y, 0)
+        y = Math.floor(Math.max(y, 0))
 
-        let ink  = g_SubtitleSettings.color == .Yellow ? Color.fromArgb(0xFFFFE66D) : Color.fromArgb(Argb.White)
-        let edge = Color.fromArgb(0xE6000000)
+        // The outline and the shadow come from the glyph distance field: they keep their
+        // proportions at every size and stay round, where copies of the text offset by a few
+        // pixels thin to a hairline on large text and leave notches between their directions.
+        let ink = g_SubtitleSettings.color == .Yellow ? Color.fromArgb(0xFFFFE66D) : Color.fromArgb(Argb.White)
+        var effect: TextEffect
         painter.setAntialiased(true)
+        switch #complete g_SubtitleSettings.effect
+        {
+        case .Outline:
+            effect.outlineWidth = SubtitleOutlineWidth
+            effect.outlineColor = Color.fromArgb(SubtitleEdgeColor)
+
+        case .Shadow:
+            let offset = Math.round(cast(f32, font.size) * SubtitleShadowOffset)
+            effect.shadowColor    = Color.fromArgb(SubtitleEdgeColor)
+            effect.shadowOffset   = {offset, offset}
+            effect.shadowDilate   = SubtitleShadowDilate
+            effect.shadowSoftness = SubtitleShadowSoftness
+
+        case .Background:
+            var backdrop = subtitleBackdrop(lines.toSlice(), font, rect.horzCenter(), y)
+            painter.fillPolygon(&backdrop, Color.fromArgb(SubtitleBackdropColor))
+
+        case .None:
+            break
+        }
+
         for line in lines
         {
-            let size = Painter.measureString(line, font)
-            let x    = Math.floor(rect.horzCenter() - size.width * 0.5)
-            switch #complete g_SubtitleSettings.effect
-            {
-            case .Background: painter.fillRect(x - 8, y - 3, size.width + 16, font.height + 6, Color.fromArgb(0xA6000000))
-            case .Shadow:     painter.drawString(x + 2, y + 2, line, font, edge)
-            case .Outline:    drawStringKeyline(painter, x, y, line, font, edge, 1.5)
-            case .None:       break
-            }
-
-            painter.drawString(x, y, line, font, ink)
-            y += font.height + lineGap
+            let width = Painter.measureString(line, font).width
+            painter.drawString(Math.floor(rect.horzCenter() - width * 0.5), y, line, font, ink, effect)
+            y += font.height + SubtitleLineGap
         }
     }
 }
@@ -115,8 +187,11 @@ impl SubtitleOverlay
 
     mtd applySettings()
     {
+        // Only a distance-field font carries the outline and the shadow; the other effects keep
+        // the crisper bitmap glyphs an automatic font draws at small sizes.
         let size = subtitleFontSize(g_SubtitleSettings.size)
-        let font = g_SubtitleSettings.font == .Monospace ? .theme().createDefaultFontFs(size, .Bold) : .theme().createDefaultFont(size, .Bold)
+        let mode = g_SubtitleSettings.effect == .Outline or g_SubtitleSettings.effect == .Shadow ? FontRenderMode.Msdf : .Auto
+        let font = g_SubtitleSettings.font == .Monospace ? .theme().createDefaultFontFs(size, .Bold, mode) : .theme().createDefaultFont(size, .Bold, mode)
         .style.setFont(font, .Regular)
         .invalidate()
     }

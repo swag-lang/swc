@@ -15,7 +15,9 @@ struct EmbeddedViewer
         titleLabel:  *Label
         viewerCombo: *ComboBox
         infoLane:    *Wnd
+        sideSplitter: *SplitterCtrl
         document:    *Wnd
+        sidePlaceholder: *Wnd
         commandBar:  *ViewerActionBar
     }
 
@@ -108,6 +110,8 @@ impl Viewer.Embedded for EmbeddedViewer
     {
         for &instance in .instances where not instance.retireView() do
             return false
+        .sideSplitter.items[1]!.view = .sidePlaceholder
+        .sideSplitter.setPaneVisible(1, false)
         for &instance in .instances do
             instance.destroyWindows()
 
@@ -183,8 +187,11 @@ private impl EmbeddedViewer
         .currentInfo?.show()
         .currentCommands?.show()
         .currentSideButton?.show()
-        if .currentSideButton do
-            .currentSidePanel?.show(.currentSideButton.isChecked)
+        let sideVisible = .currentSideButton?.isChecked orelse false
+        .sideSplitter.items[1]!.view = .currentSidePanel orelse .sidePlaceholder
+        .sideSplitter.items[1]!.view.show(sideVisible)
+        .sideSplitter.setPaneVisible(1, sideVisible)
+        .sideSplitter.applyLayout()
         .commandBar.centerContent()
         .applyLayout()
         .invalidate()
@@ -205,12 +212,15 @@ private impl EmbeddedViewer
 
         let choice = &.choices[index]
         let plugin = &.owner.index.plugins[choice.pluginIndex]
+        let sideSplitter = .sideSplitter
         var next:      ViewerSession
         with var host: ViewerPluginHost
         {
             .session         = &next
             .documentParent  = me.document
-            .sidePanelParent = me
+            .sideSplitter    = sideSplitter
+            .sidePanelParent = sideSplitter
+            .sidePaneIndex   = 1
             .actionParent    = me.header
             .infoParent      = me.infoLane
             .commandParent   = me.commandBar
@@ -313,11 +323,30 @@ private impl EmbeddedViewer
             .dockStyle       = .Bottom
         }
 
-        with result.document = Wnd.create'Wnd(result)
+        with result.sideSplitter = SplitterCtrl.create(result)
         {
             .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+        }
+
+        with result.document = Wnd.create'Wnd(result.sideSplitter)
+        {
             .backgroundStyle = .View
         }
+
+        result.sideSplitter.addPane(result.document).minimumSize = ViewerWindow.DocumentMinWidth
+        with result.sidePlaceholder = Wnd.create'Wnd(result.sideSplitter)
+        {
+            .backgroundStyle = .Transparent
+            .hide()
+        }
+        let rightWidth = owner.rightPanelWidth > 0 ? owner.rightPanelWidth : ViewerWindow.RightPanelDefaultWidth
+        with let sideItem = result.sideSplitter.addPane(result.sidePlaceholder, rightWidth + result.themeMetrics().panel_GutterSize)
+        {
+            .minimumSize = ViewerWindow.RightPanelMinWidth + result.themeMetrics().panel_GutterSize
+            .maximumSize = ViewerWindow.RightPanelMaxWidth + result.themeMetrics().panel_GutterSize
+        }
+        result.sideSplitter.setPaneVisible(1, false)
 
         result.applyLayout()
         return result

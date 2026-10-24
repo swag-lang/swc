@@ -107,7 +107,7 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
     host.root.applyLayout()
     discard host.render(&host.root)
     Swag.assert(viewer.trackCombo.selectedItem()!.name.raw == "Toutes les pistes")
-    Swag.assert(viewer.zoomLabel.toolTip == "Options de zoom")
+    Swag.assert(viewer.zoomLabel.toolTip == Midi.texts().ui_ZoomMenu)
     Testing.assertContentFits(viewer.commands)
 }
 

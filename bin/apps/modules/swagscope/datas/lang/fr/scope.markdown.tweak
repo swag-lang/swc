@@ -15,3 +15,5 @@ ui_OneLine  1 ligne
 ui_Lines    % lignes
 ui_OneWord  1 mot
 ui_Words    % mots
+ui_OneCharacter 1 caractère
+ui_Characters   % caractères

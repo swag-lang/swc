@@ -3,6 +3,8 @@
 
 using Core, Pixel, Gui
 
+private var g_ZoomPercent: u32 = 100
+
 // Stable identity and smoke input of the text plugin.
 const ViewerKey    = "text"
 const SmokeFixture = "comprehensive.txt"
@@ -175,9 +177,10 @@ impl Panel
            .statisticsEncoding != .encoding or
            .statisticsStart != .contentStart do
             return Format.toString(texts().ui_Details, encoding, currentLine)
-        let lines = .statistics.lines == 1 ? String.from(texts().ui_OneLine) : Format.toString(texts().ui_Lines, .statistics.lines)
-        let words = .statistics.words == 1 ? String.from(texts().ui_OneWord) : Format.toString(texts().ui_Words, .statistics.words)
-        return Format.toString(texts().ui_DetailsStats, encoding, currentLine, lines, words)
+        let lines      = .statistics.lines == 1 ? String.from(texts().ui_OneLine) : Format.toString(texts().ui_Lines, .statistics.lines)
+        let words      = .statistics.words == 1 ? String.from(texts().ui_OneWord) : Format.toString(texts().ui_Words, .statistics.words)
+        let characters = .statistics.characters == 1 ? String.from(texts().ui_OneCharacter) : Format.toString(texts().ui_Characters, .statistics.characters)
+        return Format.toString(texts().ui_DetailsStats, encoding, currentLine, lines, words, characters)
     }
 
     mtd reportStatistics()
@@ -534,7 +537,8 @@ impl Panel
 
     mtd setZoom(percent: u32)
     {
-        .zoomPercent = Viewer.clampZoom(percent)
+        .zoomPercent  = Viewer.clampZoom(percent)
+        g_ZoomPercent = .zoomPercent
         let base = .themeMetrics().defaultFixedFontSize
         let size = cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, .zoomPercent) / 100), 1))
         .editor.style.setFont(.theme().createDefaultFontFs(size), .Regular)
@@ -660,7 +664,7 @@ impl Panel
         result.startReading()
 
         result.updateWrap()
-        result.setZoom(100)
+        result.setZoom(g_ZoomPercent)
         result.applyLayout()
         result.scheduleMore()
         result.startStatistics()
@@ -784,6 +788,13 @@ impl Panel
 
             case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt):
                 view.setZoom(Viewer.zoomAfterKey(keyEvt, view.zoomPercent))
+                return true
+
+            case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
+                if mouse.delta.y > 0 do
+                    view.setZoom(Viewer.zoomIn(view.zoomPercent))
+                elif mouse.delta.y < 0 do
+                    view.setZoom(Viewer.zoomOut(view.zoomPercent))
                 return true
 
             case KeyEvent as keyEvt where isWrapKey(keyEvt):

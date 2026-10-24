@@ -27,22 +27,24 @@ struct Style
 {
     public
     {
-        maxContentWidth:  f32                 = 860       // Widest document column, in logical pixels.
-        horizontalInset:  f32                 = 48        // Minimum room kept on each side of the document column.
-        topInset:         f32                 = 38        // Space before the first document block.
-        bottomInset:      f32                 = 34        // Space after the last document block.
-        bodyFontSize:     u32                 = 16        // Body-text draw size, in logical pixels.
-        codeFontSize:     u32                 = 14        // Fixed-width code and table draw size, in logical pixels.
-        mathFontSize:     u32                 = 22        // Base draw size of Pixel mathematical layout.
-        heading1FontSize: u32                 = 36        // Level-one heading draw size, in logical pixels.
-        heading2FontSize: u32                 = 28        // Level-two heading draw size, in logical pixels.
-        heading3FontSize: u32                 = 24        // Level-three heading draw size, in logical pixels.
-        heading4FontSize: u32                 = 20        // Level-four heading draw size, in logical pixels.
-        heading5FontSize: u32                 = 16        // Level-five heading draw size, in logical pixels.
-        heading6FontSize: u32                 = 16        // Level-six heading draw size, in logical pixels.
-        lineHeight:       f32                 = 1.6       // Minimum body line height, relative to the active font.
-        headingAlignment: StringHorzAlignment = .Left     // Horizontal alignment of headings.
-        imageAlignment:   StringHorzAlignment = .Left     // Horizontal alignment of paragraphs containing one image and no other text.
+        maxContentWidth:      f32                 = 860                    // Widest document column, in logical pixels.
+        horizontalInset:      f32                 = 48                     // Minimum room kept on each side of the document column.
+        topInset:             f32                 = 38                     // Space before the first document block.
+        bottomInset:          f32                 = 34                     // Space after the last document block.
+        bodyFontSize:         u32                 = 16                     // Body-text draw size, in logical pixels.
+        codeFontSize:         u32                 = 14                     // Fixed-width code and table draw size, in logical pixels.
+        mathFontSize:         u32                 = 22                     // Base draw size of Pixel mathematical layout.
+        heading1FontSize:     u32                 = 36                     // Level-one heading draw size, in logical pixels.
+        heading2FontSize:     u32                 = 28                     // Level-two heading draw size, in logical pixels.
+        heading3FontSize:     u32                 = 24                     // Level-three heading draw size, in logical pixels.
+        heading4FontSize:     u32                 = 20                     // Level-four heading draw size, in logical pixels.
+        heading5FontSize:     u32                 = 16                     // Level-five heading draw size, in logical pixels.
+        heading6FontSize:     u32                 = 16                     // Level-six heading draw size, in logical pixels.
+        headingTopSpacing:    [6] u32             = [0, 0, 2, 2, 2, 2]     // Space before heading levels one through six, in logical pixels.
+        headingBottomSpacing: [6] u32             = [8, 8, 2, 2, 2, 2]     // Space after heading levels one through six, in logical pixels.
+        lineHeight:           f32                 = 1.6                    // Minimum body line height, relative to the active font.
+        headingAlignment:     StringHorzAlignment = .Left                  // Horizontal alignment of headings.
+        imageAlignment:       StringHorzAlignment = .Left                  // Horizontal alignment of paragraphs containing one image and no other text.
 
         // Horizontal alignment of body paragraphs.
         //

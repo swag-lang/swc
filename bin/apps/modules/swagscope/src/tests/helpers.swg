@@ -35,6 +35,8 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
         .session         = &result
         .documentParent  = contentParent
         .sidePanelParent = contentParent
+        .sideSplitter    = null
+        .sidePaneIndex   = 1
         .actionParent    = actionParent orelse contentParent
         .infoParent      = infoParent orelse contentParent
         .commandParent   = commandParent orelse contentParent

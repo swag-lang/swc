@@ -67,7 +67,6 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.assert(view.hookOnChildEvent(view.editor, &zoomIn) and view.zoomPercent == 125)
     var resetZoom = KeyEvent{kind: .Pressed, key: .D0, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent(view.editor, &resetZoom) and view.zoomPercent == 100)
-
     view.applyEncoding(.Utf16Le)
     let changedDetails = view.detailsText()
     let currentLine    = Format.toString(PlainText.texts().ui_CurrentLine, view.editor.cursorLogicalLineIndex() + 1)

@@ -12,6 +12,7 @@ struct ViewerSession
     sidePanelHost:       *Wnd?
     sidePanel:           *Wnd?
     sidePanelButton:     *IconButton?
+    sidePanelItem:       *SplitterItem?
     revealMatch:         Viewer.RevealSearchMatch?
     searchBounds:        Viewer.SearchMatchBounds?
     clearSearch:         Viewer.ClearSearch?
@@ -87,6 +88,8 @@ struct ViewerPluginHost
     session:         *ViewerSession
     documentParent:  *Wnd
     sidePanelParent: *Wnd
+    sideSplitter:     *SplitterCtrl?
+    sidePaneIndex:    u32
     actionParent:    *Wnd
     infoParent:      *Wnd
     commandParent:   *Wnd
@@ -198,9 +201,13 @@ impl Viewer.Host for ViewerPluginHost
         Swag.assert(width > 0)
 
         let gutter = .sidePanelParent.themeMetrics().panel_GutterSize
-        with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, {0, 0, width + gutter, 0})
+        var panelWidth = width
+        if .window and .window.rightPanelWidth > 0 do
+            panelWidth = .window.rightPanelWidth
+        panelWidth = Math.clamp(panelWidth, ViewerWindow.RightPanelMinWidth, ViewerWindow.RightPanelMaxWidth)
+        with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, {0, 0, panelWidth + gutter, 0})
         {
-            .dockStyle       = .Right
+            .dockStyle       = .None
             .backgroundStyle = .ToolBar
 
             // The information lane already owns the seam above. The viewer bar owns the chrome
@@ -215,15 +222,33 @@ impl Viewer.Host for ViewerPluginHost
             .backgroundStyle = .Panel
         }
 
-        let panelParent     = .sidePanelParent
-        let panelHost: *Wnd = .session.sidePanelHost
         let actionSize      = themeActionButtonSize(.infoParent.themeMetrics())
         with .session.sidePanelButton = IconButton.create(.infoParent, icon, {0, 0, actionSize, actionSize}, flags: .Toggle)
         {
             .toolTip = toolTip
             .setCheckIndicator(.Frame)
             .hide()
-            .sigCheckedChanged += func|parent = panelParent, panel = panelHost|(button)
+        }
+
+        if .sideSplitter
+        {
+            let splitter: *SplitterCtrl = .sideSplitter
+            let paneIndex = .sidePaneIndex
+            .session.sidePanelItem = splitter.items[paneIndex]!
+            .session.sidePanelItem.size = panelWidth + gutter
+            .session.sidePanelButton.sigCheckedChanged += func|target = splitter, paneIndex|(button)
+            {
+                target.setPaneVisible(paneIndex, button.isChecked)
+                target.applyLayout()
+                target.invalidate()
+            }
+        }
+        else
+        {
+            .session.sidePanelHost.dockStyle = .Right
+            let parent = .sidePanelParent
+            let panel  = assume cast(*Wnd, .session.sidePanelHost)
+            .session.sidePanelButton.sigCheckedChanged += func|parent, panel|(button)
             {
                 panel.show(button.isChecked)
                 parent.applyLayout()

@@ -106,25 +106,27 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.lineHeight       = 1.8
 
     case 5:
-        result.bodyTypeFaces      = systemFaces(["Vollkorn", "Palatino", "Palatino Linotype", "Times", "Times New Roman"])
-        result.headingFontStyles  = [.Regular, .Regular, .Italic, .Bold, .Bold, .Bold]
-        result.maxContentWidth    = 960
-        result.horizontalInset    = 52
-        result.topInset           = 40
-        result.bottomInset        = 48
-        result.bodyFontSize       = 19
-        result.codeFontSize       = 17
-        result.mathFontSize       = 25
-        result.heading1FontSize   = 57
-        result.heading2FontSize   = 30
-        result.heading3FontSize   = 23
-        result.heading4FontSize   = 20
-        result.heading5FontSize   = 19
-        result.heading6FontSize   = 19
-        result.lineHeight         = 1.53
-        result.headingAlignment   = .Center
-        result.imageAlignment     = .Center
-        result.paragraphAlignment = .Justify
+        result.bodyTypeFaces        = systemFaces(["Vollkorn", "Palatino", "Palatino Linotype", "Times", "Times New Roman"])
+        result.headingFontStyles    = [.Bold, .Bold, .Bold, .Bold, .Bold, .Bold]
+        result.headingTopSpacing    = [34, 30, 24, 20, 18, 18]
+        result.headingBottomSpacing = [22, 18, 14, 12, 10, 10]
+        result.maxContentWidth      = 960
+        result.horizontalInset      = 52
+        result.topInset             = 40
+        result.bottomInset          = 48
+        result.bodyFontSize         = 19
+        result.codeFontSize         = 17
+        result.mathFontSize         = 25
+        result.heading1FontSize     = 57
+        result.heading2FontSize     = 30
+        result.heading3FontSize     = 23
+        result.heading4FontSize     = 20
+        result.heading5FontSize     = 19
+        result.heading6FontSize     = 19
+        result.lineHeight           = 1.53
+        result.headingAlignment     = .Center
+        result.imageAlignment       = .Center
+        result.paragraphAlignment   = .Justify
     }
 
     switch widthIndex
@@ -257,6 +259,10 @@ func applyViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPer
     style.heading4FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading4FontSize) * scale), 1))
     style.heading5FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading5FontSize) * scale), 1))
     style.heading6FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading6FontSize) * scale), 1))
+    for &spacing in style.headingTopSpacing do
+        spacing[] = cast(u32, Math.round(cast(f32, spacing[]) * scale))
+    for &spacing in style.headingBottomSpacing do
+        spacing[] = cast(u32, Math.round(cast(f32, spacing[]) * scale))
     if applyColors do
         view.setDocumentThemeColors(viewerColors(themeIndex))
     view.setDocumentStyle(style)
@@ -305,10 +311,11 @@ impl ZoomButton
             return
         }
 
-        let texts = texts()
-        let lines = .statistics.lines == 1 ? String.from(texts.ui_OneLine) : Format.toString(texts.ui_Lines, .statistics.lines)
-        let words = .statistics.words == 1 ? String.from(texts.ui_OneWord) : Format.toString(texts.ui_Words, .statistics.words)
-        .services.showDetails(.view, Format.toString("% · % · %", texts.ui_Details, lines, words))
+        let texts      = texts()
+        let lines      = .statistics.lines == 1 ? String.from(texts.ui_OneLine) : Format.toString(texts.ui_Lines, .statistics.lines)
+        let words      = .statistics.words == 1 ? String.from(texts.ui_OneWord) : Format.toString(texts.ui_Words, .statistics.words)
+        let characters = .statistics.characters == 1 ? String.from(texts.ui_OneCharacter) : Format.toString(texts.ui_Characters, .statistics.characters)
+        .services.showDetails(.view, Format.toString("% · % · % · %", texts.ui_Details, lines, words, characters))
     }
 
     mtd retire()->bool

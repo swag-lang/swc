@@ -718,8 +718,8 @@ impl Image
 
         switch #complete .pixelFormat
         {
-        case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32, .GrayAlphaF32,
-             .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
+        case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32,
+             .GrayAlphaF32, .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
             return .logicalPixelColor(pixX, pixY)
 
         case .RGBA8:

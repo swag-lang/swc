@@ -1675,6 +1675,181 @@ SWC_TEST_BEGIN(FormatWrap_HugSkipsEarlierMultilineArgument)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatWrap_CaseValuesPackToTheirOwnWidth)
+{
+    static constexpr std::string_view SOURCE =
+        "func f(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case firstLongName, secondLongName, thirdLongName, fourthLongName:\n"
+        "        consume(v)\n"
+        "    }\n"
+        "}\n";
+    static constexpr std::string_view EXPECTED =
+        "func f(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case firstLongName, secondLongName,\n"
+        "         thirdLongName, fourthLongName:\n"
+        "        consume(v)\n"
+        "    }\n"
+        "}\n";
+    FormatOptions options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.indentCaseLabels      = false;
+    options.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
+    options.caseValuesColumnLimit = 44;
+    options.binPackCaseValues     = FormatCaseValuesPacking::Pack;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
+    std::string staticSource(SOURCE);
+    std::string staticExpected(EXPECTED);
+    staticSource.insert(staticSource.find("switch v"), "#static ");
+    staticExpected.insert(staticExpected.find("switch v"), "#static ");
+    SWC_RESULT(FormatRewriteCheck::check(ctx, staticSource, staticExpected, options));
+    options.caseValuesWrap = FormatCaseValuesWrap::Preserve;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options));
+    options.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
+    options.caseValuesColumnLimit = 0;
+    return FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesAlwaysAndPackingAreIndependent)
+{
+    static constexpr std::string_view SOURCE   = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2, 3: consume(v)\n    }\n}\n";
+    static constexpr std::string_view VERTICAL = "func f(v: s32)\n{\n    switch v\n    {\n    case 1,\n         2,\n         3:\n        consume(v)\n    }\n}\n";
+    static constexpr std::string_view PACKED   = "func f(v: s32)\n{\n    switch v\n    {\n    case 1,\n         2, 3:\n        consume(v)\n    }\n}\n";
+    FormatOptions                     options;
+    options.indentStyle       = FormatIndentStyle::Spaces;
+    options.indentCaseLabels  = false;
+    options.caseValuesWrap    = FormatCaseValuesWrap::Always;
+    options.caseBodyStyle     = FormatCaseBodyStyle::NextLine;
+    options.binPackCaseValues = FormatCaseValuesPacking::OnePerLine;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, VERTICAL, options));
+    options.binPackCaseValues = FormatCaseValuesPacking::Pack;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, PACKED, options));
+    options.caseValuesColumnLimit = 100;
+    return FormatRewriteCheck::check(ctx, SOURCE, PACKED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesCountIndentationAndColon)
+{
+    static constexpr std::string_view SOURCE   = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2, 3: aVeryLongBodyNameThatDoesNotTriggerValueWrapping(v)\n    }\n}\n";
+    static constexpr std::string_view EXPECTED = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2,\n         3: aVeryLongBodyNameThatDoesNotTriggerValueWrapping(v)\n    }\n}\n";
+    FormatOptions                     options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.indentCaseLabels      = false;
+    options.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
+    options.caseValuesColumnLimit = 17;
+    options.binPackCaseValues     = FormatCaseValuesPacking::Pack;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options));
+    options.caseValuesColumnLimit = 16;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesUseExpressionBoundaries)
+{
+    static constexpr std::string_view SOURCE   = "func f(v: s32)\n{\n    switch v\n    {\n    case choose(1, 2), flag ? 3 : 4, 5 to 8 where enabled or ready:\n        consume(v)\n    }\n}\n";
+    static constexpr std::string_view EXPECTED = "func f(v: s32)\n{\n    switch v\n    {\n    case choose(1, 2),\n         flag ? 3 : 4,\n         5 to 8 where enabled or ready:\n        consume(v)\n    }\n}\n";
+    FormatOptions                     options;
+    options.indentStyle       = FormatIndentStyle::Spaces;
+    options.indentCaseLabels  = false;
+    options.caseValuesWrap    = FormatCaseValuesWrap::Always;
+    options.binPackCaseValues = FormatCaseValuesPacking::OnePerLine;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesIncludeGroupingAndFinalCallBrackets)
+{
+    static constexpr std::string_view SOURCE   = "func f(v: s32)\n{\n    switch v\n    {\n    case (flag ? 1 : 2), choose(3, 4):\n        consume(v)\n    }\n}\n";
+    static constexpr std::string_view EXPECTED = "func f(v: s32)\n{\n    switch v\n    {\n    case (flag ? 1 : 2),\n         choose(3, 4):\n        consume(v)\n    }\n}\n";
+    FormatOptions                     options;
+    options.indentStyle       = FormatIndentStyle::Spaces;
+    options.indentCaseLabels  = false;
+    options.caseValuesWrap    = FormatCaseValuesWrap::Always;
+    options.binPackCaseValues = FormatCaseValuesPacking::OnePerLine;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesKeepCommentsAndDisabledRegions)
+{
+    FormatOptions options;
+    options.caseValuesWrap    = FormatCaseValuesWrap::Always;
+    options.binPackCaseValues = FormatCaseValuesPacking::OnePerLine;
+    for (const std::string_view source : {
+             "func f(v: s32)\n{\n    switch v\n    {\n    case 1, /* Shared group. */ 2, 3: consume(v)\n    }\n}\n",
+             "func f(v: s32)\n{\n    switch v\n    {\n    // swc-format off\n    case 1, 2, 3: consume(v)\n    // swc-format on\n    }\n}\n"})
+        SWC_RESULT(FormatRewriteCheck::check(ctx, source, source, options));
+    return Result::Continue;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_SwagCaseValuesPackAndKeepShortSiblingBodies)
+{
+    static constexpr std::string_view SOURCE =
+        "func f(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case firstDescriptiveName, secondDescriptiveName, thirdDescriptiveName, fourthDescriptiveName, fifthDescriptiveName, sixthDescriptiveName: consume(v)\n"
+        "    case 0: consume(v)\n"
+        "    }\n"
+        "}\n";
+    static constexpr std::string_view EXPECTED =
+        "func f(v: s32)\n"
+        "{\n"
+        "    switch v\n"
+        "    {\n"
+        "    case firstDescriptiveName, secondDescriptiveName, thirdDescriptiveName,\n"
+        "         fourthDescriptiveName, fifthDescriptiveName, sixthDescriptiveName:\n"
+        "        consume(v)\n"
+        "\n"
+        "    case 0: consume(v)\n"
+        "    }\n"
+        "}\n";
+    FormatOptions options;
+    applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesBalanceWithoutAddingLines)
+{
+    static constexpr std::string_view SOURCE   = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2, 3, 4:\n        consume(v)\n    }\n}\n";
+    static constexpr std::string_view EXPECTED = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2,\n         3, 4:\n        consume(v)\n    }\n}\n";
+    FormatOptions                     options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.indentCaseLabels      = false;
+    options.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
+    options.caseValuesColumnLimit = 17;
+    options.binPackCaseValues     = FormatCaseValuesPacking::Balanced;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
+    options.caseValuesWrap        = FormatCaseValuesWrap::Always;
+    options.caseValuesColumnLimit = 0;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesBalanceCountsWidthRatherThanValues)
+{
+    static constexpr std::string_view SOURCE   = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2, 3, 4, 5, aVeryLongValueName:\n        consume(v)\n    }\n}\n";
+    static constexpr std::string_view EXPECTED = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2, 3, 4, 5,\n         aVeryLongValueName:\n        consume(v)\n    }\n}\n";
+    FormatOptions                     options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.indentCaseLabels      = false;
+    options.caseValuesWrap        = FormatCaseValuesWrap::Always;
+    options.caseValuesColumnLimit = 40;
+    options.binPackCaseValues     = FormatCaseValuesPacking::Balanced;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

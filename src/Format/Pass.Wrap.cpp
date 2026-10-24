@@ -120,6 +120,13 @@ namespace
         LayoutTargetKind kind       = LayoutTargetKind::List;
     };
 
+    struct CaseLineLayout
+    {
+        uint32_t lineCount = UINT32_MAX;
+        uint64_t widthCost = UINT64_MAX;
+        size_t   previous  = 0;
+    };
+
     bool textHasNewline(const std::string_view text)
     {
         return text.find_first_of("\r\n") != std::string_view::npos;
@@ -152,6 +159,7 @@ namespace
             wrapLongLines();
             finishLists();
             finishLogicalExpressions();
+            wrapCaseValues();
 
             // The repair replays the records in source order, so the ones this
             // pass appended have to be merged back into the indent pass's.
@@ -1715,6 +1723,125 @@ namespace
                 {
                     if (model_->gapHasNewline(boundary) && FormatPassUtil::canEditGap(*model_, boundary))
                         model_->hangingLines().push_back({boundary, state.firstPiece, 0});
+                }
+            }
+        }
+
+        uint32_t caseValueEndColumn(const FormatCaseValues& values, const size_t index, uint32_t column) const
+        {
+            const uint32_t first    = values.items[index];
+            const uint32_t last     = index + 1 < values.items.size() ? model_->prevPiece(values.items[index + 1]) : values.lastValuePiece;
+            const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
+            for (uint32_t p = first; p != INVALID_PIECE && p <= last; p = model_->nextPiece(p))
+            {
+                const FormatPiece& piece = model_->piece(p);
+                // Comments and multiline expressions keep their authored grouping.
+                if (piece.isComment || textHasNewline(piece.text) || (p != first && model_->gapHasNewline(p)))
+                    return UINT32_MAX;
+                if (p != first)
+                    column += model_->gapColumns(p);
+                column += FormatModel::textColumns(piece.text, tabWidth, column);
+            }
+
+            // Reserve the label colon, but do not let a guard or body trigger value wrapping.
+            return index + 1 == values.items.size() ? column + 1 : column;
+        }
+
+        void balanceCaseValues(const FormatCaseValues& values, const uint32_t firstColumn) const
+        {
+            std::vector<CaseLineLayout> layouts(values.items.size() + 1);
+            layouts.front()      = {0, 0, 0};
+            const uint32_t limit = options_->caseValuesColumnLimit;
+            for (size_t first = 0; first < values.items.size(); ++first)
+            {
+                uint32_t endColumn = firstColumn;
+                for (size_t last = first; last < values.items.size(); ++last)
+                {
+                    endColumn = caseValueEndColumn(values, last, endColumn + (last != first ? spacesAfterComma() : 0));
+                    if (limit && endColumn > limit && last != first)
+                        break;
+                    if (first == 0 && last + 1 == values.items.size() && options_->caseValuesWrap == FormatCaseValuesWrap::Always)
+                        continue;
+
+                    const uint32_t  lineCount = layouts[first].lineCount + 1;
+                    const uint64_t  widthCost = layouts[first].widthCost + static_cast<uint64_t>(endColumn) * endColumn;
+                    CaseLineLayout& best      = layouts[last + 1];
+                    // For a fixed line count, total width is constant. Minimizing
+                    // squared widths therefore minimizes their variance.
+                    if (lineCount < best.lineCount || (lineCount == best.lineCount && widthCost < best.widthCost))
+                        best = {lineCount, widthCost, first};
+                }
+            }
+
+            const Utf8 indent = FormatPassUtil::indentForColumns(*model_, firstColumn);
+            for (size_t end = values.items.size(); end != 0;)
+            {
+                const size_t first = layouts[end].previous;
+                for (size_t i = first; i < end; ++i)
+                {
+                    if (i == 0)
+                        continue;
+                    const uint32_t item = values.items[i];
+                    if (i == first)
+                    {
+                        model_->setGapBreak(item, 1, indent.view());
+                        model_->hangingLines().push_back({item, values.items.front(), 0});
+                    }
+                    else
+                        model_->setGapSpaces(item, spacesAfterComma());
+                }
+                end = first;
+            }
+        }
+
+        void wrapCaseValues() const
+        {
+            const FormatCaseValuesWrap mode  = options_->caseValuesWrap;
+            const uint32_t             limit = options_->caseValuesColumnLimit;
+            if (mode == FormatCaseValuesWrap::Preserve || (mode == FormatCaseValuesWrap::ColumnLimit && limit == 0))
+                return;
+
+            for (const FormatCaseValues& values : model_->caseValues())
+            {
+                if (!model_->rangeEditable(values.labelPiece, values.colonPiece))
+                    continue;
+
+                const uint32_t firstColumn = pieceColumn(values.items.front());
+                if (firstColumn == UINT32_MAX)
+                    continue;
+
+                uint32_t flatEnd = firstColumn;
+                for (size_t i = 0; i < values.items.size() && flatEnd != UINT32_MAX; ++i)
+                    flatEnd = caseValueEndColumn(values, i, flatEnd + (i ? spacesAfterComma() : 0));
+                if (flatEnd == UINT32_MAX || (mode != FormatCaseValuesWrap::Always && flatEnd <= limit))
+                    continue;
+
+                if (options_->binPackCaseValues == FormatCaseValuesPacking::Balanced)
+                {
+                    balanceCaseValues(values, firstColumn);
+                    continue;
+                }
+
+                const Utf8 indent = FormatPassUtil::indentForColumns(*model_, firstColumn);
+                uint32_t   end    = caseValueEndColumn(values, 0, firstColumn);
+                for (size_t i = 1; i < values.items.size(); ++i)
+                {
+                    const uint32_t item       = values.items[i];
+                    const uint32_t packedEnd  = caseValueEndColumn(values, i, end + spacesAfterComma());
+                    const bool     keepBreak  = options_->binPackCaseValues == FormatCaseValuesPacking::Preserve && model_->gapHasNewline(item);
+                    const bool     forceBreak = options_->binPackCaseValues == FormatCaseValuesPacking::OnePerLine ||
+                                            (mode == FormatCaseValuesWrap::Always && i == 1 && (!limit || flatEnd <= limit));
+                    if (keepBreak || forceBreak || (limit && packedEnd > limit))
+                    {
+                        model_->setGapBreak(item, 1, indent.view());
+                        end = caseValueEndColumn(values, i, firstColumn);
+                        model_->hangingLines().push_back({item, values.items.front(), 0});
+                    }
+                    else
+                    {
+                        model_->setGapSpaces(item, spacesAfterComma());
+                        end = packedEnd;
+                    }
                 }
             }
         }

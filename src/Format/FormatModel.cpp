@@ -143,6 +143,7 @@ void FormatModel::build(const SourceView& srcView, const FormatOptions& options)
     inlineBodies_.clear();
     logicalExpressions_.clear();
     bitwiseExpressions_.clear();
+    caseValues_.clear();
     hangingLines_.clear();
     branchChains_.clear();
     functionBodies_.clear();

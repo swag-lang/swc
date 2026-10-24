@@ -139,6 +139,21 @@ enum class FormatCaseBodyStyle : uint8_t
     Uniform,  // One line only when EVERY arm of the switch is a single statement
 };
 
+enum class FormatCaseValuesWrap : uint8_t
+{
+    Preserve,
+    ColumnLimit, // Wrap value lists that exceed their own column limit
+    Always,      // Keep at least one break between values
+};
+
+enum class FormatCaseValuesPacking : uint8_t
+{
+    Preserve,
+    Pack,     // Fill each line before starting the next one
+    Balanced, // Use the fewest lines, then balance their widths
+    OnePerLine,
+};
+
 enum class FormatCaseBlankStyle : uint8_t
 {
     Preserve,
@@ -245,9 +260,12 @@ struct FormatOptions
     // -----------------------------------------------------------------------
     // Switch
     // -----------------------------------------------------------------------
-    FormatCaseBodyStyle  caseBodyStyle         = FormatCaseBodyStyle::Preserve;  // How `case` bodies are laid out
-    FormatCaseBlankStyle blankLineBetweenCases = FormatCaseBlankStyle::Preserve; // Blank lines between `case` arms
-    FormatAlignMode      alignCaseBodies       = FormatAlignMode::Preserve;      // Align the bodies of consecutive one-line `case` arms
+    FormatCaseValuesWrap    caseValuesWrap        = FormatCaseValuesWrap::Preserve;
+    uint32_t                caseValuesColumnLimit = 0;                                 // Width of `case` value lists, including indentation (0 disables the limit)
+    FormatCaseValuesPacking binPackCaseValues     = FormatCaseValuesPacking::Preserve; // How values share lines once a `case` list wraps
+    FormatCaseBodyStyle     caseBodyStyle         = FormatCaseBodyStyle::Preserve;     // How `case` bodies are laid out
+    FormatCaseBlankStyle    blankLineBetweenCases = FormatCaseBlankStyle::Preserve;    // Blank lines between `case` arms
+    FormatAlignMode         alignCaseBodies       = FormatAlignMode::Preserve;         // Align the bodies of consecutive one-line `case` arms
 
     // -----------------------------------------------------------------------
     // Uniform siblings

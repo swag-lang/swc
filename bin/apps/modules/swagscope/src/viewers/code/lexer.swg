@@ -132,7 +132,10 @@ func detectLanguage(fileName: string)->SourceLanguage
     case "cmakelists.txt": return .CMake
     case "rakefile", "gemfile", "vagrantfile", "podfile", "brewfile": return .Ruby
     case "jenkinsfile":    return .Groovy
-    case "meson.build", ".gitignore", ".gitattributes", ".gitmodules", ".editorconfig", ".clang-format", ".clang-tidy", ".prettierrc", ".eslintrc", ".npmrc", ".yarnrc", ".env": return .Config
+
+    case "meson.build", ".gitignore", ".gitattributes", ".gitmodules", ".editorconfig",
+         ".clang-format", ".clang-tidy", ".prettierrc", ".eslintrc", ".npmrc", ".yarnrc", ".env":
+        return .Config
     }
 
     let extension = Path.lowercaseExtension(fileName)
@@ -622,7 +625,10 @@ private impl GenericLexer
     {
         switch .language
         {
-        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Yaml, .Toml, .Config, .CMake, .Nim, .Elixir, .Julia, .Tcl, .Awk, .GraphQl, .Makefile, .Dockerfile, .Nix: return true
+        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Yaml, .Toml, .Config, .CMake,
+             .Nim, .Elixir, .Julia, .Tcl, .Awk, .GraphQl, .Makefile, .Dockerfile, .Nix:
+            return true
+
         default: return false
         }
     }
@@ -637,7 +643,12 @@ private impl GenericLexer
     {
         switch .language
         {
-        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Sql, .Lua, .Yaml, .Toml, .Config, .CMake, .Batch, .VisualBasic, .Xml, .Html, .Assembly, .Nim, .Haskell, .Elixir, .Erlang, .Clojure, .Julia, .Fortran, .Matlab, .Tcl, .Awk, .Vim, .Latex, .GraphQl, .Makefile, .Dockerfile, .Nix: return false
+        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Sql, .Lua, .Yaml,
+             .Toml, .Config, .CMake, .Batch, .VisualBasic, .Xml, .Html, .Assembly,
+             .Nim, .Haskell, .Elixir, .Erlang, .Clojure, .Julia, .Fortran, .Matlab,
+             .Tcl, .Awk, .Vim, .Latex, .GraphQl, .Makefile, .Dockerfile, .Nix:
+            return false
+
         default: return true
         }
     }

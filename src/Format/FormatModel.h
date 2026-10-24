@@ -129,6 +129,15 @@ struct FormatBinaryExpression
     uint32_t rootOperatorPiece = 0;
 };
 
+// AST boundaries keep nested commas and conditional colons inside each value.
+struct FormatCaseValues
+{
+    uint32_t              labelPiece     = 0;
+    uint32_t              colonPiece     = 0;
+    uint32_t              lastValuePiece = 0;
+    std::vector<uint32_t> items;
+};
+
 // A continuation line anchored to a bracket on an earlier line. Alignment can
 // move the bracket after indentation, so it replays these anchors to keep the
 // continuation lines in place relative to it.
@@ -193,6 +202,9 @@ public:
     const std::vector<FormatBinaryExpression>& logicalExpressions() const { return logicalExpressions_; }
     std::vector<FormatBinaryExpression>&       bitwiseExpressions() { return bitwiseExpressions_; }
     const std::vector<FormatBinaryExpression>& bitwiseExpressions() const { return bitwiseExpressions_; }
+
+    std::vector<FormatCaseValues>&       caseValues() { return caseValues_; }
+    const std::vector<FormatCaseValues>& caseValues() const { return caseValues_; }
 
     std::vector<FormatHangingLine>&       hangingLines() { return hangingLines_; }
     const std::vector<FormatHangingLine>& hangingLines() const { return hangingLines_; }
@@ -272,6 +284,7 @@ private:
     std::vector<FormatInlineBody>       inlineBodies_;
     std::vector<FormatBinaryExpression> logicalExpressions_;
     std::vector<FormatBinaryExpression> bitwiseExpressions_;
+    std::vector<FormatCaseValues>       caseValues_;
     std::vector<FormatHangingLine>      hangingLines_;
     std::vector<FormatBranchChain>      branchChains_;
     std::vector<FormatFunctionBody>     functionBodies_;

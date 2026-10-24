@@ -27,7 +27,10 @@ internal impl IActionUI for ActionProperties
     {
         switch cxt.id
         {
-        case ActionProperties.Copy, ActionProperties.Paste, ActionProperties.ResetDefault, ActionProperties.MoveUp, ActionProperties.MoveDown, ActionProperties.Remove, ActionProperties.RemoveAll: return true
+        case ActionProperties.Copy, ActionProperties.Paste, ActionProperties.ResetDefault,
+             ActionProperties.MoveUp, ActionProperties.MoveDown,
+             ActionProperties.Remove, ActionProperties.RemoveAll:
+            return true
         }
 
         return false

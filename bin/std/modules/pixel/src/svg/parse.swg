@@ -509,8 +509,9 @@ private func parseFontFamily(value: string)->{ kind: FontFamilyKind, matched: bo
         lowered = lowered.toLower()
         switch lowered.toString()
         {
-        case "monospace", "ui-monospace", "consolas", "menlo", "courier", "courier new",
-             "cascadia mono", "cascadia code", "sfmono-regular", "dejavu sans mono", "liberation mono":
+        case "monospace", "ui-monospace", "consolas", "menlo",
+             "courier", "courier new", "cascadia mono", "cascadia code",
+             "sfmono-regular", "dejavu sans mono", "liberation mono":
             result.kind    = .Mono
             result.matched = true
             return result
@@ -520,8 +521,8 @@ private func parseFontFamily(value: string)->{ kind: FontFamilyKind, matched: bo
             result.matched = true
             return result
 
-        case "sans-serif", "ui-sans-serif", "system-ui", "-apple-system", "segoe ui", "roboto",
-             "arial", "helvetica", "helvetica neue", "inter", "noto sans":
+        case "sans-serif", "ui-sans-serif", "system-ui", "-apple-system", "segoe ui",
+             "roboto", "arial", "helvetica", "helvetica neue", "inter", "noto sans":
             result.kind    = .Sans
             result.matched = true
             return result
@@ -1463,7 +1464,10 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
         {
             switch c
             {
-            case 'M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c', 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a', 'Z', 'z': discard c
+            case 'M', 'm', 'L', 'l', 'H', 'h', 'V', 'v', 'C', 'c',
+                 'S', 's', 'Q', 'q', 'T', 't', 'A', 'a', 'Z', 'z':
+                discard c
+
             default: return
             }
 
@@ -2052,7 +2056,12 @@ private impl Parser
 
             switch name
             {
-            case "d", "x", "y", "dx", "dy", "width", "height", "rx", "ry", "cx", "cy", "r", "fx", "fy", "fr", "points", "pathLength", "x1", "y1", "x2", "y2", "viewBox", "id", "class", "href", "xlink:href", "gradientUnits", "gradientTransform", "spreadMethod", "patternUnits", "patternContentUnits", "stdDeviation", "offset", "stop-color", "stop-opacity", "flood-color", "flood-opacity", "markerWidth", "markerHeight", "refX", "refY", "orient", "markerUnits":
+            case "d", "x", "y", "dx", "dy", "width", "height", "rx", "ry", "cx", "cy", "r",
+                 "fx", "fy", "fr", "points", "pathLength", "x1", "y1", "x2", "y2", "viewBox",
+                 "id", "class", "href", "xlink:href", "gradientUnits", "gradientTransform",
+                 "spreadMethod", "patternUnits", "patternContentUnits", "stdDeviation",
+                 "offset", "stop-color", "stop-opacity", "flood-color", "flood-opacity",
+                 "markerWidth", "markerHeight", "refX", "refY", "orient", "markerUnits":
                 geo.add(name, value)
 
             case "style":

@@ -531,7 +531,8 @@ private impl RenderOgl
             glBlendFuncSeparate(GL_ZERO, GL_SRC_ALPHA, GL_ZERO, GL_SRC_ALPHA)
             glBlendEquation(GL_FUNC_ADD)
 
-        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity:
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight,
+             .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity:
             Swag.assert(.advancedBlending != AdvancedBlendingNone, "OpenGL renderer does not support advanced blending modes on this context")
             if .advancedBlending == AdvancedBlendingNone
             {
@@ -1710,7 +1711,10 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.op
                     {
-                    case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect, .DrawTriangles: .executeCommand(dc, cmd1, cast(u64, i))
+                    case .Transform, .StartFont, .StartMsdfFont, .EndFont,
+                         .ResetTexture0, .BindTexture0, .ResetTextureFont,
+                         .BindTextureFont, .SetFontEffect, .DrawTriangles:
+                        .executeCommand(dc, cmd1, cast(u64, i))
                     }
                 }
 

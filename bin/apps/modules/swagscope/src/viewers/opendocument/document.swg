@@ -49,10 +49,22 @@ func kindFromMime(mimeType: string)->Kind fail
 {
     switch mimeType
     {
-    case "application/vnd.oasis.opendocument.text", "application/vnd.oasis.opendocument.text-template":                 return .Text
-    case "application/vnd.oasis.opendocument.spreadsheet", "application/vnd.oasis.opendocument.spreadsheet-template":   return .Spreadsheet
-    case "application/vnd.oasis.opendocument.presentation", "application/vnd.oasis.opendocument.presentation-template": return .Presentation
-    case "application/vnd.oasis.opendocument.graphics", "application/vnd.oasis.opendocument.graphics-template":         return .Drawing
+    case "application/vnd.oasis.opendocument.text",
+         "application/vnd.oasis.opendocument.text-template":
+        return .Text
+
+    case "application/vnd.oasis.opendocument.spreadsheet",
+         "application/vnd.oasis.opendocument.spreadsheet-template":
+        return .Spreadsheet
+
+    case "application/vnd.oasis.opendocument.presentation",
+         "application/vnd.oasis.opendocument.presentation-template":
+        return .Presentation
+
+    case "application/vnd.oasis.opendocument.graphics",
+         "application/vnd.oasis.opendocument.graphics-template":
+        return .Drawing
+
     default: fail InvalidFormatError{Errors.mkString(texts().err_MimeType)}
     }
 }

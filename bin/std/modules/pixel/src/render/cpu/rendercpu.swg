@@ -422,8 +422,8 @@ private impl RenderCpu
             // A surface is always packed: this backend converts a planar picture on upload.
             Swag.assert(false, "cannot write one pixel of a planar picture")
 
-        case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32, .GrayAlphaF32,
-             .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
+        case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32,
+             .GrayAlphaF32, .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
             writeLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode, {cast(f32, color.r) / 255.0, cast(f32, color.g) / 255.0, cast(f32, color.b) / 255.0, cast(f32, color.a) / 255.0})
 
         case .BGRA8:
@@ -568,7 +568,10 @@ private impl RenderCpu
         case .Min:    return Math.min(src, dst)
         case .Max:    return Math.max(src, dst)
         case .DstIn:  return dst * srcAlpha
-        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity: return src
+
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight,
+             .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity:
+            return src
         }
     }
 
@@ -2246,10 +2249,10 @@ private impl RenderCpu
             let replay = &painter.commandBuffer[i]
             switch replay.op
             {
-            case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0,
-                 .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect,
-                 .StartClippingRegion, .SetClippingRegionMode, .EndClippingRegion, .ResetClippingRegion,
-                 .DrawTriangles: .executeCommand(painter, replay, i)
+            case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0,
+                 .ResetTextureFont, .BindTextureFont, .SetFontEffect, .StartClippingRegion,
+                 .SetClippingRegionMode, .EndClippingRegion, .ResetClippingRegion, .DrawTriangles:
+                .executeCommand(painter, replay, i)
             }
         }
 

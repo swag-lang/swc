@@ -91,6 +91,9 @@ namespace
         o.allowShortLoopsOnSingleLine        = false;
 
         // Switch
+        o.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
+        o.caseValuesColumnLimit = 100;
+        o.binPackCaseValues     = FormatCaseValuesPacking::Balanced;
         o.caseBodyStyle         = FormatCaseBodyStyle::Uniform;
         o.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
         o.alignCaseBodies       = FormatAlignMode::Consecutive;

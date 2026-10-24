@@ -510,7 +510,9 @@ impl HtmlDocument
     {
         switch tag
         {
-        case .Area, .Base, .Br, .Col, .Embed, .Hr, .Img, .Input, .Link, .Meta, .Param, .Source, .Track, .Wbr: return true
+        case .Area, .Base, .Br, .Col, .Embed, .Hr, .Img, .Input,
+             .Link, .Meta, .Param, .Source, .Track, .Wbr:
+            return true
         }
 
         return false

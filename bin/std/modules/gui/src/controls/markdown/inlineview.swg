@@ -642,7 +642,8 @@ impl InlineView
         case .Table:    return {16, 12, 16, 12}
 
         case .Quote, .AlertNote, .AlertTip, .AlertImportant,
-             .AlertWarning, .AlertCaution: return {18, 10, 10, 10}
+             .AlertWarning, .AlertCaution:
+            return {18, 10, 10, 10}
 
         case .Metadata:        return {12, 8, 12, 8}
         case .TableOfContents: return {18, 12, 18, 12}

@@ -260,12 +260,14 @@ impl IWnd for ColorPicker
             let rect = Math.Rectangle{.cursorX - size, .cursorY - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_RoundPick, colors.colorPicker_Mark)
 
-        case .RedVertical, .GreenVertical, .BlueVertical, .AlphaVertical, .HueVertical, .LightnessVertical, .SaturationVertical:
+        case .RedVertical, .GreenVertical, .BlueVertical, .AlphaVertical,
+             .HueVertical, .LightnessVertical, .SaturationVertical:
             let size = metrics.colorPicker_SquarePick
             let rect = Math.Rectangle{clientRect.horzCenter() - size, .cursorY - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_SquarePick, colors.colorPicker_Mark)
 
-        case .RedHorizontal, .GreenHorizontal, .BlueHorizontal, .AlphaHorizontal, .HueHorizontal, .LightnessHorizontal, .SaturationHorizontal:
+        case .RedHorizontal, .GreenHorizontal, .BlueHorizontal, .AlphaHorizontal,
+             .HueHorizontal, .LightnessHorizontal, .SaturationHorizontal:
             let size = metrics.colorPicker_SquarePick
             let rect = Math.Rectangle{.cursorX - size, clientRect.vertCenter() - size, 2 * size, 2 * size}
             theme.drawSubRect(painter, rect, &rects.colorPicker_SquarePick, colors.colorPicker_Mark)

@@ -37,7 +37,8 @@ namespace WinFsp
             case .InvalidInput,
                  .PasswordRequired,
                  .SizeTooSmall,
-                 .SparseContainer: return StatusInvalidParameter
+                 .SparseContainer:
+                return StatusInvalidParameter
 
             case .NotFound:          return StatusObjectNameNotFound
             case .AlreadyExists:     return StatusObjectNameCollision

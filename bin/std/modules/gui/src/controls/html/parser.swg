@@ -298,8 +298,9 @@ impl HtmlParser
     {
         switch tag
         {
-        case .A, .Abbr, .B, .Cite, .Code, .Del, .Dfn, .Em, .I, .Ins, .Kbd, .Label, .Mark, .Output, .Q,
-             .Rp, .Rt, .Ruby, .S, .Samp, .Small, .Span, .Strong, .Sub, .Sup, .Time, .U, .Var: return true
+        case .A, .Abbr, .B, .Cite, .Code, .Del, .Dfn, .Em, .I, .Ins, .Kbd, .Label, .Mark, .Output,
+             .Q, .Rp, .Rt, .Ruby, .S, .Samp, .Small, .Span, .Strong, .Sub, .Sup, .Time, .U, .Var:
+            return true
         }
 
         return false
@@ -341,7 +342,8 @@ impl HtmlParser
         {
         case .Address, .Article, .Aside, .Blockquote, .Details, .Div, .Dl, .Dt, .Dd, .FieldSet,
              .FigCaption, .Figure, .Footer, .Form, .H1, .H2, .H3, .H4, .H5, .H6, .Header, .HGroup,
-             .Hr, .Li, .Main, .Menu, .Nav, .Ol, .P, .Pre, .Section, .Summary, .Table, .Ul: return true
+             .Hr, .Li, .Main, .Menu, .Nav, .Ol, .P, .Pre, .Section, .Summary, .Table, .Ul:
+            return true
         }
 
         return false
@@ -574,7 +576,9 @@ impl HtmlParser
     {
         switch tag
         {
-        case .Caption, .ColGroup, .Col, .TBody, .THead, .TFoot, .Tr, .Td, .Th, .Script, .Style, .Template, .Form: return true
+        case .Caption, .ColGroup, .Col, .TBody, .THead, .TFoot,
+             .Tr, .Td, .Th, .Script, .Style, .Template, .Form:
+            return true
         }
 
         return false

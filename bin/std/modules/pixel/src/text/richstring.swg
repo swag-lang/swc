@@ -179,12 +179,14 @@ impl RichString
                 count   -= 3
                 handled = true
 
-            case Utf8.startsWith(sl, "</u>"), Utf8.startsWith(sl, "</b>"), Utf8.startsWith(sl, "</i>"), Utf8.startsWith(sl, "</p>"):
+            case Utf8.startsWith(sl, "</u>"), Utf8.startsWith(sl, "</b>"),
+                 Utf8.startsWith(sl, "</i>"), Utf8.startsWith(sl, "</p>"):
                 scan    += 4
                 count   -= 4
                 handled = true
 
-            case Utf8.startsWith(sl, "<p1>"), Utf8.startsWith(sl, "<p2>"), Utf8.startsWith(sl, "<p3>"):
+            case Utf8.startsWith(sl, "<p1>"),
+                 Utf8.startsWith(sl, "<p2>"), Utf8.startsWith(sl, "<p3>"):
                 scan    += 4
                 count   -= 4
                 handled = true

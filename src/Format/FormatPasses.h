@@ -18,6 +18,7 @@ namespace FormatPass
     void spacing(FormatModel& model);     // all space-* options
     void indent(FormatModel& model);      // indent-* structural options
     void wrap(FormatModel& model);        // column-limit and break-* wrapping options
+    void caseBodies(FormatModel& model);  // reapply case-body-style after value wrapping
 
     // Two decisions read the final line layout, so they only become correct once
     // wrapping has fixed it. Taken any earlier they answer for a layout the

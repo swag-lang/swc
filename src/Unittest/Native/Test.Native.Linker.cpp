@@ -339,6 +339,12 @@ SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
     ArchiveImport imported;
     if (!assigned.tryReadImport(imported, diag, firstOffset) || imported.importName != symbol || imported.dll != "archive-test.dll")
         return Result::Error;
+    const std::span<const std::byte> importData = assigned.memberData(diag, firstOffset);
+    ArchiveImport importedFromBytes;
+    if (importData.empty() || !assigned.tryReadImport(importedFromBytes, importData))
+        return Result::Error;
+    if (importedFromBytes.importName != symbol || importedFromBytes.dll != "archive-test.dll")
+        return Result::Error;
 
     if (!buildCoffImportLibrary(bytes, diag, "replacement.dll", {"replacement"}))
         return Result::Error;

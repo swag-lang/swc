@@ -37,10 +37,12 @@ func check(node: *Node)->u64
 
 func release(node: *Node)
 {
-    if node.left and node.right
+    let left = node.left
+    if left
     {
-        release(node.left)
-        release(node.right)
+        // `bottomUp` creates either leaves or nodes with both children.
+        release(left)
+        release(assume cast(*Node, node.right))
     }
 
     benchFree(node)

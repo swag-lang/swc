@@ -91,16 +91,36 @@ namespace
         StringMap<bool> names_;
     };
 
+    struct FunctionFoldCandidate
+    {
+        size_t   objectIndex  = 0;
+        uint32_t sectionIndex = 0;
+
+        Utf8 symbolName;
+    };
+
     void collectDefined(DefinedNames& outDefined, const LinkImage& image)
     {
         for (const LinkSymbol& symbol : image.symbols)
             outDefined.insert(symbol.name);
     }
 
-    void collectUndefined(std::unordered_set<Utf8>& outUndefined, const CoffObject& object, const DefinedNames& defined)
+    void collectUndefinedAndFunctionCandidate(std::unordered_set<Utf8>& outUndefined, const CoffObject& object, const DefinedNames& defined, FunctionFoldCandidate& outFunctionCandidate)
     {
-        for (const CoffInputSection& section : object.sections)
+        outFunctionCandidate = {};
+        uint32_t textSectionIndex = INVALID_REF;
+        bool     ambiguousTextSection = false;
+        for (uint32_t sectionIndex = 0; sectionIndex < object.sections.size(); ++sectionIndex)
         {
+            const CoffInputSection& section = object.sections[sectionIndex];
+            if (section.name == ".text" && !section.bytes.empty())
+            {
+                if (textSectionIndex != INVALID_REF)
+                    ambiguousTextSection = true;
+                else
+                    textSectionIndex = sectionIndex;
+            }
+
             if (isLinkerMetadataSection(section.name))
                 continue;
 
@@ -109,6 +129,23 @@ namespace
                 if (!defined.contains(reloc.symbolName))
                     outUndefined.insert(reloc.symbolName);
             }
+        }
+
+        if (ambiguousTextSection || textSectionIndex == INVALID_REF)
+            return;
+
+        for (const CoffInputSymbol& symbol : object.definedSymbols)
+        {
+            if (symbol.sectionIndex != textSectionIndex || symbol.value != 0)
+                continue;
+            if (!outFunctionCandidate.symbolName.empty())
+            {
+                outFunctionCandidate = {};
+                return;
+            }
+
+            outFunctionCandidate.sectionIndex = textSectionIndex;
+            outFunctionCandidate.symbolName   = symbol.name;
         }
     }
 
@@ -125,14 +162,6 @@ namespace
     {
         Utf8 name;
         Utf8 canonicalName;
-    };
-
-    struct FunctionFoldCandidate
-    {
-        size_t   objectIndex  = 0;
-        uint32_t sectionIndex = 0;
-
-        Utf8 symbolName;
     };
 
     struct FunctionFoldGroup
@@ -212,44 +241,6 @@ namespace
 
         appendLinkSymbolAliases(image, symbolIndices, aliases);
         appendLinkSymbolAliases(image, symbolIndices, additionalAliases);
-    }
-
-    bool tryGetFunctionFoldCandidate(FunctionFoldCandidate& outCandidate, const CoffObject& object, const size_t objectIndex)
-    {
-        outCandidate = {};
-
-        uint32_t textSectionIndex = INVALID_REF;
-        for (uint32_t sectionIndex = 0; sectionIndex < object.sections.size(); ++sectionIndex)
-        {
-            if (object.sections[sectionIndex].name != ".text" || object.sections[sectionIndex].bytes.empty())
-                continue;
-            if (textSectionIndex != INVALID_REF)
-                return false;
-
-            textSectionIndex = sectionIndex;
-        }
-
-        if (textSectionIndex == INVALID_REF)
-            return false;
-
-        Utf8 functionSymbol;
-        for (const CoffInputSymbol& symbol : object.definedSymbols)
-        {
-            if (symbol.sectionIndex != textSectionIndex || symbol.value != 0)
-                continue;
-            if (!functionSymbol.empty())
-                return false;
-
-            functionSymbol = symbol.name;
-        }
-
-        if (functionSymbol.empty())
-            return false;
-
-        outCandidate.objectIndex  = objectIndex;
-        outCandidate.sectionIndex = textSectionIndex;
-        outCandidate.symbolName   = std::move(functionSymbol);
-        return true;
     }
 
     std::string_view canonicalRelocationTarget(const Utf8& target, const Utf8& selfSymbol, const std::unordered_map<Utf8, Utf8>& knownAliases)
@@ -336,17 +327,8 @@ namespace
         return section.flags.has(LinkSectionFlagsE::Code) && relocation.kind == LinkRelocKind::Rel32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
     }
 
-    void foldIdenticalArchiveFunctions(std::vector<CoffObject>& objects, const LinkImage& image, const std::unordered_map<Utf8, Utf8>& knownAliases, std::vector<LinkSymbolAlias>& outAliases, std::unordered_set<std::string_view>& outFoldedSymbols)
+    void foldIdenticalArchiveFunctions(std::vector<CoffObject>& objects, const std::vector<FunctionFoldCandidate>& candidates, const LinkImage& image, const std::unordered_map<Utf8, Utf8>& knownAliases, std::vector<LinkSymbolAlias>& outAliases, std::unordered_set<std::string_view>& outFoldedSymbols)
     {
-        std::vector<FunctionFoldCandidate> candidates;
-        candidates.reserve(objects.size());
-        for (size_t objectIndex = 0; objectIndex < objects.size(); ++objectIndex)
-        {
-            FunctionFoldCandidate candidate;
-            if (tryGetFunctionFoldCandidate(candidate, objects[objectIndex], objectIndex))
-                candidates.push_back(std::move(candidate));
-        }
-
         if (candidates.size() < 2)
             return;
 
@@ -1093,6 +1075,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
 
     std::unordered_set<Utf8> imported;
     std::vector<CoffObject>  pulledObjects;
+    std::vector<FunctionFoldCandidate> functionCandidates;
 
     std::unordered_map<uint32_t, std::vector<ReadOnlyDataFoldCandidate>> readOnlyDataByHash;
     std::vector<LinkSymbolAlias>                                         readOnlyDataAliases;
@@ -1141,7 +1124,8 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
                 defined.insert(pulledDefinedNames.emplace_back(sym.name));
 
             std::unordered_set<Utf8> newUndefined;
-            collectUndefined(newUndefined, pulled, defined);
+            FunctionFoldCandidate functionCandidate;
+            collectUndefinedAndFunctionCandidate(newUndefined, pulled, defined, functionCandidate);
             for (const Utf8& u : newUndefined)
                 if (!imported.contains(u))
                     worklist.push_back(u);
@@ -1180,6 +1164,11 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
                 debugMerger->appendObject(pulled, Utf8(archive.sourcePath()));
             appendMemberSymbols(ioSymbols, pulled);
 
+            if (!functionCandidate.symbolName.empty())
+            {
+                functionCandidate.objectIndex = pulledObjects.size();
+                functionCandidates.push_back(std::move(functionCandidate));
+            }
             pulledObjects.push_back(std::move(pulled));
             break;
         }
@@ -1188,7 +1177,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     Diagnostic                   diag;
     std::vector<LinkSymbolAlias> functionAliases;
     std::unordered_set<std::string_view> foldedFunctionSymbols;
-    foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliasMap, functionAliases, foldedFunctionSymbols);
+    foldIdenticalArchiveFunctions(pulledObjects, functionCandidates, image, readOnlyDataAliasMap, functionAliases, foldedFunctionSymbols);
     dropFoldedFunctions(debugInfo, ioSymbols, foldedFunctionSymbols);
     if (!mergeCoffObjectsIntoImage(image, diag, std::move(pulledObjects)))
         return builder_->reportError(diag);

@@ -7,6 +7,7 @@ func createRgbModesPage(parent: *Wnd)
                              "RGB planes",
                              "ColorPicker can map two RGB channels at a time for direct component editing.",
                              layout.left)
+    scope
     {
         discard createModePicker(left, "Red / green", {24, 122, 176, 176}, .RedGreen)
         discard createModePicker(left, "Red / blue", {226, 122, 176, 176}, .RedBlue)
@@ -17,6 +18,7 @@ func createRgbModesPage(parent: *Wnd)
                             "Vertical channel bars",
                             "Standalone red, green and blue pickers are available in vertical orientation.",
                             layout.right)
+    scope
     {
         discard createModePicker(right, "Red", {120, 122, 32, 210}, .RedVertical)
         discard createModePicker(right, "Green", {250, 122, 32, 210}, .GreenVertical)
@@ -28,6 +30,7 @@ func createRgbModesPage(parent: *Wnd)
                              "Horizontal channel bars",
                              "The same channel controls in a wide form with a derived-color palette underneath.",
                              layout.bottom)
+    scope
     {
         discard createModePicker(bottom, "Red", {24, 118, 270, 24}, .RedHorizontal)
         discard createModePicker(bottom, "Green", {330, 118, 270, 24}, .GreenHorizontal)

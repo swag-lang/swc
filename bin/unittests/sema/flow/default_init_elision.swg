@@ -81,6 +81,7 @@ func flowCompleteRetval()->FlowPod
     // A whole-value assignment remains safe even when the type has a lifecycle:
     // the optimizer must preserve any observable default and drop.
     g_flowDropCount = 0
+    scope
     {
         var value: FlowDrop
         value = makeFlowDrop(7)

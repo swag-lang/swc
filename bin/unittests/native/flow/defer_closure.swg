@@ -25,6 +25,7 @@ var plainValue: u32
     invoke(func|&value|()
     {
         defer value = value * 10 + 1
+        scope
         {
             defer value = value * 10 + 2
             return

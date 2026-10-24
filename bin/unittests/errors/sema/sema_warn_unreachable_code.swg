@@ -133,6 +133,7 @@ func nestedJump()->s32
     while value < 10
     {
         value += 1
+        scope
         {
             break
         }

@@ -333,6 +333,7 @@ func paethPredict(left, up, upLeft: Math.Simd.S16x8)->Math.Simd.S16x8
 func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
     var offset = 0'u64
+    scope
     {
         var left = Math.Simd.splat(0's16)
         while offset + 8 <= count
@@ -362,6 +363,7 @@ func defilterAverageRow(source, previous: const [*] u8, destination: [*] u8, cou
 func defilterPaethRow(source, previous: const [*] u8, destination: [*] u8, count, bytesPerPixel: u64)
 {
     var offset = 0'u64
+    scope
     {
         var left   = Math.Simd.splat(0's16)
         var upLeft = Math.Simd.splat(0's16)

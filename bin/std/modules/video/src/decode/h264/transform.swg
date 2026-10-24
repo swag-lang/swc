@@ -204,6 +204,7 @@ func hadamard4x4Scalar(block: [*] s16)
 #[Swag.Mixin]
 private func hadamard4Lanes()
 {
+    scope
     {
         let e0 = r0 + r2
         let e1 = r0 - r2
@@ -220,6 +221,7 @@ private func hadamard4Lanes()
 #[Swag.Mixin]
 private func transpose4x4Lanes()
 {
+    scope
     {
         let a0 = Simd.interleaveLow(cast #bit(Simd.U32x4, r0), cast #bit(Simd.U32x4, r1))
         let a1 = Simd.interleaveHigh(cast #bit(Simd.U32x4, r0), cast #bit(Simd.U32x4, r1))
@@ -365,6 +367,7 @@ func addIdct8x8Scalar(destination: [*] u8, stride: u64, block: [*] s16)
 #[Swag.Mixin]
 private func idct8Lanes()
 {
+    scope
     {
         let a0 = r0 + r4
         let a2 = r0 - r4
@@ -400,6 +403,7 @@ private func idct8Lanes()
 #[Swag.Mixin]
 private func transpose8x8Lanes()
 {
+    scope
     {
         let a0 = Simd.interleaveLow(cast #bit(Simd.U16x8, r0), cast #bit(Simd.U16x8, r1))
         let a1 = Simd.interleaveHigh(cast #bit(Simd.U16x8, r0), cast #bit(Simd.U16x8, r1))

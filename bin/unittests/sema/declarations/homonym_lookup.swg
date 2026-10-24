@@ -65,6 +65,7 @@ func semaTest003()
 
 func semaTest004()
 {
+    scope
     {
         let set: ShadowItem = {count: 6}
         let count = set.count

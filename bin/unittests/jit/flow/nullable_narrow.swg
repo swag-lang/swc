@@ -292,6 +292,7 @@ func narrowAssertKill(p, q: *NarrowNode?)->s32
 // An assertion inside a nested block does not outlive it.
 func narrowAssertScoped(p: *NarrowNode?)->s32
 {
+    scope
     {
         Swag.assert(p != null)
         discard takesPtr(p)

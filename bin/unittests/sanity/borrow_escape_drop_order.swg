@@ -106,6 +106,7 @@ func taskWithNestedCapture()
 {
     var first: Value
     var task:  Swag.Task
+    scope
     {
         var second: Value
         task.submit(func|&first, &second|() { observed = first.value + second.value })     // swc-expected-error {{sanity_err_borrow_escape}}

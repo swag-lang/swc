@@ -79,6 +79,7 @@ func(T) boxValue(box: Box'T)->T => box.value
 
 #test
 {
+    scope
     {
         struct(T) LocalBox
         {
@@ -91,6 +92,7 @@ func(T) boxValue(box: Box'T)->T => box.value
         Swag.assert(intBox.value == 11)
         Swag.assert(boolBox.value == false)
     }
+    scope
     {
         struct(T, N: s32) LocalBuffer
         {

@@ -46,6 +46,7 @@ func convertedReturnFallible()->Converted fail
 #test
 {
     ConvertedDrops = 0
+    scope
     {
         let plain = convertedReturn()
         Swag.assert(plain.value == 7)

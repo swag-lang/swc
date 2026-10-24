@@ -86,6 +86,7 @@ func scopedLockUnlocksAfterReturn()->bool
 {
     var sync = FakeSync{}
 
+    scope
     {
         Sync.scopedLock(&sync)
         if sync.depth != 1 do

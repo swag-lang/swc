@@ -8,6 +8,7 @@ func createLexerPage(parent: *Wnd)
                            "Lexer + wrap",
                            "This page now renders gui3's own source, with wrap enabled for long review-style reading.",
                            layout.left)
+    scope
     {
         let rect = left.clientRect()
         discard createCodeEditor(left,
@@ -20,6 +21,7 @@ func createLexerPage(parent: *Wnd)
                             "Visible blanks",
                             "A second local gui3 page is shown with blanks enabled so spacing decisions stay obvious.",
                             layout.right)
+    scope
     {
         let rect = right.clientRect()
         discard createCodeEditor(right,
@@ -32,6 +34,7 @@ func createLexerPage(parent: *Wnd)
                              "Document mode",
                              "The same engine can lean toward prose: softer chrome, line spacing and word wrap.",
                              layout.bottom)
+    scope
     {
         let rect = bottom.clientRect()
         let ed   = createDocumentEditor(bottom,

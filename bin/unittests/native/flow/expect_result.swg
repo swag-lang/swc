@@ -54,6 +54,7 @@ func uncheckedExpectPointer()->*s32 => expect requiredPointer()
 #test
 {
     drops = 0
+    scope
     {
         let result = expect propagateResult(true)
         Swag.assert(result.pointer[] == 42)

@@ -35,6 +35,10 @@ enum class AstEmbeddedBlockFlagsE : AstNode::ParserFlags
     Zero                 = 0,
     ImplicitCodeBlockArg = 1 << 0,
 
+    // A '{' statement right after a call statement: only the trailing code block of that
+    // call can own it, since a scope needs 'scope'.
+    TrailingBlock = 1 << 1,
+
     // Sema-synthesized block holding the '#inject' value bindings and the injected code.
     InjectBindings = 1 << 2,
 };
@@ -135,7 +139,7 @@ struct AstCompilerImport : AstNodeT<AstNodeId::CompilerImport>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
-struct AstCompilerScope : AstNamedNodeT<AstNodeId::CompilerScope>
+struct AstScopeStmt : AstNamedNodeT<AstNodeId::ScopeStmt>
 {
     AstNodeRef nodeBodyRef;
 

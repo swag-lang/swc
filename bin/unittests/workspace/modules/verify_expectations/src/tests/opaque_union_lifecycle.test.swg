@@ -21,6 +21,7 @@ using StaticApi
 #test
 {
     opaqueUnionLifecycleReset()
+    scope
     {
         var value: OpaqueUnionLifecycleOwner
         value.arm()
@@ -32,6 +33,7 @@ using StaticApi
 #test
 {
     opaqueUnionLifecycleReset()
+    scope
     {
         var first: OpaqueUnionLifecycleOwner
         first.arm()
@@ -45,6 +47,7 @@ using StaticApi
 #test
 {
     opaqueUnionLifecycleReset()
+    scope
     {
         var first: OpaqueUnionLifecycleOwner
         first.arm()

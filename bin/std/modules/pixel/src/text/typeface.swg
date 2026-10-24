@@ -113,6 +113,7 @@ public impl TypeFace
     // order `load` does, so an answer of `true` is one `load` honors.
     func exists(fullName: string)->bool
     {
+        scope
         {
             Sync.scopedLock(&lock)
             if g_HashTypeFace.tryFind(fullName) do

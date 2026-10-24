@@ -22,7 +22,7 @@ AstNodeRef Parser::parseCompoundValue(AstNodeId blockNodeId)
             return parseTopLevelStmt();
 
         case AstNodeId::EmbeddedBlock:
-            return parseEmbeddedStmt();
+            return parseStatementInBlock();
 
         case AstNodeId::EnumBody:
             return parseEnumValue();
@@ -189,6 +189,7 @@ SpanRef Parser::parseCompoundContentUntil(AstNodeId blockNodeId, std::span<const
                                   blockNodeId == AstNodeId::InterfaceBody;
 
     SmallVector<AstNodeRef> childrenRefs;
+    const PushStatementList statementList(this);
 
     while (!atEnd() && !containsTokenId(tokenEndIds, id()))
     {

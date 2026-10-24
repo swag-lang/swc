@@ -7,6 +7,7 @@ func createProgressBarPage(parent: *Wnd)
                              "Finite",
                              "Static progression values cover empty, partial, full and disabled bars.",
                              layout.left)
+    scope
     {
         createCaption(left, "25 percent", 24, 88, 160)
         var prg = ProgressBar.create(left, {24, 116, 320})
@@ -21,6 +22,7 @@ func createProgressBarPage(parent: *Wnd)
                             "Infinite",
                             "The built-in infinite mode animates itself during paint, and a spinner says the same thing where no bar fits.",
                             layout.right)
+    scope
     {
         let prg = ProgressBar.create(right, {24, 116, 330})
         prg.updateFlags(.Indeterminate)
@@ -35,6 +37,7 @@ func createProgressBarPage(parent: *Wnd)
                              "Frame-driven",
                              "One bar is advanced from the application frame callback; another shows disabled rendering.",
                              layout.bottom)
+    scope
     {
         createCaption(bottom, "Application frame", 24, 92, 180)
         let framePrg = ProgressBar.create(bottom, {24, 124, 420})

@@ -18,6 +18,7 @@ func createTabPage(parent: *Wnd)
                              "Flat",
                              "Classic tabs with real child views and a framed selected page.",
                              layout.left)
+    scope
     {
         let tab = Tab.create(left, {22, 88, 430, 122})
         tab.setForm(.Flat)
@@ -28,6 +29,7 @@ func createTabPage(parent: *Wnd)
                             "Round",
                             "Fixed-width round tabs keep the selected page visible.",
                             layout.right)
+    scope
     {
         let tab = Tab.create(right, {22, 88, 420, 124})
         tab.setForm(.Round)
@@ -40,6 +42,7 @@ func createTabPage(parent: *Wnd)
                              "Button forms",
                              "Button and push-button tabs are compact alternatives for tool surfaces.",
                              layout.bottom)
+    scope
     {
         var tab = Tab.create(bottom, {24, 92, 440, 120})
         tab.setForm(.Button)

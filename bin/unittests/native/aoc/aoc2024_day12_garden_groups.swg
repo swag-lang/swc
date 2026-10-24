@@ -4,7 +4,7 @@
 // Part 1: total cost = area × perimeter.  Part 2: area × number of sides.
 // Exercises: enum, impl/mtd with arrow syntax, short functions (=>),
 // defer, for with index, bitwise operators, Swag.countOnes,
-// #scope break-to-label, function overloading.
+// scope break-to-label, function overloading.
 
 const SmallInput =
     """AAAA
@@ -189,7 +189,7 @@ func cornersOf(nb: Neighbors)->u32
 func popcount8(v: u8)->u32 => cast(u32, Swag.countOnes(v))
 
 // ---------------------------------------------------------------------------
-// BFS flood-fill — defer, #scope/break-to-label
+// BFS flood-fill — defer, scope/break-to-label
 // ---------------------------------------------------------------------------
 
 const MaxQueue = 4096'u32

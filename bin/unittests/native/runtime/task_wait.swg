@@ -144,6 +144,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
 #test
 {
     var completed: Swag.AtomicValue'u32
+    scope
     {
         var tasks: [16] Swag.Task
         for &task in tasks

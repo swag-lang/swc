@@ -80,6 +80,7 @@ func createStylesPage(parent: *Wnd)
                            "Narrative spans",
                            "Foreground, background, weight and underline can all be mixed in one flowing document.",
                            layout.left)
+    scope
     {
         let rect = left.clientRect()
         let ed   = createDocumentEditor(left,
@@ -94,6 +95,7 @@ func createStylesPage(parent: *Wnd)
                             "Semantic palette",
                             "Read-only rich text is handy for summaries, diagnostics and inline metadata.",
                             layout.right)
+    scope
     {
         let rect = right.clientRect()
         let ed   = createDemoEditor(right,
@@ -110,6 +112,7 @@ func createStylesPage(parent: *Wnd)
                              "Styled log",
                              "A single document can read like a live stream once styles are assigned meaningful roles.",
                              layout.bottom)
+    scope
     {
         let rect = bottom.clientRect()
         let ed   = createDemoEditor(bottom,

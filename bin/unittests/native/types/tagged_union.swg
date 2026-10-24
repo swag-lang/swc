@@ -130,6 +130,7 @@ struct Holder
 #test
 {
     taggedDropCount = 0
+    scope
     {
         var holder: Holder
         holder.item = .Circle{id: 5}

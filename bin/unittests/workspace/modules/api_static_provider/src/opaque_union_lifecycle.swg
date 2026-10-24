@@ -67,6 +67,7 @@ func opaqueUnionLifecycleMoves()->s32 => opaqueUnionMoves
 func opaqueUnionLifecycleSourceDrop()->bool
 {
     opaqueUnionLifecycleReset()
+    scope
     {
         var value: OpaqueUnionLifecycleOwner
         value.arm()
@@ -79,6 +80,7 @@ func opaqueUnionLifecycleSourceDrop()->bool
 func opaqueUnionLifecycleSourceCopy()->bool
 {
     opaqueUnionLifecycleReset()
+    scope
     {
         var first: OpaqueUnionLifecycleOwner
         first.arm()
@@ -92,6 +94,7 @@ func opaqueUnionLifecycleSourceCopy()->bool
 func opaqueUnionLifecycleSourceMove()->bool
 {
     opaqueUnionLifecycleReset()
+    scope
     {
         var first: OpaqueUnionLifecycleOwner
         first.arm()
@@ -115,6 +118,7 @@ func opaqueUnionLifecycleGenericControl()->bool
         return false
 
     opaqueUnionLifecycleReset()
+    scope
     {
         var first: OpaqueUnionLifecycleGeneric'OpaqueUnionLifecyclePayload
         first.payload.armed = true

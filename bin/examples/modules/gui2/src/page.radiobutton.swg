@@ -7,6 +7,7 @@ func createRadioButtonPage(parent: *Wnd)
                              "Exclusive group",
                              "A small manual group checks the selected and unselected visual states.",
                              layout.left)
+    scope
     {
         let r0 = RadioButton.create(left, "Compact", {24, 90, 180})
         let r1 = RadioButton.create(left, "Comfortable", {24, 128, 180})
@@ -19,6 +20,7 @@ func createRadioButtonPage(parent: *Wnd)
                             "Alignment",
                             "Radio buttons can also put the marker on the right side.",
                             layout.right)
+    scope
     {
         var radio = RadioButton.create(right, "Marker right", {24, 90, 250})
         radio.updateFlags(.RightAligned)
@@ -37,6 +39,7 @@ func createRadioButtonPage(parent: *Wnd)
                              "States",
                              "Disabled and large labels are grouped here to cover text clipping and inactive rendering.",
                              layout.bottom)
+    scope
     {
         var radio = RadioButton.create(bottom, "Normal idle radio button", {24, 94, 250})
 

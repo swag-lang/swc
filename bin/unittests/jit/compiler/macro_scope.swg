@@ -48,6 +48,7 @@ func bindTypedAlias(stmt: #code(typed: s32))
 #[Swag.Macro]
 func nestedBlock(seed: s32, stmt: #code(value: s32))
 {
+    scope
     {
         #inject(stmt, value = seed + 1)
     }

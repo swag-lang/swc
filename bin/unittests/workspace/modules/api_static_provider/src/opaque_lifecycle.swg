@@ -166,6 +166,7 @@ func opaqueLifecycleTrace()->s32 => opaqueTrace
 func opaqueLifecycleSourceControl()->s32
 {
     opaqueLifecycleReset()
+    scope
     {
         var value: OpaqueLifecycleOwner
         value.arm()

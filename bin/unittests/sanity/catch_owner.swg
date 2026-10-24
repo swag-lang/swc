@@ -25,6 +25,7 @@ func returnCopiedCatchView()->any?
 func storeCatchViewInOuterScope()
 {
     var view: any?
+    scope
     {
         var errorOutcome: Swag.Error
         catch failBorrowedCapture() as &errorOutcome

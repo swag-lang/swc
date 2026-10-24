@@ -600,7 +600,7 @@ impl Track
         case .MicroDvd:
             try decodeMicroDvd(result, source)
 
-        case .MatroskaText: {}
+        case .MatroskaText: scope {}
         }
 
         result.sortCues()

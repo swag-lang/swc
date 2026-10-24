@@ -43,11 +43,11 @@ impl ReversedList
     {
         var node = .source.tail
         var index: u64
-        #scope(Up)
+        scope(Up)
         while node
         {
             let current = node orelse cast(*ListEntry'T, 1'u64)
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,
@@ -123,11 +123,11 @@ impl List
     {
         var n = .head
         var ordinal: u64 = 0
-        #scope(Up)
+        scope(Up)
         while n
         {
             let node = n orelse cast(*ListEntry'(T), 1'u64)
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,

@@ -69,6 +69,7 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
+    scope
     {
         var path: LinePath
         path.start(4, 4)

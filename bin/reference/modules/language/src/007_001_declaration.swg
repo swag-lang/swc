@@ -152,6 +152,7 @@ Named parameters allow calling functions with arguments in any order.
 #test
 {
     func sub(x, y: s32) => x - y
+    scope
     {
         let x1 = sub(x: 5, y: 2)
         Swag.assert(x1 == 3)
@@ -160,6 +161,7 @@ Named parameters allow calling functions with arguments in any order.
         Swag.assert(x2 == -3)
     }
 
+    scope
     {
         func returnMe(x, y: s32 = 0) => x + y * 2
         Swag.assert(returnMe(x: 10) == 10)

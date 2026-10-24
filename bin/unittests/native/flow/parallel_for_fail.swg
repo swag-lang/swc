@@ -163,6 +163,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
 #test
 {
     var results: [8] u64
+    scope
     {
         var group: Swag.TaskGroup
         for row in 8

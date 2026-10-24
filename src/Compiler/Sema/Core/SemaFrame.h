@@ -32,11 +32,11 @@ struct SemaCompilerIf
     }
 };
 
-struct SemaNamedCompilerScope
+struct SemaNamedScope
 {
     IdentifierRef           idRef    = IdentifierRef::invalid();
     AstNodeRef              scopeRef = AstNodeRef::invalid();
-    SemaNamedCompilerScope* parent   = nullptr;
+    SemaNamedScope* parent   = nullptr;
 };
 
 struct SemaLookupScopeOverrideNodes
@@ -92,7 +92,7 @@ struct SemaNarrowFact
 class SemaFrame
 {
 public:
-    // A '#scope' is deliberately absent: it is reachable by 'break to <name>' only, never by a
+    // A 'scope' is deliberately absent: it is reachable by 'break to <name>' only, never by a
     // bare 'break' or by 'continue', so it never becomes the current break or continue context.
     enum class BreakContextKind : uint8_t
     {
@@ -152,8 +152,8 @@ public:
     SymbolFunction* enclosingFunction() const { return enclosingFunction_; }
     void            setEnclosingFunction(SymbolFunction* func) { enclosingFunction_ = func; }
 
-    SemaNamedCompilerScope* currentNamedCompilerScope() const { return namedCompilerScope_; }
-    void                    setCurrentNamedCompilerScope(SemaNamedCompilerScope* scope) { namedCompilerScope_ = scope; }
+    SemaNamedScope* currentNamedScope() const { return namedScope_; }
+    void                    setCurrentNamedScope(SemaNamedScope* scope) { namedScope_ = scope; }
 
     SemaFrameContextFlags contextFlags() const { return contextFlags_; }
     bool                  hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
@@ -189,10 +189,10 @@ public:
     const BreakContext& currentContinueContext() const { return continuable_; }
     BreakContextKind    currentContinuableKind() const { return continuable_.kind; }
 
-    // #scope is not a bare break/continue target. Keep the innermost scope for
+    // 'scope' is not a bare break/continue target. Keep the innermost scope for
     // diagnostics when no enclosing loop provides the intended target.
-    AstNodeRef currentCompilerScope() const { return compilerScope_; }
-    void       setCurrentCompilerScope(AstNodeRef nodeRef) { compilerScope_ = nodeRef; }
+    AstNodeRef currentScopeStmt() const { return scopeStmt_; }
+    void       setCurrentScopeStmt(AstNodeRef nodeRef) { scopeStmt_ = nodeRef; }
 
     AstNodeRef       currentErrorScope() const { return currentErrorScope_; }
     ErrorContextMode currentErrorContextMode() const { return currentErrorContextMode_; }
@@ -294,7 +294,7 @@ private:
     const SymbolInterface*  interface_          = nullptr;
     SymbolFunction*         function_           = nullptr;
     SymbolFunction*         enclosingFunction_  = nullptr;
-    SemaNamedCompilerScope* namedCompilerScope_ = nullptr;
+    SemaNamedScope* namedScope_ = nullptr;
 
     SemaFrameContextFlags contextFlags_       = SemaFrameContextFlagsE::Zero;
     AstNodeRef            syntaxScopeNodeRef_ = AstNodeRef::invalid();
@@ -317,7 +317,7 @@ private:
 
     BreakContext breakable_;
     BreakContext continuable_;
-    AstNodeRef   compilerScope_ = AstNodeRef::invalid();
+    AstNodeRef   scopeStmt_ = AstNodeRef::invalid();
 
     AstNodeRef       currentErrorScope_       = AstNodeRef::invalid();
     ErrorContextMode currentErrorContextMode_ = ErrorContextMode::None;

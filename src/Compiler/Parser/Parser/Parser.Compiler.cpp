@@ -536,9 +536,9 @@ AstNodeRef Parser::parseCompilerImport()
     return nodeRef;
 }
 
-AstNodeRef Parser::parseCompilerScope()
+AstNodeRef Parser::parseScope()
 {
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::CompilerScope>(consume());
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ScopeStmt>(consume());
 
     const TokenRef openRef = ref();
     if (consumeIf(TokenId::SymLeftParen).isValid())

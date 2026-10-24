@@ -67,8 +67,10 @@ func makeTracked(v: s32)->Tracked
 {
     resetHooks()
     g_pick = false
+    scope
     {
         var source = makeTracked(1)
+        scope
         {
             let picked = g_pick ? makeTracked(2) : source
             Swag.assert(picked.value == 11)
@@ -88,8 +90,10 @@ func makeTracked(v: s32)->Tracked
 {
     resetHooks()
     g_pick = true
+    scope
     {
         var source = makeTracked(1)
+        scope
         {
             let picked = g_pick ? makeTracked(2) : source
             Swag.assert(picked.value == 12)
@@ -107,9 +111,11 @@ func makeTracked(v: s32)->Tracked
 {
     resetHooks()
     g_pick = false
+    scope
     {
         var left  = makeTracked(3)
         var right = makeTracked(4)
+        scope
         {
             let picked = g_pick ? left : right
             Swag.assert(picked.value == 14)
@@ -127,8 +133,10 @@ func makeTracked(v: s32)->Tracked
 {
     resetHooks()
     g_pick = false
+    scope
     {
         var source = makeTracked(6)
+        scope
         {
             var picked = g_pick ? makeTracked(7) : source
             Swag.assert(picked.value == 16)

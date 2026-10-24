@@ -202,13 +202,13 @@ impl SemaGenericScopedVisits
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
         where not ptr
     {
-        #scope(Outer)
+        scope(Outer)
         for idx in 3
         {
             if idx < SemaGenericScopedVisits.FIRST do
                 continue
 
-            #scope(Inner)
+            scope(Inner)
             {
                 #inject(stmt, item = me.values[idx], index = idx, break = break to Outer, continue = break to Inner)
             }

@@ -18,6 +18,7 @@ impl Item
 {
     dropped = 0
     sum     = 0
+    scope
     {
         var items: [3] Item
         for &item in items do

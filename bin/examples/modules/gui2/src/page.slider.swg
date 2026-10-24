@@ -7,6 +7,7 @@ func createSliderPage(parent: *Wnd)
                              "Horizontal",
                              "Single value sliders with continuous and stepped ranges.",
                              layout.left)
+    scope
     {
         createCaption(left, "Continuous 0..100", 24, 88, 180)
         var slider = Slider.create(left, {24, 116, 320})
@@ -24,6 +25,7 @@ func createSliderPage(parent: *Wnd)
                             "Range",
                             "Two-handle sliders cover ordering, highlighted intervals and disabled rendering.",
                             layout.right)
+    scope
     {
         createCaption(right, "Range -10..10", 24, 88, 180)
         var slider = Slider.create(right, {24, 116, 330}, range: true)
@@ -41,6 +43,7 @@ func createSliderPage(parent: *Wnd)
                              "Vertical and integer",
                              "Vertical sliders share the same value model and step rendering.",
                              layout.bottom)
+    scope
     {
         createCaption(bottom, "Vertical", 24, 92, 120)
         var slider = Slider.create(bottom, {48, 126, 32, 96}, vertical: true)

@@ -81,6 +81,7 @@ func takeMoveOnlyParenthesized(value: #move MoveOnly)->u64
 #test
 {
     copies, drops = 0
+    scope
     {
         var source       = Owner{41}
         let owned: Owner = (#move source)

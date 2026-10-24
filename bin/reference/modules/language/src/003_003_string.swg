@@ -151,6 +151,7 @@ can select any integer type or 'rune' when the value fits the target type.
 */
 #test
 {
+    scope
     {
         let a: u8   = 'a'
         let b: u16  = 'a'
@@ -160,6 +161,7 @@ can select any integer type or 'rune' when the value fits the target type.
         Swag.assert(a == 'a' and b == 'a' and c == '我' and d == '我' and e == '我')
     }
 
+    scope
     {
         let a: s8  = 'a'
         let b: s16 = 'a'
@@ -242,12 +244,14 @@ Escape sequences can represent characters via their ASCII or Unicode values.
 */
 #test
 {
+    scope
     {
         const a = "\x26"
         const b = "\u2626"
         const c = "\U00101234"
     }
 
+    scope
     {
         const d = "\u2F46\u2F46"
         #assert(d == "⽆⽆")

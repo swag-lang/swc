@@ -110,6 +110,7 @@ func runInjectedLoopScope()->s64
 func runMixinScopeLock()->s32
 {
     ScopeLockValue = 0
+    scope
     {
         mixinScopeLock()
         defer a += 1

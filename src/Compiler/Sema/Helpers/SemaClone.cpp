@@ -229,7 +229,7 @@ namespace
         return result;
     }
 
-    // A '#scope' is not one of these: a bare 'break' or 'continue' written inside it still
+    // A 'scope' is not one of these: a bare 'break' or 'continue' written inside it still
     // belongs to the enclosing loop or switch, so an injected one keeps being substituted.
     bool startsNestedBreakableContext(const AstNode& node)
     {
@@ -1898,9 +1898,9 @@ AstNodeRef AstCompilerSwitchCase::semaClone(Sema& sema, const CloneContext& clon
     return cloneNodeMembers<AstNodeId::CompilerSwitchCase, &AstCompilerSwitchCase::spanExprRef, &AstCompilerSwitchCase::nodeBodyRef>(sema, *this, cloneContext);
 }
 
-AstNodeRef AstCompilerScope::semaClone(Sema& sema, const CloneContext& cloneContext) const
+AstNodeRef AstScopeStmt::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodeMembers<AstNodeId::CompilerScope, &AstCompilerScope::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::ScopeStmt, &AstScopeStmt::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstCompilerRunBlock::semaClone(Sema& sema, const CloneContext& cloneContext) const

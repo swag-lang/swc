@@ -107,6 +107,7 @@ func holdVideoProducer(view: *Film.Panel)
 {
     for 5_000
     {
+        scope
         {
             Sync.scopedLock(&view.queueLock)
             view.ready.clear()
@@ -124,6 +125,7 @@ func holdVideoProducer(view: *Film.Panel)
 // Hands back every slot [[holdVideoProducer]] withheld, and wakes the producer.
 func releaseVideoProducer(view: *Film.Panel)
 {
+    scope
     {
         Sync.scopedLock(&view.queueLock)
         Swag.assert(not view.inFlight and view.ready.isEmpty() and view.freeSlots.isEmpty())
@@ -311,6 +313,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     var queued   = 0'u64
     while queued != 11 and attempts < 5000
     {
+        scope
         {
             Sync.scopedLock(&view.queueLock)
             queued = view.ready.count

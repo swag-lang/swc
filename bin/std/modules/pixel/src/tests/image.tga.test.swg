@@ -258,6 +258,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 {
     const Width  = 17'u16
     const Height = 2'u16
+    scope
     {
         var cb: ConcatBuffer
         addTgaImageHeader(&cb, TGA_TYPE_RGB, 15, TGA_DESC_TOP | TGA_DESC_RIGHT, Width, Height)
@@ -280,6 +281,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
         }
     }
 
+    scope
     {
         var cb: ConcatBuffer
         addTgaImageHeader(&cb, TGA_TYPE_RGB, 16, TGA_DESC_TOP | TGA_DESC_RIGHT | 1, Width, Height)

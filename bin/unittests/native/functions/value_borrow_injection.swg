@@ -1,7 +1,7 @@
 #global private
 
 #[Swag.Macro]
-func scope(stmt: #code) { #inject(stmt) }
+func injected(stmt: #code) { #inject(stmt) }
 
 #[Swag.Inline]
 func readLocation(value: u64, padding: u64 = 0, loc = #callerlocation)->u64
@@ -14,7 +14,7 @@ func readLocation(value: u64, padding: u64 = 0, loc = #callerlocation)->u64
 #test
 {
     let loc = #curlocation
-    scope()
+    injected()
     {
         let observed = readLocation(1, loc: loc)
         Swag.assert(observed == 1 + loc.lineStart)
@@ -33,9 +33,9 @@ func readValue(value: Value, original: const *Value)->u64
 #test
 {
     var value: Value = {first: 41}
-    scope()
+    injected()
     {
-        scope()
+        injected()
         {
             let observed = readValue(value: value, original: &value)
             Swag.assert(observed == 41)
@@ -47,7 +47,7 @@ func readValue(value: Value, original: const *Value)->u64
 #test
 {
     var value: Value = {first: 43}
-    scope()
+    injected()
     {
         var value: Value = {first: 47}
         let observed     = readValue(value: value, original: &value)

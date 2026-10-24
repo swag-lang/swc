@@ -23,10 +23,12 @@ func raiseCryptoBatchTestError(marker: u32) fail
     var task: Swag.Task
     task.submit(func|&batch|()
     {
+        scope
         {
             catch raiseCryptoBatchTestError(17) as first else { batch.keepFirstError(first) }
         }
 
+        scope
         {
             catch raiseCryptoBatchTestError(23) as later else { batch.keepFirstError(later) }
         }

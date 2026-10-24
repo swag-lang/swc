@@ -131,6 +131,7 @@ func day10B()
     #[Swag.Mixin]
     func toCheck()
     {
+        scope
         {
             let tt = cycle % 40
             if x >= tt - 1 and x <= tt + 1 do

@@ -76,6 +76,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(11)
+    scope
     {
         let value = catch makeManagedResult(true) else {}
         Swag.assert(value.value == 11)
@@ -91,6 +92,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(13)
+    scope
     {
         let value = catch makeManagedResult(false) else {}
         Swag.assert(value.value == 0)
@@ -104,6 +106,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(17)
+    scope
     {
         let value = expect makeManagedResult(true)
         Swag.assert(value.value == 17)
@@ -118,6 +121,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(19)
+    scope
     {
         let value = returnCatchResult()
         Swag.assert(value.value == 19)
@@ -128,6 +132,7 @@ func returnInlineCatchResult()->ManagedResult
     Swag.assert(DropTrace == 19)
 
     resetHooks(23)
+    scope
     {
         let value = returnExpectResult()
         Swag.assert(value.value == 23)
@@ -138,6 +143,7 @@ func returnInlineCatchResult()->ManagedResult
     Swag.assert(DropTrace == 23)
 
     resetHooks(29)
+    scope
     {
         let value = catch returnTryResult() else {}
         Swag.assert(value.value == 29)
@@ -153,6 +159,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(31)
+    scope
     {
         let value = returnInlineCatchResult()
         Swag.assert(value.value == 31)

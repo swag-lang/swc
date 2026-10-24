@@ -48,6 +48,7 @@ func returnCallCapture()->Callback
 func storeTaskCapture()
 {
     var task: Swag.Task
+    scope
     {
         var value = 7
         task.submit(func|pointer = &value|() { pointer[] = 9 })     // swc-expected-error {{sanity_err_borrow_escape}}
@@ -57,6 +58,7 @@ func storeTaskCapture()
 func storeTaskMemberCapture()
 {
     var task: Swag.Task
+    scope
     {
         var box = Box{7}
         task.submit(func|&value = box.value|() { value = 9 })     // swc-expected-error {{sanity_err_borrow_escape}}

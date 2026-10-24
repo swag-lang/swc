@@ -136,6 +136,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(11)
+    scope
     {
         let owner = makeExpression(FreshSeed)
         Swag.assert(owner.value == 11)
@@ -144,6 +145,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(0, 0, 1, 11)
 
     resetFresh(12)
+    scope
     {
         let owner = makeBlock(FreshSeed)
         Swag.assert(owner.value == 12 and owner.extra == 13)
@@ -151,6 +153,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(0, 0, 1, 12)
 
     resetFresh(13)
+    scope
     {
         let owner = makeBare(FreshSeed)
         Swag.assert(owner.value == 13 and owner.extra == 14)
@@ -158,6 +161,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(0, 0, 1, 13)
 
     resetFresh(0)
+    scope
     {
         let owner = makeConstant()
         Swag.assert(owner.value == 3 and owner.extra == 4)
@@ -169,6 +173,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(14)
+    scope
     {
         let owner = makeDeferred(FreshSeed)
         Swag.assert(owner.value == 14)
@@ -181,6 +186,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(15)
+    scope
     {
         let owner = catch makeFallible(FreshSeed) else {}
         Swag.assert(owner.value == 15)
@@ -188,6 +194,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(0, 0, 1, 15)
 
     resetFresh(-16)
+    scope
     {
         let owner = catch makeFallible(FreshSeed) else {}
         Swag.assert(owner.value == 0)
@@ -200,6 +207,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(17)
+    scope
     {
         let owner = makeInline(FreshSeed)
         Swag.assert(owner.value == 17)
@@ -207,6 +215,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(0, 1, 1, 17)
 
     resetFresh(18)
+    scope
     {
         let owner = makeInlineBranches(FreshSeed)
         Swag.assert(owner.value == 18)
@@ -214,6 +223,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(0, 1, 1, 18)
 
     resetFresh(-19)
+    scope
     {
         let owner = makeInlineBranches(FreshSeed)
         Swag.assert(owner.value == 19 and owner.extra == 1)
@@ -224,6 +234,7 @@ func makeAuto(value: s64)->FreshOwner
     // that result or moved into it first is the expansion's business: the contract is no
     // copy and a single drop.
     resetFresh(31)
+    scope
     {
         let owner = forwardInline(FreshSeed)
         Swag.assert(owner.value == 31)
@@ -234,6 +245,7 @@ func makeAuto(value: s64)->FreshOwner
 
     // Whether the optimizer expands this one decides between zero and one relocation.
     resetFresh(20)
+    scope
     {
         let owner = makeAuto(FreshSeed)
         Swag.assert(owner.value == 20)
@@ -248,6 +260,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(21)
+    scope
     {
         var owner: FreshOwner
         owner = makeBlock(FreshSeed)
@@ -262,6 +275,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(22)
+    scope
     {
         let source = makeBlock(FreshSeed)
         let pair   = makePair(source)
@@ -271,6 +285,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(1, 1, 3, 232_222)
 
     resetFresh(32)
+    scope
     {
         let source = makeBlock(FreshSeed)
         let pair   = FreshPair{source, makeBlock(FreshSeed + 1)}
@@ -285,6 +300,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(34)
+    scope
     {
         let source = makeBlock(FreshSeed)
         let sum    = sumPair(FreshPair{source, makeBlock(FreshSeed + 1)})
@@ -299,6 +315,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(24)
+    scope
     {
         let owners = makeArray(FreshSeed)
         Swag.assert(owners[0].value == 24 and owners[1].value == 25)
@@ -310,6 +327,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(26)
+    scope
     {
         let owner = FreshOwner{FreshSeed}
         Swag.assert(owner.value == 26)
@@ -317,6 +335,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(0, 0, 1, 26)
 
     resetFresh(27)
+    scope
     {
         var owner: FreshOwner = {FreshSeed, 1}
         Swag.assert(owner.value == 27 and owner.extra == 1)
@@ -324,6 +343,7 @@ func makeAuto(value: s64)->FreshOwner
     expectFresh(0, 0, 1, 27)
 
     resetFresh(28)
+    scope
     {
         let owners = [FreshOwner{FreshSeed}, FreshOwner{FreshSeed + 1}]
         Swag.assert(owners[0].value == 28 and owners[1].value == 29)
@@ -335,6 +355,7 @@ func makeAuto(value: s64)->FreshOwner
 #test
 {
     resetFresh(30)
+    scope
     {
         var owner: FreshOwner
         owner = FreshOwner{FreshSeed}

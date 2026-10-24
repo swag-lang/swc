@@ -176,7 +176,7 @@ impl SelModel
         // `continue` in it cannot skip the step.
         var ordinal = 0'u64
 
-        #scope(Up)
+        scope(Up)
         for &range in .rangesStorage
         {
             for itemIndex in range.start to range.end

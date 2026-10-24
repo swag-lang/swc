@@ -166,7 +166,7 @@ func runBreakReplacementAsContinue()->s32
 func runBreakReplacementAsScopeBreak()->s32
 {
     var count: s32 = 0
-    #scope(Outer)
+    scope(Outer)
     {
         for 4
         {
@@ -183,7 +183,7 @@ func runBreakReplacementAsScopeBreak()->s32
 func runContinueReplacementAsScopeBreak()->s32
 {
     var count: s32 = 0
-    #scope(Outer)
+    scope(Outer)
     {
         for 4
         {
@@ -200,7 +200,7 @@ func runContinueReplacementAsScopeBreak()->s32
 func runCombinedReplacements()->s32
 {
     var count: s32 = 0
-    #scope(Outer)
+    scope(Outer)
     {
         for 4
         {

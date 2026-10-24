@@ -32,6 +32,7 @@ impl Panel
     mtd repositionTo(index: u64, notifyLoading = true)
     {
         var notify: bool
+        scope
         {
             Sync.scopedLock(&.queueLock)
             if .anchorPending and .produceFrom == index and not .hasFailure do
@@ -99,6 +100,7 @@ impl Panel
         var slot       = 0'u32
         var index      = 0'u64
         var generation = 0'u32
+        scope
         {
             Sync.scopedLock(&.queueLock)
             if .hasFailure or .freeSlots.isEmpty() do
@@ -160,6 +162,7 @@ impl Panel
     {
         var chosen = NoSlot
         var failure: String
+        scope
         {
             Sync.scopedLock(&.queueLock)
             if not .ready.isEmpty()
@@ -240,6 +243,7 @@ impl Panel
             .imageView.exchangeImage(&.slots[cast(u64, chosen)].image)
         }
 
+        scope
         {
             Sync.scopedLock(&.queueLock)
             .freeSlots.add(chosen)
@@ -443,6 +447,7 @@ impl Panel
             let count = .video.frameCount()
             var depth = 0'u64
             var more: bool
+            scope
             {
                 Sync.scopedLock(&.queueLock)
                 depth = .ready.count
@@ -461,6 +466,7 @@ impl Panel
 
         var head  = 0'u64
         var empty = true
+        scope
         {
             Sync.scopedLock(&.queueLock)
             if not .ready.isEmpty()

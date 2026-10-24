@@ -64,6 +64,7 @@ func drawTransparencyPage(painter: *Pixel.Painter)
 
     drawBlobSurface(painter, sceneBody)
 
+    scope
     {
         var path = makeTransparencyPath(sceneBody, 0)
         var pen  = Pen.createSolid(Color.fromArgb(122, Argb.Tomato), 34)
@@ -73,6 +74,7 @@ func drawTransparencyPage(painter: *Pixel.Painter)
         painter.drawPath(&path, pen)
     }
 
+    scope
     {
         var path = makeTransparencyPath(sceneBody, 1)
         var pen  = Pen.createSolid(Color.fromArgb(126, Argb.SeaGreen), 28)
@@ -84,6 +86,7 @@ func drawTransparencyPage(painter: *Pixel.Painter)
         painter.drawPath(&path, pen)
     }
 
+    scope
     {
         var path = makeTransparencyPath(sceneBody, 2)
         var pen  = Pen.createSolid(Color.fromArgb(120, Argb.DeepSkyBlue), 24)

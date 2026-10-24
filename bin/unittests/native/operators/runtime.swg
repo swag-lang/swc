@@ -170,12 +170,14 @@ namespace compiler226
     {
         var a: s32
         discard a
+        scope
         {
             var b: s64
             discard b
             var c: s64
             discard c
         }
+        scope
         {
             var b: s64
             discard b

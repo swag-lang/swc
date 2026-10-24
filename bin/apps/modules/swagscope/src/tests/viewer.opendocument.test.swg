@@ -271,6 +271,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 // CC0 files created outside this repository keep archive parsing and the three reader surfaces honest.
 #test
 {
+    scope
     {
         var host: Testing.HeadlessHost
         host.setup(820, 560)
@@ -283,6 +284,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
                     result.info!.isVisible())
     }
 
+    scope
     {
         var host: Testing.HeadlessHost
         host.setup(820, 560)
@@ -297,6 +299,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
                     result.info!.isHidden())
     }
 
+    scope
     {
         var host: Testing.HeadlessHost
         host.setup(820, 560)

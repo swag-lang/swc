@@ -40,6 +40,7 @@ func semaTest003()
 {
     injectPlain()
     {
+        scope
         {
             let set: ShadowItem = {count: 6}
             let count = set.count

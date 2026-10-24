@@ -96,6 +96,7 @@ func returnThroughCallChain()->*s32
 func escapeInnerScope()->s32
 {
     var pointer: *s32?
+    scope
     {
         var value = 42's32
         pointer = &value     // swc-expected-error {{sanity_err_borrow_scope_escape}}

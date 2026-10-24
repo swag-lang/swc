@@ -50,6 +50,7 @@ func injectPlain(stmt: #code)
     var result = 0
     injectPlain()
     {
+        scope
         {
             let set: ShadowItem = {count: 6}
             result += set.count
@@ -86,6 +87,7 @@ func injectPlain(stmt: #code)
     injectPlain()
     {
         let before = shadowConst
+        scope
         {
             let shadowConst = readShadowValue(3)
             result += 2 * shadowConst
@@ -104,6 +106,7 @@ func injectPlain(stmt: #code)
     injectPlain()
     {
         let before = shadowLet
+        scope
         {
             let shadowLet = readShadowValue(4)
             result += 2 * shadowLet

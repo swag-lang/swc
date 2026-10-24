@@ -27,13 +27,13 @@ namespace InjectExprCloneSupport
         {
             var cursor: u64 = 0
 
-            #scope(Up)
+            scope(Up)
             while true
             {
                 if cursor >= .count do
                     break
 
-                #scope(Down)
+                scope(Down)
                 {
                     #inject(stmt, item = cast(*InjectExprCloneSupport.VisitProbe, &.values[cursor]), index = cursor, break = break to Up, continue = break to Down)
                 }

@@ -164,6 +164,7 @@ impl IRenderer for PresentProbe
     worker.start(&backend)
     defer worker.close()
     let renderer: IRenderer = &worker
+    scope
     {
         var context = expect renderer.createContext(null, 64, 64)
         defer renderer.deleteContext(&context)

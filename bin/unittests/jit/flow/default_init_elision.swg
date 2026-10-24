@@ -177,6 +177,7 @@ func defaultPair()->{ x: s32, y: s32 }
 #test
 {
     g_defaultDropCount = 0
+    scope
     {
         var v: DefaultDrop
         v = makeDefaultDrop(5)
@@ -189,6 +190,7 @@ func defaultPair()->{ x: s32, y: s32 }
 #test
 {
     g_defaultDropCount = 0
+    scope
     {
         var o: DefaultOuter
         o.d = makeDefaultDrop(3)
@@ -202,6 +204,7 @@ func defaultPair()->{ x: s32, y: s32 }
 #test
 {
     g_defaultDropCount = 0
+    scope
     {
         var v: DefaultDrop
         v = makeDefaultDrop(1)

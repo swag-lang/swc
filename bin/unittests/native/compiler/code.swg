@@ -221,7 +221,7 @@ func remapLoopFlow(stmt: #code)
 #test
 {
     var count = 0
-    #scope(Outer)
+    scope(Outer)
     {
         for 4
         {
@@ -241,7 +241,7 @@ func remapLoopFlow(stmt: #code)
 #test
 {
     var count = 0
-    #scope(Outer)
+    scope(Outer)
     {
         for 4
         {
@@ -266,7 +266,7 @@ func remapLoopFlow(stmt: #code)
 #test
 {
     var count = 0
-    #scope(Outer)
+    scope(Outer)
     {
         for 4
         {

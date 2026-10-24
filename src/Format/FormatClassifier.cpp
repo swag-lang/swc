@@ -1572,11 +1572,11 @@ namespace
                     break;
                 }
 
-                case AstNodeId::CompilerScope:
+                case AstNodeId::ScopeStmt:
                 {
-                    // Like an attribute, `#scope(Name)` names a separate statement. Mark
-                    // its start so its block brace cannot align with `#scope`.
-                    const NodeSpan bodySpan = spanOf(node.cast<AstCompilerScope>().nodeBodyRef);
+                    // Like an attribute, `scope(Name)` names a separate statement. Mark
+                    // its start so its block brace cannot align with `scope`.
+                    const NodeSpan bodySpan = spanOf(node.cast<AstScopeStmt>().nodeBodyRef);
                     if (bodySpan.valid())
                         addRole(bodySpan.minPiece, FormatRoleE::StmtStart);
                     break;

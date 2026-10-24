@@ -2098,6 +2098,7 @@ impl Wnd
         }
 
         // Ask the new window if it wants the focus
+        scope
         {
             var evt = FocusEvent{kind: FocusEvent.Kind.CanGain, other: last}
             .sendEvent(&evt)

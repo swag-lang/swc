@@ -4,9 +4,9 @@ using Swag, Core
 
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     discard expect face.setPixelSize(0, 20)
     let glyphIndex = face.glyphIndex('A')
@@ -24,9 +24,9 @@ using Swag, Core
 
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     discard expect face.setPixelSize(0, 32)
     discard expect face.loadChar('A', .Default)
@@ -63,9 +63,9 @@ using Swag, Core
 // definitions, including the last pixel of an odd-width row.
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     var sawOddWidth = false
     for pixelSize in [17'u32, 31, 64]
@@ -116,9 +116,9 @@ using Swag, Core
 // fully-covered interior pixels (255), and partially-covered edge pixels in between.
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     discard expect face.setPixelSize(0, 40)
     discard expect face.loadChar('A', .Default)
@@ -149,9 +149,9 @@ using Swag, Core
 
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     discard expect face.setPixelSize(0, 20)
     discard expect face.loadChar('A', .Default)
@@ -167,9 +167,9 @@ using Swag, Core
 #test
 {
     Swag.setWorkerCount(4)
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     // Exceed the row-dispatch threshold so native execution exercises the parallel loop.
     discard expect face.setPixelSize(0, 64)

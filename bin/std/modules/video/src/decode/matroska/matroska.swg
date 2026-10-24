@@ -1036,9 +1036,9 @@ private impl Layout
     // Reads one encoding and answers whether it is one this reader undoes.
     mtd parseContentEncoding(cursor: *Cursor, encoding: Element, track: *Track)->bool fail
     {
-        var scope     = 1'u64
-        var kind      = 0'u64
-        var algorithm = Swag.U64.Max
+        var encodingScope = 1'u64
+        var kind          = 0'u64
+        var algorithm     = Swag.U64.Max
         var stripped: Array'u8
         while not cursor.atEnd(encoding.end)
         {
@@ -1046,7 +1046,7 @@ private impl Layout
             switch element.id
             {
             case ContentEncodingScopeId:
-                scope = try cursor.readUnsigned(element)
+                encodingScope = try cursor.readUnsigned(element)
 
             case ContentEncodingTypeId:
                 kind = try cursor.readUnsigned(element)
@@ -1070,7 +1070,7 @@ private impl Layout
 
         // Scope one is the frames themselves; the other scopes describe what was done to the
         // private data or to a later encoding, and neither is a thing this reader undoes.
-        if scope != 1 or kind != 0 or algorithm != HeaderStrippingAlgorithm do
+        if encodingScope != 1 or kind != 0 or algorithm != HeaderStrippingAlgorithm do
             return false
 
         track.headerStrip = #move stripped

@@ -1357,7 +1357,7 @@ func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteId
         if eat == 0 do
             break
 
-        #scope(Inside)
+        scope(Inside)
         {
             #inject(stmt, c = curRune, charIdx = curCharIdx, byteIdx = curByteIdx, continue = break to Inside)
         }

@@ -146,7 +146,7 @@ struct CodeGenDeferredEmissionCursor
 class CodeGenFrame
 {
 public:
-    // A '#scope' is deliberately absent: it is reachable by 'break to <name>' only, never by a
+    // A 'scope' is deliberately absent: it is reachable by 'break to <name>' only, never by a
     // bare 'break' or by 'continue', so it never becomes the current break or continue context.
     enum class BreakContextKind : uint8_t
     {

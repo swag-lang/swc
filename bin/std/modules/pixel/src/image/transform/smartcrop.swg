@@ -516,6 +516,7 @@ impl Image
         var bScore: f32 = -1.0e30
         var bD2:    f32 = 1.0e30
 
+        scope
         {
             let r0 = scoreWindow(ctx, bestX, bestY, bestW, bestH)
             bScore = r0.score
@@ -702,6 +703,7 @@ impl Image
             return rf
         }
 
+        scope
         {
             let rr = refinePosition(&ctx, bestX, bestY, bestW, bestH, 2)
             if rr.score > bestScore + Math.ConstF32.Epsilon

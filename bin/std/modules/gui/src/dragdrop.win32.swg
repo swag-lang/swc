@@ -250,7 +250,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
         return
 
     // Files. The medium is a DROPFILES block, which is exactly what the shell drag helpers read.
-    #scope(Files)
+    scope(Files)
     {
         var med: STGMEDIUM
         if not requestMedium(dataObj, CF_HDROP, TYMED_HGLOBAL, -1, &med) do
@@ -281,7 +281,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
         readFileContents(dataObj, data, withContents)
 
     // Text, preferring the Unicode form the way the clipboard does.
-    #scope(Text)
+    scope(Text)
     {
         let utf16 = readFormat(dataObj, CF_UNICODETEXT)
         if utf16.count >= 2
@@ -296,7 +296,7 @@ private func readDragData(dataObj: *IDataObject?, data: *DragData, withContents:
     }
 
     // Image. A browser drags PNG bytes and the desktop drags a DIB; both decode from the name.
-    #scope(Image)
+    scope(Image)
     {
         if g_PngDragFormat
         {

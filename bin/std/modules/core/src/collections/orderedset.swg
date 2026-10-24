@@ -31,11 +31,11 @@ impl ReversedOrderedSet
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, index: u64))
     {
-        #scope(Up)
+        scope(Up)
         for offset in .source.count
         {
             let keyIndex = .source.count - offset - 1
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,
@@ -219,10 +219,10 @@ impl OrderedSet
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(key, index: u64))
     {
-        #scope(Up)
+        scope(Up)
         for keyIndex in .count
         {
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,

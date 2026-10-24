@@ -184,10 +184,10 @@ impl ReturnVisits
             return
 
         var remain = (.values).count
-        #scope(Up)
+        scope(Up)
         for idx in (.values).count
         {
-            #scope(Down)
+            scope(Down)
             {
                 #inject(stmt, item = me.values[idx], break = break to Up, continue = break to Down)
             }
@@ -256,13 +256,13 @@ impl GenericScopedVisits
     mtd(ptr: bool) const opVisit(stmt: #code(item, index: u64))
         where not ptr
     {
-        #scope(Outer)
+        scope(Outer)
         for idx in 3
         {
             if idx < GenericScopedVisits.FIRST do
                 continue
 
-            #scope(Inner)
+            scope(Inner)
             {
                 #inject(stmt, item = me.values[idx], index = idx, break = break to Outer, continue = break to Inner)
             }

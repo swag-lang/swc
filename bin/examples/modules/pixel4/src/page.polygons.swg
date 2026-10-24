@@ -24,11 +24,13 @@ func buildPolygonHoleList(rect: Math.Rectangle)->LinePathList
         Math.Vector2{cx, cy + 42},
         Math.Vector2{cx - 42, cy}]
 
+    scope
     {
         let path = result.newPath()
         addPolygonPath(path, outer[to])
     }
 
+    scope
     {
         let path = result.newPath()
         path.start(inner[0].x, inner[0].y)

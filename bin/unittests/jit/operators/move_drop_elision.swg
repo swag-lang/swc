@@ -39,6 +39,7 @@ impl Tracked
 #test
 {
     resetHooks()
+    scope
     {
         var src = Tracked{3}
         var dst = Tracked{7}
@@ -53,6 +54,7 @@ impl Tracked
 #test
 {
     resetHooks()
+    scope
     {
         var src = Tracked{3}
         var dst = Tracked{7}
@@ -68,6 +70,7 @@ impl Tracked
 #test
 {
     resetHooks()
+    scope
     {
         var src = Tracked{3}
         var dst = Tracked{7}
@@ -82,6 +85,7 @@ impl Tracked
 #test
 {
     resetHooks()
+    scope
     {
         var src = Tracked{3}
         var dst = Tracked{7}
@@ -98,6 +102,7 @@ impl Tracked
 #test
 {
     resetHooks()
+    scope
     {
         var src = Tracked{3}
         var dst = Tracked{7}
@@ -112,6 +117,7 @@ impl Tracked
 #test
 {
     resetHooks()
+    scope
     {
         var src = Tracked{3}
         var dst = #move src
@@ -126,6 +132,7 @@ impl Tracked
 #test
 {
     resetHooks()
+    scope
     {
         var src = Tracked{3}
         var d1  = Tracked{6}

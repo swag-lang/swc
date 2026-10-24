@@ -63,6 +63,7 @@ func deferNestedIfElse(a: bool, b: bool)->s64
 func deferMultipleSameScope()->s64
 {
     resetTrace()
+    scope
     {
         defer appendTrace(1)
         defer appendTrace(2)
@@ -134,10 +135,12 @@ func deferWhileMultiBreak(path: s32)->s64
 func deferScopeBlock()->s64
 {
     resetTrace()
+    scope
     {
         defer appendTrace(1)
         appendTrace(2)
     }
+    scope
     {
         defer appendTrace(3)
         appendTrace(4)
@@ -174,6 +177,7 @@ func deferSingleIterFor()->s64
 #test
 {
     var a = 0
+    scope
     {
         defer a = 2
         a = 3
@@ -185,10 +189,13 @@ func deferSingleIterFor()->s64
 func deferTripleNested()->s64
 {
     resetTrace()
+    scope
     {
         defer appendTrace(1)
+        scope
         {
             defer appendTrace(2)
+            scope
             {
                 defer appendTrace(3)
                 appendTrace(4)

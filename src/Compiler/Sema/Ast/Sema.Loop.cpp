@@ -56,7 +56,7 @@ namespace
         const AstNode& scopeNode = sema.node(scopeRef);
         auto           diag      = SemaError::report(sema, diagId, sema.curNodeRef());
 
-        if (const TokenRef tokNameRef = scopeNode.cast<AstCompilerScope>().tokNameRef; tokNameRef.isValid())
+        if (const TokenRef tokNameRef = scopeNode.cast<AstScopeStmt>().tokNameRef; tokNameRef.isValid())
         {
             const SourceCodeRef nameCodeRef{scopeNode.srcViewRef(), tokNameRef};
             diag.addArgument(Diagnostic::ARG_SYM, sema.token(nameCodeRef).string(sema.srcView(nameCodeRef.srcViewRef)));
@@ -803,9 +803,9 @@ Result AstBreakStmt::semaPreNode(Sema& sema)
     if (sema.frame().deferBody())
         return reportControlFlowLeavesDefer(sema);
 
-    // Inside a '#scope' the reader almost certainly meant to leave that scope, which only
+    // Inside a 'scope' the reader almost certainly meant to leave that scope, which only
     // 'break to <name>' does. Point at the scope instead of reporting a bare absence.
-    if (const AstNodeRef scopeRef = sema.frame().currentCompilerScope(); scopeRef.isValid())
+    if (const AstNodeRef scopeRef = sema.frame().currentScopeStmt(); scopeRef.isValid())
         return reportScopeStatement(sema, DiagnosticId::sema_err_break_targets_scope, scopeRef);
 
     return SemaError::raise(sema, DiagnosticId::sema_err_break_outside_breakable, sema.curNodeRef());
@@ -828,9 +828,9 @@ Result AstContinueStmt::semaPreNode(Sema& sema)
     if (sema.frame().deferBody())
         return reportControlFlowLeavesDefer(sema);
 
-    // A '#scope' is not a loop, so there is nothing to restart. Say which construct was
+    // A 'scope' is not a loop, so there is nothing to restart. Say which construct was
     // mistaken for one rather than reporting that no loop encloses the statement.
-    if (const AstNodeRef scopeRef = sema.frame().currentCompilerScope(); scopeRef.isValid())
+    if (const AstNodeRef scopeRef = sema.frame().currentScopeStmt(); scopeRef.isValid())
         return reportScopeStatement(sema, DiagnosticId::sema_err_continue_in_scope, scopeRef);
 
     return SemaError::raise(sema, DiagnosticId::sema_err_continue_outside_breakable, sema.curNodeRef());

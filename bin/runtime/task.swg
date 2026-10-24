@@ -17,12 +17,12 @@ impl CancelScope
     // Returns whether this scope or any scope it chains to was asked to stop.
     mtd const isRaised()->bool
     {
-        var scope: const *CancelScope? = me
-        while scope
+        var cancelScope: const *CancelScope? = me
+        while cancelScope
         {
-            if scope.stop.isRaised() do
+            if cancelScope.stop.isRaised() do
                 return true
-            scope = scope.parent
+            cancelScope = cancelScope.parent
         }
 
         return false
@@ -37,16 +37,16 @@ impl CancelScope
 // asks decides itself whether to return a partial result or to fail.
 public func isCancelled()->bool
 {
-    let scope = Swag.getContext().cancelScope
-    return scope != null and scope.isRaised()
+    let cancelScope = Swag.getContext().cancelScope
+    return cancelScope != null and cancelScope.isRaised()
 }
 
 // Runs `body` with `scope` as the cancellation state of this thread, then restores the previous one.
-private func runInScope(scope: *CancelScope?, body: func||())
+private func runInScope(cancelScope: *CancelScope?, body: func||())
 {
     let context  = Swag.getContext()
     let previous = context.cancelScope
-    context.cancelScope = scope
+    context.cancelScope = cancelScope
     runTaskBody(body)
     context.cancelScope = previous
 }
@@ -67,7 +67,7 @@ struct TaskState
     using node: WorkNode
     run:        (func||())?      // Runs the body and stores its outcome; set at each submission.
     notify:     (func||())?      // Told the outcome exists, before the task reads as done.
-    scope:      CancelScope      // The cancellation state the body observes.
+    cancelScope:      CancelScope      // The cancellation state the body observes.
     priority:   TaskPriority     // How urgently the body runs.
     submission: u64              // Counts the submissions, so a notification names the one it reports.
 }
@@ -199,12 +199,12 @@ impl Task
     // and `parallel for` partition the body starts.
     mtd cancel()
     {
-        discard .scope.stop.raise()
+        discard .cancelScope.stop.raise()
         wakeCancelledObservers()
     }
 
     // Returns whether a stop was requested for the current submission.
-    mtd const isCancelled()->bool => .scope.stop.isRaised()
+    mtd const isCancelled()->bool => .cancelScope.stop.isRaised()
 
     // Returns whether the last submission finished with an error that was not taken yet.
     mtd const hasFailed()->bool => .isDone() and not .failure.isEmpty()
@@ -268,7 +268,7 @@ private impl Task
         .notify     = notify
         .priority   = priority
         .node.entry = &taskEntry
-        .scope.stop.reset()
+        .cancelScope.stop.reset()
     }
 
     // Hands the prepared submission to `executor`, or to the pool.
@@ -322,12 +322,12 @@ private func taskEntry(node: *WorkNode)
     if state.priority == .Background
     {
         let previous = __hostThreadEnterBackground()
-        runInScope(&state.scope, safeRun)
+        runInScope(&state.cancelScope, safeRun)
         __hostThreadLeaveBackground(previous)
     }
     else
     {
-        runInScope(&state.scope, safeRun)
+        runInScope(&state.cancelScope, safeRun)
     }
 
     if let notify = state.notify do
@@ -440,7 +440,7 @@ struct TaskGroup
     count: u32
 
     // Raised by cancel, read by children.
-    scope: CancelScope
+    cancelScope: CancelScope
 
     // Guards `failure` against children failing together.
     failureLock: Mutex
@@ -520,17 +520,17 @@ impl TaskGroup
     // observes it through [[Swag.isCancelled]] and returns early on its own.
     mtd cancel()
     {
-        discard .scope.stop.raise()
+        discard .cancelScope.stop.raise()
         wakeCancelledObservers()
     }
 
     // Returns whether cancellation was requested for this group, or for the work that spawned it.
-    mtd const isCancelled()->bool => .scope.isRaised()
+    mtd const isCancelled()->bool => .cancelScope.isRaised()
 
     // Takes the storage of one more child and links it to this group.
     private mtd prepareChild()->*GroupChild
     {
-        .scope.parent = Swag.getContext().cancelScope
+        .cancelScope.parent = Swag.getContext().cancelScope
 
         let child = .reserveChild()
         child.group      = me
@@ -542,6 +542,7 @@ impl TaskGroup
     // Keeps the first error a child raises, and asks the other children to stop.
     private mtd recordFailure(error: any)
     {
+        scope
         {
             .failureLock.lock()
             defer .failureLock.unlock()
@@ -566,7 +567,7 @@ impl TaskGroup
         .blocks      = null
         .count       = 0
         .inlinedUsed = 0
-        .scope.stop.reset()
+        .cancelScope.stop.reset()
     }
 
     // Returns storage for one more child, allocating a block when the inline storage and the
@@ -609,12 +610,12 @@ private func groupChildEntry(node: *WorkNode)
 
     if let body = child.body
     {
-        runInScope(&group.scope, body)
+        runInScope(&group.cancelScope, body)
         return
     }
 
     // A body that can fail runs inside its own handler, so its error reaches the group.
-    runInScope(&group.scope, func|child|() { runFallibleChild(child) })
+    runInScope(&group.cancelScope, func|child|() { runFallibleChild(child) })
 }
 
 private func runFallibleChild(child: *GroupChild)

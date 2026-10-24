@@ -338,7 +338,7 @@ Result AstCompilerSwitch::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef
     return childRef == compilerSwitchSelectedBody(codeGen, *this) ? Result::Continue : Result::SkipChildren;
 }
 
-Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)
+Result AstScopeStmt::codeGenPreNode(CodeGen& codeGen)
 {
     MicroBuilder&               builder = codeGen.builder();
     CompilerScopeCodeGenPayload scopeState;
@@ -348,18 +348,18 @@ Result AstCompilerScope::codeGenPreNode(CodeGen& codeGen)
     return Result::Continue;
 }
 
-Result AstCompilerScope::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+Result AstScopeStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
         return Result::Continue;
 
     // Own a defer scope so named breaks and exits to enclosing loops unwind it.
-    // Keep loop break/continue contexts: only a named break targets #scope.
+    // Keep loop break/continue contexts: only a named break targets 'scope'.
     codeGen.pushDeferScope(AstNodeRef::invalid(), codeGen.curNodeRef());
     return Result::Continue;
 }
 
-Result AstCompilerScope::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
+Result AstScopeStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
     if (childRef != nodeBodyRef)
         return Result::Continue;
@@ -368,7 +368,7 @@ Result AstCompilerScope::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef
     return Result::Continue;
 }
 
-Result AstCompilerScope::codeGenPostNode(CodeGen& codeGen)
+Result AstScopeStmt::codeGenPostNode(CodeGen& codeGen)
 {
     CompilerScopeCodeGenPayload* scopeState = codeGen.safeNodePayload<CompilerScopeCodeGenPayload>(codeGen.curNodeRef());
     SWC_ASSERT(scopeState != nullptr);
@@ -381,7 +381,7 @@ Result AstCompilerScope::codeGenPostNode(CodeGen& codeGen)
 
 Result AstScopedBreakStmt::codeGenPostNode(CodeGen& codeGen)
 {
-    // Sema already resolved the target `#scope`; codegen only consumes that decision.
+    // Sema already resolved the target `scope`; codegen only consumes that decision.
     const auto* payload = codeGen.sema().semaPayload<ScopedBreakSemaPayload>(codeGen.curNodeRef());
     SWC_ASSERT(payload != nullptr);
     if (!payload)

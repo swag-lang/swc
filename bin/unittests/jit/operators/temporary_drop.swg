@@ -222,6 +222,7 @@ func visitFailureTemporary() fail
     DropCount  = 0
     EventTrace = 0
     Seed       += 1
+    scope
     {
         var owner = relayTemporaryOwner(makeTemporaryOwner(Seed))
         Swag.assert(DropCount == 1)
@@ -235,6 +236,7 @@ func visitFailureTemporary() fail
 {
     DropCount = 0
     DropTrace = 0
+    scope
     {
         var {first, second} = makeOwnerPair(4, 5)
         Swag.assert(DropCount == 0)
@@ -306,6 +308,7 @@ func visitFailureTemporary() fail
     DropCount  = 0
     EventTrace = 0
     Seed       += 1
+    scope
     {
         var owner = TemporaryOwner{value: -1}
         owner = makeTemporaryOwner(Seed)
@@ -321,6 +324,7 @@ func visitFailureTemporary() fail
     DropCount     = 0
     PostCopyCount = 0
     PostMoveCount = 0
+    scope
     {
         var owner = TransferOwner{value: -1}
         PostCopyCount = 0
@@ -412,6 +416,7 @@ func visitFailureTemporary() fail
     DropCount  = 0
     EventTrace = 0
     Seed       += 1
+    scope
     {
         var owner = forwardTemporaryOwner()
         Swag.assert(owner.value == Seed)

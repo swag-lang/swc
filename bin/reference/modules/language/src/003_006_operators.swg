@@ -127,6 +127,7 @@ equality, inequality, and relational comparisons.
 */
 #test
 {
+    scope
     {
         var a = false
         a = 1 == 1 ? true : false
@@ -137,6 +138,7 @@ equality, inequality, and relational comparisons.
         a = 1 > 1 ? true : false
     }
 
+    scope
     {
         let x = 5
         let y = 10
@@ -270,6 +272,7 @@ A <=> B ==  1 if A > B
 */
 #test
 {
+    scope
     {
         let a = -1.5 <=> 2.31
         #assert(#typeof(a) == s32)
@@ -280,6 +283,7 @@ A <=> B ==  1 if A > B
         Swag.assert(10 <=> 10 == 0)
     }
 
+    scope
     {
         let x1 = 10 <=> 20
         Swag.assert(x1 == -1)

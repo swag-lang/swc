@@ -47,9 +47,9 @@ using Swag, Core
 
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     let glyphA       = face.glyphIndex('A')
     let glyphE       = face.glyphIndex(0x00E9)
@@ -171,9 +171,9 @@ using Swag, Core
 // the character it qualifies.
 #test
 {
-    var scope: FaceScope
-    scope.init("arial.ttf")
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init("arial.ttf")
+    let face = faceScope.face!
 
     Swag.assert(not face.hasVariant('A', 0xFE0F))
     Swag.assert(face.glyphIndexVariant('A', 0xFE0F) == face.glyphIndex('A'))

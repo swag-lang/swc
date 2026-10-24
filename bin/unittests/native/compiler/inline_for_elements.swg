@@ -22,10 +22,10 @@ impl ReturnVisits
             return
 
         var remain = (.values).count
-        #scope(Up)
+        scope(Up)
         for idx in (.values).count
         {
-            #scope(Down)
+            scope(Down)
             {
                 #inject(stmt, item = me.values[idx], index = idx, break = break to Up, continue = break to Down)
             }

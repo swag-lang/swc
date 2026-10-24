@@ -8,6 +8,7 @@ func createModesPage(parent: *Wnd)
                            "RichEditCtrl form",
                            "Code-oriented chrome using gui3's own mode page source for a very different visual rhythm.",
                            layout.left)
+    scope
     {
         let rect = left.clientRect()
         discard createCodeEditor(left,
@@ -20,6 +21,7 @@ func createModesPage(parent: *Wnd)
                             "Edit form",
                             "A softer document presentation for wrapped notes, review summaries and scratch prose.",
                             layout.right)
+    scope
     {
         let rect = right.clientRect()
         let ed   = createDocumentEditor(right,
@@ -32,6 +34,7 @@ func createModesPage(parent: *Wnd)
                              "Flags matrix",
                              "Read-only, blank rendering and wrapping can be combined per instance depending on the job.",
                              layout.bottom)
+    scope
     {
         let rect         = bottom.clientRect()
         let gutter       = 18.0

@@ -4,9 +4,9 @@ using Swag, Core
 
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     let glyphIndex = face.glyphIndex(0x00E9)
     Swag.assert(glyphIndex > 0)

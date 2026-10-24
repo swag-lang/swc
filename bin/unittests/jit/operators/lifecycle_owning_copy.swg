@@ -76,6 +76,7 @@ namespace LifecycleOwningCopy.Reflection
 #test
 {
     DropCount = 0
+    scope
     {
         var a = Owning{7}
         var b = #move a

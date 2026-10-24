@@ -85,6 +85,7 @@ public func getMonitors()->Array'Monitor
         // Logical bounds are what a DPI-unaware process sees. Force the unaware
         // context for that read so the result stays logical even after the process
         // has opted into per-monitor awareness (see enableDpiAwareness).
+        scope
         {
             let last = Win32.SetThreadDpiAwarenessContext(Win32.DPI_AWARENESS_CONTEXT_UNAWARE)
             defer discard Win32.SetThreadDpiAwarenessContext(last)

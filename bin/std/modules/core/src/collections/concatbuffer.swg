@@ -71,14 +71,14 @@ impl ReversedConcatBuffer
 
         let firstBucket = .source.firstBucket!
         var tail        = .source.lastBucket!.next
-        #scope(Up)
+        scope(Up)
         while tail != firstBucket
         {
             var bucket = firstBucket
             while bucket.next != tail do
                 bucket = bucket.next!
 
-            #scope(Down)
+            scope(Down)
             {
                 #inject(stmt, bucket = bucket, break = break to Up, continue = break to Down)
             }
@@ -122,11 +122,11 @@ impl ConcatBuffer
             return
         let lastBucket = .lastBucket!
         var b = .firstBucket
-        #scope(Up)
+        scope(Up)
         while b != lastBucket.next
         {
             let bucket = b!
-            #scope(Down)
+            scope(Down)
             {
                 #inject(stmt, bucket = bucket, break = break to Up, continue = break to Down)
             }

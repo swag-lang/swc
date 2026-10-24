@@ -205,6 +205,7 @@ namespace WinFsp
         let context = mountContext(fileSystem)
         let nodeId  = idFromContext(fileContext)
         var stored: Array'u8
+        scope
         {
             context.volume.accessLock.lockShared()
             defer context.volume.accessLock.unlockShared()

@@ -183,6 +183,7 @@ func borrowEscapeByValueParamCast(o: BorrowEscapeOwner)->string
 func borrowEscapeInnerScope()->s32
 {
     var p: *s32?
+    scope
     {
         var v: s32 = 42     // swc-expected-note {{sema_note_borrow_source_declared_here}}
         p = &v     // swc-expected-error {{sanity_err_borrow_scope_escape}}
@@ -1010,6 +1011,7 @@ func borrowEscapeMethodChainGlobal()->*s32
 func borrowEscapeMaterializedScope()->u16
 {
     var view: const [..] u16?
+    scope
     {
         view = cast(const [..] u16, borrowEscapeMakeArray())     // swc-expected-error {{sanity_err_borrow_materialized}}
     }

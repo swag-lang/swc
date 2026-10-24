@@ -57,16 +57,19 @@ func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
     for 64
     {
         var owner: Error
+        scope
         {
             catch failOwnedInteger(41) as error else { owner.capture(error) }
         }
         owner = owner
         var copied = owner
         var moved  = #move copied
+        scope
         {
             catch failOwnedInteger(73) as error else { owner.capture(error) }
         }
         valid = valid and ownedIntegerEquals(&owner, 73) and ownedIntegerEquals(&moved, 41)
+        scope
         {
             var dropped = owner
             owner.capture(null)

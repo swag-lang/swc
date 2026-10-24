@@ -53,7 +53,7 @@ func deferBreakToScopeAndDrop()->DeferDropInfo
         .drops = 0
     }
 
-    #scope(Outer)
+    scope(Outer)
     {
         var x: DeferDropTracker
         defer result.count += 1
@@ -93,6 +93,7 @@ func deferParameterDropInfo()->DeferDropInfo
         .drops = 0
     }
 
+    scope
     {
         var x: DeferDropTracker
         consumeDropTracker(x)
@@ -112,6 +113,7 @@ func deferEmbeddedParameterDropInfo()->DeferDropInfo
         .drops = 0
     }
 
+    scope
     {
         var x: DeferDropHolder
         consumeDropHolder(x)
@@ -165,6 +167,7 @@ func deferReturnDropInfo()->DeferDropInfo
     func deferScopeOrder()->s64
     {
         resetDeferTrace()
+        scope
         {
             defer appendDeferTrace(1)
             defer
@@ -321,6 +324,7 @@ func deferReturnDropInfo()->DeferDropInfo
         for 10
         {
             defer count -= 1
+            scope
             {
                 defer count += 2
                 continue
@@ -555,6 +559,7 @@ func deferReturnDropInfo()->DeferDropInfo
     func deferConditionalCatchTrace()->s64
     {
         resetDeferTrace()
+        scope
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)
@@ -567,6 +572,7 @@ func deferReturnDropInfo()->DeferDropInfo
     func deferConditionalCatchElseTrace()->s64
     {
         resetDeferTrace()
+        scope
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)
@@ -594,9 +600,10 @@ func deferReturnDropInfo()->DeferDropInfo
     func deferBreakToScope()->s64
     {
         resetDeferTrace()
-        #scope(Outer)
+        scope(Outer)
         {
             defer appendDeferTrace(1)
+            scope
             {
                 defer appendDeferTrace(2)
                 break to Outer

@@ -141,6 +141,7 @@ func nullableUseSiteKilledByStructAlias(source: NullableUseSiteBox)->s32
 // An 'Swag.assert' proof is scoped to its own block and does not outlive it.
 func nullableUseSiteAssertScoped(p: *NullableUseSiteItem?)->s32
 {
+    scope
     {
         Swag.assert(p != null)
         discard p.value

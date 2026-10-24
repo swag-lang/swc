@@ -228,7 +228,7 @@ Sema::Sema(TaskContext& ctx, Sema& parent, NodePayload& payloadContext, AstNodeR
     frame().removeContextFlag(SemaFrameContextFlagsE::CompilerEval);
     frame().removeContextFlag(SemaFrameContextFlagsE::GeneratedTopLevel);
     frame().setSyntaxScopeNodeRef(AstNodeRef::invalid());
-    frame().setCurrentNamedCompilerScope(nullptr);
+    frame().setCurrentNamedScope(nullptr);
     frame().setCurrentInlinePayload(nullptr);
     frame().setInlineContextRootRef(AstNodeRef::invalid());
     setVisitors();
@@ -997,7 +997,11 @@ void Sema::markImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef)
         blockRef = node(blockRef).cast<AstCompilerCodeBlock>().nodeBodyRef;
 
     if (blockRef.isValid() && node(blockRef).is(AstNodeId::EmbeddedBlock))
-        node(blockRef).cast<AstEmbeddedBlock>().addFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+    {
+        auto& block = node(blockRef).cast<AstEmbeddedBlock>();
+        block.addFlag(AstEmbeddedBlockFlagsE::ImplicitCodeBlockArg);
+        block.flags().remove(AstEmbeddedBlockFlagsE::TrailingBlock);
+    }
 }
 
 bool Sema::isImplicitCodeBlockArg(AstNodeRef parentRef, AstNodeRef childRef) const

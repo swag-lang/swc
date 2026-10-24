@@ -40,6 +40,7 @@ func choose(flag: bool)
     drops  = 0
     copies = 0
     moves  = 0
+    scope
     {
         var source = Owner{5}
         let pair   = Pair{item: #move source, kind: 2}
@@ -56,6 +57,7 @@ func choose(flag: bool)
     drops  = 0
     copies = 0
     moves  = 0
+    scope
     {
         var first  = Owner{2}
         var second = Owner{4}
@@ -134,6 +136,7 @@ func chooseUnique(flag: bool)
     chooseUnique(true)
     chooseUnique(false)
     Swag.assert(drops == 34)
+    scope
     {
         let pair = makePair()
         takePair(pair)
@@ -172,6 +175,7 @@ func interruptedPair() fail
 #test
 {
     drops = 0
+    scope
     {
         var first  = Unique{2}
         var second = Unique{3}
@@ -203,6 +207,7 @@ func interruptedLiteral() fail
 {
     drops  = 0
     copies = 0
+    scope
     {
         var source = Owner{13}
         let pair   = Pair{item: #move source, kind: readValue(&source)}
@@ -300,6 +305,7 @@ func addressResult(flag: bool)->AddressOwner
 #test
 {
     drops = 0
+    scope
     {
         let selected = addressResult(true)
         Swag.assert(selected.value == 31)
@@ -311,6 +317,7 @@ func addressResult(flag: bool)->AddressOwner
 #test
 {
     drops = 0
+    scope
     {
         var source   = Unique{41}
         let selected = true ? #move source : Unique{43}

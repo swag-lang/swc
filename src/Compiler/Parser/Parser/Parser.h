@@ -79,6 +79,10 @@ private:
     uint32_t closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
     uint32_t closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
 
+    // The statement parsed just before in the current statement list. Only a call there
+    // can own a '{' that follows it, as its trailing code block.
+    AstNodeRef lastStatementRef_ = AstNodeRef::invalid();
+
     TokenRef lastErrorToken_ = TokenRef::invalid();
 
     TokenRef topLevelAccessRef_ = TokenRef::invalid();
@@ -227,7 +231,7 @@ private:
     AstNodeRef parseCompilerImport();
     AstNodeRef parseCompilerInject();
     AstNodeRef parseCompilerMessageFunc();
-    AstNodeRef parseCompilerScope();
+    AstNodeRef parseScope();
     AstNodeRef parseCompilerTypeExpr();
     AstNodeRef parseCompilerTypeOf();
 
@@ -242,6 +246,7 @@ private:
     AstNodeRef parseDiscard();
     AstNodeRef parseDoCurlyBlock();
     AstNodeRef parseEmbeddedStmt();
+    AstNodeRef parseStatementInBlock();
     AstNodeRef parseEnumDecl();
     AstNodeRef parseEnumValue();
 
@@ -388,6 +393,25 @@ private:
         ~PushContextFlags()
         {
             parser->contextFlags_ = oldFlags;
+        }
+    };
+
+    // Starts a statement list: its first statement follows nothing.
+    struct PushStatementList
+    {
+        Parser*    parser;
+        AstNodeRef oldLastStatement;
+
+        explicit PushStatementList(Parser* p)
+        {
+            parser               = p;
+            oldLastStatement     = p->lastStatementRef_;
+            p->lastStatementRef_ = AstNodeRef::invalid();
+        }
+
+        ~PushStatementList()
+        {
+            parser->lastStatementRef_ = oldLastStatement;
         }
     };
 };

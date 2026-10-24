@@ -226,7 +226,7 @@ impl Deque
     #[Macro]
     func(ptr: bool) opVisit(const me, stmt: #code(item, index: u64))
     {
-        #scope(Up)
+        scope(Up)
         for itemIndex in .count
         {
             var itemPtr: const [*] T
@@ -235,7 +235,7 @@ impl Deque
             else do
                 itemPtr = .backItems.storage() + itemIndex - .frontItems.count
 
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,

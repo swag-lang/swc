@@ -59,11 +59,11 @@ private func recordParallelCost(profile: *ParallelProfile?, count, elapsed: u64)
 // accepted nodes stay bounded by the worker count rather than by the number of blocks.
 private struct ParallelDispatch
 {
-    next:  AtomicValue'u64
-    end:   u64
-    step:  u64
-    body:  (func||(u64, u64))?
-    scope: *CancelScope?     // The caller's cancellation state, observed by every partition.
+    next:        AtomicValue'u64
+    end:         u64
+    step:        u64
+    body:        (func||(u64, u64))?
+    cancelScope: *CancelScope?     // The caller's cancellation state, observed by every partition.
 }
 
 // One runner of a parallel range, submitted to the scheduler as its own unit of work.
@@ -214,10 +214,10 @@ private func dispatchParallelRange(begin, end, chunks, grain: u64, body: func||(
     let count    = end - begin
     let balanced = (count - 1) / (chunks * 8) + 1
     var dispatch: ParallelDispatch
-    dispatch.end   = end
-    dispatch.step  = balanced > grain ? balanced : grain
-    dispatch.body  = body
-    dispatch.scope = Swag.getContext().cancelScope
+    dispatch.end         = end
+    dispatch.step        = balanced > grain ? balanced : grain
+    dispatch.body        = body
+    dispatch.cancelScope = Swag.getContext().cancelScope
 
     // Reserve useful work for the caller before publishing nodes, so worker startup cannot
     // consume its whole sample or leave it idle while a few expensive iterations remain.
@@ -253,7 +253,7 @@ private func parallelChunkEntry(node: *WorkNode)
     let context  = Swag.getContext()
     let previous = context.cancelScope
     if let dispatch = chunk.dispatch do
-        context.cancelScope = dispatch.scope
+        context.cancelScope = dispatch.cancelScope
 
     discard runParallelChunk(chunk)
     context.cancelScope = previous

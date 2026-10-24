@@ -110,6 +110,7 @@ func failureResult() fail
 #test
 {
     trace = 0
+    scope
     {
         let result = transferredResult()
         Swag.assert(result.value == 4)

@@ -152,6 +152,7 @@ func fallbackOwned(ok: bool)->FallbackOwned fail
 #test
 {
     g_fallbackDrops = 0
+    scope
     {
         let owned = catch fallbackOwned(false) else FallbackOwned{id: 2}
         Swag.assert(owned.id == 2)
@@ -160,6 +161,7 @@ func fallbackOwned(ok: bool)->FallbackOwned fail
     Swag.assert(g_fallbackDrops == 1)
 
     g_fallbackDrops = 0
+    scope
     {
         let named = FallbackOwned{id: 3}
         let owned = catch fallbackOwned(false) else named

@@ -209,6 +209,7 @@ func consumeThreadMessages(_: const *Threading.Thread)
 
     let baseline = allocator.stats().countAlloc
     copiedThreadMessagesValid.reset()
+    scope
     {
         var thread: Threading.Thread
         expect thread.init(&consumeThreadMessages)
@@ -262,6 +263,7 @@ func publishOwnedThreadError(thread: const *Threading.Thread)
 
     let baseline = allocator.stats().countAlloc
     var state: OwnedThreadError
+    scope
     {
         var thread: Threading.Thread
         expect thread.init(&publishOwnedThreadError, &state)
@@ -272,6 +274,7 @@ func publishOwnedThreadError(thread: const *Threading.Thread)
     var copied = state.error
     state.error.reset()
     var valid: bool
+    scope
     {
         var errorOutcome: Swag.Error
         catch copied.raise() as &errorOutcome

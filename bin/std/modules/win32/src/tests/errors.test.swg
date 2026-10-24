@@ -64,6 +64,7 @@ using Swag
     context.errorAllocator.setCapacity(16, context.allocator)
     var retainedValid:  bool
     var retainedBlocks: u64
+    scope
     {
         var retainedOutcome: Swag.Error
         catch failWinError(InvalidHandleError) as &retainedOutcome

@@ -76,6 +76,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(11)
+    scope
     {
         let value = catch makeManagedResult(true) else {}
         Swag.assert(value.value == 11)
@@ -91,6 +92,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(13)
+    scope
     {
         let value = catch makeManagedResult(false) else {}
         Swag.assert(value.value == 0)
@@ -104,6 +106,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(17)
+    scope
     {
         let value = expect makeManagedResult(true)
         Swag.assert(value.value == 17)
@@ -118,6 +121,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(19)
+    scope
     {
         let value = returnCatchResult()
         Swag.assert(value.value == 19)
@@ -128,6 +132,7 @@ func returnInlineCatchResult()->ManagedResult
     Swag.assert(DropTrace == 19)
 
     resetHooks(23)
+    scope
     {
         let value = returnExpectResult()
         Swag.assert(value.value == 23)
@@ -138,6 +143,7 @@ func returnInlineCatchResult()->ManagedResult
     Swag.assert(DropTrace == 23)
 
     resetHooks(29)
+    scope
     {
         let value = catch returnTryResult() else {}
         Swag.assert(value.value == 29)
@@ -153,6 +159,7 @@ func returnInlineCatchResult()->ManagedResult
 #test
 {
     resetHooks(31)
+    scope
     {
         let value = returnInlineCatchResult()
         Swag.assert(value.value == 31)
@@ -234,6 +241,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
 #test
 {
     resetHooks(53)
+    scope
     {
         let value: ManagedResult = catch makeManagedResult(true) else {}
         Swag.assert(value.value == 53)
@@ -241,6 +249,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     expectHooks(0, 0, 1, 53)
 
     resetHooks(59)
+    scope
     {
         var value = expect makeManagedResult(true)
         Swag.assert(value.value == 59)
@@ -252,6 +261,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
 #test
 {
     resetHooks(61)
+    scope
     {
         let value = catch makeManagedLocal(true) else {}
         Swag.assert(value.value == 61)
@@ -259,6 +269,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     expectHooks(0, 1, 1, 61)
 
     resetHooks(67)
+    scope
     {
         let value = catch makeManagedLocal(false) else {}
         Swag.assert(value.value == 0)
@@ -271,6 +282,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
 #test
 {
     resetHooks(71)
+    scope
     {
         var value: ManagedResult
         value = catch makeManagedResult(true) else {}
@@ -279,6 +291,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     expectHooks(0, 1, 2, 71)
 
     resetHooks(73)
+    scope
     {
         var value: ManagedResult
         value = expect makeManagedResult(true)
@@ -297,6 +310,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
 #test
 {
     resetHooks(83)
+    scope
     {
         var value: ManagedResult
         value = catch makeManagedResult(false) else {}
@@ -314,6 +328,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
 #test
 {
     resetHooks(97)
+    scope
     {
         var value: ManagedResult
         value = returnInlineCatchResult()

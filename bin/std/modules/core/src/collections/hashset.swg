@@ -59,14 +59,14 @@ impl ReversedHashSet
     {
         let table  = .source.constTablePtr()
         var remain = .source.count
-        #scope(Up)
+        scope(Up)
         for offset in .source.capacity
         {
             let tableIndex = .source.capacity - offset - 1
             if table[tableIndex].hash < 2'u32 do
                 continue
 
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,
@@ -191,13 +191,13 @@ impl HashSet
 
         let table  = .constTablePtr()
         var remain = .count
-        #scope(Up)
+        scope(Up)
         for tableIndex in .capacity
         {
             if table[tableIndex].hash < HashSet.HASH_FIRST do
                 continue
 
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,

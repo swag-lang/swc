@@ -5,8 +5,10 @@
     func nestedReturnChain()->s32
     {
         let start = 3
+        scope
         {
             let mid = start * 4
+            scope
             {
                 let final = mid + 5
                 return final
@@ -23,10 +25,13 @@
     func nestedReturnSum()->s32
     {
         let start = 1
+        scope
         {
             let add0 = 2
+            scope
             {
                 let add1 = 4
+                scope
                 {
                     let add2 = 8
                     return start + add0 + add1 + add2
@@ -44,8 +49,10 @@
     func nestedTypedLocals()->s32
     {
         let first: s8 = 7's8
+        scope
         {
             let second: u16 = 20'u16
+            scope
             {
                 let third: s32 = cast(s32, first) + cast(s32, second)
                 return third
@@ -61,8 +68,10 @@
 {
     func nestedSiblingLeft()->s32
     {
+        scope
         {
             let left = 11
+            scope
             {
                 return left + 1
             }
@@ -71,8 +80,10 @@
 
     func nestedSiblingRight()->s32
     {
+        scope
         {
             let right = 13
+            scope
             {
                 return right + 2
             }
@@ -90,6 +101,7 @@
     func nestedRedeclaration()->s32
     {
         let value = 1
+        scope
         {
             let value = 2
             discard value

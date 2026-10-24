@@ -41,12 +41,12 @@ impl ReversedOrderedMap
     #[Macro]
     mtd(ptr: bool) const opVisit(stmt: #code(key, value, index: u64))
     {
-        #scope(Up)
+        scope(Up)
         for offset in .source.count
         {
             let entryIndex = .source.count - offset - 1
             let entry      = &.source.entries[entryIndex]
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,
@@ -297,11 +297,11 @@ impl OrderedMap
     #[Macro]
     mtd(ptr: bool) opVisit(stmt: #code(key, value, index: u64))
     {
-        #scope(Up)
+        scope(Up)
         for entryIndex in .count
         {
             let entry = &.entries[entryIndex]
-            #scope(Down)
+            scope(Down)
             {
                 #static if ptr do
                     #inject(stmt,

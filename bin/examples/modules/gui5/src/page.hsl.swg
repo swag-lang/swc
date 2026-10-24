@@ -7,6 +7,7 @@ func createHslModesPage(parent: *Wnd)
                              "HSL planes",
                              "Two-dimensional HSL pickers cover the principal hue, saturation and lightness relationships.",
                              layout.left)
+    scope
     {
         discard createModePicker(left, "Saturation / lightness", {24, 120, 250, 210}, .SaturationLightness)
         discard createModePicker(left, "Hue / saturation", {314, 120, 250, 210}, .HueSaturation)
@@ -16,6 +17,7 @@ func createHslModesPage(parent: *Wnd)
                             "Hue / lightness",
                             "A second hue plane plus vertical bars show cursor and gradient variants.",
                             layout.right)
+    scope
     {
         discard createModePicker(right, "Hue / lightness", {24, 120, 250, 210}, .HueLightness)
         discard createModePicker(right, "Hue", {300, 120, 28, 210}, .HueVertical)
@@ -28,6 +30,7 @@ func createHslModesPage(parent: *Wnd)
                              "HSL and alpha bars",
                              "Horizontal bars are useful in compact toolbars and property popups.",
                              layout.bottom)
+    scope
     {
         discard createModePicker(bottom, "Hue", {24, 120, 260, 24}, .HueHorizontal)
         discard createModePicker(bottom, "Lightness", {330, 120, 260, 24}, .LightnessHorizontal)

@@ -208,6 +208,7 @@ impl Volume
     {
         Swag.assert(destination.count == BlockSize)
         var record: [BlockRecordSize] u8
+        scope
         {
             Sync.scopedLock(&.ioLock)
             if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, record)) do

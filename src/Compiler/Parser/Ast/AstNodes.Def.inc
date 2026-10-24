@@ -176,7 +176,7 @@ SWC_NODE_DEF(CompilerMessageFunc, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CompilerTypeExpr, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CompilerGlobal, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CompilerImport, AstNodeIdFlagsE::Zero)
-SWC_NODE_DEF(CompilerScope, AstNodeIdFlagsE::Zero)
+SWC_NODE_DEF(ScopeStmt, AstNodeIdFlagsE::Zero)
 SWC_NODE_DEF(CompilerInject, AstNodeIdFlagsE::Zero)
 
 SWC_NODE_DEF(CompilerIf, AstNodeIdFlagsE::SemaJob)

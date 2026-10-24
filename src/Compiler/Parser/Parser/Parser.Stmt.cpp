@@ -702,6 +702,7 @@ AstNodeRef Parser::parseSwitch()
 
     SmallVector<AstNodeRef> nodeChildren;
     SmallVector<AstNodeRef> nodeStmts;
+    const PushStatementList statementList(this);
     AstSwitchCaseStmt*      currentCase = nullptr;
     AstSwitchCaseBody*      currentBody = nullptr;
     AstNodeRef              currentCaseRef;
@@ -724,6 +725,7 @@ AstNodeRef Parser::parseSwitch()
                 }
 
                 nodeStmts.clear();
+                lastStatementRef_ = AstNodeRef::invalid();
 
                 const AstNodeRef caseRef = parseSwitchCaseDefault();
                 nodeChildren.push_back(caseRef);
@@ -747,7 +749,7 @@ AstNodeRef Parser::parseSwitch()
                     break;
                 }
 
-                const AstNodeRef stmtRef = parseEmbeddedStmt();
+                const AstNodeRef stmtRef = parseStatementInBlock();
                 if (stmtRef.isValid())
                     nodeStmts.push_back(stmtRef);
                 break;
@@ -1082,6 +1084,73 @@ AstNodeRef Parser::parseTopLevelStmt()
     }
 }
 
+namespace
+{
+    // A call statement, possibly under its error-management keyword or 'discard': the only
+    // statement whose callee can take the block that follows as trailing code.
+    bool isCallStatement(const Ast& ast, AstNodeRef nodeRef)
+    {
+        while (nodeRef.isValid())
+        {
+            const AstNode& node = ast.node(nodeRef);
+            switch (node.id())
+            {
+                case AstNodeId::CallExpr:
+                case AstNodeId::IntrinsicCallExpr:
+                    return true;
+
+                case AstNodeId::ErrorManagementStmt:
+                    nodeRef = node.cast<AstErrorManagementStmt>().nodeBodyRef;
+                    break;
+                case AstNodeId::ErrorManagementExpr:
+                    nodeRef = node.cast<AstErrorManagementExpr>().nodeExprRef;
+                    break;
+
+                case AstNodeId::DiscardExpr:
+                {
+                    const auto exprs = ast.nodeSpan(node.cast<AstDiscardExpr>().spanExprRef);
+                    if (exprs.chunksBegin() == exprs.chunksEnd() || exprs.chunksBegin()->count != 1)
+                        return false;
+                    nodeRef = static_cast<const AstNodeRef*>(exprs.chunksBegin()->ptr)[0];
+                    break;
+                }
+
+                default:
+                    return false;
+            }
+        }
+
+        return false;
+    }
+}
+
+// A '{' never opens a scope by itself: 'scope { ... }' does. After a call statement, it can
+// be the trailing code block of that call, which sema checks once the call is resolved.
+AstNodeRef Parser::parseStatementInBlock()
+{
+    AstNodeRef stmtRef;
+    if (is(TokenId::SymLeftCurly) && !isDestructuringAssignmentAhead())
+    {
+        const bool afterCall = isCallStatement(*ast_, lastStatementRef_);
+        if (!afterCall)
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_bare_scope, ref());
+            diag.report(*ctx_);
+        }
+
+        stmtRef = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+        if (afterCall && stmtRef.isValid())
+            ast_->node(stmtRef).cast<AstEmbeddedBlock>().addFlag(AstEmbeddedBlockFlagsE::TrailingBlock);
+    }
+    else
+    {
+        stmtRef = parseEmbeddedStmt();
+    }
+
+    lastStatementRef_ = stmtRef;
+    return stmtRef;
+}
+
 AstNodeRef Parser::parseEmbeddedStmt()
 {
     switch (id())
@@ -1170,8 +1239,8 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdFallThrough:
             return parseFallThrough();
 
-        case TokenId::CompilerScope:
-            return parseCompilerScope();
+        case TokenId::KwdScope:
+            return parseScope();
         case TokenId::CompilerInject:
             return parseCompilerInject();
         case TokenId::CompilerCode:

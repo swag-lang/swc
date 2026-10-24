@@ -68,6 +68,7 @@ impl OwnedOutcome
 #test
 {
     releasedOutcomes = 0
+    scope
     {
         var task: Swag.Task'OwnedOutcome
         task.submit(func()->OwnedOutcome => OwnedOutcome{1})
@@ -124,6 +125,7 @@ impl OwnedOutcome
                 seen.add(1)
         }
 
+        scope
         {
             var group: Swag.TaskGroup
             for 4 do
@@ -176,6 +178,7 @@ impl OwnedOutcome
 #test
 {
     var stopped: Swag.AtomicFlag
+    scope
     {
         var task: Swag.Task
         task.submit(func|&stopped|()
@@ -200,6 +203,7 @@ impl OwnedOutcome
 #test
 {
     var seen: Swag.AtomicValue'u32
+    scope
     {
         var group: Swag.TaskGroup
         group.cancel()

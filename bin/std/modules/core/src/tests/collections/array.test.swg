@@ -546,6 +546,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 {
     resetArrayDropTrace()
 
+    scope
     {
         var values: StaticArray'(ArrayDropTracked, 5'u64)
         let seed = values.emplaceAddress(5)
@@ -569,6 +570,7 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 {
     resetArrayDropTrace()
 
+    scope
     {
         var values: Array'ArrayDropTracked
         let seed = values.emplaceAddress(5)
@@ -646,6 +648,7 @@ impl ArrayEmplaceOwned
     for index in 2'u64
     {
         ArrayEmplaceDrops = 0
+        scope
         {
             var values: Array'ArrayEmplaceOwned
             values.add(ArrayEmplaceOwned{1})

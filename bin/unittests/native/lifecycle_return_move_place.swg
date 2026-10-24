@@ -81,6 +81,7 @@ func takePointee(source: *WidePlace)->WidePlace
 #test
 {
     resetPlaceCounters()
+    scope
     {
         var holder = PlaceHolder{wide: {value: 5}}
         let taken  = holder.takeWide()
@@ -94,6 +95,7 @@ func takePointee(source: *WidePlace)->WidePlace
 #test
 {
     resetPlaceCounters()
+    scope
     {
         var holder = PlaceHolder{wide: {value: 6}}
         let taken  = holder.takeWideExpression()
@@ -107,6 +109,7 @@ func takePointee(source: *WidePlace)->WidePlace
 #test
 {
     resetPlaceCounters()
+    scope
     {
         var holder = PlaceHolder{narrow: {value: 7}}
         let taken  = holder.takeNarrow()
@@ -119,6 +122,7 @@ func takePointee(source: *WidePlace)->WidePlace
 #test
 {
     resetPlaceCounters()
+    scope
     {
         var holder = PlaceHolder{wide: {value: 8}}
         let taken  = holder.takeWideInline()
@@ -132,6 +136,7 @@ func takePointee(source: *WidePlace)->WidePlace
 #test
 {
     resetPlaceCounters()
+    scope
     {
         var source = WidePlace{value: 9}
         let taken  = takePointee(&source)
@@ -153,6 +158,7 @@ func buildInPlace(value: s32)->WidePlace
 #test
 {
     resetPlaceCounters()
+    scope
     {
         let built = buildInPlace(10)
         Swag.assert(built.value == 10 and PlaceCopies == 0)
@@ -172,6 +178,7 @@ func buildInPlaceInline(value: s32)->WidePlace
 #test
 {
     resetPlaceCounters()
+    scope
     {
         let built = buildInPlaceInline(11)
         Swag.assert(built.value == 11 and PlaceCopies == 0)

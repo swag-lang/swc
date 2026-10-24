@@ -75,6 +75,7 @@ func deferFailTop() fail
 func deferScopeOrder()->s64
 {
     resetDeferTrace()
+    scope
     {
         defer appendDeferTrace(1)
         defer
@@ -204,6 +205,7 @@ func deferNestedLoopControl()->s32
     for 10
     {
         defer count -= 1
+        scope
         {
             defer count += 2
             continue
@@ -306,7 +308,7 @@ func deferBreakToScopeAndDrop()->DeferDropInfo
         .drops = 0
     }
 
-    #scope(Outer)
+    scope(Outer)
     {
         var x: DeferDropTracker
         defer result.count += 1
@@ -346,6 +348,7 @@ func deferParameterDropInfo()->DeferDropInfo
         .drops = 0
     }
 
+    scope
     {
         var x: DeferDropTracker
         consumeDropTracker(x)
@@ -365,6 +368,7 @@ func deferEmbeddedParameterDropInfo()->DeferDropInfo
         .drops = 0
     }
 
+    scope
     {
         var x: DeferDropHolder
         consumeDropHolder(x)
@@ -453,6 +457,7 @@ func deferConditionalFailTrace()->s64
 func deferConditionalCatchTrace()->s64
 {
     resetDeferTrace()
+    scope
     {
         defer #fail appendDeferTrace(1)
         defer #nofail appendDeferTrace(2)
@@ -465,6 +470,7 @@ func deferConditionalCatchTrace()->s64
 func deferConditionalCatchElseTrace()->s64
 {
     resetDeferTrace()
+    scope
     {
         defer #fail appendDeferTrace(1)
         defer #nofail appendDeferTrace(2)
@@ -502,9 +508,10 @@ func deferNoErrAfterCaughtFailureTrace()->s64
 func deferBreakToScope()->s64
 {
     resetDeferTrace()
-    #scope(Outer)
+    scope(Outer)
     {
         defer appendDeferTrace(1)
+        scope
         {
             defer appendDeferTrace(2)
             break to Outer
@@ -644,6 +651,7 @@ func deferBreakToScope()->s64
 #test
 {
     var a = 0
+    scope
     {
         defer a = 2
         a = 3
@@ -662,6 +670,7 @@ var G = 0
 
 #test
 {
+    scope
     {
         scopeLock()
         Swag.assert(a == 4)

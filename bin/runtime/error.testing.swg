@@ -49,6 +49,7 @@ private func errorTransportTestThread(param: *void?)->u32
     let state = cast(*ErrorTransportTestState, param!)
     Swag.setContext(state.context)
     state.producerThread = __hostCurrentThreadId()
+    scope
     {
         // Allocate outside the catch frame, so the producer's root allocator still owns a
         // lease until thread teardown. The published record must retain that same arena.
@@ -109,6 +110,7 @@ public func testErrorTransportAfterThreadExit()->bool
     var copied = state.owned
     state.owned.reset()
     valid = valid and state.drops[generation + 1].load() == 0
+    scope
     {
         var errorOutcome: Swag.Error
         catch copied.raise() as &errorOutcome

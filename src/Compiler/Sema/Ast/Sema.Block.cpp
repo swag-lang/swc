@@ -313,6 +313,10 @@ Result AstEmbeddedBlock::semaPreNode(Sema& sema)
     if (isTransparentExpectBlock(sema))
         return Result::Continue;
 
+    // The call before this block resolved without taking it as trailing code.
+    if (node.hasFlag(AstEmbeddedBlockFlagsE::TrailingBlock))
+        return SemaError::raise(sema, DiagnosticId::sema_err_block_after_call_not_code, sema.curNodeRef());
+
     // A sema-synthesized '#inject' bindings block behaves like a '#macro' block:
     // its scope is parented to the caller so the injected code cannot see the
     // macro's internals, and the up-lookup scope (used by the binding
@@ -393,8 +397,8 @@ Result AstDeferStmt::semaPreNode(Sema& sema)
         // Control flow cannot leave a body that runs while its scope is already being left: the
         // loops, switches and named scopes around the 'defer' are out of reach from inside it.
         frame.setCurrentBreakContent(AstNodeRef::invalid(), SemaFrame::BreakContextKind::None);
-        frame.setCurrentCompilerScope(AstNodeRef::invalid());
-        frame.setCurrentNamedCompilerScope(nullptr);
+        frame.setCurrentScopeStmt(AstNodeRef::invalid());
+        frame.setCurrentNamedScope(nullptr);
 
         sema.pushFramePopOnPostNode(std::move(frame));
     }

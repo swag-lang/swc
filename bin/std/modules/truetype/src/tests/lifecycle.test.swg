@@ -4,11 +4,11 @@ using Swag, Core
 
 func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
-    var scope: FaceScope
-    scope.init(fileName)
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init(fileName)
+    let face = faceScope.face!
 
-    Swag.assert(not scope.bytes.isEmpty())
+    Swag.assert(not faceScope.bytes.isEmpty())
     Swag.assert(face.glyphCount > 0)
     Swag.assert(not face.familyName.isEmpty())
     Swag.assert(not face.styleName.isEmpty())
@@ -40,11 +40,11 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
-    Swag.assert(not scope.bytes.isEmpty())
+    Swag.assert(not faceScope.bytes.isEmpty())
     Swag.assert(face.glyphCount > 0)
     Swag.assert(not face.familyName.isEmpty())
     Swag.assert(not face.styleName.isEmpty())

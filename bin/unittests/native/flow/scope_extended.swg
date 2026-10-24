@@ -4,7 +4,7 @@
 #test
 {
     var count = 0
-    #scope(Outer)
+    scope(Outer)
     {
         for 5
         {
@@ -27,7 +27,7 @@
     var tail = 0
     for 10
     {
-        #scope(Grouped)
+        scope(Grouped)
         {
             sum += 1
             continue
@@ -43,11 +43,13 @@
 #test
 {
     var trace = 0
-    #scope(A)
+    scope(A)
     {
         trace = 1
+        scope
         {
             trace = 2
+            scope
             {
                 trace = 3
                 break to A
@@ -63,14 +65,14 @@
 #test
 {
     var a = 0
-    #scope(First)
+    scope(First)
     {
         a = 1
         break to First
     }
 
     var b = 0
-    #scope(Second)
+    scope(Second)
     {
         b = 2
         break to Second
@@ -84,7 +86,7 @@
 #test
 {
     var count = 0
-    #scope(Outer)
+    scope(Outer)
     {
         var i = 0
         while i < 100
@@ -105,13 +107,13 @@
     var i    = 0
     var sum  = 0
     var tail = 0
-    #scope(Done)
+    scope(Done)
     {
         var guard = 0
         while guard < 100
         {
             guard += 1
-            #scope(Step)
+            scope(Step)
             {
                 i   += 1
                 sum += i
@@ -133,9 +135,9 @@
     var outerExited = false
     var innerExited = false
 
-    #scope(S)
+    scope(S)
     {
-        #scope(S)
+        scope(S)
         {
             innerExited = true
             break to S     // breaks inner S
@@ -152,7 +154,7 @@
 #test
 {
     var total = 0
-    #scope(Done)
+    scope(Done)
     {
         for 10
         {
@@ -171,7 +173,7 @@
 #test
 {
     var hit = 0
-    #scope(Out)
+    scope(Out)
     {
         var v = 2
         switch v
@@ -194,7 +196,7 @@
     var trace = 0
     for 10
     {
-        #scope(Grouped)
+        scope(Grouped)
         {
             defer trace += 1
             break
@@ -209,10 +211,10 @@
     var trace = 0
     for 10
     {
-        #scope(A)
+        scope(A)
         {
             defer trace += 1
-            #scope(B)
+            scope(B)
             {
                 defer trace += 10
                 break
@@ -228,7 +230,7 @@
     var trace = 0
     for 3
     {
-        #scope(Grouped)
+        scope(Grouped)
         {
             defer trace += 1
             continue
@@ -246,7 +248,7 @@
     switch value
     {
     case 2:
-        #scope(Grouped)
+        scope(Grouped)
         {
             defer trace += 10
             break

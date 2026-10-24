@@ -82,7 +82,8 @@ The mixin can execute this block multiple times using '#inject'.
 /**
 # Passing Code Blocks in Separate Statements
 When the last parameter is a '#code' statement block, the code can be provided in a
-separate block after the call.
+separate block after the call. Since a '{' never opens a scope by itself, a block that
+follows a call statement always belongs to that call: the call must take it.
 */
 
 #test

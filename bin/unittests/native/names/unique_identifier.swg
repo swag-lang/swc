@@ -7,6 +7,7 @@ func mixinUniq(value: s32)
 {
     var #uniq0 = value + 1
     total += #uniq0
+    scope
     {
         var #uniq0 = value + 10
         total += #uniq0

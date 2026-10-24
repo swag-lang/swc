@@ -27,6 +27,7 @@ impl AggregateLiteralTracked
     AggregateLiteralPostCopyCount = 0
     AggregateLiteralDropCount     = 0
 
+    scope
     {
         var source = AggregateLiteralTracked{7}
         var values: [1] AggregateLiteralTracked = [source]

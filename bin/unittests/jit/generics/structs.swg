@@ -56,6 +56,7 @@ func sumFour(buffer: Buffer'(s32, 4))->s32
 
 #test
 {
+    scope
     {
         struct(T) LocalBox
         {
@@ -70,6 +71,7 @@ func sumFour(buffer: Buffer'(s32, 4))->s32
         Swag.assert(intBox.value == 42)
         Swag.assert(boolBox.value == true)
     }
+    scope
     {
         struct(T, N: s32) LocalBuffer
         {

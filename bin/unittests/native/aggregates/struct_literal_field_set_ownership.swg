@@ -95,6 +95,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let holder: Holder = {owned: "abc"}
         Swag.assert(holder.owned.value == "abc")
@@ -106,6 +107,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let holder = Holder{owned: Holder.Default}
         Swag.assert(holder.owned.value == "default")
@@ -117,6 +119,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let request: Request = {stage: "pre-emit", holder: {owned: Holder.Default}}
         Swag.assert(request.stage.value == "pre-emit")
@@ -130,6 +133,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let holder: Holder = {owned: name()}
         Swag.assert(holder.owned.value == "dyn")
@@ -141,6 +145,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let holder: Holder = {owned: FromBytes}
         Swag.assert(holder.owned.value == "ABC")
@@ -152,6 +157,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         var holder: Holder
         holder = {owned: name()}
@@ -169,6 +175,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let owned: [2] Owned = ["a", name()]
         Swag.assert(owned[0].addr == &owned[0])
@@ -181,6 +188,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let tuple = {owned: cast(Owned, name())}
         Swag.assert(tuple.owned.addr == &tuple.owned)
@@ -195,6 +203,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let tuple = {owned: makeOwned()}
         Swag.assert(tuple.owned.addr == &tuple.owned)
@@ -247,6 +256,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         let owned = cast(Owned, name())
         Swag.assert(owned.addr == &owned)
@@ -257,6 +267,7 @@ func assertBalanced(sets: u32)
 #test
 {
     resetCounts()
+    scope
     {
         var owned: Owned
         owned = cast(Owned, name())

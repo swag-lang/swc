@@ -133,6 +133,7 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
 {
     resetStaticArrayDropTrace()
 
+    scope
     {
         var values: StaticArray'(StaticArrayDropTracked, 4'u64)
         let seed = values.emplaceAddress(4)

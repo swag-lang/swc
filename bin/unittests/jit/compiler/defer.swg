@@ -109,6 +109,7 @@ func macroRun(stmt: #code)
     func runMixinScopeLock()->s32
     {
         ScopeLockValue = 0
+        scope
         {
             mixinScopeLock()
             defer a += 1

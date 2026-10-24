@@ -24,6 +24,7 @@ func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawBrushCellBackground(painter, middleCell)
     drawBrushCellBackground(painter, rightCell)
 
+    scope
     {
         let shapeRect = insetRect(leftCell, 26, 22, 26, 82)
         let fillBrush = Brush.createTexture(g_FillTexture)
@@ -35,6 +36,7 @@ func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
         drawBrushCellLabel(painter, leftCell, "Full texture fill", "Brush.createTexture + Pen.createHatch")
     }
 
+    scope
     {
         let center    = Math.Vector2{middleCell.horzCenter(), middleCell.y + middleCell.height * 0.40}
         let fillBrush = Brush.createTiled(g_TileTexture)
@@ -46,6 +48,7 @@ func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
         drawBrushCellLabel(painter, middleCell, "Tiled texture fill", "Brush.createTiled + textured outline")
     }
 
+    scope
     {
         let center    = Math.Vector2{rightCell.horzCenter(), rightCell.y + rightCell.height * 0.38}
         let star      = makeStarPolygon(center.x, center.y, 82, 36, 6)
@@ -71,6 +74,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
     drawBrushCellBackground(painter, middleCell)
     drawBrushCellBackground(painter, rightCell)
 
+    scope
     {
         let shapeRect = insetRect(leftCell, 26, 22, 26, 82)
         var pen       = Pen.createHatch(.Weave, Color.fromArgb(220, Argb.Teal), 18)
@@ -80,6 +84,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
         drawBrushCellLabel(painter, leftCell, "Hatch pen", "Outlined round rectangle")
     }
 
+    scope
     {
         let shapeRect = insetRect(middleCell, 26, 22, 26, 82)
         var blob      = makeBlobPath(shapeRect)
@@ -91,6 +96,7 @@ func drawOutlinedBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
         drawBrushCellLabel(painter, middleCell, "Texture pen", "Curved outline with a stretched brush")
     }
 
+    scope
     {
         let body   = insetRect(rightCell, 26, 16, 26, 82)
         let points = makeArrowPolygon(body)

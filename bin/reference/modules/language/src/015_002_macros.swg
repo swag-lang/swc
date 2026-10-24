@@ -243,7 +243,7 @@ Bindings and control-flow replacements live in the same '#inject'.
     func repeatSquare(count: u32, what: #code)
     {
         // Define a scope label used as the break target
-        #scope(ScopeTarget)
+        scope(ScopeTarget)
 
         for count
         {
@@ -277,7 +277,7 @@ Remap both 'break' and 'continue' to influence outer/inner loop flow.
     func repeatSquare(count: u32, what: #code)
     {
         // Label for controlling the outer loop
-        #scope(Outer)
+        scope(Outer)
 
         for count
         {

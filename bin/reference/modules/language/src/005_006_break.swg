@@ -46,15 +46,15 @@ Outer structures continue to run.
 }
 
 /**
-# Named Scopes with '#scope'
-Define a named scope with '#scope(Name)'. 'break to Name' exits that scope
+# Named Scopes with 'scope'
+Define a named scope with 'scope(Name)'. 'break to Name' exits that scope
 from anywhere inside it, however deeply nested.
 */
 #test
 {
     var cpt = 0
 
-    #scope(BigScope)
+    scope(BigScope)
     {
         for 10
         {
@@ -70,7 +70,7 @@ from anywhere inside it, however deeply nested.
 
 /**
 # A Scope Is Never the Target of a Bare 'break'
-'break to Name' is the only statement that leaves a '#scope'. A bare 'break'
+'break to Name' is the only statement that leaves a 'scope'. A bare 'break'
 written inside one keeps targeting the enclosing loop or switch, so wrapping a
 piece of a loop body in a scope does not change where its 'break' statements go.
 */
@@ -80,7 +80,7 @@ piece of a loop body in a scope does not change where its 'break' statements go.
 
     for 10
     {
-        #scope(Grouped)
+        scope(Grouped)
         {
             runs += 1
             break     // Exits the 'for', not 'Grouped'
@@ -93,7 +93,7 @@ piece of a loop body in a scope does not change where its 'break' statements go.
 /**
 'continue' behaves the same way: a scope is not a loop, so 'continue' restarts
 the enclosing loop and never the scope. Repeating a block therefore needs a real
-loop, and a '#scope' that encloses no loop rejects both bare statements.
+loop, and a 'scope' that encloses no loop rejects both bare statements.
 */
 #test
 {
@@ -101,7 +101,7 @@ loop, and a '#scope' that encloses no loop rejects both bare statements.
 
     for 3
     {
-        #scope(Grouped)
+        scope(Grouped)
         {
             visited += 1
             continue     // Restarts the 'for'
@@ -116,12 +116,16 @@ loop, and a '#scope' that encloses no loop rejects both bare statements.
 A scope can be left unnamed when nothing needs to jump out of it. It then only
 groups statements and bounds the lifetime of what it declares. Give it a name as
 soon as a 'break to' has to reach it.
+
+A '{' never opens a scope by itself: 'scope' does. A block written as a statement
+right after a call is that call's trailing code block, so the call must take one;
+anywhere else, a statement-level '{' is rejected.
 */
 #test
 {
     var total = 0
 
-    #scope
+    scope
     {
         let step = 4
         total += step
@@ -137,7 +141,7 @@ after that labeled statement.
 */
 #test
 {
-    #scope(Up)
+    scope(Up)
     for 10
     {
         for index in 10

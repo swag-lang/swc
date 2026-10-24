@@ -112,6 +112,7 @@ enum IfElseKind: u16
         if flag
         {
             let a = 1
+            scope
             {
                 let b = 2
                 return a + b
@@ -120,6 +121,7 @@ enum IfElseKind: u16
         else
         {
             let a = 3
+            scope
             {
                 let b = 4
                 return a + b

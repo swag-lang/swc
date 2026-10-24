@@ -84,6 +84,7 @@ func returnStoredText(text: string)->string? fail
 
     let baseline = allocator.stats().countAlloc
     var shortValid, longValid: bool
+    scope
     {
         var shortErrorOutcome: Swag.Error
         catch failStoredText("short") as &shortErrorOutcome
@@ -217,6 +218,7 @@ func failStoredTextWithCleanup() fail
 
     let baseline = allocator.stats().countAlloc
     var pairValid, cleanupValid: bool
+    scope
     {
         var pairedOutcome: Swag.Error
         catch failNestedStoredText() as &pairedOutcome
@@ -227,6 +229,7 @@ func failStoredTextWithCleanup() fail
     }
     let afterPair = allocator.stats().countAlloc
     storedTextCleanupCount = 0
+    scope
     {
         var originalOutcome: Swag.Error
         catch failStoredTextWithCleanup() as &originalOutcome
@@ -292,6 +295,7 @@ func failStoredTextWithCleanup() fail
 
     let baseline = allocator.stats().countAlloc
     var valid: bool
+    scope
     {
         var transportedOutcome: Swag.Error
         catch parallel for || 1

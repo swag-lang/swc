@@ -78,6 +78,7 @@ func semaTest001()
     func deferScopeOrder()->s64
     {
         resetDeferTrace()
+        scope
         {
             defer appendDeferTrace(1)
             defer
@@ -260,6 +261,7 @@ func semaTest008()
         for 10
         {
             defer count -= 1
+            scope
             {
                 defer count += 2
                 continue
@@ -400,7 +402,7 @@ func semaTest013()
             .drops = 0
         }
 
-        #scope(Outer)
+        scope(Outer)
         {
             var x: DeferDropTracker
             defer result.count += 1
@@ -435,6 +437,7 @@ func semaTest014()
             .drops = 0
         }
 
+        scope
         {
             var x: DeferDropTracker
             consumeDropTracker(x)
@@ -462,6 +465,7 @@ func semaTest015()
             .drops = 0
         }
 
+        scope
         {
             var x: DeferDropHolder
             consumeDropHolder(x)
@@ -502,9 +506,10 @@ func semaTest017()
     func deferBreakToScope()->s64
     {
         resetDeferTrace()
-        #scope(Outer)
+        scope(Outer)
         {
             defer appendDeferTrace(1)
+            scope
             {
                 defer appendDeferTrace(2)
                 break to Outer
@@ -526,6 +531,7 @@ func semaTest018()
     func deferConditionalCatchTrace()->s64
     {
         resetDeferTrace()
+        scope
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)
@@ -538,6 +544,7 @@ func semaTest018()
     func deferConditionalCatchElseTrace()->s64
     {
         resetDeferTrace()
+        scope
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)

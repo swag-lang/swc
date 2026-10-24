@@ -80,6 +80,7 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
 #test
 {
     DestructuringDrops = 0
+    scope
     {
         let {first: owned} = makeDestructuringPair'DestructuringOwner()
         Swag.assert(owned.isValid())
@@ -93,6 +94,7 @@ func(T) makeDestructuringPairFail()->{ first: T, count: u32 } fail
 #test
 {
     DestructuringDrops = 0
+    scope
     {
         let pair = makeDestructuringPair'DestructuringOwner()
         let {first, count} = pair

@@ -2,7 +2,7 @@
 
 #test
 {
-    #scope(Outer)
+    scope(Outer)
     {
         for 10
         {
@@ -13,7 +13,7 @@
 
 #test
 {
-    #scope(Outer)
+    scope(Outer)
     for 10
     {
         break to Outer
@@ -22,9 +22,9 @@
 
 #test
 {
-    #scope(A)
+    scope(A)
     {
-        #scope(A)
+        scope(A)
         {
             break to A
         }

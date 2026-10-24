@@ -763,6 +763,7 @@ namespace compiler228
     func main()->s32
     {
         var a: s32
+        scope
         {
             var b: s32
             a = 666; b = 100;

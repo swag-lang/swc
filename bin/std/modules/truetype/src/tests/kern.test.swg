@@ -4,9 +4,9 @@ using Swag, Core
 
 #test
 {
-    var scope: FaceScope
-    scope.init("arial.ttf")
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init("arial.ttf")
+    let face = faceScope.face!
 
     let glyphA = face.glyphIndex('A')
     let glyphV = face.glyphIndex('V')
@@ -34,9 +34,9 @@ using Swag, Core
 // legacy 'kern' table agrees with it at -152 design units.
 #test
 {
-    var scope: FaceScope
-    scope.init("arial.ttf")
-    let face     = scope.face!
+    var faceScope: FaceScope
+    faceScope.init("arial.ttf")
+    let face     = faceScope.face!
     let faceData = getFaceData(face)
 
     Swag.assert(face.hasKerning())
@@ -57,9 +57,9 @@ using Swag, Core
 // sits in a format-1 subtable and moves the glyphs apart rather than together.
 #test
 {
-    var scope: FaceScope
-    scope.init("segoeui.ttf")
-    let face     = scope.face!
+    var faceScope: FaceScope
+    faceScope.init("segoeui.ttf")
+    let face     = faceScope.face!
     let faceData = getFaceData(face)
 
     let glyphLeft  = face.glyphIndex(0xFE84)
@@ -80,9 +80,9 @@ using Swag, Core
 // fallback would silently unkern thousands of pairs.
 #test
 {
-    var scope: FaceScope
-    scope.init("segoeui.ttf")
-    let face     = scope.face!
+    var faceScope: FaceScope
+    faceScope.init("segoeui.ttf")
+    let face     = faceScope.face!
     let faceData = getFaceData(face)
 
     Swag.assert(not faceData.gposPairSubtables.isEmpty())
@@ -108,9 +108,9 @@ using Swag, Core
 // A glyph index no font can hold is answered rather than truncated into a real one.
 #test
 {
-    var scope: FaceScope
-    scope.init("arial.ttf")
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init("arial.ttf")
+    let face = faceScope.face!
 
     discard expect face.setPixelSize(0, 100)
     let beyondU16 = face.getKerning(0x1_0024, face.glyphIndex('V'))

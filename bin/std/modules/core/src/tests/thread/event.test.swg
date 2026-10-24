@@ -63,6 +63,7 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
     eventStatusBorrowLive = false
 
     var validCodes = true
+    scope
     {
         var errorOutcome: Swag.Error
         catch signal.raise() as &errorOutcome
@@ -75,6 +76,7 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
 
     let afterSignalCatch = allocator.stats().countAlloc
 
+    scope
     {
         var errorOutcome: Swag.Error
         catch reset.raise() as &errorOutcome
@@ -87,6 +89,7 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
 
     let afterResetCatch = allocator.stats().countAlloc
 
+    scope
     {
         var errorOutcome: Swag.Error
         catch wait.raise() as &errorOutcome
@@ -99,6 +102,7 @@ func observeEventStatusPanic(_: string?, _: SourceCodeLocation)
 
     let afterWaitCatch = allocator.stats().countAlloc
 
+    scope
     {
         let noDetail = Sync.EventStatus{succeeded: false, errorCode: 0}
         var errorOutcome: Swag.Error

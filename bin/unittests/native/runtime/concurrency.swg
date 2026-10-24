@@ -124,6 +124,7 @@
 {
     var done: Swag.AtomicValue'u32
 
+    scope
     {
         var group: Swag.TaskGroup
         for 40 do
@@ -133,6 +134,7 @@
     Swag.assert(done.load() == 40)
 
     var started: Swag.AtomicValue'u32
+    scope
     {
         var group: Swag.TaskGroup
         group.cancel()

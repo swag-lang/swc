@@ -121,7 +121,7 @@ func day5B()
         for var idx = 0; idx < ranges.count; idx += 1
         {
             let seedRange = ranges[idx]
-            #scope(Done)
+            scope(Done)
             {
                 for mapping in convert[i]
                 {

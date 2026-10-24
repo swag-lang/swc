@@ -26,9 +26,9 @@ using Swag, Core
 
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     discard expect face.setPixelSize(0, 18)
     discard expect face.loadChar('A')

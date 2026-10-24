@@ -7,6 +7,7 @@ func createCheckButtonPage(parent: *Wnd)
                              "States",
                              "The same CheckButton in unchecked, checked, undefined and disabled forms.",
                              layout.left)
+    scope
     {
         discard CheckButton.create(left, "Unchecked", {24, 90, 180})
 
@@ -29,6 +30,7 @@ func createCheckButtonPage(parent: *Wnd)
                             "Alignment",
                             "Right aligned boxes are useful inside property grids and inspector rows.",
                             layout.right)
+    scope
     {
         var check = CheckButton.create(right, "Box on the right", {24, 90, 250})
         check.updateFlags(.RightAligned)
@@ -46,6 +48,7 @@ func createCheckButtonPage(parent: *Wnd)
                              "Interaction",
                              "Click any option to update the feedback label and exercise signals.",
                              layout.bottom)
+    scope
     {
         let status = createText(bottom, "No option changed yet.", {24, 180, 420, 28})
 

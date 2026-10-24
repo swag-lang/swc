@@ -4,7 +4,7 @@ func breakToNamedScope()->s32
 {
     var count: s32 = 0
 
-    #scope(Outer)
+    scope(Outer)
     {
         for 10
         {
@@ -22,7 +22,7 @@ func breakToLabeledStatement()->s32
 {
     var count: s32 = 0
 
-    #scope(Up)
+    scope(Up)
     for 10
     {
         count += 1
@@ -32,14 +32,14 @@ func breakToLabeledStatement()->s32
     return count
 }
 
-// A '#scope' is transparent to the bare statements: both reach the enclosing loop.
+// A 'scope' is transparent to the bare statements: both reach the enclosing loop.
 func bareStatementsReachTheLoop()->s32
 {
     var count: s32 = 0
 
     for 10
     {
-        #scope(Grouped)
+        scope(Grouped)
         {
             count += 1
             if count < 4 do
@@ -55,9 +55,9 @@ func breakToNearestNamedScope()->s32
 {
     var count: s32 = 0
 
-    #scope(A)
+    scope(A)
     {
-        #scope(A)
+        scope(A)
         {
             count += 1
             break to A

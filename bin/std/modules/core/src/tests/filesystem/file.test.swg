@@ -43,12 +43,14 @@ using Swag
     let fileName = CoreTests.makeFilesystemTestPath("core_file_append_existing.tmp")
 
     discard expect File.writeAllBytes(fileName, ['a'u8, 'b'u8])
+    scope
     {
         var stream = expect File.open(fileName, File.FileMode.Append, File.FileAccess.Write, File.FileShare.Zero)
         discard expect stream.write(("cd").buffer, 2)
         stream.close()
     }
 
+    scope
     {
         let content = expect File.readAllBytes(fileName)
         Swag.assert(Slice.equals(content.toSlice(), ['a'u8, 'b'u8, 'c'u8, 'd'u8]))

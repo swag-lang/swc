@@ -1643,7 +1643,7 @@ namespace
                 case AstNodeId::CompilerRunExpr:
                 case AstNodeId::CompilerCodeBlock:
                 case AstNodeId::CompilerCodeExpr:
-                case AstNodeId::CompilerScope:
+                case AstNodeId::ScopeStmt:
                 case AstNodeId::CompilerInject:
                 case AstNodeId::CompilerIf:
                 case AstNodeId::CompilerSwitch:

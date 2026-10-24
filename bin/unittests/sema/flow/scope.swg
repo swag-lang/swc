@@ -2,7 +2,7 @@
 
 func semaTest001()
 {
-    #scope(Outer)
+    scope(Outer)
     {
         for 10
         {
@@ -13,7 +13,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    #scope(Outer)
+    scope(Outer)
     for 10
     {
         break to Outer
@@ -22,9 +22,9 @@ func semaTest002()
 
 func semaTest003()
 {
-    #scope(A)
+    scope(A)
     {
-        #scope(A)
+        scope(A)
         {
             break to A
         }
@@ -33,12 +33,12 @@ func semaTest003()
     }
 }
 
-// A '#scope' is transparent to the bare statements: both reach the enclosing loop.
+// A 'scope' is transparent to the bare statements: both reach the enclosing loop.
 func semaTest004()
 {
     for index in 10
     {
-        #scope(Grouped)
+        scope(Grouped)
         {
             if index == 3 do
                 continue
@@ -52,7 +52,7 @@ func semaTest005()
 {
     for index in 10
     {
-        #scope(Grouped)
+        scope(Grouped)
         {
             switch index
             {

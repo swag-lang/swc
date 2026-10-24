@@ -75,9 +75,9 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 // agree with the fill everywhere instead of opening holes beside them.
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     discard expect face.setPixelSize(0, 40)
     for c in "MWkx"
@@ -95,9 +95,9 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 // and must not count.
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     let squares: [2] [4] s32 = [[0, 0, 1280, 1280], [640, 640, 1920, 1920]]
     let texel = renderSquares(face, squares, 15.5, 15.5)
@@ -110,9 +110,9 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 // is the outer square's left side, 4.5 pixels away.
 #test
 {
-    var scope: FaceScope
-    scope.init()
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init()
+    let face = faceScope.face!
 
     let squares: [2] [4] s32 = [[0, 0, 1280, 1280], [320, 320, 960, 960]]
     let texel = renderSquares(face, squares, 4.5, 10.5)

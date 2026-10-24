@@ -485,7 +485,7 @@ AstNodeRef Parser::parseGeneratedValue(const ParserGeneratedMode mode)
             return parseTopLevelStmt();
 
         case ParserGeneratedMode::Embedded:
-            return parseEmbeddedStmt();
+            return parseStatementInBlock();
 
         case ParserGeneratedMode::Aggregate:
             return parseAggregateValue();
@@ -578,6 +578,7 @@ AstNodeRef Parser::parseGenerated(TaskContext& ctx, Ast& ast, SourceView& srcVie
     closureCaptureStopDepthParen_   = 0xFFFFFFFFu;
     closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
     closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
+    lastStatementRef_               = AstNodeRef::invalid();
 
     SourceView*      previousSrcView = Ast::setThreadSourceViewOverride(&srcView);
     const AstNodeRef result          = parseGeneratedContent(mode);
@@ -1070,6 +1071,7 @@ void Parser::parse(TaskContext& ctx, Ast& ast)
     closureCaptureStopDepthParen_   = 0xFFFFFFFFu;
     closureCaptureStopDepthBracket_ = 0xFFFFFFFFu;
     closureCaptureStopDepthCurly_   = 0xFFFFFFFFu;
+    lastStatementRef_               = AstNodeRef::invalid();
 
     // Force the first node to be invalid, so that AstNodeRef 0 is invalid
     (void) ast_->makeNode<AstNodeId::Invalid>(TokenRef::invalid());

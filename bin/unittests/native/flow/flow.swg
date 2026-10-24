@@ -129,7 +129,9 @@ namespace compiler242
         while a < 10
         {
             a += 1;
+            scope
             {
+                scope
                 {
                     break
                 }

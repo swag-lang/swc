@@ -63,6 +63,7 @@ func(First: u64, Count: u64) fillManyProfiles(values: *[512][17] u64, width, beg
 #test
 {
     var grids: [3][512][17] u64
+    scope
     {
         var group: Swag.TaskGroup
         for lane in 3

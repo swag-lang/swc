@@ -175,6 +175,7 @@ func readTemplateInline()->Tracked
 #test
 {
     resetHooks(7)
+    scope
     {
         var x = makeResource()
         Swag.assert(x.id == 7)
@@ -187,6 +188,7 @@ func readTemplateInline()->Tracked
 #test
 {
     resetHooks(9)
+    scope
     {
         var x = makeTracked()
         Swag.assert(x.value == 9)
@@ -200,6 +202,7 @@ func readTemplateInline()->Tracked
 #test
 {
     resetHooks(11)
+    scope
     {
         var x = forwardTracked()
         Swag.assert(x.value == 11)
@@ -213,6 +216,7 @@ func readTemplateInline()->Tracked
 {
     resetHooks(13)
     g_cond = true
+    scope
     {
         var x = makeTrackedBranch()
         Swag.assert(x.value == 13)
@@ -222,6 +226,7 @@ func readTemplateInline()->Tracked
 
     resetHooks(17)
     g_cond = false
+    scope
     {
         var x = makeTrackedBranch()
         Swag.assert(x.value == 17)
@@ -237,6 +242,7 @@ func readTemplateInline()->Tracked
 {
     resetHooks(19)
     g_sink = 0
+    scope
     {
         var x = makeTrackedDeferred()
         Swag.assert(x.value == 19)
@@ -251,6 +257,7 @@ func readTemplateInline()->Tracked
 #test
 {
     resetHooks(21)
+    scope
     {
         var x = makeSmallTracked()
         Swag.assert(x.value == 21)
@@ -266,6 +273,7 @@ func readTemplateInline()->Tracked
 #test
 {
     resetHooks(27)
+    scope
     {
         var x = makeTrackedRetval()
         Swag.assert(x.value == 27)
@@ -283,6 +291,7 @@ func readTemplateInline()->Tracked
 #test
 {
     resetHooks(23)
+    scope
     {
         var x = makeTrackedInline()
         Swag.assert(x.value == 23)
@@ -298,6 +307,7 @@ func readTemplateInline()->Tracked
 #test
 {
     resetHooks(0)
+    scope
     {
         var x = readTemplateInline()
         Swag.assert(x.value == 41)
@@ -327,6 +337,7 @@ func readTemplateInline()->Tracked
 {
     resetHooks(29)
     g_sink = 0
+    scope
     {
         var value = makeTrackedEscapedThenDeferred()
         Swag.assert(value.value == 29)

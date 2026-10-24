@@ -22,6 +22,7 @@ using Swag, Core, Gui
     expect g_App.setLanguage("fr")
     let expectedFirst = Format.toString(appStrings().msg_SizeMinimum, (MinimumSize + 1024 * 1024 - 1) / (1024 * 1024))
     var firstMessage: String
+    scope
     {
         var firstErrorOutcome: Swag.Error
         catch window.operation.error.raise() as &firstErrorOutcome
@@ -37,6 +38,7 @@ using Swag, Core, Gui
     window.operation.progress.cancel()
     window.operation.task.submit(func|window|() { window.runOperation() })
     window.operation.task.wait()
+    scope
     {
         var canceledErrorOutcome: Swag.Error
         catch window.operation.error.raise() as &canceledErrorOutcome

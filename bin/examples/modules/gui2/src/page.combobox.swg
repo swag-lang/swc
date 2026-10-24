@@ -16,6 +16,7 @@ func createComboBoxPage(parent: *Wnd)
                              "Select combos",
                              "Regular popups with icons, separators and constrained height.",
                              layout.left)
+    scope
     {
         var combo = ComboBox.create(left, {24, 94, 240})
         combo.maximumPopupHeight = 150
@@ -33,6 +34,7 @@ func createComboBoxPage(parent: *Wnd)
                             "Editable and disabled",
                             "Editable combos embed an EditBox; disabled combos keep their selected rendering.",
                             layout.right)
+    scope
     {
         var combo = ComboBox.create(right, {24, 94, 260}, mode: .Editable)
         combo.addItem("Mercury", "mercury")
@@ -50,6 +52,7 @@ func createComboBoxPage(parent: *Wnd)
                              "Widths",
                              "Narrow, normal and wide boxes exercise clipping and popup min width.",
                              layout.bottom)
+    scope
     {
         var combo = ComboBox.create(bottom, {24, 98, 120})
         combo.minimumPopupWidth = 220

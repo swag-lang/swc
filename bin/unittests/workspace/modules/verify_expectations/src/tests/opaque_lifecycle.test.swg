@@ -12,6 +12,7 @@ using StaticApi
 #test
 {
     opaqueLifecycleReset()
+    scope
     {
         var value: OpaqueLifecycleOwner
         value.arm()
@@ -23,6 +24,7 @@ using StaticApi
 #test
 {
     opaqueLifecycleReset()
+    scope
     {
         var first: OpaqueLifecycleOwner
         first.arm()
@@ -38,6 +40,7 @@ using StaticApi
 #test
 {
     opaqueLifecycleReset()
+    scope
     {
         var value: OpaqueLifecycleOrdered
         value.arm()
@@ -53,6 +56,7 @@ using StaticApi
 #test
 {
     opaqueLifecycleReset()
+    scope
     {
         var first: OpaqueLifecycleOrdered
         first.arm()
@@ -68,6 +72,7 @@ using StaticApi
 #test
 {
     opaqueLifecycleReset()
+    scope
     {
         var first: OpaqueLifecycleOrdered
         first.arm()
@@ -92,6 +97,7 @@ using StaticApi
 #test
 {
     opaqueLifecycleReset()
+    scope
     {
         var values: [2] OpaqueLifecycleOwner
         values[0].arm()

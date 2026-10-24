@@ -23,6 +23,7 @@ func scalarLayout()->u64
 func stringAndNested()->u64
 {
     let head: s8 = 0
+    scope
     {
         let inner: string = "x"
         #assert(#offsetof(inner) == 8)

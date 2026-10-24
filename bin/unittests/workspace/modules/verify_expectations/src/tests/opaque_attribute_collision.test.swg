@@ -6,6 +6,7 @@ using StaticApi.OpaqueAttributeCollision
 #test
 {
     resetDrops()
+    scope
     {
         var value: Value
         Swag.assert(value.isDefault())

@@ -122,6 +122,7 @@ func replaceText(text: string, original: *string)->u64
 {
     copyCount, dropCount = 0
     var value: Counted = {value: 20}
+    scope
     {
         var snapshot = #copy value
         Swag.assert(snapshot.value == 21 and value.value == 20)
@@ -181,6 +182,7 @@ func observeInlineCopy(value: const *Counted)->u64
 {
     copyCount, dropCount = 0
     var value: Counted = {value: 12}
+    scope
     {
         let snapshot = returnCopy(&value)
         Swag.assert(snapshot.value == 13 and copyCount == 1 and dropCount == 0)

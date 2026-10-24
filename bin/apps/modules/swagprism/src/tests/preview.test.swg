@@ -60,6 +60,7 @@ using Core, Gui, Pixel
 #test
 {
     var sample: Image
+    scope
     {
         var host: Testing.HeadlessHost
         let window = testSetupMainWindow(&host)

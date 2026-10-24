@@ -959,13 +959,23 @@ bool SemaHelpers::stopsLocalFlow(Sema& sema, AstNodeRef nodeRef, LocalFlowStop s
         case AstNodeId::ElseIfStmt:
             return compoundStopsLocalFlow(sema, node.cast<AstElseIfStmt>().spanChildrenRef, stop);
 
+        // Only a named scope can be left by 'break to', so an unnamed one is just its body.
+        case AstNodeId::ScopeStmt:
+        {
+            const auto& scopeStmt = node.cast<AstScopeStmt>();
+            if (scopeStmt.tokNameRef.isInvalid())
+                return stopsLocalFlow(sema, scopeStmt.nodeBodyRef, stop);
+            if (stop != LocalFlowStop::Function)
+                return false;
+            return stopsLocalFlow(sema, scopeStmt.nodeBodyRef, stop);
+        }
+
         // These statements contain bodies but are not block-level jumps.
         // Inspect them only for function exits, avoiding false unreachable reports.
         case AstNodeId::WithStmt:
         case AstNodeId::CompilerIf:
         case AstNodeId::CompilerSwitch:
         case AstNodeId::CompilerSwitchCase:
-        case AstNodeId::CompilerScope:
         {
             if (stop != LocalFlowStop::Function)
                 return false;

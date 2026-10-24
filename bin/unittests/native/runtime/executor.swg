@@ -61,6 +61,7 @@ struct ExecutorFailure
 {
     var finished: Swag.AtomicValue'u32
     var tasks:    [4] Swag.Task
+    scope
     {
         var executor: Swag.Executor
         executor.start()

@@ -168,13 +168,13 @@ public impl BitArray
         var countBits = 0'u64
         let buffer    = .buffer!
 
-        #scope(Up)
+        scope(Up)
         for idx in totalWords
         {
             let bitsInWord = Math.min(.count - countBits, 32'u64)
             for bitIndex in bitsInWord
             {
-                #scope(Down)
+                scope(Down)
                 {
                     #inject(stmt,
                             item = cast(bool, (buffer[idx] & (1'u32 << cast(u32, bitIndex)))),

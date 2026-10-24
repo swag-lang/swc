@@ -68,6 +68,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     allocator.configure(false, false, false, false, false)
     let backing: Swag.IAllocator = &allocator
     var buffer:  ConcatBuffer
+    scope
     {
         let empty = buffer.toArray(backing)
         Swag.assert(empty.isEmpty() and allocator.stats().countAlloc == 0)
@@ -184,6 +185,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     allocator.setup()
     allocator.configure(false, false, false, false, false)
     let backing: Swag.IAllocator = &allocator
+    scope
     {
         var buffer: ConcatBuffer
         buffer.allocator = backing
@@ -376,6 +378,7 @@ func inspectConcatBuffer(buffer: ConcatBuffer)->bool
     allocator.configure(false, false, false, false, false)
     let backing: Swag.IAllocator = &allocator
     var buffer:  ConcatBuffer
+    scope
     {
         let context  = Swag.getContext()
         let original = context.allocator

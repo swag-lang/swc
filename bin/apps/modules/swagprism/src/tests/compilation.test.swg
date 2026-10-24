@@ -16,6 +16,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 {
     var cache:   Pipeline.CompilationCache
     let request: Pipeline.BuildRequest = {source: exampleSource(.Dot), stage: "pre-emit", settings: {configuration: Pipeline.BuildSettings.DefaultConfiguration}}
+    scope
     {
         var first  = cache.acquire(request)
         var second = cache.acquire(request)
@@ -24,6 +25,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         Swag.assert(not second.artifact!.result.text.isEmpty())
     }
 
+    scope
     {
         var cached = cache.acquire(request)
         Swag.assert(cached.reused and cache.buildCount == 1)
@@ -31,6 +33,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     }
 
     cache.invalidate()
+    scope
     {
         var fresh = cache.acquire(request)
         Swag.assert(not fresh.reused and cache.buildCount == 2)
@@ -44,6 +47,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     var cache:   Pipeline.CompilationCache
     var request: Pipeline.BuildRequest = {source: "func sum(a, b: s32)->s32 => a + b", stage: "pre-emit"}
     request.settings.configuration = "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.safetyGuards = .All; cfg.backend.inlineMode = .Never }"
+    scope
     {
         var guarded = cache.acquire(request)
         waitBuild(&guarded)
@@ -51,6 +55,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     }
 
     request.settings.configuration = "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.safetyGuards = .None }"
+    scope
     {
         var unguarded = cache.acquire(request)
         waitBuild(&unguarded)
@@ -61,6 +66,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     request.settings.configuration.append("\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O1 }")
     request.settings.preset       = .Devmode
     request.settings.optimization = .O2
+    scope
     {
         var devmode = cache.acquire(request)
         waitBuild(&devmode)
@@ -77,6 +83,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
     var cache:   Pipeline.CompilationCache
     let request: Pipeline.BuildRequest = {source: exampleSource(.Dot), stage: "pre-emit"}
     var survivor = cache.acquire(request)
+    scope
     {
         var cancelled = cache.acquire(request)
         Swag.assert(cancelled.artifact == survivor.artifact)

@@ -1,9 +1,9 @@
 #global private
 
-// A bare 'break' never leaves a '#scope', named or not.
+// A bare 'break' never leaves a 'scope', named or not.
 #test
 {
-    #scope(Named)
+    scope(Named)
     {
         break     // swc-expected-error {{sema_err_break_targets_scope}}
     }
@@ -11,7 +11,7 @@
 
 #test
 {
-    #scope
+    scope
     {
         break     // swc-expected-error {{sema_err_break_targets_scope}}
     }
@@ -22,7 +22,7 @@
 {
     for 10 {}
 
-    #scope(Named)
+    scope(Named)
     {
         break     // swc-expected-error {{sema_err_break_targets_scope}}
     }

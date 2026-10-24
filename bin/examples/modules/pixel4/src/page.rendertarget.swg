@@ -76,6 +76,7 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
                          "Render target as a brush",
                          "Once the offscreen pass is complete, its color buffer can feed regular brush and pen paths in the main scene.")
 
+    scope
     {
         let leftRect  = Math.Rectangle{body.x + 18, body.y + 18, body.width * 0.44, body.height - 36}
         let fillBrush = Brush.createTexture(texture)
@@ -94,6 +95,7 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
                         Argb.White)
     }
 
+    scope
     {
         let rightRect = Math.Rectangle{body.x + body.width * 0.52, body.y + 18, body.width * 0.42, body.height - 36}
         let center    = Math.Vector2{rightRect.horzCenter(), rightRect.vertCenter() - 12}

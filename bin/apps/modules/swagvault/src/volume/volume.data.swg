@@ -27,6 +27,7 @@ impl Volume
 
         var records: Array'u8
         records.resize(count * BlockRecordSize)
+        scope
         {
             Sync.scopedLock(&.ioLock)
             if not (try .file.readExactAt(DataOffset + physical * BlockRecordSize, records.toSlice())) do

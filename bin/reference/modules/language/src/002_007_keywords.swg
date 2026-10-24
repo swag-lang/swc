@@ -24,7 +24,7 @@ field, or a '#code' binder that the code does not use, and nothing can refer to 
 ```swag
 and  as  break  case  continue  default  defer  do  elif  else
 fallthrough  for  if  in  is  me  not  or  orelse  parallel  return
-switch  to  unreachable  until  where  while  _
+scope  switch  to  unreachable  until  where  while  _
 ```
 
 # Values, Errors, and Conversion
@@ -56,7 +56,7 @@ configuration, source inclusion, diagnostics, and code injection.
 ```swag
 #ast  #assert  #code  #error
 #foreignlib  #global  #import  #include  #inject
-#load  #main  #message  #premain  #print  #run  #scope
+#load  #main  #message  #premain  #print  #run
 #static  #test  #type  #warning  #init  #drop
 ```
 

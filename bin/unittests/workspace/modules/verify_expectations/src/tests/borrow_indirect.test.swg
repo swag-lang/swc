@@ -19,6 +19,7 @@ func returnImportedIndirectValue()->DepBorrowIndirectValue
 #test
 {
     var destination = 0
+    scope
     {
         var source = 42
         depBorrowIndirectCopyScalar(&destination, &source)
@@ -38,6 +39,7 @@ func returnImportedIndirectValue()->DepBorrowIndirectValue
 
 #test
 {
+    scope
     {
         var source = DepBorrowIndirectValue{depBorrowIndirectGlobal()}
         depBorrowIndirectStore(&source)

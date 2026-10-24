@@ -70,6 +70,7 @@ flow: a deferred 'fail' makes the scope fail, or replaces its error.
 #test
 {
     var drained = 0
+    scope
     {
         defer
         {

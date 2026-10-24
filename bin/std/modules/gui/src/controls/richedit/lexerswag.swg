@@ -111,6 +111,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("while", State.Control)
         .mapWords.add("switch", State.Control)
         .mapWords.add("defer", State.Control)
+        .mapWords.add("scope", State.Control)
         .mapWords.add("do", State.Control)
         .mapWords.add("where", State.Control)
         .mapWords.add("break", State.Control)
@@ -373,7 +374,6 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("#static", State.CompilerStatement)
         .mapWords.add("else", State.CompilerStatement)
         .mapWords.add("elif", State.CompilerStatement)
-        .mapWords.add("#scope", State.CompilerStatement)
 
         .mapWords.add("#cfg", State.Compiler)
         .mapWords.add("#command", State.Compiler)

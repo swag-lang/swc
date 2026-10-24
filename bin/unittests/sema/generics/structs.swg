@@ -44,6 +44,7 @@ func semaTest001()
 
 func semaTest002()
 {
+    scope
     {
         struct(T) LocalBox
         {
@@ -56,6 +57,7 @@ func semaTest002()
         #assert(#typeof(intBox.value) == s32)
         #assert(#typeof(boolBox.value) == bool)
     }
+    scope
     {
         struct(T, N: s32) LocalBuffer
         {

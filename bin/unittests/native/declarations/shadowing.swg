@@ -6,6 +6,7 @@
 #test
 {
     var x = 10
+    scope
     {
         var x = 20
         Swag.assert(x == 20)
@@ -41,8 +42,10 @@
 #test
 {
     var x = 1
+    scope
     {
         var x = 2
+        scope
         {
             var x = 3
             Swag.assert(x == 3)
@@ -56,6 +59,7 @@
 #test
 {
     var v: s32 = 42
+    scope
     {
         var v: f64 = 3.14
         Swag.assert(v == 3.14)

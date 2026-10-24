@@ -53,6 +53,7 @@ struct ScopeRequiresInit
 #test
 {
     g_scopeDropCount = 0
+    scope
     {
         var value: ScopeAllZero
         value.handle.live = true
@@ -63,6 +64,7 @@ struct ScopeRequiresInit
 #test
 {
     g_scopeDropCount = 0
+    scope
     {
         var value: ScopeDeclaredDefault
         value.handle.live = true
@@ -74,6 +76,7 @@ struct ScopeRequiresInit
 #test
 {
     g_scopeDropCount = 0
+    scope
     {
         var value: ScopeInferredDefault
         value.handle.live = true
@@ -86,6 +89,7 @@ struct ScopeRequiresInit
 {
     var slot = 0's32
     g_scopeDropCount = 0
+    scope
     {
         var value: ScopeRequiresInit
         value.handle = ScopeDropHandle{live: true}

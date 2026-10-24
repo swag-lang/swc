@@ -38,6 +38,7 @@ func drawBlendModeSample(painter: *Pixel.Painter, rect: Math.Rectangle, sample: 
     // preview as an alpha-bearing surface immediately before its artistic pass.
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
+    scope
     {
         let backdrop = Brush.createLinearGradient(preview.x,
                                                   preview.y,

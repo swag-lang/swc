@@ -56,6 +56,7 @@ func fillProfiledRange(values: [..] u64, begin, count, rounds: u64)
 #test
 {
     var grid: [8][257] u64
+    scope
     {
         var group: Swag.TaskGroup
         for row in 8

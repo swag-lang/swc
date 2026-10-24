@@ -7,6 +7,7 @@ func createPushButtonPage(parent: *Wnd)
                              "Forms",
                              "The same command rendered with the standard push button forms.",
                              layout.left)
+    scope
     {
         var btn = PushButton.create(left, "Normal", {22, 92, 150})
         btn.setIcon(app.theme.icon(ThemeIcons.Play, 18))
@@ -28,6 +29,7 @@ func createPushButtonPage(parent: *Wnd)
                             "States",
                             "Hot/pressed states are interactive; disabled and long text variants check clipping.",
                             layout.right)
+    scope
     {
         let status = createText(right, "No button pressed yet.", {22, 190, 430, 28})
 
@@ -49,6 +51,7 @@ func createPushButtonPage(parent: *Wnd)
                              "Style override",
                              "A flat button with custom colors, used as a compact visual regression target.",
                              layout.bottom)
+    scope
     {
         var btn = PushButton.create(bottom, "Custom flat action", {22, 96, 220})
         btn.setForm(.Flat)

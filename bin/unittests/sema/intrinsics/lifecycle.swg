@@ -318,6 +318,7 @@ func intrinsicAutoDropPairInfo()->IntrinsicInfo
     resetLifecycleHooks()
 
     var first: s32 = 0
+    scope
     {
         var value = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
         first = value.first.value
@@ -332,6 +333,7 @@ func intrinsicAutoDropNestedInfo()->IntrinsicInfo
 
     var first: s32 = 0
     var last:  s32 = 0
+    scope
     {
         var value = AutoDropNested{DropOnlyTracked{1}, [AutoDropPair{DropOnlyTracked{2}, DropOnlyTracked{3}}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}], DropOnlyTracked{6}}
         first = value.head.value
@@ -347,6 +349,7 @@ func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
 
     var first: s32 = 0
     var last:  s32 = 0
+    scope
     {
         var values: [2] AutoDropPair = [AutoDropPair{DropOnlyTracked{7}, DropOnlyTracked{8}}, AutoDropPair{DropOnlyTracked{9}, DropOnlyTracked{10}}]
         first = values[0].first.value
@@ -374,10 +377,12 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
     defer result.dropTrace = DropTrace
     defer result.drops = DropCount
 
+    scope
     {
         var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
         result.first = pair.first.value
 
+        scope
         {
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
             result.second = nested.tail.value
@@ -389,9 +394,11 @@ func intrinsicAutoDropReturnInfo()->IntrinsicInfo
 
 func intrinsicAutoDropErrorImpl() fail
 {
+    scope
     {
         var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
 
+        scope
         {
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
             if pair.first.value == 1 and nested.tail.value == 8 do
@@ -442,10 +449,12 @@ func intrinsicAutoDropDeferInfo()->IntrinsicInfo
         .postMove  = 0
     }
 
+    scope
     {
         defer result.first = cast(s32, DropCount)
         var pair = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
 
+        scope
         {
             defer result.second = cast(s32, DropCount)
             var nested = AutoDropNested{DropOnlyTracked{3}, [AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}, AutoDropPair{DropOnlyTracked{6}, DropOnlyTracked{7}}], DropOnlyTracked{8}}
@@ -465,6 +474,7 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
     var first:  s32 = 0
     var second: s32 = 0
     var third:  s32 = 0
+    scope
     {
         var outer = DropOnlyTracked{9}
         for i in 2
@@ -490,9 +500,10 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
     var first:  s32 = 0
     var second: s32 = 0
     var third:  s32 = 0
+    scope
     {
         var outer = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
-        #scope(Exit)
+        scope(Exit)
         {
             var scopeValue = AutoDropBranch{DropOnlyTracked{3}, AutoDropPair{DropOnlyTracked{4}, DropOnlyTracked{5}}}
             first = outer.first.value + scopeValue.head.value
@@ -529,6 +540,7 @@ func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
     defer result.dropTrace = DropTrace
     defer result.drops = DropCount
 
+    scope
     {
         var outer = AutoDropPair{DropOnlyTracked{1}, DropOnlyTracked{2}}
         switch 2
@@ -565,6 +577,7 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
     var first:  s32 = 0
     var second: s32 = 0
     var third:  s32 = 0
+    scope
     {
         var outer = AutoCompactPair{CompactDropTracked{8}, CompactDropTracked{9}}
         catch intrinsicAutoDropCatchResumeImpl(55) as errc else
@@ -594,6 +607,7 @@ func intrinsicAutoDropCatchLoopInfo()->IntrinsicInfo
     var first:  s32 = 0
     var second: s32 = 0
     var third:  s32 = 0
+    scope
     {
         var outer = CompactDropTracked{9}
         for i in 2
@@ -633,11 +647,13 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
     defer result.dropTrace = DropCompactTrace
     defer result.drops = DropCount
 
+    scope
     {
         var outer = AutoCompactPair{CompactDropTracked{6}, CompactDropTracked{7}}
         switch 1
         {
         case 1:
+            scope
             {
                 var firstCase = AutoCompactPair{CompactDropTracked{1}, CompactDropTracked{2}}
                 result.first = firstCase.first.value
@@ -645,6 +661,7 @@ func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
             fallthrough
 
         case 2:
+            scope
             {
                 var active = AutoCompactBranch{CompactDropTracked{3}, AutoCompactPair{CompactDropTracked{4}, CompactDropTracked{5}}}
                 result.second = active.head.value
@@ -678,6 +695,7 @@ func intrinsicAutoDropIfVarReturnInfo()->IntrinsicInfo
     defer result.dropTrace = DropCompactTrace
     defer result.drops = DropCount
 
+    scope
     {
         var outer = CompactDropTracked{1}
         if var flag = 1 where flag == 1
@@ -702,6 +720,7 @@ func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
     var first:  s32 = 0
     var second: s32 = 0
     var third:  s32 = 0
+    scope
     {
         var outer = CompactDropTracked{9}
         if var flag = 1 where false
@@ -758,10 +777,12 @@ func intrinsicAutoDropShadowInfo()->IntrinsicInfo
     var first:  s32 = 0
     var second: s32 = 0
     var third:  s32 = 0
+    scope
     {
         var value = CompactDropTracked{9}
         first = value.value
 
+        scope
         {
             var value = AutoCompactBranch{CompactDropTracked{1}, AutoCompactPair{CompactDropTracked{2}, CompactDropTracked{3}}}
             second = value.pair.first.value

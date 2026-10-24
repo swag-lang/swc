@@ -308,6 +308,7 @@ private impl RenderOgl
 
     mtd createShaders()
     {
+        scope
         {
             expect .createShader(&.shaderSimple, VertexShaderSimple, PixelShaderSimple)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderSimple.handle), ("inTexture0").buffer)
@@ -315,6 +316,7 @@ private impl RenderOgl
             glUniform1i(text0, 0)
         }
 
+        scope
         {
             expect .createShader(&.shaderAA, VertexShaderAA, PixelShaderAA)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderAA.handle), ("inTexture0").buffer)
@@ -324,6 +326,7 @@ private impl RenderOgl
             glUniform1i(text1, 1)
         }
 
+        scope
         {
             // The picture arrives as three planes on units 0, 3 and 4, and the shader converts
             // while it samples: that is what lets a decoder skip the conversion entirely.
@@ -339,6 +342,7 @@ private impl RenderOgl
             glUniform1i(chromaR, 4)
         }
 
+        scope
         {
             expect .createShader(&.shaderFont, VertexShaderFont, PixelShaderFont)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderFont.handle), ("inTexture0").buffer)
@@ -350,6 +354,7 @@ private impl RenderOgl
             glUniform1f(gamma, FontGamma)
         }
 
+        scope
         {
             expect .createShader(&.shaderFontMsdf, VertexShaderFont, PixelShaderFontMsdf)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderFontMsdf.handle), ("inTexture0").buffer)
@@ -376,6 +381,7 @@ private impl RenderOgl
             .shaderFontMsdf.fxBevel        = cast(glGetUniformLocation(h, ("fxBevel").buffer))
         }
 
+        scope
         {
             expect .createShader(&.shaderBlur, VertexShaderSimple, PixelShaderBlur)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderBlur.handle), ("inTexture0").buffer)
@@ -385,6 +391,7 @@ private impl RenderOgl
             .shaderBlur.radius = cast(glGetUniformLocation(cast(GLuint, .shaderBlur.handle), ("radius").buffer))
         }
 
+        scope
         {
             expect .createShader(&.shaderResolve, VertexShaderSimple, PixelShaderResolve)
             let text0 = glGetUniformLocation(cast(GLuint, .shaderResolve.handle), ("inTexture0").buffer)

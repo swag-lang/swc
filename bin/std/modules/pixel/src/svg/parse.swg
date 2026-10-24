@@ -3455,6 +3455,7 @@ private impl Parser
             var joinStyle:                   JoinStyle    = Miter
             var paintTransform:              Math.Transform2
 
+            scope
             {
                 let src = &.drawing.shapes[first + i]
                 fillColor     = src.fillColor

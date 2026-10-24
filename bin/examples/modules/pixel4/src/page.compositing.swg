@@ -43,12 +43,14 @@ func buildPathModeList(x, y: f32)->LinePathList
 {
     var list: retval
 
+    scope
     {
         let path = list.newPath()
         path.start(x + 52, y + 10)
         path.lineTo(x + 52, y + 114)
     }
 
+    scope
     {
         let path = list.newPath()
         path.start(x + 0, y + 62)

@@ -115,11 +115,13 @@ Lambdas may have parameters with default values, allowing flexible invocation.
 */
 #test
 {
+    scope
     {
         let x = func(val = true) { Swag.assert(val == true) }
         x()
     }
 
+    scope
     {
         var x: (func(val: bool = true))?
         x = func(val) { Swag.assert(val == true) }

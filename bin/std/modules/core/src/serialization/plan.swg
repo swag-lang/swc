@@ -117,6 +117,7 @@ public func planFor(structType: const *Swag.TypeInfoStruct)->*Plan fail
     let key = cast(u64, structType)
 
     // Fast path: the plan already exists.
+    scope
     {
         Sync.sharedLock(&g_PlanLock)
         let existing = g_Plans.tryFind(key)

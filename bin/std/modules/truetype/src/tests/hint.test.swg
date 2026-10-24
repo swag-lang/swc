@@ -15,9 +15,9 @@ func distToPixel(v: s32)->s32
 // x-height) and must never make the alignment worse.
 #test
 {
-    var scope: FaceScope
-    scope.init("arial.ttf")
-    let face = scope.face!
+    var faceScope: FaceScope
+    faceScope.init("arial.ttf")
+    let face = faceScope.face!
 
     discard expect face.setPixelSize(0, 13)
     discard expect face.loadChar('x')

@@ -7,6 +7,7 @@ func createCompositePage(parent: *Wnd)
                              "ColorPickerCtrl with alpha",
                              "Full control with 2D color modes, hue/alpha bars, ARGB edits and screen picker button.",
                              layout.left)
+    scope
     {
         let picker = ColorPickerCtrl.create(left, {24, 92}, .All)
         picker.setFrameForm(.Round)
@@ -19,6 +20,7 @@ func createCompositePage(parent: *Wnd)
                             "Opaque ColorPickerCtrl",
                             "The same composite without alpha, showing RGB-only edit behavior and mode buttons.",
                             layout.right)
+    scope
     {
         var opaque = g_Color
         opaque.a = 255

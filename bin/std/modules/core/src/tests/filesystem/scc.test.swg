@@ -58,6 +58,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     expect writer.saveAtomic(path)
 
     var imageOffset: u64
+    scope
     {
         var index: Scc.Reader
         expect index.initialize(path)

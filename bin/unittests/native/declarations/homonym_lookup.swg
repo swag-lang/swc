@@ -60,6 +60,7 @@ func readShadow(set: ShadowItem)->s32
 
 #test
 {
+    scope
     {
         let set: ShadowItem = {count: 6}
         Swag.assert(set.count == 6)

@@ -64,6 +64,7 @@ func validateOp(str: string)
 #[Swag.Mixin]
 func createBtn(str: string, x, y: s32)
 {
+    scope
     {
         let btn = PushButton.create(layout, str)
         btn.sigPressed += func(btn) { validateOp(btn.name.raw) }

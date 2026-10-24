@@ -98,6 +98,7 @@ func deferredFailingCatchOwner() fail
 
     var firstGeneration  = 0'u32
     var secondGeneration = 0'u32
+    scope
     {
         var firstOutcome: Swag.Error
         catch failCatchOwner(0) as &firstOutcome
@@ -141,6 +142,7 @@ func deferredFailingCatchOwner() fail
     Swag.assert(catchOwnerDrops[64 + firstGeneration].load() == 3)
 
     var rethrownGeneration = 0'u32
+    scope
     {
         var errorOutcome: Swag.Error
         catch rethrowCatchOwner() as &errorOutcome
@@ -182,6 +184,7 @@ func deferredFailingCatchOwner() fail
     Swag.assert(catchOwnerDrops[144 + firstGeneration].load() == 1)
     Swag.assert(Swag.getContext().curError == null and Swag.getContext().hasError == 0)
 
+    scope
     {
         defer
         {

@@ -47,13 +47,21 @@ func pop()
             break
         let r = l + 1
         var m = l
-        if r < g_HeapSize and g_HeapD[r] < g_HeapD[l] do
-            m = r
-        if g_HeapD[i] <= g_HeapD[m] do
+        let leftD = g_HeapD[l]
+        var childD = leftD
+        if r < g_HeapSize
+        {
+            let rightD = g_HeapD[r]
+            if rightD < leftD
+            {
+                m = r
+                childD = rightD
+            }
+        }
+        if g_HeapD[i] <= childD do
             break
-        let td = g_HeapD[m]
         g_HeapD[m] = g_HeapD[i]
-        g_HeapD[i] = td
+        g_HeapD[i] = childD
         let tn = g_HeapN[m]
         g_HeapN[m] = g_HeapN[i]
         g_HeapN[i] = tn

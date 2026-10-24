@@ -75,36 +75,52 @@ bool SymbolTable::makeEntry(Entry& outEntry, const TaskContext& ctx, const Nativ
     return true;
 }
 
+namespace
+{
+    void buildSymbolTable(ByteArray& outBytes, std::vector<SymbolTable::Relocation>* outRelocations, const std::span<const SymbolTable::Entry> entries)
+    {
+        outBytes.clear();
+        if (outRelocations)
+            outRelocations->clear();
+        if (entries.empty())
+            return;
+
+        StringBlob strings;
+        strings.base = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(entries.size()) * SymbolTable::ENTRY_SIZE;
+
+        outBytes.appendLe32(SymbolTable::MAGIC);
+        outBytes.appendLe32(SymbolTable::VERSION_PLAIN);
+        outBytes.appendLe32(static_cast<uint32_t>(entries.size()));
+        outBytes.appendLe32(strings.base);
+
+        if (outRelocations)
+            outRelocations->reserve(entries.size());
+        for (const SymbolTable::Entry& entry : entries)
+        {
+            const uint32_t nameOffset = strings.insert(entry.name.view());
+            const uint32_t fileOffset = strings.insert(entry.file.view());
+
+            if (outRelocations)
+                outRelocations->push_back({.offset = static_cast<uint32_t>(outBytes.size()) + SymbolTable::ENTRY_START_RVA, .symbolName = entry.symbolName});
+            outBytes.appendLe32(0);
+            outBytes.appendLe32(entry.size);
+            outBytes.appendLe32(nameOffset);
+            outBytes.appendLe32(fileOffset);
+            outBytes.appendLe32(entry.line);
+        }
+
+        outBytes.append(strings.bytes);
+    }
+}
+
 void SymbolTable::build(ByteArray& outBytes, std::vector<Relocation>& outRelocations, const std::span<const Entry> entries)
 {
-    outBytes.clear();
-    outRelocations.clear();
-    if (entries.empty())
-        return;
+    buildSymbolTable(outBytes, &outRelocations, entries);
+}
 
-    StringBlob strings;
-    strings.base = HEADER_SIZE + static_cast<uint32_t>(entries.size()) * ENTRY_SIZE;
-
-    outBytes.appendLe32(MAGIC);
-    outBytes.appendLe32(VERSION_PLAIN);
-    outBytes.appendLe32(static_cast<uint32_t>(entries.size()));
-    outBytes.appendLe32(strings.base);
-
-    outRelocations.reserve(entries.size());
-    for (const Entry& entry : entries)
-    {
-        const uint32_t nameOffset = strings.insert(entry.name.view());
-        const uint32_t fileOffset = strings.insert(entry.file.view());
-
-        outRelocations.push_back({.offset = static_cast<uint32_t>(outBytes.size()) + ENTRY_START_RVA, .symbolName = entry.symbolName});
-        outBytes.appendLe32(0);
-        outBytes.appendLe32(entry.size);
-        outBytes.appendLe32(nameOffset);
-        outBytes.appendLe32(fileOffset);
-        outBytes.appendLe32(entry.line);
-    }
-
-    outBytes.append(strings.bytes);
+void SymbolTable::build(ByteArray& outBytes, const std::span<const Entry> entries)
+{
+    buildSymbolTable(outBytes, nullptr, entries);
 }
 
 bool SymbolTable::read(std::vector<Entry>& outEntries, const std::span<const std::byte> bytes, const std::span<const Relocation> relocations)

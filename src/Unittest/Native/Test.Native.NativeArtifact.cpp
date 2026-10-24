@@ -2376,6 +2376,10 @@ SWC_TEST_BEGIN(SymbolTable_DeduplicatesNamesAndOwnsSerializedStrings)
     ByteArray                            bytes;
     std::vector<SymbolTable::Relocation> relocations;
     SymbolTable::build(bytes, relocations, entries);
+    ByteArray imageBytes;
+    SymbolTable::build(imageBytes, entries);
+    if (!std::ranges::equal(bytes.span(), imageBytes.span()))
+        return Result::Error;
 
     constexpr uint32_t stringsBase = SymbolTable::HEADER_SIZE + 3 * SymbolTable::ENTRY_SIZE;
     const uint32_t     fileOffset  = stringsBase + static_cast<uint32_t>(name.size()) + 1;

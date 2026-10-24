@@ -331,7 +331,7 @@ namespace
         return section.flags.has(LinkSectionFlagsE::Code) && relocation.kind == LinkRelocKind::Rel32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
     }
 
-    void foldIdenticalArchiveFunctions(std::vector<CoffObject>& objects, const LinkImage& image, const std::vector<LinkSymbolAlias>& knownSymbolAliases, std::vector<LinkSymbolAlias>& outAliases, std::unordered_set<std::string_view>& outFoldedSymbols)
+    void foldIdenticalArchiveFunctions(std::vector<CoffObject>& objects, const LinkImage& image, const std::unordered_map<Utf8, Utf8>& knownAliases, std::vector<LinkSymbolAlias>& outAliases, std::unordered_set<std::string_view>& outFoldedSymbols)
     {
         std::vector<FunctionFoldCandidate> candidates;
         candidates.reserve(objects.size());
@@ -385,11 +385,6 @@ namespace
 
         if (const auto it = candidateBySymbol.find(image.entrySymbol); it != candidateBySymbol.end())
             addressObserved[it->second] = true;
-
-        std::unordered_map<Utf8, Utf8> knownAliases;
-        knownAliases.reserve(knownSymbolAliases.size());
-        for (const LinkSymbolAlias& alias : knownSymbolAliases)
-            knownAliases.emplace(alias.name, alias.canonicalName);
 
         std::unordered_map<uint32_t, std::vector<FunctionFoldGroup>> groupsByHash;
         for (size_t i = 0; i < candidates.size(); ++i)
@@ -1189,7 +1184,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     Diagnostic                   diag;
     std::vector<LinkSymbolAlias> functionAliases;
     std::unordered_set<std::string_view> foldedFunctionSymbols;
-    foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliases, functionAliases, foldedFunctionSymbols);
+    foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliasMap, functionAliases, foldedFunctionSymbols);
     dropFoldedFunctions(debugInfo, ioSymbols, foldedFunctionSymbols);
     if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
         return builder_->reportError(diag);

@@ -287,9 +287,13 @@ void ByteArray::append(const std::string_view text)
 
 void ByteArray::appendAligned(uint32_t& outOffset, const ByteArray& bytes, const uint32_t alignment)
 {
-    const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(size()), alignment);
-    if (size() < alignedOffset)
+    const size_t   currentSize   = size();
+    const uint32_t alignedOffset = Math::alignUpU32(static_cast<uint32_t>(currentSize), alignment);
+    if (currentSize < alignedOffset)
+    {
+        storage_.reserve(static_cast<size_t>(alignedOffset) + bytes.size());
         resize(alignedOffset, std::byte{0});
+    }
 
     outOffset = alignedOffset;
     append(bytes);

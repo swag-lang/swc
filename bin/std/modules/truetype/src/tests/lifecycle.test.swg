@@ -27,13 +27,13 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 #test
 {
     var err3Outcome: Swag.Error
-    catch checkFaceLoad(BrokenFontBytes) as &err3Outcome
+    catch checkFaceLoad(BrokenFontBytes) as err3Outcome
     let err3 = err3Outcome.value()
     Swag.assert(err3 != null)
 
     var empty:       Array'u8
     var err4Outcome: Swag.Error
-    catch checkFaceLoad(empty.toSlice()) as &err4Outcome
+    catch checkFaceLoad(empty.toSlice()) as err4Outcome
     let err4 = err4Outcome.value()
     Swag.assert(err4 != null)
 }
@@ -65,12 +65,12 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
     Swag.assert(face.size.metrics.yPpem == 24)
 
     var err8Outcome: Swag.Error
-    discard catch face.setPixelSize(0, 0) as &err8Outcome
+    discard catch face.setPixelSize(0, 0) as err8Outcome
     let err8 = err8Outcome.value()
     Swag.assert(err8 != null)
 
     var err9Outcome: Swag.Error
-    discard catch face.setPixelSize(Swag.U16.Max + 1, 16) as &err9Outcome
+    discard catch face.setPixelSize(Swag.U16.Max + 1, 16) as err9Outcome
     let err9 = err9Outcome.value()
     Swag.assert(err9 != null)
 

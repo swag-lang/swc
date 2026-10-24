@@ -70,7 +70,7 @@ impl Capture
             return false
 
         var reader: Scc.Reader
-        catch reader.initialize(file) else { return false }
+        catch reader.initialize(file) { return false }
         return reader.kind() == containerKind()
     }
 
@@ -211,7 +211,7 @@ impl Capture
         g_CaptureSaves.adopt(job)
         job.task.submit(func|job|()
         {
-            catch writeScc(job) else do
+            catch writeScc(job) do
                 job.failed = true
         })
 

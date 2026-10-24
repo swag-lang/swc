@@ -76,7 +76,7 @@ func reportIconContainer(image: *BinaryImage, report: *Report, previews: *Array'
         Memory.copy(one.storage() + 6, image.bytes.buffer + at, 16)
         writePreviewU32(&one, 18, 22)
         Memory.copy(one.storage() + 22, image.bytes.buffer + offset, size)
-        let decoded = catch Image.decode(kind == 1 ? "entry.ico" : "entry.cur", one.toSlice()) else { continue }
+        let decoded = catch Image.decode(kind == 1 ? "entry.ico" : "entry.cur", one.toSlice()) { continue }
         var preview: Preview
         preview.image = #move decoded
         preview.label = #move label
@@ -124,7 +124,7 @@ func loadSccImagePreviews(fileName: string, previews: *Array'Preview)
 {
     var reader: Scc.Reader
     var openErrorOutcome: Swag.Error
-    catch reader.initialize(fileName) as &openErrorOutcome
+    catch reader.initialize(fileName) as openErrorOutcome
     let openError = openErrorOutcome.value()
     if openError != null or reader.kind() != captureContainerKind() do
         return
@@ -135,11 +135,11 @@ func loadSccImagePreviews(fileName: string, previews: *Array'Preview)
            chunk.roleId != captureBackgroundRole() and
            chunk.roleId != captureOriginalRole() do
             continue
-        let bytes = catch reader.readChunk(chunk.id) else { continue }
+        let bytes = catch reader.readChunk(chunk.id) { continue }
 
         if chunk.roleId == capturePreviewRole()
         {
-            let image = catch Image.decode("preview.png", bytes.toSlice()) else { continue }
+            let image = catch Image.decode("preview.png", bytes.toSlice()) { continue }
             var preview: Preview
             preview.image = #move image
             preview.label = texts().ui_Preview

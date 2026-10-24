@@ -121,7 +121,7 @@ impl Panel
         }
 
         var decodeErrorOutcome: Swag.Error
-        catch .decodeIntoSlot(slot, index) as &decodeErrorOutcome
+        catch .decodeIntoSlot(slot, index) as decodeErrorOutcome
         let decodeError = decodeErrorOutcome.value()
 
         Sync.scopedLock(&.queueLock)
@@ -206,9 +206,9 @@ impl Panel
         .frameIndex    = .slots[cast(u64, chosen)].index
         .hasFrame      = true
         .awaitingFrame = false
-        catch .finishMetadata() as metadataError else
+        catch .finishMetadata()
         {
-            .services.failed(me, Viewer.failureText(metadataError))
+            .services.failed(me, Viewer.failureText(Swag.err))
             return false
         }
 
@@ -301,12 +301,12 @@ impl Panel
             if coversRange and not resumeAudio
             {
                 let sample = soundSample(.audio, .elapsed)
-                catch .voice.seekSampleFrame(sample) as seekError else
+                catch .voice.seekSampleFrame(sample)
                 {
                     .playing = false
                     .audioRangePending = false
                     catch .voice.pause()
-                    .services.failed(me, Viewer.failureText(seekError))
+                    .services.failed(me, Viewer.failureText(Swag.err))
                     return
                 }
             }
@@ -338,12 +338,12 @@ impl Panel
             .audioRangePending = not soundCovers(.audio, 0)
             if not .audioRangePending
             {
-                catch .voice.seekSampleFrame(soundSample(.audio, 0)) as seekError else
+                catch .voice.seekSampleFrame(soundSample(.audio, 0))
                 {
                     .playing = false
                     catch .voice.pause()
                     .refreshTransport()
-                    .services.failed(me, Viewer.failureText(seekError))
+                    .services.failed(me, Viewer.failureText(Swag.err))
                     return
                 }
 
@@ -421,16 +421,16 @@ impl Panel
     {
         if not .openFinished
         {
-            catch .completeOpen() as openError else { .services.failed(me, Viewer.failureText(openError)) }
+            catch .completeOpen() { .services.failed(me, Viewer.failureText(Swag.err)) }
             return
         }
 
         if not .video.isOpen() do
             return
 
-        catch .finishMetadata() as metadataError else
+        catch .finishMetadata()
         {
-            .services.failed(me, Viewer.failureText(metadataError))
+            .services.failed(me, Viewer.failureText(Swag.err))
             return
         }
 

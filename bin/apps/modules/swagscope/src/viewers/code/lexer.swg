@@ -100,20 +100,20 @@ func shebang(source: string)->Shebang
 // Reads the interpreter line of a file without retaining it.
 private func fileShebang(fileName: string)->Shebang
 {
-    var stream = catch File.openReadLive(fileName) else { return {} }
+    var stream = catch File.openReadLive(fileName) { return {} }
     defer stream.close()
 
-    let head = catch stream.readUtf8Chunk(512) else { return {} }
+    let head = catch stream.readUtf8Chunk(512) { return {} }
     return shebang(head)
 }
 
 // Reports whether the head of a `.m` file reads as Objective-C rather than MATLAB.
 private func looksLikeObjectiveC(fileName: string)->bool
 {
-    var stream = catch File.openReadLive(fileName) else { return false }
+    var stream = catch File.openReadLive(fileName) { return false }
     defer stream.close()
 
-    let head = catch stream.readUtf8Chunk(4 * 1024) else { return false }
+    let head = catch stream.readUtf8Chunk(4 * 1024) { return false }
     const Markers: [5] string = ["#import", "@interface", "@implementation", "@protocol", "@property"]
     for marker in Markers where Utf8.contains(head, marker) do
         return true

@@ -108,7 +108,7 @@ internal func absolutePath(path: string)->String
 
     // Only the returned length decides: the call does not clear the thread's last error, so a
     // stale one would send an otherwise successful resolution down the fallback path.
-    let written = catch GetFullPathNameW(winPath.buffer, MaxLength, arr16.buffer, null) else 0
+    let written = catch GetFullPathNameW(winPath.buffer, MaxLength, arr16.buffer, null)
     if written == 0 or written > MaxLength
     {
         // Fall back to the literal path. It can only make the check stricter: a path that
@@ -144,7 +144,7 @@ internal func containsReparsePoint(path: string)->bool fail
             let prefix = fullPath[until end]
             var attributes: File.FileAttributes
             var outcome:    Swag.Error
-            catch { attributes = try File.attributes(prefix) } as &outcome
+            catch { attributes = try File.attributes(prefix) } as outcome
             let error = outcome.value()
             if error != null
             {

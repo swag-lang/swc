@@ -108,10 +108,10 @@ using Core, Core.Errors, Pixel
     Swag.assert(rate.framesPerSecond() > 29.97 and rate.framesPerSecond() < 29.971)
 
     var zeroNumeratorOutcome: Swag.Error
-    discard catch FrameRate.create(0, 1) as &zeroNumeratorOutcome
+    discard catch FrameRate.create(0, 1) as zeroNumeratorOutcome
     let zeroNumerator = zeroNumeratorOutcome.value()
     var zeroDenominatorOutcome: Swag.Error
-    discard catch FrameRate.create(1, 0) as &zeroDenominatorOutcome
+    discard catch FrameRate.create(1, 0) as zeroDenominatorOutcome
     let zeroDenominator = zeroDenominatorOutcome.value()
     Swag.assert((zeroNumerator is BadParameterError))
     Swag.assert((zeroDenominator is BadParameterError))
@@ -151,7 +151,7 @@ using Core, Core.Errors, Pixel
 
     // Reading a stream with an unknown length ends by failing, not by returning a frame.
     var endOfStreamOutcome: Swag.Error
-    discard catch reader.decodeFrame(2) as &endOfStreamOutcome
+    discard catch reader.decodeFrame(2) as endOfStreamOutcome
     let endOfStream = endOfStreamOutcome.value()
     Swag.assert(endOfStream != null)
 
@@ -180,10 +180,10 @@ using Core, Core.Errors, Pixel
     videoAssertColor(red.pixelColor(0, 0), 255, 0, 0)
 
     var truncatedOutcome: Swag.Error
-    discard catch reader.decodeFrame(1) as &truncatedOutcome
+    discard catch reader.decodeFrame(1) as truncatedOutcome
     let truncated = truncatedOutcome.value()
     var truncatedAgainOutcome: Swag.Error
-    discard catch reader.decodeFrame(1) as &truncatedAgainOutcome
+    discard catch reader.decodeFrame(1) as truncatedAgainOutcome
     let truncatedAgain = truncatedAgainOutcome.value()
     Swag.assert((truncated is InvalidFormatError))
     Swag.assert((truncatedAgain is InvalidFormatError))
@@ -266,19 +266,19 @@ using Core, Core.Errors, Pixel
 #test
 {
     var missingHeaderOutcome: Swag.Error
-    discard catch Reader.openMemory("bad.y4m", "not video") as &missingHeaderOutcome
+    discard catch Reader.openMemory("bad.y4m", "not video") as missingHeaderOutcome
     let missingHeader = missingHeaderOutcome.value()
     var chromaOutcome: Swag.Error
-    discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C420p10\nFRAME\nabc") as &chromaOutcome
+    discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C420p10\nFRAME\nabc") as chromaOutcome
     let chroma = chromaOutcome.value()
     var truncatedOutcome: Swag.Error
-    discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\nFRAME\nab") as &truncatedOutcome
+    discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\nFRAME\nab") as truncatedOutcome
     let truncated = truncatedOutcome.value()
     var noFrameOutcome: Swag.Error
-    discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\n") as &noFrameOutcome
+    discard catch Reader.openMemory("bad.y4m", "YUV4MPEG2 W1 H1 F1:1 Ip A0:0 C444\n") as noFrameOutcome
     let noFrame = noFrameOutcome.value()
     var mp4HeaderOutcome: Swag.Error
-    discard catch Reader.openMemory("bad.mp4", "") as &mp4HeaderOutcome
+    discard catch Reader.openMemory("bad.mp4", "") as mp4HeaderOutcome
     let mp4Header = mp4HeaderOutcome.value()
     Swag.assert((missingHeader is InvalidFormatError))
     Swag.assert((chroma is UnsupportedFormatError))
@@ -289,13 +289,13 @@ using Core, Core.Errors, Pixel
     let rate = expect FrameRate.create(30, 1)
     var clip = expect Clip.create(2, 2, rate)
     var dimensionsOutcome: Swag.Error
-    discard catch clip.addFrame(videoTestImage(1, 1, [0'u8, 0, 0])) as &dimensionsOutcome
+    discard catch clip.addFrame(videoTestImage(1, 1, [0'u8, 0, 0])) as dimensionsOutcome
     let dimensions = dimensionsOutcome.value()
     var emptyOutcome: Swag.Error
-    discard catch clip.encode("empty.y4m") as &emptyOutcome
+    discard catch clip.encode("empty.y4m") as emptyOutcome
     let empty = emptyOutcome.value()
     var emptyMp4Outcome: Swag.Error
-    discard catch clip.encode("empty.mp4") as &emptyMp4Outcome
+    discard catch clip.encode("empty.mp4") as emptyMp4Outcome
     let emptyMp4 = emptyMp4Outcome.value()
     Swag.assert((dimensions is BadParameterError))
     Swag.assert((empty is InvalidFormatError))

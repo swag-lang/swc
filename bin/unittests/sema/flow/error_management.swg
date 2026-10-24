@@ -26,13 +26,13 @@ func propagateValue()->s32 fail
 
 func handleValue()->s32
 {
-    let value: s32 = catch mayFailValue() else 0
+    let value: s32 = catch mayFailValue()
     return value
 }
 
 func dismissValue()->s32
 {
-    let value: s32 = catch mayFailValue() else 0
+    let value: s32 = catch mayFailValue()
     return value
 }
 

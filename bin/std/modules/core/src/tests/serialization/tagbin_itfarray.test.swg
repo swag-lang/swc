@@ -120,7 +120,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     var buffer:     ConcatBuffer
     var encoder:    Serialization.Encoder'Serialization.Write.TagBin
     var errOutcome: Swag.Error
-    catch encoder.writeAll(&buffer, holder) as &errOutcome
+    catch encoder.writeAll(&buffer, holder) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Utf8.contains(Errors.message(err), "Serialization.TypeKey"))
@@ -139,7 +139,7 @@ func releaseTagBinArrayHolder(holder: *TagBinArrayHolder)
     var buffer:     ConcatBuffer
     var encoder:    Serialization.Encoder'Serialization.Write.TagBin
     var errOutcome: Swag.Error
-    catch encoder.writeAll(&buffer, holder) as &errOutcome
+    catch encoder.writeAll(&buffer, holder) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Utf8.contains(Errors.message(err), "does not resolve to one registered type"))

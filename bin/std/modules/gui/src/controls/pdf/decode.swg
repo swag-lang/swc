@@ -1143,7 +1143,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
                 var picked = deviceSpace(.Gray, 1)
                 var spaceErrorOutcome: Swag.Error
                 var space: #decltype(expect resolveNamedColorSpace(parser, content.name(ops[ops.count - 1].node), resourcesId, 0))
-                catch { space = try resolveNamedColorSpace(parser, content.name(ops[ops.count - 1].node), resourcesId, 0) } as &spaceErrorOutcome
+                catch { space = try resolveNamedColorSpace(parser, content.name(ops[ops.count - 1].node), resourcesId, 0) } as spaceErrorOutcome
                 let spaceError = spaceErrorOutcome.value()
                 if spaceError == null do
                     picked = space

@@ -60,14 +60,14 @@ func nonNullRequiresInitFallible()->*NonNullRequiresInitItem fail
 
 #test
 {
-    let value = catch nonNullRequiresInitFallible() as error     // swc-expected-error {{sema_err_catch_capture_needs_handler}}
+    let value = catch nonNullRequiresInitFallible()     // swc-expected-error {{sema_err_catch_value_needs_fallback}}
     discard value
 }
 
-// 'else' supplies the replacement, so the result type needs no default.
+// 'orelse' supplies the replacement, so the result type needs no default.
 #test
 {
-    let value = catch nonNullRequiresInitFallible() else &NonNullRequiresInitFallibleItem
+    let value = catch nonNullRequiresInitFallible() orelse &NonNullRequiresInitFallibleItem
     #assert(#typeof(value) == *NonNullRequiresInitItem)
 }
 
@@ -137,9 +137,9 @@ func nonNullStringFallible()->string fail
     return "ready"
 }
 
-// Capturing the error does not provide a default for the successful result type.
+// A type with no default value needs its replacement to be written.
 #test
 {
-    let name = catch nonNullStringFallible() as error     // swc-expected-error {{sema_err_catch_capture_needs_handler}}
+    let name = catch nonNullStringFallible()     // swc-expected-error {{sema_err_catch_value_needs_fallback}}
     discard name
 }

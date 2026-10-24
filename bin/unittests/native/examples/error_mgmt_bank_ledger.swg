@@ -161,7 +161,7 @@ impl Ledger
         for op in ops
         {
             var errOutcome: Swag.Error
-            catch .transfer(op.from, op.dest, op.amount) as &errOutcome
+            catch .transfer(op.from, op.dest, op.amount) as errOutcome
             let err = errOutcome.value()
             if err == null do
                 successes += 1
@@ -177,7 +177,7 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     var err2Outcome: Swag.Error
-    catch ledger.deposit(0, 1000) as &err2Outcome
+    catch ledger.deposit(0, 1000) as err2Outcome
     let err2 = err2Outcome.value()
     Swag.assert(err2 == null)
     Swag.assert(ledger.accounts[0].balance == 1000)
@@ -189,7 +189,7 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     var err3Outcome: Swag.Error
-    catch ledger.deposit(99, 10) as &err3Outcome
+    catch ledger.deposit(99, 10) as err3Outcome
     let err3 = err3Outcome.value()
     Swag.assert(err3 != null)
     let err = assume cast(BankError, err3)
@@ -203,7 +203,7 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     var err4Outcome: Swag.Error
-    catch ledger.deposit(0, 0) as &err4Outcome
+    catch ledger.deposit(0, 0) as err4Outcome
     let err4 = err4Outcome.value()
     Swag.assert(err4 != null)
     let err = assume cast(BankError, err4)
@@ -215,7 +215,7 @@ impl Ledger
     var ledger: Ledger
     ledger.reset()
     var err5Outcome: Swag.Error
-    catch ledger.withdraw(0, 50) as &err5Outcome
+    catch ledger.withdraw(0, 50) as err5Outcome
     let err5 = err5Outcome.value()
     Swag.assert(err5 != null)
     let err = assume cast(BankError, err5)
@@ -229,7 +229,7 @@ impl Ledger
     ledger.reset()
     ledger.accounts[0].frozen = true
     var err6Outcome: Swag.Error
-    catch ledger.deposit(0, 100) as &err6Outcome
+    catch ledger.deposit(0, 100) as err6Outcome
     let err6 = err6Outcome.value()
     Swag.assert(err6 != null)
     let err = assume cast(BankError, err6)
@@ -244,7 +244,7 @@ impl Ledger
     ledger.reset()
     catch ledger.deposit(0, 1000)
     var err7Outcome: Swag.Error
-    catch ledger.transfer(0, 1, 300) as &err7Outcome
+    catch ledger.transfer(0, 1, 300) as err7Outcome
     let err7 = err7Outcome.value()
     Swag.assert(err7 == null)
     Swag.assert(ledger.accounts[0].balance == 700)
@@ -261,7 +261,7 @@ impl Ledger
     catch ledger.deposit(0, 1000)
     ledger.accounts[1].frozen = true
     var err8Outcome: Swag.Error
-    catch ledger.transfer(0, 1, 300) as &err8Outcome
+    catch ledger.transfer(0, 1, 300) as err8Outcome
     let err8 = err8Outcome.value()
     Swag.assert(err8 != null)
     let err = assume cast(BankError, err8)
@@ -280,7 +280,7 @@ impl Ledger
     ledger.reset()
     catch ledger.deposit(0, 100)
     var err9Outcome: Swag.Error
-    catch ledger.transfer(0, 1, 500) as &err9Outcome
+    catch ledger.transfer(0, 1, 500) as err9Outcome
     let err9 = err9Outcome.value()
     Swag.assert(err9 != null)
     let err = assume cast(BankError, err9)
@@ -298,12 +298,12 @@ impl Ledger
     ledger.reset()
     catch ledger.deposit(0, 1000)
     var err10Outcome: Swag.Error
-    catch ledger.transfer(0, 1, 100) as &err10Outcome
+    catch ledger.transfer(0, 1, 100) as err10Outcome
     let err10 = err10Outcome.value()
     Swag.assert(err10 == null)
     Swag.assert(ledger.committed == 1)
     var err11Outcome: Swag.Error
-    catch ledger.transfer(0, 1, 200) as &err11Outcome
+    catch ledger.transfer(0, 1, 200) as err11Outcome
     let err11 = err11Outcome.value()
     Swag.assert(err11 == null)
     Swag.assert(ledger.committed == 2)
@@ -356,7 +356,7 @@ impl Ledger
     ledger.reset()
     catch ledger.deposit(0, 100)
     var err12Outcome: Swag.Error
-    catch ledger.transfer(0, 1, 500) as &err12Outcome
+    catch ledger.transfer(0, 1, 500) as err12Outcome
     let err12 = err12Outcome.value()
     Swag.assert(err12 != null)
     Swag.assert(ledger.accounts[0].balance == 100)
@@ -375,7 +375,7 @@ func verifyBlockCatch()
         try ledger.deposit(0, 200)
         try ledger.deposit(1, 300)
         try ledger.withdraw(0, 50)
-    } as &errAOutcome
+    } as errAOutcome
     let errA = errAOutcome.value()
 
     Swag.assert(errA == null)
@@ -387,7 +387,7 @@ func verifyBlockCatch()
         try ledger.deposit(0, 100)
         try ledger.withdraw(5, 999)
         try ledger.deposit(1, 100)
-    } as &errBOutcome
+    } as errBOutcome
     let errB = errBOutcome.value()
 
     Swag.assert(errB != null)

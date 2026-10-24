@@ -234,7 +234,7 @@ func systemExecutablePath(name: string)->String
     let arguments = Format.toString("/c echo started > \"%\"", marker.toString())
     let info      = Env.StartInfo{fileName: shell.toString(), arguments: arguments.toString(), affinityMask: 0x8000000000000000}
     var outcome: Swag.Error
-    discard catch Env.runProcess(info) as &outcome
+    discard catch Env.runProcess(info) as outcome
     Swag.assert(outcome.value() != null)
 
     Threading.Thread.sleep(Time.Duration.fromMilliseconds(200))

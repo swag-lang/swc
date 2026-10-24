@@ -29,7 +29,7 @@ private var g_DropCounter:  *u32?
 func ctxDynamicCatchesCoreFailure()->bool
 {
     var raisedOutcome: Swag.Error
-    discard catch File.info("C:/swag-dynamic-runtime-context-missing-file") as &raisedOutcome
+    discard catch File.info("C:/swag-dynamic-runtime-context-missing-file") as raisedOutcome
     let raised = raisedOutcome.value()
     return raised != null
 }

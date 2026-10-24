@@ -697,6 +697,34 @@ void SemaHelpers::collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuar
     }
 }
 
+TypeRef SemaHelpers::nullCoalescingResultType(Sema& sema, const TypeRef leftTypeRef, const TypeRef rightTypeRef)
+{
+    const TypeInfo& rawLeftType         = sema.typeMgr().get(leftTypeRef);
+    const TypeInfo& leftType            = rawLeftType.unwrapAliasTypeOrSelf(sema.ctx());
+    const TypeRef   concreteLeftTypeRef = leftType.typeRef();
+    if (!leftType.isSupportsNullableQualifier() || leftType.isNonNullable())
+        return leftTypeRef;
+
+    // The left branch is selected only when it is present, so the fallback
+    // determines the result contract. An explicit non-null lhs remains non-null.
+    const TypeInfo& rawRightType         = sema.typeMgr().get(rightTypeRef);
+    const TypeInfo& rightType            = rawRightType.unwrapAliasTypeOrSelf(sema.ctx());
+    const TypeRef   concreteRightTypeRef = rightType.typeRef();
+    if (rightType.isNull() || rightType.isNullable())
+        return leftTypeRef;
+
+    TypeInfo resultType = leftType;
+    resultType.removeFlag(TypeInfoFlagsE::Nullable);
+
+    const TypeRef resultTypeRef = sema.typeMgr().addType(resultType);
+    if (resultTypeRef == concreteLeftTypeRef)
+        return leftTypeRef;
+
+    // Narrowing the left changes its concrete type. When the fallback already has
+    // that exact result type, keep its alias rather than implicitly stripping it.
+    return resultTypeRef == concreteRightTypeRef ? rightTypeRef : resultTypeRef;
+}
+
 TypeRef SemaHelpers::nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef)
 {
     if (!typeRef.isValid() || !sema.frame().hasNarrowFacts())

@@ -355,7 +355,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     Swag.assert(swapped14.frameBytes == packedInfo.frameBytes and swapped14.speakerMask == packedInfo.speakerMask)
 
     var errOutcome: Swag.Error
-    discard catch Dts.frameInfo(bytes.toSlice()[0 until 8]) as &errOutcome
+    discard catch Dts.frameInfo(bytes.toSlice()[0 until 8]) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }

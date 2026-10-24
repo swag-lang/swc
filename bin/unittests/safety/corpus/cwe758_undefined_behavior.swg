@@ -160,6 +160,6 @@ func voidOwesNothing(flag: bool)
     Swag.assert(loopWithoutBreak() == 1)
     Swag.assert(nestedBreakDoesNotEscape() == 1)
     Swag.assert(endsInUnreachable(opaqueBool(true)) == 1)
-    Swag.assert((catch endsInFail(opaqueBool(true)) else 0) == 1)
+    Swag.assert((catch endsInFail(opaqueBool(true))) == 1)
     Swag.assert(expressionBody(1) == 2)
 }

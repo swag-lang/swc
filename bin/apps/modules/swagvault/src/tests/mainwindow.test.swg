@@ -25,7 +25,7 @@ using Swag, Core, Gui
     scope
     {
         var firstErrorOutcome: Swag.Error
-        catch window.operation.error.raise() as &firstErrorOutcome
+        catch window.operation.error.raise() as firstErrorOutcome
         let firstError = firstErrorOutcome.value()
         Swag.assert(firstError != null and not isCanceledError(firstError))
         firstMessage = caughtMessage(firstError)
@@ -41,7 +41,7 @@ using Swag, Core, Gui
     scope
     {
         var canceledErrorOutcome: Swag.Error
-        catch window.operation.error.raise() as &canceledErrorOutcome
+        catch window.operation.error.raise() as canceledErrorOutcome
         let canceledError = canceledErrorOutcome.value()
         Swag.assert(canceledError != null and isCanceledError(canceledError))
         let message = caughtMessage(canceledError)
@@ -611,7 +611,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     func messageFor(kind: ErrorKind)->String
     {
         var errOutcome: Swag.Error
-        catch raiseVolumeError(kind) as &errOutcome
+        catch raiseVolumeError(kind) as errOutcome
         let err = errOutcome.value()
         return caughtMessage(err)
     }

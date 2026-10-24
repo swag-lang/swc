@@ -453,7 +453,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     var err9Outcome: Swag.Error
     var img:         #decltype(expect decodeIco(nnBytes(cb.toSlice())))
-    catch { img = try decodeIco(nnBytes(cb.toSlice())) } as &err9Outcome
+    catch { img = try decodeIco(nnBytes(cb.toSlice())) } as err9Outcome
     let err9 = err9Outcome.value()
     Swag.assert(err9 != null)
 }
@@ -469,7 +469,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     var err10Outcome: Swag.Error
     var img: #decltype(expect decodeIco(nnBytes(cb.toSlice())))
-    catch { img = try decodeIco(nnBytes(cb.toSlice())) } as &err10Outcome
+    catch { img = try decodeIco(nnBytes(cb.toSlice())) } as err10Outcome
     let err10 = err10Outcome.value()
     Swag.assert(err10 != null)
 }
@@ -545,7 +545,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     src.clear()
 
     var err17Outcome: Swag.Error
-    discard catch src.encode("memory.ico") as &err17Outcome
+    discard catch src.encode("memory.ico") as err17Outcome
     let err17 = err17Outcome.value()
     Swag.assert(err17 != null)
 }
@@ -618,7 +618,7 @@ func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     empty.reserve(1)
 
     var errNoneOutcome: Swag.Error
-    discard catch Ico.encodeAll(empty.toSlice()) as &errNoneOutcome
+    discard catch Ico.encodeAll(empty.toSlice()) as errNoneOutcome
     let errNone = errNoneOutcome.value()
     Swag.assert(errNone != null)
 }

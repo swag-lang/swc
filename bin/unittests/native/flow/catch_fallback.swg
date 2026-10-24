@@ -64,52 +64,52 @@ func fallbackCode(err: any?)->s32 => err == null ? 0 : assume cast(FallbackError
 #test
 {
     g_fallbackEvals = 0
-    Swag.assert((catch fallbackCount(true) else fallbackValue(-1)) == 4)
+    Swag.assert((catch fallbackCount(true) orelse fallbackValue(-1)) == 4)
     Swag.assert(g_fallbackEvals == 0)
-    Swag.assert((catch fallbackCount(false) else fallbackValue(-1)) == -1)
+    Swag.assert((catch fallbackCount(false) orelse fallbackValue(-1)) == -1)
     Swag.assert(g_fallbackEvals == 1)
 }
 
 // The fallback reads the capture bound by the same handler.
 #test
 {
-    let value = catch fallbackCount(false) as err else fallbackCode(err)
+    let value = catch fallbackCount(false) orelse fallbackCode(Swag.err)
     Swag.assert(value == 11)
 
-    let other = catch fallbackCount(true) as otherErr else fallbackCode(otherErr)
+    let other = catch fallbackCount(true) orelse fallbackCode(Swag.err)
     Swag.assert(other == 4)
 }
 
 // An aggregate fallback is the one written, not zeroed storage.
 #test
 {
-    let point = catch fallbackPoint(false) else {}
+    let point = catch fallbackPoint(false)
     Swag.assert(point.x == 5 and point.y == 7)
 
-    let explicit = catch fallbackPoint(false) else {x: -1, y: -2}
+    let explicit = catch fallbackPoint(false) orelse {x: -1, y: -2}
     Swag.assert(explicit.x == -1 and explicit.y == -2)
 
-    let success = catch fallbackPoint(true) else {}
+    let success = catch fallbackPoint(true)
     Swag.assert(success.x == 1 and success.y == 2)
 
-    let pair = catch fallbackTuple(false) else {-1, false}
+    let pair = catch fallbackTuple(false) orelse {-1, false}
     Swag.assert(pair.value == -1 and not pair.valid)
 }
 
 // A non-null pointer has no default; 'else' supplies the replacement.
 #test
 {
-    let item = catch fallbackItem(false) else &g_fallbackOther
+    let item = catch fallbackItem(false) orelse &g_fallbackOther
     Swag.assert(item.value == 9)
 
-    let found = catch fallbackItem(true) else &g_fallbackOther
+    let found = catch fallbackItem(true) orelse &g_fallbackOther
     Swag.assert(found.value == 3)
 }
 
 // A fallback may handle its own failure.
 #test
 {
-    let value = catch fallbackCount(false) else catch fallbackCount(false) else 21
+    let value = catch fallbackCount(false) orelse catch fallbackCount(false) orelse 21
     Swag.assert(value == 21)
 }
 
@@ -120,7 +120,7 @@ func(T) fallbackProduce(ok: bool, value: T)->T fail
     return value
 }
 
-func(T) fallbackGeneric(ok: bool, value: T, fallback: T)->T => catch fallbackProduce(ok, value) else fallback
+func(T) fallbackGeneric(ok: bool, value: T, fallback: T)->T => catch fallbackProduce(ok, value) orelse fallback
 
 #test
 {
@@ -154,7 +154,7 @@ func fallbackOwned(ok: bool)->FallbackOwned fail
     g_fallbackDrops = 0
     scope
     {
-        let owned = catch fallbackOwned(false) else FallbackOwned{id: 2}
+        let owned = catch fallbackOwned(false) orelse FallbackOwned{id: 2}
         Swag.assert(owned.id == 2)
     }
 
@@ -164,7 +164,7 @@ func fallbackOwned(ok: bool)->FallbackOwned fail
     scope
     {
         let named = FallbackOwned{id: 3}
-        let owned = catch fallbackOwned(false) else named
+        let owned = catch fallbackOwned(false) orelse named
         Swag.assert(owned.id == 3)
     }
 

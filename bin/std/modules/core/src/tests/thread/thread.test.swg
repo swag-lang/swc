@@ -104,7 +104,6 @@ func waitManyThreads(threads: [..] Threading.Thread)
     {
         var rejected = false
         catch event.initNamed(name)
-        scope
         {
             rejected = true
         }

@@ -329,7 +329,7 @@ private func numericEntity(entity: string)->rune
     {
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseX64(digits))
-        catch { parsed = try StrConv.parseX64(digits) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseX64(digits) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError != null or parsed.ovf or parsed.eat != digits.count do
             return 0
@@ -339,7 +339,7 @@ private func numericEntity(entity: string)->rune
     {
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU64(digits))
-        catch { parsed = try StrConv.parseU64(digits) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseU64(digits) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError != null or parsed.eat != digits.count do
             return 0

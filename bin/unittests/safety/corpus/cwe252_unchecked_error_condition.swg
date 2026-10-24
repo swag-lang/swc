@@ -68,14 +68,14 @@ func propagates(present: bool)->s32 fail
 // Catch and inspect.
 func catchesAndInspects(present: bool)->s32
 {
-    let value = catch load(present) as failure else { return -assume cast(LoadError, failure).code }
+    let value = catch load(present) { return -assume cast(LoadError, Swag.err).code }
     return value
 }
 
 // Dismiss on purpose: the type default stands in.
 func dismisses(present: bool)->s32
 {
-    return catch load(present) else 0
+    return catch load(present)
 }
 
 // Handle on the failure path only: the handler runs instead of the rest, and can divert the
@@ -88,7 +88,7 @@ func loadInto(out: *s32, present: bool) fail
 func handlesOnFailure(present: bool)->s32
 {
     var result = -1's32
-    catch loadInto(&result, present) else do
+    catch loadInto(&result, present) do
         result = -2
     return result
 }
@@ -101,7 +101,7 @@ func discardsOnPurpose()
 
 #test
 {
-    Swag.assert((catch propagates(true) else 0) == 1)
+    Swag.assert((catch propagates(true)) == 1)
     Swag.assert(catchesAndInspects(true) == 1)
     Swag.assert(catchesAndInspects(false) == -7)
     Swag.assert(dismisses(false) == 0)

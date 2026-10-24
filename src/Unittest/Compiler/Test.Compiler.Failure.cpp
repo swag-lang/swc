@@ -303,9 +303,9 @@ func failRecoveryPanic() fail
         local.panic = previous.panic
         Swag.setContext(local)
     }
-    catch failRecoveryError() as error else
+    catch failRecoveryError()
     {
-        if error is RecoveryError as value do
+        if Swag.err is RecoveryError as value do
             recoveryGeneration = value.generation
         expect failRecoveryPanic()
     }
@@ -318,7 +318,7 @@ func failRecoveryPanic() fail
     Swag.assert(context.errorCaptures == null)
     Swag.assert(context.errorIndex == 0 and context.hasError == 0 and context.curError == null)
     Swag.assert(recoveryDrops[recoveryGeneration].load() == 1)
-    catch failRecoveryError() as error else { Swag.assert((error is RecoveryError)) }
+    catch failRecoveryError() { Swag.assert((Swag.err is RecoveryError)) }
     Swag.print("captured error recovery completed\n")
 }
 )SWAG";
@@ -356,7 +356,7 @@ func failValue()->s32 fail { fail Swag.BaseError{"terminal expect"} }
 func hook(message: string?, location: Swag.SourceCodeLocation)
 {
     if message == null or location.lineStart == 0 do return
-    discard catch failValue() else { Swag.print("expect hook observed the error\n") }
+    discard catch failValue() { Swag.print("expect hook observed the error\n") }
 }
 
 #[Swag.Safety(.All, false)]

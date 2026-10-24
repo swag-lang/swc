@@ -64,12 +64,12 @@ enum TaskPriority
 #[Swag.NoCopy]
 struct TaskState
 {
-    using node: WorkNode
-    run:        (func||())?      // Runs the body and stores its outcome; set at each submission.
-    notify:     (func||())?      // Told the outcome exists, before the task reads as done.
-    cancelScope:      CancelScope      // The cancellation state the body observes.
-    priority:   TaskPriority     // How urgently the body runs.
-    submission: u64              // Counts the submissions, so a notification names the one it reports.
+    using node:  WorkNode
+    run:         (func||())?      // Runs the body and stores its outcome; set at each submission.
+    notify:      (func||())?      // Told the outcome exists, before the task reads as done.
+    cancelScope: CancelScope      // The cancellation state the body observes.
+    priority:    TaskPriority     // How urgently the body runs.
+    submission:  u64              // Counts the submissions, so a notification names the one it reports.
 }
 
 impl TaskState
@@ -302,11 +302,11 @@ private impl Task
 
         #static if T == void
         {
-            catch body() as error else { .failure.capture(error) }
+            catch body() { .failure.capture(Swag.err) }
         }
         else
         {
-            catch { .result = try body() } as error else { .failure.capture(error) }
+            catch { .result = try body() } { .failure.capture(Swag.err) }
         }
     }
 }
@@ -624,7 +624,7 @@ private func runFallibleChild(child: *GroupChild)
     if not body do
         return
 
-    catch body() as error else { child.group!.recordFailure(error) }
+    catch body() { child.group!.recordFailure(Swag.err) }
 }
 
 // Waits for every task of `tasks`. As soon as one of them fails, the others are asked to stop;

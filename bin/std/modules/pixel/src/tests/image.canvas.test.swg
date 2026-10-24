@@ -110,7 +110,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
     var empty:      Image
     var errOutcome: Swag.Error
     var canvas:     #decltype(expect ImageCanvas.create(empty))
-    catch { canvas = try ImageCanvas.create(empty) } as &errOutcome
+    catch { canvas = try ImageCanvas.create(empty) } as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }

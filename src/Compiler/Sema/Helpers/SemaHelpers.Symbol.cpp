@@ -286,9 +286,15 @@ IdentifierRef SemaHelpers::getStableIdentifier(Sema& sema, const AstNode& node, 
 
 IdentifierRef SemaHelpers::resolveIdentifier(Sema& sema, const SourceCodeRef& codeRef)
 {
-    const Token& tok = sema.srcView(codeRef.srcViewRef).token(codeRef.tokRef);
+    const SourceView& srcView = sema.srcView(codeRef.srcViewRef);
+    const Token&      tok     = srcView.token(codeRef.tokRef);
     if (Token::isCompilerUniq(tok.id))
         return resolveUniqIdentifier(sema, tok.id);
+
+    // The parser reduces 'Swag.err' to its 'err' token. The name stays out of reach of any
+    // 'err' the program declares, and only a 'catch' handler binds it.
+    if (codeRef.tokRef.get() >= 2 && (&tok)[-1].id == TokenId::SymDot && (&tok)[-2].string(srcView) == "Swag" && tok.string(srcView) == "err")
+        return sema.idMgr().addIdentifier("Swag.err");
 
     return sema.idMgr().addIdentifier(sema.ctx(), codeRef);
 }

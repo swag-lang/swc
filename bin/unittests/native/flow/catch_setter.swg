@@ -50,7 +50,7 @@ impl SetterReceiver
     mtd direct(failing: bool)->bool fail
     {
         var errorOutcome: Swag.Error
-        .value = catch produceSetterValue(failing) as &errorOutcome else SetterValue{}
+        .value = catch produceSetterValue(failing) as errorOutcome orelse SetterValue{}
         let error = errorOutcome.value()
         if error is s32 as number
         {
@@ -67,7 +67,7 @@ impl SetterReceiver
     mtd staged(failing: bool)->bool fail
     {
         var errorOutcome: Swag.Error
-        let value = catch produceSetterValue(failing) as &errorOutcome else SetterValue{}
+        let value = catch produceSetterValue(failing) as errorOutcome orelse SetterValue{}
         let error = errorOutcome.value()
         if error is s32 as number
         {

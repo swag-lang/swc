@@ -32,7 +32,7 @@ func failDeep() fail
 #test
 {
     var errOutcome: Swag.Error
-    catch failWithMessage() as &errOutcome
+    catch failWithMessage() as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Errors.message(err) == "the message text")
@@ -41,7 +41,7 @@ func failDeep() fail
 #test
 {
     var errOutcome: Swag.Error
-    catch failWithoutMessage() as &errOutcome
+    catch failWithoutMessage() as errOutcome
     let err = errOutcome.value()
     Swag.assert(Errors.message(err) == "BadParameterError")
 }
@@ -49,7 +49,7 @@ func failDeep() fail
 #test
 {
     var errOutcome: Swag.Error
-    catch failWithoutBase() as &errOutcome
+    catch failWithoutBase() as errOutcome
     let err = errOutcome.value()
     Swag.assert(Errors.message(err) == "InvalidVersion")
 }
@@ -57,7 +57,7 @@ func failDeep() fail
 #test
 {
     var errOutcome: Swag.Error
-    catch failDeep() as &errOutcome
+    catch failDeep() as errOutcome
     let err = errOutcome.value()
     Swag.assert(Errors.message(err) == "the deep text")
 }
@@ -87,7 +87,7 @@ func failDeep() fail
     Swag.assert(persistent == "a name collision")
 
     var errOutcome: Swag.Error
-    catch failWithMessage() as &errOutcome
+    catch failWithMessage() as errOutcome
     let err = errOutcome.value()
     Swag.assert(Errors.message(err) == "the message text")
 }
@@ -148,8 +148,8 @@ func failCopiedMessage(text: string) fail
 
     var outerOutcome: Swag.Error
     catch {
-        catch failCopiedMessage("a copied message survives rethrow and allocator release") as inner else { fail inner }
-    } as &outerOutcome
+        catch failCopiedMessage("a copied message survives rethrow and allocator release") { fail Swag.err }
+    } as outerOutcome
 
     let outer = outerOutcome.value()
     context.errorAllocator.release()
@@ -164,7 +164,7 @@ func failCopiedMessage(text: string) fail
     catch parallel for || 257
     {
         try failCopiedMessage("the parallel error retains its producer's copied text")
-    } as &errorOutcome
+    } as errorOutcome
 
     let error = errorOutcome.value()
     Swag.assert(Errors.message(error) == "the parallel error retains its producer's copied text")
@@ -179,7 +179,7 @@ func consumeThreadMessages(_: const *Threading.Thread)
     for 32
     {
         var errorOutcome: Swag.Error
-        catch failCopiedMessage("a handled thread message") as &errorOutcome
+        catch failCopiedMessage("a handled thread message") as errorOutcome
         let error = errorOutcome.value()
         valid = valid and Errors.message(error) == "a handled thread message"
     }
@@ -236,9 +236,9 @@ func publishOwnedThreadError(thread: const *Threading.Thread)
     let message = Errors.mkString("the public error owner retains text beyond producer exit")
     catch {
         fail Errors.BadParameterError{message}
-    } as error else
+    }
     {
-        state.error.capture(error)
+        state.error.capture(Swag.err)
     }
 }
 
@@ -277,7 +277,7 @@ func publishOwnedThreadError(thread: const *Threading.Thread)
     scope
     {
         var errorOutcome: Swag.Error
-        catch copied.raise() as &errorOutcome
+        catch copied.raise() as errorOutcome
         let error = errorOutcome.value()
         copied.reset()
         valid = (error is Errors.BadParameterError) and Errors.message(error) == "the public error owner retains text beyond producer exit"

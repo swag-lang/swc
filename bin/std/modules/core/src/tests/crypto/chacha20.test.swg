@@ -161,7 +161,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
     Memory.set(actual.storage(), 0xA5, actual.count)
     let tooLong = actual.toSlice()[until 65537]
     var overflowErrorOutcome: Swag.Error
-    discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as &overflowErrorOutcome
+    discard catch Crypto.chacha20Xor(key, nonce, source.toSlice()[until 65537], tooLong, Swag.U32.Max - 1023) as overflowErrorOutcome
     let overflowError = overflowErrorOutcome.value()
     Swag.assert((overflowError is Errors.OverflowError))
     for index in actual.count do
@@ -195,7 +195,7 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
     var twoBlocks: [Crypto.ChaCha20BlockSize + 1] u8
     var overflowErrorOutcome: Swag.Error
-    discard catch Crypto.chacha20Xor(key, nonce, twoBlocks, twoBlocks, Swag.U32.Max) as &overflowErrorOutcome
+    discard catch Crypto.chacha20Xor(key, nonce, twoBlocks, twoBlocks, Swag.U32.Max) as overflowErrorOutcome
     let overflowError = overflowErrorOutcome.value()
     Swag.assert((overflowError is Errors.OverflowError))
 }
@@ -209,17 +209,17 @@ func scalarChaCha20Xor(key, nonce, source: const [..] u8, destination: [..] u8, 
 
     var out: [16] u8
     var keyErrorOutcome: Swag.Error
-    discard catch Crypto.chacha20Block(key[until 31], 0, nonce) as &keyErrorOutcome
+    discard catch Crypto.chacha20Block(key[until 31], 0, nonce) as keyErrorOutcome
     let keyError = keyErrorOutcome.value()
     Swag.assert((keyError is Errors.BadParameterError))
     var nonceErrorOutcome: Swag.Error
-    discard catch Crypto.chacha20Block(key, 0, nonce[until 11]) as &nonceErrorOutcome
+    discard catch Crypto.chacha20Block(key, 0, nonce[until 11]) as nonceErrorOutcome
     let nonceError = nonceErrorOutcome.value()
     Swag.assert((nonceError is Errors.BadParameterError))
 
     var shorter: [8] u8
     var sizeErrorOutcome: Swag.Error
-    discard catch Crypto.chacha20Xor(key, nonce, out, shorter) as &sizeErrorOutcome
+    discard catch Crypto.chacha20Xor(key, nonce, out, shorter) as sizeErrorOutcome
     let sizeError = sizeErrorOutcome.value()
     Swag.assert((sizeError is Errors.BadParameterError))
 

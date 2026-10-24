@@ -399,7 +399,7 @@ impl PdfParser
             {
                 var parseErrorOutcome: Swag.Error
                 var valueId: #decltype(expect probe.parseValue())
-                catch { valueId = try probe.parseValue() } as &parseErrorOutcome
+                catch { valueId = try probe.parseValue() } as parseErrorOutcome
                 let parseError = parseErrorOutcome.value()
                 if parseError == null and probe.nodes[valueId].kind == .Integer do
                     return probe.nodes[valueId].integer
@@ -670,7 +670,7 @@ impl PdfParser
         .skip()
         if not .startsWith("<<") do
             return result
-        let dictId = catch .parseDictionary() else { return result }
+        let dictId = catch .parseDictionary() { return result }
 
         result.ok = true
         .recordTrailer(dictId)
@@ -699,11 +699,11 @@ impl PdfParser
 
         var parseErrorOutcome: Swag.Error
         var nodeId: #decltype(expect .parseValue())
-        catch { nodeId = try .parseValue() } as &parseErrorOutcome
+        catch { nodeId = try .parseValue() } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError != null or .nodes[nodeId].kind != .Dictionary do
             return result
-        catch .attachStream(nodeId) else { return result }
+        catch .attachStream(nodeId) { return result }
         if .name(.dict(nodeId, "Type")) != "XRef" do
             return result
 
@@ -727,7 +727,7 @@ impl PdfParser
         if not entryBytes do
             return result
 
-        let data = catch .decodeStream(nodeId) else { return result }
+        let data = catch .decodeStream(nodeId) { return result }
 
         // The index defaults to every object the file declares.
         var ranges: Array'u64
@@ -949,7 +949,7 @@ impl PdfParser
                 continue
             var parseErrorOutcome: Swag.Error
             var dictId: #decltype(expect .parseDictionary())
-            catch { dictId = try .parseDictionary() } as &parseErrorOutcome
+            catch { dictId = try .parseDictionary() } as parseErrorOutcome
             let parseError = parseErrorOutcome.value()
             if parseError == null do
                 .recordTrailer(dictId, false)
@@ -1058,7 +1058,7 @@ impl PdfParser
         if found != cast(u64, number) do
             return InvalidNode
 
-        let nodeId = catch .parseValue() else { return InvalidNode }
+        let nodeId = catch .parseValue() { return InvalidNode }
         if .nodes[nodeId].kind == .Dictionary
         {
             catch .attachStream(nodeId)
@@ -1094,7 +1094,7 @@ impl PdfParser
         .pos   = position
         var parseErrorOutcome: Swag.Error
         var nodeId: #decltype(expect .parseValue())
-        catch { nodeId = try .parseValue() } as &parseErrorOutcome
+        catch { nodeId = try .parseValue() } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         return parseError == null ? nodeId : InvalidNode
     }
@@ -1116,7 +1116,7 @@ impl PdfParser
 
         var decodeErrorOutcome: Swag.Error
         var decoded: #decltype(expect .decodeStream(streamId))
-        catch { decoded = try .decodeStream(streamId) } as &decodeErrorOutcome
+        catch { decoded = try .decodeStream(streamId) } as decodeErrorOutcome
         let decodeError = decodeErrorOutcome.value()
         if decodeError != null or cast(u64, first) > decoded.count do
             return null

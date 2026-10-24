@@ -88,22 +88,22 @@ func day4BWithExplicitChecks()
             switch fieldParts[0]
             {
             case "byr":
-                let year = catch StrConv.toS32(fieldValue) else 0
+                let year = catch StrConv.toS32(fieldValue)
                 if year >= 1920 and year <= 2002 do
                     validFields |= 1
 
             case "iyr":
-                let year = catch StrConv.toS32(fieldValue) else 0
+                let year = catch StrConv.toS32(fieldValue)
                 if year >= 2010 and year <= 2020 do
                     validFields |= 2
 
             case "eyr":
-                let year = catch StrConv.toS32(fieldValue) else 0
+                let year = catch StrConv.toS32(fieldValue)
                 if year >= 2020 and year <= 2030 do
                     validFields |= 4
 
             case "hgt":
-                let height = catch StrConv.parseS32(fieldValue) else { break }
+                let height = catch StrConv.parseS32(fieldValue) { break }
                 if height.eat == fieldValue.count do
                     break
                 let unit = fieldValue[height.eat to]
@@ -118,7 +118,7 @@ func day4BWithExplicitChecks()
                 if fieldValue.count != 7 or fieldValue[0] != '#' do
                     break
                 var errOutcome: Swag.Error
-                discard catch StrConv.parseX64(fieldValue[1 to]) as &errOutcome
+                discard catch StrConv.parseX64(fieldValue[1 to]) as errOutcome
                 let err = errOutcome.value()
                 if err == null do
                     validFields |= 16
@@ -129,7 +129,7 @@ func day4BWithExplicitChecks()
 
             case "pid":
                 var errOutcome: Swag.Error
-                discard catch StrConv.toS32(fieldValue) as &errOutcome
+                discard catch StrConv.toS32(fieldValue) as errOutcome
                 let err = errOutcome.value()
                 if err == null and fieldValue.count == 9 do
                     validFields |= 64

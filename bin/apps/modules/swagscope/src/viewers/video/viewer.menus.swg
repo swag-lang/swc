@@ -86,7 +86,7 @@ impl Panel
 
         for index in .video.audioTrackCount() where chosen == commands[index].toString()
         {
-            catch .selectAudioTrack(index) as trackError else { .services.failed(me, Viewer.failureText(trackError)) }
+            catch .selectAudioTrack(index) { .services.failed(me, Viewer.failureText(Swag.err)) }
             return
         }
     }

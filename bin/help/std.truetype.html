@@ -660,7 +660,7 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_Outline" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Outline</span> <a class="api-item-permalink" href="#TrueType_Outline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L33">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_Outline" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.Outline</span> <a class="api-item-permalink" href="#TrueType_Outline" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L35">src</a></div>
 <p>Exposes the borrowed contours of the current scalable glyph.</p>
 <p>Points use 26.6 fixed-point pixels with y growing upward. <span class="code-inline">contours</span> stores the inclusive last point index of each contour; <span class="code-inline">tags</span> identifies on-curve points. All pointed-to storage belongs to the parent <a href="#TrueType_Face">TrueType.Face</a> and is replaced by the next glyph load.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_Outline">Outline</a></span></span></div>
@@ -698,22 +698,16 @@
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="TrueType_OutlineCommand" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.OutlineCommand</span> <a class="api-item-permalink" href="#TrueType_OutlineCommand" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L16">src</a></div>
+<div class="api-item api-item-struct"><span id="TrueType_OutlineCommand" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">TrueType.OutlineCommand</span> <a class="api-item-permalink" href="#TrueType_OutlineCommand" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L15">src</a></div>
 <p>Represents one path operation produced by <a href="#TrueType_Outline_decompose">TrueType.Outline.decompose</a>.</p>
-<p>Coordinates use 26.6 fixed-point pixels. The fields used by the command depend on <span class="code-inline">kind</span>; unused points remain zero.</p>
+<p>Coordinates use 26.6 fixed-point pixels. Each operation carries the points it uses.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#TrueType_OutlineCommand">OutlineCommand</a></span></span></div>
 </section>
 <h3>Fields</h3>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="TrueType_OutlineCommand_kind" class="code-type">kind</td><td class="code-type"><a href="#TrueType_OutlineCommandKind">TrueType.OutlineCommandKind</a></td><td><p>Operation represented by this value.</p>
-</td></tr>
-<tr><td id="TrueType_OutlineCommand_p0" class="code-type">p0</td><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td><p>Destination or first control point.</p>
-</td></tr>
-<tr><td id="TrueType_OutlineCommand_p1" class="code-type">p1</td><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td><p>Destination or second control point when required.</p>
-</td></tr>
-<tr><td id="TrueType_OutlineCommand_p2" class="code-type">p2</td><td class="code-type"><a href="#TrueType_Vector">TrueType.Vector</a></td><td><p>Cubic destination when required.</p>
+<tr><td id="TrueType_OutlineCommand_op" class="code-type">op</td><td class="code-type">union { ... }</td><td><p>Cubic Bézier controls and endpoint.</p>
 </td></tr>
 </tbody>
 </table>
@@ -1054,25 +1048,25 @@
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">oblique</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Outline_decompose" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.decompose</span> <a class="api-item-permalink" href="#TrueType_Outline_decompose" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L150">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Outline_decompose" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.decompose</span> <a class="api-item-permalink" href="#TrueType_Outline_decompose" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L152">src</a></div>
 <p>Converts the contours into an owned sequence of path commands.</p>
 <p>Quadratic TrueType segments become <span class="code-inline">ConicTo</span> commands. The returned array remains valid independently of the face's reusable glyph slot.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">decompose</span>()-&gt;<span class="SFct">Array</span>'<span class="SCst"><a href="#TrueType_OutlineCommand">OutlineCommand</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Outline_embolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.embolden</span> <a class="api-item-permalink" href="#TrueType_Outline_embolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L116">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Outline_embolden" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.embolden</span> <a class="api-item-permalink" href="#TrueType_Outline_embolden" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L118">src</a></div>
 <p>Thickens the current outline by the requested 26.6 fixed-point strength.</p>
 <p>The outline is mutated in place. Positive strengths add ink while preserving counters; load the glyph again to recover its original shape.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">embolden</span>(strength: <span class="STpe">s32</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Outline_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.transform</span> <a class="api-item-permalink" href="#TrueType_Outline_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L98">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Outline_transform" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.transform</span> <a class="api-item-permalink" href="#TrueType_Outline_transform" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L100">src</a></div>
 <p>Applies a 16.16 fixed-point linear transform to every point.</p>
 <p>Translation is intentionally not part of <a href="#TrueType_Matrix">TrueType.Matrix</a>; call <a href="#TrueType_Outline_translate">TrueType.Outline.translate</a> separately when required.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">transform</span>(matrix: <span class="SCst"><a href="#TrueType_Matrix">Matrix</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="TrueType_Outline_translate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.translate</span> <a class="api-item-permalink" href="#TrueType_Outline_translate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L81">src</a></div>
+<div class="api-item api-item-func"><span id="TrueType_Outline_translate" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Outline.translate</span> <a class="api-item-permalink" href="#TrueType_Outline_translate" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/truetype/src/outline.swg#L83">src</a></div>
 <p>Translates every point by a 26.6 fixed-point offset.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">translate</span>(xOffset, yOffset: <span class="STpe">s32</span>)</span></div>
 </section>
@@ -1404,10 +1398,7 @@
 "v|TrueType.Outline.points|TrueType_Outline_points|Borrowed point array, or null when empty.",
 "v|TrueType.Outline.tags|TrueType_Outline_tags|Borrowed point-tag array, or null when empty.",
 "s|TrueType.OutlineCommand|TrueType_OutlineCommand|Represents one path operation produced by TrueType.Outline.decompose.",
-"v|TrueType.OutlineCommand.kind|TrueType_OutlineCommand_kind|Operation represented by this value.",
-"v|TrueType.OutlineCommand.p0|TrueType_OutlineCommand_p0|Destination or first control point.",
-"v|TrueType.OutlineCommand.p1|TrueType_OutlineCommand_p1|Destination or second control point when required.",
-"v|TrueType.OutlineCommand.p2|TrueType_OutlineCommand_p2|Cubic destination when required.",
+"v|TrueType.OutlineCommand.op|TrueType_OutlineCommand_op|Cubic Bézier controls and endpoint.",
 "s|TrueType.Size|TrueType_Size|Associates the active metrics with their owning TrueType.Face.",
 "v|TrueType.Size.face|TrueType_Size_face|Borrowed pointer to the owning face.",
 "v|TrueType.Size.metrics|TrueType_Size_metrics|Metrics established by TrueType.Face.setPixelSize.",

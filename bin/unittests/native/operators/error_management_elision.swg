@@ -53,7 +53,7 @@ func makeManagedResult(succeed: bool)->ManagedResult fail
 
 func returnCatchResult()->ManagedResult
 {
-    return catch makeManagedResult(true) else {}
+    return catch makeManagedResult(true)
 }
 
 func returnExpectResult()->ManagedResult
@@ -69,7 +69,7 @@ func returnTryResult()->ManagedResult fail
 #[Swag.Inline]
 func returnInlineCatchResult()->ManagedResult
 {
-    return catch makeManagedResult(true) else {}
+    return catch makeManagedResult(true)
 }
 
 // A handled call constructs its successful result directly in the binding.
@@ -78,7 +78,7 @@ func returnInlineCatchResult()->ManagedResult
     resetHooks(11)
     scope
     {
-        let value = catch makeManagedResult(true) else {}
+        let value = catch makeManagedResult(true)
         Swag.assert(value.value == 11)
     }
     Swag.assert(PostCopyCount == 0)
@@ -94,7 +94,7 @@ func returnInlineCatchResult()->ManagedResult
     resetHooks(13)
     scope
     {
-        let value = catch makeManagedResult(false) else {}
+        let value = catch makeManagedResult(false)
         Swag.assert(value.value == 0)
     }
     Swag.assert(PostCopyCount == 0)
@@ -145,7 +145,7 @@ func returnInlineCatchResult()->ManagedResult
     resetHooks(29)
     scope
     {
-        let value = catch returnTryResult() else {}
+        let value = catch returnTryResult()
         Swag.assert(value.value == 29)
     }
     Swag.assert(PostCopyCount == 0)
@@ -217,22 +217,22 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
 #test
 {
     resetHooks(37)
-    let inferred = catch bindTryResult(true) else 0
+    let inferred = catch bindTryResult(true)
     Swag.assert(inferred == 37)
     expectHooks(0, 0, 1, 37)
 
     resetHooks(41)
-    let typed = catch bindTypedTryResult(true) else 0
+    let typed = catch bindTypedTryResult(true)
     Swag.assert(typed == 41)
     expectHooks(0, 0, 1, 41)
 
     resetHooks(43)
-    let failed = catch bindTryResult(false) else 0
+    let failed = catch bindTryResult(false)
     Swag.assert(failed == 0)
     expectHooks(0, 0, 0, 0)
 
     resetHooks(47)
-    let failedTyped = catch bindTypedTryResult(false) else 0
+    let failedTyped = catch bindTypedTryResult(false)
     Swag.assert(failedTyped == 0)
     expectHooks(0, 0, 0, 0)
 }
@@ -243,7 +243,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     resetHooks(53)
     scope
     {
-        let value: ManagedResult = catch makeManagedResult(true) else {}
+        let value: ManagedResult = catch makeManagedResult(true)
         Swag.assert(value.value == 53)
     }
     expectHooks(0, 0, 1, 53)
@@ -263,7 +263,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     resetHooks(61)
     scope
     {
-        let value = catch makeManagedLocal(true) else {}
+        let value = catch makeManagedLocal(true)
         Swag.assert(value.value == 61)
     }
     expectHooks(0, 1, 1, 61)
@@ -271,7 +271,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     resetHooks(67)
     scope
     {
-        let value = catch makeManagedLocal(false) else {}
+        let value = catch makeManagedLocal(false)
         Swag.assert(value.value == 0)
     }
     expectHooks(0, 0, 1, 0)
@@ -285,7 +285,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     scope
     {
         var value: ManagedResult
-        value = catch makeManagedResult(true) else {}
+        value = catch makeManagedResult(true)
         Swag.assert(value.value == 71)
     }
     expectHooks(0, 1, 2, 71)
@@ -300,7 +300,7 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     expectHooks(0, 1, 2, 73)
 
     resetHooks(79)
-    let propagated = catch assignTryResult(true) else 0
+    let propagated = catch assignTryResult(true)
     Swag.assert(propagated == 79)
     expectHooks(0, 1, 2, 79)
 }
@@ -313,13 +313,13 @@ func expectHooks(copies, moves, drops: u32, trace: s64)
     scope
     {
         var value: ManagedResult
-        value = catch makeManagedResult(false) else {}
+        value = catch makeManagedResult(false)
         Swag.assert(value.value == 0)
     }
     expectHooks(0, 1, 2, 0)
 
     resetHooks(89)
-    let propagated = catch assignTryResult(false) else 0
+    let propagated = catch assignTryResult(false)
     Swag.assert(propagated == 0)
     expectHooks(0, 0, 1, 0)
 }

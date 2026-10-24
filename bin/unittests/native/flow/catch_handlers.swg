@@ -48,21 +48,21 @@ func handlerEnum()->HandlerEnum fail
 
 func handlerEarlyReturn(succeeds: bool)->s32
 {
-    let value = catch handlerValue(succeeds) as error else
+    let value = catch handlerValue(succeeds)
     {
-        return -assume cast(HandlerError, error).code
+        return -assume cast(HandlerError, Swag.err).code
     }
     return value
 }
 
 func handlerRequired(succeeds: bool)->RequiredResult
 {
-    return catch requiredResult(succeeds) else { return {text: "fallback", tag: 23} }
+    return catch requiredResult(succeeds) { return {text: "fallback", tag: 23} }
 }
 
 func handlerRethrow() fail
 {
-    discard catch handlerValue(false) as error else { fail error }
+    discard catch handlerValue(false) { fail Swag.err }
 }
 
 var HandlerDrops: s32
@@ -90,28 +90,28 @@ func handlerOwnedFailure() fail
     let second = handlerRequired(false)
     Swag.assert(first.text == "ready" and first.tag == 19)
     Swag.assert(second.text == "fallback" and second.tag == 23)
-    let enumValue = catch handlerEnum() else .Second
+    let enumValue = catch handlerEnum() orelse .Second
     Swag.assert(enumValue == .Second)
-    let defaults = catch handlerDefaults() else HandlerDefaults{}
+    let defaults = catch handlerDefaults() orelse HandlerDefaults{}
     Swag.assert(defaults.value == 57)
 }
 
 #test
 {
     var total  = 0
-    let first  = catch handlerValue(false) as error else assume cast(HandlerError, error).code
-    let second = catch handlerValue(false) as error else assume cast(HandlerError, error).code + 1
+    let first  = catch handlerValue(false) orelse assume cast(HandlerError, Swag.err).code
+    let second = catch handlerValue(false) orelse assume cast(HandlerError, Swag.err).code + 1
     Swag.assert(first == 7 and second == 8)
 
     let error = 100
-    discard catch handlerValue(false) as error else
+    discard catch handlerValue(false)
     {
-        total += assume cast(HandlerError, error).code
-        discard catch handlerValue(false) as error else
+        total += assume cast(HandlerError, Swag.err).code
+        discard catch handlerValue(false)
         {
-            total += assume cast(HandlerError, error).code
+            total += assume cast(HandlerError, Swag.err).code
         }
-        total += assume cast(HandlerError, error).code
+        total += assume cast(HandlerError, Swag.err).code
     }
     Swag.assert(error == 100 and total == 21)
 }
@@ -121,13 +121,13 @@ func handlerOwnedFailure() fail
     var total = 0
     for index in 4
     {
-        let value = catch handlerValue(index == 1) else { continue }
+        let value = catch handlerValue(index == 1) { continue }
         total += value
     }
     Swag.assert(total == 42)
     for 3
     {
-        let value = catch handlerValue(false) else { break }
+        let value = catch handlerValue(false) { break }
         total += value
     }
     Swag.assert(total == 42)
@@ -136,7 +136,7 @@ func handlerOwnedFailure() fail
 #test
 {
     var saved: Swag.Error
-    catch handlerRethrow() as error else do saved.capture(error)
+    catch handlerRethrow() do saved.capture(Swag.err)
     let error = saved.value()
     Swag.assert(error is HandlerError)
     Swag.assert(assume cast(HandlerError, error).code == 7)
@@ -147,9 +147,9 @@ func handlerOwnedFailure() fail
 #test
 {
     var dropsInside = -1
-    catch handlerOwnedFailure() as error else
+    catch handlerOwnedFailure()
     {
-        Swag.assert(assume cast(HandlerOwnedError, error).code == 11)
+        Swag.assert(assume cast(HandlerOwnedError, Swag.err).code == 11)
         defer dropsInside = HandlerDrops
     }
     Swag.assert(dropsInside >= 0 and HandlerDrops == dropsInside + 1)
@@ -157,16 +157,16 @@ func handlerOwnedFailure() fail
 
 func handlerStoreInto(owner: *Swag.Error)
 {
-    catch handlerRethrow() as &owner[]
+    catch handlerRethrow() as owner[]
 }
 
 #test
 {
     var owner: Swag.Error
     var value = -1
-    catch { value = try handlerValue(true) } as &owner
+    catch { value = try handlerValue(true) } as owner
     Swag.assert(value == 42 and owner.isEmpty())
-    catch { value = try handlerValue(false) } as &owner
+    catch { value = try handlerValue(false) } as owner
     Swag.assert(value == 42 and not owner.isEmpty())
 }
 
@@ -197,7 +197,7 @@ func handlerOwnerIndex()->u64
 {
     var owners: [1] Swag.Error
     HandlerOwnerEvaluations = 0
-    let value = catch handlerValue(false) as &owners[handlerOwnerIndex()] else 17
+    let value = catch handlerValue(false) as owners[handlerOwnerIndex()] orelse 17
     Swag.assert(value == 17 and HandlerOwnerEvaluations == 1)
     Swag.assert(not owners[0].isEmpty())
 }
@@ -208,12 +208,12 @@ func handlerOwnerIndex()->u64
     handlerStoreInto(&error)
     let caught = error.value()
     Swag.assert(assume cast(HandlerError, caught).code == 7)
-    discard catch handlerValue(true) as &error
+    discard catch handlerValue(true) as error
     Swag.assert(error.isEmpty())
 
-    let value = catch handlerValue(false) as &error else 17
+    let value = catch handlerValue(false) as error orelse 17
     Swag.assert(value == 17 and not error.isEmpty())
-    catch handlerRethrow() as &error
+    catch handlerRethrow() as error
     Swag.assert(assume cast(HandlerError, error.value()).code == 7)
 }
 
@@ -222,12 +222,12 @@ func handlerOwnerIndex()->u64
     var owner: Swag.Error
     var handlers = 0
     catch {
-        discard catch handlerValue(false) as error else
+        discard catch handlerValue(false)
         {
             handlers += 1
-            fail error
+            fail Swag.err
         }
-    } as &owner
+    } as owner
     Swag.assert(handlers == 1)
     Swag.assert(assume cast(HandlerError, owner.value()).code == 7)
 }
@@ -236,8 +236,8 @@ func handlerOwnerIndex()->u64
 {
     var owner: Swag.Error
     catch {
-        catch { fail 19's32 } as error else { fail error }
-    } as &owner
+        catch { fail 19's32 } { fail Swag.err }
+    } as owner
     Swag.assert(assume cast(s32, owner.value()) == 19)
 }
 
@@ -249,7 +249,7 @@ func handlerIdentity(value: s32)->s32 fail
 #test
 {
     var owner: Swag.Error
-    let value: s64 = catch handlerIdentity(catch handlerValue(false) as error else { fail error }) as &owner else 41
+    let value: s64 = catch handlerIdentity(catch handlerValue(false) { fail Swag.err }) as owner orelse 41
     Swag.assert(value == 41)
     Swag.assert(assume cast(HandlerError, owner.value()).code == 7)
 }

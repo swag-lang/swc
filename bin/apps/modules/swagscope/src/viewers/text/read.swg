@@ -45,7 +45,7 @@ impl Read
             discard try stream.seek(.Begin, .start)
             var readErrorOutcome: Swag.Error
             var chunk: #decltype(expect stream.readTextChunk(.limit, .encoding))
-            catch { chunk = try stream.readTextChunk(.limit, .encoding) } as &readErrorOutcome
+            catch { chunk = try stream.readTextChunk(.limit, .encoding) } as readErrorOutcome
             let readError = readErrorOutcome.value()
             if readError == null
             {
@@ -93,10 +93,10 @@ impl Read
         let request = me
         .submit(func|request|()
         {
-            catch request.read() as readError else
+            catch request.read()
             {
                 request.failed = true
-                request.error  = Viewer.failureText(readError)
+                request.error  = Viewer.failureText(Swag.err)
             }
         },
                 owner)

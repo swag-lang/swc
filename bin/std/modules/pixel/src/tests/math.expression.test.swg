@@ -16,7 +16,7 @@ private func assertMathParses(source: string)
 private func assertMathSyntaxError(source: string, contains: string, seek: u64)
 {
     var errOutcome: Swag.Error
-    discard catch MathExpression.parse(source) as &errOutcome
+    discard catch MathExpression.parse(source) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert((err is Errors.SyntaxError))
@@ -391,7 +391,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     painter.begin()
     var errOutcome: Swag.Error
     var metrics:    #decltype(expect painter.drawMathLatex(0, 0, #raw "\frac{1}{2}", font, Argb.Black))
-    catch { metrics = try painter.drawMathLatex(0, 0, #raw "\frac{1}{2}", font, Argb.Black) } as &errOutcome
+    catch { metrics = try painter.drawMathLatex(0, 0, #raw "\frac{1}{2}", font, Argb.Black) } as errOutcome
     let err = errOutcome.value()
     painter.end()
 

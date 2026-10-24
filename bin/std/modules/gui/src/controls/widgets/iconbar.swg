@@ -160,6 +160,6 @@ impl IconBar
         let button = .childById(id)
         if not button do
             return null
-        return (catch cast(*IconButton?, button) else null)
+        return (catch cast(*IconButton?, button))
     }
 }

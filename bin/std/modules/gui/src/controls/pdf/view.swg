@@ -414,7 +414,7 @@ internal impl PdfView
             // cannot be scrolled onto.
             var sizeErrorOutcome: Swag.Error
             var size: #decltype(expect .reader.pageSize(index))
-            catch { size = try .reader.pageSize(index) } as &sizeErrorOutcome
+            catch { size = try .reader.pageSize(index) } as sizeErrorOutcome
             let sizeError = sizeErrorOutcome.value()
             if sizeError != null or
                size.x <= 0 or
@@ -831,7 +831,7 @@ internal impl PdfView
             let pageToSurface = Math.Transform2{scale, 0, 0, scale, base.tx + box.x, base.ty + box.y}
             .pageLock.lock()
             var pageErrorOutcome: Swag.Error
-            catch Pdf.drawPageItems(painter, &entry.page, pageToSurface, devicePerPoint, flatten, &entry.fonts, "", entry.textures.toSlice()) as &pageErrorOutcome
+            catch Pdf.drawPageItems(painter, &entry.page, pageToSurface, devicePerPoint, flatten, &entry.fonts, "", entry.textures.toSlice()) as pageErrorOutcome
             let pageError = pageErrorOutcome.value()
             .pageLock.unlock()
             painter.setTransform(base)
@@ -1552,7 +1552,7 @@ impl PdfView
         var expression: Parser.RegExp
         if options.regularExpression
         {
-            catch expression.compile(text, ignoreCase: options.comparison == .Latin1NoCase) else { return true }
+            catch expression.compile(text, ignoreCase: options.comparison == .Latin1NoCase) { return true }
         }
 
         .ensureDocumentText()

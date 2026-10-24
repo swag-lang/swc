@@ -234,7 +234,7 @@ private impl FileBrowserCtrl
         l = treeCtrl.createLine(strings().browser_Drives)
         l.separator = true
 
-        let volumes = catch Directory.drives() else {}
+        let volumes = catch Directory.drives()
         for &v in volumes
         {
             v.removeBack()
@@ -780,7 +780,7 @@ impl FileBrowserCtrl
             .recurse         = false
         }
 
-        .currentEntries = catch Directory.enumerate(.currentFolder, options) else {}
+        .currentEntries = catch Directory.enumerate(.currentFolder, options)
 
         let filterExtensions = .activeFilterExtensions()
         let tokens = Tokenize.split(filterExtensions orelse "", ';'rune)
@@ -836,7 +836,7 @@ impl FileBrowserCtrl
         if .currentFolder.isEmpty() or not Path.isValidFileName(name) do
             return false
         let path = Path.combine(.currentFolder, name)
-        catch Directory.create(path) else do
+        catch Directory.create(path) do
             return false
         .fillFileList()
         return true

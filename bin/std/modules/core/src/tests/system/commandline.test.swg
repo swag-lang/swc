@@ -51,7 +51,7 @@ func parseFailed(args: const [..] string)->bool
 {
     var options:    BasicOptions
     var errOutcome: Swag.Error
-    discard catch CommandLine.parse(&options, args) as &errOutcome
+    discard catch CommandLine.parse(&options, args) as errOutcome
     let err = errOutcome.value()
     return err != null
 }
@@ -60,7 +60,7 @@ func parseAdvancedFailed(args: const [..] string)->bool
 {
     var options:     AdvancedOptions
     var err2Outcome: Swag.Error
-    discard catch CommandLine.parse(&options, args) as &err2Outcome
+    discard catch CommandLine.parse(&options, args) as err2Outcome
     let err2 = err2Outcome.value()
     return err2 != null
 }

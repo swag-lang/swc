@@ -99,13 +99,13 @@ func psdHeader(channels: u16, width, height: u32, depth, colorMode: u16)->Concat
 {
     const Invalid: [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
     var shortOutcome: Swag.Error
-    discard catch Image.decode("bad.psd", Invalid) as &shortOutcome
+    discard catch Image.decode("bad.psd", Invalid) as shortOutcome
     let short = shortOutcome.value()
     Swag.assert(short != null)
 
     var unsupported = psdHeader(4, 1, 1, 8, 4)
     var cmykOutcome: Swag.Error
-    discard catch Image.decode("cmyk.psd", nnBytes(unsupported.toSlice())) as &cmykOutcome
+    discard catch Image.decode("cmyk.psd", nnBytes(unsupported.toSlice())) as cmykOutcome
     let cmyk = cmykOutcome.value()
     Swag.assert((cmyk is UnsupportedFormatError))
 }

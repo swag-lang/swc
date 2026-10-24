@@ -39,7 +39,7 @@ struct ExecutorFailure
 
     failing.submit(func()->u32 fail { fail ExecutorFailure{9} }, executor: &executor)
     var errorOutcome: Swag.Error
-    discard catch failing.take() as &errorOutcome
+    discard catch failing.take() as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is ExecutorFailure)
 

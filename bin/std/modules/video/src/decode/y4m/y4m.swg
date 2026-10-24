@@ -57,7 +57,7 @@ private func parsePositiveU32(value, field: string)->u32 fail
 {
     var parseErrorOutcome: Swag.Error
     var parsed: #decltype(expect StrConv.toU32(value))
-    catch { parsed = try StrConv.toU32(value) } as &parseErrorOutcome
+    catch { parsed = try StrConv.toU32(value) } as parseErrorOutcome
     let parseError = parseErrorOutcome.value()
     if parseError != null or not parsed do
         fail InvalidFormatError{Errors.mkString(Format.toString("YUV4MPEG2 % needs a positive integer", field))}
@@ -352,7 +352,7 @@ private impl Decoder
             return false
 
         var probeErrorOutcome: Swag.Error
-        catch .checkFrameAt(source, .firstMarker + (frameCount - 1) * .frameStride) as &probeErrorOutcome
+        catch .checkFrameAt(source, .firstMarker + (frameCount - 1) * .frameStride) as probeErrorOutcome
         let probeError = probeErrorOutcome.value()
         return probeError == null
     }

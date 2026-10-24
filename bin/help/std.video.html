@@ -1794,13 +1794,13 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">matches</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_addCue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.addCue</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_addCue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L674">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_addCue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.addCue</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_addCue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L675">src</a></div>
 <p>Appends one decoded cue.</p>
 <p>Empty text and non-positive ranges are ignored. Call <a href="#Video_Subtitle_Track_sortCues">Video.Subtitle.Track.sortCues</a> after appending container cues that are not already ordered.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addCue</span>(startSeconds, endSeconds: <span class="STpe">f64</span>, text: <span class="STpe">string</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_addEncodedCue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.addEncodedCue</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_addEncodedCue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L690">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_addEncodedCue" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.addEncodedCue</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_addEncodedCue" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L691">src</a></div>
 <p>Appends one UTF-8 cue payload supplied by a container.</p>
 <p>ASS and SSA containers prepend event fields which are not presentation text; this method removes those fields together with inline markup before retaining the cue.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">addEncodedCue</span>(startSeconds, endSeconds: <span class="STpe">f64</span>, text: <span class="STpe">string</span>)</span></div>
@@ -1824,7 +1824,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">copyLanguageTag</span>(result: *<span class="SCst"><a href="std.core.html#Core_String">String</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_copyPresentationAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.copyPresentationAt</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_copyPresentationAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L720">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_copyPresentationAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.copyPresentationAt</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_copyPresentationAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L721">src</a></div>
 <p>Copies the active cue text into caller-owned storage and returns the next transition.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">copyPresentationAt</span>(seconds: <span class="STpe">f64</span>, result: *<span class="SCst"><a href="std.core.html#Core_String">String</a></span>)-&gt;<span class="STpe">f64</span></span></div>
@@ -1887,7 +1887,7 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">decodeInto</span>(result: *<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span>, fileName, source: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.destroy</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L661">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_destroy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.destroy</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_destroy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L662">src</a></div>
 <p>Releases a track returned by <a href="#Video_Subtitle_Track_loadOwned">Video.Subtitle.Track.loadOwned</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
 <span class="SKwd">func</span> <span class="SFct">destroy</span>(track: *<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span>)</span></div>
@@ -1934,30 +1934,30 @@ painter.<span class="SFct">drawTexture</span>(rectangle, texture)</span></div>
 <span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">languageTagLength</span>()-&gt;<span class="STpe">u64</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.load</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L615">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_load" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.load</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_load" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L616">src</a></div>
 <p>Loads and decodes a subtitle file.</p>
 <p>UTF-8, UTF-16, UTF-32, and Windows-1252 are detected from the file bytes. The returned track owns every cue and remains independent of the source file.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">load</span>(fileName: <span class="STpe">string</span>)-&gt;<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_loadInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.loadInto</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_loadInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L623">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_loadInto" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.loadInto</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_loadInto" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L624">src</a></div>
 <p>Loads into caller-owned storage, avoiding an owning aggregate return at module boundaries.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">loadInto</span>(result: *<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span>, fileName: <span class="STpe">string</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_loadOwned" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.loadOwned</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_loadOwned" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L642">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_loadOwned" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.loadOwned</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_loadOwned" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L643">src</a></div>
 <p>Loads a track whose lifetime remains owned by the video module.</p>
 <p>A successful call returns a non-null pointer. Call <a href="#Video_Subtitle_Track_destroy">Video.Subtitle.Track.destroy</a> when the track is no longer needed.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">NoInline]</span>
 <span class="SKwd">func</span> <span class="SFct">loadOwned</span>(fileName: <span class="STpe">string</span>)-&gt;*<span class="SCst"><a href="#Video_Subtitle_Track">Track</a></span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_presentationAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.presentationAt</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_presentationAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L711">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_presentationAt" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.presentationAt</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_presentationAt" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L712">src</a></div>
 <p>Returns the visible text and the next point at which it can change.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">presentationAt</span>(seconds: <span class="STpe">f64</span>)-&gt;<span class="SCst"><a href="#Video_Subtitle_Presentation">Presentation</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Video_Subtitle_Track_sortCues" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.sortCues</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_sortCues" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L700">src</a></div>
+<div class="api-item api-item-func"><span id="Video_Subtitle_Track_sortCues" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Track.sortCues</span> <a class="api-item-permalink" href="#Video_Subtitle_Track_sortCues" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/video/src/subtitle/track.swg#L701">src</a></div>
 <p>Orders cues by start time and then by end time.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">sortCues</span>()</span></div>
 </section>

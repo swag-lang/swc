@@ -580,7 +580,7 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
         {
             var hexErrorOutcome: Swag.Error
             var id: #decltype(expect scanner.parseHexString())
-            catch { id = try scanner.parseHexString() } as &hexErrorOutcome
+            catch { id = try scanner.parseHexString() } as hexErrorOutcome
             let hexError = hexErrorOutcome.value()
             if hexError != null do
                 scanner.pos = mark + 1
@@ -593,7 +593,7 @@ private func readToUnicode(font: *FontResource, bytes: const [..] u8)
         {
             var arrayErrorOutcome: Swag.Error
             var id: #decltype(expect scanner.parseArray())
-            catch { id = try scanner.parseArray() } as &arrayErrorOutcome
+            catch { id = try scanner.parseArray() } as arrayErrorOutcome
             let arrayError = arrayErrorOutcome.value()
             if arrayError != null do
                 scanner.pos = mark + 1

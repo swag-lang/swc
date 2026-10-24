@@ -374,7 +374,7 @@ impl IWnd for RecentWnd
 
                 // The snapshot happens now; a worker produces the file and
                 // atomically replaces it, and the next tick collects the outcome.
-                catch capture.scheduleSave() else do
+                catch capture.scheduleSave() do
                     MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
                 return
             }
@@ -457,7 +457,7 @@ impl RecentWnd
         // The recent strip needs only the newest capture names. Validating every SCC in the
         // library here would open the complete collection before the first thumbnail could
         // appear, so that index stays lazy: each recent candidate is validated as it is loaded.
-        var result = catch Directory.enumerateFiles(Library.getFolder()) else {}
+        var result = catch Directory.enumerateFiles(Library.getFolder())
         result.sort(func(a, b) => b.lastWriteTime <=> a.lastWriteTime)
 
         for r in result where Capture.isFileName(r.fullName) do

@@ -67,7 +67,7 @@ using Swag, Core
     Swag.assert((expect Face.familyNameAt(bytes.toSlice(), 0)) == "Arial")
 
     var errBeyondOutcome: Swag.Error
-    discard catch Face.familyNameAt(bytes.toSlice(), 1) as &errBeyondOutcome
+    discard catch Face.familyNameAt(bytes.toSlice(), 1) as errBeyondOutcome
     let errBeyond = errBeyondOutcome.value()
     Swag.assert(errBeyond != null)
 }
@@ -77,7 +77,7 @@ using Swag, Core
 {
     let bytes = buildFontCollection(["arial.ttf", "arialbd.ttf"])
     var errRangeOutcome: Swag.Error
-    catch checkFaceLoadAt(bytes.toSlice(), 2) as &errRangeOutcome
+    catch checkFaceLoadAt(bytes.toSlice(), 2) as errRangeOutcome
     let errRange = errRangeOutcome.value()
     Swag.assert(errRange != null)
 }
@@ -87,7 +87,7 @@ using Swag, Core
 {
     let bytes = loadFontBytes("arial.ttf")
     var errSingleOutcome: Swag.Error
-    catch checkFaceLoadAt(bytes.toSlice(), 1) as &errSingleOutcome
+    catch checkFaceLoadAt(bytes.toSlice(), 1) as errSingleOutcome
     let errSingle = errSingleOutcome.value()
     Swag.assert(errSingle != null)
 }
@@ -97,17 +97,17 @@ using Swag, Core
 #test
 {
     var errWoffOutcome: Swag.Error
-    catch checkFaceLoad(WoffBytes) as &errWoffOutcome
+    catch checkFaceLoad(WoffBytes) as errWoffOutcome
     let errWoff = errWoffOutcome.value()
     Swag.assert(errWoff != null)
 
     var errWoff2Outcome: Swag.Error
-    catch checkFaceLoad(Woff2Bytes) as &errWoff2Outcome
+    catch checkFaceLoad(Woff2Bytes) as errWoff2Outcome
     let errWoff2 = errWoff2Outcome.value()
     Swag.assert(errWoff2 != null)
 
     var errCountOutcome: Swag.Error
-    discard catch Face.countFaces(WoffBytes) as &errCountOutcome
+    discard catch Face.countFaces(WoffBytes) as errCountOutcome
     let errCount = errCountOutcome.value()
     Swag.assert(errCount != null)
 }
@@ -117,7 +117,7 @@ using Swag, Core
 #test
 {
     var errCffOutcome: Swag.Error
-    catch checkFaceLoad(OpenTypeCffBytes) as &errCffOutcome
+    catch checkFaceLoad(OpenTypeCffBytes) as errCffOutcome
     let errCff = errCffOutcome.value()
     Swag.assert(errCff != null)
 

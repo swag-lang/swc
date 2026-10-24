@@ -178,7 +178,8 @@ func reentrantStoreClearOnlyOnFailure(owner: *ReentrantStoreHolder, callback: fu
 func reentrantStoreRejectNormalExit(owner: *ReentrantStoreHolder)
 {
     var value = 7
-    catch reentrantStoreClearOnlyOnFailure(owner, func|&value|() { value = 9 }, false)     // swc-expected-error {{sanity_err_borrow_escape}}
+    catch (reentrantStoreClearOnlyOnFailure(owner, func|&value|() { value = 9 }, false)     // swc-expected-error {{sanity_err_borrow_escape}}
+           )
 }
 
 // Success-only cleanup leaves the failure exit live.
@@ -194,7 +195,8 @@ func reentrantStoreClearOnlyOnSuccess(owner: *ReentrantStoreHolder, callback: fu
 func reentrantStoreRejectFailureExit(owner: *ReentrantStoreHolder)
 {
     var value = 7
-    catch reentrantStoreClearOnlyOnSuccess(owner, func|&value|() { value = 9 }, true)     // swc-expected-error {{sanity_err_borrow_escape}}
+    catch (reentrantStoreClearOnlyOnSuccess(owner, func|&value|() { value = 9 }, true)     // swc-expected-error {{sanity_err_borrow_escape}}
+           )
 }
 
 struct ReentrantStoreRestorer

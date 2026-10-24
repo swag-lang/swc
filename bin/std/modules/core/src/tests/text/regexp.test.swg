@@ -1009,7 +1009,7 @@ using Swag
 #test
 {
     var errOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "a{2,1}") as &errOutcome
+    discard catch Parser.RegExp.create(#raw "a{2,1}") as errOutcome
     let err = errOutcome.value()
 
     Swag.assert(err != null)
@@ -1019,7 +1019,7 @@ using Swag
 #test
 {
     var err2Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "{1}") as &err2Outcome
+    discard catch Parser.RegExp.create(#raw "{1}") as err2Outcome
     let err2 = err2Outcome.value()
 
     Swag.assert(err2 != null)
@@ -1029,7 +1029,7 @@ using Swag
 #test
 {
     var err3Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "(") as &err3Outcome
+    discard catch Parser.RegExp.create(#raw "(") as err3Outcome
     let err3 = err3Outcome.value()
 
     Swag.assert(err3 != null)
@@ -1039,7 +1039,7 @@ using Swag
 #test
 {
     var err4Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "[abc") as &err4Outcome
+    discard catch Parser.RegExp.create(#raw "[abc") as err4Outcome
     let err4 = err4Outcome.value()
 
     Swag.assert(err4 != null)
@@ -1049,7 +1049,7 @@ using Swag
 #test
 {
     var err5Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "\pQ") as &err5Outcome
+    discard catch Parser.RegExp.create(#raw "\pQ") as err5Outcome
     let err5 = err5Outcome.value()
 
     Swag.assert(err5 != null)
@@ -1059,7 +1059,7 @@ using Swag
 #test
 {
     var err6Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "\p{Lx}") as &err6Outcome
+    discard catch Parser.RegExp.create(#raw "\p{Lx}") as err6Outcome
     let err6 = err6Outcome.value()
 
     Swag.assert(err6 != null)
@@ -1069,7 +1069,7 @@ using Swag
 #test
 {
     var err7Outcome: Swag.Error
-    discard catch Parser.RegExp.create("\\") as &err7Outcome
+    discard catch Parser.RegExp.create("\\") as err7Outcome
     let err7 = err7Outcome.value()
 
     Swag.assert(err7 != null)
@@ -1079,7 +1079,7 @@ using Swag
 #test
 {
     var err8Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "\q") as &err8Outcome
+    discard catch Parser.RegExp.create(#raw "\q") as err8Outcome
     let err8 = err8Outcome.value()
 
     Swag.assert(err8 != null)
@@ -1089,7 +1089,7 @@ using Swag
 #test
 {
     var err9Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "[\q]") as &err9Outcome
+    discard catch Parser.RegExp.create(#raw "[\q]") as err9Outcome
     let err9 = err9Outcome.value()
 
     Swag.assert(err9 != null)
@@ -1099,7 +1099,7 @@ using Swag
 #test
 {
     var err10Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "\p") as &err10Outcome
+    discard catch Parser.RegExp.create(#raw "\p") as err10Outcome
     let err10 = err10Outcome.value()
 
     Swag.assert(err10 != null)
@@ -1109,7 +1109,7 @@ using Swag
 #test
 {
     var err11Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "\p{L") as &err11Outcome
+    discard catch Parser.RegExp.create(#raw "\p{L") as err11Outcome
     let err11 = err11Outcome.value()
 
     Swag.assert(err11 != null)
@@ -1119,7 +1119,7 @@ using Swag
 #test
 {
     var err12Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "[[:bogus:]]") as &err12Outcome
+    discard catch Parser.RegExp.create(#raw "[[:bogus:]]") as err12Outcome
     let err12 = err12Outcome.value()
 
     Swag.assert(err12 != null)
@@ -1129,7 +1129,7 @@ using Swag
 #test
 {
     var err13Outcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "[[:digit]]") as &err13Outcome
+    discard catch Parser.RegExp.create(#raw "[[:digit]]") as err13Outcome
     let err13 = err13Outcome.value()
 
     Swag.assert(err13 != null)
@@ -1458,7 +1458,7 @@ using Swag
     Swag.assert(wide.match("ababc"))
 
     var tooManyOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "a{1001}") as &tooManyOutcome
+    discard catch Parser.RegExp.create(#raw "a{1001}") as tooManyOutcome
     let tooMany = tooManyOutcome.value()
     Swag.assert(tooMany != null)
     Swag.assert(tooMany is Errors.SyntaxError)
@@ -1469,52 +1469,52 @@ using Swag
     // Constructs that are not supported must be rejected, not silently matched as something
     // else.
     var lookAheadOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "(?=abc)") as &lookAheadOutcome
+    discard catch Parser.RegExp.create(#raw "(?=abc)") as lookAheadOutcome
     let lookAhead = lookAheadOutcome.value()
     Swag.assert(lookAhead is Errors.SyntaxError)
 
     var lookBehindOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "(?<=abc)") as &lookBehindOutcome
+    discard catch Parser.RegExp.create(#raw "(?<=abc)") as lookBehindOutcome
     let lookBehind = lookBehindOutcome.value()
     Swag.assert(lookBehind is Errors.SyntaxError)
 
     var possessiveOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "a*+") as &possessiveOutcome
+    discard catch Parser.RegExp.create(#raw "a*+") as possessiveOutcome
     let possessive = possessiveOutcome.value()
     Swag.assert(possessive is Errors.SyntaxError)
 
     var unterminatedNameOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "(?<name") as &unterminatedNameOutcome
+    discard catch Parser.RegExp.create(#raw "(?<name") as unterminatedNameOutcome
     let unterminatedName = unterminatedNameOutcome.value()
     Swag.assert(unterminatedName is Errors.SyntaxError)
 
     var emptyNameOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "(?<>a)") as &emptyNameOutcome
+    discard catch Parser.RegExp.create(#raw "(?<>a)") as emptyNameOutcome
     let emptyName = emptyNameOutcome.value()
     Swag.assert(emptyName is Errors.SyntaxError)
 
     var emptyHexOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "\x{}") as &emptyHexOutcome
+    discard catch Parser.RegExp.create(#raw "\x{}") as emptyHexOutcome
     let emptyHex = emptyHexOutcome.value()
     Swag.assert(emptyHex is Errors.SyntaxError)
 
     var tooWideOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "\x{110000}") as &tooWideOutcome
+    discard catch Parser.RegExp.create(#raw "\x{110000}") as tooWideOutcome
     let tooWide = tooWideOutcome.value()
     Swag.assert(tooWide is Errors.SyntaxError)
 
     var badFlagOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "(?y)a") as &badFlagOutcome
+    discard catch Parser.RegExp.create(#raw "(?y)a") as badFlagOutcome
     let badFlag = badFlagOutcome.value()
     Swag.assert(badFlag is Errors.SyntaxError)
 
     var repeatedAssertOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "^*") as &repeatedAssertOutcome
+    discard catch Parser.RegExp.create(#raw "^*") as repeatedAssertOutcome
     let repeatedAssert = repeatedAssertOutcome.value()
     Swag.assert(repeatedAssert is Errors.SyntaxError)
 
     var classBoundOutcome: Swag.Error
-    discard catch Parser.RegExp.create(#raw "[a-\d]") as &classBoundOutcome
+    discard catch Parser.RegExp.create(#raw "[a-\d]") as classBoundOutcome
     let classBound = classBoundOutcome.value()
     Swag.assert(classBound is Errors.SyntaxError)
 }
@@ -1678,7 +1678,7 @@ func buildSubject(rng: *Rng)->String
 
         let text = pattern.toString()
 
-        var expression = catch Parser.RegExp.create(text) else { continue }
+        var expression = catch Parser.RegExp.create(text) { continue }
 
         // The reference: the same pattern run by the simulation alone.
         var flags: Parser.Regex.Flags

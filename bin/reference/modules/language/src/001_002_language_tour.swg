@@ -135,9 +135,9 @@ func(T) tourClamp(value, lower, upper: T)->T
 # Recoverable Errors
 
 A function marked 'fail' may return an error instead of its normal result.
-'try' propagates that error, while 'catch' handles it locally: 'else' names the
-value to use instead. An 'as err' binding belongs to the handler; a declared
-'Swag.Error' retains an error for later inspection with 'as &err'.
+'try' propagates that error, while 'catch' handles it locally: a failure yields the
+default value of the result type, or the value named with 'orelse'. Inside a handler,
+'Swag.err' is the error; a declared 'Swag.Error' retains it for later with 'as saved'.
 */
 func tourDivide(numerator, denominator: s32)->s32 fail
 {
@@ -151,7 +151,7 @@ func tourDivide(numerator, denominator: s32)->s32 fail
     Swag.assert(expect tourDivide(12, 3) == 4)
 
     var err: Swag.Error
-    let fallback = catch tourDivide(12, 0) as &err else -1
+    let fallback = catch tourDivide(12, 0) as err orelse -1
     Swag.assert(fallback == -1)
     Swag.assert(not err.isEmpty())
 }

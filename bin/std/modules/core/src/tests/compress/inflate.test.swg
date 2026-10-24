@@ -35,7 +35,7 @@ using Swag
     var inflater: Compress.Inflate
     var decoded:  Array'u8
     var limitErrorOutcome: Swag.Error
-    catch inflater.decompress(&decoded, compressed.toSlice(), maxOutputSize: 128) as &limitErrorOutcome
+    catch inflater.decompress(&decoded, compressed.toSlice(), maxOutputSize: 128) as limitErrorOutcome
     let limitError = limitErrorOutcome.value()
     Swag.assert((limitError is Errors.UnsupportedFormatError))
     Swag.assert(decoded.count <= 128)
@@ -211,7 +211,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var inflater:         Compress.Inflate
     var decoded:          Array'u8
     var truncatedOutcome: Swag.Error
-    catch inflater.decompress(&decoded, compressed.toSlice()[until compressed.count / 2]) as &truncatedOutcome
+    catch inflater.decompress(&decoded, compressed.toSlice()[until compressed.count / 2]) as truncatedOutcome
     let truncated = truncatedOutcome.value()
     Swag.assert(truncated is Errors.InvalidFormatError)
 }
@@ -224,7 +224,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var inflater:        Compress.Inflate
     var decoded:         Array'u8
     var overlongOutcome: Swag.Error
-    catch inflater.decompress(&decoded, stored) as &overlongOutcome
+    catch inflater.decompress(&decoded, stored) as overlongOutcome
     let overlong = overlongOutcome.value()
     Swag.assert(overlong is Errors.InvalidFormatError)
 }
@@ -236,7 +236,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var inflater:         Compress.Inflate
     var decoded:          Array'u8
     var errorOutcome:     Swag.Error
-    catch inflater.decompress(&decoded, reservedDistance) as &errorOutcome
+    catch inflater.decompress(&decoded, reservedDistance) as errorOutcome
     Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
     Swag.assert(decoded.isEmpty())
 }
@@ -248,7 +248,7 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var inflater:     Compress.Inflate
     var decoded:      Array'u8
     var errorOutcome: Swag.Error
-    catch inflater.decompress(&decoded, tooManyCodes) as &errorOutcome
+    catch inflater.decompress(&decoded, tooManyCodes) as errorOutcome
     Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
 }
 
@@ -267,6 +267,6 @@ func roundTrip(input: const [..] u8, level: Compress.Deflate.CompressionLevel)
     var inflater:     Compress.Inflate
     var decoded:      Array'u8
     var errorOutcome: Swag.Error
-    catch inflater.decompress(&decoded, compressed.toSlice(), winSize: 1) as &errorOutcome
+    catch inflater.decompress(&decoded, compressed.toSlice(), winSize: 1) as errorOutcome
     Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
 }

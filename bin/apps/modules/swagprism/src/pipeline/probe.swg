@@ -53,7 +53,7 @@ impl Probe
         {
             session = Path.combine(owned, Guid64.highEntropy().toString())
             var createErrorOutcome: Swag.Error
-            catch Directory.create(session) as &createErrorOutcome
+            catch Directory.create(session) as createErrorOutcome
             if createErrorOutcome.isEmpty() do
                 break
 
@@ -133,7 +133,7 @@ func compilerWorkerCount()->u32
     let available = Hardware.processorCount()
     if available <= 2 do
         return 1
-    let requested = catch StrConv.toU32(compilerArgument("--compiler-workers=")) else 0
+    let requested = catch StrConv.toU32(compilerArgument("--compiler-workers="))
     let limit     = requested != 0 ? Math.min(requested, MaxWorkers) : MaxWorkers
     return Math.min(available - 1, limit)
 }
@@ -208,7 +208,7 @@ func writeIfChanged(path: string, content: string) fail
 {
     var readErrorOutcome: Swag.Error
     var existing:         #decltype(expect File.readAllText(path))
-    catch { existing = try File.readAllText(path) } as &readErrorOutcome
+    catch { existing = try File.readAllText(path) } as readErrorOutcome
     let readError = readErrorOutcome.value()
     if readError == null and existing == content do
         return
@@ -231,7 +231,7 @@ func startPiped(fileName: string, arguments: string, workingDirectory: string? =
 // Always reap an owned process before dropping its pipes or temporary files.
 func retireProcess(process: *Env.Process)
 {
-    if not (catch process.tryWaitForExit(0'ms) else false)
+    if not (catch process.tryWaitForExit(0'ms))
     {
         discard catch process.kill()
         discard catch process.waitForExit()

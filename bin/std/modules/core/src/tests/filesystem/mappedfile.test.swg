@@ -97,7 +97,7 @@
     expect mapped.resize(8192)
     Swag.assert(expect mapped.size() == 8192)
     var rangeErrorOutcome: Swag.Error
-    discard catch mapped.map(8190, 4) as &rangeErrorOutcome
+    discard catch mapped.map(8190, 4) as rangeErrorOutcome
     let rangeError = rangeErrorOutcome.value()
     Swag.assert(rangeError != null)
 

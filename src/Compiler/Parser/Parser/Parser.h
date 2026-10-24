@@ -83,6 +83,15 @@ private:
     // can own a '{' that follows it, as its trailing code block.
     AstNodeRef lastStatementRef_ = AstNodeRef::invalid();
 
+    // First 'Swag.err' read since the innermost 'catch' handler or replacement began.
+    TokenRef catchErrTokRef_ = TokenRef::invalid();
+
+    // Depths of the control-statement header being parsed. At those depths, a '{' opens
+    // the statement body, never a 'catch' handler.
+    uint32_t blockHeaderDepthParen_   = 0xFFFFFFFFu;
+    uint32_t blockHeaderDepthBracket_ = 0xFFFFFFFFu;
+    uint32_t blockHeaderDepthCurly_   = 0xFFFFFFFFu;
+
     TokenRef lastErrorToken_ = TokenRef::invalid();
 
     TokenRef topLevelAccessRef_ = TokenRef::invalid();
@@ -112,6 +121,8 @@ private:
     bool         isNot(TokenId nid) const { return curToken_->id != nid; }
     bool         atEnd() const { return curToken_ >= lastToken_; }
     bool         isClosureCaptureEndPipe() const;
+    bool         isBlockHeaderBodyStart() const;
+    bool         isSwagErrAhead(AstNodeRef leftRef) const;
 
     bool isRecoveryClosingDelimiter() const
     {
@@ -251,6 +262,8 @@ private:
     AstNodeRef parseEnumValue();
 
     AstNodeRef parseErrorManagementExpr();
+    void       parseCatchHandlerOrFallback(AstNodeRef& outHandlerRef, TokenRef& outErrTokRef, bool statement);
+    AstNodeRef parseBlockHeaderExpression();
     AstNodeRef parseErrorManagementStmt();
     AstNodeRef parseExpression();
     bool       isForeignFunctionKeyword() const;
@@ -412,6 +425,35 @@ private:
         ~PushStatementList()
         {
             parser->lastStatementRef_ = oldLastStatement;
+        }
+    };
+
+    // Marks what is parsed during its lifetime as the header of a control statement,
+    // whose body follows at the current nesting depths.
+    struct PushBlockHeader
+    {
+        Parser*  parser;
+        uint32_t oldParen;
+        uint32_t oldBracket;
+        uint32_t oldCurly;
+
+        explicit PushBlockHeader(Parser* p)
+        {
+            parser     = p;
+            oldParen   = p->blockHeaderDepthParen_;
+            oldBracket = p->blockHeaderDepthBracket_;
+            oldCurly   = p->blockHeaderDepthCurly_;
+
+            p->blockHeaderDepthParen_   = p->depthParen_;
+            p->blockHeaderDepthBracket_ = p->depthBracket_;
+            p->blockHeaderDepthCurly_   = p->depthCurly_;
+        }
+
+        ~PushBlockHeader()
+        {
+            parser->blockHeaderDepthParen_   = oldParen;
+            parser->blockHeaderDepthBracket_ = oldBracket;
+            parser->blockHeaderDepthCurly_   = oldCurly;
         }
     };
 };

@@ -73,6 +73,7 @@ namespace SemaHelpers
     bool    extractNarrowPath(Sema& sema, AstNodeRef nodeRef, SmallVector4<const Symbol*>& outPath);
     void    collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuards& out);
     TypeRef nullNarrowedTypeRef(Sema& sema, AstNodeRef nodeRef, TypeRef typeRef);
+    TypeRef nullCoalescingResultType(Sema& sema, TypeRef leftTypeRef, TypeRef rightTypeRef);
 
     // Judge declared control-flow contracts even when runtime guards are off:
     // panic, NoReturn calls, unreachable, and exhaustive complete switches stop flow.

@@ -7,7 +7,7 @@ using Swag
 #test
 {
     var missingCodeOutcome: Swag.Error
-    catch failWinError(0) as &missingCodeOutcome
+    catch failWinError(0) as missingCodeOutcome
     let missingCode = missingCodeOutcome.value()
     Swag.assert((missingCode is SystemError))
     let missing = assume cast (*SystemError, missingCode)
@@ -16,7 +16,7 @@ using Swag
 
     const InvalidHandleError = 6'u32
     var invalidHandleOutcome: Swag.Error
-    catch failWinError(InvalidHandleError) as &invalidHandleOutcome
+    catch failWinError(InvalidHandleError) as invalidHandleOutcome
     let invalidHandle = invalidHandleOutcome.value()
     Swag.assert((invalidHandle is SystemError))
     let invalid = assume cast (*SystemError, invalidHandle)
@@ -49,7 +49,7 @@ using Swag
     for 32
     {
         var errorOutcome: Swag.Error
-        catch failWinError(InvalidHandleError) as &errorOutcome
+        catch failWinError(InvalidHandleError) as errorOutcome
         let error = errorOutcome.value()
         if error is SystemError as value do
             messagesValid = messagesValid and value.message != null and value.message.count != 0
@@ -67,7 +67,7 @@ using Swag
     scope
     {
         var retainedOutcome: Swag.Error
-        catch failWinError(InvalidHandleError) as &retainedOutcome
+        catch failWinError(InvalidHandleError) as retainedOutcome
         let retained = retainedOutcome.value()
         context.errorAllocator.release()
         retainedBlocks = allocator.stats().countAlloc

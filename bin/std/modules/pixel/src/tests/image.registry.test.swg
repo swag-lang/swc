@@ -113,7 +113,7 @@ internal impl Image
             let bytes = failing ? "x" : "input"
             var errOutcome: Swag.Error
             var result:     #decltype(expect Image.decode("image.registrytest", cast(const [..] u8, bytes)))
-            catch { result = try Image.decode("image.registrytest", cast(const [..] u8, bytes)) } as &errOutcome
+            catch { result = try Image.decode("image.registrytest", cast(const [..] u8, bytes)) } as errOutcome
             let err = errOutcome.value()
             Swag.assert((err != null) == failing)
             if not failing do
@@ -126,7 +126,7 @@ internal impl Image
             let options:    any? = failing ? cast(any?, true) : null
             var errOutcome: Swag.Error
             var result:     #decltype(expect image.encode("image.registrytest", options))
-            catch { result = try image.encode("image.registrytest", options) } as &errOutcome
+            catch { result = try image.encode("image.registrytest", options) } as errOutcome
             let err = errOutcome.value()
             Swag.assert((err != null) == failing)
             if not failing do

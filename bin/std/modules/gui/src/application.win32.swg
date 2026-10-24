@@ -61,7 +61,7 @@ impl Application
             if SetWaitableTimer(.frameTimer, &dueTime, 0, null, null, FALSE)
             {
                 var errorOutcome: Swag.Error
-                discard catch MsgWaitForMultipleObjectsEx(1, &.frameTimer, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE) as &errorOutcome
+                discard catch MsgWaitForMultipleObjectsEx(1, &.frameTimer, 16, QS_ALLINPUT, MWMO_INPUTAVAILABLE) as errorOutcome
                 let error = errorOutcome.value()
                 if error == null do
                     return
@@ -77,7 +77,7 @@ impl Application
     internal mtd refreshSystemMotionPreference()
     {
         var animationsEnabled = TRUE
-        catch SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0) else
+        catch SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animationsEnabled, 0)
         {
             return
         }
@@ -255,7 +255,7 @@ impl Application
         // Convert icon to image
         var errOutcome: Swag.Error
         var img:        #decltype(expect Image.from(hIcon))
-        catch { img = try Image.from(hIcon) } as &errOutcome
+        catch { img = try Image.from(hIcon) } as errOutcome
         let err = errOutcome.value()
         defer catch DestroyIcon(hIcon)
         if err != null do

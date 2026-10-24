@@ -1663,7 +1663,7 @@ impl Application
         {
             if enabled do
                 catch registerNativeHotKey(shortcut.modifiers, shortcut.key)
-                else do
+                    do
                     unregisterNativeHotKey(shortcut.modifiers, shortcut.key)
         }
     }

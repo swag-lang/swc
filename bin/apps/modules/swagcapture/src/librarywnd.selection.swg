@@ -155,16 +155,16 @@ impl LibraryWnd
             if rating do
                 capture.rating = rating[]
             capture.changed = true
-            discard catch capture.save() as saveErr else
+            discard catch capture.save()
             {
-                MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, saveErr)
+                MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, Swag.err)
                 return
             }
 
             .refreshPreviewMetadata(file, capture)
-        } as err else
+        }
         {
-            MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, err)
+            MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, Swag.err)
         }
     }
 
@@ -273,9 +273,9 @@ impl LibraryWnd
         Cursor.activateWait()
         for file in files
         {
-            discard catch .exportCapture(file, dialog.selectedPath()) as err else
+            discard catch .exportCapture(file, dialog.selectedPath())
             {
-                MessageDlg.error(.main.surface, appStrings().msg_FailedExportCaptures, err)
+                MessageDlg.error(.main.surface, appStrings().msg_FailedExportCaptures, Swag.err)
                 return
             }
         }

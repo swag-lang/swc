@@ -10,7 +10,7 @@ using Swag, Win32
     defer catch DeleteDC(dc)
     SetLastError(0)
     var missingTableOutcome: Swag.Error
-    discard catch GetFontData(dc, 0x3F3F3F3F, 0, null, 0) as &missingTableOutcome
+    discard catch GetFontData(dc, 0x3F3F3F3F, 0, null, 0) as missingTableOutcome
     let missingTable = missingTableOutcome.value()
     Swag.assert((missingTable is SystemError))
 }

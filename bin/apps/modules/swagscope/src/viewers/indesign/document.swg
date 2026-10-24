@@ -456,7 +456,7 @@ private func loadPreview(fileName: string, preview: const *Preview)->Image fail
 
     var base64ErrorOutcome: Swag.Error
     var previewBytes:       #decltype(expect Base64.decode(payload))
-    catch { previewBytes = try Base64.decode(payload) } as &base64ErrorOutcome
+    catch { previewBytes = try Base64.decode(payload) } as base64ErrorOutcome
     let base64Error = base64ErrorOutcome.value()
     if base64Error != null or
        previewBytes.count < 4 or
@@ -472,7 +472,7 @@ private func loadPreview(fileName: string, preview: const *Preview)->Image fail
 
     var result: retval
     var decodeErrorOutcome: Swag.Error
-    catch { result = try Image.decode("indesign-preview.jpg", previewBytes.toSlice()) } as &decodeErrorOutcome
+    catch { result = try Image.decode("indesign-preview.jpg", previewBytes.toSlice()) } as decodeErrorOutcome
     let decodeError = decodeErrorOutcome.value()
     if decodeError != null or
        not result.isValid() or
@@ -509,7 +509,7 @@ private impl PreviewLoad
         .submit(func|operation|()
         {
             var loadErrorOutcome: Swag.Error
-            catch { operation.value = try loadPreview(operation.fileName, &operation.preview) } as &loadErrorOutcome
+            catch { operation.value = try loadPreview(operation.fileName, &operation.preview) } as loadErrorOutcome
             let loadError = loadErrorOutcome.value()
             operation.error = Viewer.failureText(loadError)
         },

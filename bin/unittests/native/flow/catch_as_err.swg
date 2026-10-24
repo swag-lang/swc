@@ -25,14 +25,14 @@ func catchAsErrCount(ok: bool)->s32 fail
 // Statement form: capture, then branch on the named error.
 func catchAsErrRun(ok: bool)->s32
 {
-    catch catchAsErrMayFail(ok) as err else { return assume cast(CatchAsErrError, err).code }
+    catch catchAsErrMayFail(ok) { return assume cast(CatchAsErrError, Swag.err).code }
     return 1000
 }
 
 // A value expression either succeeds or returns from its failure handler.
 func catchAsErrValue(ok: bool)->s32
 {
-    let x = catch catchAsErrCount(ok) as err else { return -assume cast(CatchAsErrError, err).code }
+    let x = catch catchAsErrCount(ok) { return -assume cast(CatchAsErrError, Swag.err).code }
     return x
 }
 
@@ -59,7 +59,7 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
 #test
 {
     var errOutcome: Swag.Error
-    let x   = catch catchAsErrInlineFoldable(63) as &errOutcome else 0
+    let x   = catch catchAsErrInlineFoldable(63) as errOutcome
     let err = errOutcome.value()
     Swag.assert(x == 63)
     Swag.assert(err == null)
@@ -69,7 +69,7 @@ func catchAsErrInlineFoldable(value: s32)->s32 fail
 {
     // Same through the statement form, where the result is discarded entirely.
     var errOutcome: Swag.Error
-    discard catch catchAsErrInlineFoldable(11) as &errOutcome
+    discard catch catchAsErrInlineFoldable(11) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err == null)
 }
@@ -81,12 +81,12 @@ func catchAsErrInlineCaptures()
 {
     // Void inline callee: the statement and block forms of the capture.
     var errOutcome: Swag.Error
-    catch catchAsErrInlineVoid() as &errOutcome
+    catch catchAsErrInlineVoid() as errOutcome
     let err = errOutcome.value()
     Swag.assert(err == null)
 
     var err2Outcome: Swag.Error
-    discard catch catchAsErrInlineFoldable(9) as &err2Outcome
+    discard catch catchAsErrInlineFoldable(9) as err2Outcome
     let err2 = err2Outcome.value()
     Swag.assert(err2 == null)
 }
@@ -101,7 +101,7 @@ func catchAsErrInlineCaptures()
 func catchAsErrReraise(ok: bool)->s32 fail
 {
     var errOutcome: Swag.Error
-    catch catchAsErrMayFail(ok) as &errOutcome
+    catch catchAsErrMayFail(ok) as errOutcome
     if not errOutcome.isEmpty() and ok == false do
         try errOutcome.raise()
     return 5
@@ -109,9 +109,9 @@ func catchAsErrReraise(ok: bool)->s32 fail
 
 #test
 {
-    Swag.assert(catch catchAsErrReraise(true) == 5 else false)
+    Swag.assert(catch (catchAsErrReraise(true) == 5))
     var seen = 0
-    discard catch catchAsErrReraise(false) as err else { seen = assume cast(CatchAsErrError, err).code }
+    discard catch catchAsErrReraise(false) { seen = assume cast(CatchAsErrError, Swag.err).code }
     Swag.assert(seen == 7)
 }
 
@@ -133,7 +133,7 @@ func catchAsErrSuccessWithFailDefer() fail
     // Reusing an error-stack slot after a handled capture must not restore the old error when a
     // nested `expect` succeeds; in particular, the surrounding successful frame stays no-fail.
     var previousErrorOutcome: Swag.Error
-    catch catchAsErrMayFail(false) as &previousErrorOutcome
+    catch catchAsErrMayFail(false) as previousErrorOutcome
     let previousError = previousErrorOutcome.value()
     Swag.assert(previousError != null)
 

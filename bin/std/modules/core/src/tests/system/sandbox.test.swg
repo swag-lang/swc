@@ -9,7 +9,7 @@ func createSandboxTestJunction(link, target: string)->bool
     let windowsDir = Path.directoryName(fontsDir.toString())
     let shell      = Path.combine(windowsDir, "System32", "cmd.exe")
     let arguments  = Format.toString("/c mklink /J \"%\" \"%\"", link, target)
-    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) else { return false }
+    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) { return false }
     return process.exitCode() == 0
 }
 
@@ -63,7 +63,7 @@ func createSandboxTestJunction(link, target: string)->bool
     expect Env.guardWrite(inside.toString())
 
     var errOutcome: Swag.Error
-    catch Env.guardWrite("C:/Windows/System32/nope.txt") as &errOutcome
+    catch Env.guardWrite("C:/Windows/System32/nope.txt") as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(not Env.isInsideSandbox("C:/Windows/System32/nope.txt"))
@@ -85,7 +85,7 @@ func createSandboxTestJunction(link, target: string)->bool
 
     Swag.assert(not Env.isInsideCorpus("C:/Windows/System32/nope.txt"))
     var errOutcome: Swag.Error
-    catch Env.guardWrite("C:/Windows/System32/nope.txt") as &errOutcome
+    catch Env.guardWrite("C:/Windows/System32/nope.txt") as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }
@@ -95,7 +95,7 @@ func createSandboxTestJunction(link, target: string)->bool
 #test
 {
     var errOutcome: Swag.Error
-    catch Env.grantCorpus("") as &errOutcome
+    catch Env.grantCorpus("") as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }
@@ -111,7 +111,7 @@ func createSandboxTestJunction(link, target: string)->bool
     expect Env.grantCorpus(corpus)
 
     var errOutcome: Swag.Error
-    catch Env.grantCorpus(Env.getSpecialDirectory(.Temp).toString()) as &errOutcome
+    catch Env.grantCorpus(Env.getSpecialDirectory(.Temp).toString()) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Env.corpusRoot() == corpus)
@@ -187,7 +187,7 @@ func createSandboxTestJunction(link, target: string)->bool
     let heldPath = Path.combine(root.toString(), "held.bin")
     var held     = expect File.open(heldPath.toString(), .Create, .Write, .Read)
     var errOutcome: Swag.Error
-    catch Env.clearLeftoverDefaultRoot(root.toString()) as &errOutcome
+    catch Env.clearLeftoverDefaultRoot(root.toString()) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 
@@ -223,7 +223,7 @@ func createSandboxTestJunction(link, target: string)->bool
     Swag.assert(File.exists(path.toString()))
 
     var errOutcome: Swag.Error
-    discard catch File.writeAllBytes("C:/Windows/swag-sandbox-escape.txt", payload) as &errOutcome
+    discard catch File.writeAllBytes("C:/Windows/swag-sandbox-escape.txt", payload) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(not File.exists("C:/Windows/swag-sandbox-escape.txt"))
@@ -248,7 +248,7 @@ func createSandboxTestJunction(link, target: string)->bool
     Swag.assert(createSandboxTestJunction(link.toString(), target.toString()))
 
     var errorOutcome: Swag.Error
-    discard catch File.writeAllText(Path.combine(link.toString(), "escaped.txt"), "escape") as &errorOutcome
+    discard catch File.writeAllText(Path.combine(link.toString(), "escaped.txt"), "escape") as errorOutcome
     Swag.assert(errorOutcome.value() is Errors.SandboxError)
     Swag.assert(expect File.readAllText(targetFile.toString()) == "keep")
 }

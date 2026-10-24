@@ -41,22 +41,22 @@ using Swag, Core
 #test
 {
     var notImageOutcome: Swag.Error
-    discard catch Image.fromDataUri("data:text/plain;base64,aGk=") as &notImageOutcome
+    discard catch Image.fromDataUri("data:text/plain;base64,aGk=") as notImageOutcome
     let notImage = notImageOutcome.value()
     Swag.assert(notImage != null)
 
     var notBase64Outcome: Swag.Error
-    discard catch Image.fromDataUri("data:image/png,plain") as &notBase64Outcome
+    discard catch Image.fromDataUri("data:image/png,plain") as notBase64Outcome
     let notBase64 = notBase64Outcome.value()
     Swag.assert(notBase64 != null)
 
     var noCodecOutcome: Swag.Error
-    discard catch Image.fromDataUri("data:image/unknown;base64,aGk=") as &noCodecOutcome
+    discard catch Image.fromDataUri("data:image/unknown;base64,aGk=") as noCodecOutcome
     let noCodec = noCodecOutcome.value()
     Swag.assert(noCodec != null)
 
     var badPayloadOutcome: Swag.Error
-    discard catch Image.fromDataUri("data:image/png;base64,!!!") as &badPayloadOutcome
+    discard catch Image.fromDataUri("data:image/png;base64,!!!") as badPayloadOutcome
     let badPayload = badPayloadOutcome.value()
     Swag.assert(badPayload != null)
 }

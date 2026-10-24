@@ -123,7 +123,7 @@ func ddsRoundtrip(source: Image)->Image
 {
     const Invalid: [12] u8 = ['D', 'D', 'S', ' ', 0, 0, 0, 0, 0, 0, 0, 0]
     var errorOutcome: Swag.Error
-    discard catch Image.decode("bad.dds", Invalid) as &errorOutcome
+    discard catch Image.decode("bad.dds", Invalid) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error != null)
 }

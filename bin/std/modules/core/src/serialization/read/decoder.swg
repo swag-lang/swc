@@ -278,10 +278,10 @@ impl Decoder
 
                     // A failed beginElement has already unwound itself. Pair it with
                     // endElement only after it has returned successfully.
-                    let readField = catch .serializer.beginElement(field.value) as beginErr else
+                    let readField = catch .serializer.beginElement(field.value)
                     {
                         if not (.flags & .IgnoreStructFieldError) do
-                            fail beginErr
+                            fail Swag.err
                         #static if T == Read.TagBin do
                             .serializer.diag.fieldErrors += 1
                         continue
@@ -291,10 +291,10 @@ impl Decoder
                     if not readField do
                         continue
 
-                    catch .readTypedContent(fieldData, fieldType) as readErr else
+                    catch .readTypedContent(fieldData, fieldType)
                     {
                         if not (.flags & .IgnoreStructFieldError) do
-                            fail readErr
+                            fail Swag.err
                         #static if T == Read.TagBin do
                             .serializer.diag.fieldErrors += 1
                         Reflection.reset(fieldData, fieldType)

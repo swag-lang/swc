@@ -18,7 +18,7 @@ var completed: Swag.AtomicFlag
     for &owner in owners
     {
         let base = &owner.base
-        Swag.assert((catch cast(*GlobalOwner?, base) else null) == owner)
+        Swag.assert((catch cast(*GlobalOwner?, base)) == owner)
         Swag.assert(assume cast (*GlobalOwner, base) == owner)
         Swag.assert(base.value == 12)
         Swag.assert(owner.prefix == 31)

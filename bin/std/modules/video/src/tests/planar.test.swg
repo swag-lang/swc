@@ -73,7 +73,7 @@ func assertPlanarMatchesPacked(reader: *Reader, index: u64)
 
     var picture: PlanarFrame
     var planarErrorOutcome: Swag.Error
-    catch reader.decodeFramePlanesInto(&picture, 0) as &planarErrorOutcome
+    catch reader.decodeFramePlanesInto(&picture, 0) as planarErrorOutcome
     let planarError = planarErrorOutcome.value()
     Swag.assert(planarError != null)
 }

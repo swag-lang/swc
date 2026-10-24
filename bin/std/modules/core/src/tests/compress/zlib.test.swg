@@ -71,7 +71,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     var reader:         Compress.ZLib
     var errAOutcome:    Swag.Error
     var tooSmallResult: #decltype(expect reader.decompress(tooSmall))
-    catch { tooSmallResult = try reader.decompress(tooSmall) } as &errAOutcome
+    catch { tooSmallResult = try reader.decompress(tooSmall) } as errAOutcome
     let errA = errAOutcome.value()
     Swag.assert(tooSmallResult.isEmpty())
     Swag.assert((errA is Errors.InvalidFormatError))
@@ -80,7 +80,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     var badMethodReader: Compress.ZLib
     var errBOutcome:     Swag.Error
     var badMethodResult: #decltype(expect badMethodReader.decompress(badMethod))
-    catch { badMethodResult = try badMethodReader.decompress(badMethod) } as &errBOutcome
+    catch { badMethodResult = try badMethodReader.decompress(badMethod) } as errBOutcome
     let errB = errBOutcome.value()
     Swag.assert(badMethodResult.isEmpty())
     Swag.assert((errB is Errors.InvalidFormatError))
@@ -89,7 +89,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     var badHeaderReader:  Compress.ZLib
     var errHeaderOutcome: Swag.Error
     var badHeaderResult:  #decltype(expect badHeaderReader.decompress(badHeader))
-    catch { badHeaderResult = try badHeaderReader.decompress(badHeader) } as &errHeaderOutcome
+    catch { badHeaderResult = try badHeaderReader.decompress(badHeader) } as errHeaderOutcome
     let errHeader = errHeaderOutcome.value()
     Swag.assert(badHeaderResult.isEmpty())
     Swag.assert(errHeader is Errors.InvalidFormatError)
@@ -98,7 +98,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     var dictionaryReader: Compress.ZLib
     var errCOutcome:      Swag.Error
     var dictionaryResult: #decltype(expect dictionaryReader.decompress(dictionary))
-    catch { dictionaryResult = try dictionaryReader.decompress(dictionary) } as &errCOutcome
+    catch { dictionaryResult = try dictionaryReader.decompress(dictionary) } as errCOutcome
     let errC = errCOutcome.value()
     Swag.assert(dictionaryResult.isEmpty())
     Swag.assert((errC is Errors.UnsupportedFormatError))
@@ -118,7 +118,7 @@ func assertDeflateRoundTrip(input: const [..] u8, level: Compress.Deflate.Compre
     var reader:      Compress.ZLib
     var err6Outcome: Swag.Error
     var decoded:     #decltype(expect reader.decompress(compressed.toSlice()))
-    catch { decoded = try reader.decompress(compressed.toSlice()) } as &err6Outcome
+    catch { decoded = try reader.decompress(compressed.toSlice()) } as err6Outcome
     let err6 = err6Outcome.value()
     Swag.assert(decoded.isEmpty())
     Swag.assert((err6 is Errors.InvalidFormatError))

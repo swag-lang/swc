@@ -327,7 +327,7 @@ impl MainWindow
         .formatTask.submit(func|window = me|()
         {
             var errorOutcome: Swag.Error
-            catch { window.formatResult = try window.formatter.format(window.formatSource) } as &errorOutcome
+            catch { window.formatResult = try window.formatter.format(window.formatSource) } as errorOutcome
             let error = errorOutcome.value()
             if error != null do
                 window.formatResult.failed = true

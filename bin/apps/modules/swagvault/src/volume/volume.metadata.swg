@@ -13,7 +13,7 @@ impl Volume
         if result.plain.isEmpty() do
             return result
 
-        let sequence = catch parseHeaderSequence(result.plain.toSlice()) else { return result }
+        let sequence = catch parseHeaderSequence(result.plain.toSlice()) { return result }
 
         result.sequence = sequence
         result.valid    = true
@@ -570,7 +570,7 @@ impl Volume
 
             var decodeErrorOutcome: Swag.Error
             var record: #decltype(expect JournalRecord.decode(plain.toSlice(), .blockCount))
-            catch { record = try JournalRecord.decode(plain.toSlice(), .blockCount) } as &decodeErrorOutcome
+            catch { record = try JournalRecord.decode(plain.toSlice(), .blockCount) } as decodeErrorOutcome
             let decodeError = decodeErrorOutcome.value()
             if decodeError != null or record.sequence != expected do
                 break

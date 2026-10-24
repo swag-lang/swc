@@ -56,7 +56,7 @@ namespace WinFsp
 
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU32(args[2]))
-        catch { parsed = try StrConv.parseU32(args[2]) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseU32(args[2]) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         let statusPath = args[3]
         if parseError != null or parsed.ovf or parsed.eat != args[2].count do
@@ -69,9 +69,9 @@ namespace WinFsp
             return 1
         }
 
-        discard catch startPortableGuardian(statusPath) as startError else
+        discard catch startPortableGuardian(statusPath)
         {
-            discard catch writeGuardianStatus(statusPath, guardianErrorStatus(guardianErrorKind(startError)))
+            discard catch writeGuardianStatus(statusPath, guardianErrorStatus(guardianErrorKind(Swag.err)))
             unloadWinFsp()
             CloseHandle(parent)
             return 1
@@ -125,17 +125,17 @@ namespace WinFsp
         let operation16    = Utf16.toZeroTerminated("runas")
         let parameters16   = Utf16.toZeroTerminated(parameters)
         let directory16    = Utf16.toZeroTerminated(Path.directoryName(executablePath) orelse "")
-        discard catch ShellExecuteW(null, operation16.buffer, executable16.buffer, parameters16.buffer, directory16.buffer, 0) as launchError else
+        discard catch ShellExecuteW(null, operation16.buffer, executable16.buffer, parameters16.buffer, directory16.buffer, 0)
         {
             removeRuntimeTree(communicationRoot)
-            fail volumeError(.DriverUnavailable, guardianLaunchCode(launchError))
+            fail volumeError(.DriverUnavailable, guardianLaunchCode(Swag.err))
         }
 
         for 1200
         {
             var readErrorOutcome: Swag.Error
             var status: #decltype(expect File.readAllText(statusPath))
-            catch { status = try File.readAllText(statusPath) } as &readErrorOutcome
+            catch { status = try File.readAllText(statusPath) } as readErrorOutcome
             let readError = readErrorOutcome.value()
             if readError == null
             {
@@ -152,7 +152,7 @@ namespace WinFsp
                     let prefixCount = ("ERROR\n").count
                     var parseErrorOutcome: Swag.Error
                     var reported: #decltype(expect StrConv.parseU32(Swag.makeString(status.buffer + prefixCount, status.count - prefixCount)))
-                    catch { reported = try StrConv.parseU32(Swag.makeString(status.buffer + prefixCount, status.count - prefixCount)) } as &parseErrorOutcome
+                    catch { reported = try StrConv.parseU32(Swag.makeString(status.buffer + prefixCount, status.count - prefixCount)) } as parseErrorOutcome
                     let parseError = parseErrorOutcome.value()
                     let known      = parseError == null and reported.value <= cast(u32, ErrorKind.DriverUnavailable)
                     fail volumeError(known ? cast(ErrorKind, reported.value) : .DriverUnavailable)
@@ -175,7 +175,7 @@ namespace WinFsp
         var options: Directory.EnumerationOptions
         var enumErrorOutcome: Swag.Error
         var entries: #decltype(expect Directory.enumerate(path, options))
-        catch { entries = try Directory.enumerate(path, options) } as &enumErrorOutcome
+        catch { entries = try Directory.enumerate(path, options) } as enumErrorOutcome
         let enumError = enumErrorOutcome.value()
         if enumError == null
         {
@@ -187,7 +187,7 @@ namespace WinFsp
                 }
                 else
                 {
-                    discard catch File.delete(entry.fullName) else
+                    discard catch File.delete(entry.fullName)
                     {
                         let entry16 = Utf16.toZeroTerminated(entry.fullName)
                         catch MoveFileExW(entry16.buffer, null, MoveDelayUntilReboot)
@@ -197,7 +197,7 @@ namespace WinFsp
         }
 
         let path16 = Utf16.toZeroTerminated(path)
-        catch RemoveDirectoryW(path16.buffer) else { catch MoveFileExW(path16.buffer, null, MoveDelayUntilReboot) }
+        catch RemoveDirectoryW(path16.buffer) { catch MoveFileExW(path16.buffer, null, MoveDelayUntilReboot) }
     }
 
     // Copies the portable library and driver into a fresh temporary directory, under an identity of
@@ -227,10 +227,10 @@ namespace WinFsp
         let dll    = Path.combine(bin, WinFspDllName)
         let driver = Path.combine(bin, WinFspDriverName)
         var dllErrorOutcome: Swag.Error
-        discard catch File.duplicate(dll, sourceDll) as &dllErrorOutcome
+        discard catch File.duplicate(dll, sourceDll) as dllErrorOutcome
         let dllError = dllErrorOutcome.value()
         var driverErrorOutcome: Swag.Error
-        discard catch File.duplicate(driver, sourceDriver) as &driverErrorOutcome
+        discard catch File.duplicate(driver, sourceDriver) as driverErrorOutcome
         let driverError = driverErrorOutcome.value()
         if dllError != null or driverError != null or not File.exists(dll) or not File.exists(driver)
         {

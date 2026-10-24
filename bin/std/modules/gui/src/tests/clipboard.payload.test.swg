@@ -19,7 +19,7 @@ using Swag, Core
     for size in encoded.count
     {
         var errorOutcome: Swag.Error
-        discard catch Clipboard.TypedPayload.decode(encoded.toSlice()[0 until size]) as &errorOutcome
+        discard catch Clipboard.TypedPayload.decode(encoded.toSlice()[0 until size]) as errorOutcome
         let error = errorOutcome.value()
         Swag.assert(error != null)
     }
@@ -27,7 +27,7 @@ using Swag, Core
     for i in 8 do
         encoded[4 + i] = 255
     var oversizedOutcome: Swag.Error
-    discard catch Clipboard.TypedPayload.decode(encoded.toSlice()) as &oversizedOutcome
+    discard catch Clipboard.TypedPayload.decode(encoded.toSlice()) as oversizedOutcome
     let oversized = oversizedOutcome.value()
     Swag.assert(oversized != null)
 

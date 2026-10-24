@@ -20,9 +20,9 @@ public func launch(name: string, loc = #callerlocation)->s32
     let toolsDir = Path.directoryName(script) orelse ""
     let root     = Path.directoryName(toolsDir) orelse ""
 
-    let code = catch dispatch(name, root, script, scriptArguments()) as err else
+    let code = catch dispatch(name, root, script, scriptArguments())
     {
-        Console.println("error: ", Errors.message(err))
+        Console.println("error: ", Errors.message(Swag.err))
         return 1
     }
 

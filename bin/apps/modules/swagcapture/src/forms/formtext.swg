@@ -83,7 +83,7 @@ impl FormText
             else
             {
                 let en = FontFamily.findSystemFont(.fontName)
-                .typeFace = catch FontFamily.createTypeFace(en, .fontStyle) else null
+                .typeFace = catch FontFamily.createTypeFace(en, .fontStyle)
             }
         }
 
@@ -152,7 +152,7 @@ impl IForm for FormText
 {
     mtd impl isSame(ptr: *BaseForm)->bool
     {
-        let other = catch cast(*FormText?, ptr) else null
+        let other = catch cast(*FormText?, ptr)
         if not other do
             return false
         return .isSameBase(ptr) and

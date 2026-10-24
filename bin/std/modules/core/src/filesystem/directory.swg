@@ -41,10 +41,10 @@ func create(dirName: string, recurse = false) fail
         try create(parent, recurse: true)
 
     // Another process may create the same directory between the check and the call.
-    catch createNative(dirName) as err else
+    catch createNative(dirName)
     {
         if not exists(dirName) do
-            fail err
+            fail Swag.err
     }
 }
 

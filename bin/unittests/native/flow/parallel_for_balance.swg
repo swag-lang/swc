@@ -63,7 +63,7 @@ struct BalanceFailure { index: u64 }
         let value = expectedValue(index, 4096)
         if index == 1796 do
             fail BalanceFailure{value}
-    } as &errorOutcome
+    } as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error != null and (error is BalanceFailure))
     Swag.assert(assume cast(const *BalanceFailure, error).index == expectedValue(1796, 4096))

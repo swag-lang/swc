@@ -8,7 +8,7 @@ func failBorrowedCapture() fail
 func returnCatchView()->any?
 {
     var errorOutcome: Swag.Error
-    catch failBorrowedCapture() as &errorOutcome
+    catch failBorrowedCapture() as errorOutcome
     let error = errorOutcome.value()
     return error     // swc-expected-error {{sanity_err_borrow_escape}}
 }
@@ -16,7 +16,7 @@ func returnCatchView()->any?
 func returnCopiedCatchView()->any?
 {
     var errorOutcome: Swag.Error
-    catch failBorrowedCapture() as &errorOutcome
+    catch failBorrowedCapture() as errorOutcome
     let error = errorOutcome.value()
     let view  = error
     return view     // swc-expected-error {{sanity_err_borrow_escape}}
@@ -28,7 +28,7 @@ func storeCatchViewInOuterScope()
     scope
     {
         var errorOutcome: Swag.Error
-        catch failBorrowedCapture() as &errorOutcome
+        catch failBorrowedCapture() as errorOutcome
         let error = errorOutcome.value()
         view = error     // swc-expected-error {{sanity_err_borrow_scope_escape}}
     }
@@ -36,9 +36,9 @@ func storeCatchViewInOuterScope()
 
 func returnCatchPointer()->*s32?
 {
-    catch failBorrowedCapture() as error else
+    catch failBorrowedCapture()
     {
-        return (catch cast(*s32?, error) else null)     // swc-expected-error {{sanity_err_borrow_escape}}
+        return (catch cast(*s32?, Swag.err))     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
 }
@@ -52,7 +52,7 @@ func storeCatchView(destination: *(any?), value: any?)
 func storeCatchViewThroughParameter(destination: *(any?))
 {
     var errorOutcome: Swag.Error
-    catch failBorrowedCapture() as &errorOutcome
+    catch failBorrowedCapture() as errorOutcome
     let error = errorOutcome.value()
     storeCatchView(destination, error)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
@@ -69,7 +69,7 @@ func storeCatchViewInSameScope()
 {
     var destination:  any?
     var errorOutcome: Swag.Error
-    catch failBorrowedCapture() as &errorOutcome
+    catch failBorrowedCapture() as errorOutcome
     let error = errorOutcome.value()
     forwardCatchView(&destination, error)
     Swag.assert(destination != null)
@@ -78,7 +78,7 @@ func storeCatchViewInSameScope()
 func storeCatchViewThroughForwarder(destination: *(any?))
 {
     var errorOutcome: Swag.Error
-    catch failBorrowedCapture() as &errorOutcome
+    catch failBorrowedCapture() as errorOutcome
     let error = errorOutcome.value()
     forwardCatchView(destination, error)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
@@ -106,9 +106,9 @@ func failBorrowedText() fail
 
 func returnCatchTextField()->string?
 {
-    catch failBorrowedText() as error else
+    catch failBorrowedText()
     {
-        let payload = assume cast(const *CapturedText, error)
+        let payload = assume cast(const *CapturedText, Swag.err)
         return payload.text     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
@@ -116,9 +116,9 @@ func returnCatchTextField()->string?
 
 func returnCatchTextElement()->string?
 {
-    catch failBorrowedText() as error else
+    catch failBorrowedText()
     {
-        let payload = assume cast(const *CapturedText, error)
+        let payload = assume cast(const *CapturedText, Swag.err)
         return payload.texts[0]     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
@@ -133,9 +133,9 @@ func catchTextField(error: any)->string?
 
 func returnCatchTextThroughAccessor()->string?
 {
-    catch failBorrowedText() as error else
+    catch failBorrowedText()
     {
-        return catchTextField(error)     // swc-expected-error {{sanity_err_borrow_escape}}
+        return catchTextField(Swag.err)     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
 }
@@ -143,9 +143,9 @@ func returnCatchTextThroughAccessor()->string?
 // Reading scalar values and consuming views while the capture is alive are valid.
 func readCatchTextInScope()->u8
 {
-    catch failBorrowedText() as error else
+    catch failBorrowedText()
     {
-        let payload = assume cast(const *CapturedText, error)
+        let payload = assume cast(const *CapturedText, Swag.err)
         let text    = payload.text
         Swag.assert(text != null)
         return payload.bytes[0]
@@ -177,27 +177,27 @@ func catchTextBuffer(error: any)->string?
 
 func returnCatchTextThroughBuffer()->string?
 {
-    catch failBorrowedText() as error else
+    catch failBorrowedText()
     {
-        return catchTextBuffer(error)     // swc-expected-error {{sanity_err_borrow_escape}}
+        return catchTextBuffer(Swag.err)     // swc-expected-error {{sanity_err_borrow_escape}}
     }
     return null
 }
 
 func readCatchTextBufferInScope()
 {
-    catch failBorrowedText() as error else { Swag.assert(catchTextBuffer(error) == "ABCD") }
+    catch failBorrowedText() { Swag.assert(catchTextBuffer(Swag.err) == "ABCD") }
 }
 
 // Choosing a shorter ordinary origin at a branch join must not hide the alternative
 // whose carrier member still depends on the captured payload.
 func returnJoinedCatchText(ordinaryBranch: bool)->string?
 {
-    catch failBorrowedText() as error else
+    catch failBorrowedText()
     {
         var ordinary = CapturedText{}
         ordinary.text = "permanent"
-        var selected = assume cast(const *CapturedText, error)
+        var selected = assume cast(const *CapturedText, Swag.err)
         if ordinaryBranch do
             selected = &ordinary
         return selected.text     // swc-expected-error {{sanity_err_borrow_escape}}

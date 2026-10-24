@@ -22,7 +22,7 @@ const SurfaceId   = "swag.vault"
     Swag.startWorkers()
     #static if #hastag("vault.hidden-copy")
     {
-        discard catch runHiddenCopy() as copyError else { Console.println(caughtMessage(copyError)) }
+        discard catch runHiddenCopy() { Console.println(caughtMessage(Swag.err)) }
         Env.exit(copyError == null ? 0 : 1)
     }
 

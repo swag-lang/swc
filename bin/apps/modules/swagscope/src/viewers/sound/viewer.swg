@@ -96,7 +96,7 @@ func acquireEngine(kind = DriverKind.Default)->bool
 
     if not isEngineCreated()
     {
-        catch createEngine(kind) else { return false }
+        catch createEngine(kind) { return false }
         g_ViewerOwnsEngine = true
     }
 
@@ -677,7 +677,7 @@ impl Panel
             return
         let target = Math.clamp(seconds, 0, .duration)
         let frame  = cast(u64, Math.round(target * cast(f32, .sound.sampleRateHz())))
-        catch .voice!.seekSampleFrame(frame) else
+        catch .voice!.seekSampleFrame(frame)
         {
             return
         }
@@ -722,7 +722,7 @@ impl Panel
 
         if .playing
         {
-            catch .voice!.pause() else
+            catch .voice!.pause()
             {
                 return
             }
@@ -731,7 +731,7 @@ impl Panel
         }
         else
         {
-            catch .voice!.play() else
+            catch .voice!.play()
             {
                 return
             }
@@ -746,7 +746,7 @@ impl Panel
     {
         if .voice
         {
-            catch .voice.stop() else
+            catch .voice.stop()
             {
                 return
             }
@@ -793,7 +793,7 @@ impl IWnd for Panel
             return
         }
 
-        catch .completeOpen() as openError else { .services.failed(me, Viewer.failureText(openError)) }
+        catch .completeOpen() { .services.failed(me, Viewer.failureText(Swag.err)) }
     }
 
     mtd impl onTimerEvent(evt: *TimerEvent)

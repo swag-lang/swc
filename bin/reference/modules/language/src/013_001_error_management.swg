@@ -22,26 +22,32 @@ func count(name: string?)->u64 fail
 
 /**
 # Catching Errors
-'catch' handles an error locally. A value expression names its replacement with
-'else V'. To inspect the error, write 'as err' before 'else': the borrowed
-'any' binding is visible only inside that fallback or handler. The handler
-runs only on failure, so its error is non-null. Separate handlers can reuse a name.
+'catch' handles an error locally. It reads in three ways:
 
-A failed call produces no result. A block handler used in a value expression
-must leave the surrounding flow with 'return', 'fail', 'break', or 'continue'.
-No 'catch' supplies an implicit zero or requires a defaultable result type.
-Use a named aggregate literal or parentheses when an aggregate replacement
-could be read as a handler block, such as a single call inside braces.
+- 'catch e' resumes with the default value of the result type when 'e' fails.
+- 'catch e orelse V' resumes with 'V' instead.
+- 'catch e { H }' runs the handler 'H' only when 'e' fails.
+
+The operand binds like the operand of a unary operator: 'catch f() == 0' compares
+the caught result. The 'orelse' value takes the rest of the expression, as it does
+for any 'orelse'.
+
+Inside the handler or the 'orelse' value, 'Swag.err' is the error: a borrowed 'any',
+non-null because the handler runs only on failure. In a nested 'catch', it names the
+innermost error. Outside a handler, 'Swag.err' does not exist.
+
+A block handler used in a value expression must leave the surrounding flow with
+'return', 'fail', 'break', or 'continue'.
 
 Copies of the error view and pointers derived from it borrow the handler's
-lifetime and cannot escape it. Use 'fail err' to propagate the caught error.
+lifetime and cannot escape it. Use 'fail Swag.err' to propagate the caught error.
 To retain it after the handler ends, give it an explicit [[Swag.Error]] owner.
 */
 #test
 {
-    let value = catch count(null) as err else assume cast(MyError, err).code
+    let value = catch count(null) orelse assume cast(MyError, Swag.err).code
     Swag.assert(value == 7)
-    let other = catch count(null) as err else assume cast(MyError, err).code + 1
+    let other = catch count(null) orelse assume cast(MyError, Swag.err).code + 1
     Swag.assert(other == 8)
 }
 
@@ -52,12 +58,10 @@ storage. The owner may then outlive the handler, including a worker thread.
 Other borrowed fields still need their original owners, and the backing allocator
 must remain alive until every error owner and raised capture ends.
 
-To store the outcome directly, declare the owner and write 'as &saved'. The
-owner address is evaluated once before the operand. Failure retains the handled
-payload without copying it; success resets the owner to empty. This form declares
-no error binding and needs no handler when the call's result is discarded.
-A result that is read still needs an explicit replacement or a handler that leaves
-the surrounding flow.
+To store the outcome directly, declare the owner and write 'as saved'. The owner
+is evaluated once before the operand. Failure retains the handled payload without
+copying it; success resets the owner to empty. This form needs no handler: a result
+that is read still resumes with the default value of its type, or with 'orelse V'.
 
 [[Swag.Error.value]] borrows the retained error for later inspection; an empty
 owner returns null. Resetting, replacing, or dropping the owner invalidates that
@@ -68,33 +72,39 @@ threads needs synchronization.
 #test
 {
     var saved: Swag.Error
-    discard catch count(null) as &saved
+    discard catch count(null) as saved
     let err = saved.value()
     Swag.assert(err is MyError)
     Swag.assert(assume cast(MyError, err).code == 7)
 
-    catch saved.raise() as err else
+    catch saved.raise()
     {
         saved.reset()
         Swag.assert(saved.isEmpty())
-        Swag.assert(assume cast(MyError, err).message == "name cannot be null")
+        Swag.assert(assume cast(MyError, Swag.err).message == "name cannot be null")
     }
 }
 
 #test
 {
     var saved: Swag.Error
-    let value = catch count(null) as &saved else 17
+    let value = catch count(null) as saved orelse 17
     Swag.assert(value == 17 and not saved.isEmpty())
-    let other = catch count("ready") as &saved else 0
+    let other = catch count("ready") as saved
     Swag.assert(other == 5 and saved.isEmpty())
 }
 
 /**
-# Handling on Failure with 'catch ... else'
-'catch e else { H }' runs the handler 'H' only when 'e' fails. Add 'as err'
-before 'else' to inspect the error inside 'H'. A handler on a statement may
-finish normally. A handler on a value expression must leave the surrounding flow.
+# Handling on Failure
+'catch e { H }' runs the handler 'H' only when 'e' fails; 'catch e do S' runs a
+single statement. 'Swag.err' reads the error inside 'H'.
+A handler on a statement may finish normally. A handler on a value expression must
+leave the surrounding flow.
+
+The block that follows a 'catch' operand is always its handler. To pass trailing
+code to a macro under 'catch', write it as an explicit '#code' literal. In the
+header of 'if', 'while', 'for', 'switch' or 'with', the '{' that follows a 'catch'
+operand opens the statement body: give the handler parentheses there.
 */
 func recordTrace(name: string?, out: *s32) fail
 {
@@ -105,11 +115,11 @@ func recordTrace(name: string?, out: *s32) fail
 {
     var seen: s32 = -1
 
-    catch recordTrace("swag", &seen) else do
+    catch recordTrace("swag", &seen) do
         seen = -2
     Swag.assert(seen == 4)     // success: the handler does not run
 
-    catch recordTrace(null, &seen) else
+    catch recordTrace(null, &seen)
     {
         seen = -2
     }
@@ -118,24 +128,31 @@ func recordTrace(name: string?, out: *s32) fail
 }
 
 /**
-# Replacing a Failed Result with 'else'
-'catch e else V' yields 'V' when 'e' fails. 'V' converts to the result type of 'e'
-and is evaluated only on the failure path, after an 'as err' capture is bound, so it
-can read the error. Because the replacement is written, the result type needs no
-default: a non-null pointer can be caught too.
+# Replacing a Failed Result
+'catch e' yields the default value of the result type when 'e' fails: the value
+'var x: T' would hold, with struct field initializers applied, null for a nullable
+type, and zero for a number. A type that has no default value, such as a non-null
+pointer, needs the replacement to be written.
 
-A failure never becomes a value silently. A 'catch' without 'else' cannot be read:
-the compiler rejects it, including with a persistent capture. When the result is not
-needed, write 'discard catch': success drops its result and failure drops its error.
+'catch e orelse V' yields 'V' instead. 'V' converts to the result type of 'e' and is
+evaluated only when it is needed, so it can read 'Swag.err'. Because the replacement
+is written, the result type needs no default: a non-null pointer can be caught too.
+
+Like any 'orelse', 'V' replaces a missing value: with a nullable result, a success
+that returns null takes 'V' as well, and the expression then holds a value whenever
+'V' does. There is no error in that case, so 'V' cannot read 'Swag.err' there.
+
+When the result is not needed, write 'discard catch': success drops its result and
+failure drops its error.
 */
 func safeCount(name: string?)->u64
 {
-    return catch count(name) else 0
+    return catch count(name)
 }
 
 func countOrCode(name: string?)->u64
 {
-    return catch count(name) as err else cast(u64, assume cast(MyError, err).code)
+    return catch count(name) orelse cast(u64, assume cast(MyError, Swag.err).code)
 }
 
 #test
@@ -144,10 +161,45 @@ func countOrCode(name: string?)->u64
     Swag.assert(safeCount(null) == 0)
     Swag.assert(countOrCode(null) == 7)
 
-    let required = catch loadRequiredValue() else &requiredValue
+    let required = catch loadRequiredValue() orelse &requiredValue
     Swag.assert(required[] == 42)
 
     discard catch count(null)
+}
+
+struct Settings
+{
+    width: s32    = 640
+    title: string = "untitled"
+}
+
+func loadSettings(fileName: string?)->Settings fail
+{
+    if fileName == null do
+        fail MyError{base: Swag.BaseError{"no settings file"}}
+    return Settings{width: 1024, title: fileName}
+}
+
+func findName(id: s32)->string? fail
+{
+    if id == 0 do
+        fail MyError{base: Swag.BaseError{"unknown id"}}
+    return "first"
+}
+
+#test
+{
+    // The default of a struct is the one its field initializers give.
+    let settings = catch loadSettings(null)
+    Swag.assert(settings.width == 640 and settings.title == "untitled")
+
+    // A nullable result defaults to null.
+    let name = catch findName(0)
+    Swag.assert(name == null)
+
+    // 'orelse' replaces a failure, and a successful null alike.
+    let named = catch findName(0) orelse "anonymous"
+    Swag.assert(named == "anonymous")
 }
 
 /**
@@ -163,7 +215,7 @@ func propagateCount(name: string?)->u64 fail
 #test
 {
     var errOutcome: Swag.Error
-    let value = catch propagateCount("abc") as &errOutcome else 0
+    let value = catch propagateCount("abc") as errOutcome
     let err   = errOutcome.value()
     Swag.assert(value == 3)
     Swag.assert(err == null)
@@ -172,7 +224,7 @@ func propagateCount(name: string?)->u64 fail
 #test
 {
     var errOutcome: Swag.Error
-    let value = catch propagateCount(null) as &errOutcome else 0
+    let value = catch propagateCount(null) as errOutcome
     let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(err != null)
@@ -194,7 +246,7 @@ func explicitTryCount(name: string?)->u64 fail
 #test
 {
     var errOutcome: Swag.Error
-    let value = catch explicitTryCount(null) as &errOutcome else 0
+    let value = catch explicitTryCount(null) as errOutcome
     let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(err != null)
@@ -203,7 +255,7 @@ func explicitTryCount(name: string?)->u64 fail
 
 /**
 # Error-Handling Blocks
-'try', 'catch' (optionally with 'as err' or 'else'), 'expect', and 'assume' can also guard
+'try', 'catch' (optionally with 'as owner' or a handler), 'expect', and 'assume' can also guard
 a whole block of code. Each fallible call inside the block still needs its own
 keyword: use 'try' to pass its error to the enclosing block's handler.
 */
@@ -225,7 +277,7 @@ func blockCatchCode()->s32
     catch {
         discard try count("ok")
         discard try count(null)
-    } as &errOutcome
+    } as errOutcome
 
     let err = errOutcome.value()
 
@@ -235,13 +287,12 @@ func blockCatchCode()->s32
     return assume cast(MyError, err).code
 }
 
-func blockCatchElse(name: string?)->u64
+func blockCatchDismiss(name: string?)->u64
 {
     catch
     {
         return try count(name)
     }
-    else {}
 
     return 99
 }
@@ -249,7 +300,7 @@ func blockCatchElse(name: string?)->u64
 #test
 {
     var errOutcome: Swag.Error
-    let value = catch blockTry("ab", null) as &errOutcome else 0
+    let value = catch blockTry("ab", null) as errOutcome
     let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(err != null)
@@ -259,8 +310,8 @@ func blockCatchElse(name: string?)->u64
 #test
 {
     Swag.assert(blockCatchCode() == 7)
-    Swag.assert(blockCatchElse("abcd") == 4)
-    Swag.assert(blockCatchElse(null) == 99)
+    Swag.assert(blockCatchDismiss("abcd") == 4)
+    Swag.assert(blockCatchDismiss(null) == 99)
 }
 
 /**
@@ -289,7 +340,7 @@ failure reads better with each exit point spelled out.
 func implicitTotal(name0: string?, name1: string?)->u64 fail
 {
     let first  = count(name0)
-    let second = catch count(name1) else 0
+    let second = catch count(name1)
     return first + second + count("ok")
 }
 
@@ -301,7 +352,7 @@ func implicitTotal(name0: string?, name1: string?)->u64 fail
     Swag.assert(caught == 4)
 
     var errOutcome: Swag.Error
-    let value = catch implicitTotal(null, "cde") as &errOutcome else 0
+    let value = catch implicitTotal(null, "cde") as errOutcome
     let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(assume cast(MyError, err).code == 7)
@@ -320,8 +371,9 @@ constructing a replacement, and 'expect' stops without one. Both accept result
 types with no default, including non-null pointers. A successful nullable result
 remains nullable: 'expect' checks success, not presence.
 
-A 'catch' expression names its replacement with 'else', or uses a block handler
-that leaves the surrounding flow. It accepts non-null results without a default.
+A 'catch' expression resumes with the default value of its type, names its
+replacement with 'orelse', or uses a block handler that leaves the surrounding
+flow. With 'orelse' or such a handler, it accepts non-null results.
 
 Inside '#test', write 'expect' when an error must stop the test. 'try' follows
 the ordinary propagation rule and needs an enclosing error-handling block.
@@ -396,7 +448,7 @@ func deferOnFail(name: string?)->u64 fail
 {
     DeferTrace = 0
     var errOutcome: Swag.Error
-    let value = catch deferOnFail(null) as &errOutcome else 0
+    let value = catch deferOnFail(null) as errOutcome
     let err   = errOutcome.value()
     Swag.assert(value == 0)
     Swag.assert(err != null)

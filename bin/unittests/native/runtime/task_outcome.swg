@@ -27,7 +27,7 @@ struct OutcomeFailure
     var valued: Swag.Task'u64
     valued.submit(func()->u64 fail { fail OutcomeFailure{3} })
     var errorOutcome: Swag.Error
-    discard catch valued.take() as &errorOutcome
+    discard catch valued.take() as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is OutcomeFailure)
     if error is OutcomeFailure as failure do
@@ -36,7 +36,7 @@ struct OutcomeFailure
     var plain: Swag.Task
     plain.submit(func() fail { fail OutcomeFailure{4} })
     var plainErrorOutcome: Swag.Error
-    catch plain.take() as &plainErrorOutcome
+    catch plain.take() as plainErrorOutcome
     let plainError = plainErrorOutcome.value()
     Swag.assert(plainError is OutcomeFailure)
     if plainError is OutcomeFailure as plainFailure do
@@ -297,7 +297,7 @@ impl OwnedOutcome
     }
 
     var errorOutcome: Swag.Error
-    catch group.join() as &errorOutcome
+    catch group.join() as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is OutcomeFailure and stopped.load() == 3)
 
@@ -348,7 +348,7 @@ impl OwnedOutcome
     }
 
     var errorOutcome: Swag.Error
-    catch Swag.whenAll(tasks) as &errorOutcome
+    catch Swag.whenAll(tasks) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is OutcomeFailure)
     Swag.assert(Swag.jit() or stopped.load() == 2)
@@ -369,7 +369,7 @@ impl OwnedOutcome
     failing[0].submit(func()->u32 fail { fail OutcomeFailure{3} })
     failing[1].submit(func()->u32 fail { fail OutcomeFailure{4} })
     var errorOutcome: Swag.Error
-    discard catch Swag.whenAny(failing) as &errorOutcome
+    discard catch Swag.whenAny(failing) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is OutcomeFailure)
     if error is OutcomeFailure as failure do
@@ -398,10 +398,10 @@ func failWithTaskMessage()->s32 fail
     task.submit(func()->s32 fail { return try failWithTaskMessage() })
     task.wait()
     var handled = false
-    discard catch task.take() as error else
+    discard catch task.take()
     {
         handled = true
-        let failure = assume cast(Swag.BaseError, error)
+        let failure = assume cast(Swag.BaseError, Swag.err)
         Swag.assert(failure.message == "a task retains the copied text of its failure")
     }
     Swag.assert(handled)

@@ -43,7 +43,7 @@ func inlineCatchDiscardOwner(succeeds: bool)->CatchDiscardOwner fail
     Swag.assert(CatchDiscardDrops == 1)
     discard catch inlineCatchDiscardOwner(true)
     Swag.assert(CatchDiscardDrops == 2)
-    discard catch catchDiscardOwner(false) else expect catchDiscardOwner(true)
+    discard catch catchDiscardOwner(false) orelse expect catchDiscardOwner(true)
     Swag.assert(CatchDiscardDrops == 3)
 }
 
@@ -76,6 +76,6 @@ func catchDiscardSmallOwner(succeeds: bool)->CatchDiscardSmallOwner fail
     Swag.assert(CatchDiscardDrops == before)
     discard catch catchDiscardSmallOwner(true)
     Swag.assert(CatchDiscardDrops == before + 1)
-    discard catch catchDiscardSmallOwner(false) else expect catchDiscardSmallOwner(true)
+    discard catch catchDiscardSmallOwner(false) orelse expect catchDiscardSmallOwner(true)
     Swag.assert(CatchDiscardDrops == before + 2)
 }

@@ -19,11 +19,11 @@ using Swag, Core
     const Deferred = "<?xml version='1.0'?><svg width='120' height='60'><image width='120' height='60' href='unavailable.png'/></svg>"
     Swag.assert((expect Svg.parseImageSize(Deferred)) == Math.Vector2{120, 60})
     var contentErrorOutcome: Swag.Error
-    discard catch Svg.Drawing.parse(Deferred) as &contentErrorOutcome
+    discard catch Svg.Drawing.parse(Deferred) as contentErrorOutcome
     let contentError = contentErrorOutcome.value()
     Swag.assert(contentError != null)
     var sizeErrorOutcome: Swag.Error
-    discard catch Svg.parseImageSize("<svg/>") as &sizeErrorOutcome
+    discard catch Svg.parseImageSize("<svg/>") as sizeErrorOutcome
     let sizeError = sizeErrorOutcome.value()
     Swag.assert(sizeError != null)
 }

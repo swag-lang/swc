@@ -38,17 +38,17 @@ func returnAssumedDynamicLocal()->*DynamicBorrowChild
 func returnDynamicBox(number: s32)->*s32?
 {
     var value: any = number
-    return (catch cast(*s32?, value) else null)     // swc-expected-error {{sanity_err_borrow_escape}}
+    return (catch cast(*s32?, value))     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 func returnDynamicParameter(value: *DynamicBorrowBase)->*DynamicBorrowChild?
 {
-    return (catch cast(*DynamicBorrowChild?, value) else null)
+    return (catch cast(*DynamicBorrowChild?, value))
 }
 
 func returnRuntimeTargetView(target: typeinfo, source: any)->any?
 {
     // The erased result may borrow an interface representation in this function's storage.
     // swc-expected-error@(+1) {{sanity_err_borrow_escape}}
-    return (catch cast(any?, cast(target, source)) else null)
+    return (catch cast(any?, cast(target, source)))
 }

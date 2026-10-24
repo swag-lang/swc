@@ -470,7 +470,7 @@ impl AvcStream
             let frameThread = &.frameThreads[lane]
             if frameThread.decode.isDone()
             {
-                let frame = catch frameThread.decode.take() else null
+                let frame = catch frameThread.decode.take()
                 if frame do
                     .decoders[lane].releaseFrame(frame)
             }

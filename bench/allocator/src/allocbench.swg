@@ -540,9 +540,9 @@ func parseWorkload(name: string)->Workload fail
     let args = Swag.args()
     var badWorkloadOutcome: Swag.Error
     var workload: #decltype(expect parseWorkload(args.count > 1 ? args[1] : ""))
-    catch { workload = try parseWorkload(args.count > 1 ? args[1] : "") } as &badWorkloadOutcome
+    catch { workload = try parseWorkload(args.count > 1 ? args[1] : "") } as badWorkloadOutcome
     let badWorkload = badWorkloadOutcome.value()
-    let threads     = args.count > 2 ? (catch StrConv.toU32(args[2]) else 0) : 1
+    let threads     = args.count > 2 ? (catch StrConv.toU32(args[2])) : 1
     let latency     = args.count > 3 and args[3] == "latency"
     if badWorkload != null or threads < 1 or threads > 16
     {

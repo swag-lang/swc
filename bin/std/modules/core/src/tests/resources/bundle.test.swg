@@ -21,7 +21,7 @@ const EmbeddedOther = [111'u8, 107]
     Swag.assert(bytes[0] == 'h'u8)
 
     var errOutcome: Swag.Error
-    discard catch bundle.load("lang/de/app.tweak") as &errOutcome
+    discard catch bundle.load("lang/de/app.tweak") as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert((err is Errors.FileNotFoundError))
@@ -102,7 +102,7 @@ const EmbeddedOther = [111'u8, 107]
     discard expect File.writeAllBytes(Path.combine(root.toString(), "keep.bin"), [1'u8])
 
     var errOutcome: Swag.Error
-    discard catch Directory.delete(root) as &errOutcome
+    discard catch Directory.delete(root) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Directory.exists(root))
@@ -149,6 +149,6 @@ const EmbeddedOther = [111'u8, 107]
     Swag.assert(not bundle.has(name.toString()) and not bundle.isOverridden(name.toString()))
 
     var errorOutcome: Swag.Error
-    discard catch bundle.load(name.toString()) as &errorOutcome
+    discard catch bundle.load(name.toString()) as errorOutcome
     Swag.assert(errorOutcome.value() is Errors.FileNotFoundError)
 }

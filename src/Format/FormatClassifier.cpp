@@ -1351,7 +1351,10 @@ namespace
                     const uint32_t policy = pieceOfNodeToken(node);
                     if (policy != INVALID_PIECE && Token::isKeyword(model_->piece(policy).id))
                         addRole(policy, FormatRoleE::ControlKeyword);
-                    classifyElseBody(node.cast<AstErrorManagementExpr>().nodeFallbackRef, span.minPiece, nodeRef);
+                    // Only a handler block is a body; an 'orelse' value is an operand.
+                    const AstNodeRef fallbackRef = node.cast<AstErrorManagementExpr>().nodeFallbackRef;
+                    if (fallbackRef.isValid() && ast_->node(fallbackRef).is(AstNodeId::EmbeddedBlock))
+                        classifyElseBody(fallbackRef, span.minPiece, nodeRef);
                     break;
                 }
 

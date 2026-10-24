@@ -95,7 +95,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
     {
         defer #nofail succeeded.add(1)
         defer #fail failed.add(1)
-        catch raiseParentFailure(7) else do
+        catch raiseParentFailure(7) do
             succeeded.add(10)
     })
     fail ParentFailure{42}
@@ -110,7 +110,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         var succeeded:    Swag.AtomicValue'u32
         var failed:       Swag.AtomicValue'u32
         var errorOutcome: Swag.Error
-        catch dropGroupWhileFailing(&succeeded, &failed) as &errorOutcome
+        catch dropGroupWhileFailing(&succeeded, &failed) as errorOutcome
         let error = errorOutcome.value()
         valid = error != null and (error is ParentFailure)
         if valid do
@@ -131,7 +131,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
     for path in 3'u32
     {
         var errorOutcome: Swag.Error
-        catch leaveTaskScope(&completed, &succeeded, &failed, &parentFailed, path) as &errorOutcome
+        catch leaveTaskScope(&completed, &succeeded, &failed, &parentFailed, path) as errorOutcome
         let error = errorOutcome.value()
         Swag.assert((error != null) == (path == 2))
         Swag.assert(completed.load() == path + 1)
@@ -168,7 +168,7 @@ func dropGroupWhileFailing(succeeded, failed: *Swag.AtomicValue'u32) fail
         var succeeded:    Swag.AtomicValue'u32
         var failed:       Swag.AtomicValue'u32
         var errorOutcome: Swag.Error
-        catch joinWhileFailing(&succeeded, &failed) as &errorOutcome
+        catch joinWhileFailing(&succeeded, &failed) as errorOutcome
         let error = errorOutcome.value()
         valid = error != null and (error is ParentFailure)
         if valid do

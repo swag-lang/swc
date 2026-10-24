@@ -34,7 +34,7 @@ impl TypeFace
         var table = 0'u32
         var errOutcome:       Swag.Error
         var collectionLength: #decltype(expect GetFontData(hdc, TtcfTableTag, 0, null, 0))
-        catch { collectionLength = try GetFontData(hdc, TtcfTableTag, 0, null, 0) } as &errOutcome
+        catch { collectionLength = try GetFontData(hdc, TtcfTableTag, 0, null, 0) } as errOutcome
         let err    = errOutcome.value()
         var length = collectionLength
 
@@ -83,7 +83,7 @@ impl TypeFace
             {
                 var errOutcome: Swag.Error
                 var name:       #decltype(expect Face.familyNameAt(bytes, index))
-                catch { name = try Face.familyNameAt(bytes, index) } as &errOutcome
+                catch { name = try Face.familyNameAt(bytes, index) } as errOutcome
                 let err = errOutcome.value()
                 if err == null and not Latin1.compare(name, family, ignoreCase: true) do
                     return try Face.loadAt(bytes, index, allocator)

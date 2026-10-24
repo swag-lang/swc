@@ -47,15 +47,15 @@ impl Document
     {
         .close()
 
-        .stream = catch File.openReadLive(fileName) as openError else
+        .stream = catch File.openReadLive(fileName)
         {
-            .failRead(Viewer.failureText(openError))
+            .failRead(Viewer.failureText(Swag.err))
             return false
         }
 
-        let size = catch .stream.size() as sizeError else
+        let size = catch .stream.size()
         {
-            .failRead(Viewer.failureText(sizeError))
+            .failRead(Viewer.failureText(Swag.err))
             .stream.close()
             return false
         }
@@ -100,16 +100,16 @@ impl Document
         let start       = wantedStart / WindowAlign * WindowAlign
         let wanted      = Math.min(WindowSize, .fileSize - start)
         .window.resize(wanted)
-        catch .stream.seek(.Begin, start) as seekError else
+        catch .stream.seek(.Begin, start)
         {
-            .failRead(Viewer.failureText(seekError))
+            .failRead(Viewer.failureText(Swag.err))
             .window.clear()
             return false
         }
 
-        let read = catch .stream.read(.window.toSlice()) as readError else
+        let read = catch .stream.read(.window.toSlice())
         {
-            .failRead(Viewer.failureText(readError))
+            .failRead(Viewer.failureText(Swag.err))
             .window.clear()
             return false
         }
@@ -152,16 +152,16 @@ impl Document
 
         let wanted = Math.min(count, .fileSize - offset)
         result.resize(wanted)
-        catch .stream.seek(.Begin, offset) as seekError else
+        catch .stream.seek(.Begin, offset)
         {
-            .failRead(Viewer.failureText(seekError))
+            .failRead(Viewer.failureText(Swag.err))
             result.clear()
             return result
         }
 
-        let read = catch .stream.read(result.toSlice()) as readError else
+        let read = catch .stream.read(result.toSlice())
         {
-            .failRead(Viewer.failureText(readError))
+            .failRead(Viewer.failureText(Swag.err))
             result.clear()
             return result
         }

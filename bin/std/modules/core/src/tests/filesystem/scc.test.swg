@@ -80,7 +80,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     var preview = expect reader.readChunk(previewId)
     Swag.assert(Slice.equals(preview.toSlice(), "small preview"))
     var damagedErrorOutcome: Swag.Error
-    discard catch reader.readChunk(imageId) as &damagedErrorOutcome
+    discard catch reader.readChunk(imageId) as damagedErrorOutcome
     let damagedError = damagedErrorOutcome.value()
     Swag.assert(damagedError != null)
 }
@@ -107,7 +107,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     var reader: Scc.Reader
     expect reader.initialize(path)
     var missingCodecOutcome: Swag.Error
-    discard catch reader.readChunk(customId) as &missingCodecOutcome
+    discard catch reader.readChunk(customId) as missingCodecOutcome
     let missingCodec = missingCodecOutcome.value()
     Swag.assert(missingCodec != null)
     reader.registerCodec(&custom)
@@ -133,7 +133,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     limits.maxHeaderSize = 1
     var reader: Scc.Reader
     var limitErrorOutcome: Swag.Error
-    discard catch reader.initialize(path, limits) as &limitErrorOutcome
+    discard catch reader.initialize(path, limits) as limitErrorOutcome
     let limitError = limitErrorOutcome.value()
     Swag.assert(limitError != null)
 }
@@ -211,7 +211,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     writer.manifest().entries.add(entry)
 
     var invalidOutcome: Swag.Error
-    discard catch writer.saveAtomic(path) as &invalidOutcome
+    discard catch writer.saveAtomic(path) as invalidOutcome
     let invalid = invalidOutcome.value()
     Swag.assert(invalid != null)
     let bytes = expect File.readAllBytes(path)
@@ -241,7 +241,7 @@ func sccTestId(text: string)->Guid128 => expect Guid128.parse(text)
     writer.manifest().entries.add(second)
 
     var errorOutcome: Swag.Error
-    discard catch writer.saveAtomic(path) as &errorOutcome
+    discard catch writer.saveAtomic(path) as errorOutcome
     Swag.assert(errorOutcome.value() is Errors.InvalidFormatError)
     Swag.assert((expect File.readAllText(path)) == "keep me")
 }

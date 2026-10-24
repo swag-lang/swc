@@ -112,7 +112,7 @@ impl MainWindow
             entry.volume = null
             if mounted
             {
-                discard catch mounted.close() else { synchronizationStopped = true }
+                discard catch mounted.close() { synchronizationStopped = true }
                 Memory.delete(mounted)
             }
 

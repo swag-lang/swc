@@ -70,9 +70,9 @@ private impl Movie
         }
         else
         {
-            var frame = catch .reader.read(cast(u32, index)) as error else
+            var frame = catch .reader.read(cast(u32, index))
             {
-                .failureReason = Errors.message(error)
+                .failureReason = Errors.message(Swag.err)
                 .isPaused      = true
                 .sigDecodeFailed.call(me)
                 return false

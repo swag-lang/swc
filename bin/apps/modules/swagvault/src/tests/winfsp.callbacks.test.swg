@@ -28,7 +28,7 @@ func captured(capture: const *DirectoryCapture, name: string)->bool
 func statusForError(kind: ErrorKind)->s32
 {
     var errOutcome: Swag.Error
-    catch raiseVolumeError(kind) as &errOutcome
+    catch raiseVolumeError(kind) as errOutcome
     let err = errOutcome.value()
     return WinFsp.statusFromError(err)
 }
@@ -217,7 +217,7 @@ func statusForError(kind: ErrorKind)->s32
     // this build, and the mounting harness is not even compiled into it.
     Swag.assert(not WinFsp.canRequestElevation())
     var elevationRefusedOutcome: Swag.Error
-    discard catch WinFsp.ensurePortableGuardian() as &elevationRefusedOutcome
+    discard catch WinFsp.ensurePortableGuardian() as elevationRefusedOutcome
     let elevationRefused = elevationRefusedOutcome.value()
     Swag.assert(elevationRefused != null)
 }

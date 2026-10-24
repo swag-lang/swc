@@ -13,49 +13,6 @@ namespace
         return node.is(AstNodeId::ErrorManagementExpr) && ast.srcView().token(node.tokRef()).id == TokenId::SymBang;
     }
 
-    // Keep aggregate replacements such as {x: 1} and {-1, false} as values.
-    // Statement keywords and top-level assignments distinguish failure handlers.
-    bool isCatchHandlerBlock(const Token* open, const Token* end)
-    {
-        if (open->id != TokenId::SymLeftCurly || open + 1 >= end)
-            return false;
-        const Token* first = open + 1;
-        if (first->id == TokenId::SymRightCurly || Token::isLiteral(first->id) || first->id == TokenId::SymMinus || first->id == TokenId::SymPlus || first->id == TokenId::SymAmpersand || first->id == TokenId::SymTilde)
-            return false;
-        if (first->id == TokenId::Identifier && first + 1 < end && first[1].id == TokenId::SymColon)
-            return false;
-        if (Token::isKeyword(first->id))
-            return true;
-
-        uint32_t depth   = 0;
-        bool     hasCall = false;
-        for (const Token* token = first; token < end; ++token)
-        {
-            const TokenId id = token->id;
-            if (!depth)
-            {
-                if (id == TokenId::SymComma)
-                    return false;
-                if (Token::isOpAssign(id) || id == TokenId::SymSemiColon)
-                    return true;
-                if (id == TokenId::SymRightCurly)
-                    return hasCall;
-            }
-            if (id == TokenId::SymLeftParen || id == TokenId::SymLeftBracket || id == TokenId::SymLeftCurly)
-            {
-                hasCall |= !depth && id == TokenId::SymLeftParen;
-                ++depth;
-            }
-            else if (id == TokenId::SymRightParen || id == TokenId::SymRightBracket || id == TokenId::SymRightCurly)
-            {
-                if (!depth)
-                    break;
-                --depth;
-            }
-        }
-        return true;
-    }
-
     bool canStartSubType(TokenId id)
     {
         if (Token::isType(id))
@@ -212,6 +169,30 @@ void Parser::markCallCalleeNode(AstNodeRef nodeRef)
         default:
             break;
     }
+}
+
+bool Parser::isBlockHeaderBodyStart() const
+{
+    return depthParen_ == blockHeaderDepthParen_ && depthBracket_ == blockHeaderDepthBracket_ && depthCurly_ == blockHeaderDepthCurly_;
+}
+
+bool Parser::isSwagErrAhead(AstNodeRef leftRef) const
+{
+    const auto* left = ast_->node(leftRef).safeCast<AstIdentifier>();
+    if (!left || nextId() != TokenId::Identifier)
+        return false;
+
+    const SourceView& srcView = ast_->srcView();
+    if (srcView.token(left->tokRef()).string(srcView) != "Swag" || curToken_[1].string(srcView) != "err")
+        return false;
+
+    return curToken_ + 2 > lastToken_ || curToken_[2].id != TokenId::SymLeftParen;
+}
+
+AstNodeRef Parser::parseBlockHeaderExpression()
+{
+    const PushBlockHeader header(this);
+    return parseExpression();
 }
 
 bool Parser::isClosureCaptureEndPipe() const
@@ -764,6 +745,17 @@ AstNodeRef Parser::parsePostFixExpression()
             continue;
         }
 
+        // 'Swag.err' reads the error of the enclosing 'catch' handler or replacement. It is a
+        // name that handler binds, not a member of the 'Swag' namespace.
+        if (is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore) && isSwagErrAhead(nodeRef))
+        {
+            consume();
+            nodeRef = parseIdentifier();
+            if (catchErrTokRef_.isInvalid())
+                catchErrTokRef_ = ast_->node(nodeRef).tokRef();
+            continue;
+        }
+
         // Scope resolution
         if ((is(TokenId::SymDot) || is(TokenId::SymQuestionDot)) && !tok().flags.has(TokenFlagsE::EolBefore))
         {
@@ -1262,30 +1254,62 @@ AstNodeRef Parser::parseInitializerList(AstNodeRef nodeWhat)
     return nodeRef;
 }
 
+// After a 'catch' operand and its optional 'as owner': 'orelse V' replaces the result, and a
+// block (or, on a statement, 'do S') handles the failure. In a control-statement header, the
+// '{' that follows opens the statement body. A 'Swag.err' read inside binds the error.
+void Parser::parseCatchHandlerOrFallback(AstNodeRef& outHandlerRef, TokenRef& outErrTokRef, bool statement)
+{
+    const TokenRef outerErrTokRef = catchErrTokRef_;
+    catchErrTokRef_               = TokenRef::invalid();
+
+    if (is(TokenId::KwdElse))
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_catch_else, ref());
+        diag.report(*ctx_);
+        consume();
+        if (statement)
+            outHandlerRef = parseDoCurlyBlock();
+        else
+            outHandlerRef = is(TokenId::SymLeftCurly) ? parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly) : parseExpression();
+    }
+    else if (!statement && is(TokenId::KwdOrElse))
+    {
+        consume();
+        outHandlerRef = parseExpression();
+    }
+    else if (statement && isAny(TokenId::SymLeftCurly, TokenId::KwdDo))
+    {
+        outHandlerRef = parseDoCurlyBlock();
+    }
+    else if (!statement && is(TokenId::SymLeftCurly) && !isBlockHeaderBodyStart())
+    {
+        outHandlerRef = parseCompound<AstNodeId::EmbeddedBlock>(TokenId::SymLeftCurly);
+    }
+
+    outErrTokRef = catchErrTokRef_;
+    if (outerErrTokRef.isValid())
+        catchErrTokRef_ = outerErrTokRef;
+}
+
 AstNodeRef Parser::parseErrorManagementExpr()
 {
     const TokenRef opTokRef = consume();
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementExpr>(opTokRef);
-    nodePtr->nodeExprRef    = parseExpression();
 
-    // The capture belongs only to the fallback. A block fallback must leave the
-    // surrounding flow; an expression fallback supplies the replacement value.
+    // The operand binds like the operand of a unary operator: 'catch f() == 0' compares the
+    // caught result, and 'try a() + 1' adds to the propagated one.
+    nodePtr->nodeExprRef = parsePrefixExpr();
+
     if (ast_->srcView().token(opTokRef).id == TokenId::KwdCatch)
     {
         if (consumeIf(TokenId::KwdAs).isValid())
-        {
-            if (is(TokenId::SymAmpersand))
-                nodePtr->nodeCaptureRef = parseExpression();
-            else
-                nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-        }
-        if (consumeIf(TokenId::KwdElse).isValid())
-            nodePtr->nodeFallbackRef = isCatchHandlerBlock(curToken_, lastToken_) ? parseDoCurlyBlock() : parseExpression();
+            nodePtr->nodeCaptureRef = parsePrefixExpr();
+        parseCatchHandlerOrFallback(nodePtr->nodeFallbackRef, nodePtr->errNameTokRef, false);
     }
 
-    // 'expect f()!' asserts the RESULT is not null, not the fallible call. These keywords
-    // already swallow everything to their right, so parseExpression() folded the '!' onto
-    // the operand; hoist it back out. Explicit parentheses still give the inner reading.
+    // 'expect f()!' asserts the RESULT is not null, not the fallible call. The postfix '!'
+    // binds tighter than the keyword, so it was folded onto the operand; hoist it back out.
+    // Explicit parentheses still give the inner reading.
     if (nodePtr->nodeExprRef.isValid() && isNotNullExpr(*ast_, nodePtr->nodeExprRef))
     {
         auto&      inner      = ast_->node(nodePtr->nodeExprRef).cast<AstErrorManagementExpr>();

@@ -13,6 +13,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
+#include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
 #include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Match/Match.h"
@@ -521,6 +522,7 @@ namespace
         return SemaHelpers::requireRuntimeFunctionDependency(sema, IdentifierManager::RuntimeFunctionKind::ClearErr, node.codeRef());
     }
 
+    // 'as owner' names the 'Swag.Error' place itself; the runtime stores through its address.
     Result checkPersistentCatchOwner(Sema& sema, AstNodeRef captureRef)
     {
         if (captureRef.isInvalid())
@@ -529,8 +531,23 @@ namespace
         SymbolFunction* storeErr = nullptr;
         SWC_RESULT(SemaHelpers::requireRuntimeFunctionDependency(storeErr, sema, IdentifierManager::RuntimeFunctionKind::StoreErr, sema.curNode().codeRef()));
         SWC_RESULT(SemaCheck::isValue(sema, captureRef));
-        SemaNodeView owner = sema.viewNodeTypeConstant(captureRef);
-        return Cast::cast(sema, owner, storeErr->parameters()[0]->typeRef(), CastKind::Implicit);
+
+        const TypeInfo&    ownerPointerType = sema.typeMgr().get(storeErr->parameters()[0]->typeRef());
+        const SemaNodeView owner            = sema.viewNodeTypeConstant(captureRef);
+        const TypeRef      ownerTypeRef     = owner.typeRef();
+        if (sema.isLValue(captureRef) && ownerTypeRef.isValid() && sema.typeMgr().get(ownerTypeRef).unwrapAliasTypeOrSelf(sema.ctx()).typeRef() == ownerPointerType.payloadTypeRef())
+            return Result::Continue;
+
+        return SemaError::raiseTypeArgumentError(sema, DiagnosticId::sema_err_catch_owner_not_error_variable, captureRef, ownerTypeRef);
+    }
+
+    bool isNullableResultType(Sema& sema, TypeRef typeRef)
+    {
+        if (typeRef.isInvalid())
+            return false;
+
+        const TypeInfo& type = sema.typeMgr().get(typeRef).unwrapAliasTypeOrSelf(sema.ctx());
+        return type.isSupportsNullableQualifier() && type.isNullable();
     }
 
     Result notePersistentCatchMutation(Sema& sema, AstNodeRef captureRef)
@@ -1741,6 +1758,10 @@ Result AstErrorManagementExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 {
     if (childRef == nodeFallbackRef && errNameTokRef.isValid())
     {
+        // A nullable result also takes 'orelse V' after a successful null, where no error exists.
+        if (sema.node(childRef).isNot(AstNodeId::EmbeddedBlock) && isNullableResultType(sema, sema.viewType(nodeExprRef).typeRef()))
+            return SemaError::raise(sema, DiagnosticId::sema_err_catch_err_after_nullable_orelse, SourceCodeRef{srcViewRef(), errNameTokRef});
+
         if (!sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef()) || !sema.loweringPayload<CodeGenLoweringPayload>(sema.curNodeRef())->errBindingSym)
             sema.pushScopePopOnPostChild(SemaScopeFlagsE::Local, childRef);
         SWC_RESULT(registerCatchErrCapture(sema, *this, errNameTokRef));
@@ -1812,9 +1833,9 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
     sema.copyResolvedCallArguments(sema.curNodeRef(), resolvedExprRef);
     SWC_RESULT(notePersistentCatchMutation(sema, nodeCaptureRef));
 
-    // Only 'catch' resumes after a failure, and 'else V' names the result it resumes with.
-    // 'expect' terminates on failure, so its successful value may have a type with no
-    // implicit default.
+    // Only 'catch' resumes after a failure: with 'default V', or with the default value of the
+    // result type. 'expect' terminates on failure, so its successful value may have a type
+    // with no implicit default.
     const bool    isNotNullUnwrap = codeGenPayload && codeGenPayload->notNullUnwrap;
     const TokenId tokenId         = sema.token(codeRef()).id;
     const bool    hasResult       = resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid();
@@ -1832,17 +1853,32 @@ Result AstErrorManagementExpr::semaPostNode(Sema& sema) const
 
             SemaNodeView fallbackView = sema.viewNodeTypeConstant(nodeFallbackRef);
             SWC_RESULT(SemaCheck::isValue(sema, fallbackView.nodeRef()));
+            const TypeRef fallbackTypeRef = fallbackView.typeRef();
             SWC_RESULT(Cast::cast(sema, fallbackView, resultTypeRef, CastKind::Implicit));
+
+            // Like any 'orelse', a nullable result also takes 'V' when it succeeds with null,
+            // and then holds a value whenever 'V' does.
+            if (isNullableResultType(sema, resultTypeRef))
+            {
+                SemaHelpers::ensureCodeGenLoweringPayload(sema, sema.curNodeRef()).catchCoalescesNull = true;
+                sema.setType(sema.curNodeRef(), SemaHelpers::nullCoalescingResultType(sema, resultTypeRef, fallbackTypeRef));
+            }
         }
     }
-    else if (errNameTokRef.isValid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_catch_capture_needs_handler, SourceCodeRef{srcViewRef(), errNameTokRef});
     else if (!isNotNullUnwrap && hasResult && tokenId == TokenId::KwdCatch && !isErrorManagementResultDiscarded(sema))
     {
-        auto diag = SemaError::report(sema, DiagnosticId::sema_err_catch_value_needs_fallback, sema.curNodeRef());
-        diag.addArgument(Diagnostic::ARG_TYPE, resultTypeRef);
-        diag.report(sema.ctx());
-        return Result::Error;
+        // The failure resumes with the value 'var x: T' would hold. A type that has none,
+        // such as a non-null pointer, needs the replacement to be written.
+        SWC_RESULT(SymbolStruct::waitTypeImplicitDefaultReady(sema, resultTypeRef, sema.curNodeRef()));
+        if (SymbolStruct::typeRequiresExplicitInitialization(sema, resultTypeRef))
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_catch_value_needs_fallback, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_TYPE, resultTypeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        SWC_RESULT(SemaSpecOp::addDefaultInitCallDependencies(sema, resultTypeRef));
     }
 
     if (tokenId != TokenId::KwdTry && resultTypeRef.isValid() && resultTypeRef != sema.typeMgr().typeVoid())
@@ -1872,9 +1908,6 @@ Result AstErrorManagementStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& ch
 
 Result AstErrorManagementStmt::semaPostNode(Sema& sema) const
 {
-    if (errNameTokRef.isValid() && nodeHandlerRef.isInvalid())
-        return SemaError::raise(sema, DiagnosticId::sema_err_catch_capture_needs_handler, SourceCodeRef{srcViewRef(), errNameTokRef});
-
     const AstNode& body = sema.node(nodeBodyRef);
     if (body.is(AstNodeId::ParallelForStmt) && body.cast<AstParallelForStmt>().hasFlag(AstParallelForStmtFlagsE::Fallible))
     {

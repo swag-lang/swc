@@ -56,10 +56,10 @@ func assertOnlyFileAttribute(value: u32, expected: File.FileAttributes)
     let path = CoreTests.makeFilesystemTestPath("core_file_info_missing")
 
     var infoErrorOutcome: Swag.Error
-    discard catch File.info(path.toString()) as &infoErrorOutcome
+    discard catch File.info(path.toString()) as infoErrorOutcome
     Swag.assert(infoErrorOutcome.value() is Errors.FileNotFoundError)
 
     var attributesErrorOutcome: Swag.Error
-    discard catch File.attributes(path.toString()) as &attributesErrorOutcome
+    discard catch File.attributes(path.toString()) as attributesErrorOutcome
     Swag.assert(attributesErrorOutcome.value() is Errors.FileNotFoundError)
 }

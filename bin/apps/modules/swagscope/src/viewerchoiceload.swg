@@ -43,7 +43,7 @@ impl ViewerChoiceLoad
         {
             var pathErrorOutcome: Swag.Error
             var absolute:         #decltype(expect Path.absolute(operation.fileName))
-            catch { absolute = try Path.absolute(operation.fileName) } as &pathErrorOutcome
+            catch { absolute = try Path.absolute(operation.fileName) } as pathErrorOutcome
             let pathError = pathErrorOutcome.value()
             if pathError != null do
                 absolute = operation.fileName
@@ -54,7 +54,7 @@ impl ViewerChoiceLoad
                 operation.result.choices = operation.index!.choices(operation.result.absoluteFileName)
                 var infoErrorOutcome: Swag.Error
                 var info: #decltype(expect File.info(operation.result.absoluteFileName))
-                catch { info = try File.info(operation.result.absoluteFileName) } as &infoErrorOutcome
+                catch { info = try File.info(operation.result.absoluteFileName) } as infoErrorOutcome
                 let infoError = infoErrorOutcome.value()
                 if infoError == null
                 {
@@ -69,7 +69,7 @@ impl ViewerChoiceLoad
             let folder = Path.directoryName(operation.result.absoluteFileName)
             if not folder do
                 return
-            let files = catch Directory.enumerateFiles(folder) else
+            let files = catch Directory.enumerateFiles(folder)
             {
                 return
             }

@@ -95,7 +95,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     volume.close()
 
     var rawAfterAddErrorOutcome: Swag.Error
-    discard catch Volume.open(vault, rawCredential.toSlice()) as &rawAfterAddErrorOutcome
+    discard catch Volume.open(vault, rawCredential.toSlice()) as rawAfterAddErrorOutcome
     let rawAfterAddError = rawAfterAddErrorOutcome.value()
     Swag.assert(rawAfterAddError != null)
     volume = expect Volume.open(vault, oldCredential.toSlice())
@@ -106,7 +106,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     volume.close()
 
     var oldErrorOutcome: Swag.Error
-    discard catch Volume.open(vault, oldCredential.toSlice()) as &oldErrorOutcome
+    discard catch Volume.open(vault, oldCredential.toSlice()) as oldErrorOutcome
     let oldError = oldErrorOutcome.value()
     Swag.assert(oldError != null)
     volume = expect Volume.open(vault, newCredential.toSlice())
@@ -117,7 +117,7 @@ func accessTestPath(tag: string)->String => Path.combine(Env.getSpecialDirectory
     volume.close()
 
     var newAfterRemoveErrorOutcome: Swag.Error
-    discard catch Volume.open(vault, newCredential.toSlice()) as &newAfterRemoveErrorOutcome
+    discard catch Volume.open(vault, newCredential.toSlice()) as newAfterRemoveErrorOutcome
     let newAfterRemoveError = newAfterRemoveErrorOutcome.value()
     Swag.assert(newAfterRemoveError != null)
     var reopened = expect Volume.open(vault, rawCredential.toSlice())

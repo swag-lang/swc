@@ -1050,7 +1050,7 @@ impl Surface
             let declaredSize = Math.Point{.position.width, .position.height}
 
             var errOutcome: Swag.Error
-            catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state) as &errOutcome
+            catch ser.serialize(.wnd.view.id, .wnd.view.id ? Hash.Crc32.compute(.wnd.view.id) : 0, &.state) as errOutcome
             let err = errOutcome.value()
             if err == null and ser.isReading()
             {

@@ -68,7 +68,7 @@ using Swag, Core
 
     const External = "<svg width='4' height='4'><image width='4' height='4' href='basi2c08.png'/></svg>"
     var errOutcome: Swag.Error
-    discard catch Svg.Drawing.parse(External) as &errOutcome
+    discard catch Svg.Drawing.parse(External) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 
@@ -76,7 +76,7 @@ using Swag, Core
     options.externalResourceRoot = Path.directoryName(getTestDataPath("basi2c08.png").toString())!
     const Escape = "<svg width='4' height='4'><image width='4' height='4' href='../basi2c08.png'/></svg>"
     var escapeErrOutcome: Swag.Error
-    discard catch Svg.Drawing.parse(Escape, options) as &escapeErrOutcome
+    discard catch Svg.Drawing.parse(Escape, options) as escapeErrOutcome
     let escapeErr = escapeErrOutcome.value()
     Swag.assert(escapeErr != null)
 }

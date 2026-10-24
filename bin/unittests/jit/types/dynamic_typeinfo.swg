@@ -9,7 +9,7 @@ interface IReflectedObject { mtd read()->s32 }
 
 func reflectStruct(type: typeinfo)->const *Swag.TypeInfoStruct?
 {
-    return (catch cast(const *Swag.TypeInfoStruct?, type) else null)
+    return (catch cast(const *Swag.TypeInfoStruct?, type))
 }
 
 #test

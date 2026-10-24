@@ -243,13 +243,13 @@ func assertEncodedJpgRoundtrip(src: Image, expectedB, expectedG, expectedR: u8, 
     let bad:         [8] u8 = [0, 1, 2, 3, 4, 5, 6, 7]
     var img:         Image
     var err8Outcome: Swag.Error
-    catch { img = try Image.decode("bad.jpg", Swag.makeSlice(&bad[0], bad.count), {}) } as &err8Outcome
+    catch { img = try Image.decode("bad.jpg", Swag.makeSlice(&bad[0], bad.count), {}) } as err8Outcome
     let err8 = err8Outcome.value()
     Swag.assert(err8 != null)
 
     let bytes = expect File.readAllBytes(getTestDataPath("h1v1.jpg"))
     var err10Outcome: Swag.Error
-    catch { img = try Image.decode("truncated.jpg", Swag.makeSlice(bytes.buffer, 32), {}) } as &err10Outcome
+    catch { img = try Image.decode("truncated.jpg", Swag.makeSlice(bytes.buffer, 32), {}) } as err10Outcome
     let err10 = err10Outcome.value()
     Swag.assert(err10 != null)
 }

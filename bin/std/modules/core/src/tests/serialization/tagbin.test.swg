@@ -593,7 +593,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var fieldWiseDecoder: Serialization.Decoder'Serialization.Read.TagBin
     var errfwOutcome:     Swag.Error
-    catch CoreTests.readAndDelete'(TagBinFieldWisePoint, Serialization.Read.TagBin)(&fieldWiseDecoder, rawBytes.toSlice()) as &errfwOutcome
+    catch CoreTests.readAndDelete'(TagBinFieldWisePoint, Serialization.Read.TagBin)(&fieldWiseDecoder, rawBytes.toSlice()) as errfwOutcome
     let errfw = errfwOutcome.value()
     Swag.assert(errfw != null)
 }
@@ -647,7 +647,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var errOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinSchemaB, Serialization.Read.TagBin)(&decoder, bytes.toSlice()) as &errOutcome
+    catch CoreTests.readAndDelete'(TagBinSchemaB, Serialization.Read.TagBin)(&decoder, bytes.toSlice()) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Utf8.contains(Errors.message(err), "document schema"))
@@ -664,7 +664,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var strictDecoder: Serialization.Decoder'Serialization.Read.TagBin
     var errstOutcome:  Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&strictDecoder, patched.toSlice()) as &errstOutcome
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&strictDecoder, patched.toSlice()) as errstOutcome
     let errst = errstOutcome.value()
     Swag.assert(errst != null)
 
@@ -726,7 +726,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var strictDecoder: Serialization.Decoder'Serialization.Read.TagBin
     var errsvOutcome:  Swag.Error
-    catch CoreTests.readAndDelete'(TagBinOlderPayload, Serialization.Read.TagBin)(&strictDecoder, bytes.toSlice()) as &errsvOutcome
+    catch CoreTests.readAndDelete'(TagBinOlderPayload, Serialization.Read.TagBin)(&strictDecoder, bytes.toSlice()) as errsvOutcome
     let errsv = errsvOutcome.value()
     Swag.assert(errsv != null)
 
@@ -799,7 +799,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var errOutcome: Swag.Error
-    discard catch decoder.readAll'TagBinFailingInterfacePayload(bytes.toSlice()) as &errOutcome
+    discard catch decoder.readAll'TagBinFailingInterfacePayload(bytes.toSlice()) as errOutcome
     let err = errOutcome.value()
 
     Swag.assert(err != null)
@@ -823,7 +823,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var errOutcome: Swag.Error
-    discard catch decoder.readAll'TagBinLaterFailurePayload(bytes.toSlice()) as &errOutcome
+    discard catch decoder.readAll'TagBinLaterFailurePayload(bytes.toSlice()) as errOutcome
     let err = errOutcome.value()
 
     Swag.assert(err != null)
@@ -844,7 +844,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var errOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinInterfacePayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as &errOutcome
+    catch CoreTests.readAndDelete'(TagBinInterfacePayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Utf8.contains(Errors.message(err), "cannot resolve interface object key"))
@@ -1030,7 +1030,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
     var errOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as &errOutcome
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(Utf8.contains(Errors.message(err), "unsupported TagBin format version"))
@@ -1105,7 +1105,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 
     var decoder:      Serialization.Decoder'Serialization.Read.TagBin
     var err24Outcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as &err24Outcome
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as err24Outcome
     let err24 = err24Outcome.value()
     Swag.assert(err24 != null)
 }
@@ -1121,7 +1121,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 
     var decoder:      Serialization.Decoder'Serialization.Read.TagBin
     var errszOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as &errszOutcome
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errszOutcome
     let errsz = errszOutcome.value()
     Swag.assert(errsz != null)
 }
@@ -1158,7 +1158,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 
     var strictDecoder: Serialization.Decoder'Serialization.Read.TagBin
     var errrlOutcome:  Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&strictDecoder, patched.toSlice()) as &errrlOutcome
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&strictDecoder, patched.toSlice()) as errrlOutcome
     let errrl = errrlOutcome.value()
     Swag.assert(errrl != null)
 
@@ -1188,7 +1188,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 
     var decoder:      Serialization.Decoder'Serialization.Read.TagBin
     var errsqOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as &errsqOutcome
+    catch CoreTests.readAndDelete'(TagBinPayload, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errsqOutcome
     let errsq = errsqOutcome.value()
     Swag.assert(errsq != null)
 }
@@ -1212,7 +1212,7 @@ func corruptTagBinCompressedSizes(bytes: String, fieldName: string, uncompressed
 
     var decoder:      Serialization.Decoder'Serialization.Read.TagBin
     var errlnOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(TagBinLongText, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as &errlnOutcome
+    catch CoreTests.readAndDelete'(TagBinLongText, Serialization.Read.TagBin)(&decoder, patched.toSlice()) as errlnOutcome
     let errln = errlnOutcome.value()
     Swag.assert(errln != null)
 }

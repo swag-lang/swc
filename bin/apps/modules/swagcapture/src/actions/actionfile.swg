@@ -163,7 +163,7 @@ impl IActionUI for ActionFile
             main.saveCapture(capture)
 
             let file = Library.newFileName()
-            catch File.duplicate(file, capture.file) else {}
+            catch File.duplicate(file, capture.file)
 
             catch
             {
@@ -172,9 +172,8 @@ impl IActionUI for ActionFile
                 loaded.file        = file
                 loaded.linkedImage = ""
                 loaded.changed     = true
-                catch loaded.save() else {}
+                catch loaded.save()
             }
-            else
             {
                 MessageDlg.error(main.surface!, appStrings().msg_FailedDuplicate)
                 break
@@ -312,7 +311,7 @@ private func showFileDetails(main: *MainWnd, capture: *Capture)
 
     if capture.rating do
         addDetail(rows, texts.ui_DetailRating, ratingLabel(capture.rating))
-    addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size else 0))
+    addDetail(rows, texts.ui_DetailFileSize, StrConv.toDisplaySize(catch File.info(capture.file).size))
     rows.computeLayout()
     discard dialog.doModal()
 }
@@ -367,7 +366,7 @@ impl MainWnd
 
         var errOutcome: Swag.Error
         var image:      #decltype(expect Image.load(dialog.selectedPath()))
-        catch { image = try Image.load(dialog.selectedPath()) } as &errOutcome
+        catch { image = try Image.load(dialog.selectedPath()) } as errOutcome
         let err = errOutcome.value()
         if err != null do
             MessageDlg.error(.surface, appStrings().msg_FailedLoadImage, err)
@@ -442,7 +441,7 @@ impl MainWnd
         {
             var opt: Png.EncodeOptions
             opt.compressionLevel = .BestSpeed
-            return catch img.encodeToBytes("drag.png", opt) else {}
+            return catch img.encodeToBytes("drag.png", opt)
         })
     }
 
@@ -497,9 +496,9 @@ impl MainWnd
         md.value = capture.file.toSlice()
         img.metadata.add(md)
 
-        catch img.save(nameFile, optImg) as err else
+        catch img.save(nameFile, optImg)
         {
-            MessageDlg.error(.surface!, appStrings().msg_FailedSaveFile, err)
+            MessageDlg.error(.surface!, appStrings().msg_FailedSaveFile, Swag.err)
             return
         }
 
@@ -584,8 +583,8 @@ impl MainWnd
         if dialog.doModal() != Dialog.BtnOk do
             return
 
-        let {w, _, _} = catch StrConv.parseS32(edit0.edit.text()) else {}
-        let {h, _, _} = catch StrConv.parseS32(edit1.edit.text()) else {}
+        let {w, _, _} = catch StrConv.parseS32(edit0.edit.text())
+        let {h, _, _} = catch StrConv.parseS32(edit1.edit.text())
         var image     = Image.create(w != 0 ? w : 512, h != 0 ? h : 512, .RGB8)
         image.fill(Argb.White)
         .newCapture(image, sourceKind: .BlankCanvas)

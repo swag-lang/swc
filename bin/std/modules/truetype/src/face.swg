@@ -337,7 +337,7 @@ public impl Face
     mtd glyphIndex(charCode: rune)->u32
     {
         let faceData = cast(*FaceImpl, cast(*void, me))
-        return catch lookupGlyphIndex(faceData, cast(u32, charCode)) else 0
+        return catch lookupGlyphIndex(faceData, cast(u32, charCode))
     }
 
     // Returns whether the selected character map contains a glyph for `charCode`.
@@ -400,7 +400,7 @@ public impl Face
     mtd glyphIndexVariant(charCode, selector: rune)->u32
     {
         let faceData = cast(*FaceImpl, cast(*void, me))
-        let variant  = catch lookupVariationGlyph(faceData, cast(u32, charCode), cast(u32, selector)) else 0
+        let variant  = catch lookupVariationGlyph(faceData, cast(u32, charCode), cast(u32, selector))
         return variant != 0 ? variant : .glyphIndex(charCode)
     }
 
@@ -412,7 +412,7 @@ public impl Face
     mtd hasVariant(charCode, selector: rune)->bool
     {
         let faceData = cast(*FaceImpl, cast(*void, me))
-        return catch hasVariationSequence(faceData, cast(u32, charCode), cast(u32, selector)) else false
+        return catch hasVariationSequence(faceData, cast(u32, charCode), cast(u32, selector))
     }
 
     // Loads a glyph by index into the face's reusable slot.

@@ -79,8 +79,7 @@ SWC_TEST_BEGIN(FormatFile_CatchHandlerAlignsAndIndents)
         "func run(flag: bool)\n"
         "{\n"
         " if flag do\n"
-        "  catch work()\n"
-        "   else do\n"
+        "  catch work() do\n"
         "   recover()\n"
         " finish()\n"
         "}\n";
@@ -89,8 +88,7 @@ SWC_TEST_BEGIN(FormatFile_CatchHandlerAlignsAndIndents)
         "func run(flag: bool)\n"
         "{\n"
         "    if flag do\n"
-        "        catch work()\n"
-        "        else do\n"
+        "        catch work() do\n"
         "            recover()\n"
         "    finish()\n"
         "}\n";

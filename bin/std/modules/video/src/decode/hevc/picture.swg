@@ -723,9 +723,9 @@ private func runWppRow(job: *WppRowJob)
         return
     }
 
-    catch job.worker!.decodeWavefrontRow(job) as rowError else
+    catch job.worker!.decodeWavefrontRow(job)
     {
-        job.errorText = Errors.message(rowError)
+        job.errorText = Errors.message(Swag.err)
         Atomic.exchange(job.failed, 1)
         for index in job.rowCount do
             job.events![index].signal()

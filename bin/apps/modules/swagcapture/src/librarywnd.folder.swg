@@ -38,9 +38,9 @@ impl LibraryWnd
     // shows it from its top level. The choice is kept only when the folder can be used.
     mtd setLibraryFolder(folder: String)
     {
-        discard catch g_Library.setFolder(folder) as err else
+        discard catch g_Library.setFolder(folder)
         {
-            MessageDlg.error(.main.surface!, appStrings().msg_FailedOpenLibrary, err)
+            MessageDlg.error(.main.surface!, appStrings().msg_FailedOpenLibrary, Swag.err)
             return
         }
 
@@ -155,7 +155,7 @@ impl LibraryWnd
             return
         let folder = bc.items[index].tag.toString()
 
-        let dirs = catch Directory.enumerateDirectories(folder) else
+        let dirs = catch Directory.enumerateDirectories(folder)
         {
             return
         }

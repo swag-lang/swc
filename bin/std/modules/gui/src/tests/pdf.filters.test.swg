@@ -26,7 +26,7 @@ using Core, Pdf
     // A clear code followed by code 259, which no entry defines yet.
     let unknownCode: [3] u8 = [0x80, 0x40, 0xC0]
     var undefinedErrorOutcome: Swag.Error
-    discard catch decodeLzw(unknownCode) as &undefinedErrorOutcome
+    discard catch decodeLzw(unknownCode) as undefinedErrorOutcome
     let undefinedError = undefinedErrorOutcome.value()
     Swag.assert(undefinedError != null)
 }
@@ -48,11 +48,11 @@ using Core, Pdf
     Swag.assert(cast(string, partial.toSlice()) == "Hi")
 
     var terminatorErrorOutcome: Swag.Error
-    discard catch decodeAscii85("!~") as &terminatorErrorOutcome
+    discard catch decodeAscii85("!~") as terminatorErrorOutcome
     let terminatorError = terminatorErrorOutcome.value()
     Swag.assert(terminatorError != null)
     var incompleteErrorOutcome: Swag.Error
-    discard catch decodeAscii85("!~>") as &incompleteErrorOutcome
+    discard catch decodeAscii85("!~>") as incompleteErrorOutcome
     let incompleteError = incompleteErrorOutcome.value()
     Swag.assert(incompleteError != null)
 }
@@ -66,7 +66,7 @@ using Core, Pdf
 
     let truncated: [3] u8 = [4, 'A', 'B']
     var truncatedErrorOutcome: Swag.Error
-    discard catch decodeRunLength(truncated) as &truncatedErrorOutcome
+    discard catch decodeRunLength(truncated) as truncatedErrorOutcome
     let truncatedError = truncatedErrorOutcome.value()
     Swag.assert(truncatedError != null)
 }
@@ -81,7 +81,7 @@ using Core, Pdf
     Swag.assert(odd.count == 1 and odd[0] == 0x40)
 
     var hexErrorOutcome: Swag.Error
-    discard catch decodeAsciiHex("4Z>") as &hexErrorOutcome
+    discard catch decodeAsciiHex("4Z>") as hexErrorOutcome
     let hexError = hexErrorOutcome.value()
     Swag.assert(hexError != null)
 }
@@ -170,7 +170,7 @@ using Core, Pdf
 
     params.columns = 0
     var widthErrorOutcome: Swag.Error
-    discard catch decodeCcittFax(encoded.toSlice(), params) as &widthErrorOutcome
+    discard catch decodeCcittFax(encoded.toSlice(), params) as widthErrorOutcome
     let widthError = widthErrorOutcome.value()
     Swag.assert(widthError != null)
 }

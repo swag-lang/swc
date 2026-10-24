@@ -60,7 +60,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
         return
     }
 
-    let expected = catch File.readAllText(path, normalizeEol: true) else
+    let expected = catch File.readAllText(path, normalizeEol: true)
     {
         Console.println("[golden] cannot read ", path)
         Swag.assert(false)
@@ -132,7 +132,7 @@ func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOp
         return
     }
 
-    let expected = catch Image.load(path.toString()) else
+    let expected = catch Image.load(path.toString())
     {
         Console.println("[golden] cannot read ", path)
         Swag.assert(false)
@@ -239,7 +239,7 @@ private
         let dir = Path.directoryName(path)
         if dir != null and not Directory.exists(dir)
         {
-            catch Directory.create(dir) else
+            catch Directory.create(dir)
             {
                 Console.println("[image] cannot create ", dir)
                 reportSandboxRefusal(dir)
@@ -247,7 +247,7 @@ private
             }
         }
 
-        discard catch image.save(path) else
+        discard catch image.save(path)
         {
             Console.println("[image] cannot write ", path)
             reportSandboxRefusal(path)
@@ -299,7 +299,7 @@ private
         let dir = Path.directoryName(path)
         if dir != null and not Directory.exists(dir)
         {
-            catch Directory.create(dir) else
+            catch Directory.create(dir)
             {
                 Console.println("[golden] cannot create ", dir)
                 reportSandboxRefusal(dir)
@@ -307,7 +307,7 @@ private
             }
         }
 
-        discard catch File.writeAllBytes(path, Swag.makeSlice(text.buffer, text.count)) else
+        discard catch File.writeAllBytes(path, Swag.makeSlice(text.buffer, text.count))
         {
             Console.println("[golden] cannot write ", path)
             reportSandboxRefusal(path)

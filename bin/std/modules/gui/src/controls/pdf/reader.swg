@@ -182,7 +182,7 @@ impl Reader
                         let source = .sources[page.value]
                         var boxErrorOutcome: Swag.Error
                         var region: #decltype(expect pageBox(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate))
-                        catch { region = try pageBox(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate) } as &boxErrorOutcome
+                        catch { region = try pageBox(&.parser, source.objectId, source.mediaBoxId, source.cropBoxId, source.rotate) } as boxErrorOutcome
                         let boxError = boxErrorOutcome.value()
                         if boxError == null
                         {

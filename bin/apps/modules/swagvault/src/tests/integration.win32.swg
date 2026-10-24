@@ -41,7 +41,7 @@ namespace Integration
             return 2
         let payload = "VISIBLE"
         var writeErrorOutcome: Swag.Error
-        discard catch File.writeAllText(args[2], payload) as &writeErrorOutcome
+        discard catch File.writeAllText(args[2], payload) as writeErrorOutcome
         let writeError = writeErrorOutcome.value()
         return writeError == null ? 0 : 1
     }
@@ -136,7 +136,7 @@ namespace Integration
     {
         let existing16    = Utf16.toZeroTerminated(existing)
         let replacement16 = Utf16.toZeroTerminated(replacement)
-        catch MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) as error else { fail harnessError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(error))) }
+        catch MoveFileExW(existing16.buffer, replacement16.buffer, replace ? MoveReplaceExisting : 0) { fail harnessError(Format.toString("Cannot rename [[%]] to [[%]]: %.", existing, replacement, Errors.message(Swag.err))) }
     }
 
     func setAttributes(path: string, attributes: u32) fail
@@ -151,7 +151,7 @@ namespace Integration
         let path16 = Utf16.toZeroTerminated(path)
         var errorOutcome: Swag.Error
         var attributes:   #decltype(expect GetFileAttributesW(path16.buffer))
-        catch { attributes = try GetFileAttributesW(path16.buffer) } as &errorOutcome
+        catch { attributes = try GetFileAttributesW(path16.buffer) } as errorOutcome
         let error = errorOutcome.value()
         return error != null ? INVALID_FILE_ATTRIBUTES : attributes
     }
@@ -179,7 +179,7 @@ namespace Integration
     func removeDirectory(path: string) fail
     {
         let path16 = Utf16.toZeroTerminated(path)
-        catch RemoveDirectoryW(path16.buffer) as error else { fail harnessError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(error))) }
+        catch RemoveDirectoryW(path16.buffer) { fail harnessError(Format.toString("Cannot remove directory [[%]]: %.", path, Errors.message(Swag.err))) }
     }
 
     func containsEntry(entries: const [..] File.FileInfo, name: string)->bool
@@ -197,7 +197,7 @@ namespace Integration
 
     func trace(message: string)
     {
-        var stream = catch File.open(resultPath(), .Append, .Write, .Read) else
+        var stream = catch File.open(resultPath(), .Append, .Write, .Read)
         {
             return
         }
@@ -241,10 +241,10 @@ namespace Integration
             if .mountedActive do
                 fail harnessError("The integration volume is already mounted.")
             let mounted = Memory.new'WinFsp.MountedVolume()
-            discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword) as mountError else
+            discard catch mounted.open(.container, passwordBytes, .mountPoint, protectionPassword: protectionPassword)
             {
                 Memory.delete(mounted)
-                fail mountError
+                fail Swag.err
             }
 
             .mounted       = mounted
@@ -257,7 +257,7 @@ namespace Integration
                 return
             let mounted = .mounted!
             var closeErrorOutcome: Swag.Error
-            discard catch mounted.close() as &closeErrorOutcome
+            discard catch mounted.close() as closeErrorOutcome
             Memory.delete(mounted)
             .mounted       = null
             .mountedActive = false
@@ -412,7 +412,7 @@ namespace Integration
         setAttributes(readOnlyPath, FileAttributeReadOnly)
         verify((attributes(readOnlyPath) & FileAttributeReadOnly) != 0, "read-only attributes must be reported")
         var readonlyErrorOutcome: Swag.Error
-        discard catch File.writeAllBytes(readOnlyPath, second) as &readonlyErrorOutcome
+        discard catch File.writeAllBytes(readOnlyPath, second) as readonlyErrorOutcome
         let readonlyError = readonlyErrorOutcome.value()
         verify(readonlyError != null, "writes to read-only files must be rejected")
         setAttributes(readOnlyPath, FileAttributeNormal)
@@ -457,7 +457,7 @@ namespace Integration
             let source   = Path.combine(bulk, Format.toString("item-%.bin", index))
             let source16 = Utf16.toZeroTerminated(source)
             var collisionOutcome: Swag.Error
-            catch MoveFileExW(source16.buffer, occupied16.buffer, 0) as &collisionOutcome
+            catch MoveFileExW(source16.buffer, occupied16.buffer, 0) as collisionOutcome
             let collision = collisionOutcome.value()
             var error: u64
             if collision is Swag.SystemError as system do
@@ -506,7 +506,7 @@ namespace Integration
 
         var rejected: WinFsp.MountedVolume
         var passwordErrorOutcome: Swag.Error
-        discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as &passwordErrorOutcome
+        discard catch rejected.open(box.container, wrongPassword(), box.mountPoint) as passwordErrorOutcome
         let passwordError = passwordErrorOutcome.value()
         rejected.close()
         verify(passwordError != null, "a wrong password must not mount the container")
@@ -561,7 +561,7 @@ namespace Integration
         var written  = 0'u64
         for 64
         {
-            discard catch stream.writeAllAt(written, chunk.toSlice()) else
+            discard catch stream.writeAllAt(written, chunk.toSlice())
             {
                 stopped = true
                 break
@@ -680,15 +680,15 @@ namespace Integration
     func run()->bool
     {
         g_Failure.clear()
-        var box = catch Sandbox.create() as createError else
+        var box = catch Sandbox.create()
         {
-            g_Failure = errorMessage(createError)
+            g_Failure = errorMessage(Swag.err)
             return false
         }
 
-        discard catch runInSandbox(&box) as scenarioError else
+        discard catch runInSandbox(&box)
         {
-            g_Failure = errorMessage(scenarioError)
+            g_Failure = errorMessage(Swag.err)
             trace(Format.toString("FAIL-EARLY: %", g_Failure))
             return false
         }

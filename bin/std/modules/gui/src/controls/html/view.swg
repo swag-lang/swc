@@ -364,7 +364,7 @@ internal impl HtmlView
         if fileName.isEmpty() do
             return
 
-        let content = catch File.readAllText(fileName.toString()) else
+        let content = catch File.readAllText(fileName.toString())
         {
             return
         }
@@ -482,8 +482,8 @@ internal impl HtmlView
         if .fileSize < HtmlVirtualSourceThreshold or .encoding != .Utf8 do
             return false
 
-        let contentStart = catch .stream.position() else { return false }
-        let probe        = catch .stream.readTextChunk(HtmlVirtualProbeSize, .encoding) else
+        let contentStart = catch .stream.position() { return false }
+        let probe        = catch .stream.readTextChunk(HtmlVirtualProbeSize, .encoding)
         {
             discard catch .stream.seek(.Begin, contentStart)
             return false
@@ -536,12 +536,12 @@ internal impl HtmlView
         let requested = Math.clamp(requestedOffset, .virtualContentStart, .fileSize)
         let wanted    = requested > .virtualContentStart + HtmlVirtualLookBehind ? requested - HtmlVirtualLookBehind : .virtualContentStart
 
-        .stream = catch File.openReadLive(.fileName.toString()) else { return false }
+        .stream = catch File.openReadLive(.fileName.toString()) { return false }
         let actual = Math.min(wanted, .fileSize)
         discard catch .stream.seek(.Begin, actual)
         var bytes: Array'u8
         bytes.resize(Math.min(HtmlVirtualWindowSize + HtmlVirtualLookBehind * 2, .fileSize - actual))
-        let count = catch .stream.read(bytes.toSlice()) else
+        let count = catch .stream.read(bytes.toSlice())
         {
             .stream.close()
             return false
@@ -638,7 +638,7 @@ internal impl HtmlView
     {
         var probe: Array'u8
         probe.resize(HtmlCharsetProbeSize)
-        let count = catch .stream.read(probe.toSlice()) else 0
+        let count = catch .stream.read(probe.toSlice())
         probe.resize(count)
 
         var result       = Text.detectEncoding(probe.toSlice())
@@ -656,7 +656,7 @@ internal impl HtmlView
 
         // A stream that cannot rewind cannot stream the document; the next read reports that
         // through the existing failure path, and the encoding answer no longer matters.
-        catch .stream.seek(.Begin, contentStart) else { return .Utf8 }
+        catch .stream.seek(.Begin, contentStart) { return .Utf8 }
 
         return result
     }
@@ -667,7 +667,7 @@ internal impl HtmlView
         if not .sourceDone
         {
             var readOutcome: Swag.Error
-            let chunk     = catch .stream.readTextChunk(HtmlStreamChunkSize, .encoding) as &readOutcome else String{}
+            let chunk     = catch .stream.readTextChunk(HtmlStreamChunkSize, .encoding) as readOutcome orelse String{}
             let readError = readOutcome.value()
             if readError != null
             {
@@ -1485,9 +1485,9 @@ internal impl HtmlView
         .scroll.setScrollPos(0, 0)
         .sigDocumentChanged.call(me)
 
-        .stream = catch File.openReadLive(fileName) as openError else
+        .stream = catch File.openReadLive(fileName)
         {
-            .reportLoadFailure(Errors.message(openError))
+            .reportLoadFailure(Errors.message(Swag.err))
             .finishSource("<p>Unable to read this HTML document.</p>")
             .rebuild()
             return
@@ -1495,7 +1495,7 @@ internal impl HtmlView
 
         var sizeErrorOutcome: Swag.Error
         var size: #decltype(expect .stream.size())
-        catch { size = try .stream.size() } as &sizeErrorOutcome
+        catch { size = try .stream.size() } as sizeErrorOutcome
         let sizeError = sizeErrorOutcome.value()
         if sizeError == null
         {

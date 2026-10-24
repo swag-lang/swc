@@ -255,24 +255,24 @@ func aggregateDeferFail()->AggregateResult fail
 
 func catchSuccessValue()->s32
 {
-    return catch propagateExplicitSuccess() else 0
+    return catch propagateExplicitSuccess()
 }
 
 func catchTrySuccessValue()->s32
 {
-    return catch propagateTrySuccess() else 0
+    return catch propagateTrySuccess()
 }
 
 func inlineCatchSuccessValue()->s32
 {
-    return catch inlineMayFailValue(63) else 0
+    return catch inlineMayFailValue(63)
 }
 
 func catchFailureInfo()->CatchInfo
 {
     var result:     CatchInfo
     var errOutcome: Swag.Error
-    catch { result.value = try propagateExplicitFailure() } as &errOutcome
+    catch { result.value = try propagateExplicitFailure() } as errOutcome
     let err = errOutcome.value()
     result.hasErr = err != null
     if err != null
@@ -288,7 +288,7 @@ func inlineCatchFailureInfo()->CatchInfo
 {
     var result:      CatchInfo
     var err2Outcome: Swag.Error
-    catch { result.value = try inlineAlwaysFailValue(41) } as &err2Outcome
+    catch { result.value = try inlineAlwaysFailValue(41) } as err2Outcome
     let err2 = err2Outcome.value()
     result.hasErr = err2 != null
     if err2 != null
@@ -304,7 +304,7 @@ func catchTryFailureInfo()->CatchInfo
 {
     var result:      CatchInfo
     var err3Outcome: Swag.Error
-    catch { result.value = try propagateTryFailure() } as &err3Outcome
+    catch { result.value = try propagateTryFailure() } as err3Outcome
     let err3 = err3Outcome.value()
     result.hasErr = err3 != null
     if err3 != null
@@ -320,7 +320,7 @@ func dismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch propagateExplicitFailure() else 0
+    result.value  = catch propagateExplicitFailure()
     result.hasErr = false
     result.code   = 0
     return result
@@ -328,14 +328,14 @@ func dismissFailureInfo()->CatchInfo
 
 func inlineDismissSuccessValue()->s32
 {
-    return catch inlineMayFailValue(64) else 0
+    return catch inlineMayFailValue(64)
 }
 
 func inlineDismissFailureInfo()->CatchInfo
 {
     var result: CatchInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch inlineAlwaysFailValue(42) else 0
+    result.value  = catch inlineAlwaysFailValue(42)
     result.hasErr = false
     result.code   = 0
     return result
@@ -344,7 +344,7 @@ func inlineDismissFailureInfo()->CatchInfo
 func catchTryVoidSuccess()->bool
 {
     var err4Outcome: Swag.Error
-    catch propagateTryVoidSuccess() as &err4Outcome
+    catch propagateTryVoidSuccess() as err4Outcome
     let err4 = err4Outcome.value()
     return err4 == null
 }
@@ -352,7 +352,7 @@ func catchTryVoidSuccess()->bool
 func catchTryBlockVoidFailureCode()->s32
 {
     var err5Outcome: Swag.Error
-    catch propagateTryBlockVoidFailure() as &err5Outcome
+    catch propagateTryBlockVoidFailure() as err5Outcome
     let err5 = err5Outcome.value()
     if err5 == null do
         return -1
@@ -363,14 +363,14 @@ func catchTryBlockVoidFailureCode()->s32
 
 func catchAggregateSuccess()->AggregateResult
 {
-    return catch aggregateSuccess(70) else {}
+    return catch aggregateSuccess(70)
 }
 
 func catchAggregateFailureInfo()->AggregateInfo
 {
     var result:      AggregateInfo
     var err6Outcome: Swag.Error
-    catch { result.value = try aggregateFailure(71) } as &err6Outcome
+    catch { result.value = try aggregateFailure(71) } as err6Outcome
     let err6 = err6Outcome.value()
     result.hasErr = err6 != null
     if err6 != null
@@ -385,14 +385,14 @@ func catchAggregateFailureInfo()->AggregateInfo
 
 func dismissAggregateSuccess()->AggregateResult
 {
-    return catch aggregateSuccess(80) else {}
+    return catch aggregateSuccess(80)
 }
 
 func dismissAggregateFailureInfo()->AggregateInfo
 {
     var result: AggregateInfo
     // 'catch' without a capture dismisses the error; the fallback is the type default.
-    result.value  = catch aggregateFailure(72) else {}
+    result.value  = catch aggregateFailure(72)
     result.hasErr = false
     result.code   = 0
     return result
@@ -404,7 +404,7 @@ func repeatedCatchFailureSum()->s32
     for index in 40
     {
         var err7Outcome: Swag.Error
-        catch alwaysFailVoid(cast(s32, index) + 1) as &err7Outcome
+        catch alwaysFailVoid(cast(s32, index) + 1) as err7Outcome
         let err7 = err7Outcome.value()
         let err  = assume cast (ErrValue, err7)
         result += err.code
@@ -418,7 +418,7 @@ func nestedTryHandled()->s32
     var errOutcome: Swag.Error
     catch {
         try alwaysFailVoid(23)
-    } as &errOutcome
+    } as errOutcome
     let err = errOutcome.value()
 
     if err == null do
@@ -461,7 +461,7 @@ func catchNullablePointerFailureInfo()->NullInfo
     var result:     NullInfo
     var errOutcome: Swag.Error
     var value:      *s32?
-    catch { value = try nullablePointerFailure(73) } as &errOutcome
+    catch { value = try nullablePointerFailure(73) } as errOutcome
     let err = errOutcome.value()
     result.isNull = value == null
     result.hasErr = err != null
@@ -474,7 +474,7 @@ func catchNullableStringFailureInfo()->NullInfo
     var result:     NullInfo
     var errOutcome: Swag.Error
     var value:      string?
-    catch { value = try nullableStringFailure(74) } as &errOutcome
+    catch { value = try nullableStringFailure(74) } as errOutcome
     let err = errOutcome.value()
     result.isNull = value == null
     result.hasErr = err != null
@@ -487,7 +487,7 @@ func catchNullableSliceFailureInfo()->NullInfo
     var result:     NullInfo
     var errOutcome: Swag.Error
     var value:      [..] s32?
-    catch { value = try nullableSliceFailure(75) } as &errOutcome
+    catch { value = try nullableSliceFailure(75) } as errOutcome
     let err = errOutcome.value()
     result.isNull = value == null
     result.hasErr = err != null
@@ -498,7 +498,7 @@ func catchNullableSliceFailureInfo()->NullInfo
 func dismissNullablePointerFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  *s32? = catch nullablePointerFailure(76) else null
+    let value:  *s32? = catch nullablePointerFailure(76)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -508,7 +508,7 @@ func dismissNullablePointerFailureInfo()->NullInfo
 func dismissNullableStringFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  string? = catch nullableStringFailure(77) else null
+    let value:  string? = catch nullableStringFailure(77)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -518,7 +518,7 @@ func dismissNullableStringFailureInfo()->NullInfo
 func dismissNullableSliceFailureInfo()->NullInfo
 {
     var result: NullInfo
-    let value:  [..] s32? = catch nullableSliceFailure(78) else null
+    let value:  [..] s32? = catch nullableSliceFailure(78)
     result.isNull = value == null
     result.hasErr = false
     result.code   = 0
@@ -531,7 +531,7 @@ func chainedTryFailureInfo()->TraceInfo
 
     var result:     TraceInfo
     var errOutcome: Swag.Error
-    catch { result.value = try chainTryTop() } as &errOutcome
+    catch { result.value = try chainTryTop() } as errOutcome
     let err = errOutcome.value()
     result.trace  = ErrorTrace
     result.hasErr = err != null
@@ -545,7 +545,7 @@ func deferFailAfterReturnInfo()->TraceInfo
 
     var result:     TraceInfo
     var errOutcome: Swag.Error
-    catch { result.value = try deferFailAfterReturn() } as &errOutcome
+    catch { result.value = try deferFailAfterReturn() } as errOutcome
     let err = errOutcome.value()
     result.trace  = ErrorTrace
     result.hasErr = err != null
@@ -559,7 +559,7 @@ func errDeferOverrideFailureInfo()->TraceInfo
 
     var result:     TraceInfo
     var errOutcome: Swag.Error
-    catch { result.value = try errDeferOverrideFailure() } as &errOutcome
+    catch { result.value = try errDeferOverrideFailure() } as errOutcome
     let err = errOutcome.value()
     result.trace  = ErrorTrace
     result.hasErr = err != null
@@ -572,7 +572,7 @@ func dismissErrDeferOverrideFailureInfo()->TraceInfo
     resetErrorTrace()
 
     var result: TraceInfo
-    result.value  = catch errDeferOverrideFailure() else 0
+    result.value  = catch errDeferOverrideFailure()
     result.trace  = ErrorTrace
     result.hasErr = false
     result.code   = 0
@@ -585,7 +585,7 @@ func aggregateDeferFailInfo()->AggregateTraceInfo
 
     var result:     AggregateTraceInfo
     var errOutcome: Swag.Error
-    catch { result.value = try aggregateDeferFail() } as &errOutcome
+    catch { result.value = try aggregateDeferFail() } as errOutcome
     let err = errOutcome.value()
     result.trace  = ErrorTrace
     result.hasErr = err != null
@@ -597,12 +597,12 @@ func errIsAsFailureInfo()->ErrCastInfo
 {
     var result:      ErrCastInfo
     var err8Outcome: Swag.Error
-    catch alwaysFailTypedVoid(86) as &err8Outcome
+    catch alwaysFailTypedVoid(86) as err8Outcome
     let err8 = err8Outcome.value()
 
-    let exactErr = catch cast(*ErrValue?, err8) else null
-    let baseErr  = catch cast(*Swag.BaseError?, err8) else null
-    let otherErr = catch cast(*OtherErrValue?, err8) else null
+    let exactErr = catch cast(*ErrValue?, err8)
+    let baseErr  = catch cast(*Swag.BaseError?, err8)
+    let otherErr = catch cast(*OtherErrValue?, err8)
 
     result.exactType     = (err8 is ErrValue)
     result.baseType      = (err8 is Swag.BaseError)
@@ -621,7 +621,7 @@ func errIsAsNullInfo()->ErrNullCastInfo
 {
     var result:      ErrNullCastInfo
     var err9Outcome: Swag.Error
-    catch mayFailVoid() as &err9Outcome
+    catch mayFailVoid() as err9Outcome
     let err9 = err9Outcome.value()
 
     result.exactType     = (err9 is ErrValue)
@@ -658,7 +658,7 @@ func notNullSliceSuccess()->s32
 
 func dismissSuccessValue()->s32
 {
-    return catch propagateTrySuccess() else 0
+    return catch propagateTrySuccess()
 }
 
 #test

@@ -18,7 +18,7 @@ struct CodeGenLoweringPayload
     // avoiding a fresh frame slot on every rerun.
     SymbolVariable* registeredRuntimeStorageSym = nullptr;
 
-    SymbolVariable* errBindingSym      = nullptr; // 'catch e as err': the captured-error local
+    SymbolVariable* errBindingSym      = nullptr; // the captured-error local 'Swag.err' reads
     SymbolVariable* errOwnerSym        = nullptr; // lexical owner of the captured error view
     SymbolVariable* errHandlerOwnerSym = nullptr; // owner while a catch handler is active
 
@@ -33,6 +33,7 @@ struct CodeGenLoweringPayload
     int8_t valueBorrowSafetyOverride          = -1; // Local override; otherwise use the function or inline body.
     bool   ifVarDeclWhereUsesConditionBinding = false;
     bool   notNullUnwrap                      = false;
+    bool   catchCoalescesNull                 = false; // 'catch e orelse V' with a nullable result
 
     // A UFCS pointer parameter receives the receiver's address as its value;
     // the receiver's bits are never converted numerically.

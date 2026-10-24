@@ -165,7 +165,7 @@ impl Panel
 
     mtd detailsText()->String
     {
-        let encoding = .encodingName()
+        let encoding    = .encodingName()
         let currentLine = Format.toString(texts().ui_CurrentLine, .editor.cursorLogicalLineIndex() + 1)
 
         // Statistics describe the byte interpretation that produced them. Switching encoding
@@ -254,12 +254,12 @@ impl Panel
     // A file that cannot be read reports the default probe, which accepts nothing.
     func probe(fileName: string)->Probe
     {
-        var stream = catch File.openReadLive(fileName) else { return {} }
+        var stream = catch File.openReadLive(fileName) { return {} }
         defer stream.close()
 
         var bytes: Array'u8
         bytes.resize(Viewer.ProbeHeadSize)
-        let count = catch stream.read(bytes.toSlice()) else { return {} }
+        let count = catch stream.read(bytes.toSlice()) { return {} }
         bytes.resize(count)
         return probeHead(bytes.toSlice())
     }
@@ -571,7 +571,7 @@ impl IWnd for Panel
         let stopped = .statisticsTask.isCancelled()
         var countErrorOutcome: Swag.Error
         var counted: #decltype(expect .statisticsTask.take())
-        catch { counted = try .statisticsTask.take() } as &countErrorOutcome
+        catch { counted = try .statisticsTask.take() } as countErrorOutcome
         let countError = countErrorOutcome.value()
         if .retiring do
             return
@@ -860,7 +860,7 @@ impl Panel
     {
         var openErrorOutcome: Swag.Error
         var stream: #decltype(expect File.openReadLive(.fileName))
-        catch { stream = try File.openReadLive(.fileName) } as &openErrorOutcome
+        catch { stream = try File.openReadLive(.fileName) } as openErrorOutcome
         let openError = openErrorOutcome.value()
         defer stream.close()
         if openError != null
@@ -869,7 +869,7 @@ impl Panel
             return
         }
 
-        let size = catch stream.size() else
+        let size = catch stream.size()
         {
             .showReadError()
             return

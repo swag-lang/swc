@@ -93,7 +93,7 @@ internal impl Properties
             func(T) setEd()
             {
                 var p = cast(*T, data!)
-                p[] = catch StrConv.toNum'T(txt) else 0
+                p[] = catch StrConv.toNum'T(txt)
             }
 
             let txt = item.editBox.text()

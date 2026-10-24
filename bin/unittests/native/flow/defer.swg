@@ -474,7 +474,7 @@ func deferConditionalCatchElseTrace()->s64
     {
         defer #fail appendDeferTrace(1)
         defer #nofail appendDeferTrace(2)
-        catch deferFailTop() else {}
+        catch deferFailTop()
     }
 
     return DeferTrace
@@ -635,7 +635,7 @@ func deferBreakToScope()->s64
 
 #test
 {
-    let v = catch deferConditionalReturnTrace() else {}
+    let v = catch deferConditionalReturnTrace()
     Swag.assert(v.value == 7)
     Swag.assert(v.trace == 32)
 }

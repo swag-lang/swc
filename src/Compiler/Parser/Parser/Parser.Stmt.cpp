@@ -264,11 +264,14 @@ AstNodeRef Parser::parseIf()
         const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IfVarDecl>(consume());
 
         // Parse the variable declaration and the constraint
-        nodePtr->nodeVarRef = parseVarDecl();
-        if (consumeIf(TokenId::KwdWhere).isValid())
-            nodePtr->nodeWhereRef = parseExpression();
-        else
-            nodePtr->nodeWhereRef.setInvalid();
+        {
+            const PushBlockHeader header(this);
+            nodePtr->nodeVarRef = parseVarDecl();
+            if (consumeIf(TokenId::KwdWhere).isValid())
+                nodePtr->nodeWhereRef = parseExpression();
+            else
+                nodePtr->nodeWhereRef.setInvalid();
+        }
 
         // 'else if' is represented by nesting another if node in the else slot.
         // Later passes can therefore treat chained and manually nested conditionals
@@ -282,7 +285,7 @@ AstNodeRef Parser::parseIf()
     const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IfStmt>(consume());
 
     // Parse the condition expression
-    nodePtr->nodeConditionRef = parseExpression();
+    nodePtr->nodeConditionRef = parseBlockHeaderExpression();
     if (nodePtr->nodeConditionRef.isInvalid())
         skipTo({TokenId::KwdDo, TokenId::SymLeftCurly});
 
@@ -298,7 +301,7 @@ AstNodeRef Parser::parseIf()
 
         auto [bindingRef, binding] = ast_->makeNode<AstNodeId::IfVarDecl>(nodePtr->tokRef());
         binding->nodeVarRef        = declRef;
-        binding->nodeWhereRef      = consumeIf(TokenId::KwdWhere).isValid() ? parseExpression() : AstNodeRef::invalid();
+        binding->nodeWhereRef      = consumeIf(TokenId::KwdWhere).isValid() ? parseBlockHeaderExpression() : AstNodeRef::invalid();
         binding->nodeIfBlockRef    = parseDoCurlyBlock();
         binding->nodeElseBlockRef  = parseElseBranch();
         return bindingRef;
@@ -317,14 +320,20 @@ AstNodeRef Parser::parseWith()
     if (nextIsAny(TokenId::KwdVar, TokenId::KwdLet))
     {
         auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WithVarDecl>(consume());
-        nodePtr->nodeVarRef     = parseVarDecl();
-        nodePtr->nodeBodyRef    = parseEmbeddedStmt();
+        {
+            const PushBlockHeader header(this);
+            nodePtr->nodeVarRef = parseVarDecl();
+        }
+        nodePtr->nodeBodyRef = parseEmbeddedStmt();
         return nodeRef;
     }
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WithStmt>(consume());
-    nodePtr->nodeExprRef    = parseAssignStmt();
-    nodePtr->nodeBodyRef    = parseEmbeddedStmt();
+    {
+        const PushBlockHeader header(this);
+        nodePtr->nodeExprRef = parseAssignStmt();
+    }
+    nodePtr->nodeBodyRef = parseEmbeddedStmt();
     return nodeRef;
 }
 
@@ -369,7 +378,7 @@ AstNodeRef Parser::parseLifecycleIntrinsic()
 AstNodeRef Parser::parseWhile()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::WhileStmt>(consume());
-    nodePtr->nodeExprRef    = parseExpression();
+    nodePtr->nodeExprRef    = parseBlockHeaderExpression();
     nodePtr->nodeBodyRef    = parseDoCurlyBlock();
     return nodeRef;
 }
@@ -460,12 +469,14 @@ AstNodeRef Parser::parseForLoop()
         diag.report(*ctx_);
     }
 
-    nodePtr->nodeExprRef = parseRangeExpression();
-
-    if (consumeIf(TokenId::KwdWhere).isValid())
-        nodePtr->nodeWhereRef = parseExpression();
-    else
-        nodePtr->nodeWhereRef.setInvalid();
+    {
+        const PushBlockHeader header(this);
+        nodePtr->nodeExprRef = parseRangeExpression();
+        if (consumeIf(TokenId::KwdWhere).isValid())
+            nodePtr->nodeWhereRef = parseExpression();
+        else
+            nodePtr->nodeWhereRef.setInvalid();
+    }
 
     nodePtr->nodeBodyRef = parseDoCurlyBlock();
     return nodeRef;
@@ -517,8 +528,12 @@ AstNodeRef Parser::parseParallelFor(bool fallible)
         diag.report(*ctx_);
     }
 
-    const AstNodeRef rangeRef = parseRangeExpression();
-    const AstNodeRef bodyRef  = parseDoCurlyBlock();
+    AstNodeRef rangeRef;
+    {
+        const PushBlockHeader header(this);
+        rangeRef = parseRangeExpression();
+    }
+    const AstNodeRef bodyRef = parseDoCurlyBlock();
 
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParallelForStmt>(tokParallel);
     if (fallible)
@@ -603,17 +618,14 @@ AstNodeRef Parser::parseErrorManagementStmt()
     else
         nodePtr->nodeBodyRef = parseExpression();
 
-    // A capture is visible only inside the failure handler.
-    if (opTokenId == TokenId::KwdCatch && consumeIf(TokenId::KwdAs).isValid())
+    // 'as owner' stores the error; the handler runs only on failure. A block that follows
+    // the operand is that handler: a macro's trailing code needs '#code' here.
+    if (opTokenId == TokenId::KwdCatch)
     {
-        if (is(TokenId::SymAmpersand))
-            nodePtr->nodeCaptureRef = parseExpression();
-        else
-            nodePtr->errNameTokRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+        if (consumeIf(TokenId::KwdAs).isValid())
+            nodePtr->nodeCaptureRef = parsePrefixExpr();
+        parseCatchHandlerOrFallback(nodePtr->nodeHandlerRef, nodePtr->errNameTokRef, true);
     }
-    // The handler runs only on failure, with the optional capture in scope.
-    if (opTokenId == TokenId::KwdCatch && consumeIf(TokenId::KwdElse).isValid())
-        nodePtr->nodeHandlerRef = parseDoCurlyBlock();
 
     return nodeRef;
 }
@@ -693,7 +705,7 @@ AstNodeRef Parser::parseSwitch()
     nodePtr->modifierFlags = parseModifiers();
 
     if (isNot(TokenId::SymLeftCurly))
-        nodePtr->nodeExprRef = parseExpression();
+        nodePtr->nodeExprRef = parseBlockHeaderExpression();
     else
         nodePtr->nodeExprRef.setInvalid();
 

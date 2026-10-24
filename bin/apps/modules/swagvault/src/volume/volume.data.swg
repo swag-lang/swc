@@ -50,9 +50,9 @@ impl Volume
                                                  nonce,
                                                  ciphertext,
                                                  tag,
-                                                 batch.plain[plainOffset until plainOffset + BlockSize]) as openError else
+                                                 batch.plain[plainOffset until plainOffset + BlockSize])
             {
-                batch.keepFirstError(openError)
+                batch.keepFirstError(Swag.err)
                 continue
             }
 
@@ -93,9 +93,9 @@ impl Volume
                                                            batch.plain[plainOffset until plainOffset + BlockSize],
                                                            Crypto.associatedData(DataKind, batch.physical + index),
                                                            ciphertext,
-                                                           tag) as sealError else
+                                                           tag)
             {
-                batch.keepFirstError(sealError)
+                batch.keepFirstError(Swag.err)
             }
         }
 

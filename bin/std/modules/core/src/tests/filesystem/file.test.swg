@@ -30,7 +30,7 @@ using Swag
     Swag.assert(replaced == "new")
     expect File.delete(fileName)
     var missingOutcome: Swag.Error
-    discard catch stream.size() as &missingOutcome
+    discard catch stream.size() as missingOutcome
     let missing = missingOutcome.value()
     Swag.assert(missing != null and stream.isOpen())
     stream.close()
@@ -127,7 +127,7 @@ using Swag
 
     Swag.assert((expect stream.readUtf8Chunk(16)) == "a")
     var errOutcome: Swag.Error
-    discard catch stream.readUtf8Chunk(16) as &errOutcome
+    discard catch stream.readUtf8Chunk(16) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err is Errors.InvalidFormatError)
     Swag.assert(expect stream.position() == 1)
@@ -225,7 +225,7 @@ using Swag
     let directory = Path.combine(Env.realSpecialDirectory(.Temp).toString(), Format.toString("swag-open-mode-%", Guid64.random()))
     let fileName  = Path.combine(directory.toString(), "read-only-create.tmp")
     var errOutcome: Swag.Error
-    discard catch File.open(fileName.toString(), .Create, .Read, .Read) as &errOutcome
+    discard catch File.open(fileName.toString(), .Create, .Read, .Read) as errOutcome
 
     let err = errOutcome.value()
     Swag.assert(err is Errors.SandboxError)

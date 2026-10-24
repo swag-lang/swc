@@ -174,16 +174,16 @@ private func sampleDocument()->Document
     Swag.assert(transparent.pixelColor(0, 0).a == 0)
 
     var deferredErrorOutcome: Swag.Error
-    discard catch reader.loadPage(1) as &deferredErrorOutcome
+    discard catch reader.loadPage(1) as deferredErrorOutcome
     let deferredError = deferredErrorOutcome.value()
     Swag.assert(deferredError != null)
     var rangeErrorOutcome: Swag.Error
-    discard catch reader.loadPage(2) as &rangeErrorOutcome
+    discard catch reader.loadPage(2) as rangeErrorOutcome
     let rangeError = rangeErrorOutcome.value()
     Swag.assert(rangeError != null)
 
     var eagerErrorOutcome: Swag.Error
-    discard catch Document.load(fileName) as &eagerErrorOutcome
+    discard catch Document.load(fileName) as eagerErrorOutcome
     let eagerError = eagerErrorOutcome.value()
     Swag.assert(eagerError != null)
 }
@@ -191,13 +191,13 @@ private func sampleDocument()->Document
 #test
 {
     var errorOutcome: Swag.Error
-    discard catch Document.decode("not a PDF") as &errorOutcome
+    discard catch Document.decode("not a PDF") as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error != null)
 
     var empty = Document.create()
     var emptyErrorOutcome: Swag.Error
-    discard catch empty.encode() as &emptyErrorOutcome
+    discard catch empty.encode() as emptyErrorOutcome
     let emptyError = emptyErrorOutcome.value()
     Swag.assert(emptyError != null)
 }

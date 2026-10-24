@@ -9,7 +9,7 @@ private func checkTypeFaceCreation(name: string, bytes: const [..] u8) fail { di
 {
     const truncated: [4] u8 = [0, 1, 0, 0]
     var loadErrorOutcome: Swag.Error
-    catch checkTypeFaceCreation("pixel-test-truncated-font", truncated) as &loadErrorOutcome
+    catch checkTypeFaceCreation("pixel-test-truncated-font", truncated) as loadErrorOutcome
     let loadError = loadErrorOutcome.value()
     Swag.assert(loadError != null)
 }

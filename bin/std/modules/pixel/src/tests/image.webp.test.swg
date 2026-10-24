@@ -141,7 +141,7 @@ func assertEncodedWebpRoundtrip(source: Image)
 {
     var source: Image
     var encodeErrorOutcome: Swag.Error
-    discard catch source.encode("memory.webp") as &encodeErrorOutcome
+    discard catch source.encode("memory.webp") as encodeErrorOutcome
     let encodeError = encodeErrorOutcome.value()
     Swag.assert(encodeError != null)
 }
@@ -209,13 +209,13 @@ func assertEncodedWebpRoundtrip(source: Image)
         'R', 'I', 'F', 'F', 4, 0, 0, 0, 'N', 'O', 'P', 'E']
     var decoded:     Image
     var err5Outcome: Swag.Error
-    catch { decoded = try Image.decode("bad.webp", Swag.makeSlice(&bad[0], bad.count), {}) } as &err5Outcome
+    catch { decoded = try Image.decode("bad.webp", Swag.makeSlice(&bad[0], bad.count), {}) } as err5Outcome
     let err5 = err5Outcome.value()
     Swag.assert(err5 != null)
 
     let bytes = expect File.readAllBytes(getTestDataPath("gopher-doc.lossless.webp"))
     var err7Outcome: Swag.Error
-    catch { decoded = try Image.decode("truncated.webp", Swag.makeSlice(bytes.buffer, 32), {}) } as &err7Outcome
+    catch { decoded = try Image.decode("truncated.webp", Swag.makeSlice(bytes.buffer, 32), {}) } as err7Outcome
     let err7 = err7Outcome.value()
     Swag.assert(err7 != null)
 }
@@ -296,7 +296,7 @@ func assertEncodedWebpRoundtrip(source: Image)
         2, 0, 0, 0, 0, 0, 0, 0, 0, 0]
     var decoded: Image
     var decodeErrorOutcome: Swag.Error
-    catch { decoded = try Image.decode("animated.webp", Swag.makeSlice(&animated[0], animated.count), {}) } as &decodeErrorOutcome
+    catch { decoded = try Image.decode("animated.webp", Swag.makeSlice(&animated[0], animated.count), {}) } as decodeErrorOutcome
     let decodeError = decodeErrorOutcome.value()
     Swag.assert(decodeError != null)
 }

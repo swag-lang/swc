@@ -66,13 +66,13 @@ enum ParseValueFlags: u32
 {
     var value:      ParseOuter
     var errOutcome: Swag.Error
-    catch checkParseValue(&value, #typeof(ParseOuter), "1 2 3") as &errOutcome
+    catch checkParseValue(&value, #typeof(ParseOuter), "1 2 3") as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(err is Errors.InvalidFormatError)
 
     var err2Outcome: Swag.Error
-    catch checkParseValue(&value, #typeof(ParseOuter), "{{1 2 3 4} 5") as &err2Outcome
+    catch checkParseValue(&value, #typeof(ParseOuter), "{{1 2 3 4} 5") as err2Outcome
     let err2 = err2Outcome.value()
     Swag.assert(err2 != null)
     Swag.assert(err2 is Errors.InvalidFormatError)
@@ -124,7 +124,7 @@ func(T) expectNumericOverflow(text: string, initial: T)
 {
     var value = initial
     var errorOutcome: Swag.Error
-    catch checkParseValue(&value, #typeof(T), text) as &errorOutcome
+    catch checkParseValue(&value, #typeof(T), text) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is Errors.OverflowError)
     Swag.assert(value == initial)

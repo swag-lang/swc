@@ -20,7 +20,7 @@ using Swag, Core
     Swag.assert(Math.abs(valueF2Dot14 - 0.5) < 0.0001)
 
     var err6Outcome: Swag.Error
-    discard catch assertRange(ReaderBytes, 0, 16) as &err6Outcome
+    discard catch assertRange(ReaderBytes, 0, 16) as err6Outcome
     let err6 = err6Outcome.value()
     Swag.assert(err6 != null)
 }
@@ -28,13 +28,13 @@ using Swag, Core
 #test
 {
     var err7Outcome: Swag.Error
-    catch checkFaceLoad(BrokenFontBytes) as &err7Outcome
+    catch checkFaceLoad(BrokenFontBytes) as err7Outcome
     let err7 = err7Outcome.value()
     Swag.assert(err7 != null)
 
     var empty:       Array'u8
     var err8Outcome: Swag.Error
-    catch checkFaceLoad(empty.toSlice()) as &err8Outcome
+    catch checkFaceLoad(empty.toSlice()) as err8Outcome
     let err8 = err8Outcome.value()
     Swag.assert(err8 != null)
 }

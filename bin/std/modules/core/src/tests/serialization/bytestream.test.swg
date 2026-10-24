@@ -69,7 +69,7 @@ using Swag
     let cut: [1] u8 = [0x80]
     var truncated   = ByteStream.openRead(cut)
     var errcutOutcome: Swag.Error
-    discard catch truncated.readVarint() as &errcutOutcome
+    discard catch truncated.readVarint() as errcutOutcome
     let errcut = errcutOutcome.value()
     Swag.assert(errcut != null)
 
@@ -77,7 +77,7 @@ using Swag
     let long: [11] u8 = [0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01]
     var overlong      = ByteStream.openRead(long)
     var errlongOutcome: Swag.Error
-    discard catch overlong.readVarint() as &errlongOutcome
+    discard catch overlong.readVarint() as errlongOutcome
     let errlong = errlongOutcome.value()
     Swag.assert(errlong != null)
 }
@@ -182,7 +182,7 @@ using Swag
 
     var reader = ByteStream.openRead(buffer.toSlice())
     var errOutcome: Swag.Error
-    discard catch reader.readSizedString(4) as &errOutcome
+    discard catch reader.readSizedString(4) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }
@@ -197,7 +197,7 @@ using Swag
 
     var reader = ByteStream.openRead(buffer.toSlice())
     var errOutcome: Swag.Error
-    discard catch reader.readSizedString() as &errOutcome
+    discard catch reader.readSizedString() as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }
@@ -221,7 +221,7 @@ using Swag
 
     var byte: u8 = 0xA5
     var oversizedReadOutcome: Swag.Error
-    discard catch stream.readBytes(&byte, Swag.U64.Max) as &oversizedReadOutcome
+    discard catch stream.readBytes(&byte, Swag.U64.Max) as oversizedReadOutcome
     let error = oversizedReadOutcome.value()
     Swag.assert(error is Errors.OverflowError)
     Swag.assert(byte == 0xA5 and stream.position() == 1)
@@ -230,7 +230,7 @@ using Swag
     Swag.assert(next == 0x20 and stream.position() == 2)
 
     var nativeReadOutcome: Swag.Error
-    discard catch stream.readNative'u32() as &nativeReadOutcome
+    discard catch stream.readNative'u32() as nativeReadOutcome
     let nativeError = nativeReadOutcome.value()
     Swag.assert(nativeError is Errors.OverflowError)
     Swag.assert(stream.position() == 2)
@@ -242,7 +242,7 @@ using Swag
 
     expect stream.readBytes(&byte, 0)
     var endReadOutcome: Swag.Error
-    discard catch stream.readBytes(&byte, 1) as &endReadOutcome
+    discard catch stream.readBytes(&byte, 1) as endReadOutcome
     let endError = endReadOutcome.value()
     Swag.assert(endError is Errors.OverflowError)
     Swag.assert(byte == 0xA5 and stream.position() == input.count)

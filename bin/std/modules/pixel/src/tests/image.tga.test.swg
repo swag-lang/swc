@@ -797,7 +797,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var img: Image
     var err28Outcome: Swag.Error
-    catch { img = try Image.decode("bad.tga", nnBytes(cb.toSlice()), {}) } as &err28Outcome
+    catch { img = try Image.decode("bad.tga", nnBytes(cb.toSlice()), {}) } as err28Outcome
     let err28 = err28Outcome.value()
     Swag.assert(err28 != null)
 }
@@ -811,7 +811,7 @@ func addTgaPaletteColor(cb: *ConcatBuffer, b, g, r: u8)
 
     var img: Image
     var err29Outcome: Swag.Error
-    catch { img = try Image.decode("bad.tga", nnBytes(cb.toSlice()), {}) } as &err29Outcome
+    catch { img = try Image.decode("bad.tga", nnBytes(cb.toSlice()), {}) } as err29Outcome
     let err29 = err29Outcome.value()
     Swag.assert(err29 != null)
 }

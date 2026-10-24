@@ -24,7 +24,8 @@ impl IFoo for Present
 {
     var value = Present{}
     let pointer: const *Present = &value
-    discard catch cast(IFoo?, pointer)     // swc-expected-error {{sema_err_cannot_cast_const}}
+    discard catch (cast(IFoo?, pointer)     // swc-expected-error {{sema_err_cannot_cast_const}}
+                   )
 }
 
 #test

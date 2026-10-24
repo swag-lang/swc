@@ -84,7 +84,7 @@ impl DocumentText
     {
         var openErrorOutcome: Swag.Error
         var reader: #decltype(expect Reader.open(.fileName.toString()))
-        catch { reader = try Reader.open(.fileName.toString()) } as &openErrorOutcome
+        catch { reader = try Reader.open(.fileName.toString()) } as openErrorOutcome
         let openError = openErrorOutcome.value()
         if openError == null
         {
@@ -95,7 +95,7 @@ impl DocumentText
                     return
                 var pageErrorOutcome: Swag.Error
                 var text: #decltype(expect reader.loadPageText(index))
-                catch { text = try reader.loadPageText(index) } as &pageErrorOutcome
+                catch { text = try reader.loadPageText(index) } as pageErrorOutcome
                 let pageError = pageErrorOutcome.value()
                 if pageError == null do
                     .pages[index] = #move text

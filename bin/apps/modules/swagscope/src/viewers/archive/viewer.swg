@@ -86,7 +86,7 @@ impl ZipEntryExtract
         .submit(func|operation|()
         {
             var extractErrorOutcome: Swag.Error
-            catch Zip.extractEntry(operation.archiveFileName, &operation.entry, operation.destination) as &extractErrorOutcome
+            catch Zip.extractEntry(operation.archiveFileName, &operation.entry, operation.destination) as extractErrorOutcome
             let extractError = extractErrorOutcome.value()
             operation.error = Viewer.failureText(extractError)
         },
@@ -361,9 +361,9 @@ private impl Panel
             else
             {
                 let entry = &.archive.entries[.activePreview]
-                catch .embedded.open(.previewFile, entry.path) as openError else
+                catch .embedded.open(.previewFile, entry.path)
                 {
-                    .showPreviewStatus(Format.toString("%\n%", texts().ui_PreviewError, Viewer.failureText(openError)))
+                    .showPreviewStatus(Format.toString("%\n%", texts().ui_PreviewError, Viewer.failureText(Swag.err)))
                     return
                 }
 

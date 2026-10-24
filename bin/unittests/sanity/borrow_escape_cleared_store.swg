@@ -128,9 +128,10 @@ func clearedStoreLoopReturn(slot: *ClearedStoreSlot, value: *s32, early: bool)
 func clearedStoreRejectExits(slot: *ClearedStoreSlot, condition: bool)
 {
     var value = 7
-    clearedStoreEarlyReturn(slot, &value, condition)            // swc-expected-error {{sanity_err_borrow_escape}}
-    catch clearedStoreEarlyFailure(slot, &value, condition)     // swc-expected-error {{sanity_err_borrow_escape}}
-    clearedStoreLoopReturn(slot, &value, condition)             // swc-expected-error {{sanity_err_borrow_escape}}
+    clearedStoreEarlyReturn(slot, &value, condition)             // swc-expected-error {{sanity_err_borrow_escape}}
+    catch (clearedStoreEarlyFailure(slot, &value, condition)     // swc-expected-error {{sanity_err_borrow_escape}}
+           )
+    clearedStoreLoopReturn(slot, &value, condition)     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 var clearedStoreSaved: *s32?

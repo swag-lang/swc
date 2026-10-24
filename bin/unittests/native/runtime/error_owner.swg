@@ -10,7 +10,7 @@ func failOwnedInteger(value: s64) fail
 func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
 {
     var errorOutcome: Swag.Error
-    catch owner.raise() as &errorOutcome
+    catch owner.raise() as errorOutcome
     let error = errorOutcome.value()
     if error is s64 as value do
         return value[] == expected
@@ -26,7 +26,7 @@ func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
     owner.reset()
     owner.capture(null)
     var errorOutcome: Swag.Error
-    catch copied.raise() as &errorOutcome
+    catch copied.raise() as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error == null)
     copied.reset()
@@ -59,14 +59,14 @@ func ownedIntegerEquals(owner: const *Error, expected: s64)->bool
         var owner: Error
         scope
         {
-            catch failOwnedInteger(41) as error else { owner.capture(error) }
+            catch failOwnedInteger(41) { owner.capture(Swag.err) }
         }
         owner = owner
         var copied = owner
         var moved  = #move copied
         scope
         {
-            catch failOwnedInteger(73) as error else { owner.capture(error) }
+            catch failOwnedInteger(73) { owner.capture(Swag.err) }
         }
         valid = valid and ownedIntegerEquals(&owner, 73) and ownedIntegerEquals(&moved, 41)
         scope

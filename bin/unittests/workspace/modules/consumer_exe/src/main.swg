@@ -469,21 +469,21 @@ func verifyImportedPropagate()
 {
     var genericSuccessOutcome: Swag.Error
     var generic: #decltype(expect depPropagateGeneric(5's32, true))
-    catch { generic = try depPropagateGeneric(5's32, true) } as &genericSuccessOutcome
+    catch { generic = try depPropagateGeneric(5's32, true) } as genericSuccessOutcome
     let genericSuccess = genericSuccessOutcome.value()
     Swag.assert(generic == 5 and genericSuccess == null)
     var genericFailureOutcome: Swag.Error
-    discard catch depPropagateGeneric(5's32, false) as &genericFailureOutcome
+    discard catch depPropagateGeneric(5's32, false) as genericFailureOutcome
     let genericFailure = genericFailureOutcome.value()
     Swag.assert(genericFailure is DepPropagateError)
 
     var inlineSuccessOutcome: Swag.Error
     var inlined: #decltype(expect depPropagateInline(true))
-    catch { inlined = try depPropagateInline(true) } as &inlineSuccessOutcome
+    catch { inlined = try depPropagateInline(true) } as inlineSuccessOutcome
     let inlineSuccess = inlineSuccessOutcome.value()
     Swag.assert(inlined == 21 and inlineSuccess == null)
     var inlineFailureOutcome: Swag.Error
-    discard catch depPropagateInline(false) as &inlineFailureOutcome
+    discard catch depPropagateInline(false) as inlineFailureOutcome
     let inlineFailure = inlineFailureOutcome.value()
     Swag.assert(inlineFailure is DepPropagateError)
 }
@@ -522,14 +522,14 @@ func verifyRuntimeTypeCrossDllIdentity()
 
     // A fallible import that succeeds must leave the capture null.
     var noneOutcome: Swag.Error
-    catch ctxSharedMayFailNothing() as &noneOutcome
+    catch ctxSharedMayFailNothing() as noneOutcome
     let none = noneOutcome.value()
     Swag.assert(none == null)
 
     // An error raised in the DLL carries the DLL's descriptor; classifying, walking and casting
     // it here uses this executable's.
     var raisedOutcome: Swag.Error
-    catch ctxSharedRaiseSystemError() as &raisedOutcome
+    catch ctxSharedRaiseSystemError() as raisedOutcome
     let raised = raisedOutcome.value()
     Swag.assert(raised != null)
     Swag.assert((raised is Swag.SystemError))
@@ -544,7 +544,7 @@ func verifyRuntimeTypeCrossDllIdentity()
     }
     Swag.assert(hit == 2)
 
-    let sysErr = catch cast(*Swag.SystemError?, raised) else null
+    let sysErr = catch cast(*Swag.SystemError?, raised)
     Swag.assert(sysErr != null)
     Swag.assert(sysErr.message == "raised across the boundary")
 }

@@ -308,9 +308,9 @@ impl PdfPageCache
                 return
             }
 
-            var opened = catch Pdf.Reader.open(.fileName.toString()) as openError else
+            var opened = catch Pdf.Reader.open(.fileName.toString())
             {
-                .readerError = Errors.message(openError)
+                .readerError = Errors.message(Swag.err)
                 .loadFailure = .readerError
                 return
             }
@@ -319,9 +319,9 @@ impl PdfPageCache
             .readerReady = true
         }
 
-        var page = catch .reader.loadPage(.loadIndex) as pageError else
+        var page = catch .reader.loadPage(.loadIndex)
         {
-            .loadFailure = Errors.message(pageError)
+            .loadFailure = Errors.message(Swag.err)
             return
         }
 

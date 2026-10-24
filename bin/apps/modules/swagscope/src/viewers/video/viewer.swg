@@ -450,24 +450,24 @@ impl Panel
         if .resumeAudioAfterSeek
         {
             let sample = soundSample(.audio, .currentSeconds())
-            catch .voice.seekSampleFrame(sample) as seekError else
+            catch .voice.seekSampleFrame(sample)
             {
                 .resumeAudioAfterSeek = false
                 .playing = false
                 .audioRangePending    = false
                 catch .voice.pause()
-                .services.failed(me, Viewer.failureText(seekError))
+                .services.failed(me, Viewer.failureText(Swag.err))
                 return
             }
         }
 
         .resumeAudioAfterSeek = false
         .audioRangePending    = false
-        catch .voice.play() as playError else
+        catch .voice.play()
         {
             .playing = false
             .refreshTransport()
-            .services.failed(me, Viewer.failureText(playError))
+            .services.failed(me, Viewer.failureText(Swag.err))
             return
         }
 
@@ -965,9 +965,9 @@ private impl Panel
 // Keeping both phases on one runtime context avoids moving codec allocations between thread caches.
 private func runViewerDecode(view: *Panel)
 {
-    var video = catch Reader.open(view.openFileName) as openError else
+    var video = catch Reader.open(view.openFileName)
     {
-        view.openFailure = Viewer.failureText(openError)
+        view.openFailure = Viewer.failureText(Swag.err)
         Atomic.exchange(&view.openState, OpenFailed)
         return
     }
@@ -1014,8 +1014,8 @@ func createViewer(host: Viewer.Host)
         }
 
         host.setLifecycle(lifecycle)
-    } as createError else
+    }
     {
-        host.reject(Viewer.failureText(createError))
+        host.reject(Viewer.failureText(Swag.err))
     }
 }

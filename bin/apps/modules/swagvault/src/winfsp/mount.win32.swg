@@ -36,10 +36,10 @@ namespace WinFsp
             .holdsRuntime       = true
             g_WinFsp.mountCount += 1
 
-            discard catch registerPortableWinFsp() as registerError else
+            discard catch registerPortableWinFsp()
             {
                 .stop()
-                fail registerError
+                fail Swag.err
             }
 
             traceWinFspStage("portable driver registration complete")

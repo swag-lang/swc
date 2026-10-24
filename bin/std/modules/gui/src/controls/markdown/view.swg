@@ -634,9 +634,9 @@ private impl View
         if .sourceDone do
             return
 
-        let chunk = catch .stream.readUtf8Chunk(StreamChunkSize) as readError else
+        let chunk = catch .stream.readUtf8Chunk(StreamChunkSize)
         {
-            .reportLoadFailure(Errors.message(readError))
+            .reportLoadFailure(Errors.message(Swag.err))
             return
         }
 
@@ -657,7 +657,7 @@ private impl View
         .sourceCarry += chunk
         var positionErrorOutcome: Swag.Error
         var position: #decltype(expect .stream.position())
-        catch { position = try .stream.position() } as &positionErrorOutcome
+        catch { position = try .stream.position() } as positionErrorOutcome
         let positionError = positionErrorOutcome.value()
         if positionError == null do
             .bytesRead = position
@@ -1344,7 +1344,7 @@ impl View
         let result = View.create(contentParent, documentStyle)
         result.fileName = fileName
         var openErrorOutcome: Swag.Error
-        catch { result.stream = try File.openReadLive(fileName) } as &openErrorOutcome
+        catch { result.stream = try File.openReadLive(fileName) } as openErrorOutcome
         let openError = openErrorOutcome.value()
         if openError != null
         {
@@ -1354,7 +1354,7 @@ impl View
         {
             var sizeErrorOutcome: Swag.Error
             var size: #decltype(expect result.stream.size())
-            catch { size = try result.stream.size() } as &sizeErrorOutcome
+            catch { size = try result.stream.size() } as sizeErrorOutcome
             let sizeError = sizeErrorOutcome.value()
             if sizeError == null do
                 result.fileSize = size
@@ -1725,10 +1725,10 @@ impl View
             .jumpToEnd = true
         for adjustment in 4
         {
-            .stream = catch File.openReadLive(.fileName.toString()) else { return false }
+            .stream = catch File.openReadLive(.fileName.toString()) { return false }
             let actual = Math.min(start + adjustment, .fileSize)
             discard catch .stream.seek(.Begin, actual)
-            var chunk = catch .stream.readUtf8Chunk(exactHeading ? StreamChunkSize : RevealChunkSize) else
+            var chunk = catch .stream.readUtf8Chunk(exactHeading ? StreamChunkSize : RevealChunkSize)
             {
                 .stream.close()
                 continue

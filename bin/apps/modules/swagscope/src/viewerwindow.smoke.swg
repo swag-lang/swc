@@ -7,7 +7,7 @@ impl ViewerWindow
     {
         var pathErrorOutcome: Swag.Error
         var absolute:         #decltype(expect Path.absolute(directory))
-        catch { absolute = try Path.absolute(directory) } as &pathErrorOutcome
+        catch { absolute = try Path.absolute(directory) } as pathErrorOutcome
         let pathError = pathErrorOutcome.value()
         if pathError != null or not Directory.exists(absolute)
         {
@@ -68,7 +68,7 @@ impl ViewerWindow
             return
         }
 
-        var absolute = catch Path.absolute(fileName) else
+        var absolute = catch Path.absolute(fileName)
         {
             .finishSmokeReview(1, Format.toString("Swag Scope smoke cannot resolve fixture path: %", fileName))
             return

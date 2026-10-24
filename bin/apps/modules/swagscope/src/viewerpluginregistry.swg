@@ -52,13 +52,13 @@ private impl NameKey
 private func readProbeHead(fileName: string)->Array'u8
 {
     var result: retval
-    var stream = catch File.openReadLive(fileName) else { return result }
+    var stream = catch File.openReadLive(fileName) { return result }
     defer stream.close()
 
     result.resize(Viewer.ProbeHeadSize)
     var readErrorOutcome: Swag.Error
     var count: #decltype(expect stream.read(result.toSlice()))
-    catch { count = try stream.read(result.toSlice()) } as &readErrorOutcome
+    catch { count = try stream.read(result.toSlice()) } as readErrorOutcome
     let readError = readErrorOutcome.value()
     if readError != null do
         result.clear()

@@ -381,7 +381,7 @@ impl InlineView
 
     mtd appendMath(source: string, state: InlineState)
     {
-        let expression = catch MathExpression.parse(source) else
+        let expression = catch MathExpression.parse(source)
         {
             .appendText(source, state)
             return

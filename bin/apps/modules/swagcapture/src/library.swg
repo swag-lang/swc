@@ -125,10 +125,10 @@ impl Library
     {
         let dst = uniqueName(dstFolder, srcFile)
 
-        catch File.duplicate(dst, srcFile) else do
+        catch File.duplicate(dst, srcFile) do
             return ""
 
-        catch File.delete(srcFile) else
+        catch File.delete(srcFile)
         {
             discard catch File.delete(dst)
             return ""
@@ -139,7 +139,7 @@ impl Library
 
     func emptyTrash()
     {
-        let files = catch enumerateTrash() else
+        let files = catch enumerateTrash()
         {
             return
         }
@@ -162,7 +162,7 @@ impl Library
 
     mtd fill()
     {
-        .files    = catch enumerateSupportedFiles(getFolder()) else {}
+        .files    = catch enumerateSupportedFiles(getFolder())
         .loaded   = true
         .revision += 1
     }
@@ -202,7 +202,7 @@ impl Library
 
     mtd addFile(name: String)
     {
-        let file = catch File.info(name) else
+        let file = catch File.info(name)
         {
             return
         }

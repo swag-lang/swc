@@ -228,9 +228,9 @@ private impl RenderThread
         var failed = false
         .execute(func|&callback, &message, &failed|()
         {
-            catch callback() as error else
+            catch callback()
             {     // Never transfer a borrowed message or error-allocator pointer between contexts.
-                message = Format.toString("%: %", Swag.kindOf(error).name orelse "backend", Errors.message(error))
+                message = Format.toString("%: %", Swag.kindOf(Swag.err).name orelse "backend", Errors.message(Swag.err))
                 failed  = true
             }
         })

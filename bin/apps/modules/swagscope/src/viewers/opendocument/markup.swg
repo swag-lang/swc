@@ -74,7 +74,7 @@ func positiveAttribute(attributes, name: string, maximum: u64)->u64
         return 1
     var parseErrorOutcome: Swag.Error
     var parsed: #decltype(expect StrConv.parseU64(value))
-    catch { parsed = try StrConv.parseU64(value) } as &parseErrorOutcome
+    catch { parsed = try StrConv.parseU64(value) } as parseErrorOutcome
     let parseError = parseErrorOutcome.value()
     if parseError != null or parsed.eat != value.count or not parsed.value do
         return 1
@@ -118,7 +118,7 @@ func imageDimension(attributes, name: string)->String
 
     var parseErrorOutcome: Swag.Error
     var parsed: #decltype(expect StrConv.parseF64(value[0 until end]))
-    catch { parsed = try StrConv.parseF64(value[0 until end]) } as &parseErrorOutcome
+    catch { parsed = try StrConv.parseF64(value[0 until end]) } as parseErrorOutcome
     let parseError = parseErrorOutcome.value()
     if parseError != null or parsed.ovf do
         return {}
@@ -219,7 +219,7 @@ func fontSize(attributes: string)->String
     if not end do
         return {}
 
-    let parsed = catch StrConv.parseF64(value[0 until end]) else { return {} }
+    let parsed = catch StrConv.parseF64(value[0 until end]) { return {} }
     if parsed.ovf do
         return {}
 
@@ -583,7 +583,7 @@ private impl Reader
 
         var decodeErrorOutcome: Swag.Error
         var bytes: #decltype(expect Base64.decode(payload))
-        catch { bytes = try Base64.decode(payload) } as &decodeErrorOutcome
+        catch { bytes = try Base64.decode(payload) } as decodeErrorOutcome
         let decodeError = decodeErrorOutcome.value()
         if decodeError != null or
            bytes.isEmpty() or

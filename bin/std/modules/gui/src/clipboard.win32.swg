@@ -85,7 +85,7 @@ func hasTypedData(fmt: ValueFormat, type: typeinfo?)->bool
         let payload = try TypedPayload.decode(Swag.makeSlice(data, GlobalSize(hglob)))
         return payload.matches(type)
     }
-    else {}
+
     return false
 }
 
@@ -134,7 +134,6 @@ func getTypedData(fmt: ValueFormat, type: typeinfo?)->Array'u8
         if payload.matches(type) and payload.data do
             result.add(payload.data)
     }
-    else {}
 
     return result
 }
@@ -178,14 +177,14 @@ func addImage(image: Image)
     // Pixel owns DIB channel ordering, row padding, and straight-alpha conversion.
     var dibErrorOutcome: Swag.Error
     var dib: #decltype(expect image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}))
-    catch { dib = try image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}) } as &dibErrorOutcome
+    catch { dib = try image.encodeToBytes("clipboard.bmp", Bmp.EncodeOptions{fileHeader: false}) } as dibErrorOutcome
     let dibError = dibErrorOutcome.value()
     if dibError == null do
         addNativeData(CF_DIB, dib.toSlice())
 
     var pngErrorOutcome: Swag.Error
     var png: #decltype(expect image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}))
-    catch { png = try image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}) } as &pngErrorOutcome
+    catch { png = try image.encodeToBytes("clipboard.png", Png.EncodeOptions{compressionLevel: .NoCompression}) } as pngErrorOutcome
     let pngError = pngErrorOutcome.value()
     if pngError == null do
         addNativeData(g_PngFormat, png.toSlice())
@@ -221,7 +220,7 @@ func getImage()->Image
             if not pz do
                 return result
             defer discard GlobalUnlock(hglob)
-            return catch Image.decode("clipboard.png", Swag.makeSlice(pz, size), {}) else {}
+            return catch Image.decode("clipboard.png", Swag.makeSlice(pz, size), {})
         }
     }
 
@@ -236,7 +235,7 @@ func getImage()->Image
             if not pz do
                 return result
             defer discard GlobalUnlock(hglob)
-            return catch Image.decode("clipboard.bmp", Swag.makeSlice(pz, size), {}) else {}
+            return catch Image.decode("clipboard.bmp", Swag.makeSlice(pz, size), {})
         }
     }
 
@@ -351,5 +350,5 @@ func clear()
 
 #init
 {
-    g_PngFormat = catch RegisterClipboardFormatA(("PNG").buffer) else 0
+    g_PngFormat = catch RegisterClipboardFormatA(("PNG").buffer)
 }

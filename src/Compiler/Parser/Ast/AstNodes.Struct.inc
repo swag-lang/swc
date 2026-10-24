@@ -1498,12 +1498,12 @@ struct AstAliasDecl : AstNamedNodeT<AstNodeId::AliasDecl>
 struct AstErrorManagementExpr : AstNodeT<AstNodeId::ErrorManagementExpr>
 {
     AstNodeRef nodeExprRef;
-    AstNodeRef nodeCaptureRef; // explicit owner address in 'as &owner'
+    AstNodeRef nodeCaptureRef; // 'Swag.Error' owner in 'as owner'
 
-    // 'catch e else V' value used when 'e' fails; invalid otherwise.
+    // 'catch e orelse V' value, or 'catch e { H }' handler block, used when 'e' fails.
     AstNodeRef nodeFallbackRef;
 
-    // Optional error binding, visible only in the fallback or handler.
+    // First 'Swag.err' read in the fallback or handler: the error binding it needs.
     TokenRef errNameTokRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCaptureRef, nodeExprRef, nodeFallbackRef}); }
@@ -1839,10 +1839,10 @@ struct AstInfiniteLoopStmt : AstNodeT<AstNodeId::InfiniteLoopStmt>
 struct AstErrorManagementStmt : AstNodeT<AstNodeId::ErrorManagementStmt>
 {
     AstNodeRef nodeBodyRef;
-    AstNodeRef nodeCaptureRef; // explicit owner address in 'as &owner'
-    AstNodeRef nodeHandlerRef; // 'catch e else { H }' failure handler; invalid otherwise
+    AstNodeRef nodeCaptureRef; // 'Swag.Error' owner in 'as owner'
+    AstNodeRef nodeHandlerRef; // 'catch e { H }' failure handler; invalid otherwise
 
-    // Optional error binding, visible only in the handler.
+    // First 'Swag.err' read in the handler: the error binding it needs.
     TokenRef errNameTokRef;
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeCaptureRef, nodeBodyRef, nodeHandlerRef}); }

@@ -420,7 +420,7 @@ private impl Panel
     {
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU64(text))
-        catch { parsed = try StrConv.parseU64(text) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseU64(text) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError != null or
            parsed.eat != text.count or

@@ -202,7 +202,7 @@ private func actualSnapshots(context: *Context)->Array'String
     for suffix in [".actual.txt", ".actual.png"]
     {
         let extension = suffix == ".actual.txt" ? ".txt" : ".png"
-        let entries   = catch Directory.enumerateFiles(context.binDir.toString(), extension, recurse: true) else { continue }
+        let entries   = catch Directory.enumerateFiles(context.binDir.toString(), extension, recurse: true) { continue }
 
         for entry in entries
         {
@@ -379,7 +379,7 @@ public func runVaultIntegration(context: *Context, options: *Options)->s32 fail
     {
         var errOutcome: Swag.Error
         var content:    #decltype(expect File.readAllText(report.toString()))
-        catch { content = try File.readAllText(report.toString()) } as &errOutcome
+        catch { content = try File.readAllText(report.toString()) } as errOutcome
         let err = errOutcome.value()
         if err == null do
             Console.print(content.toString())
@@ -412,7 +412,7 @@ public func runBench(context: *Context, options: *Options)->s32 fail
 
     var errOutcome: Swag.Error
     var code:       #decltype(expect context.runProgram("python.exe", arguments))
-    catch { code = try context.runProgram("python.exe", arguments) } as &errOutcome
+    catch { code = try context.runProgram("python.exe", arguments) } as errOutcome
     let err = errOutcome.value()
     if err == null do
         return code
@@ -423,7 +423,7 @@ public func runBench(context: *Context, options: *Options)->s32 fail
     launched.add(["-3", campaign.toString()])
     options.appendExtra(&launched)
 
-    code = catch context.runProgram("py.exe", launched) else
+    code = catch context.runProgram("py.exe", launched)
     {
         Console.println("Python 3 is required to run the benchmark, and neither `py` nor `python` is on PATH.")
         return 1

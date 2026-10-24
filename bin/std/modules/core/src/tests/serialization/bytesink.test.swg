@@ -60,7 +60,7 @@ func writeSinkStream(sink: *ByteSink)->Array'u8
     // A patch cannot reach past what was written, and an empty one changes nothing.
     const Overrun: [3] u8 = [0, 0, 0]
     var pastEndOutcome: Swag.Error
-    discard catch sink.patch(expected.count - 2, Overrun) as &pastEndOutcome
+    discard catch sink.patch(expected.count - 2, Overrun) as pastEndOutcome
     let pastEnd = pastEndOutcome.value()
     Swag.assert(pastEnd is BadParameterError)
     var none: Array'u8
@@ -119,7 +119,7 @@ func writeByteSinkAtOverflowingPosition(sink: *ByteSink, bytes: const [..] u8) f
     sink.written = Swag.U64.Max - 1
 
     var overflowOutcome: Swag.Error
-    discard catch writeByteSinkAtOverflowingPosition(&sink, [0xAA'u8, 0xBB]) as &overflowOutcome
+    discard catch writeByteSinkAtOverflowingPosition(&sink, [0xAA'u8, 0xBB]) as overflowOutcome
     Swag.assert(overflowOutcome.value() is OverflowError)
     Swag.assert(sink.position() == Swag.U64.Max - 1)
     Swag.assert(buffer.toString() == "prefix")

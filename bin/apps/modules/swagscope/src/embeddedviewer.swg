@@ -221,7 +221,7 @@ private impl EmbeddedViewer
         }
 
         let pluginHost: Viewer.Host = &host
-        catch next.create(plugin, pluginHost) as viewerError else { next.failureReason = Viewer.failureText(viewerError) }
+        catch next.create(plugin, pluginHost) { next.failureReason = Viewer.failureText(Swag.err) }
         if not next.failureReason.isEmpty() do
             next.replaceWithFailure(.document)
 

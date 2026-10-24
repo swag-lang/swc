@@ -545,7 +545,7 @@ private func buildDib(data: *DragData)->HGLOBAL
     if not image do
         return null
 
-    let bytes = catch image.encodeToBytes("drag.bmp", Bmp.EncodeOptions{fileHeader: false}) else { return null }
+    let bytes = catch image.encodeToBytes("drag.bmp", Bmp.EncodeOptions{fileHeader: false}) { return null }
     return toGlobalBlock(bytes.toSlice())
 }
 
@@ -1127,7 +1127,7 @@ private func buildDragBitmap(image: const *Image)->{ bmp: HBITMAP, width, height
     var raw:        *void?
     var errOutcome: Swag.Error
     var bmp:        #decltype(expect CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0))
-    catch { bmp = try CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0) } as &errOutcome
+    catch { bmp = try CreateDIBSection(null, &info, DIB_RGB_COLORS, &raw, null, 0) } as errOutcome
     let err = errOutcome.value()
     if err != null or not bmp or not raw do
         return result
@@ -1344,7 +1344,7 @@ internal impl Surface
     g_DropSourceVtbl.QueryContinueDrag = &dropSrcQueryContinueDrag
     g_DropSourceVtbl.GiveFeedback      = &dropSrcGiveFeedback
 
-    g_PngDragFormat        = catch RegisterClipboardFormatA(("PNG").buffer) else 0
-    g_FileDescriptorFormat = catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer) else 0
-    g_FileContentsFormat   = catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer) else 0
+    g_PngDragFormat        = catch RegisterClipboardFormatA(("PNG").buffer)
+    g_FileDescriptorFormat = catch RegisterClipboardFormatA(CFSTR_FILEDESCRIPTORW.buffer)
+    g_FileContentsFormat   = catch RegisterClipboardFormatA(CFSTR_FILECONTENTS.buffer)
 }

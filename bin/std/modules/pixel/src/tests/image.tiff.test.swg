@@ -493,7 +493,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
 
     var err11Outcome: Swag.Error
     var img: #decltype(expect decodeTiff(nnBytes(cb.toSlice())))
-    catch { img = try decodeTiff(nnBytes(cb.toSlice())) } as &err11Outcome
+    catch { img = try decodeTiff(nnBytes(cb.toSlice())) } as err11Outcome
     let err11 = err11Outcome.value()
     Swag.assert(err11 != null)
 }
@@ -599,7 +599,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let buf = buildTiff(true, 1, 1, 2, 1, 1, 1, 8, nnBytes(pix.toSlice()), null, false)
     var err13Outcome: Swag.Error
     var img: #decltype(expect decodeTiff(nnBytes(buf.toSlice())))
-    catch { img = try decodeTiff(nnBytes(buf.toSlice())) } as &err13Outcome
+    catch { img = try decodeTiff(nnBytes(buf.toSlice())) } as err13Outcome
     let err13 = err13Outcome.value()
     Swag.assert(err13 != null)
 }
@@ -614,7 +614,7 @@ func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
     let buf = buildTiff(true, 1, 1, 1, 1, 1, 1, 16, nnBytes(pix.toSlice()), null, false)
     var err14Outcome: Swag.Error
     var img: #decltype(expect decodeTiff(nnBytes(buf.toSlice())))
-    catch { img = try decodeTiff(nnBytes(buf.toSlice())) } as &err14Outcome
+    catch { img = try decodeTiff(nnBytes(buf.toSlice())) } as err14Outcome
     let err14 = err14Outcome.value()
     Swag.assert(err14 != null)
 }

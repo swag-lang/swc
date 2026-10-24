@@ -16,7 +16,7 @@ func audioStartNoSoundEngine()
 {
     Swag.assert(not isEngineCreated())
     var errNoEngineOutcome: Swag.Error
-    discard catch outputVolume() as &errNoEngineOutcome
+    discard catch outputVolume() as errNoEngineOutcome
     let errNoEngine = errNoEngineOutcome.value()
     Swag.assert((errNoEngine is Errors.BadParameterError))
 
@@ -25,18 +25,18 @@ func audioStartNoSoundEngine()
     Swag.assert(activeDriverKind() == .NoSound)
 
     var errDuplicateOutcome: Swag.Error
-    discard catch createEngine(.NoSound) as &errDuplicateOutcome
+    discard catch createEngine(.NoSound) as errDuplicateOutcome
     let errDuplicate = errDuplicateOutcome.value()
     Swag.assert((errDuplicate is Errors.BadParameterError))
 
     var errChannelsOutcome: Swag.Error
-    catch checkBusCreation(0) as &errChannelsOutcome
+    catch checkBusCreation(0) as errChannelsOutcome
     let errChannels = errChannelsOutcome.value()
     Swag.assert((errChannels is Errors.BadParameterError))
 
     var emptyFile:      SoundFile
     var errFileOutcome: Swag.Error
-    catch checkVoiceCreation(&emptyFile) as &errFileOutcome
+    catch checkVoiceCreation(&emptyFile) as errFileOutcome
     let errFile = errFileOutcome.value()
     Swag.assert((errFile is Errors.BadParameterError))
 
@@ -91,7 +91,7 @@ func audioStartNoSoundEngine()
     audioAssertFloat(expect child.volumeDb(), -6.0206, 0.0002)
     var invalidParent: Bus
     var err12Outcome:  Swag.Error
-    catch checkBusCreation(1, &invalidParent) as &err12Outcome
+    catch checkBusCreation(1, &invalidParent) as err12Outcome
     let err12 = err12Outcome.value()
     Swag.assert((err12 is Errors.BadParameterError))
 
@@ -123,7 +123,7 @@ func audioStartNoSoundEngine()
     audioAssertFloat(handle.frequencyRatio, 1.75)
     audioAssertFloat(expect voice.frequencyRatio(), 1.75)
     var errInvalidRatioOutcome: Swag.Error
-    discard catch voice.setFrequencyRatio(0) as &errInvalidRatioOutcome
+    discard catch voice.setFrequencyRatio(0) as errInvalidRatioOutcome
     let errInvalidRatio = errInvalidRatioOutcome.value()
     Swag.assert((errInvalidRatio is Errors.BadParameterError))
 

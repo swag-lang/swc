@@ -48,7 +48,7 @@ struct XmlPayload
     {
         var decoder:    Serialization.Decoder'Serialization.Read.Xml
         var errOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as &errOutcome
+        catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, cast(const [..] u8, input)) as errOutcome
         let err = errOutcome.value()
         Swag.assert(err != null)
     }
@@ -59,7 +59,7 @@ struct XmlPayload
     let invalidXml: String = "<p>\n<id>7</id>\n<active>true</active>\n<name>x\ny&nbsp;</name><counts></counts><pair><x>0</x><y>0</y></pair></p>"
     var decoder:    Serialization.Decoder'Serialization.Read.Xml
     var errOutcome: Swag.Error
-    discard catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as &errOutcome
+    discard catch CoreTests.readAndDelete'(XmlPayload, Serialization.Read.Xml)(&decoder, invalidXml.toSlice()) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err is SyntaxError)
 

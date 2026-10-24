@@ -115,7 +115,7 @@ internal func readSoftMask(parser: *PdfParser, entry: u32, ctm: Transform2)->Sof
     let group = parser.dict(groupId, "Group")
     var spaceErrorOutcome: Swag.Error
     var space: #decltype(expect resolveImageSpace(parser, parser.dictRaw(group, "CS"), parser.dict(groupId, "Resources"), 0))
-    catch { space = try resolveImageSpace(parser, parser.dictRaw(group, "CS"), parser.dict(groupId, "Resources"), 0) } as &spaceErrorOutcome
+    catch { space = try resolveImageSpace(parser, parser.dictRaw(group, "CS"), parser.dict(groupId, "Resources"), 0) } as spaceErrorOutcome
     let spaceError = spaceErrorOutcome.value()
     var values: [8] f32
     let count      = Math.min(parser.nodes[backdropId].values.count, 8'u64)

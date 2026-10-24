@@ -25,20 +25,20 @@ func catchOwnerEarlyReturn()->u32
 {
     defer #fail catchOwnerFailDefers += 1
     defer #nofail catchOwnerNoFailDefers += 1
-    catch failCatchOwner(48) else do
+    catch failCatchOwner(48) do
         return 1
     return 0
 }
 
 func rethrowCatchOwner() fail
 {
-    catch failCatchOwner(80) as error else { fail error }
+    catch failCatchOwner(80) { fail Swag.err }
 }
 
 #[Swag.Inline]
 func inlineCatchOwner()->u32
 {
-    catch failCatchOwner(112) as error else { return assume cast(const *CatchOwnerError, error).generation }
+    catch failCatchOwner(112) { return assume cast(const *CatchOwnerError, Swag.err).generation }
     return 0
 }
 
@@ -54,7 +54,7 @@ func catchOwnerBoolean()->bool fail
 func conditionalCatchOwner(take: bool)
 {
     var errorOutcome: Swag.Error
-    let result = take and (catch catchOwnerBoolean() as &errorOutcome else false)
+    let result = take and (catch catchOwnerBoolean() as errorOutcome)
     let error  = errorOutcome.value()
     Swag.assert(not result)
     Swag.assert((error != null) == take)
@@ -71,7 +71,7 @@ func deferredDirectCatchOwner()
 func deferredHandledCatchOwner()
 {
     defer #nofail catchOwnerNoFailDefers += 1
-    defer catch failCatchOwner(192) else
+    defer catch failCatchOwner(192)
     {
         catchOwnerHandlerRuns += 1
     }
@@ -81,7 +81,7 @@ func deferredHandledCatchOwner()
 #[Swag.NoInline]
 func deferredFailingCatchOwner() fail
 {
-    defer catch failCatchOwner(208) else
+    defer catch failCatchOwner(208)
     {
         fail CatchOwnerError{generation: 224}
     }
@@ -101,7 +101,7 @@ func deferredFailingCatchOwner() fail
     scope
     {
         var firstOutcome: Swag.Error
-        catch failCatchOwner(0) as &firstOutcome
+        catch failCatchOwner(0) as firstOutcome
         let first = firstOutcome.value()
         Swag.assert(first != null and (first is CatchOwnerError))
         firstGeneration = assume cast(const *CatchOwnerError, first).generation
@@ -109,7 +109,7 @@ func deferredFailingCatchOwner() fail
         Swag.assert(catchOwnerDrops[firstGeneration].load() == 0)
 
         var secondOutcome: Swag.Error
-        catch failCatchOwner(16) as &secondOutcome
+        catch failCatchOwner(16) as secondOutcome
         let second = secondOutcome.value()
         Swag.assert(second != null and (second is CatchOwnerError))
         secondGeneration = assume cast(const *CatchOwnerError, second).generation
@@ -135,7 +135,7 @@ func deferredFailingCatchOwner() fail
     for 3
     {
         var errorOutcome: Swag.Error
-        catch failCatchOwner(64) as &errorOutcome
+        catch failCatchOwner(64) as errorOutcome
         let error = errorOutcome.value()
         Swag.assert(error != null)
     }
@@ -145,7 +145,7 @@ func deferredFailingCatchOwner() fail
     scope
     {
         var errorOutcome: Swag.Error
-        catch rethrowCatchOwner() as &errorOutcome
+        catch rethrowCatchOwner() as errorOutcome
         let error = errorOutcome.value()
         Swag.assert(error != null and (error is CatchOwnerError))
         rethrownGeneration = assume cast(const *CatchOwnerError, error).generation
@@ -156,7 +156,7 @@ func deferredFailingCatchOwner() fail
 
     for 3
     {
-        catch failCatchOwner(96) else do
+        catch failCatchOwner(96) do
             break
     }
     Swag.assert(catchOwnerDrops[96 + firstGeneration].load() == 1)
@@ -173,10 +173,10 @@ func deferredFailingCatchOwner() fail
     Swag.assert(catchOwnerDrops[128 + firstGeneration].load() == 1)
 
     // A successful nested catch leaves its capture null while the outer handler owns an error.
-    catch failCatchOwner(144) else
+    catch failCatchOwner(144)
     {
         var successOutcome: Swag.Error
-        catch catchOwnerSucceeds() as &successOutcome
+        catch catchOwnerSucceeds() as successOutcome
         let success = successOutcome.value()
         Swag.assert(success == null)
         Swag.assert(catchOwnerDrops[144 + firstGeneration].load() == 0)
@@ -189,7 +189,7 @@ func deferredFailingCatchOwner() fail
         defer
         {
             var cleanupErrorOutcome: Swag.Error
-            catch failCatchOwner(160) as &cleanupErrorOutcome
+            catch failCatchOwner(160) as cleanupErrorOutcome
             let cleanupError = cleanupErrorOutcome.value()
             Swag.assert(cleanupError != null)
             Swag.assert(catchOwnerDrops[160 + firstGeneration].load() == 0)

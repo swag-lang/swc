@@ -94,28 +94,28 @@ using Swag, Core
     bytes[0] = 'x'
     var image: Image
     var signatureErrorOutcome: Swag.Error
-    catch { image = try Image.decode("bad.qoi", bytes, {}) } as &signatureErrorOutcome
+    catch { image = try Image.decode("bad.qoi", bytes, {}) } as signatureErrorOutcome
     let signatureError = signatureErrorOutcome.value()
     Swag.assert(signatureError != null)
 
     bytes     = Valid
     bytes[12] = 2
     var channelErrorOutcome: Swag.Error
-    catch { image = try Image.decode("bad.qoi", bytes, {}) } as &channelErrorOutcome
+    catch { image = try Image.decode("bad.qoi", bytes, {}) } as channelErrorOutcome
     let channelError = channelErrorOutcome.value()
     Swag.assert(channelError != null)
 
     bytes     = Valid
     bytes[14] = 0xC1
     var runErrorOutcome: Swag.Error
-    catch { image = try Image.decode("bad.qoi", bytes, {}) } as &runErrorOutcome
+    catch { image = try Image.decode("bad.qoi", bytes, {}) } as runErrorOutcome
     let runError = runErrorOutcome.value()
     Swag.assert(runError != null)
 
     bytes     = Valid
     bytes[22] = 0
     var markerErrorOutcome: Swag.Error
-    catch { image = try Image.decode("bad.qoi", bytes, {}) } as &markerErrorOutcome
+    catch { image = try Image.decode("bad.qoi", bytes, {}) } as markerErrorOutcome
     let markerError = markerErrorOutcome.value()
     Swag.assert(markerError != null)
 }

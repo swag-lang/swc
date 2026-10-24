@@ -233,7 +233,7 @@ impl IRenderer for PresentProbe
     for 3
     {
         var errorOutcome: Swag.Error
-        discard catch renderer.addImage("render-thread-missing-image.png") as &errorOutcome
+        discard catch renderer.addImage("render-thread-missing-image.png") as errorOutcome
         let error = errorOutcome.value()
         Swag.assert(error is RenderThreadError)
         let message = String.from(Errors.message(error))

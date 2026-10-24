@@ -26,7 +26,7 @@ func internallyHandledOperation()->s32 fail
 {
     var errorOutcome: Swag.Error
     var result:       #decltype(expect assumedOperation(-1))
-    catch { result = try assumedOperation(-1) } as &errorOutcome
+    catch { result = try assumedOperation(-1) } as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(result == 0 and error != null)
     return 42
@@ -74,7 +74,7 @@ func assumedBlock(value: *s32)
         // A later checked operation still owns its failure.
         var errorOutcome: Swag.Error
         var failed:       #decltype(expect assumedOperation(-1))
-        catch { failed = try assumedOperation(-1) } as &errorOutcome
+        catch { failed = try assumedOperation(-1) } as errorOutcome
         let error = errorOutcome.value()
         Swag.assert(failed == 0 and error != null)
     }

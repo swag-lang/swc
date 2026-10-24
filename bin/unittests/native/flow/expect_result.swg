@@ -64,7 +64,7 @@ func uncheckedExpectPointer()->*s32 => expect requiredPointer()
 
     drops = 0
     var errorOutcome: Swag.Error
-    catch consumeFailure() as &errorOutcome
+    catch consumeFailure() as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error != null)
     Swag.assert(drops == 0, "an error produces no result to destroy")

@@ -577,7 +577,7 @@ impl IAllocator for LibraryRejectAllocator
 
     let previousRoot = Library.getFolder()
     var invalidRootErrorOutcome: Swag.Error
-    discard catch g_Library.setFolder(capturePath) as &invalidRootErrorOutcome
+    discard catch g_Library.setFolder(capturePath) as invalidRootErrorOutcome
     let invalidRootError = invalidRootErrorOutcome.value()
     Swag.assert(invalidRootError != null)
     Swag.assert(Library.getFolder() == previousRoot)

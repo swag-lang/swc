@@ -59,7 +59,7 @@ using Swag
     }
 
     var errOutcome: Swag.Error
-    discard catch Crypto.pbkdf2HmacSha256(password, salt, 0, partial) as &errOutcome
+    discard catch Crypto.pbkdf2HmacSha256(password, salt, 0, partial) as errOutcome
     let err = errOutcome.value()
     Swag.assert((err is Errors.BadParameterError))
 }

@@ -58,20 +58,20 @@ func writeSourceFixture(name: string, count: u64)->String
     discard expect source.peek(0)
 
     var pastEndOutcome: Swag.Error
-    discard catch source.readByte() as &pastEndOutcome
+    discard catch source.readByte() as pastEndOutcome
     let pastEnd = pastEndOutcome.value()
     Swag.assert(pastEnd is InvalidFormatError)
     var pastSeekOutcome: Swag.Error
-    discard catch source.seek(9) as &pastSeekOutcome
+    discard catch source.seek(9) as pastSeekOutcome
     let pastSeek = pastSeekOutcome.value()
     Swag.assert(pastSeek is InvalidFormatError)
     var pastPeekOutcome: Swag.Error
-    catch checkPeek(&source, 1) as &pastPeekOutcome
+    catch checkPeek(&source, 1) as pastPeekOutcome
     let pastPeek = pastPeekOutcome.value()
     Swag.assert(pastPeek is InvalidFormatError)
     expect source.seek(6)
     var pastSkipOutcome: Swag.Error
-    discard catch source.skip(3) as &pastSkipOutcome
+    discard catch source.skip(3) as pastSkipOutcome
     let pastSkip = pastSkipOutcome.value()
     Swag.assert(pastSkip is InvalidFormatError)
 
@@ -128,12 +128,12 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(source.position() == 14)
 
     var tooLongOutcome: Swag.Error
-    discard catch source.readLine(4) as &tooLongOutcome
+    discard catch source.readLine(4) as tooLongOutcome
     let tooLong = tooLongOutcome.value()
     Swag.assert(tooLong is InvalidFormatError)
     expect source.seek(14)
     var noTerminatorOutcome: Swag.Error
-    discard catch source.readLine(64) as &noTerminatorOutcome
+    discard catch source.readLine(64) as noTerminatorOutcome
     let noTerminator = noTerminatorOutcome.value()
     Swag.assert(noTerminator is InvalidFormatError)
 }
@@ -231,7 +231,7 @@ func writeSourceFixture(name: string, count: u64)->String
     Swag.assert(tail.count == 3)
     Swag.assert(sourceMatches(tail, Count - 3))
     var pastEndOutcome: Swag.Error
-    catch checkPeek(&source, 4) as &pastEndOutcome
+    catch checkPeek(&source, 4) as pastEndOutcome
     let pastEnd = pastEndOutcome.value()
     Swag.assert(pastEnd is InvalidFormatError)
 
@@ -261,7 +261,7 @@ func writeSourceFixture(name: string, count: u64)->String
 {
     let fileName = CoreTests.makeFilesystemTestPath("bytesource_missing.bin")
     var errOutcome: Swag.Error
-    discard catch ByteSource.openFile(fileName.toString()) as &errOutcome
+    discard catch ByteSource.openFile(fileName.toString()) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }

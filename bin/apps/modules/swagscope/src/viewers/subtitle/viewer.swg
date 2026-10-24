@@ -158,7 +158,7 @@ private impl Panel
             return
         var parseErrorOutcome: Swag.Error
         var cue: #decltype(expect StrConv.toU64(dialog.text()))
-        catch { cue = try StrConv.toU64(dialog.text()) } as &parseErrorOutcome
+        catch { cue = try StrConv.toU64(dialog.text()) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError == null and cue and cue <= .cueText.count do
             discard .revealCue(cue - 1)
@@ -250,7 +250,7 @@ func timeSeconds(text: string, result: *f64)->bool
             return false
         var parseErrorOutcome: Swag.Error
         var value: #decltype(expect StrConv.toF64(part))
-        catch { value = try StrConv.toF64(part) } as &parseErrorOutcome
+        catch { value = try StrConv.toF64(part) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError != null or value < 0 or not Math.isFinite(value) do
             return false
@@ -277,8 +277,8 @@ func createViewer(host: Viewer.Host)
         host.setDetails(formatText(view.track!.sourceFormat()))
 
         host.setSearch(Viewer.searchApi(view))
-    } as createError else
+    }
     {
-        host.reject(Viewer.failureText(createError))
+        host.reject(Viewer.failureText(Swag.err))
     }
 }

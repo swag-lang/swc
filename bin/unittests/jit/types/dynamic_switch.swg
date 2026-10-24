@@ -35,7 +35,7 @@ func readDynamicCase(value: any)->s32
 func inspectCaseCalls(value: any, calls: *s32)->*s32?
 {
     calls[] += 1
-    return (catch cast(*s32?, value) else null)
+    return (catch cast(*s32?, value))
 }
 
 func readCompleteDynamicCase(value: any)->s32

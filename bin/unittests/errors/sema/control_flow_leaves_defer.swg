@@ -30,7 +30,7 @@ func deferContinue()
 
 func deferHandlerReturn()
 {
-    defer catch deferMayFail() else
+    defer catch deferMayFail()
     {
         return     // swc-expected-error {{sema_err_control_flow_leaves_defer}}
     }

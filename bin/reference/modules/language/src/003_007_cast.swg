@@ -67,9 +67,10 @@ The destination also states the presence contract. `*T` requires a present value
 When only nullability changes, the checked conversion tests presence without a
 dynamic type lookup. An assumed presence conversion follows `.Assume` safety.
 
-Use `catch cast(*T?, value)` when a nullable result is useful after a failed
-conversion. `catch ... as error` also preserves its error. Like other caught
-expressions, the destination needs an implicit default value.
+Use `catch cast(*T?, value)` when a failed conversion should produce null: like
+any caught expression, it resumes with the default value of its destination, and
+a nullable destination defaults to null. A handler reads the conversion error
+with `Swag.err`.
 
 These forms apply to `any`, interfaces, and pointers to dynamic structs. A plain
 struct pointer can expose a concrete enclosing type only when its struct is marked
@@ -97,7 +98,7 @@ struct CastButton
 {
     var button: CastButton
     let node:   *CastNode = &button
-    let found = catch cast(*CastButton?, node) else null
+    let found = catch cast(*CastButton?, node)
     if found != null do
         Swag.assert(found.label == "Apply")
     Swag.assert(found != null)

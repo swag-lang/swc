@@ -87,10 +87,10 @@ func returnStoredText(text: string)->string? fail
     scope
     {
         var shortErrorOutcome: Swag.Error
-        catch failStoredText("short") as &shortErrorOutcome
+        catch failStoredText("short") as shortErrorOutcome
         let shortError = shortErrorOutcome.value()
         var longErrorOutcome: Swag.Error
-        catch failStoredText("a long retained message stored beyond the small bump buffer") as &longErrorOutcome
+        catch failStoredText("a long retained message stored beyond the small bump buffer") as longErrorOutcome
         let longError = longErrorOutcome.value()
         context.errorAllocator.release()
         if shortError is BaseError as error do
@@ -155,7 +155,7 @@ func returnStoredText(text: string)->string? fail
     let baseline = allocator.stats().countAlloc
     let pending  = copyStoredText("pending parent text")
     let expected = expect returnStoredText("returned by successful expect")
-    let caught   = catch returnStoredText("returned by successful catch") else null
+    let caught   = catch returnStoredText("returned by successful catch")
     catch failStoredText("an unrelated handled message")
     let valid = pending == "pending parent text" and expected == "returned by successful expect" and
                 caught == "returned by successful catch"
@@ -221,7 +221,7 @@ func failStoredTextWithCleanup() fail
     scope
     {
         var pairedOutcome: Swag.Error
-        catch failNestedStoredText() as &pairedOutcome
+        catch failNestedStoredText() as pairedOutcome
         let paired = pairedOutcome.value()
         if paired is PairedStoredError as error do
             pairValid = error.message == "before the successful child" and
@@ -232,7 +232,7 @@ func failStoredTextWithCleanup() fail
     scope
     {
         var originalOutcome: Swag.Error
-        catch failStoredTextWithCleanup() as &originalOutcome
+        catch failStoredTextWithCleanup() as originalOutcome
         let original = originalOutcome.value()
         if original is BaseError as error do
             cleanupValid = error.message == "the original failure survives cleanup"
@@ -301,7 +301,7 @@ func failStoredTextWithCleanup() fail
         catch parallel for || 1
         {
             try failStoredText("the copied parallel error retains its message")
-        } as &transportedOutcome
+        } as transportedOutcome
         let transported = transportedOutcome.value()
         context.errorAllocator.release()
         if transported is BaseError as error do

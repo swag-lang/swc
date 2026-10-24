@@ -35,7 +35,7 @@ func checkedValue(ok: bool)->s32 fail
 #test
 {
     var errOutcome: Swag.Error
-    catch checkedVoid(false) as &errOutcome
+    catch checkedVoid(false) as errOutcome
     let err = errOutcome.value()
     Swag.assert((err is InlineError))
     Swag.assert(assume cast(InlineError, err).code == 7)
@@ -46,7 +46,7 @@ func checkedValue(ok: bool)->s32 fail
 {
     expect checkedVoid(true)
     var errOutcome: Swag.Error
-    catch checkedVoid(false) as &errOutcome
+    catch checkedVoid(false) as errOutcome
     let err = errOutcome.value()
     Swag.assert((err is InlineError))
 }
@@ -56,7 +56,7 @@ func checkedValue(ok: bool)->s32 fail
     let value = expect checkedValue(true)
     Swag.assert(value == 42)
     var errOutcome: Swag.Error
-    discard catch checkedValue(false) as &errOutcome
+    discard catch checkedValue(false) as errOutcome
     let err = errOutcome.value()
     Swag.assert((err is InlineError))
 }
@@ -64,7 +64,7 @@ func checkedValue(ok: bool)->s32 fail
 #test
 {
     var errOutcome: Swag.Error
-    discard catch checkedValue(false) as &errOutcome
+    discard catch checkedValue(false) as errOutcome
     let err = errOutcome.value()
     Swag.assert((err is InlineError))
     let value = expect checkedValue(true)
@@ -98,7 +98,7 @@ func checkedInjection() fail
 #test
 {
     var errOutcome: Swag.Error
-    catch checkedMacro() as &errOutcome
+    catch checkedMacro() as errOutcome
     let err = errOutcome.value()
     Swag.assert((err is InlineError))
 }
@@ -106,7 +106,7 @@ func checkedInjection() fail
 #test
 {
     var errOutcome: Swag.Error
-    catch checkedInjection() as &errOutcome
+    catch checkedInjection() as errOutcome
     let err = errOutcome.value()
     Swag.assert((err is InlineError))
 }

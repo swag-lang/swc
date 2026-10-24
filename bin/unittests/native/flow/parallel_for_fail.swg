@@ -28,7 +28,7 @@ func failCopied() fail
 #test
 {
     var serialErrorOutcome: Swag.Error
-    catch failCopied() as &serialErrorOutcome
+    catch failCopied() as serialErrorOutcome
     let serialError = serialErrorOutcome.value()
     Swag.assert(serialError != null and (serialError is CopiedLoopFailure))
     let serialGeneration = assume cast(const *CopiedLoopFailure, serialError).generation
@@ -39,7 +39,7 @@ func failCopied() fail
     catch parallel for || 1
     {
         try failCopied()
-    } as &errorOutcome
+    } as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error != null and (error is CopiedLoopFailure))
     let generation = assume cast(const *CopiedLoopFailure, error).generation
@@ -78,7 +78,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
     Swag.assert(unwound.load() == 0)
 
     var errorOutcome: Swag.Error
-    catch fillFallible(values, 128, &unwound) as &errorOutcome
+    catch fillFallible(values, 128, &unwound) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error != null and (error is LoopFailure))
     let detail = assume cast(const *LoopFailure, error)
@@ -92,7 +92,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
     catch parallel for || index in 0
     {
         try failAt(index)
-    } as &emptyErrorOutcome
+    } as emptyErrorOutcome
     let emptyError = emptyErrorOutcome.value()
     Swag.assert(emptyError == null)
 }
@@ -110,7 +110,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
         defer active.sub(1)
         defer #fail finished.add(1)
         try failAt(index)
-    } as &errorOutcome
+    } as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error != null and (error is LoopFailure))
     Swag.assert(active.load() == 0 and finished.load() > 0)
@@ -126,7 +126,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
     var handled = 0'u32
     catch parallel for || index in 1 do
         try failAt(index)
-    else do
+            do
         handled += 1
     Swag.assert(handled == 1)
 
@@ -151,7 +151,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
             if column == 3 do
                 try failAt(row * 8 + column)
         }
-    } as &errorOutcome
+    } as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(active.load() == 0)
     Swag.assert(error != null and (error is LoopFailure))
@@ -175,7 +175,7 @@ func fillFallible(values: [..] u64, fault: u64, unwound: *Swag.AtomicValue'u32) 
                 {
                     if index == 128 do
                         try failAt(row * 1000 + index)
-                } as &errorOutcome
+                } as errorOutcome
                 let error = errorOutcome.value()
                 if error != null and (error is LoopFailure) do
                     results[row] = assume cast(const *LoopFailure, error).index

@@ -26,7 +26,7 @@ func buildSerializationPlan(type: typeinfo) fail
 #test
 {
     var errorOutcome: Swag.Error
-    catch buildSerializationPlan(DuplicatePlanKeys) as &errorOutcome
+    catch buildSerializationPlan(DuplicatePlanKeys) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is Errors.SerializationError)
     let message = Errors.message(error)
@@ -37,7 +37,7 @@ func buildSerializationPlan(type: typeinfo) fail
 #test
 {
     var errorOutcome: Swag.Error
-    catch buildSerializationPlan(EmptyPlanKey) as &errorOutcome
+    catch buildSerializationPlan(EmptyPlanKey) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is Errors.SerializationError)
     Swag.assert(Errors.message(error) == "serialized field needs a non-empty key")

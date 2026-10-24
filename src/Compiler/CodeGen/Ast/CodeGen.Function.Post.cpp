@@ -429,6 +429,31 @@ namespace
             builder.emitLoadRegReg(dstPayload.reg, srcPayload.reg, storeBits);
     }
 
+    // A nullable result coalesces like 'orelse': test the same presence the operator tests.
+    void emitJumpIfNullResult(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, TypeRef typeRef, MicroLabelRef label)
+    {
+        const TypeInfo&   type     = codeGen.typeMgr().get(typeRef);
+        const MicroOpBits condBits = CodeGenTypeHelpers::compareBits(type, codeGen.ctx());
+        const MicroReg    condReg  = CodeGenCompareHelpers::materializeConditionOperand(codeGen, resultPayload, typeRef, type, condBits);
+        CodeGenCompareHelpers::emitCompareRegZero(codeGen, condReg, type, condBits);
+        CodeGenCompareHelpers::emitConditionJump(codeGen, type, CodeGenCompareHelpers::falseyCondition(type), label);
+    }
+
+    // A value result lives in a register: build the default in the result storage, then load it.
+    Result emitDefaultFallibleExprResult(CodeGen& codeGen, const CodeGenNodePayload& resultPayload, const SymbolVariable* resultStorage, TypeRef typeRef)
+    {
+        if (resultPayload.isAddress())
+            return CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, typeRef, resultPayload.reg);
+
+        if (!resultStorage)
+            return raiseInternalCodeGenError(codeGen, "missing catch result storage for the default value");
+
+        const CodeGenNodePayload storagePayload = codeGen.resolveLocalStackPayload(*resultStorage);
+        SWC_RESULT(CodeGenFunctionHelpers::emitTypeDefaultValue(codeGen, typeRef, storagePayload.reg));
+        assignFallibleExprResult(codeGen, resultPayload, storagePayload, typeRef);
+        return Result::Continue;
+    }
+
     Result emitPayloadToAddress(CodeGen& codeGen, MicroReg dstAddressReg, const CodeGenNodePayload& srcPayload, TypeRef typeRef)
     {
         const TypeInfo& typeInfo = codeGen.typeMgr().get(typeRef);
@@ -558,7 +583,10 @@ namespace
                 {
                     const SymbolFunction* storeErr = runtimeFunctionByKind(codeGen, IdentifierManager::RuntimeFunctionKind::StoreErr);
                     SWC_ASSERT(storeErr);
-                    const MicroReg storeArgs[] = {codeGen.payload(captureRef).reg};
+                    const CodeGenNodePayload& ownerPayload = codeGen.payload(captureRef);
+                    if (!ownerPayload.isAddress())
+                        return raiseInternalCodeGenError(codeGen, "catch error owner is not addressable", nodeRef);
+                    const MicroReg storeArgs[] = {ownerPayload.reg};
                     SWC_RESULT(CodeGenCallHelpers::emitRuntimeCallWithDirectArgs(codeGen, *storeErr, storeArgs));
                 }
                 return Result::Continue;
@@ -1512,8 +1540,21 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     }
 
     SWC_RESULT(codeGen.popDeferScope());
+
+    // 'catch e orelse V' with a nullable result: a successful null takes 'V' as well.
+    const bool          coalescesNull     = lowering && lowering->catchCoalescesNull;
+    const MicroLabelRef nullFallbackLabel = coalescesNull ? builder.createLabel() : MicroLabelRef::invalid();
     if (hasFallthrough && !codeGen.currentInstructionBlocksFallthrough())
+    {
+        if (coalescesNull)
+        {
+            const auto&   expression     = codeGen.node(ownerRef).cast<AstErrorManagementExpr>();
+            const TypeRef operandTypeRef = CodeGenExprView::payloadTypeRef(codeGen, codeGen.payload(expression.nodeExprRef), expression.nodeExprRef);
+            emitJumpIfNullResult(codeGen, codeGen.payload(nodeRef), operandTypeRef, nullFallbackLabel);
+        }
+
         builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, payload->fallibleDoneLabel);
+    }
 
     builder.placeLabel(payload->fallibleFailLabel);
     if (kind == FallibleHandlerKind::Catch)
@@ -1530,10 +1571,15 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     SWC_RESULT(emitFallibleCleanup(codeGen, kind, ownerRef, true));
     const auto*      expression  = codeGen.node(ownerRef).safeCast<AstErrorManagementExpr>();
     const AstNodeRef fallbackRef = expression ? expression->nodeFallbackRef : AstNodeRef::invalid();
-    if (hasResult && kind == FallibleHandlerKind::Catch && fallbackRef.isValid() && codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock))
+
+    // 'catch e' without 'default V' or a handler resumes with the default value of its type.
+    const bool            resumesWithDefault = hasResult && kind == FallibleHandlerKind::Catch && expression && fallbackRef.isInvalid() && !isDiscarded;
+    const bool            writesFallback     = fallbackRef.isValid() && codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock);
+    const SymbolVariable* resultStorage      = nullptr;
+    if (hasResult && kind == FallibleHandlerKind::Catch && (resumesWithDefault || writesFallback))
     {
         const CodeGenNodePayload& resultPayload = codeGen.payload(nodeRef);
-        const SymbolVariable*     resultStorage = resultPayload.runtimeStorageSym;
+        resultStorage                           = resultPayload.runtimeStorageSym;
         if (expression)
         {
             // The wrapper shares its payload slot with a contextual conversion. That slot
@@ -1592,18 +1638,23 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     // The operand's handler is finished. Errors raised by its fallback go outward.
     payload->fallibleFailLabel = MicroLabelRef::invalid();
 
-    // 'catch e else V': evaluated on the failure path only, after the capture is bound so 'V'
-    // can read it. It writes the result slot the success value inherited, joining both paths.
-    if (fallbackRef.isValid())
+    // 'catch e orelse V': evaluated on the failure path only, after the capture is bound so
+    // 'V' can read 'Swag.err'. It writes the result slot the success value inherited, joining both
+    // paths. Without 'V', the default value of the type fills that slot the same way.
+    if (fallbackRef.isValid() && !coalescesNull)
     {
         SWC_RESULT(codeGen.emitNodeNow(fallbackRef));
-        if (isDiscarded && codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock))
+        if (isDiscarded && writesFallback)
             SWC_RESULT(emitDiscardedCallResult(codeGen, fallbackRef, resultType));
-        else if (codeGen.node(fallbackRef).isNot(AstNodeId::EmbeddedBlock))
+        else if (writesFallback)
             assignFallibleExprResult(codeGen, codeGen.payload(nodeRef), codeGen.payload(fallbackRef), resultType);
     }
+    else if (resumesWithDefault)
+    {
+        SWC_RESULT(emitDefaultFallibleExprResult(codeGen, codeGen.payload(nodeRef), resultStorage, resultType));
+    }
 
-    // 'catch e else { H }': the anonymous lazy handler runs here (failure path only).
+    // 'catch e { H }': the anonymous lazy handler runs here (failure path only).
     if (codeGen.node(ownerRef).is(AstNodeId::ErrorManagementStmt))
     {
         const AstNodeRef handlerRef = codeGen.node(ownerRef).cast<AstErrorManagementStmt>().nodeHandlerRef;
@@ -1614,6 +1665,18 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
     // Both owners release their references when the handler ends.
     if (kind == FallibleHandlerKind::Catch)
         SWC_RESULT(codeGen.popDeferScope());
+
+    // The nullable form evaluates 'V' once the handled error is released: a failure and a
+    // successful null both reach it, and neither reads 'Swag.err'.
+    if (coalescesNull)
+    {
+        builder.placeLabel(nullFallbackLabel);
+        SWC_RESULT(codeGen.emitNodeNow(fallbackRef));
+        if (isDiscarded)
+            SWC_RESULT(emitDiscardedCallResult(codeGen, fallbackRef, resultType));
+        else
+            assignFallibleExprResult(codeGen, codeGen.payload(nodeRef), codeGen.payload(fallbackRef), resultType);
+    }
 
     builder.placeLabel(payload->fallibleDoneLabel);
     clearFallibleWrapperPayload(*payload);
@@ -1674,7 +1737,7 @@ Result AstReturnStmt::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstErrorManagementExpr::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    // 'catch e else V': the fallback is generated lazily inside the failure block. Compare
+    // 'catch e orelse V': the fallback is generated lazily inside the failure block. Compare
     // resolved nodes: an inlined fallback call is visited through its substitute.
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
     if (nodeFallbackRef.isValid() && resolvedChildRef == codeGen.resolvedNodeRef(nodeFallbackRef))
@@ -1696,9 +1759,9 @@ Result AstErrorManagementExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstErrorManagementStmt::codeGenPreNodeChild(CodeGen& codeGen, const AstNodeRef& childRef) const
 {
-    // 'catch e else { H }': skip the handler in the normal traversal so it is not emitted
-    // on the success path; it is generated lazily inside the failure block instead.
-    // Compare resolved nodes: an inlined 'else do call()' is visited through its substitute.
+    // 'catch e { H }': skip the handler in the normal traversal so it is not emitted on the
+    // success path; it is generated lazily inside the failure block instead.
+    // Compare resolved nodes: an inlined 'do call()' is visited through its substitute.
     const AstNodeRef resolvedChildRef = codeGen.resolvedNodeRef(childRef);
     if (nodeHandlerRef.isValid() && resolvedChildRef == codeGen.resolvedNodeRef(nodeHandlerRef))
         return Result::SkipChildren;

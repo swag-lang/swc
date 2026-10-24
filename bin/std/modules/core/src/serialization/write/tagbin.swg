@@ -365,7 +365,7 @@ impl TagBin
 
             var compressBuffer: Array'u8
             var errOutcome:     Swag.Error
-            catch .compressor.compress(&compressBuffer, bodyBytes) as &errOutcome
+            catch .compressor.compress(&compressBuffer, bodyBytes) as errOutcome
             let err = errOutcome.value()
 
             if err != null or compressBuffer.count >= bodyBytes.count
@@ -582,7 +582,7 @@ impl TagBin
 
         var compressBuffer: Array'u8
         var errOutcome:     Swag.Error
-        catch .compressor.compress(&compressBuffer, childBytes.toSlice()) as &errOutcome
+        catch .compressor.compress(&compressBuffer, childBytes.toSlice()) as errOutcome
         let err = errOutcome.value()
 
         if compressBuffer.count >= childBytes.length or err != null

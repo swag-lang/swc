@@ -165,7 +165,7 @@ impl PropWnd
     // survives to the kind the editor was made for reads one form's bytes as another's, and a
     // field the two do not share comes back as whatever lay at that offset — which is how a
     // '#complete switch' over a three-value enum ends up with a value it has no case for.
-    mtd(T) getSelectedForm()->*T? => (catch cast(*T?, .getSelectedBaseForm()) else null)
+    mtd(T) getSelectedForm()->*T? => (catch cast(*T?, .getSelectedBaseForm()))
 
     mtd getSelectedFormType()->typeinfo
     {

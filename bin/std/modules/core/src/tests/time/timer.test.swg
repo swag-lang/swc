@@ -63,7 +63,7 @@ func timerOwnedContextCallback(_: *Time.Timer)
         g_timerOwnedBad.add(1)
 
     var errorOutcome: Swag.Error
-    catch failTimerMessage("the callback owns this copied error message") as &errorOutcome
+    catch failTimerMessage("the callback owns this copied error message") as errorOutcome
     let error = errorOutcome.value()
     if Errors.message(error) != "the callback owns this copied error message" do
         g_timerOwnedBad.add(1)
@@ -80,7 +80,7 @@ func timerOwnedContextCallback(_: *Time.Timer)
     g_timerOwnedFired.store(0)
     g_timerOwnedBad.store(0)
     var creatorErrorOutcome: Swag.Error
-    catch failTimerMessage("the creator retains its own copied error message") as &creatorErrorOutcome
+    catch failTimerMessage("the creator retains its own copied error message") as creatorErrorOutcome
     let creatorError = creatorErrorOutcome.value()
     var timer        = expect Time.Timer.create(1'ms, &timerOwnedContextCallback, periodic: true)
     for 200

@@ -28,7 +28,6 @@ public func addTypedValue(value: *void, type: typeinfo)
         try encode.writeValue(value, type)
         try encode.end()
     }
-    else {}
 
     buf.makeLinear()
     addTypedData(g_ValueFormat, type, buf.toSlice()!)
@@ -80,7 +79,6 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
         try decoder.readTypedContent(value, type)
         try decoder.end()
     }
-    else
     {
         return false
     }
@@ -90,5 +88,5 @@ public func getTypedValue(value: *void, type: typeinfo)->bool
 
 #init
 {
-    g_ValueFormat = catch registerFormat("Swag.Clipboard.TypeValue") else 0
+    g_ValueFormat = catch registerFormat("Swag.Clipboard.TypeValue")
 }

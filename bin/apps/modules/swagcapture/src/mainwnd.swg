@@ -372,7 +372,7 @@ impl MainWnd
         // An automatic save may still be writing; land it first so its outcome is
         // reported and the two writes cannot interleave.
         .flushCaptureSave()
-        catch capture.save() else do
+        catch capture.save() do
             MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
     }
 
@@ -411,9 +411,9 @@ impl MainWnd
                 loaded.title   = title
                 loaded.changed = true
                 .saveCapture(loaded)
-            } as err else
+            }
             {
-                MessageDlg.error(.surface!, appStrings().msg_FailedRename, err)
+                MessageDlg.error(.surface!, appStrings().msg_FailedRename, Swag.err)
                 return
             }
         }
@@ -441,9 +441,9 @@ impl MainWnd
             defer Memory.delete(loaded)
             loaded.editView = .editWnd.editView
             Clipboard.addImage(loaded.toImage())
-        } as err else
+        }
         {
-            MessageDlg.error(.surface!, appStrings().msg_FailedCopyImage, err)
+            MessageDlg.error(.surface!, appStrings().msg_FailedCopyImage, Swag.err)
         }
     }
 
@@ -451,9 +451,9 @@ impl MainWnd
     // otherwise a new capture linked to the file.
     mtd loadExternalImage(arg: String)
     {
-        let imgToLoad = catch Image.load(arg) as err else
+        let imgToLoad = catch Image.load(arg)
         {
-            MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedLoadFile, arg), err)
+            MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedLoadFile, arg), Swag.err)
             return
         }
 
@@ -701,7 +701,7 @@ impl MainWnd
         #[Swag.Mixin]
         mtd registerHotKey(modifiers: Input.KeyModifiers, key: Input.Key, wndId: WndId)
         {
-            catch .app().registerHotKey(modifiers, key, wndId, me) else do
+            catch .app().registerHotKey(modifiers, key, wndId, me) do
                 taken.add(Input.formatKeyShortcut(modifiers, key))
         }
 

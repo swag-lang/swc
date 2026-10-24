@@ -10,10 +10,10 @@ func info(fullName: string)->FileInfo fail
     var attributes: WIN32_FILE_ATTRIBUTE_DATA
 
     let winPath = Utf16.toZeroTerminated(fullName)
-    catch GetFileAttributesExW(winPath.buffer, GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &attributes) as err else
+    catch GetFileAttributesExW(winPath.buffer, GET_FILEEX_INFO_LEVELS.GetFileExInfoStandard, &attributes)
     {
-        try Errors.transformWinErrors(err, fullName)
-        fail err
+        try Errors.transformWinErrors(Swag.err, fullName)
+        fail Swag.err
     }
 
     with var result: retval

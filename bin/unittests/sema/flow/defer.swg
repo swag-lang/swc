@@ -548,7 +548,7 @@ func semaTest018()
         {
             defer #fail appendDeferTrace(1)
             defer #nofail appendDeferTrace(2)
-            catch deferFailTop() else {}
+            catch deferFailTop()
         }
 
         return DeferTrace

@@ -457,7 +457,7 @@ impl Panel
         if options.regularExpression
         {
             var expressionErrorOutcome: Swag.Error
-            catch expression.compile(.filterQuery, ignoreCase: not options.matchCase) as &expressionErrorOutcome
+            catch expression.compile(.filterQuery, ignoreCase: not options.matchCase) as expressionErrorOutcome
             let expressionError = expressionErrorOutcome.value()
             if expressionError == null do
                 options.expression = &expression

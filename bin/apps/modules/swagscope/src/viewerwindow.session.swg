@@ -579,9 +579,9 @@ impl ViewerWindow
         }
 
         let host: Viewer.Host = &pluginHost
-        catch next.create(plugin, host) as viewerError else
+        catch next.create(plugin, host)
         {
-            next.failureReason = Viewer.failureText(viewerError)
+            next.failureReason = Viewer.failureText(Swag.err)
             if next.failureReason.isEmpty() do
                 next.failureReason = appStrings().ui_OpenStopped
         }

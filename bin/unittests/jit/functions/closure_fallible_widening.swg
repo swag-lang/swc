@@ -33,7 +33,7 @@ func plainDouble(value: u64)->u64 => value * 2
     let seven = expect produce(func()->u64 => 7)
     Swag.assert(seven == 7)
     var errorOutcome: Swag.Error
-    discard catch produce(func()->u64 fail { fail WideningFailure{3} }) as &errorOutcome
+    discard catch produce(func()->u64 fail { fail WideningFailure{3} }) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is WideningFailure)
 }
@@ -49,7 +49,7 @@ func failAfterWidenedCall(counter: func||()) fail
 {
     var hits = 0'u32
     var errorOutcome: Swag.Error
-    catch failAfterWidenedCall(func|&hits|() { hits += 1 }) as &errorOutcome
+    catch failAfterWidenedCall(func|&hits|() { hits += 1 }) as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is WideningFailure and hits == 1)
 }

@@ -271,14 +271,14 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     var duplicate = testPlugin()
     var duplicateErrorOutcome: Swag.Error
-    discard catch registry.register(#move duplicate) as &duplicateErrorOutcome
+    discard catch registry.register(#move duplicate) as duplicateErrorOutcome
     let duplicateError = duplicateErrorOutcome.value()
     Swag.assert(duplicateError != null)
 
     var incompatible = testPlugin("future", ".future")
     incompatible.apiVersion = Viewer.ApiVersion + 1
     var versionErrorOutcome: Swag.Error
-    discard catch registry.register(#move incompatible) as &versionErrorOutcome
+    discard catch registry.register(#move incompatible) as versionErrorOutcome
     let versionError = versionErrorOutcome.value()
     Swag.assert(versionError != null)
 }

@@ -177,7 +177,7 @@ private func mp3AssertCloseTo(name: string, sampleRate, channels: u32)
     bytes.add("not an elementary stream")
     expect File.writeAllBytes(path.toString(), bytes.toSlice())
     var errOutcome: Swag.Error
-    discard catch SoundFile.load(path.toString()) as &errOutcome
+    discard catch SoundFile.load(path.toString()) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }

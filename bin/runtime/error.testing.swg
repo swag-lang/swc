@@ -54,12 +54,12 @@ private func errorTransportTestThread(param: *void?)->u32
         // Allocate outside the catch frame, so the producer's root allocator still owns a
         // lease until thread teardown. The published record must retain that same arena.
         let message = copyTransportTestMessage("the joined producer's pending copied message")
-        catch failTransportTestMessage(message, state.drops.buffer) as error else
+        catch failTransportTestMessage(message, state.drops.buffer)
         {
-            if error is ErrorTransportTestPayload as value
+            if Swag.err is ErrorTransportTestPayload as value
             {
                 state.generation = value.generation
-                state.owned.capture(error)
+                state.owned.capture(Swag.err)
             }
         }
     }
@@ -113,7 +113,7 @@ public func testErrorTransportAfterThreadExit()->bool
     scope
     {
         var errorOutcome: Swag.Error
-        catch copied.raise() as &errorOutcome
+        catch copied.raise() as errorOutcome
         let error = errorOutcome.value()
         copied.reset()
         if error is ErrorTransportTestPayload as value do

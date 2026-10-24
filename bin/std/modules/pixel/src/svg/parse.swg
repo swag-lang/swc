@@ -422,7 +422,7 @@ private func scanNumber(s: string, pos: *u64)->f32
     pos[] = i
     if i == start do
         return 0
-    return catch StrConv.toF32(s[start until i]) else 0
+    return catch StrConv.toF32(s[start until i])
 }
 
 private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength

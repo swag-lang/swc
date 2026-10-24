@@ -627,7 +627,7 @@ private impl Decoder
             return false
 
         var indexErrorOutcome: Swag.Error
-        catch .readIndexEntries(source, layout, dataId, compressedId) as &indexErrorOutcome
+        catch .readIndexEntries(source, layout, dataId, compressedId) as indexErrorOutcome
         let indexError = indexErrorOutcome.value()
         if indexError == null and not .frames.isEmpty() do
             return true
@@ -818,7 +818,7 @@ private func matchesChunkId(source: *ByteSource, offset: u64, id: u32)->bool
 {
     var probeErrorOutcome: Swag.Error
     var found: #decltype(expect readChunkIdAt(source, offset))
-    catch { found = try readChunkIdAt(source, offset) } as &probeErrorOutcome
+    catch { found = try readChunkIdAt(source, offset) } as probeErrorOutcome
     let probeError = probeErrorOutcome.value()
     return probeError == null and found == id
 }

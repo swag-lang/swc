@@ -215,6 +215,6 @@ impl MainWnd
 
     mtd captureScreen(mode: CaptureMode, monitorIndex: u64 = 0)
     {
-        catch screenShot(me, mode, monitorIndex) as err else { MessageDlg.error(.surface!, appStrings().msg_FailedCaptureScreen, err) }
+        catch screenShot(me, mode, monitorIndex) { MessageDlg.error(.surface!, appStrings().msg_FailedCaptureScreen, Swag.err) }
     }
 }

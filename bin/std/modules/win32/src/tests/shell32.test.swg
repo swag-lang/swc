@@ -8,7 +8,7 @@ using Swag
 {
     var info: SHSTOCKICONINFO
     var badSizeOutcome: Swag.Error
-    catch SHGetStockIconInfo(.SIID_FOLDER, SHGSI_ICONLOCATION, &info) as &badSizeOutcome
+    catch SHGetStockIconInfo(.SIID_FOLDER, SHGSI_ICONLOCATION, &info) as badSizeOutcome
     let badSize = badSizeOutcome.value()
     Swag.assert((badSize is SystemError))
     Swag.assert(assume cast (*SystemError, badSize).errorID == 0x80070057'u32)

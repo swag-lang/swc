@@ -19,31 +19,31 @@ func failLiteralCharacter() fail { fail 'A' }
 #test
 {
     var integerErrorOutcome: Swag.Error
-    catch failLiteralInteger() as &integerErrorOutcome
+    catch failLiteralInteger() as integerErrorOutcome
     let integerError = integerErrorOutcome.value()
     Swag.assert(integerError is s32)
     Swag.assert(assume cast(s32, integerError) == 7)
 
     var negativeErrorOutcome: Swag.Error
-    catch failLiteralNegative() as &negativeErrorOutcome
+    catch failLiteralNegative() as negativeErrorOutcome
     let negativeError = negativeErrorOutcome.value()
     Swag.assert(negativeError is s32)
     Swag.assert(assume cast(s32, negativeError) == -9)
 
     var wideErrorOutcome: Swag.Error
-    catch failLiteralWideInteger() as &wideErrorOutcome
+    catch failLiteralWideInteger() as wideErrorOutcome
     let wideError = wideErrorOutcome.value()
     Swag.assert(wideError is s64)
     Swag.assert(assume cast(s64, wideError) == 4294967296)
 
     var floatErrorOutcome: Swag.Error
-    catch failLiteralFloat() as &floatErrorOutcome
+    catch failLiteralFloat() as floatErrorOutcome
     let floatError = floatErrorOutcome.value()
     Swag.assert(floatError is f32)
     Swag.assert(assume cast(f32, floatError) == 1.5'f32)
 
     var characterErrorOutcome: Swag.Error
-    catch failLiteralCharacter() as &characterErrorOutcome
+    catch failLiteralCharacter() as characterErrorOutcome
     let characterError = characterErrorOutcome.value()
     Swag.assert(characterError is rune)
     Swag.assert(assume cast(rune, characterError) == 'A')
@@ -59,7 +59,7 @@ func failLiteralEmptyString() fail { fail "" }
 #test
 {
     var textErrorOutcome: Swag.Error
-    catch failLiteralString() as &textErrorOutcome
+    catch failLiteralString() as textErrorOutcome
     let textError = textErrorOutcome.value()
     if textError is string as value do
         Swag.assert(value[] == "literal failure")
@@ -67,7 +67,7 @@ func failLiteralEmptyString() fail { fail "" }
         Swag.assert(false)
 
     var emptyErrorOutcome: Swag.Error
-    catch failLiteralEmptyString() as &emptyErrorOutcome
+    catch failLiteralEmptyString() as emptyErrorOutcome
     let emptyError = emptyErrorOutcome.value()
     if emptyError is string as value do
         Swag.assert(value[] == "")
@@ -87,12 +87,12 @@ func failLiteralFalse() fail { fail false }
 #test
 {
     var emptyErrorOutcome: Swag.Error
-    catch failLiteralEmptyStruct() as &emptyErrorOutcome
+    catch failLiteralEmptyStruct() as emptyErrorOutcome
     let emptyError = emptyErrorOutcome.value()
     Swag.assert(emptyError is FailLiteralEmpty)
 
     var falseErrorOutcome: Swag.Error
-    catch failLiteralFalse() as &falseErrorOutcome
+    catch failLiteralFalse() as falseErrorOutcome
     let falseError = falseErrorOutcome.value()
     Swag.assert(falseError is bool)
     Swag.assert(not assume cast(bool, falseError))

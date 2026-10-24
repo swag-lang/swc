@@ -97,7 +97,7 @@ private func strokedPath(y: f32)->LinePathList
     {
         let bytes = singlePagePdf("", cast(const [..] u8, content), "")
         var strokeErrorOutcome: Swag.Error
-        discard catch Document.decode(bytes.toSlice()) as &strokeErrorOutcome
+        discard catch Document.decode(bytes.toSlice()) as strokeErrorOutcome
         let strokeError = strokeErrorOutcome.value()
         Swag.assert(strokeError != null)
     }

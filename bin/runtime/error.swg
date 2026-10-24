@@ -19,8 +19,9 @@ namespace Swag
     //
     // ```swag
     // var saved: Swag.Error
+    // scope
     // {
-    //     catch { fail 42's32 } as error else do saved.capture(error)
+    //     catch { fail 42's32 } do saved.capture(Swag.err)
     // }
     // let error = saved.value()
     // Swag.assert(error is s32)

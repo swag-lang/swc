@@ -109,7 +109,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
                 {
                     root    = defaultSandboxRoot(cast(u32, attempt))
                     adopted = true
-                    catch clearLeftoverDefaultRoot(root.toString()) else
+                    catch clearLeftoverDefaultRoot(root.toString())
                     {
                         adopted = false
                     }
@@ -126,7 +126,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
             }
         }
 
-        catch enterSandbox(root.toString()) else
+        catch enterSandbox(root.toString())
         {
             // Continuing unsandboxed would let the run reach real machine state, which is
             // exactly what the caller asked to prevent. The message is the only trace left
@@ -145,7 +145,7 @@ internal func clearLeftoverDefaultRoot(root: string) fail
     let corpus = findRunArgument(CorpusArg)
     if corpus.found
     {
-        catch grantCorpus(corpus.value.toString()) else
+        catch grantCorpus(corpus.value.toString())
         {
             // A grant that does not hold is worse than no grant at all: the run keeps going and
             // every recording it was launched to make is refused one by one, which reads as a
@@ -267,7 +267,7 @@ func smokeFrames()->u32
 
     // A marker with no usable count still means a bounded run, so fall back rather than
     // returning zero, which would read as "not a smoke run" and let the program run forever.
-    let frames = catch StrConv.toU32(request.value.toString()) else 0
+    let frames = catch StrConv.toU32(request.value.toString())
     return frames != 0 ? frames : DefaultSmokeFrames
 }
 

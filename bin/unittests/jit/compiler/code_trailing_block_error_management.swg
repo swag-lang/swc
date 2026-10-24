@@ -1,8 +1,9 @@
 #global private
 
 // A fallible macro still takes its trailing '{ ... }' block when the call carries its
-// error-management keyword: 'expect f(x) { ... }', 'try f(x) { ... }', and
-// 'catch f(x) { ... }' pass the block to 'f' exactly as a bare 'f(x) { ... }' does.
+// error-management keyword: 'expect f(x) { ... }' and 'try f(x) { ... }' pass the block to
+// 'f' exactly as a bare 'f(x) { ... }' does. After 'catch', a block is the failure handler,
+// so the trailing code is written as an explicit '#code' literal.
 
 struct TrailingBlockError
 {
@@ -44,7 +45,7 @@ func sumWithTry(count: s32)->s32 fail
 
     // The block runs for the indices reached before the failure, then 'catch' dismisses it.
     var reached = 0
-    catch visitUpTo(10, 3)
+    catch visitUpTo(10, 3) #code
     {
         reached += 1
     }

@@ -45,7 +45,7 @@ struct TweakBeta
     tweak.registerFolder'TweakCycle(&cycle)
 
     var err2Outcome: Swag.Error
-    discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n") as &err2Outcome
+    discard catch tweak.parse("/TweakCycle\nfoo $bar\nbar $foo\n") as err2Outcome
     let err2 = err2Outcome.value()
     Swag.assert(err2 != null)
     Swag.assert(err2 is Errors.SyntaxError)
@@ -66,7 +66,7 @@ struct TweakBeta
     tweak.registerFolder'TweakLoop(&loop)
 
     var errOutcome: Swag.Error
-    discard catch tweak.parse("/TweakLoop\nfirst $second\nsecond $third\nthird $second\n") as &errOutcome
+    discard catch tweak.parse("/TweakLoop\nfirst $second\nsecond $third\nthird $second\n") as errOutcome
     let err = errOutcome.value()
     Swag.assert(err is Errors.SyntaxError)
 }
@@ -126,7 +126,7 @@ namespace TweakDeep
         tweak.registerFolder(&alpha)
 
         var errorOutcome: Swag.Error
-        discard catch tweak.parse(invalid.source) as &errorOutcome
+        discard catch tweak.parse(invalid.source) as errorOutcome
         let error = errorOutcome.value()
         Swag.assert(error is Errors.SyntaxError)
         Swag.assert(Errors.message(error) == invalid.message)
@@ -147,7 +147,7 @@ namespace TweakDeep
     tweak.registerFolder(&beta)
 
     var errorOutcome: Swag.Error
-    discard catch tweak.parse("/TweakAlpha\nfoo 1\n/Missing\nbar 2\n") as &errorOutcome
+    discard catch tweak.parse("/TweakAlpha\nfoo 1\n/Missing\nbar 2\n") as errorOutcome
     let error = errorOutcome.value()
     Swag.assert(error is Errors.SyntaxError)
     Swag.assert(Errors.message(error) == "unknown folder [[Missing]]")

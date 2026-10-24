@@ -18,7 +18,7 @@ using Core
     Swag.assert(second.first == 48 and second.count == 16)
     Swag.assert(allocator.freeBlockCount() == 0)
     var fullErrorOutcome: Swag.Error
-    discard catch allocator.allocate() as &fullErrorOutcome
+    discard catch allocator.allocate() as fullErrorOutcome
     let fullError = fullErrorOutcome.value()
     Swag.assert(fullError != null)
 

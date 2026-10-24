@@ -178,7 +178,7 @@ func assertJsonPayload(value: JsonPayload)->bool
 
     let invalidEscape: String = #raw """{"text":"\q"}"""
     var errInvalidEscapeOutcome: Swag.Error
-    catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, invalidEscape.toSlice()) as &errInvalidEscapeOutcome
+    catch CoreTests.readAndDelete'(JsonStringPayload, Serialization.Read.Json)(&decoder, invalidEscape.toSlice()) as errInvalidEscapeOutcome
     let errInvalidEscape = errInvalidEscapeOutcome.value()
     Swag.assert(errInvalidEscape != null)
 }
@@ -198,7 +198,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     {
         var decoder:    Serialization.Decoder'Serialization.Read.Json
         var errOutcome: Swag.Error
-        catch CoreTests.readAndDelete'(JsonPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as &errOutcome
+        catch CoreTests.readAndDelete'(JsonPayload, Serialization.Read.Json)(&decoder, cast(const [..] u8, input)) as errOutcome
         let err = errOutcome.value()
         Swag.assert(err != null)
     }

@@ -240,7 +240,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 
     const Truncated: [5] u8 = [0x1A, 0x45, 0xDF, 0xA3, 0x80]
     var truncatedOutcome: Swag.Error
-    discard catch Reader.openMemory("broken.mkv", Truncated) as &truncatedOutcome
+    discard catch Reader.openMemory("broken.mkv", Truncated) as truncatedOutcome
     let truncated = truncatedOutcome.value()
     Swag.assert((truncated is InvalidFormatError))
 }
@@ -264,7 +264,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     bytes[clusterOffset] = 0
 
     var unsupportedOutcome: Swag.Error
-    discard catch Reader.openMemory("unsupported.mkv", bytes.toSlice()) as &unsupportedOutcome
+    discard catch Reader.openMemory("unsupported.mkv", bytes.toSlice()) as unsupportedOutcome
     let unsupported = unsupportedOutcome.value()
     Swag.assert((unsupported is UnsupportedFormatError))
 }
@@ -286,7 +286,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var reader = expect Reader.open(fileName)
     Swag.assert(reader.frameCount() == 0)
     var clusterErrorOutcome: Swag.Error
-    discard catch reader.decodeFrame(0) as &clusterErrorOutcome
+    discard catch reader.decodeFrame(0) as clusterErrorOutcome
     let clusterError = clusterErrorOutcome.value()
     Swag.assert((clusterError is InvalidFormatError))
 }
@@ -298,7 +298,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     reader.requestCancel()
     var cancelledOutcome: Swag.Error
-    discard catch reader.decodeFrame(0) as &cancelledOutcome
+    discard catch reader.decodeFrame(0) as cancelledOutcome
     let cancelled = cancelledOutcome.value()
     Swag.assert((cancelled is BadParameterError))
 }

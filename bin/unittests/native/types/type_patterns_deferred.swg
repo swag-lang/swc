@@ -10,7 +10,7 @@ func raiseDeferredPatternError() fail
 #test
 {
     var matched = false
-    catch raiseDeferredPatternError() else
+    catch raiseDeferredPatternError()
     {
         if Swag.getContext().curError is s32 as error do
             matched = error[] == 7
@@ -44,7 +44,7 @@ func deferredPatternBinding(value: s32, result: *s32, early: bool)
 #test
 {
     var result = 0
-    catch raiseDeferredPatternError() else
+    catch raiseDeferredPatternError()
     {
         let error = Swag.getContext().curError
         switch error

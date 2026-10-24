@@ -319,7 +319,7 @@
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">tourClamp</span>(<span class="SNum">0.25</span>'<span class="STpe">f32</span>, <span class="SNum">0.0</span>, <span class="SNum">1.0</span>) == <span class="SNum">0.25</span>)
 }</span></div>
 <h3 id="_001_002_language_tour_swg_Recoverable_Errors">Recoverable Errors</h3>
-<p>A function marked <span class="code-inline">fail</span> may return an error instead of its normal result. <span class="code-inline">try</span> propagates that error, while <span class="code-inline">catch</span> handles it locally: <span class="code-inline">else</span> names the value to use instead. An 'as err' binding belongs to the handler; a declared <span class="code-inline">Swag.Error</span> retains an error for later inspection with 'as &amp;err'.</p>
+<p>A function marked <span class="code-inline">fail</span> may return an error instead of its normal result. <span class="code-inline">try</span> propagates that error, while <span class="code-inline">catch</span> handles it locally: a failure yields the default value of the result type, or the value named with <span class="code-inline">orelse</span>. Inside a handler, <span class="code-inline">Swag.err</span> is the error; a declared <span class="code-inline">Swag.Error</span> retains it for later with 'as saved'.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">tourDivide</span>(numerator, denominator: <span class="STpe">s32</span>)-&gt;<span class="STpe">s32</span> <span class="SKwd">fail</span>
 {
     <span class="SLgc">if</span> denominator == <span class="SNum">0</span> <span class="SLgc">do</span>
@@ -332,7 +332,7 @@
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">expect</span> <span class="SFct">tourDivide</span>(<span class="SNum">12</span>, <span class="SNum">3</span>) == <span class="SNum">4</span>)
 
     <span class="SKwd">var</span> err: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> fallback = <span class="SKwd">catch</span> <span class="SFct">tourDivide</span>(<span class="SNum">12</span>, <span class="SNum">0</span>) <span class="SLgc">as</span> &amp;err <span class="SLgc">else</span> -<span class="SNum">1</span>
+    <span class="SKwd">let</span> fallback = <span class="SKwd">catch</span> <span class="SFct">tourDivide</span>(<span class="SNum">12</span>, <span class="SNum">0</span>) <span class="SLgc">as</span> err <span class="SLgc">orelse</span> -<span class="SNum">1</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(fallback == -<span class="SNum">1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SLgc">not</span> err.<span class="SFct">isEmpty</span>())
 }</span></div>
@@ -780,7 +780,7 @@ indent-style = spaces</span></div>
 <h3 id="_002_007_keywords_swg_Control_Flow_and_Expressions">Control Flow and Expressions</h3>
 <div class="code-block"><span class="SCde"><span class="SLgc">and</span>  <span class="SLgc">as</span>  <span class="SLgc">break</span>  <span class="SLgc">case</span>  <span class="SLgc">continue</span>  <span class="SLgc">default</span>  <span class="SLgc">defer</span>  <span class="SLgc">do</span>  <span class="SLgc">elif</span>  <span class="SLgc">else</span>
 <span class="SLgc">fallthrough</span>  <span class="SLgc">for</span>  <span class="SLgc">if</span>  <span class="SLgc">in</span>  <span class="SLgc">is</span>  <span class="STpe">me</span>  <span class="SLgc">not</span>  <span class="SLgc">or</span>  <span class="SLgc">orelse</span>  <span class="SLgc">parallel</span>  <span class="SLgc">return</span>
-<span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span>  <span class="SKwd">_</span></span></div>
+<span class="SLgc">scope</span>  <span class="SLgc">switch</span>  <span class="SLgc">to</span>  <span class="SLgc">unreachable</span>  <span class="SLgc">until</span>  <span class="SLgc">where</span>  <span class="SLgc">while</span>  <span class="SKwd">_</span></span></div>
 <h3 id="_002_007_keywords_swg_Values__Errors__and_Conversion">Values, Errors, and Conversion</h3>
 <div class="code-block"><span class="SCde"><span class="SKwd">assume</span>  <span class="SKwd">cast</span>  <span class="SKwd">catch</span>  <span class="SKwd">discard</span>  <span class="SKwd">expect</span>  <span class="SKwd">fail</span>  <span class="SKwd">false</span>  <span class="SKwd">null</span>
 <span class="SKwd">retval</span>  <span class="SKwd">true</span>  <span class="SKwd">try</span></span></div>
@@ -794,7 +794,7 @@ indent-style = spaces</span></div>
 <p>Directives introduce compiler-executed blocks, conditional compilation, module configuration, source inclusion, diagnostics, and code injection.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#ast</span>  <span class="SCmp">#assert</span>  <span class="SItr">#code</span>  <span class="SCmp">#error</span>
 <span class="SCmp">#foreignlib</span>  <span class="SCmp">#global</span>  <span class="SCmp">#import</span>  <span class="SItr">#include</span>  <span class="SCmp">#inject</span>
-<span class="SCmp">#load</span>  <span class="SFct">#main</span>  <span class="SFct">#message</span>  <span class="SFct">#premain</span>  <span class="SCmp">#print</span>  <span class="SFct">#run</span>  <span class="SCmp">#scope</span>
+<span class="SCmp">#load</span>  <span class="SFct">#main</span>  <span class="SFct">#message</span>  <span class="SFct">#premain</span>  <span class="SCmp">#print</span>  <span class="SFct">#run</span>
 <span class="SCmp">#static</span>  <span class="SFct">#test</span>  <span class="SItr">#type</span>  <span class="SCmp">#warning</span>  <span class="SFct">#init</span>  <span class="SFct">#drop</span></span></div>
 <h3 id="_002_007_keywords_swg_Compile-Time_Introspection">Compile-Time Introspection</h3>
 <div class="code-block"><span class="SCde"><span class="SItr">#alignof</span>  <span class="SItr">#defined</span>  <span class="SItr">#decltype</span>  <span class="SItr">#fullnameof</span>  <span class="SItr">#gettag</span>  <span class="SItr">#hastag</span>
@@ -1605,6 +1605,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>A character literal initially has an adaptable character-literal type. Its context can select any integer type or <span class="code-inline">rune</span> when the value fits the target type.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">let</span> a: <span class="STpe">u8</span>   = '<span class="SFct">a</span>'
         <span class="SKwd">let</span> b: <span class="STpe">u16</span>  = '<span class="SFct">a</span>'
@@ -1614,6 +1615,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == '<span class="SFct">a</span>' <span class="SLgc">and</span> b == '<span class="SFct">a</span>' <span class="SLgc">and</span> c == '我' <span class="SLgc">and</span> d == '我' <span class="SLgc">and</span> e == '我')
     }
 
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">let</span> a: <span class="STpe">s8</span>  = '<span class="SFct">a</span>'
         <span class="SKwd">let</span> b: <span class="STpe">s16</span> = '<span class="SFct">a</span>'
@@ -1674,12 +1676,14 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Escape sequences can represent characters via their ASCII or Unicode values.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">const</span> a = <span class="SStr">"\x26"</span>
         <span class="SKwd">const</span> b = <span class="SStr">"\u2626"</span>
         <span class="SKwd">const</span> c = <span class="SStr">"\U00101234"</span>
     }
 
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">const</span> d = <span class="SStr">"\u2F46\u2F46"</span>
         <span class="SCmp">#assert</span>(d == <span class="SStr">"â½â½"</span>)
@@ -1999,6 +2003,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Comparison operators compare two values and return a boolean result. They include equality, inequality, and relational comparisons.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">var</span> a = <span class="SKwd">false</span>
         a = <span class="SNum">1</span> == <span class="SNum">1</span> ? <span class="SKwd">true</span> : <span class="SKwd">false</span>
@@ -2009,6 +2014,7 @@ swc test -w path/to/workspace -m messages</span></div>
         a = <span class="SNum">1</span> &gt; <span class="SNum">1</span> ? <span class="SKwd">true</span> : <span class="SKwd">false</span>
     }
 
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">let</span> x = <span class="SNum">5</span>
         <span class="SKwd">let</span> y = <span class="SNum">10</span>
@@ -2092,6 +2098,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SCst">A</span> &lt;=&gt; <span class="SCst">B</span> ==  <span class="SNum">1</span> <span class="SLgc">if</span> <span class="SCst">A</span> &gt; <span class="SCst">B</span></span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">let</span> a = -<span class="SNum">1.5</span> &lt;=&gt; <span class="SNum">2.31</span>
         <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(a) == <span class="STpe">s32</span>)
@@ -2102,6 +2109,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNum">10</span> &lt;=&gt; <span class="SNum">10</span> == <span class="SNum">0</span>)
     }
 
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">let</span> x1 = <span class="SNum">10</span> &lt;=&gt; <span class="SNum">20</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x1 == -<span class="SNum">1</span>)
@@ -2262,7 +2270,7 @@ swc test -w path/to/workspace -m messages</span></div>
 </ul>
 <p>An ordinary dynamic cast needs one of these policies, or a surrounding <span class="code-inline">catch</span>. A numeric conversion or a statically known conversion to an embedded parent does not gain a dynamic type lookup. An assumed downcast along a known by-value <span class="code-inline">using</span> path needs only its fixed address adjustment when <span class="code-inline">.Assume</span> safety is disabled. Other representations can still require work to locate their borrowed view.</p>
 <p>The destination also states the presence contract. <span class="code-inline">*T</span> requires a present value; <span class="code-inline">*T?</span> accepts null. There is no separate trailing <span class="code-inline">!</span> to add to the operand. When only nullability changes, the checked conversion tests presence without a dynamic type lookup. An assumed presence conversion follows <span class="code-inline">.Assume</span> safety.</p>
-<p>Use <span class="code-inline">catch cast(*T?, value)</span> when a nullable result is useful after a failed conversion. <span class="code-inline">catch ... as error</span> also preserves its error. Like other caught expressions, the destination needs an implicit default value.</p>
+<p>Use <span class="code-inline">catch cast(*T?, value)</span> when a failed conversion should produce null: like any caught expression, it resumes with the default value of its destination, and a nullable destination defaults to null. A handler reads the conversion error with <span class="code-inline">Swag.err</span>.</p>
 <p>These forms apply to <span class="code-inline">any</span>, interfaces, and pointers to dynamic structs. A plain struct pointer can expose a concrete enclosing type only when its struct is marked <span class="code-inline">#[Swag.DynCast]</span>, or inherits that capability through a by-value <span class="code-inline">using</span> field. The attribute adds a compiler-managed metadata pointer to object storage; pointers to the object retain their ordinary size. A pointer-valued <span class="code-inline">using</span> field does not make its pointee part of the enclosing object's storage.</p>
 <p>Use <span class="code-inline">value is T</span> for a boolean compatibility test, or <span class="code-inline">if value is T as name</span> to test and borrow the matching value without constructing a conversion error. Expression <span class="code-inline">as</span> is not a conversion operator; it introduces a binding in a type pattern or a caught error.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">DynCast]</span>
@@ -2278,7 +2286,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> button: <span class="SCst">CastButton</span>
     <span class="SKwd">let</span> node:   *<span class="SCst">CastNode</span> = &amp;button
-    <span class="SKwd">let</span> found = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node) <span class="SLgc">else</span> <span class="SKwd">null</span>
+    <span class="SKwd">let</span> found = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(*<span class="SCst">CastButton</span>?, node)
     <span class="SLgc">if</span> found != <span class="SKwd">null</span> <span class="SLgc">do</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found.label == <span class="SStr">"Apply"</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(found != <span class="SKwd">null</span>)
@@ -3279,6 +3287,159 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_004_006_union_swg_How_Unions_Work">How Unions Work</h3>
 <p>In this example, the <span class="code-inline">MyUnion</span> type defines three fields (<span class="code-inline">x</span>, <span class="code-inline">y</span>, and <span class="code-inline">z</span>) that occupy the same memory space. Writing to one field overwrites the others, since they are all stored at the same offset.</p>
 <p>This design is ideal for cases where different data types (or values) are stored alternately in the same memory area. Here, since all fields are of type <span class="code-inline">f32</span>, assigning a value to <span class="code-inline">x</span> automatically updates <span class="code-inline">y</span> and <span class="code-inline">z</span>, demonstrating the shared-memory behavior of unions.</p>
+<h3 id="_004_006_union_swg_Tagged_Unions">Tagged Unions</h3>
+<p>A plain union does not know which member was written last. A <b>tagged union</b> does: write an enum type in parentheses after <span class="code-inline">union</span>, and label every member with the tag values that select it, using the grammar of a <span class="code-inline">switch</span> arm.</p>
+<p>The union stores its tag first and its members after it. The tag is not a field: it changes only when a whole case is written, so a member and the tag that selects it can never disagree. Tag values that no <span class="code-inline">case</span> lists carry no member at all.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">enum</span> <span class="SCst">Kind</span> { <span class="SCst">None</span>, <span class="SCst">Circle</span>, <span class="SCst">Rect</span>, <span class="SCst">Square</span> }
+
+    <span class="SKwd">struct</span> <span class="SCst">Shape</span>
+    {
+        <span class="SKwd">using</span> geometry: <span class="SKwd">union</span>(<span class="SCst">Kind</span>)
+        {
+            <span class="SLgc">case</span> .<span class="SCst">Circle</span>:        circle: <span class="SKwd">struct</span>{ radius: <span class="STpe">f32</span> }
+            <span class="SLgc">case</span> .<span class="SCst">Rect</span>, .<span class="SCst">Square</span>: rect:   <span class="SKwd">struct</span>{ w, h: <span class="STpe">f32</span> }
+        } = .<span class="SCst">None</span>
+    }
+
+    <span class="SKwd">var</span> shape: <span class="SCst">Shape</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(shape.geometry <span class="SLgc">is</span> .<span class="SCst">None</span>)
+
+    <span class="SCmt">// A case is written with a leading dot, and its member with braces.</span>
+    shape.geometry = .<span class="SCst">Circle</span>{radius: <span class="SNum">2</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(shape.geometry <span class="SLgc">is</span> .<span class="SCst">Circle</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(shape.circle.radius == <span class="SNum">2</span>)
+
+    shape.geometry = .<span class="SCst">Square</span>{w: <span class="SNum">3</span>, h: <span class="SNum">3</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SNsp">Swag</span>.<span class="SFct">kindOf</span>(shape.geometry) == .<span class="SCst">Square</span>)
+}</span></div>
+<h3 id="_004_006_union_swg_Building_a_Case">Building a Case</h3>
+<p>A position that expects a tagged union lends its tag to a leading dot. <span class="code-inline">.Circle{radius: 2}</span> builds the member of that case from the braces, then writes the tag and the member together. Braces holding a single value of the member's own type hold that value as it is, and a member that is not a struct takes its one value the same way. A case named without braces takes the default its member declares, or its type's default.</p>
+<p>A tagged union has no default case of its own: a value of it must be built from a case. The declaration that holds it can give it one, as <span class="code-inline">= .None</span> does above.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">enum</span> <span class="SCst">Mode</span> { <span class="SCst">Text</span>, <span class="SCst">Signed</span>, <span class="SCst">Unsigned</span> }
+
+    <span class="SKwd">struct</span> <span class="SCst">Bounds</span>
+    {
+        <span class="SKwd">using</span> mode: <span class="SKwd">union</span>(<span class="SCst">Mode</span>)
+        {
+            <span class="SLgc">case</span> .<span class="SCst">Signed</span>:   signed:   {min, max: <span class="STpe">s64</span>} = {-<span class="SNum">10</span>, <span class="SNum">10</span>}
+            <span class="SLgc">case</span> .<span class="SCst">Unsigned</span>: unsigned: {min, max: <span class="STpe">u64</span>} = {<span class="SNum">0</span>, <span class="SNum">100</span>}
+        } = .<span class="SCst">Text</span>
+    }
+
+    <span class="SKwd">var</span> bounds: <span class="SCst">Bounds</span>
+    bounds.mode = .<span class="SCst">Signed</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(bounds.signed.min == -<span class="SNum">10</span>)
+
+    bounds.mode = .<span class="SCst">Unsigned</span>{max: <span class="SNum">50</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(bounds.unsigned.max == <span class="SNum">50</span>)
+}</span></div>
+<p>A tagged union can also be declared with a name, the tag type following it. It is then a type like any other, which a function takes, returns or stores.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">enum</span> <span class="SCst">ValueKind</span> { <span class="SCst">None</span>, <span class="SCst">Number</span>, <span class="SCst">Point</span> }
+    <span class="SKwd">struct</span> <span class="SCst">Point</span> { x, y: <span class="STpe">s32</span> }
+
+    <span class="SKwd">union</span> <span class="SFct">Value</span>(<span class="SCst">ValueKind</span>)
+    {
+        <span class="SLgc">case</span> .<span class="SCst">Number</span>:
+        number: <span class="STpe">s32</span>
+        <span class="SLgc">case</span> .<span class="SCst">Point</span>:
+        point: <span class="SCst">Point</span>
+    }
+
+    <span class="SKwd">func</span> <span class="SFct">makePoint</span>(x, y: <span class="STpe">s32</span>)-&gt;<span class="SCst">Value</span> =&gt; .<span class="SCst">Point</span>{x: x, y: y}
+
+    <span class="SKwd">let</span> p     = <span class="SCst">Point</span>{x: <span class="SNum">1</span>, y: <span class="SNum">2</span>}
+    <span class="SKwd">var</span> value = <span class="SFct">makePoint</span>(<span class="SNum">3</span>, <span class="SNum">4</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value <span class="SLgc">is</span> .<span class="SCst">Point</span>)
+
+    value = .<span class="SCst">Point</span>{p}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value.point.y == <span class="SNum">2</span>)
+
+    value = .<span class="SCst">Number</span>{<span class="SNum">7</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value.number == <span class="SNum">7</span>)
+}</span></div>
+<h3 id="_004_006_union_swg_Reading_the_Case">Reading the Case</h3>
+<p><span class="code-inline">switch</span> on a tagged union selects on its tag, and <span class="code-inline">u is .Circle</span> tests one case. <span class="code-inline">Swag.kindOf(u)</span> returns the tag itself, as a value of the enum.</p>
+<p>A member is read or written only where the flow proves that its case is the active one: inside the matching <span class="code-inline">case</span>, after an <span class="code-inline">is</span> test, after <span class="code-inline">Swag.assert(u is .Circle)</span>, or right after the assignment that wrote the case. Any other access is rejected. A proof lasts until the union is assigned again.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">enum</span> <span class="SCst">Kind</span> { <span class="SCst">None</span>, <span class="SCst">Circle</span>, <span class="SCst">Rect</span> }
+
+    <span class="SKwd">struct</span> <span class="SCst">Shape</span>
+    {
+        <span class="SKwd">using</span> geometry: <span class="SKwd">union</span>(<span class="SCst">Kind</span>)
+        {
+            <span class="SLgc">case</span> .<span class="SCst">Circle</span>: circle: <span class="SKwd">struct</span>{ radius: <span class="STpe">f32</span> }
+            <span class="SLgc">case</span> .<span class="SCst">Rect</span>:   rect:   <span class="SKwd">struct</span>{ w, h: <span class="STpe">f32</span> }
+        } = .<span class="SCst">None</span>
+    }
+
+    <span class="SKwd">func</span> <span class="SFct">area</span>(shape: <span class="SCst">Shape</span>)-&gt;<span class="STpe">f32</span>
+    {
+        <span class="SLgc">switch</span> shape.geometry
+        {
+        <span class="SLgc">case</span> .<span class="SCst">Circle</span>: <span class="SLgc">return</span> <span class="SNum">3</span> * shape.circle.radius * shape.circle.radius
+        <span class="SLgc">case</span> .<span class="SCst">Rect</span>:   <span class="SLgc">return</span> shape.rect.w * shape.rect.h
+        <span class="SLgc">default</span>:      <span class="SLgc">return</span> <span class="SNum">0</span>
+        }
+    }
+
+    <span class="SKwd">var</span> shape: <span class="SCst">Shape</span>
+    shape.geometry = .<span class="SCst">Rect</span>{w: <span class="SNum">2</span>, h: <span class="SNum">5</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">area</span>(shape) == <span class="SNum">10</span>)
+
+    <span class="SLgc">if</span> shape.geometry <span class="SLgc">is</span> .<span class="SCst">Rect</span> <span class="SLgc">do</span>
+        shape.rect.w = <span class="SNum">4</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">area</span>(shape) == <span class="SNum">20</span>)
+}</span></div>
+<h3 id="_004_006_union_swg_Asserting_a_Case_with____">Asserting a Case with <span class="code-inline">!</span></h3>
+<p>When the proof lives elsewhere, the postfix <span class="code-inline">!</span> asserts the case at the access. A safety check panics at runtime when another case is active. A <span class="code-inline">!</span> on an access that is already proven is rejected, as it is on a value already proven non-null.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">enum</span> <span class="SCst">Kind</span> { <span class="SCst">None</span>, <span class="SCst">Rect</span> }
+
+    <span class="SKwd">struct</span> <span class="SCst">Shape</span>
+    {
+        <span class="SKwd">using</span> geometry: <span class="SKwd">union</span>(<span class="SCst">Kind</span>)
+        {
+            <span class="SLgc">case</span> .<span class="SCst">Rect</span>: rect: <span class="SKwd">struct</span>{ w, h: <span class="STpe">f32</span> }
+        } = .<span class="SCst">None</span>
+    }
+
+    <span class="SKwd">func</span> <span class="SFct">width</span>(shape: <span class="SCst">Shape</span>)-&gt;<span class="STpe">f32</span> =&gt; shape.rect!.w
+
+    <span class="SKwd">var</span> shape: <span class="SCst">Shape</span>
+    shape.geometry = .<span class="SCst">Rect</span>{w: <span class="SNum">4</span>, h: <span class="SNum">1</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">width</span>(shape) == <span class="SNum">4</span>)
+}</span></div>
+<h3 id="_004_006_union_swg_Copy__Move__Drop_and_Equality">Copy, Move, Drop and Equality</h3>
+<p>A tagged union copies, moves and drops only its active member. Two values are equal when they hold the same case and their active members are equal; the storage of the other members takes no part in the comparison.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">enum</span> <span class="SCst">Kind</span> { <span class="SCst">None</span>, <span class="SCst">Name</span>, <span class="SCst">Size</span> }
+
+    <span class="SKwd">struct</span> <span class="SCst">Label</span>
+    {
+        <span class="SKwd">using</span> text: <span class="SKwd">union</span>(<span class="SCst">Kind</span>)
+        {
+            <span class="SLgc">case</span> .<span class="SCst">Name</span>: name: <span class="STpe">string</span>
+            <span class="SLgc">case</span> .<span class="SCst">Size</span>: size: <span class="STpe">s32</span>
+        } = .<span class="SCst">None</span>
+    }
+
+    <span class="SKwd">var</span> a, b: <span class="SCst">Label</span>
+    a.text = .<span class="SCst">Name</span>{<span class="SStr">"disc"</span>}
+    b.text = .<span class="SCst">Name</span>{<span class="SStr">"disc"</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == b)
+
+    b.text = .<span class="SCst">Size</span>{<span class="SNum">4</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a != b)
+}</span></div>
 <h3 id="_004_007_pointers_swg">Pointers</h3>
 <h3 id="_004_007_pointers_swg_Single-Value_Pointers">Single-Value Pointers</h3>
 <p>A pointer to a <b>single element</b> is declared using the <span class="code-inline">*</span> symbol. It represents the memory address of one instance of a given type.</p>
@@ -3671,7 +3832,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">let</span> a: <span class="STpe">any</span> = <span class="SNum">6</span>
-    <span class="SKwd">let</span> ptr    = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a) <span class="SLgc">else</span> <span class="SKwd">null</span>
+    <span class="SKwd">let</span> ptr    = <span class="SKwd">catch</span> <span class="SKwd">cast</span>(<span class="SKwd">const</span> *<span class="STpe">s32</span>?, a)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(ptr[] == <span class="SNum">6</span>)
 }</span></div>
@@ -4824,7 +4985,8 @@ swc test -w path/to/workspace -m messages</span></div>
     {
     <span class="SLgc">case</span> <span class="SNum">2</span>,
          <span class="SNum">4</span>,
-         <span class="SNum">6</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">true</span>)
+         <span class="SNum">6</span>:
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">true</span>)
 
     <span class="SLgc">default</span>: <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">false</span>)
     }
@@ -5071,13 +5233,13 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">10</span>)
 }</span></div>
-<h3 id="_005_006_break_swg_Named_Scopes_with___scope_">Named Scopes with <span class="code-inline">#scope</span></h3>
-<p>Define a named scope with <span class="code-inline">#scope(Name)</span>. 'break to Name' exits that scope from anywhere inside it, however deeply nested.</p>
+<h3 id="_005_006_break_swg_Named_Scopes_with__scope_">Named Scopes with <span class="code-inline">scope</span></h3>
+<p>Define a named scope with <span class="code-inline">scope(Name)</span>. 'break to Name' exits that scope from anywhere inside it, however deeply nested.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> cpt = <span class="SNum">0</span>
 
-    <span class="SCmp">#scope</span>(<span class="SCst">BigScope</span>)
+    <span class="SLgc">scope</span>(<span class="SCst">BigScope</span>)
     {
         <span class="SLgc">for</span> <span class="SNum">10</span>
         {
@@ -5091,14 +5253,14 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(cpt == <span class="SNum">1</span>)
 }</span></div>
 <h3 id="_005_006_break_swg_A_Scope_Is_Never_the_Target_of_a_Bare__break_">A Scope Is Never the Target of a Bare <span class="code-inline">break</span></h3>
-<p>'break to Name' is the only statement that leaves a <span class="code-inline">#scope</span>. A bare <span class="code-inline">break</span> written inside one keeps targeting the enclosing loop or switch, so wrapping a piece of a loop body in a scope does not change where its <span class="code-inline">break</span> statements go.</p>
+<p>'break to Name' is the only statement that leaves a <span class="code-inline">scope</span>. A bare <span class="code-inline">break</span> written inside one keeps targeting the enclosing loop or switch, so wrapping a piece of a loop body in a scope does not change where its <span class="code-inline">break</span> statements go.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> runs = <span class="SNum">0</span>
 
     <span class="SLgc">for</span> <span class="SNum">10</span>
     {
-        <span class="SCmp">#scope</span>(<span class="SCst">Grouped</span>)
+        <span class="SLgc">scope</span>(<span class="SCst">Grouped</span>)
         {
             runs += <span class="SNum">1</span>
             <span class="SLgc">break</span>     <span class="SCmt">// Exits the 'for', not 'Grouped'</span>
@@ -5107,14 +5269,14 @@ swc test -w path/to/workspace -m messages</span></div>
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(runs == <span class="SNum">1</span>)
 }</span></div>
-<p><span class="code-inline">continue</span> behaves the same way: a scope is not a loop, so <span class="code-inline">continue</span> restarts the enclosing loop and never the scope. Repeating a block therefore needs a real loop, and a <span class="code-inline">#scope</span> that encloses no loop rejects both bare statements.</p>
+<p><span class="code-inline">continue</span> behaves the same way: a scope is not a loop, so <span class="code-inline">continue</span> restarts the enclosing loop and never the scope. Repeating a block therefore needs a real loop, and a <span class="code-inline">scope</span> that encloses no loop rejects both bare statements.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> visited = <span class="SNum">0</span>
 
     <span class="SLgc">for</span> <span class="SNum">3</span>
     {
-        <span class="SCmp">#scope</span>(<span class="SCst">Grouped</span>)
+        <span class="SLgc">scope</span>(<span class="SCst">Grouped</span>)
         {
             visited += <span class="SNum">1</span>
             <span class="SLgc">continue</span>     <span class="SCmt">// Restarts the 'for'</span>
@@ -5125,11 +5287,12 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_005_006_break_swg_Unnamed_Scopes">Unnamed Scopes</h3>
 <p>A scope can be left unnamed when nothing needs to jump out of it. It then only groups statements and bounds the lifetime of what it declares. Give it a name as soon as a 'break to' has to reach it.</p>
+<p>A <span class="code-inline">{</span> never opens a scope by itself: <span class="code-inline">scope</span> does. A block written as a statement right after a call is that call's trailing code block, so the call must take one; anywhere else, a statement-level <span class="code-inline">{</span> is rejected.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> total = <span class="SNum">0</span>
 
-    <span class="SCmp">#scope</span>
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">let</span> step = <span class="SNum">4</span>
         total += step
@@ -5141,7 +5304,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>A scope label can precede a simple statement. 'break to Label' exits to just after that labeled statement.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SCmp">#scope</span>(<span class="SCst">Up</span>)
+    <span class="SLgc">scope</span>(<span class="SCst">Up</span>)
     <span class="SLgc">for</span> <span class="SNum">10</span>
     {
         <span class="SLgc">for</span> index <span class="SLgc">in</span> <span class="SNum">10</span>
@@ -5244,7 +5407,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SLgc">if</span> index == <span class="SNum">3</span> <span class="SLgc">do</span>
             <span class="SKwd">fail</span> <span class="SCst">ParallelInputError</span>{index}
         values[index] = index + <span class="SNum">1</span>
-    } <span class="SLgc">as</span> &amp;errorOutcome
+    } <span class="SLgc">as</span> errorOutcome
 
     <span class="SKwd">let</span> error = errorOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(error != <span class="SKwd">null</span> <span class="SLgc">and</span> (error <span class="SLgc">is</span> <span class="SCst">ParallelInputError</span>))
@@ -6692,6 +6855,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">func</span> <span class="SFct">sub</span>(x, y: <span class="STpe">s32</span>) =&gt; x - y
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">let</span> x1 = <span class="SFct">sub</span>(x: <span class="SNum">5</span>, y: <span class="SNum">2</span>)
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x1 == <span class="SNum">3</span>)
@@ -6700,6 +6864,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x2 == -<span class="SNum">3</span>)
     }
 
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">func</span> <span class="SFct">returnMe</span>(x, y: <span class="STpe">s32</span> = <span class="SNum">0</span>) =&gt; x + y * <span class="SNum">2</span>
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">returnMe</span>(x: <span class="SNum">10</span>) == <span class="SNum">10</span>)
@@ -6806,11 +6971,13 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>Lambdas may have parameters with default values, allowing flexible invocation.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">let</span> x = <span class="SKwd">func</span>(val = <span class="SKwd">true</span>) { <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(val == <span class="SKwd">true</span>) }
         <span class="SFct">x</span>()
     }
 
+    <span class="SLgc">scope</span>
     {
         <span class="SKwd">var</span> x: (<span class="SKwd">func</span>(val: <span class="STpe">bool</span> = <span class="SKwd">true</span>))?
         x = <span class="SKwd">func</span>(val) { <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(val == <span class="SKwd">true</span>) }
@@ -8305,6 +8472,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> drained = <span class="SNum">0</span>
+    <span class="SLgc">scope</span>
     {
         <span class="SLgc">defer</span>
         {
@@ -8923,46 +9091,54 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">return</span> name.count
 }</span></div>
 <h3 id="_013_001_error_management_swg_Catching_Errors">Catching Errors</h3>
-<p><span class="code-inline">catch</span> handles an error locally. A value expression names its replacement with 'else V'. To inspect the error, write 'as err' before <span class="code-inline">else</span>: the borrowed <span class="code-inline">any</span> binding is visible only inside that fallback or handler. The handler runs only on failure, so its error is non-null. Separate handlers can reuse a name.</p>
-<p>A failed call produces no result. A block handler used in a value expression must leave the surrounding flow with <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">break</span>, or <span class="code-inline">continue</span>. No <span class="code-inline">catch</span> supplies an implicit zero or requires a defaultable result type. Use a named aggregate literal or parentheses when an aggregate replacement could be read as a handler block, such as a single call inside braces.</p>
-<p>Copies of the error view and pointers derived from it borrow the handler's lifetime and cannot escape it. Use 'fail err' to propagate the caught error. To retain it after the handler ends, give it an explicit <a href="swag.runtime.html#Swag_Error">Swag.Error</a> owner.</p>
+<p><span class="code-inline">catch</span> handles an error locally. It reads in three ways:</p>
+<ul>
+<li>'catch e' resumes with the default value of the result type when <span class="code-inline">e</span> fails.</li>
+<li>'catch e orelse V' resumes with <span class="code-inline">V</span> instead.</li>
+<li>'catch e { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails.</li>
+</ul>
+<p>The operand binds like the operand of a unary operator: 'catch f() == 0' compares the caught result. The <span class="code-inline">orelse</span> value takes the rest of the expression, as it does for any <span class="code-inline">orelse</span>.</p>
+<p>Inside the handler or the <span class="code-inline">orelse</span> value, <span class="code-inline">Swag.err</span> is the error: a borrowed <span class="code-inline">any</span>, non-null because the handler runs only on failure. In a nested <span class="code-inline">catch</span>, it names the innermost error. Outside a handler, <span class="code-inline">Swag.err</span> does not exist.</p>
+<p>A block handler used in a value expression must leave the surrounding flow with <span class="code-inline">return</span>, <span class="code-inline">fail</span>, <span class="code-inline">break</span>, or <span class="code-inline">continue</span>.</p>
+<p>Copies of the error view and pointers derived from it borrow the handler's lifetime and cannot escape it. Use 'fail Swag.err' to propagate the caught error. To retain it after the handler ends, give it an explicit <a href="swag.runtime.html#Swag_Error">Swag.Error</a> owner.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err <span class="SLgc">else</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">orelse</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, <span class="SNsp">Swag</span>.err).code
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">7</span>)
-    <span class="SKwd">let</span> other = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> err <span class="SLgc">else</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code + <span class="SNum">1</span>
+    <span class="SKwd">let</span> other = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">orelse</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, <span class="SNsp">Swag</span>.err).code + <span class="SNum">1</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(other == <span class="SNum">8</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Retaining_Errors">Retaining Errors</h3>
 <p><a href="swag.runtime.html#Swag_Error_capture">Swag.Error.capture</a> copies a live caught payload and retains its runtime message storage. The owner may then outlive the handler, including a worker thread. Other borrowed fields still need their original owners, and the backing allocator must remain alive until every error owner and raised capture ends.</p>
-<p>To store the outcome directly, declare the owner and write 'as &amp;saved'. The owner address is evaluated once before the operand. Failure retains the handled payload without copying it; success resets the owner to empty. This form declares no error binding and needs no handler when the call's result is discarded. A result that is read still needs an explicit replacement or a handler that leaves the surrounding flow.</p>
+<p>To store the outcome directly, declare the owner and write 'as saved'. The owner is evaluated once before the operand. Failure retains the handled payload without copying it; success resets the owner to empty. This form needs no handler: a result that is read still resumes with the default value of its type, or with 'orelse V'.</p>
 <p><a href="swag.runtime.html#Swag_Error_value">Swag.Error.value</a> borrows the retained error for later inspection; an empty owner returns null. Resetting, replacing, or dropping the owner invalidates that view. 'try saved.raise()' propagates the retained error with its dynamic type. Copying an owner shares its retained payload. Access to the same owner across threads needs synchronization.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> saved: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;saved
+    <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> saved
     <span class="SKwd">let</span> err = saved.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err <span class="SLgc">is</span> <span class="SCst">MyError</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 
-    <span class="SKwd">catch</span> saved.<span class="SFct">raise</span>() <span class="SLgc">as</span> err <span class="SLgc">else</span>
+    <span class="SKwd">catch</span> saved.<span class="SFct">raise</span>()
     {
         saved.<span class="SFct">reset</span>()
         <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(saved.<span class="SFct">isEmpty</span>())
-        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).message == <span class="SStr">"name cannot be null"</span>)
+        <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, <span class="SNsp">Swag</span>.err).message == <span class="SStr">"name cannot be null"</span>)
     }
 }
 
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> saved: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;saved <span class="SLgc">else</span> <span class="SNum">17</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> saved <span class="SLgc">orelse</span> <span class="SNum">17</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">17</span> <span class="SLgc">and</span> <span class="SLgc">not</span> saved.<span class="SFct">isEmpty</span>())
-    <span class="SKwd">let</span> other = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SStr">"ready"</span>) <span class="SLgc">as</span> &amp;saved <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> other = <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SStr">"ready"</span>) <span class="SLgc">as</span> saved
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(other == <span class="SNum">5</span> <span class="SLgc">and</span> saved.<span class="SFct">isEmpty</span>())
 }</span></div>
-<h3 id="_013_001_error_management_swg_Handling_on_Failure_with__catch_____else_">Handling on Failure with 'catch ... else'</h3>
-<p>'catch e else { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails. Add 'as err' before <span class="code-inline">else</span> to inspect the error inside <span class="code-inline">H</span>. A handler on a statement may finish normally. A handler on a value expression must leave the surrounding flow.</p>
+<h3 id="_013_001_error_management_swg_Handling_on_Failure">Handling on Failure</h3>
+<p>'catch e { H }' runs the handler <span class="code-inline">H</span> only when <span class="code-inline">e</span> fails; 'catch e do S' runs a single statement. <span class="code-inline">Swag.err</span> reads the error inside <span class="code-inline">H</span>. A handler on a statement may finish normally. A handler on a value expression must leave the surrounding flow.</p>
+<p>The block that follows a <span class="code-inline">catch</span> operand is always its handler. To pass trailing code to a macro under <span class="code-inline">catch</span>, write it as an explicit <span class="code-inline">#code</span> literal. In the header of <span class="code-inline">if</span>, <span class="code-inline">while</span>, <span class="code-inline">for</span>, <span class="code-inline">switch</span> or <span class="code-inline">with</span>, the <span class="code-inline">{</span> that follows a <span class="code-inline">catch</span> operand opens the statement body: give the handler parentheses there.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">recordTrace</span>(name: <span class="STpe">string</span>?, out: *<span class="STpe">s32</span>) <span class="SKwd">fail</span>
 {
     out[] = <span class="SKwd">cast</span>(<span class="STpe">s32</span>, (<span class="SKwd">try</span> <span class="SFct">count</span>(name)))
@@ -8972,28 +9148,30 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">var</span> seen: <span class="STpe">s32</span> = -<span class="SNum">1</span>
 
-    <span class="SKwd">catch</span> <span class="SFct">recordTrace</span>(<span class="SStr">"swag"</span>, &amp;seen) <span class="SLgc">else</span> <span class="SLgc">do</span>
+    <span class="SKwd">catch</span> <span class="SFct">recordTrace</span>(<span class="SStr">"swag"</span>, &amp;seen) <span class="SLgc">do</span>
         seen = -<span class="SNum">2</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(seen == <span class="SNum">4</span>)     <span class="SCmt">// success: the handler does not run</span>
 
-    <span class="SKwd">catch</span> <span class="SFct">recordTrace</span>(<span class="SKwd">null</span>, &amp;seen) <span class="SLgc">else</span>
+    <span class="SKwd">catch</span> <span class="SFct">recordTrace</span>(<span class="SKwd">null</span>, &amp;seen)
     {
         seen = -<span class="SNum">2</span>
     }
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(seen == -<span class="SNum">2</span>)     <span class="SCmt">// failure: the handler ran instead</span>
 }</span></div>
-<h3 id="_013_001_error_management_swg_Replacing_a_Failed_Result_with__else_">Replacing a Failed Result with <span class="code-inline">else</span></h3>
-<p>'catch e else V' yields <span class="code-inline">V</span> when <span class="code-inline">e</span> fails. <span class="code-inline">V</span> converts to the result type of <span class="code-inline">e</span> and is evaluated only on the failure path, after an 'as err' capture is bound, so it can read the error. Because the replacement is written, the result type needs no default: a non-null pointer can be caught too.</p>
-<p>A failure never becomes a value silently. A <span class="code-inline">catch</span> without <span class="code-inline">else</span> cannot be read: the compiler rejects it, including with a persistent capture. When the result is not needed, write 'discard catch': success drops its result and failure drops its error.</p>
+<h3 id="_013_001_error_management_swg_Replacing_a_Failed_Result">Replacing a Failed Result</h3>
+<p>'catch e' yields the default value of the result type when <span class="code-inline">e</span> fails: the value 'var x: T' would hold, with struct field initializers applied, null for a nullable type, and zero for a number. A type that has no default value, such as a non-null pointer, needs the replacement to be written.</p>
+<p>'catch e orelse V' yields <span class="code-inline">V</span> instead. <span class="code-inline">V</span> converts to the result type of <span class="code-inline">e</span> and is evaluated only when it is needed, so it can read <span class="code-inline">Swag.err</span>. Because the replacement is written, the result type needs no default: a non-null pointer can be caught too.</p>
+<p>Like any <span class="code-inline">orelse</span>, <span class="code-inline">V</span> replaces a missing value: with a nullable result, a success that returns null takes <span class="code-inline">V</span> as well, and the expression then holds a value whenever <span class="code-inline">V</span> does. There is no error in that case, so <span class="code-inline">V</span> cannot read <span class="code-inline">Swag.err</span> there.</p>
+<p>When the result is not needed, write 'discard catch': success drops its result and failure drops its error.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">safeCount</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
 {
-    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name) <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name)
 }
 
 <span class="SKwd">func</span> <span class="SFct">countOrCode</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
 {
-    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name) <span class="SLgc">as</span> err <span class="SLgc">else</span> <span class="SKwd">cast</span>(<span class="STpe">u64</span>, <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code)
+    <span class="SLgc">return</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(name) <span class="SLgc">orelse</span> <span class="SKwd">cast</span>(<span class="STpe">u64</span>, <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, <span class="SNsp">Swag</span>.err).code)
 }
 
 <span class="SFct">#test</span>
@@ -9002,10 +9180,45 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">safeCount</span>(<span class="SKwd">null</span>) == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">countOrCode</span>(<span class="SKwd">null</span>) == <span class="SNum">7</span>)
 
-    <span class="SKwd">let</span> required = <span class="SKwd">catch</span> <span class="SFct">loadRequiredValue</span>() <span class="SLgc">else</span> &amp;requiredValue
+    <span class="SKwd">let</span> required = <span class="SKwd">catch</span> <span class="SFct">loadRequiredValue</span>() <span class="SLgc">orelse</span> &amp;requiredValue
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(required[] == <span class="SNum">42</span>)
 
     <span class="SKwd">discard</span> <span class="SKwd">catch</span> <span class="SFct">count</span>(<span class="SKwd">null</span>)
+}
+
+<span class="SKwd">struct</span> <span class="SCst">Settings</span>
+{
+    width: <span class="STpe">s32</span>    = <span class="SNum">640</span>
+    title: <span class="STpe">string</span> = <span class="SStr">"untitled"</span>
+}
+
+<span class="SKwd">func</span> <span class="SFct">loadSettings</span>(fileName: <span class="STpe">string</span>?)-&gt;<span class="SCst">Settings</span> <span class="SKwd">fail</span>
+{
+    <span class="SLgc">if</span> fileName == <span class="SKwd">null</span> <span class="SLgc">do</span>
+        <span class="SKwd">fail</span> <span class="SCst">MyError</span>{base: <span class="SNsp">Swag</span>.<span class="SCst">BaseError</span>{<span class="SStr">"no settings file"</span>}}
+    <span class="SLgc">return</span> <span class="SCst">Settings</span>{width: <span class="SNum">1024</span>, title: fileName}
+}
+
+<span class="SKwd">func</span> <span class="SFct">findName</span>(id: <span class="STpe">s32</span>)-&gt;<span class="STpe">string</span>? <span class="SKwd">fail</span>
+{
+    <span class="SLgc">if</span> id == <span class="SNum">0</span> <span class="SLgc">do</span>
+        <span class="SKwd">fail</span> <span class="SCst">MyError</span>{base: <span class="SNsp">Swag</span>.<span class="SCst">BaseError</span>{<span class="SStr">"unknown id"</span>}}
+    <span class="SLgc">return</span> <span class="SStr">"first"</span>
+}
+
+<span class="SFct">#test</span>
+{
+    <span class="SCmt">// The default of a struct is the one its field initializers give.</span>
+    <span class="SKwd">let</span> settings = <span class="SKwd">catch</span> <span class="SFct">loadSettings</span>(<span class="SKwd">null</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(settings.width == <span class="SNum">640</span> <span class="SLgc">and</span> settings.title == <span class="SStr">"untitled"</span>)
+
+    <span class="SCmt">// A nullable result defaults to null.</span>
+    <span class="SKwd">let</span> name = <span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">0</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(name == <span class="SKwd">null</span>)
+
+    <span class="SCmt">// 'orelse' replaces a failure, and a successful null alike.</span>
+    <span class="SKwd">let</span> named = <span class="SKwd">catch</span> <span class="SFct">findName</span>(<span class="SNum">0</span>) <span class="SLgc">orelse</span> <span class="SStr">"anonymous"</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(named == <span class="SStr">"anonymous"</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Propagating_Errors">Propagating Errors</h3>
 <p><span class="code-inline">try</span> propagates the current error to the caller, so it belongs inside a function that can itself return an error.</p>
@@ -9017,7 +9230,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SStr">"abc"</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SStr">"abc"</span>) <span class="SLgc">as</span> errOutcome
     <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">3</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err == <span class="SKwd">null</span>)
@@ -9026,7 +9239,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">propagateCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
     <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
@@ -9042,14 +9255,14 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">explicitTryCount</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
     <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Error-Handling_Blocks">Error-Handling Blocks</h3>
-<p><span class="code-inline">try</span>, <span class="code-inline">catch</span> (optionally with 'as err' or <span class="code-inline">else</span>), <span class="code-inline">expect</span>, and <span class="code-inline">assume</span> can also guard a whole block of code. Each fallible call inside the block still needs its own keyword: use <span class="code-inline">try</span> to pass its error to the enclosing block's handler.</p>
+<p><span class="code-inline">try</span>, <span class="code-inline">catch</span> (optionally with 'as owner' or a handler), <span class="code-inline">expect</span>, and <span class="code-inline">assume</span> can also guard a whole block of code. Each fallible call inside the block still needs its own keyword: use <span class="code-inline">try</span> to pass its error to the enclosing block's handler.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">blockTry</span>(name0: <span class="STpe">string</span>?, name1: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SKwd">var</span> total: <span class="STpe">u64</span> = <span class="SNum">0</span>
@@ -9068,7 +9281,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">catch</span> {
         <span class="SKwd">discard</span> <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SStr">"ok"</span>)
         <span class="SKwd">discard</span> <span class="SKwd">try</span> <span class="SFct">count</span>(<span class="SKwd">null</span>)
-    } <span class="SLgc">as</span> &amp;errOutcome
+    } <span class="SLgc">as</span> errOutcome
 
     <span class="SKwd">let</span> err = errOutcome.<span class="SFct">value</span>()
 
@@ -9078,13 +9291,12 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SLgc">return</span> <span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code
 }
 
-<span class="SKwd">func</span> <span class="SFct">blockCatchElse</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
+<span class="SKwd">func</span> <span class="SFct">blockCatchDismiss</span>(name: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span>
 {
     <span class="SKwd">catch</span>
     {
         <span class="SLgc">return</span> <span class="SKwd">try</span> <span class="SFct">count</span>(name)
     }
-    <span class="SLgc">else</span> {}
 
     <span class="SLgc">return</span> <span class="SNum">99</span>
 }
@@ -9092,7 +9304,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">blockTry</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">blockTry</span>(<span class="SStr">"ab"</span>, <span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
     <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
@@ -9102,8 +9314,8 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SFct">#test</span>
 {
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchCode</span>() == <span class="SNum">7</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchElse</span>(<span class="SStr">"abcd"</span>) == <span class="SNum">4</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchElse</span>(<span class="SKwd">null</span>) == <span class="SNum">99</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchDismiss</span>(<span class="SStr">"abcd"</span>) == <span class="SNum">4</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SFct">blockCatchDismiss</span>(<span class="SKwd">null</span>) == <span class="SNum">99</span>)
 }</span></div>
 <h3 id="_013_001_error_management_swg_Implicit_Propagation">Implicit Propagation</h3>
 <p>When nearly every call of a function propagates, a <span class="code-inline">try</span> on each one tells the reader nothing. <span class="code-inline">#[Swag.Propagate]</span> reads every unmarked fallible call of the function body as <span class="code-inline">try</span>, so the only error keywords left are those that handle a failure differently: <span class="code-inline">catch</span>, <span class="code-inline">expect</span>, and <span class="code-inline">assume</span>.</p>
@@ -9114,7 +9326,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <span class="SKwd">func</span> <span class="SFct">implicitTotal</span>(name0: <span class="STpe">string</span>?, name1: <span class="STpe">string</span>?)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span>
 {
     <span class="SKwd">let</span> first  = <span class="SFct">count</span>(name0)
-    <span class="SKwd">let</span> second = <span class="SKwd">catch</span> <span class="SFct">count</span>(name1) <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> second = <span class="SKwd">catch</span> <span class="SFct">count</span>(name1)
     <span class="SLgc">return</span> first + second + <span class="SFct">count</span>(<span class="SStr">"ok"</span>)
 }
 
@@ -9126,7 +9338,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(caught == <span class="SNum">4</span>)
 
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">implicitTotal</span>(<span class="SKwd">null</span>, <span class="SStr">"cde"</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">implicitTotal</span>(<span class="SKwd">null</span>, <span class="SStr">"cde"</span>) <span class="SLgc">as</span> errOutcome
     <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(<span class="SKwd">assume</span> <span class="SKwd">cast</span>(<span class="SCst">MyError</span>, err).code == <span class="SNum">7</span>)
@@ -9134,7 +9346,7 @@ swc test -w path/to/workspace -m messages</span></div>
 <h3 id="_013_001_error_management_swg_Expect">Expect</h3>
 <p><span class="code-inline">expect</span> returns the successful result or panics. This contract holds in every build configuration, including release and code with safety guards disabled. A panic hook may report the error or transfer control, but returning from the hook terminates the process. Use <span class="code-inline">expect</span> for an invariant, not for an ordinary failure that the caller should recover from.</p>
 <p>A failed function produces no result. <span class="code-inline">try</span> propagates its error without constructing a replacement, and <span class="code-inline">expect</span> stops without one. Both accept result types with no default, including non-null pointers. A successful nullable result remains nullable: <span class="code-inline">expect</span> checks success, not presence.</p>
-<p>A <span class="code-inline">catch</span> expression names its replacement with <span class="code-inline">else</span>, or uses a block handler that leaves the surrounding flow. It accepts non-null results without a default.</p>
+<p>A <span class="code-inline">catch</span> expression resumes with the default value of its type, names its replacement with <span class="code-inline">orelse</span>, or uses a block handler that leaves the surrounding flow. With <span class="code-inline">orelse</span> or such a handler, it accepts non-null results.</p>
 <p>Inside <span class="code-inline">#test</span>, write <span class="code-inline">expect</span> when an error must stop the test. <span class="code-inline">try</span> follows the ordinary propagation rule and needs an enclosing error-handling block. An inlined function keeps its own error propagation: <span class="code-inline">try</span> in its body still passes failures to the caller's handler.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
@@ -9184,7 +9396,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SCst">DeferTrace</span> = <span class="SNum">0</span>
     <span class="SKwd">var</span> errOutcome: <span class="SNsp">Swag</span>.<span class="SCst">Error</span>
-    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">deferOnFail</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> &amp;errOutcome <span class="SLgc">else</span> <span class="SNum">0</span>
+    <span class="SKwd">let</span> value = <span class="SKwd">catch</span> <span class="SFct">deferOnFail</span>(<span class="SKwd">null</span>) <span class="SLgc">as</span> errOutcome
     <span class="SKwd">let</span> err   = errOutcome.<span class="SFct">value</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(err != <span class="SKwd">null</span>)
@@ -10164,7 +10376,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == <span class="SNum">2</span>)
 }</span></div>
 <h3 id="_015_001_mixins_swg_Passing_Code_Blocks_in_Separate_Statements">Passing Code Blocks in Separate Statements</h3>
-<p>When the last parameter is a <span class="code-inline">#code</span> statement block, the code can be provided in a separate block after the call.</p>
+<p>When the last parameter is a <span class="code-inline">#code</span> statement block, the code can be provided in a separate block after the call. Since a <span class="code-inline">{</span> never opens a scope by itself, a block that follows a call statement always belongs to that call: the call must take it.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Mixin]</span>
@@ -10429,7 +10641,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
     <span class="SKwd">func</span> <span class="SFct">repeatSquare</span>(count: <span class="STpe">u32</span>, what: <span class="SItr">#code</span>)
     {
         <span class="SCmt">// Define a scope label used as the break target</span>
-        <span class="SCmp">#scope</span>(<span class="SCst">ScopeTarget</span>)
+        <span class="SLgc">scope</span>(<span class="SCst">ScopeTarget</span>)
 
         <span class="SLgc">for</span> count
         {
@@ -10460,7 +10672,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
     <span class="SKwd">func</span> <span class="SFct">repeatSquare</span>(count: <span class="STpe">u32</span>, what: <span class="SItr">#code</span>)
     {
         <span class="SCmt">// Label for controlling the outer loop</span>
-        <span class="SCmp">#scope</span>(<span class="SCst">Outer</span>)
+        <span class="SLgc">scope</span>(<span class="SCst">Outer</span>)
 
         <span class="SLgc">for</span> count
         {
@@ -11246,6 +11458,11 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Union|_004_006_union_swg|",
 "h|The union Type in Swag|_004_006_union_swg_The__union__Type_in_Swag|",
 "h|How Unions Work|_004_006_union_swg_How_Unions_Work|",
+"h|Tagged Unions|_004_006_union_swg_Tagged_Unions|",
+"h|Building a Case|_004_006_union_swg_Building_a_Case|",
+"h|Reading the Case|_004_006_union_swg_Reading_the_Case|",
+"h|Asserting a Case with !|_004_006_union_swg_Asserting_a_Case_with____|",
+"h|Copy, Move, Drop and Equality|_004_006_union_swg_Copy__Move__Drop_and_Equality|",
 "h|Pointers|_004_007_pointers_swg|",
 "h|Single-Value Pointers|_004_007_pointers_swg_Single-Value_Pointers|",
 "h|Null Pointers|_004_007_pointers_swg_Null_Pointers|",
@@ -11352,7 +11569,7 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Break|_005_006_break_swg|",
 "h|The break Statement|_005_006_break_swg_The__break__Statement|",
 "h|Default Behavior|_005_006_break_swg_Default_Behavior|",
-"h|Named Scopes with #scope|_005_006_break_swg_Named_Scopes_with___scope_|",
+"h|Named Scopes with scope|_005_006_break_swg_Named_Scopes_with__scope_|",
 "h|A Scope Is Never the Target of a Bare break|_005_006_break_swg_A_Scope_Is_Never_the_Target_of_a_Bare__break_|",
 "h|Unnamed Scopes|_005_006_break_swg_Unnamed_Scopes|",
 "h|Scopes with Simple Statements|_005_006_break_swg_Scopes_with_Simple_Statements|",
@@ -11604,8 +11821,8 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Error Management|_013_001_error_management_swg_Error_Management|",
 "h|Catching Errors|_013_001_error_management_swg_Catching_Errors|",
 "h|Retaining Errors|_013_001_error_management_swg_Retaining_Errors|",
-"h|Handling on Failure with 'catch ... else'|_013_001_error_management_swg_Handling_on_Failure_with__catch_____else_|",
-"h|Replacing a Failed Result with else|_013_001_error_management_swg_Replacing_a_Failed_Result_with__else_|",
+"h|Handling on Failure|_013_001_error_management_swg_Handling_on_Failure|",
+"h|Replacing a Failed Result|_013_001_error_management_swg_Replacing_a_Failed_Result|",
 "h|Propagating Errors|_013_001_error_management_swg_Propagating_Errors|",
 "h|Explicit Error Handling|_013_001_error_management_swg_Explicit_Error_Handling|",
 "h|Error-Handling Blocks|_013_001_error_management_swg_Error-Handling_Blocks|",

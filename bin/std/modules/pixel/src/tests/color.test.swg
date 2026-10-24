@@ -66,7 +66,7 @@ private func checkColorValue(color: *Color, text: string) fail { discard try Str
 
     var single: Color
     var incompleteOutcome: Swag.Error
-    catch checkColorValue(&single, "0") as &incompleteOutcome
+    catch checkColorValue(&single, "0") as incompleteOutcome
     let incomplete = incompleteOutcome.value()
     Swag.assert(incomplete != null)
 }

@@ -22,10 +22,10 @@ var g_catchElseTrace = 0
 func catchElseRun(ok: bool)->s32
 {
     g_catchElseTrace = 0
-    catch catchElseMayFail(ok) as err else
+    catch catchElseMayFail(ok)
     {
         g_catchElseTrace = 1
-        let e = assume cast(CatchElseError, err)
+        let e = assume cast(CatchElseError, Swag.err)
         g_catchElseTrace = e.code
     }
     g_catchElseTrace += 1000
@@ -35,7 +35,7 @@ func catchElseRun(ok: bool)->s32
 // Anonymous 'else' handler: diverts control flow on failure without inspecting the error.
 func catchElseEarlyReturn(ok: bool)->s32
 {
-    catch catchElseMayFail(ok) else do
+    catch catchElseMayFail(ok) do
         return -1
     return 100
 }
@@ -62,8 +62,8 @@ func catchElseBump() { g_catchElseHandlerRuns += 1 }
 #test
 {
     g_catchElseHandlerRuns = 0
-    catch catchElseMayFail(true) else do catchElseBump()
+    catch catchElseMayFail(true) do catchElseBump()
     Swag.assert(g_catchElseHandlerRuns == 0)
-    catch catchElseMayFail(false) else do catchElseBump()
+    catch catchElseMayFail(false) do catchElseBump()
     Swag.assert(g_catchElseHandlerRuns == 1)
 }

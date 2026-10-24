@@ -11,7 +11,7 @@ func createDirectoryJunction(link, target: string)->bool
     let windowsDir = Path.directoryName(fontsDir.toString())
     let shell      = Path.combine(windowsDir, "System32", "cmd.exe")
     let arguments  = Format.toString("/c mklink /J \"%\" \"%\"", link, target)
-    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) else { return false }
+    let process    = catch Env.runProcess(shell.toString(), arguments.toString()) { return false }
     return process.exitCode() == 0
 }
 
@@ -20,7 +20,7 @@ func createDirectoryJunction(link, target: string)->bool
     let dirName = CoreTests.makeFilesystemTestPath("core_invalid?dir")
 
     var errOutcome: Swag.Error
-    discard catch Directory.create(dirName) as &errOutcome
+    discard catch Directory.create(dirName) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
     Swag.assert(err is Errors.InvalidFileNameError)
@@ -39,7 +39,7 @@ func createDirectoryJunction(link, target: string)->bool
     expect Directory.create(leaf, recurse: true)
 
     var errOutcome: Swag.Error
-    discard catch Directory.create(leaf) as &errOutcome
+    discard catch Directory.create(leaf) as errOutcome
     let err = errOutcome.value()
     Swag.assert(err != null)
 }
@@ -89,7 +89,7 @@ func createDirectoryJunction(link, target: string)->bool
     Swag.assert(not Directory.exists(dirName))
 
     var errOutcome: Swag.Error
-    discard catch Directory.enumerate(dirName, {}) as &errOutcome
+    discard catch Directory.enumerate(dirName, {}) as errOutcome
     Swag.assert(errOutcome.value() != null)
 }
 
@@ -97,15 +97,15 @@ func createDirectoryJunction(link, target: string)->bool
 #test
 {
     var createError: Swag.Error
-    discard catch Directory.create("", recurse: true) as &createError
+    discard catch Directory.create("", recurse: true) as createError
     Swag.assert(createError.value() is Errors.BadParameterError)
 
     var deleteError: Swag.Error
-    discard catch Directory.delete("", recurse: true) as &deleteError
+    discard catch Directory.delete("", recurse: true) as deleteError
     Swag.assert(deleteError.value() is Errors.BadParameterError)
 
     var enumerateError: Swag.Error
-    discard catch Directory.enumerate("", {}) as &enumerateError
+    discard catch Directory.enumerate("", {}) as enumerateError
     Swag.assert(enumerateError.value() is Errors.BadParameterError)
 }
 

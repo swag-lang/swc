@@ -177,7 +177,7 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
     case .Signed8, .Signed16, .Signed32, .Signed64:
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseS64(source))
-        catch { parsed = try StrConv.parseS64(source) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseS64(source) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
@@ -191,7 +191,7 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
     case .Unsigned8, .Unsigned16, .Unsigned32, .Unsigned64:
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU64(source))
-        catch { parsed = try StrConv.parseU64(source) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseU64(source) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
@@ -203,7 +203,7 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
     case .Float32:
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseF64(source))
-        catch { parsed = try StrConv.parseF64(source) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseF64(source) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
@@ -214,7 +214,7 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
     case .Float64:
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseF64(source))
-        catch { parsed = try StrConv.parseF64(source) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseF64(source) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError == null and parsed.eat == source.count and not parsed.ovf
         {
@@ -226,7 +226,7 @@ private func parseValuePattern(source: string, grouping: Grouping, bigEndian: bo
         let digits = Utf8.startsWith(source, "0x", .Latin1NoCase) ? cast(string, source[2 to]) : source
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseX64(digits))
-        catch { parsed = try StrConv.parseX64(digits) } as &parseErrorOutcome
+        catch { parsed = try StrConv.parseX64(digits) } as parseErrorOutcome
         let parseError = parseErrorOutcome.value()
         if parseError == null and parsed.eat == digits.count and not parsed.ovf
         {

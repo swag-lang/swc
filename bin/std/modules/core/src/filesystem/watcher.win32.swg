@@ -228,7 +228,7 @@ internal impl Watcher
 
         var transferred: DWORD
         var errOutcome:  Swag.Error
-        catch GetOverlappedResult(state.directory, &state.overlapped, &transferred, FALSE) as &errOutcome
+        catch GetOverlappedResult(state.directory, &state.overlapped, &transferred, FALSE) as errOutcome
         let err = errOutcome.value()
         state.pending = false
         if err != null

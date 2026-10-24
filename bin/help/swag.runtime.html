@@ -3077,7 +3077,7 @@ counter.<span class="SFct">add</span>(<span class="SNum">1</span>)
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_CaughtPanic" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.CaughtPanic</span> <a class="api-item-permalink" href="#Swag_CaughtPanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L179">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_CaughtPanic" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.CaughtPanic</span> <a class="api-item-permalink" href="#Swag_CaughtPanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L180">src</a></div>
 <p>What <a href="#Swag_catchPanic">catchPanic</a> reports about the call it made.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst"><a href="#Swag_CaughtPanic">CaughtPanic</a></span></span></div>
 </section>
@@ -3216,13 +3216,14 @@ mutex.<span class="SFct">unlock</span>()</span></div>
 </tbody>
 </table>
 <section class="api-symbol">
-<div class="api-item api-item-struct"><span id="Swag_Error" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Error</span> <a class="api-item-permalink" href="#Swag_Error" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L29">src</a></div>
+<div class="api-item api-item-struct"><span id="Swag_Error" class="api-item-title"><span class="api-item-title-kind">struct</span> <span class="api-item-title-strong">Swag.Error</span> <a class="api-item-permalink" href="#Swag_Error" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L30">src</a></div>
 <p>Owns a captured error beyond its original catch scope.</p>
 <p>A default value is empty. Capture a caught value while its scope is still alive, then use <a href="#Swag_Error_raise">Swag.Error.raise</a> to propagate or inspect the same dynamic error type later. Copying an owner shares its retained payload; resetting one copy leaves the others valid. Copied runtime message storage survives the originating context and thread.</p>
 <p>Capturing copies the payload using its ordinary copy behavior. Other borrowed fields still require their original owners, and every backing allocator must outlive all error owners and raised captures that use it. Synchronize publication and access to the same owner across threads. Distinct copies can be used independently when the payload's copy and destruction behavior and its allocators support those threads.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">var</span> saved: <span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_Error">Error</a></span>
+<span class="SLgc">scope</span>
 {
-    <span class="SKwd">catch</span> { <span class="SKwd">fail</span> <span class="SNum">42</span>'<span class="STpe">s32</span> } <span class="SLgc">as</span> error <span class="SLgc">else</span> <span class="SLgc">do</span> saved.<span class="SFct">capture</span>(error)
+    <span class="SKwd">catch</span> { <span class="SKwd">fail</span> <span class="SNum">42</span>'<span class="STpe">s32</span> } <span class="SLgc">do</span> saved.<span class="SFct">capture</span>(<span class="SNsp">Swag</span>.err)
 }
 <span class="SKwd">let</span> error = saved.<span class="SFct">value</span>()
 <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(error <span class="SLgc">is</span> <span class="STpe">s32</span>)</span></div>
@@ -5483,7 +5484,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">setParticipants</span>(count: <span class="STpe">u32</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_CaughtPanic_message" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CaughtPanic.message</span> <a class="api-item-permalink" href="#Swag_CaughtPanic_message" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L194">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_CaughtPanic_message" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">CaughtPanic.message</span> <a class="api-item-permalink" href="#Swag_CaughtPanic_message" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L195">src</a></div>
 <p>Returns the panic message, cut to 256 bytes. It is empty when the call did not panic.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">message</span>()-&gt;<span class="STpe">string</span></span></div>
 </section>
@@ -5516,53 +5517,53 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
     <span class="SLgc">where</span> <span class="SLgc">not</span> ptr</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Context_releaseErrorStorage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.releaseErrorStorage</span> <a class="api-item-permalink" href="#Swag_Context_releaseErrorStorage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L236">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Context_releaseErrorStorage" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.releaseErrorStorage</span> <a class="api-item-permalink" href="#Swag_Context_releaseErrorStorage" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L237">src</a></div>
 <p>Releases error state and copied messages after this context's work has finished.</p>
 <p>Call on the current context after its callbacks and handled operations have returned, before replacing or destroying it. No lexical catch capture may still use this context. An error already transported elsewhere retains the message storage it owns.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">releaseErrorStorage</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Context_resetThreadState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.resetThreadState</span> <a class="api-item-permalink" href="#Swag_Context_resetThreadState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L248">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Context_resetThreadState" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Context.resetThreadState</span> <a class="api-item-permalink" href="#Swag_Context_resetThreadState" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L249">src</a></div>
 <p>Forgets the state a copied context still shares with the thread it was copied from.</p>
 <p>A context copied to start another thread keeps its settings -- allocators, flags, capacities -- but must own its scratch blocks and error state, and must not point at the creator's innermost panic catch or at the work the creator was running. Call it on the copy before the new thread uses it, then give the scratch allocators their capacity.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">resetThreadState</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Error_capture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.capture</span> <a class="api-item-permalink" href="#Swag_Error_capture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L55">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Error_capture" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.capture</span> <a class="api-item-permalink" href="#Swag_Error_capture" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L56">src</a></div>
 <p>Replaces the retained error with a copy of a live caught value.</p>
 <p>Pass the handler binding while its catch scope is alive on the current thread. Copy an existing owner directly instead of capturing its <a href="#Swag_Error_value">Swag.Error.value</a> view. Its dynamic payload and copied message storage are retained independently of that scope. A null value resets this owner. The new copy is made before the old one drops.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">capture</span>(error: <span class="STpe">any</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Error_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.isEmpty</span> <a class="api-item-permalink" href="#Swag_Error_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L75">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Error_isEmpty" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.isEmpty</span> <a class="api-item-permalink" href="#Swag_Error_isEmpty" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L76">src</a></div>
 <p>Reports whether this owner has no retained error.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">isEmpty</span>()-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Error_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.opDrop</span> <a class="api-item-permalink" href="#Swag_Error_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L37">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Error_opDrop" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.opDrop</span> <a class="api-item-permalink" href="#Swag_Error_opDrop" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L38">src</a></div>
 <p>Releases this owner's reference when it leaves scope.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opDrop</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Error_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.opPostCopy</span> <a class="api-item-permalink" href="#Swag_Error_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L43">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Error_opPostCopy" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.opPostCopy</span> <a class="api-item-permalink" href="#Swag_Error_opPostCopy" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L44">src</a></div>
 <p>Shares the retained payload with the copied owner.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">opPostCopy</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Error_raise" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.raise</span> <a class="api-item-permalink" href="#Swag_Error_raise" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L94">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Error_raise" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.raise</span> <a class="api-item-permalink" href="#Swag_Error_raise" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L95">src</a></div>
 <p>Raises a copy of the retained error, or succeeds when this owner is empty.</p>
 <p>The raised value preserves its dynamic type and copied message storage. This owner stays valid and can be raised again. To inspect it, catch this call and inspect that lexical capture; the new capture survives a reset or drop of this owner.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SKwd">const</span> <span class="SFct">raise</span>() <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Error_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.reset</span> <a class="api-item-permalink" href="#Swag_Error_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L68">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Error_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.reset</span> <a class="api-item-permalink" href="#Swag_Error_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L69">src</a></div>
 <p>Releases this owner's reference and restores the empty state.</p>
 <p>Other owner copies and errors already raised from them remain valid.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[BorrowSummary(0, reallocates: 1)]</span>
 <span class="SKwd">mtd</span> <span class="SFct">reset</span>()</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_Error_value" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.value</span> <a class="api-item-permalink" href="#Swag_Error_value" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L82">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_Error_value" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Error.value</span> <a class="api-item-permalink" href="#Swag_Error_value" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L83">src</a></div>
 <p>Borrows the retained dynamic error, or returns null when this owner is empty.</p>
 <p>The view and pointers derived from it stay valid until this owner is reset, replaced, or dropped. Copy the owner when the error must live independently.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[BorrowSummary(1, returnsPayload: 1, observesExternal: false)]</span>
@@ -6117,7 +6118,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">CallingConvention</span>(value: <span class="SCst"><a href="#Swag_CallConv">CallConv</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_catchPanic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.catchPanic</span> <a class="api-item-permalink" href="#Swag_catchPanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L209">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_catchPanic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.catchPanic</span> <a class="api-item-permalink" href="#Swag_catchPanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L210">src</a></div>
 <p>Calls <span class="code-inline">fn</span> and reports whether it panicked.</p>
 <p>A panic abandons every frame between it and this call: their <span class="code-inline">defer</span> statements and destructors do not run, and whatever they held stays as it was. Catch a panic to check that a test raised it, never to recover from one. Only a panic raised on the current context is caught. In a test, a hardware fault inside the call, such as a read of a freed electric block, is caught the same way and reported as "memory access violation".</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">let</span> caught = <span class="SNsp">Swag</span>.<span class="SFct">catchPanic</span>(<span class="SKwd">func</span>() { <span class="SNsp">Swag</span>.<span class="SFct">panic</span>(<span class="SStr">"stop"</span>, <span class="SCmp">#curlocation</span>) })
@@ -6151,12 +6152,12 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compiler</span>()-&gt;<span class="SNsp">Swag</span>.<span class="SCst"><a href="#Swag_ICompiler">ICompiler</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_compilerError" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.compilerError</span> <a class="api-item-permalink" href="#Swag_compilerError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L927">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_compilerError" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.compilerError</span> <a class="api-item-permalink" href="#Swag_compilerError" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L928">src</a></div>
 <p>Raise a compiler error at the given source location</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compilerError</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_compilerWarning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.compilerWarning</span> <a class="api-item-permalink" href="#Swag_compilerWarning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L937">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_compilerWarning" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.compilerWarning</span> <a class="api-item-permalink" href="#Swag_compilerWarning" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L938">src</a></div>
 <p>Raise a compiler warning at the given source location</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">compilerWarning</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
@@ -6562,7 +6563,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">Pack</span>(value: <span class="STpe">u8</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_panic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.panic</span> <a class="api-item-permalink" href="#Swag_panic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L1001">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_panic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.panic</span> <a class="api-item-permalink" href="#Swag_panic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L1002">src</a></div>
 <p>Stop the execution and panic</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.All, false), </span><span class="SNsp">Swag</span>.<span class="SAtr">NoReturn]</span>
 <span class="SKwd">func</span> <span class="SFct">panic</span>(message: <span class="STpe">string</span>?, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
@@ -6683,7 +6684,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">Safety</span>(what: <span class="SCst"><a href="#Swag_SafetyWhat">SafetyWhat</a></span>, value: <span class="STpe">bool</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_safetyPanic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.safetyPanic</span> <a class="api-item-permalink" href="#Swag_safetyPanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L1030">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_safetyPanic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.safetyPanic</span> <a class="api-item-permalink" href="#Swag_safetyPanic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/error.swg#L1031">src</a></div>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Safety(.All, false), </span><span class="SNsp">Swag</span>.<span class="SAtr">NoReturn]</span>
 <span class="SKwd">func</span> <span class="SFct">safetyPanic</span>(message: <span class="STpe">string</span>, loc: <span class="SCst"><a href="#Swag_SourceCodeLocation">SourceCodeLocation</a></span>)</span></div>
 </section>
@@ -7154,13 +7155,13 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 <span class="SKwd">attr</span> <span class="SFct">Warning</span>(what: <span class="STpe">string</span>, level: <span class="SCst"><a href="#Swag_WarningLevel">WarningLevel</a></span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_whenAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAll</span> <a class="api-item-permalink" href="#Swag_whenAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L635">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_whenAll" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAll</span> <a class="api-item-permalink" href="#Swag_whenAll" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L636">src</a></div>
 <p>Waits for every task of <span class="code-inline">tasks</span>. As soon as one of them fails, the others are asked to stop; once they have all finished, the error of the first failed task, in the order of <span class="code-inline">tasks</span>, is raised.</p>
 <p>The tasks keep their outcomes: take each value with <a href="#Swag_Task_take">Swag.Task.take</a>, which raises a failed task's error again. Every task must be submitted, and its outcome not taken yet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">whenAll</span>(tasks: [..] <span class="SFct">Task</span>'<span class="SCst">T</span>) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Swag_whenAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAny</span> <a class="api-item-permalink" href="#Swag_whenAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L667">src</a></div>
+<div class="api-item api-item-func"><span id="Swag_whenAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Swag.whenAny</span> <a class="api-item-permalink" href="#Swag_whenAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/runtime/task.swg#L668">src</a></div>
 <p>Waits until one task of <span class="code-inline">tasks</span> succeeds, asks the others to stop, and returns its index. When every task fails, raises the error of the first one, in the order of <span class="code-inline">tasks</span>.</p>
 <p>The winner keeps its value for <a href="#Swag_Task_take">Swag.Task.take</a>. The others still have to be waited for, or destroyed, before what they borrow is released. Every task must be submitted, and its outcome not taken yet.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">whenAny</span>(tasks: [..] <span class="SFct">Task</span>'<span class="SCst">T</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>

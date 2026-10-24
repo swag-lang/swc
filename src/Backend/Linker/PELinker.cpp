@@ -186,8 +186,8 @@ namespace
             if (it == symbolIndices.end())
                 continue;
 
-            LinkSymbol symbol = image.symbols[it->second];
-            symbol.name       = alias.name;
+            const LinkSymbol& canonical = image.symbols[it->second];
+            LinkSymbol        symbol    = {.name = alias.name, .sectionIndex = canonical.sectionIndex, .value = canonical.value};
             const size_t symbolIndex = image.symbols.size();
             image.symbols.push_back(std::move(symbol));
             symbolIndices.emplace(image.symbols.back().name.view(), symbolIndex);

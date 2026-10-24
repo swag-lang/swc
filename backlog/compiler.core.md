@@ -161,12 +161,12 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: the partitioning improvement has concurrent read/write coverage and a measured
   compilation-time benefit with its memory cost explicitly bounded.
 
-### compiler.core.073 ? Overlap dependent semantic analysis with the producer link
+### compiler.core.073 — Overlap dependent semantic analysis with the producer link
 
 - Evidence: the workspace pipeline now consumes the published API and parses a dependent while
   the producer links. It joins on the driving thread before semantic analysis, because compile-time
   calls and runtime hooks can load the dependency DLL. The `std` chain is nearly linear
-  (`core` ? `ogl`/`truetype` ? `pixel` ? `gui`), so that boundary can still leave workers idle.
+  (`core` → `ogl`/`truetype` → `pixel` → `gui`), so that boundary can still leave workers idle.
 - Next: introduce a dependency-ready continuation for compile-time native calls and runtime hooks.
   Keep semantic jobs runnable until they need the image, and resume suspended jobs after link
   publication. Do not block a worker waiting for a link queued on the same worker pool; one-worker

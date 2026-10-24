@@ -63,6 +63,14 @@ func viewerFixturePath()->String
     return result
 }
 
+func hexViewerFixturePath()->String
+{
+    var result: retval
+    result = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.hex")
+    Path.normalize(&result)
+    return result
+}
+
 // A golden can look plausibly rounded at fit-to-window scale while a square child has actually
 // repainted its corner. Pin the document panel's own antialiased transition as well as its image.
 func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
@@ -485,8 +493,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.toggleFilePanel()
     Swag.assert(window.panelVisible and window.filePanelHost.isLocallyVisible())
     Swag.assert(window.filesButton.isChecked)
-    Swag.assert(window.filePanel.position.width == ViewerWindow.PanelWidth)
-    Swag.assert(window.filePanel.minSize.x == ViewerWindow.PanelWidth and window.filePanel.maxSize.x == ViewerWindow.PanelWidth)
+    Swag.assert(window.mainSplitter.items[0]!.minimumSize == ViewerWindow.PanelMinWidth + window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.mainSplitter.items[0]!.maximumSize == ViewerWindow.PanelMaxWidth + window.themeMetrics().panel_GutterSize)
+    window.mainSplitter.setPaneSize(0, 340)
+    Swag.assert(window.filePanelHost.position.width == 340)
     Swag.assert(window.filePanel.isVertical() and window.filePanel.items.count == 2)
     Swag.assert(window.filePanel.items[0]!.minimumSize == ViewerWindow.PaneMinSize)
     Swag.assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
@@ -524,12 +534,16 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.setFilePanelVisible(true)
 
     window.filePanel.setPaneSize(0, 120)
+    let panelWidth = window.mainSplitter.items[0]!.size
     let state = saveViewerState(window)
     window.recent.clear()
     window.filePanel.setPaneSize(0, 180)
     window.setFilePanelVisible(false)
     loadViewerState(window, state.toSlice())
     Swag.assert(window.recent.count == 2 and window.panelVisible)
+    Swag.assert(window.leftPanelWidth == panelWidth - window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.mainSplitter.items[0]!.size == panelWidth)
+    window.setFilePanelVisible(window.panelVisible)
     Swag.assert(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
     Swag.assert(window.recentPaneSize == 120 and window.filePanel.items[0]!.size == 120)
 }
@@ -1467,7 +1481,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     // The large empty-state glyph is intentionally deferred until the surface's Init event.
     Swag.assert(window.emptyView.isLocallyVisible() and not window.emptyIconLabel.icon.isValid())
-    Swag.assert(window.documentHost.position.y >= window.infoBarHost.position.bottom())
+    Swag.assert(window.documentHost.surfaceRect().y >= window.infoBarHost.surfaceRect().bottom())
     Swag.assert(window.infoBar.surfaceRect().y - window.openButton.surfaceRect().bottom() == panelGutter)
     Swag.assert(window.emptyHintLabel.text() == appStrings().ui_DropHint)
     Swag.assert(window.currentView == null)
@@ -1892,7 +1906,44 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.infoNameLabel.name.raw.isEmpty())
     Swag.assert(window.infoNameLabel.position.width == 0 and window.infoStatsLabel.position.width == 0)
     Swag.assert(window.infoBarHost.isLocallyVisible() and not window.infoIconLabel.icon.isValid())
-    Swag.assert(window.emptyView.isLocallyVisible() and window.documentHost.position.y >= window.infoBarHost.position.bottom())
+    Swag.assert(window.emptyView.isLocallyVisible() and window.documentHost.surfaceRect().y >= window.infoBarHost.surfaceRect().bottom())
+}
+
+// The active viewer's right pane shares bounded splitter geometry and saves its current width.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(1000, 720)
+    defer host.shutdown()
+
+    with let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    {
+        .resize(1000, 720)
+        .openFile(hexViewerFixturePath())
+    }
+    completeQueuedViewerFile(&host, window)
+    var hexChoice = Swag.U32.Max
+    for choice, index in window.choices where choice.key == "hex" do
+        hexChoice = cast(u32, index)
+    Swag.assert(hexChoice != Swag.U32.Max)
+    window.selectViewer(hexChoice)
+    completeQueuedViewerFile(&host, window)
+
+    let button = assume cast(*IconButton, window.currentSidePanelButton)
+    button.show()
+    button.setChecked(true)
+    button.sigCheckedChanged.call(button)
+    Swag.assert(window.mainSplitter.items[2]!.view == window.currentSidePanelHost)
+    Swag.assert(window.mainSplitter.items[2]!.minimumSize == ViewerWindow.RightPanelMinWidth + window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.mainSplitter.items[2]!.maximumSize == ViewerWindow.RightPanelMaxWidth + window.themeMetrics().panel_GutterSize)
+
+    window.mainSplitter.setPaneSize(2, 500)
+    let panelSize = window.mainSplitter.items[2]!.size
+    let state = saveViewerState(window)
+    window.mainSplitter.setPaneSize(2, 560)
+    loadViewerState(window, state.toSlice())
+    Swag.assert(window.rightPanelWidth == panelSize - window.themeMetrics().panel_GutterSize)
+    Swag.assert(window.mainSplitter.items[2]!.size == panelSize)
 }
 
 #test

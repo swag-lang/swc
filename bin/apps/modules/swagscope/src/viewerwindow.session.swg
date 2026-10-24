@@ -292,10 +292,17 @@ impl ViewerWindow
         .currentSidePanelButton      = button
         .infoContentGroup.sideButton = button
 
+        let visible = button and button.isChecked and not .fullScreen
+        .mainSplitter.items[2]!.view = panel orelse .sidePanelPlaceholder
+        .mainSplitter.items[2]!.view.show(visible)
+        .mainSplitter.setPaneVisible(2, visible)
+        if visible do
+            .mainSplitter.setPaneSize(2, .mainSplitter.items[2]!.size)
+        .mainSplitter.applyLayout()
+
         if button and not .fullScreen
         {
             button.show()
-            panel?.show(button.isChecked)
         }
 
         .layoutFileInfo()
@@ -564,11 +571,14 @@ impl ViewerWindow
 
         var next: ViewerSession
         let plugin = &.index.plugins[choice.pluginIndex]
+        let splitter = me.mainSplitter
         with var pluginHost: ViewerPluginHost
         {
             .session         = &next
             .documentParent  = me.documentPanel
-            .sidePanelParent = me
+            .sidePanelParent = splitter
+            .sideSplitter    = splitter
+            .sidePaneIndex   = 2
             .actionParent    = me.commandBar
             .infoParent      = me.infoContentGroup
             .commandParent   = me.viewerBar

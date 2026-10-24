@@ -444,6 +444,17 @@ impl ViewerWindow
         .searchOverlay  = ViewerSearchOverlay.create(.documentPanel)
         .dropHighlight  = ViewerDropHighlight.create(.documentPanel)
         .mainSplitter.addPane(.documentHost).minimumSize = DocumentMinWidth
+        with .sidePanelPlaceholder = Wnd.create'Wnd(.mainSplitter)
+        {
+            .backgroundStyle = .Transparent
+            .hide()
+        }
+        with let sideItem = .mainSplitter.addPane(.sidePanelPlaceholder, RightPanelDefaultWidth + panelGutter)
+        {
+            .minimumSize = RightPanelMinWidth + panelGutter
+            .maximumSize = RightPanelMaxWidth + panelGutter
+        }
+        .mainSplitter.setPaneVisible(2, false)
     }
 
     private mtd hookChildEvents()

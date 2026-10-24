@@ -522,26 +522,31 @@ impl Theme
     }
 
     // Creates the `style` face of the interface font at `size`.
-    mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular)->*Font
+    //
+    // `mode` chooses how the glyphs are rasterized. A font that is drawn with a
+    // [[Pixel.TextEffect]] outline or shadow needs `.Msdf`: an automatic font draws bitmap
+    // glyphs at small sizes, and bitmap glyphs ignore every effect.
+    mtd createDefaultFont(size: u32, style = FontFamilyStyle.Regular, mode = FontRenderMode.Auto)->*Font
     {
         switch #complete style
         {
-        case .Regular:    return .fonts.createFont(.res.defaultTypeFaceR, size)
-        case .Bold:       return .fonts.createFont(.res.defaultTypeFaceB, size)
-        case .Italic:     return .fonts.createFont(.res.defaultTypeFaceI, size)
-        case .BoldItalic: return .fonts.createFont(.res.defaultTypeFaceBI, size)
+        case .Regular:    return .fonts.createFont(.res.defaultTypeFaceR, size, mode)
+        case .Bold:       return .fonts.createFont(.res.defaultTypeFaceB, size, mode)
+        case .Italic:     return .fonts.createFont(.res.defaultTypeFaceI, size, mode)
+        case .BoldItalic: return .fonts.createFont(.res.defaultTypeFaceBI, size, mode)
         }
     }
 
-    // Creates the `style` face of the fixed-width font at `size`.
-    mtd createDefaultFontFs(size: u32, style = FontFamilyStyle.Regular)->*Font
+    // Creates the `style` face of the fixed-width font at `size`, rasterized as `mode` asks;
+    // see [[Gui.Theme.createDefaultFont]].
+    mtd createDefaultFontFs(size: u32, style = FontFamilyStyle.Regular, mode = FontRenderMode.Auto)->*Font
     {
         switch #complete style
         {
-        case .Regular:    return .fonts.createFont(.res.defaultFsTypeFaceR, size)
-        case .Bold:       return .fonts.createFont(.res.defaultFsTypeFaceB, size)
-        case .Italic:     return .fonts.createFont(.res.defaultFsTypeFaceI, size)
-        case .BoldItalic: return .fonts.createFont(.res.defaultFsTypeFaceBI, size)
+        case .Regular:    return .fonts.createFont(.res.defaultFsTypeFaceR, size, mode)
+        case .Bold:       return .fonts.createFont(.res.defaultFsTypeFaceB, size, mode)
+        case .Italic:     return .fonts.createFont(.res.defaultFsTypeFaceI, size, mode)
+        case .BoldItalic: return .fonts.createFont(.res.defaultFsTypeFaceBI, size, mode)
         }
     }
 

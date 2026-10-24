@@ -1121,8 +1121,8 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
             if (archive.tryReadImport(archiveImport, memberBytes))
             {
                 LinkImport import;
-                import.dll        = archiveImport.dll;
-                import.importName = archiveImport.importName;
+                import.dll        = std::move(archiveImport.dll);
+                import.importName = std::move(archiveImport.importName);
                 import.symbolName = symbol;
                 import.ordinal    = archiveImport.ordinal;
                 import.byOrdinal  = archiveImport.byOrdinal;

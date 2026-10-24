@@ -314,7 +314,8 @@ impl ZoomButton
         let texts = texts()
         let lines = .statistics.lines == 1 ? String.from(texts.ui_OneLine) : Format.toString(texts.ui_Lines, .statistics.lines)
         let words = .statistics.words == 1 ? String.from(texts.ui_OneWord) : Format.toString(texts.ui_Words, .statistics.words)
-        .services.showDetails(.view, Format.toString("% · % · %", texts.ui_Details, lines, words))
+        let characters = .statistics.characters == 1 ? String.from(texts.ui_OneCharacter) : Format.toString(texts.ui_Characters, .statistics.characters)
+        .services.showDetails(.view, Format.toString("% · % · % · %", texts.ui_Details, lines, words, characters))
     }
 
     mtd retire()->bool

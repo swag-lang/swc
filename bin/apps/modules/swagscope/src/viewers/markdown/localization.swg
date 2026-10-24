@@ -17,10 +17,12 @@ struct Texts
     ui_TipTheme: string = "Markdown appearance"       // Tooltip of the appearance selector.
     ui_ZoomMenu: string = "Markdown zoom options"     // Tooltip of the zoom value menu.
     ui_ThemeApp: string = "Application"               // Appearance following the application palette.
-    ui_OneLine:  string = "1 line"                    // Singular source line count.
-    ui_Lines:    string = "% lines"                   // Plural source line count.
-    ui_OneWord:  string = "1 word"                    // Singular whitespace-delimited word count.
-    ui_Words:    string = "% words"                   // Plural whitespace-delimited word count.
+    ui_OneLine:      string = "1 line"                // Singular source line count.
+    ui_Lines:        string = "% lines"               // Plural source line count.
+    ui_OneWord:      string = "1 word"                // Singular whitespace-delimited word count.
+    ui_Words:        string = "% words"               // Plural whitespace-delimited word count.
+    ui_OneCharacter: string = "1 character"           // Singular Unicode character count.
+    ui_Characters:   string = "% characters"          // Plural Unicode character count.
     ui_Details:  string = "Markdown · UTF-8"          // Summary the host shows beside the file size.
 }
 

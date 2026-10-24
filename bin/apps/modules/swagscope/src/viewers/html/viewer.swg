@@ -3,6 +3,8 @@
 
 using Core, Gui
 
+private var g_ZoomPercent: u32 = 100
+
 // Offers the rendered surface for a page that announces itself, whatever the file is called.
 //
 // The two spellings a document begins with are the only markers taken. Anything looser claims an
@@ -58,6 +60,7 @@ private impl Panel
     internal mtd setZoom(percent: u32)
     {
         .zoomPercent = Viewer.clampZoom(percent)
+        g_ZoomPercent = .zoomPercent
         var style = HtmlStyle.theme()
         style.bodyFontSize = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))
         style.codeFontSize = cast(u32, Math.max(Math.round(14.0 * cast(f32, .zoomPercent) / 100), 1))
@@ -88,6 +91,13 @@ private impl Panel
             {
             case KeyEvent as keyEvt where Viewer.isZoomKey(keyEvt):
                 viewer.setZoom(Viewer.zoomAfterKey(keyEvt, viewer.zoomPercent))
+                return true
+
+            case MouseEvent as mouse where mouse.kind == .Wheel and mouse.modifiers.has(.Control):
+                if mouse.delta.y > 0 do
+                    viewer.setZoom(Viewer.zoomIn(viewer.zoomPercent))
+                elif mouse.delta.y < 0 do
+                    viewer.setZoom(Viewer.zoomOut(viewer.zoomPercent))
                 return true
 
             default:
@@ -125,7 +135,7 @@ func createViewer(host: Viewer.Host)
     }
 
     result.applyLayout()
-    result.setZoom(100)
+    result.setZoom(g_ZoomPercent)
     host.attachView(result)
     DocumentOutline.create(host).bindHtml(result.view)
     host.setDetails(texts().ui_Details)

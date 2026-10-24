@@ -2,14 +2,15 @@
 
 using Core
 
-// Line and word counts of one text.
+// Line, word, and decoded Unicode scalar counts of one text.
 struct TextStatistics
 {
-    lines: u64
-    words: u64
+    lines:      u64
+    words:      u64
+    characters: u64
 }
 
-// Counts lines and words across streamed chunks, keeping Unicode word boundaries and CRLF pairs intact.
+// Counts lines, words, and Unicode scalars across chunks, keeping word boundaries and CRLF pairs intact.
 struct TextStatisticsCounter
 {
     totals:             TextStatistics
@@ -32,6 +33,7 @@ impl TextStatisticsCounter
             if not .sawRune and c == '\uFEFF' do
                 continue
             .sawRune = true
+            .totals.characters += 1
             if c == '\r' or c == '\n'
             {
                 if c == '\r' or not .previousCr do

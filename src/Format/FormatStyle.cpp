@@ -93,7 +93,7 @@ namespace
         // Switch
         o.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
         o.caseValuesColumnLimit = 100;
-        o.binPackCaseValues     = FormatBinPackStyle::Pack;
+        o.binPackCaseValues     = FormatCaseValuesPacking::Balanced;
         o.caseBodyStyle         = FormatCaseBodyStyle::Uniform;
         o.blankLineBetweenCases = FormatCaseBlankStyle::MultiLine;
         o.alignCaseBodies       = FormatAlignMode::Consecutive;

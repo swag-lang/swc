@@ -1162,10 +1162,10 @@ impl HtmlStyleSheet
         // rule to every element is a worse answer than applying it to none. Everything left
         // unlisted — `:enabled`, `:link`, `:visited` and their kind — always holds here, and
         // needs no record.
-        case "has", "nth-last-child", "nth-last-of-type", "only-of-type", "lang", "dir",
-             "placeholder-shown", "indeterminate", "required", "optional", "invalid", "valid",
-             "in-range", "out-of-range", "autofill", "modal", "popover-open", "user-invalid",
-             "open", "fullscreen", "picture-in-picture":
+        case "has", "nth-last-child", "nth-last-of-type", "only-of-type", "lang",
+             "dir", "placeholder-shown", "indeterminate", "required", "optional",
+             "invalid", "valid", "in-range", "out-of-range", "autofill", "modal",
+             "popover-open", "user-invalid", "open", "fullscreen", "picture-in-picture":
             part.pseudo.add(.Never)
         }
 

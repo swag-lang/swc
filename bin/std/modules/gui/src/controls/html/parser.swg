@@ -576,8 +576,8 @@ impl HtmlParser
     {
         switch tag
         {
-        case .Caption, .ColGroup, .Col, .TBody, .THead, .TFoot, .Tr, .Td, .Th, .Script, .Style,
-             .Template, .Form:
+        case .Caption, .ColGroup, .Col, .TBody, .THead, .TFoot,
+             .Tr, .Td, .Th, .Script, .Style, .Template, .Form:
             return true
         }
 

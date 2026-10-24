@@ -423,8 +423,8 @@ private func mathCommandSymbol(command: string)->MathSymbolSpec
     case "bigvee":   return mathSymbol("\u22C1", .Op, true, .Limits)
 
     // Named functions
-    case "sin", "cos", "tan", "cot", "sec", "csc", "sinh", "cosh", "tanh", "log", "ln", "exp",
-         "max", "min", "sup", "inf", "det", "gcd":
+    case "sin", "cos", "tan", "cot", "sec", "csc", "sinh", "cosh", "tanh",
+         "log", "ln", "exp", "max", "min", "sup", "inf", "det", "gcd":
         return mathSymbol(command, .Op)
 
     case "lim", "limsup", "liminf": return mathSymbol(command, .Op, false, .Limits)

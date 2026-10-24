@@ -167,12 +167,12 @@ impl Undo
         case .MovePoint:
             capture.invalidateFormCache(.baseForm!)
 
-        case .OffsetSelection, .AlignLeft, .AlignCenter, .AlignRight, .AlignTop, .AlignMiddle,
-             .AlignBottom:
+        case .OffsetSelection, .AlignLeft, .AlignCenter,
+             .AlignRight, .AlignTop, .AlignMiddle, .AlignBottom:
             capture.invalidateImageFormCaches()
 
-        case .SetTypedValue, .SetFormFromModel, .SetText, .SetFont, .SetFontStyle, .SetImageInside,
-             .ResetRotation:
+        case .SetTypedValue, .SetFormFromModel, .SetText, .SetFont,
+             .SetFontStyle, .SetImageInside, .ResetRotation:
             foreachSelected'BaseForm(capture, .selection)
             {
                 capture.invalidateFormCache(itf)

@@ -413,8 +413,8 @@ public impl CultureInfo
             {
                 switch c
                 {
-                case 0x00E0, 0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5, 0x00C0, 0x00C1, 0x00C2, 0x00C3,
-                     0x00C4, 0x00C5:
+                case 0x00E0, 0x00E1, 0x00E2, 0x00E3, 0x00E4, 0x00E5,
+                     0x00C0, 0x00C1, 0x00C2, 0x00C3, 0x00C4, 0x00C5:
                     result.append('a'u8)
 
                 case 0x00E7, 0x00C7:                                                 result.append('c'u8)

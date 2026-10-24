@@ -157,8 +157,8 @@ internal impl BlendingMode
     {
         switch me
         {
-        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight,
-             .SoftLight, .Difference, .Exclusion:
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge,
+             .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion:
             return true
 
         default: return false

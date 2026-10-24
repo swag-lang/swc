@@ -1701,7 +1701,7 @@ SWC_TEST_BEGIN(FormatWrap_CaseValuesPackToTheirOwnWidth)
     options.indentCaseLabels      = false;
     options.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
     options.caseValuesColumnLimit = 44;
-    options.binPackCaseValues     = FormatBinPackStyle::Pack;
+    options.binPackCaseValues     = FormatCaseValuesPacking::Pack;
     SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
     std::string staticSource(SOURCE);
     std::string staticExpected(EXPECTED);
@@ -1726,9 +1726,9 @@ SWC_TEST_BEGIN(FormatWrap_CaseValuesAlwaysAndPackingAreIndependent)
     options.indentCaseLabels  = false;
     options.caseValuesWrap    = FormatCaseValuesWrap::Always;
     options.caseBodyStyle     = FormatCaseBodyStyle::NextLine;
-    options.binPackCaseValues = FormatBinPackStyle::OnePerLine;
+    options.binPackCaseValues = FormatCaseValuesPacking::OnePerLine;
     SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, VERTICAL, options));
-    options.binPackCaseValues = FormatBinPackStyle::Pack;
+    options.binPackCaseValues = FormatCaseValuesPacking::Pack;
     SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, PACKED, options));
     options.caseValuesColumnLimit = 100;
     return FormatRewriteCheck::check(ctx, SOURCE, PACKED, options);
@@ -1744,7 +1744,7 @@ SWC_TEST_BEGIN(FormatWrap_CaseValuesCountIndentationAndColon)
     options.indentCaseLabels      = false;
     options.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
     options.caseValuesColumnLimit = 17;
-    options.binPackCaseValues     = FormatBinPackStyle::Pack;
+    options.binPackCaseValues     = FormatCaseValuesPacking::Pack;
     SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, SOURCE, options));
     options.caseValuesColumnLimit = 16;
     return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
@@ -1759,7 +1759,7 @@ SWC_TEST_BEGIN(FormatWrap_CaseValuesUseExpressionBoundaries)
     options.indentStyle       = FormatIndentStyle::Spaces;
     options.indentCaseLabels  = false;
     options.caseValuesWrap    = FormatCaseValuesWrap::Always;
-    options.binPackCaseValues = FormatBinPackStyle::OnePerLine;
+    options.binPackCaseValues = FormatCaseValuesPacking::OnePerLine;
     return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
@@ -1772,7 +1772,7 @@ SWC_TEST_BEGIN(FormatWrap_CaseValuesIncludeGroupingAndFinalCallBrackets)
     options.indentStyle       = FormatIndentStyle::Spaces;
     options.indentCaseLabels  = false;
     options.caseValuesWrap    = FormatCaseValuesWrap::Always;
-    options.binPackCaseValues = FormatBinPackStyle::OnePerLine;
+    options.binPackCaseValues = FormatCaseValuesPacking::OnePerLine;
     return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()
@@ -1781,7 +1781,7 @@ SWC_TEST_BEGIN(FormatWrap_CaseValuesKeepCommentsAndDisabledRegions)
 {
     FormatOptions options;
     options.caseValuesWrap    = FormatCaseValuesWrap::Always;
-    options.binPackCaseValues = FormatBinPackStyle::OnePerLine;
+    options.binPackCaseValues = FormatCaseValuesPacking::OnePerLine;
     for (const std::string_view source : {
              "func f(v: s32)\n{\n    switch v\n    {\n    case 1, /* Shared group. */ 2, 3: consume(v)\n    }\n}\n",
              "func f(v: s32)\n{\n    switch v\n    {\n    // swc-format off\n    case 1, 2, 3: consume(v)\n    // swc-format on\n    }\n}\n"})
@@ -1806,8 +1806,8 @@ SWC_TEST_BEGIN(FormatWrap_SwagCaseValuesPackAndKeepShortSiblingBodies)
         "{\n"
         "    switch v\n"
         "    {\n"
-        "    case firstDescriptiveName, secondDescriptiveName, thirdDescriptiveName, fourthDescriptiveName,\n"
-        "         fifthDescriptiveName, sixthDescriptiveName:\n"
+        "    case firstDescriptiveName, secondDescriptiveName, thirdDescriptiveName,\n"
+        "         fourthDescriptiveName, fifthDescriptiveName, sixthDescriptiveName:\n"
         "        consume(v)\n"
         "\n"
         "    case 0: consume(v)\n"
@@ -1815,6 +1815,37 @@ SWC_TEST_BEGIN(FormatWrap_SwagCaseValuesPackAndKeepShortSiblingBodies)
         "}\n";
     FormatOptions options;
     applyFormatStyle(options, FormatNamedStyle::Swag);
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesBalanceWithoutAddingLines)
+{
+    static constexpr std::string_view SOURCE   = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2, 3, 4:\n        consume(v)\n    }\n}\n";
+    static constexpr std::string_view EXPECTED = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2,\n         3, 4:\n        consume(v)\n    }\n}\n";
+    FormatOptions                     options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.indentCaseLabels      = false;
+    options.caseValuesWrap        = FormatCaseValuesWrap::ColumnLimit;
+    options.caseValuesColumnLimit = 17;
+    options.binPackCaseValues     = FormatCaseValuesPacking::Balanced;
+    SWC_RESULT(FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options));
+    options.caseValuesWrap        = FormatCaseValuesWrap::Always;
+    options.caseValuesColumnLimit = 0;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(FormatWrap_CaseValuesBalanceCountsWidthRatherThanValues)
+{
+    static constexpr std::string_view SOURCE   = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2, 3, 4, 5, aVeryLongValueName:\n        consume(v)\n    }\n}\n";
+    static constexpr std::string_view EXPECTED = "func f(v: s32)\n{\n    switch v\n    {\n    case 1, 2, 3, 4, 5,\n         aVeryLongValueName:\n        consume(v)\n    }\n}\n";
+    FormatOptions                     options;
+    options.indentStyle           = FormatIndentStyle::Spaces;
+    options.indentCaseLabels      = false;
+    options.caseValuesWrap        = FormatCaseValuesWrap::Always;
+    options.caseValuesColumnLimit = 40;
+    options.binPackCaseValues     = FormatCaseValuesPacking::Balanced;
     return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
 }
 SWC_TEST_END()

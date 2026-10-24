@@ -1711,9 +1711,9 @@ impl RenderOgl
                     let cmd1 = dc.commandBuffer[i]
                     switch cmd1.id
                     {
-                    case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0,
-                         .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect,
-                         .DrawTriangles:
+                    case .Transform, .StartFont, .StartMsdfFont, .EndFont,
+                         .ResetTexture0, .BindTexture0, .ResetTextureFont,
+                         .BindTextureFont, .SetFontEffect, .DrawTriangles:
                         .executeCommand(dc, cmd1, cast(u64, i))
                     }
                 }

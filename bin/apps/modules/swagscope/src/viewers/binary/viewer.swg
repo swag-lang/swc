@@ -727,8 +727,8 @@ impl IActionUI for Action
     {
         switch cxt.id
         {
-        case Action.CopyAll, Action.CopyLine, Action.ExpandAll, Action.CollapseAll, Action.GoTo,
-             Action.Back, Action.Forward:
+        case Action.CopyAll, Action.CopyLine, Action.ExpandAll,
+             Action.CollapseAll, Action.GoTo, Action.Back, Action.Forward:
             return true
         }
 

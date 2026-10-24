@@ -625,8 +625,8 @@ private impl GenericLexer
     {
         switch .language
         {
-        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Yaml, .Toml, .Config, .CMake, .Nim,
-             .Elixir, .Julia, .Tcl, .Awk, .GraphQl, .Makefile, .Dockerfile, .Nix:
+        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Yaml, .Toml, .Config, .CMake,
+             .Nim, .Elixir, .Julia, .Tcl, .Awk, .GraphQl, .Makefile, .Dockerfile, .Nix:
             return true
 
         default: return false
@@ -643,10 +643,10 @@ private impl GenericLexer
     {
         switch .language
         {
-        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Sql, .Lua, .Yaml, .Toml, .Config,
-             .CMake, .Batch, .VisualBasic, .Xml, .Html, .Assembly, .Nim, .Haskell, .Elixir, .Erlang,
-             .Clojure, .Julia, .Fortran, .Matlab, .Tcl, .Awk, .Vim, .Latex, .GraphQl, .Makefile,
-             .Dockerfile, .Nix:
+        case .Python, .Ruby, .Shell, .PowerShell, .Perl, .R, .Sql, .Lua, .Yaml,
+             .Toml, .Config, .CMake, .Batch, .VisualBasic, .Xml, .Html, .Assembly,
+             .Nim, .Haskell, .Elixir, .Erlang, .Clojure, .Julia, .Fortran, .Matlab,
+             .Tcl, .Awk, .Vim, .Latex, .GraphQl, .Makefile, .Dockerfile, .Nix:
             return false
 
         default: return true

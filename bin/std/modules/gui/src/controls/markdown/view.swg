@@ -217,8 +217,8 @@ private func blockGap(kind: BlockKind)->f32
     case .Heading2: return 22
     case .Heading3, .Heading4, .Heading5, .Heading6: return 16
 
-    case .Code, .Table, .Html, .Math, .Quote, .TableOfContents, .AlertNote, .AlertTip,
-         .AlertImportant, .AlertWarning, .AlertCaution:
+    case .Code, .Table, .Html, .Math, .Quote, .TableOfContents, .AlertNote,
+         .AlertTip, .AlertImportant, .AlertWarning, .AlertCaution:
         return 20
 
     case .Footnote: return 8

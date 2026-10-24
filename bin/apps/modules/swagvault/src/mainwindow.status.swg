@@ -60,13 +60,13 @@ impl MainWindow
              .MountedProtected, .Resizing, .Camouflaging, .ChangingPassword, .ChangingKeyFiles:
             return .Active
 
-        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .KeyFilesStopped,
-             .AutoUnmountStopped:
+        case .CreateStopped, .MountStopped, .ResizeStopped,
+             .PasswordStopped, .KeyFilesStopped, .AutoUnmountStopped:
             return .Stopped
 
-        case .Ready, .CreateCanceled, .HiddenCreateCanceled, .Created, .Unmounted, .ResizeCanceled,
-             .Resized, .Camouflaged, .AutoUnmounted, .PasswordChanged, .PasswordRemoved,
-             .KeyFilesChanged:
+        case .Ready, .CreateCanceled, .HiddenCreateCanceled, .Created,
+             .Unmounted, .ResizeCanceled, .Resized, .Camouflaged, .AutoUnmounted,
+             .PasswordChanged, .PasswordRemoved, .KeyFilesChanged:
             return .Idle
         }
     }

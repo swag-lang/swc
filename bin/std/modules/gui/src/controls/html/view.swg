@@ -72,8 +72,8 @@ private func htmlDeclaredEncoding(probe: string)->{ encoding: Text.Encoding, mat
             result.matched  = true
             return result
 
-        case "windows-1252", "iso-8859-1", "iso8859-1", "latin1", "l1", "cp1252", "ascii",
-             "us-ascii":
+        case "windows-1252", "iso-8859-1", "iso8859-1",
+             "latin1", "l1", "cp1252", "ascii", "us-ascii":
             result.encoding = .Windows1252
             result.matched  = true
             return result

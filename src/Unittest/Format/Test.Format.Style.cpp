@@ -296,7 +296,7 @@ SWC_TEST_BEGIN(FormatStyle_SwagLeavesLineEndingsAndColumnsAlone)
     applyFormatStyle(options, FormatNamedStyle::Swag);
     if (options.endOfLineStyle != FormatEndOfLineStyle::Preserve || options.columnLimit != 0 ||
         options.singleLineArgumentColumnLimit != 100 || options.caseValuesWrap != FormatCaseValuesWrap::ColumnLimit ||
-        options.caseValuesColumnLimit != 100 || options.binPackCaseValues != FormatBinPackStyle::Pack)
+        options.caseValuesColumnLimit != 100 || options.binPackCaseValues != FormatCaseValuesPacking::Balanced)
         return Result::Error;
 
     static constexpr std::string_view SOURCE   = "func foo()\r\n{\r\n    return\r\n}\r\n";
@@ -324,7 +324,7 @@ SWC_TEST_BEGIN(FormatStyle_DescribeRendersEveryOption)
         dump.find("\nsingle-line-argument-column-limit = 100\n") == std::string::npos ||
         dump.find("\ncase-values-wrap = column-limit\n") == std::string::npos ||
         dump.find("\ncase-values-column-limit = 100\n") == std::string::npos ||
-        dump.find("\nbin-pack-case-values = pack\n") == std::string::npos ||
+        dump.find("\nbin-pack-case-values = balanced\n") == std::string::npos ||
         dump.find("\nformat-off-comment = \"swc-format off\"\n") == std::string::npos ||
         dump.find("# Possible values: preserve, attach, allman, stroustrup\n") == std::string::npos)
         return Result::Error;

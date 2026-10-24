@@ -185,8 +185,8 @@ impl RichString
                 count   -= 4
                 handled = true
 
-            case Utf8.startsWith(sl, "<p1>"), Utf8.startsWith(sl, "<p2>"),
-                 Utf8.startsWith(sl, "<p3>"):
+            case Utf8.startsWith(sl, "<p1>"),
+                 Utf8.startsWith(sl, "<p2>"), Utf8.startsWith(sl, "<p3>"):
                 scan    += 4
                 count   -= 4
                 handled = true

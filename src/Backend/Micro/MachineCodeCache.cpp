@@ -99,6 +99,10 @@ namespace
         out.appendLe32(ctx.typeMgr().get(function.typeRef()).runtimeHash(ctx));
         out.appendLe32(static_cast<uint32_t>(function.callConvKind()));
         out.appendLe32(function.attributes().hasRtFlag(RtAttributeFlagsE::ReadOnly));
+        // The sanitizer consumes release summaries even when the call's IR and
+        // signature are unchanged after a callee body edit.
+        out.appendLe64(function.freesParamsMask());
+        out.appendLe64(function.freesIndirectParamsMask());
         // Runtime type identity deliberately ignores nullability. The static
         // sanitizer consumes it, so the emitted-code identity keeps it here.
         appendTypeQualifiers(out, ctx, function.returnTypeRef(), ABITypeNormalize::Usage::Return);

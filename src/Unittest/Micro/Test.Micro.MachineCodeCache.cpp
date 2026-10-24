@@ -203,6 +203,22 @@ SWC_TEST_BEGIN(MachineCodeCache_PreservesGlobalAddressDistances)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(MachineCodeCache_TracksCalleeReleaseSummaries)
+{
+    auto*        caller = makeCacheFunction(ctx, "cacheReleaseCaller");
+    auto*        target = makeCacheFunction(ctx, "cacheReleaseTarget", ctx.typeMgr().typeS32());
+    MicroBuilder builder(ctx);
+    builder.emitCallLocal(target, CallConvKind::Swag);
+    const Utf8 before = cacheKey(ctx, *caller, builder);
+    target->addFreesParam(0);
+    const Utf8 direct = cacheKey(ctx, *caller, builder);
+    target->addFreesParam(0, true);
+    const Utf8 indirect = cacheKey(ctx, *caller, builder);
+    if (before.empty() || direct.empty() || indirect.empty() || before == direct || direct == indirect)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_END_NAMESPACE();
 
 #endif

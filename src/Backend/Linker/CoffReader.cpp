@@ -272,11 +272,10 @@ bool readCoffDefinedSymbols(std::vector<CoffInputSymbol>& outSymbols, Diagnostic
 
 bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::vector<CoffObject>&& objects)
 {
-    struct SectionPlacement
+    struct CoffSectionPlacement
     {
         uint32_t base        = 0;
-        uint32_t mergedIndex = 0;
-        bool     valid       = false;
+        uint32_t mergedIndex = std::numeric_limits<uint32_t>::max();
     };
 
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
@@ -299,7 +298,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
 
     for (CoffObject& object : objects)
     {
-        std::vector<SectionPlacement> placements(object.sections.size());
+        std::vector<CoffSectionPlacement> placements(object.sections.size());
 
         for (size_t s = 0; s < object.sections.size(); ++s)
         {
@@ -346,7 +345,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
                 merged.bytes.insert(merged.bytes.end(), section.bytes.begin(), section.bytes.end());
             }
 
-            placements[s] = {.base = base, .mergedIndex = mergedIdx, .valid = true};
+            placements[s] = {.base = base, .mergedIndex = mergedIdx};
 
             for (CoffInputReloc& reloc : section.relocs)
             {
@@ -370,12 +369,12 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
 
         for (const CoffInputSymbol& symbol : object.definedSymbols)
         {
-            if (symbol.sectionIndex >= placements.size() || !placements[symbol.sectionIndex].valid)
+            if (symbol.sectionIndex >= placements.size() || placements[symbol.sectionIndex].mergedIndex == std::numeric_limits<uint32_t>::max())
                 continue; // defined in a dropped section
             if (!defineName(symbol.name.view()))
                 continue; // first definition wins
 
-            const SectionPlacement& placement = placements[symbol.sectionIndex];
+            const CoffSectionPlacement& placement = placements[symbol.sectionIndex];
             LinkSymbol out;
             out.name         = symbol.name;
             out.sectionIndex = placement.mergedIndex;

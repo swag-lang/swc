@@ -85,17 +85,6 @@ for eligible modules; costly experiments stay selectable until measured. Keep ex
 new language syntax.
 
 
-### compiler.optimization.131 — Read a frame byte through an index the stack pointer was added to
-
-- Evidence: csvagg's `writeUInt` copies its digits back with `lea rax, [r10 - 1]; mov r10,
-  rax; add rax, rsp; movzx rax, byte [rax]` per byte. The post-allocation fold of a pointer
-  add into the next load refuses the stack pointer on purpose: the frame analyses that run
-  after allocation recognize frame accesses as `[rsp + constant]` only.
-- Next: let those analyses treat `[rsp + index]` as a read of an unknown frame slot, then
-  allow the fold for the stack pointer; check frame forwarding and spill-slot reuse on the
-  native suite before looking at the loop.
-- Done when: the copy loop reads `[rsp + r10]` directly with no frame-analysis regression.
-
 ### compiler.optimization.126 — Preserve nullable value-pointer types in automatic inline bindings
 
 - Evidence: nullable inline bindings retain their declared parameter contract, including widened

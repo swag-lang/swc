@@ -1993,10 +1993,19 @@ namespace PostRaPeephole
         const auto* add = addInst.ops(*ctx.operands);
         if (!add || add[3].microOp != MicroOp::Add || add[2].opBits != MicroOpBits::B64 || !add[0].reg.isInt() ||
             !add[1].reg.isInt() || add[0].reg == add[1].reg || ctx.isPrivateFrameBase(add[0].reg) ||
-            ctx.isPrivateFrameBase(add[1].reg) ||
+            (ctx.isPrivateFrameBase(add[1].reg) && add[1].reg != ctx.stackPointer) ||
             !ctx.areCpuFlagsDeadAfter(addRef))
             return false;
-        return foldAddressIntoNextLoad(ctx, addRef, add[0].reg, add[0].reg, add[1].reg, 1, 0);
+        MicroReg base  = add[0].reg;
+        MicroReg index = add[1].reg;
+        if (index == ctx.stackPointer)
+        {
+            // RSP cannot occupy the SIB index field. Keep it as the base and
+            // use the original pointer as the index instead.
+            base  = index;
+            index = add[0].reg;
+        }
+        return foldAddressIntoNextLoad(ctx, addRef, add[0].reg, base, index, 1, 0);
     }
 
     // A field address advanced by a register is one indexed address:

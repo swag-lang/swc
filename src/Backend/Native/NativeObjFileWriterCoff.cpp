@@ -107,11 +107,10 @@ Result NativeObjFileWriterCoff::buildObjectFile(ByteArray& outBytes, const Nativ
         section.data.name            = Utf8(SymbolTable::OBJECT_SECTION);
         section.data.characteristics = IMAGE_SCN_LNK_INFO | IMAGE_SCN_LNK_REMOVE | IMAGE_SCN_ALIGN_4BYTES;
 
-        std::vector<SymbolTable::Relocation> relocations;
-        SymbolTable::build(section.data.bytes, relocations, runtimeNames);
-        section.data.relocations.reserve(relocations.size());
-        for (SymbolTable::Relocation& relocation : relocations)
-            section.data.relocations.push_back({.offset = relocation.offset, .symbolName = std::move(relocation.symbolName), .type = IMAGE_REL_AMD64_ADDR32NB});
+        SymbolTable::build(section.data.bytes, runtimeNames);
+        section.data.relocations.reserve(runtimeNames.size());
+        for (size_t i = 0; i < runtimeNames.size(); ++i)
+            section.data.relocations.push_back({.offset = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(i) * SymbolTable::ENTRY_SIZE + SymbolTable::ENTRY_START_RVA, .symbolName = std::move(runtimeNames[i].symbolName), .type = IMAGE_REL_AMD64_ADDR32NB});
 
         SWC_RESULT(applySectionRelocations(section));
         sections.push_back(std::move(section));

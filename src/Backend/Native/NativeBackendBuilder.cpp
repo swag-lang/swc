@@ -1803,7 +1803,7 @@ Result NativeBackendBuilder::prepare()
                 std::vector<Utf8> stats;
                 stats.push_back(ScopedTimedLog::formatStatCount(ctx_, functionInfos.size(), "function"));
                 // Two sources, reported apart so a reader can tell them apart: machine code the
-                // shared runtime and imported API archive supplied, and functions this output's
+                // shared machine-code archive supplied, and functions this output's
                 // previous build already produced from the same input.
                 const size_t reused    = std::ranges::count_if(functionInfos, [](const NativeFunctionInfo& info) {
                     return info.symbol->hasFlag(SymbolFlagsE::MachineCodeReused);

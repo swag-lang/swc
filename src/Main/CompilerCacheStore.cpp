@@ -6,6 +6,7 @@
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Sha256.h"
 #include "Support/Os/ReadOnlyFileMapping.h"
+#include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -19,22 +20,26 @@ namespace
     std::atomic<CompilerCacheStore*> activeStore        = nullptr;
 }
 
-CompilerCacheStore::CompilerCacheStore(const bool rebuild) :
-    rebuilding_(rebuild),
-    replace_(rebuild)
+CompilerCacheStore::CompilerCacheStore(fs::path directory) :
+    directory_(std::move(directory))
+{
+}
+
+CompilerCacheStore::CompilerCacheStore(const bool rebuild)
 {
     const auto&    compiler = compilerCacheIdentity();
     const auto     bytes    = std::as_bytes(std::span{compiler.data(), compiler.size()});
     const fs::path root     = WorkspaceLayout::machineCacheRoot();
-    path_                   = root / std::format("{}.bin", Utf8Helper::toLowerHex(sha256(bytes)).view());
-    if (!rebuild)
-        archive_ = load();
+    directory_              = root / std::format("{}", Utf8Helper::toLowerHex(sha256(bytes)).view());
+    if (rebuild)
+        invalidateOnce();
     activeStore.store(this, std::memory_order_release);
 }
 
 CompilerCacheStore::~CompilerCacheStore()
 {
-    activeStore.store(nullptr, std::memory_order_release);
+    CompilerCacheStore* expected = this;
+    activeStore.compare_exchange_strong(expected, nullptr, std::memory_order_acq_rel);
 }
 
 CompilerCacheStore& CompilerCacheStore::get(const bool rebuild)
@@ -47,28 +52,53 @@ CompilerCacheStore& CompilerCacheStore::get(const bool rebuild)
 
 void CompilerCacheStore::invalidateOnce()
 {
-    const std::unique_lock lock(mutex_);
-    if (rebuilding_)
-        return;
-    archive_ = {};
-    pending_.clear();
-    rebuilding_ = true;
-    replace_    = true;
+    std::call_once(invalidated_, [this] {
+        for (auto& shard : shards_)
+        {
+            // Close lazy loading before clearing a partition so a later reader
+            // cannot restore the invalidated file generation.
+            std::call_once(shard.loaded, [] {});
+            const std::unique_lock lock(shard.mutex);
+            shard.archive = {};
+            shard.pending.clear();
+            shard.replace = true;
+        }
+    });
+}
+
+fs::path CompilerCacheStore::shardPath(const size_t index) const
+{
+    return directory_ / std::format("{:x}", index) / "code.bin";
+}
+
+CompilerCacheStore::Shard& CompilerCacheStore::shardFor(const Utf8& key) const
+{
+    // Keys are lowercase hexadecimal SHA-256 digests. Their first nibble gives
+    // uniform partitions without hashing the text again.
+    SWC_ASSERT(key.size() == K_KEY_SIZE);
+    const uint32_t digit = static_cast<uint8_t>(key[0]);
+    const size_t   index = digit <= '9' ? digit - '0' : digit - 'a' + 10;
+    SWC_ASSERT(index < K_SHARD_COUNT);
+    Shard& shard = shards_[index];
+    std::call_once(shard.loaded, [this, &shard, index] { shard.archive = load(shardPath(index)); });
+    return shard;
 }
 
 CompilerCacheStore::Record CompilerCacheStore::read(const Utf8& key) const
 {
-    const std::shared_lock lock(mutex_);
-    const auto             found = pending_.find(key);
-    return found == pending_.end() ? archive_.read(key) : found->second;
+    Shard&                 shard = shardFor(key);
+    const std::shared_lock lock(shard.mutex);
+    const auto             found = shard.pending.find(key);
+    return found == shard.pending.end() ? shard.archive.read(key) : found->second;
 }
 
 void CompilerCacheStore::write(const Utf8& key, ByteArray bytes)
 {
     const auto             owner = std::make_shared<const ByteArray>(std::move(bytes));
     const Record           entry{owner, ByteView(owner->span())};
-    const std::unique_lock lock(mutex_);
-    pending_.insert_or_assign(key, entry);
+    Shard&                 shard = shardFor(key);
+    const std::unique_lock lock(shard.mutex);
+    shard.pending.insert_or_assign(key, entry);
 }
 
 void CompilerCacheStore::flushAll()
@@ -85,34 +115,42 @@ void CompilerCacheStore::invalidateAll()
 
 void CompilerCacheStore::flush()
 {
-    const std::unique_lock lock(mutex_);
-    if (pending_.empty() && !replace_)
+    for (size_t index = 0; index < K_SHARD_COUNT; ++index)
+        flushShard(index);
+}
+
+void CompilerCacheStore::flushShard(const size_t index)
+{
+    Shard&                 shard = shards_[index];
+    const std::unique_lock lock(shard.mutex);
+    if (shard.pending.empty() && !shard.replace)
         return;
+    const fs::path  path = shardPath(index);
     std::error_code ec;
-    fs::create_directories(path_.parent_path(), ec);
+    fs::create_directories(path.parent_path(), ec);
     if (ec)
         return;
     Os::DirectoryLock publication;
     Utf8              because;
-    if (!publication.lock(because, path_.parent_path()))
+    if (!publication.lock(because, path.parent_path()))
         return;
-    if (replace_ && pending_.empty())
+    if (shard.replace && shard.pending.empty())
     {
-        fs::remove(path_, ec);
+        fs::remove(path, ec);
         if (!ec)
-            replace_ = false;
+            shard.replace = false;
         return;
     }
-    const Archive          current = replace_ ? Archive{} : load();
-    std::vector<EntryView> merged  = mergeEntries(current, pending_);
+    const Archive          current = shard.replace ? Archive{} : load(path);
+    std::vector<EntryView> merged  = mergeEntries(current, shard.pending);
     size_t                 extent;
     bool                   fitsArchive = measureExtent(merged, extent);
     // Keep the newest working set when the archive reaches its size bound.
     if (!fitsArchive)
     {
         std::vector<EntryView> recent;
-        recent.reserve(pending_.size());
-        for (const auto& [key, record] : pending_)
+        recent.reserve(shard.pending.size());
+        for (const auto& [key, record] : shard.pending)
             recent.push_back({key.view(), record.bytes});
         std::ranges::sort(recent, {}, &EntryView::key);
         merged      = std::move(recent);
@@ -138,12 +176,12 @@ void CompilerCacheStore::flush()
     // previous mappings lets the ordinary rename succeed when no other compiler
     // is still reading that generation. Outstanding reader records keep it alive.
     const auto published = std::make_shared<const ByteArray>(std::move(archive));
-    archive_             = Archive::decode(Record{published, ByteView(published->span())});
+    shard.archive        = Archive::decode(Record{published, ByteView(published->span())});
     FileSystem::IoErrorInfo error;
-    if (published->size() <= K_MAX_ARCHIVE_SIZE && FileSystem::writeBinaryFileAtomic(path_, published->data(), published->size(), error, FileSystem::FileReplacement::Mapped) == Result::Continue)
+    if (published->size() <= K_MAX_ARCHIVE_SIZE && FileSystem::writeBinaryFileAtomic(path, published->data(), published->size(), error, FileSystem::FileReplacement::Mapped) == Result::Continue)
     {
-        pending_.clear();
-        replace_ = false;
+        shard.pending.clear();
+        shard.replace = false;
     }
 }
 
@@ -199,10 +237,10 @@ bool CompilerCacheStore::measureExtent(const std::vector<EntryView>& entries, si
     return true;
 }
 
-CompilerCacheStore::Archive CompilerCacheStore::load() const
+CompilerCacheStore::Archive CompilerCacheStore::load(const fs::path& path)
 {
     const auto mapping = std::make_shared<Os::ReadOnlyFileMapping>();
-    if (!mapping->open(path_, K_MAX_ARCHIVE_SIZE))
+    if (!mapping->open(path, K_MAX_ARCHIVE_SIZE))
         return {};
     return Archive::decode(Record{mapping, ByteView(mapping->bytes())});
 }

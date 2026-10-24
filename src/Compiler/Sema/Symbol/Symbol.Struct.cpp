@@ -1002,6 +1002,14 @@ void SymbolStruct::computeImplicitDefaultFlags(Sema& sema) const
             }
         }
 
+        // No case is the natural one: a tagged union is always built from a named case, so a
+        // default can only come from the declaration that holds it.
+        if (isTagged())
+        {
+            self->addExtraFlag(SymbolStructFlagsE::DefaultRequiresInit);
+            return;
+        }
+
         if (fields_.empty() && !isDynamic() && !hasRuntimeImplicitDefault() && !requiresExplicitInitialization())
         {
             self->addExtraFlag(SymbolStructFlagsE::DefaultAllZero);
@@ -1288,6 +1296,49 @@ void SymbolStruct::addField(SymbolVariable* sym)
     fields_.push_back(sym);
 }
 
+uint32_t SymbolStruct::taggedTagSize(TaskContext& ctx) const
+{
+    SWC_ASSERT(isTagged());
+    return static_cast<uint32_t>(ctx.typeMgr().get(taggedTypeRef_).sizeOf(ctx));
+}
+
+void SymbolStruct::addTaggedCase(const SymbolVariable& member, std::span<ConstantRef> values)
+{
+    // A replayed body declares the same member again.
+    for (SymbolStructTaggedCase& taggedCase : taggedCases_)
+    {
+        if (taggedCase.member == &member)
+        {
+            taggedCase.values = values;
+            return;
+        }
+    }
+
+    taggedCases_.push_back({.member = &member, .values = values});
+}
+
+std::span<const ConstantRef> SymbolStruct::taggedCaseValues(const SymbolVariable& member) const noexcept
+{
+    for (const SymbolStructTaggedCase& taggedCase : taggedCases_)
+    {
+        if (taggedCase.member == &member)
+            return taggedCase.values;
+    }
+
+    return {};
+}
+
+const SymbolVariable* SymbolStruct::taggedCaseMember(ConstantRef value) const noexcept
+{
+    for (const SymbolStructTaggedCase& taggedCase : taggedCases_)
+    {
+        if (std::ranges::find(taggedCase.values, value) != taggedCase.values.end())
+            return taggedCase.member;
+    }
+
+    return nullptr;
+}
+
 void SymbolStruct::rebuildFieldIndexMap() noexcept
 {
     fieldIndexMap_.clear();
@@ -1320,6 +1371,27 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     fieldOffsets.reserve(fields_.size());
     std::vector<uint32_t> dynamicSlotOffsets;
 
+    // The tag comes first. Every member then starts at the first offset that suits the most
+    // demanding one, so the members overlap after the tag the way union members overlap at zero.
+    uint64_t payloadOffset = 0;
+    if (isTagged())
+    {
+        const TypeInfo& tagType = ctx.typeMgr().get(taggedTypeRef_);
+        payloadOffset           = tagType.sizeOf(ctx);
+        alignment               = std::max(alignment, tagType.alignOf(ctx));
+
+        uint32_t payloadAlignment = 1;
+        for (const SymbolVariable* field : fields_)
+        {
+            const AttributeList& fieldAttributes = field->attributes();
+            const auto           ownAttributes   = std::span{fieldAttributes.attributes}.subspan(inheritedAttributePrefixCount(fieldAttributes, attributes()));
+            payloadAlignment                     = std::max(payloadAlignment, effectiveFieldAlignment(ctx, field->typeInfo(ctx), ownAttributes, structPack));
+        }
+
+        payloadOffset += (payloadAlignment - (payloadOffset % payloadAlignment)) % payloadAlignment;
+        sizeInBytes = payloadOffset;
+    }
+
     for (SymbolVariable* field : fields_)
     {
         auto&       symVar = field->cast<SymbolVariable>();
@@ -1335,8 +1407,8 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
 
         if (isUnion())
         {
-            fieldOffsets.push_back(0);
-            sizeInBytes = std::max(sizeInBytes, sizeOf);
+            fieldOffsets.push_back(payloadOffset);
+            sizeInBytes = std::max(sizeInBytes, payloadOffset + sizeOf);
         }
         else
         {
@@ -1401,7 +1473,8 @@ Result SymbolStruct::computeLayout(TaskContext& ctx)
     for (size_t i = 0; i < fields_.size(); ++i)
         fields_[i]->setOffset(static_cast<uint32_t>(fieldOffsets[i]));
 
-    dynamicSlotOffsets_ = std::move(dynamicSlotOffsets);
+    taggedPayloadOffset_ = static_cast<uint32_t>(payloadOffset);
+    dynamicSlotOffsets_  = std::move(dynamicSlotOffsets);
     if (isDynamic())
         addExtraFlag(SymbolStructFlagsE::DynamicStorage);
     else

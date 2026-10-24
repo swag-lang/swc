@@ -75,6 +75,7 @@ enum class SemaNarrowFactKind : uint8_t
 {
     NonNull, // the path cannot be null: consumed by the use-site nullability rules
     NonZero, // the path cannot be zero
+    Case,    // the path is a tagged union whose tag is one of 'cases': consumed by payload access
 };
 
 // An access path is a root variable followed by field symbols (p or me.lastBucket).
@@ -82,9 +83,10 @@ enum class SemaNarrowFactKind : uint8_t
 // descendants after assignment or address-of. The kind of a kill is irrelevant.
 struct SemaNarrowFact
 {
-    SmallVector4<const Symbol*> path;
-    SemaNarrowFactKind          kind  = SemaNarrowFactKind::NonNull;
-    bool                        holds = true;
+    SmallVector4<const Symbol*>  path;
+    std::span<const ConstantRef> cases; // Case only: arena-owned, never mutated once published
+    SemaNarrowFactKind           kind  = SemaNarrowFactKind::NonNull;
+    bool                         holds = true;
 };
 
 class SemaFrame
@@ -256,7 +258,13 @@ public:
     }
 
     void addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
+    void addNarrowCaseFact(std::span<const Symbol* const> path, std::span<const ConstantRef> cases);
     void addNarrowKill(std::span<const Symbol* const> path);
+
+    // The newest live Case fact on exactly this path, or null once a kill reaches it.
+    static const SemaNarrowFact* findNarrowCases(std::span<const SemaNarrowFact> facts, std::span<const Symbol* const> path);
+    // Whether the path is proven to hold one of 'allowed'.
+    bool queryNarrowCases(std::span<const Symbol* const> path, std::span<const ConstantRef> allowed) const;
     bool queryNarrowFact(std::span<const Symbol* const> path, SemaNarrowFactKind kind) const { return queryNarrowFact(narrowFacts_.span(), path, kind); }
 
     // Popped branch frames leave facts that must obey the same query rules.

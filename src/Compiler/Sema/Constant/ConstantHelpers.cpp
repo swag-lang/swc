@@ -300,7 +300,8 @@ namespace
             const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(sema.ctx());
             if (!declaredType.isNonNullable() && !type.isNonNullable())
             {
-                if (type.isStruct())
+                // A tagged union has no default case: its bytes stay zero until a case is written.
+                if (type.isStruct() && !type.payloadSymStruct().isTagged())
                 {
                     const SymbolStruct& owner = type.payloadSymStruct();
                     if (owner.attributes().hasRtFlag(RtAttributeFlagsE::Opaque))

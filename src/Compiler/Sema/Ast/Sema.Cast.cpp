@@ -9,8 +9,10 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Main/CompilerInstance.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -364,8 +366,65 @@ Result AstAsCastExpr::semaPostNode(Sema& sema)
     return SemaHelpers::attachRuntimeAsFunctionToNode(sema, sema.curNodeRef(), codeRef());
 }
 
+// 'u is .Circle' tests the case of a tagged union. The leading dot names a tag value, so it
+// resolves against the tag before anything else.
+Result AstIsTypeExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    if (childRef != nodeTypeRef || sema.node(nodeTypeRef).isNot(AstNodeId::AutoMemberAccessExpr))
+        return Result::Continue;
+
+    const TypeRef       subjectTypeRef = sema.viewType(nodeExprRef).typeRef();
+    const SymbolStruct* tagged         = SemaTagged::unionOfPointee(sema.ctx(), subjectTypeRef);
+    if (!tagged)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_is_subject, nodeExprRef);
+        diag.addArgument(Diagnostic::ARG_TYPE, subjectTypeRef);
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    SWC_RESULT(SemaTagged::waitUnion(sema, *tagged));
+
+    auto frame = sema.frame();
+    frame.pushBindingType(tagged->taggedTypeRef());
+    sema.pushFramePopOnPostChild(std::move(frame), childRef);
+    SemaHelpers::preferContextualAutoMemberBindingType(sema, childRef);
+    return Result::Continue;
+}
+
 Result AstIsTypeExpr::semaPostNode(Sema& sema)
 {
+    if (sema.node(nodeTypeRef).is(AstNodeId::AutoMemberAccessExpr))
+    {
+        SWC_RESULT(SemaCheck::isValue(sema, nodeExprRef));
+
+        const SymbolStruct* tagged = SemaTagged::unionOfPointee(sema.ctx(), sema.viewType(nodeExprRef).typeRef());
+        SWC_ASSERT(tagged != nullptr);
+
+        SemaNodeView caseView = sema.viewNodeTypeConstant(nodeTypeRef);
+        SWC_RESULT(Cast::cast(sema, caseView, tagged->taggedTypeRef(), CastKind::Implicit));
+        const SemaNodeView caseCstView = sema.viewConstant(nodeTypeRef);
+        if (!caseCstView.hasConstant())
+            return SemaError::raiseExprNotConst(sema, nodeTypeRef);
+
+        auto& payload   = sema.ensureSemaPayload<TaggedIsPayload>(sema.curNodeRef());
+        payload.tagged  = tagged;
+        payload.caseRef = caseCstView.cstRef();
+
+        // A constant union answers at compile time.
+        const SemaNodeView subjectView = sema.viewTypeConstant(nodeExprRef);
+        if (subjectView.hasConstant() && SemaTagged::unionOf(sema.ctx(), subjectView.typeRef()) == tagged)
+        {
+            const bool holds = SemaTagged::readConstantCase(sema, *tagged, subjectView.cstRef()) == payload.caseRef;
+            sema.setConstant(sema.curNodeRef(), sema.cstMgr().addConstant(sema.ctx(), ConstantValue::makeBool(sema.ctx(), holds)));
+            return Result::Continue;
+        }
+
+        sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
+        sema.setIsValue(*this);
+        return Result::Continue;
+    }
+
     const SemaNodeView source            = sema.viewType(nodeExprRef);
     const SemaNodeView target            = sema.viewType(nodeTypeRef);
     const TypeInfo&    targetType        = target.type()->unwrapAliasTypeOrSelf(sema.ctx());

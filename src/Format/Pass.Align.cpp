@@ -16,6 +16,7 @@ namespace
         Declarations,
         Constants,
         Aliases,
+        TaggedCases,
         StructFields,
         EnumValues,
         Attributes,
@@ -36,6 +37,10 @@ namespace
         void run() const
         {
             runDeclarationFamily(AlignCategory::Declarations, options_->alignConsecutiveDeclarations, options_->alignDeclarationInitializers.value_or(false));
+
+            // Members of a tagged union start after their 'case' labels: line those starts up
+            // first, so the field columns that follow are measured from aligned names.
+            runCategory(AlignCategory::TaggedCases, options_->alignStructFields);
             runDeclarationFamily(AlignCategory::StructFields, options_->alignStructFields, options_->alignStructFieldInitializers.value_or(false));
             runDeclarationFamily(AlignCategory::Constants, options_->alignConsecutiveConstants, options_->alignConstantTypes.value_or(false));
 
@@ -110,6 +115,9 @@ namespace
                     if (findRoleOnLine(lineStart, FormatRoleE::AliasDeclStart, false) == INVALID_PIECE)
                         return INVALID_PIECE;
                     return findRoleOnLine(lineStart, FormatRoleE::InitAssign, false);
+
+                case AlignCategory::TaggedCases:
+                    return findRoleOnLine(lineStart, FormatRoleE::TaggedCaseColon, true);
 
                 case AlignCategory::StructFields:
                     if (findRoleOnLine(lineStart, FormatRoleE::FieldDeclStart, false) == INVALID_PIECE)

@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Helpers/SemaVarDeclHelpers.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
 #include "Compiler/Sema/Symbol/Symbol.Constant.h"
@@ -286,6 +287,14 @@ namespace
 
             const std::span<const Symbol* const> path{fact.path.data(), fact.path.size()};
 
+            // A tagged union ends the path holding the cases of its newest live fact.
+            if (fact.kind == SemaNarrowFactKind::Case)
+            {
+                if (SemaFrame::findNarrowCases(branchFacts.span(), path) == &fact && !SemaFrame::findNarrowCases(out.span(), path))
+                    out.push_back(fact);
+                continue;
+            }
+
             // A proof killed further down the same path is not proven where that path ends.
             if (!SemaFrame::queryNarrowFact(branchFacts.span(), path, fact.kind))
                 continue;
@@ -298,12 +307,26 @@ namespace
         }
     }
 
-    void filterBranchNarrowCandidates(const SmallVector2<SemaNarrowFact>& otherFacts, SmallVector2<SemaNarrowFact>& candidates)
+    void filterBranchNarrowCandidates(Sema& sema, const SmallVector2<SemaNarrowFact>& otherFacts, SmallVector2<SemaNarrowFact>& candidates)
     {
         SmallVector2<SemaNarrowFact> kept;
         for (const SemaNarrowFact& fact : candidates)
         {
-            if (SemaFrame::queryNarrowFact(otherFacts.span(), {fact.path.data(), fact.path.size()}, fact.kind))
+            const std::span<const Symbol* const> path{fact.path.data(), fact.path.size()};
+
+            // After the join the union holds a case either path could leave it in.
+            if (fact.kind == SemaNarrowFactKind::Case)
+            {
+                if (const SemaNarrowFact* other = SemaFrame::findNarrowCases(otherFacts.span(), path))
+                {
+                    SemaNarrowFact& merged = kept.emplace_back(fact);
+                    merged.cases           = SemaTagged::unionCases(sema, fact.cases, other->cases);
+                }
+
+                continue;
+            }
+
+            if (SemaFrame::queryNarrowFact(otherFacts.span(), path, fact.kind))
                 kept.push_back(fact);
         }
 
@@ -384,7 +407,7 @@ Result AstIfStmt::semaPostNode(Sema& sema) const
         if (nodeElseBlockRef.isInvalid())
             collectMissingElseNarrowFacts(sema, nodeConditionRef, elseFacts);
 
-        filterBranchNarrowCandidates(elseFacts, merged);
+        filterBranchNarrowCandidates(sema, elseFacts, merged);
         if (merged.empty())
             return Result::Continue;
     }

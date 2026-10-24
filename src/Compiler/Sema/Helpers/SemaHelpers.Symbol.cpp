@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/Symbol.Alias.h"
@@ -1368,6 +1369,10 @@ namespace
             if (const auto* fieldVar = memberSym->safeCast<SymbolVariable>())
                 SemaAccess::markUnwritableMemberAccess(sema, *fieldVar, targetNodeRef, codeRef.srcViewRef);
         }
+        // A payload member of a tagged union is reachable only where its case is proven.
+        if (!throughType && finalSymCount == 1 && symbols[0]->isVariable())
+            SWC_RESULT(SemaTagged::checkPayloadAccess(sema, targetNodeRef, node.nodeLeftRef, nodeLeftView.typeRef(), symbols[0]->cast<SymbolVariable>()));
+
         const bool           throughPointerOrRef      = isPointerOrReferenceAliasAware(sema, nodeLeftView);
         const ConstantValue* leftConstant             = nodeLeftView.cst();
         bool                 canExtractConstantMember = leftConstant && !throughPointerOrRef;

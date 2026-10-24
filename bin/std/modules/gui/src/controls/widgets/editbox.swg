@@ -77,28 +77,27 @@ struct EditBox
 
         readonly
         {
-            icon:           Icon                  // Optional leading icon.
-            unit:           String                // Optional trailing unit, such as "kg".
-            form      = EditBoxForm.Rectangle     // Current background geometry.
-            flags     = EditBoxFlags.None         // Active interaction and presentation options.
-            inputMode = EditBoxInputMode.Text     // Current built-in validation mode.
-            maximumLength:  s32                   // Maximum rune count, or zero for no limit.
-            trailingMargin: f32                   // Extra trailing inset in logical units.
+            icon:           Icon              // Optional leading icon.
+            unit:           String            // Optional trailing unit, such as "kg".
+            form  = EditBoxForm.Rectangle     // Current background geometry.
+            flags = EditBoxFlags.None         // Active interaction and presentation options.
+            maximumLength:  s32               // Maximum rune count, or zero for no limit.
+            trailingMargin: f32               // Extra trailing inset in logical units.
             validator:      (func||(*EditBox)->EditBoxCheckResult)?     // Custom validator, or null for built-in validation.
+
+            // Current built-in validation mode, with the bounds of the numeric modes.
+            using inputMode: union(EditBoxInputMode)
+            {
+                case .SignedInteger: minMaxS64: {min, max: s64} = {Swag.S64.Min, Swag.S64.Max}          // Signed integer bounds
+                case .UnsignedInteger, .Hexadecimal: minMaxU64: {min, max: u64} = {0, Swag.U64.Max}     // Unsigned integer bounds
+                case .FloatingPoint: minMaxF64: {min, max: f64} = {-Swag.F64.Max, Swag.F64.Max}         // Floating-point bounds
+            } = .Text
         }
     }
 
     // Text the box held when it took the focus. It is what Escape puts back, so an edit
     // the reader backs out of leaves the value the surface around it had written here.
     originalText: String
-
-    // Numeric bounds of the integer, hexadecimal, and floating-point input modes.
-    using minMax: union
-    {
-        minMaxS64: { min: s64, max: s64 } = {Swag.S64.Min, Swag.S64.Max}      // Signed integer bounds
-        minMaxU64: { min: u64, max: u64 } = {0, Swag.U64.Max}     // Unsigned integer bounds
-        minMaxF64: { min: f64, max: f64 } = {-Swag.F64.Max, Swag.F64.Max}     // Floating-point bounds
-    }
 
     aniBk:     BlendColor = {speed: 4}     // Color animation of the background.
     aniBorder: BlendColor = {speed: 4}     // Color animation of the border.
@@ -749,7 +748,7 @@ private impl EditBox
         utf8[cpt] = 0
 
         // Determine whether we need to validate the content.
-        let mustValidate = .validator or .inputMode != .Text
+        let mustValidate = .validator or not (.inputMode is .Text)
         if not mustValidate
         {
             .insertUtf8(Swag.makeString(&utf8[0], cpt))
@@ -1304,9 +1303,7 @@ impl EditBox
     mtd setSignedIntegerRange(min = Swag.S64.Min, max = Swag.S64.Max)
     {
         Swag.assert(min <= max, "minimum cannot exceed maximum")
-        .inputMode     = .SignedInteger
-        .minMaxS64.min = min
-        .minMaxS64.max = max
+        .inputMode = .SignedInteger{min, max}
         discard .checkContent()
         .invalidate()
     }
@@ -1315,9 +1312,7 @@ impl EditBox
     mtd setUnsignedIntegerRange(min = 0'u64, max = Swag.U64.Max)
     {
         Swag.assert(min <= max, "minimum cannot exceed maximum")
-        .inputMode     = .UnsignedInteger
-        .minMaxU64.min = min
-        .minMaxU64.max = max
+        .inputMode = .UnsignedInteger{min, max}
         discard .checkContent()
         .invalidate()
     }
@@ -1326,9 +1321,7 @@ impl EditBox
     mtd setHexadecimalRange(min = 0'u64, max = Swag.U64.Max)
     {
         Swag.assert(min <= max, "minimum cannot exceed maximum")
-        .inputMode     = .Hexadecimal
-        .minMaxU64.min = min
-        .minMaxU64.max = max
+        .inputMode = .Hexadecimal{min, max}
         discard .checkContent()
         .invalidate()
     }
@@ -1337,9 +1330,7 @@ impl EditBox
     mtd setFloatingPointRange(min = -Swag.F64.Max, max = Swag.F64.Max)
     {
         Swag.assert(min <= max, "minimum cannot exceed maximum")
-        .inputMode     = .FloatingPoint
-        .minMaxF64.min = min
-        .minMaxF64.max = max
+        .inputMode = .FloatingPoint{min, max}
         discard .checkContent()
         .invalidate()
     }

@@ -27,6 +27,13 @@ struct SymbolStructUsingPathStep
     bool                  isPointer = false;
 };
 
+// The tag values that make one member of a tagged union active.
+struct SymbolStructTaggedCase
+{
+    const SymbolVariable*  member = nullptr;
+    std::span<ConstantRef> values;
+};
+
 enum class SymbolStructFlagsE : uint16_t
 {
     Zero                = 0,
@@ -37,6 +44,7 @@ enum class SymbolStructFlagsE : uint16_t
     DefaultClassified   = 1 << 4,
     DefaultAllZero      = 1 << 5,
     DefaultRuntime      = 1 << 6,
+    Tagged              = 1 << 7, // a union whose enum tag selects the active member
     DefaultRequiresInit = 1 << 8,
     Anonymous           = 1 << 9, // declared without a name, so its members are reached through the enclosing type
     OwnDynamicSlot      = 1 << 10,
@@ -157,10 +165,22 @@ public:
 
     bool hasConcreteLayout() const noexcept;
 
+    // A tagged union stores its tag first and every member at one payload offset after it.
+    TypeRef  taggedTypeRef() const noexcept { return taggedTypeRef_; }
+    void     setTaggedTypeRef(TypeRef typeRef) noexcept { taggedTypeRef_ = typeRef; }
+    uint32_t taggedPayloadOffset() const noexcept { return taggedPayloadOffset_; }
+    uint32_t taggedTagSize(TaskContext& ctx) const;
+
+    void                                    addTaggedCase(const SymbolVariable& member, std::span<ConstantRef> values);
+    std::span<const SymbolStructTaggedCase> taggedCases() const noexcept { return taggedCases_; }
+    std::span<const ConstantRef>            taggedCaseValues(const SymbolVariable& member) const noexcept;
+    const SymbolVariable*                   taggedCaseMember(ConstantRef value) const noexcept;
+
     bool                         isGenericRoot() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericRoot); }
     void                         setGenericRoot(bool value) noexcept;
     bool                         isGenericInstance() const noexcept { return hasExtraFlag(SymbolStructFlagsE::GenericInstance); }
     bool                         isUnion() const noexcept { return hasExtraFlag(SymbolStructFlagsE::Union); }
+    bool                         isTagged() const noexcept { return hasExtraFlag(SymbolStructFlagsE::Tagged); }
     void                         setGenericInstance(SymbolStruct* root, const GenericInstanceOrigin& origin) noexcept;
     const GenericInstanceOrigin* genericInstanceOrigin() const noexcept;
     bool                         sameGenericFamily(const SymbolStruct& other) const noexcept;
@@ -251,6 +271,10 @@ private:
     mutable std::atomic_bool generatedLifecyclePublished_ = false;
     mutable std::atomic_bool generatedOperatorsPublished_ = false;
     mutable std::atomic_bool generatedEqualityPublished_  = false;
+
+    std::vector<SymbolStructTaggedCase> taggedCases_;
+    TypeRef                             taggedTypeRef_       = TypeRef::invalid();
+    uint32_t                            taggedPayloadOffset_ = 0;
 
     std::atomic<uint64_t> sizeInBytes_      = 0;
     ConstantRef           defaultStructCst_ = ConstantRef::invalid();

@@ -1,13 +1,16 @@
 #include "pch.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Generic/SemaGeneric.h"
 #include "Compiler/Sema/Helpers/SemaDeclGhost.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Match/Match.h"
+#include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Main/CompilerInstance.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -128,6 +131,91 @@ namespace
         return Result::Continue;
     }
 
+    // 'union(Kind)': once the tag type is resolved, the union is tagged before its body declares
+    // any member, so the 'case' labels can resolve their values against it.
+    Result resolveTaggedUnionTag(Sema& sema, AstNodeRef tagTypeRef, AstNodeRef childRef, AstNodeRef bodyRef)
+    {
+        if (childRef != bodyRef || tagTypeRef.isInvalid())
+            return Result::Continue;
+
+        const TypeRef   declaredTagRef = sema.viewType(tagTypeRef).typeRef();
+        const TypeInfo& tagType        = sema.typeMgr().get(declaredTagRef).unwrapAliasTypeOrSelf(sema.ctx());
+        if (!tagType.isEnum())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_union_tag_not_enum, tagTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, declaredTagRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        SWC_RESULT(sema.waitSemaCompleted(&tagType, tagTypeRef));
+        if (tagType.isEnumFlags())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_union_tag_flags, tagTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, declaredTagRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        if (!sema.typeMgr().get(tagType.payloadSymEnum().underlyingTypeRef()).isInt())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_union_tag_not_integer, tagTypeRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, declaredTagRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+        sym.setTaggedTypeRef(tagType.typeRef());
+        return Result::Continue;
+    }
+
+    // Every member of a tagged union is selected by at least one tag value.
+    Result checkTaggedUnionMembers(Sema& sema, const SymbolStruct& sym)
+    {
+        if (!sym.isTagged())
+            return Result::Continue;
+
+        for (const SymbolVariable* field : sym.fields())
+        {
+            if (!field || !sym.taggedCaseValues(*field).empty())
+                continue;
+
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_member_without_case, *field);
+            diag.addArgument(Diagnostic::ARG_SYM, field->name(sema.ctx()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        return Result::Continue;
+    }
+
+    SymbolStruct* currentTaggedUnion(Sema& sema)
+    {
+        SymbolMap* symMap = sema.curScope().symMap();
+        if (!symMap || !symMap->isStruct())
+            return nullptr;
+
+        auto& sym = symMap->cast<SymbolStruct>();
+        return sym.isTagged() ? &sym : nullptr;
+    }
+
+    // Replaces the current node with a tagged union literal of 'caseRef'. The payload, when there is
+    // one, is a node the literal owns; nothing the current node already analyzed is reused.
+    Result restartAsTaggedUnionLiteral(Sema& sema, TypeRef unionTypeRef, ConstantRef caseRef, AstNodeRef payloadRef)
+    {
+        const AstNode& node            = sema.curNode();
+        auto [literalRef, literalNode] = sema.ast().makeNode<AstNodeId::TaggedUnionLiteral>(node.tokRef());
+        literalNode->setCodeRef(node.codeRef());
+        literalNode->unionTypeRef   = unionTypeRef;
+        literalNode->tagCstRef      = caseRef;
+        literalNode->nodePayloadRef = payloadRef;
+
+        sema.setSubstitute(sema.curNodeRef(), literalRef);
+        sema.restartCurrentNode(literalRef);
+        return Result::Continue;
+    }
+
     Result pushStructInitializerChildBindingType(Sema& sema, AstNodeRef childRef, TypeRef targetTypeRef, SpanRef spanArgsRef)
     {
         SmallVector<AstNodeRef> children;
@@ -210,6 +298,8 @@ Result AstUnionDecl::semaPreDecl(Sema& sema) const
     sym.setDeclNodeRef(sema.curNodeRef());
     sym.setGenericRoot(spanGenericParamsRef.isValid());
     sym.addExtraFlag(SymbolStructFlagsE::Union);
+    if (nodeTagTypeRef.isValid())
+        sym.addExtraFlag(SymbolStructFlagsE::Tagged);
 
     return Result::SkipChildren;
 }
@@ -221,6 +311,7 @@ Result AstUnionDecl::semaPreNode(Sema& sema) const
 
 Result AstUnionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    SWC_RESULT(resolveTaggedUnionTag(sema, nodeTagTypeRef, childRef, nodeBodyRef));
     return semaPreNodeChildStructCommon(sema, childRef, nodeBodyRef);
 }
 
@@ -230,6 +321,7 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
     if (sym.isGenericRoot() && !sym.isGenericInstance())
         return Result::Continue;
 
+    SWC_RESULT(checkTaggedUnionMembers(sema, sym));
     SWC_RESULT(layoutAggregateFields(sema, sym));
 
     if (sema.compiler().pendingImplRegistrations(sym.idRef()) != 0)
@@ -237,6 +329,9 @@ Result AstUnionDecl::semaPostNode(Sema& sema)
 
     if (!sym.isGenericInstance())
         SWC_RESULT(SemaSpecOp::ensureGeneratedLifecycleFunctions(sema, sym));
+
+    if (sym.isTagged())
+        SWC_RESULT(SemaSpecOp::ensureGeneratedEquality(sema, sym));
 
     SWC_RESULT(sym.registerSpecOps(sema));
 
@@ -289,6 +384,8 @@ Result AstAnonymousUnionDecl::semaPreDecl(Sema& sema) const
     auto& sym = SemaHelpers::registerUniqueSymbol<SymbolStruct>(sema, *this, "anonymous_union");
     sym.addExtraFlag(SymbolStructFlagsE::Union);
     sym.addExtraFlag(SymbolStructFlagsE::Anonymous);
+    if (nodeTagTypeRef.isValid())
+        sym.addExtraFlag(SymbolStructFlagsE::Tagged);
 
     return Result::SkipChildren;
 }
@@ -300,16 +397,223 @@ Result AstAnonymousUnionDecl::semaPreNode(Sema& sema) const
 
 Result AstAnonymousUnionDecl::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
 {
+    SWC_RESULT(resolveTaggedUnionTag(sema, nodeTagTypeRef, childRef, nodeBodyRef));
     return semaPreNodeChildStructCommon(sema, childRef, nodeBodyRef);
 }
 
 Result AstAnonymousUnionDecl::semaPostNode(Sema& sema)
 {
     auto& sym = sema.curViewSymbol().sym()->cast<SymbolStruct>();
+    SWC_RESULT(checkTaggedUnionMembers(sema, sym));
     SWC_RESULT(layoutAggregateFields(sema, sym));
+
+    // The holder compares this member with '==', so a tagged union needs its own answer: a byte
+    // comparison is only right when every case compares as bytes.
+    if (sym.isTagged())
+        SWC_RESULT(SemaSpecOp::ensureGeneratedEquality(sema, sym));
+
     sym.setSemaCompleted(sema.ctx());
 
     // As with anonymous structs, replay must reuse the owner of the field symbols.
+    return Result::Continue;
+}
+
+Result AstTaggedUnionCase::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    const SymbolStruct* tagged = currentTaggedUnion(sema);
+    if (!tagged)
+        return SemaError::raise(sema, DiagnosticId::sema_err_tagged_case_outside_tagged_union, sema.curNodeRef());
+
+    if (childRef == nodeMemberRef)
+        return Result::Continue;
+
+    // A label value is a tag value: '.Circle' names a value of the tag before anything else.
+    auto frame = sema.frame();
+    frame.pushBindingType(tagged->taggedTypeRef());
+    sema.pushFramePopOnPostChild(std::move(frame), childRef);
+    SemaHelpers::preferContextualAutoMemberBindingType(sema, childRef);
+    return Result::Continue;
+}
+
+Result AstTaggedUnionCase::semaPostNode(Sema& sema) const
+{
+    SymbolStruct* tagged = currentTaggedUnion(sema);
+    SWC_ASSERT(tagged != nullptr);
+
+    if (sema.node(nodeMemberRef).isNot(AstNodeId::SingleVarDecl))
+        return SemaError::raise(sema, DiagnosticId::sema_err_tagged_case_one_member, nodeMemberRef);
+
+    const Symbol* memberSym = sema.viewSymbol(nodeMemberRef).sym();
+    if (!memberSym || !memberSym->isVariable())
+        return Result::Error;
+
+    const auto& member = memberSym->cast<SymbolVariable>();
+
+    SmallVector<ConstantRef> values;
+    SmallVector<AstNodeRef>  valueRefs;
+    AstNode::collectChildren(valueRefs, sema.ast(), spanValuesRef);
+    for (const AstNodeRef valueRef : valueRefs)
+    {
+        SemaNodeView view = sema.viewNodeTypeConstant(valueRef);
+        SWC_RESULT(Cast::cast(sema, view, tagged->taggedTypeRef(), CastKind::Implicit));
+
+        const SemaNodeView cstView = sema.viewConstant(valueRef);
+        if (!cstView.hasConstant())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_case_not_const, valueRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, tagged->taggedTypeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        const ConstantRef     value    = cstView.cstRef();
+        const SymbolVariable* previous = tagged->taggedCaseMember(value);
+        if ((previous && previous != &member) || std::ranges::find(values, value) != values.end())
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_case_duplicate, valueRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, SemaTagged::caseName(sema, *tagged, value));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        values.push_back(value);
+    }
+
+    tagged->addTaggedCase(member, SemaTagged::copyCases(sema, values.span()));
+    return Result::Continue;
+}
+
+// '.Circle{radius: 2}' in a slot expecting a tagged union: the braces build the payload of that
+// case. Rewritten before anything below is analyzed, so the arguments see the payload type.
+Result AstStructInitializerList::semaPreNode(Sema& sema) const
+{
+    if (sema.node(nodeWhatRef).isNot(AstNodeId::AutoMemberAccessExpr))
+        return Result::Continue;
+
+    TypeRef             unionTypeRef = TypeRef::invalid();
+    const SymbolStruct* tagged       = nullptr;
+    SWC_RESULT(SemaTagged::contextUnion(sema, tagged, unionTypeRef));
+    if (!tagged)
+        return Result::Continue;
+
+    const auto&         caseNode = sema.node(nodeWhatRef).cast<AstAutoMemberAccessExpr>();
+    const IdentifierRef idRef    = SemaHelpers::resolveIdentifier(sema, sema.node(caseNode.nodeIdentRef).codeRef());
+    ConstantRef         caseRef  = ConstantRef::invalid();
+    SWC_RESULT(SemaTagged::findCase(sema, caseRef, *tagged, idRef));
+    if (caseRef.isInvalid())
+        return Result::Continue;
+
+    const SymbolVariable* member = tagged->taggedCaseMember(caseRef);
+    if (!member)
+    {
+        auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_case_no_payload, sema.curNodeRef());
+        diag.addArgument(Diagnostic::ARG_VALUE, SemaTagged::caseName(sema, *tagged, caseRef));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
+    // A struct or array payload takes the braces as its own initializer list; any other payload
+    // is the single value they hold.
+    AstNodeRef      payloadRef  = AstNodeRef::invalid();
+    const TypeInfo& payloadType = sema.typeMgr().get(member->typeRef()).unwrapAliasTypeOrSelf(sema.ctx());
+    if (payloadType.isStructOrArray())
+    {
+        const AstNode& identNode    = sema.node(caseNode.nodeIdentRef);
+        auto [typeRef, typeNode]    = sema.ast().makeNode<AstNodeId::Identifier>(identNode.tokRef());
+        auto [payloadInitRef, init] = sema.ast().makeNode<AstNodeId::StructInitializerList>(tokRef());
+        typeNode->setCodeRef(identNode.codeRef());
+        typeNode->addFlag(AstIdentifierFlagsE::GenericTypeBinding);
+        sema.setType(typeRef, member->typeRef());
+        init->setCodeRef(codeRef());
+        init->nodeWhatRef = typeRef;
+        init->spanArgsRef = spanArgsRef;
+        payloadRef        = payloadInitRef;
+    }
+    else
+    {
+        SmallVector<AstNodeRef> args;
+        AstNode::collectChildren(args, sema.ast(), spanArgsRef);
+        if (args.size() != 1)
+        {
+            auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_case_scalar_payload, sema.curNodeRef());
+            diag.addArgument(Diagnostic::ARG_VALUE, SemaTagged::caseName(sema, *tagged, caseRef));
+            diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(args.size()));
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        payloadRef = args.front();
+        if (const auto* named = sema.node(payloadRef).safeCast<AstNamedArgument>())
+            payloadRef = named->nodeArgRef;
+    }
+
+    return restartAsTaggedUnionLiteral(sema, unionTypeRef, caseRef, payloadRef);
+}
+
+Result AstTaggedUnionLiteral::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const
+{
+    const SymbolStruct* tagged = SemaTagged::unionOf(sema.ctx(), unionTypeRef);
+    SWC_ASSERT(tagged != nullptr);
+
+    const SymbolVariable* member = tagged->taggedCaseMember(tagCstRef);
+    SWC_ASSERT(member != nullptr);
+
+    auto frame = sema.frame();
+    frame.pushBindingType(member->typeRef());
+    sema.pushFramePopOnPostChild(std::move(frame), childRef);
+    return Result::Continue;
+}
+
+Result AstTaggedUnionLiteral::semaPostNode(Sema& sema) const
+{
+    const SymbolStruct* tagged = SemaTagged::unionOf(sema.ctx(), unionTypeRef);
+    SWC_ASSERT(tagged != nullptr);
+
+    const SymbolVariable* member        = tagged->taggedCaseMember(tagCstRef);
+    ConstantRef           payloadCstRef = ConstantRef::invalid();
+
+    if (nodePayloadRef.isValid())
+    {
+        SemaNodeView payloadView = sema.viewNodeTypeConstant(nodePayloadRef);
+        SWC_RESULT(Cast::cast(sema, payloadView, member->typeRef(), CastKind::Initialization));
+
+        const SemaNodeView castView = sema.viewNodeTypeConstant(nodePayloadRef);
+        if (!castView.hasConstant())
+        {
+            sema.setType(sema.curNodeRef(), unionTypeRef);
+            sema.setIsValue(sema.curNodeRef());
+            return SemaHelpers::attachRuntimeStorageIfNeeded(sema, *this, unionTypeRef, "__tagged_literal_runtime_storage");
+        }
+
+        payloadCstRef = castView.cstRef();
+    }
+    else if (member)
+    {
+        // A case without braces takes the default its member declares, else its type's default.
+        payloadCstRef = member->defaultValueRef();
+        if (payloadCstRef.isInvalid())
+        {
+            if (SymbolStruct::fieldRequiresExplicitInitialization(sema, *member))
+            {
+                auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_case_needs_payload, sema.curNodeRef());
+                diag.addArgument(Diagnostic::ARG_VALUE, SemaTagged::caseName(sema, *tagged, tagCstRef));
+                diag.addArgument(Diagnostic::ARG_SYM, member->name(sema.ctx()));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+
+            if (sema.typeMgr().get(member->typeRef()).unwrapAliasTypeOrSelf(sema.ctx()).isStructOrArray())
+                payloadCstRef = ConstantHelpers::materializeAggregateConstructionConstant(sema, member->typeRef());
+        }
+    }
+
+    ConstantRef cstRef = ConstantRef::invalid();
+    SWC_RESULT(SemaTagged::makeCaseConstant(sema, cstRef, unionTypeRef, tagCstRef, payloadCstRef));
+    SWC_ASSERT(cstRef.isValid());
+    if (cstRef.isInvalid())
+        return Result::Error;
+
+    sema.setConstant(sema.curNodeRef(), cstRef);
     return Result::Continue;
 }
 
@@ -321,6 +625,10 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
     // cannot pass an invalid TypeRef to the cast below.
     if (sema.viewType(nodeWhatRef).typeRef().isInvalid())
         return SemaError::raise(sema, DiagnosticId::sema_err_not_type, nodeWhatRef);
+
+    // A tagged union value names its case; listing members would leave the tag unwritten.
+    if (SemaTagged::unionOf(sema.ctx(), sema.viewType(nodeWhatRef).typeRef()))
+        return SemaError::raise(sema, DiagnosticId::sema_err_tagged_union_literal, sema.curNodeRef());
 
     SmallVector<AstNodeRef> children;
     AstNode::collectChildren(children, sema.ast(), spanArgsRef);

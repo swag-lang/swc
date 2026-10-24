@@ -237,6 +237,35 @@ SWC_TEST_BEGIN(FormatAlign_StructFields)
 }
 SWC_TEST_END()
 
+// Tagged union members start after their labels, then their types line up as fields do.
+SWC_TEST_BEGIN(FormatAlign_TaggedUnionCases)
+{
+    static constexpr std::string_view SOURCE =
+        "struct S\n"
+        "{\n"
+        "    using shape: union(Kind)\n"
+        "    {\n"
+        "        case .Circle: radius: f32\n"
+        "        case .Rect, .Square: size: {w, h: f32}\n"
+        "    }\n"
+        "}\n";
+
+    static constexpr std::string_view EXPECTED =
+        "struct S\n"
+        "{\n"
+        "    using shape: union(Kind)\n"
+        "    {\n"
+        "        case .Circle:        radius: f32\n"
+        "        case .Rect, .Square: size:   {w, h: f32}\n"
+        "    }\n"
+        "}\n";
+
+    FormatOptions options;
+    options.alignStructFields = FormatAlignMode::Consecutive;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatAlign_EnumValues)
 {
     static constexpr std::string_view SOURCE =

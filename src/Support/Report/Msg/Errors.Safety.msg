@@ -9,3 +9,4 @@ SWC_DIAG_DEF(safety_err_invalid_argument, Error, "argument to '{sym}' is outside
 SWC_DIAG_DEF(safety_err_invalid_argument, Error, "argument is outside the accepted domain")
 SWC_DIAG_DEF(safety_err_dyn_cast, Error, "dynamic cast does not match the concrete type")
 SWC_DIAG_DEF(safety_err_runtime, Error, "{because}")
+SWC_DIAG_DEF(safety_err_tagged_case, Error, "payload access to a tagged union whose active case does not hold it")

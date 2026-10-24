@@ -64,6 +64,7 @@ AstNodeRef Parser::parseSingleType()
         case TokenId::KwdUnion:
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::AnonymousUnionDecl>(consume());
+            nodePtr->nodeTagTypeRef = parseTaggedUnionTag();
             nodePtr->nodeBodyRef    = parseAnonymousAggregateTypeBody();
             return nodeRef;
         }

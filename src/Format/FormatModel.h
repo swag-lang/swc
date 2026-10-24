@@ -58,6 +58,7 @@ enum class FormatRoleE : uint64_t
     AccessModifier      = 1ULL << 42, // `public` / `private` / `internal` / `readonly` governing one declaration or block
     NullableTypeSuffix  = 1ULL << 43, // `?` suffix of a nullable type
     BlockModifierStart  = 1ULL << 44, // first visibility or storage modifier governing a braced declaration group
+    TaggedCaseColon     = 1ULL << 45, // `:` closing the `case` label of a tagged union member
 };
 using FormatRoles = EnumFlags<FormatRoleE>;
 

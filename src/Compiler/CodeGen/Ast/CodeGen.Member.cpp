@@ -285,6 +285,11 @@ namespace
             }
         }
 
+        // A payload member sits after the tag, so the union starts at the member's owning base.
+        const auto* lowering = codeGen.loweringPayload(codeGen.curNodeRef());
+        if (lowering && lowering->taggedCaseAsserted)
+            SWC_RESULT(CodeGenSafety::emitTaggedCaseCheck(codeGen, node, baseAddressReg, symVar));
+
         builder.emitLoadAddressRegMem(payload.reg, baseAddressReg, symVar.offset(), MicroOpBits::B64);
 
         // 'late' field: reading a value that was never assigned is a guarded

@@ -202,6 +202,8 @@ private:
     AstNodeRef parseAggregateBody();
     AstNodeRef parseAnonymousAggregateTypeBody();
     AstNodeRef parseAggregateValue();
+    AstNodeRef parseTaggedUnionCase();
+    AstNodeRef parseTaggedUnionTag();
     AstNodeRef parseAlias();
     AstNodeRef parseAttrDecl();
     AstNodeRef parseAttributeValue();

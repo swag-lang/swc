@@ -9,6 +9,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -458,8 +459,12 @@ namespace
         // current frame already contains the active auto-scope context.
         for (const SymbolVariable* symVar : frame.bindingVars())
             bindingVars.push_back(symVar);
+        // A slot expecting a tagged union lends the dot its tag: '.Circle' names a case.
         for (const TypeRef hintType : frame.bindingTypes())
-            bindingTypes.push_back(hintType);
+        {
+            const SymbolStruct* tagged = SemaTagged::unionOf(sema.ctx(), hintType);
+            bindingTypes.push_back(tagged ? tagged->taggedTypeRef() : hintType);
+        }
         for (const SemaScope* scope = sema.lookupScope(); scope; scope = scope->lookupParent())
         {
             for (const auto& binding : scope->autoMemberBindings())
@@ -982,6 +987,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
                 SemaAccess::markUnwritableMemberAccess(sema, *fieldVar, nodeRef, autoMemberCodeRef.srcViewRef);
         }
 
+        // '.radius' on a 'me' or 'with' subject is a payload access like 'me.radius'.
+        if (symbols.size() == 1 && symbols[0]->isVariable() && selected.plane == AutoMemberPlane::Subject)
+            SWC_RESULT(SemaTagged::checkPayloadAccess(sema, nodeRef, substituteNode->nodeLeftRef, selected.typeRef, symbols[0]->cast<SymbolVariable>()));
+
         AstNodeRef substituteRef = nodeRef;
         if (selected.resultTypeRef.isValid())
             substituteRef = Cast::createCastNode(sema, selected.resultTypeRef, nodeRef);
@@ -1008,6 +1017,40 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     sema.setSubstitute(sema.curNodeRef(), substituteRef);
     return Result::SkipChildren;
+}
+
+// '.Circle' alone, in a slot expecting a tagged union, is the value of that case with its default
+// payload. In front of braces it names the case being built instead, which the initializer handles.
+Result AstAutoMemberAccessExpr::semaPreNode(Sema& sema) const
+{
+    TypeRef             unionTypeRef = TypeRef::invalid();
+    const SymbolStruct* tagged       = nullptr;
+    SWC_RESULT(SemaTagged::contextUnion(sema, tagged, unionTypeRef));
+    if (!tagged)
+        return Result::Continue;
+
+    const AstNodeRef parentRef = sema.visit().parentNodeRef(0);
+    if (parentRef.isValid())
+    {
+        const auto* structInit = sema.node(parentRef).safeCast<AstStructInitializerList>();
+        if (structInit && structInit->nodeWhatRef == sema.curNodeRef())
+            return Result::Continue;
+    }
+
+    const IdentifierRef idRef   = SemaHelpers::resolveIdentifier(sema, sema.node(nodeIdentRef).codeRef());
+    ConstantRef         caseRef = ConstantRef::invalid();
+    SWC_RESULT(SemaTagged::findCase(sema, caseRef, *tagged, idRef));
+    if (caseRef.isInvalid())
+        return Result::Continue;
+
+    auto [literalRef, literalNode] = sema.ast().makeNode<AstNodeId::TaggedUnionLiteral>(tokRef());
+    literalNode->setCodeRef(codeRef());
+    literalNode->unionTypeRef = unionTypeRef;
+    literalNode->tagCstRef    = caseRef;
+
+    sema.setSubstitute(sema.curNodeRef(), literalRef);
+    sema.restartCurrentNode(literalRef);
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

@@ -880,6 +880,20 @@ void Sema::addNarrowKillAllFrames(std::span<const Symbol* const> path)
     }
 }
 
+void Sema::addNarrowCaseFactPastBindingFrames(std::span<const Symbol* const> path, std::span<const ConstantRef> cases)
+{
+    for (size_t index = frames_.size(); index > 0; --index)
+    {
+        auto& frame = frames_[index - 1];
+        frame.addNarrowCaseFact(path, cases);
+
+        if (frame.inlineContextRootRef().isValid())
+            return;
+        if (!frame.bindingScoped())
+            return;
+    }
+}
+
 void Sema::addNarrowFactPastBindingFrames(std::span<const Symbol* const> path, SemaNarrowFactKind kind)
 {
     // Binding frames scope operands, so their facts disappear too early for

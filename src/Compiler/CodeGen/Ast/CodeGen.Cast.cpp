@@ -5,12 +5,14 @@
 #include "Compiler/CodeGen/Core/CodeGenCallHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenConstantHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenIntegerConversion.h"
 #include "Compiler/CodeGen/Core/CodeGenInterfaceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
+#include "Compiler/CodeGen/Core/CodeGenTaggedHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -21,6 +23,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -2084,6 +2087,23 @@ Result AstAsCastExpr::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstIsTypeExpr::codeGenPostNode(CodeGen& codeGen) const
 {
+    if (const auto* tagged = codeGen.sema().semaPayload<TaggedIsPayload>(codeGen.curNodeRef()))
+    {
+        const CodeGenNodePayload& exprPayload = codeGen.payload(nodeExprRef);
+        const TypeRef             exprTypeRef = CodeGenExprView::payloadTypeRef(codeGen, exprPayload, nodeExprRef);
+        const MicroReg            tagReg      = CodeGenTaggedHelpers::loadTag(codeGen, exprPayload, exprTypeRef, *tagged->tagged);
+
+        CodeGenNodePayload& result = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.typeMgr().typeBool());
+        result.reg                 = codeGen.nextVirtualIntRegister();
+
+        MicroBuilder&     builder = codeGen.builder();
+        const MicroOpBits bits    = CodeGenTypeHelpers::bitsFromStorageSize(tagged->tagged->taggedTagSize(codeGen.ctx()));
+        builder.emitCmpRegImm(tagReg, ApInt(SemaTagged::valueBits(codeGen.ctx(), tagged->caseRef), 64), bits);
+        builder.emitSetCondReg(result.reg, MicroCond::Equal);
+        builder.emitLoadZeroExtendRegReg(result.reg, result.reg, MicroOpBits::B32, MicroOpBits::B8);
+        return Result::Continue;
+    }
+
     return emitDynamicStructCast(codeGen, nodeExprRef, codeGen.viewType(nodeTypeRef).typeRef(), true);
 }
 

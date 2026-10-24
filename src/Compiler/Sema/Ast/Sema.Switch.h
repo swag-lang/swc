@@ -6,7 +6,9 @@
 
 SWC_BEGIN_NAMESPACE();
 
+class Symbol;
 class SymbolFunction;
+class SymbolStruct;
 class SymbolVariable;
 class Sema;
 class TypeInfo;
@@ -64,6 +66,13 @@ struct SwitchPayload
     bool hasRuntimeSwitchSafety = false;
 
     bool escapeBranchPushed = false;
+
+    // 'switch u' over a tagged union, or 'switch Swag.kindOf(u)': each case proves its values on
+    // the union's path. A case falling through also proves the values of the cases before it.
+    const SymbolStruct*         taggedUnion = nullptr;
+    SmallVector4<const Symbol*> taggedPath;
+    SmallVector<ConstantRef>    taggedCaseValues;
+    SmallVector<ConstantRef>    taggedFallthroughValues;
 };
 
 struct DynamicStructSwitchCaseExpr

@@ -1102,6 +1102,12 @@ Result CodeGenFunctionHelpers::emitStructDefaultValue(CodeGen& codeGen, const Ty
         return Result::Continue;
 
     const auto& symStruct = typeInfo.payloadSymStruct();
+    if (symStruct.isTagged())
+    {
+        CodeGenMemoryHelpers::emitMemZero(codeGen, dstAddressReg, checkedTypeSizeInBytes(codeGen, typeInfo));
+        return Result::Continue;
+    }
+
     symStruct.computeImplicitDefaultFlags(codeGen.sema());
     if (symStruct.hasRuntimeImplicitDefault())
     {

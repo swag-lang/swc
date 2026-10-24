@@ -47,6 +47,10 @@ struct CodeGenLoweringPayload
     bool moveValue = false;
     bool ownsValue = false;
 
+    // A tagged-union payload access asserted by a postfix '!': lowering checks the active case
+    // when the Switch guard is enabled.
+    bool taggedCaseAsserted = false;
+
     void addRuntimeSafety(Runtime::SafetyWhat what)
     {
         runtimeSafetyMask |= SemaSafety::mask(what);

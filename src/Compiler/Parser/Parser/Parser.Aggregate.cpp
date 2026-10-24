@@ -133,6 +133,9 @@ AstNodeRef Parser::parseAggregateValue()
         case TokenId::KwdEnum:
             return parseEnumDecl();
 
+        case TokenId::KwdCase:
+            return parseTaggedUnionCase();
+
         case TokenId::SymLeftCurly:
             return parseCompound<AstNodeId::AggregateBody>(TokenId::SymLeftCurly);
 
@@ -208,6 +211,39 @@ AstNodeRef Parser::parseUnionDecl()
     return parseAggregateDecl<AstNodeId::UnionDecl>();
 }
 
+// The parenthesized enum after 'union' (or after a union's name) names its tag. Sema decides
+// whether it is one; the parser only records the type.
+AstNodeRef Parser::parseTaggedUnionTag()
+{
+    if (isNot(TokenId::SymLeftParen))
+        return AstNodeRef::invalid();
+
+    const TokenRef   openRef = consume();
+    const AstNodeRef typeRef = parseType();
+    if (expectAndConsumeClosing(TokenId::SymRightParen, openRef).isInvalid())
+        return AstNodeRef::invalid();
+
+    return typeRef;
+}
+
+// 'case .A, .B: member: T'. The values are ordinary expressions: sema resolves them against the
+// union's tag and rejects a label outside a tagged union.
+AstNodeRef Parser::parseTaggedUnionCase()
+{
+    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TaggedUnionCase>(consume());
+
+    SmallVector<AstNodeRef> values;
+    values.push_back(parseExpression());
+    while (consumeIf(TokenId::SymComma).isValid())
+        values.push_back(parseExpression());
+
+    nodePtr->spanValuesRef = ast_->pushSpan(values.span());
+    expectAndConsume(TokenId::SymColon, DiagnosticId::parser_err_expected_token_before);
+    nodePtr->nodeMemberRef = parseVarDecl();
+
+    return nodeRef;
+}
+
 AstNodeRef Parser::parseStructDecl()
 {
     return parseAggregateDecl<AstNodeId::StructDecl>();
@@ -230,6 +266,9 @@ AstNodeRef Parser::parseAggregateDecl()
     nodePtr->tokNameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam_before);
     if (nodePtr->tokNameRef.isInvalid())
         skipTo({TokenId::SymLeftCurly});
+
+    if constexpr (ID == AstNodeId::UnionDecl)
+        nodePtr->nodeTagTypeRef = parseTaggedUnionTag();
 
     SmallVector<AstNodeRef> whereRefs;
     parseConstraintList(whereRefs);

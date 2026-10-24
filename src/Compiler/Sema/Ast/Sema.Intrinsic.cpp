@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -288,6 +289,27 @@ namespace
 
         if (!view.type())
             return SemaError::raiseRequestedTypeFam(sema, view.nodeRef(), view.typeRef(), sema.typeMgr().typeAny());
+
+        // On a tagged union, or a pointer to one, the kind is the case: the tag stored first.
+        if (const SymbolStruct* tagged = SemaTagged::unionOfPointee(sema.ctx(), view.typeRef()))
+        {
+            SWC_RESULT(SemaTagged::waitUnion(sema, *tagged));
+
+            const SemaNodeView cstView = sema.viewTypeConstant(view.nodeRef());
+            if (cstView.hasConstant() && SemaTagged::unionOf(sema.ctx(), cstView.typeRef()) == tagged)
+            {
+                const ConstantRef caseRef = SemaTagged::readConstantCase(sema, *tagged, cstView.cstRef());
+                if (caseRef.isValid())
+                {
+                    sema.setConstant(sema.curNodeRef(), caseRef);
+                    return Result::Continue;
+                }
+            }
+
+            sema.setType(sema.curNodeRef(), tagged->taggedTypeRef());
+            sema.setIsValue(node);
+            return Result::Continue;
+        }
 
         const TypeRef   kindTypeRef = SemaHelpers::unwrapAliasRefType(sema.ctx(), view.typeRef());
         const TypeInfo& kindType    = sema.typeMgr().get(kindTypeRef);

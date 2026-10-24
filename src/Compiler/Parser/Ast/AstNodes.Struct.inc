@@ -576,6 +576,7 @@ struct AstStructInitializerList : AstNodeT<AstNodeId::StructInitializerList>
 
     Result codeGenPostNode(CodeGen& codeGen) const;
 
+    Result     semaPreNode(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
@@ -834,6 +835,23 @@ struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
+// A tagged union value built from one case ('.A' or '.A{...}'). Sema creates it in place of the
+// leading-dot case name, so the tag and the payload are always written together.
+struct AstTaggedUnionLiteral : AstNodeT<AstNodeId::TaggedUnionLiteral>
+{
+    AstNodeRef  nodePayloadRef; // the payload initializer; invalid when the case takes its declared default
+    TypeRef     unionTypeRef = TypeRef::invalid();
+    ConstantRef tagCstRef    = ConstantRef::invalid();
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePayloadRef}); }
+
+    Result codeGenPostNode(CodeGen& codeGen) const;
+
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+};
+
 enum class AstAutoMemberAccessExprFlagsE : AstNode::ParserFlags
 {
     Zero              = 0,
@@ -848,6 +866,7 @@ struct AstAutoMemberAccessExpr : AstNodeT<AstNodeId::AutoMemberAccessExpr, AstAu
 
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeIdentRef}); }
 
+    Result     semaPreNode(Sema& sema) const;
     Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -906,6 +925,7 @@ struct AstIsTypeExpr : AstNodeT<AstNodeId::IsTypeExpr, AstIsTypeExprFlagsE>
     void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeExprRef, nodeTypeRef}); }
 
     Result     codeGenPostNode(CodeGen& codeGen) const;
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     Result     semaPostNode(Sema& sema);
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
@@ -1249,6 +1269,15 @@ struct AstStructDecl : AstAggregateDeclT<AstNodeId::StructDecl>
 
 struct AstUnionDecl : AstAggregateDeclT<AstNodeId::UnionDecl>
 {
+    AstNodeRef nodeTagTypeRef; // 'union Name(Kind)': the enum whose value selects the active member
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstNode::collectChildren(out, ast, spanGenericParamsRef);
+        AstNode::collectChildren(out, ast, spanWhereRef);
+        AstNode::collectChildren(out, {nodeTagTypeRef, nodeBodyRef});
+    }
+
     static Result codeGenPreNode(const CodeGen& codeGen);
 
     Result        semaPreDecl(Sema& sema) const;
@@ -1271,6 +1300,10 @@ struct AstAnonymousStructDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousS
 
 struct AstAnonymousUnionDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousUnionDecl>
 {
+    AstNodeRef nodeTagTypeRef; // 'union(Kind)': the enum whose value selects the active member
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeTagTypeRef, nodeBodyRef}); }
+
     static Result codeGenPreNode(const CodeGen& codeGen);
 
     Result        semaPreDecl(Sema& sema) const;
@@ -1278,6 +1311,23 @@ struct AstAnonymousUnionDecl : AstAnonymousAggregateDeclT<AstNodeId::AnonymousUn
     Result        semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
     static Result semaPostNode(Sema& sema);
+};
+
+// 'case .A, .B: member: T' inside a tagged union: the tag values that make 'member' active.
+struct AstTaggedUnionCase : AstNodeT<AstNodeId::TaggedUnionCase>
+{
+    SpanRef    spanValuesRef;
+    AstNodeRef nodeMemberRef;
+
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast& ast) const
+    {
+        AstNode::collectChildren(out, ast, spanValuesRef);
+        AstNode::collectChildren(out, {nodeMemberRef});
+    }
+
+    Result     semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) const;
+    Result     semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 struct AstAggregateBody : AstCompoundT<AstNodeId::AggregateBody>

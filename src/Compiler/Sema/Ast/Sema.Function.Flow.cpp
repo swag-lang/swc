@@ -14,6 +14,7 @@
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaJIT.h"
 #include "Compiler/Sema/Helpers/SemaSymbolLookup.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Match/Match.h"
 #include "Compiler/Sema/Match/MatchContext.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -600,6 +601,12 @@ namespace
         // need their own handler.
         if (tokenId == TokenId::SymBang)
         {
+            // On a tagged-union payload, '!' asserts the case instead of presence.
+            bool taggedAssertion = false;
+            SWC_RESULT(SemaTagged::checkCaseAssertion(sema, managedChildRef, taggedAssertion));
+            if (taggedAssertion)
+                return Result::Continue;
+
             if (notNullUnwrappedTypeRef(sema, managedChildRef).isValid())
             {
                 // The declared type permits unwrapping, but live flow facts may

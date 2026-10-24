@@ -10,6 +10,7 @@ SWC_BEGIN_NAMESPACE();
 
 class CodeGen;
 class SymbolFunction;
+class SymbolVariable;
 class TypeInfo;
 struct AstIntrinsicCallExpr;
 struct CodeGenNodePayload;
@@ -78,6 +79,7 @@ namespace CodeGenSafety
     Result emitNotNullGuard(CodeGen& codeGen, AstNodeRef ownerRef, AstNodeRef valueRef, std::string_view what);
     Result emitNullExtractCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, bool valueIsAddress, TypeRef resultTypeRef);
     Result emitLateReadCheck(CodeGen& codeGen, const AstNode& node, MicroReg addrReg, TypeRef lateTypeRef);
+    Result emitTaggedCaseCheck(CodeGen& codeGen, const AstNode& node, MicroReg unionAddressReg, const SymbolVariable& member);
 
     Result emitUnaryMathDomainCheck(CodeGen& codeGen, MicroReg valueReg, const TypeInfo& floatType, Math::FoldIntrinsicUnaryFloatOp op, MicroLabelRef failLabel);
     Result emitFloatNanCheck(CodeGen& codeGen, const AstNode& node, MicroReg valueReg, const TypeInfo& floatType);

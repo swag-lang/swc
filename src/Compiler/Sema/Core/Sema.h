@@ -346,6 +346,7 @@ public:
 
     void addNarrowKillAllFrames(std::span<const Symbol* const> path);
     void addNarrowFactPastBindingFrames(std::span<const Symbol* const> path, SemaNarrowFactKind kind);
+    void addNarrowCaseFactPastBindingFrames(std::span<const Symbol* const> path, std::span<const ConstantRef> cases);
     bool anyFrameHasNarrowFacts() const;
 
     // Preserve branch facts after their body frame is popped: arm snapshots at

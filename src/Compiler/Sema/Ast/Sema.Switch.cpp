@@ -10,6 +10,7 @@
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaEscape.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/Symbol.Enum.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -542,6 +543,57 @@ Result SemaSwitch::checkEnumExhaustive(Sema& sema, const SwitchSeenCases& seen, 
     return Result::Continue;
 }
 
+namespace
+{
+    // Conservative: a 'fallthrough' anywhere in the body, outside a nested switch, may reach the
+    // next case.
+    bool caseMayFallThrough(Sema& sema, AstNodeRef bodyRef)
+    {
+        SmallVector<AstNodeRef> stack;
+        stack.push_back(bodyRef);
+        while (!stack.empty())
+        {
+            const AstNodeRef nodeRef = stack.back();
+            stack.pop_back();
+            if (nodeRef.isInvalid())
+                continue;
+
+            const AstNode& node = sema.node(nodeRef);
+            if (node.is(AstNodeId::FallThroughStmt))
+                return true;
+            if (node.is(AstNodeId::SwitchStmt))
+                continue;
+
+            node.collectChildrenFromAst(stack, sema.ast());
+        }
+
+        return false;
+    }
+
+    void pushTaggedCaseFact(Sema& sema, const AstSwitchCaseStmt& caseStmt, AstNodeRef childRef)
+    {
+        auto* payload = sema.semaPayload<SwitchPayload>(sema.frame().currentSwitch());
+        SWC_ASSERT(payload != nullptr);
+
+        SmallVector<AstNodeRef> exprRefs;
+        AstNode::collectChildren(exprRefs, sema.ast(), caseStmt.spanExprRef);
+
+        payload->taggedCaseValues = payload->taggedFallthroughValues;
+        for (const AstNodeRef exprRef : exprRefs)
+        {
+            const SemaNodeView view = sema.viewConstant(exprRef);
+            if (!view.hasConstant())
+                return;
+            if (std::ranges::find(payload->taggedCaseValues, view.cstRef()) == payload->taggedCaseValues.end())
+                payload->taggedCaseValues.push_back(view.cstRef());
+        }
+
+        SemaFrame frame = sema.frame();
+        frame.addNarrowCaseFact({payload->taggedPath.data(), payload->taggedPath.size()}, SemaTagged::copyCases(sema, payload->taggedCaseValues.span()));
+        sema.pushFramePopOnPostChild(std::move(frame), childRef);
+    }
+}
+
 Result AstSwitchStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef)
 {
     if (sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
@@ -571,23 +623,51 @@ Result AstSwitchStmt::semaPostNodeChild(Sema& sema, const AstNodeRef& childRef) 
         SemaNodeView exprView = sema.viewNodeTypeConstant(nodeExprRef);
         SWC_RESULT(SemaCheck::isValueOrTypeInfo(sema, exprView));
         SWC_RESULT(SemaSwitch::normalizeExprTypeInfoIfNeeded(sema, nodeExprRef, exprView));
-        SWC_RESULT(SemaSwitch::validateExprType(sema, nodeExprRef, exprView.typeRef()));
 
-        auto* payload        = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
-        payload->exprTypeRef = exprView.typeRef();
+        auto* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
 
-        SWC_RESULT(attachSwitchExprRuntimeDependencies(sema, *payload, exprView.typeRef(), sema.node(sema.curNodeRef()).codeRef()));
+        // A tagged union switches on its tag. Its cases are tag values, and lowering compares the
+        // tag stored first in the union.
+        TypeRef exprTypeRef = exprView.typeRef();
+        payload->taggedPath.clear();
+        if (const SymbolStruct* tagged = SemaTagged::unionOf(sema.ctx(), exprTypeRef))
+        {
+            SWC_RESULT(SemaTagged::waitUnion(sema, *tagged));
+            payload->taggedUnion = tagged;
+            exprTypeRef          = tagged->taggedTypeRef();
+            if (!SemaHelpers::extractNarrowPath(sema, nodeExprRef, payload->taggedPath))
+                payload->taggedPath.clear();
+        }
+        else
+        {
+            payload->taggedUnion = SemaTagged::kindOfSubject(sema, nodeExprRef, payload->taggedPath);
+        }
+
+        SWC_RESULT(SemaSwitch::validateExprType(sema, nodeExprRef, exprTypeRef));
+        payload->exprTypeRef = exprTypeRef;
+
+        SWC_RESULT(attachSwitchExprRuntimeDependencies(sema, *payload, exprTypeRef, sema.node(sema.curNodeRef()).codeRef()));
 
         // Keep the enum scope available throughout the case labels and bodies.
-        SemaSwitch::pushEnumScopeBinding(sema, SemaSwitch::enumType(sema, *exprView.type()));
+        SemaSwitch::pushEnumScopeBinding(sema, SemaSwitch::enumType(sema, sema.typeMgr().get(exprTypeRef)));
     }
 
     // Each completed case restarts the borrow flow from the switch entry state.
     if (sema.node(childRef).is(AstNodeId::SwitchCaseStmt))
     {
-        const auto* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
+        auto* payload = sema.semaPayload<SwitchPayload>(sema.curNodeRef());
         if (payload && payload->escapeBranchPushed)
             sema.nextEscapeBranchAlternative();
+
+        // The next case is reached from this one only through 'fallthrough'.
+        if (payload && payload->taggedUnion)
+        {
+            if (caseMayFallThrough(sema, sema.node(childRef).cast<AstSwitchCaseStmt>().nodeBodyRef))
+                payload->taggedFallthroughValues = payload->taggedCaseValues;
+            else
+                payload->taggedFallthroughValues.clear();
+            payload->taggedCaseValues.clear();
+        }
     }
 
     return Result::Continue;
@@ -631,6 +711,11 @@ Result AstSwitchCaseStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRe
 
         return Result::Continue;
     }
+
+    // On a tagged union, the guard and the body run only while the union holds one of this case's
+    // values. Those values are known: the case expressions were analyzed before either.
+    if (payload->taggedUnion && !payload->taggedPath.empty() && spanExprRef.isValid() && (childRef == nodeWhereRef || childRef == nodeBodyRef))
+        pushTaggedCaseFact(sema, *this, childRef);
 
     // This is a 'default' case (no expressions). Validate default-specific rules once.
     if (!spanExprRef.isValid() && childRef == nodeBodyRef)

@@ -1303,7 +1303,9 @@ Result AstSwitchStmt::codeGenPostNodeChild(CodeGen& codeGen, const AstNodeRef& c
     {
         const SemaNodeView        exprView       = codeGen.viewType(exprRef);
         const CodeGenNodePayload& exprPayload    = codeGen.payload(exprRef);
-        const TypeInfo&           compareType    = SemaHelpers::aliasEnumType(codeGen.sema(), exprView);
+        const SwitchPayload*      semaSwitch     = codeGen.sema().semaPayload<SwitchPayload>(codeGen.curNodeRef());
+        const bool                taggedSubject  = semaSwitch && semaSwitch->taggedUnion && semaSwitch->exprTypeRef != exprView.typeRef();
+        const TypeInfo&           compareType    = taggedSubject ? codeGen.typeMgr().unwrapAliasEnumTypeOrSelf(codeGen.ctx(), semaSwitch->exprTypeRef) : SemaHelpers::aliasEnumType(codeGen.sema(), exprView);
         const TypeRef             compareTypeRef = compareType.typeRef();
         if (isDynamicStructSwitch(codeGen, compareTypeRef, *switchState))
             return initializeDynamicStructSwitchState(codeGen, *switchState, compareTypeRef, compareType, exprPayload);

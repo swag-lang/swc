@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
@@ -400,6 +401,9 @@ namespace
 
             case SemaNarrowFactKind::NonZero:
                 return sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef).isIntLike();
+
+            case SemaNarrowFactKind::Case:
+                return false;
         }
 
         return false;
@@ -466,6 +470,9 @@ namespace
 
             case SemaNarrowFactKind::NonZero:
                 return narrowOperandIsZeroLiteral(sema, nodeRef);
+
+            case SemaNarrowFactKind::Case:
+                return false;
         }
 
         return false;
@@ -495,6 +502,46 @@ namespace
             return;
 
         appendNarrowFact(facts, path, kind);
+    }
+
+    void appendNarrowCaseFact(SmallVector2<SemaNarrowFact>& facts, const SmallVector4<const Symbol*>& path, std::span<const ConstantRef> cases)
+    {
+        auto& fact = facts.emplace_back();
+        fact.path.assign(path.begin(), path.end());
+        fact.cases = cases;
+        fact.kind  = SemaNarrowFactKind::Case;
+        fact.holds = true;
+    }
+
+    // The tag holds the case on the true edge and any other value on the false one.
+    void collectTaggedCaseGuard(Sema& sema, const SymbolStruct& tagged, const SmallVector4<const Symbol*>& path, ConstantRef caseRef, bool equal, SemaHelpers::NarrowGuards& out)
+    {
+        const std::array                   oneCase{caseRef};
+        const std::span<const ConstantRef> holds  = SemaTagged::copyCases(sema, oneCase);
+        const std::span<const ConstantRef> others = SemaTagged::complementCases(sema, tagged, holds);
+        appendNarrowCaseFact(equal ? out.whenTrue : out.whenFalse, path, holds);
+        appendNarrowCaseFact(equal ? out.whenFalse : out.whenTrue, path, others);
+    }
+
+    // 'Swag.kindOf(u) == .A' (either side): the comparison proves the case of 'u'.
+    bool collectKindOfComparisonGuard(Sema& sema, const AstRelationalExpr& relational, TokenId op, SemaHelpers::NarrowGuards& out)
+    {
+        for (const auto& [subjectRef, valueRef] : {std::pair{relational.nodeLeftRef, relational.nodeRightRef}, std::pair{relational.nodeRightRef, relational.nodeLeftRef}})
+        {
+            SmallVector4<const Symbol*> path;
+            const SymbolStruct*         tagged = SemaTagged::kindOfSubject(sema, subjectRef, path);
+            if (!tagged)
+                continue;
+
+            const SemaNodeView valueView = sema.viewConstant(valueRef);
+            if (!valueView.hasConstant())
+                return false;
+
+            collectTaggedCaseGuard(sema, *tagged, path, valueView.cstRef(), op == TokenId::SymEqualEqual, out);
+            return true;
+        }
+
+        return false;
     }
 
     // != sentinel proves the true edge; == sentinel proves the false edge.
@@ -621,10 +668,25 @@ void SemaHelpers::collectNarrowGuards(Sema& sema, AstNodeRef condRef, NarrowGuar
             if (op != TokenId::SymEqualEqual && op != TokenId::SymBangEqual)
                 return;
 
+            if (collectKindOfComparisonGuard(sema, relational, op, out))
+                return;
             if (collectSentinelComparisonGuard(sema, relational, op, SemaNarrowFactKind::NonNull, out))
                 return;
 
             collectSentinelComparisonGuard(sema, relational, op, SemaNarrowFactKind::NonZero, out);
+            return;
+        }
+
+        case AstNodeId::IsTypeExpr:
+        {
+            const auto* payload = sema.semaPayload<TaggedIsPayload>(resolvedRef);
+            if (!payload)
+                return;
+
+            SmallVector4<const Symbol*> path;
+            const AstNodeRef            subjectRef = node.cast<AstIsTypeExpr>().nodeExprRef;
+            if (SemaTagged::extractUnionPath(sema, subjectRef, sema.viewType(subjectRef).typeRef(), *payload->tagged, path))
+                collectTaggedCaseGuard(sema, *payload->tagged, path, payload->caseRef, true, out);
             return;
         }
 
@@ -925,7 +987,10 @@ void SemaHelpers::addNarrowFacts(SemaFrame& frame, std::span<const SemaNarrowFac
     {
         // Guard collection only ever produces proofs; kills go through addNarrowKill.
         SWC_ASSERT(fact.holds);
-        frame.addNarrowFact({fact.path.data(), fact.path.size()}, fact.kind);
+        if (fact.kind == SemaNarrowFactKind::Case)
+            frame.addNarrowCaseFact({fact.path.data(), fact.path.size()}, fact.cases);
+        else
+            frame.addNarrowFact({fact.path.data(), fact.path.size()}, fact.kind);
     }
 }
 

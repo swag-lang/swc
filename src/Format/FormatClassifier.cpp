@@ -1214,6 +1214,25 @@ namespace
                     break;
                 }
 
+                // 'case .A, .B: member: T' in a tagged union: the label opens the member's line.
+                case AstNodeId::TaggedUnionCase:
+                {
+                    addRole(span.minPiece, FormatRoleE::StmtStart);
+
+                    const uint32_t depth = model_->piece(span.minPiece).depth;
+                    for (uint32_t i = model_->nextPiece(span.minPiece); i != INVALID_PIECE && i <= span.maxPiece; i = model_->nextPiece(i))
+                    {
+                        const FormatPiece& piece = model_->piece(i);
+                        if (piece.is(TokenId::SymColon) && piece.depth == depth)
+                        {
+                            addRole(i, FormatRoleE::TaggedCaseColon);
+                            break;
+                        }
+                    }
+
+                    break;
+                }
+
                 case AstNodeId::CompilerSwitchCase:
                 {
                     addRole(span.minPiece, FormatRoleE::CaseLabel);

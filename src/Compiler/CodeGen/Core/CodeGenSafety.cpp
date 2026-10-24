@@ -13,6 +13,7 @@
 #include "Compiler/CodeGen/Core/CodeGenExprView.h"
 #include "Compiler/CodeGen/Core/CodeGenFunctionHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTaggedHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
@@ -22,6 +23,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
@@ -975,6 +977,27 @@ Result CodeGenSafety::emitLateReadCheck(CodeGen& codeGen, const AstNode& node, M
     SWC_ASSERT(panicFunction != nullptr);
     SWC_RESULT(emitRuntimePanicCall(codeGen, *panicFunction, node, "read of a 'late' value before initialization"));
     builder.placeLabel(presentLabel);
+    return Result::Continue;
+}
+
+Result CodeGenSafety::emitTaggedCaseCheck(CodeGen& codeGen, const AstNode& node, MicroReg unionAddressReg, const SymbolVariable& member)
+{
+    const auto* nodePayload = codeGen.loweringPayload(codeGen.curNodeRef());
+    if (!nodePayload || !nodePayload->hasRuntimeSafety(Runtime::SafetyWhat::Switch))
+        return Result::Continue;
+
+    const SymbolStruct* tagged = SemaTagged::ownerUnion(member);
+    SWC_ASSERT(tagged != nullptr);
+
+    MicroBuilder&       builder     = codeGen.builder();
+    const MicroLabelRef activeLabel = builder.createLabel();
+    const MicroReg      tagReg      = CodeGenTaggedHelpers::loadTagAt(codeGen, unionAddressReg, *tagged);
+    CodeGenTaggedHelpers::emitJumpIfCase(codeGen, tagReg, *tagged, tagged->taggedCaseValues(member), activeLabel);
+
+    SymbolFunction* panicFunction = runtimeSafetyPanicFunction(codeGen);
+    SWC_ASSERT(panicFunction != nullptr);
+    SWC_RESULT(emitRuntimeDiagnosticCall(codeGen, *panicFunction, node, DiagnosticId::safety_err_tagged_case));
+    builder.placeLabel(activeLabel);
     return Result::Continue;
 }
 

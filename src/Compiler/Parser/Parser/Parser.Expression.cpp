@@ -1147,8 +1147,12 @@ AstNodeRef Parser::parseRelationalExpr(int minPrecedence)
         {
             auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::IsTypeExpr>(tokOp);
             nodePtr->nodeExprRef    = left;
-            // Match dynamic casts: the target can be a type or a typeinfo expression.
-            if (is(TokenId::Identifier) || is(TokenId::SymLeftParen))
+            // A leading dot names a case of a tagged union ('u is .Circle'); sema rejects it on
+            // any other subject. Otherwise match dynamic casts: the target can be a type or a
+            // typeinfo expression.
+            if (is(TokenId::SymDot))
+                nodePtr->nodeTypeRef = parseAutoMemberAccessExpr();
+            else if (is(TokenId::Identifier) || is(TokenId::SymLeftParen))
             {
                 nodePtr->nodeTypeRef = parseDynamicTypeTarget();
             }

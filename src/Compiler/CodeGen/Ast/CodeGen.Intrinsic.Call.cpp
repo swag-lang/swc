@@ -14,6 +14,7 @@
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
+#include "Compiler/CodeGen/Core/CodeGenTaggedHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -24,6 +25,7 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Interface.h"
@@ -1102,13 +1104,21 @@ namespace
 
     Result codeGenKindOf(CodeGen& codeGen, const AstIntrinsicCall& node)
     {
-        const AstNodeRef    exprRef     = codeGen.ast().oneNode(node.spanChildrenRef);
-        CodeGenNodePayload  exprPayload = codeGen.payload(exprRef);
-        TypeRef             exprTypeRef = CodeGenExprView::payloadTypeRef(codeGen, exprPayload, exprRef);
-        CodeGenNodePayload& result      = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
-        MicroBuilder&       builder     = codeGen.builder();
-        result.reg                      = codeGen.nextVirtualIntRegister();
-        const TypeInfo* exprTypeInfo    = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
+        const AstNodeRef   exprRef     = codeGen.ast().oneNode(node.spanChildrenRef);
+        CodeGenNodePayload exprPayload = codeGen.payload(exprRef);
+        TypeRef            exprTypeRef = CodeGenExprView::payloadTypeRef(codeGen, exprPayload, exprRef);
+        if (const SymbolStruct* tagged = SemaTagged::unionOfPointee(codeGen.ctx(), exprTypeRef))
+        {
+            const MicroReg      tagReg = CodeGenTaggedHelpers::loadTag(codeGen, exprPayload, exprTypeRef, *tagged);
+            CodeGenNodePayload& tag    = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+            tag.reg                    = tagReg;
+            return Result::Continue;
+        }
+
+        CodeGenNodePayload& result   = codeGen.setPayloadValue(codeGen.curNodeRef(), codeGen.curViewType().typeRef());
+        MicroBuilder&       builder  = codeGen.builder();
+        result.reg                   = codeGen.nextVirtualIntRegister();
+        const TypeInfo* exprTypeInfo = CodeGenReferenceHelpers::unwrapAliasRefPayload(codeGen, exprPayload, exprTypeRef);
         SWC_ASSERT(exprTypeInfo);
         const TypeInfo& exprType = *exprTypeInfo;
 

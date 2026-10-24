@@ -9,6 +9,7 @@
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenTaggedHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
@@ -385,6 +386,37 @@ namespace
         return true;
     }
 
+    // Only the member selected by the tag holds a live value: dispatch on the tag, and leave the
+    // inactive storage alone.
+    Result emitTaggedUnionLifecycle(CodeGen& codeGen, const SymbolStruct& tagged, const SymbolFunction* directLifecycle, const CodeGenLifecycleKind lifecycleKind, const MicroReg addressReg)
+    {
+        if (lifecycleKind == CodeGenLifecycleKind::Drop && directLifecycle)
+            SWC_RESULT(codeGen.emitLifecycleAction(*directLifecycle, addressReg));
+
+        MicroBuilder&  builder = codeGen.builder();
+        const MicroReg tagReg  = CodeGenTaggedHelpers::loadTagAt(codeGen, addressReg, tagged);
+        for (const SymbolStructTaggedCase& taggedCase : tagged.taggedCases())
+        {
+            if (!codeGen.hasLifecycle(taggedCase.member->typeRef(), lifecycleKind))
+                continue;
+
+            const MicroLabelRef activeLabel = builder.createLabel();
+            const MicroLabelRef nextLabel   = builder.createLabel();
+            CodeGenTaggedHelpers::emitJumpIfCase(codeGen, tagReg, tagged, taggedCase.values, activeLabel);
+            builder.emitJumpToLabel(MicroCond::Unconditional, MicroOpBits::B32, nextLabel);
+            builder.placeLabel(activeLabel);
+
+            const MicroReg memberAddressReg = codeGen.offsetAddressReg(addressReg, taggedCase.member->offset());
+            SWC_RESULT(codeGen.emitLifecycle(taggedCase.member->typeRef(), lifecycleKind, memberAddressReg));
+            builder.placeLabel(nextLabel);
+        }
+
+        if (lifecycleKind != CodeGenLifecycleKind::Drop && directLifecycle)
+            SWC_RESULT(codeGen.emitLifecycleAction(*directLifecycle, addressReg));
+
+        return Result::Continue;
+    }
+
     Result emitLifecycleRec(CodeGen& codeGen, TypeRef typeRef, const CodeGenLifecycleKind lifecycleKind, const MicroReg addressReg)
     {
         typeRef = normalizeLifecycleTypeRef(codeGen, typeRef);
@@ -451,6 +483,9 @@ namespace
 
         const SymbolFunction* directLifecycle = resolveDirectLifecycleFunction(typeInfo, lifecycleKind);
         const auto&           fields          = typeInfo.payloadSymStruct().fields();
+
+        if (typeInfo.payloadSymStruct().isTagged())
+            return emitTaggedUnionLifecycle(codeGen, typeInfo.payloadSymStruct(), directLifecycle, lifecycleKind, addressReg);
 
         // Drop must see live fields; post-copy/move run after field state is repaired.
         if (lifecycleKind == CodeGenLifecycleKind::Drop && directLifecycle)

@@ -14,6 +14,8 @@
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
+#include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Support/Core/DataSegment.h"
 #include "Support/Report/Assert.h"
@@ -779,16 +781,10 @@ namespace
         return resolveConstantAggregateElementPayload(outPayload, codeGen, valueRef, targetTypeRef);
     }
 
-    Result emitAggregateLiteralPayload(CodeGen& codeGen, AstNodeRef nodeRef, std::span<const AstNodeRef> elementRefs, TypeRef aggregateTypeRef)
+    // 'taggedCaseRef' is the case a tagged union literal writes into its tag before its payload.
+    Result emitAggregateLiteralLayout(CodeGen& codeGen, AstNodeRef nodeRef, std::span<const AggregateElementLayout> layout, TypeRef aggregateTypeRef, ConstantRef taggedCaseRef = ConstantRef::invalid())
     {
-        SmallVector<AggregateElementLayout> layout;
-        uint32_t                            totalSize = 0;
-
-        const bool hasLayout = computeLiteralLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
-        SWC_INTERNAL_CHECK(hasLayout);
-
         const TypeInfo& storageType = codeGen.typeMgr().get(aggregateTypeRef);
-        SWC_INTERNAL_CHECK(totalSize == storageType.sizeOf(codeGen.ctx()));
 
         // Build variable initializers and whole-function-body literals directly in their
         // destination, avoiding later copies, moves and cleanup. Sema already assigns
@@ -806,6 +802,13 @@ namespace
         // Start from defaults so omitted array or struct elements retain valid bytes.
         if (storageType.isStructOrArray())
             SWC_RESULT(emitConcreteLiteralStorageInit(codeGen, aggregateTypeRef, dstBaseReg));
+
+        if (taggedCaseRef.isValid())
+        {
+            const SymbolStruct* tagged  = SemaTagged::unionOf(codeGen.ctx(), aggregateTypeRef);
+            const MicroOpBits   tagBits = CodeGenTypeHelpers::bitsFromStorageSize(tagged->taggedTagSize(codeGen.ctx()));
+            codeGen.builder().emitLoadMemImm(dstBaseReg, 0, ApInt(SemaTagged::valueBits(codeGen.ctx(), taggedCaseRef), 64), tagBits);
+        }
 
         const bool canDropFields = codeGen.hasLifecycle(aggregateTypeRef, CodeGen::LifecycleKind::Drop);
         bool       ownsValue     = false;
@@ -867,6 +870,18 @@ namespace
             codeGen.registerTemporaryDrop(nodeRef, aggregateTypeRef, *storageSym);
 
         return Result::Continue;
+    }
+
+    Result emitAggregateLiteralPayload(CodeGen& codeGen, AstNodeRef nodeRef, std::span<const AstNodeRef> elementRefs, TypeRef aggregateTypeRef)
+    {
+        SmallVector<AggregateElementLayout> layout;
+        uint32_t                            totalSize = 0;
+
+        const bool hasLayout = computeLiteralLayout(codeGen, aggregateTypeRef, elementRefs, layout, totalSize);
+        SWC_INTERNAL_CHECK(hasLayout);
+        SWC_INTERNAL_CHECK(totalSize == codeGen.typeMgr().get(aggregateTypeRef).sizeOf(codeGen.ctx()));
+
+        return emitAggregateLiteralLayout(codeGen, nodeRef, layout.span(), aggregateTypeRef);
     }
 
     bool resolveRuntimeArrayFillLayout(uint32_t& outElementSize, uint32_t& outElementCount, CodeGen& codeGen, TypeRef arrayTypeRef, TypeRef elementTypeRef)
@@ -1006,6 +1021,19 @@ Result AstArrayLiteral::codeGenPostNode(CodeGen& codeGen) const
 Result AstStructLiteral::codeGenPostNode(CodeGen& codeGen) const
 {
     return emitCompoundLiteral(codeGen, spanChildrenRef);
+}
+
+// A runtime case literal is a one-element aggregate: the tag, then the payload at its offset.
+Result AstTaggedUnionLiteral::codeGenPostNode(CodeGen& codeGen) const
+{
+    const SymbolStruct* tagged = SemaTagged::unionOf(codeGen.ctx(), unionTypeRef);
+    SWC_ASSERT(tagged != nullptr);
+
+    const SymbolVariable* member = tagged->taggedCaseMember(tagCstRef);
+    SWC_ASSERT(member != nullptr && nodePayloadRef.isValid());
+
+    const AggregateElementLayout payloadLayout{.valueRef = nodePayloadRef, .typeRef = member->typeRef(), .offset = member->offset()};
+    return emitAggregateLiteralLayout(codeGen, codeGen.curNodeRef(), {&payloadLayout, 1}, unionTypeRef, tagCstRef);
 }
 
 Result AstStructInitializerList::codeGenPostNode(CodeGen& codeGen) const

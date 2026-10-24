@@ -7,6 +7,7 @@
 #include "Compiler/Sema/Core/SemaJob.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -704,8 +705,9 @@ namespace
             return Result::Continue;
         }
 
-        // Union members share one storage, so there is no member-wise answer to give.
-        if (ownerStruct.isUnion())
+        // Union members share one storage, so there is no member-wise answer to give. A tagged
+        // union keeps the bytes of its inactive storage zero, so its members answer instead.
+        if (ownerStruct.isUnion() && !ownerStruct.isTagged())
         {
             outResult = true;
             return Result::Continue;
@@ -829,7 +831,7 @@ namespace
     Result shouldGenerateEqualityOperator(Sema& sema, bool& outResult, const SymbolStruct& ownerStruct)
     {
         outResult = false;
-        if (ownerStruct.isUnion() || ownerStruct.fields().empty())
+        if ((ownerStruct.isUnion() && !ownerStruct.isTagged()) || ownerStruct.fields().empty())
             return Result::Continue;
 
         // A struct already answering '==' with an overload of its own needs nothing generated,
@@ -846,8 +848,69 @@ namespace
         return Result::Continue;
     }
 
+    void appendTaggedCaseLabel(Sema& sema, Utf8& source, const SymbolStruct& tagged, std::span<const ConstantRef> values)
+    {
+        source += "case ";
+        for (size_t i = 0; i < values.size(); ++i)
+        {
+            if (i != 0)
+                source += ", ";
+            source += ".";
+            source += SemaTagged::caseShortName(sema, tagged, values[i]);
+        }
+
+        source += ":\n";
+    }
+
+    // Two tagged unions are equal when they hold the same case and its payloads are equal. Each
+    // payload is read under a switch on its own side, which is the proof its access needs.
+    void appendGeneratedTaggedEqualsOperator(Sema& sema, Utf8& source, const SymbolStruct& tagged, std::string_view selfTypeName)
+    {
+        appendGeneratedAccess(source, tagged);
+        source += "mtd const ";
+        source += predefinedName(sema, IdentifierManager::PredefinedName::OpEquals);
+        source += "(other: ";
+        source += selfTypeName;
+        source += ")->bool\n";
+        source += "    {\n";
+        source += "        if Swag.kindOf(me) != Swag.kindOf(other) do\n";
+        source += "            return false\n";
+        source += "        switch Swag.kindOf(me)\n";
+        source += "        {\n";
+        for (const SymbolStructTaggedCase& taggedCase : tagged.taggedCases())
+        {
+            const std::string_view memberName = taggedCase.member->name(sema.ctx());
+            source += "        ";
+            appendTaggedCaseLabel(sema, source, tagged, taggedCase.values);
+            source += "            switch Swag.kindOf(other)\n";
+            source += "            {\n";
+            source += "            ";
+            appendTaggedCaseLabel(sema, source, tagged, taggedCase.values);
+            source += "                return .";
+            source += memberName;
+            source += " == other.";
+            source += memberName;
+            source += "\n";
+            source += "            }\n";
+        }
+
+        source += "        }\n";
+        source += "\n";
+        source += "        return true\n";
+        source += "    }\n";
+    }
+
     Utf8 makeGeneratedEqualityMethodSource(Sema& sema, const SymbolStruct& ownerStruct, std::string_view selfTypeName)
     {
+        if (ownerStruct.isTagged())
+        {
+            Utf8 source;
+            source += "// Generated case-wise equality.\n";
+            source += "    #[Swag.NoInline]\n";
+            appendGeneratedTaggedEqualsOperator(sema, source, ownerStruct, selfTypeName);
+            return source;
+        }
+
         SmallVector<std::string_view> fields;
         collectGeneratedOperatorFieldNames(sema, ownerStruct, fields);
 
@@ -1043,6 +1106,18 @@ namespace
         source += wrapperName;
         source += "()\n";
         source += "    {\n";
+
+        // A tagged union reaches only its active member. The intrinsic on the whole union already
+        // dispatches on the tag, around the union's own lifecycle method.
+        if (ownerStruct.isTagged())
+        {
+            source += "        ";
+            source += lifecycleIntrinsicName(kind);
+            source += "(me)\n";
+            source += "    }\n";
+            return;
+        }
+
         if (kind == SpecOpKind::OpDrop && hasDirectLifecycle(ctx, ownerStruct, kind))
         {
             source += "        .";
@@ -1464,7 +1539,9 @@ Result SemaSpecOp::ensureGeneratedEquality(Sema& sema, SymbolStruct& ownerStruct
         return Result::Continue;
     }
 
-    if (ownerStruct.isGenericInstance())
+    // A tagged union may be anonymous: its generated block is attached to the symbol, which names
+    // the type through the generated alias rather than through a name it may not have.
+    if (ownerStruct.isGenericInstance() || ownerStruct.isTagged())
     {
         const Utf8 source = makeGeneratedEqualityMethodSource(sema, ownerStruct, SemaSpecOp::generatedSelfTypeName());
         SWC_RESULT(declareGeneratedImplBlockSource(sema, ownerStruct, source.view(), true));

@@ -370,6 +370,7 @@
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenStructHelpers.cpp"/>
+        <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenTaggedHelpers.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGenSafety.cpp"/>
         <ClCompile Include="src\Compiler\CodeGen\Core\CodeGen.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Ast\Sema.Range.cpp"/>
@@ -572,6 +573,7 @@
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Generated.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.Resolve.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Helpers\SemaSpecOp.cpp"/>
+        <ClCompile Include="src\Compiler\Sema\Helpers\SemaTagged.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\Match.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\Match.Func.cpp"/>
         <ClCompile Include="src\Compiler\Sema\Match\MatchContext.cpp"/>
@@ -742,6 +744,7 @@
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenInterfaceHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenMemoryHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenStructHelpers.h"/>
+        <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenTaggedHelpers.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenSafety.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenJob.h"/>
         <ClInclude Include="src\Compiler\CodeGen\Core\CodeGenCompareHelpers.h"/>
@@ -936,6 +939,7 @@
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSymbolLookup.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOpKind.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaSpecOp.h"/>
+        <ClInclude Include="src\Compiler\Sema\Helpers\SemaTagged.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaCloneTypes.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaClone.h"/>
         <ClInclude Include="src\Compiler\Sema\Helpers\SemaInline.h"/>

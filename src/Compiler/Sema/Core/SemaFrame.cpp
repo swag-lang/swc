@@ -106,6 +106,49 @@ void SemaFrame::addNarrowFact(std::span<const Symbol* const> path, SemaNarrowFac
     fact.holds = true;
 }
 
+void SemaFrame::addNarrowCaseFact(std::span<const Symbol* const> path, std::span<const ConstantRef> cases)
+{
+    if (path.empty())
+        return;
+
+    auto& fact = narrowFacts_.emplace_back();
+    fact.path.assign(path.begin(), path.end());
+    fact.cases = cases;
+    fact.kind  = SemaNarrowFactKind::Case;
+    fact.holds = true;
+}
+
+const SemaNarrowFact* SemaFrame::findNarrowCases(std::span<const SemaNarrowFact> facts, std::span<const Symbol* const> path)
+{
+    if (path.empty())
+        return nullptr;
+
+    for (size_t factIndex = facts.size(); factIndex > 0; --factIndex)
+    {
+        const SemaNarrowFact& fact = facts[factIndex - 1];
+        if (fact.holds && fact.kind != SemaNarrowFactKind::Case)
+            continue;
+
+        if (fact.path.size() == path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
+            return fact.holds ? &fact : nullptr;
+
+        if (!fact.holds && fact.path.size() < path.size() && std::equal(fact.path.begin(), fact.path.end(), path.begin()))
+            return nullptr;
+    }
+
+    return nullptr;
+}
+
+bool SemaFrame::queryNarrowCases(std::span<const Symbol* const> path, std::span<const ConstantRef> allowed) const
+{
+    const SemaNarrowFact* fact = findNarrowCases(narrowFacts_.span(), path);
+    if (!fact)
+        return false;
+
+    // Every case the path may hold must make the requested member active.
+    return std::ranges::all_of(fact->cases, [&](ConstantRef value) { return std::ranges::find(allowed, value) != allowed.end(); });
+}
+
 void SemaFrame::addNarrowKill(std::span<const Symbol* const> path)
 {
     if (path.empty())

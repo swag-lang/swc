@@ -2552,7 +2552,7 @@ AstNodeRef AstInterfaceDecl::semaClone(Sema& sema, const CloneContext& cloneCont
 
 AstNodeRef AstUnionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodeMembers<AstNodeId::UnionDecl, &AstUnionDecl::spanGenericParamsRef, &AstUnionDecl::spanWhereRef, &AstUnionDecl::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::UnionDecl, &AstUnionDecl::spanGenericParamsRef, &AstUnionDecl::spanWhereRef, &AstUnionDecl::nodeTagTypeRef, &AstUnionDecl::nodeBodyRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAnonymousStructDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
@@ -2562,7 +2562,17 @@ AstNodeRef AstAnonymousStructDecl::semaClone(Sema& sema, const CloneContext& clo
 
 AstNodeRef AstAnonymousUnionDecl::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
-    return cloneNodeMembers<AstNodeId::AnonymousUnionDecl, &AstAnonymousUnionDecl::nodeBodyRef>(sema, *this, cloneContext);
+    return cloneNodeMembers<AstNodeId::AnonymousUnionDecl, &AstAnonymousUnionDecl::nodeTagTypeRef, &AstAnonymousUnionDecl::nodeBodyRef>(sema, *this, cloneContext);
+}
+
+AstNodeRef AstTaggedUnionCase::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    return cloneNodeMembers<AstNodeId::TaggedUnionCase, &AstTaggedUnionCase::spanValuesRef, &AstTaggedUnionCase::nodeMemberRef>(sema, *this, cloneContext);
+}
+
+AstNodeRef AstTaggedUnionLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    return cloneNodeMembers<AstNodeId::TaggedUnionLiteral, &AstTaggedUnionLiteral::nodePayloadRef>(sema, *this, cloneContext);
 }
 
 AstNodeRef AstAggregateBody::semaClone(Sema& sema, const CloneContext& cloneContext) const

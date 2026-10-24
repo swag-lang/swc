@@ -331,7 +331,7 @@ namespace
         return section.flags.has(LinkSectionFlagsE::Code) && relocation.kind == LinkRelocKind::Rel32 && relocation.offset > 0 && relocation.offset <= section.bytes.size() && section.bytes[relocation.offset - 1] == std::byte{0xE8};
     }
 
-    void foldIdenticalArchiveFunctions(std::vector<CoffObject>& objects, const LinkImage& image, const std::vector<LinkSymbolAlias>& knownSymbolAliases, std::vector<LinkSymbolAlias>& outAliases)
+    void foldIdenticalArchiveFunctions(std::vector<CoffObject>& objects, const LinkImage& image, const std::vector<LinkSymbolAlias>& knownSymbolAliases, std::vector<LinkSymbolAlias>& outAliases, std::unordered_set<std::string_view>& outFoldedSymbols)
     {
         std::vector<FunctionFoldCandidate> candidates;
         candidates.reserve(objects.size());
@@ -438,10 +438,9 @@ namespace
         if (outAliases.empty())
             return;
 
-        std::unordered_set<Utf8> foldedSymbols;
-        foldedSymbols.reserve(outAliases.size());
+        outFoldedSymbols.reserve(outAliases.size());
         for (const LinkSymbolAlias& alias : outAliases)
-            foldedSymbols.insert(alias.name);
+            outFoldedSymbols.insert(alias.name.view());
 
         // Candidates retain their original, unique object indices. Walk the two ordered
         // sequences together and compact survivors without allocating another object vector.
@@ -452,7 +451,7 @@ namespace
             if (nextCandidate < candidates.size() && candidates[nextCandidate].objectIndex == objectIndex)
             {
                 const auto& candidate = candidates[nextCandidate++];
-                if (foldedSymbols.contains(candidate.symbolName))
+                if (outFoldedSymbols.contains(candidate.symbolName.view()))
                     continue;
             }
 
@@ -466,18 +465,13 @@ namespace
 
     // Folded names resolve to the surviving function. Drop their debug records so
     // debuggers and stack traces cannot pick conflicting descriptions of that address.
-    void dropFoldedFunctions(LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& symbols, const std::vector<LinkSymbolAlias>& functionAliases)
+    void dropFoldedFunctions(LinkDebugInfo& debugInfo, std::vector<SymbolTable::Entry>& symbols, const std::unordered_set<std::string_view>& foldedSymbols)
     {
-        if (functionAliases.empty())
+        if (foldedSymbols.empty())
             return;
 
-        std::unordered_set<std::string_view> folded;
-        folded.reserve(functionAliases.size());
-        for (const LinkSymbolAlias& alias : functionAliases)
-            folded.insert(alias.name.view());
-
-        std::erase_if(debugInfo.functions, [&folded](const LinkDebugFunction& function) { return folded.contains(function.symbolName.view()); });
-        std::erase_if(symbols, [&folded](const SymbolTable::Entry& entry) { return folded.contains(entry.symbolName.view()); });
+        std::erase_if(debugInfo.functions, [&foldedSymbols](const LinkDebugFunction& function) { return foldedSymbols.contains(function.symbolName.view()); });
+        std::erase_if(symbols, [&foldedSymbols](const SymbolTable::Entry& entry) { return foldedSymbols.contains(entry.symbolName.view()); });
     }
 
     // A pulled member names its functions for the runtime; they join the image's own table.
@@ -1194,8 +1188,9 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
 
     Diagnostic                   diag;
     std::vector<LinkSymbolAlias> functionAliases;
-    foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliases, functionAliases);
-    dropFoldedFunctions(debugInfo, ioSymbols, functionAliases);
+    std::unordered_set<std::string_view> foldedFunctionSymbols;
+    foldIdenticalArchiveFunctions(pulledObjects, image, readOnlyDataAliases, functionAliases, foldedFunctionSymbols);
+    dropFoldedFunctions(debugInfo, ioSymbols, foldedFunctionSymbols);
     if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
         return builder_->reportError(diag);
 

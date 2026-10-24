@@ -55,7 +55,8 @@ to 4, while a mechanically equivalent cleanup belongs to 6, even when both touch
 ### Shared working protocol (prompts 2–7)
 
 Read and follow this entire protocol for any of prompts 2 through 7. Give each campaign its own
-branch and worktree outside the main checkout, from the current `master` commit. Use a unique branch
+branch and worktree outside the main checkout, from the current `master` commit, placed beside
+the main checkout as the `modify-swag-codebase` skill requires. Use a unique branch
 name and path when another agent may already run the same campaign. Keep its compiler binary and
 build outputs in that worktree. Use its checkout-local compiler, not a binary from another tree.
 Prefix every campaign commit, including integration commits, with `[prompt N]` for its prompt

@@ -28,7 +28,7 @@ For a custom MSBuild target, redirect both final outputs (`SwcOutputDir`/`OutDir
 intermediates (`IntDir`) outside the checkout. Changing `TargetName` can create extra `.pch`,
 `.ilk`, and `.recipe` files in `IntDir` even when the executable goes elsewhere. Prefer copying
 a completed normal build outside the checkout when no separate intermediate tree is needed.
-For a separate MSBuild tree, prefer a session directory such as
+For a separate MSBuild tree that is not a worktree, prefer a session directory such as
 `%LOCALAPPDATA%/swc-agent-builds/<session>` outside the operating system's temporary directory
 as well: MSBuild warns that temporary output or intermediate roots can impair incremental builds.
 Run temporary reproducers from the external scratch directory, with absolute compiler and source
@@ -40,6 +40,17 @@ Before finishing, inspect `git status --short --untracked-files=all` and remove 
 working files created by the current task, including ignored scratch files. Preserve unrelated
 files and the user's normal build outputs. Do not move a file still being written by a running
 command; relocate it when that command finishes.
+
+## Place Every Worktree Beside The Main Checkout
+
+Every git worktree created for a working branch lives directly in the directory that holds the
+main checkout (`C:/Perso/swag-lang` on the owner's machine), named `swc-<topic>-<date>`, for
+example `C:/Perso/swag-lang/swc-tagged-union-20261024`. Never create one under `%LOCALAPPDATA%`,
+the temporary directory, or a session directory: the owner must see every working branch in one
+folder and in `git worktree list`, and remove them easily.
+
+Once a branch is merged or abandoned, remove its worktree with `git worktree remove` and delete
+its branch. Do not leave a worktree or a branch behind when the work it holds is finished.
 
 ## Admit Agent Builds And Tests By Machine Load
 

@@ -270,7 +270,7 @@ bool readCoffDefinedSymbols(std::vector<CoffInputSymbol>& outSymbols, Diagnostic
     return readCoffContent(outSymbols, nullptr, outDiag, bytes);
 }
 
-bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects)
+bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::vector<CoffObject>&& objects)
 {
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
 
@@ -290,14 +290,14 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
     for (const LinkSymbol& symbol : outImage.symbols)
         defineName(presentNames.emplace_back(symbol.name).view());
 
-    for (const CoffObject& object : objects)
+    for (CoffObject& object : objects)
     {
         std::vector<int64_t>  baseOffset(object.sections.size(), -1); // -1 marks a dropped section
         std::vector<uint32_t> mergedIndex(object.sections.size(), 0);
 
         for (size_t s = 0; s < object.sections.size(); ++s)
         {
-            const CoffInputSection& section = object.sections[s];
+            CoffInputSection& section = object.sections[s];
 
             // CodeView goes to the PDB and the symbol fragment to the image's own table, both through
             // the linker; neither is a section of the image.
@@ -343,7 +343,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
             baseOffset[s]  = base;
             mergedIndex[s] = mergedIdx;
 
-            for (const CoffInputReloc& reloc : section.relocs)
+            for (CoffInputReloc& reloc : section.relocs)
             {
                 LinkRelocKind kind;
                 if (!linkRelocKindFromCoffType(kind, reloc.type))
@@ -357,7 +357,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
                 LinkReloc out;
                 out.sectionIndex = mergedIdx;
                 out.offset       = base + reloc.offset;
-                out.symbolName   = reloc.symbolName;
+                out.symbolName   = std::move(reloc.symbolName);
                 out.kind         = kind;
                 merged.relocs.push_back(std::move(out));
             }

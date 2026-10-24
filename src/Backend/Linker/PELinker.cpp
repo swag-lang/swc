@@ -475,17 +475,17 @@ namespace
     }
 
     // A pulled member names its functions for the runtime; they join the image's own table.
-    void appendMemberSymbols(std::vector<SymbolTable::Entry>& ioSymbols, const CoffObject& object)
+    void appendMemberSymbols(std::vector<SymbolTable::Entry>& ioSymbols, CoffObject& object)
     {
-        for (const CoffInputSection& section : object.sections)
+        for (CoffInputSection& section : object.sections)
         {
             if (section.name.view() != SymbolTable::OBJECT_SECTION)
                 continue;
 
             std::vector<SymbolTable::Relocation> relocations;
             relocations.reserve(section.relocs.size());
-            for (const CoffInputReloc& reloc : section.relocs)
-                relocations.push_back({.offset = reloc.offset, .symbolName = reloc.symbolName});
+            for (CoffInputReloc& reloc : section.relocs)
+                relocations.push_back({.offset = reloc.offset, .symbolName = std::move(reloc.symbolName)});
 
             SymbolTable::read(ioSymbols, section.bytes.span(), relocations);
         }

@@ -236,106 +236,124 @@ in its module backlog; a general request for better names is not a missing langu
   when the runtime Switch guard is disabled, independently of this default. language.design.002
   owns closed payload-carrying choices; decide their exhaustiveness policy alongside enum switches.
 
-### language.design.002 — There is no tagged union
+### language.design.002 — Add a closed choice: a union that owns its tag
 
 - Evidence: `union` is C-style and untagged: all fields share offset 0 and reading a field that was not the
   one written has no active-member check
   ([004_006_union.swg](../bin/reference/modules/language/src/004_006_union.swg)). `any` covers the dynamic
   case, and an interface hierarchy covers the open one — `case CreateEvent as ptr` is idiomatic (135 sites,
   [wnd.swg](../bin/std/modules/gui/src/wnd/wnd.swg) among them). What is missing is only
-  the **closed** choice: no discriminated union, no payload-carrying enum, no destructuring of a case.
-- Census (`bin/` excluding `.output` and `.dep`): the shape to support is not "a standalone sum
-  type", it is "a closed choice next to shared fields". Eight anonymous unions exist. Two are sum types, and
-  both already name their tag as an ordinary sibling field:
-  [painter.swg](../bin/std/modules/pixel/src/painter/painter.swg) (`using params: union` selected by
+  the **closed** choice: no discriminated union, no payload-carrying case, no checked payload access.
+- Census (`bin/` excluding `.output` and `.dep`): the shape to support is "a closed choice next to shared
+  fields". Eight anonymous unions exist. Two are sum types, and both name their tag as an ordinary sibling
+  field: [painter.swg](../bin/std/modules/pixel/src/painter/painter.swg) (`using params: union` selected by
   `id`, documented as "inactive members must not be read") and
   [editbox.swg](../bin/std/modules/gui/src/controls/widgets/editbox.swg) (numeric bounds selected by
   `inputMode`). Five are C-ABI bindings (`win32` x4, `xaudio2`) that must stay byte-compatible, and
   [guid128.swg](../bin/std/modules/core/src/system/guid128.swg) is a deliberate bit view of one
-  storage, not a choice. Other inspected sum-like representations are **wide structs** — a `kind` field, mutually
+  storage, not a choice. Other sum-like representations are **wide structs** — a `kind` field, mutually
   exclusive fields, and the invariant in a comment:
-  [outline.swg](../bin/std/modules/truetype/src/outline.swg) ("the fields used by the command depend
-  on `kind`; unused points remain zero"),
-  [prefilter.swg](../bin/std/modules/core/src/text/regexp/prefilter.swg) (15 fields commented
-  "Sequence form:" / "Literal form:"), [scc.swg](../bin/std/modules/core/src/filesystem/scc.swg)
-  ("selects which value field is meaningful"),
+  [outline.swg](../bin/std/modules/truetype/src/outline.swg),
+  [prefilter.swg](../bin/std/modules/core/src/text/regexp/prefilter.swg),
+  [scc.swg](../bin/std/modules/core/src/filesystem/scc.swg) ("selects which value field is meaningful"),
   [item.swg](../bin/std/modules/gui/src/controls/pdf/item.swg),
   [program.swg](../bin/std/modules/core/src/text/regexp/program.swg),
   [ast.swg](../bin/std/modules/core/src/text/regexp/ast.swg), `HtmlLength`, `HtmlCalcNode`. 228
   switches run on such a discriminant, 182 of them `switch #complete`.
-- Consequence: nothing checks any of those sentences, and the untagged form costs more than the missing
+- Evidence: the tag is always an existing public enum that other code stores, compares and serializes
+  (`CommandId`, `EditBoxInputMode`, `MetadataKind`). Tag values select payloads many-to-one, and many
+  select none: `UnsignedInteger` and `Hexadecimal` share `minMaxU64`, `Text` has no bounds, and most
+  `CommandId` values carry no parameters. Consumers already read the payload by member name under a
+  `case` of the tag (`case .Clear: .clearCurrent(cmd.clear.color)` in
+  [rendercpu.swg](../bin/std/modules/pixel/src/render/cpu/rendercpu.swg)).
+- Consequence: nothing checks any of those invariants, and the untagged form costs more than the missing
   check. Without a custom equality operation, a union compares as bytes: `structComparesAsBytes`
-  has no active member to select. An enclosing struct may still generate member-wise equality
-  for its other fields, but the union part retains that byte comparison
-  ([SemaSpecOp.Generated.cpp](../src/Compiler/Sema/Helpers/SemaSpecOp.Generated.cpp)). Equal active
-  payloads can therefore compare unequal when inactive bytes differ. A wide struct also keeps
-  every payload's storage alive: `MetadataValue` holds a `String` and an `Array'u8` whatever its
-  `kind` says. The missing contract is active-payload checking and lifecycle dispatch.
-- Elsewhere: Rust enum variants may carry tuple or named-field payloads
-  ([Rust enumerations](https://doc.rust-lang.org/reference/items/enumerations.html)). This is a concrete
-  comparison for a closed choice; an ordinary C# record hierarchy is not an equivalent guarantee.
-- Earlier compatibility-oriented analysis: a Swag enum is a table of typed constants (`enum V: string`, `const [..] s32`,
-  `.count`, `#[Swag.EnumFlags]`, enum-indexed arrays), and the tag is almost always an existing **public**
-  enum that other code stores, compares and serializes (`CommandId`, `OutlineCommandKind`, `MetadataKind`).
-  Attaching a payload changes that model. The clean-slate comparison below deliberately reopens
-  the earlier requirement to preserve the published tag API.
-- Candidate shape, to confirm against the census rather than assume: the union names an existing sibling
-  field as its tag — `using params: union(id) { Clear: struct{ color: Color } ... }`. It reuses
-  existing tokens but adds declaration and construction grammar. No tag argument keeps today's
-  C semantics so the
-  six interop and bit-view sites are untouched, shared fields stay where they are, and the 228 discriminant
-  switches keep their header — only the arms that read a payload gain `as p`. Open inside that shape: the
-  atomic write that sets tag and payload together (`cmd.params = .Clear{color: .White}`, with a direct write
-  to the tag rejected), and whether `.Clear{...}` in a typed position is the existing type plane of
-  [011_005_leading_dot.swg](../bin/reference/modules/language/src/011_005_leading_dot.swg) or a fifth role
-  that page says the leading dot no longer has room for.
-- What the feature must carry, and what it therefore depends on:
-  - Lifecycle dispatched on the tag: initialization, `opDrop`, `opPostCopy`, `#move` and assignment.
-    Untagged unions can have methods but cannot select an active payload automatically. A tagged
-    union with an owning payload is a type that owns a release, so the rule
-    that takes the copy away from a type declaring `opDrop` has to reach its generated drop too; without
-    that, the compiler would generate a drop for a type it also lets you copy bitwise.
-  - Changing the case invalidates every borrow of the payload:
-    `let p = &cmd.color; cmd.params = .Font{...}; p[]` reads the wrong case with no free involved. That is
-    view invalidation, which `SemaEscape` already models for containers, and it has to be designed in rather
-    than retrofitted.
-  - Payload access rides the narrow facts already shipped for nullability
-    ([SemaFrame.h](../src/Compiler/Sema/Core/SemaFrame.h)), which need a fact kind carrying a value
-    ("this path has tag `.Clear`") next to `NonNull` and `NonZero`.
-  - The earlier sibling-tag candidate used the zero tag as its default case. The new comparison
-    must instead justify any default case explicitly; a type may require construction. Flags
-    cannot be tags, since a combination is not one mutually exclusive case.
-- Migration order once the shape is fixed, cheapest proof first: `editbox`'s bounds (3 POD cases, one file, a
-  tag that already exists), then `painter`'s `Command` (the entry's own example, and it exercises `using`),
-  then the POD wide structs (`OutlineCommand`, `Regex.Node`, `Regex.Inst`, `HtmlLength`), then the ones whose
-  payloads own storage and therefore test the generated lifecycle (`Regex.Prefilter`, `Scc.MetadataValue`,
-  `Pdf.Item`). `win32`, `xaudio2` and `Guid128` stay untagged, and the GUI event tree stays an interface
-  hierarchy: it is the open choice, which the language already answers.
-- Proposed contract: Provide a closed sum with atomic construction of tag and payload, checked payload
-  access, and lifecycle dispatch on the active case. Dynamic type patterns already handle open
-  hierarchies; do not replace those or call them missing. Compare a dedicated sum declaration
-  with a checked union tied to an existing tag, without requiring preservation of current public
-  enum names. Shared fields remain outside the choice. Default construction must select a valid
-  explicit or defined default case; a zero tag alone is not a justification for inventing one.
-- Next: Write both candidate shapes for editbox bounds, painter commands, and Scc.MetadataValue.
-  Show construction, a shared-field update, an owning-payload transition, and borrowed matching.
-  Decide whether matching consumes or borrows, when case changes invalidate views, and what a
-  failed payload construction leaves behind. Prototype the smallest POD case before owning ones.
-- Done when: a closed choice has atomic construction, exhaustive matching and correct copy/move/drop
-  behavior; tests reject inactive payload reads and stale payload borrows in JIT and native code.
-  C ABI unions keep an explicitly separate unchecked representation.
-- Related: language.design.001 — a tagged union is where exhaustive matching earns its keep, and the two
-  defaults are better decided together, since the case for `#complete` is far stronger on a closed choice
-  than on an open enum. compiler.safety.010 owns tag-domain validation: the existing Switch runtime guard already
-  catches unmatched values in guarded `#complete` switches. A tagged-union contract must also
-  define what can be constructed and what happens when that guard is disabled.
-  The ownership rule that denies the copy of a type declaring `opDrop` has to cover the generated drop of
-  an owning payload. compiler.safety.010 is where a forged tag
-  comes from, with `Swag.memcpy`, `#relocate`, a binary read into the struct and a
-  `#[Foreign]` call as the other routes. compiler.safety.011 applies to whatever spelling asserts a tag. It
-  narrows, rather than removes, the union bullet of compiler.safety.006: the untagged form stays for C
-  interop and bit views, which is where the marker belongs. The error-handling design already shipped
-  (`fail`/`try`/`catch`) chose a different axis and is not re-litigated here.
+  has no active member to select
+  ([SemaSpecOp.Generated.cpp](../src/Compiler/Sema/Helpers/SemaSpecOp.Generated.cpp)), so equal active
+  payloads can compare unequal when inactive bytes differ. A wide struct also keeps every payload's
+  storage alive: `MetadataValue` holds a `String` and an `Array'u8` whatever its `kind` says.
+- Elsewhere: Rust enum variants carry tuple or named-field payloads
+  ([Rust enumerations](https://doc.rust-lang.org/reference/items/enumerations.html)). Swag keeps the enum
+  as a table of constants and attaches payloads to the union instead.
+- Selected shape: the union owns its tag, and the tag's type is an ordinary named enum passed as the
+  union's argument. Each member is introduced by a `case` label with the grammar of a `switch` arm.
+  This is proposed syntax, not accepted Swag:
+
+  ```swag
+  struct EditBox
+  {
+      using inputMode: union(EditBoxInputMode)
+      {
+          case .SignedInteger:                 minMaxS64: {min, max: s64} = {Swag.S64.Min, Swag.S64.Max}
+          case .UnsignedInteger, .Hexadecimal: minMaxU64: {min, max: u64} = {0, Swag.U64.Max}
+          case .FloatingPoint:                 minMaxF64: {min, max: f64} = {-Swag.F64.Max, Swag.F64.Max}
+      } = .Text
+  }
+  ```
+
+  - Why the tag is inside: a tag held in a sibling field makes the union a constraint between two fields
+    rather than a value. It could not be returned, passed, stored in an `Array`, compared or copied
+    without its neighbour. The invariant would also need a field that is readable but not writable,
+    and the compiler could not choose the tag's size and placement.
+  - Why the tag type stays a named enum: the enum keeps `.count`, enum-indexed arrays, serialization and
+    reflection, many-to-one and payload-less cases remain expressible, and no second way to declare an
+    enum appears. An enum generated by the union is not part of the first version.
+  - `union` without an argument keeps today's C semantics, so the interop and bit-view sites are untouched.
+- Proposed contract:
+  - Declaration: `union(E)` takes a non-flags enum. A value appears in at most one `case`; values that
+    no `case` lists carry no payload. A leading dot in a label resolves against `E`, on the existing type
+    plane of [011_005_leading_dot.swg](../bin/reference/modules/language/src/011_005_leading_dot.swg).
+  - Transition: `u = .Hexadecimal` selects a case with its member's declared default, and
+    `u = .SignedInteger{min: lo, max: hi}` builds its payload. The new payload is built into a temporary;
+    then the active payload is dropped, the temporary is moved in and the tag is written. A failed
+    construction leaves the previous case intact. A transition invalidates every borrow of the payload,
+    which is the view invalidation `SemaEscape` already models for containers.
+  - Default: a default written after the body selects a case explicitly, and that case's member default
+    applies. Without one, the value requires construction; a zero tag never selects a case implicitly.
+    A selected case whose payload has a required field without default makes the type non-defaultable,
+    under the existing definite-initialization rules.
+  - Tag read: the tag is not a field and cannot be written or addressed. `switch u` dispatches on it,
+    `u is .Case` tests one case, and `Swag.caseOf(u)` returns it as an `E` value at run time, as
+    `Swag.kindOf` does for `any`. `#`-prefixed intrinsics are compile-time only, so the run-time read is
+    a `Swag` intrinsic; on a constant operand it folds.
+  - Payload access needs a proof, as a `T?` dereference does
+    ([004_007_pointers.swg](../bin/reference/modules/language/src/004_007_pointers.swg)): flow narrowing
+    from a `case`, an `is` test or `Swag.assert(u is .Case)`; the postfix `!` asserting the case, checked
+    when safety is enabled; or `?.` skipping the access. A transition of the path or a mutable escape
+    drops the proof. Under a proof the payload is ordinary mutable storage, so
+    `cmd.drawTriangles.count += 3` stays valid.
+  - Lifecycle: initialization, `opDrop`, `opPostCopy`, `opPostMove`, `#move`, assignment and `==` are
+    generated by dispatching on the tag. Equality compares the tag, then the active payload, never bytes.
+    The union is not copyable when a payload with `opDrop` has no `opPostCopy`.
+  - Reflection exposes the tag type and each member's case set, so a serializer can write only the active
+    payload. A tagged union is rejected in a `#[Foreign]` signature.
+- Decisions: whether `is .Case as p` binds a payload pointer or only narrows the path; where the default
+  is written; whether a proof may cross a call through a parameter type refined to a case, or every
+  callee asserts its case with `!` or `Swag.assert`.
+- Migration order, cheapest proof first: `editbox`'s bounds (POD, one file, and naming the union
+  `inputMode` keeps `switch .inputMode` readable), then `painter`'s `Command` (`id` and `params` merge
+  into one `using params: union(CommandId)`, `switch cmd.id` becomes `switch cmd.params`, and
+  `pushTriangleCmd` builds its command in one transition), then the POD wide structs (`OutlineCommand`,
+  `Regex.Node`, `Regex.Inst`, `HtmlLength`), then the payloads that own storage and test the generated
+  lifecycle (`Regex.Prefilter`, `Scc.MetadataValue`, `Pdf.Item`). `win32`, `xaudio2` and `Guid128` stay
+  untagged, and the GUI event tree stays an interface hierarchy: it is the open choice.
+- Next: count the payload accesses in `painter`, `rendercpu` and `renderogl` that sit outside a local
+  proof, such as `executeCommand` called from a `case`; that number decides whether proofs must cross
+  calls. Then prototype declaration, transition, `switch`, `is`, `Swag.caseOf` and `!` on the `editbox`
+  bounds before any owning payload.
+- Done when: a closed choice has atomic construction, a tag that only a transition can change, exhaustive
+  matching and correct copy/move/drop behavior; tests reject inactive payload reads and stale payload
+  borrows in JIT and native code. C ABI unions keep an explicitly separate unchecked representation.
+- Related: language.design.001 — a switch over a tagged union has a closed, known domain, which is the
+  strongest case for default exhaustiveness; decide both defaults together. language.design.032 —
+  value-producing switches find their first real use here. language.design.019 — `is .Case` is the
+  binding test that replaces scalar truthiness. language.design.015 — flags cannot be tags, since a
+  combination is not one mutually exclusive case. compiler.safety.010 owns tag-domain validation: a forged
+  tag comes from `Swag.memcpy`, `#relocate`, a binary read or a `#[Foreign]` call, and the `!` check and
+  the Switch runtime guard catch it only when safety is enabled. compiler.safety.011 applies to whatever
+  spelling asserts a case. This entry narrows, rather than removes, the union bullet of
+  compiler.safety.006: the untagged form stays for C interop and bit views. The error-handling design
+  already shipped (`fail`/`try`/`catch`) chose a different axis and is not re-litigated here.
 
 ### language.design.008 — Mixing a signed and an unsigned operand of the same width converts the signed one
 

@@ -34,18 +34,6 @@ large-file work without editing, implicit network access, macros or source mutat
   current cue is marked, and search reveal, cue selection, and timeline position remain
   synchronized.
 
-### app.scope.text.001 — Text and HTML zoom still lack persistence and Ctrl+wheel
-
-- Evidence: basic text, code, and HTML expose percentage menus and Ctrl+plus/minus/reset
-  gestures, but Ctrl+wheel is not connected to them. `ViewerReadingState` carries their zoom
-  (and text wrapping) across a host reload of the same file only; opening another file or
-  restarting returns to 100%. Markdown already keeps its bounded scale in
-  `Viewers.MarkdownText.g_ViewerSettings`, accepts Ctrl+wheel, and keeps the visible block anchored.
-- Next: route Ctrl+wheel to the existing zoom command in Text, Code, and HTML, and persist the
-  chosen zoom the way Markdown does.
-- Done when: a shared zoom command and Ctrl+wheel gesture change text size in every basic and
-  format-specific text view, persist the choice, and leave streaming-window arithmetic correct.
-
 ### app.scope.text.002 — Text navigation has no line, column, byte-offset, or percentage jump
 
 - Evidence: basic text and code can reach the file ends and host search matches, but there is no

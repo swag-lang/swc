@@ -25,7 +25,7 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const CommandWidth = 224.0
+private const CommandWidth = 520.0
 
 // Presents a Standard MIDI File as a piano roll, with a track filter and a zoom menu.
 struct Panel
@@ -34,17 +34,21 @@ struct Panel
 
     late
     {
-        commands:   *Wnd
-        info:       *Wnd
-        trackCombo: *ComboBox
-        zoomLabel:  *IconButton
-        roll:       *RollView
+        commands:           *Wnd
+        info:               *Wnd
+        trackCombo:         *ComboBox
+        pitchLabelCombo:    *ComboBox
+        keyboardWidthCombo: *ComboBox
+        zoomLabel:          *IconButton
+        roll:               *RollView
     }
 
-    details:       String
-    load:          Viewer.BackgroundLoad'Document
-    services:      Viewer.HostServices
-    failureReason: String
+    details:           String
+    pitchLabelMode:    PitchLabelMode = .Scientific
+    keyboardWidthMode: u32 = 1
+    load:              Viewer.BackgroundLoad'Document
+    services:          Viewer.HostServices
+    failureReason:     String
 }
 
 private impl Panel
@@ -68,21 +72,47 @@ private impl Panel
         .trackCombo.setSelectedIndex(selected == Swag.U32.Max ? 0 : selected, notify: false)
     }
 
+    mtd fillPitchLabels()
+    {
+        let selected = .pitchLabelCombo.selectedIndex
+        .pitchLabelCombo.clear()
+        .pitchLabelCombo.addItem(texts().ui_PitchScientific)
+        .pitchLabelCombo.addItem(texts().ui_PitchMidiNumber)
+        .pitchLabelCombo.setSelectedIndex(selected == Swag.U32.Max ? 0 : selected, notify: false)
+    }
+
+    mtd fillKeyboardWidths()
+    {
+        let selected = .keyboardWidthCombo.selectedIndex
+        .keyboardWidthCombo.clear()
+        .keyboardWidthCombo.addItem(texts().ui_KeyboardCompact)
+        .keyboardWidthCombo.addItem(texts().ui_KeyboardStandard)
+        .keyboardWidthCombo.addItem(texts().ui_KeyboardWide)
+        .keyboardWidthCombo.setSelectedIndex(selected == Swag.U32.Max ? .keyboardWidthMode : selected, notify: false)
+    }
+
     mtd retranslate()
     {
-        .trackCombo.toolTip = texts().ui_AllTracks
-        .zoomLabel.toolTip  = texts().ui_ZoomMenu
+        .trackCombo.toolTip         = texts().ui_AllTracks
+        .pitchLabelCombo.toolTip    = texts().ui_PitchLabels
+        .keyboardWidthCombo.toolTip = texts().ui_KeyboardWidth
+        .zoomLabel.toolTip          = texts().ui_ZoomMenu
         if .isLoading() do
             return
         .fillTracks()
+        .fillPitchLabels()
+        .fillKeyboardWidths()
         .roll.invalidate()
     }
 
     mtd publishDocument(document: *Document)
     {
         .roll = RollView.create(me, #move document[])
+        .roll.setPitchLabelMode(.pitchLabelMode)
+        .roll.setKeyboardWidth(.keyboardWidthMode == 0 ? 56 : .keyboardWidthMode == 1 ? 72 : 112)
         .roll.sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
         .fillTracks()
+        .fillPitchLabels()
         .trackCombo.setSelectedIndex(0, notify: false)
         .applyLayout()
         .roll.refreshLayout()
@@ -176,11 +206,44 @@ impl Panel
             .info            = info
         }
 
-        with result.trackCombo = ComboBox.create(result.commands, {0, 0, CommandWidth, 36})
+        with result.trackCombo = ComboBox.create(result.commands, {0, 0, 224, 36})
         {
             .dockStyle  = .Left
             .toolTip    = texts().ui_AllTracks
             .sigChanged += func|view = result|(_, index) { view.roll.setTrack(index ? index - 1 : Swag.U32.Max) }
+        }
+
+        with result.pitchLabelCombo = ComboBox.create(result.commands, {0, 0, 160, 36})
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = texts().ui_PitchLabels
+            .addItem(texts().ui_PitchScientific)
+            .addItem(texts().ui_PitchMidiNumber)
+            .sigChanged += func|view = result|(_, index)
+            {
+                view.pitchLabelMode = index ? .MidiNumber : .Scientific
+                if not view.isLoading() and view.failureReason.isEmpty() do
+                    view.roll.setPitchLabelMode(view.pitchLabelMode)
+            }
+        }
+
+        with result.keyboardWidthCombo = ComboBox.create(result.commands, {0, 0, 112, 36})
+        {
+            .dockStyle = .Left
+            .margin.x  = 8
+            .toolTip   = texts().ui_KeyboardWidth
+            .addItem(texts().ui_KeyboardCompact)
+            .addItem(texts().ui_KeyboardStandard)
+            .addItem(texts().ui_KeyboardWide)
+            .setSelectedIndex(result.keyboardWidthMode, notify: false)
+            .sigChanged += func|view = result|(_, index)
+            {
+                view.keyboardWidthMode = index
+                if not view.isLoading() and view.failureReason.isEmpty()
+                    do
+                    view.roll.setKeyboardWidth(index == 0 ? 56 : index == 1 ? 72 : 112)
+            }
         }
 
         result.zoomLabel = Viewer.createZoomButton(result.info, "scope.midi.zoom", texts().ui_ZoomMenu)

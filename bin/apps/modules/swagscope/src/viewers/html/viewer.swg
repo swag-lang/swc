@@ -59,7 +59,7 @@ private impl Panel
 {
     internal mtd setZoom(percent: u32)
     {
-        .zoomPercent = Viewer.clampZoom(percent)
+        .zoomPercent  = Viewer.clampZoom(percent)
         g_ZoomPercent = .zoomPercent
         var style = HtmlStyle.theme()
         style.bodyFontSize = cast(u32, Math.max(Math.round(16.0 * cast(f32, .zoomPercent) / 100), 1))

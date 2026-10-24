@@ -45,19 +45,20 @@ func pop()
         let l = 2 * i + 1
         if l >= g_HeapSize do
             break
-        let r = l + 1
-        var m = l
-        let leftD = g_HeapD[l]
+        let r      = l + 1
+        var m      = l
+        let leftD  = g_HeapD[l]
         var childD = leftD
         if r < g_HeapSize
         {
             let rightD = g_HeapD[r]
             if rightD < leftD
             {
-                m = r
+                m      = r
                 childD = rightD
             }
         }
+
         if g_HeapD[i] <= childD do
             break
         g_HeapD[m] = g_HeapD[i]

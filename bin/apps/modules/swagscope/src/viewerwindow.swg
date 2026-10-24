@@ -61,6 +61,7 @@ struct ViewerWindow
         infoSizeLabel:       *Label
         documentHost:        *Wnd
         documentPanel:       *Wnd
+        mainSplitter:        *SplitterCtrl
         loadingOverlay:      *ViewerLoadingOverlay
         searchOverlay:       *ViewerSearchOverlay
         dropHighlight:       *ViewerDropHighlight
@@ -165,6 +166,7 @@ struct ViewerWindow
     folderFilter:        String
     preferences:         Array'ViewerPreference
     panelVisible:        bool
+    leftPanelWidth:      f32 = PanelWidth
     recentPaneSize:      f32 = RecentHeight
     refreshingLists:     bool
     fileDlgState:        FileDlgState
@@ -525,6 +527,8 @@ impl ViewerWindow
 
     // The side panel that lists what is beside the current file, and what was read before it.
     const PanelWidth   = 276.0
+    const PanelMinWidth = 180.0
+    const PanelMaxWidth = 520.0
     const RecentHeight = 188.0
     const PaneMinSize  = 88.0
 

@@ -12,6 +12,8 @@ private
     const QuarterWidth  = 64.0
     const MinZoom       = 0.01'f32
     const MaxZoom       = 16.0'f32
+    const MinPitchZoom  = 0.5'f32
+    const MaxPitchZoom  = 8.0'f32
 }
 
 // Paints a MIDI document as a scrolling piano roll under a summary header.
@@ -30,7 +32,10 @@ struct RollView
     document:       Document
     selectedTrack:  u32  = Swag.U32.Max
     zoom:           f32  = 1
+    pitchZoom:      f32  = 1
+    keyboardWidth:  f32  = KeyboardWidth
     fit:            bool = true
+    pitchLabelMode: PitchLabelMode
     lowKey:         u8
     highKey:        u8
     plotTop:        f32
@@ -56,6 +61,12 @@ private func isBlackKey(key: u8)->bool
     return note == 1 or note == 3 or note == 6 or note == 8 or note == 10
 }
 
+enum PitchLabelMode
+{
+    Scientific
+    MidiNumber
+}
+
 impl RollView
 {
     mtd selectedNoteCount()->u64
@@ -78,10 +89,11 @@ impl RollView
     mtd refreshLayout()
     {
         let client = .clientRect()
-        .lowKey    = cast(u8, Math.max(cast(s32, .document.minKey) - 2, 0))
-        .highKey   = cast(u8, Math.min(cast(s32, .document.maxKey) + 2, 127))
-        .plotTop   = HeaderHeight + AxisHeight
-        .rowHeight = Math.max((client.height - .plotTop - ContentInset) / cast(f32, .keyCount()), 3)
+        .lowKey  = cast(u8, Math.max(cast(s32, .document.minKey) - 2, 0))
+        .highKey = cast(u8, Math.min(cast(s32, .document.maxKey) + 2, 127))
+        .plotTop = HeaderHeight + AxisHeight
+        let fittedRowHeight = Math.max((client.height - .plotTop - ContentInset) / cast(f32, .keyCount()), 3)
+        .rowHeight = Math.max(fittedRowHeight * .pitchZoom, 3)
 
         if .document.division & 0x8000
         {
@@ -95,13 +107,14 @@ impl RollView
 
         .beatTicks = Math.max(.beatTicks, 1)
 
-        let viewport = Math.max(client.width - KeyboardWidth - 2 * ContentInset, 1)
+        let viewport = Math.max(client.width - .keyboardWidth - 2 * ContentInset, 1)
         let natural  = Math.max(cast(f32, .document.durationTicks) / cast(f32, .beatTicks) * QuarterWidth, 1)
         if .fit do
             .zoom = Math.clamp(viewport / natural, MinZoom, 1)
         .timelineWidth = Math.max(viewport, natural * .zoom)
         .pixelsPerTick = .timelineWidth / cast(f32, Math.max(.document.durationTicks, 1))
-        .scroll.setScrollSize(KeyboardWidth + 2 * ContentInset + .timelineWidth, 0)
+        .scroll.setScrollSize(.keyboardWidth + 2 * ContentInset + .timelineWidth,
+                              .plotTop + cast(f32, .keyCount()) * .rowHeight + ContentInset)
         .invalidate()
         .sigZoomChanged.call(me)
     }
@@ -110,6 +123,25 @@ impl RollView
     {
         .selectedTrack = index
         .invalidate()
+    }
+
+    mtd setPitchLabelMode(mode: PitchLabelMode)
+    {
+        .pitchLabelMode = mode
+        .invalidate()
+    }
+
+    mtd setKeyboardWidth(width: f32)
+    {
+        .keyboardWidth = width
+        .refreshLayout()
+    }
+
+    mtd pitchLabel(key: u8)->String
+    {
+        if .pitchLabelMode == .MidiNumber do
+            return Format.toString("%", key)
+        return pitchName(key)
     }
 
     mtd applyZoom(value: f32)
@@ -122,9 +154,22 @@ impl RollView
     mtd zoomIn()  => .applyZoom(.zoom * 1.5)
     mtd zoomOut() => .applyZoom(.zoom / 1.5)
 
+    mtd applyPitchZoom(value: f32)
+    {
+        let oldRowHeight = .rowHeight
+        let centerY      = .scrollPos.y + .clientRect().height * 0.5
+        let centerKey    = cast(f32, .highKey) - (centerY - .plotTop) / Math.max(oldRowHeight, 1)
+        .pitchZoom = Math.clamp(value, MinPitchZoom, MaxPitchZoom)
+        .refreshLayout()
+
+        let newCenterY = .plotTop + (cast(f32, .highKey) - centerKey) * .rowHeight
+        .scroll.setScrollPos(.scrollPos.x, newCenterY - .clientRect().height * 0.5)
+    }
+
     mtd zoomToFit()
     {
-        .fit = true
+        .fit       = true
+        .pitchZoom = 1
         .refreshLayout()
         .scroll.setScrollPos(0, 0)
     }
@@ -141,11 +186,13 @@ impl RollView
     {
         let colors = .themeColors()
         let left   = .scrollPos.x + ContentInset
-        let title  = Format.toString("MIDI · format %", .document.format)
-        painter.drawString(left, 18, title, .titleFont, colors.label_Text)
+        let top    = .scrollPos.y
+        painter.fillRect(.scrollPos.x, top, .clientRect().width, HeaderHeight, colors.view_Bk)
+        let title = Format.toString("MIDI · format %", .document.format)
+        painter.drawString(left, top + 18, title, .titleFont, colors.label_Text)
         let summary = .summaryText()
-        painter.drawString(left, 48, summary, .codeFont, colors.label_TextFaint)
-        painter.drawLine(left, HeaderHeight - 1, .scrollPos.x + .clientRect().width - ContentInset, HeaderHeight - 1, colors.border, 1)
+        painter.drawString(left, top + 48, summary, .codeFont, colors.label_TextFaint)
+        painter.drawLine(left, top + HeaderHeight - 1, .scrollPos.x + .clientRect().width - ContentInset, top + HeaderHeight - 1, colors.border, 1)
     }
 
     // Paints the piano-roll grid: shaded black-key rows, row lines, and numbered beat lines,
@@ -153,7 +200,7 @@ impl RollView
     mtd paintGrid(painter: *Painter)
     {
         let colors     = .themeColors()
-        let plotLeft   = KeyboardWidth + ContentInset
+        let plotLeft   = .keyboardWidth + ContentInset
         let plotRight  = plotLeft + .timelineWidth
         let plotBottom = .plotTop + cast(f32, .keyCount()) * .rowHeight
 
@@ -192,7 +239,7 @@ impl RollView
     mtd paintNotes(painter: *Painter)
     {
         let colors    = .themeColors()
-        let plotLeft  = KeyboardWidth + ContentInset
+        let plotLeft  = .keyboardWidth + ContentInset
         let alternate = .theme().palette.alternate.mark
 
         for note in .document.notes where .selectedTrack == Swag.U32.Max or note.track == .selectedTrack
@@ -201,7 +248,7 @@ impl RollView
             if x > .scrollPos.x + .clientRect().width do
                 break
             let width = Math.max(cast(f32, note.endTick - note.startTick) * .pixelsPerTick, 2)
-            if x + width < .scrollPos.x + KeyboardWidth do
+            if x + width < .scrollPos.x + .keyboardWidth do
                 continue
             let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
             let strength = 0.58'f32 + cast(f32, note.track % 4) * 0.09
@@ -216,24 +263,25 @@ impl RollView
     {
         let colors = .themeColors()
         let left   = .scrollPos.x
-        painter.fillRect(left, HeaderHeight, KeyboardWidth + ContentInset, .clientRect().height - HeaderHeight, colors.view_Bk)
-        painter.drawString(left + ContentInset, HeaderHeight + 6, texts().ui_PianoRoll, .labelFont, colors.label_TextFaint)
+        painter.fillRect(left, .scrollPos.y + HeaderHeight, .keyboardWidth + ContentInset, .clientRect().height - HeaderHeight, colors.view_Bk)
+        painter.drawString(left + ContentInset, .scrollPos.y + HeaderHeight + 6, texts().ui_PianoRoll, .labelFont, colors.label_TextFaint)
 
         for row in .keyCount()
         {
             let key = .keyAtRow(row)
             let y   = .plotTop + cast(f32, row) * .rowHeight
             if isBlackKey(key) do
-                painter.fillRect(left + ContentInset, y, KeyboardWidth, .rowHeight, colors.edit_Bk)
-            painter.drawLine(left + ContentInset, y, left + ContentInset + KeyboardWidth, y, colors.border, 1)
-            if key % 12 == 0 and .rowHeight >= 7
+                painter.fillRect(left + ContentInset, y, .keyboardWidth, .rowHeight, colors.edit_Bk)
+            painter.drawLine(left + ContentInset, y, left + ContentInset + .keyboardWidth, y, colors.border, 1)
+            let showLabel = .pitchLabelMode == .MidiNumber ? .rowHeight >= 14 : key % 12 == 0 and .rowHeight >= 7
+            if showLabel
             {
-                let label = pitchName(key)
+                let label = .pitchLabel(key)
                 painter.drawString(left + ContentInset + 8, y + Math.max((.rowHeight - .codeFont.height) * 0.5, 0), label, .codeFont, colors.label_TextLight)
             }
         }
 
-        painter.drawLine(left + ContentInset + KeyboardWidth, .plotTop, left + ContentInset + KeyboardWidth, .clientRect().height - ContentInset, colors.border, 1)
+        painter.drawLine(left + ContentInset + .keyboardWidth, .plotTop, left + ContentInset + .keyboardWidth, .clientRect().height - ContentInset, colors.border, 1)
     }
 }
 
@@ -266,24 +314,49 @@ impl IWnd for RollView
             return
         }
 
+        if evt.modifiers == .Control
+        {
+            switch evt.key
+            {
+            case .Add, .OemPlus:       .applyPitchZoom(.pitchZoom * 1.25)
+            case .Subtract, .OemMinus: .applyPitchZoom(.pitchZoom / 1.25)
+            default: evt.accepted = false
+            }
+
+            return
+        }
+
         switch evt.key
         {
         case .Add, .OemPlus:       .zoomIn()
         case .Subtract, .OemMinus: .zoomOut()
         case .F:                   .zoomToFit()
-        case .Left:                .scroll.setScrollPos(.scrollPos.x - 96, 0)
-        case .Right:               .scroll.setScrollPos(.scrollPos.x + 96, 0)
-        case .Home:                .scroll.setScrollPos(0, 0)
-        case .End:                 .scroll.setScrollPos(.timelineWidth, 0)
+        case .Left:                .scroll.setScrollPos(.scrollPos.x - 96, .scrollPos.y)
+        case .Right:               .scroll.setScrollPos(.scrollPos.x + 96, .scrollPos.y)
+        case .Home:                .scroll.setScrollPos(0, .scrollPos.y)
+        case .End:                 .scroll.setScrollPos(.timelineWidth, .scrollPos.y)
         default:                   evt.accepted = false
         }
+    }
+
+    mtd impl onMouseEvent(evt: *MouseEvent)
+    {
+        if evt.kind == .Wheel and evt.modifiers.has(.Control)
+        {
+            if evt.delta.y > 0 do
+                .applyPitchZoom(.pitchZoom * 1.25)
+            elif evt.delta.y < 0 do
+                .applyPitchZoom(.pitchZoom / 1.25)
+            return
+        }
+
+        evt.accepted = false
     }
 
     mtd impl onPaint(evt: *PaintEvent)
     {
         let painter = evt.paintContext.painter
         painter.setParams(.Antialiased)
-        .paintHeader(painter)
         .paintGrid(painter)
         if not .document.notes.isEmpty()
         {
@@ -292,10 +365,11 @@ impl IWnd for RollView
         else
         {
             let colors = .themeColors()
-            painter.drawString(.scrollPos.x + KeyboardWidth + 2 * ContentInset, .plotTop + 24, texts().ui_NoNotes, .codeFont, colors.label_TextFaint)
+            painter.drawString(.scrollPos.x + .keyboardWidth + 2 * ContentInset, .plotTop + 24, texts().ui_NoNotes, .codeFont, colors.label_TextFaint)
         }
 
         .paintKeyboard(painter)
+        .paintHeader(painter)
     }
 }
 

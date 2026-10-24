@@ -53,10 +53,11 @@ remain available in the Binary viewer.
 
 ### app.scope.midi.009 — The piano roll cannot zoom vertically or adapt its keyboard and note labels
 
-- Evidence: horizontal zoom exists. The pitch range fits the score with two keys of padding and
-  row height adapts to the viewport, but neither has a user zoom/pan control. Keyboard width,
-  note-name convention and octave numbering are fixed; drum names and scale overlays are absent.
-- Next: add vertical zoom/pan and configurable pitch labelling before scale/drum overlays.
+- Evidence: horizontal zoom and vertical pitch zoom exist. Ctrl+wheel or Ctrl+plus scales semitone
+  rows, and the vertical scrollbar pans across the score while the header stays fixed. Keyboard
+  width, note-name convention and octave numbering are fixed; drum names and scale overlays are absent.
+- Next: make pitch labels and keyboard width configurable, declare octave numbering, and add channel-10
+  drum names before scale overlays.
 - Done when: vertical fit and zoom preserve selected notes, MIDI key number and chosen note name
   are visible, octave convention is declared, channel-10 drum maps can replace pitch names, and
   key-signature/scale highlighting is optional and accessible.

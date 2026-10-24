@@ -255,7 +255,7 @@ impl Panel
 
     mtd setZoom(percent: u32)
     {
-        .zoomPercent = Viewer.clampZoom(percent)
+        .zoomPercent  = Viewer.clampZoom(percent)
         g_ZoomPercent = .zoomPercent
         let base = .themeMetrics().defaultFixedFontSize
         let size = cast(u32, Math.max(Math.round(cast(f32, base) * cast(f32, .zoomPercent) / 100), 1))

@@ -575,7 +575,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
 
         if Utf8.startsWith(trimmed, ">")
         {
-            var quote: String
+            var quote:        String
             var quoteKind = BlockKind.Quote
             var firstLine = true
             var hasQuoteLine: bool
@@ -601,8 +601,8 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     quote += renderInline(content, references.toSlice())
 
                 hasQuoteLine = true
-                firstLine = false
-                index     += 1
+                firstLine    = false
+                index        += 1
             }
 
             appendBlock(&result, quoteKind, #move quote)

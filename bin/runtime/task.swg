@@ -64,12 +64,12 @@ enum TaskPriority
 #[Swag.NoCopy]
 struct TaskState
 {
-    using node: WorkNode
-    run:        (func||())?      // Runs the body and stores its outcome; set at each submission.
-    notify:     (func||())?      // Told the outcome exists, before the task reads as done.
-    cancelScope:      CancelScope      // The cancellation state the body observes.
-    priority:   TaskPriority     // How urgently the body runs.
-    submission: u64              // Counts the submissions, so a notification names the one it reports.
+    using node:  WorkNode
+    run:         (func||())?      // Runs the body and stores its outcome; set at each submission.
+    notify:      (func||())?      // Told the outcome exists, before the task reads as done.
+    cancelScope: CancelScope      // The cancellation state the body observes.
+    priority:    TaskPriority     // How urgently the body runs.
+    submission:  u64              // Counts the submissions, so a notification names the one it reports.
 }
 
 impl TaskState

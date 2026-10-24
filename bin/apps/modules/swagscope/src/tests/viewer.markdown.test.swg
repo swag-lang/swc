@@ -155,7 +155,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let button = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
     if button.statisticsLoad.isPending() do
         completeViewerBackgroundLoad(&host, &button.statisticsLoad)
-    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lines · 4 words")
+    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lines · 4 words · 23 characters")
     window.applyLayout()
     Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
     host.settleAnimations(window, 6)

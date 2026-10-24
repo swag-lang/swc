@@ -270,15 +270,15 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     Swag.assert(replacement.panOffset == pan)
 }
 
-// Counting follows source lines and Unicode whitespace, including a CRLF split across chunks.
+// Counting follows decoded scalars, source lines, and Unicode whitespace across chunk boundaries.
 #test
 {
     var counter: TextStatisticsCounter
-    Swag.assert(counter.finish().lines == 0 and counter.finish().words == 0)
+    Swag.assert(counter.finish().lines == 0 and counter.finish().words == 0 and counter.finish().characters == 0)
     counter.append("\uFEFF")
-    Swag.assert(counter.finish().lines == 0 and counter.finish().words == 0)
+    Swag.assert(counter.finish().lines == 0 and counter.finish().words == 0 and counter.finish().characters == 0)
     counter.append("one two\r")
     counter.append("\nthree\u00a0four\nlast")
     let result = counter.finish()
-    Swag.assert(result.lines == 3 and result.words == 5)
+    Swag.assert(result.lines == 3 and result.words == 5 and result.characters == 24)
 }

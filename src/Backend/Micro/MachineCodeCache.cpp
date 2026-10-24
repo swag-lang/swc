@@ -24,17 +24,24 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t K_MAGIC           = 0x3345444f434d5753; // SWMCODE3
-    constexpr uint32_t K_CHECKSUM_OFFSET = 40;
-    constexpr uint32_t K_HEADER_SIZE     = K_CHECKSUM_OFFSET + 32;
-    constexpr uint32_t K_RELOCATION_SIZE = 28;
-    constexpr uint32_t K_SOURCE_SIZE     = 12;
-    constexpr uint32_t K_MAX_IMAGE_SIZE  = 64 * 1024 * 1024;
+    constexpr uint64_t K_MAGIC                = 0x3445444f434d5753; // SWMCODE4
+    constexpr uint32_t K_CHECKSUM_OFFSET      = 48;
+    constexpr uint32_t K_HEADER_SIZE          = K_CHECKSUM_OFFSET + 32;
+    constexpr uint32_t K_RELOCATION_SIZE      = 28;
+    constexpr uint32_t K_SOURCE_SIZE          = 12;
+    constexpr uint32_t K_MAX_IMAGE_SIZE       = 64 * 1024 * 1024;
+    constexpr uint32_t K_GENERATED_CONSTANT   = 1u << 31;
+    constexpr uint32_t K_CONSTANT_HEADER_SIZE = 8;
 
     void appendString(ByteArray& out, const std::string_view text)
     {
         out.appendLe32(static_cast<uint32_t>(text.size()));
         out.append(text);
+    }
+
+    uint64_t sourceKey(const SourceCodeRef& source)
+    {
+        return (static_cast<uint64_t>(source.srcViewRef.get()) << 32) | source.tokRef.get();
     }
 
     void appendTypeQualifiers(ByteArray& out, TaskContext& ctx, const TypeRef typeRef, const ABITypeNormalize::Usage usage)
@@ -146,7 +153,7 @@ namespace
             // Cached ranges are rebound by input index. Preserve source-sharing
             // topology, including the declaration fallback, rather than paths
             // or token offsets that change when an API is republished.
-            const uint64_t binding = (static_cast<uint64_t>(source.sourceCodeRef.srcViewRef.get()) << 32) | source.sourceCodeRef.tokRef.get();
+            const uint64_t binding = sourceKey(source.sourceCodeRef);
             const auto     entry   = sources.emplace(binding, static_cast<uint32_t>(sources.size())).first;
             out.appendLe32(entry->second);
         }
@@ -213,6 +220,51 @@ namespace
             }
             return true;
         }
+    };
+
+    // Backend passes introduce scalar literals and vector masks after the input
+    // fingerprint was taken. Keep plain allocations in the image, preserving
+    // allocation identity and interior pointers without retaining process addresses.
+    struct OutputConstants
+    {
+        TaskContext*                           ctx = nullptr;
+        ByteArray                              bytes;
+        std::unordered_map<uint64_t, uint32_t> indices;
+
+        bool add(uint32_t& outTarget, int64_t& outDelta, const MicroRelocation& relocation)
+        {
+            if (relocation.kind != MicroRelocation::Kind::ConstantAddress || relocation.constantRef.isValid() || !relocation.hasConstantSource())
+                return false;
+            DataSegmentRef source;
+            if (!constantSource(*ctx, source, relocation))
+                return false;
+            const DataSegment&    segment = ctx->cstMgr().shardDataSegment(source.shardIndex);
+            DataSegmentAllocation allocation;
+            if (!segment.findAllocation(allocation, source.offset))
+                return false;
+            const uint64_t key           = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
+            const auto [entry, inserted] = indices.emplace(key, static_cast<uint32_t>(indices.size()));
+            outTarget                    = K_GENERATED_CONSTANT | entry->second;
+            outDelta                     = source.offset - allocation.offset;
+            if (!inserted)
+                return true;
+            if (!allocation.size || !std::has_single_bit(allocation.align) || allocation.align > 4096 || segment.hasRelocations(allocation.offset, allocation.size))
+                return false;
+            if (bytes.size() > K_MAX_IMAGE_SIZE - K_CONSTANT_HEADER_SIZE || allocation.size > K_MAX_IMAGE_SIZE - K_CONSTANT_HEADER_SIZE - bytes.size())
+                return false;
+            bytes.appendLe32(allocation.align);
+            bytes.appendLe32(allocation.size);
+            bytes.append(std::span{segment.ptr<std::byte>(allocation.offset), allocation.size});
+            return true;
+        }
+    };
+
+    struct StoredConstant
+    {
+        uint32_t         alignment = 1;
+        std::string_view payload;
+        DataSegmentRef   source;
+        std::string_view materialized;
     };
 
     void appendRegisterSets(ByteArray& out, const MicroBuilder& builder)
@@ -438,7 +490,9 @@ bool MachineCodeCache::read(MachineCode& out) const
     const ByteView& bytes    = record.bytes;
     const uint32_t  codeSize = bytes.readLe32(8), unwindSize = bytes.readLe32(12);
     const uint32_t  relocations = bytes.readLe32(24), sources = bytes.readLe32(28);
-    if (K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE != bytes.size() || !codeSize)
+    const uint32_t  constants = bytes.readLe32(40), constantBytes = bytes.readLe32(44);
+    const uint64_t  constantsStart = K_HEADER_SIZE + static_cast<uint64_t>(codeSize) + unwindSize + static_cast<uint64_t>(relocations) * K_RELOCATION_SIZE + static_cast<uint64_t>(sources) * K_SOURCE_SIZE;
+    if (constantsStart + constantBytes != bytes.size() || !codeSize || constants > constantBytes / (K_CONSTANT_HEADER_SIZE + 1))
         return false;
     std::array<uint8_t, 32> checksum;
     std::memcpy(checksum.data(), bytes.data() + K_CHECKSUM_OFFSET, checksum.size());
@@ -446,6 +500,23 @@ bool MachineCodeCache::read(MachineCode& out) const
     const std::array<std::byte, 32> zero{};
     const auto                      keyBytes = std::as_bytes(std::span{key_.data(), key_.size()});
     if (sha256Parts({bytes.span().first(K_CHECKSUM_OFFSET), zero, bytes.span().subspan(K_HEADER_SIZE), keyBytes}) != checksum)
+        return false;
+
+    std::vector<StoredConstant> generated;
+    generated.reserve(constants);
+    size_t constantCursor = static_cast<size_t>(constantsStart);
+    for (uint32_t index = 0; index < constants; ++index)
+    {
+        if (bytes.size() - constantCursor < K_CONSTANT_HEADER_SIZE)
+            return false;
+        const uint32_t alignment = bytes.readLe32(constantCursor), size = bytes.readLe32(constantCursor + 4);
+        constantCursor += K_CONSTANT_HEADER_SIZE;
+        if (!std::has_single_bit(alignment) || alignment > 4096 || !size || size > bytes.size() - constantCursor)
+            return false;
+        generated.push_back({.alignment = alignment, .payload = {reinterpret_cast<const char*>(bytes.data() + constantCursor), size}});
+        constantCursor += size;
+    }
+    if (constantCursor != bytes.size())
         return false;
 
     MachineCode code;
@@ -461,11 +532,13 @@ bool MachineCodeCache::read(MachineCode& out) const
     cursor += unwindSize;
     for (uint32_t index = 0; index < relocations; ++index, cursor += K_RELOCATION_SIZE)
     {
-        const uint32_t target = bytes.readLe32(cursor);
-        const uint32_t form   = bytes.readLe32(cursor + 4);
-        if (target >= targets_.size() || form > static_cast<uint32_t>(MicroRelocation::Form::Relative32))
+        const uint32_t target          = bytes.readLe32(cursor);
+        const uint32_t form            = bytes.readLe32(cursor + 4);
+        const bool     generatedTarget = (target & K_GENERATED_CONSTANT) != 0;
+        const uint32_t targetIndex     = target & ~K_GENERATED_CONSTANT;
+        if (form > static_cast<uint32_t>(MicroRelocation::Form::Relative32) || (generatedTarget ? targetIndex >= generated.size() : targetIndex >= targets_.size()))
             return false;
-        MicroRelocation relocation   = targets_[target];
+        MicroRelocation relocation   = generatedTarget ? MicroRelocation{} : targets_[targetIndex];
         relocation.form              = static_cast<MicroRelocation::Form>(form);
         relocation.codeOffset        = bytes.readLe32(cursor + 8);
         relocation.relativeEndOffset = bytes.readLe32(cursor + 12);
@@ -474,7 +547,19 @@ bool MachineCodeCache::read(MachineCode& out) const
         const uint32_t width         = relocation.form == MicroRelocation::Form::Relative32 ? 4 : 8;
         if (relocation.codeOffset > codeSize || codeSize - relocation.codeOffset < width || relocation.relativeEndOffset > codeSize)
             return false;
-        if (delta)
+        if (generatedTarget)
+        {
+            StoredConstant& constant = generated[targetIndex];
+            if (delta < 0 || static_cast<uint64_t>(delta) >= constant.payload.size() || relocation.constantCopySize > constant.payload.size() - delta || (relocation.constantCopySize && relocation.form != MicroRelocation::Form::Relative32))
+                return false;
+            if (constant.materialized.empty())
+                constant.materialized = ctx_->cstMgr().addPayloadBuffer(constant.payload, &constant.source, constant.alignment);
+            relocation.kind           = MicroRelocation::Kind::ConstantAddress;
+            relocation.targetAddress  = reinterpret_cast<uint64_t>(constant.materialized.data()) + delta;
+            relocation.constantShard  = constant.source.shardIndex;
+            relocation.constantOffset = constant.source.offset + static_cast<uint32_t>(delta);
+        }
+        else if (delta)
         {
             if (relocation.kind == MicroRelocation::Kind::GlobalInitAddress || relocation.kind == MicroRelocation::Kind::GlobalZeroAddress)
             {
@@ -521,8 +606,9 @@ void MachineCodeCache::write(const MachineCode& code) const
 {
     if (key_.empty() || code.bytes.empty())
         return;
-    ByteArray records;
-    ByteArray image = code.bytes;
+    ByteArray       records;
+    ByteArray       image = code.bytes;
+    OutputConstants constants{.ctx = ctx_};
     for (const auto& relocation : code.codeRelocations)
     {
         int64_t  delta  = 0;
@@ -532,7 +618,7 @@ void MachineCodeCache::write(const MachineCode& code) const
             if (targetDelta(*ctx_, delta, targets_[target], relocation))
                 break;
         }
-        if (target == targets_.size())
+        if (target == targets_.size() && !constants.add(target, delta, relocation))
             return;
         records.appendLe32(target);
         records.appendLe32(static_cast<uint32_t>(relocation.form));
@@ -545,14 +631,21 @@ void MachineCodeCache::write(const MachineCode& code) const
         else
             image.writeLe64(relocation.codeOffset, 0);
     }
+    std::unordered_map<uint64_t, uint32_t> sourceIndices;
+    if (!code.debugSourceRanges.empty())
+    {
+        sourceIndices.reserve(std::min(sources_.size(), code.debugSourceRanges.size()));
+        for (uint32_t index = 0; index < sources_.size(); ++index)
+            sourceIndices.emplace(sourceKey(sources_[index].sourceCodeRef), index);
+    }
     for (const auto& range : code.debugSourceRanges)
     {
-        const auto source = std::ranges::find_if(sources_, [&](const DebugSourceInfo& value) { return value.sourceCodeRef == range.debugSourceInfo.sourceCodeRef; });
-        if (source == sources_.end())
+        const auto source = sourceIndices.find(sourceKey(range.debugSourceInfo.sourceCodeRef));
+        if (source == sourceIndices.end())
             return;
         records.appendLe32(range.codeStartOffset);
         records.appendLe32(range.codeEndOffset);
-        records.appendLe32(static_cast<uint32_t>(source - sources_.begin()) | (static_cast<uint32_t>(range.debugSourceInfo.debugNoStep) << 31));
+        records.appendLe32(source->second | (static_cast<uint32_t>(range.debugSourceInfo.debugNoStep) << 31));
     }
     ByteArray bytes;
     bytes.appendLe64(K_MAGIC);
@@ -563,10 +656,13 @@ void MachineCodeCache::write(const MachineCode& code) const
     bytes.appendLe32(static_cast<uint32_t>(code.codeRelocations.size()));
     bytes.appendLe32(static_cast<uint32_t>(code.debugSourceRanges.size()));
     bytes.appendLe64(code.callClobbers);
+    bytes.appendLe32(static_cast<uint32_t>(constants.indices.size()));
+    bytes.appendLe32(static_cast<uint32_t>(constants.bytes.size()));
     bytes.resize(K_HEADER_SIZE, std::byte{0});
     bytes.append(image);
     bytes.append(code.unwindInfo);
     bytes.append(records);
+    bytes.append(constants.bytes);
     if (bytes.size() > K_MAX_IMAGE_SIZE)
         return;
     const auto checksum = sha256Parts({bytes.span(), std::as_bytes(std::span{key_.data(), key_.size()})});

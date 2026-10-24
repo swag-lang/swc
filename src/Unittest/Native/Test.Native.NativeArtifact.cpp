@@ -1993,6 +1993,19 @@ func neverCalled()->s32 => 99
     if (functionTargets.size() != 2 || functionTargets[0] != functions[0] || functionTargets[1] != functions[0])
         return failNativeArtifactTest(TEST_NAME, "function relocation targets must preserve their relocation order");
 
+    const auto dataTargets = compiler.globalInitSegment().copyDataSegmentRelocationTargets();
+    size_t      dataTargetIndex = 0;
+    for (const DataSegmentRelocation& relocation : globalRelocations)
+    {
+        if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
+            continue;
+        if (dataTargetIndex >= dataTargets.size() || dataTargets[dataTargetIndex].shardIndex != relocation.targetShardIndex || dataTargets[dataTargetIndex].offset != relocation.targetOffset)
+            return failNativeArtifactTest(TEST_NAME, "data segment relocation targets must preserve their relocation order");
+        ++dataTargetIndex;
+    }
+    if (dataTargetIndex != dataTargets.size())
+        return failNativeArtifactTest(TEST_NAME, "data segment relocation targets must match the source relocations");
+
     for (SymbolFunction* function : functions)
     {
         function->setSemaCompleted(compilerCtx);

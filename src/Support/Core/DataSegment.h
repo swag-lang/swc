@@ -127,6 +127,8 @@ public:
     std::vector<DataSegmentRelocation> copyRelocations() const;
     // Copies only targets of function-symbol relocations, in relocation order.
     std::vector<const SymbolFunction*> copyFunctionRelocationTargets() const;
+    // Copies only valid data-segment targets, in relocation order.
+    std::vector<DataSegmentRef> copyDataSegmentRelocationTargets() const;
 
     // Identity of this segment, and how many relocations it has taken. Together they let a reader
     // remember what a given offset resolved to and know, in one comparison, whether that answer

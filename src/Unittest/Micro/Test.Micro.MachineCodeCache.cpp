@@ -2,20 +2,25 @@
 
 #if SWC_HAS_UNITTEST
 
+#include "Backend/Micro/MachineCode.h"
 #include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/Micro/MicroBuilder.h"
+#include "Compiler/Parser/Ast/Ast.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
+#include "Main/Command/CommandLine.h"
+#include "Main/Command/CommandLineParser.h"
 #include "Main/CompilerInstance.h"
 #include "Unittest/Unittest.h"
+#include "Unittest/UnittestSource.h"
 
 SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    SymbolFunction* makeCacheFunction(TaskContext& ctx, const std::string_view name, const TypeRef parameter = TypeRef::invalid())
+    SymbolFunction* makeCacheFunction(TaskContext& ctx, const std::string_view name, const TypeRef parameter = TypeRef::invalid(), const AstNode* declaration = nullptr)
     {
-        auto* function = Symbol::make<SymbolFunction>(ctx, nullptr, TokenRef::invalid(), ctx.idMgr().addIdentifier(name), SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted);
+        auto* function = Symbol::make<SymbolFunction>(ctx, declaration, TokenRef::invalid(), ctx.idMgr().addIdentifier(name), SymbolFlagsE::Typed | SymbolFlagsE::SemaCompleted);
         function->setReturnTypeRef(ctx.typeMgr().typeVoid());
         if (parameter.isValid())
         {
@@ -33,6 +38,78 @@ namespace
         return MachineCodeCache::inputKey(ctx, sources, function, builder, "unit-test-compiler");
     }
 }
+
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
+{
+    CommandLine command;
+    command.command  = CommandKind::Build;
+    command.numCores = 6;
+    CommandLineParser::refreshBuildCfg(command);
+    CompilerInstance compiler(ctx.global(), command);
+    TaskContext      localCtx(compiler);
+    SWC_RESULT(compiler.setupSema(localCtx));
+    SourceFile& source            = Unittest::addTestSource(localCtx, "Micro", "MachineCacheModule", "", FileFlagsE::ModuleSrc);
+    const auto [ref, declaration] = source.ast().makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
+    auto*               caller    = makeCacheFunction(localCtx, "cacheModuleCaller", TypeRef::invalid(), declaration);
+    auto*               target    = makeCacheFunction(localCtx, "cacheModuleTarget");
+    MicroBuilder        builder(localCtx);
+    const SourceCodeRef originalSource{source.ast().srcView().ref(), TokenRef{10}};
+    builder.setCurrentDebugSourceCodeRef(originalSource);
+    builder.emitLoadRegPtrReloc(MicroReg::virtualIntReg(0), 0, ConstantRef::invalid(), target);
+
+    MachineCode expected;
+    expected.bytes.resize(8, std::byte{0});
+    expected.codeAlignment                 = 16;
+    expected.codeRelocations               = builder.codeRelocations();
+    expected.codeRelocations[0].codeOffset = 0;
+    expected.debugSourceRanges.push_back({.codeStartOffset = 0, .codeEndOffset = 8, .debugSourceInfo = {.sourceCodeRef = originalSource}});
+    MachineCodeCache cache(localCtx, *caller, builder);
+    cache.write(expected);
+    MachineCode restored;
+    if (!cache.read(restored) || restored.bytes.size() != 8 || restored.codeRelocations.size() != 1 || restored.codeRelocations[0].targetSymbol != target)
+        return Result::Error;
+
+    auto*               relocatedTarget = makeCacheFunction(localCtx, "cacheModuleTarget");
+    MicroBuilder        relocated(localCtx);
+    const SourceCodeRef relocatedSource{source.ast().srcView().ref(), TokenRef{20}};
+    relocated.setCurrentDebugSourceCodeRef(relocatedSource);
+    relocated.emitLoadRegPtrReloc(MicroReg::virtualIntReg(0), 0, ConstantRef::invalid(), relocatedTarget);
+    MachineCodeCache rebound(localCtx, *caller, relocated);
+    if (!rebound.read(restored) || restored.codeRelocations[0].targetSymbol != relocatedTarget || restored.debugSourceRanges.size() != 1 || restored.debugSourceRanges[0].debugSourceInfo.sourceCodeRef != relocatedSource)
+        return Result::Error;
+
+    auto*        changedTarget = makeCacheFunction(localCtx, "cacheChangedModuleTarget");
+    MicroBuilder changed(localCtx);
+    changed.setCurrentDebugSourceCodeRef(relocatedSource);
+    changed.emitLoadRegPtrReloc(MicroReg::virtualIntReg(0), 0, ConstantRef::invalid(), changedTarget);
+    MachineCodeCache invalidated(localCtx, *caller, changed);
+    if (invalidated.read(restored))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MachineCodeCache_RebindsSourceLocationsWithoutChangingCodeIdentity)
+{
+    SourceFile&  first  = Unittest::addTestSource(ctx, "Micro", "CacheSourceOriginal", "");
+    SourceFile&  moved  = Unittest::addTestSource(ctx, "Micro", "CacheSourceMoved", "");
+    auto*        caller = makeCacheFunction(ctx, "cacheSourceCaller");
+    MicroBuilder original(ctx), translated(ctx), split(ctx);
+    original.setCurrentDebugSourceCodeRef({first.ast().srcView().ref(), TokenRef{10}});
+    original.emitNop();
+    original.emitRet();
+    translated.setCurrentDebugSourceCodeRef({moved.ast().srcView().ref(), TokenRef{20}});
+    translated.emitNop();
+    translated.emitRet();
+    split.setCurrentDebugSourceCodeRef({moved.ast().srcView().ref(), TokenRef{20}});
+    split.emitNop();
+    split.setCurrentDebugSourceCodeRef({moved.ast().srcView().ref(), TokenRef{21}});
+    split.emitRet();
+
+    const Utf8 key = cacheKey(ctx, *caller, original);
+    if (key.empty() || key != cacheKey(ctx, *caller, translated) || key == cacheKey(ctx, *caller, split))
+        return Result::Error;
+}
+SWC_TEST_END()
 
 SWC_TEST_BEGIN(MachineCodeCache_PreservesFunctionReferenceSharing)
 {

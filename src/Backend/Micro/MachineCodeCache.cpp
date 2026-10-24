@@ -130,7 +130,22 @@ namespace
         TaskContext*                                        ctx = nullptr;
         std::unordered_map<uint64_t, uint32_t>              allocations;
         std::unordered_map<const SymbolFunction*, uint32_t> functions;
+        std::unordered_map<uint64_t, uint32_t>              sources;
         std::optional<uint64_t>                             globalBases[2];
+
+        void appendSource(ByteArray& out, const DebugSourceInfo& source)
+        {
+            out.appendLe32(source.debugNoStep);
+            out.appendLe32(source.isValid());
+            if (!source.isValid())
+                return;
+            // Cached ranges are rebound by input index. Preserve source-sharing
+            // topology, including the declaration fallback, rather than paths
+            // or token offsets that change when an API is republished.
+            const uint64_t binding = (static_cast<uint64_t>(source.sourceCodeRef.srcViewRef.get()) << 32) | source.sourceCodeRef.tokRef.get();
+            const auto     entry   = sources.emplace(binding, static_cast<uint32_t>(sources.size())).first;
+            out.appendLe32(entry->second);
+        }
 
         bool appendFunctionTarget(ByteArray& out, const SymbolFunction& function)
         {
@@ -299,7 +314,7 @@ MachineCodeCache::MachineCodeCache(TaskContext& ctx, const SymbolFunction& funct
         return;
 #endif
     const SourceFile* file = ctx.compiler().ownerSourceFile(function.srcViewRef());
-    if (!file || (file->hasFlag(FileFlagsE::CustomSrc) || (!file->isRuntime() && !file->isImportedApi())) || compilerCacheIdentity().empty())
+    if (!file || file->hasFlag(FileFlagsE::CustomSrc) || compilerCacheIdentity().empty())
         return;
 
     key_ = inputKey(ctx, sources_, function, builder, compilerCacheIdentity().view());
@@ -361,7 +376,6 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
     InputIdentity                          constants{.ctx = &ctx};
     const auto&                            relocations = builder.codeRelocations();
     std::unordered_map<uint32_t, uint32_t> targetByInstruction;
-    std::unordered_map<uint32_t, uint32_t> sourceViews;
     for (uint32_t index = 0; index < relocations.size(); ++index)
     {
         if (!targetByInstruction.emplace(relocations[index].instructionRef.get(), index).second)
@@ -399,25 +413,14 @@ Utf8 MachineCodeCache::inputKey(TaskContext& ctx, std::vector<DebugSourceInfo>& 
         }
         const auto& source = instruction.debugSourceInfo;
         outSources.push_back(source);
-        identity.appendLe32(source.debugNoStep);
-        identity.appendLe32(source.isValid());
-        if (source.isValid())
-        {
-            const auto [entry, inserted] = sourceViews.emplace(source.sourceCodeRef.srcViewRef.get(), static_cast<uint32_t>(sourceViews.size()));
-            identity.appendLe32(entry->second);
-            identity.appendLe32(inserted);
-            if (inserted)
-            {
-                const SourceFile* sourceFile = ctx.compiler().srcView(source.sourceCodeRef.srcViewRef).file();
-                if (!sourceFile)
-                    return {};
-                appendString(identity, sourceFile->genericPathString().view());
-            }
-            identity.appendLe32(source.sourceCodeRef.tokRef.get());
-        }
+        constants.appendSource(identity, source);
     }
+    identity.appendLe32(function.decl() != nullptr);
     if (function.decl())
+    {
         outSources.push_back({.sourceCodeRef = function.codeRef()});
+        constants.appendSource(identity, outSources.back());
+    }
     return Utf8Helper::toLowerHex(sha256(identity.span()));
 }
 

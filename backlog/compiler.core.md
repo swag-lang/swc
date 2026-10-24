@@ -24,10 +24,15 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   inputs publishes new variants on every build (`lz77` release: archive 133 552, 139 986,
   149 665, 151 156, 158 489, 162 528 bytes over six builds); with one worker the second build hits
   every entry. `MachineCodeCache::inputKey` hashes the pre-optimization Micro stream, which
-  therefore depends on the order workers finish. Every miss republishes the whole shared archive,
-  so the archive grows across sessions and each build pays for it.
-- Next: dump the keys and their input streams for one function across two six-worker builds and
-  find the first differing instruction or operand.
+  therefore depends on the order workers finish. Two six-worker DevMode `core` rebuilds
+  produced 858 and 864 distinct keys, with 85 keys appearing only in the second run.
+  The first differing relocation payloads in allocator functions encode distances between
+  globals whose allocation order varies. The store now republishes only dirty hash partitions;
+  the extra variants still occupy capacity and miss reuse.
+- Next: separate the identities of non-escaping private global allocations from their placement,
+  retaining alias relationships and allocation-relative offsets. Preserve concrete distances
+  wherever a global address can be observed, and rebind emitted relocations to their own
+  input allocation rather than another global in the same segment.
 - Done when: two six-worker builds of the same inputs produce the same keys, so the second build
   publishes nothing.
 - Related: compiler.core.085.
@@ -313,13 +318,13 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   `NativeBackendBuilder.cpp`) admits only non-debug functions with at least 64
   micro-instructions and no code relocation. Ordinary functions outside that policy still
   regenerate; this per-function incremental cache has no JIT path. The separate automatic
-  `MachineCodeCache` already reuses supported runtime and imported-API machine code in native
-  and JIT builds, including relocations (compiler.core.030).
+  `MachineCodeCache` reuses supported non-debug module, runtime and imported-API machine code
+  in native and JIT builds, including relocations (compiler.core.030). Lookup still follows
+  fresh IR generation, and global-layout differences can miss otherwise unchanged bodies.
   `NativeObjFileWriter` already writes one function per archive member, and the integrated
   linker resolves members lazily. Broader coverage therefore extends the fingerprint and
   admission policy, not the storage format.
-- Next: admit functions with relocations by fingerprinting their referenced symbol
-  identities, constant payloads, reachable ABI and inlinable bodies. Consume the
+- Next: extend reuse to debug information, and move lookup ahead of IR generation using the
   compiler.core.001/002 fingerprints rather than a second dependency graph. Measure an
   adaptive size threshold so that hashing and archiving a small function never costs more
   than its micro passes.

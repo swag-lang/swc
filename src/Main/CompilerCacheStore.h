@@ -5,8 +5,8 @@
 
 SWC_BEGIN_NAMESPACE();
 
-// One bounded archive per compiler avoids opening a file for
-// every source/function. Each consumer validates its own record before reuse.
+// Hash-partitioned archives retain independent module working sets and publish
+// only dirty partitions. Each consumer validates its own record before reuse.
 class CompilerCacheStore
 {
 public:
@@ -43,20 +43,31 @@ private:
         static Archive decode(Record record);
     };
 
+    static constexpr size_t K_SHARD_COUNT = 16;
+    struct Shard
+    {
+        std::once_flag    loaded;
+        std::shared_mutex mutex;
+        Archive           archive;
+        Entries           pending;
+        bool              replace = false;
+    };
+
     static std::vector<EntryView> mergeEntries(const Archive& archive, const Entries& pending);
     static bool                   measureExtent(const std::vector<EntryView>& entries, size_t& extent);
 
     explicit CompilerCacheStore(bool rebuild);
-    Archive load() const;
-    void    invalidateOnce();
-    void    flush();
+    explicit CompilerCacheStore(fs::path directory);
+    static Archive load(const fs::path& path);
+    fs::path       shardPath(size_t index) const;
+    Shard&         shardFor(const Utf8& key) const;
+    void           invalidateOnce();
+    void           flush();
+    void           flushShard(size_t index);
 
-    fs::path                  path_;
-    mutable std::shared_mutex mutex_;
-    Archive                   archive_;
-    Entries                   pending_;
-    bool                      rebuilding_ = false;
-    bool                      replace_    = false;
+    fs::path                                 directory_;
+    mutable std::array<Shard, K_SHARD_COUNT> shards_;
+    std::once_flag                           invalidated_;
 };
 
 SWC_END_NAMESPACE();

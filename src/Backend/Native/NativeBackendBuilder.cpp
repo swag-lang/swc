@@ -592,13 +592,8 @@ namespace
         bool changed = false;
         // Global initializers reach read-only data without a code relocation. Its function
         // pointers, including dynamic type lifecycle hooks, need the same dependency closure.
-        for (const DataSegmentRelocation& relocation : builder.compiler().globalInitSegment().copyRelocations())
-        {
-            if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
-                continue;
-
-            changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, relocation.targetShardIndex, relocation.targetOffset, rejected, pendingFunctions) || changed;
-        }
+        for (const DataSegmentRef& target : builder.compiler().globalInitSegment().copyDataSegmentRelocationTargets())
+            changed = appendConstantFunctionDependenciesRec(builder, functions, seenFunctions, visitedAllocations, target.shardIndex, target.offset, rejected, pendingFunctions) || changed;
         return changed;
     }
 

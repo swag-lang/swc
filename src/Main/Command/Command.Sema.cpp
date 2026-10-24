@@ -73,6 +73,11 @@ namespace Command
             SWC_SCHED_PHASE(jobMgr, "parse");
             parseSourceFiles(ctx, parseFiles, parserOptions);
         }
+        // Parsing consumes the dependency's already published API snapshot.
+        // Semantic analysis can execute its native code, so join before it starts,
+        // including when parsing reported an error that must drain the pipeline.
+        if (compiler.completeWorkspaceDependency() != Result::Continue)
+            return;
         // An editor index can still use semantic data from files that parsed successfully.
         // Files with parser errors are filtered below; regular compilation remains fail-fast.
         const bool editorIndex = !compiler.cmdLine().editorIndex.empty();

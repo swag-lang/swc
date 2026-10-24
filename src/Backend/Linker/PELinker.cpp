@@ -700,27 +700,28 @@ namespace
             return DebugInfo::buildObject(debugInfoRequest, debugInfoResult);
         }
 
-        Result placeUnwindSections(const DebugInfoObjectResult& debugInfoResult)
+        Result placeUnwindSections(DebugInfoObjectResult& debugInfoResult)
         {
-            std::unordered_map<Utf8, SectionPlacement> placements;
-            for (const NativeSectionData& section : debugInfoResult.sections)
+            // This request contains only function records, so CodeView defines only unwind symbols in .xdata.
+            SectionPlacement xdataPlacement;
+            for (NativeSectionData& section : debugInfoResult.sections)
             {
                 if (isDebugSectionName(section.name))
                     continue;
 
                 SectionPlacement placement;
-                SWC_RESULT(appendNativeSection(placement, section));
-                placements.emplace(section.name, placement);
+                SWC_RESULT(appendNativeSection(placement, std::move(section)));
+                if (section.name == ".xdata")
+                    xdataPlacement = placement;
             }
 
             for (const DebugInfoDefinedSymbol& symbol : debugInfoResult.symbols)
             {
-                const auto it = placements.find(symbol.sectionName);
-                SWC_ASSERT(it != placements.end());
-                if (it == placements.end())
+                SWC_ASSERT(symbol.sectionName == ".xdata" && xdataPlacement.valid);
+                if (symbol.sectionName != ".xdata" || !xdataPlacement.valid)
                     continue;
 
-                addSymbol(symbol.name, it->second.index, it->second.base + symbol.value);
+                addSymbol(symbol.name, xdataPlacement.index, xdataPlacement.base + symbol.value);
             }
 
             return Result::Continue;

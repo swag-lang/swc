@@ -482,6 +482,7 @@ namespace
             if (section.name.view() != SymbolTable::OBJECT_SECTION)
                 continue;
 
+            // The merge drops this section, so transfer its relocation names into the symbol reader.
             std::vector<SymbolTable::Relocation> relocations;
             relocations.reserve(section.relocs.size());
             for (CoffInputReloc& reloc : section.relocs)
@@ -1202,11 +1203,10 @@ namespace
     // Emits the self-contained `.swagdbg` table (function name and source location per function, keyed
     // by image-relative address) so the runtime can symbolize stack traces without a PDB or dbghelp.
     // The start addresses are Rva32 relocations the PE writer resolves.
-    void appendSymbolTable(LinkImage& image, const std::span<const SymbolTable::Entry> symbols)
+    void appendSymbolTable(LinkImage& image, const std::span<SymbolTable::Entry> symbols)
     {
-        LinkSection                          section;
-        std::vector<SymbolTable::Relocation> relocations;
-        SymbolTable::build(section.bytes, relocations, symbols);
+        LinkSection section;
+        SymbolTable::build(section.bytes, symbols);
         if (section.bytes.empty())
             return;
 
@@ -1214,9 +1214,9 @@ namespace
         section.align = 4;
 
         const uint32_t sectionIndex = static_cast<uint32_t>(image.sections.size());
-        section.relocs.reserve(relocations.size());
-        for (SymbolTable::Relocation& relocation : relocations)
-            section.relocs.push_back({.sectionIndex = sectionIndex, .offset = relocation.offset, .symbolName = std::move(relocation.symbolName), .kind = LinkRelocKind::Rva32});
+        section.relocs.reserve(symbols.size());
+        for (size_t i = 0; i < symbols.size(); ++i)
+            section.relocs.push_back({.sectionIndex = sectionIndex, .offset = SymbolTable::HEADER_SIZE + static_cast<uint32_t>(i) * SymbolTable::ENTRY_SIZE + SymbolTable::ENTRY_START_RVA, .symbolName = std::move(symbols[i].symbolName), .kind = LinkRelocKind::Rva32});
 
         image.sections.push_back(std::move(section));
     }

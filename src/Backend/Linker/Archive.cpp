@@ -151,6 +151,12 @@ bool Archive::tryReadImport(ArchiveImport& outImport, Diagnostic& outDiag, uint3
     const std::span<const std::byte> data = memberData(outDiag, headerOffset);
     if (data.empty())
         return false;
+
+    return tryReadImport(outImport, data);
+}
+
+bool Archive::tryReadImport(ArchiveImport& outImport, const std::span<const std::byte> data) const
+{
     if (data.size() < IMPORT_HEADER_SIZE)
         return false;
     if (readLe16(data, 0) != 0 || readLe16(data, 2) != IMPORT_SIG2)

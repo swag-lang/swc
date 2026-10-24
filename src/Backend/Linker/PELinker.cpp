@@ -1117,7 +1117,11 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
 
             Diagnostic    diag; // local decode failures fall through to the next archive
             ArchiveImport archiveImport;
-            if (archive.tryReadImport(archiveImport, diag, memberOffset))
+            const std::span<const std::byte> memberBytes = archive.memberData(diag, memberOffset);
+            if (memberBytes.empty())
+                continue;
+
+            if (archive.tryReadImport(archiveImport, memberBytes))
             {
                 LinkImport import;
                 import.dll        = archiveImport.dll;
@@ -1130,10 +1134,6 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
                 imported.insert(symbol);
                 break;
             }
-
-            const std::span<const std::byte> memberBytes = archive.memberData(diag, memberOffset);
-            if (memberBytes.empty())
-                continue;
 
             CoffObject pulled;
             if (!readCoffObject(pulled, diag, memberBytes))

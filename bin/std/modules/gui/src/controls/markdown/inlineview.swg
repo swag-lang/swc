@@ -672,7 +672,7 @@ impl InlineView
     {
         let base   = .kind >= .Heading1 and .kind <= .Heading6 ? .owner.documentStyle.headingFontStyles[cast(u32, .kind) - cast(u32, BlockKind.Heading1)] : FontFamilyStyle.Regular
         let bold   = flags.has(.Bold) or base == .Bold or base == .BoldItalic
-        let italic = flags.has(.Italic) or .kind == .Quote or base == .Italic or base == .BoldItalic
+        let italic = flags.has(.Italic) or base == .Italic or base == .BoldItalic
         if bold and italic do
             return .BoldItalic
         if bold do

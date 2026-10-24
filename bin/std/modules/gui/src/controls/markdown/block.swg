@@ -578,6 +578,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
             var quote: String
             var quoteKind = BlockKind.Quote
             var firstLine = true
+            var hasQuoteLine: bool
             while index < lines.count and Utf8.startsWith(Latin1.trim(lines[index]), ">")
             {
                 var content = Latin1.trim(Latin1.trim(lines[index])[1 to])
@@ -594,13 +595,12 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                     }
                 }
 
-                if content.count
-                {
-                    if not quote.isEmpty() do
-                        quote += "\n"
+                if hasQuoteLine do
+                    quote += "\n"
+                if content.count do
                     quote += renderInline(content, references.toSlice())
-                }
 
+                hasQuoteLine = true
                 firstLine = false
                 index     += 1
             }

@@ -166,6 +166,7 @@ impl Panel
     mtd detailsText()->String
     {
         let encoding = .encodingName()
+        let currentLine = Format.toString(texts().ui_CurrentLine, .editor.cursorLogicalLineIndex() + 1)
 
         // Statistics describe the byte interpretation that produced them. Switching encoding
         // keeps the already finished worker available for retirement, but its totals must not be
@@ -173,10 +174,10 @@ impl Panel
         if not .hasStatistics or
            .statisticsEncoding != .encoding or
            .statisticsStart != .contentStart do
-            return Format.toString(texts().ui_Details, encoding)
+            return Format.toString(texts().ui_Details, encoding, currentLine)
         let lines = .statistics.lines == 1 ? String.from(texts().ui_OneLine) : Format.toString(texts().ui_Lines, .statistics.lines)
         let words = .statistics.words == 1 ? String.from(texts().ui_OneWord) : Format.toString(texts().ui_Words, .statistics.words)
-        return Format.toString(texts().ui_DetailsStats, encoding, lines, words)
+        return Format.toString(texts().ui_DetailsStats, encoding, currentLine, lines, words)
     }
 
     mtd reportStatistics()
@@ -444,6 +445,8 @@ impl Panel
                 .pendingNavigation = .None
             }
 
+            .reportStatistics()
+
             if .read.text.isEmpty() or not .hasMore() do
                 .finishLoading()
             .read.text.clear()
@@ -482,6 +485,7 @@ impl Panel
                 Viewer.highlightRichEditMatch(.editor, .residentText, offset - .residentStart, text.count)
             else do
                 discard .editor.findText(text)
+            .reportStatistics()
             return true
         }
 
@@ -802,10 +806,37 @@ impl Panel
                 view.pendingNavigation = .Home
                 return true
 
-            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown or keyEvt.key == .Space):
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and (keyEvt.key == .Down or keyEvt.key == .PageDown):
+                view.pauseStreaming = false
+                view.scheduleMore()
+                let line = view.editor.cursorLogicalLineIndex()
+                keyEvt.target!.processEvent(evt)
+                if view.editor.cursorLogicalLineIndex() != line do
+                    view.reportStatistics()
+                return keyEvt.accepted
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and keyEvt.key == .Space:
                 view.pauseStreaming = false
                 view.scheduleMore()
                 return false
+
+            case KeyEvent as keyEvt where keyEvt.kind == .Pressed and
+                                          view.editor.commandForShortcut(keyEvt.key, keyEvt.modifiers) != .None:
+                let line = view.editor.cursorLogicalLineIndex()
+                keyEvt.target!.processEvent(evt)
+                if view.editor.cursorLogicalLineIndex() != line do
+                    view.reportStatistics()
+                return keyEvt.accepted
+
+            case MouseEvent as mouseEvt where mouseEvt.kind == .Pressed or
+                                              mouseEvt.kind == .Released or
+                                              mouseEvt.kind == .Move or
+                                              mouseEvt.kind == .DoubleClick:
+                let line = view.editor.cursorLogicalLineIndex()
+                mouseEvt.target!.processEvent(evt)
+                if view.editor.cursorLogicalLineIndex() != line do
+                    view.reportStatistics()
+                return mouseEvt.accepted
 
             default:
                 return false

@@ -17,6 +17,15 @@ struct RichEditCursor
 
 impl RichEditCtrl
 {
+    // Returns the zero-based logical line containing the caret, ignoring wrapped continuations.
+    mtd cursorLogicalLineIndex()->u64
+    {
+        var result = 0'u64
+        for index in .cursorPos.lineIndex where not .lines[index]!.wordWrap do
+            result += 1
+        return result
+    }
+
     // Returns the draw metrics of the face the style index `styleIdx` selects.
     mtd computeTextDrawInfo(styleIdx: RichEditStyleRef)->TextDrawInfo
     {

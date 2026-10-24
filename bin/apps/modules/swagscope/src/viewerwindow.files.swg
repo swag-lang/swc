@@ -55,6 +55,9 @@ impl ViewerWindow
             .filePanelHost.hide()
         }
 
+        if not .mainSplitter.items.isEmpty() do
+            .mainSplitter.setPaneVisible(0, visible)
+
         .applyLayout()
         .invalidate()
     }

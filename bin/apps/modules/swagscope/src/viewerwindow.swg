@@ -457,6 +457,8 @@ impl IWnd for ViewerWindow
     {
         if not evt.serializer.isReading() and not .filePanel.items.isEmpty() do
             .recentPaneSize = .filePanel.items[0]!.size
+        if not evt.serializer.isReading() and .mainSplitter.items.count > 0 do
+            .leftPanelWidth = .mainSplitter.items[0]!.size - .themeMetrics().panel_GutterSize
 
         catch evt.serializer.serialize("ViewerWindow.fileDlgState", &me.fileDlgState)
         catch evt.serializer.serialize("ViewerWindow.themeIndex", &me.themeIndex)
@@ -465,6 +467,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.folderHistory", &me.folderHistory)
         catch evt.serializer.serialize("ViewerWindow.preferences", &me.preferences)
         catch evt.serializer.serialize("ViewerWindow.panelVisible", &me.panelVisible)
+        catch evt.serializer.serialize("ViewerWindow.leftPanelWidth", &me.leftPanelWidth)
         catch evt.serializer.serialize("ViewerWindow.recentPaneSize", &me.recentPaneSize)
         catch evt.serializer.serialize("ViewerWindow.folderSameKind", &me.folderSameKind)
         catch evt.serializer.serialize("ViewerWindow.playMode", &me.playMode)
@@ -477,7 +480,10 @@ impl IWnd for ViewerWindow
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
+            .leftPanelWidth = Math.clamp(.leftPanelWidth, PanelMinWidth, PanelMaxWidth)
             .recentPaneSize = Math.max(.recentPaneSize, PaneMinSize)
+            if .mainSplitter.items.count > 0 do
+                .mainSplitter.setPaneSize(0, .leftPanelWidth + .themeMetrics().panel_GutterSize)
             if not .filePanel.items.isEmpty() do
                 .filePanel.items[0]!.size = .recentPaneSize
             while .recent.count > RecentCount do
@@ -526,11 +532,12 @@ impl ViewerWindow
     const MinWidth        = 880
 
     // The side panel that lists what is beside the current file, and what was read before it.
-    const PanelWidth   = 276.0
-    const PanelMinWidth = 180.0
-    const PanelMaxWidth = 520.0
-    const RecentHeight = 188.0
-    const PaneMinSize  = 88.0
+    const PanelWidth       = 276.0
+    const PanelMinWidth    = 180.0
+    const PanelMaxWidth    = 520.0
+    const DocumentMinWidth = 320.0
+    const RecentHeight     = 188.0
+    const PaneMinSize      = 88.0
 
     // Files the recent list keeps. Long enough to cross a working session, short enough that the
     // list stays something a reader scans rather than searches.
@@ -694,7 +701,7 @@ impl ViewerWindow
             .commandBar.hide()
             .infoBarHost.hide()
             .viewerBar.hide()
-            .filePanelHost.hide()
+            .mainSplitter.setPaneVisible(0, false)
             .filesButton.hide()
             .currentSidePanelHost?.hide()
             .currentSidePanelButton?.hide()
@@ -722,7 +729,7 @@ impl ViewerWindow
             .commandBar.show()
             .infoBarHost.show()
             .updateViewerBar()
-            .filePanelHost.show(.panelVisible)
+            .mainSplitter.setPaneVisible(0, .panelVisible)
             .filesButton.show()
             .currentSidePanelButton?.show()
             .currentSidePanelHost?.show(.currentSidePanelButton?.isChecked orelse false)
@@ -803,6 +810,12 @@ impl ViewerWindow
         result.createCommandBar()
         result.createInfoBar(panelGutter)
         result.createViewerBar()
+        with result.mainSplitter = SplitterCtrl.create(result)
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+        }
+
         result.createFilePanel(panelGutter)
         result.createDocumentPanel(panelGutter)
         result.hookChildEvents()

@@ -253,9 +253,8 @@ impl ViewerWindow
         // The toolbar-colored lane is the static seam shared with the application chrome. The
         // rounded structural panel sits inside it, so the lists read as one integrated surface
         // instead of a square block divided from the document by an unrelated rule.
-        with .filePanelHost = Wnd.create'Wnd(me, {0, 0, PanelWidth + panelGutter, 0})
+        with .filePanelHost = Wnd.create'Wnd(.mainSplitter, {0, 0, .leftPanelWidth + panelGutter, 0})
         {
-            .dockStyle       = .Left
             .backgroundStyle = .ToolBar
 
             // The information lane supplies the upper seam and the viewer bar supplies the
@@ -264,11 +263,9 @@ impl ViewerWindow
             .hide()
         }
 
-        with .filePanel = SplitterCtrl.create(.filePanelHost, {0, 0, PanelWidth, 0}, vertical: true)
+        with .filePanel = SplitterCtrl.create(.filePanelHost, {0, 0, .leftPanelWidth, 0}, vertical: true)
         {
             .dockStyle       = .Center
-            .minSize.x       = PanelWidth
-            .maxSize.x       = PanelWidth
             .backgroundStyle = .Transparent
         }
 
@@ -389,6 +386,13 @@ impl ViewerWindow
         }
 
         .filePanel.addPane(.folderPane).minimumSize = PaneMinSize
+        with let panelItem = .mainSplitter.addPane(.filePanelHost, .leftPanelWidth + panelGutter)
+        {
+            .minimumSize = PanelMinWidth + panelGutter
+            .maximumSize = PanelMaxWidth + panelGutter
+        }
+
+        .mainSplitter.setPaneVisible(0, .panelVisible)
     }
 
     // Builds the document panel with its empty-state prompt and the loading, search and drop
@@ -397,9 +401,8 @@ impl ViewerWindow
     {
         // The document is the middle panel of the same composition. It owns the seams on both
         // sides, so showing either optional side panel never doubles the four-pixel rhythm.
-        with .documentHost = Wnd.create'Wnd(me)
+        with .documentHost = Wnd.create'Wnd(.mainSplitter)
         {
-            .dockStyle       = .Center
             .backgroundStyle = .ToolBar
             .padding         = {panelGutter, 0, panelGutter, 0}
         }
@@ -440,6 +443,7 @@ impl ViewerWindow
         .loadingOverlay = ViewerLoadingOverlay.create(.documentPanel)
         .searchOverlay  = ViewerSearchOverlay.create(.documentPanel)
         .dropHighlight  = ViewerDropHighlight.create(.documentPanel)
+        .mainSplitter.addPane(.documentHost).minimumSize = DocumentMinWidth
     }
 
     private mtd hookChildEvents()

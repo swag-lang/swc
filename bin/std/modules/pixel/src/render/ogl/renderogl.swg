@@ -1252,7 +1252,7 @@ impl RenderOgl
 
     private mtd executeCommand(dc: *Painter, cmd: Pixel.Command, cmdIdx: u64)
     {
-        switch cmd.id
+        switch cmd.op
         {
         case .SetBlendingMode:
             let params = &cmd.blendingMode
@@ -1708,7 +1708,7 @@ impl RenderOgl
                 for var i = curRT.paintAlphaIdx; i < cmdIdx; i += 1
                 {
                     let cmd1 = dc.commandBuffer[i]
-                    switch cmd1.id
+                    switch cmd1.op
                     {
                     case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0, .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect, .DrawTriangles: .executeCommand(dc, cmd1, cast(u64, i))
                     }

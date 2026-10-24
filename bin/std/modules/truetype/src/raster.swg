@@ -103,18 +103,18 @@ func buildEdges(outline: const *Outline)->Array'Edge
 
     for cmd in commands
     {
-        switch cmd.kind
+        switch cmd.op
         {
         case .MoveTo:
-            currentX = cmd.p0.x / 64.0
-            currentY = cmd.p0.y / 64.0
+            currentX = cmd.point.x / 64.0
+            currentY = cmd.point.y / 64.0
             havePos  = true
 
         case .LineTo:
             if havePos
             {
-                let x = cmd.p0.x / 64.0
-                let y = cmd.p0.y / 64.0
+                let x = cmd.point.x / 64.0
+                let y = cmd.point.y / 64.0
                 addEdge(&edges, currentX, currentY, x, y)
                 currentX = x
                 currentY = y
@@ -123,10 +123,10 @@ func buildEdges(outline: const *Outline)->Array'Edge
         case .ConicTo:
             if havePos
             {
-                let cx = cmd.p0.x / 64.0
-                let cy = cmd.p0.y / 64.0
-                let x  = cmd.p1.x / 64.0
-                let y  = cmd.p1.y / 64.0
+                let cx = cmd.conic.control.x / 64.0
+                let cy = cmd.conic.control.y / 64.0
+                let x  = cmd.conic.endPoint.x / 64.0
+                let y  = cmd.conic.endPoint.y / 64.0
                 flattenQuadratic(&edges, currentX, currentY, cx, cy, x, y, tolerance)
                 currentX = x
                 currentY = y
@@ -135,12 +135,12 @@ func buildEdges(outline: const *Outline)->Array'Edge
         case .CubicTo:
             if havePos
             {
-                let c0x = cmd.p0.x / 64.0
-                let c0y = cmd.p0.y / 64.0
-                let c1x = cmd.p1.x / 64.0
-                let c1y = cmd.p1.y / 64.0
-                let x   = cmd.p2.x / 64.0
-                let y   = cmd.p2.y / 64.0
+                let c0x = cmd.cubic.control0.x / 64.0
+                let c0y = cmd.cubic.control0.y / 64.0
+                let c1x = cmd.cubic.control1.x / 64.0
+                let c1y = cmd.cubic.control1.y / 64.0
+                let x   = cmd.cubic.endPoint.x / 64.0
+                let y   = cmd.cubic.endPoint.y / 64.0
                 flattenCubic(&edges, currentX, currentY, c0x, c0y, c1x, c1y, x, y, tolerance)
                 currentX = x
                 currentY = y

@@ -41,23 +41,23 @@ impl TypeFace
     {
         for cmd in commands
         {
-            switch cmd.kind
+            switch cmd.op
             {
             case .MoveTo:
                 let path = pathList.newPath()
-                path.start(cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
+                path.start(cmd.point.x / 64.0, -cmd.point.y / 64.0)
 
             case .LineTo:
                 let path = pathList.paths[pathList.paths.count - 1]
-                path.lineTo(cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
+                path.lineTo(cmd.point.x / 64.0, -cmd.point.y / 64.0)
 
             case .ConicTo:
                 let path = pathList.paths[pathList.paths.count - 1]
-                path.bezierTo(cmd.p1.x / 64.0, -cmd.p1.y / 64.0, cmd.p0.x / 64.0, -cmd.p0.y / 64.0)
+                path.bezierTo(cmd.conic.endPoint.x / 64.0, -cmd.conic.endPoint.y / 64.0, cmd.conic.control.x / 64.0, -cmd.conic.control.y / 64.0)
 
             case .CubicTo:
                 let path = pathList.paths[pathList.paths.count - 1]
-                path.bezierTo(cmd.p2.x / 64.0, -cmd.p2.y / 64.0, cmd.p0.x / 64.0, -cmd.p0.y / 64.0, cmd.p1.x / 64.0, -cmd.p1.y / 64.0)
+                path.bezierTo(cmd.cubic.endPoint.x / 64.0, -cmd.cubic.endPoint.y / 64.0, cmd.cubic.control0.x / 64.0, -cmd.cubic.control0.y / 64.0, cmd.cubic.control1.x / 64.0, -cmd.cubic.control1.y / 64.0)
             }
         }
     }

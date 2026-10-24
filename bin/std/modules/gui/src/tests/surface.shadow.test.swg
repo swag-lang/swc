@@ -35,7 +35,7 @@ using Swag, Core, Pixel
             Swag.assert(host.app.frameTrace.batches == withBorder)
 
             var simpleCopy: bool
-            for command in host.surface.painter.commandBuffer where command.id == .SetDefaultShader and command.defaultShader.id == .Simple do
+            for command in host.surface.painter.commandBuffer where command.op is .SetDefaultShader and command.defaultShader.id == .Simple do
                 simpleCopy = true
             Swag.assert(simpleCopy)
         }

@@ -23,7 +23,7 @@ func testTextPaintTransform(text: *FormText, tx, ty, z, renderScale: f32)->TextP
     cxt.renderScale = renderScale
     text.IForm.paint(&painter, cxt)
 
-    for cmd in painter.commandBuffer where cmd.id == .Transform
+    for cmd in painter.commandBuffer where cmd.op is .Transform
     {
         let tr      = cmd.transform.tr
         let weight  = Math.abs(tr.m11) + Math.abs(tr.m22) + Math.abs(tr.tx) + Math.abs(tr.ty)
@@ -220,7 +220,7 @@ func testAssertFormFitsItsMargin(itf: IForm)
 
     var minimum = Math.Vector2{Swag.F32.Max, Swag.F32.Max}
     var maximum = Math.Vector2{-Swag.F32.Max, -Swag.F32.Max}
-    for cmd in painter.commandBuffer where cmd.id == .DrawTriangles
+    for cmd in painter.commandBuffer where cmd.op is .DrawTriangles
     {
         for i in cmd.drawTriangles.count
         {

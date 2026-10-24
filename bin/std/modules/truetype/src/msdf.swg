@@ -257,17 +257,17 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
 
     for cmd in commands
     {
-        switch cmd.kind
+        switch cmd.op
         {
         case .MoveTo:
             contourElemStart.add(cast(u32, elements.count))
             contourSegStart.add(cast(u32, segs.count))
-            curX = cmd.p0.x / 64.0'f64
-            curY = cmd.p0.y / 64.0'f64
+            curX = cmd.point.x / 64.0'f64
+            curY = cmd.point.y / 64.0'f64
 
         case .LineTo:
-            let x = cmd.p0.x / 64.0'f64
-            let y = cmd.p0.y / 64.0'f64
+            let x = cmd.point.x / 64.0'f64
+            let y = cmd.point.y / 64.0'f64
 
             var el: MsdfElement
             el.firstSeg = cast(u32, segs.count)
@@ -283,10 +283,10 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
             curY = y
 
         case .ConicTo:
-            let cx = cmd.p0.x / 64.0'f64
-            let cy = cmd.p0.y / 64.0'f64
-            let x  = cmd.p1.x / 64.0'f64
-            let y  = cmd.p1.y / 64.0'f64
+            let cx = cmd.conic.control.x / 64.0'f64
+            let cy = cmd.conic.control.y / 64.0'f64
+            let x  = cmd.conic.endPoint.x / 64.0'f64
+            let y  = cmd.conic.endPoint.y / 64.0'f64
 
             var el: MsdfElement
             el.firstSeg = cast(u32, segs.count)
@@ -321,12 +321,12 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
             curY = y
 
         case .CubicTo:
-            let c0x = cmd.p0.x / 64.0'f64
-            let c0y = cmd.p0.y / 64.0'f64
-            let c1x = cmd.p1.x / 64.0'f64
-            let c1y = cmd.p1.y / 64.0'f64
-            let x   = cmd.p2.x / 64.0'f64
-            let y   = cmd.p2.y / 64.0'f64
+            let c0x = cmd.cubic.control0.x / 64.0'f64
+            let c0y = cmd.cubic.control0.y / 64.0'f64
+            let c1x = cmd.cubic.control1.x / 64.0'f64
+            let c1y = cmd.cubic.control1.y / 64.0'f64
+            let x   = cmd.cubic.endPoint.x / 64.0'f64
+            let y   = cmd.cubic.endPoint.y / 64.0'f64
 
             var el: MsdfElement
             el.firstSeg = cast(u32, segs.count)

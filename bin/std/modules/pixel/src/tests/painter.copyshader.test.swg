@@ -20,9 +20,9 @@ using Swag, Core
     var draws   = 0'u32
     for cmd in painter.commandBuffer
     {
-        if cmd.id == .SetDefaultShader do
+        if cmd.op is .SetDefaultShader do
             program = cmd.defaultShader.id
-        if cmd.id == .DrawTriangles
+        if cmd.op is .DrawTriangles
         {
             Swag.assert(program == (draws == 0 ? DefaultShaderId.Simple : DefaultShaderId.Default))
             draws += 1
@@ -55,7 +55,7 @@ using Swag, Core
 
         painter.drawTexture({0, 0, 64, 32}, texture)
         painter.end()
-        for cmd in painter.commandBuffer where cmd.id == .SetDefaultShader do
+        for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader do
             Swag.assert(cmd.defaultShader.id != .Simple)
     }
 }
@@ -72,7 +72,7 @@ using Swag, Core
     painter.drawTexture({0, 0, 64, 32}, texture)
     painter.end()
     var programs = 0'u32
-    for cmd in painter.commandBuffer where cmd.id == .SetDefaultShader
+    for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader
     {
         Swag.assert(cmd.defaultShader.id == .Simple)
         programs += 1
@@ -84,7 +84,7 @@ using Swag, Core
     painter.drawTexture({0, 0, 64, 32}, texture)
     painter.end()
     programs = 0
-    for cmd in painter.commandBuffer where cmd.id == .SetDefaultShader do
+    for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader do
         programs += 1
     Swag.assert(programs == 2)
 }
@@ -101,11 +101,11 @@ using Swag, Core
     var changed, rebound: bool
     for cmd in painter.commandBuffer
     {
-        if cmd.id == .SetDefaultShader do
+        if cmd.op is .SetDefaultShader do
             changed = true
-        if changed and cmd.id == .ResetTexture0 do
+        if changed and cmd.op is .ResetTexture0 do
             rebound = true
-        if changed and cmd.id == .DrawTriangles do
+        if changed and cmd.op is .DrawTriangles do
             Swag.assert(rebound)
     }
 

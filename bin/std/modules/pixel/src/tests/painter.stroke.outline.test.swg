@@ -191,7 +191,7 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
     var vertices = 0'u64
     for cmd in painter.commandBuffer
     {
-        if cmd.id != .DrawTriangles do
+        if not (cmd.op is .DrawTriangles) do
             continue
         for i in cmd.drawTriangles.count
         {
@@ -243,7 +243,7 @@ func outlineTestPen(outline: f32, cap: LineCapStyle, dash: DashStyle)->Pen
             // antialiasing reaches half a pixel past both.
             for cmd in painter.commandBuffer
             {
-                if cmd.id != .DrawTriangles do
+                if not (cmd.op is .DrawTriangles) do
                     continue
                 for i in cmd.drawTriangles.count
                 {

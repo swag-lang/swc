@@ -211,6 +211,43 @@ struct FontEffectParams
     }
 }
 
+// The vertex range a `DrawTriangles` command draws, with the bounds of the points it holds.
+struct TriangleBatch
+{
+    public
+    {
+        start: u32         // First vertex in the painter's vertex buffer.
+        count: u32         // Number of vertices, a multiple of three.
+        bbMin: Vector2     // Smallest coordinates of the points drawn.
+        bbMax: Vector2     // Largest coordinates of the points drawn.
+    }
+}
+
+// The paint source a `BindTexture0` command binds: what the brush samples, and how its
+// coordinates map onto the shapes drawn with it.
+struct BrushBinding
+{
+    public
+    {
+        boundRect:         Vector4               // Area the brush covers, as minimum and maximum corners.
+        textureRect:       Vector4               // Normalized texture rectangle sampled across that area.
+        type:              BrushType             // Kind of paint source.
+        hatch:             HatchStyle            // Pattern of a hatch brush.
+        uvMode:            UVMode                // How texture coordinates follow the bound area.
+        interpolationMode: InterpolationMode     // Texel filtering.
+        texture:           Texture               // Sampled texture, when the brush has one.
+        gradientStart:     Vector2               // Start point, or center, of a gradient.
+        gradientEnd:       Vector2               // End point of a linear gradient.
+        gradientRadius0:   f32                   // Inner radius of a radial gradient.
+        gradientRadius1:   f32                   // Outer radius of a radial gradient.
+        gradientAngle0:    f32                   // Start angle of a sweep gradient.
+        gradientAngle1:    f32                   // End angle of a sweep gradient.
+        gradientSpread:    GradientSpread        // How a gradient continues beyond its stops.
+        gradientStopStart: u64                   // First stop in the painter's gradient-stop table.
+        gradientStopCount: u64                   // Number of stops, or zero for no gradient.
+    }
+}
+
 // Stores one deferred painter command and its command-specific payload.
 //
 // This is the transport format consumed by Pixel renderers. Applications
@@ -219,64 +256,25 @@ struct Command
 {
     public
     {
-        id: CommandId     // Operation represented by the active union payload.
-
-        using params: union     // Command-specific payload selected by `id`; inactive members must not be read.
+        // Operation the command performs, with the parameters that operation reads.
+        using op: union(CommandId)
         {
-            clear:          struct{ color: Color }
-            drawTriangles:  struct{ start: u32, count: u32, bbMin: Vector2, bbMax: Vector2 }
-            transform:      struct{ tr: Transform2 }
-            clippingRect:   struct{ rect: Math.Rectangle }
-            clippingRegion: struct{ mode: ClippingMode }
-            font:           struct
-            {
-                late fontRef: *Font
-            }
-            blendingMode: struct{ mode: BlendingMode }
-            textureFont:  struct
-            {
-                late font:  *Font
-                atlasIndex: s32
-            }
-            colorMask: ColorMask
-            renderTgt: struct
-            {
-                late tgt:   *RenderTarget
-                paintAlpha: bool
-            }
-            defaultShader: struct{ id: DefaultShaderId, axis: s32, radius: f32, factor: s32 }
-            shader:        struct{ shader: *ShaderBase? }
-
-            shaderParam: struct
-            {
-                param:     ShaderParamHandle
-                late type: typeinfo
-                _f32:      f32
-                _s32:      s32
-            }
-
-            fontEffect: FontEffectParams
-
-            texture0: struct
-            {
-                boundRect:         Vector4
-                textureRect:       Vector4
-                type:              BrushType
-                hatch:             HatchStyle
-                uvMode:            UVMode
-                interpolationMode: InterpolationMode
-                texture:           Texture
-                gradientStart:     Vector2
-                gradientEnd:       Vector2
-                gradientRadius0:   f32
-                gradientRadius1:   f32
-                gradientAngle0:    f32
-                gradientAngle1:    f32
-                gradientSpread:    GradientSpread
-                gradientStopStart: u64
-                gradientStopCount: u64
-            }
-        }
+            case .Clear:                                       clear:          struct{ color: Color }
+            case .DrawTriangles:                               drawTriangles:  TriangleBatch
+            case .Transform:                                   transform:      struct{ tr: Transform2 }
+            case .SetClippingRect:                             clippingRect:   struct{ rect: Math.Rectangle }
+            case .StartClippingRegion, .SetClippingRegionMode: clippingRegion: struct{ mode: ClippingMode }
+            case .UpdateFont:                                  font:           struct{ fontRef: *Font }
+            case .SetBlendingMode:                             blendingMode:   struct{ mode: BlendingMode }
+            case .BindTextureFont:                             textureFont:    struct{ font: *Font, atlasIndex: s32 }
+            case .ColorMask:                                   colorMask:      ColorMask
+            case .BindRenderTarget, .ReleaseRenderTarget:      renderTgt:      struct{ tgt: *RenderTarget, paintAlpha: bool }
+            case .SetDefaultShader:                            defaultShader:  struct{ id: DefaultShaderId, axis: s32, radius: f32, factor: s32 }
+            case .SetShader:                                   shader:         struct{ shader: *ShaderBase? }
+            case .SetShaderParam:                              shaderParam:    struct{ param: ShaderParamHandle, type: typeinfo, _f32: f32, _s32: s32 }
+            case .SetFontEffect:                               fontEffect:     FontEffectParams
+            case .BindTexture0, .ReleaseTexture:               texture0:       BrushBinding
+        } = .ResetTexture0
     }
 }
 
@@ -564,7 +562,7 @@ impl Painter
             .lastTexture0Handle = cast(TextureHandle, 0)
             .lastTexture0Type   = .SolidColor
             .texture0Dirty      = false
-            discard .newCommand(.ResetTexture0, true)
+            .newCommand(.ResetTexture0, true).op = .ResetTexture0
         }
     }
 
@@ -578,7 +576,8 @@ impl Painter
             return
         }
 
-        let cmd    = .newCommand(.BindTexture0, true)
+        let cmd = .newCommand(.BindTexture0, true)
+        cmd.op = .BindTexture0
         let params = &cmd.texture0
 
         // A brush normally covers the shape it fills, which is what a paint source local to the
@@ -656,7 +655,7 @@ impl Painter
             .texture0Dirty  = true
         }
 
-        discard .newCommand(.StartFont, true)
+        .newCommand(.StartFont, true).op = .StartFont
     }
 
     private mtd startMsdfFont()
@@ -668,7 +667,7 @@ impl Painter
             .texture0Dirty  = true
         }
 
-        discard .newCommand(.StartMsdfFont, true)
+        .newCommand(.StartMsdfFont, true).op = .StartMsdfFont
     }
 
     private mtd endFont()
@@ -680,7 +679,7 @@ impl Painter
             .texture0Dirty  = true
         }
 
-        discard .newCommand(.EndFont, true)
+        .newCommand(.EndFont, true).op = .EndFont
     }
 
     // Set the MSDF font-effect uniforms for the following glyph runs. Emitted only
@@ -705,8 +704,7 @@ impl Painter
         .lastFontEffect = fx
         .hasFontEffect  = true
 
-        let cmd = .newCommand(.SetFontEffect, true)
-        cmd.fontEffect = fx
+        .newCommand(.SetFontEffect, true).op = .SetFontEffect{fx}
     }
 
     private mtd resetTextureFont()
@@ -716,7 +714,7 @@ impl Painter
         if not .hasTextureFont do
             return
         .hasTextureFont = false
-        discard .newCommand(.ResetTextureFont, true)
+        .newCommand(.ResetTextureFont, true).op = .ResetTextureFont
     }
 
     private mtd setTextureFont(font: *Font, atlasIndex: s32)
@@ -726,32 +724,27 @@ impl Painter
         if .hasTextureFont and .curTextureFont == font and .curTextureFontAtlas == atlasIndex do
             return
 
-        let cmd    = .newCommand(.BindTextureFont, true)
-        let params = &cmd.textureFont
-        params.font          = font
-        params.atlasIndex    = atlasIndex
+        .newCommand(.BindTextureFont, true).op = .BindTextureFont{font, atlasIndex}
         .hasTextureFont      = true
         .curTextureFont      = font
         .curTextureFontAtlas = atlasIndex
     }
 
-    private mtd pushTriangleCmd()->*Command
+    // The batch new triangles join: the last command when it already draws triangles, else a
+    // new one starting at the end of the vertex buffer.
+    private mtd pushTriangleBatch()->*TriangleBatch
     {
         if not .commandBuffer.isEmpty()
         {
             let last = .commandBuffer.storage() + .commandBuffer.count - 1
-            if last.id == CommandId.DrawTriangles do
-                return last
+            if last.op is .DrawTriangles do
+                return &last.drawTriangles
         }
 
-        let cmd = .newCommand(.DrawTriangles)
-        cmd.drawTriangles.start = cast(u32, .vertexBuffer.count)
-        cmd.drawTriangles.count = 0
-
         // An empty batch starts inverted, so the first point it takes in becomes both bounds.
-        cmd.drawTriangles.bbMin = {Swag.F32.Max, Swag.F32.Max}
-        cmd.drawTriangles.bbMax = {-Swag.F32.Max, -Swag.F32.Max}
-        return cmd
+        let cmd = .newCommand(.DrawTriangles)
+        cmd.op = .DrawTriangles{start: cast(u32, .vertexBuffer.count), bbMin: {Swag.F32.Max, Swag.F32.Max}, bbMax: {-Swag.F32.Max, -Swag.F32.Max}}
+        return &cmd.drawTriangles
     }
 
     // Grows a batch's bounds to hold one more point, in the space its vertices are recorded in.
@@ -761,9 +754,8 @@ impl Painter
     // channel and has to start that channel from zero, which without bounds means clearing the
     // whole clipping rectangle once per batch — the cost of the window for the width of a stroke.
     #[Swag.Safety(.All, false)]
-    private func expandBounds(cmd: *Command, pt: Vector2)
+    private func expandBounds(bb: *TriangleBatch, pt: Vector2)
     {
-        let bb = &cmd.drawTriangles
         bb.bbMin.x = Math.min(bb.bbMin.x, pt.x)
         bb.bbMin.y = Math.min(bb.bbMin.y, pt.y)
         bb.bbMax.x = Math.max(bb.bbMax.x, pt.x)
@@ -772,11 +764,11 @@ impl Painter
 
     private mtd pushTriangle(p1, p2, p3: Vector2, uv1, uv2, uv3: Vector2, color: Color)->u64
     {
-        let cmd = .pushTriangleCmd()
-        cmd.drawTriangles.count += 3
-        expandBounds(cmd, p1)
-        expandBounds(cmd, p2)
-        expandBounds(cmd, p3)
+        let batch = .pushTriangleBatch()
+        batch.count += 3
+        expandBounds(batch, p1)
+        expandBounds(batch, p2)
+        expandBounds(batch, p3)
 
         var ptr = .vertexBuffer.emplaceAddress(3)
         ptr.pos   = p1
@@ -799,11 +791,11 @@ impl Painter
 
     private mtd pushTriangle(p1, p2, p3: Vector2, color: Color)->u64
     {
-        let cmd = .pushTriangleCmd()
-        cmd.drawTriangles.count += 3
-        expandBounds(cmd, p1)
-        expandBounds(cmd, p2)
-        expandBounds(cmd, p3)
+        let batch = .pushTriangleBatch()
+        batch.count += 3
+        expandBounds(batch, p1)
+        expandBounds(batch, p2)
+        expandBounds(batch, p3)
 
         // 'uv' is unused by the non-text shaders (they derive their texture coordinates from the
         // boundRect / textureRect uniforms), but the vertex storage is reused from frame to frame,
@@ -834,12 +826,12 @@ impl Painter
     #[Swag.Safety(.All, false)]
     private mtd pushFringeQuad(innerA, outerA, innerB, outerB: Vector2, color: u32)
     {
-        let cmd = .pushTriangleCmd()
-        cmd.drawTriangles.count += 6
-        expandBounds(cmd, innerA)
-        expandBounds(cmd, outerA)
-        expandBounds(cmd, innerB)
-        expandBounds(cmd, outerB)
+        let batch = .pushTriangleBatch()
+        batch.count += 6
+        expandBounds(batch, innerA)
+        expandBounds(batch, outerA)
+        expandBounds(batch, innerB)
+        expandBounds(batch, outerB)
 
         var ptr = .vertexBuffer.emplaceAddress(6)
         ptr.pos   = innerA
@@ -887,12 +879,12 @@ impl Painter
         let w2 = p1 + extent
         let w3 = p0 + extent
 
-        let cmd = .pushTriangleCmd()
-        cmd.drawTriangles.count += 6
-        expandBounds(cmd, w0)
-        expandBounds(cmd, w1)
-        expandBounds(cmd, w2)
-        expandBounds(cmd, w3)
+        let batch = .pushTriangleBatch()
+        batch.count += 6
+        expandBounds(batch, w0)
+        expandBounds(batch, w1)
+        expandBounds(batch, w2)
+        expandBounds(batch, w3)
 
         let covNeg = StrokeCoverageBias - edge
         let covPos = StrokeCoverageBias + edge
@@ -1005,30 +997,29 @@ impl Painter
         .addEdgeAA(tri, start.x, start.y, end.x, end.y)
     }
 
+    // The command an operation writes into: the previous command when `replaceLast` finds the
+    // same operation there, else a new command at the end of the stream. The caller writes the
+    // operation and its parameters into it in one assignment.
     #[Swag.Inline]
-    private mtd newCommand(cmd: CommandId, replaceLast = false)->*Command
+    private mtd newCommand(op: CommandId, replaceLast = false)->*Command
     {
         Swag.assert(.drawingBegin, "begin() not called before")
 
-        // Take the previous command if it's the same
         if replaceLast and .commandBuffer.count
         {
-            let cmdBuf = .commandBuffer.storage()
-            if cmdBuf[.commandBuffer.count - 1].id == cmd do
-                return cmdBuf + .commandBuffer.count - 1
+            let last = .commandBuffer.storage() + .commandBuffer.count - 1
+            if Swag.kindOf(last.op) == op do
+                return last
         }
 
-        let ptr = .commandBuffer.emplaceAddress(1)
-        ptr.id = cmd
-        return ptr
+        return .commandBuffer.emplaceAddress(1)
     }
 
     private mtd updateFont(fontRef: *Font)
     {
         if not fontRef.cache.dirty do
             return
-        let cmd = .newCommand(.UpdateFont, false)
-        cmd.font.fontRef = fontRef
+        .newCommand(.UpdateFont).op = .UpdateFont{fontRef}
     }
 
     private mtd startOverlapMode(pen: Pen)
@@ -1043,7 +1034,7 @@ impl Painter
         if alpha and .curState.blendingMode == .Alpha
         {
             .overlapMode = true
-            discard .newCommand(.StartNoOverlap, true)
+            .newCommand(.StartNoOverlap, true).op = .StartNoOverlap
         }
     }
 
@@ -1052,7 +1043,7 @@ impl Painter
         if .overlapMode
         {
             .overlapMode = false
-            discard .newCommand(.StopNoOverlap, true)
+            .newCommand(.StopNoOverlap, true).op = .StopNoOverlap
         }
     }
 
@@ -1092,14 +1083,12 @@ impl Painter
         Swag.assert(.drawingBegin)
         for texture in .transientTextures
         {
-            let cmd = .newCommand(.ReleaseTexture, true)
-            cmd.texture0.texture = texture
+            .newCommand(.ReleaseTexture, true).op = .ReleaseTexture{texture: texture}
         }
 
         for target in .transientTargets
         {
-            let cmd = .newCommand(.ReleaseRenderTarget)
-            cmd.renderTgt.tgt = target
+            .newCommand(.ReleaseRenderTarget).op = .ReleaseRenderTarget{tgt: target}
         }
 
         .drawingBegin = false
@@ -1111,8 +1100,7 @@ impl Painter
     // when later blend equations need the cleared color to be an opaque backdrop.
     mtd clear(color: Color)
     {
-        let cmd = .newCommand(.Clear)
-        cmd.clear.color = color
+        .newCommand(.Clear).op = .Clear{color}
     }
 
     // Restores default transform, clipping, blending, interpolation, and color masks.
@@ -1315,8 +1303,7 @@ impl Painter
 
     private mtd emitTransform()
     {
-        let cmd = .newCommand(.Transform, true)
-        cmd.transform.tr = .curState.transform
+        .newCommand(.Transform, true).op = .Transform{.curState.transform}
     }
 
     // Returns the current path-to-surface transform.
@@ -1357,8 +1344,7 @@ impl Painter
     private mtd emitClippingRect()
     {
         .curState.clippingRectOn = true
-        let cmd = .newCommand(.SetClippingRect, true)
-        cmd.clippingRect.rect = .curState.clippingRect
+        .newCommand(.SetClippingRect, true).op = .SetClippingRect{.curState.clippingRect}
     }
 
     // Disables rectangular clipping and forgets every pushed clipping rectangle.
@@ -1368,7 +1354,7 @@ impl Painter
         {
             .curState.clippingRectOn = false
             .curState.stackClipRect.clear()
-            discard .newCommand(.ResetClippingRect, true)
+            .newCommand(.ResetClippingRect, true).op = .ResetClippingRect
         }
     }
 
@@ -1451,27 +1437,25 @@ impl Painter
     // ```
     mtd startClippingRegion(mode = ClippingMode.Set)
     {
-        let cmd = .newCommand(.StartClippingRegion, true)
-        cmd.clippingRegion.mode = mode
+        .newCommand(.StartClippingRegion, true).op = .StartClippingRegion{mode}
     }
 
     // Changes how what is drawn next joins the region being written.
     mtd setClippingRegionMode(mode: ClippingMode)
     {
-        let cmd = .newCommand(.SetClippingRegionMode, true)
-        cmd.clippingRegion.mode = mode
+        .newCommand(.SetClippingRegionMode, true).op = .SetClippingRegionMode{mode}
     }
 
     // Finishes the region and puts it into effect.
     mtd endClippingRegion()
     {
-        discard .newCommand(.EndClippingRegion, true)
+        .newCommand(.EndClippingRegion, true).op = .EndClippingRegion
     }
 
     // Lifts the clipping region.
     mtd resetClippingRegion()
     {
-        discard .newCommand(.ResetClippingRegion, true)
+        .newCommand(.ResetClippingRegion, true).op = .ResetClippingRegion
     }
 
     // Sets the color blend operation used by subsequent drawing commands.
@@ -1482,8 +1466,7 @@ impl Painter
     // [[Pixel.BlendingMode.Darken]] and [[Pixel.BlendingMode.Lighten]] when alpha is partial.
     mtd setBlendingMode(mode: BlendingMode)
     {
-        let cmd = .newCommand(.SetBlendingMode, true)
-        cmd.blendingMode.mode  = mode
+        .newCommand(.SetBlendingMode, true).op = .SetBlendingMode{mode}
         .curState.blendingMode = mode
     }
 
@@ -1507,20 +1490,14 @@ impl Painter
     // Sets the writable framebuffer channels from a mask value.
     mtd setColorMask(cm: ColorMask)
     {
-        let cmd = .newCommand(.ColorMask, true)
-        cmd.colorMask       = cm
+        .newCommand(.ColorMask, true).op = .ColorMask{cm}
         .curState.colorMask = cm
     }
 
     // Sets the writable red, green, blue, and alpha channels.
     mtd setColorMask(r, g, b, a: bool)
     {
-        let cmd = .newCommand(.ColorMask, true)
-        cmd.colorMask.r     = r
-        cmd.colorMask.g     = g
-        cmd.colorMask.b     = b
-        cmd.colorMask.a     = a
-        .curState.colorMask = cmd.colorMask
+        .setColorMask(ColorMask{r, g, b, a})
     }
 
     // Enables writes to RGB and disables writes to alpha.
@@ -1541,9 +1518,7 @@ impl Painter
     mtd bindRenderTarget(tgt: *RenderTarget, paintAlpha = false)
     {
         .pushState()
-        let cmd = .newCommand(.BindRenderTarget, true)
-        cmd.renderTgt.tgt        = tgt
-        cmd.renderTgt.paintAlpha = paintAlpha
+        .newCommand(.BindRenderTarget, true).op = .BindRenderTarget{tgt, paintAlpha}
         .resetState()
 
         if .curRT do
@@ -1556,7 +1531,7 @@ impl Painter
     // Restores the target and drawing state active before the matching [[Pixel.Painter.bindRenderTarget]].
     mtd unbindRenderTarget()
     {
-        discard .newCommand(.UnbindRenderTarget, true)
+        .newCommand(.UnbindRenderTarget, true).op = .UnbindRenderTarget
         .popState()
 
         if not .stackRT.isEmpty()
@@ -1590,8 +1565,7 @@ impl Painter
     {
         .usesDefaultShader = shader == null
         .texture0Dirty     = true
-        let cmd = .newCommand(.SetShader, true)
-        cmd.shader.shader = shader
+        .newCommand(.SetShader, true).op = .SetShader{shader}
     }
 
     // Selects the default antialiased or simple textured built-in program.
@@ -1603,11 +1577,7 @@ impl Painter
         Swag.assert(shader == .Default or shader == .Simple)
         .usesDefaultShader = shader == .Default
         .texture0Dirty     = true
-        let cmd = .newCommand(.SetDefaultShader, true)
-        cmd.defaultShader.id     = shader
-        cmd.defaultShader.axis   = 0
-        cmd.defaultShader.radius = 0
-        cmd.defaultShader.factor = 0
+        .newCommand(.SetDefaultShader, true).op = .SetDefaultShader{id: shader}
     }
 
     // Selects one separable blur pass.
@@ -1619,11 +1589,7 @@ impl Painter
         Swag.assert((axis == 0 or axis == 1) and radius > 0)
         .usesDefaultShader = false
         .texture0Dirty     = true
-        let cmd = .newCommand(.SetDefaultShader, true)
-        cmd.defaultShader.id     = .Blur
-        cmd.defaultShader.axis   = axis
-        cmd.defaultShader.radius = radius
-        cmd.defaultShader.factor = 0
+        .newCommand(.SetDefaultShader, true).op = .SetDefaultShader{id: .Blur, axis: axis, radius: radius}
     }
 
     // Selects the supersampling resolve program.
@@ -1634,28 +1600,18 @@ impl Painter
         Swag.assert(factor >= 1 and factor <= 8)
         .usesDefaultShader = false
         .texture0Dirty     = true
-        let cmd = .newCommand(.SetDefaultShader, true)
-        cmd.defaultShader.id     = .Resolve
-        cmd.defaultShader.axis   = 0
-        cmd.defaultShader.radius = 0
-        cmd.defaultShader.factor = factor
+        .newCommand(.SetDefaultShader, true).op = .SetDefaultShader{id: .Resolve, factor: factor}
     }
 
     // Records a new value for one uniform of the current custom shader.
     mtd setShaderParam(param: ShaderParamHandle, val: s32)
     {
-        let cmd = .newCommand(.SetShaderParam)
-        cmd.shaderParam.param = param
-        cmd.shaderParam.type  = s32
-        cmd.shaderParam._s32  = val
+        .newCommand(.SetShaderParam).op = .SetShaderParam{param: param, type: s32, _s32: val}
     }
 
     // Records a new floating-point value for one uniform of the current custom shader.
     mtd setShaderParam(param: ShaderParamHandle, val: f32)
     {
-        let cmd = .newCommand(.SetShaderParam)
-        cmd.shaderParam.param = param
-        cmd.shaderParam.type  = f32
-        cmd.shaderParam._f32  = val
+        .newCommand(.SetShaderParam).op = .SetShaderParam{param: param, type: f32, _f32: val}
     }
 }

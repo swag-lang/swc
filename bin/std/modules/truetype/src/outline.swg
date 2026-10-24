@@ -11,16 +11,18 @@ public enum OutlineCommandKind
 
 // Represents one path operation produced by [[TrueType.Outline.decompose]].
 //
-// Coordinates use 26.6 fixed-point pixels. The fields used by the command depend
-// on `kind`; unused points remain zero.
+// Coordinates use 26.6 fixed-point pixels. Each operation carries the points it uses.
 public struct OutlineCommand
 {
     public
     {
-        kind: OutlineCommandKind     // Operation represented by this value.
-        p0:   Vector     // Destination or first control point.
-        p1:   Vector     // Destination or second control point when required.
-        p2:   Vector     // Cubic destination when required.
+        // Operation represented by this value, with its points.
+        using op: union(OutlineCommandKind)
+        {
+            case .MoveTo, .LineTo: point: Vector     // Destination point.
+            case .ConicTo:         conic: struct{ control, endPoint: Vector }     // Quadratic Bézier control and endpoint.
+            case .CubicTo:         cubic: struct{ control0, control1, endPoint: Vector }     // Cubic Bézier controls and endpoint.
+        }
     }
 }
 
@@ -190,14 +192,14 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
         {
             startPoint = first
             current    = first
-            commands.add(OutlineCommand{kind: .MoveTo, p0: first})
+            commands.add(OutlineCommand{op: .MoveTo{first}})
             idx += 1
         }
         else
         {
             startPoint = lastOn ? last : midpoint(last, first)
             current    = startPoint
-            commands.add(OutlineCommand{kind: .MoveTo, p0: startPoint})
+            commands.add(OutlineCommand{op: .MoveTo{startPoint}})
         }
 
         while idx <= contourEnd
@@ -205,7 +207,7 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
             let point = points[idx]
             if isOnCurve(tags[idx])
             {
-                commands.add(OutlineCommand{kind: .LineTo, p0: point})
+                commands.add(OutlineCommand{op: .LineTo{point}})
                 current = point
                 idx     += 1
                 continue
@@ -219,7 +221,7 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
                 let secondIdx = idx + 1 > contourEnd ? contourStart : idx + 1
                 let endIdx    = idx + 2 > contourEnd ? contourStart : idx + 2
                 let endPoint  = idx + 2 > contourEnd ? startPoint : points[endIdx]
-                commands.add(OutlineCommand{kind: .CubicTo, p0: point, p1: points[secondIdx], p2: endPoint})
+                commands.add(OutlineCommand{op: .CubicTo{point, points[secondIdx], endPoint}})
                 current = endPoint
                 idx     += 3
                 continue
@@ -229,21 +231,21 @@ func buildOutlineCommands(outline: const *Outline)->Array'OutlineCommand
             let nextPt  = points[nextIdx]
             if isOnCurve(tags[nextIdx])
             {
-                commands.add(OutlineCommand{kind: .ConicTo, p0: point, p1: nextPt})
+                commands.add(OutlineCommand{op: .ConicTo{point, nextPt}})
                 current = nextPt
                 idx     += 2
             }
             else
             {
                 let mid = midpoint(point, nextPt)
-                commands.add(OutlineCommand{kind: .ConicTo, p0: point, p1: mid})
+                commands.add(OutlineCommand{op: .ConicTo{point, mid}})
                 current = mid
                 idx     += 1
             }
         }
 
         if not pointsEqual(current, startPoint) do
-            commands.add(OutlineCommand{kind: .LineTo, p0: startPoint})
+            commands.add(OutlineCommand{op: .LineTo{startPoint}})
 
         contourStart = contourEnd + 1
     }

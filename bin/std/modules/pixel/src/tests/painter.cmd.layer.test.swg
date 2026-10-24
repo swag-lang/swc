@@ -102,9 +102,9 @@ using Swag, Core
 
     var sawCopy:    bool
     var sawRelease: bool
-    for cmd in painter.commandBuffer where cmd.id == .SetBlendingMode and cmd.blendingMode.mode == .Copy do
+    for cmd in painter.commandBuffer where cmd.op is .SetBlendingMode and cmd.blendingMode.mode == .Copy do
         sawCopy = true
-    for cmd in painter.commandBuffer where cmd.id == .ReleaseRenderTarget do
+    for cmd in painter.commandBuffer where cmd.op is .ReleaseRenderTarget do
         sawRelease = true
     Swag.assert(sawCopy and sawRelease and layer.contentTarget == null)
 }

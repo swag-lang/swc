@@ -19,9 +19,9 @@ using Swag, Core
 
     let commands = buildOutlineCommands(&outline)
     Swag.assert(commands.count == 3)
-    Swag.assert(commands[0].kind == .MoveTo)
-    Swag.assert(commands[1].kind == .ConicTo)
-    Swag.assert(commands[2].kind == .LineTo)
+    Swag.assert(commands[0].op is .MoveTo)
+    Swag.assert(commands[1].op is .ConicTo)
+    Swag.assert(commands[2].op is .LineTo)
 }
 
 #test
@@ -40,7 +40,7 @@ using Swag, Core
     let commands = face.glyph.outline.decompose()
     for cmd in commands
     {
-        switch cmd.kind
+        switch cmd.op
         {
         case .MoveTo:  counter.moves += 1
         case .LineTo:  counter.lines += 1

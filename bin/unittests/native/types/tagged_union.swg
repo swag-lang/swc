@@ -187,3 +187,77 @@ struct Bounds
     Swag.assert(bounds.signed.min == -10)
     Swag.assert(#sizeof(Bounds) == 24)
 }
+
+// A named tagged union is a type of its own: it can be passed, returned and stored.
+enum ValueKind
+{
+    None
+    Number
+    Point
+}
+
+struct ValuePoint
+{
+    x, y: s32
+}
+
+union Value(ValueKind)
+{
+    case .Number: number: s32
+    case .Point:  point:  ValuePoint
+}
+
+func makePoint(x, y: s32)->Value
+{
+    return .Point{x: x, y: y}
+}
+
+func sum(value: Value)->s32
+{
+    switch value
+    {
+    case .Number:
+        return value.number
+    case .Point:
+        return value.point.x + value.point.y
+    default:
+        return 0
+    }
+}
+
+#test
+{
+    Swag.assert(sum(makePoint(2, 3)) == 5)
+
+    // Braces holding one value of the payload's own type hold that value as it is.
+    let p = ValuePoint{x: 4, y: 6}
+    var value: Value = .Point{p}
+    Swag.assert(sum(value) == 10)
+
+    value = .Number{7}
+    Swag.assert(sum(value) == 7)
+
+    var values: [3] Value = [.Number{1}, .Point{x: 1, y: 1}, .None]
+    var total = 0
+    for v in values do
+        total += sum(v)
+    Swag.assert(total == 3)
+}
+
+// A guard in 'where' proves the case in the body, and an inline call keeps the proof of its argument.
+#[Swag.Inline]
+func twice(v: s32)->s32 => v * 2
+
+#test
+{
+    var values: [3] Value = [.Number{1}, .Point{x: 5, y: 5}, .Number{2}]
+    var total = 0
+    for v in values where v is .Number do
+        total += twice(v.number)
+    Swag.assert(total == 6)
+
+    // A block pointer reaches the union as well as a plain one.
+    let first: [*] Value = &values[0]
+    if first is .Number do
+        Swag.assert(first.number == 1)
+}

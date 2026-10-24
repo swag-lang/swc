@@ -38,7 +38,7 @@ struct RenderCpu
         blendingMode: BlendingMode = Alpha
         colorMask:    ColorMask    = {true, true, true, false}
 
-        paintCommand:  Command
+        paint:         BrushBinding
         gradientStops: const [..] GradientStop?
         paintOn:       bool
         program:       u8
@@ -771,9 +771,8 @@ private impl RenderCpu
         return bilinearColor(c00, c10, c01, c11, tx, ty)
     }
 
-    func sampleSubRect(image: *Image, paintPos: Vector2, params: const *Command, contentScale: f32)->Color
+    func sampleSubRect(image: *Image, paintPos: Vector2, p: const *BrushBinding, contentScale: f32)->Color
     {
-        let p    = &params.texture0
         let minX = cast(s32, Math.floor(p.textureRect.x * image.width))
         let minY = cast(s32, Math.floor(p.textureRect.y * image.height))
         let maxX = cast(s32, Math.floor(p.textureRect.z * image.width))
@@ -886,9 +885,8 @@ private impl RenderCpu
         return Color.fromArgbF32(alpha, sumR / sumA, sumG / sumA, sumB / sumA)
     }
 
-    mtd sampleGradient(params: const *Command, paintPos: Vector2)->Color
+    mtd sampleGradient(p: const *BrushBinding, paintPos: Vector2)->Color
     {
-        let p = &params.texture0
         if p.gradientStopCount == 0 do
             return Color.fromArgb(Argb.White)
         let stops = .gradientStops!
@@ -959,7 +957,7 @@ private impl RenderCpu
     // them through [[RasterBatch.solidPaint]], because multiplying by opaque white is the identity.
     mtd samplePaintBatch(batch: *RasterBatch, paintPos: Vector2)->Color
     {
-        let p = &.paintCommand.texture0
+        let p = &.paint
         switch #complete p.type
         {
         case .SolidColor:
@@ -973,7 +971,7 @@ private impl RenderCpu
             if p.uvMode == .FillSubRect and
                .program != CpuProgram_Blur and
                .program != CpuProgram_Resolve do
-                return sampleSubRect(image, paintPos, &.paintCommand, .contentScale)
+                return sampleSubRect(image, paintPos, &.paint, .contentScale)
 
             let w      = Math.max(p.boundRect.z - p.boundRect.x, 0.000001)
             let h      = Math.max(p.boundRect.w - p.boundRect.y, 0.000001)
@@ -1007,7 +1005,7 @@ private impl RenderCpu
             return hatchPixel(p.hatch, x, y) ? Color.fromArgb(Argb.White) : Color.fromArgb(Argb.Zero)
 
         case .LinearGradient, .RadialGradient, .SweepGradient:
-            return .sampleGradient(&.paintCommand, paintPos)
+            return .sampleGradient(&.paint, paintPos)
         }
     }
 
@@ -1602,7 +1600,7 @@ private impl RenderCpu
         // paint kind, a switch on the pixel format, a multiply by opaque white and a Color
         // round trip on every pixel, to move three bytes. The address arithmetic is the same
         // expression the sampler evaluates, so the bytes stored are the same bytes.
-        let paint = &.paintCommand.texture0
+        let paint = &.paint
         let white = Color.fromArgb(Argb.White).argb
         if fastAlpha and
            not batch.solidPaint and
@@ -1868,13 +1866,13 @@ private impl RenderCpu
 
         batch.stencil = .currentStencil().storage()
 
-        batch.solidPaint      = not .paintOn or .paintCommand.texture0.type == .SolidColor
+        batch.solidPaint      = not .paintOn or .paint.type == .SolidColor
         batch.paintImage      = null
         batch.blurWeights     = null
         batch.blurWeightCount = 0
-        if .paintOn and .paintCommand.texture0.type == .Texture
+        if .paintOn and .paint.type == .Texture
         {
-            let storage = .findTexture(.paintCommand.texture0.texture.handle)
+            let storage = .findTexture(.paint.texture.handle)
             if storage do
                 batch.paintImage = &storage.image
         }
@@ -1912,7 +1910,7 @@ private impl RenderCpu
            target.pixelFormat != .BGRA8 do
             return false
 
-        let params = &.paintCommand.texture0
+        let params = &.paint
         if params.type != .Texture or
            params.uvMode != .FillSubRect or
            params.interpolationMode != .Pixel do
@@ -2246,7 +2244,7 @@ private impl RenderCpu
         for var i = first; i < last; i += 1
         {
             let replay = &painter.commandBuffer[i]
-            switch replay.id
+            switch replay.op
             {
             case .Transform, .StartFont, .StartMsdfFont, .EndFont, .ResetTexture0,
                  .BindTexture0, .ResetTextureFont, .BindTextureFont, .SetFontEffect,
@@ -2260,7 +2258,7 @@ private impl RenderCpu
 
     mtd executeCommand(painter: *Painter, cmd: const *Command, cmdIdx: u64)
     {
-        switch cmd.id
+        switch cmd.op
         {
         case .SetBlendingMode:
             .blendingMode = cmd.blendingMode.mode
@@ -2343,7 +2341,7 @@ private impl RenderCpu
             .paintOn = false
 
         case .BindTexture0:
-            .paintCommand = cmd[]
+            .paint = cmd.texture0
             if cmd.texture0.gradientStopCount do
                 .gradientStops = Swag.makeSlice(painter.gradientStops.buffer + cmd.texture0.gradientStopStart, cmd.texture0.gradientStopCount)
             else do

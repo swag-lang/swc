@@ -200,6 +200,17 @@ namespace
         return sym.isTagged() ? &sym : nullptr;
     }
 
+    bool isTaggedCasePayloadValue(Sema& sema, SpanRef spanArgsRef)
+    {
+        const AstNodeRef parentRef = sema.visit().parentNodeRef(0);
+        if (parentRef.isInvalid() || sema.node(parentRef).isNot(AstNodeId::TaggedUnionLiteral))
+            return false;
+
+        SmallVector<AstNodeRef> args;
+        AstNode::collectChildren(args, sema.ast(), spanArgsRef);
+        return args.size() == 1 && sema.node(args.front()).isNot(AstNodeId::NamedArgument);
+    }
+
     // Replaces the current node with a tagged union literal of 'caseRef'. The payload, when there is
     // one, is a node the literal owns; nothing the current node already analyzed is reused.
     Result restartAsTaggedUnionLiteral(Sema& sema, TypeRef unionTypeRef, ConstantRef caseRef, AstNodeRef payloadRef)
@@ -629,6 +640,20 @@ Result AstStructInitializerList::semaPostNode(Sema& sema) const
     // A tagged union value names its case; listing members would leave the tag unwritten.
     if (SemaTagged::unionOf(sema.ctx(), sema.viewType(nodeWhatRef).typeRef()))
         return SemaError::raise(sema, DiagnosticId::sema_err_tagged_union_literal, sema.curNodeRef());
+
+    // '.Case{value}' where the one positional value already is the payload: the braces of a
+    // case hold it as it is, instead of initializing its first field from it.
+    if (isTaggedCasePayloadValue(sema, spanArgsRef))
+    {
+        const AstNodeRef valueRef    = sema.ast().oneNode(spanArgsRef);
+        const TypeInfo&  valueType   = sema.typeMgr().get(sema.viewType(valueRef).typeRef()).unwrapAliasTypeOrSelf(sema.ctx());
+        const TypeInfo&  payloadType = sema.typeMgr().get(sema.viewType(nodeWhatRef).typeRef()).unwrapAliasTypeOrSelf(sema.ctx());
+        if (valueType.isStruct() && payloadType.isStruct() && &valueType.payloadSymStruct() == &payloadType.payloadSymStruct())
+        {
+            sema.setSubstitute(sema.curNodeRef(), valueRef);
+            return Result::Continue;
+        }
+    }
 
     SmallVector<AstNodeRef> children;
     AstNode::collectChildren(children, sema.ast(), spanArgsRef);

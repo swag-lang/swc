@@ -52,7 +52,7 @@ namespace
             return nullptr;
 
         const TypeInfo* type = &ctx.typeMgr().get(typeRef).unwrapAliasTypeOrSelf(ctx);
-        if (type->isValuePointer() || type->isReference())
+        if (type->isValuePointer() || type->isBlockPointer() || type->isReference())
             type = &ctx.typeMgr().get(type->payloadTypeRef()).unwrapAliasTypeOrSelf(ctx);
 
         return type->isStruct() ? &type->payloadSymStruct() : nullptr;
@@ -178,13 +178,23 @@ Result SemaTagged::contextUnion(Sema& sema, const SymbolStruct*& outTagged, Type
     if (bindingTypes.empty())
         return Result::Continue;
 
-    const SymbolStruct* tagged = unionOf(sema.ctx(), bindingTypes.back());
+    // An array literal lends its element type to the cases it lists.
+    TypeRef typeRef = bindingTypes.back();
+    while (typeRef.isValid())
+    {
+        const TypeInfo& type = sema.typeMgr().get(typeRef).unwrapAliasTypeOrSelf(sema.ctx());
+        if (!type.isArray())
+            break;
+        typeRef = type.payloadArrayElemTypeRef();
+    }
+
+    const SymbolStruct* tagged = unionOf(sema.ctx(), typeRef);
     if (!tagged)
         return Result::Continue;
 
     SWC_RESULT(waitUnion(sema, *tagged));
     outTagged       = tagged;
-    outUnionTypeRef = bindingTypes.back();
+    outUnionTypeRef = typeRef;
     return Result::Continue;
 }
 

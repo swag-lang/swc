@@ -184,9 +184,9 @@ private
 
         mtd dumpCommand(painter: const *Painter, cmd: const *Command)
         {
-            .body += fmtEnum(cmd.id)
+            .body += fmtEnum(Swag.kindOf(cmd.op))
 
-            switch cmd.id
+            switch cmd.op
             {
             case .Clear:
                 .body.appendFormat(" %", fmtColor(cmd.clear.color))
@@ -206,7 +206,7 @@ private
                 .dumpTriangles(painter, cmd.drawTriangles.start, cmd.drawTriangles.count)
 
             case .BindTexture0:
-                .dumpTexture0(painter, cmd)
+                .dumpTexture0(painter, &cmd.texture0)
 
             case .SetClippingRect:
                 let r = cmd.clippingRect.rect
@@ -244,15 +244,14 @@ private
                     .body += fmtF(cmd.shaderParam._f32)
 
             case .SetFontEffect:
-                .dumpFontEffect(cmd)
+                .dumpFontEffect(&cmd.fontEffect)
             }
 
             .body += "\n"
         }
 
-        mtd dumpTexture0(painter: const *Painter, cmd: const *Command)
+        mtd dumpTexture0(painter: const *Painter, p: const *BrushBinding)
         {
-            let p = &cmd.texture0
             .body.appendFormat(" % uv=% interp=%", fmtEnum(p.type), fmtEnum(p.uvMode), fmtEnum(p.interpolationMode))
 
             if p.type == .Hatch do
@@ -289,9 +288,8 @@ private
             }
         }
 
-        mtd dumpFontEffect(cmd: const *Command)
+        mtd dumpFontEffect(e: const *FontEffectParams)
         {
-            let e = &cmd.fontEffect
             if not e.enabled
             {
                 .body += " off"

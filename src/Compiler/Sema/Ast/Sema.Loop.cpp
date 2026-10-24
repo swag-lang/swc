@@ -486,6 +486,19 @@ Result AstForeachStmt::semaPreNodeChild(Sema& sema, const AstNodeRef& childRef) 
         sema.setSymbolList(sema.curNodeRef(), pl.localSymbols.span());
     }
 
+    // The body only sees elements the 'where' guard accepted, so what the guard proves holds there.
+    if (childRef == nodeBodyRef && nodeWhereRef.isValid())
+    {
+        SemaHelpers::NarrowGuards guards;
+        SemaHelpers::collectNarrowGuards(sema, nodeWhereRef, guards);
+        if (!guards.whenTrue.empty())
+        {
+            SemaFrame frame = sema.frame();
+            SemaHelpers::addNarrowFacts(frame, {guards.whenTrue.data(), guards.whenTrue.size()});
+            sema.pushFramePopOnPostChild(std::move(frame), childRef);
+        }
+    }
+
     if (childRef == nodeBodyRef)
         sema.pushEscapeBranch();
 

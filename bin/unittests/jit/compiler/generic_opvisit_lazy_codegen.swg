@@ -199,7 +199,7 @@ namespace GenericForeachLazyCodegen
         var ptrs   = makePtrBox()
         let ptrsOk = ptrs.nonNullIndexSum() == 4
         for ptr in ptrs.values.toSlice() where ptr != null do
-            testFree(ptr!)
+            testFree(ptr)
         ptrs.free()
 
         return intsOk and boolsOk and ptrsOk

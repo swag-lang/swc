@@ -19,6 +19,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaReexpandExpr.h"
 #include "Compiler/Sema/Helpers/SemaRuntime.h"
+#include "Compiler/Sema/Helpers/SemaTagged.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
@@ -1735,6 +1736,11 @@ namespace
 
         SmallVector4<const Symbol*> path;
         if (SemaHelpers::extractNarrowPath(sema, nodeRef, path) && sema.frame().queryNarrowFact({path.data(), path.size()}, SemaNarrowFactKind::NonNull))
+            return true;
+
+        // A tagged-union payload read rests on the case proof of the caller's flow.
+        const Symbol* symbol = sema.viewSymbol(nodeRef).singleSymbol();
+        if (symbol && symbol->isVariable() && SemaTagged::ownerUnion(symbol->cast<SymbolVariable>()))
             return true;
 
         SmallVector<AstNodeRef> children;

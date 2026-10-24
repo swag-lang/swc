@@ -11,8 +11,21 @@ namespace
     template<typename T>
     __forceinline void appendLittleEndian(ByteArray::Storage& bytes, const T value)
     {
+        std::array<std::byte, sizeof(T)> appendedBytes;
         for (uint32_t i = 0; i < sizeof(T); ++i)
-            bytes.push_back(static_cast<std::byte>((value >> (i * 8)) & 0xFF));
+            appendedBytes[i] = static_cast<std::byte>((value >> (i * 8)) & 0xFF);
+
+        bytes.insert(bytes.end(), appendedBytes.begin(), appendedBytes.end());
+    }
+
+    __forceinline void appendBigEndian(ByteArray::Storage& bytes, const uint32_t value)
+    {
+        const std::array appendedBytes{
+            static_cast<std::byte>((value >> 24) & 0xFF),
+            static_cast<std::byte>((value >> 16) & 0xFF),
+            static_cast<std::byte>((value >> 8) & 0xFF),
+            static_cast<std::byte>(value & 0xFF)};
+        bytes.insert(bytes.end(), appendedBytes.begin(), appendedBytes.end());
     }
 
     template<typename T>
@@ -290,8 +303,7 @@ void ByteArray::appendCString(const std::string_view text)
 
 void ByteArray::appendLe16(const uint16_t value)
 {
-    pushBack(static_cast<std::byte>(value & 0xFF));
-    pushBack(static_cast<std::byte>((value >> 8) & 0xFF));
+    appendLittleEndian(storage_, value);
 }
 
 void ByteArray::appendLe32(const uint32_t value)
@@ -306,10 +318,7 @@ void ByteArray::appendLe64(const uint64_t value)
 
 void ByteArray::appendBe32(const uint32_t value)
 {
-    pushBack(static_cast<std::byte>((value >> 24) & 0xFF));
-    pushBack(static_cast<std::byte>((value >> 16) & 0xFF));
-    pushBack(static_cast<std::byte>((value >> 8) & 0xFF));
-    pushBack(static_cast<std::byte>(value & 0xFF));
+    appendBigEndian(storage_, value);
 }
 
 void ByteArray::appendUtf16Le(const std::string_view text)

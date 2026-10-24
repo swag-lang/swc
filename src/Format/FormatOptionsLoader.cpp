@@ -83,6 +83,9 @@ namespace
         };
         schema.addEnum("bin-pack-arguments", &options.binPackArguments, binPackChoices, "Choose how call arguments span lines");
         schema.addEnum("bin-pack-parameters", &options.binPackParameters, binPackChoices, "Choose how declaration parameters span lines");
+        schema.addEnum("bin-pack-case-values", &options.binPackCaseValues, binPackChoices, "Choose how values share lines in a wrapped `case` list");
+        schema.addEnum("case-values-wrap", &options.caseValuesWrap, {{"preserve", FormatCaseValuesWrap::Preserve}, {"column-limit", FormatCaseValuesWrap::ColumnLimit}, {"always", FormatCaseValuesWrap::Always}}, "Choose whether `case` value lists keep their breaks, wrap at their column limit, or always span multiple lines");
+        schema.add("case-values-column-limit", &options.caseValuesColumnLimit, "Set the wrapping column for `case` value lists, including indentation; exclude guards and bodies, and use 0 to disable the width limit");
 
         const std::initializer_list<std::pair<const char*, FormatListLayout>> listLayoutChoices = {
             {"preserve", FormatListLayout::Preserve},

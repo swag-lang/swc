@@ -846,7 +846,8 @@ impl HtmlComputedStyle
             switch name
             {
             case "monospace", "ui-monospace", "consolas", "menlo", "courier", "courier new",
-                 "cascadia mono", "cascadia code", "sfmono-regular", "dejavu sans mono", "liberation mono":
+                 "cascadia mono", "cascadia code", "sfmono-regular", "dejavu sans mono",
+                 "liberation mono":
                 result.kind    = .Mono
                 result.matched = true
                 return result
@@ -862,7 +863,8 @@ impl HtmlComputedStyle
                 result.matched = true
                 return result
 
-            case "cjk", "cjk-sans", "yu gothic", "yu gothic ui", "meiryo", "hiragino sans", "hiragino kaku gothic":
+            case "cjk", "cjk-sans", "yu gothic", "yu gothic ui", "meiryo", "hiragino sans",
+                 "hiragino kaku gothic":
                 result.kind    = .Cjk
                 result.matched = true
                 return result
@@ -897,7 +899,9 @@ impl HtmlComputedStyle
             {
                 switch text
                 {
-                case "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large", "smaller", "larger": isSize = true
+                case "xx-small", "x-small", "small", "medium", "large", "x-large", "xx-large",
+                     "smaller", "larger":
+                    isSize = true
                 }
             }
 

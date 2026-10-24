@@ -152,6 +152,7 @@ namespace
             wrapLongLines();
             finishLists();
             finishLogicalExpressions();
+            wrapCaseValues();
 
             // The repair replays the records in source order, so the ones this
             // pass appended have to be merged back into the indent pass's.
@@ -1715,6 +1716,72 @@ namespace
                 {
                     if (model_->gapHasNewline(boundary) && FormatPassUtil::canEditGap(*model_, boundary))
                         model_->hangingLines().push_back({boundary, state.firstPiece, 0});
+                }
+            }
+        }
+
+        uint32_t caseValueEndColumn(const FormatCaseValues& values, const size_t index, uint32_t column) const
+        {
+            const uint32_t first    = values.items[index];
+            const uint32_t last     = index + 1 < values.items.size() ? model_->prevPiece(values.items[index + 1]) : values.lastValuePiece;
+            const uint32_t tabWidth = std::max(options_->tabWidth, 1u);
+            for (uint32_t p = first; p != INVALID_PIECE && p <= last; p = model_->nextPiece(p))
+            {
+                const FormatPiece& piece = model_->piece(p);
+                // Comments and multiline expressions keep their authored grouping.
+                if (piece.isComment || textHasNewline(piece.text) || (p != first && model_->gapHasNewline(p)))
+                    return UINT32_MAX;
+                if (p != first)
+                    column += model_->gapColumns(p);
+                column += FormatModel::textColumns(piece.text, tabWidth, column);
+            }
+
+            // Reserve the label colon, but do not let a guard or body trigger value wrapping.
+            return index + 1 == values.items.size() ? column + 1 : column;
+        }
+
+        void wrapCaseValues() const
+        {
+            const FormatCaseValuesWrap mode  = options_->caseValuesWrap;
+            const uint32_t             limit = options_->caseValuesColumnLimit;
+            if (mode == FormatCaseValuesWrap::Preserve || (mode == FormatCaseValuesWrap::ColumnLimit && limit == 0))
+                return;
+
+            for (const FormatCaseValues& values : model_->caseValues())
+            {
+                if (!model_->rangeEditable(values.labelPiece, values.colonPiece))
+                    continue;
+
+                const uint32_t firstColumn = pieceColumn(values.items.front());
+                if (firstColumn == UINT32_MAX)
+                    continue;
+
+                uint32_t flatEnd = firstColumn;
+                for (size_t i = 0; i < values.items.size() && flatEnd != UINT32_MAX; ++i)
+                    flatEnd = caseValueEndColumn(values, i, flatEnd + (i ? spacesAfterComma() : 0));
+                if (flatEnd == UINT32_MAX || (mode != FormatCaseValuesWrap::Always && flatEnd <= limit))
+                    continue;
+
+                const Utf8 indent = FormatPassUtil::indentForColumns(*model_, firstColumn);
+                uint32_t   end    = caseValueEndColumn(values, 0, firstColumn);
+                for (size_t i = 1; i < values.items.size(); ++i)
+                {
+                    const uint32_t item       = values.items[i];
+                    const uint32_t packedEnd  = caseValueEndColumn(values, i, end + spacesAfterComma());
+                    const bool     keepBreak  = options_->binPackCaseValues == FormatBinPackStyle::Preserve && model_->gapHasNewline(item);
+                    const bool     forceBreak = options_->binPackCaseValues == FormatBinPackStyle::OnePerLine ||
+                                            (mode == FormatCaseValuesWrap::Always && i == 1 && (!limit || flatEnd <= limit));
+                    if (keepBreak || forceBreak || (limit && packedEnd > limit))
+                    {
+                        model_->setGapBreak(item, 1, indent.view());
+                        end = caseValueEndColumn(values, i, firstColumn);
+                        model_->hangingLines().push_back({item, values.items.front(), 0});
+                    }
+                    else
+                    {
+                        model_->setGapSpaces(item, spacesAfterComma());
+                        end = packedEnd;
+                    }
                 }
             }
         }

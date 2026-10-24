@@ -50,7 +50,8 @@ A `case` can match multiple values, simplifying logic when several values share 
     {
     case 2,
          4,
-         6: Swag.assert(true)
+         6:
+        Swag.assert(true)
 
     default: Swag.assert(false)
     }

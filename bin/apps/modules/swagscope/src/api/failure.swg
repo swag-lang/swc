@@ -19,7 +19,11 @@ func failureText(err: any?)->String
     switch err
     {
     case Errors.FileNotFoundError: result = texts.ui_FailureNotFound
-    case Errors.InvalidFormatError, Errors.UnsupportedFormatError, Errors.InvalidVersion, Errors.SerializationError, Errors.SyntaxError, Errors.ParseIncompleteError: result = texts.ui_FailureFormat
+
+    case Errors.InvalidFormatError, Errors.UnsupportedFormatError, Errors.InvalidVersion,
+         Errors.SerializationError, Errors.SyntaxError, Errors.ParseIncompleteError:
+        result = texts.ui_FailureFormat
+
     default: result = texts.ui_FailureUnreadable
     }
 

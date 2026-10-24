@@ -699,6 +699,40 @@ namespace
             model_->functionBodies().push_back(body);
         }
 
+        void classifyCaseLabel(const uint32_t label, const SpanRef expressionsRef, const AstNodeRef whereRef)
+        {
+            addRole(label, FormatRoleE::CaseLabel);
+            addRole(label, FormatRoleE::ControlKeyword);
+
+            SmallVector<AstNodeRef> expressions;
+            AstNode::collectChildren(expressions, *ast_, expressionsRef);
+
+            FormatCaseValues values;
+            values.labelPiece  = label;
+            uint32_t separator = label;
+            NodeSpan header    = {label, label};
+            for (const AstNodeRef expr : expressions)
+            {
+                header = spanOf(expr);
+                if (!header.valid())
+                    break;
+                // Spans can omit grouping parentheses and closing call brackets.
+                values.items.push_back(nextCode(separator));
+                separator             = nextCodeAfterOperand(header.maxPiece);
+                values.lastValuePiece = prevCode(separator);
+            }
+
+            if (whereRef.isValid())
+                header = spanOf(whereRef);
+            const uint32_t colon = header.valid() ? nextCodeAfterOperandIf(header.maxPiece, TokenId::SymColon) : INVALID_PIECE;
+            addRole(colon, FormatRoleE::CaseColon);
+            if (colon != INVALID_PIECE && values.items.size() > 1 && values.items.size() == expressions.size())
+            {
+                values.colonPiece = colon;
+                model_->caseValues().push_back(std::move(values));
+            }
+        }
+
         void markStatementStarts(const AstNode& node)
         {
             SmallVector<AstNodeRef> children;
@@ -899,29 +933,8 @@ namespace
 
                 case AstNodeId::SwitchCaseStmt:
                 {
-                    addRole(span.minPiece, FormatRoleE::CaseLabel);
-                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
-
-                    // The label colon: first `:` at the label's depth.
-                    if (span.valid())
-                    {
-                        const uint32_t depth = model_->piece(span.minPiece).depth;
-                        uint32_t       colon = INVALID_PIECE;
-                        for (uint32_t i = model_->nextPiece(span.minPiece); i != INVALID_PIECE && i <= span.maxPiece; i = model_->nextPiece(i))
-                        {
-                            const FormatPiece& piece = model_->piece(i);
-                            if (piece.is(TokenId::SymColon) && piece.depth == depth)
-                            {
-                                colon = i;
-                                break;
-                            }
-                        }
-
-                        if (colon == INVALID_PIECE)
-                            colon = nextCodeIf(span.maxPiece, TokenId::SymColon);
-
-                        addRole(colon, FormatRoleE::CaseColon);
-                    }
+                    const auto& stmt = node.cast<AstSwitchCaseStmt>();
+                    classifyCaseLabel(span.minPiece, stmt.spanExprRef, stmt.nodeWhereRef);
                     break;
                 }
 
@@ -1216,26 +1229,8 @@ namespace
 
                 case AstNodeId::CompilerSwitchCase:
                 {
-                    addRole(span.minPiece, FormatRoleE::CaseLabel);
-                    addRole(span.minPiece, FormatRoleE::ControlKeyword);
-
-                    const uint32_t depth = model_->piece(span.minPiece).depth;
-                    uint32_t       colon = INVALID_PIECE;
-                    for (uint32_t i = model_->nextPiece(span.minPiece); i != INVALID_PIECE; i = model_->nextPiece(i))
-                    {
-                        const FormatPiece& piece = model_->piece(i);
-                        if (piece.depth < depth ||
-                            (piece.depth == depth && (piece.is(TokenId::KwdCase) || piece.is(TokenId::KwdDefault) || piece.is(TokenId::SymRightCurly))))
-                            break;
-
-                        if (piece.is(TokenId::SymColon) && piece.depth == depth)
-                        {
-                            colon = i;
-                            break;
-                        }
-                    }
-
-                    addRole(colon, FormatRoleE::CaseColon);
+                    const auto& stmt = node.cast<AstCompilerSwitchCase>();
+                    classifyCaseLabel(span.minPiece, stmt.spanExprRef, AstNodeRef::invalid());
                     break;
                 }
 

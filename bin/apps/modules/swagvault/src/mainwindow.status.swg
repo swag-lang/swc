@@ -56,32 +56,18 @@ impl MainWindow
     {
         switch #complete .statusMessage
         {
-        case .Randomizing,
-             .StopRequested,
-             .StartingDriver,
-             .Unmounting,
-             .Mounted,
-             .MountedReadOnly,
-             .MountedProtected,
-             .Resizing,
-             .Camouflaging,
-             .ChangingPassword,
-             .ChangingKeyFiles: return .Active
+        case .Randomizing, .StopRequested, .StartingDriver, .Unmounting, .Mounted, .MountedReadOnly,
+             .MountedProtected, .Resizing, .Camouflaging, .ChangingPassword, .ChangingKeyFiles:
+            return .Active
 
-        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .KeyFilesStopped, .AutoUnmountStopped: return .Stopped
+        case .CreateStopped, .MountStopped, .ResizeStopped, .PasswordStopped, .KeyFilesStopped,
+             .AutoUnmountStopped:
+            return .Stopped
 
-        case .Ready,
-             .CreateCanceled,
-             .HiddenCreateCanceled,
-             .Created,
-             .Unmounted,
-             .ResizeCanceled,
-             .Resized,
-             .Camouflaged,
-             .AutoUnmounted,
-             .PasswordChanged,
-             .PasswordRemoved,
-             .KeyFilesChanged: return .Idle
+        case .Ready, .CreateCanceled, .HiddenCreateCanceled, .Created, .Unmounted, .ResizeCanceled,
+             .Resized, .Camouflaged, .AutoUnmounted, .PasswordChanged, .PasswordRemoved,
+             .KeyFilesChanged:
+            return .Idle
         }
     }
 

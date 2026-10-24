@@ -145,7 +145,10 @@ internal impl BlendingMode
     {
         switch me
         {
-        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity: return true
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight,
+             .SoftLight, .Difference, .Exclusion, .Hue, .Saturation, .Color, .Luminosity:
+            return true
+
         default: return false
         }
     }
@@ -154,7 +157,10 @@ internal impl BlendingMode
     {
         switch me
         {
-        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight, .SoftLight, .Difference, .Exclusion: return true
+        case .Multiply, .Screen, .Overlay, .Darken, .Lighten, .ColorDodge, .ColorBurn, .HardLight,
+             .SoftLight, .Difference, .Exclusion:
+            return true
+
         default: return false
         }
     }

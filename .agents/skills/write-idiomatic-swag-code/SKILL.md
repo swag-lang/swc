@@ -257,6 +257,16 @@ continuations, declaration columns, or trailing comments by hand, then read its 
 For a vertical argument or parameter list, place the second item on its own line: the default
 source-selected layout can join later breaks when the first two items share a source line.
 
+The canonical style also wraps `case` value lists beyond 100 columns, including indentation
+and the final colon but excluding guards and bodies. It packs several whole values per line
+and aligns continuations under the first value; a multiline label puts its own body on the
+next line while short sibling branches stay compact. Short lists keep their authored breaks, and comments or multiline
+value expressions keep their grouping. Configure `case-values-wrap` (`preserve`, `column-limit`,
+or `always`), `case-values-column-limit` (`0` disables the width limit), and
+`bin-pack-case-values` (`preserve`, `pack`, or `one-per-line`) independently. `always` keeps at
+least one break even when the values fit; combine it with `one-per-line` to put every value on
+its own line.
+
 For byte assembly and extraction, prefer `Math.make16`, `Math.make32`, `Math.make64`, and
 `Math.byteAt` when they express the operation directly. Assembly arguments run from most to
 least significant; byte index zero is least significant. These are numeric operations, not

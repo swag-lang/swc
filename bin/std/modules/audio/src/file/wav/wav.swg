@@ -325,7 +325,8 @@ private func readLayout(stream: *File.FileStream)->Layout fail
                 return result
             }
 
-        case .SND_WAV_FOURCC_cue, .SND_WAV_FOURCC_LIST, .SND_WAV_FOURCC_labl, .SND_WAV_FOURCC_note, .SND_WAV_FOURCC_ltxt, .SND_WAV_FOURCC_bext:
+        case .SND_WAV_FOURCC_cue, .SND_WAV_FOURCC_LIST, .SND_WAV_FOURCC_labl, .SND_WAV_FOURCC_note,
+             .SND_WAV_FOURCC_ltxt, .SND_WAV_FOURCC_bext:
             try stream.skip(header.chunkSize)
 
         default:

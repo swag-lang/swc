@@ -106,9 +106,9 @@ impl HtmlStyleResolver
 
         switch node.tag
         {
-        case .Html, .Div, .Section, .Article, .Aside, .Nav, .Header, .Footer, .Main,
-             .HGroup, .Address, .FieldSet, .Form, .Details, .Summary, .FigCaption, .Legend,
-             .Dt, .Dd, .Output, .Picture:
+        case .Html, .Div, .Section, .Article, .Aside, .Nav, .Header, .Footer, .Main, .HGroup,
+             .Address, .FieldSet, .Form, .Details, .Summary, .FigCaption, .Legend, .Dt, .Dd,
+             .Output, .Picture:
             style.display = .Block
 
         case .Body:
@@ -272,7 +272,8 @@ impl HtmlStyleResolver
             style.display   = .TableCaption
             style.textAlign = .Center
 
-        case .Img, .Button, .Select, .TextArea, .Progress, .Embed, .Canvas, .Video, .Object, .IFrame:
+        case .Img, .Button, .Select, .TextArea, .Progress, .Embed, .Canvas, .Video, .Object,
+             .IFrame:
             style.display = .InlineBlock
 
         case .Input:
@@ -295,7 +296,8 @@ impl HtmlStyleResolver
         case .ColGroup, .Col:
             style.display = .TableColumnGroup
 
-        case .Head, .Style, .Script, .Title, .Meta, .Link, .Template, .Base, .Param, .Source, .Track:
+        case .Head, .Style, .Script, .Title, .Meta, .Link, .Template, .Base, .Param, .Source,
+             .Track:
             style.display = .None
 
         case .Span, .Label, .Abbr, .Time, .Q, .Ruby, .Rt, .Rp, .NoScript, .Svg, .Br, .Wbr:

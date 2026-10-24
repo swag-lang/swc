@@ -261,6 +261,11 @@ namespace
             applyBreakBeforeWhere();
         }
 
+        void runCaseBodies() const
+        {
+            runShortCases();
+        }
+
     private:
         enum class SiblingLayout : uint8_t
         {
@@ -590,19 +595,32 @@ namespace
 
         struct CaseArm
         {
+            uint32_t label = INVALID_PIECE; // the owning `case` / `default`
             uint32_t colon = INVALID_PIECE; // the `:` of the label
             uint32_t body  = INVALID_PIECE; // first body piece (INVALID when the arm is empty)
 
-            bool editable   = false;
-            bool oneLine    = false; // body shares the label line
-            bool joinable   = false; // single one-line statement, no comments, no braces
-            bool splittable = false; // plain statement body (braced / commented arms keep their layout)
+            bool editable       = false;
+            bool oneLine        = false; // body shares the label line
+            bool joinable       = false; // single one-line statement, no comments, no braces
+            bool splittable     = false; // plain statement body (braced / commented arms keep their layout)
+            bool multilineLabel = false;
         };
 
         CaseArm analyzeArm(const uint32_t colonPiece) const
         {
             CaseArm arm;
             arm.colon = colonPiece;
+            for (uint32_t p = colonPiece; p != INVALID_PIECE; p = model_->prevPiece(p))
+            {
+                const FormatPiece& piece = model_->piece(p);
+                if (piece.hasRole(FormatRoleE::CaseLabel) && piece.depth == model_->piece(colonPiece).depth)
+                {
+                    arm.label = p;
+                    break;
+                }
+                arm.multilineLabel |= options_->caseValuesWrap != FormatCaseValuesWrap::Preserve && model_->gapHasNewline(p);
+            }
+            SWC_ASSERT(arm.label != INVALID_PIECE);
 
             const uint32_t body = model_->nextPiece(colonPiece);
             if (body == INVALID_PIECE)
@@ -660,7 +678,7 @@ namespace
         void splitArm(const CaseArm& arm) const
         {
             if (arm.editable && arm.oneLine && arm.splittable)
-                model_->setGapBreak(arm.body, 1, FormatPassUtil::indentPlusOne(*model_, model_->lineIndentOf(arm.colon)).view());
+                model_->setGapBreak(arm.body, 1, FormatPassUtil::indentPlusOne(*model_, model_->lineIndentOf(arm.label)).view());
         }
 
         void joinArm(const CaseArm& arm) const
@@ -719,7 +737,7 @@ namespace
 
                         for (const CaseArm& arm : arms)
                         {
-                            if (allShort)
+                            if (allShort && !arm.multilineLabel)
                                 joinArm(arm);
                             else
                                 splitArm(arm);
@@ -1080,6 +1098,12 @@ namespace FormatPass
     void braces(FormatModel& model)
     {
         BracesPass(model).runBraces();
+    }
+
+    void caseBodies(FormatModel& model)
+    {
+        if (model.options().caseValuesWrap != FormatCaseValuesWrap::Preserve)
+            BracesPass(model).runCaseBodies();
     }
 }
 

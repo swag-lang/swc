@@ -756,11 +756,8 @@ namespace
 
         // A statically initialized function value is reached from writable data rather than from
         // an instruction or a read-only constant. Keep each such target as an independent root.
-        for (const DataSegmentRelocation& relocation : compiler.globalInitSegment().copyRelocations())
-        {
-            if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
-                appendExecutableRoot(functions, const_cast<SymbolFunction*>(relocation.targetSymbol));
-        }
+        for (const SymbolFunction* target : compiler.globalInitSegment().copyFunctionRelocationTargets())
+            appendExecutableRoot(functions, const_cast<SymbolFunction*>(target));
 
         appendExecutableRoots(functions, compiler.nativeGlobalFunctionInitTargetsSnapshot());
         filterPreparedSymbols(functions, builder);

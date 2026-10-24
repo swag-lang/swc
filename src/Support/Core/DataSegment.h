@@ -125,6 +125,8 @@ public:
     void restoreFromPreserveOffsets(std::span<const std::byte> src) const;
 
     std::vector<DataSegmentRelocation> copyRelocations() const;
+    // Copies only targets of function-symbol relocations, in relocation order.
+    std::vector<const SymbolFunction*> copyFunctionRelocationTargets() const;
 
     // Identity of this segment, and how many relocations it has taken. Together they let a reader
     // remember what a given offset resolved to and know, in one comparison, whether that answer

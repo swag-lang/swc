@@ -1987,8 +1987,24 @@ func neverCalled()->s32 => 99
     const auto rootCount         = std::ranges::count_if(globalRelocations, [&](const DataSegmentRelocation& relocation) {
         return relocation.kind == DataSegmentRelocationKind::FunctionSymbol && relocation.targetSymbol == functions[0];
     });
+    const auto functionTargets = compiler.globalInitSegment().copyFunctionRelocationTargets();
     if (rootCount != 2)
         return failNativeArtifactTest(TEST_NAME, "global initializers need two function relocations to the shared root");
+    if (functionTargets.size() != 2 || functionTargets[0] != functions[0] || functionTargets[1] != functions[0])
+        return failNativeArtifactTest(TEST_NAME, "function relocation targets must preserve their relocation order");
+
+    const auto dataTargets = compiler.globalInitSegment().copyDataSegmentRelocationTargets();
+    size_t      dataTargetIndex = 0;
+    for (const DataSegmentRelocation& relocation : globalRelocations)
+    {
+        if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
+            continue;
+        if (dataTargetIndex >= dataTargets.size() || dataTargets[dataTargetIndex].shardIndex != relocation.targetShardIndex || dataTargets[dataTargetIndex].offset != relocation.targetOffset)
+            return failNativeArtifactTest(TEST_NAME, "data segment relocation targets must preserve their relocation order");
+        ++dataTargetIndex;
+    }
+    if (dataTargetIndex != dataTargets.size())
+        return failNativeArtifactTest(TEST_NAME, "data segment relocation targets must match the source relocations");
 
     for (SymbolFunction* function : functions)
     {
@@ -2376,6 +2392,10 @@ SWC_TEST_BEGIN(SymbolTable_DeduplicatesNamesAndOwnsSerializedStrings)
     ByteArray                            bytes;
     std::vector<SymbolTable::Relocation> relocations;
     SymbolTable::build(bytes, relocations, entries);
+    ByteArray imageBytes;
+    SymbolTable::build(imageBytes, entries);
+    if (!std::ranges::equal(bytes.span(), imageBytes.span()))
+        return Result::Error;
 
     constexpr uint32_t stringsBase = SymbolTable::HEADER_SIZE + 3 * SymbolTable::ENTRY_SIZE;
     const uint32_t     fileOffset  = stringsBase + static_cast<uint32_t>(name.size()) + 1;

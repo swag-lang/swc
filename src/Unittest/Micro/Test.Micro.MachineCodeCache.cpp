@@ -6,6 +6,7 @@
 #include "Backend/Micro/MachineCodeCache.h"
 #include "Backend/Micro/MicroBuilder.h"
 #include "Compiler/Parser/Ast/Ast.h"
+#include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Variable.h"
 #include "Main/Command/CommandLine.h"
@@ -37,21 +38,37 @@ namespace
         std::vector<DebugSourceInfo> sources;
         return MachineCodeCache::inputKey(ctx, sources, function, builder, "unit-test-compiler");
     }
+
+    struct ModuleCacheFixture
+    {
+        CommandLine                       command;
+        std::unique_ptr<CompilerInstance> compiler;
+        std::unique_ptr<TaskContext>      context;
+        SourceFile*                       source   = nullptr;
+        SymbolFunction*                   function = nullptr;
+
+        ModuleCacheFixture(const Global& global, const std::string_view name)
+        {
+            command.command  = CommandKind::Build;
+            command.numCores = 6;
+            CommandLineParser::refreshBuildCfg(command);
+            compiler = std::make_unique<CompilerInstance>(global, command);
+            context  = std::make_unique<TaskContext>(*compiler);
+            SWC_ASSERT(compiler->setupSema(*context) == Result::Continue);
+            source                        = &Unittest::addTestSource(*context, "Micro", name, "", FileFlagsE::ModuleSrc);
+            const auto [ref, declaration] = source->ast().makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
+            function                      = makeCacheFunction(*context, name, TypeRef::invalid(), declaration);
+        }
+    };
 }
 
 SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
 {
-    CommandLine command;
-    command.command  = CommandKind::Build;
-    command.numCores = 6;
-    CommandLineParser::refreshBuildCfg(command);
-    CompilerInstance compiler(ctx.global(), command);
-    TaskContext      localCtx(compiler);
-    SWC_RESULT(compiler.setupSema(localCtx));
-    SourceFile& source            = Unittest::addTestSource(localCtx, "Micro", "MachineCacheModule", "", FileFlagsE::ModuleSrc);
-    const auto [ref, declaration] = source.ast().makeNode<AstNodeId::FunctionDecl>(TokenRef::invalid());
-    auto*               caller    = makeCacheFunction(localCtx, "cacheModuleCaller", TypeRef::invalid(), declaration);
-    auto*               target    = makeCacheFunction(localCtx, "cacheModuleTarget");
+    ModuleCacheFixture  fixture(ctx.global(), "cacheModuleCaller");
+    TaskContext&        localCtx = *fixture.context;
+    SourceFile&         source   = *fixture.source;
+    auto*               caller   = fixture.function;
+    auto*               target   = makeCacheFunction(localCtx, "cacheModuleTarget");
     MicroBuilder        builder(localCtx);
     const SourceCodeRef originalSource{source.ast().srcView().ref(), TokenRef{10}};
     builder.setCurrentDebugSourceCodeRef(originalSource);
@@ -84,6 +101,87 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_ReusesModuleSourceWithRelocations)
     changed.emitLoadRegPtrReloc(MicroReg::virtualIntReg(0), 0, ConstantRef::invalid(), changedTarget);
     MachineCodeCache invalidated(localCtx, *caller, changed);
     if (invalidated.read(restored))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RecreatesOptimizerConstantsInTheConsumer)
+{
+    ModuleCacheFixture producer(ctx.global(), "cacheGeneratedConstantCaller");
+    TaskContext&       producerCtx = *producer.context;
+    MicroBuilder       input(producerCtx);
+    input.emitRet();
+
+    const std::array<char, 16> payload = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    DataSegmentRef             source;
+    const auto                 stored = producerCtx.cstMgr().addPayloadBuffer({payload.data(), payload.size()}, &source, 16);
+    MachineCode                expected;
+    expected.bytes.resize(8, std::byte{0});
+    expected.codeAlignment = 16;
+    MicroRelocation relocation;
+    relocation.kind              = MicroRelocation::Kind::ConstantAddress;
+    relocation.form              = MicroRelocation::Form::Relative32;
+    relocation.targetAddress     = reinterpret_cast<uint64_t>(stored.data());
+    relocation.constantShard     = source.shardIndex;
+    relocation.constantOffset    = source.offset;
+    relocation.relativeEndOffset = 4;
+    relocation.constantCopySize  = 16;
+    expected.codeRelocations.push_back(relocation);
+    relocation.codeOffset        = 4;
+    relocation.relativeEndOffset = 8;
+    relocation.targetAddress += 4;
+    relocation.constantOffset += 4;
+    relocation.constantCopySize = 8;
+    expected.codeRelocations.push_back(relocation);
+    MachineCodeCache writeCache(producerCtx, *producer.function, input);
+    writeCache.write(expected);
+
+    ModuleCacheFixture consumer(ctx.global(), "cacheGeneratedConstantCaller");
+    TaskContext&       consumerCtx = *consumer.context;
+    MicroBuilder       currentInput(consumerCtx);
+    currentInput.emitRet();
+    MachineCodeCache readCache(consumerCtx, *consumer.function, currentInput);
+    MachineCode      restored;
+    if (!readCache.read(restored) || restored.codeRelocations.size() != 2)
+        return Result::Error;
+    const auto& first  = restored.codeRelocations[0];
+    const auto& second = restored.codeRelocations[1];
+    if (first.targetAddress == reinterpret_cast<uint64_t>(stored.data()) || first.constantShard != second.constantShard || second.constantOffset - first.constantOffset != 4 || second.targetAddress - first.targetAddress != 4)
+        return Result::Error;
+    if (std::memcmp(reinterpret_cast<const void*>(first.targetAddress), payload.data(), payload.size()) != 0 || first.targetAddress % 16)
+        return Result::Error;
+    DataSegmentAllocation allocation;
+    if (!consumerCtx.cstMgr().shardDataSegment(first.constantShard).findAllocation(allocation, first.constantOffset) || allocation.size != payload.size())
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RejectsGeneratedConstantsWithPointerEdges)
+{
+    ModuleCacheFixture fixture(ctx.global(), "cacheGeneratedPointerCaller");
+    TaskContext&       localCtx = *fixture.context;
+    MicroBuilder       input(localCtx);
+    input.emitRet();
+    const std::array<char, 8> payload{};
+    DataSegmentRef            source;
+    const auto                stored = localCtx.cstMgr().addPayloadBuffer({payload.data(), payload.size()}, &source, 8);
+    auto*                     target = makeCacheFunction(localCtx, "cacheGeneratedPointerTarget");
+    localCtx.cstMgr().shardDataSegment(source.shardIndex).addFunctionRelocation(source.offset, target);
+
+    MachineCode code;
+    code.bytes.resize(4, std::byte{0});
+    MicroRelocation relocation;
+    relocation.kind              = MicroRelocation::Kind::ConstantAddress;
+    relocation.form              = MicroRelocation::Form::Relative32;
+    relocation.targetAddress     = reinterpret_cast<uint64_t>(stored.data());
+    relocation.constantShard     = source.shardIndex;
+    relocation.constantOffset    = source.offset;
+    relocation.relativeEndOffset = 4;
+    code.codeRelocations.push_back(relocation);
+    MachineCodeCache cache(localCtx, *fixture.function, input);
+    cache.write(code);
+    MachineCode restored;
+    if (cache.read(restored))
         return Result::Error;
 }
 SWC_TEST_END()
@@ -199,6 +297,22 @@ SWC_TEST_BEGIN(MachineCodeCache_PreservesGlobalAddressDistances)
     changed.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, 120);
     const Utf8 key = cacheKey(ctx, *caller, original);
     if (key.empty() || key != cacheKey(ctx, *caller, translated) || key == cacheKey(ctx, *caller, changed))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(MachineCodeCache_TracksCalleeReleaseSummaries)
+{
+    auto*        caller = makeCacheFunction(ctx, "cacheReleaseCaller");
+    auto*        target = makeCacheFunction(ctx, "cacheReleaseTarget", ctx.typeMgr().typeS32());
+    MicroBuilder builder(ctx);
+    builder.emitCallLocal(target, CallConvKind::Swag);
+    const Utf8 before = cacheKey(ctx, *caller, builder);
+    target->addFreesParam(0);
+    const Utf8 direct = cacheKey(ctx, *caller, builder);
+    target->addFreesParam(0, true);
+    const Utf8 indirect = cacheKey(ctx, *caller, builder);
+    if (before.empty() || direct.empty() || indirect.empty() || before == direct || direct == indirect)
         return Result::Error;
 }
 SWC_TEST_END()

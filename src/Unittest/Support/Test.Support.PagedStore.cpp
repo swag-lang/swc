@@ -91,6 +91,20 @@ SWC_TEST_BEGIN(PagedStore_CopyToPreserveOffsetsKeepsSparseLayout)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(DataSegment_CopyDataSegmentRelocationTargetsPreservesOrder)
+{
+    DataSegment segment;
+    segment.addRelocation(0, DataSegmentRef{.shardIndex = 2, .offset = 10});
+    segment.addFunctionRelocation(8, nullptr);
+    segment.addRelocation(16, DataSegmentRef{.shardIndex = INVALID_REF, .offset = 20});
+    segment.addRelocation(24, DataSegmentRef{.shardIndex = 3, .offset = 30});
+
+    const auto targets = segment.copyDataSegmentRelocationTargets();
+    if (targets.size() != 2 || targets[0].shardIndex != 2 || targets[0].offset != 10 || targets[1].shardIndex != 3 || targets[1].offset != 30)
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(DataSegment_RelocationIndexHandlesInterleavedMonotonicAdds)
 {
     DataSegment segment;

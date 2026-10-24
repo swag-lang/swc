@@ -230,6 +230,7 @@ public:
     // main thread. See runWorkspace.
     void                                  setDeferNativeLink(bool defer) { deferNativeLink_ = defer; }
     bool                                  deferNativeLink() const { return deferNativeLink_; }
+    Result                                completeWorkspaceDependency();
     void                                  setDeferredBuilder(std::unique_ptr<NativeBackendBuilder> builder);
     std::unique_ptr<NativeBackendBuilder> takeDeferredBuilder();
     void                                  setActiveNativeBuilder(NativeBackendBuilder* builder) { activeNativeBuilder_ = builder; }
@@ -549,6 +550,15 @@ private:
         WorkspaceModuleBuild& operator=(WorkspaceModuleBuild&&) noexcept = default;
     };
 
+    struct WorkspaceModuleRun
+    {
+        const WorkspaceModuleBuild*           moduleBuild    = nullptr;
+        const DependencyPlan*                 dependencyPlan = nullptr;
+        WorkspaceModuleLogState               logState;
+        bool                                  writeModuleApi    = false;
+        std::unique_ptr<WorkspaceModuleLink>* pendingDependency = nullptr;
+    };
+
     struct CompilerMessageTypeInfoPrepRequest
     {
         SourceFile* listenerFile = nullptr;
@@ -579,7 +589,7 @@ private:
     static bool       isWorkspaceModuleActive(const WorkspaceModuleBuild& moduleBuild);
     ExitCode          runWorkspace(const DependencyPlan* preparedDependencies = nullptr);
     ExitCode          runWorkspacePublishPass(const DependencyPlan& dependencies) const;
-    Result            runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const DependencyPlan& dependencies, uint32_t moduleOrdinal, uint32_t moduleCount, bool writeModuleApi, bool& outCompiled, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
+    Result            runWorkspaceModule(const WorkspaceModuleRun& moduleRun, bool& outCompiled, std::unique_ptr<WorkspaceModuleLink>& outPending) const;
     Result            flushGeneratedSourceDumps(TaskContext& ctx);
     const SourceView* findFirstSourceViewByNormalizedPath(const Utf8& normalizedPath) const;
     const SourceView* findSourceViewByNormalizedPathAndRuntimeLine(const Utf8& normalizedPath, uint32_t runtimeLine) const;
@@ -640,13 +650,16 @@ private:
     // module at compile time, and it stays known even when the executable links the module's code
     // in instead: publication reads it to take a DLL an earlier build left beside the executable
     // back out.
-    std::vector<fs::path>                                                                         importedDependencySharedDirs_;
-    std::unordered_set<fs::path>                                                                  importedDependencySharedDirSet_;
-    std::vector<std::unique_ptr<Utf8>>                                                            ownedBuildCfgStrings_;
-    const ModuleSetupSnapshot*                                                                    precomputedModuleSetup_    = nullptr;
-    const DependencyPlan*                                                                         precomputedDependencyPlan_ = nullptr;
-    std::unique_ptr<DependencyPlan>                                                               ownedDependencyPlan_;
-    bool                                                                                          deferNativeLink_ = false;
+    std::vector<fs::path>              importedDependencySharedDirs_;
+    std::unordered_set<fs::path>       importedDependencySharedDirSet_;
+    std::vector<std::unique_ptr<Utf8>> ownedBuildCfgStrings_;
+    const ModuleSetupSnapshot*         precomputedModuleSetup_    = nullptr;
+    const DependencyPlan*              precomputedDependencyPlan_ = nullptr;
+    std::unique_ptr<DependencyPlan>    ownedDependencyPlan_;
+    // The coordinator's in-flight slot outlives this module's frontend. Only
+    // the driving thread consumes it, after parser workers have drained.
+    std::unique_ptr<WorkspaceModuleLink>*                                                         pendingWorkspaceLink_ = nullptr;
+    bool                                                                                          deferNativeLink_      = false;
     std::unique_ptr<NativeBackendBuilder>                                                         deferredBuilder_;
     NativeBackendBuilder*                                                                         activeNativeBuilder_ = nullptr;
     Utf8                                                                                          lastArtifactLabel_;

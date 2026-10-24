@@ -70,8 +70,9 @@ bool                         linkRelocKindFromCoffType(LinkRelocKind& outKind, u
 // Merges matching sections with alignment and rebased symbols and relocations.
 // Collects defined symbols globally, dropping CodeView (.debug$*) and runtime
 // symbol (.swagsym) sections. Appends to outImage; the caller fills in imports,
-// exports, the entry symbol, and image options. Returns false and fills outDiag
-// on an unsupported relocation kind.
-bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects);
+// exports, the entry symbol, and image options. Consumes objects so relocation
+// symbol names can move into the image. Returns false and fills outDiag on an
+// unsupported relocation kind.
+bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::vector<CoffObject>&& objects);
 
 SWC_END_NAMESPACE();

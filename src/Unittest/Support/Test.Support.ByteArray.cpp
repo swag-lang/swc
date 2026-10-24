@@ -39,6 +39,32 @@ SWC_TEST_BEGIN(ByteArray_WordAccessPreservesByteOrderAndNeighbours)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(ByteArray_AppendAlignedPreservesPaddingAndOffset)
+{
+    const ByteArray payload{std::byte{0x11}, std::byte{0x22}, std::byte{0x33}};
+    for (size_t prefix = 0; prefix <= 16; ++prefix)
+    {
+        ByteArray expected(prefix, std::byte{0xCC});
+        while (expected.size() % 8)
+            expected.pushBack(std::byte{0});
+        const uint32_t expectedOffset = static_cast<uint32_t>(expected.size());
+        expected.append(payload);
+
+        for (const bool reserved : {false, true})
+        {
+            ByteArray bytes(prefix, std::byte{0xCC});
+            if (reserved)
+                bytes.reserve(prefix + payload.size() + 8);
+
+            uint32_t offset = std::numeric_limits<uint32_t>::max();
+            bytes.appendAligned(offset, payload, 8);
+            if (offset != expectedOffset || bytes != expected)
+                return Result::Error;
+        }
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(ByteArray_AlignmentMatchesIterativePadding)
 {
     for (const size_t alignment : {size_t{1}, size_t{2}, size_t{3}, size_t{5}, size_t{8}, size_t{17}})

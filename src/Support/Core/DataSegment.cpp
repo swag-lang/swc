@@ -262,6 +262,30 @@ std::vector<DataSegmentRelocation> DataSegment::copyRelocations() const
     return relocations_;
 }
 
+std::vector<const SymbolFunction*> DataSegment::copyFunctionRelocationTargets() const
+{
+    const std::shared_lock lock(relocationsMutex_);
+    std::vector<const SymbolFunction*> targets;
+    for (const DataSegmentRelocation& relocation : relocations_)
+        if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
+            targets.push_back(relocation.targetSymbol);
+    return targets;
+}
+
+std::vector<DataSegmentRef> DataSegment::copyDataSegmentRelocationTargets() const
+{
+    const std::shared_lock lock(relocationsMutex_);
+    std::vector<DataSegmentRef> targets;
+    for (const DataSegmentRelocation& relocation : relocations_)
+    {
+        if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)
+            continue;
+
+        targets.push_back({.shardIndex = relocation.targetShardIndex, .offset = relocation.targetOffset});
+    }
+    return targets;
+}
+
 void DataSegment::copyRelocations(std::vector<DataSegmentRelocation>& outRelocations, const uint32_t offset, const uint32_t size) const
 {
     copyRelocationsImpl(outRelocations, offset, size);

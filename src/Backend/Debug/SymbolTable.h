@@ -49,6 +49,8 @@ namespace SymbolTable
 
     // Lays the entries out as a table, and names the symbol each start address is relocated against.
     void build(ByteArray& outBytes, std::vector<Relocation>& outRelocations, std::span<const Entry> entries);
+    // Lays out an image table when the caller writes its relocations directly to the image.
+    void build(ByteArray& outBytes, std::span<const Entry> entries);
 
     // Appends the entries of a table, given the symbol each start address is relocated against.
     // Returns false, and appends nothing, when the bytes are not such a table.

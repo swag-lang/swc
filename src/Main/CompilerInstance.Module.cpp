@@ -1823,31 +1823,30 @@ namespace
         return true;
     }
 
+    bool workspaceInputsAreCurrent(const WorkspaceArtifactManifest& manifest, const fs::path& compilerPath, const std::span<const fs::path> currentInputs)
+    {
+        if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
+            return false;
+
+        fs::file_time_type compilerTime;
+        if (!tryGetCompilerBuildTime(compilerTime, compilerPath) || manifest.inputsReadTime < compilerTime)
+            return false;
+        for (const fs::path& path : manifest.inputs)
+        {
+            fs::file_time_type pathTime;
+            if (!tryGetWorkspacePathWriteTime(pathTime, path) || manifest.inputsReadTime < pathTime)
+                return false;
+        }
+        return true;
+    }
+
     WorkspaceArtifactState workspaceArtifactState(const WorkspaceArtifactManifest& manifest, const fs::path& outDir, const fs::path& manifestPath, const fs::path& compilerPath, const std::span<const fs::path> currentInputs, const std::span<const fs::path> currentDependencyDirs, const std::span<const fs::path> requiredArtifacts, const Utf8& configuration, const std::span<const Utf8> tags)
     {
         if (manifest.configuration != configuration || manifest.tagsFingerprint != workspaceTagsFingerprint(tags))
             return WorkspaceArtifactState::Stale;
-        if (!workspacePathListContainsAll(manifest.inputs, currentInputs))
+        if (!workspaceInputsAreCurrent(manifest, compilerPath, currentInputs))
             return WorkspaceArtifactState::Stale;
         if (!sameWorkspacePathList(manifest.dependencyDirs, currentDependencyDirs))
-            return WorkspaceArtifactState::Stale;
-
-        fs::file_time_type latestInputTime{};
-        bool               hasInputTime = false;
-        for (const fs::path& path : manifest.inputs)
-        {
-            fs::file_time_type pathTime;
-            if (!tryGetWorkspacePathWriteTime(pathTime, path))
-                return WorkspaceArtifactState::Stale;
-            if (!hasInputTime || pathTime > latestInputTime)
-            {
-                latestInputTime = pathTime;
-                hasInputTime    = true;
-            }
-        }
-
-        fs::file_time_type compilerTime{};
-        if (!tryGetCompilerBuildTime(compilerTime, compilerPath))
             return WorkspaceArtifactState::Stale;
 
         std::vector<fs::path> absoluteArtifactPaths;
@@ -1909,13 +1908,8 @@ namespace
                 return WorkspaceArtifactState::Stale;
         }
 
-        // Publication certifies that artifacts finished, not that late source edits were read.
-        // API and native read boundaries above own dependency freshness at the granularity this
-        // module consumed; an unrelated dependency artifact generation does not date this build.
-        if (hasInputTime && manifest.inputsReadTime < latestInputTime)
-            return WorkspaceArtifactState::Stale;
-        if (manifest.inputsReadTime < compilerTime)
-            return WorkspaceArtifactState::Stale;
+        // API and native read boundaries own dependency freshness at the granularity
+        // this module consumed; an unrelated artifact generation does not date it.
         if (!nativeDependencyChanged)
             return WorkspaceArtifactState::UpToDate;
         return workspaceIncrementalObjectsAreUsable(manifest, buildTime) ? WorkspaceArtifactState::Relink : WorkspaceArtifactState::Stale;
@@ -3159,6 +3153,30 @@ namespace
     }
 }
 
+Result CompilerInstance::completeWorkspaceDependency()
+{
+    if (!pendingWorkspaceLink_)
+        return Result::Continue;
+    const std::unique_ptr<WorkspaceModuleLink> link = std::move(*pendingWorkspaceLink_);
+    pendingWorkspaceLink_                           = nullptr;
+    if (!link)
+        return Result::Continue;
+
+    SWC_SCHED_PHASE(global().jobMgr(), "workspace link wait");
+    SWC_RESULT(finalizeWorkspaceModuleLink(*link));
+
+    // Setup captured the API while the native image was still being linked.
+    // Date native consumption after that link, without advancing the API boundary:
+    // otherwise a subsequent no-op would incorrectly see a late dependency edit.
+    const auto      readTime  = fs::file_time_type::clock::now();
+    const fs::path& staticDir = link->cmdLine->staticLibraryOutDir;
+    for (auto* readTimes : {&moduleNativeReadTimes_, &moduleStaticLinkReadTimes_})
+        for (auto& [directory, time] : *readTimes)
+            if (FileSystem::pathEquals(directory, link->outDir) || (!staticDir.empty() && FileSystem::pathEquals(directory, staticDir)))
+                time = readTime;
+    return Result::Continue;
+}
+
 Result CompilerInstance::collectWorkspaceModuleDependencyDirs(TaskContext& ctx, std::vector<fs::path>& outDirs, const DependencyPlan& dependencyPlan, const std::span<const ModuleSetupImport> imports)
 {
     outDirs.clear();
@@ -3592,11 +3610,10 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         }
     }
 
-    // Module compilation runs serially in dependency order, but each module's link is launched on a
-    // background thread so it overlaps the next module's compilation. A module reads its dependencies'
-    // link artifacts while resolving imports during setup, so a pending dependency link is joined
-    // before its dependent starts. This is a depth-1 pipeline: at most one link is in flight, which
-    // bounds the extra peak memory to a single retained module compiler.
+    // One native link can overlap the next module's frontend. API publication
+    // precedes linking, so parsing can consume it immediately; the driving thread
+    // joins before semantic analysis can execute imported code. The pipeline keeps
+    // at most one retained producer and never blocks a worker on its own pool.
     std::unique_ptr<WorkspaceModuleLink> pendingLink;
 
     const auto joinPendingLink = [&]() -> Result {
@@ -3613,9 +3630,11 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         const size_t                moduleIndex = buildOrder[buildIndex];
         const WorkspaceModuleBuild& moduleBuild = modules[moduleIndex];
 
-        if (pendingLink &&
-            std::ranges::find(moduleBuild.workspaceDependencies, pendingLink->moduleName) != moduleBuild.workspaceDependencies.end() &&
-            joinPendingLink() != Result::Continue)
+        const bool pendingDependency = pendingLink && std::ranges::find(moduleBuild.workspaceDependencies, pendingLink->moduleName) != moduleBuild.workspaceDependencies.end();
+        // Renamed artifacts need their published library to discover the link name.
+        // Keep that case synchronous until the interface carries the artifact name.
+        const bool parseAhead = pendingDependency && cmdLine().command == CommandKind::Build && pendingLink->builder->artifactPath.stem() == fs::path(pendingLink->moduleName.c_str());
+        if (pendingDependency && !parseAhead && joinPendingLink() != Result::Continue)
             return ExitCode::CompileError;
 
         // A documentation leaf renders directly from its in-memory symbols. Only modules with
@@ -3624,8 +3643,19 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
         const bool                           writeModuleApi     = importableArtifact && (cmdLine().command != CommandKind::Doc || !dependents[moduleIndex].empty());
         std::unique_ptr<WorkspaceModuleLink> modulePending;
         bool                                 compiled = false;
-        if (runWorkspaceModule(moduleBuild, *preparedDependencies, buildIndex + 1, buildCount, writeModuleApi, compiled, modulePending) != Result::Continue)
+
+        const WorkspaceModuleRun moduleRun = {
+            .moduleBuild       = &moduleBuild,
+            .dependencyPlan    = preparedDependencies,
+            .logState          = {.name = moduleBuild.name, .ordinal = buildIndex + 1, .total = buildCount},
+            .writeModuleApi    = writeModuleApi,
+            .pendingDependency = parseAhead ? &pendingLink : nullptr,
+        };
+        if (runWorkspaceModule(moduleRun, compiled, modulePending) != Result::Continue)
+        {
+            joinPendingLink();
             return ExitCode::CompileError;
+        }
 
         if (modulePending)
         {
@@ -3660,9 +3690,11 @@ ExitCode CompilerInstance::runWorkspace(const DependencyPlan* preparedDependenci
     return Stats::getNumErrors() > 0 ? ExitCode::CompileError : ExitCode::Success;
 }
 
-Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBuild, const DependencyPlan& dependencies, const uint32_t moduleOrdinal, const uint32_t moduleCount, const bool writeModuleApi, bool& outCompiled, std::unique_ptr<WorkspaceModuleLink>& outPending) const
+Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleRun& moduleRun, bool& outCompiled, std::unique_ptr<WorkspaceModuleLink>& outPending) const
 {
-    const fs::file_time_type dependenciesReadTime = fs::file_time_type::clock::now();
+    const WorkspaceModuleBuild& moduleBuild          = *moduleRun.moduleBuild;
+    const DependencyPlan&       dependencies         = *moduleRun.dependencyPlan;
+    const fs::file_time_type    dependenciesReadTime = fs::file_time_type::clock::now();
     outPending.reset();
     outCompiled = false;
 
@@ -3686,7 +3718,7 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     }
     // Executables do not publish an API. Keeping their output directory here lets the module API
     // pass remove files left by an older compiler before suppressing the export.
-    if (writeModuleApi || moduleBuild.setup.buildCfg.backendKind == Runtime::BuildCfgBackendKind::Executable)
+    if (moduleRun.writeModuleApi || moduleBuild.setup.buildCfg.backendKind == Runtime::BuildCfgBackendKind::Executable)
         moduleCmdLine.exportApiDir = moduleCmdLine.outDir;
     else
         moduleCmdLine.exportApiDir.clear();
@@ -3696,21 +3728,28 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     moduleCmdLine.workDirStorage  = Utf8(moduleCmdLine.workDir);
     CommandLineParser::refreshBuildCfg(moduleCmdLine);
 
-    const WorkspaceModuleLogState workspaceLogState = {
-        .name    = moduleBuild.name,
-        .ordinal = moduleOrdinal,
-        .total   = moduleCount,
-    };
-
-    if (shouldTryReuseWorkspaceArtifacts(moduleCmdLine, moduleBuild.setup.buildCfg.backendKind))
+    bool                  tryReuse = shouldTryReuseWorkspaceArtifacts(moduleCmdLine, moduleBuild.setup.buildCfg.backendKind);
+    std::vector<fs::path> currentInputs;
+    if (tryReuse)
     {
-        std::vector<fs::path> currentInputs;
         collectWorkspaceModuleInputs(currentInputs, moduleCmdLine, moduleBuild.moduleFile, moduleBuild.sourceDir, moduleBuild.setup.loadedFiles, moduleBuild.setup.compilerInputFiles, {});
+        if (moduleRun.pendingDependency && *moduleRun.pendingDependency)
+        {
+            // An owned input edit already proves that compilation is required.
+            // Do not join a dependency just to confirm that through an artifact probe.
+            WorkspaceArtifactManifest manifest;
+            tryReuse = readWorkspaceArtifactManifest(manifest, workspaceArtifactManifestPath(moduleCmdLine.outDir, moduleCmdLine)) && workspaceInputsAreCurrent(manifest, exeFullName_, currentInputs);
+        }
+    }
 
+    if (tryReuse)
+    {
         CompilerInstance probeCompiler(global(), moduleCmdLine);
         probeCompiler.precomputedModuleSetup_    = &moduleBuild.setup;
         probeCompiler.precomputedDependencyPlan_ = &dependencies;
-        probeCompiler.workspaceModuleLogState_   = workspaceLogState;
+        probeCompiler.workspaceModuleLogState_   = moduleRun.logState;
+        probeCompiler.pendingWorkspaceLink_      = moduleRun.pendingDependency;
+        SWC_RESULT(probeCompiler.completeWorkspaceDependency());
 
         TaskContext probeCtx(probeCompiler);
         if (probeCompiler.prepareModuleBuildConfig(probeCtx) != Result::Continue)
@@ -3865,7 +3904,8 @@ Result CompilerInstance::runWorkspaceModule(const WorkspaceModuleBuild& moduleBu
     auto moduleCompiler                        = std::make_unique<CompilerInstance>(global(), *moduleCmdLineOwned);
     moduleCompiler->precomputedModuleSetup_    = &moduleBuild.setup;
     moduleCompiler->precomputedDependencyPlan_ = &dependencies;
-    moduleCompiler->workspaceModuleLogState_   = workspaceLogState;
+    moduleCompiler->workspaceModuleLogState_   = moduleRun.logState;
+    moduleCompiler->pendingWorkspaceLink_      = moduleRun.pendingDependency;
     moduleCompiler->setDeferNativeLink(true);
     outCompiled = true;
 

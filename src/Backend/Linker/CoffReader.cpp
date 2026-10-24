@@ -270,8 +270,14 @@ bool readCoffDefinedSymbols(std::vector<CoffInputSymbol>& outSymbols, Diagnostic
     return readCoffContent(outSymbols, nullptr, outDiag, bytes);
 }
 
-bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const std::vector<CoffObject>& objects)
+bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::vector<CoffObject>&& objects)
 {
+    struct CoffSectionPlacement
+    {
+        uint32_t base        = 0;
+        uint32_t mergedIndex = std::numeric_limits<uint32_t>::max();
+    };
+
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
 
     // Input object names outlive the merge. Copy existing image names before
@@ -290,14 +296,13 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
     for (const LinkSymbol& symbol : outImage.symbols)
         defineName(presentNames.emplace_back(symbol.name).view());
 
-    for (const CoffObject& object : objects)
+    for (CoffObject& object : objects)
     {
-        std::vector<int64_t>  baseOffset(object.sections.size(), -1); // -1 marks a dropped section
-        std::vector<uint32_t> mergedIndex(object.sections.size(), 0);
+        std::vector<CoffSectionPlacement> placements(object.sections.size());
 
         for (size_t s = 0; s < object.sections.size(); ++s)
         {
-            const CoffInputSection& section = object.sections[s];
+            CoffInputSection& section = object.sections[s];
 
             // CodeView goes to the PDB and the symbol fragment to the image's own table, both through
             // the linker; neither is a section of the image.
@@ -340,10 +345,9 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
                 merged.bytes.insert(merged.bytes.end(), section.bytes.begin(), section.bytes.end());
             }
 
-            baseOffset[s]  = base;
-            mergedIndex[s] = mergedIdx;
+            placements[s] = {.base = base, .mergedIndex = mergedIdx};
 
-            for (const CoffInputReloc& reloc : section.relocs)
+            for (CoffInputReloc& reloc : section.relocs)
             {
                 LinkRelocKind kind;
                 if (!linkRelocKindFromCoffType(kind, reloc.type))
@@ -357,7 +361,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
                 LinkReloc out;
                 out.sectionIndex = mergedIdx;
                 out.offset       = base + reloc.offset;
-                out.symbolName   = reloc.symbolName;
+                out.symbolName   = std::move(reloc.symbolName);
                 out.kind         = kind;
                 merged.relocs.push_back(std::move(out));
             }
@@ -365,15 +369,16 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, const s
 
         for (const CoffInputSymbol& symbol : object.definedSymbols)
         {
-            if (symbol.sectionIndex >= baseOffset.size() || baseOffset[symbol.sectionIndex] < 0)
+            if (symbol.sectionIndex >= placements.size() || placements[symbol.sectionIndex].mergedIndex == std::numeric_limits<uint32_t>::max())
                 continue; // defined in a dropped section
             if (!defineName(symbol.name.view()))
                 continue; // first definition wins
 
+            const CoffSectionPlacement& placement = placements[symbol.sectionIndex];
             LinkSymbol out;
             out.name         = symbol.name;
-            out.sectionIndex = mergedIndex[symbol.sectionIndex];
-            out.value        = static_cast<uint32_t>(baseOffset[symbol.sectionIndex]) + symbol.value;
+            out.sectionIndex = placement.mergedIndex;
+            out.value        = placement.base + symbol.value;
             outImage.symbols.push_back(std::move(out));
         }
     }

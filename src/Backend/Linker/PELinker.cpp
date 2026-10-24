@@ -867,7 +867,7 @@ namespace
     };
 
     void   collectPeLibrarySearch(NativeBackendBuilder& builder, std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs);
-    void   collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols);
+    void   collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols, LinkImage* image = nullptr);
     Result collectLinkWin32ApplicationConfig(NativeBackendBuilder& builder, LinkWin32ApplicationConfig& outConfig);
     bool   shouldCollectLinkDebugInfo(const NativeBackendBuilder& builder);
     void   collectLinkDebugInfo(NativeBackendBuilder& builder, LinkJob& outJob);
@@ -913,10 +913,11 @@ namespace
     class SymbolTableJob final : public LinkPrepareJobBase
     {
     public:
-        SymbolTableJob(const TaskContext& ctx, NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols) :
+        SymbolTableJob(const TaskContext& ctx, NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols, LinkImage& image) :
             LinkPrepareJobBase(ctx),
             builder_(&builder),
-            outSymbols_(&outSymbols)
+            outSymbols_(&outSymbols),
+            image_(&image)
         {
         }
 
@@ -925,13 +926,15 @@ namespace
             ctx().state().setNone();
             SWC_ASSERT(builder_ != nullptr);
             SWC_ASSERT(outSymbols_ != nullptr);
-            collectLinkSymbols(*builder_, *outSymbols_);
+            SWC_ASSERT(image_ != nullptr);
+            collectLinkSymbols(*builder_, *outSymbols_, image_);
             return JobResult::Done;
         }
 
     private:
         NativeBackendBuilder*            builder_    = nullptr;
         std::vector<SymbolTable::Entry>* outSymbols_ = nullptr;
+        LinkImage*                       image_      = nullptr;
     };
 
     void collectPeLibrarySearch(NativeBackendBuilder& builder, std::set<Utf8>& outLibNames, std::vector<fs::path>& outDirs)
@@ -1220,37 +1223,31 @@ namespace
         image.sections.push_back(std::move(section));
     }
 
-    void collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols)
+    void collectLinkSymbols(NativeBackendBuilder& builder, std::vector<SymbolTable::Entry>& outSymbols, LinkImage* image)
     {
+        const bool collectExports = builder.compiler().buildCfg().backendKind == Runtime::BuildCfgBackendKind::SharedLibrary;
         outSymbols.reserve(outSymbols.size() + builder.functionInfos.size());
         for (const NativeFunctionInfo& info : builder.functionInfos)
         {
+            if (image && collectExports && info.exported)
+            {
+                LinkExport exported;
+                exported.name       = info.symbolName;
+                exported.symbolName = info.symbolName;
+                image->exports.push_back(std::move(exported));
+
+                if (!info.exportName.empty() && info.exportName != info.symbolName)
+                {
+                    LinkExport alias;
+                    alias.name       = info.exportName;
+                    alias.symbolName = info.symbolName;
+                    image->exports.push_back(std::move(alias));
+                }
+            }
+
             SymbolTable::Entry entry;
             if (SymbolTable::makeEntry(entry, builder.ctx(), info))
                 outSymbols.push_back(std::move(entry));
-        }
-    }
-}
-
-void PELinker::collectExports(LinkImage& image) const
-{
-    SWC_ASSERT(builder_ != nullptr);
-    for (const NativeFunctionInfo& info : builder_->functionInfos)
-    {
-        if (!info.exported)
-            continue;
-
-        LinkExport exported;
-        exported.name       = info.symbolName;
-        exported.symbolName = info.symbolName;
-        image.exports.push_back(std::move(exported));
-
-        if (!info.exportName.empty() && info.exportName != info.symbolName)
-        {
-            LinkExport alias;
-            alias.name       = info.exportName;
-            alias.symbolName = info.symbolName;
-            image.exports.push_back(std::move(alias));
         }
     }
 }
@@ -1320,7 +1317,7 @@ Result PELinker::buildImage(LinkImage& image, LinkDebugInfo& debugInfo) const
     SWC_RESULT(buildNativeImage(image));
 
     std::vector<SymbolTable::Entry> symbols;
-    collectLinkSymbols(*builder_, symbols);
+    collectLinkSymbols(*builder_, symbols, &image);
 
     std::vector<Archive> archives;
     SWC_RESULT(loadArchives(archives));
@@ -1344,7 +1341,6 @@ void PELinker::finishImage(LinkImage& image, LinkWin32ApplicationConfig&& win32C
     {
         image.kind      = LinkImageKind::SharedLibrary;
         image.imageBase = SHARED_LIBRARY_IMAGE_BASE;
-        collectExports(image);
     }
     else
     {
@@ -1402,7 +1398,7 @@ Result PELinker::prepareImageLinkParallel(LinkJob& outJob) const
     Result                          configResult = Result::Continue;
     if (imageResult == Result::Continue)
     {
-        enqueueJob(std::make_unique<SymbolTableJob>(builder_->ctx(), *builder_, symbols));
+        enqueueJob(std::make_unique<SymbolTableJob>(builder_->ctx(), *builder_, symbols, outJob.image));
         configResult = collectWin32ApplicationConfig(win32Config);
     }
 

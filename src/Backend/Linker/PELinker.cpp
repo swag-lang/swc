@@ -177,18 +177,8 @@ namespace
         return !outSymbolName.empty();
     }
 
-    void addLinkSymbolAliases(LinkImage& image, const std::vector<LinkSymbolAlias>& aliases)
+    void appendLinkSymbolAliases(LinkImage& image, std::unordered_map<Utf8, size_t>& symbolIndices, const std::vector<LinkSymbolAlias>& aliases)
     {
-        // Without an alias there is nothing to add, and no reason to index every symbol name.
-        if (aliases.empty())
-            return;
-
-        std::unordered_map<Utf8, size_t> symbolIndices;
-        symbolIndices.reserve(image.symbols.size() + aliases.size());
-        for (size_t i = 0; i < image.symbols.size(); ++i)
-            symbolIndices.emplace(image.symbols[i].name, i);
-
-        image.symbols.reserve(image.symbols.size() + aliases.size());
         for (const LinkSymbolAlias& alias : aliases)
         {
             const auto it = symbolIndices.find(alias.canonicalName);
@@ -201,6 +191,22 @@ namespace
             symbolIndices.emplace(symbol.name, image.symbols.size());
             image.symbols.push_back(std::move(symbol));
         }
+    }
+
+    void addLinkSymbolAliases(LinkImage& image, const std::vector<LinkSymbolAlias>& aliases, const std::vector<LinkSymbolAlias>& additionalAliases)
+    {
+        // Without aliases there is nothing to add, and no reason to index every symbol name.
+        if (aliases.empty() && additionalAliases.empty())
+            return;
+
+        std::unordered_map<Utf8, size_t> symbolIndices;
+        symbolIndices.reserve(image.symbols.size() + aliases.size() + additionalAliases.size());
+        for (size_t i = 0; i < image.symbols.size(); ++i)
+            symbolIndices.emplace(image.symbols[i].name, i);
+
+        image.symbols.reserve(image.symbols.size() + aliases.size() + additionalAliases.size());
+        appendLinkSymbolAliases(image, symbolIndices, aliases);
+        appendLinkSymbolAliases(image, symbolIndices, additionalAliases);
     }
 
     bool tryGetFunctionFoldCandidate(FunctionFoldCandidate& outCandidate, const CoffObject& object, const size_t objectIndex)
@@ -1193,8 +1199,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     if (!mergeCoffObjectsIntoImage(image, diag, pulledObjects))
         return builder_->reportError(diag);
 
-    addLinkSymbolAliases(image, readOnlyDataAliases);
-    addLinkSymbolAliases(image, functionAliases);
+    addLinkSymbolAliases(image, readOnlyDataAliases, functionAliases);
 
     return Result::Continue;
 }

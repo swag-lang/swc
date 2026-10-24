@@ -927,6 +927,70 @@ SWC_FILESYSTEM_TEST_BEGIN(ModuleApi_ScriptCacheDistinguishesEqualSizeAndTimestam
 }
 SWC_TEST_END()
 
+#ifdef _WIN32
+SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLink)
+{
+    ApiPublicationTestDirectory directory("WorkspaceParseBeforeLink");
+    constexpr std::string_view  providerSetup  = R"(#run
+{
+    with let cfg = Swag.compiler().getBuildCfg()!
+    {
+        .moduleNamespace = "Provider"
+        .backendKind = .SharedLibrary
+    }
+}
+)";
+    constexpr std::string_view  consumerSetup  = R"(#import("provider")
+#run
+{
+    with let cfg = Swag.compiler().getBuildCfg()!
+    {
+        .moduleNamespace = "Consumer"
+        .backendKind = .SharedLibrary
+    }
+}
+)";
+    const fs::path              modules        = directory.path() / "modules";
+    const fs::path              consumerSource = modules / "consumer" / "src" / "broken.swg";
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "module.swg", providerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "provider" / "src" / "value.swg", "#global public\nfunc value()->s32 => 42\n"));
+    SWC_RESULT(CompilerTestFile::writeText(modules / "consumer" / "module.swg", consumerSetup));
+    SWC_RESULT(CompilerTestFile::writeText(consumerSource, "#global public\nfunc value()->s32 => Provider.value()\n"));
+
+    const std::vector<Utf8> arguments = {"build", "--workspace", Utf8(directory.path()), "--workspace-module", "consumer", "--rebuild", "--num-cores", "6"};
+    Os::ProcessRunOptions   options;
+    std::string             output;
+    options.capturedOutput = &output;
+    options.forwardOutput  = false;
+    options.timeoutMs      = 15000;
+    uint32_t exitCode      = UINT32_MAX;
+    if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || exitCode)
+    {
+        std::println(stderr, "workspace seed did not build:\n{}", output);
+        return Result::Error;
+    }
+
+    // The CRT reader denies deletion on Windows. Hold the previous DLL in place
+    // until the child's link has exhausted its publication retries: a serial
+    // dependency join then fails before the consumer's parser can run.
+    const fs::path library = directory.path() / ".output" / "provider" / "shared-library" / "devmode" / "x86_64" / "provider.dll";
+    std::ifstream  lockedLibrary(library, std::ios::binary);
+    if (!lockedLibrary.is_open())
+        return Result::Error;
+    SWC_RESULT(CompilerTestFile::writeText(consumerSource, "func broken() { let = 1 }\n"));
+    output.clear();
+    exitCode = UINT32_MAX;
+    if (Os::runProcess(exitCode, Os::getExeFullName(), arguments, directory.path(), &options) != Os::ProcessRunResult::Ok || !exitCode)
+        return Result::Error;
+    if (output.find("broken.swg") == std::string::npos)
+    {
+        std::println(stderr, "dependent source was not parsed before the dependency link:\n{}", output);
+        return Result::Error;
+    }
+}
+SWC_TEST_END()
+#endif
+
 SWC_END_NAMESPACE();
 
 #endif

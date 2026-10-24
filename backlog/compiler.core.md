@@ -29,10 +29,14 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   The first differing relocation payloads in allocator functions encode distances between
   globals whose allocation order varies. The store now republishes only dirty hash partitions;
   the extra variants still occupy capacity and miss reuse.
-- Next: separate the identities of non-escaping private global allocations from their placement,
-  retaining alias relationships and allocation-relative offsets. Preserve concrete distances
-  wherever a global address can be observed, and rebind emitted relocations to their own
-  input allocation rather than another global in the same segment.
+- Evidence: projecting away only private-global distances removes one of those 85 misses;
+  projecting away every global distance removes 81. Most affected relocations are observable
+  globals, so treating private globals alone cannot resolve the issue. Optimizer alias proofs
+  still consume concrete address ranges; dropping the distances would make reuse unsound.
+- Next: represent optimizer global-address assumptions by allocation identity and bounded access
+  ranges, preserving observable pointer operations. Rebind each emitted global relocation to its
+  own input allocation before relaxing placement in the cache key. Keep concrete distances until
+  all consumers of those facts have been audited.
 - Done when: two six-worker builds of the same inputs produce the same keys, so the second build
   publishes nothing.
 - Related: compiler.core.085.
@@ -157,19 +161,20 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: the partitioning improvement has concurrent read/write coverage and a measured
   compilation-time benefit with its memory cost explicitly bounded.
 
-### compiler.core.073 — A dependent module waits for its dependency's whole link before starting
+### compiler.core.073 ? Overlap dependent semantic analysis with the producer link
 
-- Evidence: `CompilerInstance::runWorkspace` keeps one deferred link in flight, but joins it before
-  compiling any module that depends on the linked one. The `std` chain is nearly linear
-  (`core` → `ogl`/`truetype` → `pixel` → `gui`), so most links become a wait: in 16-worker DevMode
-  `gui` rebuilds, `--dev-sched-stats` charges 2.8–4.8% of worker time to the
-  `workspace link wait` phase, nearly all of it starvation while the single `NativeLink` job
-  (0.4–1.2 s per module) runs.
-- Next: list what a dependent actually needs from its dependency before code generation (the
-  module API and setup files, the DLL only for compile-time calls into it) and join the link at
-  the first use that needs the binary instead of before the module starts.
+- Evidence: the workspace pipeline now consumes the published API and parses a dependent while
+  the producer links. It joins on the driving thread before semantic analysis, because compile-time
+  calls and runtime hooks can load the dependency DLL. The `std` chain is nearly linear
+  (`core` ? `ogl`/`truetype` ? `pixel` ? `gui`), so that boundary can still leave workers idle.
+- Next: introduce a dependency-ready continuation for compile-time native calls and runtime hooks.
+  Keep semantic jobs runnable until they need the image, and resume suspended jobs after link
+  publication. Do not block a worker waiting for a link queued on the same worker pool; one-worker
+  builds must remain live. Keep manifest publication and retained-compiler destruction on the
+  driving thread.
 - Done when: a dependent's semantic analysis overlaps its dependency's link in a `gui`
-  rebuild, with the workspace suite and `std` tests green under both compiler executables.
+  rebuild, with compile-time native calls, no-op reuse, link failures, the workspace suite and
+  focused `std` tests green under both compiler executables.
 - Related: compiler.core.069, compiler.core.007
 
 ### compiler.core.071 — WebP's macroblock reconstruction takes seconds to generate and holds back `pixel`

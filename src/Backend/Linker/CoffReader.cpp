@@ -272,6 +272,13 @@ bool readCoffDefinedSymbols(std::vector<CoffInputSymbol>& outSymbols, Diagnostic
 
 bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::vector<CoffObject>&& objects)
 {
+    struct SectionPlacement
+    {
+        uint32_t base        = 0;
+        uint32_t mergedIndex = 0;
+        bool     valid       = false;
+    };
+
     std::unordered_map<Utf8, uint32_t> sectionByName; // name -> outImage.sections index
 
     // Input object names outlive the merge. Copy existing image names before
@@ -292,8 +299,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
 
     for (CoffObject& object : objects)
     {
-        std::vector<int64_t>  baseOffset(object.sections.size(), -1); // -1 marks a dropped section
-        std::vector<uint32_t> mergedIndex(object.sections.size(), 0);
+        std::vector<SectionPlacement> placements(object.sections.size());
 
         for (size_t s = 0; s < object.sections.size(); ++s)
         {
@@ -340,8 +346,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
                 merged.bytes.insert(merged.bytes.end(), section.bytes.begin(), section.bytes.end());
             }
 
-            baseOffset[s]  = base;
-            mergedIndex[s] = mergedIdx;
+            placements[s] = {.base = base, .mergedIndex = mergedIdx, .valid = true};
 
             for (CoffInputReloc& reloc : section.relocs)
             {
@@ -365,15 +370,16 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
 
         for (const CoffInputSymbol& symbol : object.definedSymbols)
         {
-            if (symbol.sectionIndex >= baseOffset.size() || baseOffset[symbol.sectionIndex] < 0)
+            if (symbol.sectionIndex >= placements.size() || !placements[symbol.sectionIndex].valid)
                 continue; // defined in a dropped section
             if (!defineName(symbol.name.view()))
                 continue; // first definition wins
 
+            const SectionPlacement& placement = placements[symbol.sectionIndex];
             LinkSymbol out;
             out.name         = symbol.name;
-            out.sectionIndex = mergedIndex[symbol.sectionIndex];
-            out.value        = static_cast<uint32_t>(baseOffset[symbol.sectionIndex]) + symbol.value;
+            out.sectionIndex = placement.mergedIndex;
+            out.value        = placement.base + symbol.value;
             outImage.symbols.push_back(std::move(out));
         }
     }

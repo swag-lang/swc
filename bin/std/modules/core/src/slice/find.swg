@@ -98,7 +98,7 @@ func findLinear(values: const [..] u8?, value: u8)->u64
     let count = values.count
     if not count do
         return Swag.U64.Max
-    return findByte((unwrap values).buffer, count, value)
+    return findByte(values!.buffer, count, value)
 }
 
 func(T, V) findLinear(values: const [..] T?, value: V)->u64
@@ -195,7 +195,7 @@ func equals(dst, src: const [..] u8?)->bool
         return false
     if not dst.count do
         return true
-    return Memory.compare((unwrap dst).buffer, (unwrap src).buffer, dst.count) == 0
+    return Memory.compare(dst!.buffer, src!.buffer, dst.count) == 0
 }
 
 #[Swag.ConstExpr]

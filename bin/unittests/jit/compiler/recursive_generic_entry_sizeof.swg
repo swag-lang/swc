@@ -54,7 +54,7 @@ impl RecursiveAssocTable
 
         let oldTable    = .table
         let oldCapacity = .capacity
-        let newTable    = cast([*] RecursiveAssocEntry'(K, V), unwrap (testAlloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))))
+        let newTable    = cast([*] RecursiveAssocEntry'(K, V), unwrap testAlloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V))))
         .table = newTable
 
         for i in oldCapacity
@@ -95,7 +95,7 @@ impl RecursiveAssocTable
         let oldTable    = .table
         let oldCapacity = .capacity
 
-        let newTable = cast([*] RecursiveAssocEntry'(K, V), unwrap (testAlloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))))
+        let newTable = cast([*] RecursiveAssocEntry'(K, V), unwrap testAlloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V))))
         .table    = newTable
         .count    = 0
         .deleted  = 0

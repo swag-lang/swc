@@ -18,7 +18,7 @@ impl PointerFieldHolder
     {
         .len = 4
         .assignArrayFieldToPointer()
-        var tail = cast([*] u16, (unwrap .ptr + .len))
+        var tail = cast([*] u16, unwrap .ptr + .len)
         tail[] = 0x1234'u16
         return cast(u16, .buf[4]) | (cast(u16, .buf[5]) << 8)
     }

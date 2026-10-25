@@ -713,7 +713,7 @@ impl MenuCtrl
             return
         }
 
-        let i        = unwrap (.ownerMenu!.items[.popupBarItemIdx])
+        let i        = unwrap .ownerMenu!.items[.popupBarItemIdx]
         var labelPos = anchorRect
         labelPos.x     += metrics.menuBar_SpaceBetween * 0.5
         labelPos.width -= metrics.menuBar_SpaceBetween

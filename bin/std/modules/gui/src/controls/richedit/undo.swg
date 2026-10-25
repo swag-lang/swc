@@ -148,7 +148,7 @@ impl RichEditCtrl
             .setRectangularSelection(undo.hasSelRect)
             if not .currentUndo do
                 break
-            undo = unwrap (.undoMgr[.currentUndo - 1])
+            undo = unwrap .undoMgr[.currentUndo - 1]
             if undo.serial != serial do
                 break
             .currentUndo -= 1

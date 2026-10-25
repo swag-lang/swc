@@ -214,7 +214,7 @@ struct InventoryRow
     Swag.assert(getOr'(string, s32)(&table, "apples", -1) == 20)
     Swag.assert(getOr'(string, s32)(&table, "pears", -1) == -1)
 
-    let ptr = unwrap (tryGet'(string, s32)(&table, "bananas"))
+    let ptr = unwrap tryGet'(string, s32)(&table, "bananas")
     ptr[] += 5
     Swag.assert(getOr'(string, s32)(&table, "bananas", -1) == 12)
 }

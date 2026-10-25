@@ -29,7 +29,7 @@ impl Capture
         let rect    = Math.Rectangle{width: .width * zoom, height: .height * zoom}
         let render  = g_App.renderer
         var painter = Pixel.Painter.create(render)
-        let surface = unwrap (.editView!.surface)
+        let surface = unwrap .editView!.surface
         render.begin(surface.renderingContext())
         painter.begin()
 

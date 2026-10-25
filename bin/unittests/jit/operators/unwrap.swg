@@ -31,7 +31,7 @@ func unwrapNullable(node: *UnwrapNode?)->*UnwrapNode => unwrap node
     let node = unwrap values[1]
     #assert(#typeof(node) == *UnwrapNode)
     Swag.assert(node.value == 42)
-    Swag.assert((unwrapNullable(&g_unwrapNode)).value == 42)
+    Swag.assert(unwrapNullable(&g_unwrapNode).value == 42)
 }
 
 #test

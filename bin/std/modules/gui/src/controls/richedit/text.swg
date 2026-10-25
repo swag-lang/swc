@@ -243,7 +243,7 @@ impl RichEditCtrl
         {
             let linep = unwrap .lines[cp.lineIndex]
             discard .newLine(cp.lineIndex + 1)
-            let line = unwrap (.lines[cp.lineIndex + 1])
+            let line = unwrap .lines[cp.lineIndex + 1]
             if cp.charPosInLine < linep.length() do
                 line.insertRunes(0, linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
             linep.setLength(cp.charPosInLine)
@@ -672,7 +672,7 @@ public impl RichEditCtrl
         // Add a deletion
         if .currentUndo > 1
         {
-            pundo = unwrap (.undoMgr[.currentUndo - 2])
+            pundo = unwrap .undoMgr[.currentUndo - 2]
             if pundo.type == .Delete and pundo.concatChars
             {
                 if .cursorPos.charPosInLine != .lines[.cursorPos.lineIndex]!.length()
@@ -688,7 +688,7 @@ public impl RichEditCtrl
         }
 
         // Append the character to the last undo
-        pundo = unwrap (.undoMgr[.currentUndo - 1])
+        pundo = unwrap .undoMgr[.currentUndo - 1]
         pundo.runes.add(c)
 
         // Get the style from the previous character

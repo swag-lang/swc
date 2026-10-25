@@ -43,7 +43,7 @@ public impl ByteStream
     mtd const length()->u64 => .writeBuffer ? .writeBuffer.count : (.readBuffer).count
 
     // Returns the start of the underlying buffer.
-    internal mtd data()->const [*] u8 => .writeBuffer ? unwrap .writeBuffer.buffer : unwrap (.readBuffer).buffer
+    internal mtd data()->const [*] u8 => .writeBuffer ? unwrap .writeBuffer.buffer : unwrap .readBuffer.buffer
 
     // Returns whether [[Core.ByteStream.advance]], [[Core.ByteStream.readU8]], or [[Core.ByteStream.setPosition]] reached the end of the buffer.
     mtd const isEof()->bool => .eof

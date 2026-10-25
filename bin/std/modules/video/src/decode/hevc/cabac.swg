@@ -115,7 +115,7 @@ impl CabacReader
         // An empty buffer with a whole word of data left loads it in one swapped read.
         if .bitCount <= 0 and .position + 8 <= .size
         {
-            .bitBuffer = Swag.byteSwap(cast(const [*] u64, (unwrap .data + .position))[0])
+            .bitBuffer = Swag.byteSwap(cast(const [*] u64, unwrap .data + .position)[0])
             .bitCount  = 64
             .position  += 8
             return

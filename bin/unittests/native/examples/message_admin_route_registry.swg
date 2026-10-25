@@ -193,7 +193,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
             len = appendAst(&buffer[0], len, "    ")
             len = appendAst(&buffer[0], len, unwrap parameter.name)
             len = appendAst(&buffer[0], len, ": ")
-            len = appendAst(&buffer[0], len, unwrap (parameter.pointedType!.name))
+            len = appendAst(&buffer[0], len, unwrap parameter.pointedType!.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         len = appendAst(&buffer[0], len, "}\n\n")
@@ -206,7 +206,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         if typeFunc.returnType != null and typeFunc.returnType != void
         {
             len = appendAst(&buffer[0], len, "->")
-            len = appendAst(&buffer[0], len, unwrap (typeFunc.returnType.name))
+            len = appendAst(&buffer[0], len, unwrap typeFunc.returnType.name)
         }
 
         len = appendAst(&buffer[0], len, "\n{\n    ")

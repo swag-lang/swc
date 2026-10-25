@@ -157,11 +157,11 @@ func solve(text: string)->u64
     defer mazeFree(&m)
 
     let stateCount = MaxCells * 4
-    let best       = cast([*] u64, unwrap (testAlloc(cast(u64, stateCount) * #sizeof(u64))))
+    let best       = cast([*] u64, unwrap testAlloc(cast(u64, stateCount) * #sizeof(u64)))
     defer testFree(best)
     for index in stateCount { best[index] = Infinity }
 
-    let queue = cast([*] QEntry, unwrap (testAlloc(cast(u64, MaxQueue) * #sizeof(QEntry))))
+    let queue = cast([*] QEntry, unwrap testAlloc(cast(u64, MaxQueue) * #sizeof(QEntry)))
     defer testFree(queue)
     var head: u32
     discard head

@@ -577,6 +577,9 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   argument solely to make a call longer.
 - Extract a present `T` from `T?` with `unwrap value`; reserve postfix `!` for a following
   member access, index, dereference, or call. Both assert presence under `.Expect`.
+  Write `unwrap read()` and `unwrap items[index]` without grouping a plain operand.
+  Keep parentheses around a binary or conditional operand; prefer `value!.field` to
+  `(unwrap value).field` for a direct access.
 - Use `orelse`, `unwrap`, asserted accesses with `!`, optional chaining, and `with` when they express absence or
   structured initialization more directly than temporary variables and repeated checks.
 - Use range, value, index, and filtered iteration instead of manual counters when iteration itself

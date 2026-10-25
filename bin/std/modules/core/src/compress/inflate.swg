@@ -242,7 +242,7 @@ impl Inflate
             // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
             if cur < fastLimit
             {
-                cb  |= cast(const *u64, (unwrap src + cur))[] << #wrap nb
+                cb  |= cast(const *u64, unwrap src + cur)[] << #wrap nb
                 cur += cast(u64, ((63 - nb) >> 3))
                 nb  |= 56
             }

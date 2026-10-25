@@ -251,7 +251,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] HashLikeEntry'(string, InlineBufferText), unwrap (testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText)))))
+    let entries = cast([*] HashLikeEntry'(string, InlineBufferText), unwrap testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))
     Swag.memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
     var table: HashLikeTable'(string, InlineBufferText)
@@ -274,7 +274,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] HashLikeEntry'(s32, InlineBufferText), unwrap (testAlloc(#sizeof(HashLikeEntry'(s32, InlineBufferText)))))
+    let entries = cast([*] HashLikeEntry'(s32, InlineBufferText), unwrap testAlloc(#sizeof(HashLikeEntry'(s32, InlineBufferText))))
     Swag.memset(entries, 0, #sizeof(HashLikeEntry'(s32, InlineBufferText)))
 
     var table: HashLikeTable'(s32, InlineBufferText)
@@ -298,7 +298,7 @@ func dropInlineBufferText(ptr: *InlineBufferText)
 
 #test
 {
-    let entries = cast([*] HashLikeEntry'(string, InlineBufferText), unwrap (testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText)))))
+    let entries = cast([*] HashLikeEntry'(string, InlineBufferText), unwrap testAlloc(#sizeof(HashLikeEntry'(string, InlineBufferText))))
     Swag.memset(entries, 0, #sizeof(HashLikeEntry'(string, InlineBufferText)))
 
     var table: HashLikeTable'(string, InlineBufferText)

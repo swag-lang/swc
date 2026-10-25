@@ -44,7 +44,7 @@ internal impl Properties
         // Update state of all newly added items
         item.numChilds = numAddedChilds
         for i in item.numChilds do
-            .updateItemState(unwrap (.items[itemIdx + i + 1]))
+            .updateItemState(unwrap .items[itemIdx + i + 1])
     }
 
     mtd refreshArray(item: *PropertiesItem)

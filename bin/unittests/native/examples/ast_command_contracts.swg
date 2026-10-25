@@ -115,7 +115,7 @@ func appendCommandEnvelopeDefinition(buffer: [*] u8, start: u64, contractName: s
         len = appendAst(buffer, len, "    ")
         len = appendAst(buffer, len, unwrap parameter.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, unwrap (parameter.pointedType!.name))
+        len = appendAst(buffer, len, unwrap parameter.pointedType!.name)
         len = appendAst(buffer, len, "\n")
     }
 
@@ -265,7 +265,7 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
     if not returnsVoid
     {
         len = appendAst(buffer, len, "->")
-        len = appendAst(buffer, len, unwrap (typeFunc.returnType!.name))
+        len = appendAst(buffer, len, unwrap typeFunc.returnType!.name)
     }
 
     len = appendAst(buffer, len, "\n{\n    ")

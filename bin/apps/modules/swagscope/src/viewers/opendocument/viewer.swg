@@ -522,7 +522,7 @@ private impl Panel
     {
         .commands = host.createCommandGroup(PageComboWidth)
         .commands.hide()
-        with .pageCombo = ComboBox.create(me.commands, Math.Rectangle{0, 0, PageComboWidth, 36})
+        with .pageCombo = ComboBox.create(me.commands, {0, 0, PageComboWidth, 36})
         {
             .dockStyle = .Left
             .toolTip   = texts().ui_TipSheet

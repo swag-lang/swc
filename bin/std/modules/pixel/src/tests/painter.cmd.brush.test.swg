@@ -83,7 +83,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
 #test
 {
     var painter: Painter
-    let brush = Brush.createSweepGradient(Math.Vector2{50, 50}, Color.fromArgb(Argb.Red), Color.fromArgb(Argb.Blue))
+    let brush = Brush.createSweepGradient({50, 50}, Color.fromArgb(Argb.Red), Color.fromArgb(Argb.Blue))
 
     painter.begin()
     painter.fillRect(0, 0, 100, 100, brush)
@@ -125,7 +125,7 @@ private func makeTestTexture(handle: u64, w, h: s32)->Texture
     let texture = makeTestTexture(7, 64, 32)
 
     painter.begin()
-    painter.drawTexture(10, 10, 32, 16, Math.Rectangle{16, 8, 32, 16}, texture)
+    painter.drawTexture(10, 10, 32, 16, {16, 8, 32, 16}, texture)
     painter.end()
     Testing.assertGolden(&painter, "brush.texture.subrect")
 }

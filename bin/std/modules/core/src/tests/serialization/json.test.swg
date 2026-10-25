@@ -47,7 +47,7 @@ func makeJsonPayload()->JsonPayload
     result.active = true
     result.name   = "core"
     result.counts.add(seed)
-    result.pair      = JsonPair{x: 3, y: -2}
+    result.pair      = {x: 3, y: -2}
     result.fixed     = [1, 2, 3]
     result.transient = 99
     return result

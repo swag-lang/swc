@@ -78,7 +78,7 @@ impl Document
             return false
 
         while .columns.count < count do
-            .columns.add(String{})
+            .columns.add({})
         for column, index in .columns where column.isEmpty()
         {
             .columns[index] = Format.toString(texts().ui_Column, index + 1)

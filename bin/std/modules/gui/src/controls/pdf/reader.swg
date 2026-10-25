@@ -201,7 +201,7 @@ impl Reader
                             y -= region.box.y
                             switch region.rotate
                             {
-                            case 90:  entry.position = Math.Point{y, x}
+                            case 90:  entry.position = Math.Point{x: y, y: x}
                             case 180: entry.position = Math.Point{region.box.width - x, y}
                             case 270: entry.position = Math.Point{region.box.height - y, region.box.width - x}
                             default:  entry.position = Math.Point{x, region.box.height - y}

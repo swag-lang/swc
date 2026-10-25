@@ -8,7 +8,7 @@ impl MainWindow
         with let header = StackLayoutCtrl.create(me, .Top)
         {
             .dockStyle = .Top
-            .margin    = Math.Vector4{32, 20, 32, 0}
+            .margin    = {32, 20, 32, 0}
             .spacing   = 4
         }
 
@@ -31,7 +31,7 @@ impl MainWindow
         // is set in another face.
         titleRow.resize(titleRow.position.width, Math.max(titleRow.position.height, titleFont.height))
 
-        with .subtitle = Label.create(header, appStrings().ui_Subtitle, Math.Rectangle{}, null, .WordWrap | .SecondaryText | .AutoHeight)
+        with .subtitle = Label.create(header, appStrings().ui_Subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
         {
             .dockStyle = .Top
             .setTextAlignment(.Left, .Top)
@@ -47,7 +47,7 @@ impl MainWindow
         with let footerRow = Wnd.create'Wnd(&.wnd, Math.Rectangle{0, 0, 0, 24})
         {
             .dockStyle = .Bottom
-            .margin    = Math.Vector4{32, 0, 32, 12}
+            .margin    = {32, 0, 32, 12}
         }
 
         // The attribution keeps what it owes: the product, the holder, and where it comes from.
@@ -68,12 +68,12 @@ impl MainWindow
         with .statusView = Wnd.create'Wnd(&.wnd, Math.Rectangle{0, 0, 0, 52})
         {
             .dockStyle       = .Bottom
-            .margin          = Math.Vector4{32, 0, 32, 12}
+            .margin          = {32, 0, 32, 12}
             .backgroundStyle = .Panel
-            .padding         = Math.Vector4{20, 8, 20, 8}
+            .padding         = {20, 8, 20, 8}
         }
 
-        with .statusIcon = Label.create(.statusView, "", Math.Rectangle{0, 0, 24})
+        with .statusIcon = Label.create(.statusView, "", {0, 0, 24})
         {
             .dockStyle = .Left
             .margin.z  = 12
@@ -82,7 +82,7 @@ impl MainWindow
         // The spinner takes the glyph's place rather than a slot of its own: it is the same
         // 24-pixel square, and a docked window that is hidden takes no room, so the status text
         // starts at the same column whether work is running or not.
-        with .statusBusy = Spinner.create(.statusView, Math.Rectangle{0, 0, 24, 24})
+        with .statusBusy = Spinner.create(.statusView, {0, 0, 24, 24})
         {
             .dockStyle = .Left
             .margin.z  = 12

@@ -78,7 +78,7 @@ private func circlePath(cx, cy, r: f32)->String
     let item     = onlyItem(document.pages[0], .Path)
     Swag.assert(item.clipPath == InvalidClipPath)
     Swag.assert(item.hasClip)
-    Swag.assert(item.itemClip().rect == Math.Rectangle{20, 30, 50, 50})
+    Swag.assert(item.itemClip().rect == {20, 30, 50, 50})
 }
 
 // A filled path through a round clip is cut to the circle.

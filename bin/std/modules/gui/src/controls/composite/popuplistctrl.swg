@@ -423,7 +423,7 @@ impl PopupListCtrl
 
     // Appends a selectable item and returns its stable heap object.
     #[Swag.Discardable]
-    mtd addItem(name: string, id: WndId? = null, icon: Icon = Icon{}, userData0: *void? = null, userData1: *void? = null)->*PopupListCtrlItem
+    mtd addItem(name: string, id: WndId? = null, icon: Icon = {}, userData0: *void? = null, userData1: *void? = null)->*PopupListCtrlItem
     {
         with let item = .items.allocate()
         {

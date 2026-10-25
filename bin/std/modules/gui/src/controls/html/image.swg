@@ -16,18 +16,18 @@ internal func htmlLocalResourcePath(basePath, source: string)->String
     if not Path.isValidPathName(source) or
        Utf8.contains(source, "://") or
        Utf8.startsWith(source, "data:") do
-        return String{}
+        return {}
     let colon = Utf8.indexOf(source, ':'rune)
     if colon != Swag.U64.Max and not (WINDOWS and colon == 1 and Latin1.isLetter(source[0])) do
-        return String{}
+        return {}
     if basePath.count and not Path.isValidPathName(basePath) do
-        return String{}
+        return {}
 
     let fileName = Path.isRooted(source) ? String.from(source) : Path.combine(basePath, source)
     if fileName.count >= 2 and
        Path.isDirectorySeparator(fileName[0]) and
        Path.isDirectorySeparator(fileName[1]) do
-        return String{}
+        return {}
     return fileName
 }
 

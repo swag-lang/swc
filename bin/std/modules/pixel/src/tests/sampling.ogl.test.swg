@@ -36,16 +36,16 @@ func renderSamplingScene(renderer: IRenderer, scale: f32)->Image
     painter.setInterpolationMode(.Linear)
 
     // Magnification, minification, fractional source edges, and a one-texel-wide strip.
-    painter.drawTexture(Math.Rectangle{4, 4, 31, 23}, Math.Rectangle{1, 1, 6, 6}, texture)
-    painter.drawTexture(Math.Rectangle{40, 4, 3, 4}, Math.Rectangle{1, 1, 6, 6}, texture)
-    painter.drawTexture(Math.Rectangle{48, 4, 27, 23}, Math.Rectangle{2, 1, 1, 6}, texture)
-    painter.drawTexture(Math.Rectangle{4, 32, 31, 23}, Math.Rectangle{1.25, 1.25, 5.5, 5.5}, texture)
+    painter.drawTexture({4, 4, 31, 23}, {1, 1, 6, 6}, texture)
+    painter.drawTexture({40, 4, 3, 4}, {1, 1, 6, 6}, texture)
+    painter.drawTexture({48, 4, 27, 23}, {2, 1, 1, 6}, texture)
+    painter.drawTexture({4, 32, 31, 23}, {1.25, 1.25, 5.5, 5.5}, texture)
 
     // Texture state must not leak into a subsequent solid fill, including transparent RGB.
-    painter.fillRect(Math.Rectangle{40, 32, 35, 23}, Color.fromArgb(0'u8, 80'u8, 120'u8, 160'u8))
+    painter.fillRect({40, 32, 35, 23}, Color.fromArgb(0'u8, 80'u8, 120'u8, 160'u8))
     painter.setBlendingMode(.Alpha)
-    painter.fillRect(Math.Rectangle{4, 60, 31, 16}, Color.fromArgb(128'u8, 120'u8, 80'u8, 40'u8))
-    painter.drawTexture(Math.Rectangle{40, 60, 35, 16}, Math.Rectangle{1, 1, 6, 6}, texture)
+    painter.fillRect({4, 60, 31, 16}, Color.fromArgb(128'u8, 120'u8, 80'u8, 40'u8))
+    painter.drawTexture({40, 60, 35, 16}, {1, 1, 6, 6}, texture)
     painter.unbindRenderTarget()
     painter.end()
     renderer.draw(&painter)

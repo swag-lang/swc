@@ -481,7 +481,7 @@ impl SurfaceWnd
         {
             if not .minimizeBtn
             {
-                with me.minimizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMinimize, theme.metrics.wnd_CaptionButtonGlyph), Math.Rectangle{0, 0, 0, 0})
+                with me.minimizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMinimize, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
                     .focusPolicy = .None
@@ -499,7 +499,7 @@ impl SurfaceWnd
         {
             if not .maximizeBtn
             {
-                with me.maximizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMaximize, theme.metrics.wnd_CaptionButtonGlyph), Math.Rectangle{0, 0, 0, 0})
+                with me.maximizeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndMaximize, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
                     .focusPolicy = .None
@@ -517,7 +517,7 @@ impl SurfaceWnd
         {
             if not .closeBtn
             {
-                with me.closeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndClose, theme.metrics.wnd_CaptionButtonGlyph), Math.Rectangle{0, 0, 0, 0})
+                with me.closeBtn = IconButton.create(me, theme.icon(ThemeIcons.WndClose, theme.metrics.wnd_CaptionButtonGlyph), {0, 0, 0, 0})
                 {
                     .setForm(.RoundedRectangle)
                     .focusPolicy = .None

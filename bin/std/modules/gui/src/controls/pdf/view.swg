@@ -212,7 +212,7 @@ internal impl PdfView
     mtd const contentSize()->Math.Point
     {
         if not .hasDocument do
-            return Math.Point{}
+            return {}
 
         let scale = .effectiveZoom()
         var result: retval
@@ -1235,7 +1235,7 @@ impl PdfView
 
     // Creates an empty PDF viewer.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*PdfView
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PdfView
     {
         Swag.assert(parent != null)
         let result = Wnd.create'PdfView(parent, null, position, id)
@@ -1341,7 +1341,7 @@ impl PdfView
     mtd const pageCount()->u64 => .hasDocument ? .pageSizes.count : 0
 
     // Returns the dimensions of the page the viewport shows, in PDF points.
-    mtd const pageSize()->Math.Point => .hasDocument ? .pageSizes[.pageIndex] : Math.Point{}
+    mtd const pageSize()->Math.Point => .hasDocument ? .pageSizes[.pageIndex] : {}
 
     // Selects how the document's pages are laid out, keeping the page the viewport shows.
     mtd setPageLayout(value: PdfPageLayout)
@@ -1523,7 +1523,7 @@ impl PdfView
     // is the same search without the wait. The returned value owns stable page and UTF-8 text
     // coordinates; pass one of its entries to [[Gui.PdfView.revealTextMatch]] while this document
     // remains open. An invalid regular expression returns an empty array.
-    mtd findTextMatches(text: string, options: PdfTextSearchOptions = PdfTextSearchOptions{})->Array'PdfTextMatch
+    mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array'PdfTextMatch
     {
         var result: retval
         if not .hasDocument or not text.count do

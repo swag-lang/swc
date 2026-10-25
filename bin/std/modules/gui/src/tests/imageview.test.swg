@@ -18,7 +18,7 @@ using Swag, Core, Pixel
     var movie: Movie
     expect movie.load(fileName)
 
-    let view = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let view = ImageView.create(&host.root, {0, 0, 300, 200})
     view.exchangeMovie(&movie)
     Swag.assert(view.movie.isValid() and not movie.isValid())
     Swag.assert(view.movie.frameCount == 1 and view.uploadedTexture.isValid())
@@ -35,7 +35,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(320, 220)
 
-    let view  = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)
     image.fill(Argb.White)
     view.setImage(image)
@@ -50,7 +50,7 @@ using Swag, Core, Pixel
     view.zoomIn()
     Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), 1.25, 0.001))
 
-    view.setPanOffset(Math.Point{37, -24})
+    view.setPanOffset({37, -24})
     Swag.assert(view.panOffset == Math.Point{37, -24} and not view.isFitted)
 
     view.zoomToFit()
@@ -86,7 +86,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(320, 220)
 
-    let view  = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)
     image.fill(Argb.White)
     view.setImage(image)
@@ -119,7 +119,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(320, 220)
 
-    let view  = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)
     image.fill(Argb.Red)
     let pixels = image.pixels.buffer
@@ -145,11 +145,11 @@ using Swag, Core, Pixel
         255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255,
         255, 255, 0, 255, 255, 0, 255, 255, 0, 255, 255, 255]
     let source   = Image.create(3, 2, .RGBA8, pixels)
-    let original = ImageView.create(&host.root, Math.Rectangle{0, 0, 130, 160})
+    let original = ImageView.create(&host.root, {0, 0, 130, 160})
     original.setImage(source)
     original.setDisplaySize(90, 60)
     original.actualSize()
-    let view = ImageView.create(&host.root, Math.Rectangle{130, 0, 130, 160})
+    let view = ImageView.create(&host.root, {130, 0, 130, 160})
     view.setImage(source)
     view.setDisplaySize(90, 60)
     view.actualSize()
@@ -194,7 +194,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
     host.setup(240, 240)
 
     let drawing = expect Svg.Drawing.parse(Source)
-    let view    = ImageView.create(&host.root, Math.Rectangle{0, 0, 240, 240})
+    let view    = ImageView.create(&host.root, {0, 0, 240, 240})
 
     view.setDrawing(drawing)
     Swag.assert(view.hasContent() and view.isFitted)
@@ -227,7 +227,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
     var host: Testing.HeadlessHost
     host.setup(320, 220)
 
-    let view = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let view = ImageView.create(&host.root, {0, 0, 300, 200})
 
     var planes: Array'u8
     planes.resize(100 * 50 + 50 * 25 * 2)
@@ -280,7 +280,7 @@ private func edgeSpread(image: *Image, row: s32)->s32
     var host: Testing.HeadlessHost
     host.setup(320, 220)
 
-    let view  = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let view  = ImageView.create(&host.root, {0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)
     image.fill(Argb.White)
     view.setImage(image)

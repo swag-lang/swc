@@ -41,7 +41,7 @@ impl Encoder
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"GIF - Graphics Interchange Format", ".gif"}
+    mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {

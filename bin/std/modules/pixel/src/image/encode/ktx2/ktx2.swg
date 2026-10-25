@@ -149,7 +149,7 @@ func writeDfd(result: *ConcatBuffer, image: Image, typeSize: u32, channelIds: *[
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"KTX2 - Khronos Texture", ".ktx2"}
+    mtd impl format()->ImageFormat => {"KTX2 - Khronos Texture", ".ktx2"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {

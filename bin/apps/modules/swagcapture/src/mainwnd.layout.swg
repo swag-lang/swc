@@ -387,7 +387,7 @@ impl MainWnd
             .backgroundStyle = .Transparent
         }
 
-        with .quickStyleBar = SplitterCtrl.create(rightPanel, Math.Rectangle{0, 0, RightPanelWidth, 600}, vertical: true)
+        with .quickStyleBar = SplitterCtrl.create(rightPanel, {0, 0, RightPanelWidth, 600}, vertical: true)
         {
             .dockStyle       = .Center
             .backgroundStyle = .ToolBar
@@ -400,12 +400,12 @@ impl MainWnd
 
         // The heading starts on the same margin as the cells and the rows under it: a title
         // centred over a left-aligned column is a second alignment on one narrow panel.
-        with .toolTitle = Label.create(quickPane, "", Math.Rectangle{0, 0, 0, ToolTitleHeight})
+        with .toolTitle = Label.create(quickPane, "", {0, 0, 0, ToolTitleHeight})
         {
             .dockStyle = .Top
             .style.setFont(me.theme().res.fontDefaultFs)
             .setTextAlignment(.Left, .Center)
-            .setTextPadding(Math.Vector4{12, 8, 12, 0})
+            .setTextPadding({12, 8, 12, 0})
             .setTextColor(me.themeColors().label_TextLight)
         }
 

@@ -306,7 +306,7 @@ impl PasswordEdit
     // [[Gui.PasswordEditFlags.RevealButton]] is enabled by default. Passing
     // [[Gui.PasswordEditFlags.None]] omits the button and leaves the field permanently masked.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
     {
         Swag.assert(parent != null)
         var pos = position

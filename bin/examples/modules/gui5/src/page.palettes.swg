@@ -9,9 +9,9 @@ func createPalettesPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        discard createPaletteRamp(left, "Hue families", Math.Rectangle{24, 118, 360, 68}, 0, g_Color)
-        discard createPaletteRamp(left, "Luminance from selected", Math.Rectangle{24, 226, 360, 68}, 1, g_Color)
-        discard createPaletteRamp(left, "Saturation from selected", Math.Rectangle{24, 334, 360, 68}, 2, g_Color)
+        discard createPaletteRamp(left, "Hue families", {24, 118, 360, 68}, 0, g_Color)
+        discard createPaletteRamp(left, "Luminance from selected", {24, 226, 360, 68}, 1, g_Color)
+        discard createPaletteRamp(left, "Saturation from selected", {24, 334, 360, 68}, 2, g_Color)
     }
 
     let right = createPanel(parent,
@@ -20,7 +20,7 @@ func createPalettesPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let warm = PalettePicker.create(right, Math.Rectangle{24, 118, 360, 68})
+        let warm = PalettePicker.create(right, {24, 118, 360, 68})
         warm.setItemMetrics(30, 6)
         warm.addColor(Argb.Crimson)
         warm.addColor(Argb.Tomato)
@@ -33,7 +33,7 @@ func createPalettesPage(parent: *Wnd)
         warm.sigSelectionChanged += func(palette) { selectPaletteColor(palette, "Warm palette") }
         createCaption(right, "Warm set", 24, 90, 240)
 
-        let cool = PalettePicker.create(right, Math.Rectangle{24, 226, 360, 68})
+        let cool = PalettePicker.create(right, {24, 226, 360, 68})
         cool.setItemMetrics(30, 6)
         cool.addColor(Argb.CornflowerBlue)
         cool.addColor(Argb.DeepSkyBlue)
@@ -46,7 +46,7 @@ func createPalettesPage(parent: *Wnd)
         cool.sigSelectionChanged += func(palette) { selectPaletteColor(palette, "Cool palette") }
         createCaption(right, "Cool set", 24, 198, 240)
 
-        discard createPaletteRamp(right, "Alpha set", Math.Rectangle{24, 334, 360, 68}, 3, g_Color, false)
+        discard createPaletteRamp(right, "Alpha set", {24, 334, 360, 68}, 3, g_Color, false)
     }
 
     let bottom = createPanel(parent,

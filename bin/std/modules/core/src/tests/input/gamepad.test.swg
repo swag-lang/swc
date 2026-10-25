@@ -56,7 +56,7 @@ using Swag
     for i in Input.GamepadButton.count
     {
         let button = cast(Input.GamepadButton, i)
-        pad.setControlStates(button, true, true, Math.Point{1, 2}, Math.Point{3, 4})
+        pad.setControlStates(button, true, true, {1, 2}, {3, 4})
     }
 
     pad.clear()

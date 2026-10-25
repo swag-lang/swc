@@ -667,11 +667,11 @@ impl Panel
         if .doc.previews.isEmpty() do
             return
 
-        with let band = StackLayoutCtrl.create(me, .HorizontalCenter, Math.Rectangle{0, 0, 0, 152})
+        with let band = StackLayoutCtrl.create(me, .HorizontalCenter, {0, 0, 0, 152})
         {
             .dockStyle       = .Top
             .backgroundStyle = .View
-            .padding         = Math.Vector4{12, 10, 12, 8}
+            .padding         = {12, 10, 12, 8}
             .spacing         = 8
         }
 
@@ -679,15 +679,15 @@ impl Panel
 
         for preview in .doc.previews
         {
-            let tile = StackLayoutCtrl.create(band, .Top, Math.Rectangle{0, 0, 160, 132})
+            let tile = StackLayoutCtrl.create(band, .Top, {0, 0, 160, 132})
             tile.spacing = 4
-            with let image = ImageView.create(tile, Math.Rectangle{0, 0, 160, 104})
+            with let image = ImageView.create(tile, {0, 0, 160, 104})
             {
                 .backgroundStyle = .View
                 .setImage(preview.image)
             }
 
-            with let label = Label.create(tile, preview.label, Math.Rectangle{0, 0, 160, 24}, null, .SecondaryText | .Ellipsis)
+            with let label = Label.create(tile, preview.label, {0, 0, 160, 24}, null, .SecondaryText | .Ellipsis)
             {
                 .setTextAlignment(.Center, .Center)
             }

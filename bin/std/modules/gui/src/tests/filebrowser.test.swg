@@ -17,7 +17,7 @@ using Swag, Core, File
     opt.showLocationsPane = false
     opt.filters.add({name: "Text", extensions: ".txt;.md"})
 
-    let fb = FileBrowserCtrl.create(&host.root, opt, Math.Rectangle{0, 0, 600, 400})
+    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     Swag.assert((fb.editFile != null))
     Swag.assert((fb.comboType != null))
     Swag.assert((fb.listCtrl != null))
@@ -72,7 +72,7 @@ using Swag, Core, File
     opt.showLocationsPane = false
     opt.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Workspace"})
 
-    let fb = FileBrowserCtrl.create(&host.root, opt, Math.Rectangle{0, 0, 600, 400})
+    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     Swag.assert(fb.comboType.items.count == 1)
     Swag.assert(fb.options.shortcuts.count == 1)
     Swag.assert((fb.editFile != null))
@@ -120,7 +120,7 @@ using Swag, Core, File
         .filters.add({name: "Text", extensions: ".txt"})
     }
 
-    let fb = FileBrowserCtrl.create(&host.root, opt, Math.Rectangle{0, 0, 600, 400})
+    let fb = FileBrowserCtrl.create(&host.root, opt, {0, 0, 600, 400})
     Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(0) - 333) < 0.5)
     Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(1) - 155) < 0.5)
     Swag.assert(Math.abs(fb.listCtrl.header.itemWidthAt(2) - 77) < 0.5)

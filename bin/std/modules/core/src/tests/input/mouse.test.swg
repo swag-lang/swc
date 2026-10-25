@@ -59,7 +59,7 @@ using Swag
 {
     var mouse: Input.Mouse
 
-    mouse.setPositions(Math.Point{3, -4}, Math.Point{10, 6})
+    mouse.setPositions({3, -4}, {10, 6})
 
     Swag.assert(mouse.previousPosition() == Math.Point{3, -4})
     Swag.assert(mouse.position() == Math.Point{10, 6})
@@ -70,7 +70,7 @@ using Swag
 {
     var mouse: Input.Mouse
     mouse.setButtonStates(.Left, true, true, true)
-    mouse.setPressMetadata(.Left, 12, 34, Math.Point{1, 2}, Math.Point{3, 4})
+    mouse.setPressMetadata(.Left, 12, 34, {1, 2}, {3, 4})
 
     mouse.clear()
 

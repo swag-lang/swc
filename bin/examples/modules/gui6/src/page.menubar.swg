@@ -10,10 +10,10 @@ func createMenuBarPage(parent: *Wnd)
                            layout.left)
     discard createMainMenuBar(left, Math.Rectangle{20, 94, layout.left.width - 40, 32})
 
-    discard createActionButton(left, "Mark document dirty", Math.Rectangle{20, 152, 210}, MenuCmd.NewFile, .Edit)
-    discard createActionButton(left, "Save through command", Math.Rectangle{246, 152, 210}, MenuCmd.SaveFile, .Save)
-    discard createActionButton(left, "Toggle grid", Math.Rectangle{20, 204, 210}, MenuCmd.ToggleGrid, .Options)
-    discard createActionButton(left, "Detailed mode", Math.Rectangle{246, 204, 210}, MenuCmd.ModeDetailed, .More)
+    discard createActionButton(left, "Mark document dirty", {20, 152, 210}, MenuCmd.NewFile, .Edit)
+    discard createActionButton(left, "Save through command", {246, 152, 210}, MenuCmd.SaveFile, .Save)
+    discard createActionButton(left, "Toggle grid", {20, 204, 210}, MenuCmd.ToggleGrid, .Options)
+    discard createActionButton(left, "Detailed mode", {246, 204, 210}, MenuCmd.ModeDetailed, .More)
 
     let right = createPanel(parent,
                             "Live menu state",

@@ -281,39 +281,37 @@ namespace
             AstNodeRef     valueRef  = elementRef;
             IdentifierRef  fieldName = IdentifierRef::invalid();
             const AstNode& valueNode = codeGen.node(elementRef);
-            if (valueNode.is(AstNodeId::NamedArgument))
+            // Same placement as Sema's aggregate-to-struct mapping: a bare identifier naming a
+            // field lands in it, and a positional value takes its own slot.
+            size_t           fieldIndex    = static_cast<size_t>(-1);
+            const AstNodeRef identifierRef = SemaHelpers::fieldShorthandIdentifier(codeGen.ast(), elementRef);
+            if (valueNode.is(AstNodeId::NamedArgument) && identifierRef.isInvalid())
             {
                 seenNamed = true;
                 fieldName = codeGen.idMgr().addIdentifier(codeGen.ctx(), valueNode.codeRef());
                 valueRef  = valueNode.cast<AstNamedArgument>().nodeArgRef;
-            }
-            else if (seenNamed)
-            {
-                return false;
-            }
-
-            size_t fieldIndex = static_cast<size_t>(-1);
-            if (fieldName.isValid())
-            {
-                for (size_t j = 0; j < fields.size(); ++j)
-                {
-                    const SymbolVariable* field = fields[j];
-                    if (!field)
-                        continue;
-
-                    if (field->idRef() == fieldName)
-                    {
-                        fieldIndex = j;
-                        break;
-                    }
-                }
+                if (!storageType.payloadSymStruct().tryGetFieldIndexByName(fieldIndex, fieldName))
+                    return false;
             }
             else
             {
-                while (nextPos < fields.size() && (!fields[nextPos] || fieldUsed[nextPos]))
+                while (nextPos < fields.size() && !fields[nextPos])
                     ++nextPos;
 
-                fieldIndex = nextPos;
+                bool byIdentifier = false;
+                if (identifierRef.isValid())
+                {
+                    valueRef     = identifierRef;
+                    byIdentifier = storageType.payloadSymStruct().tryGetFieldIndexByName(fieldIndex, codeGen.idMgr().addIdentifier(codeGen.ctx(), valueNode.codeRef()));
+                }
+                if (!byIdentifier)
+                {
+                    if (seenNamed)
+                        return false;
+                    fieldIndex = nextPos;
+                }
+
+                ++nextPos;
             }
 
             if (fieldIndex >= fields.size())
@@ -326,8 +324,6 @@ namespace
                 return false;
 
             fieldUsed[fieldIndex] = true;
-            if (!fieldName.isValid())
-                ++nextPos;
 
             const TypeRef   fieldTypeRef = field->typeRef();
             const TypeInfo& fieldType    = codeGen.typeMgr().get(fieldTypeRef);

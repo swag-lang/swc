@@ -38,7 +38,7 @@ impl ComboCtrl
 {
     // Creates a labelled combo box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string?, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ComboCtrl
+    func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null)->*ComboCtrl
     {
         Swag.assert(parent != null)
         let metrics = parent.themeMetrics()

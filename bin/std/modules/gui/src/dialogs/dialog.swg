@@ -211,7 +211,7 @@ impl Dialog
                 button.setForm(.Normal)
         }
 
-        with let btn = PushButton.create(me.buttonBar, str, Math.Rectangle{}, id)
+        with let btn = PushButton.create(me.buttonBar, str, {}, id)
         {
             // One dominant action per box. Created `Strong`, every button of the bar was
             // filled and the bar said nothing about which one Enter would press.

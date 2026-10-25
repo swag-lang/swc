@@ -68,8 +68,8 @@ func createPane(parent: *Wnd, title, text: string)->*FrameWnd
     frame.setFrameFlags(.None, .Borders)
 
     let view = frame.createView'Wnd()
-    discard createText(view, title, Math.Rectangle{12, 8, 220, 22})
-    discard createHelpText(view, text, Math.Rectangle{12, 34, 220, 120})
+    discard createText(view, title, {12, 8, 220, 22})
+    discard createHelpText(view, text, {12, 34, 220, 120})
     return frame
 }
 
@@ -84,7 +84,7 @@ func refreshLayoutTree(wnd: *Wnd)
 
 func createChip(parent: *Wnd, text: string, icon: ThemeIcons = .Options)->*PushButton
 {
-    let btn = PushButton.create(parent, text, Math.Rectangle{0, 0, 118, 32})
+    let btn = PushButton.create(parent, text, {0, 0, 118, 32})
     btn.setForm(.Flat)
     btn.setIcon(app.theme.icon(icon, 16))
     return btn
@@ -312,16 +312,16 @@ func createRootView()
     g_View = view
     view.backgroundStyle = .View
 
-    let title = Label.create(view, "", Math.Rectangle{})
+    let title = Label.create(view, "", {})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
-    let themeButton = PushButton.create(view, "", Math.Rectangle{})
+    let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon(.Picker, 18))
@@ -331,7 +331,7 @@ func createRootView()
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
-    let footer = Label.create(view, "", Math.Rectangle{})
+    let footer = Label.create(view, "", {})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
     footer.updateFlags(.SecondaryText)

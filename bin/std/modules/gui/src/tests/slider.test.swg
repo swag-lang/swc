@@ -36,7 +36,7 @@ func sliderHeadlessReset()
     host.setup(280, 80)
     sliderHeadlessReset()
 
-    let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setBounds(0, 100)
     slider.sigStartChange += &sliderHeadlessStart
     slider.sigChanged     += &sliderHeadlessChanged
@@ -63,7 +63,7 @@ func sliderHeadlessReset()
     host.setup(280, 80)
     sliderHeadlessReset()
 
-    let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setBounds(0, 10, 1)
 
     slider.setValue(3.4)
@@ -78,7 +78,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setBounds(0, 10, 6)
     slider.setValue(10)
 
@@ -93,7 +93,7 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setBounds(0, 1, 1)
 
     slider.setValue(0.4)
@@ -109,24 +109,24 @@ func sliderHeadlessReset()
     host.setup(280, 80)
     sliderHeadlessReset()
 
-    let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setBounds(0, 100)
     slider.sigStartChange += &sliderHeadlessStart
     slider.sigEndChange   += &sliderHeadlessEnd
 
-    host.mouseDown(Math.Point{210, 35})
+    host.mouseDown({210, 35})
     Swag.assert(slider.isMoving)
     Swag.assert(host.app.mouseCaptureWnd == slider)
     Swag.assert(SliderHeadlessStartCount == 1)
     let valRight = slider.value()
     Swag.assert(valRight > 50)
 
-    host.moveMouse(Math.Point{40, 35})
+    host.moveMouse({40, 35})
     let valLeft = slider.value()
     Swag.assert(valLeft < 50)
     Swag.assert(valLeft < valRight)
 
-    host.mouseUp(Math.Point{40, 35})
+    host.mouseUp({40, 35})
     Swag.assert(not slider.isMoving)
     Swag.assert(host.app.mouseCaptureWnd == null)
     Swag.assert(SliderHeadlessEndCount == 1)
@@ -139,7 +139,7 @@ func sliderHeadlessReset()
     host.setup(280, 80)
     sliderHeadlessReset()
 
-    let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30}, null, true)
+    let slider = Slider.create(&host.root, {20, 20, 220, 30}, null, true)
     slider.setBounds(0, 100)
     slider.setRange(20, 80)
 
@@ -166,7 +166,7 @@ func sliderHeadlessReset()
     host.setup(280, 80)
     sliderHeadlessReset()
 
-    let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setBounds(0, 100)
     slider.setValue(50)
     slider.sigChanged += &sliderHeadlessChanged
@@ -198,7 +198,7 @@ func sliderHeadlessReset()
     host.setup(280, 80)
     sliderHeadlessReset()
 
-    let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
+    let slider = Slider.create(&host.root, {20, 20, 220, 30})
     slider.setBounds(0, 10, 1)
     slider.setValue(5)
     host.focus(slider)

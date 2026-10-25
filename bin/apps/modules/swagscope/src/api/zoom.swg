@@ -34,7 +34,7 @@ func createZoomButton(info: *Wnd, id, toolTip: string, width = ZoomButtonWidth)-
     with let result = IconButton.create(info, {}, Math.Rectangle{0, 0, width, 32}, id, .CenterContent)
     {
         .dockStyle = .Center
-        .margin    = Math.Vector4{ZoomButtonInset, 0, ZoomButtonInset, 0}
+        .margin    = {ZoomButtonInset, 0, ZoomButtonInset, 0}
         .toolTip   = toolTip
         .setText(zoomText(100))
         .setArrowPosition(.RightDownward)

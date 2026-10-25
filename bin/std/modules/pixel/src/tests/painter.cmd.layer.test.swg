@@ -68,7 +68,7 @@ using Swag, Core
 
     begin.width  = 64
     begin.height = 32
-    draw.dstRect = Math.Rectangle{10, 10, 64, 32}
+    draw.dstRect = {10, 10, 64, 32}
 
     painter.begin()
     layer.begin(&painter, begin)
@@ -88,7 +88,7 @@ using Swag, Core
     var layer: Layer
     var draw:  LayerDrawInfo
 
-    draw.dstRect          = Math.Rectangle{10, 10, 64, 32}
+    draw.dstRect          = {10, 10, 64, 32}
     draw.blendingMode     = .Copy
     draw.releaseAfterDraw = false
 
@@ -122,7 +122,7 @@ using Swag, Core
 
     begin.width         = 64
     begin.height        = 32
-    draw.dstRect        = Math.Rectangle{10, 10, 64, 32}
+    draw.dstRect        = {10, 10, 64, 32}
     draw.shadow.enabled = true
     draw.shadow.radius  = 6
     draw.shadow.offsetX = 3

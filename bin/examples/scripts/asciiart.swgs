@@ -52,7 +52,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        let btn = PushButton.create(wnd, "Load Image", Math.Rectangle{10, 10, 100})
+        let btn = PushButton.create(wnd, "Load Image", {10, 10, 100})
         btn.sigPressed += func|wnd|(btn)
         {
             openImage(btn.surface)

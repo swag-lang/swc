@@ -35,10 +35,10 @@ impl Duration
         func fromSeconds(value: f64)->Duration
         {
             Swag.assert(value >= 0 and Math.isFinite(value))
-            return Duration{value}
+            return {value}
         }
 
         // Creates a duration from milliseconds.
-        func fromMilliseconds(value: u64)->Duration => Duration{value / 1000.0}
+        func fromMilliseconds(value: u64)->Duration => {value / 1000.0}
     }
 }

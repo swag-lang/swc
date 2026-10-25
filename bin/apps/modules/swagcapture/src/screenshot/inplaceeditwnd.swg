@@ -135,7 +135,7 @@ impl InPlaceEditWnd
     {
         // The padding scales with the icon, or the buttons come out chunkier the further the
         // grabbed monitor sits below the surface's own scale.
-        with .actionBar = IconBar.create(.editWnd.editView, 24 * .uiScale, Math.Rectangle{}, itemPadding: 4 * .uiScale)
+        with .actionBar = IconBar.create(.editWnd.editView, 24 * .uiScale, {}, itemPadding: 4 * .uiScale)
         {
             .backgroundStyle = .Window
             .sigPressed      += func|editor = me|(btn) { editor.handleActionBarPress(btn.id orelse "") }
@@ -154,7 +154,7 @@ impl InPlaceEditWnd
 
     mtd createEditBar(main: *MainWnd)
     {
-        with .editBar = IconBar.create(.editWnd.editView, 32 * .uiScale, Math.Rectangle{}, itemPadding: 4 * .uiScale)
+        with .editBar = IconBar.create(.editWnd.editView, 32 * .uiScale, {}, itemPadding: 4 * .uiScale)
         {
             .backgroundStyle = .Window
             .setOrientation(.Vertical)

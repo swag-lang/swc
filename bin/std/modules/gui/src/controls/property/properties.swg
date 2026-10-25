@@ -62,7 +62,7 @@ interface IPropertyNotify
     // It is called when the row is built and after every change. The row shows an accent bar and
     // a badge in the state color, with the message as a tooltip. The most severe result along the
     // parent chain wins.
-    mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult => PropValidationResult{}
+    mtd validateItem(list: *Properties, item: *PropertiesItem)->PropValidationResult => {}
 
     // Returns whether `item` still holds its default value, which decides whether its row shows the revert marker.
     //
@@ -387,7 +387,7 @@ impl Properties
 {
     // Creates an empty property grid with the `kind` presentation.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, kind = PropertiesKind.List, id: WndId? = null)->*Properties
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, id: WndId? = null)->*Properties
     {
         with let ed = Wnd.create'Properties(parent, "", position, id)
         {

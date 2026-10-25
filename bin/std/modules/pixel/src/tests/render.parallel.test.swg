@@ -11,7 +11,7 @@ using Swag, Core
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
-    painter.fillRect(Math.Rectangle{0, 0, 16, 16}, Color.fromArgb(Argb.White))
+    painter.fillRect({0, 0, 16, 16}, Color.fromArgb(Argb.White))
     painter.end()
     let image = renderCpu(16, 16, &painter)
     assertPixel(image, 8, 8, Argb.White)

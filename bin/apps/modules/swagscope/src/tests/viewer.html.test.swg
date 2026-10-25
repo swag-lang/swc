@@ -88,7 +88,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
     {
         .dockStyle       = .Top
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     var result = openTestViewer(Html.viewerPlugin(), &host.root, htmlViewerFixturePath(), infoParent: infoBar)

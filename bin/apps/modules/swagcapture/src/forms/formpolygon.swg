@@ -17,12 +17,12 @@ impl FormPolygon
     mtd setDefaultShape()
     {
         .points.clear()
-        .points.add(Math.Vector2{0, 10})
-        .points.add(Math.Vector2{16, 0})
-        .points.add(Math.Vector2{36, 10})
-        .points.add(Math.Vector2{48, 32})
-        .points.add(Math.Vector2{36, 48})
-        .points.add(Math.Vector2{0, 48})
+        .points.add({0, 10})
+        .points.add({16, 0})
+        .points.add({36, 10})
+        .points.add({48, 32})
+        .points.add({36, 48})
+        .points.add({0, 48})
     }
 }
 

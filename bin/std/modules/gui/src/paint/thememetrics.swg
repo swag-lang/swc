@@ -68,9 +68,9 @@ struct ThemeMetrics
         dialog_Padding:    f32 = 24     // Outer inset kept around dialog content and action rows.
         dialog_BtnPadding: f32 = 8      // Gap between dialog actions and vertical inset of their bar.
 
-        editBox_SquarePadding: Math.Vector4 = Math.Vector4{10, 5, 10, 5}     // Inset of the text of a square-cornered field.
-        editBox_RoundPadding:  Math.Vector4 = Math.Vector4{12, 5, 12, 5}     // Inset of the text of a round field.
-        editBox_FlatPadding:   Math.Vector4 = Math.Vector4{12, 0, 12, 5}     // Inset of the text of a flat field.
+        editBox_SquarePadding: Math.Vector4 = {10, 5, 10, 5}     // Inset of the text of a square-cornered field.
+        editBox_RoundPadding:  Math.Vector4 = {12, 5, 12, 5}     // Inset of the text of a round field.
+        editBox_FlatPadding:   Math.Vector4 = {12, 0, 12, 5}     // Inset of the text of a flat field.
         editBox_Width:         f32          = 100                            // Default width of a field.
         editBox_Height:        f32          = 32                             // Height of a field.
         editBox_UnitMargin:    f32          = 3                              // Air between the value of a field and its unit.
@@ -130,7 +130,7 @@ struct ThemeMetrics
         frameWnd_SquarePadding:            f32 = 5      // Inset of the view of a square frame.
         frameWnd_RoundPadding:             f32 = 5      // Inset of the view of a round frame.
         frameWnd_FlatPadding:              f32 = 2      // Inset of the view of a flat frame.
-        frameWnd_SmallShadowSize:          Math.Vector4 = Math.Vector4{5, 5, 15, 15}     // Reach of the compact frame shadow on the left, top, right, and bottom.
+        frameWnd_SmallShadowSize:          Math.Vector4 = {5, 5, 15, 15}     // Reach of the compact frame shadow on the left, top, right, and bottom.
         frameWnd_AnchorWidth:              f32 = 24     // Width of a callout anchor along the frame edge.
         frameWnd_AnchorHeight:             f32 = 10     // Depth a callout anchor protrudes from the frame.
         frameWnd_AnchorOverlap:            f32 = 2      // Depth by which a callout anchor overlaps the frame it leaves.
@@ -141,7 +141,7 @@ struct ThemeMetrics
         list_ExpandSize: f32 = 22     // Width of the disclosure column of a tree row.
 
         header_Height:    f32 = 35     // Height of a column header.
-        header_Padding:   Math.Vector4 = Math.Vector4{10, 5, 10, 5}     // Inset of the caption of a column header.
+        header_Padding:   Math.Vector4 = {10, 5, 10, 5}     // Inset of the caption of a column header.
         header_Separator: f32 = 5      // Width of the grip between two column headers.
 
         panel_GutterSize:  f32 = 4     // Gap separating a structural panel from adjacent application chrome.
@@ -184,7 +184,7 @@ struct ThemeMetrics
         // `toolTip_MaxWidth`, it ends its last line with an ellipsis rather than grow past
         // `toolTip_MaxHeight`, and it never scrolls — so both caps are a promise about the
         // largest box a reader can be shown, not a viewport onto a longer text.
-        toolTip_Padding:   Math.Vector4 = Math.Vector4{8, 6, 8, 6}     // Inset between a tool tip's border and its text.
+        toolTip_Padding:   Math.Vector4 = {8, 6, 8, 6}     // Inset between a tool tip's border and its text.
         toolTip_MaxWidth:  f32 = 360     // Width at which a tool tip wraps instead of growing.
         toolTip_MaxHeight: f32 = 200     // Height at which a tool tip truncates instead of growing.
         toolTip_Offset:    f32 = 12      // Gap a tool tip keeps from the pointer that summoned it.

@@ -44,7 +44,7 @@ impl FormDlg
 {
     // Creates a centered modal dialog holding an empty form and the standard buttons.
     #[Swag.Discardable]
-    func create(from: *Surface, options: FormDlgOptions = FormDlgOptions{})->*FormDlg
+    func create(from: *Surface, options: FormDlgOptions = {})->*FormDlg
     {
         Swag.assert(from != null)
         Swag.assert(options.width > 0 and options.height > 0, "form dialog dimensions must be positive")

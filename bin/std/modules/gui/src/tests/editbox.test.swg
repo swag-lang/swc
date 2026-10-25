@@ -21,7 +21,7 @@ func editHeadlessEnter(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(320, 120)
 
-    let field = EditBox.create(&host.root, "query", Math.Rectangle{20, 30, 220, 28}, flags: .ClearButton)
+    let field = EditBox.create(&host.root, "query", {20, 30, 220, 28}, flags: .ClearButton)
     field.setFocus()
     Swag.assert(not field.children.isEmpty())
     host.click(field.children.back().surfaceRect().center())
@@ -38,7 +38,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, "Hello", Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
     Swag.assert(edit.text() == "Hello")
 
     edit.setText("World")
@@ -50,8 +50,8 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(300, 100)
-    let edit = EditBox.create(&host.root, "before", Math.Rectangle{10, 10, 180, 26})
-    let next = PushButton.create(&host.root, "Next", Math.Rectangle{10, 50, 100, 26})
+    let edit = EditBox.create(&host.root, "before", {10, 10, 180, 26})
+    let next = PushButton.create(&host.root, "Next", {10, 50, 100, 26})
     var lost, committed: u32
     edit.sigFocusLost += func|lost = &lost|(_) { lost[] += 1 }
     edit.sigCommitted += func|committed = &committed|(_) { committed[] += 1 }
@@ -72,7 +72,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, null, Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     host.focus(edit)
 
     host.sendRune(Input.Key.A, 'H')
@@ -85,7 +85,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, null, Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     host.focus(edit)
 
     host.sendRune(Input.Key.A, 'A')
@@ -101,7 +101,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, "Hello", Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
     edit.selectAll()
     edit.deleteSelection()
     Swag.assert(edit.text() == "")
@@ -112,7 +112,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, "lock", Math.Rectangle{20, 20, 200, 26}, null, EditBoxFlags.ReadOnly)
+    let edit = EditBox.create(&host.root, "lock", {20, 20, 200, 26}, null, EditBoxFlags.ReadOnly)
     host.focus(edit)
 
     host.sendRune(Input.Key.A, 'Z')
@@ -124,7 +124,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, null, Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setMaximumLength(3)
     host.focus(edit)
 
@@ -144,7 +144,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(400, 60)
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
-    let edit     = EditBox.create(&host.root, longText, Math.Rectangle{0, 0, 380, 26}, null, EditBoxFlags.None)
+    let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     let len = (edit.text()).count
@@ -165,7 +165,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(400, 60)
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
-    let edit     = EditBox.create(&host.root, longText, Math.Rectangle{0, 0, 380, 26}, null, EditBoxFlags.RightAligned)
+    let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.RightAligned)
     host.focus(edit)
 
     let len = (edit.text()).count
@@ -183,7 +183,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(320, 60)
 
-    let edit = EditBox.create(&host.root, "query", Math.Rectangle{0, 0, 280, 36})
+    let edit = EditBox.create(&host.root, "query", {0, 0, 280, 36})
     edit.setIcon(host.theme.icon(.Search, 18))
     host.focus(edit)
     edit.setSelection((edit.text()).count, (edit.text()).count)
@@ -200,7 +200,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(420, 60)
-    let edit = EditBox.create(&host.root, "Hello world example text", Math.Rectangle{0, 0, 400, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "Hello world example text", {0, 0, 400, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     let rect = edit.surfaceRect()
@@ -232,7 +232,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(420, 60)
-    let edit = EditBox.create(&host.root, "Monotonic caret round trip", Math.Rectangle{0, 0, 400, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "Monotonic caret round trip", {0, 0, 400, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     let fontR = nnFont(edit.font().regular)
@@ -253,7 +253,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(300, 60)
-    let edit = EditBox.create(&host.root, "abcdef", Math.Rectangle{0, 0, 260, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "abcdef", {0, 0, 260, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     host.keyPress(Input.Key.End)
@@ -278,7 +278,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(300, 60)
-    let edit = EditBox.create(&host.root, "selection", Math.Rectangle{0, 0, 260, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "selection", {0, 0, 260, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     host.keyPress(Input.Key.Home)
@@ -297,7 +297,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 60)
-    let edit = EditBox.create(&host.root, "one two three", Math.Rectangle{0, 0, 320, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "one two three", {0, 0, 320, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     host.keyPress(Input.Key.Home)
@@ -322,7 +322,7 @@ func editHeadlessEscape(_: *EditBox)
     host.setup(160, 60)
 
     // Narrow box, long text -> horizontal scroll kicks in.
-    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", Math.Rectangle{0, 0, 120, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     let len = (edit.text()).count
@@ -340,7 +340,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 60)
-    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", Math.Rectangle{0, 0, 120, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     let len = (edit.text()).count
@@ -361,7 +361,7 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 60)
-    let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", Math.Rectangle{0, 0, 120, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
     let len = (edit.text()).count
@@ -384,7 +384,7 @@ func editHeadlessEscape(_: *EditBox)
     EditHeadlessEnterCount  = 0
     EditHeadlessEscapeCount = 0
 
-    let edit = EditBox.create(&host.root, "x", Math.Rectangle{20, 20, 200, 26}, null, EditBoxFlags.None)
+    let edit = EditBox.create(&host.root, "x", {20, 20, 200, 26}, null, EditBoxFlags.None)
     edit.sigSubmitted += &editHeadlessEnter
     edit.sigCancelled += &editHeadlessEscape
 
@@ -403,9 +403,9 @@ func editHeadlessEscape(_: *EditBox)
     host.setup(320, 120)
     host.recordCommands()
 
-    let ok     = PushButton.create(&host.root, "Ok", Math.Rectangle{10, 10, 80, 24}, EditHeadless_Default)
-    let cancel = PushButton.create(&host.root, "Cancel", Math.Rectangle{100, 10, 80, 24}, EditHeadless_Cancel)
-    let field  = EditBox.create(&host.root, "kept", Math.Rectangle{10, 50, 200, 26})
+    let ok     = PushButton.create(&host.root, "Ok", {10, 10, 80, 24}, EditHeadless_Default)
+    let cancel = PushButton.create(&host.root, "Cancel", {100, 10, 80, 24}, EditHeadless_Cancel)
+    let field  = EditBox.create(&host.root, "kept", {10, 50, 200, 26})
 
     host.surface.defaultButton = ok
     host.surface.cancelButton  = cancel
@@ -433,8 +433,8 @@ func editHeadlessEscape(_: *EditBox)
     host.setup(320, 120)
     host.recordCommands()
 
-    let cancel = PushButton.create(&host.root, "Cancel", Math.Rectangle{100, 10, 80, 24}, EditHeadless_Cancel)
-    let field  = EditBox.create(&host.root, "kept", Math.Rectangle{10, 50, 200, 26}, null, EditBoxFlags.ReleaseFocusOnEnterOrEscape)
+    let cancel = PushButton.create(&host.root, "Cancel", {100, 10, 80, 24}, EditHeadless_Cancel)
+    let field  = EditBox.create(&host.root, "kept", {10, 50, 200, 26}, null, EditBoxFlags.ReleaseFocusOnEnterOrEscape)
     host.surface.cancelButton = cancel
 
     field.setFocus()
@@ -453,7 +453,7 @@ func editHeadlessEscape(_: *EditBox)
     var host: Testing.HeadlessHost
     host.setup(240, 60)
 
-    let edit = EditBox.create(&host.root, "255", Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, "255", {20, 20, 200, 26})
     edit.setUnsignedIntegerRange(0, 999)
     edit.setMaximumLength(3)
     host.focus(edit)
@@ -480,7 +480,7 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, null, Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setSignedIntegerRange()
 
     assertEditContent(edit, "42", .Valid)
@@ -508,7 +508,7 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, null, Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setUnsignedIntegerRange()
 
     assertEditContent(edit, "0", .Valid)
@@ -539,7 +539,7 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, null, Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setHexadecimalRange()
 
     assertEditContent(edit, "aF", .Valid)
@@ -565,7 +565,7 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, null, Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setFloatingPointRange()
 
     assertEditContent(edit, "-1.25", .Valid)
@@ -596,7 +596,7 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit = EditBox.create(&host.root, null, Math.Rectangle{20, 20, 200, 26})
+    let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
 
     assertEditContent(edit, "plain text", .Valid)
     edit.setSignedIntegerRange(-5, 5)
@@ -611,7 +611,7 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let edit  = EditBox.create(&host.root, "query", Math.Rectangle{20, 20, 200, 26})
+    let edit  = EditBox.create(&host.root, "query", {20, 20, 200, 26})
     var valid = true
     var calls: u32
     edit.setValidator(func|&valid, &calls|(_)->EditBoxCheckResult

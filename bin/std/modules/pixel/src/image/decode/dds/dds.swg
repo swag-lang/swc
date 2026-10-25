@@ -337,7 +337,7 @@ impl Decoder
 
 impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"DDS - DirectDraw Surface", ".dds"}
+    mtd impl format()->ImageFormat => {"DDS - DirectDraw Surface", ".dds"}
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodeSurface(buffer, options)
 }
 

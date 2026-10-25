@@ -5,13 +5,13 @@ func createDockLabel(parent: *Wnd,
                      text: string,
                      dock: DockStyle,
                      size: Math.Point,
-                     margin: Math.Vector4 = Math.Vector4{})->*Label
+                     margin: Math.Vector4 = {})->*Label
 {
     let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), Math.Rectangle{0, 0, size.x, size.y}, null, .WordWrap)
     label.backgroundStyle = .Window
     label.dockStyle       = dock
     label.margin          = margin
-    label.setTextPadding(Math.Vector4{12, 8, 12, 8})
+    label.setTextPadding({12, 8, 12, 8})
     label.setTextAlignment(.Left, .Top)
     return label
 }
@@ -27,12 +27,12 @@ func createConstraintsPage(parent: *Wnd)
     let host = Wnd.create'Wnd(page, Math.Rectangle{18, 92, layout.full.width - 36, layout.full.height - 114})
     host.padding = 8
 
-    with let topStack = StackLayoutCtrl.create(host, .Left, Math.Rectangle{0, 0, 0, 56})
+    with let topStack = StackLayoutCtrl.create(host, .Left, {0, 0, 0, 56})
     {
         .backgroundStyle = .CommandBar
         .dockStyle       = .Top
-        .margin          = Math.Vector4{0, 0, 0, 10}
-        .padding         = Math.Vector4{12, 12, 12, 12}
+        .margin          = {0, 0, 0, 10}
+        .padding         = {12, 12, 12, 12}
         .spacing         = 8
     }
 
@@ -45,14 +45,14 @@ func createConstraintsPage(parent: *Wnd)
                             "Status",
                             "Bottom dock keeps its height; center is recomputed after it.",
                             .Bottom,
-                            Math.Point{0, 52},
-                            Math.Vector4{0, 10, 0, 0})
+                            {0, 52},
+                            {0, 10, 0, 0})
 
-    let left = createDockLabel(host, "Nav", "Left dock with min/max width.", .Left, Math.Point{170, 0}, Math.Vector4{0, 0, 10, 0})
+    let left = createDockLabel(host, "Nav", "Left dock with min/max width.", .Left, {170, 0}, {0, 0, 10, 0})
     left.minSize.x = 130
     left.maxSize.x = 210
 
-    let right = createDockLabel(host, "Inspector", "Right dock with clamped width.", .Right, Math.Point{240, 0}, Math.Vector4{10, 0, 0, 0})
+    let right = createDockLabel(host, "Inspector", "Right dock with clamped width.", .Right, {240, 0}, {10, 0, 0, 0})
     right.minSize.x = 180
     right.maxSize.x = 280
 

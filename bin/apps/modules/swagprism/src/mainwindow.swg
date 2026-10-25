@@ -63,7 +63,7 @@ impl MainWindow
         let surface = unwrap result.surface
         surface.setView(result)
         result.icons.setup(result.app().renderer, prismIcons())
-        surface.minSize        = Math.Point{MinWidth, MinHeight}
+        surface.minSize        = {MinWidth, MinHeight}
         result.backgroundStyle = .ToolBar
         result.language        = ReferenceLanguage
 
@@ -112,10 +112,10 @@ impl MainWindow
             .dockStyle       = .Top
             .backgroundStyle = .CommandBar
             .padding         = 0
-            .margin          = Math.Vector4{0, 0, 0, 8}
+            .margin          = {0, 0, 0, 8}
         }
 
-        with .commandBar.runButton = PushButton.create(.commandBar, appStrings().ui_CompileVisible, Math.Rectangle{0, 0, 0, 36}, "prism.run", .Strong)
+        with .commandBar.runButton = PushButton.create(.commandBar, appStrings().ui_CompileVisible, {0, 0, 0, 36}, "prism.run", .Strong)
         {
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setIcon(me.theme().icon(.Play, 18))
@@ -123,7 +123,7 @@ impl MainWindow
             .sigPressed += func|window = me|(_) { window.compile(force: true) }
         }
 
-        with .commandBar.formatButton = PushButton.create(.commandBar, "", Math.Rectangle{0, 0, 0, 36}, "prism.format")
+        with .commandBar.formatButton = PushButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.format")
         {
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setIcon(me.icon(.Format))
@@ -131,14 +131,14 @@ impl MainWindow
             .sigPressed += func|window = me|(_) { window.format() }
         }
 
-        with .commandBar.liveEdit = CheckButton.create(.commandBar, "", Math.Rectangle{0, 0, 0, 36}, "prism.liveEdit")
+        with .commandBar.liveEdit = CheckButton.create(.commandBar, "", {0, 0, 0, 36}, "prism.liveEdit")
         {
             .style.setStyleSheetMetrics("btnPush_Width 0")
             .setState(.Checked)
             .sigChanged += func|window = me|(_) { window.scheduleCompile() }
         }
 
-        with .commandBar.exampleCombo = ComboBox.create(.commandBar, Math.Rectangle{0, 0, 0, 36}, "prism.examples")
+        with .commandBar.exampleCombo = ComboBox.create(.commandBar, {0, 0, 0, 36}, "prism.examples")
         {
             .sigChanged += func|window = me|(_, index) { window.openExample(cast(ExampleKind, index)) }
         }
@@ -147,10 +147,10 @@ impl MainWindow
     // Creates the one-or-two-viewers toggle in the header of the first panel.
     mtd createLayoutButton()
     {
-        with .layoutButton = IconButton.create(.panels[0].header, .icon(.Layout), Math.Rectangle{0, 0, 36, 36}, "prism.layout", flags: .Toggle)
+        with .layoutButton = IconButton.create(.panels[0].header, .icon(.Layout), {0, 0, 36, 36}, "prism.layout", flags: .Toggle)
         {
             .dockStyle = .Right
-            .margin    = Math.Vector4{8, 0, 0, 0}
+            .margin    = {8, 0, 0, 0}
             .setIconSize(18, 18)
             .setCheckIndicator(.Frame)
             .sendToBack()
@@ -165,17 +165,17 @@ impl MainWindow
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .InformationBar
-            .padding         = Math.Vector4{Gutter, 4, Gutter, 4}
+            .padding         = {Gutter, 4, Gutter, 4}
         }
 
-        with .spinner = Spinner.create(.statusBar, Math.Rectangle{0, 0, 16, 16}, "prism.busy")
+        with .spinner = Spinner.create(.statusBar, {0, 0, 16, 16}, "prism.busy")
         {
             .dockStyle = .Left
-            .margin    = Math.Vector4{0, 4, 8, 4}
+            .margin    = {0, 4, 8, 4}
             .hide()
         }
 
-        with .status = Label.create(.statusBar, "", Math.Rectangle{}, null, .SecondaryText)
+        with .status = Label.create(.statusBar, "", {}, null, .SecondaryText)
         {
             .dockStyle = .Center
             .setTextAlignment(.Left, .Center)
@@ -185,7 +185,7 @@ impl MainWindow
     // Creates the source pane and the viewer split beside it.
     mtd createPanes()
     {
-        with .sourceSplit = SplitterCtrl.create(&.wnd, Math.Rectangle{}, false, "prism.split")
+        with .sourceSplit = SplitterCtrl.create(&.wnd, {}, false, "prism.split")
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -206,7 +206,7 @@ impl MainWindow
         }
 
         // The first viewer opens on unoptimized code, the comparison on optimized code.
-        with .viewerSplit = SplitterCtrl.create(.sourceSplit, Math.Rectangle{}, false, "prism.viewers")
+        with .viewerSplit = SplitterCtrl.create(.sourceSplit, {}, false, "prism.viewers")
         {
             .backgroundStyle = .Transparent
         }

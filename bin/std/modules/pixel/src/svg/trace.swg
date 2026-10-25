@@ -33,7 +33,7 @@ struct TraceOptions
 // let doc   = Svg.trace(&image)
 // try doc.save("icon.svg")
 // ```
-func trace(image: const *Image, options: TraceOptions = TraceOptions{})->Document
+func trace(image: const *Image, options: TraceOptions = {})->Document
 {
     Swag.assert(image != null and image.isValid())
 

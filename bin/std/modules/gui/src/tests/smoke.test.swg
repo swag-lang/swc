@@ -14,12 +14,12 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(240, 120)
     host.closeOnCommand(GuiHeadlessSmoke_CloseWindow)
 
-    let button = PushButton.create(&host.root, "Close", Math.Rectangle{20, 20, 90, 30}, GuiHeadlessSmoke_CloseWindow)
+    let button = PushButton.create(&host.root, "Close", {20, 20, 90, 30}, GuiHeadlessSmoke_CloseWindow)
 
     Swag.assert(not host.closed)
-    Swag.assert(host.wndAt(Math.Point{40, 30}) == button)
+    Swag.assert(host.wndAt({40, 30}) == button)
 
-    host.click(Math.Point{40, 30})
+    host.click({40, 30})
 
     Swag.assert(host.closed)
     Swag.assert(host.commandCount == 1)
@@ -56,11 +56,11 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.setup(240, 120)
 
     host.surface.isDirty = false
-    host.surface.setPosition(Math.Rectangle{10, 20, 320, 180})
+    host.surface.setPosition({10, 20, 320, 180})
 
-    Swag.assert(host.surface.position == Math.Rectangle{10, 20, 320, 180})
+    Swag.assert(host.surface.position == {10, 20, 320, 180})
     Swag.assert(host.surface.isDirty)
-    Swag.assert(host.surface.dirtyRect == Math.Rectangle{0, 0, 320, 180})
+    Swag.assert(host.surface.dirtyRect == {0, 0, 320, 180})
 }
 
 // A native update region is expressed in physical client pixels. Rounding both logical edges
@@ -72,10 +72,10 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 
     host.surface.setDpiScaleRaw(1.5)
     host.surface.isDirty = false
-    host.surface.invalidatePhysicalRect(Math.Rectangle{3, 6, 4, 5})
+    host.surface.invalidatePhysicalRect({3, 6, 4, 5})
 
     Swag.assert(host.surface.isDirty)
-    Swag.assert(host.surface.dirtyRect == Math.Rectangle{2, 4, 3, 4})
+    Swag.assert(host.surface.dirtyRect == {2, 4, 3, 4})
 }
 
 // A fired timer reaches its window, and a removed one leaves the application once the timer queues
@@ -196,7 +196,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(replacement.surface == surface)
     Swag.assert(previousView.isPendingDestroy)
 
-    let button = PushButton.create(surface.view(), "OK", Math.Rectangle{20, 20, 80, 30}, GuiHeadlessSmoke_ModalExit)
+    let button = PushButton.create(surface.view(), "OK", {20, 20, 80, 30}, GuiHeadlessSmoke_ModalExit)
     button.sigPressed += func(btn) { btn.app().exitModal(btn.id orelse "") }
 
     surface.show()
@@ -258,12 +258,12 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.theme.metrics.wnd_SizingBorderSize    = 8
     host.theme.metrics.wnd_TopSizingBorderSize = 7
     host.surface.flags                         = .StandardWindow
-    host.surface.position                      = Math.Rectangle{10, 20, 240, 120}
+    host.surface.position                      = {10, 20, 240, 120}
     host.surface.wnd.padding.y                 = host.theme.metrics.wnd_BigCaptionCY
 
     let captionChild = Wnd.create'Wnd(&host.surfaceWnd, Math.Rectangle{20, 4, 60, 24})
-    Swag.assert(not host.surfaceWnd.hitTestCaption(Math.Point{30, 15}))
-    Swag.assert(host.surfaceWnd.hitTestCaption(Math.Point{100, 15}))
+    Swag.assert(not host.surfaceWnd.hitTestCaption({30, 15}))
+    Swag.assert(host.surfaceWnd.hitTestCaption({100, 15}))
     captionChild.destroy()
     host.pump()
 
@@ -274,13 +274,13 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     let menuIt0   = unwrap captionMenu.items[0]
     let menuItemX = menuIt0.pos + menuIt0.size * 0.5
     Swag.assert(not host.surfaceWnd.hitTestCaption(Math.Point{menuItemX, 15}))
-    Swag.assert(host.surfaceWnd.hitTestCaption(Math.Point{180, 15}))
+    Swag.assert(host.surfaceWnd.hitTestCaption({180, 15}))
 
     captionMenu.destroy()
     host.pump()
 
-    Swag.assert(host.surfaceWnd.hitTestBorders(Math.Point{30, 15}) == .None)
-    Swag.assert(host.surfaceWnd.hitTestBorders(Math.Point{30, 1}) & SizingBorder.Top)
+    Swag.assert(host.surfaceWnd.hitTestBorders({30, 15}) == .None)
+    Swag.assert(host.surfaceWnd.hitTestBorders({30, 1}) & SizingBorder.Top)
 
     host.surfaceWnd.itf     = &host.surfaceWnd
     host.surfaceWnd.surface = &host.surface
@@ -290,8 +290,8 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.surfaceWnd.sendEvent(&evt)
 
     evt.kind       = .Move
-    evt.surfacePos = Math.Point{50, 20}
-    evt.delta      = Math.Point{20, 5}
+    evt.surfacePos = {50, 20}
+    evt.delta      = {20, 5}
     host.surfaceWnd.sendEvent(&evt)
 
     Swag.assert(host.surface.position.x == 30)
@@ -300,22 +300,22 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.surface.position.height == 120)
 
     evt.kind       = .Released
-    evt.surfacePos = Math.Point{50, 20}
+    evt.surfacePos = {50, 20}
     host.surfaceWnd.sendEvent(&evt)
 
-    host.surface.position         = Math.Rectangle{10, 20, 240, 120}
+    host.surface.position         = {10, 20, 240, 120}
     host.surfaceWnd.movingSurface = false
     host.surfaceWnd.sizingBorder  = .None
     host.app.mouseEnterWnd        = &host.surfaceWnd
 
     evt.kind       = .Pressed
-    evt.surfacePos = Math.Point{30, 1}
+    evt.surfacePos = {30, 1}
     evt.delta      = {}
     host.surfaceWnd.sendEvent(&evt)
 
     evt.kind       = .Move
-    evt.surfacePos = Math.Point{30, 11}
-    evt.delta      = Math.Point{0, 10}
+    evt.surfacePos = {30, 11}
+    evt.delta      = {0, 10}
     host.surfaceWnd.sendEvent(&evt)
 
     Swag.assert(host.surface.position.x == 10)

@@ -133,7 +133,7 @@ impl IWnd for IconButton
             .name.compute()
             var format: RichStringFormat
             format.font = .font()
-            Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format, .deviceScale())
+            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format, .deviceScale())
 
             let labelWidth  = .name.boundRect.width
             let labelHeight = .name.boundRect.height
@@ -888,7 +888,7 @@ impl IconButton
 
     // Creates an icon button with optional command identifier and interaction flags.
     #[Swag.Discardable]
-    func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags = IconButtonFlags.None)->*IconButton
+    func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = {}, id: WndId? = null, flags = IconButtonFlags.None)->*IconButton
     {
         Swag.assert(parent != null)
         var pos = position

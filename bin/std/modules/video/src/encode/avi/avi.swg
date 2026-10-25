@@ -73,7 +73,7 @@ struct Encoder
 
 impl IEncoder for Encoder
 {
-    mtd impl format()->StreamFormat => StreamFormat{"AVI - Audio Video Interleave", ".avi"}
+    mtd impl format()->StreamFormat => {"AVI - Audio Video Interleave", ".avi"}
 
     #[Swag.Propagate]
     mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail

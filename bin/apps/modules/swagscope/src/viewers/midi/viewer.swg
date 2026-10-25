@@ -227,14 +227,14 @@ impl Panel
             .keyboardWidthMode = g_ViewerSettings.keyboardWidthMode
         }
 
-        with result.trackCombo = ComboBox.create(result.commands, Math.Rectangle{0, 0, 224, 36})
+        with result.trackCombo = ComboBox.create(result.commands, {0, 0, 224, 36})
         {
             .dockStyle  = .Left
             .toolTip    = texts().ui_AllTracks
             .sigChanged += func|view = result|(_, index) { view.roll.setTrack(index ? index - 1 : Swag.U32.Max) }
         }
 
-        with result.pitchLabelCombo = ComboBox.create(result.commands, Math.Rectangle{0, 0, 160, 36})
+        with result.pitchLabelCombo = ComboBox.create(result.commands, {0, 0, 160, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -251,7 +251,7 @@ impl Panel
             }
         }
 
-        with result.keyboardWidthCombo = ComboBox.create(result.commands, Math.Rectangle{0, 0, 150, 36})
+        with result.keyboardWidthCombo = ComboBox.create(result.commands, {0, 0, 150, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8

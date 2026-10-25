@@ -732,7 +732,7 @@ impl Panel
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
         // usually one whose encoding was guessed wrong, and this is where a reader corrects it.
-        with .encodingCombo = ComboBox.create(.commands, Math.Rectangle{0, 0, 156, 36})
+        with .encodingCombo = ComboBox.create(.commands, {0, 0, 156, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8

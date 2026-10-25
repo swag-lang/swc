@@ -90,7 +90,7 @@ impl ViewerWindow
             .sigPressed += func|window = me|(_) { window.showSearchOptionsMenu() }
         }
 
-        with .searchBox = EditBox.create(.searchGroup, "", Math.Rectangle{0, 0, SearchFieldWidth, 36}, flags: .ClearButton)
+        with .searchBox = EditBox.create(.searchGroup, "", {0, 0, SearchFieldWidth, 36}, flags: .ClearButton)
         {
             .setIcon(me.theme().icon(.Search, iconSize))
             .setPlaceholder(appStrings().ui_Search)
@@ -123,7 +123,7 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with .searchCountLabel = Label.create(.searchNavigation, "", Math.Rectangle{0, 0, SearchCountWidth, 36}, null, .SecondaryText)
+        with .searchCountLabel = Label.create(.searchNavigation, "", {0, 0, SearchCountWidth, 36}, null, .SecondaryText)
         {
             .margin.x = 8
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
@@ -134,7 +134,7 @@ impl ViewerWindow
 
         // Wide enough for the longest viewer name a shipped viewer registers beside its glyph.
         // Viewer commands have their own row, so this selector can close the global bar's right edge.
-        with .viewerCombo = ComboBox.create(.commandBar, Math.Rectangle{0, 0, 180, 36})
+        with .viewerCombo = ComboBox.create(.commandBar, {0, 0, 180, 36})
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
@@ -161,7 +161,7 @@ impl ViewerWindow
         {
             .dockStyle       = .Center
             .backgroundStyle = .InformationPanel
-            .padding         = Math.Vector4{8, 2, 8, 2}
+            .padding         = {8, 2, 8, 2}
         }
 
         with .infoContentGroup = Wnd.create'ViewerInfoLayout(.infoBar, Math.Rectangle{0, 0, 0, 36})
@@ -183,19 +183,19 @@ impl ViewerWindow
 
         .infoContentGroup.filesButton = .filesButton
 
-        with .infoFileGroup = StackLayoutCtrl.create(.infoContentGroup, .Left, Math.Rectangle{0, 0, 0, 36})
+        with .infoFileGroup = StackLayoutCtrl.create(.infoContentGroup, .Left, {0, 0, 0, 36})
         {
             .backgroundStyle = .Transparent
             .spacing         = 0
         }
 
-        with .infoIconLabel = Label.create(.infoFileGroup, "", Math.Rectangle{0, 0, 24, 36})
+        with .infoIconLabel = Label.create(.infoFileGroup, "", {0, 0, 24, 36})
         {
             .margin.z = me.themeMetrics().btnIcon_SpacingIcon
             .setIconAlignment(.Center, .Center)
         }
 
-        with .infoNameLabel = Label.create(.infoFileGroup, "", Math.Rectangle{0, 0, 0, 36}, null, .Ellipsis)
+        with .infoNameLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .Ellipsis)
         {
             .layoutSpec.policyX = .Expand
             .layoutSpec.weightX = 0
@@ -203,14 +203,14 @@ impl ViewerWindow
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with .infoSizeLabel = Label.create(.infoFileGroup, "", Math.Rectangle{0, 0, 0, 36}, null, .SecondaryText)
+        with .infoSizeLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .SecondaryText)
         {
             .margin.x = 8
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with .infoStatsLabel = Label.create(.infoContentGroup, "", Math.Rectangle{0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
+        with .infoStatsLabel = Label.create(.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
         {
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Right, .OpticalCenter)
@@ -226,7 +226,7 @@ impl ViewerWindow
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar
-            .padding         = Math.Vector4{12, 6, 12, 6}
+            .padding         = {12, 6, 12, 6}
             .fillCenterGroup = true
         }
     }
@@ -278,14 +278,14 @@ impl ViewerWindow
         with .recentPane = Wnd.create'Wnd(.filePanel)
         {
             .backgroundStyle = .Panel
-            .padding         = Math.Vector4{0, 8, 0, 8}
+            .padding         = {0, 8, 0, 8}
         }
 
         with let recentHeader = Wnd.create'Wnd(.recentPane, Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .margin          = Math.Vector4{10, 0, 10, 0}
+            .margin          = {10, 0, 10, 0}
         }
 
         with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
@@ -320,7 +320,7 @@ impl ViewerWindow
         with .folderPane = Wnd.create'Wnd(.filePanel)
         {
             .backgroundStyle = .Panel
-            .padding         = Math.Vector4{0, 8, 0, 8}
+            .padding         = {0, 8, 0, 8}
         }
 
         // The header carries the filter beside the folder name: the toggle changes what this
@@ -329,7 +329,7 @@ impl ViewerWindow
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .margin          = Math.Vector4{10, 0, 10, 0}
+            .margin          = {10, 0, 10, 0}
         }
 
         with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize}, flags: .Toggle)
@@ -362,7 +362,7 @@ impl ViewerWindow
         with .folderFilterBox = EditBox.create(.folderPane, "", Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle = .Top
-            .margin    = Math.Vector4{8, 4, 8, 4}
+            .margin    = {8, 4, 8, 4}
             .setIcon(.theme().icon(.Search, themeRowIconSize(.themeMetrics())))
             .setPlaceholder(appStrings().ui_FilterFiles)
             .updateFlags(.ClearButton)
@@ -424,23 +424,23 @@ impl ViewerWindow
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = Math.Vector4{48, 48, 48, 48}
+            .padding         = {48, 48, 48, 48}
             .spacing         = 12
         }
 
-        with .emptyIconLabel = Label.create(.emptyView, "", Math.Rectangle{0, 0, 48, 48})
+        with .emptyIconLabel = Label.create(.emptyView, "", {0, 0, 48, 48})
         {
             .layoutSpec.alignX = .Center
             .setIconAlignment(.Center, .Center)
         }
 
-        with .emptyLabel = Label.create(.emptyView, Format.toString("<b>%</b>", appStrings().ui_DropTitle), Math.Rectangle{0, 0, 480, 0}, null, .WordWrap | .AutoHeight)
+        with .emptyLabel = Label.create(.emptyView, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {0, 0, 480, 0}, null, .WordWrap | .AutoHeight)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
         }
 
-        with .emptyHintLabel = Label.create(.emptyView, appStrings().ui_DropHint, Math.Rectangle{0, 0, 480, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        with .emptyHintLabel = Label.create(.emptyView, appStrings().ui_DropHint, {0, 0, 480, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)

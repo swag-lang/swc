@@ -150,20 +150,20 @@ impl ColorPickerCtrl
         {
             .flags = flags
 
-            .pickBox   = ColorPicker.create(v, Math.Rectangle{10, 10, 260, 185})
-            .pickBar   = ColorPicker.create(v, Math.Rectangle{10, 215, 220, 16})
-            .pickAlpha = ColorPicker.create(v, Math.Rectangle{10, 240, 220, 16})
+            .pickBox   = ColorPicker.create(v, {10, 10, 260, 185})
+            .pickBar   = ColorPicker.create(v, {10, 215, 220, 16})
+            .pickAlpha = ColorPicker.create(v, {10, 240, 220, 16})
 
             .preview = Wnd.create'Wnd(v, "", Math.Rectangle{245, 215, 40, 40})
             var icon = v.theme().icon(.Picker)
             icon.color = Argb.White
-            let picker = IconButton.create(v, icon, Math.Rectangle{245, 215, 40, 40})
+            let picker = IconButton.create(v, icon, {245, 215, 40, 40})
 
-            .editA   = EditBox.create(v, "", Math.Rectangle{10, 265, 50})
-            .editR   = EditBox.create(v, "", Math.Rectangle{70, 265, 50})
-            .editG   = EditBox.create(v, "", Math.Rectangle{125, 265, 50})
-            .editB   = EditBox.create(v, "", Math.Rectangle{180, 265, 50})
-            .editHex = EditBox.create(v, "", Math.Rectangle{240, 265, 90})
+            .editA   = EditBox.create(v, "", {10, 265, 50})
+            .editR   = EditBox.create(v, "", {70, 265, 50})
+            .editG   = EditBox.create(v, "", {125, 265, 50})
+            .editB   = EditBox.create(v, "", {180, 265, 50})
+            .editHex = EditBox.create(v, "", {240, 265, 90})
 
             var l = Label.create(v, "A", Math.Rectangle{.editA.position.x, .editA.position.bottom() + 0, .editA.position.width})
             l.updateFlags(.SecondaryText)
@@ -177,12 +177,12 @@ impl ColorPickerCtrl
             l = Label.create(v, flags.has(.AllowAlpha) ? "ARGB" : "RGB", Math.Rectangle{.editHex.position.x, .editHex.position.bottom() + 0, .editHex.position.width})
             l.updateFlags(.SecondaryText)
 
-            .radioH = RadioButton.create(v, "H", Math.Rectangle{280, 10, 40})
-            .radioS = RadioButton.create(v, "S", Math.Rectangle{280, 40, 40})
-            .radioL = RadioButton.create(v, "L", Math.Rectangle{280, 70, 40})
-            .radioR = RadioButton.create(v, "R", Math.Rectangle{280, 100, 40})
-            .radioG = RadioButton.create(v, "G", Math.Rectangle{280, 130, 40})
-            .radioB = RadioButton.create(v, "B", Math.Rectangle{280, 160, 40})
+            .radioH = RadioButton.create(v, "H", {280, 10, 40})
+            .radioS = RadioButton.create(v, "S", {280, 40, 40})
+            .radioL = RadioButton.create(v, "L", {280, 70, 40})
+            .radioR = RadioButton.create(v, "R", {280, 100, 40})
+            .radioG = RadioButton.create(v, "G", {280, 130, 40})
+            .radioB = RadioButton.create(v, "B", {280, 160, 40})
 
             picker.sigPressed += func|v|(cb)
             {

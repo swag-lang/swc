@@ -98,8 +98,8 @@ struct EditBox
     // the reader backs out of leaves the value the surface around it had written here.
     originalText: String
 
-    aniBk:     BlendColor = BlendColor{speed: 4}     // Color animation of the background.
-    aniBorder: BlendColor = BlendColor{speed: 4}     // Color animation of the border.
+    aniBk:     BlendColor = {speed: 4}     // Color animation of the background.
+    aniBorder: BlendColor = {speed: 4}     // Color animation of the border.
 
     isInvalid:          bool             // Whether the content is invalid.
     isHot:              bool             // Whether the mouse is over the box.
@@ -477,7 +477,7 @@ private impl EditBox
 
         if not .clearBtn
         {
-            .clearBtn = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), Math.Rectangle{0, 0, 24, 24})
+            .clearBtn = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), {0, 0, 24, 24})
             .clearBtn.dockStyle = .Right
             .clearBtn.setForm(IconButtonForm.Circle)
             .clearBtn.sigPressed += func|edit = me|(_)
@@ -844,7 +844,7 @@ private impl EditBox
         case .Transparent:      break
         }
 
-        return Math.Vector4{}
+        return {}
     }
 
     // Returns the width the box needs to display the widest value of its numeric input range.
@@ -1190,7 +1190,7 @@ impl EditBox
 {
     // Creates a single-line edit box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, content: string?, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditBox
+    func create(parent: *Wnd, content: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditBox
     {
         Swag.assert(parent != null)
         var pos = position

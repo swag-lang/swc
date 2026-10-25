@@ -161,7 +161,7 @@ func buildCurvePage(parent: *Wnd)->*Wnd
     page.backgroundStyle = .View
     g_CurvePage = page
 
-    g_CurveNote = Label.create(page, "Nine curves, one clock. The dot on the graph and the puck under it are the same number: the shape is the movement. The clock repeats forever and reverses on every play, which is one track, not a frame callback.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    g_CurveNote = Label.create(page, "Nine curves, one clock. The dot on the graph and the puck under it are the same number: the shape is the movement. The clock repeats forever and reverses on every play, which is one track, not a frame callback.", {}, null, .WordWrap | .SecondaryText)
     g_Wall      = CurveWall.create(page)
 
     page.hookOnEvent = &onCurvePageEvent
@@ -213,13 +213,13 @@ func buildStagePage(parent: *Wnd)->*Wnd
     page.backgroundStyle = .View
     g_StagePage = page
 
-    g_StageNote = Label.create(page, "Six tiles, one parallel group, eighteen tracks. Each tile fades, rises, and grows on the same timeline, offset by its rank. Nothing below moves: presentation state never touches a layout rectangle.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    g_StageNote = Label.create(page, "Six tiles, one parallel group, eighteen tracks. Each tile fades, rises, and grows on the same timeline, offset by its rank. Nothing below moves: presentation state never touches a layout rectangle.", {}, null, .WordWrap | .SecondaryText)
 
     let controls = PanelWnd.create(page, "Timeline")
     g_StageControls = controls
 
     for caption in ["Curve", "Duration", "Stagger"] do
-        g_StageCaptions.add(Label.create(controls, caption, Math.Rectangle{}, null, .SecondaryText))
+        g_StageCaptions.add(Label.create(controls, caption, {}, null, .SecondaryText))
 
     let easing = ComboBox.create(controls)
     g_StageEasing = easing
@@ -243,9 +243,9 @@ func buildStagePage(parent: *Wnd)->*Wnd
     stagger.setValue(70)
     stagger.sigChanged += &onStageSlider
 
-    g_StageReadout = Label.create(controls, "", Math.Rectangle{}, null, .SecondaryText)
+    g_StageReadout = Label.create(controls, "", {}, null, .SecondaryText)
 
-    let replay = PushButton.create(controls, "Replay", Math.Rectangle{}, null, .Strong)
+    let replay = PushButton.create(controls, "Replay", {}, null, .Strong)
     g_StageReplay     = replay
     replay.sigPressed += func(_)
     {
@@ -255,7 +255,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
     for index in StageCardCount do
         g_Cards.add(MotionCard.create(page, cast(s32, index) + 1, StageTitles[index], StageDetails[index]))
 
-    g_StageHint = Label.create(page, "Press Replay while the strip is still arriving: each tile keeps the value it is showing and continues from there.", Math.Rectangle{}, null, .SecondaryText)
+    g_StageHint = Label.create(page, "Press Replay while the strip is still arriving: each tile keeps the value it is showing and continues from there.", {}, null, .SecondaryText)
 
     updateStageReadout()
     page.hookOnEvent = &onStagePageEvent
@@ -309,7 +309,7 @@ func playEntrance()
         fade.easing   = .EaseOut
 
         group.addF32(wnd, AnimationChannel.from("Gui11.Stage.Opacity"), 0, 1, &setCardOpacity, fade)
-        group.addPoint(wnd, AnimationChannel.from("Gui11.Stage.Offset"), Math.Point{0, 42}, {}, &setCardOffset, motion)
+        group.addPoint(wnd, AnimationChannel.from("Gui11.Stage.Offset"), {0, 42}, {}, &setCardOffset, motion)
         group.addF32(wnd, AnimationChannel.from("Gui11.Stage.Scale"), 0.86, 1, &setCardScale, motion)
     }
 
@@ -387,12 +387,12 @@ func buildFieldPage(parent: *Wnd)->*Wnd
     page.backgroundStyle = .View
     g_FieldPage = page
 
-    g_FieldNote = Label.create(page, "One channel owns the puck. Clicking again while it travels does not stack a second animation: it replaces the first one from the value on screen, which is why the trail bends instead of jumping.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    g_FieldNote = Label.create(page, "One channel owns the puck. Clicking again while it travels does not stack a second animation: it replaces the first one from the value on screen, which is why the trail bends instead of jumping.", {}, null, .WordWrap | .SecondaryText)
 
     let controls = PanelWnd.create(page, "Track")
     g_FieldControls = controls
 
-    g_FieldCaption = Label.create(controls, "Curve, duration, and how a replacement treats the run it interrupts", Math.Rectangle{}, null, .SecondaryText)
+    g_FieldCaption = Label.create(controls, "Curve, duration, and how a replacement treats the run it interrupts", {}, null, .SecondaryText)
 
     let easing = ComboBox.create(controls)
     g_FieldEasing = easing
@@ -414,7 +414,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
         updateFieldReadout()
     }
 
-    g_FieldReadout = Label.create(controls, "", Math.Rectangle{}, null, .SecondaryText)
+    g_FieldReadout = Label.create(controls, "", {}, null, .SecondaryText)
 
     let preserve = CheckButton.create(controls, "Keep progress on replacement")
     g_FieldPreserve     = preserve
@@ -492,7 +492,7 @@ func onFieldPageEvent(_: *Wnd, evt: IEvent)->bool
 func startDecorativePulse()
 {
     let btn = unwrap g_DecorativeBtn
-    btn.setPresentationPivot(Math.Point{0.5, 0.5})
+    btn.setPresentationPivot({0.5, 0.5})
 
     with var options: AnimationOptions
     {
@@ -545,17 +545,17 @@ func buildPrefPage(parent: *Wnd)->*Wnd
     page.backgroundStyle = .View
     g_PrefPage = page
 
-    g_PrefNote = Label.create(page, "A track says whether it decorates or whether it reports. Turn reduced motion on in the header: the left loop ends on its resting frame and the right one keeps going, because only one of them is carrying information.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    g_PrefNote = Label.create(page, "A track says whether it decorates or whether it reports. Turn reduced motion on in the header: the left loop ends on its resting frame and the right one keeps going, because only one of them is carrying information.", {}, null, .WordWrap | .SecondaryText)
 
     let decorative = PanelWnd.create(page, "Decorative")
     g_Decorative     = decorative
-    g_DecorativeBtn  = PushButton.create(decorative, "Ship it", Math.Rectangle{}, null, .Strong)
-    g_DecorativeNote = Label.create(decorative, "An endless ping-pong on presentation scale. It exists to draw the eye, so a reader who asked for stillness gets the button at rest.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    g_DecorativeBtn  = PushButton.create(decorative, "Ship it", {}, null, .Strong)
+    g_DecorativeNote = Label.create(decorative, "An endless ping-pong on presentation scale. It exists to draw the eye, so a reader who asked for stillness gets the button at rest.", {}, null, .WordWrap | .SecondaryText)
 
     let essential = PanelWnd.create(page, "Essential")
     g_Essential     = essential
     g_EssentialLbl  = Label.create(essential, "Uploading three files...")
-    g_EssentialNote = Label.create(essential, "The same endless ping-pong, on opacity, classified as essential. It answers a question the reader is asking, so the preference leaves it alone.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    g_EssentialNote = Label.create(essential, "The same endless ping-pong, on opacity, classified as essential. It answers a question the reader is asking, so the preference leaves it alone.", {}, null, .WordWrap | .SecondaryText)
 
     let expander = PanelWnd.create(page, "Layout")
     g_Expander = expander
@@ -578,7 +578,7 @@ func buildPrefPage(parent: *Wnd)->*Wnd
     detail.preferredSize.y = CollapsedDetail
     detail.position.height = CollapsedDetail
 
-    g_DetailText = Label.create(detail, "This panel changes the layout, not only the picture: the track carries an .Layout impact, so the parent is arranged again on every frame. That is why layout animation is a separate call from the presentation ones.", Math.Rectangle{12, 12, 400, 96}, null, .WordWrap | .SecondaryText)
+    g_DetailText = Label.create(detail, "This panel changes the layout, not only the picture: the track carries an .Layout impact, so the parent is arranged again on every frame. That is why layout animation is a separate call from the presentation ones.", {12, 12, 400, 96}, null, .WordWrap | .SecondaryText)
 
     page.hookOnEvent = &onPrefPageEvent
     return page
@@ -641,8 +641,8 @@ func layoutRootView()
 
     g_Title!.setPosition(Math.Rectangle{RootMargin, HeaderTop, width, 36})
     g_SubTitle!.setPosition(Math.Rectangle{RootMargin + 2, HeaderTop + 38, width - 4, 34})
-    g_ThemeButton!.setPosition(Math.Rectangle{RootMargin, BarY, 136, BarHeight})
-    g_Reduced!.setPosition(Math.Rectangle{RootMargin + 148, BarY, 190, BarHeight})
+    g_ThemeButton!.setPosition({RootMargin, BarY, 136, BarHeight})
+    g_Reduced!.setPosition({RootMargin + 148, BarY, 190, BarHeight})
 
     let tabsH = Math.max(rect.height - TabsY - FooterSpace, 120.0)
     g_Tabs!.setPosition(Math.Rectangle{RootMargin, TabsY, width, tabsH})
@@ -745,11 +745,11 @@ func createRootView()
     title.style.setFont(view.theme().createDefaultFont(26), .Regular)
     title.setTextAlignment(.Left, .Center)
 
-    let subTitle = Label.create(view, "Curves, choreography, interruption, and the preference that ends all three.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "Curves, choreography, interruption, and the preference that ends all three.", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     subTitle.setTextAlignment(.Left, .Top)
 
-    let themeButton = PushButton.create(view, "", Math.Rectangle{}, null, .Flat)
+    let themeButton = PushButton.create(view, "", {}, null, .Flat)
     g_ThemeButton = themeButton
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
@@ -767,7 +767,7 @@ func createRootView()
     discard tabs.addItem("Interruption", view: buildFieldPage(tabs))
     discard tabs.addItem("Preference", view: buildPrefPage(tabs))
 
-    g_Footer = Label.create(view, "", Math.Rectangle{}, null, .SecondaryText)
+    g_Footer = Label.create(view, "", {}, null, .SecondaryText)
 
     layoutRootView()
     view.hookOnEvent = &onRootEvent

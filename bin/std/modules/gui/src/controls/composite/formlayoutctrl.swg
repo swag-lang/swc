@@ -281,7 +281,7 @@ impl FormLayoutCtrl
 {
     // Creates an empty form layout inside `parent`.
     #[Swag.Discardable]
-    func create(parent: *Wnd, options: FormLayoutOptions = FormLayoutOptions{}, position: Math.Rectangle = Math.Rectangle{})->*FormLayoutCtrl
+    func create(parent: *Wnd, options: FormLayoutOptions = {}, position: Math.Rectangle = {})->*FormLayoutCtrl
     {
         Swag.assert(parent != null)
         let result = Wnd.create'FormLayoutCtrl(parent, null, position)
@@ -320,7 +320,7 @@ impl FormLayoutCtrl
     // Creates an editable text field, appends its labeled row, and returns the editor.
     //
     // `icon` is displayed inside the editor when it refers to a valid atlas frame.
-    mtd addTextField(label: string, text: string = "", placeholder: string? = null, help: string? = null, icon: Icon = Icon{}, id: WndId? = null)->*EditBox
+    mtd addTextField(label: string, text: string = "", placeholder: string? = null, help: string? = null, icon: Icon = {}, id: WndId? = null)->*EditBox
     {
         let result = EditBox.create(me, text, id: id)
         result.setPlaceholder(placeholder)
@@ -334,7 +334,7 @@ impl FormLayoutCtrl
     //
     // `flags` defaults to [[Gui.PasswordEditFlags.RevealButton]]; pass
     // [[Gui.PasswordEditFlags.None]] for a permanently masked field.
-    mtd addPasswordField(label: string, placeholder: string? = null, help: string? = null, icon: Icon = Icon{}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
+    mtd addPasswordField(label: string, placeholder: string? = null, help: string? = null, icon: Icon = {}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
     {
         let result = PasswordEdit.create(me, id: id, flags: flags)
         result.setPlaceholder(placeholder)
@@ -373,9 +373,9 @@ impl FormLayoutCtrl
     // The button shares the height of its field and keeps its preferred width. A row holds a
     // single trailing control, so this cannot follow [[Gui.FormLayoutCtrl.addRowChoice]] on
     // the same row.
-    mtd addRowAction(text: string, icon: Icon = Icon{}, id: WndId? = null)->*PushButton
+    mtd addRowAction(text: string, icon: Icon = {}, id: WndId? = null)->*PushButton
     {
-        let result = PushButton.create(me, text, Math.Rectangle{}, id)
+        let result = PushButton.create(me, text, {}, id)
         if icon.isValid() do
             result.setIcon(icon)
         .attachToLastRow(result)

@@ -771,7 +771,7 @@ impl MainWnd
     func create(parent: *Wnd)->*MainWnd
     {
         let srf = unwrap parent.surface
-        srf.minSize = Math.Point{1024, 512}
+        srf.minSize = {1024, 512}
 
         var imgApp: Image
         #static if #command == Swag.CompilerCommand.Test do

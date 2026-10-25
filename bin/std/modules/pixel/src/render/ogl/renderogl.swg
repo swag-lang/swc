@@ -157,7 +157,7 @@ struct RenderOgl
         gradientOffsetUpload:    Array'Vector4             // Reused first texture row.
         gradientColorUpload:     Array'Vector4             // Reused second texture row.
         blendingMode:            BlendingMode = .Alpha     // Active OpenGL blending mode.
-        colorMask:               ColorMask    = ColorMask{true, true, true, false}     // Painter-requested channel mask.
+        colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
         curRC:                   RenderContext             // Active drawable and viewport.
 
         stackReleasedRT: Array'(*RenderTarget?)     // Targets queued for deferred release.
@@ -1848,7 +1848,7 @@ impl RenderOgl
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, .whiteTexture)
         .setBlendingMode(BlendingMode.Alpha)
-        .setColorMask(ColorMask{true, true, true, false})
+        .setColorMask({true, true, true, false})
 
         for i in 4 do
             glEnableVertexAttribArray(cast(GLuint, i))

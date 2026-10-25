@@ -572,7 +572,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, commandParent: commandBar)
@@ -617,14 +617,14 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     with let infoBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 40})
     {
         .dockStyle       = .Top
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
@@ -669,7 +669,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     {
         .dockStyle       = .Top
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, infoParent: infoBar)

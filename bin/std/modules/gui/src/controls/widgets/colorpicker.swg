@@ -507,14 +507,14 @@ impl ColorPicker
 {
     // Creates a saturation-lightness picker initialized to opaque red.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ColorPicker
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ColorPicker
     {
         Swag.assert(parent != null)
         let result = Wnd.create'ColorPicker(parent, null, position, id)
         result.focusPolicy = .Click
         result.wndFlags    |= .AfterChildrenPaint
         result.setColor(Argb.Red, false)
-        result.invalidatePadding = Math.Vector4{-32, -32, -32, -32}
+        result.invalidatePadding = {-32, -32, -32, -32}
         return result
     }
 

@@ -312,10 +312,10 @@ impl SeekOverlay
 
         let direction = cast(f32, .direction)
         .setPresentationOffset(Math.Point{-10 * direction, 0})
-        .setPresentationScale(Math.Point{0.9, 0.9})
+        .setPresentationScale({0.9, 0.9})
 
         .offsetAni  = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Offset"), Math.Point{-10 * direction, 0}, Math.Point{14 * direction, 0}, func(wnd, value) { wnd.setPresentationOffset(value) }, {duration: 600'ms, easing: .EaseOut})
-        .scaleAni   = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Scale"), Math.Point{0.9, 0.9}, Math.Point{1, 1}, func(wnd, value) { wnd.setPresentationScale(value) }, {duration: 180'ms, easing: .EaseOut})
+        .scaleAni   = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Scale"), {0.9, 0.9}, {1, 1}, func(wnd, value) { wnd.setPresentationScale(value) }, {duration: 180'ms, easing: .EaseOut})
         .opacityAni = animator.animateF32(me, AnimationChannel.from("scope.VideoSeek.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, {delay: 350'ms, duration: 250'ms, easing: .EaseIn})
     }
 }

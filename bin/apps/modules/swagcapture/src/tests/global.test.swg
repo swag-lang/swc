@@ -18,7 +18,7 @@ func testSetupGlobalMain(main: *MainWnd)
     main.rightBar = Wnd.create'Wnd(main, Math.Rectangle{0, 0, RightPanelWidth + 2 * main.themeMetrics().panel_GutterSize, 0})
     main.rightBar.dockStyle = .Right
 
-    main.quickStyleBar = SplitterCtrl.create(main.rightBar, Math.Rectangle{0, 0, RightPanelWidth, 600}, vertical: true)
+    main.quickStyleBar = SplitterCtrl.create(main.rightBar, {0, 0, RightPanelWidth, 600}, vertical: true)
     main.quickStyleBar.dockStyle = .Center
 
     main.createToolRail()

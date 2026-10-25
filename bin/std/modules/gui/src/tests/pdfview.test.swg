@@ -229,7 +229,7 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     settlePdfView(&host, view)
 
     let fitted = view.effectiveZoom()
-    host.mouseWheel(Math.Point{320, 210}, 1, .Control)
+    host.mouseWheel({320, 210}, 1, .Control)
     Swag.assert(view.zoomMode == .Free)
     Swag.assert(Math.isEqualEpsilon(view.effectiveZoom(), fitted * 1.12, 0.001))
 
@@ -246,11 +246,11 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     // notch names where the document is heading, and the movement follows.
     view.zoomToFit()
     let before = view.scroll.scrollPosition().y
-    host.mouseWheel(Math.Point{320, 210}, -1)
+    host.mouseWheel({320, 210}, -1)
     Swag.assert(view.scroll.scrollTarget().y == before + PdfView.WheelScrollStep)
 
     // A second notch retargets the movement in flight instead of restarting it.
-    host.mouseWheel(Math.Point{320, 210}, -1)
+    host.mouseWheel({320, 210}, -1)
     Swag.assert(view.scroll.scrollTarget().y == before + 2 * PdfView.WheelScrollStep)
     host.finishAnimations()
     Swag.assert(view.scroll.scrollPosition().y == before + 2 * PdfView.WheelScrollStep)
@@ -271,26 +271,26 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     expect view.open(fileName.toString())
 
     for 32 do
-        host.mouseWheel(Math.Point{320, 210}, 1)
+        host.mouseWheel({320, 210}, 1)
     host.finishAnimations()
     Swag.assert(view.scroll.scrollPosition().y == 0)
 
     // The end of the document is the last page's bottom, not the first page's.
     let limit = Math.max(view.contentSize().y - view.viewportSize().y, 0)
     for 128 do
-        host.mouseWheel(Math.Point{320, 210}, -1)
+        host.mouseWheel({320, 210}, -1)
     host.finishAnimations()
     Swag.assert(Math.isEqualEpsilon(view.scroll.scrollPosition().y, limit, 1))
     Swag.assert(view.pageIndex == 1)
 
     let edge = view.scroll.scrollPosition().y
-    host.mouseWheel(Math.Point{320, 210}, 1)
+    host.mouseWheel({320, 210}, 1)
     host.finishAnimations()
     Swag.assert(view.scroll.scrollPosition().y == edge - PdfView.WheelScrollStep)
 
     // Scrolling back through the whole document lands on the first page again.
     for 256 do
-        host.mouseWheel(Math.Point{320, 210}, 1)
+        host.mouseWheel({320, 210}, 1)
     host.finishAnimations()
     Swag.assert(view.scroll.scrollPosition().y == 0 and view.pageIndex == 0)
 }
@@ -373,12 +373,12 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     Swag.assert(index.runs.count == 2)
 
     // A point inside the first glyph answers its exact offset.
-    let hit = index.positionAt(Math.Point{41, 50})
+    let hit = index.positionAt({41, 50})
     Swag.assert(hit.distance == 0)
     Swag.assert(hit.offset == 0)
 
     // A point far to the right of a line snaps to that line's end.
-    let far = index.positionAt(Math.Point{300, 50})
+    let far = index.positionAt({300, 50})
     Swag.assert(far.offset == 10)
 
     let word = index.wordRangeAt(7)
@@ -582,12 +582,12 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     settlePdfView(&host, view)
 
     host.clickPopupMenuItemWhenShown(PdfView.CtxSelectAll)
-    view.showContextMenu(Math.Point{100, 100})
+    view.showContextMenu({100, 100})
     host.pump()
     Swag.assert(view.selectedText() == "PDF viewer")
 
     host.clickPopupMenuItemWhenShown(PdfView.CtxCopy)
-    view.showContextMenu(Math.Point{100, 100})
+    view.showContextMenu({100, 100})
     host.pump()
     Swag.assert(Clipboard.getString() == "PDF viewer")
 }

@@ -18,7 +18,7 @@ func colorPickerHeadlessChanged(_: *ColorPicker)
     host.setup(200, 200)
     ColorPickerHeadlessChangedCount = 0
 
-    let picker = ColorPicker.create(&host.root, Math.Rectangle{20, 20, 160, 160})
+    let picker = ColorPicker.create(&host.root, {20, 20, 160, 160})
     picker.sigColorChanged += &colorPickerHeadlessChanged
 
     picker.setColor(Argb.Red)
@@ -45,7 +45,7 @@ func colorPickerHeadlessChanged(_: *ColorPicker)
     host.setup(200, 200)
     ColorPickerHeadlessChangedCount = 0
 
-    let picker = ColorPicker.create(&host.root, Math.Rectangle{20, 20, 160, 160})
+    let picker = ColorPicker.create(&host.root, {20, 20, 160, 160})
     picker.setColor(Argb.Red)
     picker.sigColorChanged += &colorPickerHeadlessChanged
 

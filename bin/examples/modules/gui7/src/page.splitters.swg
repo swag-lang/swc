@@ -5,9 +5,9 @@ func createSplitterPane(parent: *Wnd, title, text: string)->*FrameWnd
     let pane  = createPane(parent, title, text)
     let view  = pane.view
     let focus = createChip(view, "Focus", .Search)
-    focus.setPosition(Math.Rectangle{12, 96, 94, 30})
+    focus.setPosition({12, 96, 94, 30})
     let pin = createChip(view, "Pin", .Link)
-    pin.setPosition(Math.Rectangle{112, 96, 82, 30})
+    pin.setPosition({112, 96, 82, 30})
     return pane
 }
 
@@ -40,7 +40,7 @@ func createSplitterPage(parent: *Wnd)
         .preserveSize = true
     }
 
-    let vertical = SplitterCtrl.create(work, Math.Rectangle{}, vertical: true)
+    let vertical = SplitterCtrl.create(work, {}, vertical: true)
     vertical.dockStyle = .Center
 
     let editor     = createSplitterPane(vertical, "Document", "Center region nested inside a vertical splitter.")

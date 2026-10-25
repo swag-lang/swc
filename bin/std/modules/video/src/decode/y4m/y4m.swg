@@ -230,7 +230,7 @@ struct Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl format()->StreamFormat => StreamFormat{"Y4M - YUV4MPEG2 video", ".y4m"}
+    mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
 
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {

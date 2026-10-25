@@ -106,11 +106,11 @@ private func sampleDocument()->Document
     let editablePage = decoded.editPage(0)
     editablePage.setText(0, "Edited PDF")
     editablePage.setTextSize(0, 20)
-    editablePage.setItemTransform(0, Math.Transform2{1, 0.2, 0.1, 1, 30, 24})
+    editablePage.setItemTransform(0, {1, 0.2, 0.1, 1, 30, 24})
     editablePage.setPathStrokeColor(1, Color.fromRgb(50, 60, 70))
     editablePage.setPathStrokeWidth(1, 3)
     editablePage.setItemTransform(1, Math.Transform2.createTranslation(5, 7))
-    editablePage.setItemTransform(2, Math.Transform2{32, 4, 6, 48, 152, 56})
+    editablePage.setItemTransform(2, {32, 4, 6, 48, 152, 56})
 
     let editedBytes = expect decoded.encode()
     let edited      = expect Document.decode(editedBytes.toSlice())

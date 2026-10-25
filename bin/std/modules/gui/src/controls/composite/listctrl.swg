@@ -188,7 +188,7 @@ impl ListLine
 
     // Sets the label and icon of the cell in `column`, creating the cell when absent, and returns it.
     #[Swag.Discardable]
-    mtd setItem(column: u32, name: string, icon: Icon = Icon{})->*ListItem
+    mtd setItem(column: u32, name: string, icon: Icon = {})->*ListItem
     {
         for itemIt in .items
         {
@@ -1097,7 +1097,7 @@ impl ListCtrl
 
     // Creates a list without a column header.
     #[Swag.Discardable]
-    func createSimple(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ListCtrl
+    func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ListCtrl
     {
         Swag.assert(parent != null)
         with let list = Wnd.create'ListCtrl(parent, "", position, id)
@@ -1122,7 +1122,7 @@ impl ListCtrl
 
     // Creates a list control configured for multiple columns.
     #[Swag.Discardable]
-    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ListCtrl
+    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ListCtrl
     {
         Swag.assert(parent != null)
         let list = Wnd.create'ListCtrl(parent, "", position, id)
@@ -1170,7 +1170,7 @@ impl ListCtrl
 
             // Header
             // Need to recompute layout when header size has changed
-            .header                  = Header.create(fwnd, Math.Rectangle{})
+            .header                  = Header.create(fwnd, {})
             .header.dockStyle        = .Top
             .header.form             = .Round
             .header.sigLayoutChanged += func|list|(_)
@@ -1462,7 +1462,7 @@ impl ListCtrl
 
     // Creates a row and initializes its first cell.
     #[Swag.Discardable]
-    mtd createLine(name: string, icon: Icon = Icon{}, parentLine: *ListLine? = null)->*ListLine
+    mtd createLine(name: string, icon: Icon = {}, parentLine: *ListLine? = null)->*ListLine
     {
         let line = .createLine(parentLine)
         line.setItem(0, name, icon)
@@ -1489,7 +1489,7 @@ impl ListCtrl
     }
 
     // Adds a named column to the list header.
-    mtd addColumn(name: string, width: f32 = 100, icon: Icon = Icon{})
+    mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
     {
         Swag.assert((.header != null))
         .header.addColumn(name, width, icon)

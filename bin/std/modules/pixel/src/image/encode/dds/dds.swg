@@ -54,7 +54,7 @@ func writeHeader(result: *ConcatBuffer, image: Image, dxgi: u32, flags, bits, re
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"DDS - DirectDraw Surface", ".dds"}
+    mtd impl format()->ImageFormat => {"DDS - DirectDraw Surface", ".dds"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {

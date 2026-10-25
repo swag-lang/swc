@@ -69,7 +69,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     let fixture = fontFixturePath()

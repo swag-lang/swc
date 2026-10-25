@@ -50,7 +50,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
     if themeIndex
     {
         result.codeTypeFaces        = systemFaces(["Consolas", "Menlo", "Monaco"])
-        result.blockMargins         = Math.Vector2{16, 16}
+        result.blockMargins         = {16, 16}
         result.bodyLineHeight       = 25.6
         result.codeLineHeight       = 22.4
         result.headingTopSpacing    = [16, 16, 16, 16, 16, 16]
@@ -59,7 +59,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.topInset             = 36
         result.bottomInset          = 100
         result.imageAlignment       = .Center
-        result.quotePadding         = Math.Vector4{19, 0, 15, 0}
+        result.quotePadding         = {19, 0, 15, 0}
         result.quoteRuleWidth       = 4
         result.quoteRuleInset       = 0
         result.quoteRuleColor       = .Border
@@ -76,7 +76,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.bodyTypeFaces      = systemFaces(["Open Sans", "Clear Sans", "Helvetica Neue", "Helvetica", "Arial"])
         result.maxContentWidth    = 800
         result.topInset           = 30
-        result.blockMargins       = Math.Vector2{12.8, 12.8}
+        result.blockMargins       = {12.8, 12.8}
         result.headingLineHeights = [43.2, 34.3, 34.32, 28, 22.4, 22.4]
         result.headingRuleWidths  = [-1, -1, 0, 0, 0, 0]
 
@@ -89,7 +89,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.heading4FontSize     = 18
         result.lineHeight           = 1.5
         result.bodyLineHeight       = 24
-        result.blockMargins         = Math.Vector2{16, 24}
+        result.blockMargins         = {16, 24}
         result.headingFontStyles    = [.Bold, .Bold, .Regular, .Bold, .Bold, .Bold]
         result.headingTopSpacing    = [60, 48, 48, 48, 16, 16]
         result.headingBottomSpacing = [45, 32, 32, 27, 24, 24]
@@ -97,7 +97,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.headingRuleWidths    = [-1, 0, 0, 0, 0, 0]
         result.headingRuleColor     = .Text
         result.headingRulePadding   = [24.375, 0, 0, 0, 0, 0]
-        result.quotePadding         = Math.Vector4{21, 0, 0, 0}
+        result.quotePadding         = {21, 0, 0, 0}
         result.quoteRuleWidth       = 5
         result.quoteIndent          = 32
         result.quoteFontStyle       = .Italic
@@ -118,7 +118,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.headingTopSpacing    = [0, 0, 0, 0, 0, 0]
         result.headingBottomSpacing = [24, 24, 24, 24, 24, 12]
         result.headingLineHeights   = [44, 30, 24, 22, 20, 16]
-        result.quotePadding         = Math.Vector4{32, 0, 0, 0}
+        result.quotePadding         = {32, 0, 0, 0}
         result.quoteIndent          = 30
         result.quoteRuleWidth       = 2
 
@@ -141,7 +141,7 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.headingTopSpacing    = [52, 37, 26, 21, 18, 18]
         result.headingBottomSpacing = [26, 18, 13, 10, 9, 9]
         result.headingLineHeights   = [62.4, 44.4, 31.2, 25.2, 21.6, 21.6]
-        result.quotePadding         = Math.Vector4{32, 27, 27, 27}
+        result.quotePadding         = {32, 27, 27, 27}
         result.quoteRuleWidth       = 5
         result.quoteFontStyle       = .Italic
         result.quoteRuleColor       = .RichText
@@ -166,11 +166,11 @@ func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
         result.lineHeight             = 1.53
         result.bodyLineHeight         = 29.07
         result.codeLineHeight         = 26.16
-        result.blockMargins           = Math.Vector2{0, 19}
+        result.blockMargins           = {0, 19}
         result.headingLineHeights     = [87.21, 52.02, 45.9, 41.31, 35.19, 29.07]
         result.headingRuleWidths      = [0, 100, 0, 0, 0, 0]
         result.headingRuleColor       = .Text
-        result.quotePadding           = Math.Vector4{20, 0, 0, 0}
+        result.quotePadding           = {20, 0, 0, 0}
         result.quoteIndent            = 19
         result.quoteRuleWidth         = 1
         result.headingAlignment       = .Center
@@ -422,7 +422,7 @@ impl ZoomButton
             .themeCombo  = themeCombo
             .widthCombo  = widthCombo
             .dockStyle   = .Center
-            .margin      = Math.Vector4{Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
+            .margin      = {Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
             .zoomPercent = Viewer.clampZoom(g_ViewerSettings.zoomPercent)
             .toolTip     = texts().ui_ZoomMenu
             .updateFlags(.CenterContent)
@@ -480,7 +480,7 @@ func createViewer(host: Viewer.Host)
 
     let commandGroup = host.createCommandGroup(264)
 
-    with let widthCombo = ComboBox.create(commandGroup, Math.Rectangle{0, 0, 104, 36})
+    with let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
     {
         .dockStyle = .Right
         .toolTip   = texts().ui_TipWidth
@@ -488,7 +488,7 @@ func createViewer(host: Viewer.Host)
         .setSelectedIndex(g_ViewerSettings.widthIndex, notify: false)
     }
 
-    with let themeCombo = ComboBox.create(commandGroup, Math.Rectangle{0, 0, 148, 36})
+    with let themeCombo = ComboBox.create(commandGroup, {0, 0, 148, 36})
     {
         .dockStyle = .Right
         .margin.z  = 8

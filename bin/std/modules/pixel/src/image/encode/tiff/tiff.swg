@@ -75,7 +75,7 @@ func packBitsRow(result: *Array'u8, src: const [*] u8, count: u64)
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"TIFF - Tagged Image File Format", ".tif;.tiff"}
+    mtd impl format()->ImageFormat => {"TIFF - Tagged Image File Format", ".tif;.tiff"}
 
     // Encode a little-endian, single-strip baseline RGB(A) TIFF.
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail

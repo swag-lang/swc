@@ -87,7 +87,7 @@ struct Surface
     // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
     // the paint loop own them; callers reach the drawable with 'renderingContext'.
     rc:        RenderContext     // Drawable and viewport the frame targets.
-    dirtyRect: Math.Rectangle = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
+    dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
     isDirty:   bool     // Whether a repaint is pending.
 
     // Recorded before a native placement and reported when its prepared image is presented.
@@ -268,7 +268,7 @@ impl Surface
         surface.rc      = try app.renderer.createContext(surface.nativeRenderHandle(), physWidth, physHeight, mainSurface ? &mainSurface.rc : null)
         surface.painter = Painter.create(app.renderer)
 
-        surface.minSize = Math.Point{128, 128}
+        surface.minSize = {128, 128}
         let w = Math.max(surface.minSize.x * surface.dpiScale, cast(f32, physWidth))
         let h = Math.max(surface.minSize.y * surface.dpiScale, cast(f32, physHeight))
 
@@ -479,7 +479,7 @@ impl Surface
         clipRect.round()
         .paintedWnds = 0
         .skippedWnds = 0
-        .dirtyRect   = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
+        .dirtyRect   = {Swag.F32.Max, Swag.F32.Max, 0, 0}
         .isDirty     = false
 
         var traceWatch: Time.Stopwatch

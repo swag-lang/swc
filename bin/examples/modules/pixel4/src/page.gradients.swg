@@ -165,8 +165,8 @@ func drawGradientsPage(painter: *Pixel.Painter)
                    "Pixel gradient paints",
                    "Page 6 : linear, radial, sweep, opacity-tinted, repeating and mirrored gradient brushes across fills, strokes and text.")
 
-    drawGradientFillCard(painter, Math.Rectangle{28, 104, 452, 268})
-    drawGradientStrokeCard(painter, Math.Rectangle{500, 104, 452, 268})
-    drawGradientSpreadCard(painter, Math.Rectangle{28, 398, 452, 266})
-    drawGradientTextCard(painter, Math.Rectangle{500, 398, 452, 266})
+    drawGradientFillCard(painter, {28, 104, 452, 268})
+    drawGradientStrokeCard(painter, {500, 104, 452, 268})
+    drawGradientSpreadCard(painter, {28, 398, 452, 266})
+    drawGradientTextCard(painter, {500, 398, 452, 266})
 }

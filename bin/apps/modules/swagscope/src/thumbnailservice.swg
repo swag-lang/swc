@@ -102,7 +102,7 @@ func runThumbnailWorker(directory: string) fail
         catch
         {
             let settingsPath = Path.combine(directory, "settings")
-            let bytes        = File.exists(settingsPath) ? try File.readAllText(settingsPath) : String{}
+            let bytes        = File.exists(settingsPath) ? try File.readAllText(settingsPath) : {}
             var settings     = try ThumbnailSettings.decode(bytes)
             var image:       Image
             var pluginIndex: u64

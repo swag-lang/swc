@@ -324,7 +324,7 @@ impl HtmlEdges
     //
     // These are the initial CSS `inset` values before the document supplies a declaration.
     #[ConstExpr]
-    public func auto()->HtmlEdges => HtmlEdges{HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto()}
+    public func auto()->HtmlEdges => {HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto()}
 }
 
 impl HtmlComputedStyle

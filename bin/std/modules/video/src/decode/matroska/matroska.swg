@@ -1787,7 +1787,7 @@ private impl Decoder
             // once more when the sample table exists.
             var probe: Hevc.HevcStream
             var empty: Array'SampleEntry
-            empty.add(SampleEntry{0, 0, 0, true})
+            empty.add({0, 0, 0, true})
             try probe.open(video.codecPrivate.toSlice(), #move empty)
             .info.width  = probe.width
             .info.height = probe.height
@@ -2150,7 +2150,7 @@ private impl Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl format()->StreamFormat => StreamFormat{"Matroska multimedia container", ".mkv"}
+    mtd impl format()->StreamFormat => {"Matroska multimedia container", ".mkv"}
 
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {

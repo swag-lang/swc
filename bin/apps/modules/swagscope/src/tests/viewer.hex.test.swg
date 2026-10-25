@@ -355,7 +355,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     window.layoutFileInfo()
     window.resize(960, 680)
     window.applyLayout()
-    host.moveMouse(Math.Point{-1, -1})
+    host.moveMouse({-1, -1})
     host.settleAnimations(window, 4)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.hex.search-inspector")
@@ -428,7 +428,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     window.layoutFileInfo()
     window.resize(1_100, 700)
     window.applyLayout()
-    host.moveMouse(Math.Point{-1, -1})
+    host.moveMouse({-1, -1})
     host.settleAnimations(window, 4)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.hex.analysis")
@@ -606,7 +606,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     let column = 5'u64
     Swag.assert(grid.offsetAt(Math.Point{grid.hexCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
     Swag.assert(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
-    Swag.assert(grid.offsetAt(Math.Point{4, 2}) == Swag.U64.Max)
+    Swag.assert(grid.offsetAt({4, 2}) == Swag.U64.Max)
 }
 
 // Byte order is an action-bar option and immediately changes multi-byte decoding.
@@ -698,7 +698,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     let grid = view.grid
 
     host.clickPopupMenuItemWhenShown(Hex.Action.SelectAll)
-    grid.showContextMenu(Math.Point{120, 120})
+    grid.showContextMenu({120, 120})
     host.pump()
     Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 

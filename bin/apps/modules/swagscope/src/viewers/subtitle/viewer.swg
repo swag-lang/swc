@@ -270,7 +270,7 @@ private impl Panel
         }
 
         let info = host.createInfoGroup(220)
-        with result.durationButton = IconButton.create(info, {}, Math.Rectangle{0, 0, 104, 32}, "scope.subtitle.time", .CenterContent)
+        with result.durationButton = IconButton.create(info, {}, {0, 0, 104, 32}, "scope.subtitle.time", .CenterContent)
         {
             .dockStyle = .Right
             .margin.x  = 8
@@ -280,7 +280,7 @@ private impl Panel
             .sigPressed += func|view = result|(_) { view.promptGoToTime() }
         }
 
-        with result.cueButton = IconButton.create(info, {}, Math.Rectangle{0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
+        with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
         {
             .dockStyle = .Right
             .toolTip   = texts().ui_CueNavigationTip

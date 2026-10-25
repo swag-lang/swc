@@ -37,7 +37,7 @@ func pushButtonHeadlessResetCounters()
     var host: Testing.HeadlessHost
     host.setup(240, 120)
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30})
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30})
     Swag.assert(button.text() == "Run")
 
     button.setText("Stop")
@@ -55,7 +55,7 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command, .Default)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command, .Default)
     button.sigPressed += &pushButtonHeadlessPressed
     host.focus(button)
 
@@ -73,14 +73,14 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
-    host.moveMouse(Math.Point{40, 30})
+    host.moveMouse({40, 30})
     Swag.assert(button.isHot)
     Swag.assert(button.isIn)
 
-    host.moveMouse(Math.Point{150, 80})
+    host.moveMouse({150, 80})
     Swag.assert(not button.isHot)
     Swag.assert(not button.isIn)
     Swag.assert(host.commandCount == 0)
@@ -93,10 +93,10 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
-    host.mouseDown(Math.Point{40, 30})
+    host.mouseDown({40, 30})
     Swag.assert(button.isPressed)
     Swag.assert(button.isPressing)
     Swag.assert(button.isIn)
@@ -104,7 +104,7 @@ func pushButtonHeadlessResetCounters()
     Swag.assert(host.commandCount == 0)
     Swag.assert(PushButtonHeadlessPressedCount == 0)
 
-    host.mouseUp(Math.Point{40, 30})
+    host.mouseUp({40, 30})
     Swag.assert(host.commandCount == 1)
     Swag.assert(host.lastCommand == PushButtonHeadless_Command)
     Swag.assert(PushButtonHeadlessPressedCount == 1)
@@ -121,13 +121,13 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed         += &pushButtonHeadlessHideOnPressed
     button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
     button.aniText.themeCrc   = 44'u32
 
-    host.click(Math.Point{40, 30})
+    host.click({40, 30})
 
     Swag.assert(PushButtonHeadlessPressedCount == 1)
     Swag.assert(button.wndFlags.has(.Hidden))
@@ -150,7 +150,7 @@ func pushButtonHeadlessResetCounters()
     pushButtonHeadlessResetCounters()
 
     let panel  = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 160, 80})
-    let button = PushButton.create(panel, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(panel, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
     button.aniText.themeCrc   = 44'u32
@@ -160,7 +160,7 @@ func pushButtonHeadlessResetCounters()
         PushButtonHeadlessPressedCount += 1
     }
 
-    host.click(Math.Point{40, 30})
+    host.click({40, 30})
 
     Swag.assert(PushButtonHeadlessPressedCount == 1)
     Swag.assert(panel.wndFlags.has(.Hidden))
@@ -182,17 +182,17 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
-    host.mouseDown(Math.Point{40, 30})
-    host.moveMouse(Math.Point{150, 80})
+    host.mouseDown({40, 30})
+    host.moveMouse({150, 80})
     Swag.assert(not button.isPressed)
     Swag.assert(button.isPressing)
     Swag.assert(not button.isIn)
     Swag.assert(host.app.mouseCaptureWnd == button)
 
-    host.mouseUp(Math.Point{150, 80})
+    host.mouseUp({150, 80})
     Swag.assert(host.commandCount == 0)
     Swag.assert(PushButtonHeadlessPressedCount == 0)
     Swag.assert(not button.isPressed)
@@ -208,17 +208,17 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
-    host.mouseDown(Math.Point{40, 30})
-    host.moveMouse(Math.Point{150, 80})
-    host.moveMouse(Math.Point{40, 30})
+    host.mouseDown({40, 30})
+    host.moveMouse({150, 80})
+    host.moveMouse({40, 30})
     Swag.assert(button.isPressed)
     Swag.assert(button.isPressing)
     Swag.assert(button.isIn)
 
-    host.mouseUp(Math.Point{40, 30})
+    host.mouseUp({40, 30})
     Swag.assert(host.commandCount == 1)
     Swag.assert(host.lastCommand == PushButtonHeadless_Command)
     Swag.assert(PushButtonHeadlessPressedCount == 1)
@@ -234,18 +234,18 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
-    host.mouseDown(Math.Point{150, 80})
+    host.mouseDown({150, 80})
     Swag.assert(host.app.mouseCaptureWnd == null)
 
-    host.moveMouse(Math.Point{40, 30})
+    host.moveMouse({40, 30})
     Swag.assert(button.isIn)
     Swag.assert(not button.isPressed)
     Swag.assert(not button.isPressing)
 
-    host.mouseUp(Math.Point{40, 30})
+    host.mouseUp({40, 30})
     Swag.assert(host.commandCount == 0)
     Swag.assert(PushButtonHeadlessPressedCount == 0)
     Swag.assert(not button.isPressed)
@@ -259,10 +259,10 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
-    host.moveMouse(Math.Point{40, 30})
+    host.moveMouse({40, 30})
     Swag.assert(button.isHot)
     Swag.assert(button.isIn)
     Swag.assert(host.app.mouseEnterWnd == button)
@@ -270,7 +270,7 @@ func pushButtonHeadlessResetCounters()
     button.aniBorder.themeCrc = 43'u32
     button.aniText.themeCrc   = 44'u32
     button.disable()
-    host.click(Math.Point{40, 30})
+    host.click({40, 30})
 
     Swag.assert(host.commandCount == 0)
     Swag.assert(PushButtonHeadlessPressedCount == 0)
@@ -293,14 +293,14 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed += &pushButtonHeadlessPressed
 
     button.aniBk.themeCrc     = 42'u32
     button.aniBorder.themeCrc = 43'u32
     button.aniText.themeCrc   = 44'u32
     button.hide()
-    host.click(Math.Point{40, 30})
+    host.click({40, 30})
 
     Swag.assert(host.commandCount == 0)
     Swag.assert(PushButtonHeadlessPressedCount == 0)
@@ -319,11 +319,11 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30}, PushButtonHeadless_Command)
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30}, PushButtonHeadless_Command)
     button.sigPressed      += &pushButtonHeadlessPressed
     button.sigRightPressed += &pushButtonHeadlessRightPressed
 
-    host.click(Math.Point{40, 30}, Input.MouseButton.Right)
+    host.click({40, 30}, Input.MouseButton.Right)
 
     Swag.assert(host.commandCount == 0)
     Swag.assert(PushButtonHeadlessPressedCount == 0)
@@ -340,10 +340,10 @@ func pushButtonHeadlessResetCounters()
     host.recordCommands()
     pushButtonHeadlessResetCounters()
 
-    let button = PushButton.create(&host.root, "Run", Math.Rectangle{20, 20, 90, 30})
+    let button = PushButton.create(&host.root, "Run", {20, 20, 90, 30})
     button.sigPressed += &pushButtonHeadlessPressed
 
-    host.click(Math.Point{40, 30})
+    host.click({40, 30})
 
     Swag.assert(host.commandCount == 0)
     Swag.assert(PushButtonHeadlessPressedCount == 1)

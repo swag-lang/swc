@@ -111,7 +111,7 @@ func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryNa
     {
         .dockStyle       = .Top
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     let fileName = subtitleViewerFixturePath()

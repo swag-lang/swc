@@ -159,8 +159,8 @@ using Swag, Core
     painter.end()
     Swag.assert(painter.commandBuffer.count > 0)
 
-    Swag.assert(cf.IForm.hitTest(Math.Point{80, 50}, 1))
-    Swag.assert(not cf.IForm.hitTest(Math.Point{500, 500}, 1))
+    Swag.assert(cf.IForm.hitTest({80, 50}, 1))
+    Swag.assert(not cf.IForm.hitTest({500, 500}, 1))
 }
 
 // copy propagates callout style (not text) and isSame tracks style changes.
@@ -200,7 +200,7 @@ using Swag, Core
     let cr = 20.0
 
     // Tip well past the bottom-left corner: base must sit on the bottom straight span.
-    let bl = cf.tailBase(Math.Vector2{-40, 100}, cf.roundSize)
+    let bl = cf.tailBase({-40, 100}, cf.roundSize)
     Swag.assert(bl.edge == .Bottom)
     Swag.assert(bl.p0.y == 60 and bl.p1.y == 60)
     Swag.assert(bl.p0.x >= cr - 0.01)
@@ -209,7 +209,7 @@ using Swag, Core
     // Tip past the top-right corner picks the right edge; base stays off the corners.
     let cf2 = testAddCallout(f.capture, 0, 0, 60, 100)
     cf2.roundSize = 20
-    let tr = cf2.tailBase(Math.Vector2{100, -40}, cf2.roundSize)
+    let tr = cf2.tailBase({100, -40}, cf2.roundSize)
     Swag.assert(tr.edge == .Right)
     Swag.assert(tr.p0.x == 60 and tr.p1.x == 60)
     Swag.assert(tr.p0.y >= cr - 0.01)

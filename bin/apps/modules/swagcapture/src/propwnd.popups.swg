@@ -4,7 +4,7 @@ impl PropWnd
     // current value, so the name is only needed when a reader asks for it.
     func createStyleButton(stack: *Wnd, tip: string)->*IconButton
     {
-        with let button = IconButton.create(stack, {}, Math.Rectangle{0, 0, StyleCellSize, StyleCellSize})
+        with let button = IconButton.create(stack, {}, {0, 0, StyleCellSize, StyleCellSize})
         {
             .setForm(.Rectangle)
             .style.addStyleSheetColors("""btnIcon_Bk                  $veilSoft
@@ -39,7 +39,7 @@ impl PropWnd
             .add(Argb.Purple)
         }
 
-        let picker = ColorPickerCtrl.createWithPalette(frame, Math.Rectangle{8, 54}, pal)
+        let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal)
         picker.setColor(color)
         return picker
     }
@@ -80,7 +80,7 @@ impl PropWnd
 
         for i in FormShapeKind.count
         {
-            with let btn0 = IconButton.create(frame.view, {}, Math.Rectangle{0, 0, PopupCellSize, PopupCellSize})
+            with let btn0 = IconButton.create(frame.view, {}, {0, 0, PopupCellSize, PopupCellSize})
             {
                 .userData = enumToUserData(i)
                 .setForm(.Rectangle)

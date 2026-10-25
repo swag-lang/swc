@@ -67,7 +67,7 @@ struct OrderedMapKey
     map.add({rank: 4}, 40)
     map.add({rank: 1}, 10)
 
-    Swag.assert(map.find(OrderedMapKey{rank: 1}).value == 10)
+    Swag.assert(map.find({rank: 1}).value == 10)
 
     var copy = map
     copy.add({rank: 2}, 20)

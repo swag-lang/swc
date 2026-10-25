@@ -872,7 +872,7 @@ private func linkedGraphicSource(documentFileName, item: string, loaded: *u64)->
         return direct
 
     let name = Path.fileName(linkedPath)
-    return folder != null and name != null ? localGraphicSource(Path.combine(folder, name), loaded) : String{}
+    return folder != null and name != null ? localGraphicSource(Path.combine(folder, name), loaded) : {}
 }
 
 // Decodes the name of an XML character reference, without its `&` and `;`: the five predefined
@@ -1784,7 +1784,7 @@ private func loadMasters(fileName: string, archive: const *Archive.Zip, designMa
 //
 // Linked external assets deliberately remain offline; a missing link never causes the viewer to
 // fetch it. `limits` bounds the pages and frames of the whole document, masters included.
-func load(fileName: string, limits: LoadLimits = LoadLimits{})->Document fail
+func load(fileName: string, limits: LoadLimits = {})->Document fail
 {
     let archive = try Archive.Zip.load(fileName)
     if archive.uncompressedSize > DocumentByteLimit do

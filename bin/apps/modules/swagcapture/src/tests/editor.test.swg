@@ -10,7 +10,7 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     f.main.editMode = .Shape
-    f.gui.drag(Math.Point{20, 30}, Math.Point{80, 70})
+    f.gui.drag({20, 30}, {80, 70})
 
     Swag.assert(f.capture.forms.count == 1)
     Swag.assert(f.capture.selection.count == 1)
@@ -31,7 +31,7 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     f.main.editMode = .Shape
-    f.gui.drag(Math.Point{20, 30}, Math.Point{80, 70}, modifiers: Input.KeyModifiers.Shift)
+    f.gui.drag({20, 30}, {80, 70}, modifiers: Input.KeyModifiers.Shift)
 
     Swag.assert(f.capture.forms.count == 1)
 
@@ -49,7 +49,7 @@ using Swag, Core
     let shape = testAddShape(f.capture, 10, 10, 20, 20)
     shape.kind = .Rectangle
 
-    f.gui.drag(Math.Point{15, 15}, Math.Point{45, 35})
+    f.gui.drag({15, 15}, {45, 35})
 
     Gui.Testing.assertRect(shape.IForm.boundRect(), 40, 30, 20, 20)
     Swag.assert(f.capture.selection.count == 1)
@@ -76,7 +76,7 @@ using Swag, Core
     discard testAddShape(f.capture, 180, 180, 20, 20)
 
     f.main.editMode = .Selection
-    f.gui.drag(Math.Point{0, 0}, Math.Point{120, 120})
+    f.gui.drag({0, 0}, {120, 120})
 
     Swag.assert(f.capture.selection.count == 2)
     Swag.assert(f.capture.selection.contains(0))
@@ -94,47 +94,47 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     f.main.editMode = .Line
-    f.gui.drag(Math.Point{10, 10}, Math.Point{70, 30})
+    f.gui.drag({10, 10}, {70, 30})
     Swag.assert(Swag.kindOf(f.capture.forms[0]) == FormLine)
     let line = assume cast(*FormLine, f.capture.forms[0])
     Swag.assert(line.xa == 10 and line.ya == 10)
     Swag.assert(line.xb == 70 and line.yb == 30)
 
     f.main.editMode = .Arrow
-    f.gui.drag(Math.Point{90, 10}, Math.Point{150, 40})
+    f.gui.drag({90, 10}, {150, 40})
     Swag.assert(Swag.kindOf(f.capture.forms[1]) == FormArrow)
 
     f.main.editMode = .Text
-    f.gui.drag(Math.Point{10, 60}, Math.Point{90, 95})
+    f.gui.drag({10, 60}, {90, 95})
     Swag.assert(Swag.kindOf(f.capture.forms[2]) == FormText)
     Gui.Testing.assertRect(f.capture.forms[2].boundRect(), 10, 60, 80, 35)
 
     f.main.editMode = .Image
-    f.gui.drag(Math.Point{110, 60}, Math.Point{160, 105})
+    f.gui.drag({110, 60}, {160, 105})
     Swag.assert(Swag.kindOf(f.capture.forms[3]) == FormImage)
     Swag.assert(assume cast(*FormImage, f.capture.forms[3]).isReadyToCapture)
 
     f.main.editMode = .Draw
-    f.gui.drag(Math.Point{10, 130}, Math.Point{50, 150})
+    f.gui.drag({10, 130}, {50, 150})
     Swag.assert(Swag.kindOf(f.capture.forms[4]) == FormDraw)
     Swag.assert(assume cast(*FormDraw, f.capture.forms[4]).points.count >= 2)
 
     f.main.mdlFormShape.subKind = .Highlight
     f.main.mdlHighlight         = &f.main.mdlFormShape
     f.main.editMode             = .Highlight
-    f.gui.drag(Math.Point{120, 130}, Math.Point{170, 170})
+    f.gui.drag({120, 130}, {170, 170})
     Swag.assert(Swag.kindOf(f.capture.forms[5]) == FormShape)
     Swag.assert(assume cast(*BaseForm, f.capture.forms[5]).subKind == .Highlight)
 
     f.main.mdlFormShape.subKind = .None
     f.main.mdlPixSel = &f.main.mdlFormShape
     f.main.editMode  = .PixSel
-    f.gui.drag(Math.Point{200, 130}, Math.Point{250, 170})
+    f.gui.drag({200, 130}, {250, 170})
     Swag.assert(Swag.kindOf(f.capture.forms[6]) == FormShape)
     Swag.assert(assume cast(*BaseForm, f.capture.forms[6]).subKind == .PixSel)
 
     f.main.editMode = .Step
-    f.gui.drag(Math.Point{310, 90}, Math.Point{310, 90})
+    f.gui.drag({310, 90}, {310, 90})
     Swag.assert(Swag.kindOf(f.capture.forms[7]) == FormStep)
     let step = assume cast(*FormStep, f.capture.forms[7])
     Gui.Testing.assertRect(step.IForm.boundRect(), 286, 66, 48, 48)
@@ -149,14 +149,14 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     f.main.editMode = .Polygon
-    f.gui.drag(Math.Point{30, 30}, Math.Point{100, 30})
+    f.gui.drag({30, 30}, {100, 30})
     Swag.assert(f.capture.mouseMode == .Creating)
     Swag.assert(f.gui.app.mouseCapture() == f.editView)
 
-    f.gui.click(Math.Point{100, 95})
+    f.gui.click({100, 95})
     Swag.assert(f.capture.mouseMode == .Creating)
 
-    f.gui.doubleClick(Math.Point{30, 95})
+    f.gui.doubleClick({30, 95})
     Swag.assert(f.capture.mouseMode == .None)
     Swag.assert(f.gui.app.mouseCapture() == null)
     Swag.assert(f.capture.forms.count == 1)
@@ -177,22 +177,22 @@ using Swag, Core
     discard testAddShape(f.capture, 80, 10, 40, 40)
     discard testAddShape(f.capture, 150, 10, 40, 40)
 
-    f.gui.click(Math.Point{30, 30})
+    f.gui.click({30, 30})
     Swag.assert(f.capture.selection.count == 1)
     Swag.assert(f.capture.selection[0] == 0)
 
-    f.gui.click(Math.Point{100, 30}, modifiers: Input.KeyModifiers.Control)
+    f.gui.click({100, 30}, modifiers: Input.KeyModifiers.Control)
     Swag.assert(f.capture.selection.count == 2)
     Swag.assert(f.capture.selection.contains(0))
     Swag.assert(f.capture.selection.contains(1))
 
-    f.gui.click(Math.Point{170, 30})
+    f.gui.click({170, 30})
     Swag.assert(f.capture.selection.count == 1)
     Swag.assert(f.capture.selection[0] == 2)
 
     f.gui.setKeyState(Input.Key.O, true)
     f.main.editMode = .Text
-    f.gui.drag(Math.Point{160, 20}, Math.Point{220, 60})
+    f.gui.drag({160, 20}, {220, 60})
     f.gui.setKeyState(Input.Key.O, false)
 
     Swag.assert(f.capture.forms.count == 4)
@@ -214,7 +214,7 @@ using Swag, Core
 
     f.gui.clickPopupMenuItemWhenShown(ActionSelection.DeleteSelection)
 
-    f.gui.click(Math.Point{200, 200}, Input.MouseButton.Right)
+    f.gui.click({200, 200}, Input.MouseButton.Right)
     f.gui.pump()
 
     Swag.assert(f.gui.autoHandled)
@@ -238,7 +238,7 @@ using Swag, Core
     f.gui.openPopupSubMenuWhenShown("Align")
     f.gui.thenClickPopupMenuItem(ActionAlign.AlignTop)
 
-    f.gui.click(Math.Point{200, 200}, Input.MouseButton.Right)
+    f.gui.click({200, 200}, Input.MouseButton.Right)
     f.gui.pump()
 
     Swag.assert(f.gui.autoHandled)
@@ -261,7 +261,7 @@ using Swag, Core
     f.gui.openPopupSubMenuWhenShown("Arrange")
     f.gui.thenClickPopupMenuItem(ActionAlign.SendToFront)
 
-    f.gui.click(Math.Point{200, 200}, Input.MouseButton.Right)
+    f.gui.click({200, 200}, Input.MouseButton.Right)
     f.gui.pump()
 
     Swag.assert(f.gui.autoHandled)
@@ -352,7 +352,7 @@ using Swag, Core
     f.capture.selection.add(0)
     testPrimeGizmo(shape)
 
-    f.gui.drag(Math.Point{60, 60}, Math.Point{85, 80})
+    f.gui.drag({60, 60}, {85, 80})
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 65, 50)
     Swag.assert(f.capture.canUndo())
 
@@ -360,7 +360,7 @@ using Swag, Core
     Gui.Testing.assertRect(shape.IForm.boundRect(), 20, 30, 40, 30)
 
     testPrimeGizmo(shape)
-    f.gui.drag(Math.Point{40, 4}, Math.Point{95, 45}, modifiers: Input.KeyModifiers.Shift)
+    f.gui.drag({40, 4}, {95, 45}, modifiers: Input.KeyModifiers.Shift)
     Swag.assert(Math.abs(shape.rotate - 90) < 0.001)
     f.capture.undo()
     Swag.assert(Math.abs(shape.rotate) < 0.001)
@@ -377,16 +377,16 @@ using Swag, Core
     image.kind    = .Image
     image.place   = .Free
     image.image   = Image.create(20, 20, .BGRA8)
-    image.freePos = Math.Rectangle{5, 6, 20, 16}
+    image.freePos = {5, 6, 20, 16}
     f.capture.selection.add(0)
 
     Swag.assert(image.IForm.canRotate())
-    f.gui.doubleClick(Math.Point{60, 70})
+    f.gui.doubleClick({60, 70})
     Swag.assert(image.editInside)
     Swag.assert(not image.IForm.canRotate())
 
     testPrimeGizmo(image)
-    f.gui.drag(Math.Point{65, 72}, Math.Point{75, 82})
+    f.gui.drag({65, 72}, {75, 82})
 
     Gui.Testing.assertRect(image.freePos, 5, 6, 30, 26)
     Swag.assert(f.capture.canUndo())
@@ -394,7 +394,7 @@ using Swag, Core
     f.capture.undo()
     Gui.Testing.assertRect(image.freePos, 5, 6, 20, 16)
 
-    f.gui.doubleClick(Math.Point{60, 70})
+    f.gui.doubleClick({60, 70})
     Swag.assert(not image.editInside)
 }
 
@@ -409,7 +409,7 @@ using Swag, Core
     f.capture.selection.add(0)
     testPrimeGizmo(line)
 
-    f.gui.drag(Math.Point{70, 45}, Math.Point{95, 80})
+    f.gui.drag({70, 45}, {95, 80})
     Swag.assert(line.xb == 95)
     Swag.assert(line.yb == 80)
     Swag.assert(f.capture.canUndo())
@@ -427,7 +427,7 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     testPrimeCaptureGizmo(f.capture)
-    f.gui.drag(Math.Point{400, 300}, Math.Point{430, 320})
+    f.gui.drag({400, 300}, {430, 320})
 
     Swag.assert(f.capture.width == 430)
     Swag.assert(f.capture.height == 320)

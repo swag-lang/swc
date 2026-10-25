@@ -169,53 +169,53 @@ private func readCcittMode(bits: *CcittBits)->CcittModeCode
     if window & 0x40
     {
         bits.skip(1)
-        return CcittModeCode{.Vertical, 0}
+        return {.Vertical, 0}
     }
 
     switch window >> 4
     {
     case 0b011:
         bits.skip(3)
-        return CcittModeCode{.Vertical, 1}
+        return {.Vertical, 1}
 
     case 0b010:
         bits.skip(3)
-        return CcittModeCode{.Vertical, -1}
+        return {.Vertical, -1}
 
     case 0b001:
         bits.skip(3)
-        return CcittModeCode{.Horizontal, 0}
+        return {.Horizontal, 0}
     }
 
     if window >> 3 == 0b0001
     {
         bits.skip(4)
-        return CcittModeCode{.Pass, 0}
+        return {.Pass, 0}
     }
 
     switch window >> 1
     {
     case 0b000011:
         bits.skip(6)
-        return CcittModeCode{.Vertical, 2}
+        return {.Vertical, 2}
 
     case 0b000010:
         bits.skip(6)
-        return CcittModeCode{.Vertical, -2}
+        return {.Vertical, -2}
     }
 
     switch window
     {
     case 0b0000011:
         bits.skip(7)
-        return CcittModeCode{.Vertical, 3}
+        return {.Vertical, 3}
 
     case 0b0000010:
         bits.skip(7)
-        return CcittModeCode{.Vertical, -3}
+        return {.Vertical, -3}
     }
 
-    return CcittModeCode{.EndOfData, 0}
+    return {.EndOfData, 0}
 }
 
 // Decodes one line written on its own, as alternating white and black runs.

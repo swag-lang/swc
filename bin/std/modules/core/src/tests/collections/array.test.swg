@@ -367,9 +367,9 @@ func arrayPtr2Rejects(values: *Array's32, x, y, w: u64)->bool
 #test
 {
     var values: Array'ArrayVisitProbe
-    values.add(ArrayVisitProbe{value: 1})
-    values.add(ArrayVisitProbe{value: 2})
-    values.add(ArrayVisitProbe{value: 3})
+    values.add({value: 1})
+    values.add({value: 2})
+    values.add({value: 3})
 
     for &value in values do
         value.value += 10
@@ -651,7 +651,7 @@ impl ArrayEmplaceOwned
         scope
         {
             var values: Array'ArrayEmplaceOwned
-            values.add(ArrayEmplaceOwned{1})
+            values.add({1})
             var inserted: [2] ArrayEmplaceOwned = [ArrayEmplaceOwned{2}, ArrayEmplaceOwned{3}]
             values.emplaceAt(index, inserted)
             Swag.assert(values.count == 3)

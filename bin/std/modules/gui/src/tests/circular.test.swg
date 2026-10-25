@@ -17,7 +17,7 @@ func circularHeadlessChanged(_: *Circular)
     host.setup(160, 160)
     CircularHeadlessChangedCount = 0
 
-    let circ = Circular.create(&host.root, Math.Rectangle{20, 20, 120, 120})
+    let circ = Circular.create(&host.root, {20, 20, 120, 120})
     circ.setBounds(0, 100)
     circ.sigChanged += &circularHeadlessChanged
 
@@ -40,7 +40,7 @@ func circularHeadlessChanged(_: *Circular)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    let circ = Circular.create(&host.root, Math.Rectangle{20, 20, 120, 120})
+    let circ = Circular.create(&host.root, {20, 20, 120, 120})
     circ.setAngleRange(Math.Angle.fromDegrees(90), Math.Angle.fromDegrees(270))
     circ.updateGeometry()
 
@@ -54,7 +54,7 @@ func circularHeadlessChanged(_: *Circular)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    let circ = Circular.create(&host.root, Math.Rectangle{20, 20, 120, 120}, null, true)
+    let circ = Circular.create(&host.root, {20, 20, 120, 120}, null, true)
     circ.setBounds(0, 100)
 
     // Either endpoint can be assigned first because range controls start at the full span.

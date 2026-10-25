@@ -69,7 +69,7 @@ func readU24(data: const [*] u8)->u32 => data[0] | (cast(u32, data[1]) << 8) | (
 
 func readU32(data: const [*] u8)->u32 => data[0] | (cast(u32, data[1]) << 8) | (cast(u32, data[2]) << 16) | (cast(u32, data[3]) << 24)
 
-func parseContainer(buffer: const [..] u8, options: DecodeOptions = DecodeOptions{})->Container fail
+func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Container fail
 {
     if buffer.count < 12 do
         fail InvalidFormatError{"WebP data ends before the RIFF header"}
@@ -430,7 +430,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"WebP - Google WebP", ".webp"}
+    mtd impl format()->ImageFormat => {"WebP - Google WebP", ".webp"}
 
     #[Swag.Propagate]
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail

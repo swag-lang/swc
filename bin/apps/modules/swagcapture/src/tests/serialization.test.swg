@@ -36,9 +36,9 @@ using Swag, Core
     arrow.endSize = 9
 
     var points: Array'Math.Vector2
-    points.add(Math.Vector2{7, 8})
-    points.add(Math.Vector2{22, 8})
-    points.add(Math.Vector2{18, 25})
+    points.add({7, 8})
+    points.add({22, 8})
+    points.add({18, 25})
 
     with let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
     {
@@ -65,7 +65,7 @@ using Swag, Core
     let image = testAddImage(f.capture, 13, 14, 16, 17)
     image.kind    = .Image
     image.place   = .Free
-    image.freePos = Math.Rectangle{2, 3, 8, 9}
+    image.freePos = {2, 3, 8, 9}
     image.image   = Image.create(4, 3, .BGRA8)
     image.image.fill(ColorYellow)
 

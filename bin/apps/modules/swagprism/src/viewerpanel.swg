@@ -60,11 +60,11 @@ impl ViewerPanel
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .margin          = Math.Vector4{0, 0, 0, 8}
+            .margin          = {0, 0, 0, 8}
         }
 
         // Header fields follow their short entries instead of the default form-field width.
-        with .kindCombo = ComboBox.create(.header, Math.Rectangle{}, "prism.viewer.kind")
+        with .kindCombo = ComboBox.create(.header, {}, "prism.viewer.kind")
         {
             .dockStyle = .Center
             .style.setStyleSheetMetrics("comboBox_Width 0")
@@ -75,19 +75,19 @@ impl ViewerPanel
             }
         }
 
-        with .optionsButton = IconButton.create(.header, .theme().icon(.Options, 18), Math.Rectangle{0, 0, 36, 36}, "prism.buildOptions", flags: .Toggle)
+        with .optionsButton = IconButton.create(.header, .theme().icon(.Options, 18), {0, 0, 36, 36}, "prism.buildOptions", flags: .Toggle)
         {
             .dockStyle = .Right
-            .margin    = Math.Vector4{8, 0, 0, 0}
+            .margin    = {8, 0, 0, 0}
             .setIconSize(18, 18)
             .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|panel = me|(button) { panel.showOptions(button.isChecked) }
         }
 
-        with .pauseButton = IconButton.create(.header, .theme().icon(.Pause, 18), Math.Rectangle{0, 0, 36, 36}, "prism.pause", flags: .Toggle)
+        with .pauseButton = IconButton.create(.header, .theme().icon(.Pause, 18), {0, 0, 36, 36}, "prism.pause", flags: .Toggle)
         {
             .dockStyle = .Right
-            .margin    = Math.Vector4{8, 0, 0, 0}
+            .margin    = {8, 0, 0, 0}
             .setIconSize(18, 18)
             .setCheckIndicator(.Frame)
             .sigCheckedChanged += func|panel = me|(button)
@@ -97,10 +97,10 @@ impl ViewerPanel
             }
         }
 
-        with .optimCombo = ComboBox.create(.header, Math.Rectangle{0, 0, 72, 36}, "prism.optimize")
+        with .optimCombo = ComboBox.create(.header, {0, 0, 72, 36}, "prism.optimize")
         {
             .dockStyle = .Right
-            .margin    = Math.Vector4{8, 0, 0, 0}
+            .margin    = {8, 0, 0, 0}
             .style.setStyleSheetMetrics("comboBox_Width 0")
             for name in ["O0", "O1", "O2"] do
                 .addItem(name)

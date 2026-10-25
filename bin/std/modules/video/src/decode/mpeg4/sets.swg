@@ -285,7 +285,7 @@ struct PlaneHeader
 // Reads a video object plane header, clause 6.2.5.
 func readPlaneHeader(layer: const *Layer, reader: *BitReader, header: *PlaneHeader) fail
 {
-    header[] = PlaneHeader{}
+    header[] = {}
     header.codingType = reader.read(2)
 
     // The time base advances by one for every set bit before the zero that closes it.

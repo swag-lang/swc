@@ -253,13 +253,13 @@ impl Decoder
         Memory.set(.edgeFlags.storage(), 0, blocks)
         Memory.set(.qpY.storage(), 0, blocks)
         for index in blocks do
-            .motion[index] = PuMotion{}
+            .motion[index] = {}
 
         if sps.saoEnabled
         {
             .sao.resize(cast(u64, sps.sizeInCtbs))
             for index in cast(u64, sps.sizeInCtbs) do
-                .sao[index] = SaoParameters{}
+                .sao[index] = {}
         }
 
         .ctbSliceIndex.resize(cast(u64, sps.sizeInCtbs))

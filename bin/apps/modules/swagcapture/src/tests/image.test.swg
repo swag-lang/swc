@@ -196,7 +196,7 @@ using Swag, Core
     f.capture.height  = 80
     f.capture.backImg = Image.create(40, 20, .BGRA8)
     f.capture.backImg.fill(Argb.Red)
-    f.capture.backImagePos = Math.Point{-10, 30}
+    f.capture.backImagePos = {-10, 30}
 
     f.main.sendCommandEvent(ActionImage.TrimCapture)
     Swag.assert(f.capture.width == 30)

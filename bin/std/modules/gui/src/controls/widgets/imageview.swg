@@ -104,7 +104,7 @@ private impl ImageView
     mtd const contentRect()->Math.Rectangle
     {
         if not .hasContent() do
-            return Math.Rectangle{}
+            return {}
 
         let size   = .contentSize()
         let client = .paddedClientRect()
@@ -351,7 +351,7 @@ impl ImageView
 
     // Creates an empty image viewer.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ImageView
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageView
     {
         Swag.assert(parent != null)
         let result = Wnd.create'ImageView(parent, null, position, id)

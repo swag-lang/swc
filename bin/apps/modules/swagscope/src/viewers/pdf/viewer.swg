@@ -258,7 +258,7 @@ private impl Panel
 
     // Creates the page view of `fileName`, with its page and zoom controls in `info`, and starts
     // opening the document in the background.
-    func create(contentParent, info: *Wnd, fileName: string, services: Viewer.HostServices = Viewer.HostServices{})->*Panel
+    func create(contentParent, info: *Wnd, fileName: string, services: Viewer.HostServices = {})->*Panel
     {
         with let result = Wnd.create'Panel(contentParent, "scope.pdf")
         {
@@ -289,7 +289,7 @@ private impl Panel
             .sigPressed      += func|view = me|(_) { view.pdfView.previousPage() }
         }
 
-        with .pageLabel = IconButton.create(.info, {}, Math.Rectangle{0, 0, PageWidth, 32}, "scope.pdf.page", .CenterContent)
+        with .pageLabel = IconButton.create(.info, {}, {0, 0, PageWidth, 32}, "scope.pdf.page", .CenterContent)
         {
             .dockStyle       = .Left
             .preferredSize.x = PageWidth
@@ -316,7 +316,7 @@ private impl Panel
         {
             .dockStyle       = .Right
             .preferredSize.x = Viewer.ZoomButtonWidth
-            .margin          = Math.Vector4{Viewer.ZoomButtonInset + 8, 0, Viewer.ZoomButtonInset, 0}
+            .margin          = {Viewer.ZoomButtonInset + 8, 0, Viewer.ZoomButtonInset, 0}
             .sigPressed      += func|view = me|(_) { view.showZoomMenu() }
         }
     }

@@ -151,12 +151,12 @@ impl InfoBar
             .updateFlags(add: .Ellipsis)
             .setTextHorizontalAlignment(.Left)
             .setIconHorizontalAlignment(.Left)
-            .setIconPadding(Math.Vector4{IconLeft, 0, 0, 0})
-            .setTextPadding(Math.Vector4{TextLeft, 0, TextRight, 0})
+            .setIconPadding({IconLeft, 0, 0, 0})
+            .setTextPadding({TextLeft, 0, TextRight, 0})
             .dockStyle = .Center
         }
 
-        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, 18), Math.Rectangle{0, 0, CloseSize, CloseSize})
+        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, 18), {0, 0, CloseSize, CloseSize})
         {
             .margin     = CloseMargin
             .dockStyle  = .Right

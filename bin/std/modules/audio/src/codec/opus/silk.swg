@@ -211,8 +211,8 @@ private impl NlsfCodebook
 private func nlsfCodebook(wideband: bool)->NlsfCodebook
 {
     if wideband do
-        return NlsfCodebook{true, 32, 16, 9830}
-    return NlsfCodebook{false, 32, 10, 11796}
+        return {true, 32, 16, 9830}
+    return {false, 32, 10, 11796}
 }
 
 // The side information of one frame.

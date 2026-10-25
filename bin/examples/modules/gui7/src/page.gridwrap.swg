@@ -2,14 +2,14 @@ using Core, Gui, Pixel
 
 func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons)->*Label
 {
-    with let label = Label.create(parent, text, Math.Rectangle{0, 0, 120, 42}, null, .WordWrap)
+    with let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
     {
         .backgroundStyle = .Window
         .setIcon(app.theme.icon(icon, 16))
         .setIconHorizontalAlignment(.Left)
         .setTextHorizontalAlignment(.Left)
-        .setIconPadding(Math.Vector4{10, 0, 0, 0})
-        .setTextPadding(Math.Vector4{34, 0, 10, 0})
+        .setIconPadding({10, 0, 0, 0})
+        .setTextPadding({34, 0, 10, 0})
     }
 
     return label
@@ -17,7 +17,7 @@ func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons)->*Label
 
 func createWrapTile(parent: *Wnd, text: string, icon: ThemeIcons)
 {
-    let btn = PushButton.create(parent, text, Math.Rectangle{})
+    let btn = PushButton.create(parent, text, {})
     btn.setForm(.Flat)
     btn.setIcon(app.theme.icon(icon, 16))
 }

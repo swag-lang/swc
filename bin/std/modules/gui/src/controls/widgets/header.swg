@@ -343,7 +343,7 @@ impl Header
 
     // Creates an empty header using the current theme height by default.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*Header
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Header
     {
         Swag.assert(parent != null)
 
@@ -360,7 +360,7 @@ impl Header
     //
     // A negative `width` is clamped to zero.
     #[Swag.Discardable]
-    mtd addColumn(name: string, width = 100'f32, icon: Icon = Icon{})->*HeaderItem
+    mtd addColumn(name: string, width = 100'f32, icon: Icon = {})->*HeaderItem
     {
         let item = .items.allocate()
         item.name   = name

@@ -8,7 +8,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    let stack = StackLayoutCtrl.create(&host.root, .Top, Math.Rectangle{0, 0, 200, 300})
+    let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 300})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 200, 40})
     let c1 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 200, 40})
@@ -28,7 +28,7 @@ using Swag, Core
     var rootResizeCount: u32
     var host: Testing.HeadlessHost
     host.setup(520, 100)
-    let stack = StackLayoutCtrl.create(&host.root, .Left, Math.Rectangle{0, 0, 500, 80})
+    let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 500, 80})
     stack.spacing = 8
     let label = Label.create(stack, "A")
     let next  = PushButton.create(stack, "Next")
@@ -45,7 +45,7 @@ using Swag, Core
     label.setText("A much longer label in the same band")
 
     // An intervening size query must not consume the pending arrangement.
-    discard stack.measure(Math.Point{500, 80})
+    discard stack.measure({500, 80})
     host.pump()
     Swag.assert(stack.position == bounds)
     Swag.assert(rootResizeCount == 0)
@@ -62,7 +62,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    let stack = StackLayoutCtrl.create(&host.root, .Left, Math.Rectangle{0, 0, 300, 100})
+    let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 300, 100})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 30, 100})
     let c1 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 30, 100})
@@ -81,7 +81,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 120)
-    let stack = StackLayoutCtrl.create(&host.root, .HorizontalCenter, Math.Rectangle{0, 0, 200, 100})
+    let stack = StackLayoutCtrl.create(&host.root, .HorizontalCenter, {0, 0, 200, 100})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 40, 30})
     let c1 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 40, 30})
@@ -99,7 +99,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 120)
-    let stack = StackLayoutCtrl.create(&host.root, .HorizontalEnd, Math.Rectangle{0, 0, 200, 100})
+    let stack = StackLayoutCtrl.create(&host.root, .HorizontalEnd, {0, 0, 200, 100})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 40, 30})
     let c1 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 40, 30})
@@ -116,7 +116,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(120, 220)
-    let stack = StackLayoutCtrl.create(&host.root, .VerticalCenter, Math.Rectangle{0, 0, 100, 200})
+    let stack = StackLayoutCtrl.create(&host.root, .VerticalCenter, {0, 0, 100, 200})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 40, 30})
     let c1 = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 40, 30})
@@ -146,7 +146,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 240)
-    let stack = StackLayoutCtrl.create(&host.root, .Top, Math.Rectangle{0, 0, 200, 200})
+    let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 200})
     stack.spacing = 0
     let fixed = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 200, 40})
     let grow  = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 200, 20})
@@ -154,8 +154,8 @@ using Swag, Core
     grow.layoutSpec.weightY = 1
     stack.computeLayout()
 
-    Swag.assert(fixed.position == Math.Rectangle{0, 0, 200, 40})
-    Swag.assert(grow.position == Math.Rectangle{0, 40, 200, 160})
+    Swag.assert(fixed.position == {0, 0, 200, 40})
+    Swag.assert(grow.position == {0, 40, 200, 160})
     Swag.assert(grow.managedByLayout)
     Swag.assert(grow.layoutDebug.arrangedRect == grow.position)
 }
@@ -165,7 +165,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-    let stack = StackLayoutCtrl.create(&host.root, .Top, Math.Rectangle{0, 0, 100, 50})
+    let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 100, 50})
     stack.spacing = 0
     let child = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 100, 10})
     child.minSize.y = 60
@@ -180,20 +180,20 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    let stack = StackLayoutCtrl.create(&host.root, .Top, Math.Rectangle{0, 0, 120, 120})
+    let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 120, 120})
     stack.spacing = 0
     let line = Wnd.create'Wnd(stack, null, Math.Rectangle{0, 0, 120, 35})
     let fill = Wnd.create'Wnd(line, null, Math.Rectangle{0, 0, 0, 0})
     fill.dockStyle = .Center
     stack.computeLayout()
 
-    Swag.assert(fill.position == Math.Rectangle{0, 0, 120, 35})
+    Swag.assert(fill.position == {0, 0, 120, 35})
 
-    line.setPosition(Math.Rectangle{0, 0, 120, 50})
+    line.setPosition({0, 0, 120, 50})
     stack.applyLayout()
 
-    Swag.assert(line.position == Math.Rectangle{0, 0, 120, 50})
-    Swag.assert(fill.position == Math.Rectangle{0, 0, 120, 50})
+    Swag.assert(line.position == {0, 0, 120, 50})
+    Swag.assert(fill.position == {0, 0, 120, 50})
 }
 
 // WrapLayoutCtrl flows fixed-size items left to right, wrapping to new rows.
@@ -201,7 +201,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(180, 200)
-    let wrap = WrapLayoutCtrl.create(&host.root, Math.Rectangle{0, 0, 150, 200})
+    let wrap = WrapLayoutCtrl.create(&host.root, {0, 0, 150, 200})
     wrap.itemWidth  = 64
     wrap.itemHeight = 64
     wrap.spacing    = 5
@@ -210,11 +210,11 @@ using Swag, Core
     let c2 = Wnd.create'Wnd(wrap, null, Math.Rectangle{0, 0, 0, 0})
     wrap.computeLayout()
 
-    Swag.assert(c0.position == Math.Rectangle{0, 0, 64, 64})
-    Swag.assert(c1.position == Math.Rectangle{69, 0, 64, 64})
+    Swag.assert(c0.position == {0, 0, 64, 64})
+    Swag.assert(c1.position == {69, 0, 64, 64})
 
     // The third item no longer fits on the first row and wraps.
-    Swag.assert(c2.position == Math.Rectangle{0, 69, 64, 64})
+    Swag.assert(c2.position == {0, 69, 64, 64})
 }
 
 // GridLayoutCtrl supports content and fractional tracks.
@@ -222,7 +222,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 120)
-    let grid = GridLayoutCtrl.create(&host.root, 3, 1, Math.Rectangle{0, 0, 300, 80})
+    let grid = GridLayoutCtrl.create(&host.root, 3, 1, {0, 0, 300, 80})
     grid.horizontalSpacing = 0
     grid.setColumnTrack(0, GridTrackKind.Content)
     grid.setColumnTrack(1, GridTrackKind.Fraction, 1)
@@ -247,7 +247,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(260, 120)
-    let grid = GridLayoutCtrl.create(&host.root, 2, 2, Math.Rectangle{0, 0, 250, 100})
+    let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.horizontalSpacing = 5
     grid.verticalSpacing   = 5
 
@@ -264,10 +264,10 @@ using Swag, Core
     grid.setCell(c11, 1, 1)
     grid.computeLayout()
 
-    Swag.assert(c00.position == Math.Rectangle{0, 0, 100, 30})
-    Swag.assert(c10.position == Math.Rectangle{105, 0, 100, 30})
-    Swag.assert(c01.position == Math.Rectangle{0, 35, 100, 30})
-    Swag.assert(c11.position == Math.Rectangle{105, 35, 100, 30})
+    Swag.assert(c00.position == {0, 0, 100, 30})
+    Swag.assert(c10.position == {105, 0, 100, 30})
+    Swag.assert(c01.position == {0, 35, 100, 30})
+    Swag.assert(c11.position == {105, 35, 100, 30})
 }
 
 // GridLayoutCtrl supports cells spanning multiple columns.
@@ -275,7 +275,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(260, 120)
-    let grid = GridLayoutCtrl.create(&host.root, 2, 2, Math.Rectangle{0, 0, 250, 100})
+    let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.horizontalSpacing = 5
     grid.verticalSpacing   = 5
 
@@ -284,7 +284,7 @@ using Swag, Core
     grid.computeLayout()
 
     // Spanning two 100-wide columns plus the 5px gap between them.
-    Swag.assert(wide.position == Math.Rectangle{0, 0, 205, 30})
+    Swag.assert(wide.position == {0, 0, 205, 30})
 }
 
 // Fractional tracks redistribute space left unused by a capped track.
@@ -292,7 +292,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 120)
-    let grid = GridLayoutCtrl.create(&host.root, 2, 1, Math.Rectangle{0, 0, 300, 80})
+    let grid = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 300, 80})
     grid.horizontalSpacing = 0
     grid.setColumnTrack(0, .Fraction, 1, maximum: 50)
     grid.setColumnTrack(1, .Fraction, 1)
@@ -311,7 +311,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(240, 100)
-    let grid  = GridLayoutCtrl.create(&host.root, 2, 1, Math.Rectangle{0, 0, 205, 80})
+    let grid  = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 205, 80})
     let child = Wnd.create'Wnd(grid)
     grid.setCell(child, 0, 0)
     grid.computeLayout()
@@ -327,7 +327,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 180)
-    let wrap = WrapLayoutCtrl.create(&host.root, Math.Rectangle{0, 0, 130, 160})
+    let wrap = WrapLayoutCtrl.create(&host.root, {0, 0, 130, 160})
     wrap.spacing = 5
     discard Wnd.create'Wnd(wrap, Math.Rectangle{0, 0, 80, 20})
     discard Wnd.create'Wnd(wrap, Math.Rectangle{0, 0, 40, 60})
@@ -346,11 +346,11 @@ using Swag, Core
 
     var options: FormLayoutOptions
     options.labelPlacement = .Above
-    let form = FormLayoutCtrl.create(&host.root, options, Math.Rectangle{0, 0, 480, 280})
-    form.padding = Math.Vector4{12, 10, 12, 10}
+    let form = FormLayoutCtrl.create(&host.root, options, {0, 0, 480, 280})
+    form.padding = {12, 10, 12, 10}
 
     let path   = EditBox.create(form, "")
-    let browse = PushButton.create(form, "Browse", Math.Rectangle{0, 0, 92, 34})
+    let browse = PushButton.create(form, "Browse", {0, 0, 92, 34})
     discard form.addField("CONTAINER FILE", path, browse, "Choose a destination path.")
     let password = PasswordEdit.create(form)
     discard form.addField("PASSWORD", password)
@@ -375,7 +375,7 @@ using Swag, Core
     var options: FormLayoutOptions
     options.labelPlacement = .Left
     options.labelWidth     = 96
-    let form = FormLayoutCtrl.create(&host.root, options, Math.Rectangle{0, 0, 480, 180})
+    let form = FormLayoutCtrl.create(&host.root, options, {0, 0, 480, 180})
     let name = EditBox.create(form, "")
     let kind = ComboBox.create(form)
     discard form.addField("File Name", name)
@@ -394,7 +394,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(520, 360)
 
-    let form = FormLayoutCtrl.create(&host.root, position: Math.Rectangle{0, 0, 480, 320})
+    let form = FormLayoutCtrl.create(&host.root, position: {0, 0, 480, 320})
     let name = form.addTextField("NAME", "Ada", placeholder: "Display name")
     let pick = form.addRowAction("Choose")
     let size = form.addTextField("SIZE", "256", help: "Capacity of the new container.")

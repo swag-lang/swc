@@ -150,7 +150,7 @@ impl IWnd for AncestorTestWnd {}
 
     // child is at container(10,20) + local(30,40) in surface space.
     Swag.assert(child.localToSurface(Math.Point{0, 0}) == Math.Point{40, 60})
-    Swag.assert(child.surfaceToLocal(Math.Point{40, 60}) == Math.Point{0, 0})
+    Swag.assert(child.surfaceToLocal({40, 60}) == Math.Point{0, 0})
     Swag.assert(child.surfaceToLocal(child.localToSurface(Math.Point{7, 9})) == Math.Point{7, 9})
 
     child.move(15, 25)
@@ -162,8 +162,8 @@ impl IWnd for AncestorTestWnd {}
     Swag.assert(child.position.width == 80)
     Swag.assert(child.position.height == 60)
 
-    child.setPosition(Math.Rectangle{0, 0, 100, 100})
-    Swag.assert(child.position == Math.Rectangle{0, 0, 100, 100})
+    child.setPosition({0, 0, 100, 100})
+    Swag.assert(child.position == {0, 0, 100, 100})
 }
 
 // Dock layout: Left/Right consume edges, Center fills the rest.
@@ -181,9 +181,9 @@ impl IWnd for AncestorTestWnd {}
     center.dockStyle = .Center
     container.applyLayout()
 
-    Swag.assert(left.position == Math.Rectangle{0, 0, 40, 100})
-    Swag.assert(right.position == Math.Rectangle{170, 0, 30, 100})
-    Swag.assert(center.position == Math.Rectangle{40, 0, 130, 100})
+    Swag.assert(left.position == {0, 0, 40, 100})
+    Swag.assert(right.position == {170, 0, 30, 100})
+    Swag.assert(center.position == {40, 0, 130, 100})
 }
 
 // getWndAt descends the hierarchy and skips hidden/disabled by default.
@@ -253,7 +253,7 @@ impl IWnd for AncestorTestWnd {}
     host.setup(240, 180)
 
     let scroller = Wnd.create'Wnd(&host.root, null, Math.Rectangle{10, 20, 200, 140})
-    scroller.scrollPos = Math.Point{0, 70}
+    scroller.scrollPos = {0, 70}
 
     let normal = Wnd.create'Wnd(scroller, null, Math.Rectangle{5, 100, 40, 30})
     Swag.assert(normal.surfaceRect().y == 50)
@@ -261,17 +261,17 @@ impl IWnd for AncestorTestWnd {}
     let fixed = Wnd.create'Wnd(scroller, null, Math.Rectangle{5, 30, 80, 60})
     fixed.wndFlags |= .NoScroll
     Swag.assert(fixed.surfaceRect().y == 50)
-    Swag.assert(fixed.surfaceToLocal(Math.Point{15, 50}) == Math.Point{0, 0})
+    Swag.assert(fixed.surfaceToLocal({15, 50}) == Math.Point{0, 0})
 
-    fixed.scrollPos = Math.Point{0, 6}
+    fixed.scrollPos = {0, 6}
     let nested = Wnd.create'Wnd(fixed, null, Math.Rectangle{2, 20, 20, 20})
     Swag.assert(nested.surfaceRect().y == 64)
 
-    host.root.scrollPos = Math.Point{0, 9}
+    host.root.scrollPos = {0, 9}
     Swag.assert(normal.surfaceRect().y == 41)
     Swag.assert(fixed.surfaceRect().y == 41)
     Swag.assert(nested.surfaceRect().y == 55)
-    Swag.assert(nested.surfaceToLocal(Math.Point{17, 55}) == Math.Point{0, 0})
+    Swag.assert(nested.surfaceToLocal({17, 55}) == Math.Point{0, 0})
     Swag.assert(host.root.windowAt(18, 56, true) == nested)
 }
 

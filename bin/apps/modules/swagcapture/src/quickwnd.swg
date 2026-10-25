@@ -363,7 +363,7 @@ impl QuickWnd
             // The presets start on the margin the rest of the panel uses, so the column of
             // samples lines up with the style cells and the rows below them.
             .layout         = WrapLayoutCtrl.create(quick)
-            .layout.padding = Math.Vector4{12, 8, 12, 8}
+            .layout.padding = {12, 8, 12, 8}
             .layout.spacing = 8
             .setView(quick.layout)
 
@@ -871,7 +871,7 @@ impl QuickWnd
         var paintForm = QuickStylePaintForm.create(unwrap btnp.formItf)
         defer paintForm.release()
 
-        Capture.paintForm(painter, {}, Math.Rectangle{0, 0, QuickCellSize, QuickCellSize}, unwrap paintForm.itf, zoom: 1, quickMode: true)
+        Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, unwrap paintForm.itf, zoom: 1, quickMode: true)
     }
 
     // Adds the cell of one preset; checking it applies the preset to the tool and to the selection.
@@ -949,7 +949,7 @@ impl QuickWnd
 
         // The cell's own button adds its style as a new preset. Neutral, not Voltage: adding
         // a preset is a convenience, not the primary action of the surface.
-        with let addBtn = IconButton.create(btn, me.theme().icon(.Plus, AddGlyphSize), Math.Rectangle{QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
+        with let addBtn = IconButton.create(btn, me.theme().icon(.Plus, AddGlyphSize), {QuickCellSize - AddCellSize - 2, 2, AddCellSize, AddCellSize})
         {
             .style.addStyleSheetColors("""btnIcon_Bk          $veilMedium
                                           btnIcon_HotBk       $veilStrong

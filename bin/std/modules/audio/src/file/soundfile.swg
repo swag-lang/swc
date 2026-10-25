@@ -331,7 +331,7 @@ impl SoundFile
     // durations. `options.timelineStartSeconds` locates frame zero on an enclosing media timeline;
     // voice seeking and playback positions remain local to this sound. The optional display name
     // and language are copied from `options` and remain valid for this value's lifetime.
-    func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = PacketStreamOptions{})->SoundFile fail
+    func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = {})->SoundFile fail
     {
         if not isPacketEncoding(encoding) do
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}

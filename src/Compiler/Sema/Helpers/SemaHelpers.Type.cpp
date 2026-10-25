@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Lexer/SourceView.h" // AUDIT-TEMP
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -911,11 +912,15 @@ namespace
 
         for (const AstNodeRef currentChildRef : children)
         {
+            // A shorthand that names no member is a positional value; one that does still
+            // occupies its own position, as in the aggregate-to-struct conversion.
             const IdentifierRef namedIdRef = namedArgumentIdentifier(sema, currentChildRef);
-            if (namedIdRef.isValid())
+            const bool          shorthand  = SemaHelpers::fieldShorthandIdentifier(sema.ast(), currentChildRef).isValid();
+            size_t              namedIndex = 0;
+            const bool          resolved   = namedIdRef.isValid() && resolveNamedMemberIndex(sema, targetType, namedIdRef, namedIndex) && namedIndex < memberCount;
+            if (namedIdRef.isValid() && (resolved || !shorthand))
             {
-                size_t namedIndex = 0;
-                if (!resolveNamedMemberIndex(sema, targetType, namedIdRef, namedIndex) || namedIndex >= memberCount)
+                if (!resolved)
                 {
                     if (currentChildRef == childRef)
                         return false;
@@ -930,6 +935,8 @@ namespace
                 }
 
                 assigned[namedIndex] = 1;
+                if (shorthand && nextPos < memberCount)
+                    ++nextPos;
                 continue;
             }
 
@@ -965,6 +972,10 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
     SmallVector<ConstantRef> values;
     values.reserve(children.size());
 
+    // With a positional value the braces initialize a struct, whose field mapping reports
+    // duplicates; a repeated bare identifier there is a repeated value.
+    const bool isRecord = autoNameFromIdentifiers && std::ranges::all_of(children, [&](AstNodeRef child) { return sema.node(child).is(AstNodeId::NamedArgument) || sema.node(child).is(AstNodeId::Identifier); });
+
     for (const AstNodeRef& child : children)
     {
         const AstNode& childNode = sema.node(child);
@@ -975,7 +986,7 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         else
             memberNames.push_back(IdentifierRef::invalid());
 
-        if (autoNameFromIdentifiers)
+        if (isRecord && memberNames.back().isValid())
         {
             const IdentifierRef name = memberNames.back();
             if (std::ranges::find(memberNames.span().first(memberNames.size() - 1), name) != memberNames.span().first(memberNames.size() - 1).end())
@@ -1024,6 +1035,76 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
     sema.setIsValue(sema.curNodeRef());
 
     return Result::Continue;
+}
+
+AstNodeRef SemaHelpers::fieldShorthandIdentifier(const Ast& ast, AstNodeRef nodeRef)
+{
+    const AstNode& node = ast.node(nodeRef);
+    if (node.is(AstNodeId::Identifier))
+        return nodeRef;
+    if (node.isNot(AstNodeId::NamedArgument))
+        return AstNodeRef::invalid();
+
+    // The parser spells a bare 'x' in braces as 'x: x' on the identifier's own token.
+    const AstNodeRef argRef = node.cast<AstNamedArgument>().nodeArgRef;
+    const AstNode&   arg    = ast.node(argRef);
+    if (arg.is(AstNodeId::Identifier) && arg.codeRef() == node.codeRef())
+        return argRef;
+
+    return AstNodeRef::invalid();
+}
+
+// A brace literal holding a value that is neither 'field: value' nor a bare identifier takes
+// its fields from the struct it initializes, by position. Returns that first positional value,
+// or invalid when the node is not such a literal.
+AstNodeRef SemaHelpers::bracePositionalElement(const Sema& sema, AstNodeRef nodeRef)
+{
+    while (nodeRef.isValid() && sema.ast().hasNode(nodeRef))
+    {
+        const AstNode& node = sema.node(nodeRef);
+        if (node.is(AstNodeId::NamedArgument))
+        {
+            nodeRef = node.cast<AstNamedArgument>().nodeArgRef;
+            continue;
+        }
+
+        if (node.is(AstNodeId::InitializerExpr))
+        {
+            nodeRef = node.cast<AstInitializerExpr>().nodeExprRef;
+            continue;
+        }
+
+        if (node.isNot(AstNodeId::StructLiteral) || !sema.token(node.codeRef()).is(TokenId::SymLeftCurly))
+            return AstNodeRef::invalid();
+
+        SmallVector<AstNodeRef> children;
+        AstNode::collectChildren(children, sema.ast(), node.cast<AstStructLiteral>().spanChildrenRef);
+        for (const AstNodeRef childRef : children)
+        {
+            const AstNode& child = sema.node(childRef);
+            if (child.isNot(AstNodeId::NamedArgument) && child.isNot(AstNodeId::Identifier))
+                return childRef;
+        }
+
+        return AstNodeRef::invalid();
+    }
+
+    return AstNodeRef::invalid();
+}
+
+// AUDIT-TEMP
+void SemaHelpers::auditTemp(Sema& sema, const char* kind, AstNodeRef nodeRef, std::string_view extra)
+{
+    const SourceCodeRange range = sema.node(nodeRef).codeRange(sema.ctx());
+    if (!range.srcView || !range.srcView->file())
+        return;
+    static std::mutex      mutex;
+    const std::scoped_lock lock(mutex);
+    FILE*                  f = nullptr;
+    if (fopen_s(&f, "C:/Users/chris/AppData/Local/Temp/claude/c--Perso-swag-lang-swc/6f2d466d-ef52-4858-8573-565141a17df7/scratchpad/audit.txt", "ab") || !f)
+        return;
+    std::fprintf(f, "%s\t%s\t%u\t%u\t%.*s\n", kind, range.srcView->file()->pathString().c_str(), range.line, range.column, static_cast<int>(extra.size()), extra.data());
+    std::fclose(f);
 }
 
 namespace

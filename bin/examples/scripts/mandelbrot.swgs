@@ -60,7 +60,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        with let slider = Slider.create(wnd, Math.Rectangle{0, 0, 200}, range: true)
+        with let slider = Slider.create(wnd, {0, 0, 200}, range: true)
         {
             g_Slider = slider
             .setBounds(-2.5, 2.5)

@@ -93,7 +93,7 @@ func createContextMenuPage(parent: *Wnd)
                             "Launch points",
                             "The same menu can be shown at raw mouse coordinates or anchored near controls.",
                             layout.right)
-    let openBtn = PushButton.create(right, "Open at button", Math.Rectangle{24, 100, 220})
+    let openBtn = PushButton.create(right, "Open at button", {24, 100, 220})
     openBtn.setIcon(app.theme.icon(.More, 18))
     openBtn.sigPressed += func(btn)
     {
@@ -101,7 +101,7 @@ func createContextMenuPage(parent: *Wnd)
         showContextMenuAt(Math.Point{pos.x, pos.bottom() + 6})
     }
 
-    let inspectBtn = PushButton.create(right, "Open centered", Math.Rectangle{24, 154, 220})
+    let inspectBtn = PushButton.create(right, "Open centered", {24, 154, 220})
     inspectBtn.setIcon(app.theme.icon(.Search, 18))
     inspectBtn.sigPressed += func(btn)
     {
@@ -109,8 +109,8 @@ func createContextMenuPage(parent: *Wnd)
         showContextMenuAt(Math.Point{pos.horzCenter(), pos.vertCenter()})
     }
 
-    discard createActionButton(right, "Toggle pin state", Math.Rectangle{24, 224, 220}, MenuCmd.ContextPin, .Link)
-    discard createActionButton(right, "Try delete command", Math.Rectangle{24, 278, 220}, MenuCmd.ContextDelete, .Remove)
+    discard createActionButton(right, "Toggle pin state", {24, 224, 220}, MenuCmd.ContextPin, .Link)
+    discard createActionButton(right, "Try delete command", {24, 278, 220}, MenuCmd.ContextDelete, .Remove)
 
     createStatusPanel(parent, layout.bottom)
 }

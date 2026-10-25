@@ -18,7 +18,7 @@ impl BorrowedCopyProbe
 #test
 {
     var values: Array'BorrowedCopyProbe
-    values.add(BorrowedCopyProbe{7, 11})
+    values.add({7, 11})
     Swag.assert(values.count == values.capacity)
     borrowedCopies = 0
     values.addBorrowed(&values[0])
@@ -37,7 +37,7 @@ impl BorrowedCopyProbe
     Swag.assert(borrowedCopies == 1)
 
     var fixed: StaticArray'(BorrowedCopyProbe, 8)
-    fixed.add(BorrowedCopyProbe{17, 19})
+    fixed.add({17, 19})
     borrowedCopies = 0
     fixed.insertBorrowedAt(0, &fixed[0])
     Swag.assert(borrowedCopies == 1 and fixed[0].value == 17 and fixed[1].padding == 19)
@@ -46,7 +46,7 @@ impl BorrowedCopyProbe
     Swag.assert(borrowedCopies == 1)
 
     var table: HashTable'(u64, BorrowedCopyProbe)
-    table.add(1, BorrowedCopyProbe{23, 29})
+    table.add(1, {23, 29})
     let key = 2'u64
     borrowedCopies = 0
     table.addBorrowed(&key, &table.find(1).value)

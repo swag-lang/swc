@@ -527,7 +527,7 @@ private func appendForm(parser: *PdfParser, page: *Page, resourcesId: u32, state
     {
         outerMask             = formState.softMask
         outerAlpha            = formState.fillAlpha
-        formState.softMask    = SoftMaskRef{}
+        formState.softMask    = {}
         formState.fillAlpha   = 1
         formState.strokeAlpha = 1
     }
@@ -931,7 +931,7 @@ private func parseContent(parser: *PdfParser, page: *Page, resourcesId: u32, byt
 {
     var content = PdfParser{bytes: bytes}
     var operands: Array'ContentOperand
-    var state   = initialState ? initialState[] : GraphicsState{}
+    var state   = initialState ? initialState[] : {}
     var stack:    Array'GraphicsState
     var path:     LinePathList
     var current:  *LinePath?

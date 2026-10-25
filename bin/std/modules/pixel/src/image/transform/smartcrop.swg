@@ -844,7 +844,7 @@ public impl Image
     // Higher scores are preferred. `rect` uses image pixel coordinates. When
     // `opts.maxSize` is positive, scoring may use a reduced working copy while
     // preserving the rectangle's proportions.
-    mtd evaluateCropScore(rect: Math.Rectangle, opts: SmartCropSearchOpts = SmartCropSearchOpts{})->f32
+    mtd evaluateCropScore(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})->f32
     {
         // If a max working size is set and we’re larger, evaluate on a resized copy
         if opts.maxSize > 0
@@ -885,7 +885,7 @@ public impl Image
     // The position in `rect` is ignored: Pixel searches the source for the
     // highest-scoring placement with the requested width and height. The final
     // crop always uses the original pixels, even when search downscaling is enabled.
-    mtd smartCrop(rect: Math.Rectangle, opts: SmartCropSearchOpts = SmartCropSearchOpts{})
+    mtd smartCrop(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})
     {
         Swag.assert(rect.width > 0 and rect.height > 0)
 

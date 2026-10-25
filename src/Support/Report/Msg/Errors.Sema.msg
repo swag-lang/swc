@@ -116,7 +116,7 @@ SWC_DIAG_DEF(sema_err_tls_global_with_drop, Error, "'tls' does not accept type '
 SWC_DIAG_DEF(sema_err_using_member_type, Error, "'using' needs a struct value or pointer-to-struct, found '{type}'; [help] use a struct member, or a pointer to a struct")
 SWC_DIAG_DEF(sema_err_using_module_namespace, Error, "'using' cannot import the current module namespace '{sym}'; [help] remove '{sym}' from this 'using' declaration because its declarations are already in scope")
 SWC_DIAG_DEF(sema_err_record_duplicate_field, Error, "record construction already initializes field '{value}'; [help] remove the duplicate initializer")
-SWC_DIAG_DEF(sema_err_record_needs_field_name, Error, "record construction needs a field name; [help] write 'field: value', or use '(...)' for a positional tuple")
+SWC_DIAG_DEF(sema_err_record_needs_field_name, Error, "record construction needs a field name; [help] write 'field: value', give the destination a struct type, or use '(...)' for a positional tuple")
 SWC_DIAG_DEF(sema_err_decomposition_kind, Error, "type '{type}' does not accept a {value} destructuring pattern; [help] use '(...)' for a tuple and '{field: binding}' for a record or struct")
 SWC_DIAG_DEF(sema_err_decomposition_not_struct, Error, "cannot decompose value of type '{type}' because it is not a struct; [help] decompose a struct value instead")
 SWC_DIAG_DEF(sema_err_decomposition_too_many_names, Error, "too many bindings in decomposition; struct has {count} fields; [help] remove the extra binding names")

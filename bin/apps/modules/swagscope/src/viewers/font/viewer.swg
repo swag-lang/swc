@@ -217,7 +217,7 @@ impl Panel
     // Creates the sample field and the character-page controls in the command group.
     private mtd createCommandBar()
     {
-        with .sampleEdit = EditBox.create(.commands, .sampleDefault, Math.Rectangle{0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        with .sampleEdit = EditBox.create(.commands, .sampleDefault, {0, 0, 260, 36}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
             .dockStyle = .Left
             .setMaximumLength(128)
@@ -252,7 +252,7 @@ impl Panel
             }
         }
 
-        with .pageLabel = IconButton.create(.commands, {}, Math.Rectangle{0, 0, 108, 36}, "scope.font.range", .CenterContent)
+        with .pageLabel = IconButton.create(.commands, {}, {0, 0, 108, 36}, "scope.font.range", .CenterContent)
         {
             .dockStyle = .Left
             .margin.x  = 8

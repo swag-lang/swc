@@ -71,10 +71,10 @@ impl Explorer
         }
 
         result.createBar()
-        with result.status = Label.create(result, "", Math.Rectangle{0, 0, 0, 28}, null, .Ellipsis | .SecondaryText)
+        with result.status = Label.create(result, "", {0, 0, 0, 28}, null, .Ellipsis | .SecondaryText)
         {
             .dockStyle = .Bottom
-            .margin    = Math.Vector4{16, 0, 16, 0}
+            .margin    = {16, 0, 16, 0}
         }
 
         with result.list = ListCtrl.createMultiColumns(result)
@@ -103,7 +103,7 @@ impl Explorer
                 if explorer.mode == .Details
                 {
                     line.setItem(1, entry.directory ? appStrings().ui_Folder : (Path.extension(entry.name) orelse ""))
-                    line.setItem(2, entry.directory ? String{} : StrConv.toDisplaySize(entry.size))
+                    line.setItem(2, entry.directory ? {} : StrConv.toDisplaySize(entry.size))
                     line.setItem(3, entry.modified)
                 }
             }
@@ -175,7 +175,7 @@ impl Explorer
         with .bar = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, 84})
         {
             .dockStyle       = .Top
-            .padding         = Math.Vector4{8, 4, 8, 4}
+            .padding         = {8, 4, 8, 4}
             .backgroundStyle = .ToolBar
         }
 
@@ -241,16 +241,16 @@ impl Explorer
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .margin          = Math.Vector4{4, 4, 0, 0}
+            .margin          = {4, 4, 0, 0}
         }
 
-        with .modes = ComboBox.create(options, Math.Rectangle{0, 0, 184, 36})
+        with .modes = ComboBox.create(options, {0, 0, 184, 36})
         {
             .dockStyle  = .Right
             .sigChanged += func|view = me|(_, index) { view.setMode(cast(ExplorerMode, index)) }
         }
 
-        with .filter = EditBox.create(options, "", Math.Rectangle{0, 0, 0, 36}, flags: .ClearButton)
+        with .filter = EditBox.create(options, "", {0, 0, 0, 36}, flags: .ClearButton)
         {
             .dockStyle = .Center
             .margin.z  = 16
@@ -414,7 +414,7 @@ impl Explorer
         {
             let trimmed = .folder.toString()[0 until .folder.length - 1]
             let parent  = Path.directoryName(trimmed) orelse ""
-            .navigate(.listing.path, parent.count ? Format.toString("%/", parent) : String{})
+            .navigate(.listing.path, parent.count ? Format.toString("%/", parent) : {})
         }
         else
         {
@@ -708,7 +708,7 @@ impl Explorer
         preview.generation  = .generation
         preview.opening     = opening
         preview.settings    = .previewSettings
-        preview.archivePath = .listing.isArchive ? .listing.path : String{}
+        preview.archivePath = .listing.isArchive ? .listing.path : {}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
         entry.attempted = true
@@ -861,7 +861,7 @@ struct ExplorerGrid
     using wnd:     Wnd
     late explorer: *Explorer
     columns:       u64        = 1
-    cell:          Math.Point = Math.Point{160, 152}
+    cell:          Math.Point = {160, 152}
     hovered:       u64        = Swag.U64.Max
     spinners:      Array'(*Spinner)
 }

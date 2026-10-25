@@ -386,19 +386,19 @@ impl AnalysisView
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = Math.Vector4{12, 8, 12, 8}
+            .padding         = {12, 8, 12, 8}
         }
 
         result.createHeader()
 
-        with result.scopeLabel = Label.create(result, "", Math.Rectangle{0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.scopeLabel = Label.create(result, "", {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.metricsLabel = Label.create(result, "", Math.Rectangle{0, 0, 0, MetricsHeight}, null, .SecondaryText | .WordWrap)
+        with result.metricsLabel = Label.create(result, "", {0, 0, 0, MetricsHeight}, null, .SecondaryText | .WordWrap)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
@@ -410,14 +410,14 @@ impl AnalysisView
             .sigByteChanged += func|view = result|(_, value) { view.updateByteDetail(value) }
         }
 
-        with result.byteLabel = Label.create(result, texts().ui_AnalysisByteHint, Math.Rectangle{0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.byteLabel = Label.create(result, texts().ui_AnalysisByteHint, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.stringsLabel = Label.create(result, texts().ui_AnalysisStrings, Math.Rectangle{0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.stringsLabel = Label.create(result, texts().ui_AnalysisStrings, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .setTextAlignment(.Left, .OpticalCenter)

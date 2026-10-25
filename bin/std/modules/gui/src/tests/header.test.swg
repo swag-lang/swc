@@ -8,7 +8,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 80)
-    let header = Header.create(&host.root, Math.Rectangle{10, 10, 300, 24})
+    let header = Header.create(&host.root, {10, 10, 300, 24})
     Swag.assert(header.items.isEmpty())
 
     header.addColumn("Name", 120)
@@ -41,7 +41,7 @@ using Swag, Core
     host.setup(240, 70)
     host.root.backgroundStyle = .Window
 
-    let header = Header.create(&host.root, Math.Rectangle{10, 10, 200, 24})
+    let header = Header.create(&host.root, {10, 10, 200, 24})
     header.form = .Transparent
     header.addColumn("Offset", 80)
     header.addColumn("Value", 100)
@@ -69,7 +69,7 @@ using Swag, Core
     host.root.backgroundStyle = .Window
 
     let page   = Wnd.create'Wnd(&host.root, null, Math.Rectangle{160, 10, 220, 60})
-    let header = Header.create(page, Math.Rectangle{0, 10, 180, 24})
+    let header = Header.create(page, {0, 10, 180, 24})
     header.form = .Transparent
     header.addColumn("Mounted", 160)
 
@@ -93,7 +93,7 @@ using Swag, Core
     Swag.assert(normalInk)
 
     page.setPresentationOpacity(0.5)
-    page.setPresentationOffset(Math.Point{8, 0})
+    page.setPresentationOffset({8, 0})
     let presented = host.render()
     var presentedInk: bool
     y = 22

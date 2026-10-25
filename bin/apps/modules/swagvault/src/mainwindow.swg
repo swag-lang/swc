@@ -499,7 +499,7 @@ impl MainWindow
         let result  = Wnd.create'MainWindow(parent, "vault.mainWindow")
         let surface = unwrap result.surface
         surface.setView(result)
-        surface.minSize        = Math.Point{WindowWidth, 0}
+        surface.minSize        = {WindowWidth, 0}
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
 
@@ -557,7 +557,7 @@ impl MainWindow
         with .tabs = Tab.create(me)
         {
             .dockStyle       = .Center
-            .margin          = Math.Vector4{32, 16, 32, 16}
+            .margin          = {32, 16, 32, 16}
             .backgroundStyle = .Panel
             .setForm(.Flat)
             .setForms(.Flat, .Flat, .None)

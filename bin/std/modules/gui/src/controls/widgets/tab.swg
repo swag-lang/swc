@@ -571,7 +571,7 @@ private impl Tab
             // Create a button if there are too many items for the given size
             if not .buttonPopup
             {
-                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.ChevronDown, metrics.tabBar_PopupButtonGlyph), Math.Rectangle{})
+                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.ChevronDown, metrics.tabBar_PopupButtonGlyph), {})
                 .buttonPopup = btnPopup
                 btnPopup.setForm(.Circle)
                 btnPopup.sigPressed += func|tab = me|(btn)
@@ -617,7 +617,7 @@ impl Tab
 {
     // Creates an empty, keyboard-focusable tab control.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*Tab
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Tab
     {
         Swag.assert(parent != null)
         let result = Wnd.create'Tab(parent, null, position, id)
@@ -708,7 +708,7 @@ impl Tab
     //
     // The first tab added becomes the selected one; the page of any later tab starts hidden.
     #[Swag.Discardable]
-    mtd addItem(name: string, icon: Icon = Icon{}, view: *Wnd? = null)->*TabItem
+    mtd addItem(name: string, icon: Icon = {}, view: *Wnd? = null)->*TabItem
     {
         let isFirst = .items.isEmpty()
         if view

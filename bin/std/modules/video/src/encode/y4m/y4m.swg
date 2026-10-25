@@ -38,7 +38,7 @@ struct Encoder
 
 impl IEncoder for Encoder
 {
-    mtd impl format()->StreamFormat => StreamFormat{"Y4M - YUV4MPEG2 video", ".y4m"}
+    mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
 
     mtd impl begin(sink: *ByteSink, info: StreamInfo, _: any?) fail
     {

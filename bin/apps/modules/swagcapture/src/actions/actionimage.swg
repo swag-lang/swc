@@ -191,11 +191,11 @@ impl MainWnd
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         }
 
-        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", capture.width), Math.Rectangle{80, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", capture.height), Math.Rectangle{80, 50}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
         edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
-        let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, Math.Rectangle{120, 85})
+        let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, {120, 85})
         btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
 
         edit0.edit.sigTextChanged += func|ratio, btnRatio, edit1|(edt)
@@ -280,8 +280,8 @@ impl MainWnd
 
         g_Width  = w
         g_Height = h
-        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", w), Math.Rectangle{30, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", h), Math.Rectangle{30, 50}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", w), {30, 15}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", h), {30, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
         edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
 
@@ -305,7 +305,7 @@ impl MainWnd
             }
         }
 
-        with let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, Math.Rectangle{70, 85})
+        with let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, {70, 85})
         {
             .setState(g_KeepRatio ? .Checked : .Unchecked)
             .sigChanged += func||(btn) { g_KeepRatio = btn.isChecked() }

@@ -100,7 +100,7 @@ private func markedPixels(frame: const *Image)->u64
 
     // The coverage covers exactly the mark's own page-space box, so it is anchored there rather
     // than stretched over whatever shape samples it.
-    Swag.assert(item.maskRect == Math.Rectangle{0, 0, 100, 100})
+    Swag.assert(item.maskRect == {0, 0, 100, 100})
     Swag.assert(item.maskImage.width == 200 and item.maskImage.height == 200)
 
     // The group's white quarter is the lower left in PDF coordinates, which a page states from

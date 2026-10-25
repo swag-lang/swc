@@ -75,7 +75,7 @@ impl IWnd for StackLayoutCtrl
         }
 
         if not count do
-            return Math.Point{}
+            return {}
 
         main += cast(f32, (count - 1)) * .spacing
 
@@ -380,7 +380,7 @@ private impl StackLayoutCtrl
 impl StackLayoutCtrl
 {
     // Creates an empty stack using `mode`.
-    func create(parent: *Wnd, mode: StackLayoutMode = .Top, position: Math.Rectangle = Math.Rectangle{})->*StackLayoutCtrl
+    func create(parent: *Wnd, mode: StackLayoutMode = .Top, position: Math.Rectangle = {})->*StackLayoutCtrl
     {
         let res = Wnd.create'StackLayoutCtrl(parent, position)
         res.mode = mode

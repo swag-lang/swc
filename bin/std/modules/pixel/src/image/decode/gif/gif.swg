@@ -191,7 +191,7 @@ public impl Decoder
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"GIF - Graphics Interchange Format", ".gif"}
+    mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
@@ -220,7 +220,7 @@ struct SetDecoder
 
 impl IImageDecoder for SetDecoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"GIF - Graphics Interchange Format", ".gif"}
+    mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

@@ -114,7 +114,7 @@ impl Page
     // `fill` and `stroke` independently select the two paint operations. At least
     // one must be enabled. `strokeStyle` selects the cap, join, miter, and dash
     // geometry when stroking. Path coordinates and dash data are copied into the page.
-    mtd addPath(path: LinePathList, fill = true, fillColor = Color.fromArgb(Argb.Black), stroke = false, strokeColor = Color.fromArgb(Argb.Black), strokeWidth = 1.0, strokeStyle: PathStrokeStyle = PathStrokeStyle{})
+    mtd addPath(path: LinePathList, fill = true, fillColor = Color.fromArgb(Argb.Black), stroke = false, strokeColor = Color.fromArgb(Argb.Black), strokeWidth = 1.0, strokeStyle: PathStrokeStyle = {})
     {
         Swag.assert(fill or stroke, "path has no paint operation")
         Swag.assert(not stroke or (strokeWidth >= 0 and Math.isFinite(strokeWidth)), "invalid stroke width")
@@ -252,7 +252,7 @@ impl Page
     //
     // Rendering caches each path's tessellation inside the page, so drawing the same page
     // again — another scale, another region — does not pay that preparation twice.
-    mtd render(options: RenderOptions = RenderOptions{})->Image fail
+    mtd render(options: RenderOptions = {})->Image fail
     {
         return try renderPage(me, options)
     }

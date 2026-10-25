@@ -974,7 +974,7 @@ impl HtmlPainter
     mtd const scrollBarAt(point: Math.Point)->HtmlRegionScrollBar
     {
         if .layout.root == HtmlNoNode do
-            return HtmlRegionScrollBar{}
+            return {}
         return .scrollBarAtBox(.layout.root, point, Math.Point{0, -.scrollY})
     }
 
@@ -987,7 +987,7 @@ impl HtmlPainter
         {
             let next = .nextStackingLevel(box, previous, hasPrevious, positive, false)
             if not next.found do
-                return HtmlRegionScrollBar{}
+                return {}
             for index in children.count
             {
                 let child = children[children.count - index - 1]
@@ -1015,7 +1015,7 @@ impl HtmlPainter
                     return found
             }
 
-            return HtmlRegionScrollBar{}
+            return {}
         }
 
         let positive = .scrollBarAtStackedChildren(box, point, offset, true)
@@ -1039,7 +1039,7 @@ impl HtmlPainter
     {
         let style = .layout.constStyle(.layout.constBox(box).style)
         if not style.visible or style.display == .None do
-            return HtmlRegionScrollBar{}
+            return {}
 
         var offset = parentOffset
         offset.y += .stickyOffset(box, parentOffset)
@@ -1047,7 +1047,7 @@ impl HtmlPainter
         var rect = .layout.constBox(box).rect
         rect.offset(offset.x, offset.y)
         if not rect.contains(point) do
-            return HtmlRegionScrollBar{}
+            return {}
 
         // A region paints its own bar after its contents, so that bar also wins hit testing over
         // any descendant that happens to extend beneath it.

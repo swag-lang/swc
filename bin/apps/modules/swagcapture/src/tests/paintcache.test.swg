@@ -24,17 +24,17 @@ func testPopulate(capture: *Capture)
     discard testAddStep(capture, 300, 150, 40, 40)
 
     var polyPoints: Array'Math.Vector2
-    polyPoints.add(Math.Vector2{30, 220})
-    polyPoints.add(Math.Vector2{90, 205})
-    polyPoints.add(Math.Vector2{110, 260})
-    polyPoints.add(Math.Vector2{50, 275})
+    polyPoints.add({30, 220})
+    polyPoints.add({90, 205})
+    polyPoints.add({110, 260})
+    polyPoints.add({50, 275})
     discard testAddPolygon(capture, polyPoints.toSlice())
 
     var drawPoints: Array'Math.Vector2
-    drawPoints.add(Math.Vector2{150, 220})
-    drawPoints.add(Math.Vector2{190, 240})
-    drawPoints.add(Math.Vector2{230, 225})
-    drawPoints.add(Math.Vector2{260, 255})
+    drawPoints.add({150, 220})
+    drawPoints.add({190, 240})
+    drawPoints.add({230, 225})
+    drawPoints.add({260, 255})
     discard testAddDraw(capture, drawPoints.toSlice())
 
     discard testAddShape(capture, 280, 210, 90, 60, .Highlight)

@@ -100,7 +100,7 @@ func drawShadowEffectCard(painter: *Pixel.Painter, rect: Math.Rectangle)
 
     var fx: TextEffect
     fx.shadowColor    = Color.fromArgb(150, Argb.Black)
-    fx.shadowOffset   = Math.Point{5, 6}
+    fx.shadowOffset   = {5, 6}
     fx.shadowSoftness = 0.45
     fx.outlineWidth   = 0.16
     fx.outlineColor   = Argb.Crimson
@@ -118,8 +118,8 @@ func drawTextEffectsPage(painter: *Pixel.Painter)
     drawPageHeader(painter,
                    "MSDF text effects",
                    "Page 12 : outline, glow, bevel and soft drop shadow, derived from the glyph distance field (TextMeshPro-style).")
-    drawOutlineEffectCard(painter, Math.Rectangle{28, 104, 452, 280})
-    drawGlowEffectCard(painter, Math.Rectangle{500, 104, 452, 280})
-    drawBevelEffectCard(painter, Math.Rectangle{28, 406, 452, 258})
-    drawShadowEffectCard(painter, Math.Rectangle{500, 406, 452, 258})
+    drawOutlineEffectCard(painter, {28, 104, 452, 280})
+    drawGlowEffectCard(painter, {500, 104, 452, 280})
+    drawBevelEffectCard(painter, {28, 406, 452, 258})
+    drawShadowEffectCard(painter, {500, 406, 452, 258})
 }

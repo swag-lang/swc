@@ -872,6 +872,14 @@ namespace
 
         const TypeInfo* explicitType = explicitTypeRef.isValid() ? &sema.typeMgr().get(explicitTypeRef) : nullptr;
 
+        // Without a declared type, nothing names the fields a positional brace value fills.
+        if (!explicitType && context.nodeInitRef.isValid())
+        {
+            const AstNodeRef positionalRef = SemaHelpers::bracePositionalElement(sema, context.nodeInitRef);
+            if (positionalRef.isValid())
+                return SemaError::raise(sema, DiagnosticId::sema_err_record_needs_field_name, positionalRef);
+        }
+
         const bool         isConst              = context.flags.has(AstVarDeclFlagsE::Const);
         const bool         isLet                = context.flags.has(AstVarDeclFlagsE::Let);
         const bool         isParameter          = context.flags.has(AstVarDeclFlagsE::Parameter);

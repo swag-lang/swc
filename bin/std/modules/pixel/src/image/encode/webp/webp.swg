@@ -337,7 +337,7 @@ impl Encoder
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"WebP - Google WebP", ".webp"}
+    mtd impl format()->ImageFormat => {"WebP - Google WebP", ".webp"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {

@@ -752,7 +752,7 @@ impl TagBin
         .sections.clear()
         .outStack.clear()
         .elemStack.clear()
-        .diag = TagBinDiagnostics{}
+        .diag = {}
     }
 
     // Reads the stream header.

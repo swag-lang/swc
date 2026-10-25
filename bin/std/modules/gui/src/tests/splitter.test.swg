@@ -14,7 +14,7 @@ using Swag, Core
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let splitter = SplitterCtrl.create(&host.root, Math.Rectangle{20, 20, 280, 180}, vertical: true)
+    let splitter = SplitterCtrl.create(&host.root, {20, 20, 280, 180}, vertical: true)
     splitter.backgroundStyle = .ToolBar
 
     let pane0 = Wnd.create'Wnd(splitter)
@@ -35,7 +35,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    let splitter = SplitterCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
     let pane1    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
     splitter.addPane(pane0)
@@ -103,7 +103,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    let splitter = SplitterCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
     let pane1    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
     splitter.addPane(pane0)
@@ -125,7 +125,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    let splitter = SplitterCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
+    let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
     let pane1    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
     splitter.addPane(pane0)
@@ -142,7 +142,7 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 220)
-    let splitter = SplitterCtrl.create(&host.root, Math.Rectangle{0, 0, 320, 200})
+    let splitter = SplitterCtrl.create(&host.root, {0, 0, 320, 200})
     let pane0    = Wnd.create'Wnd(splitter)
     let pane1    = Wnd.create'Wnd(splitter)
     let pane2    = Wnd.create'Wnd(splitter)

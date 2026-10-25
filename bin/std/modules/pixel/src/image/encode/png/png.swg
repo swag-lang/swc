@@ -266,7 +266,7 @@ public struct EncodeOptions
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"PNG - Portable Network Graphics", ".png"}
+    mtd impl format()->ImageFormat => {"PNG - Portable Network Graphics", ".png"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {

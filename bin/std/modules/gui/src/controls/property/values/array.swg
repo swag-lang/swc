@@ -174,7 +174,7 @@ internal impl Properties
         }
 
         let parentForBtn = .isGridLike() ? item.line : cast(*Wnd?, item.label)
-        let addBtn       = IconButton.create(unwrap parentForBtn, .theme().icon(ThemeIcons.Plus, 20), Math.Rectangle{0, 0, 24, 24})
+        let addBtn       = IconButton.create(unwrap parentForBtn, .theme().icon(ThemeIcons.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Circle)
         item.arrayAddButton = addBtn

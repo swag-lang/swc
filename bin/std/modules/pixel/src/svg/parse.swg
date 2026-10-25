@@ -362,16 +362,16 @@ private struct Gradient
     href:      String     // Gradient this one inherits from, without its `#`.
     specified: GradientSpecified     // Attributes this gradient states itself.
 
-    x1: SvgLength = SvgLength{0, true}
-    y1: SvgLength = SvgLength{0, true}
-    x2: SvgLength = SvgLength{1, true}
-    y2: SvgLength = SvgLength{0, true}
+    x1: SvgLength = {0, true}
+    y1: SvgLength = {0, true}
+    x2: SvgLength = {1, true}
+    y2: SvgLength = {0, true}
 
-    cx: SvgLength = SvgLength{0.5, true}
-    cy: SvgLength = SvgLength{0.5, true}
-    r:  SvgLength = SvgLength{0.5, true}
-    fx: SvgLength = SvgLength{0.5, true}
-    fy: SvgLength = SvgLength{0.5, true}
+    cx: SvgLength = {0.5, true}
+    cy: SvgLength = {0.5, true}
+    r:  SvgLength = {0.5, true}
+    fx: SvgLength = {0.5, true}
+    fy: SvgLength = {0.5, true}
     fr: SvgLength
 
     userSpace: bool
@@ -425,7 +425,7 @@ private func scanNumber(s: string, pos: *u64)->f32
     return catch StrConv.toF32(s[start until i])
 }
 
-private func parseLength(value: string, defaultValue: SvgLength = SvgLength{})->SvgLength
+private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
 {
     var pos = 0'u64
     while pos < value.count and (value[pos] == ' ' or value[pos] == '\t' or value[pos] == '\n' or value[pos] == '\r') do
@@ -2192,7 +2192,7 @@ private impl Parser
                 let opacityAttr = geo.tryFind("stop-opacity")
                 if opacityAttr
                 {
-                    let parsed = parseLength(opacityAttr.value.toString(), SvgLength{1, false})
+                    let parsed = parseLength(opacityAttr.value.toString(), {1, false})
                     opacity = Math.saturate(parsed.value)
                 }
 
@@ -2201,7 +2201,7 @@ private impl Parser
                     let styled = styleValue(style.value.toString(), "stop-opacity")
                     if not styled.isEmpty()
                     {
-                        let parsed = parseLength(styled.toString(), SvgLength{1, false})
+                        let parsed = parseLength(styled.toString(), {1, false})
                         opacity = Math.saturate(parsed.value)
                     }
                 }
@@ -3634,7 +3634,7 @@ impl Drawing
     //
     // `options` confines external image references and selects the typefaces for text;
     // see [[Pixel.Svg.ParseOptions]]. Unknown elements and attributes are ignored.
-    func parse(text: string, options: ParseOptions = ParseOptions{})->Drawing fail
+    func parse(text: string, options: ParseOptions = {})->Drawing fail
     {
         var result: retval
 

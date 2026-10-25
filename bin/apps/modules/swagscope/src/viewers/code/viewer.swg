@@ -278,7 +278,7 @@ impl Panel
     //
     // `info` receives the zoom control when the view is hosted with an information group, and
     // `services` hear about read errors discovered once text is already shown.
-    func create(contentParent: *Wnd, fileName: string, services: Viewer.HostServices = Viewer.HostServices{}, info: *Wnd? = null)->*Panel
+    func create(contentParent: *Wnd, fileName: string, services: Viewer.HostServices = {}, info: *Wnd? = null)->*Panel
     {
         with let result = Wnd.create'Panel(contentParent, "scope.code")
         {

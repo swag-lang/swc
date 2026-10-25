@@ -291,7 +291,7 @@ func createSidePanelFixture(host: Viewer.Host)
     view.loadNextChunk()
     Swag.assert(view.editor.scrollPosition() == position)
 
-    view.editor.setScrollPosition(Math.Point{0, 0})
+    view.editor.setScrollPosition({0, 0})
     let beforeEnd = view.editor.scrollPosition()
     var end       = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
     let handled   = view.hookOnChildEvent!(view.editor, &end)
@@ -785,20 +785,20 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     clipboardImage.clear()
     Clipboard.addImage(clipboardImage)
     host.clickPopupMenuItemWhenShown("scope.file.copyPath")
-    window.showFileMenu(list, window.recent.toSlice(), Math.Point{120, 120})
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
     host.pump()
     Swag.assert(host.autoHandled and Clipboard.getString() == names[1])
     Swag.assert(not Clipboard.hasImage())
 
     Clipboard.addImage(clipboardImage)
     host.clickPopupMenuItemWhenShown("scope.file.copyName")
-    window.showFileMenu(list, window.recent.toSlice(), Math.Point{120, 120})
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
     host.pump()
     Swag.assert(host.autoHandled and Clipboard.getString() == "file1.txt")
     Swag.assert(not Clipboard.hasImage())
 
     host.clickPopupMenuItemWhenShown("scope.file.forget")
-    window.showFileMenu(list, window.recent.toSlice(), Math.Point{120, 120})
+    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
     host.pump()
     Swag.assert(host.autoHandled)
     Swag.assert(window.recent.count == 2 and window.recent[0] == names[2] and window.recent[1] == names[0])
@@ -1020,7 +1020,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.85})
     Swag.assert(view.pendingSeek)
-    view.editor.setScrollPosition(Math.Point{0, 0})
+    view.editor.setScrollPosition({0, 0})
     Swag.assert(not view.pendingSeek)
 
     view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.85})
@@ -1661,7 +1661,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(not window.commandBar.isLocallyVisible() and not window.infoBarHost.isLocallyVisible())
     Swag.assert(not window.viewerBar.isLocallyVisible() and not window.filePanelHost.isLocallyVisible())
 
-    window.updateFullScreenChrome(Math.Point{10, 1})
+    window.updateFullScreenChrome({10, 1})
     Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
     Swag.assert(not window.viewerBar.isLocallyVisible())
     window.updateFullScreenChrome(Math.Point{10, window.clientRect().height / 2})
@@ -1771,7 +1771,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.currentView       = loading
     window.activeChoiceIndex = 0
-    loading.setPosition(Math.Rectangle{17, 83, 611, 391})
+    loading.setPosition({17, 83, 611, 391})
 
     reportViewerLoadingChanged(loading)
     Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
@@ -1805,7 +1805,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // A newly selected progressive viewer loads behind the preceding document. The activity
     // mark belongs over that preserved document until the replacement can publish its first frame.
     let outgoing = Wnd.create'Wnd(window)
-    outgoing.setPosition(Math.Rectangle{23, 71, 577, 363})
+    outgoing.setPosition({23, 71, 577, 363})
     window.outgoingView = outgoing
     window.currentView  = outgoing
     reportViewerLoadingChanged(loading)
@@ -1844,7 +1844,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     let old    = Wnd.create'Wnd(window)
-    old.setPosition(Math.Rectangle{19, 73, 617, 389})
+    old.setPosition({19, 73, 617, 389})
     var retireCalls: u32
     old.userData = &retireCalls
     window.instances.add(ViewerSession{view: old, retire: func|old|()->bool => delayTestViewerRetirement(old)})

@@ -648,7 +648,7 @@ impl Slider
 
     // Creates a horizontal slider, optionally configured for ranges or vertical layout.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, range = false, vertical = false)->*Slider
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, range = false, vertical = false)->*Slider
     {
         Swag.assert(parent != null)
         var pos = position

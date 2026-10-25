@@ -643,10 +643,10 @@ impl InlineView
             return Math.Vector4{0, .owner.documentStyle.headingTopSpacing[index], 0, .owner.documentStyle.headingBottomSpacing[index]}
 
         case .Code:
-            return Math.Vector4{18, 14, 18, 14}
+            return {18, 14, 18, 14}
 
         case .Table:
-            return Math.Vector4{16, 12, 16, 12}
+            return {16, 12, 16, 12}
 
         case .Quote:
             var result = .owner.documentStyle.quotePadding
@@ -655,21 +655,21 @@ impl InlineView
 
         case .AlertNote, .AlertTip, .AlertImportant,
              .AlertWarning, .AlertCaution:
-            return Math.Vector4{18, 10, 10, 10}
+            return {18, 10, 10, 10}
 
         case .Metadata:
-            return Math.Vector4{12, 8, 12, 8}
+            return {12, 8, 12, 8}
 
         case .TableOfContents:
-            return Math.Vector4{18, 12, 18, 12}
+            return {18, 12, 18, 12}
 
         case .Footnote:
-            return Math.Vector4{0, 4, 0, 4}
+            return {0, 4, 0, 4}
 
         default:
             if .owner.documentStyle.blockMargins.x >= 0 and .owner.documentStyle.blockMargins.y >= 0 do
                 return {}
-            return Math.Vector4{0, 2, 0, 2}
+            return {0, 2, 0, 2}
         }
     }
 

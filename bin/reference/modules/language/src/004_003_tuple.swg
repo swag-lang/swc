@@ -6,6 +6,9 @@
 A tuple groups values by position. A record groups values by field name. Their construction,
 types and destructuring patterns use different delimiters: parentheses for tuples and braces
 for records. Neither family implicitly converts to the other.
+
+Braces whose destination is a struct initialize that struct instead, and can then list values
+by position: 'let p: Point = {1, 2}'. Without such a destination, braces need field names.
 */
 #test
 {
@@ -53,9 +56,9 @@ remains ordinary grouping. An empty '()' is not a tuple value.
 /**
 # Named Records
 
-Each record field has a name. A bare identifier abbreviates 'name: name' in every expression
-context; the abbreviation does not depend on the destination type. Anonymous record types
-list the names and their types in braces.
+Each record field has a name. A bare identifier abbreviates 'name: name'. When the braces
+initialize a struct, an identifier that names none of its fields is a positional value
+instead. Anonymous record types list the names and their types in braces.
 */
 #test
 {

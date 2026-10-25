@@ -437,7 +437,7 @@ internal impl Properties
     // A blank vertical gap ('size' px). It paints nothing (paintBackItem short-circuits on .Spacer).
     mtd addSpacerRow(parentItem: *PropertiesItem?, size: s32)->*PropertiesItem
     {
-        with let item = .addItem(Swag.TypeValue{}, null, parentItem, cast(f32, size), .None)
+        with let item = .addItem({}, null, parentItem, cast(f32, size), .None)
         {
             .level = parentItem!.level
             .flags.add(.Spacer | .NoSeparator | .NoFocus)
@@ -467,7 +467,7 @@ internal impl Properties
     // on top carries the icon and text.
     mtd addNoteRow(text: string?, parentItem: *PropertiesItem?)->*PropertiesItem
     {
-        let item = .addItem(Swag.TypeValue{}, null, parentItem, 0, .None)
+        let item = .addItem({}, null, parentItem, 0, .None)
         item.level = parentItem!.level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 

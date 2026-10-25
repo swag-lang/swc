@@ -469,7 +469,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     with let commandBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 52})
     {
         .dockStyle       = .Bottom
-        .padding         = Math.Vector4{12, 8, 12, 8}
+        .padding         = {12, 8, 12, 8}
         .fillCenterGroup = true
     }
 
@@ -505,7 +505,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commandBar)
@@ -751,7 +751,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     let voice = unwrap view.voice
 
     window.setFullScreen(true)
-    window.updateFullScreenChrome(Math.Point{10, 1})
+    window.updateFullScreenChrome({10, 1})
     window.updateFullScreenChrome(Math.Point{10, window.clientRect().height - 1})
     window.setFullScreen(false)
 
@@ -830,7 +830,7 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     let path   = videoMatroskaFixturePath()

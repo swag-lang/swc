@@ -83,8 +83,8 @@ using Swag, Core
 {
     var painter: Painter
     painter.begin()
-    painter.pushClippingRect(Math.Rectangle{0, 0, 100, 100})
-    painter.pushClippingRect(Math.Rectangle{50, 50, 100, 100})
+    painter.pushClippingRect({0, 0, 100, 100})
+    painter.pushClippingRect({50, 50, 100, 100})
     painter.fillRect(0, 0, 200, 200, Color.fromArgb(Argb.Red))
     painter.popClippingRect()
     painter.fillRect(0, 0, 200, 200, Color.fromArgb(Argb.Green))

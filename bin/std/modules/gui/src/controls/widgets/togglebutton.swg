@@ -122,7 +122,7 @@ impl ToggleButton
 {
     // Creates a toggle button with an optional command identifier.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ToggleButton
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ToggleButton
     {
         Swag.assert(parent != null)
         var pos = position

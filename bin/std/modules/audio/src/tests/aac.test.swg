@@ -52,7 +52,7 @@ private func aacTestSound51()->SoundFile fail
     for packet, index in packets
     {
         if index == GapAt do
-            gapped.add(SoundPacket{0, 0, GapFrames})
+            gapped.add({0, 0, GapFrames})
         gapped.add(packet)
     }
 

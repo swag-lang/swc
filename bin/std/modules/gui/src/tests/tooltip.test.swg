@@ -47,7 +47,7 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
 // Shows a tip immediately and returns the label it built.
 func showTip(owner: *Wnd, text: string)->*Label
 {
-    ToolTip.show(owner, Math.Point{40, 40}, text, 0's)
+    ToolTip.show(owner, {40, 40}, text, 0's)
     return assume cast (*Label, owner.app().toolTip.current!.view)
 }
 
@@ -66,7 +66,7 @@ func longAnnotation()->String
     var host: Testing.HeadlessHost
     host.setup(420, 200)
 
-    let btn = PushButton.create(&host.root, "Refresh", Math.Rectangle{20, 20, 100, 30})
+    let btn = PushButton.create(&host.root, "Refresh", {20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
 
     let tip = unwrap host.app.toolTip.current
@@ -88,7 +88,7 @@ func longAnnotation()->String
     var host: Testing.HeadlessHost
     host.setup(600, 300)
 
-    let btn = PushButton.create(&host.root, "Library", Math.Rectangle{20, 20, 100, 30})
+    let btn = PushButton.create(&host.root, "Library", {20, 20, 100, 30})
     let lbl = showTip(btn, "Afficher la bibliothèque de captures et retrouver les images enregistrées pendant la session")
 
     let tip = unwrap host.app.toolTip.current
@@ -108,7 +108,7 @@ func longAnnotation()->String
     var host: Testing.HeadlessHost
     host.setup(420, 200, 1.5)
 
-    let btn = PushButton.create(&host.root, "Files", Math.Rectangle{20, 20, 100, 30})
+    let btn = PushButton.create(&host.root, "Files", {20, 20, 100, 30})
     let lbl = showTip(btn, "Fichiers à côté de celui-ci")
     let tip = unwrap host.app.toolTip.current
     assertPassiveAndFits(tip, lbl)
@@ -127,7 +127,7 @@ func longAnnotation()->String
     host.setup(600, 400)
 
     let long = longAnnotation()
-    let btn  = PushButton.create(&host.root, "Help", Math.Rectangle{20, 20, 100, 30})
+    let btn  = PushButton.create(&host.root, "Help", {20, 20, 100, 30})
     let lbl  = showTip(btn, long.toString())
 
     let tip = unwrap host.app.toolTip.current
@@ -146,7 +146,7 @@ func longAnnotation()->String
     host.setup(240, 110)
 
     let long = longAnnotation()
-    let btn  = PushButton.create(&host.root, "Help", Math.Rectangle{10, 10, 60, 24})
+    let btn  = PushButton.create(&host.root, "Help", {10, 10, 60, 24})
     let lbl  = showTip(btn, long.toString())
 
     assertPassiveAndFits(unwrap host.app.toolTip.current, lbl)
@@ -161,7 +161,7 @@ var g_LinkText:  String
     var host: Testing.HeadlessHost
     host.setup(460, 220)
 
-    let btn = PushButton.create(&host.root, "Docs", Math.Rectangle{20, 20, 100, 30})
+    let btn = PushButton.create(&host.root, "Docs", {20, 20, 100, 30})
     let lbl = showTip(btn, "Read <b>the guide</b> at <url>swag-lang.org</url> for the rest")
 
     assertPassiveAndFits(unwrap host.app.toolTip.current, lbl)
@@ -199,7 +199,7 @@ var g_LinkText:  String
     var host: Testing.HeadlessHost
     host.setup(420, 200)
 
-    let btn = PushButton.create(&host.root, "Refresh", Math.Rectangle{20, 20, 100, 30})
+    let btn = PushButton.create(&host.root, "Refresh", {20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
 
     Swag.assert(not lbl.name.hasUrl)
@@ -216,7 +216,7 @@ var g_LinkText:  String
 {
     var first: Testing.HeadlessHost
     first.setup(420, 200)
-    let btn = PushButton.create(&first.root, "Refresh", Math.Rectangle{20, 20, 100, 30})
+    let btn = PushButton.create(&first.root, "Refresh", {20, 20, 100, 30})
     discard showTip(btn, "Refresh")
     Swag.assert(first.app.toolTip.current != null)
     first.shutdown()
@@ -234,7 +234,7 @@ var g_LinkText:  String
     var host: Testing.HeadlessHost
     host.setup(460, 320)
 
-    let btn = PushButton.create(&host.root, "Library", Math.Rectangle{20, 20, 100, 30})
+    let btn = PushButton.create(&host.root, "Library", {20, 20, 100, 30})
 
     discard showTip(btn, "Refresh")
     host.settleAnimations(&host.surfaceWnd)

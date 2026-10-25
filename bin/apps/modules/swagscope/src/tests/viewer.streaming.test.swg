@@ -29,7 +29,7 @@ using Core, Pixel, Gui, Viewers
     view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.8})
     view.loadNextChunk()
     Swag.assert(view.read.started)
-    view.editor.setScrollPosition(Math.Point{0, 0})
+    view.editor.setScrollPosition({0, 0})
     Swag.assert(not view.pendingSeek and view.read.wasCancelled())
     completeTextReads(&host, view)
     Swag.assert(view.residentStart == 0)

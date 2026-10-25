@@ -727,7 +727,7 @@ impl Painter
     // Draws an already shaped run with its top-left corner at `(left, top)`.
     mtd drawShapedRun(left, top: f32, shaped: *ShapedRun, font: *Font, brush: Brush, under = UnderlineStyle.None, zoom = 1.0)
     {
-        .drawShapedRun(left, top, shaped, font, brush, TextEffect{}, under, zoom)
+        .drawShapedRun(left, top, shaped, font, brush, {}, under, zoom)
     }
 
     // Draws an already shaped run with MSDF text effects.
@@ -979,7 +979,7 @@ impl Painter
                 lines.add(line)
 
                 startLine = line.end + 1
-                line      = OneLine{}
+                line      = {}
                 wordStart = startLine
                 wordLine  = line
                 continue
@@ -1020,7 +1020,7 @@ impl Painter
                         // The word opens the new line whole, so its metrics are accumulated again
                         // from its first chunk. It carries no space chunk, by construction.
                         startLine = wordStart
-                        line      = OneLine{}
+                        line      = {}
                         for w in startLine to cast(s32, idx)
                         {
                             let wc = &text.chunks[w]
@@ -1033,7 +1033,7 @@ impl Painter
                             line.fontDescent = Math.min(line.fontDescent, -wordMetrics.descent)
                         }
 
-                        wordLine = OneLine{}
+                        wordLine = {}
                         continue
                     }
 
@@ -1048,7 +1048,7 @@ impl Painter
                     }
 
                     startLine = cast(s32, idx)
-                    line      = OneLine{}
+                    line      = {}
 
                     // We do not want the new line to start with a space
                     if c.isSpace
@@ -1066,7 +1066,7 @@ impl Painter
                     }
 
                     wordStart = startLine
-                    wordLine  = OneLine{}
+                    wordLine  = {}
                     continue
                 }
             }

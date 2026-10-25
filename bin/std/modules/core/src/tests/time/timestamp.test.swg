@@ -116,7 +116,7 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    let span = Time.Timestamp.fromDateTime(Time.DateTime{2024, 2, 29, 1, 2, 3, 4})
+    let span = Time.Timestamp.fromDateTime({2024, 2, 29, 1, 2, 3, 4})
     Swag.assert(span.ticks == Time.dateToTicks(2024, 2, 29) + Time.timeToTicks(1, 2, 3, 4))
     let dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 2)
@@ -138,7 +138,7 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    var span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 1, 1, 0, 0, 0, 0})
+    var span = Time.Timestamp.fromDateTime({2020, 1, 1, 0, 0, 0, 0})
     span.addDays(1)
     span.addHours(2)
     span.addMinutes(3)
@@ -157,7 +157,7 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
     Swag.assert(dateTime.month == 1)
     expectDateTime(dateTime, 2020, 1, 1, 0, 0, 0, 0)
 
-    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 2, 28, 23, 59, 59, 999})
+    span = Time.Timestamp.fromDateTime({2020, 2, 28, 23, 59, 59, 999})
     span.addMilliseconds(1)
     dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 2)
@@ -166,49 +166,49 @@ func expectDateTime(value: Time.DateTime, year, month, day, hour, minute, second
 
 #test
 {
-    var span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 1, 31, 12, 0, 0, 0})
+    var span = Time.Timestamp.fromDateTime({2020, 1, 31, 12, 0, 0, 0})
     span.addMonths(1)
     var dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 2)
     expectDateTime(dateTime, 2020, 2, 29, 12, 0, 0, 0)
 
-    span = Time.Timestamp.fromDateTime(Time.DateTime{2019, 3, 31, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime({2019, 3, 31, 12, 0, 0, 0})
     span.addMonths(-1)
     dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 2)
     expectDateTime(dateTime, 2019, 2, 28, 12, 0, 0, 0)
 
-    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 1, 31, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime({2020, 1, 31, 12, 0, 0, 0})
     span.addMonths(-1)
     dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 12)
     expectDateTime(dateTime, 2019, 12, 31, 12, 0, 0, 0)
 
-    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 10, 31, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime({2020, 10, 31, 12, 0, 0, 0})
     span.addMonths(5)
     dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 3)
     expectDateTime(dateTime, 2021, 3, 31, 12, 0, 0, 0)
 
-    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 12, 31, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime({2020, 12, 31, 12, 0, 0, 0})
     span.addMonths(2)
     dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 2)
     expectDateTime(dateTime, 2021, 2, 28, 12, 0, 0, 0)
 
-    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime({2020, 2, 29, 12, 0, 0, 0})
     span.addYears(1)
     dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 2)
     expectDateTime(dateTime, 2021, 2, 28, 12, 0, 0, 0)
 
-    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime({2020, 2, 29, 12, 0, 0, 0})
     span.addYears(-1)
     dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 2)
     expectDateTime(dateTime, 2019, 2, 28, 12, 0, 0, 0)
 
-    span = Time.Timestamp.fromDateTime(Time.DateTime{2020, 2, 29, 12, 0, 0, 0})
+    span = Time.Timestamp.fromDateTime({2020, 2, 29, 12, 0, 0, 0})
     span.addYears(4)
     dateTime = span.toDateTime()
     Swag.assert(dateTime.month == 2)

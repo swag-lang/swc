@@ -10,11 +10,11 @@ using Swag, Core
 
     var src = makeImage(4, 2, .RGBA8, pixels)
 
-    var opts: Image.SmartCropSearchOpts = Image.SmartCropSearchOpts{}
+    var opts: Image.SmartCropSearchOpts = {}
     opts.minCoverage = 1.0
     opts.maxSize     = 2
 
-    var targetRect: Math.Rectangle = Math.Rectangle{}
+    var targetRect: Math.Rectangle = {}
     targetRect.width  = 4
     targetRect.height = 2
 

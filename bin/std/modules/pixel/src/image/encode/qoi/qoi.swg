@@ -82,7 +82,7 @@ func writePixelChunk(result: *ConcatBuffer, pixel, previous: Pixel, index: *[64]
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"QOI - Quite OK Image", ".qoi"}
+    mtd impl format()->ImageFormat => {"QOI - Quite OK Image", ".qoi"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {

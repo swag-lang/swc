@@ -289,7 +289,7 @@ impl Decoder
 
 impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"ICO - Windows Icon and Cursor", ".ico;.cur"}
+    mtd impl format()->ImageFormat => {"ICO - Windows Icon and Cursor", ".ico;.cur"}
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodeEntry(buffer, options)
 }
 

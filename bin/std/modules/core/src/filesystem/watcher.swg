@@ -86,7 +86,7 @@ struct Watcher
 }
 
 // Starts watching `root` with the default options.
-func watch(root: string)->Watcher fail => try watch(root, WatchOptions{})
+func watch(root: string)->Watcher fail => try watch(root, {})
 
 // Starts watching `root` with an explicit scope and notification policy.
 func watch(root: string, options: WatchOptions)->Watcher fail

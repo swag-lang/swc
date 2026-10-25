@@ -95,7 +95,7 @@ impl CurveWall
         painter.drawString(card.x + CardPadding, nameY, curveName(easing), nameFont, colors.label_Text)
 
         var plot = card
-        plot.applyPadding(Math.Vector4{CardPadding, CardPadding + NameHeight, CardPadding, CardPadding + RailHeight + RailGap})
+        plot.applyPadding({CardPadding, CardPadding + NameHeight, CardPadding, CardPadding + RailHeight + RailGap})
         if plot.width < 24 or plot.height < 24 do
             return
 

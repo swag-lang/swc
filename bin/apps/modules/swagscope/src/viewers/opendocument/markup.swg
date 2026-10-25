@@ -935,7 +935,7 @@ private impl Reader
             if .pendingEmptyCells > TableColumnLimit - .row.cells.count do
                 fail UnsupportedFormatError{Errors.mkString(texts().err_Columns)}
             for .pendingEmptyCells do
-                .row.cells.add(String{})
+                .row.cells.add({})
             .pendingEmptyCells = 0
 
             if .cellRepeat > TableColumnLimit - .row.cells.count do
@@ -970,7 +970,7 @@ private impl Reader
         if .pendingEmptyRows > TableRowLimit - .sheet.table.rows.count do
             fail UnsupportedFormatError{Errors.mkString(texts().err_Rows)}
         for .pendingEmptyRows do
-            .sheet.table.rows.add(Table.Row{})
+            .sheet.table.rows.add({})
         .pendingEmptyRows = 0
 
         if .rowRepeat > TableRowLimit - .sheet.table.rows.count do

@@ -537,15 +537,15 @@ private impl Panel
             }
         }
 
-        with .timeline = Slider.create(.actions, Math.Rectangle{0, 0, 128, 36})
+        with .timeline = Slider.create(.actions, {0, 0, 128, 36})
         {
             .dockStyle = .Left
-            .margin    = Math.Vector4{6, 1, 6, 1}
+            .margin    = {6, 1, 6, 1}
             .hide()
             .sigChanged += func|view = me|(slider) { view.imageView.setFrameIndex(cast(s32, Math.round(slider.value()))) }
         }
 
-        with .frameLabel = Label.create(.actions, "", Math.Rectangle{0, 0, 58, 36}, null, .SecondaryText)
+        with .frameLabel = Label.create(.actions, "", {0, 0, 58, 36}, null, .SecondaryText)
         {
             .dockStyle = .Left
             .setTextAlignment(.Center, .Center)

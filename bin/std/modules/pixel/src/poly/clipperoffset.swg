@@ -31,7 +31,7 @@ struct Offset
     cosVal:       f64                                // Cosine value for arc step calculations
     miterLim:     f64                                // Computed miter limit threshold for join type switching
     stepsPerRad:  f64                                // Number of steps per radian for arc approximation
-    lowest:       IntPoint = IntPoint{-1, 0}         // Index of polygon and vertex with lowest Y coordinate (leftmost if tied)
+    lowest:       IntPoint = {-1, 0}         // Index of polygon and vertex with lowest Y coordinate (leftmost if tied)
     polyNodes:    PolyNode                           // Tree structure holding all input polygons with their join types
 }
 

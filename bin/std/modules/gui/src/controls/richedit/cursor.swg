@@ -32,7 +32,7 @@ impl RichEditCtrl
         let fontR = .font().getFont(.styles[styleIdx].fontMode)
         if fontR do
             return Painter.computeTextDrawInfo(nnFont(fontR), 1.0, .deviceScale())
-        return TextDrawInfo{}
+        return {}
     }
 
     // Returns the height of one display line in logical pixels, line spacing included.
@@ -178,7 +178,7 @@ impl RichEditCtrl
     {
         let fontR = .font().getFont(.styles[0].fontMode)
         if not fontR do
-            return Math.Point{}
+            return {}
 
         let font   = nnFont(fontR)
         var result = Painter.measureRune('X', font)

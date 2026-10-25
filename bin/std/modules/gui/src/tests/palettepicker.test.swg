@@ -16,7 +16,7 @@ func palettePickerHeadlessChanged(_: *PalettePicker)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    let picker = PalettePicker.create(&host.root, Math.Rectangle{10, 10, 220, 100})
+    let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})
     Swag.assert(picker.colors.isEmpty())
     Swag.assert(picker.selectedIndex == Swag.S32.Max)
 
@@ -36,7 +36,7 @@ func palettePickerHeadlessChanged(_: *PalettePicker)
     host.setup(240, 120)
     PalettePickerHeadlessChangedCount = 0
 
-    let picker = PalettePicker.create(&host.root, Math.Rectangle{10, 10, 220, 100})
+    let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})
     picker.setItemMetrics(24, 3)
     picker.addColor(Argb.Red)
     picker.addColor(Argb.Green)
@@ -44,7 +44,7 @@ func palettePickerHeadlessChanged(_: *PalettePicker)
     picker.sigSelectionChanged += &palettePickerHeadlessChanged
 
     // Hit testing is valid before the first paint.
-    host.click(Math.Point{22, 22})
+    host.click({22, 22})
     Swag.assert(picker.selectedIndex == 0)
     Swag.assert(picker.selectedColor == Argb.Red)
     Swag.assert(PalettePickerHeadlessChangedCount == 1)

@@ -98,9 +98,9 @@ func visitStructStaticArrayReverse(values: *StaticArray'(StaticArrayVisitProbe, 
 #test
 {
     var values: StaticArray'(StaticArrayVisitProbe, 4'u64)
-    values.add(StaticArrayVisitProbe{value: 1})
-    values.add(StaticArrayVisitProbe{value: 2})
-    values.add(StaticArrayVisitProbe{value: 3})
+    values.add({value: 1})
+    values.add({value: 2})
+    values.add({value: 3})
 
     for &value in values do
         value.value += 10

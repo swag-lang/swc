@@ -143,7 +143,7 @@ func startGame()
     g_Snake.clear()
     g_Snake.add(initPos)
 
-    g_SnakeSpeed = Vector2{0, 1}
+    g_SnakeSpeed = {0, 1}
     generateApplePos()
 }
 

@@ -809,17 +809,17 @@ impl Painter
         // back.
         var ptr = .vertexBuffer.emplaceAddress(3)
         ptr.pos   = p1
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = p2
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = p3
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
 
@@ -841,32 +841,32 @@ impl Painter
 
         var ptr = .vertexBuffer.emplaceAddress(6)
         ptr.pos   = innerA
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = innerB
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = outerA
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = 0
         ptr       += 1
         ptr.pos   = innerB
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = outerB
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = 0
         ptr       += 1
         ptr.pos   = outerA
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = 0
     }
@@ -900,32 +900,32 @@ impl Painter
         let first = .vertexBuffer.count
         var ptr   = .vertexBuffer.emplaceAddress(6)
         ptr.pos   = w0
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = covNeg
         ptr       += 1
         ptr.pos   = w1
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = covNeg
         ptr       += 1
         ptr.pos   = w3
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = covPos
         ptr       += 1
         ptr.pos   = w1
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = covNeg
         ptr       += 1
         ptr.pos   = w3
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = covPos
         ptr       += 1
         ptr.pos   = w2
-        ptr.uv    = Vector2{0, 0}
+        ptr.uv    = {0, 0}
         ptr.color = color
         ptr.cov   = covPos
 
@@ -1416,7 +1416,7 @@ impl Painter
     {
         if .curState.clippingRectOn do
             return .curState.clippingRect
-        return Math.Rectangle{0, 0, Swag.F32.Max, Swag.F32.Max}
+        return {0, 0, Swag.F32.Max, Swag.F32.Max}
     }
 
     // Reports whether rectangular clipping is currently enabled.

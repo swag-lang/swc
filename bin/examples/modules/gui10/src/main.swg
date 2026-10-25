@@ -369,19 +369,19 @@ func createRootView()
     g_View = view
     view.backgroundStyle = .View
 
-    let title = Label.create(view, "", Math.Rectangle{})
+    let title = Label.create(view, "", {})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(26), .Regular)
 
-    let subTitle = Label.create(view, "", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
     for i in ThemeVariantCount
     {
         let variant = cast(ThemeVariant, cast(s32, i))
-        let btn     = PushButton.create(view, variantName(variant), Math.Rectangle{})
+        let btn     = PushButton.create(view, variantName(variant), {})
         btn.sigPressed += func|variant|(_) { setVariant(variant) }
         g_ThemeButtons.add(btn)
     }
@@ -389,12 +389,12 @@ func createRootView()
     for i in MaxPages
     {
         let page = cast(s32, i)
-        let btn  = PushButton.create(view, pageTitle(page), Math.Rectangle{})
+        let btn  = PushButton.create(view, pageTitle(page), {})
         btn.sigPressed += func|page|(_) { showPage(page) }
         g_PageButtons.add(btn)
     }
 
-    let filter = EditBox.create(view, "", Math.Rectangle{})
+    let filter = EditBox.create(view, "", {})
     g_Filter = filter
     filter.setPlaceholder("filter by name")
     filter.setIcon(app.theme.icon(.Search, 16))
@@ -403,7 +403,7 @@ func createRootView()
     // Only one control of a surface can hold the keyboard, so the focus mark is the one state
     // the wall cannot show by standing still. The diagnostic draws every ring at once, which is
     // how the mark is judged against every shape a palette answers for rather than one at a time.
-    let rings = CheckButton.create(view, "focus rings", Math.Rectangle{})
+    let rings = CheckButton.create(view, "focus rings", {})
     g_Rings = rings
     rings.sigChanged += func(box)
     {
@@ -414,7 +414,7 @@ func createRootView()
     g_Sheet   = SheetWnd.create(view)
     g_Widgets = WidgetWall.create(view)
 
-    let footer = Label.create(view, "", Math.Rectangle{}, null, .SecondaryText)
+    let footer = Label.create(view, "", {}, null, .SecondaryText)
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
 

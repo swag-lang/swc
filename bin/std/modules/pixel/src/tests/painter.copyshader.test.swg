@@ -11,9 +11,9 @@ using Swag, Core
     texture.attach(cast(TextureHandle, 7), .BGRA8, 64, 32)
     painter.begin()
     painter.setBlendingMode(.Copy)
-    painter.drawTexture(Math.Rectangle{0, 0, 64, 32}, texture)
+    painter.drawTexture({0, 0, 64, 32}, texture)
     painter.setBlendingMode(.Alpha)
-    painter.fillRoundRect(Math.Rectangle{0, 40, 64, 32}, 4, 4, Color.fromArgb(Argb.Red))
+    painter.fillRoundRect({0, 40, 64, 32}, 4, 4, Color.fromArgb(Argb.Red))
     painter.end()
 
     var program = DefaultShaderId.Default
@@ -53,7 +53,7 @@ using Swag, Core
         case 5: painter.setShader(&custom)
         }
 
-        painter.drawTexture(Math.Rectangle{0, 0, 64, 32}, texture)
+        painter.drawTexture({0, 0, 64, 32}, texture)
         painter.end()
         for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader do
             Swag.assert(cmd.defaultShader.id != .Simple)
@@ -69,7 +69,7 @@ using Swag, Core
     painter.begin()
     painter.setDefaultShader(.Simple)
     painter.setBlendingMode(.Copy)
-    painter.drawTexture(Math.Rectangle{0, 0, 64, 32}, texture)
+    painter.drawTexture({0, 0, 64, 32}, texture)
     painter.end()
     var programs = 0'u32
     for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader
@@ -81,7 +81,7 @@ using Swag, Core
     Swag.assert(programs == 1)
     painter.begin()
     painter.setBlendingMode(.Copy)
-    painter.drawTexture(Math.Rectangle{0, 0, 64, 32}, texture)
+    painter.drawTexture({0, 0, 64, 32}, texture)
     painter.end()
     programs = 0
     for cmd in painter.commandBuffer where cmd.op is .SetDefaultShader do
@@ -94,9 +94,9 @@ using Swag, Core
 {
     var painter: Painter
     painter.begin()
-    painter.fillRect(Math.Rectangle{0, 0, 8, 8}, Color.fromArgb(Argb.Red))
+    painter.fillRect({0, 0, 8, 8}, Color.fromArgb(Argb.Red))
     painter.setDefaultShader(.Simple)
-    painter.fillRect(Math.Rectangle{8, 0, 8, 8}, Color.fromArgb(Argb.Red))
+    painter.fillRect({8, 0, 8, 8}, Color.fromArgb(Argb.Red))
     painter.end()
     var changed, rebound: bool
     for cmd in painter.commandBuffer
@@ -128,7 +128,7 @@ using Swag, Core
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Blue))
     painter.setBlendingMode(.Copy)
-    painter.drawTexture(Math.Rectangle{2, 2, 4, 4}, texture)
+    painter.drawTexture({2, 2, 4, 4}, texture)
     painter.end()
     renderer.draw(&painter)
     let image = cpu.surfaceImage()

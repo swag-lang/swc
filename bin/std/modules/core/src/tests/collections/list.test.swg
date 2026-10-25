@@ -149,9 +149,9 @@ func visitStructListReverse(values: *List'ListStructProbe)->s32
 #test
 {
     var values: List'ListStructProbe
-    values.addBack(ListStructProbe{value: 1})
-    values.addBack(ListStructProbe{value: 2})
-    values.addBack(ListStructProbe{value: 3})
+    values.addBack({value: 1})
+    values.addBack({value: 2})
+    values.addBack({value: 3})
 
     for &value in values do
         value.value += 10

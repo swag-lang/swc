@@ -102,7 +102,7 @@ struct HtmlStyle
 impl HtmlStyle
 {
     // Returns the document defaults that follow the active GUI theme.
-    func theme()->HtmlStyle => HtmlStyle{}
+    func theme()->HtmlStyle => {}
 }
 
 // The surface an [[Gui.HtmlView]] draws its document on.
@@ -667,7 +667,7 @@ internal impl HtmlView
         if not .sourceDone
         {
             var readOutcome: Swag.Error
-            let chunk     = catch .stream.readTextChunk(HtmlStreamChunkSize, .encoding) as readOutcome orelse String{}
+            let chunk     = catch .stream.readTextChunk(HtmlStreamChunkSize, .encoding) as readOutcome orelse {}
             let readError = readOutcome.value()
             if readError != null
             {
@@ -1514,7 +1514,7 @@ internal impl HtmlView
     }
 
     // Creates a view and renders the complete in-memory HTML source.
-    public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = HtmlStyle{})->*HtmlView
+    public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.setInitialFocus(result)
@@ -1530,7 +1530,7 @@ internal impl HtmlView
     // Creates a complete HTML fragment that contributes its natural height to a parent document.
     // Embedded fragments leave keyboard focus with their host during progressive loading.
     // A supplied image cache is consumed before layout; it must not own uploaded textures.
-    func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = HtmlStyle{}, preparedImages: *HtmlImageCache? = null)->*HtmlView
+    func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = {}, preparedImages: *HtmlImageCache? = null)->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.embedded = true
@@ -1557,7 +1557,7 @@ internal impl HtmlView
     // or its bytes — so a legacy code page 1252 page reads as the accented text it means.
     // File-open and decoding failures remain visible in the document and are also exposed through
     // [[Gui.HtmlView.failureReason]] and [[Gui.HtmlView.sigLoadFailed]].
-    public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = HtmlStyle{})->*HtmlView
+    public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.setInitialFocus(result)

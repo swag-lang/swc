@@ -594,7 +594,7 @@ impl Panel
     {
         .commands = host.createCommandGroup(CommandWidth)
 
-        with .rowWidthCombo = ComboBox.create(.commands, Math.Rectangle{0, 0, ComboWidth, 36})
+        with .rowWidthCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -608,7 +608,7 @@ impl Panel
             .sigChanged += func|view = me|(_, _) { view.applyRowWidth() }
         }
 
-        with .widthCombo = ComboBox.create(.commands, Math.Rectangle{0, 0, ComboWidth, 36})
+        with .widthCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -621,7 +621,7 @@ impl Panel
             .sigChanged += func|view = me|(_, _) { view.rebuildFormats() }
         }
 
-        with .formatCombo = ComboBox.create(.commands, Math.Rectangle{0, 0, ComboWidth, 36})
+        with .formatCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -633,7 +633,7 @@ impl Panel
             .sigChanged += func|view = me|(_, _) { view.applyValueMode() }
         }
 
-        with .byteOrderCombo = ComboBox.create(.commands, Math.Rectangle{0, 0, ComboWidth, 36})
+        with .byteOrderCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -697,7 +697,7 @@ impl Panel
             .sigPressed += func|view = me|(_) { view.showZoomMenu() }
         }
 
-        with .inspectorLabel = Label.create(info, "", Math.Rectangle{0, 0, InspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
+        with .inspectorLabel = Label.create(info, "", {0, 0, InspectorWidth, 32}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)

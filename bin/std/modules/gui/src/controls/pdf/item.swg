@@ -139,7 +139,7 @@ internal impl Item
     mtd const paintBounds()->Math.Rectangle
     {
         if not .paintBoxKnown do
-            return Math.Rectangle{-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
+            return {-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
         return .paintBox
     }
 
@@ -226,7 +226,7 @@ internal impl Item
         switch .kind
         {
         case .Path:  local = .path.controlBounds()
-        case .Image: local = Math.Rectangle{0, 0, 1, 1}
+        case .Image: local = {0, 0, 1, 1}
 
         case .Text: .paintBox = {}
             .paintBoxKnown = false
@@ -295,7 +295,7 @@ impl Item
     mtd const pathUsesEvenOddFill()->bool => .kind == .Path and .evenOddFill
 
     // Returns the stroke geometry of a path item, or the default solid style for another kind.
-    mtd const pathStrokeStyle()->PathStrokeStyle => .kind == .Path ? .strokeStyle : PathStrokeStyle{}
+    mtd const pathStrokeStyle()->PathStrokeStyle => .kind == .Path ? .strokeStyle : {}
 
     // Returns a borrowed path list for a path item, or null for another kind.
     //

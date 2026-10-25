@@ -248,7 +248,7 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
         var options: MessageDlgOptions
         options.onCreated = func|main|(dialog)
         {
-            let askAgain = CheckButton.create(dialog.surface!.view(), appStrings().ui_DoNotAskAgain, Math.Rectangle{0, 0, 100, 40})
+            let askAgain = CheckButton.create(dialog.surface!.view(), appStrings().ui_DoNotAskAgain, {0, 0, 100, 40})
             askAgain.sigChanged += func|main|(button)
             {
                 main.editorOptions.confirmLinkedOverwrite = not button.isChecked()
@@ -325,8 +325,8 @@ private func addDetail(rows: *Wnd, title, value: string)
         .position.height = 20
     }
 
-    Label.create(row, title, Math.Rectangle{0, 0, 100, 0}).setTextHorizontalAlignment(.Left)
-    Label.create(row, value, Math.Rectangle{0, 0, 1000, 0}).setTextHorizontalAlignment(.Left)
+    Label.create(row, title, {0, 0, 100, 0}).setTextHorizontalAlignment(.Left)
+    Label.create(row, value, {0, 0, 1000, 0}).setTextHorizontalAlignment(.Left)
 }
 
 // Offers exactly the image formats the pixel codec registry supports, so a codec added
@@ -576,8 +576,8 @@ impl MainWnd
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         }
 
-        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, "512", Math.Rectangle{90, 12}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, "512", Math.Rectangle{90, 47}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, "512", {90, 12}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, "512", {90, 47}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(16, 4096)
         edit1.edit.setUnsignedIntegerRange(16, 4096)
         if dialog.doModal() != Dialog.BtnOk do

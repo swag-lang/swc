@@ -1019,7 +1019,7 @@ impl MenuCtrl
                 it.name.set(it.nameResolver())
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
             it.name.compute()
-            Pixel.Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
+            Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
             it.size = it.name.boundRect.width
             x       = it.pos + it.size + metrics.menuBar_SpaceBetween * 0.5
         }
@@ -1079,13 +1079,13 @@ impl MenuCtrl
             it.size = Math.max(rsf.font.regular!.height, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines)
 
             it.name.compute()
-            Pixel.Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
+            Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
             var w = it.name.boundRect.width
 
             if not .flags.has(.HideShortcuts) and not it.rightName.isEmpty()
             {
                 it.rightName.compute()
-                Pixel.Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.rightName, rsf, deviceScale)
+                Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.rightName, rsf, deviceScale)
                 w += it.rightName.boundRect.width + rsf.font.regular.height * 3
             }
 
@@ -1205,7 +1205,7 @@ public impl MenuCtrl
 
     // Creates a persistent horizontal menu bar.
     #[Swag.Discardable]
-    func createBar(parent: *Wnd, pos: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
+    func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
         Swag.assert(parent != null)
         with let res = Wnd.create'MenuCtrl(parent, null, pos, id)
@@ -1276,7 +1276,7 @@ public impl MenuCtrl
 
     // Adds a command with explicit presentation and returns its mutable item descriptor.
     #[Swag.Discardable]
-    mtd addItem(name: string?, id: WndId, icon: Icon = Icon{}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
+    mtd addItem(name: string?, id: WndId, icon: Icon = {}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
     {
         with let mitem = me.items.allocate()
         {
@@ -1316,7 +1316,7 @@ public impl MenuCtrl
     // Use this rather than a literal for a label that has to follow a language switch; see
     // [[Gui.MenuLabelResolver]].
     #[Swag.Discardable]
-    mtd addItem(name: MenuLabelResolver, id: WndId, icon: Icon = Icon{}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
+    mtd addItem(name: MenuLabelResolver, id: WndId, icon: Icon = {}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
     {
         with let mitem = .addItem(name(), id, icon, rightName, disabled, checked)
         {
@@ -1328,7 +1328,7 @@ public impl MenuCtrl
 
     // Adds a submenu with explicit presentation and returns its mutable item descriptor.
     #[Swag.Discardable]
-    mtd addPopup(name: string?, popup: *MenuCtrl, icon: Icon = Icon{}, id: WndId? = null)->*PopupMenuItem
+    mtd addPopup(name: string?, popup: *MenuCtrl, icon: Icon = {}, id: WndId? = null)->*PopupMenuItem
     {
         with let mitem = me.items.allocate()
         {
@@ -1350,7 +1350,7 @@ public impl MenuCtrl
     // once, so the six entries of an application bar would otherwise keep the language they
     // were built in while everything below them refreshes through the command state.
     #[Swag.Discardable]
-    mtd addPopup(name: MenuLabelResolver, popup: *MenuCtrl, icon: Icon = Icon{}, id: WndId? = null)->*PopupMenuItem
+    mtd addPopup(name: MenuLabelResolver, popup: *MenuCtrl, icon: Icon = {}, id: WndId? = null)->*PopupMenuItem
     {
         with let mitem = .addPopup(name(), popup, icon, id)
         {

@@ -120,7 +120,7 @@ using Swag, Core
     let lib = f.setupLibraryWnd()
 
     // The headless fixture does not build the real toolbar, so attach a breadcrumb here.
-    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd, lib), Math.Rectangle{0, 0, 600, 32})
+    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd, lib), {0, 0, 600, 32})
 
     // Default (empty) current folder falls back to the library folder.
     Swag.assert(lib.currentFolder() == Library.getFolder())
@@ -152,7 +152,7 @@ using Swag, Core
     f.setup()
     defer f.shutdown()
     let lib = f.setupLibraryWnd()
-    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd, lib), Math.Rectangle{0, 0, 600, 32})
+    lib.breadcrumb = BreadcrumbCtrl.create(cast(*Wnd, lib), {0, 0, 600, 32})
 
     expect Library.init()
     lib.curFolder = Library.getFolder()

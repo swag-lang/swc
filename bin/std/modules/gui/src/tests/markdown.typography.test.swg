@@ -15,7 +15,7 @@ using Core
     var host: Testing.HeadlessHost
     host.setup(640, 480)
     var style = Markdown.Style.theme()
-    style.blockMargins      = Math.Vector2{12, 18}
+    style.blockMargins      = {12, 18}
     style.headingTopSpacing = [40, 40, 40, 40, 40, 40]
     let view = Markdown.View.createFile(&host.root, fileName, style)
     view.resize(640, 480)
@@ -41,7 +41,7 @@ using Core
     var host: Testing.HeadlessHost
     host.setup(640, 480)
     var style = Markdown.Style.theme()
-    style.blockMargins         = Math.Vector2{12, 18}
+    style.blockMargins         = {12, 18}
     style.bodyLineHeight       = 28
     style.headingLineHeights   = [48, 36, 30, 26, 24, 24]
     style.headingTopSpacing    = [40, 40, 40, 40, 40, 40]

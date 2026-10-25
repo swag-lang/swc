@@ -78,7 +78,7 @@ impl Image
     }
 
     // Decodes a buffer with one registered decoder type, enforcing the limits of `options`.
-    func decode(decoderType: const *TypeInfoStruct, bytes: const [..] u8, options: DecodeOptions = DecodeOptions{})->Image fail
+    func decode(decoderType: const *TypeInfoStruct, bytes: const [..] u8, options: DecodeOptions = {})->Image fail
     {
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
@@ -154,7 +154,7 @@ public impl Image
     // No file is opened; `fileName` only selects the decoder. `options` bounds the input and the
     // decoded image. Fails when `bytes` is null, no decoder claims the extension, a limit is
     // exceeded, or the data is malformed or unsupported.
-    func decode(fileName: string, bytes: const [..] u8?, options: DecodeOptions = DecodeOptions{})->Image fail
+    func decode(fileName: string, bytes: const [..] u8?, options: DecodeOptions = {})->Image fail
     {
         if not bytes do
             fail InvalidFormatError{"invalid image buffer"}
@@ -171,7 +171,7 @@ public impl Image
     // `options` bounds the file size and the decoded image. File access errors and decoding
     // failures are reported through `fail`.
     #[Swag.Propagate]
-    func load(fileName: string, options: DecodeOptions = DecodeOptions{})->Image fail
+    func load(fileName: string, options: DecodeOptions = {})->Image fail
     {
         let found = getDecoder(fileName)
         if not found do
@@ -191,7 +191,7 @@ public impl Image
     // a file extension does, and the payload is decoded with [[Core.Base64.decode]]. A reference
     // that is not an image data URI or names a media type with no decoder reports
     // `UnsupportedFormatError`; a malformed payload reports the codec's own failure.
-    func fromDataUri(uri: string, options: DecodeOptions = DecodeOptions{})->Image fail
+    func fromDataUri(uri: string, options: DecodeOptions = {})->Image fail
     {
         if not Utf8.startsWith(uri, "data:image/") do
             fail UnsupportedFormatError{"not an image data URI"}

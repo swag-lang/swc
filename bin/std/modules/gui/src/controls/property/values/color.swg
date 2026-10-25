@@ -85,7 +85,7 @@ internal impl Properties
             if opaque or keepAlpha do
                 flags.remove(ColorPickerFlags.AllowAlpha)
 
-            let picker = ColorPickerCtrl.createWithPalette(frame, Math.Rectangle{8, 54}, pal, flags)
+            let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal, flags)
             picker.setColor(color[])
             picker.sigColorChanged += func|prop, color, item, opaque, keepAlpha|(pk)
             {

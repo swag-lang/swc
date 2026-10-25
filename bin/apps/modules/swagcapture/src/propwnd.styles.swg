@@ -310,7 +310,7 @@ impl PropWnd
 
         let stack = Wnd.create'Wnd(.topLayout, Math.Rectangle{0, 0, 0, .themeMetrics().comboBox_Height})
 
-        with let btn = PushButton.create(stack, appStrings().ui_ResetSteps, Math.Rectangle{0, 0, 60})
+        with let btn = PushButton.create(stack, appStrings().ui_ResetSteps, {0, 0, 60})
         {
             .margin.x      = 5
             .dockStyle     = .Right
@@ -441,7 +441,7 @@ impl PropWnd
 
             // No NoFocus: the rows embed edit boxes, so they stay keyboard-navigable
             item.flags.add(.NoSeparator)
-            return StackLayoutCtrl.create(item.line, .HorizontalFit, Math.Rectangle{0, 0, 0, 40})
+            return StackLayoutCtrl.create(item.line, .HorizontalFit, {0, 0, 0, 40})
         }
 
         // Each row names itself, so no category separator sits above them: a heading

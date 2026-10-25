@@ -85,7 +85,7 @@ struct SizeHint
     {
         min:       Math.Point     // Smallest valid width and height.
         preferred: Math.Point     // Natural width and height before surplus distribution.
-        max:       Math.Point = Math.Point{Swag.F32.Max, Swag.F32.Max}     // Largest valid width and height.
+        max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}     // Largest valid width and height.
     }
 }
 
@@ -278,8 +278,8 @@ struct Wnd
         {
             presentationOpacity: f32        = 1                        // Opacity of this window and its descendants, from zero through one.
             presentationOffset:  Math.Point                            // Paint-only displacement in logical pixels.
-            presentationScale:   Math.Point = Math.Point{1, 1}         // Paint-only horizontal and vertical scale factors, both positive.
-            presentationPivot:   Math.Point = Math.Point{0.5, 0.5}     // Fixed point of the scale, normalized inside the logical rectangle.
+            presentationScale:   Math.Point = {1, 1}         // Paint-only horizontal and vertical scale factors, both positive.
+            presentationPivot:   Math.Point = {0.5, 0.5}     // Fixed point of the scale, normalized inside the logical rectangle.
             presentationClip:    Math.Rectangle                        // Local reveal rectangle when presentation clipping is enabled.
             hasPresentationClip: bool                                  // Whether `presentationClip` limits painting.
         }
@@ -449,7 +449,7 @@ impl IWnd for Wnd
     // Reports no content size by default, which keeps the authored size on both axes.
     mtd impl measureContent(_: Math.Point)->Math.Point
     {
-        return Math.Point{}
+        return {}
     }
 
     // Performs no additional creation work by default.
@@ -1093,7 +1093,7 @@ impl Wnd
     {
         var result: retval = rect
         result.applyPadding(.invalidatePadding)
-        result.applyPadding(Math.Vector4{-PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin})
+        result.applyPadding({-PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin})
         return result
     }
 
@@ -1226,8 +1226,8 @@ impl Wnd
         .invalidatePresentation()
         .presentationOpacity = 1
         .presentationOffset  = {}
-        .presentationScale   = Math.Point{1, 1}
-        .presentationPivot   = Math.Point{0.5, 0.5}
+        .presentationScale   = {1, 1}
+        .presentationPivot   = {0.5, 0.5}
         .hasPresentationClip = false
         .invalidatePresentation()
     }
@@ -2563,7 +2563,7 @@ impl Wnd
     mtd sendComputeCommandStateEvent(cmdId: WndId?)->CommandStateEvent
     {
         if cmdId == null do
-            return CommandStateEvent{}
+            return {}
         let safeCmdId = cmdId orelse ""
 
         var evtState: retval

@@ -323,7 +323,7 @@ impl Decoder
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg"}
+    mtd impl format()->ImageFormat => {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

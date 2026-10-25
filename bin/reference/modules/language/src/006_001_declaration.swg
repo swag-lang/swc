@@ -114,7 +114,12 @@ providing a convenient way to ensure fields are set to a known state.
 Struct variables can be initialized in multiple ways, providing flexibility
 in how you set up your structs. Every form initializes with '=': naming the type
 in the initializer ('MyStruct{...}') or in the annotation ('let v: MyStruct = {...}')
-is a matter of where the type reads best, never of syntax.
+is a matter of where the type reads best, never of syntax. Braces without a type take
+it from their destination: a declared type, an assignment, a parameter or a return.
+
+Values fill the fields in order, and 'field: value' names one. A bare identifier that
+names a field initializes that field wherever it appears, so '{y, x}' cannot swap them;
+any other bare identifier is an ordinary positional value.
 */
 #test
 {
@@ -138,10 +143,24 @@ is a matter of where the type reads best, never of syntax.
     Swag.assert(v2.x == 1)
     Swag.assert(v2.y == 20)
 
-    // Explicit construction with a declared type
-    let v3: MyStruct = MyStruct{10, 20}
+    // The declared type supplies the fields
+    let v3: MyStruct = {10, 20}
     Swag.assert(v3.x == 10)
     Swag.assert(v3.y == 20)
+
+    // Identifiers named like fields initialize those fields
+    let y = 30
+    let x = 40
+    let v4: MyStruct = {y, x}
+    Swag.assert(v4.x == 40)
+    Swag.assert(v4.y == 30)
+
+    // Other identifiers are positional values
+    let width  = 50
+    let height = 60
+    let v5: MyStruct = {width, height}
+    Swag.assert(v5.x == 50)
+    Swag.assert(v5.y == 60)
 }
 
 /**
@@ -205,13 +224,14 @@ func titi(v: Struct3)
     // Calling with explicit values
     toto(Struct3{5, 5, 666})
 
-    // Named record fields match the parameter fields
+    // The parameter type supplies the fields
+    toto({5, 5, 666})
     toto({z: 666, y: 5, x: 5})
 
     // Partial initialization
-    titi(Struct3{5})
-    titi(Struct3{5, 666})
+    titi({5})
+    titi({5, 666})
 
     // Named field initialization
-    titi(Struct3{x: 5, z: 5})
+    titi({x: 5, z: 5})
 }

@@ -60,7 +60,7 @@ struct SceneCard
 
     // Transform group, with a nested "Advanced" subgroup ("Transform/Advanced").
     #[Category("Transform"), Description("Offset from the slot center.")]
-    offset: Math.Point = Math.Point{0, 0}
+    offset: Math.Point = {0, 0}
 
     #[SliderMinMax(0.5, 1.8), Description("Uniform scale factor.")]
     scale: f32 = 1.0
@@ -92,7 +92,7 @@ struct SceneCard
     badges: CardBadge = CardBadge.Accent | CardBadge.Tag
 
     #[Name("Rating"), Description("Custom editor registered for the Rating type (click a pip).")]
-    quality: Rating = Rating{4}
+    quality: Rating = {4}
 }
 
 impl IPropertyNotify for SceneCard
@@ -116,11 +116,11 @@ impl IPropertyNotify for SceneCard
         {
         case #nameof(SceneCard.label):
             if .label.isEmpty() do
-                return PropValidationResult{.Error, "A label is required."}
+                return {.Error, "A label is required."}
 
         case #nameof(SceneCard.scale):
             if .scale >= 1.6 do
-                return PropValidationResult{.Warning, "Large cards may overflow their slot."}
+                return {.Warning, "Large cards may overflow their slot."}
         }
 
         return {}
@@ -378,8 +378,8 @@ func createInspectorPage(parent: *Wnd)
     controls.dockStyle = .Top
     controls.margin.w  = 8
 
-    discard createText(controls, "Display:", Math.Rectangle{0, 0, 60, 44})
-    with g_DisplayCombo = ComboBox.create(controls, Math.Rectangle{62, 8, 170, 28})
+    discard createText(controls, "Display:", {0, 0, 60, 44})
+    with g_DisplayCombo = ComboBox.create(controls, {62, 8, 170, 28})
     {
         .addItem("Normal")
         .addItem("Condensed")
@@ -389,8 +389,8 @@ func createInspectorPage(parent: *Wnd)
         .sigChanged += func(_, idx) { setDisplayMode(displayModeFromIndex(idx)); }
     }
 
-    discard createText(controls, "Edit:", Math.Rectangle{252, 0, 40, 44})
-    with g_CountCombo = ComboBox.create(controls, Math.Rectangle{294, 8, 150, 28})
+    discard createText(controls, "Edit:", {252, 0, 40, 44})
+    with g_CountCombo = ComboBox.create(controls, {294, 8, 150, 28})
     {
         .addItem("1 card")
         .addItem("2 cards")
@@ -660,16 +660,16 @@ func createRootView()
     g_View = view
     view.backgroundStyle = .View
 
-    let title = Label.create(view, "", Math.Rectangle{})
+    let title = Label.create(view, "", {})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
-    let themeButton = PushButton.create(view, "", Math.Rectangle{})
+    let themeButton = PushButton.create(view, "", {})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
@@ -679,7 +679,7 @@ func createRootView()
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
-    let footer = Label.create(view, "", Math.Rectangle{})
+    let footer = Label.create(view, "", {})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
     footer.updateFlags(.SecondaryText)

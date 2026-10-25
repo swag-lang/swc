@@ -180,7 +180,7 @@ These can be accessed directly or destructured.
 {
     func myFunction()->{ x, y: f32 }
     {
-        return {x: 1.0, y: 2.0}
+        return {1.0, 2.0}
     }
 
     let result = myFunction()

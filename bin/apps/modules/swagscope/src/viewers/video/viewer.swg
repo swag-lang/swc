@@ -864,10 +864,10 @@ private impl Panel
             .sigPressed += func|view = me|(_) { view.seekRelative(SeekSeconds) }
         }
 
-        with .timeLabel = Label.create(.commands, "", Math.Rectangle{0, 0, 112, 36}, null, .SecondaryText)
+        with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
         {
             .dockStyle = .Left
-            .margin    = Math.Vector4{8, 0, 8, 0}
+            .margin    = {8, 0, 8, 0}
             .setTextAlignment(.Right, .Center)
         }
 
@@ -908,10 +908,10 @@ private impl Panel
             .sigPressed += func|view = me|(_) { view.showSubtitleMenu() }
         }
 
-        with .volumeSlider = Slider.create(.commands, Math.Rectangle{0, 0, 96, 36})
+        with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
         {
             .dockStyle = .Right
-            .margin    = Math.Vector4{0, 1, 4, 1}
+            .margin    = {0, 1, 4, 1}
             .toolTip   = texts().ui_TipVolume
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
@@ -929,10 +929,10 @@ private impl Panel
             .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
         }
 
-        with .timeline = Slider.create(.commands, Math.Rectangle{0, 0, 0, 36})
+        with .timeline = Slider.create(.commands, {0, 0, 0, 36})
         {
             .dockStyle = .Center
-            .margin    = Math.Vector4{8, 1, 8, 1}
+            .margin    = {8, 1, 8, 1}
             .toolTip   = texts().ui_TipSeek
             .enable(false)
 

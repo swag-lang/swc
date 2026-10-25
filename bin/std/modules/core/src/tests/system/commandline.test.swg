@@ -82,7 +82,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 #test
 {
     let args: [4] string = ["  -name:Bob  ", " -count = 42 ", "", "payload"]
-    let split = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
+    let split = CommandLine.splitArguments(args, {})
 
     Swag.assert(split.count == 5)
     Swag.assert(split[0] == "-name")
@@ -95,7 +95,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 #test
 {
     let args: [4] string = [" -threshold = -.5 ", "-values:-1", " 2 ", " 3 "]
-    let split = CommandLine.splitArguments(args, CommandLine.ParseOptions{})
+    let split = CommandLine.splitArguments(args, {})
 
     Swag.assert(split.count == 6)
     Swag.assert(split[0] == "-threshold")

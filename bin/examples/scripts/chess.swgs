@@ -410,10 +410,10 @@ func paintBoard(paintEvt: *PaintEvent)
     let s = BoardSize
     let b = BorderSize
 
-    painter.fillRect(Math.Rectangle{0, 0, b + s + b, b}, ColorBorder)
-    painter.fillRect(Math.Rectangle{0, b + s, b + s + b, b}, ColorBorder)
-    painter.fillRect(Math.Rectangle{0, b, b, s}, ColorBorder)
-    painter.fillRect(Math.Rectangle{b + s, b, b, s}, ColorBorder)
+    painter.fillRect({0, 0, b + s + b, b}, ColorBorder)
+    painter.fillRect({0, b + s, b + s + b, b}, ColorBorder)
+    painter.fillRect({0, b, b, s}, ColorBorder)
+    painter.fillRect({b + s, b, b, s}, ColorBorder)
 
     var rs:  RichString
     var rsf: RichStringFormat
@@ -434,7 +434,7 @@ func paintBoard(paintEvt: *PaintEvent)
         rect.x += CellSize
     }
 
-    rect = Math.Rectangle{0, b, b, CellSize}
+    rect = {0, b, b, CellSize}
     for row in 8
     {
         buf[0] = cast(u8, (56 - row))
@@ -524,7 +524,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         initGame()
         initCells()
 
-        let btn = PushButton.create(wnd, "Restart !", Math.Rectangle{BoardWithBorderSize + 12, 12})
+        let btn = PushButton.create(wnd, "Restart !", {BoardWithBorderSize + 12, 12})
         btn.sigPressed += func|wnd|(_)
         {
             initGame()

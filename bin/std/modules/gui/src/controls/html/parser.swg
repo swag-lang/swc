@@ -95,7 +95,7 @@ impl HtmlParser
     {
         .document = document
         .stack.clear()
-        .stack.add(HtmlOpenElement{0, HtmlTag.Unknown})
+        .stack.add({0, HtmlTag.Unknown})
         .parseIndex  = 0
         .mode        = mode
         .baseOffset  = 0

@@ -139,6 +139,6 @@ func drawRenderTargetPage(painter: *Pixel.Painter)
                             cast(s32, Math.ceil(tgt.colorBuffer.height / scale)))
     painter.unbindRenderTarget()
 
-    drawRenderTargetPreviewCard(painter, Math.Rectangle{28, 104, 924, 304}, tgt.colorBuffer)
-    drawRenderTargetBrushCard(painter, Math.Rectangle{28, 432, 924, 232}, tgt.colorBuffer)
+    drawRenderTargetPreviewCard(painter, {28, 104, 924, 304}, tgt.colorBuffer)
+    drawRenderTargetBrushCard(painter, {28, 432, 924, 232}, tgt.colorBuffer)
 }

@@ -66,7 +66,7 @@ func compute()
 
 func createUI(wnd: *Wnd)
 {
-    with let prop = PropertiesCtrl.create(wnd, Math.Rectangle{0, 0, UX, H - 70}, .Grid)
+    with let prop = PropertiesCtrl.create(wnd, {0, 0, UX, H - 70}, .Grid)
     {
         .padding         = 10
         .backgroundStyle = .Window

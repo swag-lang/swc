@@ -154,7 +154,7 @@ impl FileDlg
     // first. Run it with [[Gui.Dialog.doModal]]; when the result is `Dialog.BtnOk`, read
     // [[Gui.FileDlg.selectedPath]] or [[Gui.FileDlg.selectedPaths]].
     #[Swag.Discardable]
-    func create(from: *Surface, opt: FileDlgOptions = FileDlgOptions{})->*FileDlg
+    func create(from: *Surface, opt: FileDlgOptions = {})->*FileDlg
     {
         Swag.assert(from != null)
         let dlg = Wnd.create'FileDlg()
@@ -163,7 +163,7 @@ impl FileDlg
         with let srf = dlg.createSurface(from, 100, 100, 720, 520)
         {
             .updateFlags(add: .Resizable)
-            .minSize = Math.Point{540, 420}
+            .minSize = {540, 420}
 
             if opt.title.count
             {

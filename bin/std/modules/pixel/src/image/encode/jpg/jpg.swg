@@ -306,7 +306,7 @@ impl Encoder
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg"}
+    mtd impl format()->ImageFormat => {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {

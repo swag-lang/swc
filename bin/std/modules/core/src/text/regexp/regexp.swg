@@ -125,8 +125,8 @@ public impl RegExp
     // Releases everything the expression holds and leaves it uncompiled.
     mtd clear()
     {
-        .program = Regex.Program{}
-        .reverse = Regex.Program{}
+        .program = {}
+        .reverse = {}
         .captureNames.clear()
         .slots.clear()
         .subject  = ""

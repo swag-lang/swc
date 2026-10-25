@@ -844,7 +844,7 @@ impl ViewerWindow
     {
         let result = Wnd.create'ViewerWindow(parent, "scope.main")
         result.surface!.setView(result)
-        result.surface.minSize = Math.Point{MinWidth, 420}
+        result.surface.minSize = {MinWidth, 420}
         result.backgroundStyle = .Application
         result.index           = #move index
         result.language        = Gui.ReferenceLanguage

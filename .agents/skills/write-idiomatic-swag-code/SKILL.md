@@ -357,6 +357,11 @@ let renderer: IRenderer = &cpu
   native ABI boundaries, or bit reinterpretation.
 - Prefer enum shorthand such as `.Linear`, inferred aggregate literals, and inferred local types
   when their context is unambiguous.
+- Let the destination name the struct a brace literal builds: `var p: Point = {1, 2}`,
+  `p = {4, 8}`, `drawLine({x0, y0}, {x1, y1})`, `return {x, y}`, `[2] Point = [{1, 2}, {3, 4}]`.
+  Keep `Type{...}` where nothing names the type (an inferred `let`, a generic or `any` parameter)
+  and where braces would make an overloaded call ambiguous. A bare identifier that names a field
+  initializes that field, so write an intended swap explicitly: `{x: y, y: x}`.
 - Let `String` and `string` convert where the context names the target. Pass a `String` to a
   `string` parameter without `.toString()`. Pass, assign, `add`, `insertAt`, return, or place a
   string value in a `String` parameter, element, or field without `String.from`, nested aggregate
@@ -618,7 +623,7 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
 - Every local, parameter, and capture is used, or the compiler rejects it. A parameter the body
   ignores is spelled `_` (`func(_, index)`, `mtd impl onPaint(_: *PaintEvent) {}`); a loop that
   does not read its index has no name (`for 3`, `parallel for |c| 8`), and an unread position is
-  `_` (`for _, v in`, `#code(_, b)`, `let {_, b} =`). `_` is not a name: it can repeat in one
+  `_` (`for _, v in`, `#code(_, b)`, `let (_, b) =`). `_` is not a name: it can repeat in one
   declaration and cannot be read. `?` only ever marks a nullable type. Remove an unused local;
   keep a needed initializer as `discard init`. There is no `_name` convention: `_x` is an
   ordinary name that must be used.

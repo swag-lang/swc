@@ -500,7 +500,7 @@ impl Writer
 impl Reader
 {
     // Initializes this reader and reads only the SCC prefix and header.
-    mtd initialize(fileName: string, limits: ReadLimits = ReadLimits{}) fail
+    mtd initialize(fileName: string, limits: ReadLimits = {}) fail
     {
         func readU16(buffer: const [..] u8, offset: u64)->u16 => Math.make16(buffer[offset + 1], buffer[offset])
 

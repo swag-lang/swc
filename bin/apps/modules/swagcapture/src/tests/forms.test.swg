@@ -94,20 +94,20 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     line.xb         = 100
     line.yb         = 10
     line.borderSize = 4
-    let lineCore = line.IForm.hitTest(Math.Point{50, 14}, 1)
+    let lineCore = line.IForm.hitTest({50, 14}, 1)
     Swag.assert(not lineCore)
     line.outlineSize = 4
-    let lineOutline = line.IForm.hitTest(Math.Point{50, 14}, 1)
+    let lineOutline = line.IForm.hitTest({50, 14}, 1)
     Swag.assert(lineOutline)
 
     var draw: FormDraw
-    draw.points.add(Math.Vector2{10, 10})
-    draw.points.add(Math.Vector2{100, 10})
+    draw.points.add({10, 10})
+    draw.points.add({100, 10})
     draw.borderSize = 4
-    let drawCore = draw.IForm.hitTest(Math.Point{50, 14}, 1)
+    let drawCore = draw.IForm.hitTest({50, 14}, 1)
     Swag.assert(not drawCore)
     draw.outlineSize = 4
-    let drawOutline = draw.IForm.hitTest(Math.Point{50, 14}, 1)
+    let drawOutline = draw.IForm.hitTest({50, 14}, 1)
     Swag.assert(drawOutline)
     Gui.Testing.assertRect(draw.IForm.boundRect(), 4, 4, 102, 12)
 }
@@ -132,11 +132,11 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     Gui.Testing.assertRect(shape.IForm.boundRect(), 126, 112, 46, 68)
 
     shape.kind = .Ellipse
-    Swag.assert(shape.IForm.isInside(Math.Point{149, 146}))
-    Swag.assert(not shape.IForm.isInside(Math.Point{126, 112}))
+    Swag.assert(shape.IForm.isInside({149, 146}))
+    Swag.assert(not shape.IForm.isInside({126, 112}))
 
     shape.kind = .Rectangle
-    Swag.assert(shape.IForm.isInside(Math.Point{-1000, -1000}))
+    Swag.assert(shape.IForm.isInside({-1000, -1000}))
 }
 
 // Text supersampling must only increase raster resolution, never logical layout.
@@ -167,19 +167,19 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
     let text = testAddText(f.capture, 20, 30, 120, 50)
     Swag.assert(text.IForm.mustClipToBound())
     Swag.assert(text.IForm.canRotate())
-    Swag.assert(text.IForm.hitTest(Math.Point{30, 40}, 1))
-    Swag.assert(not text.IForm.hitTest(Math.Point{10, 10}, 1))
+    Swag.assert(text.IForm.hitTest({30, 40}, 1))
+    Swag.assert(not text.IForm.hitTest({10, 10}, 1))
     text.subKind = .Highlight
     Swag.assert(not text.IForm.canRotate())
 
     let image = testAddImage(f.capture, 40, 50, 80, 90)
     Swag.assert(image.IForm.canRotate())
-    Swag.assert(image.IForm.hitTest(Math.Point{50, 60}, 1))
-    Swag.assert(not image.IForm.hitTest(Math.Point{5, 5}, 1))
+    Swag.assert(image.IForm.hitTest({50, 60}, 1))
+    Swag.assert(not image.IForm.hitTest({5, 5}, 1))
     image.kind       = .Image
     image.place      = .Free
     image.editInside = true
-    image.freePos    = Math.Rectangle{3, 4, 10, 20}
+    image.freePos    = {3, 4, 10, 20}
     Swag.assert(image.kind == .Image and image.place == .Free and image.editInside)
     Swag.assert(not image.IForm.canRotate())
     image.IForm.moveBaseForm(7, 8, 9, 10)
@@ -193,7 +193,7 @@ func testAssertScaledTransform(base, scaled: TextPaintTransform, scale: f32)
 
     f.capture.nextStepIndex = 7
     var evt     = testMouse(.Move)
-    let editing = step.IForm.edit(&evt, Math.Point{100, 90}, Math.Point{120, 110}, 1)
+    let editing = step.IForm.edit(&evt, {100, 90}, {120, 110}, 1)
     Swag.assert(not editing)
     Gui.Testing.assertRect(step.IForm.boundRect(), 85, 70, 30, 40)
     Swag.assert(step.index == 7)
@@ -310,13 +310,13 @@ func testAssertFormFitsItsMargin(itf: IForm)
     f.setup()
     defer f.shutdown()
     var polyPoints: Array'Math.Vector2
-    polyPoints.add(Math.Vector2{10, 10})
-    polyPoints.add(Math.Vector2{60, 10})
-    polyPoints.add(Math.Vector2{40, 50})
+    polyPoints.add({10, 10})
+    polyPoints.add({60, 10})
+    polyPoints.add({40, 50})
     let polygon = testAddPolygon(f.capture, polyPoints.toSlice())
     Gui.Testing.assertRect(polygon.IForm.boundRect(), 10, 10, 50, 40)
-    Swag.assert(polygon.IForm.isInside(Math.Point{35, 20}))
-    Swag.assert(not polygon.IForm.isInside(Math.Point{5, 5}))
+    Swag.assert(polygon.IForm.isInside({35, 20}))
+    Swag.assert(not polygon.IForm.isInside({5, 5}))
 
     polygon.IForm.movePoint(1, 10, 15)
     Gui.Testing.assertPoint(polygon.points[1], 70, 25)
@@ -326,14 +326,14 @@ func testAssertFormFitsItsMargin(itf: IForm)
     Gui.Testing.assertRect(polygon.IForm.boundRect(), 10, 26, 120, 80)
 
     var drawPoints: Array'Math.Vector2
-    drawPoints.add(Math.Vector2{100, 100})
-    drawPoints.add(Math.Vector2{120, 110})
-    drawPoints.add(Math.Vector2{130, 140})
+    drawPoints.add({100, 100})
+    drawPoints.add({120, 110})
+    drawPoints.add({130, 140})
     let draw = testAddDraw(f.capture, drawPoints.toSlice())
     draw.borderSize = 10
     Gui.Testing.assertRect(draw.IForm.boundRect(), 95, 95, 40, 50)
-    Swag.assert(draw.IForm.isInside(Math.Point{118, 112}))
-    Swag.assert(not draw.IForm.isInside(Math.Point{80, 80}))
+    Swag.assert(draw.IForm.isInside({118, 112}))
+    Swag.assert(not draw.IForm.isInside({80, 80}))
     draw.IForm.movePoint(2, -10, 20)
     Gui.Testing.assertPoint(draw.points[2], 120, 160)
     draw.IForm.moveForm(3, -4)
@@ -348,28 +348,28 @@ func testAssertFormFitsItsMargin(itf: IForm)
     defer f.shutdown()
     let shape   = testAddShape(f.capture, 0, 0, 1, 1)
     var moveEvt = testMouse(.Move)
-    var editing = shape.IForm.edit(&moveEvt, Math.Point{80, 70}, Math.Point{50, 20}, 1)
+    var editing = shape.IForm.edit(&moveEvt, {80, 70}, {50, 20}, 1)
     Swag.assert(editing)
     Gui.Testing.assertRect(shape.IForm.boundRect(), 50, 20, 30, 50)
     var releaseEvt = testMouse(.Released)
-    editing = shape.IForm.edit(&releaseEvt, Math.Point{80, 70}, Math.Point{50, 20}, 1)
+    editing = shape.IForm.edit(&releaseEvt, {80, 70}, {50, 20}, 1)
     Swag.assert(not editing)
 
     let line = testAddLine(f.capture, 0, 0, 1, 1)
-    editing = line.IForm.edit(&moveEvt, Math.Point{10, 20}, Math.Point{70, 90}, 2)
+    editing = line.IForm.edit(&moveEvt, {10, 20}, {70, 90}, 2)
     Swag.assert(editing)
     Swag.assert(line.xa == 5)
     Swag.assert(line.ya == 10)
     Swag.assert(line.xb == 35)
     Swag.assert(line.yb == 45)
-    editing = line.IForm.edit(&releaseEvt, Math.Point{10, 20}, Math.Point{70, 90}, 2)
+    editing = line.IForm.edit(&releaseEvt, {10, 20}, {70, 90}, 2)
     Swag.assert(not editing)
 
     let image = testAddImage(f.capture, 0, 0, 1, 1)
-    editing = image.IForm.edit(&moveEvt, Math.Point{20, 30}, Math.Point{60, 100}, 1)
+    editing = image.IForm.edit(&moveEvt, {20, 30}, {60, 100}, 1)
     Swag.assert(editing)
     Swag.assert(not image.isReadyToCapture)
-    editing = image.IForm.edit(&releaseEvt, Math.Point{20, 30}, Math.Point{60, 100}, 1)
+    editing = image.IForm.edit(&releaseEvt, {20, 30}, {60, 100}, 1)
     Swag.assert(not editing)
     Swag.assert(image.isReadyToCapture)
 }
@@ -386,30 +386,30 @@ func testAssertFormFitsItsMargin(itf: IForm)
 
     var emptyPoints: Array'Math.Vector2
     let polygon = testAddPolygon(f.capture, emptyPoints.toSlice())
-    var editing = polygon.IForm.edit(&moveEvt, Math.Point{10, 10}, Math.Point{20, 20}, 1)
+    var editing = polygon.IForm.edit(&moveEvt, {10, 10}, {20, 20}, 1)
     Swag.assert(editing)
     Swag.assert(polygon.points.count == 2)
     Gui.Testing.assertPoint(polygon.points[0], 10, 10)
     Gui.Testing.assertPoint(polygon.points[1], 20, 20)
-    editing = polygon.IForm.edit(&releaseEvt, Math.Point{10, 10}, Math.Point{40, 50}, 1)
+    editing = polygon.IForm.edit(&releaseEvt, {10, 10}, {40, 50}, 1)
     Swag.assert(editing)
     Swag.assert(polygon.points.count == 3)
     Gui.Testing.assertPoint(polygon.points[2], 40, 50)
-    editing = polygon.IForm.edit(&doubleEvt, Math.Point{10, 10}, Math.Point{40, 50}, 1)
+    editing = polygon.IForm.edit(&doubleEvt, {10, 10}, {40, 50}, 1)
     Swag.assert(not editing)
     Swag.assert(polygon.points.count == 3)
 
     let draw = testAddDraw(f.capture, emptyPoints.toSlice())
-    editing = draw.IForm.edit(&moveEvt, Math.Point{5, 5}, Math.Point{8, 8}, 1)
+    editing = draw.IForm.edit(&moveEvt, {5, 5}, {8, 8}, 1)
     Swag.assert(editing)
     Swag.assert(draw.points.count == 2)
-    editing = draw.IForm.edit(&moveEvt, Math.Point{5, 5}, Math.Point{14, 8}, 1)
+    editing = draw.IForm.edit(&moveEvt, {5, 5}, {14, 8}, 1)
     Swag.assert(editing)
     Swag.assert(draw.points.count == 3)
-    editing = draw.IForm.edit(&moveEvt, Math.Point{5, 5}, Math.Point{15, 9}, 1)
+    editing = draw.IForm.edit(&moveEvt, {5, 5}, {15, 9}, 1)
     Swag.assert(editing)
     Swag.assert(draw.points.count == 3)
-    editing = draw.IForm.edit(&releaseEvt, Math.Point{5, 5}, Math.Point{15, 9}, 1)
+    editing = draw.IForm.edit(&releaseEvt, {5, 5}, {15, 9}, 1)
     Swag.assert(not editing)
 }
 
@@ -480,9 +480,9 @@ func testAssertFormFitsItsMargin(itf: IForm)
     Swag.assert(not line.IForm.isSame(&lineCopy))
 
     var points: Array'Math.Vector2
-    points.add(Math.Vector2{1, 1})
-    points.add(Math.Vector2{20, 1})
-    points.add(Math.Vector2{10, 20})
+    points.add({1, 1})
+    points.add({20, 1})
+    points.add({10, 20})
 
     with let polygon = testAddPolygon(f.capture, points.toSlice(), .Highlight)
     {

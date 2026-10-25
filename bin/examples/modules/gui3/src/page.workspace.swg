@@ -23,7 +23,7 @@ func createWorkspacePage(parent: *Wnd)
     code.marginRight = 22
     split.addPane(code, 760)
 
-    let side = SplitterCtrl.create(split, Math.Rectangle{}, vertical: true)
+    let side = SplitterCtrl.create(split, {}, vertical: true)
     side.setFrameFlags(.None, .Borders | .FocusBorder)
     let sideItem = split.addPane(side, 420)
     sideItem.preserveSize = true

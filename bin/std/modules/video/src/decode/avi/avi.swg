@@ -405,7 +405,7 @@ struct Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl format()->StreamFormat => StreamFormat{"AVI - Audio Video Interleave", ".avi"}
+    mtd impl format()->StreamFormat => {"AVI - Audio Video Interleave", ".avi"}
 
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {

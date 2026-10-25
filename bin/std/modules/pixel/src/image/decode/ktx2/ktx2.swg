@@ -212,7 +212,7 @@ impl Decoder
 
 impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"KTX2 - Khronos Texture", ".ktx2"}
+    mtd impl format()->ImageFormat => {"KTX2 - Khronos Texture", ".ktx2"}
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodeImage(buffer, options)
 }
 

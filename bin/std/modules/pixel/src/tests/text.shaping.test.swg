@@ -83,7 +83,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     format.lineGap      = 3
 
     richText.compute()
-    Painter.computeLayout(Math.Rectangle{0, 0, 300, 300}, &richText, format)
+    Painter.computeLayout({0, 0, 300, 300}, &richText, format)
     Swag.assert(richText.boundRect.height >= largeFont.height + font.height + format.lineGap)
     Swag.assert(richText.chunks[0].pos.y < richText.chunks[richText.chunks.count - 1].pos.y)
 
@@ -96,7 +96,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     paragraphFormat.maxLines      = 2
 
     paragraphText.compute()
-    Painter.computeLayout(Math.Rectangle{0, 0, 300, 300}, &paragraphText, paragraphFormat)
+    Painter.computeLayout({0, 0, 300, 300}, &paragraphText, paragraphFormat)
     Swag.assert(paragraphText.boundRect.height >= paragraphFormat.minLineHeight * 2 + cast(f32, paragraphFormat.lineGap) + cast(f32, paragraphFormat.paragraphGap))
 
     var visibleChunks = 0
@@ -145,7 +145,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     var urlFormat: RichStringFormat
     urlFormat.font.regular = font
     urlFormat.font.bold    = largeFont
-    Painter.computeLayout(Math.Rectangle{0, 0, 300, 100}, &styledUrl, urlFormat)
+    Painter.computeLayout({0, 0, 300, 100}, &styledUrl, urlFormat)
     let hotChunk = styledUrl.getUrlChunkAt(Math.Point{styledUrl.chunks[1].pos.x + styledUrl.chunks[1].boundRect.width * 0.5, styledUrl.chunks[1].pos.y + styledUrl.chunks[1].boundRect.height * 0.5})
     Swag.assert(hotChunk != null)
 }
@@ -170,7 +170,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     text.compute()
 
     // Narrow enough that the middle run has to take a line of its own, and too narrow for it.
-    Painter.computeLayout(Math.Rectangle{0, 0, 120, 400}, &text, format)
+    Painter.computeLayout({0, 0, 120, 400}, &text, format)
 
     var longChunk: *RichChunk?
     for &c in text.chunks where c.slice.count > 20 do
@@ -250,7 +250,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
     // shorten the first one.
     var text: RichString = "alpha\nbeta"
     text.compute()
-    Painter.computeLayout(Math.Rectangle{0, 0, 400, 200}, &text, format)
+    Painter.computeLayout({0, 0, 400, 200}, &text, format)
 
     let kept = text.chunks[0]
     Swag.assert(kept.slice == "alpha")
@@ -262,7 +262,7 @@ func makeShapingTestFont(cache: *FontCache)->*Font
 
     // A budget the text stays under leaves every line alone.
     format.maxLines = 2
-    Painter.computeLayout(Math.Rectangle{0, 0, 400, 200}, &text, format)
+    Painter.computeLayout({0, 0, 400, 200}, &text, format)
     Swag.assert(text.chunks[0].shaped.glyphs.count == ("alpha").count)
     Swag.assert(text.chunks[text.chunks.count - 1].visible)
 }

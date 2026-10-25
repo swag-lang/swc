@@ -28,12 +28,12 @@ impl VaultCard
         {
             .spacing         = 0
             .backgroundStyle = .Panel
-            .padding         = Math.Vector4{28, 24, 28, 24}
+            .padding         = {28, 24, 28, 24}
         }
 
         let metrics = panel.themeMetrics()
 
-        with let titleLabel = Label.create(panel, title, Math.Rectangle{0, 0, 0, 30})
+        with let titleLabel = Label.create(panel, title, {0, 0, 0, 30})
         {
             .setTextAlignment(.Left, .Center)
             .style.setFont(panel.theme().createDefaultFont(20, .Bold), .Regular)
@@ -41,9 +41,9 @@ impl VaultCard
 
         // The explanation wraps, so its height is the text's to decide: a hand-tuned one
         // cuts the last line off as soon as the sentence is said in more words.
-        with let subtitleLabel = Label.create(panel, subtitle, Math.Rectangle{}, null, .WordWrap | .SecondaryText | .AutoHeight)
+        with let subtitleLabel = Label.create(panel, subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
         {
-            .margin = Math.Vector4{0, 4, 0, 0}
+            .margin = {0, 4, 0, 0}
             .setTextAlignment(.Left, .Top)
             .setLineGap(cast(s32, metrics.dialog_BtnPadding / 2))
         }

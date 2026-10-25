@@ -263,7 +263,7 @@ impl RichEditCtrl
 {
     // Creates a rich-text editor as a child of the requested window.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*RichEditCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*RichEditCtrl
     {
         var pos = position
         if pos.height == 0 do

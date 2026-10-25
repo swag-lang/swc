@@ -128,7 +128,7 @@ impl Button
             // one and drawn at another, the run comes out wider than the width a caller sized
             // the button to, and the caption loses its last letter to the clip.
             .name.compute()
-            Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format, .deviceScale())
+            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format, .deviceScale())
             result = .name.boundRect.width
         }
 

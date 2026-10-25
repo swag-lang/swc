@@ -106,14 +106,14 @@ private func createPdfFixture()->String
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     with let infoBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 40})
     {
         .dockStyle       = .Top
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
@@ -146,7 +146,7 @@ private func createPdfFixture()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     host.root.backgroundStyle = .InformationBar
-    host.root.padding         = Math.Vector4{8, 2, 8, 2}
+    host.root.padding         = {8, 2, 8, 2}
 
     let document = Wnd.create'Wnd(&host.root)
     document.hide()
@@ -159,10 +159,10 @@ private func createPdfFixture()->String
     let actionSize = themeActionButtonSize(layout.themeMetrics())
     layout.filesButton = IconButton.create(layout, layout.theme().icon(.History, themeActionIconSize(layout.themeMetrics())), Math.Rectangle{0, 0, actionSize, actionSize})
     layout.filesButton.hide()
-    layout.fileGroup = StackLayoutCtrl.create(layout, .Left, Math.Rectangle{0, 0, 0, 36})
-    let name = Label.create(layout.fileGroup, "viewer.pdf", Math.Rectangle{0, 0, 0, 36})
+    layout.fileGroup = StackLayoutCtrl.create(layout, .Left, {0, 0, 0, 36})
+    let name = Label.create(layout.fileGroup, "viewer.pdf", {0, 0, 0, 36})
     name.preferredSize.x = Math.ceil(name.itf.measureContent({}).x)
-    layout.generalLabel  = Label.create(layout, "PDF", Math.Rectangle{0, 0, 0, 36}, null, .SecondaryText)
+    layout.generalLabel  = Label.create(layout, "PDF", {0, 0, 0, 36}, null, .SecondaryText)
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), document, fileName, commandParent: document, infoParent: layout)
     Swag.assert(result.view != null and result.info != null)

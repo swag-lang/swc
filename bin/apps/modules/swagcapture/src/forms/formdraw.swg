@@ -16,10 +16,10 @@ impl FormDraw
     mtd setDefaultShape()
     {
         .points.clear()
-        .points.add(Math.Vector2{48, 0})
-        .points.add(Math.Vector2{0, 12})
-        .points.add(Math.Vector2{34, 28})
-        .points.add(Math.Vector2{0, 48})
+        .points.add({48, 0})
+        .points.add({0, 12})
+        .points.add({34, 28})
+        .points.add({0, 48})
     }
 
     mtd paintOutlineSize(cxt: FormPaintContext)->f32 => BaseForm.adaptSize(.outlineSize, MinOutlineSize, MaxOutlineSize, cxt, 0, 3)

@@ -65,13 +65,13 @@ struct Style
         // A negative component retains the default padded layout. With two nonnegative
         // components, adjacent margins take their maximum, and heading spacing becomes
         // external margins instead of padding. The first block keeps its top margin.
-        blockMargins: Math.Vector2 = Math.Vector2{-1, -1}
+        blockMargins: Math.Vector2 = {-1, -1}
 
         // Heading underline widths, in logical pixels: zero omits a rule, negative fills the column.
         headingRuleWidths:      [6] f32
         headingRuleColor:       RuleColor           = .Border       // Theme color of heading underlines.
         headingRulePadding:     [6] f32                             // Space between heading text and its underline, in logical pixels.
-        quotePadding:           Math.Vector4        = Math.Vector4{18, 10, 10, 10}     // Left, top, right and bottom quote insets, in logical pixels.
+        quotePadding:           Math.Vector4        = {18, 10, 10, 10}     // Left, top, right and bottom quote insets, in logical pixels.
         quoteRuleWidth:         f32                 = 3             // Width of the quote's leading rule, in logical pixels; zero omits it.
         quoteRuleColor:         RuleColor           = .RichText     // Theme color of the quote's leading rule.
         quoteRuleInset:         f32                 = 8             // Room above and below the quote's leading rule, in logical pixels.
@@ -105,7 +105,7 @@ struct Style
 impl Style
 {
     // Returns the document style that follows the active GUI theme.
-    func theme()->Style => Style{}
+    func theme()->Style => {}
 }
 
 internal struct VisualBlock
@@ -350,7 +350,7 @@ private func streamBoundary(source: string)->u64
 private func takeStreamSource(source: *String, sourceDone: bool)->String
 {
     if source.isEmpty() do
-        return String{}
+        return {}
 
     var boundary = sourceDone ? source.length : streamBoundary(source.toString())
     if not boundary and source.length >= StreamCarryLimit
@@ -362,7 +362,7 @@ private func takeStreamSource(source: *String, sourceDone: bool)->String
     }
 
     if not boundary do
-        return String{}
+        return {}
 
     let result    = String.from(source.toString()[0 until boundary])
     var remaining = String.from(source.toString()[boundary to])
@@ -1218,7 +1218,7 @@ impl View
 {
     // Creates an empty Markdown document view.
     #[Swag.Discardable]
-    func create(contentParent: *Wnd, documentStyle: Style = Style{})->*View
+    func create(contentParent: *Wnd, documentStyle: Style = {})->*View
     {
         with let result = Wnd.create'View(contentParent, "gui.markdown")
         {
@@ -1378,7 +1378,7 @@ impl View
     }
 
     // Creates a view and renders the complete Markdown source.
-    func createText(contentParent: *Wnd, source: string, documentStyle: Style = Style{})->*View
+    func createText(contentParent: *Wnd, source: string, documentStyle: Style = {})->*View
     {
         let result = View.create(contentParent, documentStyle)
         result.sourceDone = true
@@ -1397,7 +1397,7 @@ impl View
     //
     // File-open and decoding failures remain visible in the document and are also exposed through
     // [[Gui.Markdown.View.failureReason]] and [[Gui.Markdown.View.sigLoadFailed]].
-    func createFile(contentParent: *Wnd, fileName: string, documentStyle: Style = Style{})->*View
+    func createFile(contentParent: *Wnd, fileName: string, documentStyle: Style = {})->*View
     {
         let result = View.create(contentParent, documentStyle)
         result.fileName = fileName
@@ -1475,7 +1475,7 @@ impl View
     {
         if not .retainedBlocks.isEmpty() or .inlineOrder.isEmpty() do
             return
-        .selAnchor = SelectionPoint{0, 0}
+        .selAnchor = {0, 0}
         .selCaret  = SelectionPoint{.inlineOrder.count - 1, .inlineOrder[.inlineOrder.count - 1].textLength}
         .selecting = false
         .invalidateInlines(0, .inlineOrder.count - 1)

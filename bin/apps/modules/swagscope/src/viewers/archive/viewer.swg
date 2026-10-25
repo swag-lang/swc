@@ -531,7 +531,7 @@ private impl Panel
         with .treePane = Wnd.create'Wnd(me.splitter)
         {
             .backgroundStyle = .Panel
-            .padding         = Math.Vector4{8, 8, 8, 8}
+            .padding         = {8, 8, 8, 8}
         }
 
         with .list = ListCtrl.createMultiColumns(me.treePane)
@@ -575,12 +575,12 @@ private impl Panel
         }
 
         .embedded = host.createEmbedded(.previewPane)
-        with .previewStatus = Label.create(me.previewPane, texts().ui_Select, Math.Rectangle{}, null, .WordWrap)
+        with .previewStatus = Label.create(me.previewPane, texts().ui_Select, {}, null, .WordWrap)
         {
             .dockStyle       = .Center
             .wndFlags        |= .TopMost
             .backgroundStyle = .View
-            .padding         = Math.Vector4{48, 48, 48, 48}
+            .padding         = {48, 48, 48, 48}
             .setTextAlignment(.Center, .Center)
         }
     }

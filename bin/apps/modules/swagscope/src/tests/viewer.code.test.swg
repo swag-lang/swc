@@ -239,7 +239,7 @@ struct CodeLanguageSample
     var lexer: Code.GenericLexer
     var host:  Testing.HeadlessHost
     host.setup(640, 180)
-    let editor = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 620, 160})
+    let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})
     lexer.configure(.TypeScript)
     editor.setLexer(&lexer)
     editor.setText("export async function answer(): Promise<number> { return 42; } // typed")
@@ -300,13 +300,13 @@ struct CodeLanguageSample
     host.setup(640, 160)
     let view = Code.Panel.create(&host.root, fileName)
     view.editor.lexAll()
-    Swag.assert(view.editor.runeAt(RichEditCursor{0, 0}).style == RichEditLexerSwag.Style.Keyword)
-    Swag.assert(view.editor.runeAt(RichEditCursor{0, 15}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(view.editor.runeAt(RichEditCursor{0, 23}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(view.editor.runeAt(RichEditCursor{0, 27}).style == RichEditLexerSwag.Style.Default)
-    Swag.assert(view.editor.runeAt(RichEditCursor{0, 28}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(view.editor.runeAt(RichEditCursor{0, 40}).style == RichEditLexerSwag.Style.Keyword)
-    Swag.assert(view.editor.runeAt(RichEditCursor{0, 45}).style == RichEditLexerSwag.Style.Control)
+    Swag.assert(view.editor.runeAt({0, 0}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.assert(view.editor.runeAt({0, 15}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.assert(view.editor.runeAt({0, 23}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(view.editor.runeAt({0, 27}).style == RichEditLexerSwag.Style.Default)
+    Swag.assert(view.editor.runeAt({0, 28}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.assert(view.editor.runeAt({0, 40}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.assert(view.editor.runeAt({0, 45}).style == RichEditLexerSwag.Style.Control)
 }
 
 // The generic lexer colors strings, numbers, calls, and types in code, and the tags, attribute
@@ -315,7 +315,7 @@ struct CodeLanguageSample
 {
     var host: Testing.HeadlessHost
     host.setup(640, 180)
-    let editor = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 620, 160})
+    let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})
 
     var code: Code.GenericLexer
     code.configure(.TypeScript)

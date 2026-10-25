@@ -27,7 +27,7 @@ using Swag, Core
     Swag.assert(radial.gradientRadius1 == 20)
     Swag.assert(radial.isOpaque())
 
-    let sweep = Brush.createSweepGradient(Math.Vector2{4, 6}, -90.0'deg, 270.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
+    let sweep = Brush.createSweepGradient({4, 6}, -90.0'deg, 270.0'deg, Argb.DeepSkyBlue, Argb.Crimson, .Repeat)
     Swag.assert(sweep.type == .SweepGradient)
     Swag.assert(sweep.gradientSpread == .Repeat)
     Swag.assert(sweep.gradientStart == Math.Vector2{4, 6})

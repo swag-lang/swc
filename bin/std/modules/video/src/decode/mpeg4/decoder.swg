@@ -294,8 +294,8 @@ impl Decoder
         var active = header[]
         .quant       = active.quant
         .packetStart = 0
-        .forward     = Vector{}
-        .backward    = Vector{}
+        .forward     = {}
+        .backward    = {}
 
         let total = cast(u64, .layer.mbWidth) * cast(u64, .layer.mbHeight)
         var index = 0'u64
@@ -309,8 +309,8 @@ impl Decoder
                     reader.bitPos = cast(u64, after)
                     try .readPacketHeader(reader, &active, &index)
                     .packetStart = index
-                    .forward     = Vector{}
-                    .backward    = Vector{}
+                    .forward     = {}
+                    .backward    = {}
                     if index >= total do
                         break
                 }
@@ -420,7 +420,7 @@ impl Decoder
     {
         let mbIndex = cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)
         let state   = &.macroblocks[mbIndex]
-        state[] = MacroblockState{}
+        state[] = {}
 
         if header.codingType == VopBidirectional
         {
@@ -520,22 +520,22 @@ impl Decoder
     {
         let mbIndex = cast(u64, mbY) * cast(u64, .layer.mbWidth) + cast(u64, mbX)
         let state   = &.macroblocks[mbIndex]
-        state[] = MacroblockState{}
+        state[] = {}
         .clearBlockState(mbIndex)
 
         // Each direction predicts from the macroblock before it, and a row starts over: the
         // macroblock at the end of a row is no neighbour of the one that opens the next.
         if not mbX
         {
-            .forward  = Vector{}
-            .backward = Vector{}
+            .forward  = {}
+            .backward = {}
         }
 
         // A macroblock the anchor ahead did not code is not coded here either, and the stream
         // spends no bit on it: it takes that macroblock's motion, which was none.
         if not .coLocated[mbIndex].coded
         {
-            .predictDirect(mbX, mbY, Vector{}, header.rounding)
+            .predictDirect(mbX, mbY, {}, header.rounding)
             return
         }
 
@@ -718,7 +718,7 @@ impl Decoder
         for block in 6'u64
         {
             let state = &.blocks[mbIndex * 6 + block]
-            state[]     = BlockState{}
+            state[]     = {}
             state.dc    = DefaultNeighbourDc
             state.quant = cast(u8, .quant)
         }
@@ -832,7 +832,7 @@ impl Decoder
             count += 1
 
         if not count do
-            return Vector{}
+            return {}
         if count == 1
         {
             for slot in 3'u64 where valid[slot] do
@@ -840,7 +840,7 @@ impl Decoder
         }
 
         for slot in 3'u64 where not valid[slot] do
-            candidates[slot] = Vector{}
+            candidates[slot] = {}
 
         var result: retval
         result.x = median(candidates[0].x, candidates[1].x, candidates[2].x)

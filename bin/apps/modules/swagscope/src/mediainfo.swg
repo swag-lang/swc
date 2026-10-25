@@ -234,7 +234,7 @@ impl MediaInfoPanel
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = Math.Vector4{12, 8, 12, 8}
+            .padding         = {12, 8, 12, 8}
             .toggle          = side.toggle
         }
 

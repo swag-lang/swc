@@ -42,7 +42,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-    discard PushButton.create(&host.root, "Ok", Math.Rectangle{20, 20, 160, 40})
+    discard PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     assertPaintGolden(&host, "widget.pushbutton")
 }
 
@@ -53,7 +53,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-    let btn = PushButton.create(&host.root, "Ok", Math.Rectangle{20, 20, 160, 40})
+    let btn = PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     btn.disable()
     assertPaintGolden(&host, "widget.pushbutton.disabled")
 }
@@ -64,7 +64,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-    let btn = PushButton.create(&host.root, "Ok", Math.Rectangle{20, 20, 160, 40})
+    let btn = PushButton.create(&host.root, "Ok", {20, 20, 160, 40})
     btn.hide()
     assertPaintGolden(&host, "widget.pushbutton.hidden")
 }
@@ -74,7 +74,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-    discard Label.create(&host.root, "Hello", Math.Rectangle{20, 20, 160, 24})
+    discard Label.create(&host.root, "Hello", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.label")
 }
 
@@ -85,7 +85,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-    discard CheckButton.create(&host.root, "On", Math.Rectangle{20, 20, 160, 24})
+    discard CheckButton.create(&host.root, "On", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.checkbutton.unchecked")
 }
 
@@ -94,7 +94,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-    let chk = CheckButton.create(&host.root, "On", Math.Rectangle{20, 20, 160, 24})
+    let chk = CheckButton.create(&host.root, "On", {20, 20, 160, 24})
     chk.toggle()
     assertPaintGolden(&host, "widget.checkbutton.checked")
 }
@@ -104,7 +104,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(200, 80)
-    discard RadioButton.create(&host.root, "One", Math.Rectangle{20, 20, 160, 24})
+    discard RadioButton.create(&host.root, "One", {20, 20, 160, 24})
     assertPaintGolden(&host, "widget.radiobutton")
 }
 
@@ -115,7 +115,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    discard ProgressBar.create(&host.root, Math.Rectangle{20, 20, 200, 20})
+    discard ProgressBar.create(&host.root, {20, 20, 200, 20})
     assertPaintGolden(&host, "widget.progressbar.empty")
 }
 
@@ -124,7 +124,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    let bar = ProgressBar.create(&host.root, Math.Rectangle{20, 20, 200, 20})
+    let bar = ProgressBar.create(&host.root, {20, 20, 200, 20})
     bar.setValue(0.5)
     assertPaintGolden(&host, "widget.progressbar.half")
 }
@@ -134,7 +134,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    discard Slider.create(&host.root, Math.Rectangle{20, 20, 200, 20})
+    discard Slider.create(&host.root, {20, 20, 200, 20})
     assertPaintGolden(&host, "widget.slider")
 }
 
@@ -145,7 +145,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    let spin = Spinner.create(&host.root, Math.Rectangle{20, 20, 24, 24})
+    let spin = Spinner.create(&host.root, {20, 20, 24, 24})
     spin.animationPhase = 0.25
     assertPaintGolden(&host, "widget.spinner")
 }
@@ -155,7 +155,7 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    discard EditBox.create(&host.root, "text", Math.Rectangle{20, 20, 200, 24})
+    discard EditBox.create(&host.root, "text", {20, 20, 200, 24})
     assertPaintGolden(&host, "widget.editbox")
 }
 
@@ -165,9 +165,9 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    discard PushButton.create(&host.root, "A", Math.Rectangle{10, 10, 100, 30})
-    discard PushButton.create(&host.root, "B", Math.Rectangle{10, 50, 100, 30})
-    discard Label.create(&host.root, "C", Math.Rectangle{130, 10, 100, 30})
+    discard PushButton.create(&host.root, "A", {10, 10, 100, 30})
+    discard PushButton.create(&host.root, "B", {10, 50, 100, 30})
+    discard Label.create(&host.root, "C", {130, 10, 100, 30})
     assertPaintGolden(&host, "widget.siblings.zorder")
 }
 
@@ -180,8 +180,8 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     host.setup(240, 120)
     let view = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 10, 100, 50})
     view.wndFlags.add(.ClipChildren)
-    discard PushButton.create(view, "In", Math.Rectangle{5, 5, 60, 20})
-    discard PushButton.create(view, "Out", Math.Rectangle{5, 200, 60, 20})
+    discard PushButton.create(view, "In", {5, 5, 60, 20})
+    discard PushButton.create(view, "Out", {5, 200, 60, 20})
     assertPaintGolden(&host, "widget.clipchildren")
 }
 
@@ -194,13 +194,13 @@ func assertPaintGolden(host: *Testing.HeadlessHost, name: string, loc = #callerl
     host.setup(320, 200)
     host.setReducedMotion(false)
 
-    let tab   = Tab.create(&host.root, Math.Rectangle{10, 10, 300, 180})
+    let tab   = Tab.create(&host.root, {10, 10, 300, 180})
     let first = Wnd.create'Wnd(tab)
     let next  = Wnd.create'Wnd(tab)
     first.backgroundStyle = .View
     next.backgroundStyle  = .View
-    discard Label.create(first, "First", Math.Rectangle{20, 20, 120, 30})
-    discard Label.create(next, "Next", Math.Rectangle{20, 20, 120, 30})
+    discard Label.create(first, "First", {20, 20, 120, 30})
+    discard Label.create(next, "Next", {20, 20, 120, 30})
     tab.setPageTransitions(true)
     tab.addItem("One", view: first)
     tab.addItem("Two", view: next)

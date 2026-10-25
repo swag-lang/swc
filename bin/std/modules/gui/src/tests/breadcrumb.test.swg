@@ -39,7 +39,7 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
-    let bc = BreadcrumbCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 32})
+    let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
     bc.addItem("Home", bc.theme().icon(.OpenFile, 28), 1)
     bc.addItem("Docs", {}, 2)
     bc.addItem("Workspace", {}, 3, hasArrow: false)
@@ -72,7 +72,7 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     BreadcrumbPressedCount = 0
     BreadcrumbPressedIndex = Swag.U64.Max
 
-    let bc = BreadcrumbCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 32})
+    let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
     bc.addItem("Home", {}, 1)
     bc.addItem("Docs", {}, 2)
     bc.sigItemPressed += &breadcrumbPressed

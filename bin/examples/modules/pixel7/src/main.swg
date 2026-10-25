@@ -277,7 +277,7 @@ func drawScene(painter: *Pixel.Painter)
     painter.setColorMaskColor()
     painter.setParams(.Antialiased)
     painter.drawString(28, 22, pageTitle(g_Page), g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, Math.Rectangle{30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont, Argb.DimGray)
+    drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont, Argb.DimGray)
 
     for i in CardsPerPage do
         drawCard(painter, getCardRect(i), g_Cards[g_Page][i])

@@ -21,8 +21,8 @@ func expectCurveRect(actual, expected: Math.Rectangle)
     let p3 = Math.Vector2{7, 8}
 
     expectCurveVec(Math.Curve.evaluatePolynomial(p0, p1, p2, p3, 0), p3)
-    expectCurveVec(Math.Curve.evaluatePolynomial(p0, p1, p2, p3, 1), Math.Vector2{10, 8})
-    expectCurveVec(Math.Curve.evaluatePolynomial(p0, p1, p2, p3, 2), Math.Vector2{13, 28})
+    expectCurveVec(Math.Curve.evaluatePolynomial(p0, p1, p2, p3, 1), {10, 8})
+    expectCurveVec(Math.Curve.evaluatePolynomial(p0, p1, p2, p3, 2), {13, 28})
 }
 
 #test
@@ -32,10 +32,10 @@ func expectCurveRect(actual, expected: Math.Rectangle)
     let end   = Math.Vector2{10, 0}
 
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 0), start)
-    expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 0.5), Math.Vector2{7.5, 5})
+    expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 0.5), {7.5, 5})
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 1), end)
 
-    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl), Math.Rectangle{0, 0, 10, 5})
+    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl), {0, 0, 10, 5})
 }
 
 #test
@@ -44,8 +44,8 @@ func expectCurveRect(actual, expected: Math.Rectangle)
     let ctrl  = Math.Vector2{5, -10}
     let end   = Math.Vector2{10, 0}
 
-    expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 0.5), Math.Vector2{5, -5})
-    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl), Math.Rectangle{0, -5, 10, 5})
+    expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl, 0.5), {5, -5})
+    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl), {0, -5, 10, 5})
 }
 
 #test
@@ -56,10 +56,10 @@ func expectCurveRect(actual, expected: Math.Rectangle)
     let end   = Math.Vector2{10, 0}
 
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl1, ctrl2, 0), start)
-    expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl1, ctrl2, 0.5), Math.Vector2{5, 7.5})
+    expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl1, ctrl2, 0.5), {5, 7.5})
     expectCurveVec(Math.Curve.evaluateBezier(start, end, ctrl1, ctrl2, 1), end)
 
-    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl1, ctrl2), Math.Rectangle{0, 0, 10, 7.5})
+    expectCurveRect(Math.Curve.bezierBounds(start, end, ctrl1, ctrl2), {0, 0, 10, 7.5})
 }
 
 // Captured from a translated SVG contour, before tessellation and rasterization.

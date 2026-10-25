@@ -307,7 +307,7 @@ func epochText(seconds: u64)->String
     if seconds > 253_370_764_800 do
         return texts().ui_NotDate
 
-    let epoch = Time.Timestamp.fromDateTime(Time.DateTime{1970, 1, 1})
+    let epoch = Time.Timestamp.fromDateTime({1970, 1, 1})
     let stamp = Time.Timestamp.fromTicks(epoch.ticks + seconds * Time.TicksPerSecond)
     return Format.toString("% UTC", stamp.toDateTime().toString(.DateTimeIso))
 }

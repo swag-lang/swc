@@ -465,10 +465,10 @@ impl Ghost
         // Each colour selects a unique corner to target
         switch .colour
         {
-        case .RED:    target = Dest{25, 33}
-        case .PINK:   target = Dest{2, 33}
-        case .BLUE:   target = Dest{27, -2}
-        case .YELLOW: target = Dest{0, -2}
+        case .RED:    target = {25, 33}
+        case .PINK:   target = {2, 33}
+        case .BLUE:   target = {27, -2}
+        case .YELLOW: target = {0, -2}
         }
 
         // Set direction at junction to head towards SCATTER point
@@ -537,7 +537,7 @@ impl Ghost
 
         case .YELLOW:
             if distanceBetween(currentPos, target) <= 8 do
-                target = Dest{0, -2}
+                target = {0, -2}
         }
 
         .dir = .targetTile(target)
@@ -570,7 +570,7 @@ impl Ghost
     mtd aiDead()
     {
         // Coordinate directly above SPAWN entrance
-        let target: Dest = Dest{14, 19}
+        let target: Dest = {14, 19}
         .dir = .targetTile(target)
         .setSpeed(200)
     }

@@ -713,16 +713,9 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
 
+    // A positional value in braces is resolved against the struct the literal initializes, so
+    // the literal itself accepts it. A destination that is not a struct rejects it.
     const bool autoName = sema.token(codeRef()).is(TokenId::SymLeftCurly);
-    if (autoName)
-    {
-        for (const AstNodeRef child : children)
-        {
-            const AstNode& node = sema.node(child);
-            if (node.isNot(AstNodeId::NamedArgument) && node.isNot(AstNodeId::Identifier))
-                return SemaError::raise(sema, DiagnosticId::sema_err_record_needs_field_name, child);
-        }
-    }
     SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children, autoName));
 
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();

@@ -18,7 +18,7 @@ using Swag, Core, Pixel
     Swag.assert(long.measure({}).preferred.x > metrics.btnPush_Width)
 
     // A width the caller stated is never second-guessed.
-    let pinned = PushButton.create(&host.root, "Create an encrypted container right now", Math.Rectangle{0, 0, 90, 30})
+    let pinned = PushButton.create(&host.root, "Create an encrypted container right now", {0, 0, 90, 30})
     Swag.assert(pinned.measure({}).preferred.x == 90)
 
     // Re-labelling is enough: the button follows the new caption on the next measure.
@@ -37,15 +37,15 @@ using Swag, Core, Pixel
 
     const Sentence = "Encrypted storage that looks and behaves like a regular Windows drive and keeps working when the application closes."
 
-    let label = Label.create(&host.root, Sentence, Math.Rectangle{}, null, .WordWrap | .AutoHeight)
-    let wide  = label.measure(Math.Point{500, 0}).preferred
-    let tight = label.measure(Math.Point{160, 0}).preferred
+    let label = Label.create(&host.root, Sentence, {}, null, .WordWrap | .AutoHeight)
+    let wide  = label.measure({500, 0}).preferred
+    let tight = label.measure({160, 0}).preferred
     Swag.assert(tight.y > wide.y)
     Swag.assert(wide.y > 0)
 
     // Without the wrap flag the text stays on one line whatever it is offered.
-    let single = Label.create(&host.root, Sentence, Math.Rectangle{}, null, .AutoHeight)
-    Swag.assert(single.measure(Math.Point{160, 0}).preferred.y == single.measure(Math.Point{500, 0}).preferred.y)
+    let single = Label.create(&host.root, Sentence, {}, null, .AutoHeight)
+    Swag.assert(single.measure({160, 0}).preferred.y == single.measure({500, 0}).preferred.y)
 }
 
 // A combo box is as wide as its widest entry, not as wide as the selected one.
@@ -70,9 +70,9 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(500, 80)
 
-    let row  = StackLayoutCtrl.create(&host.root, .Left, Math.Rectangle{0, 0, 500, 40})
-    let name = Label.create(row, "", Math.Rectangle{0, 0, 0, 32})
-    let size = Label.create(row, "", Math.Rectangle{0, 0, 0, 32})
+    let row  = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 500, 40})
+    let name = Label.create(row, "", {0, 0, 0, 32})
+    let size = Label.create(row, "", {0, 0, 0, 32})
     size.margin.x = 8
     row.computeLayout()
     Swag.assert(name.position.width == 0 and size.position.width == 0)
@@ -95,16 +95,16 @@ using Swag, Core, Pixel
     band.dockStyle = .Top
     band.spacing   = 4
 
-    let first = Label.create(band, "One line", Math.Rectangle{0, 0, 0, 20})
+    let first = Label.create(band, "One line", {0, 0, 0, 20})
     first.dockStyle = .Top
-    let second = Label.create(band, "Another line", Math.Rectangle{0, 0, 0, 20})
+    let second = Label.create(band, "Another line", {0, 0, 0, 20})
     second.dockStyle = .Top
 
     host.root.applyLayout()
     Swag.assert(band.position.height == 44)
 
     // A third row raises the band; nothing had to be told a number.
-    let third = Label.create(band, "A third line", Math.Rectangle{0, 0, 0, 20})
+    let third = Label.create(band, "A third line", {0, 0, 0, 20})
     third.dockStyle = .Top
     host.root.applyLayout()
     Swag.assert(band.position.height == 68)
@@ -120,7 +120,7 @@ using Swag, Core, Pixel
 
     // "Reset to default" and its French wording are not the same width, and neither
     // button was given one: the row arranges them from what they say they need.
-    let row    = StackLayoutCtrl.create(&host.root, .Left, Math.Rectangle{0, 0, 500, 40})
+    let row    = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 500, 40})
     let cancel = PushButton.create(row, strings().dlg_Cancel)
     let remove = PushButton.create(row, strings().prop_ResetDefault)
     row.computeLayout()
@@ -150,7 +150,7 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(300, 400)
 
-    let form = FormLayoutCtrl.create(&host.root, {helpHeight: 16}, Math.Rectangle{0, 0, 300, 400})
+    let form = FormLayoutCtrl.create(&host.root, {helpHeight: 16}, {0, 0, 300, 400})
     discard form.addTextField("SHORT", help: "One")
     discard form.addTextField("LONG", help: "A sentence long enough that it has to be laid out over several lines inside this narrow form.")
     form.computeLayout()
@@ -169,8 +169,8 @@ using Swag, Core, Pixel
     var host: Testing.HeadlessHost
     host.setup(400, 120)
 
-    let row   = StackLayoutCtrl.create(&host.root, .Left, Math.Rectangle{0, 0, 120, 32})
-    let label = Label.create(row, "a name far longer than the row that shows it", Math.Rectangle{0, 0, 0, 32}, null, .Ellipsis)
+    let row   = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 120, 32})
+    let label = Label.create(row, "a name far longer than the row that shows it", {0, 0, 0, 32}, null, .Ellipsis)
     label.layoutSpec.policyX = .Expand
     row.computeLayout()
 

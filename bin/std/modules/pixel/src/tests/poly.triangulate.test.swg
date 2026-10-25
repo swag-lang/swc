@@ -31,9 +31,9 @@ func triCount(pts: [..] Vector2)->u64
 #test
 {
     var open: Pixel.Polygon
-    open.add(Math.Vector2{0, 0})
-    open.add(Math.Vector2{4, 0})
-    open.add(Math.Vector2{0, 3})
+    open.add({0, 0})
+    open.add({4, 0})
+    open.add({0, 3})
     open.recompute()
 
     Swag.assert(Math.isEqualEpsilon(open.area, 6, 0.001))
@@ -59,7 +59,7 @@ func triCount(pts: [..] Vector2)->u64
 #test
 {
     var poly: Pixel.Polygon
-    poly.add(Math.Vector2{7, 9})
+    poly.add({7, 9})
     poly.recompute()
     Swag.assert(poly.area == 0)
     Swag.assert(poly.perimeter == 0)
@@ -220,18 +220,18 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
 
     // Both rings carry the point (0, 0) exactly, plus a run of vertices repeated inside one ring.
     var left: Pixel.Polygon
-    left.add(Math.Vector2{0, 0})
-    left.add(Math.Vector2{-40, -20})
-    left.add(Math.Vector2{-40, 20})
-    left.add(Math.Vector2{-40, 20})
-    left.add(Math.Vector2{0, 0})
+    left.add({0, 0})
+    left.add({-40, -20})
+    left.add({-40, 20})
+    left.add({-40, 20})
+    left.add({0, 0})
     left.recompute()
 
     var right: Pixel.Polygon
-    right.add(Math.Vector2{0, 0})
-    right.add(Math.Vector2{40, 20})
-    right.add(Math.Vector2{40, -20})
-    right.add(Math.Vector2{0, 0})
+    right.add({0, 0})
+    right.add({40, 20})
+    right.add({40, -20})
+    right.add({0, 0})
     right.recompute()
 
     tess.addPolyLine(left)

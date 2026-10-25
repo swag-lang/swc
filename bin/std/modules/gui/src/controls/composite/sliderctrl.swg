@@ -67,7 +67,7 @@ impl SliderCtrl
 {
     // Creates a labelled numeric slider.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string?, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*SliderCtrl
+    func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null)->*SliderCtrl
     {
         Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
@@ -79,10 +79,10 @@ impl SliderCtrl
 
         with let ctrl = Wnd.create'SliderCtrl(parent, pos, id)
         {
-            .label = Label.create(ctrl, name, Math.Rectangle{})
+            .label = Label.create(ctrl, name, {})
             .label.setTextAlignment(.Right, .Center)
 
-            .slider = Slider.create(ctrl, Math.Rectangle{})
+            .slider = Slider.create(ctrl, {})
             .slider.sigChanged += func|ctrl|(wnd)
             {
                 var val: String
@@ -97,7 +97,7 @@ impl SliderCtrl
                 ctrl.sigChanged.call(ctrl)
             }
 
-            .edit = EditBox.create(ctrl, "", Math.Rectangle{})
+            .edit = EditBox.create(ctrl, "", {})
             .edit.setForm(.Rectangle)
             .edit.updateFlags(.RightAligned)
             .edit.setTrailingMargin(metrics.editBox_UnitMargin)

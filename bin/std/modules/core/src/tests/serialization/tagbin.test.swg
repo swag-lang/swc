@@ -400,9 +400,9 @@ func makeTagBinPayload()->TagBinPayload
     result.active = true
     result.name   = "tagbin"
     result.counts.add(seed)
-    result.pair       = TagBinPair{x: -3, y: 11}
+    result.pair       = {x: -3, y: 11}
     result.fixed      = [9, 8, 7]
-    result.finalPoint = TagBinFinalPoint{x: -2, y: 5}
+    result.finalPoint = {x: -2, y: 5}
     result.transient  = 123
 
     for i in 512
@@ -909,7 +909,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     source.singleToStatic = 42
     source.singleToArray  = 12
     source.arrayToSingle.add(arrayToSingle)
-    source.nested = TagBinLegacyNested{left: -5, right: 23}
+    source.nested = {left: -5, right: 23}
 
     Reflection.registerType(#typeof(TagBinConversionSource))
     Swag.assert(Reflection.typeFromCrc(#typeof(#type [3] u8).crc) == #typeof(#type [3] u8))

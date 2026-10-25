@@ -29,7 +29,7 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
     host.recordCommands()
     PopupHeadlessChangedCount = 0
 
-    let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26})
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
     combo.sigChanged += &popupHeadlessChanged
     combo.addItem("One")
     combo.addItem("Two", PopupHeadless_Item2)
@@ -37,7 +37,7 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 
     Swag.assert(combo.popup == null)
 
-    host.click(Math.Point{100, 33})
+    host.click({100, 33})
     Swag.assert(combo.popup != null)
 
     // Selecting item 1 via the popup routes back to the combobox.
@@ -57,11 +57,11 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-    let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26})
+    let combo = ComboBox.create(&host.root, {20, 20, 160, 26})
     combo.addItem("One")
     combo.addItem("Two")
 
-    host.click(Math.Point{100, 33})
+    host.click({100, 33})
     Swag.assert(combo.popup != null)
 
     // The open popup captured the mouse; closing it via its own dismiss path.

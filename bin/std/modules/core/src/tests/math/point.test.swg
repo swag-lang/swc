@@ -106,27 +106,27 @@ using Swag
     pt.round()
     Swag.assert(pt == Math.Point{1, -2})
 
-    pt = Math.Point{1.75, -1.75}
+    pt = {1.75, -1.75}
     pt.trunc()
     Swag.assert(pt == Math.Point{1, -1})
 
-    pt = Math.Point{1.25, -1.75}
+    pt = {1.25, -1.75}
     pt.ceil()
     Swag.assert(pt == Math.Point{2, -1})
 
-    pt = Math.Point{-1.25, 1.75}
+    pt = {-1.25, 1.75}
     pt.round()
     Swag.assert(pt == Math.Point{-1, 2})
 
-    pt = Math.Point{-1.75, 1.75}
+    pt = {-1.75, 1.75}
     pt.trunc()
     Swag.assert(pt == Math.Point{-1, 1})
 
-    pt = Math.Point{-1.25, 1.25}
+    pt = {-1.25, 1.25}
     pt.ceil()
     Swag.assert(pt == Math.Point{-1, 2})
 
-    Swag.assert(Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.00001, 0.99999}, 0.001))
-    Swag.assert(not Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.01, 1.0}, 0.001))
-    Swag.assert(not Math.Point{1.0, 1.0}.isEqualEpsilon(Math.Point{1.0, 1.01}, 0.001))
+    Swag.assert(Math.Point{1.0, 1.0}.isEqualEpsilon({1.00001, 0.99999}, 0.001))
+    Swag.assert(not Math.Point{1.0, 1.0}.isEqualEpsilon({1.01, 1.0}, 0.001))
+    Swag.assert(not Math.Point{1.0, 1.0}.isEqualEpsilon({1.0, 1.01}, 0.001))
 }

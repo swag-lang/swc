@@ -58,10 +58,10 @@ using Swag, Core
 
     // Without a host zoom handler, a modified wheel retains ordinary document scrolling.
     host.setReducedMotion(true)
-    host.mouseWheel(Math.Point{360, 240}, -1, .Control)
+    host.mouseWheel({360, 240}, -1, .Control)
     let modifiedPosition = view.scroll.scrollPosition()
     view.scroll.setScrollPos(0, 0)
-    host.mouseWheel(Math.Point{360, 240}, -1)
+    host.mouseWheel({360, 240}, -1)
     Swag.assert(modifiedPosition.y > 0 and view.scroll.scrollPosition() == modifiedPosition)
 }
 
@@ -95,7 +95,7 @@ using Swag, Core
 
     Swag.assert(view.waitingScroll and view.isLoading())
     host.setReducedMotion(true)
-    host.mouseWheel(Math.Point{360, 240}, -100)
+    host.mouseWheel({360, 240}, -100)
     Swag.assert(view.scroll.scrollPosition().y + viewport.height <= view.contentHeight + 1)
     host.setReducedMotion(false)
     let held = view.scroll.scrollPosition().y
@@ -675,24 +675,24 @@ func markdownFixturePath()->String => Path.combine(unwrap Path.directoryName(#cu
     view.resize(640, 240)
     view.applyLayout()
     let step = view.scroll.verticalScrollStep * 3
-    host.mouseWheel(Math.Point{320, 120}, -1)
+    host.mouseWheel({320, 120}, -1)
     Swag.assert(view.scroll.scrollPosition().y == 0)
     Swag.assert(Math.abs(view.scroll.scrollTarget().y - step) <= 1)
     host.advanceAnimations(0.04)
     let intermediate = view.scroll.scrollPosition().y
     Swag.assert(intermediate > 0 and intermediate < step)
-    host.mouseWheel(Math.Point{320, 120}, -1)
+    host.mouseWheel({320, 120}, -1)
     Swag.assert(Math.abs(view.scroll.scrollTarget().y - step * 2) <= 1)
-    host.mouseWheel(Math.Point{320, 120}, 1)
+    host.mouseWheel({320, 120}, 1)
     Swag.assert(view.scroll.scrollTarget().y < intermediate)
     host.finishAnimations()
     Swag.assert(view.scroll.scrollPosition() == view.scroll.scrollTarget())
 
     view.scroll.setScrollPos(0, 0)
     host.setReducedMotion(true)
-    host.mouseWheel(Math.Point{320, 120}, -1)
+    host.mouseWheel({320, 120}, -1)
     Swag.assert(Math.abs(view.scroll.scrollPosition().y - step) <= 1)
-    host.mouseWheel(Math.Point{320, 120}, 100)
+    host.mouseWheel({320, 120}, 100)
     Swag.assert(view.scroll.scrollPosition().y == 0)
 }
 
@@ -1016,12 +1016,12 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.layoutDocument()
 
     host.clickPopupMenuItemWhenShown(Markdown.View.CtxSelectAll)
-    view.showContextMenu(Math.Point{50, 50})
+    view.showContextMenu({50, 50})
     host.pump()
     Swag.assert(view.selectedText() == "menu content")
 
     host.clickPopupMenuItemWhenShown(Markdown.View.CtxCopy)
-    view.showContextMenu(Math.Point{50, 50})
+    view.showContextMenu({50, 50})
     host.pump()
     Swag.assert(Clipboard.getString() == "menu content")
 
@@ -1228,7 +1228,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     Swag.assert(not view.isLoading() and view.hasUnloadedSource())
 
     for 16 do
-        host.mouseWheel(Math.Point{360, 180}, -1)
+        host.mouseWheel({360, 180}, -1)
     host.finishAnimations()
     Swag.assert(view.isLoading())
 
@@ -1596,7 +1596,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     }
 
     host.app.setMotionPreference(.Full)
-    view.scroll.smoothScrollTo(Math.Point{0, 120})
+    view.scroll.smoothScrollTo({0, 120})
     host.advanceAnimations(1.0 / 60.0)
     let target = view.scroll.scrollTarget()
     let count  = view.blocks.count

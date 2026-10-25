@@ -98,7 +98,7 @@ impl Ast
         result.ignoreCase = flags.ignoreCase
 
         // Capture zero is the whole match, and it has no name.
-        result.captureNames.add(String{})
+        result.captureNames.add({})
 
         result.root = try result.parseAlternate()
         if not result.atEnd()
@@ -496,7 +496,7 @@ impl Ast
         }
         else
         {
-            capture = .newCapture(String{})
+            capture = .newCapture({})
         }
 
         let inner = try .parseAlternate()

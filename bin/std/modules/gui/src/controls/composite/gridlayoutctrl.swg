@@ -299,7 +299,7 @@ private impl GridLayoutCtrl
 impl GridLayoutCtrl
 {
     // Creates an empty grid with `numColumns` columns and `numRows` rows.
-    func create(parent: *Wnd, numColumns, numRows: s32, position: Math.Rectangle = Math.Rectangle{})->*GridLayoutCtrl
+    func create(parent: *Wnd, numColumns, numRows: s32, position: Math.Rectangle = {})->*GridLayoutCtrl
     {
         Swag.assert(numColumns > 0 and numRows > 0)
 

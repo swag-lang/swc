@@ -288,10 +288,10 @@ private impl EmbeddedViewer
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
-            .padding         = Math.Vector4{12, 4, 12, 4}
+            .padding         = {12, 4, 12, 4}
         }
 
-        with result.viewerCombo = ComboBox.create(result.header, Math.Rectangle{0, 0, 176, 36})
+        with result.viewerCombo = ComboBox.create(result.header, {0, 0, 176, 36})
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
@@ -311,7 +311,7 @@ private impl EmbeddedViewer
             .hide()
         }
 
-        with result.titleLabel = Label.create(result.header, Viewers.Archive.texts().ui_Select, Math.Rectangle{}, null, .Ellipsis)
+        with result.titleLabel = Label.create(result.header, Viewers.Archive.texts().ui_Select, {}, null, .Ellipsis)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent

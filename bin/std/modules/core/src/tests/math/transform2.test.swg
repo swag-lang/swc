@@ -22,8 +22,8 @@ func expectTransform(actual, expected: Math.Transform2)
 {
     let identity = Math.Transform2.Identity
     Swag.assert(identity.isIdentity())
-    expectTransform(identity, Math.Transform2{1, 0, 0, 1, 0, 0})
-    expectVec2(identity.transformPoint(Math.Vector2{3, -4}), Math.Vector2{3, -4})
+    expectTransform(identity, {1, 0, 0, 1, 0, 0})
+    expectVec2(identity.transformPoint({3, -4}), {3, -4})
     expectVec2(identity.translation(), Math.Vector2.Zero)
 
     Swag.assert(identity.m[0, 0] == identity.m11)
@@ -41,13 +41,13 @@ func expectTransform(actual, expected: Math.Transform2)
 #test
 {
     var transform = Math.Transform2.createTranslation(3, -4)
-    expectTransform(transform, Math.Transform2{1, 0, 0, 1, 3, -4})
-    expectVec2(transform.translation(), Math.Vector2{3, -4})
-    expectVec2(transform.transformPoint(Math.Vector2{1, 2}), Math.Vector2{4, -2})
+    expectTransform(transform, {1, 0, 0, 1, 3, -4})
+    expectVec2(transform.translation(), {3, -4})
+    expectVec2(transform.transformPoint({1, 2}), {4, -2})
 
-    transform.setTranslation(Math.Vector2{-5, 6})
-    expectVec2(transform.translation(), Math.Vector2{-5, 6})
-    expectVec2(transform.transformPoint(Math.Vector2{1, 2}), Math.Vector2{-4, 8})
+    transform.setTranslation({-5, 6})
+    expectVec2(transform.translation(), {-5, 6})
+    expectVec2(transform.transformPoint({1, 2}), {-4, 8})
     Swag.assert(transform.m31 == transform.tx)
     Swag.assert(transform.m32 == transform.ty)
 }
@@ -55,25 +55,25 @@ func expectTransform(actual, expected: Math.Transform2)
 #test
 {
     let scale = Math.Transform2.createScale(2, 3, 10, 20)
-    expectTransform(scale, Math.Transform2{2, 0, 0, 3, -10, -40})
-    expectVec2(scale.transformPoint(Math.Vector2{10, 20}), Math.Vector2{10, 20})
-    expectVec2(scale.transformPoint(Math.Vector2{11, 21}), Math.Vector2{12, 23})
+    expectTransform(scale, {2, 0, 0, 3, -10, -40})
+    expectVec2(scale.transformPoint({10, 20}), {10, 20})
+    expectVec2(scale.transformPoint({11, 21}), {12, 23})
 
     let mirror = Math.Transform2.createScale(-1, 1, 2, 0)
-    expectTransform(mirror, Math.Transform2{-1, 0, 0, 1, 4, 0})
-    expectVec2(mirror.transformPoint(Math.Vector2{3, 5}), Math.Vector2{1, 5})
+    expectTransform(mirror, {-1, 0, 0, 1, 4, 0})
+    expectVec2(mirror.transformPoint({3, 5}), {1, 5})
 }
 
 #test
 {
     let rotate = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
-    expectTransform(rotate, Math.Transform2{0, 1, -1, 0, 0, 0})
-    expectVec2(rotate.transformPoint(Math.Vector2{1, 0}), Math.Vector2{0, 1})
-    expectVec2(rotate.transformPoint(Math.Vector2{0, 1}), Math.Vector2{-1, 0})
+    expectTransform(rotate, {0, 1, -1, 0, 0, 0})
+    expectVec2(rotate.transformPoint({1, 0}), {0, 1})
+    expectVec2(rotate.transformPoint({0, 1}), {-1, 0})
 
     let centered = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 10, 20)
-    expectVec2(centered.transformPoint(Math.Vector2{10, 20}), Math.Vector2{10, 20})
-    expectVec2(centered.transformPoint(Math.Vector2{11, 20}), Math.Vector2{10, 21})
+    expectVec2(centered.transformPoint({10, 20}), {10, 20})
+    expectVec2(centered.transformPoint({11, 20}), {10, 21})
 }
 
 // A vector goes through the rotation and the scale, but the translation that moves a point leaves it alone.
@@ -82,23 +82,23 @@ func expectTransform(actual, expected: Math.Transform2)
     var transform = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
     transform.multiply(Math.Transform2.createScale(2, 3, 0, 0))
     transform.multiply(Math.Transform2.createTranslation(5, 7))
-    expectVec2(transform.transformVector(Math.Vector2{1, 0}), Math.Vector2{0, 3})
-    expectVec2(transform.transformVector(Math.Vector2{0, 1}), Math.Vector2{-2, 0})
-    expectVec2(transform.transformPoint(Math.Vector2{1, 0}), Math.Vector2{5, 10})
-    expectVec2(Math.Transform2.createTranslation(5, 7).transformVector(Math.Vector2{3, -4}), Math.Vector2{3, -4})
+    expectVec2(transform.transformVector({1, 0}), {0, 3})
+    expectVec2(transform.transformVector({0, 1}), {-2, 0})
+    expectVec2(transform.transformPoint({1, 0}), {5, 10})
+    expectVec2(Math.Transform2.createTranslation(5, 7).transformVector({3, -4}), {3, -4})
 }
 
 #test
 {
     var transform = Math.Transform2.createTranslation(2, 3)
     transform.multiply(Math.Transform2.createScale(2, 2, 0, 0))
-    expectTransform(transform, Math.Transform2{2, 0, 0, 2, 4, 6})
-    expectVec2(transform.transformPoint(Math.Vector2{1, 1}), Math.Vector2{6, 8})
+    expectTransform(transform, {2, 0, 0, 2, 4, 6})
+    expectVec2(transform.transformPoint({1, 1}), {6, 8})
 
     var selfMul = Math.Transform2.createScale(2, 3, 0, 0)
     selfMul.multiplyBorrowed(&selfMul)
-    expectTransform(selfMul, Math.Transform2{4, 0, 0, 9, 0, 0})
-    expectVec2(selfMul.transformPoint(Math.Vector2{1, 1}), Math.Vector2{4, 9})
+    expectTransform(selfMul, {4, 0, 0, 9, 0, 0})
+    expectVec2(selfMul.transformPoint({1, 1}), {4, 9})
 }
 
 func expectRect(actual, expected: Math.Rectangle)
@@ -115,15 +115,15 @@ func expectRect(actual, expected: Math.Rectangle)
     const Source = Math.Rectangle{10, 20, 30, 40}
 
     expectRect(Math.Transform2.Identity.transformBounds(Source), Source)
-    expectRect(Math.Transform2.createTranslation(5, -7).transformBounds(Source), Math.Rectangle{15, 13, 30, 40})
-    expectRect(Math.Transform2.createScale(2, 3, 0, 0).transformBounds(Source), Math.Rectangle{20, 60, 60, 120})
+    expectRect(Math.Transform2.createTranslation(5, -7).transformBounds(Source), {15, 13, 30, 40})
+    expectRect(Math.Transform2.createScale(2, 3, 0, 0).transformBounds(Source), {20, 60, 60, 120})
 
     // A negative scale keeps the rectangle positive: the corners are ordered again.
-    expectRect(Math.Transform2.createScale(-1, 1, 0, 0).transformBounds(Source), Math.Rectangle{-40, 20, 30, 40})
+    expectRect(Math.Transform2.createScale(-1, 1, 0, 0).transformBounds(Source), {-40, 20, 30, 40})
 
     // A quarter turn about the origin swaps the extents.
     let quarter = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
-    expectRect(quarter.transformBounds(Source), Math.Rectangle{-60, 10, 40, 30})
+    expectRect(quarter.transformBounds(Source), {-60, 10, 40, 30})
 }
 
 // The inverse undoes a general affine transform, and a singular one answers the identity.
@@ -153,7 +153,7 @@ func expectRect(actual, expected: Math.Rectangle)
 
     var skew     = Math.Transform2{1, 0.5, 0.25, 1, 3, -2}
     var expected = skew
-    expected.multiply(Math.Transform2{1, 0.5, 0.25, 1, 3, -2})
+    expected.multiply({1, 0.5, 0.25, 1, 3, -2})
     skew.multiplyBorrowed(&skew)
     expectTransform(skew, expected)
 }
@@ -162,5 +162,5 @@ func expectRect(actual, expected: Math.Rectangle)
 #test
 {
     let tiny = Math.Transform2.createScale(0.0005, 0.0005, 0, 0)
-    expectVec2(tiny.inverse().transformPoint(Math.Vector2{1, 1}), Math.Vector2{2000, 2000})
+    expectVec2(tiny.inverse().transformPoint({1, 1}), {2000, 2000})
 }

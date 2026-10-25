@@ -36,7 +36,7 @@ struct RenderCpu
         scissorRect: Math.Rectangle
 
         blendingMode: BlendingMode = Alpha
-        colorMask:    ColorMask    = ColorMask{true, true, true, false}
+        colorMask:    ColorMask    = {true, true, true, false}
 
         paint:         BrushBinding
         gradientStops: const [..] GradientStop?
@@ -1738,8 +1738,8 @@ private impl RenderCpu
                 let w0          = e0 * invArea
                 let w1          = e1 * invArea
                 let w2          = e2 * invArea
-                let paintPos    = needPaintPos ? v0.pos * w0 + v1.pos * w1 + v2.pos * w2 : Vector2{}
-                let fontUv      = needFontUv ? v0.uv * w0 + v1.uv * w1 + v2.uv * w2 : Vector2{}
+                let paintPos    = needPaintPos ? v0.pos * w0 + v1.pos * w1 + v2.pos * w2 : {}
+                let fontUv      = needFontUv ? v0.uv * w0 + v1.uv * w1 + v2.uv * w2 : {}
                 let vertexColor = constantColor ? c0 : Color.fromArgbF32((c0.a * w0 + c1.a * w1 + c2.a * w2) / 255.0,
                                                                          (c0.r * w0 + c1.r * w1 + c2.r * w2) / 255.0,
                                                                          (c0.g * w0 + c1.g * w1 + c2.g * w2) / 255.0,
@@ -2204,7 +2204,7 @@ private impl RenderCpu
         .modelTransform = Transform2.Identity
         .scissorOn      = false
         .blendingMode   = .Alpha
-        .colorMask      = ColorMask{true, true, true, false}
+        .colorMask      = {true, true, true, false}
         .paintOn        = false
         .program        = CpuProgram_Default
         .stencilOn      = false

@@ -117,8 +117,8 @@ func offsetArea(contour: ClipperPath, delta: f64, joinType: JoinType)->{area: f6
 {
     var empty: ClipperPath
     var pair:  ClipperPath
-    pair.add(IntPoint{0, 0})
-    pair.add(IntPoint{1000, 0})
+    pair.add({0, 0})
+    pair.add({1000, 0})
 
     var off: Offset
     off.addPath(empty, .Round)

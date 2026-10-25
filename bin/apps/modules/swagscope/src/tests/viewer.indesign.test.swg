@@ -237,14 +237,14 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     with let infoBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 40})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, linkedIdmlFixturePath(), commandParent: commandBar, infoParent: infoBar)
@@ -310,14 +310,14 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     with let infoBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 40})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, idmlFixturePath(), commandParent: commandBar, infoParent: infoBar)
@@ -381,14 +381,14 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     with let infoBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 40})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, fileName, commandParent: commandBar, infoParent: infoBar)
@@ -487,7 +487,7 @@ func idmlPage(self: string, left: s32, master: string = "")->String
 func writeIdmlPackage(path: string, files: const [..] StoredZipFile)
 {
     var entries: Array'StoredZipFile
-    entries.add(StoredZipFile{name: "mimetype", bytes: IdmlMimeType})
+    entries.add({name: "mimetype", bytes: IdmlMimeType})
     entries.add(files)
     discard expect File.writeAllBytes(path, storedZipBytes(entries.toSlice()).toSlice())
 }
@@ -515,11 +515,11 @@ func writeIdmlPackage(path: string, files: const [..] StoredZipFile)
     const DesignMap   = "<Document><idPkg:MasterSpread src=\"MasterSpreads/m.xml\"/><idPkg:Spread src=\"Spreads/s.xml\"/></Document>"
 
     var files: Array'StoredZipFile
-    files.add(StoredZipFile{name: "designmap.xml", bytes: DesignMap})
+    files.add({name: "designmap.xml", bytes: DesignMap})
     files.add(StoredZipFile{name: "MasterSpreads/m.xml", bytes: master.toSlice()})
     files.add(StoredZipFile{name: "Spreads/s.xml", bytes: spread.toSlice()})
-    files.add(StoredZipFile{name: "Stories/sm.xml", bytes: MasterStory})
-    files.add(StoredZipFile{name: "Stories/st.xml", bytes: PageStory})
+    files.add({name: "Stories/sm.xml", bytes: MasterStory})
+    files.add({name: "Stories/st.xml", bytes: PageStory})
     let path = Testing.tempFilePath("scope-idml-master-", ".idml")
     defer discard catch File.delete(path)
     writeIdmlPackage(path, files.toSlice())
@@ -562,7 +562,7 @@ func writeIdmlPackage(path: string, files: const [..] StoredZipFile)
 
     const DesignMap = "<Document><idPkg:Spread src=\"Spreads/s.xml\"/><idPkg:Spread src=\"Spreads/s.xml\"/><idPkg:Spread src=\"Spreads/s.xml\"/></Document>"
     var files: Array'StoredZipFile
-    files.add(StoredZipFile{name: "designmap.xml", bytes: DesignMap})
+    files.add({name: "designmap.xml", bytes: DesignMap})
     files.add(StoredZipFile{name: "Spreads/s.xml", bytes: spread.toSlice()})
     let path = Testing.tempFilePath("scope-idml-limits-", ".idml")
     defer discard catch File.delete(path)
@@ -598,8 +598,8 @@ func writeIdmlPackage(path: string, files: const [..] StoredZipFile)
                       <Image Self="i" ItemTransform="1 0 0 1 0 0"><Link Self="l" LinkResourceURI="file:images/linked.png"/></Image></Rectangle></Spread>"""
     const DesignMap = "<Document><idPkg:Spread src=\"Spreads/s.xml\"/></Document>"
     var files: Array'StoredZipFile
-    files.add(StoredZipFile{name: "designmap.xml", bytes: DesignMap})
-    files.add(StoredZipFile{name: "Spreads/s.xml", bytes: Spread})
+    files.add({name: "designmap.xml", bytes: DesignMap})
+    files.add({name: "Spreads/s.xml", bytes: Spread})
     let path = Path.combine(folder, "linked.idml")
     writeIdmlPackage(path, files.toSlice())
 

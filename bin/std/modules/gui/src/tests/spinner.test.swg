@@ -27,7 +27,7 @@ func renderSpinner(dpiScale: f32)->Image
     var host: Testing.HeadlessHost
     host.setup(64, 64, dpiScale)
 
-    let spin = Spinner.create(&host.root, Math.Rectangle{16, 16, 32, 32})
+    let spin = Spinner.create(&host.root, {16, 16, 32, 32})
     spin.animationPhase = 0.25
     return host.render()
 }
@@ -39,7 +39,7 @@ func renderSpinner(dpiScale: f32)->Image
     host.setup(64, 64)
 
     let size = host.root.themeMetrics().spinner_Size
-    let spin = Spinner.create(&host.root, Math.Rectangle{8, 8})
+    let spin = Spinner.create(&host.root, {8, 8})
     Swag.assert(spin.position.width == size and spin.position.height == size)
 }
 
@@ -50,7 +50,7 @@ func renderSpinner(dpiScale: f32)->Image
     var host: Testing.HeadlessHost
     host.setup(64, 64)
 
-    let spin = Spinner.create(&host.root, Math.Rectangle{16, 16, 32, 32})
+    let spin = Spinner.create(&host.root, {16, 16, 32, 32})
     spin.animationPhase = 0.95
     discard host.render()
     Swag.assert(spin.animationPhase >= 0 and spin.animationPhase < 1)

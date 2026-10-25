@@ -25,7 +25,7 @@ impl ViewerActionBar
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
-            .padding         = Math.Vector4{12, 6, 12, 0}
+            .padding         = {12, 6, 12, 0}
         }
 
         return result
@@ -412,24 +412,24 @@ impl ViewerErrorView
         with let stack = StackLayoutCtrl.create(result, .VerticalCenter)
         {
             .dockStyle = .Center
-            .padding   = Math.Vector4{48, 48, 48, 48}
+            .padding   = {48, 48, 48, 48}
             .spacing   = 8
         }
 
-        with result.iconLabel = Label.create(stack, "", Math.Rectangle{0, 0, 48, 48})
+        with result.iconLabel = Label.create(stack, "", {0, 0, 48, 48})
         {
             .layoutSpec.alignX = .Center
             .setIcon(result.theme().icon(.Critical, 48))
             .setIconColor(result.themeColors().error)
         }
 
-        with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, Math.Rectangle{0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
         }
 
-        with result.reasonLabel = Label.create(stack, reason, Math.Rectangle{0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight)
+        with result.reasonLabel = Label.create(stack, reason, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)

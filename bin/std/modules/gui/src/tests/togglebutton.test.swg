@@ -20,18 +20,18 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
-    let toggle = ToggleButton.create(&host.root, Math.Rectangle{20, 20, 60, 30}, ToggleButtonHeadless_Command)
+    let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30}, ToggleButtonHeadless_Command)
     toggle.sigChanged += &toggleButtonHeadlessChanged
 
     Swag.assert(not toggle.isChecked())
 
-    host.click(Math.Point{40, 35})
+    host.click({40, 35})
     Swag.assert(toggle.isChecked())
     Swag.assert(ToggleButtonHeadlessChangedCount == 1)
     Swag.assert(host.commandCount == 1)
     Swag.assert(host.lastCommand == ToggleButtonHeadless_Command)
 
-    host.click(Math.Point{40, 35})
+    host.click({40, 35})
     Swag.assert(not toggle.isChecked())
     Swag.assert(ToggleButtonHeadlessChangedCount == 2)
     Swag.assert(host.commandCount == 2)
@@ -45,12 +45,12 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
-    let toggle = ToggleButton.create(&host.root, Math.Rectangle{20, 20, 60, 30})
+    let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30})
     toggle.sigChanged += &toggleButtonHeadlessChanged
 
-    host.mouseDown(Math.Point{40, 35})
-    host.moveMouse(Math.Point{200, 100})
-    host.mouseUp(Math.Point{200, 100})
+    host.mouseDown({40, 35})
+    host.moveMouse({200, 100})
+    host.mouseUp({200, 100})
 
     Swag.assert(not toggle.isChecked())
     Swag.assert(ToggleButtonHeadlessChangedCount == 0)
@@ -66,7 +66,7 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
-    let toggle = ToggleButton.create(&host.root, Math.Rectangle{20, 20, 60, 30}, ToggleButtonHeadless_Command)
+    let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30}, ToggleButtonHeadless_Command)
     toggle.sigChanged += &toggleButtonHeadlessChanged
     toggle.setChecked(true)
     Swag.assert(toggle.isChecked())
@@ -83,7 +83,7 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    let toggle = ToggleButton.create(&host.root, Math.Rectangle{20, 20, 60, 30})
+    let toggle = ToggleButton.create(&host.root, {20, 20, 60, 30})
     toggle.isHot              = true
     toggle.isPressed          = true
     toggle.aniBk.themeCrc     = 42'u32

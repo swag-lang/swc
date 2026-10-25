@@ -889,10 +889,10 @@ impl Panel
             .sigPressed += func|view = me|(_) { view.seekRelative(SeekSeconds) }
         }
 
-        with .volumeSlider = Slider.create(.commands, Math.Rectangle{0, 0, 96, 36})
+        with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
         {
             .dockStyle = .Right
-            .margin    = Math.Vector4{8, 1, 0, 1}
+            .margin    = {8, 1, 0, 1}
             .toolTip   = texts().ui_TipVolume
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
@@ -910,17 +910,17 @@ impl Panel
             .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
         }
 
-        with .timeLabel = Label.create(.commands, "", Math.Rectangle{0, 0, 112, 36}, null, .SecondaryText)
+        with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
         {
             .dockStyle = .Right
             .margin.x  = 8
             .setTextAlignment(.Right, .Center)
         }
 
-        with .timeline = Slider.create(.commands, Math.Rectangle{0, 0, 0, 36})
+        with .timeline = Slider.create(.commands, {0, 0, 0, 36})
         {
             .dockStyle = .Center
-            .margin    = Math.Vector4{12, 1, 12, 1}
+            .margin    = {12, 1, 12, 1}
             .toolTip   = texts().ui_TipSeek
             .enable(false)
             .sigEndChange += func|view = me|(slider) { view.seekSeconds(slider.value()) }

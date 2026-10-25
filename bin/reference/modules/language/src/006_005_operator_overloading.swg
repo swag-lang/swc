@@ -199,26 +199,26 @@ impl Struct
     {
         #static switch op
         {
-        case .Add: return Struct{1, 2}
-        case .Sub: return Struct{2, 1}
+        case .Add: return {1, 2}
+        case .Sub: return {2, 1}
         }
     }
 
     func(op: Swag.Operator) opBinary(me, other: AnotherType)->Struct
     {
-        return Struct{1, 2}
+        return {1, 2}
     }
 
     // Binary operation when this struct is the right operand
     // Examples: OneType + myStruct, AnotherType * myStruct
     func(op: Swag.Operator) opBinaryRight(me, other: OneType)->Struct
     {
-        return Struct{1, 2}
+        return {1, 2}
     }
 
     func(op: Swag.Operator) opBinaryRight(me, other: AnotherType)->Struct
     {
-        return Struct{1, 2}
+        return {1, 2}
     }
 
     // A commutative opBinary can also be used when the struct is the right operand.
@@ -226,14 +226,14 @@ impl Struct
     #[Swag.Commutative(.Add, .Mul)]
     func(op: Swag.Operator) opBinary(me, other: u32)->Struct
     {
-        return Struct{1, 2}
+        return {1, 2}
     }
 
     // Unary operation. 'op' is one of Not, Pos, Neg, BitNot.
     // Unary '-' arrives as 'Neg', so it never collides with the binary 'Sub'.
     func(op: Swag.Operator) opUnary(me)->Struct
     {
-        return Struct{1, 2}
+        return {1, 2}
     }
 
     // Compound assignment. 'op' is one of AddAssign, SubAssign, MulAssign, DivAssign,

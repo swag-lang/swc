@@ -201,8 +201,8 @@ func drawTextPage(painter: *Pixel.Painter)
     drawPageHeader(painter,
                    "Pixel text rendering",
                    "Page 7 : shaped runs, rich layout, painted glyphs, baseline metrics and vector outlines in one painter pass.")
-    drawTextFlowCard(painter, Math.Rectangle{28, 104, 452, 280})
-    drawPaintedGlyphCard(painter, Math.Rectangle{500, 104, 452, 280})
-    drawBaselineCard(painter, Math.Rectangle{28, 406, 452, 258})
-    drawOutlineTextCard(painter, Math.Rectangle{500, 406, 452, 258})
+    drawTextFlowCard(painter, {28, 104, 452, 280})
+    drawPaintedGlyphCard(painter, {500, 104, 452, 280})
+    drawBaselineCard(painter, {28, 406, 452, 258})
+    drawOutlineTextCard(painter, {500, 406, 452, 258})
 }

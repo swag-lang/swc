@@ -352,7 +352,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
             }
         }
 
-        node.offsets[0]      = Vector2{0, 0}
+        node.offsets[0]      = {0, 0}
         node.metrics.width   = base.metrics.width
         node.metrics.ascent  = base.metrics.ascent
         node.metrics.descent = base.metrics.descent
@@ -726,7 +726,7 @@ private func mathLayoutNode(node: *MathNode, font: *Font, style: MathStyle, vari
     case .Style:
         let child = node.children[0]
         mathLayoutNode(child, font, style, node.fontVariant, options)
-        node.offsets[0] = Vector2{0, 0}
+        node.offsets[0] = {0, 0}
         node.metrics    = child.metrics
         node.atomClass  = child.atomClass
     }
@@ -912,7 +912,7 @@ impl MathExpression
     //
     // Repeated calls are allowed; the latest font, style, and options replace the
     // cached box metrics.
-    mtd measure(font: *Font, options: MathLayoutOptions = MathLayoutOptions{})->MathMetrics
+    mtd measure(font: *Font, options: MathLayoutOptions = {})->MathMetrics
     {
         Swag.assert(font != null, "math layout needs a font")
         mathLayoutNode(.root, font, options.style, .Default, options)
@@ -927,7 +927,7 @@ impl Painter
     // Returns the metrics [[Pixel.MathExpression.measure]] reports. A fully transparent color
     // measures without drawing.
     #[Swag.Discardable]
-    mtd drawMath(left, top: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = MathLayoutOptions{})->MathMetrics
+    mtd drawMath(left, top: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics
     {
         let metrics = expression.measure(font, options)
         if color.a != 0 do
@@ -937,7 +937,7 @@ impl Painter
 
     // Draws a parsed expression centered on `(centerX, centerY)` and returns its metrics.
     #[Swag.Discardable]
-    mtd drawMathCenter(centerX, centerY: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = MathLayoutOptions{})->MathMetrics
+    mtd drawMathCenter(centerX, centerY: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics
     {
         let metrics = expression.measure(font, options)
         if color.a != 0 do
@@ -950,7 +950,7 @@ impl Painter
     // Keep the result of [[Pixel.MathExpression.parse]] instead when the same formula is drawn
     // every frame. Parse failures are reported through `fail`.
     #[Swag.Discardable]
-    mtd drawMathLatex(left, top: f32, source: string, font: *Font, color: Color, options: MathLayoutOptions = MathLayoutOptions{})->MathMetrics fail
+    mtd drawMathLatex(left, top: f32, source: string, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics fail
     {
         var expression = try MathExpression.parse(source)
         return .drawMath(left, top, &expression, font, color, options)

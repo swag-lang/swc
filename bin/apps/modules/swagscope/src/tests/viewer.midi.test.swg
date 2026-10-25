@@ -61,14 +61,14 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     with let infoBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 40})
     {
         .dockStyle       = .Top
         .backgroundStyle = .InformationBar
-        .padding         = Math.Vector4{16, 4, 16, 4}
+        .padding         = {16, 4, 16, 4}
     }
 
     let fileName = midiViewerFixturePath()

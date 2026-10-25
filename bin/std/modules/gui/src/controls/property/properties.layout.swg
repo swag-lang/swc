@@ -39,7 +39,7 @@ impl Properties
         if .kind != .Condensed do
             return
         ed.setForm(.Transparent)
-        ed.setAllPaddings(Math.Vector4{8, 0, 8, 0})
+        ed.setAllPaddings({8, 0, 8, 0})
     }
 
     // Sets the requested label-column width in grid layouts; other presentations ignore it.

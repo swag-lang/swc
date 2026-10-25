@@ -30,7 +30,7 @@ using Swag, Core
         if index < 4 do
             discard host.render(view)
         let position = view.scroll.scrollPosition().y
-        host.mouseWheel(Math.Point{360, 240}, delta)
+        host.mouseWheel({360, 240}, delta)
         if index % 4 >= 2 do
             host.advanceAnimations(0.04)
         discard host.render(view)
@@ -96,7 +96,7 @@ using Swag, Core
     for 64 where view.isLoading() do
         host.fireTimers()
 
-    host.moveMouse(Math.Point{360, 240})
+    host.moveMouse({360, 240})
     Swag.assert(host.app.mouseEnterWnd != null and host.app.mouseEnterWnd != view.scroll)
     view.scroll.setScrollPos(0, view.scroll.scrollableClientRect().height)
     discard host.render(view)
@@ -105,7 +105,7 @@ using Swag, Core
     Swag.assert(host.app.mouseEnterWnd == null)
     let end = view.scroll.scrollPosition().y
     Swag.assert(end > 0)
-    host.app.sendMouseWheelEvent(&host.surface, Math.Point{360, 240}, 1)
+    host.app.sendMouseWheelEvent(&host.surface, {360, 240}, 1)
 
     Swag.assert(view.scroll.scrollPosition().y < end)
 }

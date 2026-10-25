@@ -19,7 +19,7 @@ internal struct Encoder {}
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => ImageFormat{"BMP - Windows Bitmap", ".bmp"}
+    mtd impl format()->ImageFormat => {"BMP - Windows Bitmap", ".bmp"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {

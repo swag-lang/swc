@@ -8,6 +8,7 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaAccess.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
@@ -206,10 +207,11 @@ namespace
 
     AstNodeRef aggregateFieldNodeRef(const CastAggregateArgs& args, size_t fieldIndex, size_t expectedCount)
     {
-        if (!args.castRequest->errorNodeRef.isValid())
+        const AstNodeRef literalRef = unwrapLiteralSuffixCarrier(*args.sema, args.castRequest->errorNodeRef);
+        if (literalRef.isInvalid())
             return AstNodeRef::invalid();
 
-        const AstNode& node         = args.sema->node(args.castRequest->errorNodeRef);
+        const AstNode& node         = args.sema->node(literalRef);
         SpanRef        fieldSpanRef = SpanRef::invalid();
         if (node.is(AstNodeId::StructLiteral))
             fieldSpanRef = node.cast<AstStructLiteral>().spanChildrenRef;
@@ -542,36 +544,63 @@ namespace
         std::vector dstUsed(dstFields.size(), false);
         std::vector dstFieldInitRefs(dstFields.size(), AstNodeRef::invalid());
 
+        // In an initializer, a bare identifier that names a destination field always lands in that
+        // field, so a reordered '{y, x}' cannot swap them. Any other bare identifier is a value
+        // taken by position. Tuples keep their positions.
+        const AstNodeRef literalRef      = unwrapLiteralSuffixCarrier(*args.sema, args.castRequest->errorNodeRef);
+        const bool       identifierNames = literalRef.isValid() &&
+                                     (args.sema->node(literalRef).is(AstNodeId::StructInitializerList) ||
+                                      (args.sema->node(literalRef).is(AstNodeId::StructLiteral) && args.sema->token(args.sema->node(literalRef).codeRef()).is(TokenId::SymLeftCurly)));
+
         bool   seenNamed = false;
         size_t nextPos   = 0;
 
         for (size_t i = 0; i < srcTypes.size(); ++i)
         {
-            const IdentifierRef name         = srcNames[i];
-            const bool          positional   = name.isInvalid();
-            const AstNodeRef    fieldNodeRef = aggregateFieldNodeRef(args, i, srcTypes.size());
+            IdentifierRef    name         = srcNames[i];
+            const AstNodeRef fieldNodeRef = aggregateFieldNodeRef(args, i, srcTypes.size());
+            size_t           dstIndex     = 0;
 
-            if (positional)
+            bool             byIdentifier  = false;
+            const AstNodeRef identifierRef = identifierNames && fieldNodeRef.isValid() ? SemaHelpers::fieldShorthandIdentifier(args.sema->ast(), fieldNodeRef) : AstNodeRef::invalid();
+            if (identifierRef.isValid())
+            {
+                name         = args.sema->idMgr().addIdentifier(args.sema->ctx(), args.sema->node(identifierRef).codeRef());
+                byIdentifier = dstStruct.tryGetFieldIndexByName(dstIndex, name);
+                if (!byIdentifier)
+                    name = IdentifierRef::invalid();
+            }
+
+            if (name.isInvalid() || byIdentifier)
+            {
+                // Positional values follow their position, so a value after a matched identifier
+                // still takes its own slot.
+                while (nextPos < dstFields.size() && !dstFields[nextPos])
+                    ++nextPos;
+            }
+
+            if (name.isInvalid())
             {
                 if (seenNamed)
                     return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_unnamed_parameter);
-
-                while (nextPos < dstFields.size() && (dstUsed[nextPos] || !dstFields[nextPos]))
-                    ++nextPos;
                 if (nextPos >= dstFields.size())
                     return failStructFieldCountAt(args, i, srcTypes.size(), srcTypes.size(), dstFields.size());
-
-                srcToDst[i]               = nextPos;
-                dstUsed[nextPos]          = true;
-                dstFieldInitRefs[nextPos] = fieldNodeRef;
+                dstIndex = nextPos++;
+                name     = dstFields[dstIndex]->idRef();
+            }
+            else if (byIdentifier)
+            {
+                if (dstIndex != nextPos && args.sema->node(literalRef).is(AstNodeId::StructInitializerList)) // AUDIT-TEMP
+                    SemaHelpers::auditTemp(*args.sema, "SOFT", fieldNodeRef);                             // AUDIT-TEMP
                 ++nextPos;
-                continue;
+            }
+            else
+            {
+                seenNamed = true;
+                if (!dstStruct.tryGetFieldIndexByName(dstIndex, name))
+                    return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_missing_struct_member, args.sema->idMgr().get(name).name);
             }
 
-            seenNamed       = true;
-            size_t dstIndex = 0;
-            if (!dstStruct.tryGetFieldIndexByName(dstIndex, name))
-                return failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_missing_struct_member, args.sema->idMgr().get(name).name);
             if (dstUsed[dstIndex])
             {
                 const Result res = failStructField(args, i, srcTypes.size(), DiagnosticId::sema_err_struct_cast_duplicate_field, args.sema->idMgr().get(name).name);
@@ -895,7 +924,8 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
     {
         const AstNodeRef literalRef  = unwrapLiteralSuffixCarrier(sema, castRequest.errorNodeRef);
         const bool       constructor = literalRef.isValid() && sema.node(literalRef).is(AstNodeId::StructInitializerList);
-        if (srcType.isPositionalTuple() && !constructor)
+        const bool       initializer = constructor || SemaHelpers::bracePositionalElement(sema, literalRef).isValid();
+        if (srcType.isPositionalTuple() && !initializer)
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
         if (!constructor && dstType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous) && srcType.payloadAggregate().types.size() != dstType.payloadSymStruct().fields().size())
             return failStructFieldCount(ctx, srcType.payloadAggregate().types.size(), dstType.payloadSymStruct().fields().size());

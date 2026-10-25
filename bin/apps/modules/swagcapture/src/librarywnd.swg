@@ -296,7 +296,7 @@ impl LibraryWnd
             .dockStyle       = .Left
             .backgroundStyle = .Panel
             .margin.z        = metrics.panel_GutterSize
-            .padding         = Math.Vector4{0, 8, 0, 8}
+            .padding         = {0, 8, 0, 8}
         }
 
         // The path and command rows are chrome and the captures are content. One panel holding

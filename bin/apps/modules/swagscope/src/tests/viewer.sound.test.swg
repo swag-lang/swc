@@ -236,7 +236,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = Math.Vector4{16, 8, 16, 8}
+        .padding         = {16, 8, 16, 8}
     }
 
     var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commandBar)

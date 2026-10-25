@@ -1005,7 +1005,7 @@ impl Tessellate
             {
                 var direction = Math.Vector2.normalizedOrZero(center - pt)
                 if direction.isEqualEpsilon({}) do
-                    direction = Vector2{1, 0}
+                    direction = {1, 0}
                 pt += direction * 0.001
             }
 

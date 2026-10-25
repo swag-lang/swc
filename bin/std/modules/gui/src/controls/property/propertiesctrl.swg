@@ -37,7 +37,7 @@ impl PropertiesCtrl
 {
     // Creates a property editor and its requested navigation controls.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionNavigation, id: WndId? = null)->*PropertiesCtrl
+    func create(parent: *Wnd, position: Math.Rectangle = {}, kind = PropertiesKind.List, flags = PropertiesCtrlFlags.SectionNavigation, id: WndId? = null)->*PropertiesCtrl
     {
         with let ed = Wnd.create'PropertiesCtrl(parent, "", position, id)
         {
@@ -77,7 +77,7 @@ impl PropertiesCtrl
                 .margin.w  = 8
             }
 
-            with ed.viewButton = IconButton.create(bar, ed.theme().icon(.More, 18), Math.Rectangle{0, 0, 36, 36})
+            with ed.viewButton = IconButton.create(bar, ed.theme().icon(.More, 18), {0, 0, 36, 36})
             {
                 .dockStyle  = .Right
                 .margin.x   = 8
@@ -98,7 +98,7 @@ impl PropertiesCtrl
         // Section filter bar
         if flags.has(.SectionTabs)
         {
-            with ed.tab = Tab.create(ed, Math.Rectangle{0, 0, 0, 30})
+            with ed.tab = Tab.create(ed, {0, 0, 0, 30})
             {
                 .margin.w  = 12
                 .dockStyle = .Top

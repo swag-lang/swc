@@ -38,7 +38,7 @@ public impl MessageDlg
     // Add the actions with [[Gui.Dialog.addButton]], then run the box with
     // [[Gui.MessageDlg.doModal]], which fits it to its message first.
     #[Swag.Discardable]
-    func create(from: *Surface, message: string, options: MessageDlgOptions = MessageDlgOptions{})->*MessageDlg
+    func create(from: *Surface, message: string, options: MessageDlgOptions = {})->*MessageDlg
     {
         Swag.assert(from != null)
         let dlg = Wnd.create'MessageDlg()
@@ -51,7 +51,7 @@ public impl MessageDlg
         let row  = Wnd.create'Wnd(body)
         row.dockStyle = .Center
 
-        with dlg.label = Label.create(row, message, Math.Rectangle{})
+        with dlg.label = Label.create(row, message, {})
         {
             .dockStyle = .Center
 
@@ -117,7 +117,7 @@ public impl MessageDlg
         if .buttons.count > 1 do
             w += cast(f32, ((.buttons.count - 1) * metrics.dialog_BtnPadding))
         w += chrome
-        w = Math.max(w, .label.itf.measureContent(Math.Point{MaxMessageWidth, 0}).x + iconRoom + chrome)
+        w = Math.max(w, .label.itf.measureContent({MaxMessageWidth, 0}).x + iconRoom + chrome)
 
         if .extension do
             w = Math.max(w, .extension.position.width + chrome)
@@ -248,7 +248,7 @@ public impl MessageDlg
     }
 
     // Shows a modal message with one OK action.
-    func ok(from: *Surface, message: string, options: MessageDlgOptions = MessageDlgOptions{})
+    func ok(from: *Surface, message: string, options: MessageDlgOptions = {})
     {
         var opt = options
         if not opt.icon.isValid()
@@ -271,7 +271,7 @@ public impl MessageDlg
     }
 
     // Shows a modal message with OK and Cancel actions.
-    func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = MessageDlgOptions{})->WndId
+    func okCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
         if not opt.icon.isValid()
@@ -293,7 +293,7 @@ public impl MessageDlg
     }
 
     // Shows a modal question with Yes and No actions.
-    func yesNo(from: *Surface, message: string, defaultId = Dialog.BtnNo, options: MessageDlgOptions = MessageDlgOptions{})->WndId
+    func yesNo(from: *Surface, message: string, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
         if not opt.icon.isValid()
@@ -315,7 +315,7 @@ public impl MessageDlg
     }
 
     // Shows a modal question with Yes, No, and Cancel actions.
-    func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = MessageDlgOptions{})->WndId
+    func yesNoCancel(from: *Surface, message: string, defaultId = Dialog.BtnCancel, options: MessageDlgOptions = {})->WndId
     {
         var opt = options
         if not opt.icon.isValid()
@@ -341,7 +341,7 @@ public impl MessageDlg
     //
     // `question` is set under `message` as its own paragraph; when it is `null`, the standard
     // confirmation line is set there in bold.
-    func confirm(from: *Surface, message: string, question: string? = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = MessageDlgOptions{})->WndId
+    func confirm(from: *Surface, message: string, question: string? = null, defaultId = Dialog.BtnNo, options: MessageDlgOptions = {})->WndId
     {
         var txt = String.from(message)
         while not txt.isEmpty() and txt.back() == '\n' do
@@ -369,7 +369,7 @@ public impl MessageDlg
     //
     // The caller captures the error (`catch f() as err`) and hands it in; when it is a
     // `Swag.SystemError`, its message is appended to the shown text as its own paragraph.
-    func error(from: *Surface, message: string? = null, err: any? = null, options: MessageDlgOptions = MessageDlgOptions{})
+    func error(from: *Surface, message: string? = null, err: any? = null, options: MessageDlgOptions = {})
     {
         // The detail is a paragraph under the message, and only when there is one: appended
         // unconditionally, the separator left an empty line the box still had to be tall

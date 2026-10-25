@@ -19,8 +19,8 @@ using Swag, Core, Pixel
     let large     = icons.icon(0, 24, 1)
     let smallList = unwrap small.imageList
     let largeList = unwrap large.imageList
-    discard IconButton.create(&host.root, small, Math.Rectangle{10, 10, 40, 40})
-    discard IconButton.create(&host.root, large, Math.Rectangle{65, 10, 40, 40})
+    discard IconButton.create(&host.root, small, {10, 10, 40, 40})
+    discard IconButton.create(&host.root, large, {65, 10, 40, 40})
     let before = host.render()
 
     // A third size raises the density without re-requesting either stored icon.

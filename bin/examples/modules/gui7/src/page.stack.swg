@@ -2,7 +2,7 @@ using Core, Gui, Pixel
 
 func addStackButton(parent: *Wnd, text: string, icon: ThemeIcons)
 {
-    let btn = PushButton.create(parent, text, Math.Rectangle{0, 0, 150, 32})
+    let btn = PushButton.create(parent, text, {0, 0, 150, 32})
     btn.setIcon(app.theme.icon(icon, 16))
 }
 
@@ -19,7 +19,7 @@ func createVerticalStack(parent: *Wnd, rect: Math.Rectangle)
     addStackButton(stack, "Open workspace", .OpenFile)
     addStackButton(stack, "Save layout", .Save)
     addStackButton(stack, "Duplicate pane", .Duplicate)
-    let check = CheckButton.create(stack, "Preserve sidebars", Math.Rectangle{0, 0, 210, 32})
+    let check = CheckButton.create(stack, "Preserve sidebars", {0, 0, 210, 32})
     check.setState(.Checked)
 
     stack.computeLayout()

@@ -31,7 +31,7 @@ func iconBarHeadlessReset()
     host.setup(240, 80)
     iconBarHeadlessReset()
 
-    let bar = IconBar.create(&host.root, 24, Math.Rectangle{20, 20})
+    let bar = IconBar.create(&host.root, 24, {20, 20})
     let b1  = bar.addButton({}, IconBarHeadless_Btn1)
     let b2  = bar.addToggleButton({}, "IconBarHeadless.Btn2")
 
@@ -48,7 +48,7 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    let bar              = IconBar.create(&host.root, 20, Math.Rectangle{20, 20}, itemPadding: 2)
+    let bar              = IconBar.create(&host.root, 20, {20, 20}, itemPadding: 2)
     let btn              = bar.addButton({}, IconBarHeadless_Btn1)
     let descriptorWidth  = btn.icon.sizeX
     let descriptorHeight = btn.icon.sizeY
@@ -73,12 +73,12 @@ func iconBarHeadlessReset()
     host.setup(240, 80)
     iconBarHeadlessReset()
 
-    let bar = IconBar.create(&host.root, 24, Math.Rectangle{20, 20})
+    let bar = IconBar.create(&host.root, 24, {20, 20})
     bar.sigPressed += &iconBarHeadlessPressed
     bar.addButton({}, IconBarHeadless_Btn1)
 
     // First button is docked on the left, filling the bar origin.
-    host.click(Math.Point{34, 34})
+    host.click({34, 34})
     Swag.assert(IconBarHeadlessPressedCount == 1)
 }
 
@@ -89,11 +89,11 @@ func iconBarHeadlessReset()
     host.setup(240, 80)
     iconBarHeadlessReset()
 
-    let bar = IconBar.create(&host.root, 24, Math.Rectangle{20, 20})
+    let bar = IconBar.create(&host.root, 24, {20, 20})
     bar.sigCheckedChanged += &iconBarHeadlessChecked
     let b = bar.addToggleButton({}, IconBarHeadless_Btn1)
 
-    host.click(Math.Point{34, 34})
+    host.click({34, 34})
     Swag.assert(b.isChecked)
     Swag.assert(IconBarHeadlessCheckCount == 1)
 

@@ -484,7 +484,7 @@ impl FileBrowserCtrl
 
     // Creates an embedded file browser inside `parent`.
     #[Swag.Discardable]
-    func create(parent: *Wnd, opt: FileDlgOptions = FileDlgOptions{}, position: Math.Rectangle = Math.Rectangle{})->*FileBrowserCtrl
+    func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
     {
         Swag.assert(parent != null)
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
@@ -507,7 +507,7 @@ impl FileBrowserCtrl
         ////////////////////////
         if fileBrowser.options.showLocationsPane
         {
-            with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, Math.Rectangle{0, 0, 170})
+            with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, {0, 0, 170})
             {
                 .dockStyle = .Left
                 .updateFlags(.HotTrack)
@@ -546,7 +546,7 @@ impl FileBrowserCtrl
 
         // Icon-only navigation: the labels live in the tooltips, so the bar never
         // truncates its buttons when the surface shrinks.
-        with fileBrowser.backButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Undo, 20), Math.Rectangle{0, 0, 30, 30})
+        with fileBrowser.backButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Undo, 20), {0, 0, 30, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 4
@@ -554,7 +554,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goBack() }
         }
 
-        with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Redo, 20), Math.Rectangle{0, 0, 30, 30})
+        with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Redo, 20), {0, 0, 30, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 4
@@ -562,7 +562,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goForward() }
         }
 
-        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ChevronDown, fileBrowser.themeMetrics().chevron_Size), Math.Rectangle{0, 0, 22, 30})
+        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ChevronDown, fileBrowser.themeMetrics().chevron_Size), {0, 0, 22, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 4
@@ -574,7 +574,7 @@ impl FileBrowserCtrl
                 .hide()
         }
 
-        with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ParentFolder, 20), Math.Rectangle{0, 0, 30, 30})
+        with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ParentFolder, 20), {0, 0, 30, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 10
@@ -582,7 +582,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goUp() }
         }
 
-        with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Update, 20), Math.Rectangle{0, 0, 30, 30})
+        with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Update, 20), {0, 0, 30, 30})
         {
             .dockStyle  = .Right
             .margin.x   = 4
@@ -651,7 +651,7 @@ impl FileBrowserCtrl
 
         // A count of what a folder holds is read at a glance and never acted on, so it sits
         // in the faintest of the three text tones rather than beside the file names.
-        with fileBrowser.statusLabel = Label.create(statusBar, "", Math.Rectangle{})
+        with fileBrowser.statusLabel = Label.create(statusBar, "", {})
         {
             .dockStyle = .Center
             .setTextColor(statusBar.themeColors().label_TextFaint)

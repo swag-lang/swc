@@ -9,11 +9,11 @@ func createCompositePage(parent: *Wnd)
                              layout.left)
     scope
     {
-        let picker = ColorPickerCtrl.create(left, Math.Rectangle{24, 92}, .All)
+        let picker = ColorPickerCtrl.create(left, {24, 92}, .All)
         picker.setFrameForm(.Round)
         picker.setColor(g_Color)
         picker.sigColorChanged += func(picker) { setSelectedColor(picker.color(), "ColorPickerCtrl alpha") }
-        discard createQuickPalette(left, Math.Rectangle{400, 124, 196, 200}, "Shared presets")
+        discard createQuickPalette(left, {400, 124, 196, 200}, "Shared presets")
     }
 
     let right = createPanel(parent,
@@ -24,11 +24,11 @@ func createCompositePage(parent: *Wnd)
     {
         var opaque = g_Color
         opaque.a = 255
-        let picker = ColorPickerCtrl.create(right, Math.Rectangle{24, 92}, .All & ~.AllowAlpha)
+        let picker = ColorPickerCtrl.create(right, {24, 92}, .All & ~.AllowAlpha)
         picker.setFrameForm(.Round)
         picker.setColor(opaque)
         picker.sigColorChanged += func(picker) { setSelectedColor(picker.color(), "ColorPickerCtrl opaque") }
-        discard createQuickPalette(right, Math.Rectangle{400, 124, 196, 200}, "Opaque presets")
+        discard createQuickPalette(right, {400, 124, 196, 200}, "Opaque presets")
     }
 
     let bottom = createPanel(parent,

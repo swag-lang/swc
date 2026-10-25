@@ -20,20 +20,20 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 
-    let check = CheckButton.create(&host.root, "Enable", Math.Rectangle{20, 20, 120, 30}, CheckButtonHeadless_Command)
+    let check = CheckButton.create(&host.root, "Enable", {20, 20, 120, 30}, CheckButtonHeadless_Command)
     check.sigChanged += &checkButtonHeadlessChanged
 
     Swag.assert(not check.isChecked())
     Swag.assert(check.state == .Unchecked)
 
-    host.click(Math.Point{40, 35})
+    host.click({40, 35})
     Swag.assert(check.isChecked())
     Swag.assert(check.state == .Checked)
     Swag.assert(CheckButtonHeadlessChangedCount == 1)
     Swag.assert(host.commandCount == 1)
     Swag.assert(host.lastCommand == CheckButtonHeadless_Command)
 
-    host.click(Math.Point{40, 35})
+    host.click({40, 35})
     Swag.assert(not check.isChecked())
     Swag.assert(check.state == .Unchecked)
     Swag.assert(CheckButtonHeadlessChangedCount == 2)
@@ -48,18 +48,18 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 
-    let check = CheckButton.create(&host.root, "Tri", Math.Rectangle{20, 20, 120, 30})
+    let check = CheckButton.create(&host.root, "Tri", {20, 20, 120, 30})
     check.updateFlags(.TriState)
 
-    host.click(Math.Point{40, 35})
+    host.click({40, 35})
     Swag.assert(check.state == .Checked)
     Swag.assert(check.isChecked())
 
-    host.click(Math.Point{40, 35})
+    host.click({40, 35})
     Swag.assert(check.state == .Indeterminate)
     Swag.assert(check.isIndeterminate())
 
-    host.click(Math.Point{40, 35})
+    host.click({40, 35})
     Swag.assert(check.state == .Unchecked)
 
     // Programmatic changes are silent and repaint without simulating input.
@@ -75,7 +75,7 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     host.setup(240, 120)
     CheckButtonHeadlessChangedCount = 0
 
-    let check = CheckButton.create(&host.root, "Key", Math.Rectangle{20, 20, 120, 30})
+    let check = CheckButton.create(&host.root, "Key", {20, 20, 120, 30})
     check.sigChanged += &checkButtonHeadlessChanged
     host.focus(check)
 
@@ -96,11 +96,11 @@ func checkButtonHeadlessChanged(_: *CheckButton)
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 
-    let check = CheckButton.create(&host.root, "Off", Math.Rectangle{20, 20, 120, 30})
+    let check = CheckButton.create(&host.root, "Off", {20, 20, 120, 30})
     check.sigChanged += &checkButtonHeadlessChanged
     check.disable()
 
-    host.click(Math.Point{40, 35})
+    host.click({40, 35})
     Swag.assert(not check.isChecked())
     Swag.assert(CheckButtonHeadlessChangedCount == 0)
     Swag.assert(host.commandCount == 0)

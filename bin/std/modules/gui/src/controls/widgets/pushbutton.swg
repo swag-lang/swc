@@ -271,7 +271,7 @@ impl PushButton
     // A zero `position` height takes the theme height. A zero width starts at the theme width
     // and then follows the caption, keeping the theme width as a floor.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, form = PushButtonForm.Normal)->*PushButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, form = PushButtonForm.Normal)->*PushButton
     {
         Swag.assert(parent != null)
         var pos = position

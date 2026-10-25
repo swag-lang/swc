@@ -674,7 +674,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let rail = view.boxOfNode(view.elementById("rail"))
     Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
     Swag.assert(view.layout.constBox(rail).rect.y == 40)
-    Swag.assert(view.painter().scrollableAt(Math.Point{20, 60}) == rail)
+    Swag.assert(view.painter().scrollableAt({20, 60}) == rail)
     Swag.assert(view.scrollRegion(rail, 80))
     Swag.assert(view.layout.constBox(rail).scrollTop == 80)
 
@@ -722,17 +722,17 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let rail = view.boxOfNode(view.elementById("rail"))
     Swag.assert(rail != HtmlNoNode)
-    let bar = view.painter().scrollBarAt(Math.Point{96, 75})
+    let bar = view.painter().scrollBarAt({96, 75})
     Swag.assert(bar.box == rail and bar.track.contains(Math.Point{96, 75}))
 
-    host.click(Math.Point{96, 75})
+    host.click({96, 75})
     Swag.assert(view.layout.constBox(rail).scrollTop == 100)
 
-    let moved = view.painter().scrollBarAt(Math.Point{96, 50})
+    let moved = view.painter().scrollBarAt({96, 50})
     Swag.assert(moved.box == rail and moved.thumb.y <= 50 and moved.thumb.bottom() >= 50)
-    host.mouseDown(Math.Point{91, 50})
-    host.moveMouse(Math.Point{91, 95})
-    host.mouseUp(Math.Point{91, 95})
+    host.mouseDown({91, 50})
+    host.moveMouse({91, 95})
+    host.mouseUp({91, 95})
     Swag.assert(view.layout.constBox(rail).scrollTop > 190)
 }
 
@@ -760,7 +760,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(rail != HtmlNoNode)
     Swag.assert(Math.abs(view.layout.constBox(rail).content.height - (view.layout.viewport.y - 40)) <= 1)
     Swag.assert(view.layout.constBox(rail).scrollable)
-    Swag.assert(view.painter().scrollableAt(Math.Point{20, 80}) == rail)
+    Swag.assert(view.painter().scrollableAt({20, 80}) == rail)
     Swag.assert(view.scrollRegion(rail, 70))
     Swag.assert(view.layout.constBox(rail).scrollTop == 70)
 }
@@ -786,7 +786,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var image = host.render(view)
     Swag.assert(image.pixelColor(120, 20).argb == 0xFFFF0000)
     Swag.assert(image.pixelColor(120, 80).argb == 0xFF0000FF)
-    Swag.assert(view.document.constNode(view.painter().nodeAt(Math.Point{120, 20})).tag == .Header)
+    Swag.assert(view.document.constNode(view.painter().nodeAt({120, 20})).tag == .Header)
 }
 
 // The complete fixture renders, and nothing a document hides reaches the drawn text.
@@ -1225,7 +1225,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     // the keyboard, so later navigation keys cannot disappear into stale focus.
     host.focus(&host.root)
     Swag.assert(not view.hasFocus())
-    host.click(Math.Point{20, 20})
+    host.click({20, 20})
     Swag.assert(view.hasFocus())
 }
 
@@ -1616,17 +1616,17 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.scroll.setScrollPos(0, 520)
     let pageStart = view.scroll.scrollPosition().y
 
-    host.mouseWheel(Math.Point{60, 100}, -1)
+    host.mouseWheel({60, 100}, -1)
     Swag.assert(view.layout.constBox(rail).scrollTop > 0)
     Swag.assert(view.scroll.scrollPosition().y == pageStart)
 
     discard view.scrollRegion(rail, 100_000)
     let railEnd = view.layout.constBox(rail).scrollTop
-    host.mouseWheel(Math.Point{60, 100}, -1)
+    host.mouseWheel({60, 100}, -1)
     Swag.assert(view.layout.constBox(rail).scrollTop == railEnd)
     Swag.assert(view.scroll.scrollPosition().y == pageStart)
 
-    host.mouseWheel(Math.Point{420, 180}, -1)
+    host.mouseWheel({420, 180}, -1)
     Swag.assert(view.scroll.scrollPosition().y > pageStart)
     Swag.assert(view.layout.constBox(rail).scrollTop == railEnd)
 }
@@ -2668,12 +2668,12 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
     view.rebuild()
 
     host.clickPopupMenuItemWhenShown(HtmlView.CtxSelectAll)
-    view.showContextMenu(Math.Point{50, 50})
+    view.showContextMenu({50, 50})
     host.pump()
     Swag.assert(view.selectedText() == "menu content")
 
     host.clickPopupMenuItemWhenShown(HtmlView.CtxCopy)
-    view.showContextMenu(Math.Point{50, 50})
+    view.showContextMenu({50, 50})
     host.pump()
     Swag.assert(Clipboard.getString() == "menu content")
 }

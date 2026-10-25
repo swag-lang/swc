@@ -172,9 +172,9 @@ func videoAssertReferenceFrame(frame: Image, reference: const [..] u8, index: u6
 //
 // `container` carries no leading dot: it names the file beside `name.yuv` the stream is read from,
 // so one reference dump serves every container the same access units were muxed into.
-func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u64, container = "mp4", chromaShift = 1's32)
+func videoAssertReferenceStream(name: string, width, height: s32, frameCount: u64, container = "mp4", chromaShift = 1's32, workers = 16'u32)
 {
-    Swag.setWorkerCount(16)
+    Swag.setWorkerCount(workers)
 
     var reader = expect Reader.open(videoFixturePath(Format.toString("%.%", name, container).toString()))
     Swag.assert(reader.width() == width and reader.height() == height)

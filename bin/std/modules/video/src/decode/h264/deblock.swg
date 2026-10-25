@@ -19,7 +19,7 @@ private struct DeblockContext
 {
     decoder:     *Decoder
     rowProgress: [*] u32
-    laneCount:   u32
+    nextRow:     u32     // The first row no lane has claimed yet.
 }
 
 // Filters the whole decoded picture.
@@ -41,19 +41,27 @@ func deblockPicture(dec: *Decoder)
     // A macroblock touches samples owned by its left and top neighbors. Rows therefore form a
     // wavefront: row Y may filter X once row Y-1 has completed X+1. The extra macroblock of
     // lead matters because the previous row's next vertical boundary overlaps the horizontal
-    // edge being filtered here. Rows with the same lane are far enough apart to run in one job.
+    // edge being filtered here.
+    //
+    // Lanes claim rows in order rather than owning a fixed share of them. A lane then only ever
+    // waits on a row some running lane has already claimed, so the picture completes whether
+    // the lanes run together or one after another. `parallel for` promises neither: a cold loop
+    // runs one lane alone on the caller before starting the others, so a lane that owned every
+    // eighth row waited forever on a row belonging to a lane that had not started.
     var rowProgress: Array'u32
     rowProgress.resize(cast(u64, sps.mbHeight))
-    var context = DeblockContext{dec, rowProgress.storage(), laneCount}
-    parallel for |&context| parIndex in cast(u64, laneCount)
+    var context = DeblockContext{dec, rowProgress.storage(), 0}
+    parallel for |&context| _ in cast(u64, laneCount)
     {
-        let index  = cast(u32, parIndex)
         let state  = &context
         let width  = state.decoder.sps!.mbWidth
-        let height = state.decoder.sps.mbHeight
-        var mbY    = cast(s32, index)
-        while mbY < height
+        let height = cast(u32, state.decoder.sps.mbHeight)
+        for
         {
+            let row = Atomic.add(&state.nextRow, 1)
+            if row >= height do
+                break
+            let mbY = cast(s32, row)
             for mbX in width
             {
                 if mbY > 0
@@ -78,8 +86,6 @@ func deblockPicture(dec: *Decoder)
                 deblockMb(state.decoder, mbX, mbY)
                 Atomic.exchange(state.rowProgress + cast(u64, mbY), cast(u32, mbX) + 1)
             }
-
-            mbY += cast(s32, state.laneCount)
         }
     }
 }

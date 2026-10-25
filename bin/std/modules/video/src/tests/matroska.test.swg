@@ -231,6 +231,41 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     Swag.assert(frame.width == 64 and frame.height == 48)
 }
 
+// A reader opened for its pictures alone reaches distant pictures through the cues without
+// starting the sound scan or building a single sound window, and reports no sound or subtitle
+// track whether it reads a file or memory.
+#test
+{
+    var source = expect ByteSource.openFile(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv").toString())
+    var decoder:  Matroska.Decoder
+    let deferred: IDeferredDecoder = &decoder
+    let idecoder: IDecoder         = &decoder
+    deferred.skipSound()
+    discard expect idecoder.open(&source)
+
+    var reference = expect Reader.open(videoFixturePath("ffmpeg-h264-baseline.mp4"))
+    const Frames: [3] u64 = [12_007, 7_500, 20]
+    var actual, expected: Image
+    for index in Frames
+    {
+        expect idecoder.seekFrame(&source, index)
+        expect idecoder.decodeFrame(&source, &actual)
+        expect reference.decodeFrameInto(&expected, index % reference.frameCount())
+        Swag.assert(Slice.equals(actual.pixels.toSlice(), expected.pixels.toSlice()))
+    }
+
+    let fileIndex = unwrap decoder.fileIndex
+    Swag.assert(not fileIndex.soundWorker.isStarted() and not fileIndex.windowWorker.isStarted())
+    Swag.assert(fileIndex.seekSounds.isEmpty())
+
+    var file = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac-10min.mkv"), pictureOnly: true)
+    Swag.assert(file.audioTrackCount() == 0 and file.subtitleTrackCount() == 0)
+
+    let bytes  = expect File.readAllBytes(videoFixturePath("ffmpeg-h264-subtitle.mkv").toString())
+    var memory = expect Reader.openMemory("clip.mkv", bytes.toSlice(), pictureOnly: true)
+    Swag.assert(memory.subtitleTrackCount() == 0 and memory.decoder != null)
+}
+
 // The registry claims Matroska alone, and malformed or unrelated EBML input remains a format
 // error rather than being decoded from a coincidental extension.
 #test

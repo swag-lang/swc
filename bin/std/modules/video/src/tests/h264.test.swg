@@ -3,6 +3,18 @@
 
 using Core, Core.Errors, Pixel
 
+// A picture of several slices is filtered by a wavefront over its macroblock rows. Two workers
+// make two lanes for four rows, so each lane has a row that waits on the other lane, and
+// `parallel for` may run the lanes one after the other: the filter must complete either way.
+// The test comes first: a loop the scheduler has already timed tends to start both lanes at
+// once, while a cold one runs a lane alone before the other, which is what exposes a lane
+// waiting on a row nobody is filtering.
+#test
+{
+    defer Swag.setWorkerCount(16)
+    videoAssertReferenceStream("ffmpeg-h264-temporal", 96, 64, 60, workers: 2)
+}
+
 // A forward seek crosses directly to the nearest useful sync sample instead of decoding the
 // whole stream prefix. The pyramid fixture carries a later clean decode point.
 #test

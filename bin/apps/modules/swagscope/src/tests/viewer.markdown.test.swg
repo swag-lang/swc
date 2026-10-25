@@ -169,7 +169,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     window.applyLayout()
-    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lignes · 4 mots")
+    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lignes · 4 mots · 23 caractères")
     Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
 }
 

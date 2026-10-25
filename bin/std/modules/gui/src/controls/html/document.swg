@@ -2,8 +2,9 @@
 
 using Core
 
-// Index meaning "no node", as returned by a lookup that finds nothing. A document always owns
-// node 0, so zero is a valid index.
+// Index meaning "no node", as returned by a lookup that finds nothing.
+//
+// A document always owns node 0, so zero is a valid index.
 public const HtmlNoNode = Swag.U32.Max
 
 // The elements the engine treats specially.

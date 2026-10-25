@@ -63,3 +63,11 @@ active GUI theme. A theme change relayouts the document and all mathematical
 expressions without rebuilding the source model.
 Changing the language refreshes alert titles in existing and progressively loaded
 blocks. The document's authored text stays unchanged.
+
+For a document appearance with its own typography, set [[Gui.Markdown.Style.bodyLineHeight]],
+[[Gui.Markdown.Style.codeLineHeight]], and [[Gui.Markdown.Style.headingLineHeights]] in logical
+pixels. Their zero defaults retain font-relative leading. Set both components of
+[[Gui.Markdown.Style.blockMargins]] to nonnegative values to collapse adjacent block margins:
+the larger margin supplies the gap, and heading spacing becomes external margins. Heading
+underlines and quote insets can then follow the same document's style without altering the
+application theme. The default style retains its original padded layout.

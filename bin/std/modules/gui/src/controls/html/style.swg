@@ -320,8 +320,9 @@ impl HtmlEdges
         .left   = length
     }
 
-    // The four automatic offsets a statically placed box carries, which is what `inset` means
-    // before a document says anything.
+    // Returns automatic offsets for all four sides of a statically placed box.
+    //
+    // These are the initial CSS `inset` values before the document supplies a declaration.
     #[ConstExpr]
     public func auto()->HtmlEdges => {HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto()}
 }

@@ -47,86 +47,136 @@ func viewerPlugin()->Viewer.Plugin
 func viewerStyle(themeIndex, widthIndex: u32)->Markdown.Style
 {
     var result = Markdown.Style.theme()
-    if themeIndex do
-        result.codeTypeFaces = systemFaces(["Consolas", "Menlo", "Monaco"])
+    if themeIndex
+    {
+        result.codeTypeFaces        = systemFaces(["Consolas", "Menlo", "Monaco"])
+        result.blockMargins         = {16, 16}
+        result.bodyLineHeight       = 25.6
+        result.codeLineHeight       = 22.4
+        result.headingTopSpacing    = [16, 16, 16, 16, 16, 16]
+        result.headingBottomSpacing = [16, 16, 16, 16, 16, 16]
+        result.horizontalInset      = 30
+        result.topInset             = 36
+        result.bottomInset          = 100
+        result.imageAlignment       = .Center
+        result.quotePadding         = {19, 0, 15, 0}
+        result.quoteRuleWidth       = 4
+        result.quoteRuleInset       = 0
+        result.quoteRuleColor       = .Border
+    }
+
     switch themeIndex
     {
     // The application's own theme and Whitey set their body column flush on both edges. The four
-    // themes between them are imported, and each is read with the ragged edge its original has:
-    // a justified GitHub page is not a GitHub page.
+    // themes between them follow Typora's ragged paragraph edges.
     case 0:
         result.paragraphAlignment = .Justify
 
     case 1:
-        result.bodyTypeFaces = systemFaces(["Open Sans", "Clear Sans", "Helvetica Neue", "Helvetica", "Arial"])
+        result.bodyTypeFaces      = systemFaces(["Open Sans", "Clear Sans", "Helvetica Neue", "Helvetica", "Arial"])
+        result.maxContentWidth    = 800
+        result.topInset           = 30
+        result.blockMargins       = {12.8, 12.8}
+        result.headingLineHeights = [43.2, 34.3, 34.32, 28, 22.4, 22.4]
+        result.headingRuleWidths  = [-1, -1, 0, 0, 0, 0]
 
     case 2:
-        result.bodyTypeFaces    = systemFaces(["PT Serif", "Times New Roman", "Times"])
-        result.maxContentWidth  = 640
-        result.horizontalInset  = 40
-        result.topInset         = 48
-        result.bottomInset      = 48
-        result.heading1FontSize = 30
-        result.heading2FontSize = 21
-        result.heading3FontSize = 21
-        result.heading4FontSize = 18
-        result.lineHeight       = 1.5
+        result.bodyTypeFaces        = systemFaces(["PT Serif", "Times New Roman", "Times"])
+        result.maxContentWidth      = 580
+        result.heading1FontSize     = 30
+        result.heading2FontSize     = 21
+        result.heading3FontSize     = 21
+        result.heading4FontSize     = 18
+        result.lineHeight           = 1.5
+        result.bodyLineHeight       = 24
+        result.blockMargins         = {16, 24}
+        result.headingFontStyles    = [.Bold, .Bold, .Regular, .Bold, .Bold, .Bold]
+        result.headingTopSpacing    = [60, 48, 48, 48, 16, 16]
+        result.headingBottomSpacing = [45, 32, 32, 27, 24, 24]
+        result.headingLineHeights   = [48, 24.15, 24.15, 24, 24, 24]
+        result.headingRuleWidths    = [-1, 0, 0, 0, 0, 0]
+        result.headingRuleColor     = .Text
+        result.headingRulePadding   = [24.375, 0, 0, 0, 0, 0]
+        result.quotePadding         = {21, 0, 0, 0}
+        result.quoteRuleWidth       = 5
+        result.quoteIndent          = 32
+        result.quoteFontStyle       = .Italic
+        result.quoteRuleColor       = .Text
 
     case 3:
-        result.bodyTypeFaces    = systemFaces(["Helvetica Neue", "Helvetica", "Arial"])
-        result.headingTypeFaces = systemFaces(["Lucida Grande", "Corbel"])
-        result.maxContentWidth  = 914
-        result.horizontalInset  = 48
-        result.topInset         = 42
-        result.bottomInset      = 48
-        result.heading1FontSize = 40
-        result.heading2FontSize = 26
-        result.heading3FontSize = 19
-        result.heading4FontSize = 18
-        result.heading6FontSize = 15
-        result.lineHeight       = 1.625
+        result.bodyTypeFaces        = systemFaces(["Helvetica Neue", "Helvetica", "Arial"])
+        result.headingTypeFaces     = systemFaces(["Lucida Grande", "Corbel"])
+        result.maxContentWidth      = 854
+        result.heading1FontSize     = 40
+        result.heading2FontSize     = 26
+        result.heading3FontSize     = 19
+        result.heading4FontSize     = 18
+        result.heading6FontSize     = 15
+        result.lineHeight           = 1.625
+        result.bodyLineHeight       = 26
+        result.headingFontStyles    = [.Regular, .Bold, .Bold, .Regular, .Bold, .Regular]
+        result.headingTopSpacing    = [0, 0, 0, 0, 0, 0]
+        result.headingBottomSpacing = [24, 24, 24, 24, 24, 12]
+        result.headingLineHeights   = [44, 30, 24, 22, 20, 16]
+        result.quotePadding         = {32, 0, 0, 0}
+        result.quoteIndent          = 30
+        result.quoteRuleWidth       = 2
 
     case 4:
-        result.bodyTypeFaces    = systemFaces(["Merriweather", "PT Serif", "Georgia", "Times New Roman"])
-        result.headingTypeFaces = systemFaces(["Lato", "Helvetica Neue", "Helvetica", "Arial"])
-        result.codeTypeFaces    = systemFaces(["Menlo", "Monaco", "Courier New"])
-        result.maxContentWidth  = 914
-        result.horizontalInset  = 48
-        result.topInset         = 32
-        result.bottomInset      = 56
-        result.bodyFontSize     = 18
-        result.codeFontSize     = 16
-        result.mathFontSize     = 24
-        result.heading1FontSize = 42
-        result.heading2FontSize = 30
-        result.heading3FontSize = 24
-        result.heading4FontSize = 20
-        result.heading5FontSize = 18
-        result.heading6FontSize = 18
-        result.lineHeight       = 1.8
+        result.bodyTypeFaces        = systemFaces(["Merriweather", "PT Serif", "Georgia", "Times New Roman"])
+        result.headingTypeFaces     = systemFaces(["Lato", "Helvetica Neue", "Helvetica", "Arial"])
+        result.codeTypeFaces        = systemFaces(["Menlo", "Monaco", "Courier New"])
+        result.maxContentWidth      = 854
+        result.bodyFontSize         = 20
+        result.codeFontSize         = 16
+        result.mathFontSize         = 24
+        result.heading1FontSize     = 52
+        result.heading2FontSize     = 37
+        result.heading3FontSize     = 26
+        result.heading4FontSize     = 21
+        result.heading5FontSize     = 18
+        result.heading6FontSize     = 18
+        result.lineHeight           = 1.8
+        result.bodyLineHeight       = 36
+        result.headingTopSpacing    = [52, 37, 26, 21, 18, 18]
+        result.headingBottomSpacing = [26, 18, 13, 10, 9, 9]
+        result.headingLineHeights   = [62.4, 44.4, 31.2, 25.2, 21.6, 21.6]
+        result.quotePadding         = {32, 27, 27, 27}
+        result.quoteRuleWidth       = 5
+        result.quoteFontStyle       = .Italic
+        result.quoteRuleColor       = .RichText
 
     case 5:
-        result.bodyTypeFaces        = systemFaces(["Vollkorn", "Palatino", "Palatino Linotype", "Times", "Times New Roman"])
-        result.headingFontStyles    = [.Bold, .Bold, .Bold, .Bold, .Bold, .Bold]
-        result.headingTopSpacing    = [34, 30, 24, 20, 18, 18]
-        result.headingBottomSpacing = [22, 18, 14, 12, 10, 10]
-        result.maxContentWidth      = 960
-        result.horizontalInset      = 52
-        result.topInset             = 40
-        result.bottomInset          = 48
-        result.bodyFontSize         = 19
-        result.codeFontSize         = 17
-        result.mathFontSize         = 25
-        result.heading1FontSize     = 57
-        result.heading2FontSize     = 30
-        result.heading3FontSize     = 23
-        result.heading4FontSize     = 20
-        result.heading5FontSize     = 19
-        result.heading6FontSize     = 19
-        result.lineHeight           = 1.53
-        result.headingAlignment     = .Center
-        result.imageAlignment       = .Center
-        result.paragraphAlignment   = .Justify
+        result.bodyTypeFaces          = systemFaces(["Vollkorn", "Palatino", "Times", "Times New Roman"])
+        result.headingFontStyles      = [.Regular, .Regular, .Italic, .Bold, .Bold, .Bold]
+        result.headingTopSpacing      = [91, 68, 91, 19, 19, 19]
+        result.headingBottomSpacing   = [19, 19, 19, 19, 19, 19]
+        result.maxContentWidth        = 900
+        result.topInset               = 40
+        result.bottomInset            = 48
+        result.bodyFontSize           = 19
+        result.codeFontSize           = 17
+        result.mathFontSize           = 25
+        result.heading1FontSize       = 57
+        result.heading2FontSize       = 34
+        result.heading3FontSize       = 30
+        result.heading4FontSize       = 27
+        result.heading5FontSize       = 23
+        result.heading6FontSize       = 19
+        result.lineHeight             = 1.53
+        result.bodyLineHeight         = 29.07
+        result.codeLineHeight         = 26.16
+        result.blockMargins           = {0, 19}
+        result.headingLineHeights     = [87.21, 52.02, 45.9, 41.31, 35.19, 29.07]
+        result.headingRuleWidths      = [0, 100, 0, 0, 0, 0]
+        result.headingRuleColor       = .Text
+        result.quotePadding           = {20, 0, 0, 0}
+        result.quoteIndent            = 19
+        result.quoteRuleWidth         = 1
+        result.headingAlignment       = .Center
+        result.headingAlignmentLevels = 3
+        result.imageAlignment         = .Center
+        result.paragraphAlignment     = .Justify
     }
 
     switch widthIndex
@@ -259,6 +309,22 @@ func applyViewerStyle(view: *Markdown.View, themeIndex, widthIndex: u32, zoomPer
     style.heading4FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading4FontSize) * scale), 1))
     style.heading5FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading5FontSize) * scale), 1))
     style.heading6FontSize = cast(u32, Math.max(Math.round(cast(f32, style.heading6FontSize) * scale), 1))
+    style.bodyLineHeight   *= scale
+    style.codeLineHeight   *= scale
+    style.quotePadding     *= scale
+    style.quoteRuleWidth   *= scale
+    style.quoteRuleInset   *= scale
+    style.quoteIndent      *= scale
+    style.topInset         *= scale
+    style.bottomInset      *= scale
+    if style.blockMargins.x >= 0 and style.blockMargins.y >= 0 do
+        style.blockMargins *= scale
+    for &height in style.headingLineHeights do
+        height[] *= scale
+    for &width in style.headingRuleWidths where width[] > 0 do
+        width[] *= scale
+    for &padding in style.headingRulePadding do
+        padding[] *= scale
     for &spacing in style.headingTopSpacing do
         spacing[] = cast(u32, Math.round(cast(f32, spacing[]) * scale))
     for &spacing in style.headingBottomSpacing do

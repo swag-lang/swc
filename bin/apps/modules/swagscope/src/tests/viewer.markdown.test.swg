@@ -54,9 +54,12 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let padding = window.documentHost.padding
+    let padding  = window.documentHost.padding
+    let viewport = host.surface.position
     window.setFullScreen(true)
-    window.resize(1280, 720)
+
+    // Keep the virtual monitor fixed; the desktop monitor belongs to the machine running the test.
+    host.surface.showNormalAt(viewport)
     window.applyLayout()
     for 64 where assume cast(*Markdown.View, window.currentView).isLoading() do
         host.fireTimers()
@@ -71,6 +74,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     window.updateFullScreenChrome({640, 360})
     host.settleAnimations(window)
     var image = host.render(window)
+    Swag.assert(image.width == cast(u32, viewport.width) and image.height == cast(u32, viewport.height))
     Swag.assert(image.pixelColor(0, 0).argb == 0xFFFFFFFF)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.fullscreen")
     window.setFullScreen(false)
@@ -410,7 +414,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 }
 
 // Exercises every shipped appearance headlessly, including page color, typography, reading
-// measure, and Whitey's bold, spaced, centered headings.
+// measure, and Whitey's light, spaced, centered headings.
 #test
 {
     let source = expect File.readAllText(markdownFixturePath())
@@ -433,10 +437,9 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
         if themeIndex == 5
         {
             Swag.assert(view.documentStyle.headingAlignment == .Center)
-            for style in view.documentStyle.headingFontStyles do
-                Swag.assert(style == .Bold)
-            Swag.assert(view.documentStyle.headingTopSpacing[0] == 34 and view.documentStyle.headingBottomSpacing[0] == 22)
-            Swag.assert(view.documentStyle.headingTopSpacing[5] == 18 and view.documentStyle.headingBottomSpacing[5] == 10)
+            Swag.assert(view.documentStyle.headingFontStyles[0] == .Regular)
+            Swag.assert(view.documentStyle.headingFontStyles[1] == .Regular)
+            Swag.assert(view.documentStyle.headingFontStyles[2] == .Italic)
         }
 
         Testing.assertContentFits(view)

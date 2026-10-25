@@ -107,8 +107,8 @@ namespace
 
     void collectUndefinedAndFunctionCandidate(std::unordered_set<Utf8>& outUndefined, const CoffObject& object, const DefinedNames& defined, FunctionFoldCandidate& outFunctionCandidate)
     {
-        outFunctionCandidate = {};
-        uint32_t textSectionIndex = INVALID_REF;
+        outFunctionCandidate          = {};
+        uint32_t textSectionIndex     = INVALID_REF;
         bool     ambiguousTextSection = false;
         for (uint32_t sectionIndex = 0; sectionIndex < object.sections.size(); ++sectionIndex)
         {
@@ -215,9 +215,9 @@ namespace
             if (it == symbolIndices.end())
                 continue;
 
-            const LinkSymbol& canonical = image.symbols[it->second];
-            LinkSymbol        symbol    = {.name = alias.name, .sectionIndex = canonical.sectionIndex, .value = canonical.value};
-            const size_t symbolIndex = image.symbols.size();
+            const LinkSymbol& canonical   = image.symbols[it->second];
+            LinkSymbol        symbol      = {.name = alias.name, .sectionIndex = canonical.sectionIndex, .value = canonical.value};
+            const size_t      symbolIndex = image.symbols.size();
             image.symbols.push_back(std::move(symbol));
             symbolIndices.emplace(image.symbols.back().name.view(), symbolIndex);
         }
@@ -1073,8 +1073,8 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
     std::unordered_set<Utf8> undefined;
     collectUndefined(undefined, image, defined);
 
-    std::unordered_set<Utf8> imported;
-    std::vector<CoffObject>  pulledObjects;
+    std::unordered_set<Utf8>           imported;
+    std::vector<CoffObject>            pulledObjects;
     std::vector<FunctionFoldCandidate> functionCandidates;
 
     std::unordered_map<uint32_t, std::vector<ReadOnlyDataFoldCandidate>> readOnlyDataByHash;
@@ -1096,8 +1096,8 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
             if (memberOffset == 0)
                 continue;
 
-            Diagnostic    diag; // local decode failures fall through to the next archive
-            ArchiveImport archiveImport;
+            Diagnostic                       diag; // local decode failures fall through to the next archive
+            ArchiveImport                    archiveImport;
             const std::span<const std::byte> memberBytes = archive.memberData(diag, memberOffset);
             if (memberBytes.empty())
                 continue;
@@ -1124,7 +1124,7 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
                 defined.insert(pulledDefinedNames.emplace_back(sym.name));
 
             std::unordered_set<Utf8> newUndefined;
-            FunctionFoldCandidate functionCandidate;
+            FunctionFoldCandidate    functionCandidate;
             collectUndefinedAndFunctionCandidate(newUndefined, pulled, defined, functionCandidate);
             for (const Utf8& u : newUndefined)
                 if (!imported.contains(u))
@@ -1174,8 +1174,8 @@ Result PELinker::resolveSymbols(LinkImage& image, LinkDebugInfo& debugInfo, std:
         }
     }
 
-    Diagnostic                   diag;
-    std::vector<LinkSymbolAlias> functionAliases;
+    Diagnostic                           diag;
+    std::vector<LinkSymbolAlias>         functionAliases;
     std::unordered_set<std::string_view> foldedFunctionSymbols;
     foldIdenticalArchiveFunctions(pulledObjects, functionCandidates, image, readOnlyDataAliasMap, functionAliases, foldedFunctionSymbols);
     dropFoldedFunctions(debugInfo, ioSymbols, foldedFunctionSymbols);

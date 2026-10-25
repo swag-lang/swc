@@ -264,7 +264,7 @@ std::vector<DataSegmentRelocation> DataSegment::copyRelocations() const
 
 std::vector<const SymbolFunction*> DataSegment::copyFunctionRelocationTargets() const
 {
-    const std::shared_lock lock(relocationsMutex_);
+    const std::shared_lock             lock(relocationsMutex_);
     std::vector<const SymbolFunction*> targets;
     for (const DataSegmentRelocation& relocation : relocations_)
         if (relocation.kind == DataSegmentRelocationKind::FunctionSymbol)
@@ -274,7 +274,7 @@ std::vector<const SymbolFunction*> DataSegment::copyFunctionRelocationTargets() 
 
 std::vector<DataSegmentRef> DataSegment::copyDataSegmentRelocationTargets() const
 {
-    const std::shared_lock lock(relocationsMutex_);
+    const std::shared_lock      lock(relocationsMutex_);
     std::vector<DataSegmentRef> targets;
     for (const DataSegmentRelocation& relocation : relocations_)
     {

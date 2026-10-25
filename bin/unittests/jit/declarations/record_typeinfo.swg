@@ -14,7 +14,7 @@
     Swag.assert(not Swag.typeCmp(tupleType, recordType, .Strict))
     Swag.assert(not Swag.typeCmp(#typeof({x: 1's64}), #typeof({x: 1, y: 2}), .Strict))
     let padded = #typeof({x: 1's32, y: 2's16})
-    let full = #typeof({x: 1's32, y: 2's16, z: 3's16})
+    let full   = #typeof({x: 1's32, y: 2's16, z: 3's16})
     Swag.assert(not Swag.typeCmp(full, padded, .Strict))
     Swag.assert(not Swag.typeCmp(padded, full, .Strict))
 }

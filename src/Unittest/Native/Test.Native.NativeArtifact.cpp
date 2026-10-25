@@ -1987,14 +1987,14 @@ func neverCalled()->s32 => 99
     const auto rootCount         = std::ranges::count_if(globalRelocations, [&](const DataSegmentRelocation& relocation) {
         return relocation.kind == DataSegmentRelocationKind::FunctionSymbol && relocation.targetSymbol == functions[0];
     });
-    const auto functionTargets = compiler.globalInitSegment().copyFunctionRelocationTargets();
+    const auto functionTargets   = compiler.globalInitSegment().copyFunctionRelocationTargets();
     if (rootCount != 2)
         return failNativeArtifactTest(TEST_NAME, "global initializers need two function relocations to the shared root");
     if (functionTargets.size() != 2 || functionTargets[0] != functions[0] || functionTargets[1] != functions[0])
         return failNativeArtifactTest(TEST_NAME, "function relocation targets must preserve their relocation order");
 
-    const auto dataTargets = compiler.globalInitSegment().copyDataSegmentRelocationTargets();
-    size_t      dataTargetIndex = 0;
+    const auto dataTargets     = compiler.globalInitSegment().copyDataSegmentRelocationTargets();
+    size_t     dataTargetIndex = 0;
     for (const DataSegmentRelocation& relocation : globalRelocations)
     {
         if (relocation.kind != DataSegmentRelocationKind::DataSegmentOffset || relocation.targetShardIndex == INVALID_REF)

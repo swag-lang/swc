@@ -391,7 +391,7 @@ impl GridView
         else
         {
             local = Math.Rectangle{.textColumnLeft() - .scrollPos.x, .rowTop(firstRow), cast(f32, .bytesPerRow) * .charWidth,
-                     cast(f32, lastRow - firstRow + 1) * .rowHeight}
+                                   cast(f32, lastRow - firstRow + 1) * .rowHeight}
         }
 
         result[] = .localToSurface(local)

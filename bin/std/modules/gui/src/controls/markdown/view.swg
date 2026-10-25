@@ -69,17 +69,17 @@ struct Style
 
         // Heading underline widths, in logical pixels: zero omits a rule, negative fills the column.
         headingRuleWidths:      [6] f32
-        headingRuleColor:       RuleColor           = .Border              // Theme color of heading underlines.
-        headingRulePadding:     [6] f32                                    // Space between heading text and its underline, in logical pixels.
+        headingRuleColor:       RuleColor           = .Border       // Theme color of heading underlines.
+        headingRulePadding:     [6] f32                             // Space between heading text and its underline, in logical pixels.
         quotePadding:           Math.Vector4        = Math.Vector4{18, 10, 10, 10}     // Left, top, right and bottom quote insets, in logical pixels.
-        quoteRuleWidth:         f32                 = 3                    // Width of the quote's leading rule, in logical pixels; zero omits it.
-        quoteRuleColor:         RuleColor           = .RichText            // Theme color of the quote's leading rule.
-        quoteRuleInset:         f32                 = 8                    // Room above and below the quote's leading rule, in logical pixels.
-        quoteIndent:            f32                                        // Extra room before the quote's rule and text, in logical pixels.
-        quoteFontStyle:         FontFamilyStyle     = .Regular             // Base font style of quoted text.
-        headingAlignment:       StringHorzAlignment = .Left                // Horizontal alignment of headings.
-        headingAlignmentLevels: u32                 = 6                    // Leading heading levels using headingAlignment; remaining levels align left.
-        imageAlignment:         StringHorzAlignment = .Left                // Horizontal alignment of paragraphs containing one image and no other text.
+        quoteRuleWidth:         f32                 = 3             // Width of the quote's leading rule, in logical pixels; zero omits it.
+        quoteRuleColor:         RuleColor           = .RichText     // Theme color of the quote's leading rule.
+        quoteRuleInset:         f32                 = 8             // Room above and below the quote's leading rule, in logical pixels.
+        quoteIndent:            f32                                 // Extra room before the quote's rule and text, in logical pixels.
+        quoteFontStyle:         FontFamilyStyle     = .Regular      // Base font style of quoted text.
+        headingAlignment:       StringHorzAlignment = .Left         // Horizontal alignment of headings.
+        headingAlignmentLevels: u32                 = 6             // Leading heading levels using headingAlignment; remaining levels align left.
+        imageAlignment:         StringHorzAlignment = .Left         // Horizontal alignment of paragraphs containing one image and no other text.
 
         // Horizontal alignment of body paragraphs.
         //

@@ -375,7 +375,7 @@ bool mergeCoffObjectsIntoImage(LinkImage& outImage, Diagnostic& outDiag, std::ve
                 continue; // first definition wins
 
             const CoffSectionPlacement& placement = placements[symbol.sectionIndex];
-            LinkSymbol out;
+            LinkSymbol                  out;
             out.name         = symbol.name;
             out.sectionIndex = placement.mergedIndex;
             out.value        = placement.base + symbol.value;

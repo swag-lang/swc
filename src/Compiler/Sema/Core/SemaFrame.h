@@ -34,8 +34,8 @@ struct SemaCompilerIf
 
 struct SemaNamedScope
 {
-    IdentifierRef           idRef    = IdentifierRef::invalid();
-    AstNodeRef              scopeRef = AstNodeRef::invalid();
+    IdentifierRef   idRef    = IdentifierRef::invalid();
+    AstNodeRef      scopeRef = AstNodeRef::invalid();
     SemaNamedScope* parent   = nullptr;
 };
 
@@ -153,7 +153,7 @@ public:
     void            setEnclosingFunction(SymbolFunction* func) { enclosingFunction_ = func; }
 
     SemaNamedScope* currentNamedScope() const { return namedScope_; }
-    void                    setCurrentNamedScope(SemaNamedScope* scope) { namedScope_ = scope; }
+    void            setCurrentNamedScope(SemaNamedScope* scope) { namedScope_ = scope; }
 
     SemaFrameContextFlags contextFlags() const { return contextFlags_; }
     bool                  hasContextFlag(SemaFrameContextFlagsE flag) const { return contextFlags_.has(flag); }
@@ -289,12 +289,12 @@ private:
 
     SmallVector8<IdentifierRef> nsPath_;
 
-    SemaCompilerIf*         compilerIf_         = nullptr;
-    const SymbolImpl*       impl_               = nullptr;
-    const SymbolInterface*  interface_          = nullptr;
-    SymbolFunction*         function_           = nullptr;
-    SymbolFunction*         enclosingFunction_  = nullptr;
-    SemaNamedScope* namedScope_ = nullptr;
+    SemaCompilerIf*        compilerIf_        = nullptr;
+    const SymbolImpl*      impl_              = nullptr;
+    const SymbolInterface* interface_         = nullptr;
+    SymbolFunction*        function_          = nullptr;
+    SymbolFunction*        enclosingFunction_ = nullptr;
+    SemaNamedScope*        namedScope_        = nullptr;
 
     SemaFrameContextFlags contextFlags_       = SemaFrameContextFlagsE::Zero;
     AstNodeRef            syntaxScopeNodeRef_ = AstNodeRef::invalid();

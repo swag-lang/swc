@@ -17,7 +17,7 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
     var textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, zoomFixturePath("comprehensive.txt"))
     let text       = assume cast(*PlainText.Panel, textResult.view)
     defer text.setZoom(100)
-    var wheel      = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
+    var wheel = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.assert(text.hookOnChildEvent!(text.editor, &wheel) and text.zoomPercent == 125)
     textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, zoomFixturePath("comprehensive.txt"))
     Swag.assert(assume cast(*PlainText.Panel, textResult.view).zoomPercent == 125)

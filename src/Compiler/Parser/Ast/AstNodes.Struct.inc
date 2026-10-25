@@ -832,7 +832,7 @@ struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
 
 struct AstTupleType : AstCompoundT<AstNodeId::TupleType>
 {
-    Result semaPostNode(Sema& sema) const;
+    Result     semaPostNode(Sema& sema) const;
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
@@ -1471,7 +1471,7 @@ struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, As
 
 struct AstVarDeclDestructuring : AstNodeT<AstNodeId::VarDeclDestructuring, AstVarDeclFlagsE>
 {
-    SpanRef spanNamesRef;
+    SpanRef    spanNamesRef;
     AstNodeRef nodePatternRef;
 
     AstNodeRef nodeInitRef;
@@ -2022,9 +2022,9 @@ struct AstAssignList : AstCompoundT<AstNodeId::AssignList, AstAssignListFlagsE>
 {
     SpanRef spanFieldNamesRef;
 
-    Result semaPreNode(Sema&) const { return hasFlag(AstAssignListFlagsE::DeclarationPattern) ? Result::SkipChildren : Result::Continue; }
-    Result codeGenPreNode(CodeGen&) const { return hasFlag(AstAssignListFlagsE::DeclarationPattern) ? Result::SkipChildren : Result::Continue; }
-    AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
+    Result     semaPreNode(Sema&) const { return hasFlag(AstAssignListFlagsE::DeclarationPattern) ? Result::SkipChildren : Result::Continue; }
+    Result     codeGenPreNode(CodeGen&) const { return hasFlag(AstAssignListFlagsE::DeclarationPattern) ? Result::SkipChildren : Result::Continue; }
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
 struct AstAssignIgnore : AstNodeT<AstNodeId::AssignIgnore>

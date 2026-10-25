@@ -316,8 +316,8 @@ Result SemaError::raiseDerefOperandType(Sema& sema, AstNodeRef atNodeRef, AstNod
 
 Result SemaError::raiseAmbiguousSymbol(Sema& sema, AstNodeRef atNodeRef, std::span<const Symbol*> symbols)
 {
-    TaskContext& ctx  = sema.ctx();
-    auto         diag = report(sema, DiagnosticId::sema_err_ambiguous_symbol, atNodeRef, ReportLocation::Children);
+    TaskContext&  ctx         = sema.ctx();
+    auto          diag        = report(sema, DiagnosticId::sema_err_ambiguous_symbol, atNodeRef, ReportLocation::Children);
     const Symbol* firstSymbol = symbols.front();
     Utf8          what        = firstSymbol->toFamily() + " name";
     diag.addArgument(Diagnostic::ARG_SYM, firstSymbol->name(ctx));

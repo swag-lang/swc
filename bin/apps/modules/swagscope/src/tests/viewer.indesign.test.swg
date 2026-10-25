@@ -9,8 +9,8 @@ using Core, Pixel, Gui, Viewers
     let source   = indesignFixturePath()
     let document = expect InDesign.loadDocument(source)
     Swag.assert(document.fileName == source)
-    var bytes    = expect File.readAllBytes(source)
-    let preview  = &document.previews[0]
+    var bytes   = expect File.readAllBytes(source)
+    let preview = &document.previews[0]
     for index in preview.payloadStart until preview.payloadEnd do
         bytes[index] = cast(u8, '!')
 

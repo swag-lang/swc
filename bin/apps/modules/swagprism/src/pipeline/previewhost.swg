@@ -16,7 +16,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     try channel.open(channelPath)
     var library = try NativeLibrary.load(libraryPath)
     let header  = channel.header()
-    var host: Gui.Testing.HeadlessHost
+    var host:  Gui.Testing.HeadlessHost
     var shade: (func(f32, f32, f32)->u32)?
     if gui
     {

@@ -506,7 +506,7 @@ private func pathAnchors(item: string, transform: const *Transform)->Array'Math.
         if values.count != 2 do
             return {}
         result.add(Math.Vector2{transform.a * values[0] + transform.c * values[1] + transform.x,
-                    transform.b * values[0] + transform.d * values[1] + transform.y})
+                                transform.b * values[0] + transform.d * values[1] + transform.y})
         cursor = pointEnd + 1
     }
 }

@@ -260,7 +260,6 @@ namespace SemaHelpers
     Result     finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
     AstNodeRef bracePositionalElement(const Sema& sema, AstNodeRef nodeRef);
     AstNodeRef fieldShorthandIdentifier(const Ast& ast, AstNodeRef nodeRef);
-    void       auditTemp(Sema& sema, const char* kind, AstNodeRef nodeRef, std::string_view extra = {}); // AUDIT-TEMP
     struct RecordOrTupleField
     {
         IdentifierRef nameRef = IdentifierRef::invalid();

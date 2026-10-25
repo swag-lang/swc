@@ -589,11 +589,7 @@ namespace
                 name     = dstFields[dstIndex]->idRef();
             }
             else if (byIdentifier)
-            {
-                if (dstIndex != nextPos && args.sema->node(literalRef).is(AstNodeId::StructInitializerList)) // AUDIT-TEMP
-                    SemaHelpers::auditTemp(*args.sema, "SOFT", fieldNodeRef);                             // AUDIT-TEMP
                 ++nextPos;
-            }
             else
             {
                 seenNamed = true;

@@ -1468,6 +1468,19 @@ namespace SemaGeneric
             if (entry.allowImplicitAddressBinding)
                 patternRef = applyImplicitAddressBindingPattern(*declSema, patternRef, argTypeRef);
 
+            // Positional braces take their type from the struct they initialize, so they
+            // cannot supply one to a generic parameter.
+            const AstNodeRef positionalRef = SemaHelpers::bracePositionalElement(sema, valueArgRef);
+            if (positionalRef.isValid() && patternCanDeduceMissingGenericParam(*declSema, genericParams, ioResolvedArgs.span(), patternRef))
+            {
+                if (outFailure)
+                    outFailure->set(positionalRef, DiagnosticId::sema_err_record_needs_field_name, argTypeRef, TypeRef::invalid(), "", DiagnosticId::None);
+                if (outFailureArgIndex)
+                    *outFailureArgIndex = entry.callArgIndex;
+
+                return Result::Continue;
+            }
+
             const Result paramResult = deduceFromTypePattern(*declSema, genericParams, ioResolvedArgs.span(), patternRef, argTypeRef, valueArgRef, entry.callArgIndex, outFailure, DeductionMode::Normal);
             if (paramResult == Result::Pause)
                 return Result::Pause;

@@ -18,7 +18,6 @@
 #include "Compiler/Sema/Type/TypeGen.h"
 #include "Compiler/Sema/Type/TypeManager.h"
 #include "Main/CompilerInstance.h"
-#include "Compiler/Lexer/SourceView.h" // AUDIT-TEMP
 #include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
@@ -1828,38 +1827,6 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
 
         if (!assumedValueCast)
             return castDynamic(sema, view, dstTypeRef, effectiveFlags);
-    }
-
-    // AUDIT-TEMP
-    if (effectiveKind != CastKind::Explicit && srcTypeRef.isValid() && dstTypeRef.isValid())
-    {
-        AstNodeRef literalRef = view.nodeRef();
-        while (literalRef.isValid() && sema.ast().hasNode(literalRef) && (sema.node(literalRef).is(AstNodeId::NamedArgument) || sema.node(literalRef).is(AstNodeId::InitializerExpr)))
-            literalRef = sema.node(literalRef).is(AstNodeId::NamedArgument) ? sema.node(literalRef).cast<AstNamedArgument>().nodeArgRef : sema.node(literalRef).cast<AstInitializerExpr>().nodeExprRef;
-        if (literalRef.isValid() && sema.ast().hasNode(literalRef) && sema.node(literalRef).is(AstNodeId::StructInitializerList) &&
-            sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef).typeRef() == sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef).typeRef() &&
-            sema.typeMgr().get(srcTypeRef).isStruct())
-        {
-            Utf8 extra = std::to_string(static_cast<int>(effectiveKind));
-            if (callSite && callSite->function)
-            {
-                extra += callSite->function->isGenericInstance() ? " generic " : " ";
-                extra += callSite->function->name(sema.ctx());
-            }
-            SemaHelpers::auditTemp(sema, "REDUNDANT", literalRef, extra);
-        }
-
-        const bool isInitializer = literalRef.isValid() && sema.ast().hasNode(literalRef) &&
-                                   (sema.node(literalRef).is(AstNodeId::StructInitializerList) ||
-                                    (sema.node(literalRef).is(AstNodeId::StructLiteral) && sema.token(sema.node(literalRef).codeRef()).is(TokenId::SymLeftCurly)));
-        if (isInitializer && effectiveKind == CastKind::Parameter && callSite && callSite->function && sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef).isStruct())
-        {
-            SourceCodeRange declRange;
-            Utf8            extra;
-            if (sema.compiler().tryTokenCodeRange(sema.ctx(), declRange, callSite->function->codeRef()) && declRange.srcView->file())
-                extra = std::format("{}:{}", declRange.srcView->file()->pathString().c_str(), declRange.line);
-            SemaHelpers::auditTemp(sema, "CALLARG", literalRef, extra);
-        }
     }
 
     if (view.cstRef().isValid() && sema.isFoldedTypedConst(view.nodeRef()))

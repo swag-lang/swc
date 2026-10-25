@@ -34,9 +34,9 @@ impl IUndoCommand for IncCommand
     var mgr: UndoManager
     g_undoCounter = 0
 
-    mgr.push({5})
+    mgr.push(IncCommand{5})
     Swag.assert(g_undoCounter == 5)
-    mgr.push({3})
+    mgr.push(IncCommand{3})
     Swag.assert(g_undoCounter == 8 and mgr.count() == 2)
 
     mgr.undo()
@@ -49,7 +49,7 @@ impl IUndoCommand for IncCommand
 
     // A new push after an undo truncates the redo tail.
     mgr.undo()     // -> 0
-    mgr.push({10})
+    mgr.push(IncCommand{10})
     Swag.assert(g_undoCounter == 10 and mgr.count() == 1 and not mgr.canRedo())
 }
 
@@ -80,8 +80,8 @@ impl IUndoCommand for IncCommand
     var mgr: UndoManager
     g_undoCounter = 0
 
-    mgr.push({4})
-    mgr.push({4})
+    mgr.push(IncCommand{4})
+    mgr.push(IncCommand{4})
     Swag.assert(mgr.count() == 2)
 
     mgr.clear()

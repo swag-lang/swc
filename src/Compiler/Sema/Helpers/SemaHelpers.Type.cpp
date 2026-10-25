@@ -1,7 +1,6 @@
 #include "pch.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
-#include "Compiler/Lexer/SourceView.h" // AUDIT-TEMP
 #include "Compiler/Sema/Constant/ConstantExtract.h"
 #include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
@@ -1090,21 +1089,6 @@ AstNodeRef SemaHelpers::bracePositionalElement(const Sema& sema, AstNodeRef node
     }
 
     return AstNodeRef::invalid();
-}
-
-// AUDIT-TEMP
-void SemaHelpers::auditTemp(Sema& sema, const char* kind, AstNodeRef nodeRef, std::string_view extra)
-{
-    const SourceCodeRange range = sema.node(nodeRef).codeRange(sema.ctx());
-    if (!range.srcView || !range.srcView->file())
-        return;
-    static std::mutex      mutex;
-    const std::scoped_lock lock(mutex);
-    FILE*                  f = nullptr;
-    if (fopen_s(&f, "C:/Users/chris/AppData/Local/Temp/claude/c--Perso-swag-lang-swc/6f2d466d-ef52-4858-8573-565141a17df7/scratchpad/audit.txt", "ab") || !f)
-        return;
-    std::fprintf(f, "%s\t%s\t%u\t%u\t%.*s\n", kind, range.srcView->file()->pathString().c_str(), range.line, range.column, static_cast<int>(extra.size()), extra.data());
-    std::fclose(f);
 }
 
 namespace

@@ -165,7 +165,7 @@ Use '&' when the loop must write.
         x, y: s32
     }
 
-    var points: [2] Point = [{1, 2}, {3, 4}]
+    var points: [2] Point = [Point{1, 2}, Point{3, 4}]
     var sum = 0
 
     for p in points
@@ -215,7 +215,7 @@ The same '&' binding replaces a struct element in one write.
         x, y: s32
     }
 
-    var points: [2] Point = [{1, 2}, {3, 4}]
+    var points: [2] Point = [Point{1, 2}, Point{3, 4}]
 
     for &p, index in points do
         p[] = Point{cast(s32, index), cast(s32, index)}

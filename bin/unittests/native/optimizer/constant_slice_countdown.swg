@@ -15,7 +15,7 @@ func bumpCells(seed: s64)->s64
 {
     var cells: [5] Cell
     for i in 5 do
-        cells[i] = {seed + i, seed * i, 0}
+        cells[i] = Cell{seed + i, seed * i, 0}
 
     for &cell in cells
     {
@@ -35,7 +35,7 @@ func firstNegative(seed: s64)->s64
 {
     var cells: [4] Cell
     for i in 4 do
-        cells[i] = {seed - i * 3, 0, 0}
+        cells[i] = Cell{seed - i * 3, 0, 0}
 
     var found = -1's64
     for cell, i in cells

@@ -38,8 +38,8 @@ struct JitNonNullDefaultContainer
     aliased: JitNonNullStringDefaultAlias
 }
 
-const JIT_NONULL_DEFAULT_CONTAINER: JitNonNullDefaultContainer  = {}
-const JIT_NONULL_PARTIAL_ARRAY:     [2] JitNonNullStringDefault = [{value: "explicit"}]
+const JIT_NONULL_DEFAULT_CONTAINER: JitNonNullDefaultContainer  = JitNonNullDefaultContainer{}
+const JIT_NONULL_PARTIAL_ARRAY:     [2] JitNonNullStringDefault = [JitNonNullStringDefault{value: "explicit"}]
 
 #assert(JIT_NONULL_DEFAULT_CONTAINER.direct.value == "fallback")
 #assert(JIT_NONULL_DEFAULT_CONTAINER.array[0].value == "fallback")
@@ -112,7 +112,7 @@ func jitNonNullConstruction()->bool
 {
     var first  = JitNonNullItem{value: 11}
     var second = JitNonNullItem{value: 22}
-    var blockStorage:   [2] JitNonNullItem = [{value: 31}, {value: 32}]
+    var blockStorage:   [2] JitNonNullItem = [JitNonNullItem{value: 31}, JitNonNullItem{value: 32}]
     var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                    *JitNonNullItem              = &first
@@ -194,11 +194,11 @@ func jitNonNullConstruction()->bool
     var moveSource                       = JitNonNullHolder{required: &first}
     let moveTarget                       = #move moveSource
     let blockHolder                      = JitNonNullBlockHolder{required: block}
-    let contextual: JitNonNullHolder     = {required: &second, count: 9}
-    let nested                           = JitNonNullNested{holder: {required: &first}}
+    let contextual: JitNonNullHolder     = JitNonNullHolder{required: &second, count: 9}
+    let nested                           = JitNonNullNested{holder: JitNonNullHolder{required: &first}}
     let array:      [2] JitNonNullHolder = [
-        {required: &first},
-        {required: &second, count: 8}
+        JitNonNullHolder{required: &first},
+        JitNonNullHolder{required: &second, count: 8}
         ]
     let genericRequired: JitNonNullGenericBox'(*JitNonNullItem) = {value: &first}
     var genericDefault:  JitNonNullGenericBox'JitNonNullStringDefault
@@ -275,7 +275,7 @@ func jitNonNullConstruction()->bool
     var defaultItem:     JitNonNullStringDefault
     var defaultArray:    [2] JitNonNullStringDefault
     let omittedDefaults = JitNonNullDefaultContainer{}
-    let partialDefaults: [2] JitNonNullStringDefault = [{value: "explicit"}]
+    let partialDefaults: [2] JitNonNullStringDefault = [JitNonNullStringDefault{value: "explicit"}]
 
     Swag.assert(defaultItem.value == "fallback")
     Swag.assert(defaultArray[0].value == "fallback")

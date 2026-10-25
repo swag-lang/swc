@@ -104,7 +104,7 @@ internal impl FrameTrace
         let step  = cast(f32, (.frames + .warmedUp))
         let x     = step * 7 - Math.floor(step * 7 / spanX) * spanX
         let y     = step * 5 - Math.floor(step * 5 / spanY) * spanY
-        return {x, y, side, side}
+        return Math.Rectangle{x, y, side, side}
     }
 
     // Reports whether the run has measured everything it was asked for.

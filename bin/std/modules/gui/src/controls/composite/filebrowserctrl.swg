@@ -484,7 +484,7 @@ impl FileBrowserCtrl
 
     // Creates an embedded file browser inside `parent`.
     #[Swag.Discardable]
-    func create(parent: *Wnd, opt: FileDlgOptions = {}, position: Math.Rectangle = {})->*FileBrowserCtrl
+    func create(parent: *Wnd, opt: FileDlgOptions = FileDlgOptions{}, position: Math.Rectangle = Math.Rectangle{})->*FileBrowserCtrl
     {
         Swag.assert(parent != null)
         let fileBrowser = Wnd.create'FileBrowserCtrl(parent, "", position)
@@ -495,19 +495,19 @@ impl FileBrowserCtrl
 
         if fileBrowser.options.shortcuts.isEmpty()
         {
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.Desktop, strings().browser_Desktop})
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserDocuments, strings().browser_Documents})
-            fileBrowser.options.shortcuts.add({Env.SpecialDirectory.UserPictures, strings().browser_Pictures})
+            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: strings().browser_Desktop})
+            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: strings().browser_Documents})
+            fileBrowser.options.shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: strings().browser_Pictures})
         }
 
         if fileBrowser.options.mode != .SelectFolder and fileBrowser.options.filters.isEmpty() do
-            fileBrowser.options.filters.add({strings().browser_AllFiles, ""})
+            fileBrowser.options.filters.add({name: strings().browser_AllFiles, extensions: ""})
 
         // Panes
         ////////////////////////
         if fileBrowser.options.showLocationsPane
         {
-            with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, {0, 0, 170})
+            with fileBrowser.treeCtrl = ListCtrl.createSimple(fileBrowser, Math.Rectangle{0, 0, 170})
             {
                 .dockStyle = .Left
                 .updateFlags(.HotTrack)
@@ -532,7 +532,7 @@ impl FileBrowserCtrl
 
         // Top navigation bar
         ////////////////////////
-        with let viewTop = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 46})
+        with let viewTop = Wnd.create'Wnd(fileBrowser, Math.Rectangle{0, 0, 0, 46})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -546,7 +546,7 @@ impl FileBrowserCtrl
 
         // Icon-only navigation: the labels live in the tooltips, so the bar never
         // truncates its buttons when the surface shrinks.
-        with fileBrowser.backButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Undo, 20), {0, 0, 30, 30})
+        with fileBrowser.backButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Undo, 20), Math.Rectangle{0, 0, 30, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 4
@@ -554,7 +554,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goBack() }
         }
 
-        with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Redo, 20), {0, 0, 30, 30})
+        with fileBrowser.forwardButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Redo, 20), Math.Rectangle{0, 0, 30, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 4
@@ -562,7 +562,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goForward() }
         }
 
-        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ChevronDown, fileBrowser.themeMetrics().chevron_Size), {0, 0, 22, 30})
+        with fileBrowser.historyButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ChevronDown, fileBrowser.themeMetrics().chevron_Size), Math.Rectangle{0, 0, 22, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 4
@@ -574,7 +574,7 @@ impl FileBrowserCtrl
                 .hide()
         }
 
-        with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ParentFolder, 20), {0, 0, 30, 30})
+        with fileBrowser.upButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.ParentFolder, 20), Math.Rectangle{0, 0, 30, 30})
         {
             .dockStyle  = .Left
             .margin.z   = 10
@@ -582,7 +582,7 @@ impl FileBrowserCtrl
             .sigPressed += func|fileBrowser|(_) { discard fileBrowser.goUp() }
         }
 
-        with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Update, 20), {0, 0, 30, 30})
+        with fileBrowser.refreshButton = IconButton.create(viewTop, fileBrowser.theme().icon(ThemeIcons.Update, 20), Math.Rectangle{0, 0, 30, 30})
         {
             .dockStyle  = .Right
             .margin.x   = 4
@@ -621,7 +621,7 @@ impl FileBrowserCtrl
         let form = FormLayoutCtrl.create(fileBrowser, formOptions)
         form.dockStyle       = .Bottom
         form.backgroundStyle = .Window
-        form.padding         = {pad, 8, pad, 8}
+        form.padding         = Math.Vector4{pad, 8, pad, 8}
 
         let nameLbl0 = fileBrowser.options.mode == .SelectFolder ? strings().browser_FolderName : strings().browser_FileName
         fileBrowser.editFile = EditBox.create(form, "")
@@ -641,7 +641,7 @@ impl FileBrowserCtrl
         discard form.addField(strings().browser_Type, fileBrowser.comboType)
 
         // Status line between the file list and the name editor.
-        with let statusBar = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 24})
+        with let statusBar = Wnd.create'Wnd(fileBrowser, Math.Rectangle{0, 0, 0, 24})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Window
@@ -651,7 +651,7 @@ impl FileBrowserCtrl
 
         // A count of what a folder holds is read at a glance and never acted on, so it sits
         // in the faintest of the three text tones rather than beside the file names.
-        with fileBrowser.statusLabel = Label.create(statusBar, "", {})
+        with fileBrowser.statusLabel = Label.create(statusBar, "", Math.Rectangle{})
         {
             .dockStyle = .Center
             .setTextColor(statusBar.themeColors().label_TextFaint)

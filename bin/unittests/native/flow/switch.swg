@@ -609,7 +609,7 @@ func toto()->s32 => 1
         }
     }
 
-    var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
+    var a: any = SwitchAnyDerived{base: SwitchAnyBase{value: 7}, extra: 11}
     Swag.assert(switchAnyUsingBase(a) == 1)
 }
 
@@ -626,7 +626,7 @@ func toto()->s32 => 1
         }
     }
 
-    var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
+    var a: any = SwitchAnyDerived{base: SwitchAnyBase{value: 7}, extra: 11}
     Swag.assert(switchAnyUsingBaseBinding(a) == 7)
 }
 

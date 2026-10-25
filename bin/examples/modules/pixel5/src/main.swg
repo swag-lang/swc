@@ -94,7 +94,7 @@ func normalizeShowcaseImage(image: Image)->Image
     return result
 }
 
-func setTextureCard(card: *TextureCard, title, subtitle: string, texture: Texture, options: CardOptions = {})
+func setTextureCard(card: *TextureCard, title, subtitle: string, texture: Texture, options: CardOptions = CardOptions{})
 {
     card.title    = title
     card.subtitle = subtitle
@@ -102,7 +102,7 @@ func setTextureCard(card: *TextureCard, title, subtitle: string, texture: Textur
     card.options  = options
 }
 
-func setImageCard(card: *TextureCard, title, subtitle: string, image: Image, options: CardOptions = {})
+func setImageCard(card: *TextureCard, title, subtitle: string, image: Image, options: CardOptions = CardOptions{})
 {
     setTextureCard(card, title, subtitle, g_Render.addImage(image), options)
 }
@@ -149,7 +149,7 @@ func drawWrappedText(painter: *Pixel.Painter, rect: Math.Rectangle, text: string
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
     painter.drawString(28, 22, title, g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 62, W - 60, 36}, subtitle, g_SubTitleFont, Argb.DimGray)
+    drawWrappedText(painter, Math.Rectangle{30, 62, W - 60, 36}, subtitle, g_SubTitleFont, Argb.DimGray)
 }
 
 func drawFooter(painter: *Pixel.Painter)
@@ -168,7 +168,7 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
-        .rect   = {0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
+        .rect   = Math.Rectangle{0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
         .rect.x = Math.round((cast(f32, surfaceWidth) - .rect.width) * 0.5)
         .rect.y = Math.round((cast(f32, surfaceHeight) - .rect.height) * 0.5)
     }
@@ -186,7 +186,7 @@ func getCardRect(index: s32)->Math.Rectangle
     let col         = index % GalleryCols
     let row         = index / GalleryCols
 
-    return {28 + col * (cardWidth + gap), top + row * (cardHeight + gap), cardWidth, cardHeight}
+    return Math.Rectangle{28 + col * (cardWidth + gap), top + row * (cardHeight + gap), cardWidth, cardHeight}
 }
 
 func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angle: Math.Angle)->Math.Rectangle
@@ -200,7 +200,7 @@ func fitTextureRect(bounds: Math.Rectangle, sourceWidth, sourceHeight: f32, angl
     let height        = sourceHeight * fitScale
     let x             = bounds.x + (bounds.width - width) * 0.5
     let y             = bounds.y + (bounds.height - height) * 0.5
-    return {x, y, width, height}
+    return Math.Rectangle{x, y, width, height}
 }
 
 func drawCardTexture(painter: *Pixel.Painter, rect: Math.Rectangle, card: TextureCard)

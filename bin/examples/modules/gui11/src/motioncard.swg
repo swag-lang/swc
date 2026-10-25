@@ -21,7 +21,7 @@ impl MotionCard
 {
     func create(parent: *Wnd, rank: s32, title, detail: string)->*MotionCard
     {
-        let result = Wnd.create'MotionCard(parent, {})
+        let result = Wnd.create'MotionCard(parent, Math.Rectangle{})
         result.backgroundStyle = .Transparent
         result.rank   = rank
         result.title  = title
@@ -41,11 +41,11 @@ impl IWnd for MotionCard
 
         painter.fillRoundRect(rect, CardRadius, CardRadius, colors.wnd_Bk)
         painter.drawRoundRect(rect, CardRadius, CardRadius, colors.border, 1)
-        painter.fillRoundRect({rect.x + 1, rect.y + 10, 3, rect.height - 20}, 1.5, 1.5, colors.hilight)
+        painter.fillRoundRect(Math.Rectangle{rect.x + 1, rect.y + 10, 3, rect.height - 20}, 1.5, 1.5, colors.hilight)
 
         let badgeX = rect.x + 18
         let badgeY = rect.y + 16
-        painter.fillRoundRect({badgeX, badgeY, BadgeSize, BadgeSize}, 6, 6, colors.hilight)
+        painter.fillRoundRect(Math.Rectangle{badgeX, badgeY, BadgeSize, BadgeSize}, 6, 6, colors.hilight)
 
         let badgeFont = theme.createDefaultFont(12, .Bold)
         painter.drawStringCenter(badgeX + BadgeSize * 0.5,

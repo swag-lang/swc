@@ -350,13 +350,13 @@ impl ZoomButton
     // Creates the zoom menu of `view` at the persisted zoom; both selectors restyle the same view.
     func create(parent: *Wnd, view: *Markdown.View, themeCombo, widthCombo: *ComboBox)->*ZoomButton
     {
-        with let result = Wnd.create'ZoomButton(parent, null, {0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
+        with let result = Wnd.create'ZoomButton(parent, null, Math.Rectangle{0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
         {
             .view        = view
             .themeCombo  = themeCombo
             .widthCombo  = widthCombo
             .dockStyle   = .Center
-            .margin      = {Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
+            .margin      = Math.Vector4{Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
             .zoomPercent = Viewer.clampZoom(g_ViewerSettings.zoomPercent)
             .toolTip     = texts().ui_ZoomMenu
             .updateFlags(.CenterContent)
@@ -414,7 +414,7 @@ func createViewer(host: Viewer.Host)
 
     let commandGroup = host.createCommandGroup(264)
 
-    with let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
+    with let widthCombo = ComboBox.create(commandGroup, Math.Rectangle{0, 0, 104, 36})
     {
         .dockStyle = .Right
         .toolTip   = texts().ui_TipWidth
@@ -422,7 +422,7 @@ func createViewer(host: Viewer.Host)
         .setSelectedIndex(g_ViewerSettings.widthIndex, notify: false)
     }
 
-    with let themeCombo = ComboBox.create(commandGroup, {0, 0, 148, 36})
+    with let themeCombo = ComboBox.create(commandGroup, Math.Rectangle{0, 0, 148, 36})
     {
         .dockStyle = .Right
         .margin.z  = 8

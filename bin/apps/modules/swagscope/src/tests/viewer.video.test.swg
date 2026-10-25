@@ -195,7 +195,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     var host: Testing.HeadlessHost
     host.setup(720, 420)
     defer host.shutdown()
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 480, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -298,7 +298,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -347,7 +347,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     defer host.shutdown()
     host.setReducedMotion(true)
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -380,7 +380,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(previousAtStart.accepted and view.frameIndex == 0)
     view.togglePlayback()
     let frameBeforePausedStep = view.frameIndex
-    var nextWhilePlaying = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
+    var nextWhilePlaying      = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
     view.sendEvent(&nextWhilePlaying)
     waitForVideoFrame(view)
     Swag.assert(nextWhilePlaying.accepted and not view.playing and view.frameIndex == frameBeforePausedStep + 1)
@@ -407,7 +407,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(view.seekOverlay!.isLocallyVisible() and
                 view.seekOverlay.direction == -1 and
                 view.seekOverlay.text == "-10")
-    Swag.assert(view.seekOverlay.presentationOffset == {} and view.seekOverlay.presentationScale == {1, 1})
+    Swag.assert(view.seekOverlay.presentationOffset == {} and view.seekOverlay.presentationScale == Math.Point{1, 1})
     Swag.assert(view.seekOverlay.position.vertCenter() > view.clientRect().vertCenter())
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 0)
@@ -443,11 +443,11 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    with let commandBar = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 0, 52})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = {16, 8, 16, 8}
+        .padding         = Math.Vector4{16, 8, 16, 8}
     }
 
     var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commandBar)
@@ -510,7 +510,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 350, 36})
     let fileName = videoAudioFixturePath()
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
@@ -553,7 +553,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 480, 36})
     let fileName = videoAudioFixturePath()
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
@@ -597,7 +597,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 480, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerVideoEnd})
     Swag.assert(result.view != null)
     let view   = assume cast(*Film.Panel, result.view)
@@ -699,8 +699,8 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     let voice = view.voice!
 
     window.setFullScreen(true)
-    window.updateFullScreenChrome({10, 1})
-    window.updateFullScreenChrome({10, window.clientRect().height - 1})
+    window.updateFullScreenChrome(Math.Point{10, 1})
+    window.updateFullScreenChrome(Math.Point{10, window.clientRect().height - 1})
     window.setFullScreen(false)
 
     Swag.assert(view.playing and view.voice == voice and voice.isPlaying())
@@ -752,7 +752,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(view.playbackRate == 1.25 and window.viewerCombo.hasFocus())
     Swag.assert(Math.isEqualEpsilon(expect view.voice!.frequencyRatio(), 1.25, 0.001))
     let frameBeforeStep = view.frameIndex
-    var nextFrame = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
+    var nextFrame       = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
     Swag.assert(window.hookOnChildEvent(window.viewerCombo, &nextFrame))
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == frameBeforeStep + 1 and not view.playing and window.viewerCombo.hasFocus())
@@ -776,11 +776,11 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let commands = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    with let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 0, 52})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
-        .padding         = {16, 8, 16, 8}
+        .padding         = Math.Vector4{16, 8, 16, 8}
     }
 
     let path   = videoMatroskaFixturePath()
@@ -891,7 +891,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     var pcm: Array'u8
     pcm.resize(200)
     expect File.writeAllBytes(soundPath, pcm.toSlice())
-    let packets: [1] SoundPacket = [{0, 200, 100}]
+    let packets: [1] SoundPacket = [SoundPacket{0, 200, 100}]
     var sounds:  ArrayPtr'SoundFile
     let sound = sounds.allocate()
     sound[] = expect SoundFile.openPcmPacketStream(soundPath, .Pcm16, 100, 1, packets)
@@ -900,7 +900,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -923,7 +923,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     defer discard catch File.delete(longerPath)
     pcm.resize(800)
     expect File.writeAllBytes(longerPath, pcm.toSlice())
-    const LongerPackets: [1] SoundPacket = [{0, 800, 400}]
+    const LongerPackets: [1] SoundPacket = [SoundPacket{0, 800, 400}]
     let longerSound = sounds.allocate()
     longerSound[] = expect SoundFile.openPcmPacketStream(longerPath, .Pcm16, 100, 1, LongerPackets)
     sounds.add(longerSound)
@@ -945,7 +945,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     let soundPath = Gui.Testing.tempFilePath("scope-video-audio-window-", ".ac3")
     defer discard catch File.delete(soundPath)
     expect File.writeAllBytes(soundPath, [0x0B'u8, 0x77, 0, 0, 0, 0, 0])
-    const Packets: [1] SoundPacket = [{0, 7, 1536}]
+    const Packets: [1] SoundPacket = [SoundPacket{0, 7, 1536}]
     var config: Array'u8
     var sound = expect SoundFile.openPacketStream(soundPath, .Ac3, 48_000, 2, 1536, Packets, config.toSlice(), {timelineStartSeconds: 100})
 
@@ -967,7 +967,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 350, 36})
     let fileName = videoAudioFixturePath()
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
@@ -1002,7 +1002,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 350, 36})
     let fileName = videoAvcFixturePath()
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportLoadingChanged: &countVideoLoadingChange})
     Swag.assert(result.view != null)
@@ -1049,7 +1049,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
@@ -1113,7 +1113,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.setup(640, 360)
     defer host.shutdown()
 
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 350, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 350, 36})
     var result   = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null and result.isLoading != null and result.needsLoadingOverlay != null)
     let view = assume cast(*Film.Panel, result.view)

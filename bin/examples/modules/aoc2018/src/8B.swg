@@ -31,7 +31,7 @@ func day8B()
     func read(n: Array's32, s: u32)->{ nStart, sum: u32 }
     {
         var start    = s
-        let {nc, nm} = {n[start], n[start + 1]}
+        let (nc, nm) = (n[start], n[start + 1])
         start += 2
 
         if not nc
@@ -39,14 +39,14 @@ func day8B()
             var sum: u32
             for i in nm do
                 sum += n[start + i]
-            return {start + nm, sum}
+            return {nStart: start + nm, sum: sum}
         }
 
         var children: Array'u32
         for nc
         {
             var sum: u32
-            {start, sum} = read(n, start)
+            {nStart: start, sum} = read(n, start)
             children.add(sum)
         }
 
@@ -58,9 +58,9 @@ func day8B()
                 sum += children[idx - 1]
         }
 
-        return {start + nm, sum}
+        return {nStart: start + nm, sum: sum}
     }
 
-    {_, rootNodeTotal} = read(nums, 0)
+    {sum: rootNodeTotal} = read(nums, 0)
     Swag.assert(rootNodeTotal == 22989)
 }

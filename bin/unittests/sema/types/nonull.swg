@@ -59,8 +59,8 @@ struct SemaNonNullDefaultContainer
     aliased: SemaNonNullStringDefaultAlias
 }
 
-const SEMA_NONULL_DEFAULT_CONTAINER: SemaNonNullDefaultContainer  = {}
-const SEMA_NONULL_PARTIAL_ARRAY:     [2] SemaNonNullStringDefault = [{value: "explicit"}]
+const SEMA_NONULL_DEFAULT_CONTAINER: SemaNonNullDefaultContainer  = SemaNonNullDefaultContainer{}
+const SEMA_NONULL_PARTIAL_ARRAY:     [2] SemaNonNullStringDefault = [SemaNonNullStringDefault{value: "explicit"}]
 
 #assert(SEMA_NONULL_DEFAULT_CONTAINER.direct.value == "fallback")
 #assert(SEMA_NONULL_DEFAULT_CONTAINER.array[0].value == "fallback")
@@ -141,7 +141,7 @@ func semaNonNullConstruction()
 {
     var first  = SemaNonNullItem{value: 11}
     var second = SemaNonNullItem{value: 22}
-    var blockStorage:   [2] SemaNonNullItem = [{value: 31}, {value: 32}]
+    var blockStorage:   [2] SemaNonNullItem = [SemaNonNullItem{value: 31}, SemaNonNullItem{value: 32}]
     var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                *SemaNonNullItem              = &first
@@ -175,7 +175,7 @@ func semaNonNullConstruction()
     discard defaultArray
     let omittedDefaults = SemaNonNullDefaultContainer{}
     discard omittedDefaults
-    let partialDefaults: [2] SemaNonNullStringDefault = [{value: "explicit"}]
+    let partialDefaults: [2] SemaNonNullStringDefault = [SemaNonNullStringDefault{value: "explicit"}]
     discard partialDefaults
 
     // A bare (non-null) pointer can widen to '?'.
@@ -197,11 +197,11 @@ func semaNonNullConstruction()
     var moveSource                        = SemaNonNullHolder{required: &first}
     let moveTarget                        = #move moveSource
     let blockHolder                       = SemaNonNullBlockHolder{required: block}
-    let contextual: SemaNonNullHolder     = {required: &second, count: 9}
-    let nested                            = SemaNonNullNested{holder: {required: &first}}
+    let contextual: SemaNonNullHolder     = SemaNonNullHolder{required: &second, count: 9}
+    let nested                            = SemaNonNullNested{holder: SemaNonNullHolder{required: &first}}
     let array:      [2] SemaNonNullHolder = [
-        {required: &first},
-        {required: &second, count: 8}
+        SemaNonNullHolder{required: &first},
+        SemaNonNullHolder{required: &second, count: 8}
         ]
     let pointerArray:  [2] *SemaNonNullItem   = [&first, &second]
     let aliasedHolder: SemaNonNullHolderAlias = {required: &first}

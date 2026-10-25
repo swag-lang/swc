@@ -30,7 +30,7 @@ struct Document
 impl Document
 {
     // Creates an empty PDF document.
-    func create()->Document => {}
+    func create()->Document => Document{}
 
     // Decodes one complete PDF byte buffer.
     //

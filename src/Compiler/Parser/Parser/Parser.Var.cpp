@@ -53,9 +53,64 @@ AstNodeRef Parser::parseGenericParam()
     return nodeRef;
 }
 
+AstNodeRef Parser::parseDestructuringPattern(bool declaration, SmallVector<TokenRef>* bindings)
+{
+    const bool     named             = is(TokenId::SymLeftCurly);
+    const TokenId  closeId           = named ? TokenId::SymRightCurly : TokenId::SymRightParen;
+    const TokenRef openRef           = consume();
+    const auto [patternRef, pattern] = ast_->makeNode<AstNodeId::AssignList>(openRef);
+    pattern->addFlag(AstAssignListFlagsE::Destructuring);
+    if (named)
+        pattern->addFlag(AstAssignListFlagsE::NamedDestructuring);
+    if (declaration)
+        pattern->addFlag(AstAssignListFlagsE::DeclarationPattern);
+
+    SmallVector<AstNodeRef> children;
+    SmallVector<TokenRef>   fieldNames;
+    bool                    comma = false;
+    while (!is(closeId) && !atEnd())
+    {
+        parseDestructuringFieldName(fieldNames, named);
+        if (isAny(TokenId::SymLeftParen, TokenId::SymLeftCurly))
+            children.push_back(parseDestructuringPattern(declaration, bindings));
+        else if (is(TokenId::KwdUnnamed))
+        {
+            const auto [ignoreRef, ignore] = ast_->makeNode<AstNodeId::AssignIgnore>(consume());
+            SWC_UNUSED(ignore);
+            children.push_back(ignoreRef);
+            if (bindings)
+                bindings->push_back(TokenRef::invalid());
+        }
+        else if (declaration)
+        {
+            const TokenRef nameRef = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
+            if (bindings)
+                bindings->push_back(nameRef);
+            const auto [bindingRef, binding] = ast_->makeNode<AstNodeId::Identifier>(nameRef);
+            SWC_UNUSED(binding);
+            children.push_back(bindingRef);
+        }
+        else
+            children.push_back(parseExpression());
+        if (consumeIf(TokenId::SymComma).isInvalid())
+            break;
+        comma = true;
+    }
+    if (!named && children.size() == 1 && !comma && is(closeId))
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_tuple_pattern_comma, ref());
+        diag.report(*ctx_);
+    }
+    expectAndConsumeClosing(closeId, openRef, {TokenId::SymEqual});
+    pattern->spanChildrenRef   = ast_->pushSpan(children.span());
+    pattern->spanFieldNamesRef = ast_->pushSpan(fieldNames.span());
+    return patternRef;
+}
+
 AstNodeRef Parser::parseVarDeclDecomposition()
 {
-    EnumFlags flags = AstVarDeclFlagsE::Zero;
+    const TokenRef declarationRef = ref();
+    EnumFlags      flags          = AstVarDeclFlagsE::Zero;
     if (consumeIf(TokenId::KwdConst).isValid())
         flags.add(AstVarDeclFlagsE::Const);
     else if (consumeIf(TokenId::KwdVar).isValid())
@@ -66,54 +121,14 @@ AstNodeRef Parser::parseVarDeclDecomposition()
         flags.add(AstVarDeclFlagsE::Let);
     }
 
-    const TokenRef openRef = consumeAssert(TokenId::SymLeftCurly);
-
-    SmallVector<TokenRef> tokNames;
-    SmallVector<TokenRef> fieldNames;
-    bool                  hasNamed      = false;
-    bool                  hasPositional = false;
-    bool                  reportedMixed = false;
-
-    while (!is(TokenId::SymRightCurly) && !atEnd())
-    {
-        const TokenRef itemRef = ref();
-        parseDestructuringFieldName(fieldNames, hasNamed, hasPositional);
-        if (consumeIf(TokenId::KwdUnnamed).isValid())
-            tokNames.push_back(TokenRef::invalid());
-        else
-        {
-            const TokenRef tokName = expectAndConsume(TokenId::Identifier, DiagnosticId::parser_err_expected_token_fam);
-            if (tokName.isInvalid())
-                skipTo({TokenId::SymRightCurly, TokenId::SymComma});
-
-            tokNames.push_back(tokName);
-        }
-
-        reportMixedDestructuring(itemRef, hasNamed, hasPositional, reportedMixed);
-
-        if (consumeIf(TokenId::SymComma).isInvalid())
-            break;
-
-        if (is(TokenId::SymRightCurly))
-        {
-            Diagnostic diag = reportError(DiagnosticId::parser_err_expected_token_fam_before, ref());
-            setReportExpected(diag, TokenId::Identifier);
-            diag.report(*ctx_);
-        }
-    }
-
-    expectAndConsumeClosing(TokenId::SymRightCurly, openRef, {TokenId::SymEqual});
-    const TokenRef tokAssign = expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
-
-    auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::VarDeclDestructuring>(ref());
-    nodePtr->flags()        = flags;
-    if (hasNamed && !hasPositional)
-        nodePtr->addFlag(AstVarDeclFlagsE::NamedDestructuring);
-
-    nodePtr->nodeInitRef       = parseInitializerExpression(tokAssign);
-    nodePtr->spanNamesRef      = ast_->pushSpan(tokNames.span());
-    nodePtr->spanFieldNamesRef = ast_->pushSpan(fieldNames.span());
-
+    SmallVector<TokenRef> names;
+    const AstNodeRef      patternRef = parseDestructuringPattern(true, &names);
+    const TokenRef        assignRef  = expectAndConsume(TokenId::SymEqual, DiagnosticId::parser_err_expected_token_before);
+    const auto [nodeRef, node]       = ast_->makeNode<AstNodeId::VarDeclDestructuring>(declarationRef);
+    node->flags()                    = flags;
+    node->spanNamesRef               = ast_->pushSpan(names.span());
+    node->nodePatternRef             = patternRef;
+    node->nodeInitRef                = parseInitializerExpression(assignRef);
     return nodeRef;
 }
 

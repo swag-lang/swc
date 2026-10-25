@@ -31,7 +31,7 @@ impl RegressionAstBuilder
 
     mtd const toString()->RegressionAstString
     {
-        return {cast([*] u8, &.buffer[0]), .length}
+        return RegressionAstString{cast([*] u8, &.buffer[0]), .length}
     }
 }
 

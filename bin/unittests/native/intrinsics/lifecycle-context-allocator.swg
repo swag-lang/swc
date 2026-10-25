@@ -301,7 +301,7 @@ func directAllocatorRunInitInfo()->ByteInitInfo
     let count    = values.count
     let capacity = values.capacity
     values.free()
-    return {firstTrace, secondTrace, count, capacity}
+    return ByteInitInfo{firstTrace, secondTrace, count, capacity}
 }
 
 func helperAllocatorRunInitInfo()->ByteInitInfo
@@ -320,7 +320,7 @@ func helperAllocatorRunInitInfo()->ByteInitInfo
     let count    = values.count
     let capacity = values.capacity
     values.free()
-    return {firstTrace, secondTrace, count, capacity}
+    return ByteInitInfo{firstTrace, secondTrace, count, capacity}
 }
 
 func memoryAllocatorRunDropInfo()->DropRunInfo
@@ -337,7 +337,7 @@ func memoryAllocatorRunDropInfo()->DropRunInfo
     values.resize(5, 8)
     let liveTrace = encodeTrackedTrace(values.buffer, values.count)
     values.free()
-    return {liveTrace, DropCount, DropTrace, values.count, values.capacity}
+    return DropRunInfo{liveTrace, DropCount, DropTrace, values.count, values.capacity}
 }
 
 const DirectRunInfo = #run directAllocatorRunInitInfo()

@@ -53,9 +53,9 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 
     // The interleaved sound chunks are not pictures, and counting them as frames would be the
     // easiest mistake to make here.
-    const Probes: [3] AviProbe = [{0, 40, 30, 151, 119, 92},
-                                  {116, 80, 60, 160, 117, 84},
-                                  {232, 120, 90, 142, 105, 74}]
+    const Probes: [3] AviProbe = [AviProbe{0, 40, 30, 151, 119, 92},
+                                  AviProbe{116, 80, 60, 160, 117, 84},
+                                  AviProbe{232, 120, 90, 142, 105, 74}]
     aviAssertProbes("cogliati-turning-pages.avi", Probes, tolerance: 6)
 }
 
@@ -63,9 +63,9 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
 // container index says where every frame lies rather than the decoder remembering.
 #test
 {
-    const Backwards: [3] AviProbe = [{232, 120, 90, 142, 105, 74},
-                                     {116, 80, 60, 160, 117, 84},
-                                     {0, 40, 30, 151, 119, 92}]
+    const Backwards: [3] AviProbe = [AviProbe{232, 120, 90, 142, 105, 74},
+                                     AviProbe{116, 80, 60, 160, 117, 84},
+                                     AviProbe{0, 40, 30, 151, 119, 92}]
     aviAssertProbes("cogliati-turning-pages.avi", Backwards, tolerance: 6)
 
     // Decoding a whole recording holds one frame, so the image the reader fills is the same one

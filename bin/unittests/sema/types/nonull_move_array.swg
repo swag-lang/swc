@@ -34,8 +34,8 @@ func semaNonNullMoveArrayDefaults()
     var initSource: SemaNonNullMoveArrayNestedAlias = [{value: "init-a"}, {value: "init-b"}]
     let initTarget = #move initSource
 
-    var assignSource: [2] SemaNonNullMoveArrayDefault = [{value: "assign-a"}, {value: "assign-b"}]
-    var assignTarget: [2] SemaNonNullMoveArrayDefault = [{value: "old-a"}, {value: "old-b"}]
+    var assignSource: [2] SemaNonNullMoveArrayDefault = [SemaNonNullMoveArrayDefault{value: "assign-a"}, SemaNonNullMoveArrayDefault{value: "assign-b"}]
+    var assignTarget: [2] SemaNonNullMoveArrayDefault = [SemaNonNullMoveArrayDefault{value: "old-a"}, SemaNonNullMoveArrayDefault{value: "old-b"}]
     assignTarget = #move assignSource
 
     var callSource: SemaNonNullMoveArrayNestedAlias = [{value: "call-a"}, {value: "call-b"}]

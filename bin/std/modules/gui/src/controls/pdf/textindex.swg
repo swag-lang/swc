@@ -177,7 +177,7 @@ impl TextIndex
             result.run.axisAligned = true
             result.run.originX     = m.tx
             result.run.scaleX      = m.m11
-            result.run.rect        = {m.tx, m.ty, width * m.m11, item.fontSize * m.m22}
+            result.run.rect        = Math.Rectangle{m.tx, m.ty, width * m.m11, item.fontSize * m.m22}
             result.run.codes       = #move codes
         }
         else
@@ -199,7 +199,7 @@ impl TextIndex
                 maxY = Math.max(maxY, py)
             }
 
-            result.run.rect = {minX, minY, maxX - minX, maxY - minY}
+            result.run.rect = Math.Rectangle{minX, minY, maxX - minX, maxY - minY}
         }
 
         result.yCenter = result.run.rect.vertCenter()
@@ -225,7 +225,7 @@ impl TextIndex
             {
                 let codeString = font.codeText(code)
                 let byteEnd    = Math.min(byteStart + codeString.length, item.text.length)
-                codes.add({cast(u32, byteStart), cast(u32, byteEnd), x, x + item.textAdvances[index]})
+                codes.add(TextCode{cast(u32, byteStart), cast(u32, byteEnd), x, x + item.textAdvances[index]})
                 x         += item.textAdvances[index]
                 byteStart = byteEnd
             }
@@ -241,9 +241,9 @@ impl TextIndex
         var scan   = 0'u64
         while scan < source.count
         {
-            let {value, eat} = Utf8.decodeRune(source[scan to])
-            let advance      = item.standardFont.glyphWidth(value) * item.fontSize
-            codes.add({cast(u32, scan), cast(u32, (scan + eat)), x, x + advance})
+            let {c: value, eat} = Utf8.decodeRune(source[scan to])
+            let advance         = item.standardFont.glyphWidth(value) * item.fontSize
+            codes.add(TextCode{cast(u32, scan), cast(u32, (scan + eat)), x, x + advance})
             x    += advance
             scan += eat
         }
@@ -350,7 +350,7 @@ impl TextIndex
         var scan = 0'u64
         while scan < source.count
         {
-            let {value, eat} = Utf8.decodeRune(source[scan to])
+            let {c: value, eat} = Utf8.decodeRune(source[scan to])
             starts.add(scan)
             words.add(Unicode.isLetterOrDigit(value) or value == '_'rune)
             scan += eat

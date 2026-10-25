@@ -167,7 +167,7 @@ impl Volume
             if physical < limit
             {
                 let kept = Math.min(count, limit - physical)
-                updated.add({logical, physical, kept})
+                updated.add(BlockMapping{logical, physical, kept})
                 logical  += kept
                 physical += kept
                 count    -= kept
@@ -182,7 +182,7 @@ impl Volume
                 let bytes       = destination.count * BlockSize
                 try .readPhysicalRun(physical, plain[until bytes])
                 try .writePhysicalRun(destination.first, plain[until bytes])
-                updated.add({logical, destination.first, destination.count})
+                updated.add(BlockMapping{logical, destination.first, destination.count})
 
                 logical  += destination.count
                 physical += destination.count

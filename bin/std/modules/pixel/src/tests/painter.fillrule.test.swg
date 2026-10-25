@@ -135,8 +135,8 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
 #test
 {
     const Opposed: [2] { outer: bool, inner: bool } = [
-        {true,  false},
-        {false, true}]
+        {outer: true,  inner: false},
+        {outer: false, inner: true}]
 
     for winding in Opposed
     {
@@ -146,8 +146,8 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
     }
 
     const Agreeing: [2] { outer: bool, inner: bool } = [
-        {true,  true},
-        {false, false}]
+        {outer: true,  inner: true},
+        {outer: false, inner: false}]
 
     for winding in Agreeing
     {
@@ -199,10 +199,10 @@ private func renderRing(outerClockwise, innerClockwise: bool, rule: PathFillRule
 #test
 {
     const Windings: [4] { outer: bool, inner: bool } = [
-        {true,  false},
-        {false, true},
-        {true,  true},
-        {false, false}]
+        {outer: true,  inner: false},
+        {outer: false, inner: true},
+        {outer: true,  inner: true},
+        {outer: false, inner: false}]
 
     for winding in Windings
     {

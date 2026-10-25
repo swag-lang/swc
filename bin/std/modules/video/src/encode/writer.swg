@@ -96,7 +96,7 @@ impl Writer
     {
         for encoder in encoders where encoder.type == type do
             return
-        encoders.add({itf.format(), type})
+        encoders.add(EncoderDesc{itf.format(), type})
     }
 
     // Returns the format written by each registered encoder, in registration order.

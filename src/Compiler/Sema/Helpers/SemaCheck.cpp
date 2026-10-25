@@ -586,7 +586,7 @@ Result SemaCheck::noCopyOfNonCopyable(Sema& sema, AstNodeRef srcRef, TypeRef src
     if (const TypeInfo* unwrappedType = destType->unwrapAliasEnumType(sema.ctx()))
         destType = unwrappedType;
 
-    if (!destType->isStruct() && !destType->isArray())
+    if (!destType->isStructOrAggregateStruct() && !destType->isArray())
         return Result::Continue;
 
     // Rvalues construct or move. Copy checks apply when reading stored values,

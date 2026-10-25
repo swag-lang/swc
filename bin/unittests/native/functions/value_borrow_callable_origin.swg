@@ -10,7 +10,7 @@ func restoredReader()->u64
 {
     let address      = cast(*void, &read)
     let callback     = cast(Reader, address)
-    var value: Value = {first: 383}
+    var value: Value = Value{first: 383}
     return callback(value)
 }
 
@@ -18,7 +18,7 @@ func restoredEncodedReader()->u64
 {
     let encoded      = cast(u64, cast(*void, &read))
     let callback     = cast(Reader, cast(*void, encoded))
-    var value: Value = {first: 389}
+    var value: Value = Value{first: 389}
     return callback(value)
 }
 
@@ -37,10 +37,10 @@ struct ReaderBox { callback: Reader }
 
 func restoredReaderStorage()->u64
 {
-    var box:   ReaderBox = {callback: &read}
+    var box:   ReaderBox = ReaderBox{callback: &read}
     let encoded          = cast(u64, &box)
     let restored         = cast(*ReaderBox, cast(*void, encoded))
-    var value: Value     = {first: 409}
+    var value: Value     = Value{first: 409}
     return restored.callback(value)
 }
 
@@ -65,7 +65,7 @@ func reflectedReader()->u64
     const info = assume cast(const *Swag.TypeInfoStruct, #typeof(ReflectedReader))
     let entry        = info.methods![0]
     let callback     = cast(Reader, entry.value!)
-    var value: Value = {first: 419}
+    var value: Value = Value{first: 419}
     return callback(value)
 }
 

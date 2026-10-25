@@ -119,3 +119,20 @@ test('the language reference catalog covers all compiler keywords and intrinsics
         /TokenIdKindE::(?:Keyword|Type|Modifier|Compiler|Intrinsic)\b/.test(flags) && !catalog.has(spelling));
     assert.deepEqual(missing, []);
 });
+
+test('tuple and record patterns highlight ignored fields and stop before the value', () => {
+    for (const line of [
+        'let (first, _) = source',
+        'var (only,) = source',
+        'let {x, y: _} = source',
+        'let (first, {point: (_, last)}) = source',
+        'let {point: (first, _), count} = source',
+    ]) {
+        if (line.includes('_')) {
+            assert.ok(scopesAt(line, line.indexOf('_')).includes('constant.language.ignore'), line);
+        }
+        assert.ok(!scopesAt(line, line.indexOf('source')).some(scope => scope.startsWith('meta.destructuring')), line);
+    }
+    const functionLine = 'func pair(value: s32) => (value, value)';
+    assert.ok(!scopesAt(functionLine, functionLine.indexOf('value')).some(scope => scope.startsWith('meta.destructuring')));
+});

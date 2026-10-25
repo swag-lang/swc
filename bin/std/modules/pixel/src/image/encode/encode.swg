@@ -59,7 +59,7 @@ public impl Image
             return
 
         let itf = Swag.makeInterface(null, type, IImageEncoder)!
-        encoders.add({itf.format(), type})
+        encoders.add(ImageEncoder{itf.format(), type})
     }
 
     // Returns the format written by each registered encoder, in registration order.

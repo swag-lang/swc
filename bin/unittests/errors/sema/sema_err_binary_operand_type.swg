@@ -10,7 +10,7 @@ impl WhereRestrictedOperator
     mtd(op: Swag.Operator) const opBinary(other: WhereRestrictedOperator)->WhereRestrictedOperator
         where op == .Add
     {
-        return {.value + other.value}
+        return WhereRestrictedOperator{.value + other.value}
     }
 }
 

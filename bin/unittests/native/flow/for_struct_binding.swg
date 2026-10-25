@@ -100,7 +100,7 @@ struct Pair
 // '&' binds a mutable pointer; whole-element assignment writes through.
 #test
 {
-    var arr: [2] Pair = [{1, 2}, {3, 4}]
+    var arr: [2] Pair = [Pair{1, 2}, Pair{3, 4}]
     for &v, i in arr do
         v[] = Pair{cast(s32, i) + 10, cast(s32, i) + 20}
     Swag.assert(arr[0].a == 10 and arr[0].b == 20)
@@ -110,7 +110,7 @@ struct Pair
 // Explicit dereference enables equality with a literal or value.
 #test
 {
-    var arr: [3] Pair = [{1, 1}, {2, 2}, {3, 3}]
+    var arr: [3] Pair = [Pair{1, 1}, Pair{2, 2}, Pair{3, 3}]
     let wanted        = Pair{2, 2}
     var hits          = 0
     for v in arr

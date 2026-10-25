@@ -51,7 +51,7 @@ public impl Plan
             .hasVersion = true
         }
 
-        let {pod, _} = isPodFinal(structType)
+        let {raw: pod, sizeof: _} = isPodFinal(structType)
         .podFinal  = pod
         .hasCustom = Reflection.hasInterface(structType, ISerialize)
 

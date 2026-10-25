@@ -188,6 +188,41 @@ SWC_TEST_BEGIN(FormatBraces_DestructuringPatternsStayInlineAndIndentAsStatements
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(FormatBraces_TuplesAndNestedRecordPatterns)
+{
+    static constexpr std::string_view SOURCE =
+        "func foo()\n"
+        "{\n"
+        "        let (a, b) = value\n"
+        "        var (x, {y: left}) = value\n"
+        "        const (first,) = value\n"
+        "        (a, b) = value\n"
+        "        ({x: left}, (first, second)) = value\n"
+        "        let single = (42,)\n"
+        "        var pair: (s32, s32) = (1, 2)\n"
+        "}\n";
+    static constexpr std::string_view EXPECTED =
+        "func foo()\n"
+        "{\n"
+        "    let (a, b) = value\n"
+        "    var (x, {y: left}) = value\n"
+        "    const (first,) = value\n"
+        "    (a, b) = value\n"
+        "    ({x: left}, (first, second)) = value\n"
+        "    let single = (42,)\n"
+        "    var pair: (s32, s32) = (1, 2)\n"
+        "}\n";
+    FormatOptions options;
+    options.indentStyle                  = FormatIndentStyle::Spaces;
+    options.indentWidth                  = 4;
+    options.allowShortBlocksOnSingleLine = FormatShortBlockStyle::Never;
+    options.alignConsecutiveAssignments  = FormatAlignMode::None;
+    options.alignConsecutiveDeclarations = FormatAlignMode::None;
+    options.alignConsecutiveConstants    = FormatAlignMode::None;
+    return FormatRewriteCheck::check(ctx, SOURCE, EXPECTED, options);
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(FormatBraces_AttachJoinsBrace)
 {
     static constexpr std::string_view SOURCE =

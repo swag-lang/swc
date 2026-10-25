@@ -20,7 +20,7 @@ impl RefIndexBuffer
 #test
 {
     func testRead(x: *Vec2)->s32 { return x.x + x.y; }
-    var v: Vec2 = {x: 8, y: 13}
+    var v: Vec2 = Vec2{x: 8, y: 13}
     var sum     = testRead(&v)
     Swag.assert(sum == 21)
 }
@@ -32,7 +32,7 @@ impl RefIndexBuffer
         x.x = x.x * 2
         x.y = x.y + 7
     }
-    var v: Vec2 = {x: 9, y: 4}
+    var v: Vec2 = Vec2{x: 9, y: 4}
     testWrite(&v)
     Swag.assert(v.x == 18)
     Swag.assert(v.y == 11)
@@ -83,7 +83,7 @@ func writeScalarRef(target: *s32, value: s32)
         p.x = -3
         p.y = 99
     }
-    var v: Vec2 = {x: 1, y: 2}
+    var v: Vec2 = Vec2{x: 1, y: 2}
     var p       = getPtr(&v)
     writeThrough(p)
     Swag.assert(v.x == -3)
@@ -97,9 +97,9 @@ func writeVecRef(target: *Vec2, value: Vec2)
 
 #test
 {
-    var value:    Vec2  = {x: 1, y: 2}
+    var value:    Vec2  = Vec2{x: 1, y: 2}
     var valueRef: *Vec2 = &value
-    let other:    Vec2  = {x: 30, y: 40}
+    let other:    Vec2  = Vec2{x: 30, y: 40}
 
     valueRef[] = other
     Swag.assert(valueRef.x == 30)
@@ -122,8 +122,8 @@ func writeVecRef(target: *Vec2, value: Vec2)
             return a
         return b
     }
-    var left:  Vec2 = {x: 100, y: 200}
-    var right: Vec2 = {x: 300, y: 400}
+    var left:  Vec2 = Vec2{x: 100, y: 200}
+    var right: Vec2 = Vec2{x: 300, y: 400}
     var p0          = choose(true, &left, &right)
     var p1          = choose(false, &left, &right)
     Swag.assert(p0.x == 100)
@@ -155,7 +155,7 @@ func writeVecRef(target: *Vec2, value: Vec2)
 
 #test
 {
-    var values: RefIndexBuffer = {values: [12]}
+    var values: RefIndexBuffer = RefIndexBuffer{values: [12]}
     var total = 1's32
     var index = 0's64
 
@@ -203,7 +203,7 @@ func readConstAddr(value: ConstAddrValue)->s32 { return value.x }
 
 #test
 {
-    let holder:   ConstAddrHolder       = {value: {x: 123}}
+    let holder:   ConstAddrHolder       = ConstAddrHolder{value: ConstAddrValue{x: 123}}
     var valueRef: const *ConstAddrValue = &holder.value
 
     Swag.assert(valueRef.x == 123)
@@ -298,7 +298,7 @@ func(T) dampRefValueWithLiterals(current, target: T, currentVelocity: *T, smooth
 
 #test
 {
-    var box: RefFloatBox = {value: 1.5}
+    var box: RefFloatBox = RefFloatBox{value: 1.5}
     let sum  = addRefValue(&box.value, 2.5'f32)
     let temp = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
 

@@ -125,7 +125,7 @@ func writeTgaRle(result: *ConcatBuffer, image: Image)
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => {"TGA - Truevision Targa", ".tga"}
+    mtd impl format()->ImageFormat => ImageFormat{"TGA - Truevision Targa", ".tga"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {

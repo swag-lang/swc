@@ -119,7 +119,7 @@ impl IWnd for Tab
         }
 
         let padding = .padding
-        return {width + padding.x + padding.z, .barHeight + padding.y + padding.w}
+        return Math.Point{width + padding.x + padding.z, .barHeight + padding.y + padding.w}
     }
 
     private mtd paintItem(painter: *Painter, v: *TabItem, idx: u32)
@@ -571,7 +571,7 @@ private impl Tab
             // Create a button if there are too many items for the given size
             if not .buttonPopup
             {
-                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.ChevronDown, metrics.tabBar_PopupButtonGlyph), {})
+                let btnPopup = IconButton.create(me, .theme().icon(ThemeIcons.ChevronDown, metrics.tabBar_PopupButtonGlyph), Math.Rectangle{})
                 .buttonPopup = btnPopup
                 btnPopup.setForm(.Circle)
                 btnPopup.sigPressed += func|tab = me|(btn)
@@ -582,7 +582,7 @@ private impl Tab
             }
 
             let size = metrics.tabBar_PopupButtonSize
-            .buttonPopup.setPosition({barRect.right() - size - metrics.tabBar_PopupButtonMargin, (.barHeight - size) * 0.5, size, size})
+            .buttonPopup.setPosition(Math.Rectangle{barRect.right() - size - metrics.tabBar_PopupButtonMargin, (.barHeight - size) * 0.5, size, size})
         }
         elif .buttonPopup
         {
@@ -617,7 +617,7 @@ impl Tab
 {
     // Creates an empty, keyboard-focusable tab control.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Tab
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*Tab
     {
         Swag.assert(parent != null)
         let result = Wnd.create'Tab(parent, null, position, id)
@@ -708,7 +708,7 @@ impl Tab
     //
     // The first tab added becomes the selected one; the page of any later tab starts hidden.
     #[Swag.Discardable]
-    mtd addItem(name: string, icon: Icon = {}, view: *Wnd? = null)->*TabItem
+    mtd addItem(name: string, icon: Icon = Icon{}, view: *Wnd? = null)->*TabItem
     {
         let isFirst = .items.isEmpty()
         if view

@@ -118,11 +118,11 @@ namespace InlineCrossFile
         {
             #static if op == .Add
             {
-                return {.x + other.x, .y + other.y}
+                return InlineCrossFile.Vector'T{.x + other.x, .y + other.y}
             }
             else
             {
-                return {.x - other.x, .y - other.y}
+                return InlineCrossFile.Vector'T{.x - other.x, .y - other.y}
             }
         }
     }

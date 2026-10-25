@@ -16,13 +16,13 @@ func openImage(surface: *Surface?)
         .mode  = .SelectFile
         .title = "Load Image"
         .confirmButtonText = "Load"
-        .shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
-        .shortcuts.add({Env.SpecialDirectory.UserPictures, "My Images"})
-        .shortcuts.add({Env.SpecialDirectory.CommonPictures, "Images"})
-        .filters.add({"PNG - Portable Network Graphics (*.png)", ".png"})
-        .filters.add({"JPG - JPEG Image (*.jpg)", ".jpg"})
-        .filters.add({"BMP - Windows Bitmap (*.bmp)", ".bmp"})
-        .filters.add({"TGA - Truevision Targa (*.tga)", ".tga"})
+        .shortcuts.add((Env.SpecialDirectory.Desktop, "Desktop"))
+        .shortcuts.add((Env.SpecialDirectory.UserPictures, "My Images"))
+        .shortcuts.add((Env.SpecialDirectory.CommonPictures, "Images"))
+        .filters.add({name: "PNG - Portable Network Graphics (*.png)", extensions: ".png"})
+        .filters.add({name: "JPG - JPEG Image (*.jpg)", extensions: ".jpg"})
+        .filters.add({name: "BMP - Windows Bitmap (*.bmp)", extensions: ".bmp"})
+        .filters.add({name: "TGA - Truevision Targa (*.tga)", extensions: ".tga"})
     }
 
     let dlg = FileDlg.create(surface!, opt)
@@ -52,7 +52,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     switch evt
     {
     case CreateEvent:
-        let btn = PushButton.create(wnd, "Load Image", {10, 10, 100})
+        let btn = PushButton.create(wnd, "Load Image", Math.Rectangle{10, 10, 100})
         btn.sigPressed += func|wnd|(btn)
         {
             openImage(btn.surface)

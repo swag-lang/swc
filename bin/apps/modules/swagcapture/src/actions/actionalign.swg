@@ -26,12 +26,12 @@ impl IActionUI for ActionAlign
         let main = mainWndOf(cxt)
 
         if updateFromTable(cxt, evt, [
-            {AlignLeft,   appStrings().act_AlignLeft,   .MultiSel, hideDisabled: false},
-            {AlignCenter, appStrings().act_AlignCenter, .MultiSel, hideDisabled: false},
-            {AlignRight,  appStrings().act_AlignRight,  .MultiSel, hideDisabled: false},
-            {AlignTop,    appStrings().act_AlignTop,    .MultiSel, hideDisabled: false},
-            {AlignMiddle, appStrings().act_AlignMiddle, .MultiSel, hideDisabled: false},
-            {AlignBottom, appStrings().act_AlignBottom, .MultiSel, hideDisabled: false}])
+            CmdDesc{AlignLeft, appStrings().act_AlignLeft, .MultiSel, hideDisabled: false},
+            CmdDesc{AlignCenter, appStrings().act_AlignCenter, .MultiSel, hideDisabled: false},
+            CmdDesc{AlignRight, appStrings().act_AlignRight, .MultiSel, hideDisabled: false},
+            CmdDesc{AlignTop, appStrings().act_AlignTop, .MultiSel, hideDisabled: false},
+            CmdDesc{AlignMiddle, appStrings().act_AlignMiddle, .MultiSel, hideDisabled: false},
+            CmdDesc{AlignBottom, appStrings().act_AlignBottom, .MultiSel, hideDisabled: false}])
         {
             return true
         }

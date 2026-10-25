@@ -89,8 +89,8 @@ func variadicFirstAnyDataS32(values: ...)->s32
                anyIsPair(values[4])
     }
 
-    const box:  VariadicAnyBox  = {value: 314}
-    const pair: VariadicAnyPair = {left: 0x1122334455667788'u64, right: 0x99AABBCCDDEEFF00'u64}
+    const box:  VariadicAnyBox  = VariadicAnyBox{value: 314}
+    const pair: VariadicAnyPair = VariadicAnyPair{left: 0x1122334455667788'u64, right: 0x99AABBCCDDEEFF00'u64}
     const ok = #run variadicIndexedAnyToAny(42's32, true, "variadic-any", box, pair)
     #assert(ok)
 }
@@ -110,7 +110,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
                assume cast(VariadicAnyBox, v2).value == 314
     }
 
-    const box: VariadicAnyBox = {value: 314}
+    const box: VariadicAnyBox = VariadicAnyBox{value: 314}
     const ok = #run variadicIndexedAnyRelay(42's32, "relay", box)
     #assert(ok)
 }
@@ -150,7 +150,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
         return true
     }
 
-    const box: VariadicAnyBox = {value: 314}
+    const box: VariadicAnyBox = VariadicAnyBox{value: 314}
     const ok = #run variadicDynamicIndexedAnyToAny(42's32, "variadic-any", box)
     #assert(ok)
 }
@@ -172,7 +172,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
         return values.count == 3
     }
 
-    const box: VariadicAnyBox = {value: 314}
+    const box: VariadicAnyBox = VariadicAnyBox{value: 314}
     const ok = #run variadicForeachAnyToAny(42's32, "variadic-any", box)
     #assert(ok)
 }
@@ -231,7 +231,7 @@ func variadicFirstAnyDataS32(values: ...)->s32
 {
     func boxedAnyStructThroughVariadic()->bool
     {
-        var box:   VariadicAnyBox = {value: 314}
+        var box:   VariadicAnyBox = VariadicAnyBox{value: 314}
         var boxed: any = box
         return anyIsBox(boxed) and variadicFirstAnyIsBox(boxed)
     }

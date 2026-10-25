@@ -306,9 +306,9 @@ impl Color
     {
         var result: retval
 
-        let {red, green, blue} = .toRgbF32()
-        let maxChannel         = Math.max(red, green, blue)
-        let minChannel         = Math.min(red, green, blue)
+        let {r: red, g: green, b: blue} = .toRgbF32()
+        let maxChannel = Math.max(red, green, blue)
+        let minChannel = Math.min(red, green, blue)
         result.l = (maxChannel + minChannel) * 0.5
         let delta = maxChannel - minChannel
         if delta == 0
@@ -641,32 +641,32 @@ impl Core.StrConv.IPokeValue for Color
 
         if remaining.count >= 2 and remaining[0] == '0' and remaining[1] | 32 == 'x'
         {
-            {.argb, consumedBytes, overflow} = try parseU32(remaining)
+            {value: .argb, eat: consumedBytes, ovf: overflow} = try parseU32(remaining)
             if overflow do
                 fail OverflowError{}
             remaining = Tokenize.eatCount(remaining, consumedBytes)
         }
         elif Latin1.isDigit(remaining[0])
         {
-            {.a, consumedBytes, overflow} = try parseU8(remaining)
+            {value: .a, eat: consumedBytes, ovf: overflow} = try parseU8(remaining)
             if overflow do
                 fail OverflowError{}
             remaining = Tokenize.eatCount(remaining, consumedBytes)
 
             remaining = Tokenize.eatSpaces(remaining)
-            {.r, consumedBytes, overflow} = try parseU8(remaining)
+            {value: .r, eat: consumedBytes, ovf: overflow} = try parseU8(remaining)
             if overflow do
                 fail OverflowError{}
             remaining = Tokenize.eatCount(remaining, consumedBytes)
 
             remaining = Tokenize.eatSpaces(remaining)
-            {.g, consumedBytes, overflow} = try parseU8(remaining)
+            {value: .g, eat: consumedBytes, ovf: overflow} = try parseU8(remaining)
             if overflow do
                 fail OverflowError{}
             remaining = Tokenize.eatCount(remaining, consumedBytes)
 
             remaining = Tokenize.eatSpaces(remaining)
-            {.b, consumedBytes, overflow} = try parseU8(remaining)
+            {value: .b, eat: consumedBytes, ovf: overflow} = try parseU8(remaining)
             if overflow do
                 fail OverflowError{}
             remaining = Tokenize.eatCount(remaining, consumedBytes)

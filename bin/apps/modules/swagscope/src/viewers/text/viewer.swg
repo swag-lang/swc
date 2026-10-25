@@ -336,7 +336,7 @@ impl Panel
         .repositioning = true
         defer .repositioning = false
         let position = .editor.scrollPosition()
-        .editor.setScrollPosition({position.x, position.y + .residentOffsetY - previousOffset})
+        .editor.setScrollPosition(Math.Point{position.x, position.y + .residentOffsetY - previousOffset})
     }
 
     // Schedules the next read when the reader needs one and none is in flight. The short delay
@@ -734,7 +734,7 @@ impl Panel
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
         // usually one whose encoding was guessed wrong, and this is where a reader corrects it.
-        with .encodingCombo = ComboBox.create(.commands, {0, 0, 156, 36})
+        with .encodingCombo = ComboBox.create(.commands, Math.Rectangle{0, 0, 156, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8

@@ -9,8 +9,8 @@ func createHslModesPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        discard createModePicker(left, "Saturation / lightness", {24, 120, 250, 210}, .SaturationLightness)
-        discard createModePicker(left, "Hue / saturation", {314, 120, 250, 210}, .HueSaturation)
+        discard createModePicker(left, "Saturation / lightness", (24, 120, 250, 210), .SaturationLightness)
+        discard createModePicker(left, "Hue / saturation", (314, 120, 250, 210), .HueSaturation)
     }
 
     let right = createPanel(parent,
@@ -19,11 +19,11 @@ func createHslModesPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        discard createModePicker(right, "Hue / lightness", {24, 120, 250, 210}, .HueLightness)
-        discard createModePicker(right, "Hue", {300, 120, 28, 210}, .HueVertical)
-        discard createModePicker(right, "Light", {364, 120, 28, 210}, .LightnessVertical)
-        discard createModePicker(right, "Sat", {428, 120, 28, 210}, .SaturationVertical)
-        discard createModePicker(right, "Alpha", {492, 120, 28, 210}, .AlphaVertical)
+        discard createModePicker(right, "Hue / lightness", (24, 120, 250, 210), .HueLightness)
+        discard createModePicker(right, "Hue", (300, 120, 28, 210), .HueVertical)
+        discard createModePicker(right, "Light", (364, 120, 28, 210), .LightnessVertical)
+        discard createModePicker(right, "Sat", (428, 120, 28, 210), .SaturationVertical)
+        discard createModePicker(right, "Alpha", (492, 120, 28, 210), .AlphaVertical)
     }
 
     let bottom = createPanel(parent,
@@ -32,10 +32,10 @@ func createHslModesPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        discard createModePicker(bottom, "Hue", {24, 120, 260, 24}, .HueHorizontal)
-        discard createModePicker(bottom, "Lightness", {330, 120, 260, 24}, .LightnessHorizontal)
-        discard createModePicker(bottom, "Saturation", {636, 120, 260, 24}, .SaturationHorizontal)
-        discard createModePicker(bottom, "Alpha", {942, 120, 260, 24}, .AlphaHorizontal)
-        discard createQuickPalette(bottom, {24, 204, 520, 36}, "Fast presets")
+        discard createModePicker(bottom, "Hue", (24, 120, 260, 24), .HueHorizontal)
+        discard createModePicker(bottom, "Lightness", (330, 120, 260, 24), .LightnessHorizontal)
+        discard createModePicker(bottom, "Saturation", (636, 120, 260, 24), .SaturationHorizontal)
+        discard createModePicker(bottom, "Alpha", (942, 120, 260, 24), .AlphaHorizontal)
+        discard createQuickPalette(bottom, (24, 204, 520, 36), "Fast presets")
     }
 }

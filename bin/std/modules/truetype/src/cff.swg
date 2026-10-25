@@ -131,7 +131,7 @@ impl CffFont
     mtd const privateFor(gid: u32)->{ subrs: const *CffIndex, defaultWidth: f64, nominalWidth: f64 }
     {
         if not .isCid or .fdLocalSubrs.isEmpty() do
-            return {&.localSubrs, .defaultWidthX, .nominalWidthX}
+            return {subrs: &.localSubrs, defaultWidth: .defaultWidthX, nominalWidth: .nominalWidthX}
 
         var fd = 0'u32
         if gid < .fdSelect.count do
@@ -139,7 +139,7 @@ impl CffFont
         if fd >= .fdLocalSubrs.count do
             fd = 0
 
-        return {&.fdLocalSubrs[fd], .fdDefaultWidth[fd], .fdNominalWidth[fd]}
+        return {subrs: &.fdLocalSubrs[fd], defaultWidth: .fdDefaultWidth[fd], nominalWidth: .fdNominalWidth[fd]}
     }
 
     // Returns the name a string identifier selects, from the standard vocabulary or the

@@ -27,7 +27,7 @@ impl LibraryWnd
                 }
 
                 if not found do
-                    result.add({capture.sourceApplication, capture.sourceExecutable, 1})
+                    result.add(LibraryNamedFilter{capture.sourceApplication, capture.sourceExecutable, 1})
                 continue
             }
 
@@ -41,7 +41,7 @@ impl LibraryWnd
                 }
 
                 if not found do
-                    result.add({tag[], "", 1})
+                    result.add(LibraryNamedFilter{tag[], "", 1})
             }
         }
 

@@ -234,13 +234,13 @@ impl MediaInfoPanel
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = {12, 8, 12, 8}
+            .padding         = Math.Vector4{12, 8, 12, 8}
             .toggle          = side.toggle
         }
 
         let size = themeCompactButtonSize(result.themeMetrics())
 
-        with let header = Wnd.create'Wnd(result, {0, 0, 0, size})
+        with let header = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, size})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -248,7 +248,7 @@ impl MediaInfoPanel
 
         with result.closeButton = IconButton.create(header,
                                                     theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())),
-                                                    {0, 0, size, size})
+                                                    Math.Rectangle{0, 0, size, size})
         {
             .dockStyle  = .Right
             .sigPressed += func|panel = result|(_)
@@ -260,7 +260,7 @@ impl MediaInfoPanel
 
         with result.copyButton = IconButton.create(header,
                                                    theme.icon(.Copy, themeRowIconSize(result.themeMetrics())),
-                                                   {0, 0, size, size})
+                                                   Math.Rectangle{0, 0, size, size})
         {
             .dockStyle  = .Right
             .sigPressed += func|panel = result|(_) { Clipboard.addString(panel.text()) }

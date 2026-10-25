@@ -27,10 +27,10 @@ func fillScaled(out: [*] s64, count: u64, scale: Scale, text: string)->s64
 #test
 {
     var values: [8] s64
-    let total = fillScaled(&values[0], 8, {3, 5}, "four")
+    let total = fillScaled(&values[0], 8, Scale{3, 5}, "four")
     Swag.assert(total == 8 * (5 + 4))
     for i in 8 do
         Swag.assert(values[i] == cast(s64, i) * 3)
 
-    Swag.assert(fillScaled(&values[0], 0, {3, 5}, "four") == 0)
+    Swag.assert(fillScaled(&values[0], 0, Scale{3, 5}, "four") == 0)
 }

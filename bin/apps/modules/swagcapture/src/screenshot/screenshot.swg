@@ -78,7 +78,7 @@ func performScreenCapture(main: *MainWnd)->{ img: Image, sf: *Surface? } fail
     // place the surface through setPosition, which works in physical screen pixels.
     result.sf = try g_App.createSurface(g_DesktopX, g_DesktopY, 16, 16, .ToolWindow | .TopMost | .NoShadow)
     let sf = result.sf
-    sf.setPosition({cast(f32, g_DesktopX), cast(f32, g_DesktopY), cast(f32, g_ScreenWidth), cast(f32, g_ScreenHeight)})
+    sf.setPosition(Math.Rectangle{cast(f32, g_DesktopX), cast(f32, g_DesktopY), cast(f32, g_ScreenWidth), cast(f32, g_ScreenHeight)})
 
     with let captureWnd = Wnd.create'CaptureRectWnd(sf.wnd)
     {

@@ -17,7 +17,7 @@ struct Point {}
 
 func(T) readBox(value: T)->T
 {
-    let box: Box'T = {value}     // swc-expected-note {{sema_note_generic_requested_here}}
+    let box: Box'T = Box'T{value}     // swc-expected-note {{sema_note_generic_requested_here}}
     return box.read()
 }
 

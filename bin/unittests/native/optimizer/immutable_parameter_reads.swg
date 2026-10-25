@@ -211,9 +211,9 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
 #test
 {
     var bodies: [3] Body = [
-        {0.0,  0.0, 0.0, 0.0,   4.0},
-        {2.0,  1.0, 0.5, 0.0,   1.0},
-        {-1.0, 3.0, 0.0, -0.25, 2.0}]
+        Body{0.0, 0.0, 0.0, 0.0, 4.0},
+        Body{2.0, 1.0, 0.5, 0.0, 1.0},
+        Body{-1.0, 3.0, 0.0, -0.25, 2.0}]
     advance(bodies, 0.5)
     Swag.assert(bodies[0].x == 0.0 and bodies[0].y == 1.75)
     Swag.assert(bodies[0].vx == 0.0 and bodies[0].vy == 3.5)
@@ -229,12 +229,12 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
 
     let src: [4] s64 = [1, -2, 3, 40]
     var dst: [4] s64
-    let scaled       = scaleInto(&dst[0], &src[0], {3, 5, 4})
+    let scaled       = scaleInto(&dst[0], &src[0], Scale{3, 5, 4})
     Swag.assert(scaled == 166)
     Swag.assert(dst[0] == 8 and dst[1] == -1 and dst[2] == 14 and dst[3] == 125)
 
     GCalls = 0
-    let around = scaleAround(&dst[0], &src[0], {3, 5, 4})
+    let around = scaleAround(&dst[0], &src[0], Scale{3, 5, 4})
     Swag.assert(around == 166 and GCalls == 16)
     Swag.assert(dst[0] == 8 and dst[1] == -1 and dst[2] == 14 and dst[3] == 125)
 
@@ -258,7 +258,7 @@ func sumThroughAddress(dst: [*] s64, scale: Scale)->s64
     Swag.assert(summed == 22)
     Swag.assert(values[1] == 3 and values[5] == 21)
 
-    let addressed = sumThroughAddress(&dst[0], {7, -2, 3})
+    let addressed = sumThroughAddress(&dst[0], Scale{7, -2, 3})
     Swag.assert(addressed == 36)
     Swag.assert(dst[0] == 5 and dst[2] == 5 and dst[3] == 125)
 }

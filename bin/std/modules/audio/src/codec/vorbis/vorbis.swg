@@ -60,7 +60,7 @@ private struct BitReader
 
 private impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => {payload.buffer, payload.count, 0, false}
+    func create(payload: const [..] u8)->BitReader => BitReader{payload.buffer, payload.count, 0, false}
 
     // Reads `count` bits, at most 32, as an unsigned value.
     mtd read(count: u32)->u32

@@ -110,7 +110,7 @@ struct Encoder
 
 impl IEncoder for Encoder
 {
-    mtd impl format()->StreamFormat => {"MP4 - ISO Base Media File Format", ".mp4;.m4v;.mov"}
+    mtd impl format()->StreamFormat => StreamFormat{"MP4 - ISO Base Media File Format", ".mp4;.m4v;.mov"}
 
     mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
     {
@@ -145,7 +145,7 @@ impl IEncoder for Encoder
         if payload.count > Swag.U32.Max do
             fail UnsupportedFormatError{"MP4 JPEG sample exceeds the four gigabytes its sample table can describe"}
 
-        .frames.add({sink.position(), cast(u32, payload.count)})
+        .frames.add(EncodedFrame{sink.position(), cast(u32, payload.count)})
         try sink.write(payload)
     }
 

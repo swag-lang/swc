@@ -86,7 +86,7 @@ impl TweakFile
     {
         #static if not Reflection.isStruct(T) do
             #error("type should be a struct")
-        .folders.add({#typeof(T), folder})
+        .folders.add(Folder{#typeof(T), folder})
     }
 
     // Reads the tweak file `fileName` and fills the registered folders from it.

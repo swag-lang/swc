@@ -604,7 +604,7 @@ impl ConcatBuffer
         firstBucket.data = null
         .release()
 
-        return {rdata, rcount, rcapacity}
+        return {data: rdata, size: rcount, capacity: rcapacity}
     }
 
     // Returns an owned string, transferring a single heap bucket when possible.

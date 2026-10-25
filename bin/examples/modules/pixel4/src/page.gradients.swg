@@ -104,15 +104,15 @@ func drawGradientSpreadCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     let gap = 14.0
     let h   = (body.height - 2 * gap) / 3
     drawSpreadSample(painter,
-                     {body.x + 18, body.y + 10, body.width - 36, h},
+                     Math.Rectangle{body.x + 18, body.y + 10, body.width - 36, h},
                      "Clamp",
                      .Clamp)
     drawSpreadSample(painter,
-                     {body.x + 18, body.y + 10 + h + gap, body.width - 36, h},
+                     Math.Rectangle{body.x + 18, body.y + 10 + h + gap, body.width - 36, h},
                      "Repeat",
                      .Repeat)
     drawSpreadSample(painter,
-                     {body.x + 18, body.y + 10 + (h + gap) * 2, body.width - 36, h},
+                     Math.Rectangle{body.x + 18, body.y + 10 + (h + gap) * 2, body.width - 36, h},
                      "Mirror",
                      .Mirror)
 }
@@ -165,8 +165,8 @@ func drawGradientsPage(painter: *Pixel.Painter)
                    "Pixel gradient paints",
                    "Page 6 : linear, radial, sweep, opacity-tinted, repeating and mirrored gradient brushes across fills, strokes and text.")
 
-    drawGradientFillCard(painter, {28, 104, 452, 268})
-    drawGradientStrokeCard(painter, {500, 104, 452, 268})
-    drawGradientSpreadCard(painter, {28, 398, 452, 266})
-    drawGradientTextCard(painter, {500, 398, 452, 266})
+    drawGradientFillCard(painter, Math.Rectangle{28, 104, 452, 268})
+    drawGradientStrokeCard(painter, Math.Rectangle{500, 104, 452, 268})
+    drawGradientSpreadCard(painter, Math.Rectangle{28, 398, 452, 266})
+    drawGradientTextCard(painter, Math.Rectangle{500, 398, 452, 266})
 }

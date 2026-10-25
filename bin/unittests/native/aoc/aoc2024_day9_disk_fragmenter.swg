@@ -314,7 +314,7 @@ func getSpanInfo(text: string)->{spanCount: u32, firstFree: u32}
         }
     }
 
-    return {spanCount, firstFree}
+    return {spanCount: spanCount, firstFree: firstFree}
 }
 
 // ---------------------------------------------------------------------------

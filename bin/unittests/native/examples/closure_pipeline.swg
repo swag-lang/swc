@@ -170,7 +170,7 @@ struct Pair { a, b: s32 }
 
 #test
 {
-    let pair:  Pair = {a: 7, b: 4}
+    let pair:  Pair = Pair{a: 7, b: 4}
     let apply: func||(s32)->s32 = func|pair|(value: s32)->s32 { return pair.a + pair.b * value }
     Swag.assert(apply(3) == 19)
     Swag.assert(apply(0) == 7)

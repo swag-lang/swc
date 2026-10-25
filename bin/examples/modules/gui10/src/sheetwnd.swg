@@ -278,7 +278,7 @@ impl IWnd for SheetView
                     for i in ThemeVariantCount
                     {
                         drawCell(painter,
-                                 {captionX + 2, head.y, SwatchWidth, head.height},
+                                 Math.Rectangle{captionX + 2, head.y, SwatchWidth, head.height},
                                  variantName(cast(ThemeVariant, cast(s32, i))),
                                  .fontName!,
                                  colors.label_TextFaint)
@@ -290,7 +290,7 @@ impl IWnd for SheetView
                 continue
             }
 
-            drawCell(painter, {rect.x, rect.y, NameWidth, height}, row.name.toString(), .fontName!, colors.label_Text)
+            drawCell(painter, Math.Rectangle{rect.x, rect.y, NameWidth, height}, row.name.toString(), .fontName!, colors.label_Text)
 
             var x = rect.x + NameWidth
             switch #complete .kind
@@ -298,9 +298,9 @@ impl IWnd for SheetView
             case .Colors:
                 let swatch = Math.Rectangle{x, rect.y + SwatchInset, SwatchWidth, height - 2 * SwatchInset}
                 .drawSwatch(painter, swatch, row.colors[0], colors.bk)
-                .drawSwatch(painter, {swatch.x + SwatchWidth + SwatchGap, swatch.y, SwatchWidth, swatch.height}, row.colors[0], colors.view_Bk)
+                .drawSwatch(painter, Math.Rectangle{swatch.x + SwatchWidth + SwatchGap, swatch.y, SwatchWidth, swatch.height}, row.colors[0], colors.view_Bk)
                 x += 2 * SwatchWidth + 2 * SwatchGap
-                drawCell(painter, {x, rect.y, HexWidth, height}, row.text.toString(), .fontMono!, colors.label_TextLight)
+                drawCell(painter, Math.Rectangle{x, rect.y, HexWidth, height}, row.text.toString(), .fontMono!, colors.label_TextLight)
 
             case .Palettes:
                 for i in ThemeVariantCount
@@ -311,7 +311,7 @@ impl IWnd for SheetView
                 }
 
             case .Metrics:
-                drawCell(painter, {x, rect.y, HexWidth, height}, row.text.toString(), .fontMono!, colors.label_TextLight)
+                drawCell(painter, Math.Rectangle{x, rect.y, HexWidth, height}, row.text.toString(), .fontMono!, colors.label_TextLight)
             }
         }
 
@@ -331,7 +331,7 @@ impl SheetWnd
 {
     func create(parent: *Wnd)->*SheetWnd
     {
-        with let result = Wnd.create'SheetWnd(parent, {})
+        with let result = Wnd.create'SheetWnd(parent, Math.Rectangle{})
         {
             .setFrameForm(.Square)
             .setFrameFlags(.Borders)

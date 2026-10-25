@@ -7,14 +7,14 @@ alias DepResultWord = u32
 func depInlineNamedResult(value: DepResultWord)->{succeeded: bool, errorCode: DepResultWord}
 {
     let succeeded = value == 0
-    return {succeeded, value}
+    return {succeeded: succeeded, errorCode: value}
 }
 
 #[Swag.NoInline]
 func depNamedResult(value: DepResultWord)->{succeeded: bool, errorCode: DepResultWord}
 {
     let succeeded = value == 0
-    return {succeeded, value}
+    return {succeeded: succeeded, errorCode: value}
 }
 
 #[Swag.NoInline]

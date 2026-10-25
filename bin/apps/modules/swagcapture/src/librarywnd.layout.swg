@@ -50,7 +50,7 @@ impl LibraryWnd
     // its sub-folders, the recycle bin included, are reachable from the chevrons.
     mtd createBreadcrumb()
     {
-        with .breadcrumb = BreadcrumbCtrl.create(me.barPanel, {0, 0, 0, themeActionButtonSize(me.themeMetrics())})
+        with .breadcrumb = BreadcrumbCtrl.create(me.barPanel, Math.Rectangle{0, 0, 0, themeActionButtonSize(me.themeMetrics())})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -64,7 +64,7 @@ impl LibraryWnd
     // says a menu opens.
     mtd createMenuButton(icon: Icon, text: string)->*IconButton
     {
-        with let button = IconButton.create(me.commandBar, icon, {0, 0, 0, themeActionButtonSize(me.themeMetrics())})
+        with let button = IconButton.create(me.commandBar, icon, Math.Rectangle{0, 0, 0, themeActionButtonSize(me.themeMetrics())})
         {
             .preferredSize.x = 0
             .setText(text)
@@ -82,11 +82,11 @@ impl LibraryWnd
     {
         let metrics  = .themeMetrics()
         let iconSize = themeActionIconSize(metrics)
-        with .commandBar = StackLayoutCtrl.create(me.barPanel, .Left, {0, 0, 0, themeActionButtonSize(metrics)})
+        with .commandBar = StackLayoutCtrl.create(me.barPanel, .Left, Math.Rectangle{0, 0, 0, themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .spacing         = LibButtonGap
-            .padding         = {2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
+            .padding         = Math.Vector4{2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
             .backgroundStyle = .Transparent
         }
 
@@ -142,13 +142,13 @@ impl LibraryWnd
 
         // Loading state stays with the commands it updates, before the flexible gap, so it
         // appears without moving the search field away from the right edge.
-        .view.imgSpin = Spinner.create(.commandBar, {0, 0, iconSize, iconSize})
+        .view.imgSpin = Spinner.create(.commandBar, Math.Rectangle{0, 0, iconSize, iconSize})
         .view.imgSpin.hide()
 
         let spacer = Wnd.create'Wnd(.commandBar)
         spacer.layoutSpec.policyX = .Expand
 
-        with .searchEdit = EditBox.create(me.commandBar, "", {0, 0, 220, themeActionButtonSize(metrics)}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
+        with .searchEdit = EditBox.create(me.commandBar, "", Math.Rectangle{0, 0, 220, themeActionButtonSize(metrics)}, flags: .ClearButton | .ReleaseFocusOnEnterOrEscape)
         {
             .setForm(.Rectangle)
             .setPlaceholder(appStrings().ui_Search)

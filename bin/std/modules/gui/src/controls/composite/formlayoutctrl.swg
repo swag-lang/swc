@@ -106,7 +106,7 @@ impl IWnd for FormLayoutCtrl
     mtd impl measureContent(available: Math.Point)->Math.Point
     {
         let width = Math.max(available.x - .padding.x - .padding.z, 0)
-        return {0, .rowsHeight(width) + .padding.y + .padding.w}
+        return Math.Point{0, .rowsHeight(width) + .padding.y + .padding.w}
     }
 }
 
@@ -121,7 +121,7 @@ private impl FormLayoutCtrl
     {
         if not row.help do
             return 0
-        return Math.max(.options.helpHeight, row.help.measure({width, 0}).preferred.y)
+        return Math.max(.options.helpHeight, row.help.measure(Math.Point{width, 0}).preferred.y)
     }
 
     // Returns the width of the label column in `Left` mode, never below its option.
@@ -160,21 +160,21 @@ private impl FormLayoutCtrl
         if not row.label.name.isEmpty()
         {
             if place do
-                row.label.arrange({client.x, y, client.width, .options.labelHeight})
+                row.label.arrange(Math.Rectangle{client.x, y, client.width, .options.labelHeight})
             cursor += .options.labelHeight + .options.labelSpacing
         }
         elif place
         {
-            row.label.arrange({client.x, y, client.width, 0})
+            row.label.arrange(Math.Rectangle{client.x, y, client.width, 0})
         }
 
-        let height = .rowFieldHeight(row, {client.width, client.height})
+        let height = .rowFieldHeight(row, Math.Point{client.width, client.height})
 
         var actionWidth = 0'f32
         if row.action
         {
             let action = row.action
-            actionWidth = action.measure({client.width, height}).preferred.x
+            actionWidth = action.measure(Math.Point{client.width, height}).preferred.x
             actionWidth = Math.max(actionWidth, action.minSize.x)
         }
 
@@ -182,8 +182,8 @@ private impl FormLayoutCtrl
         let fieldWidth = Math.max(0, client.width - actionWidth - actionGap)
         if place
         {
-            row.field.arrange({client.x, cursor, fieldWidth, height})
-            row.action?.arrange({client.x + fieldWidth + actionGap, cursor, actionWidth, height})
+            row.field.arrange(Math.Rectangle{client.x, cursor, fieldWidth, height})
+            row.action?.arrange(Math.Rectangle{client.x + fieldWidth + actionGap, cursor, actionWidth, height})
         }
 
         cursor += height
@@ -193,7 +193,7 @@ private impl FormLayoutCtrl
             let helpHeight = .rowHelpHeight(row, client.width)
             cursor += .options.helpSpacing
             if place do
-                row.help.arrange({client.x, cursor, client.width, helpHeight})
+                row.help.arrange(Math.Rectangle{client.x, cursor, client.width, helpHeight})
             cursor += helpHeight
         }
 
@@ -204,15 +204,15 @@ private impl FormLayoutCtrl
     {
         let fieldX         = client.x + labelWidth + .options.labelSpacing
         let availableWidth = Math.max(0, client.width - labelWidth - .options.labelSpacing)
-        let height         = .rowFieldHeight(row, {availableWidth, client.height})
+        let height         = .rowFieldHeight(row, Math.Point{availableWidth, client.height})
         if place do
-            row.label.arrange({client.x, y, labelWidth, height})
+            row.label.arrange(Math.Rectangle{client.x, y, labelWidth, height})
 
         var actionWidth = 0'f32
         if row.action
         {
             let action = row.action
-            actionWidth = action.measure({availableWidth, height}).preferred.x
+            actionWidth = action.measure(Math.Point{availableWidth, height}).preferred.x
             actionWidth = Math.max(actionWidth, action.minSize.x)
         }
 
@@ -220,8 +220,8 @@ private impl FormLayoutCtrl
         let fieldWidth = Math.max(0, availableWidth - actionWidth - actionGap)
         if place
         {
-            row.field.arrange({fieldX, y, fieldWidth, height})
-            row.action?.arrange({fieldX + fieldWidth + actionGap, y, actionWidth, height})
+            row.field.arrange(Math.Rectangle{fieldX, y, fieldWidth, height})
+            row.action?.arrange(Math.Rectangle{fieldX + fieldWidth + actionGap, y, actionWidth, height})
         }
 
         var cursor = y + height
@@ -231,7 +231,7 @@ private impl FormLayoutCtrl
             let helpHeight = .rowHelpHeight(row, availableWidth)
             cursor += .options.helpSpacing
             if place do
-                row.help.arrange({fieldX, cursor, availableWidth, helpHeight})
+                row.help.arrange(Math.Rectangle{fieldX, cursor, availableWidth, helpHeight})
             cursor += helpHeight
         }
 
@@ -281,7 +281,7 @@ impl FormLayoutCtrl
 {
     // Creates an empty form layout inside `parent`.
     #[Swag.Discardable]
-    func create(parent: *Wnd, options: FormLayoutOptions = {}, position: Math.Rectangle = {})->*FormLayoutCtrl
+    func create(parent: *Wnd, options: FormLayoutOptions = FormLayoutOptions{}, position: Math.Rectangle = Math.Rectangle{})->*FormLayoutCtrl
     {
         Swag.assert(parent != null)
         let result = Wnd.create'FormLayoutCtrl(parent, null, position)
@@ -320,7 +320,7 @@ impl FormLayoutCtrl
     // Creates an editable text field, appends its labeled row, and returns the editor.
     //
     // `icon` is displayed inside the editor when it refers to a valid atlas frame.
-    mtd addTextField(label: string, text: string = "", placeholder: string? = null, help: string? = null, icon: Icon = {}, id: WndId? = null)->*EditBox
+    mtd addTextField(label: string, text: string = "", placeholder: string? = null, help: string? = null, icon: Icon = Icon{}, id: WndId? = null)->*EditBox
     {
         let result = EditBox.create(me, text, id: id)
         result.setPlaceholder(placeholder)
@@ -334,7 +334,7 @@ impl FormLayoutCtrl
     //
     // `flags` defaults to [[Gui.PasswordEditFlags.RevealButton]]; pass
     // [[Gui.PasswordEditFlags.None]] for a permanently masked field.
-    mtd addPasswordField(label: string, placeholder: string? = null, help: string? = null, icon: Icon = {}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
+    mtd addPasswordField(label: string, placeholder: string? = null, help: string? = null, icon: Icon = Icon{}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
     {
         let result = PasswordEdit.create(me, id: id, flags: flags)
         result.setPlaceholder(placeholder)
@@ -373,9 +373,9 @@ impl FormLayoutCtrl
     // The button shares the height of its field and keeps its preferred width. A row holds a
     // single trailing control, so this cannot follow [[Gui.FormLayoutCtrl.addRowChoice]] on
     // the same row.
-    mtd addRowAction(text: string, icon: Icon = {}, id: WndId? = null)->*PushButton
+    mtd addRowAction(text: string, icon: Icon = Icon{}, id: WndId? = null)->*PushButton
     {
-        let result = PushButton.create(me, text, {}, id)
+        let result = PushButton.create(me, text, Math.Rectangle{}, id)
         if icon.isValid() do
             result.setIcon(icon)
         .attachToLastRow(result)

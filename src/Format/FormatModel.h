@@ -59,6 +59,7 @@ enum class FormatRoleE : uint64_t
     NullableTypeSuffix  = 1ULL << 43, // `?` suffix of a nullable type
     BlockModifierStart  = 1ULL << 44, // first visibility or storage modifier governing a braced declaration group
     TaggedCaseColon     = 1ULL << 45, // `:` closing the `case` label of a tagged union member
+    RequiredTupleComma  = 1ULL << 46, // the comma distinguishing a singleton tuple from grouping
 };
 using FormatRoles = EnumFlags<FormatRoleE>;
 

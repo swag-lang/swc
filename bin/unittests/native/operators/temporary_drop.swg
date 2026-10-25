@@ -352,7 +352,7 @@ func visitFailureTemporary() fail
     var pair = makeOwnerPair(8, 9)
     DropCount = 0
     DropTrace = 0
-    {pair.first, pair.second} = makeOwnerPair(4, 5)
+    {first: pair.first, second: pair.second} = makeOwnerPair(4, 5)
     Swag.assert(DropCount == 2)
     Swag.assert(DropTrace == 89)
     Swag.assert(pair.first.value == 4)
@@ -364,9 +364,9 @@ func visitFailureTemporary() fail
 #test
 {
     var pair = makeOwnerPair(8, 9)
-    DropCount       = 0
-    DropTrace       = 0
-    {pair.first, _} = makeOwnerPair(4, 5)
+    DropCount = 0
+    DropTrace = 0
+    {first: pair.first, second: _} = makeOwnerPair(4, 5)
     Swag.assert(DropCount == 2)
     Swag.assert(DropTrace == 85)
     Swag.assert(pair.first.value == 4)
@@ -382,7 +382,7 @@ func visitFailureTemporary() fail
     DropCount     = 0
     PostCopyCount = 0
     PostMoveCount = 0
-    {target.first, target.second} = source
+    {first: target.first, second: target.second} = source
     Swag.assert(DropCount == 2)
     Swag.assert(PostCopyCount == 2)
     Swag.assert(PostMoveCount == 0)
@@ -402,7 +402,7 @@ func visitFailureTemporary() fail
     DropCount     = 0
     PostCopyCount = 0
     PostMoveCount = 0
-    {target.first, target.second} = makeTransferPair(4, 5)
+    {first: target.first, second: target.second} = makeTransferPair(4, 5)
     Swag.assert(DropCount == 2)
     Swag.assert(PostCopyCount == callPostCopyCount)
     Swag.assert(PostMoveCount == callPostMoveCount + 2)

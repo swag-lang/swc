@@ -9,7 +9,7 @@ using Swag, Core
     host.setup(280, 60)
     defer host.shutdown()
 
-    let password = PasswordEdit.create(&host.root, {20, 20, 240, 26})
+    let password = PasswordEdit.create(&host.root, Math.Rectangle{20, 20, 240, 26})
     password.setPlaceholder("Password")
     host.focus(password.edit)
     host.sendRune(Input.Key.A, 'A')
@@ -37,7 +37,7 @@ using Swag, Core
     host.setup(280, 60)
     defer host.shutdown()
 
-    let password = PasswordEdit.create(&host.root, {20, 20, 240, 26})
+    let password = PasswordEdit.create(&host.root, Math.Rectangle{20, 20, 240, 26})
     host.focus(password.edit)
     host.sendRune(Input.Key.A, 's')
     host.sendRune(Input.Key.A, 'e')
@@ -65,9 +65,9 @@ using Swag, Core
     host.setup(280, 60)
     defer host.shutdown()
 
-    let password = PasswordEdit.create(&host.root, {20, 20, 240, 26})
+    let password = PasswordEdit.create(&host.root, Math.Rectangle{20, 20, 240, 26})
     let rect     = password.edit.surfaceRect()
-    let effect   = host.dropText({rect.center().x, rect.center().y}, "secret")
+    let effect   = host.dropText(Math.Point{rect.center().x, rect.center().y}, "secret")
     Swag.assert(effect == .None)
     Swag.assert(password.edit.text() == "")
     Swag.assert(password.byteCount == 0)

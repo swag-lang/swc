@@ -5,13 +5,13 @@ using Win32
 
 internal func wallClockFields(systemTime: SYSTEMTIME)->WallClockFields
 {
-    return {systemTime.wYear,
-            systemTime.wMonth,
-            systemTime.wDay,
-            systemTime.wHour,
-            systemTime.wMinute,
-            systemTime.wSecond,
-            systemTime.wMilliseconds}
+    return WallClockFields{systemTime.wYear,
+                           systemTime.wMonth,
+                           systemTime.wDay,
+                           systemTime.wHour,
+                           systemTime.wMinute,
+                           systemTime.wSecond,
+                           systemTime.wMilliseconds}
 }
 
 internal func readWallClock(kind: WallClockKind)->WallClockFields

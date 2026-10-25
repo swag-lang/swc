@@ -18,12 +18,12 @@ func createComboBoxPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        var combo = ComboBox.create(left, {24, 94, 240})
+        var combo = ComboBox.create(left, Math.Rectangle{24, 94, 240})
         combo.maximumPopupHeight = 150
         fillFlavorCombo(combo)
         combo.setSelectedIndex(1)
 
-        combo = ComboBox.create(left, {24, 144, 240})
+        combo = ComboBox.create(left, Math.Rectangle{24, 144, 240})
         combo.addItem("<b>Bold item", "bold")
         combo.addItem("<i>Italic item", "italic")
         combo.addItem("<p1>Palette item", "palette")
@@ -36,13 +36,13 @@ func createComboBoxPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        var combo = ComboBox.create(right, {24, 94, 260}, mode: .Editable)
+        var combo = ComboBox.create(right, Math.Rectangle{24, 94, 260}, mode: .Editable)
         combo.addItem("Mercury", "mercury")
         combo.addItem("Venus", "venus")
         combo.addItem("Earth", "earth")
         combo.setSelectedIndex(2)
 
-        combo = ComboBox.create(right, {24, 144, 260})
+        combo = ComboBox.create(right, Math.Rectangle{24, 144, 260})
         combo.addItem("Disabled selected", "disabled")
         combo.setSelectedIndex(0)
         combo.disable()
@@ -54,16 +54,16 @@ func createComboBoxPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        var combo = ComboBox.create(bottom, {24, 98, 120})
+        var combo = ComboBox.create(bottom, Math.Rectangle{24, 98, 120})
         combo.minimumPopupWidth = 220
         fillFlavorCombo(combo)
         combo.setSelectedIndex(0)
 
-        combo = ComboBox.create(bottom, {190, 98, 240})
+        combo = ComboBox.create(bottom, Math.Rectangle{190, 98, 240})
         fillFlavorCombo(combo)
         combo.setSelectedIndex(4)
 
-        combo = ComboBox.create(bottom, {480, 98, 360})
+        combo = ComboBox.create(bottom, Math.Rectangle{480, 98, 360})
         combo.addItem("A much longer selected label for clipping checks", "long")
         combo.addItem("Short", "short")
         combo.setSelectedIndex(0)

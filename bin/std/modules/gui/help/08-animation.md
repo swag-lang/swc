@@ -20,7 +20,7 @@ var options: AnimationOptions
 options.duration = 180'ms
 options.easing   = .EaseOut
 
-discard app.animator.animatePoint(panel, AnimationChannel.from("Example.PanelOffset"), {-24, 0}, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
+discard app.animator.animatePoint(panel, AnimationChannel.from("Example.PanelOffset"), Math.Point{-24, 0}, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
 ```
 
 An [[Gui.AnimationHandle]] does not retain the target. Keep it only when an operation needs to
@@ -35,7 +35,7 @@ group to the scheduler with `#move`.
 ```swag
 var group = AnimationGroup.concurrent()
 group.addF32(card, AnimationChannel.from("Example.CardOpacity"), 0, 1, func(wnd, value) { wnd.setPresentationOpacity(value) }, options)
-group.addPoint(card, AnimationChannel.from("Example.CardOffset"), {16, 0}, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
+group.addPoint(card, AnimationChannel.from("Example.CardOffset"), Math.Point{16, 0}, {}, func(wnd, value) { wnd.setPresentationOffset(value) }, options)
 discard app.animator.start(#move group)
 ```
 

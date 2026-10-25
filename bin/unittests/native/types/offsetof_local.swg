@@ -46,7 +46,7 @@ func multiDecl()->u64
 func aggregateLayout()->u64
 {
     let lead: s8      = 0
-    let pair: OffPair = {a: 1, b: 2}
+    let pair: OffPair = OffPair{a: 1, b: 2}
     let tail: s16     = 0
 
     #assert(#offsetof(lead) == 0)

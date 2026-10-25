@@ -480,7 +480,7 @@ private impl TagBin
             let sf  = shape.fields[i]
             if sec.mapSeek.contains(sf.key) do
                 fail SerializationError{"serialized field key is duplicated"}
-            sec.mapSeek.add(sf.key, {sec.payloadStart + off, cast(u32, i)})
+            sec.mapSeek.add(sf.key, TagBinFieldRef{sec.payloadStart + off, cast(u32, i)})
         }
 
         sec.mapLoaded = true
@@ -511,7 +511,7 @@ private impl TagBin
     {
         if not compressed
         {
-            .elemStack.add({false, null})
+            .elemStack.add({compressed: false, tmpBuf: null})
             return
         }
 
@@ -526,7 +526,7 @@ private impl TagBin
 
         if uncompressedSize == compressedSize
         {
-            .elemStack.add({false, null})
+            .elemStack.add({compressed: false, tmpBuf: null})
             return
         }
 
@@ -555,9 +555,9 @@ private impl TagBin
         }
 
         // track this element context
-        .elemStack.add({true, decompressedBuffer})
+        .elemStack.add({compressed: true, tmpBuf: decompressedBuffer})
 
-        .outStack.add({.stream.readBuffer, .stream.seek + compressedSize})
+        .outStack.add({buf: .stream.readBuffer, seek: .stream.seek + compressedSize})
         .stream.readBuffer = decompressedBuffer.toSlice()
         .stream.seek       = 0
     }
@@ -622,7 +622,7 @@ private impl TagBin
         var ent    = sec.mapSeek.tryFind(reqKey)
 
         if not ent do
-            return {false, 0, 0}
+            return {found: false, seek: 0, shapeIndex: 0}
 
         if not ent.value.consumed
         {
@@ -630,7 +630,7 @@ private impl TagBin
             sec.consumedCount  += 1
         }
 
-        return {true, ent.value.seek, ent.value.shapeIndex}
+        return {found: true, seek: ent.value.seek, shapeIndex: ent.value.shapeIndex}
     }
 
     // Reads the stream header, re-bases the stream on the body, and loads the shape directory.
@@ -871,7 +871,7 @@ impl TagBin
         // If this name is in the ignore list, then skip it
         if .ignoreElements.contains(val.name)
         {
-            .elemStack.add({false, null})
+            .elemStack.add({compressed: false, tmpBuf: null})
             return false
         }
 
@@ -880,7 +880,7 @@ impl TagBin
         // If section is raw, then we just have values without versionning
         if sec.kind == .Raw
         {
-            .elemStack.add({false, null})
+            .elemStack.add({compressed: false, tmpBuf: null})
             return true
         }
 
@@ -914,7 +914,7 @@ impl TagBin
             let ent = .findFieldRef(sec, val)
             if not ent.found
             {
-                .elemStack.add({false, null})
+                .elemStack.add({compressed: false, tmpBuf: null})
                 return false
             }
 
@@ -941,7 +941,7 @@ impl TagBin
             // The requested field is not there, just ignore it
             if not ent.found
             {
-                .elemStack.add({false, null})
+                .elemStack.add({compressed: false, tmpBuf: null})
                 return false
             }
 
@@ -986,7 +986,7 @@ impl TagBin
 
         // We must have a previous buffer to append into
         Swag.assert(not .outStack.isEmpty())
-        let {parentOut, parentSeek} = .outStack.popBack()
+        let {buf: parentOut, seek: parentSeek} = .outStack.popBack()
 
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut

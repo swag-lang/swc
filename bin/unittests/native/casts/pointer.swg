@@ -152,7 +152,7 @@ struct PointerConstCastBox
 
 #test
 {
-    const value: PointerConstCastBox = {value: 123}
+    const value: PointerConstCastBox = PointerConstCastBox{value: 123}
     let ptr = cast(const *PointerConstCastBox, value)
     #assert(#typeof(ptr) == const *PointerConstCastBox)
     Swag.assert(ptr.value == 123)

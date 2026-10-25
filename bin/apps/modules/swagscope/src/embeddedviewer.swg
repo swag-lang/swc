@@ -11,14 +11,14 @@ struct EmbeddedViewer
 
     late
     {
-        header:      *Wnd
-        titleLabel:  *Label
-        viewerCombo: *ComboBox
-        infoLane:    *Wnd
-        sideSplitter: *SplitterCtrl
-        document:    *Wnd
+        header:          *Wnd
+        titleLabel:      *Label
+        viewerCombo:     *ComboBox
+        infoLane:        *Wnd
+        sideSplitter:    *SplitterCtrl
+        document:        *Wnd
         sidePlaceholder: *Wnd
-        commandBar:  *ViewerActionBar
+        commandBar:      *ViewerActionBar
     }
 
     late owner:        *ViewerWindow
@@ -210,8 +210,8 @@ private impl EmbeddedViewer
             return true
         }
 
-        let choice = &.choices[index]
-        let plugin = &.owner.index.plugins[choice.pluginIndex]
+        let choice       = &.choices[index]
+        let plugin       = &.owner.index.plugins[choice.pluginIndex]
         let sideSplitter = .sideSplitter
         var next:      ViewerSession
         with var host: ViewerPluginHost
@@ -283,14 +283,14 @@ private impl EmbeddedViewer
             .owner           = owner
         }
 
-        with result.header = Wnd.create'Wnd(result, {0, 0, 0, EmbeddedHeaderHeight})
+        with result.header = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, EmbeddedHeaderHeight})
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
-            .padding         = {12, 4, 12, 4}
+            .padding         = Math.Vector4{12, 4, 12, 4}
         }
 
-        with result.viewerCombo = ComboBox.create(result.header, {0, 0, 176, 36})
+        with result.viewerCombo = ComboBox.create(result.header, Math.Rectangle{0, 0, 176, 36})
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
@@ -302,7 +302,7 @@ private impl EmbeddedViewer
             }
         }
 
-        with result.infoLane = Wnd.create'Wnd(result.header, {0, 0, 0, 36})
+        with result.infoLane = Wnd.create'Wnd(result.header, Math.Rectangle{0, 0, 0, 36})
         {
             .dockStyle       = .Right
             .backgroundStyle = .Transparent
@@ -310,7 +310,7 @@ private impl EmbeddedViewer
             .hide()
         }
 
-        with result.titleLabel = Label.create(result.header, Viewers.Archive.texts().ui_Select, {}, null, .Ellipsis)
+        with result.titleLabel = Label.create(result.header, Viewers.Archive.texts().ui_Select, Math.Rectangle{}, null, .Ellipsis)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -340,12 +340,14 @@ private impl EmbeddedViewer
             .backgroundStyle = .Transparent
             .hide()
         }
-        let rightWidth = owner.rightPanelWidth > 0 ? owner.rightPanelWidth : ViewerWindow.RightPanelDefaultWidth
+
+        let rightWidth    = owner.rightPanelWidth > 0 ? owner.rightPanelWidth : ViewerWindow.RightPanelDefaultWidth
         with let sideItem = result.sideSplitter.addPane(result.sidePlaceholder, rightWidth + result.themeMetrics().panel_GutterSize)
         {
             .minimumSize = ViewerWindow.RightPanelMinWidth + result.themeMetrics().panel_GutterSize
             .maximumSize = ViewerWindow.RightPanelMaxWidth + result.themeMetrics().panel_GutterSize
         }
+
         result.sideSplitter.setPaneVisible(1, false)
 
         result.applyLayout()
@@ -363,14 +365,18 @@ private impl IWnd for EmbeddedViewer
             {
                 let width = .owner.rightPanelWidth + .themeMetrics().panel_GutterSize
                 if .sideSplitter.items[1]!.view.isLocallyVisible()
-                    do .sideSplitter.setPaneSize(1, width)
-                else do .sideSplitter.items[1]!.size = width
+                    do
+                    .sideSplitter.setPaneSize(1, width)
+                else do
+                    .sideSplitter.items[1]!.size = width
                 .sideSplitter.sendResizeEvent()
             }
+
             return
         }
 
         if .sideSplitter.items[1]!.view != .sidePlaceholder
-            do .owner.rightPanelWidth = .sideSplitter.items[1]!.size - .themeMetrics().panel_GutterSize
+            do
+            .owner.rightPanelWidth = .sideSplitter.items[1]!.size - .themeMetrics().panel_GutterSize
     }
 }

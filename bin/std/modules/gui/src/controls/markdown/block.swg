@@ -553,7 +553,7 @@ internal func parseBlocks(source: string, headingsOnly = false, inheritedReferen
                         var parsed: #decltype(expect StrConv.parseU64(current.marker))
                         catch { parsed = try StrConv.parseU64(current.marker) } as parseErrorOutcome
                         let parseError = parseErrorOutcome.value()
-                        counters.add({current.indent, parseError == null ? parsed.value : 1})
+                        counters.add(OrderedCounter{current.indent, parseError == null ? parsed.value : 1})
                     }
 
                     list += Format.toString("<p3><lm>%.</lm></p> ", counters.back().value)

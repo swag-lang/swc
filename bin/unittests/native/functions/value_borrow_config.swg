@@ -12,7 +12,7 @@ func write(value: Value, target: *Value)->u64
 #test
 {
     #assert(#safety(Swag.SafetyWhat.ValueBorrow))
-    var value: Value = {first: 11}
+    var value: Value = Value{first: 11}
     let panic        = Swag.catchPanic(func|&value|() { discard write(value, &value) })
     Swag.assert(panic.raised and value.first == 11)
     let observed = write(#copy value, &value)
@@ -34,7 +34,7 @@ func readWithLocalCheck(value: Value, target: *Value)->u64
 }
 #test
 {
-    var value: Value = {first: 13}
+    var value: Value = Value{first: 13}
     let panic        = Swag.catchPanic(func|&value|() { discard readWithLocalCheck(value, &value) })
     Swag.assert(panic.raised and value.first == 13)
 }

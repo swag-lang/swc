@@ -11,7 +11,7 @@ using Core, Pixel, Win32
 {
     var app: Application
     let surface = expect app.createSurface(40, 40, 360, 240, surfaceId: "gui-async-presentation-test")
-    let button  = PushButton.create(surface.wnd.view, "Probe", {32, 32, 84, 32})
+    let button  = PushButton.create(surface.wnd.view, "Probe", Math.Rectangle{32, 32, 84, 32})
     surface.show()
     Swag.assert(surface.presentationWidth == surface.rc.width)
     Swag.assert(not surface.readback.isPending())
@@ -53,7 +53,7 @@ using Core, Pixel, Win32
     Swag.assert(surface.isDirty)
     surface.paint()
     Swag.assert(surface.readback.isPending())
-    surface.setPosition({60, 50, 420, 280})
+    surface.setPosition(Math.Rectangle{60, 50, 420, 280})
     Swag.assert(not surface.readback.isPending())
     Swag.assert(surface.presentationWidth == surface.rc.width and surface.presentationHeight == surface.rc.height)
     Swag.assert(surface.position == Math.Rectangle{60, 50, 420, 280})

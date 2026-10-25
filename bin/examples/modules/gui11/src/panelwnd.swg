@@ -19,7 +19,7 @@ impl PanelWnd
 {
     func create(parent: *Wnd, title: string)->*PanelWnd
     {
-        let result = Wnd.create'PanelWnd(parent, {})
+        let result = Wnd.create'PanelWnd(parent, Math.Rectangle{})
         result.backgroundStyle = .Transparent
         result.title = title
         return result
@@ -30,7 +30,7 @@ impl PanelWnd
     {
         var result: retval = .clientRect()
         let top = (.title).count ? PanelPadding + PanelTitle : PanelPadding
-        result.applyPadding({PanelPadding, top, PanelPadding, PanelPadding})
+        result.applyPadding(Math.Vector4{PanelPadding, top, PanelPadding, PanelPadding})
         return result
     }
 }

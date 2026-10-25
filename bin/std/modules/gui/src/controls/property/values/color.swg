@@ -25,13 +25,13 @@ internal impl Properties
         // stay left-aligned at its edit size in list mode (otherwise the color row
         // is the only one that ends up centered). maxSize caps the stack stretch;
         // an anchored width would drift with the resize history.
-        let line = Wnd.create'Wnd(item.line, {0, 0, width, .themeMetrics().editBox_Height})
+        let line = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, width, .themeMetrics().editBox_Height})
         line.maxSize.x = width
         if .isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
         .adaptCondensedControl(line)
 
-        with let btn = IconButton.create(line, {}, {0, 0, WidthBtn, item.line.position.height})
+        with let btn = IconButton.create(line, {}, Math.Rectangle{0, 0, WidthBtn, item.line.position.height})
         {
             .dockStyle = .Left
             .setArrowPosition(.RightDownward)
@@ -44,7 +44,7 @@ internal impl Properties
             .updateFlags(.Popup | .Toggle | .Overlay)
         }
 
-        with let ed = EditBox.create(line, "", {0, 0, width - MarginBtn - WidthBtn, item.line.position.height})
+        with let ed = EditBox.create(line, "", Math.Rectangle{0, 0, width - MarginBtn - WidthBtn, item.line.position.height})
         {
             .dockStyle = .Center
             .margin.x  = MarginBtn
@@ -85,7 +85,7 @@ internal impl Properties
             if opaque or keepAlpha do
                 flags.remove(ColorPickerFlags.AllowAlpha)
 
-            let picker = ColorPickerCtrl.createWithPalette(frame, {8, 54}, pal, flags)
+            let picker = ColorPickerCtrl.createWithPalette(frame, Math.Rectangle{8, 54}, pal, flags)
             picker.setColor(color[])
             picker.sigColorChanged += func|prop, color, item, opaque, keepAlpha|(pk)
             {

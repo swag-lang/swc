@@ -30,7 +30,7 @@ impl ConstDataOfSpecBuffer
 {
     func mutateThroughSpecOp()->s32
     {
-        var value: DataOfSpecBuffer = {data: [11, 22, 33]}
+        var value: DataOfSpecBuffer = DataOfSpecBuffer{data: [11, 22, 33]}
         let p = value.buffer
         p[1] = 44
         return p[0] + p[1] + value.data[2]
@@ -44,7 +44,7 @@ impl ConstDataOfSpecBuffer
 {
     func readConstThroughSpecOp()->u32
     {
-        const value: ConstDataOfSpecBuffer = {data: [3'u8, 5'u8]}
+        const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [3'u8, 5'u8]}
         let p = value.buffer
         return cast(u32, p[0]) + cast(u32, p[1])
     }

@@ -81,7 +81,7 @@ struct ConstexprPoint
 #[Swag.ConstExpr]
 func makeConstexprPoint(x, y: s32)->ConstexprPoint
 {
-    return {x, y}
+    return ConstexprPoint{x, y}
 }
 
 const ConstexprOrigin = makeConstexprPoint(3, 7)

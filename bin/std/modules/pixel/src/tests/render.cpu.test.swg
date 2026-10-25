@@ -19,7 +19,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
-    painter.fillRect({2, 3, 8, 6}, Color.fromArgb(255'u8, 230'u8, 40'u8, 20'u8))
+    painter.fillRect(Math.Rectangle{2, 3, 8, 6}, Color.fromArgb(255'u8, 230'u8, 40'u8, 20'u8))
     painter.end()
 
     let image = renderCpu(16, 16, &painter)
@@ -130,14 +130,14 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
 // A nearly collinear viewport-wide polygon must not corrupt the geometry recorded after it.
 #test
 {
-    let strip = [Vector2{0, 100}, Vector2{1400, 100}, Vector2{1398, 102}, Vector2{2, 102}]
+    let strip = [Math.Vector2{0, 100}, Math.Vector2{1400, 100}, Math.Vector2{1398, 102}, Math.Vector2{2, 102}]
 
     var painter: Painter
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
     painter.fillPolygon(strip, Brush.createSolid(Color.fromArgb(Argb.Red)))
-    painter.fillRect({100, 800, 120, 24}, Color.fromArgb(Argb.DodgerBlue))
+    painter.fillRect(Math.Rectangle{100, 800, 120, 24}, Color.fromArgb(Argb.DodgerBlue))
     painter.end()
 
     let image = renderCpu(1400, 1000, &painter)
@@ -165,9 +165,9 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
     painter.setBlendingMode(.Copy)
-    painter.fillRect({60, 0, 12, 12}, Dst)
+    painter.fillRect(Math.Rectangle{60, 0, 12, 12}, Dst)
     painter.setBlendingMode(.ColorDodge)
-    painter.fillRect({60, 0, 12, 12}, Src)
+    painter.fillRect(Math.Rectangle{60, 0, 12, 12}, Src)
     painter.unbindRenderTarget()
     painter.end()
     renderer.draw(&painter)
@@ -188,7 +188,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(255'u8, 0'u8, 0'u8, 0'u8))
-    painter.fillRect({2, 2, 8, 8}, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
+    painter.fillRect(Math.Rectangle{2, 2, 8, 8}, Color.fromArgb(128'u8, 255'u8, 0'u8, 0'u8))
     painter.end()
 
     let image    = renderCpu(12, 12, &painter)
@@ -289,7 +289,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
     painter.setInterpolationMode(.Pixel)
-    painter.drawTexture({0, 0, 8, 8}, texture)
+    painter.drawTexture(Math.Rectangle{0, 0, 8, 8}, texture)
     painter.end()
     render.draw(&painter)
 
@@ -329,7 +329,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.clear(Color.fromArgb(Argb.Zero))
     painter.setInterpolationMode(.Pixel)
     painter.setBlendingMode(.Copy)
-    painter.drawTexture({2, 2, 4, 3}, {1, 0, 4, 3}, texture)
+    painter.drawTexture(Math.Rectangle{2, 2, 4, 3}, Math.Rectangle{1, 0, 4, 3}, texture)
     painter.end()
     render.draw(&painter)
 
@@ -351,11 +351,11 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
-    painter.setClippingRect({2, 2, 8, 8})
+    painter.setClippingRect(Math.Rectangle{2, 2, 8, 8})
     painter.startClippingRegion()
-    painter.fillRect({4, 0, 4, 12}, Color.fromArgb(Argb.White))
+    painter.fillRect(Math.Rectangle{4, 0, 4, 12}, Color.fromArgb(Argb.White))
     painter.endClippingRegion()
-    painter.fillRect({0, 0, 12, 12}, Color.fromArgb(Argb.DodgerBlue))
+    painter.fillRect(Math.Rectangle{0, 0, 12, 12}, Color.fromArgb(Argb.DodgerBlue))
     painter.resetClippingRegion()
     painter.resetClippingRect()
     painter.end()
@@ -387,7 +387,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.clear(Color.fromArgb(Argb.Red))
     painter.unbindRenderTarget()
     painter.setBlendingMode(.Copy)
-    painter.drawTexture({4, 4, 4, 4}, inner.colorBuffer)
+    painter.drawTexture(Math.Rectangle{4, 4, 4, 4}, inner.colorBuffer)
     painter.unbindRenderTarget()
     painter.end()
     render.draw(&painter)
@@ -456,7 +456,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setBlendingMode(.Copy)
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
-    painter.drawTexture({0, 0, 9, 9}, texture)
+    painter.drawTexture(Math.Rectangle{0, 0, 9, 9}, texture)
     painter.setDefaultShader()
     painter.unbindRenderTarget()
     painter.end()
@@ -475,7 +475,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.begin()
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Blue))
-    painter.setClippingRect({2, 2, 4, 4})
+    painter.setClippingRect(Math.Rectangle{2, 2, 4, 4})
     painter.setColorMask(true, false, false, false)
     painter.clear(Color.fromArgb(Argb.Yellow))
     painter.resetClippingRect()
@@ -496,7 +496,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setColorMaskColor()
     painter.clear(Color.fromArgb(200'u8, 90'u8, 80'u8, 70'u8))
     painter.setColorMaskAlpha()
-    painter.fillRect({1, 0, 7, 3}, Color.fromArgb(Argb.White))
+    painter.fillRect(Math.Rectangle{1, 0, 7, 3}, Color.fromArgb(Argb.White))
     painter.end()
 
     let image = renderCpu(9, 3, &painter)
@@ -518,7 +518,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setColorMaskFull()
     painter.clear(Color.fromArgb(Argb.Zero))
     painter.translateTransform(2, 1)
-    painter.fillRect({0, 0, 8, 4}, brush)
+    painter.fillRect(Math.Rectangle{0, 0, 8, 4}, brush)
     painter.end()
 
     let image = renderCpu(12, 8, &painter)
@@ -567,7 +567,7 @@ func renderCpu(width, height: s32, painter: *Painter)->Image
     painter.setResolveShader(2)
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
-    painter.drawTexture({0, 0, 2, 2}, {0, 0, 4, 4}, texture)
+    painter.drawTexture(Math.Rectangle{0, 0, 2, 2}, Math.Rectangle{0, 0, 4, 4}, texture)
     painter.setDefaultShader()
     painter.unbindRenderTarget()
     painter.end()
@@ -714,7 +714,7 @@ private func checkSharedEdge(mode: s32)
         if mode == 3
         {
             brush.uvMode = .FillSubRect
-            brush.uvRect = {0, 0, 1, 1}
+            brush.uvRect = Math.Rectangle{0, 0, 1, 1}
         }
     }
 
@@ -728,7 +728,7 @@ private func checkSharedEdge(mode: s32)
     painter.setAntialiased(false)
     painter.setInterpolationMode(.Pixel)
     if mode == 1 do
-        painter.setClippingRect({0, 0, 22, 40})
+        painter.setClippingRect(Math.Rectangle{0, 0, 22, 40})
 
     // Two public triangle fills keep the shared diagonal A-C fixed. Its orientation is
     // reversed in the second triangle; no mutable access to recorded vertices is used.
@@ -768,7 +768,7 @@ private func checkSharedEdge(mode: s32)
 
 // A captured MSDF footprint lands immediately below the alpha 111 truncation boundary.
 // Static descriptor storage is retained by the shaped run; the test only reads it.
-private var g_MsdfRoundingGlyph: GlyphDesc = {uv: {0.1640625, 0, 0.1484375, 0.15625}, atlasIndex: 0, shiftX: cast #bit (f32, 0x41F73800'u32), shiftY: cast #bit (f32, 0xC21844A5'u32), width: cast #bit (f32, 0x424D3334'u32), height: 54}
+private var g_MsdfRoundingGlyph: GlyphDesc = GlyphDesc{uv: Math.Rectangle{0.1640625, 0, 0.1484375, 0.15625}, atlasIndex: 0, shiftX: cast #bit (f32, 0x41F73800'u32), shiftY: cast #bit (f32, 0xC21844A5'u32), width: cast #bit (f32, 0x424D3334'u32), height: 54}
 
 #test
 {

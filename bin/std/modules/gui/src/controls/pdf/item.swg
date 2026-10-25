@@ -139,7 +139,7 @@ internal impl Item
     mtd const paintBounds()->Math.Rectangle
     {
         if not .paintBoxKnown do
-            return {-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
+            return Math.Rectangle{-Swag.F32.Max * 0.5, -Swag.F32.Max * 0.5, Swag.F32.Max, Swag.F32.Max}
         return .paintBox
     }
 
@@ -165,13 +165,13 @@ internal impl Item
 
         const EmMargin = 0.35'f32
         var local = Math.Rectangle{0, 0, width, .fontSize}
-        local.applyPadding({-.fontSize * EmMargin, -.fontSize * EmMargin, -.fontSize * EmMargin, -.fontSize * EmMargin})
+        local.applyPadding(Math.Vector4{-.fontSize * EmMargin, -.fontSize * EmMargin, -.fontSize * EmMargin, -.fontSize * EmMargin})
 
         let corners: [4] Vector2 = [
-            .transform.transformPoint({local.x, local.y}),
-            .transform.transformPoint({local.right(), local.y}),
-            .transform.transformPoint({local.right(), local.bottom()}),
-            .transform.transformPoint({local.x, local.bottom()})]
+            .transform.transformPoint(Math.Vector2{local.x, local.y}),
+            .transform.transformPoint(Math.Vector2{local.right(), local.y}),
+            .transform.transformPoint(Math.Vector2{local.right(), local.bottom()}),
+            .transform.transformPoint(Math.Vector2{local.x, local.bottom()})]
 
         var min = corners[0]
         var max = corners[0]
@@ -183,7 +183,7 @@ internal impl Item
             max.y = Math.max(max.y, corner.y)
         }
 
-        result.rect  = {min.x, min.y, max.x - min.x, max.y - min.y}
+        result.rect  = Math.Rectangle{min.x, min.y, max.x - min.x, max.y - min.y}
         result.known = result.rect.width > 0 and result.rect.height > 0
         return result
     }
@@ -226,7 +226,7 @@ internal impl Item
         switch .kind
         {
         case .Path:  local = .path.controlBounds()
-        case .Image: local = {0, 0, 1, 1}
+        case .Image: local = Math.Rectangle{0, 0, 1, 1}
 
         case .Text: .paintBox = {}
             .paintBoxKnown = false
@@ -238,14 +238,14 @@ internal impl Item
         if .kind == .Path and .hasStroke
         {
             let reach = .strokeWidth * 0.5 * Math.max(.strokeStyle.miterLimit, 1)
-            local.applyPadding({-reach, -reach, -reach, -reach})
+            local.applyPadding(Math.Vector4{-reach, -reach, -reach, -reach})
         }
 
         let corners: [4] Vector2 = [
-            .transform.transformPoint({local.x, local.y}),
-            .transform.transformPoint({local.right(), local.y}),
-            .transform.transformPoint({local.right(), local.bottom()}),
-            .transform.transformPoint({local.x, local.bottom()})]
+            .transform.transformPoint(Math.Vector2{local.x, local.y}),
+            .transform.transformPoint(Math.Vector2{local.right(), local.y}),
+            .transform.transformPoint(Math.Vector2{local.right(), local.bottom()}),
+            .transform.transformPoint(Math.Vector2{local.x, local.bottom()})]
 
         var min = corners[0]
         var max = corners[0]
@@ -257,7 +257,7 @@ internal impl Item
             max.y = Math.max(max.y, corner.y)
         }
 
-        .paintBox      = {min.x, min.y, max.x - min.x, max.y - min.y}
+        .paintBox      = Math.Rectangle{min.x, min.y, max.x - min.x, max.y - min.y}
         .paintBoxKnown = true
     }
 }
@@ -271,7 +271,7 @@ impl Item
     mtd const itemTransform()->Transform2 => .transform
 
     // Returns the page-space region this item is confined to; `clipped` is false, and `rect` the whole page, without a clip.
-    mtd const itemClip()->{ rect: Math.Rectangle, clipped: bool } => {.clip, .hasClip}
+    mtd const itemClip()->{ rect: Math.Rectangle, clipped: bool } => {rect: .clip, clipped: .hasClip}
 
     // Returns the fill color of text and filled paths.
     mtd const itemFillColor()->Color => .fillColor

@@ -25,7 +25,7 @@ func injectPlain(stmt: #code)
     var result = 0
     injectPlain()
     {
-        let set: ShadowItem = {count: 3}
+        let set: ShadowItem = ShadowItem{count: 3}
         result = set.count
     }
 
@@ -52,7 +52,7 @@ func injectPlain(stmt: #code)
     {
         scope
         {
-            let set: ShadowItem = {count: 6}
+            let set: ShadowItem = ShadowItem{count: 6}
             result += set.count
         }
 

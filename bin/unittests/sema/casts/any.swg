@@ -44,7 +44,7 @@ struct AnyCompareType {}
 
 func semaTest005()
 {
-    var boxed: any = AnyCastDerived{base: {value: 9}, extra: 2}
+    var boxed: any = AnyCastDerived{base: AnyCastBase{value: 9}, extra: 2}
     let baseRef    = assume cast(const *AnyCastBase, boxed)
     let basePtr    = assume cast(const *AnyCastBase, boxed)
     Swag.assert(baseRef.value == 9)

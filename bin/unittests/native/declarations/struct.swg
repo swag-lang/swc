@@ -33,14 +33,14 @@ struct PtrWrap
 
 #test
 {
-    var a: Vec2 = {x: 1, y: 2}
+    var a: Vec2 = Vec2{x: 1, y: 2}
     Swag.assert(a.x == 1)
     Swag.assert(a.y == 2)
 }
 
 #test
 {
-    var a: Vec2 = {x: -9, y: 12}
+    var a: Vec2 = Vec2{x: -9, y: 12}
     var b       = a
     Swag.assert(b.x == -9)
     Swag.assert(b.y == 12)
@@ -48,7 +48,7 @@ struct PtrWrap
 
 #test
 {
-    var a: Vec2 = {x: 3, y: 4}
+    var a: Vec2 = Vec2{x: 3, y: 4}
     var b: Vec2
     b = a
     Swag.assert(b.x == 3)
@@ -57,7 +57,7 @@ struct PtrWrap
 
 #test
 {
-    var a: Vec2 = {x: 10, y: 20}
+    var a: Vec2 = Vec2{x: 10, y: 20}
     var p       = &a
     p[] = {x: 30, y: 40}
     Swag.assert(a.x == 30)
@@ -66,7 +66,7 @@ struct PtrWrap
 
 #test
 {
-    var a: Vec2 = {x: 7, y: 8}
+    var a: Vec2 = Vec2{x: 7, y: 8}
     var px      = &a.x
     var py      = &a.y
     px[] = 70
@@ -77,7 +77,7 @@ struct PtrWrap
 
 #test
 {
-    var b: Box2 = {min: {x: 1, y: 2}, max: {x: 3, y: 4}}
+    var b: Box2 = Box2{min: Vec2{x: 1, y: 2}, max: Vec2{x: 3, y: 4}}
     Swag.assert(b.min.x == 1)
     Swag.assert(b.min.y == 2)
     Swag.assert(b.max.x == 3)
@@ -86,8 +86,8 @@ struct PtrWrap
 
 #test
 {
-    var b0: Box2 = {min: {x: 2, y: 5}, max: {x: 7, y: 9}}
-    var b1: Box2 = {min: {x: 0, y: 0}, max: {x: 0, y: 0}}
+    var b0: Box2 = Box2{min: Vec2{x: 2, y: 5}, max: Vec2{x: 7, y: 9}}
+    var b1: Box2 = Box2{min: Vec2{x: 0, y: 0}, max: Vec2{x: 0, y: 0}}
     b1 = b0
     Swag.assert(b1.min.x == 2)
     Swag.assert(b1.min.y == 5)
@@ -97,7 +97,7 @@ struct PtrWrap
 
 #test
 {
-    var b: Box2 = {min: {x: 0, y: 0}, max: {x: 0, y: 0}}
+    var b: Box2 = Box2{min: Vec2{x: 0, y: 0}, max: Vec2{x: 0, y: 0}}
     b.min = {x: 11, y: 22}
     b.max = {x: 33, y: 44}
     Swag.assert(b.min.x == 11)
@@ -108,7 +108,7 @@ struct PtrWrap
 
 #test
 {
-    var h: Holder = {count: 5, flags: {a: true, b: false}}
+    var h: Holder = Holder{count: 5, flags: Flags{a: true, b: false}}
     Swag.assert(h.count == 5)
     Swag.assert(h.flags.a)
     Swag.assert(not h.flags.b)
@@ -116,7 +116,7 @@ struct PtrWrap
 
 #test
 {
-    var h: Holder = {count: 10, flags: {a: false, b: false}}
+    var h: Holder = Holder{count: 10, flags: Flags{a: false, b: false}}
     h.flags.a = true
     h.flags.b = true
     h.count   = 12
@@ -127,7 +127,7 @@ struct PtrWrap
 
 #test
 {
-    var h: Holder = {count: 1, flags: {a: false, b: true}}
+    var h: Holder = Holder{count: 1, flags: Flags{a: false, b: true}}
     var ph        = &h
     ph[] = {count: 9, flags: {a: true, b: false}}
     Swag.assert(h.count == 9)
@@ -138,7 +138,7 @@ struct PtrWrap
 #test
 {
     var v = 123's32
-    var wrap: PtrWrap = {value: &v}
+    var wrap: PtrWrap = PtrWrap{value: &v}
     Swag.assert(wrap.value[] == 123)
     wrap.value[] = 321
     Swag.assert(v == 321)
@@ -146,8 +146,8 @@ struct PtrWrap
 
 #test
 {
-    var left:  Vec2 = {x: 6, y: 9}
-    var right: Vec2 = {x: 1, y: 2}
+    var left:  Vec2 = Vec2{x: 6, y: 9}
+    var right: Vec2 = Vec2{x: 1, y: 2}
     var pleft       = &left
     var pright      = &right
     pleft[] = pright[]
@@ -159,8 +159,8 @@ struct PtrWrap
 
 #test
 {
-    var a: Flags = {a: false, b: false}
-    var b: Flags = {a: true, b: true}
+    var a: Flags = Flags{a: false, b: false}
+    var b: Flags = Flags{a: true, b: true}
     a = b
     Swag.assert(a.a)
     Swag.assert(a.b)
@@ -169,7 +169,7 @@ struct PtrWrap
 #test
 {
     func test(x: *Vec2)->*Vec2 { return x; }
-    var v: Vec2 = {x: 5, y: 10}
+    var v: Vec2 = Vec2{x: 5, y: 10}
     var p       = test(&v)
     Swag.assert(p.x == 5)
     Swag.assert(p.y == 10)

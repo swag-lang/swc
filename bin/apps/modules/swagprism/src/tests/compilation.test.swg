@@ -15,7 +15,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = {source: exampleSource(.Dot), stage: "pre-emit", settings: {configuration: Pipeline.BuildSettings.DefaultConfiguration}}
+    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: exampleSource(.Dot), stage: "pre-emit", settings: Pipeline.BuildSettings{configuration: Pipeline.BuildSettings.DefaultConfiguration}}
     scope
     {
         var first  = cache.acquire(request)
@@ -45,7 +45,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    var request: Pipeline.BuildRequest = {source: "func sum(a, b: s32)->s32 => a + b", stage: "pre-emit"}
+    var request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "func sum(a, b: s32)->s32 => a + b", stage: "pre-emit"}
     request.settings.configuration = "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.safetyGuards = .All; cfg.backend.inlineMode = .Never }"
     scope
     {
@@ -81,7 +81,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = {source: exampleSource(.Dot), stage: "pre-emit"}
+    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: exampleSource(.Dot), stage: "pre-emit"}
     var survivor = cache.acquire(request)
     scope
     {
@@ -227,7 +227,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 // always is, because its host program calls into what the snippet declares.
 #test
 {
-    var request: Pipeline.BuildRequest = {source: "func dot(a, b: f32)->f32 => a * b", stage: "pre-emit"}
+    var request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "func dot(a, b: f32)->f32 => a * b", stage: "pre-emit"}
     Swag.assert(request.kind == .Microcode and not request.needsDependency())
     Swag.assert(not request.moduleSource().contains("#import"))
 
@@ -256,7 +256,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 #test
 {
     var cache:   Pipeline.CompilationCache
-    let request: Pipeline.BuildRequest = {source: "using Core\nfunc value()->f32 => Math.sqrt(2'f32)", stage: "pre-emit"}
+    let request: Pipeline.BuildRequest = Pipeline.BuildRequest{source: "using Core\nfunc value()->f32 => Math.sqrt(2'f32)", stage: "pre-emit"}
     var lease = cache.acquire(request)
     waitBuild(&lease)
 

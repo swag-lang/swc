@@ -107,7 +107,7 @@ func nestedProducts(base: const [*] u8, stride: u64, rows, cols: u64)->{ sum: u6
             acc += cast(u64, base[row * stride + col])
         row += 1
     }
-    return {acc, row}
+    return {sum: acc, last: row}
 }
 
 // A stride the loop changes is not a stride: the multiply stays.

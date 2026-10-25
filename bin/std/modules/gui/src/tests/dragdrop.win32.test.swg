@@ -31,7 +31,7 @@ internal func testRoundTrip(host: *Testing.HeadlessHost, source: *IDataObject)->
     let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var effect = DROPEFFECT_COPY
-    let dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
+    let dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, POINTL{60, 60}, &effect)
     Swag.assert(dragEnterResult == S_OK)
     return &host.surface.dropTarget.data
 }
@@ -48,7 +48,7 @@ internal func testRoundTripDrop(host: *Testing.HeadlessHost, source: *IDataObjec
     let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var effect     = DROPEFFECT_COPY
-    let dropResult = target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect)
+    let dropResult = target.lpVtbl.Drop(target, source, 0, POINTL{60, 60}, &effect)
     Swag.assert(dropResult == S_OK)
 }
 
@@ -275,7 +275,7 @@ impl IWnd for PlatformCatcher
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = Wnd.create'PlatformCatcher(&host.surfaceWnd, {0, 0, 200, 200})
+    let catcher = Wnd.create'PlatformCatcher(&host.surfaceWnd, Math.Rectangle{0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
     var data: DragData
@@ -288,12 +288,12 @@ impl IWnd for PlatformCatcher
     let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var effect = DROPEFFECT_COPY
-    let dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
+    let dragEnterResult = target.lpVtbl.DragEnter(target, source, 0, POINTL{60, 60}, &effect)
     Swag.assert(dragEnterResult == S_OK)
     Swag.assert(effect == DROPEFFECT_COPY)
 
     effect = DROPEFFECT_COPY
-    let dropResult = target.lpVtbl.Drop(target, source, 0, {60, 60}, &effect)
+    let dropResult = target.lpVtbl.Drop(target, source, 0, POINTL{60, 60}, &effect)
     Swag.assert(dropResult == S_OK)
     Swag.assert(effect == DROPEFFECT_COPY)
 
@@ -559,7 +559,7 @@ impl IWnd for PlatformCatcher
     let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
 
     var effect = DROPEFFECT_COPY
-    discard target.lpVtbl.DragEnter(target, source, 0, {60, 60}, &effect)
+    discard target.lpVtbl.DragEnter(target, source, 0, POINTL{60, 60}, &effect)
     Swag.assert(host.surface.dropTarget.data.singleFile() == "c:/tmp/only.txt")
 
     let dragLeaveResult = target.lpVtbl.DragLeave(target)
@@ -578,7 +578,7 @@ impl IWnd for PlatformCatcher
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
+    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, Math.Rectangle{0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
     var produced = 0'u32
@@ -621,7 +621,7 @@ impl IWnd for PlatformCatcher
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
+    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, Math.Rectangle{0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
     var produced = 0'u32

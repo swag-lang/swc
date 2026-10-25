@@ -75,7 +75,7 @@ internal func run(op: *Array's32, input: const [2] s32, ipp: *s32)->{ output: s3
         case 4:
             output = param0
             ip     += 2
-            return {output, false}
+            return {output: output, stopped: false}
 
         case 5:
             ip = param0 ? param1 : ip + 3
@@ -93,7 +93,7 @@ internal func run(op: *Array's32, input: const [2] s32, ipp: *s32)->{ output: s3
         }
     }
 
-    return {output, true}
+    return {output: output, stopped: true}
 }
 
 func day7B()

@@ -14,23 +14,23 @@ using Swag, Core
     host.surface.paintWnd(&host.root)
     Swag.assert(host.surface.rt.colorBuffer.width == 2048)
 
-    host.surface.setPosition({0, 0, 2049, 64})
+    host.surface.setPosition(Math.Rectangle{0, 0, 2049, 64})
     host.surface.paintWnd(&host.root)
     let capacity = host.surface.rt.colorBuffer.width
     Swag.assert(capacity >= 2049 and capacity < 2049 + 256)
     let handle = host.surface.rt.handle
 
-    host.surface.setPosition({0, 0, 2050, 64})
+    host.surface.setPosition(Math.Rectangle{0, 0, 2050, 64})
     host.surface.paintWnd(&host.root)
     Swag.assert(host.surface.rt.handle == handle)
 
-    host.surface.setPosition({0, 0, 512, 257})
+    host.surface.setPosition(Math.Rectangle{0, 0, 512, 257})
     host.surface.paintWnd(&host.root)
     Swag.assert(host.surface.rt.colorBuffer.width == capacity)
     Swag.assert(host.surface.rt.colorBuffer.height >= 257 and host.surface.rt.colorBuffer.height < 257 + 256)
     let tallerHandle = host.surface.rt.handle
 
-    host.surface.setPosition({0, 0, 2049, 257})
+    host.surface.setPosition(Math.Rectangle{0, 0, 2049, 257})
     host.surface.paintWnd(&host.root)
     Swag.assert(host.surface.rt.handle == tallerHandle)
 }
@@ -59,7 +59,7 @@ using Swag, Core
     host.setup(256, 128)
     defer host.shutdown()
 
-    host.surface.setPosition({0, 0, 384, 224})
+    host.surface.setPosition(Math.Rectangle{0, 0, 384, 224})
     Swag.assert(host.surface.prepareResizeFrame(&host.root))
     let prepared = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)
     Swag.assert(not host.surface.isDirty)

@@ -80,21 +80,21 @@ impl MicrocodeViewer
             .sourceEditor    = sourceEditor
         }
 
-        with result.stageCombo = ComboBox.create(result, {0, 0, 0, 36}, "prism.stage")
+        with result.stageCombo = ComboBox.create(result, Math.Rectangle{0, 0, 0, 36}, "prism.stage")
         {
             .dockStyle  = .Top
-            .margin     = {0, 0, 0, 8}
+            .margin     = Math.Vector4{0, 0, 0, 8}
             .sigChanged += func|viewer = result|(_, _) { viewer.optionsChanged() }
         }
 
-        with let footer = Wnd.create'Wnd(result, {0, 0, 0, 28})
+        with let footer = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, 28})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Transparent
-            .padding         = {0, 4, 0, 0}
+            .padding         = Math.Vector4{0, 4, 0, 0}
         }
 
-        with result.status = Label.create(footer, "", {}, null, .SecondaryText)
+        with result.status = Label.create(footer, "", Math.Rectangle{}, null, .SecondaryText)
         {
             .dockStyle = .Center
             .setTextAlignment(.Left, .Center)

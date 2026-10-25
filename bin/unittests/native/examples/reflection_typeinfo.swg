@@ -52,13 +52,13 @@ func checksumConfig(cfg: Config)->s32
 
 #test
 {
-    let cfg: Config = {width: 10, height: 20, depth: 30, flags: 0xFF}
+    let cfg: Config = Config{width: 10, height: 20, depth: 30, flags: 0xFF}
     Swag.assert(checksumConfig(cfg) == 60)
 }
 
 #test
 {
-    let cfg: Config = {width: -5, height: 100, depth: 0, flags: 42}
+    let cfg: Config = Config{width: -5, height: 100, depth: 0, flags: 42}
     Swag.assert(checksumConfig(cfg) == 95)
 }
 

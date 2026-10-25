@@ -181,8 +181,8 @@ func inlineAnyVariadicClosureCapture(values: any...)->s32
 
 func runDottedPathCapture()->s32
 {
-    var first:  PathTarget = {value: 10}
-    var second: PathTarget = {value: 50}
+    var first:  PathTarget = PathTarget{value: 10}
+    var second: PathTarget = PathTarget{value: 50}
     var holder: PathHolder
     holder.target = &first
 
@@ -201,8 +201,8 @@ func runDottedPathCapture()->s32
 
 func runMePathCapture()->s32
 {
-    var first:  PathTarget = {value: 5}
-    var second: PathTarget = {value: 90}
+    var first:  PathTarget = PathTarget{value: 5}
+    var second: PathTarget = PathTarget{value: 90}
     var owner:  PathOwner
     owner.target = &first
     owner.bias   = 4

@@ -188,7 +188,7 @@ impl ListLine
 
     // Sets the label and icon of the cell in `column`, creating the cell when absent, and returns it.
     #[Swag.Discardable]
-    mtd setItem(column: u32, name: string, icon: Icon = {})->*ListItem
+    mtd setItem(column: u32, name: string, icon: Icon = Icon{})->*ListItem
     {
         for itemIt in .items
         {
@@ -689,7 +689,7 @@ private impl ListView
             pos.moveLeft(line.level * .list.indentWidth)
             if line.canExpand() or .list.listFlags.has(.ReserveExpandMargin)
             {
-                result.expand = {pos.x, pos.y, metrics.list_ExpandSize, pos.height}
+                result.expand = Math.Rectangle{pos.x, pos.y, metrics.list_ExpandSize, pos.height}
                 pos.moveLeft(metrics.list_ExpandSize)
             }
         }
@@ -699,7 +699,7 @@ private impl ListView
         if itemIndex == 0 and reserveCheckMargin
         {
             let widthCheck = Math.min(metrics.btnCheck_Size, .list.lineHeight())
-            result.check = {pos.x, pos.y, widthCheck, pos.height}
+            result.check = Math.Rectangle{pos.x, pos.y, widthCheck, pos.height}
             pos.moveLeft(widthCheck + 4)
         }
 
@@ -1097,7 +1097,7 @@ impl ListCtrl
 
     // Creates a list without a column header.
     #[Swag.Discardable]
-    func createSimple(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ListCtrl
+    func createSimple(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ListCtrl
     {
         Swag.assert(parent != null)
         with let list = Wnd.create'ListCtrl(parent, "", position, id)
@@ -1122,7 +1122,7 @@ impl ListCtrl
 
     // Creates a list control configured for multiple columns.
     #[Swag.Discardable]
-    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ListCtrl
+    func createMultiColumns(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ListCtrl
     {
         Swag.assert(parent != null)
         let list = Wnd.create'ListCtrl(parent, "", position, id)
@@ -1170,7 +1170,7 @@ impl ListCtrl
 
             // Header
             // Need to recompute layout when header size has changed
-            .header                  = Header.create(fwnd, {})
+            .header                  = Header.create(fwnd, Math.Rectangle{})
             .header.dockStyle        = .Top
             .header.form             = .Round
             .header.sigLayoutChanged += func|list|(_)
@@ -1185,7 +1185,7 @@ impl ListCtrl
             }
 
             // Scroll that contains the list view
-            .scrollWnd = Wnd.create'ScrollWnd(fwnd, {})
+            .scrollWnd = Wnd.create'ScrollWnd(fwnd, Math.Rectangle{})
             .scrollWnd.dockStyle       = .Center
             .scrollWnd.backgroundStyle = .Transparent
             .scrollWnd.setAllPaddings(.themeMetrics().list_Padding)
@@ -1462,7 +1462,7 @@ impl ListCtrl
 
     // Creates a row and initializes its first cell.
     #[Swag.Discardable]
-    mtd createLine(name: string, icon: Icon = {}, parentLine: *ListLine? = null)->*ListLine
+    mtd createLine(name: string, icon: Icon = Icon{}, parentLine: *ListLine? = null)->*ListLine
     {
         let line = .createLine(parentLine)
         line.setItem(0, name, icon)
@@ -1489,7 +1489,7 @@ impl ListCtrl
     }
 
     // Adds a named column to the list header.
-    mtd addColumn(name: string, width: f32 = 100, icon: Icon = {})
+    mtd addColumn(name: string, width: f32 = 100, icon: Icon = Icon{})
     {
         Swag.assert((.header != null))
         .header.addColumn(name, width, icon)

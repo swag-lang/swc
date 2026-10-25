@@ -3,7 +3,7 @@
 /**
 # 'Swag.init' Intrinsic
 Reinitializes a variable or memory region to either its type default value
-or a provided custom value (tuple for aggregates).
+or a provided custom value.
 */
 
 /**

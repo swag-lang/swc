@@ -87,7 +87,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         originY = 50
         restartPendulum()
 
-        with let panel = StackLayoutCtrl.create(wnd, .Top, {0, 0, PanelWidth})
+        with let panel = StackLayoutCtrl.create(wnd, .Top, Math.Rectangle{0, 0, PanelWidth})
         {
             .padding   = 10
             .spacing   = 5

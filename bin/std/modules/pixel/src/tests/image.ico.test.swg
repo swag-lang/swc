@@ -74,7 +74,7 @@ func buildIco(width, height: s32, bitCount: u16, clrUsed: u32, dibBody: const [.
     return cb.toArray()
 }
 
-func decodeIco(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
+func decodeIco(bytes: const [..] u8, opt: DecodeOptions = DecodeOptions{})->Image fail
 {
     var dec: Ico.Decoder
     let itf: IImageDecoder = &dec

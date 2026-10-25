@@ -27,7 +27,7 @@ impl StrictAliasVec2
 // A method called through a strict-alias receiver reads and writes the pointee.
 #test
 {
-    var v: StrictAliasVec2 = {x: 6, y: 8}
+    var v: StrictAliasVec2 = StrictAliasVec2{x: 6, y: 8}
     let p = cast(StrictAliasVec2Ptr, &v)
 
     #assert(#typeof(p) == StrictAliasVec2Ptr)
@@ -41,7 +41,7 @@ impl StrictAliasVec2
 // A member read through the strict-alias receiver keeps the field's own type.
 #test
 {
-    var v: StrictAliasVec2 = {x: 3, y: 4}
+    var v: StrictAliasVec2 = StrictAliasVec2{x: 3, y: 4}
     let p = cast(StrictAliasVec2Ptr, &v)
 
     #assert(#typeof(p.x) == s32)

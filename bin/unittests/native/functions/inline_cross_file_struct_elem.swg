@@ -20,6 +20,6 @@ func accumulate(delta: InlineCrossFile.Pair, buffer: InlineCrossFile.Buffer'Inli
     Swag.assert(pairs[1].x == 13 and pairs[1].y == 24)
 
     // A host with parameters: a leaked callee parameter would read the wrong incoming argument.
-    accumulate({5, 5}, buffer, 0)
+    accumulate(InlineCrossFile.Pair{5, 5}, buffer, 0)
     Swag.assert(pairs[0].x == 6 and pairs[0].y == 7)
 }

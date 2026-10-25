@@ -14,7 +14,7 @@ func centerButton(view: *Wnd)
     let clientRect = view.clientRect()
     let x = clientRect.horzCenter() - button.position.width * 0.5
     let y = clientRect.vertCenter() - button.position.height * 0.5
-    button.setPosition({x, y, button.position.width, button.position.height})
+    button.setPosition(Math.Rectangle{x, y, button.position.width, button.position.height})
 }
 
 func onEvent(view: *Wnd, evt: IEvent)->bool

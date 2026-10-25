@@ -42,7 +42,7 @@ struct Evt
 
 #test
 {
-    var wheel = Evt{kind: .Wheel, surfacePos: {320, 210}, delta: {0, 120}, modifiers: .Control}
+    var wheel = Evt{kind: .Wheel, surfacePos: Point{320, 210}, delta: Point{0, 120}, modifiers: .Control}
     Swag.assert(wheel.kind == .Wheel)
     Swag.assert(wheel.surfacePos.x == 320 and wheel.surfacePos.y == 210)
     Swag.assert(wheel.delta.x == 0 and wheel.delta.y == 120)
@@ -54,10 +54,10 @@ struct Evt
 // from integer literals.
 #test
 {
-    var pairs: [2] Point = [{1, 2}, {3, 4}]
+    var pairs: [2] Point = [Point{1, 2}, Point{3, 4}]
     Swag.assert(pairs[0].x == 1 and pairs[0].y == 2)
     Swag.assert(pairs[1].x == 3 and pairs[1].y == 4)
 
-    var mixed = Evt{kind: .Wheel, surfacePos: {x: 5, y: 6.5}}
+    var mixed = Evt{kind: .Wheel, surfacePos: Point{x: 5, y: 6.5}}
     Swag.assert(mixed.surfacePos.x == 5 and mixed.surfacePos.y == 6.5)
 }

@@ -33,7 +33,7 @@ impl IWnd for WrapLayoutCtrl
 impl WrapLayoutCtrl
 {
     // Creates an empty wrapping layout.
-    func create(parent: *Wnd, position: Math.Rectangle = {})->*WrapLayoutCtrl => Wnd.create'WrapLayoutCtrl(parent, position)
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{})->*WrapLayoutCtrl => Wnd.create'WrapLayoutCtrl(parent, position)
 
     // Recomputes the flow of all visible children.
     mtd computeLayout()
@@ -53,7 +53,7 @@ impl WrapLayoutCtrl
                 continue
 
             let margin = c.layoutMargin()
-            let hint   = c.measure({client.width, client.height})
+            let hint   = c.measure(Math.Point{client.width, client.height})
             var width  = .itemWidth
             var height = .itemHeight
             if hint.preferred.x > 0 do

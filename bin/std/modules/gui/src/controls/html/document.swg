@@ -582,7 +582,7 @@ impl HtmlDocument
 
     // Returns the run a stretch of source occupies, which is the common case: text the document
     // spells the way it is stored.
-    func sourceRange(start, count: u64)->HtmlRange => {cast(u32, start), cast(u32, count)}
+    func sourceRange(start, count: u64)->HtmlRange => HtmlRange{cast(u32, start), cast(u32, count)}
 
     // Copies text the source does not spell — a folded name, a decoded run — and returns where it
     // landed. A run built this way is addressed by offset, so a slice read back from it is
@@ -657,7 +657,7 @@ impl HtmlDocument
     }
 
     // Returns the children of a node, in order.
-    mtd const children(node: u32)->HtmlChildren => {me, .nodes[node].firstChild}
+    mtd const children(node: u32)->HtmlChildren => HtmlChildren{me, .nodes[node].firstChild}
 
     // Returns how many children a node has. A caller that only asks whether there are any tests
     // `firstChild` instead, which costs nothing.
@@ -721,8 +721,8 @@ impl HtmlDocument
         node.tag          = tag
         node.parent       = parent
         node.sourceOffset = sourceOffset
-        node.attributes   = {cast(u32, .attributePool.count), 0}
-        node.classes      = {cast(u32, .classPool.count), 0}
+        node.attributes   = HtmlRange{cast(u32, .attributePool.count), 0}
+        node.classes      = HtmlRange{cast(u32, .classPool.count), 0}
         node.text         = name
 
         let index = cast(u32, .nodes.count)
@@ -799,8 +799,8 @@ impl HtmlDocument
         node.tag          = tag
         node.parent       = parent
         node.sourceOffset = sourceOffset
-        node.attributes   = {cast(u32, .attributePool.count), 0}
-        node.classes      = {cast(u32, .classPool.count), 0}
+        node.attributes   = HtmlRange{cast(u32, .attributePool.count), 0}
+        node.classes      = HtmlRange{cast(u32, .classPool.count), 0}
         node.text         = name
 
         let index = cast(u32, .nodes.count)
@@ -859,7 +859,7 @@ impl HtmlDocument
                 if end == start do
                     break
 
-                .classPool.add({value.start + cast(u32, start), cast(u32, (end - start))})
+                .classPool.add(HtmlRange{value.start + cast(u32, start), cast(u32, (end - start))})
                 .nodes[element].classes.count += 1
                 start = end
             }
@@ -931,7 +931,7 @@ impl HtmlDocument
         var result: retval
         let parent = .nodes[child].parent
         if parent == HtmlNoNode do
-            return {1, 1}
+            return {index: 1, count: 1}
         for value in .children(parent) where .nodes[value].kind == .Element
         {
             result.count += 1

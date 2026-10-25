@@ -88,8 +88,8 @@ struct ViewerPluginHost
     session:         *ViewerSession
     documentParent:  *Wnd
     sidePanelParent: *Wnd
-    sideSplitter:     *SplitterCtrl?
-    sidePaneIndex:    u32
+    sideSplitter:    *SplitterCtrl?
+    sidePaneIndex:   u32
     actionParent:    *Wnd
     infoParent:      *Wnd
     commandParent:   *Wnd
@@ -136,7 +136,7 @@ private impl ViewerPluginHost
 {
     mtd createGroup(parent: *Wnd, width: f32)->*Wnd
     {
-        with let result = Wnd.create'Wnd(parent, {0, 0, width, 36})
+        with let result = Wnd.create'Wnd(parent, Math.Rectangle{0, 0, width, 36})
         {
             .backgroundStyle = .Transparent
             .preferredSize.x = width
@@ -147,7 +147,7 @@ private impl ViewerPluginHost
 
     mtd createInfoWnd(parent: *Wnd, width: f32)->*Wnd
     {
-        let result = Wnd.create'ViewerInfoGroup(parent, {0, 0, width, 36})
+        let result = Wnd.create'ViewerInfoGroup(parent, Math.Rectangle{0, 0, width, 36})
         result.backgroundStyle = .Transparent
 
         // The width the plugin asks for is the most this group may take, and the band shrinks the
@@ -200,19 +200,19 @@ impl Viewer.Host for ViewerPluginHost
         Swag.assert(.session.sidePanelHost == null)
         Swag.assert(width > 0)
 
-        let gutter = .sidePanelParent.themeMetrics().panel_GutterSize
+        let gutter     = .sidePanelParent.themeMetrics().panel_GutterSize
         var panelWidth = width
         if .window and .window.rightPanelWidth > 0 do
             panelWidth = .window.rightPanelWidth
         panelWidth = Math.clamp(panelWidth, ViewerWindow.RightPanelMinWidth, ViewerWindow.RightPanelMaxWidth)
-        with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, {0, 0, panelWidth + gutter, 0})
+        with .session.sidePanelHost = Wnd.create'Wnd(.sidePanelParent, Math.Rectangle{0, 0, panelWidth + gutter, 0})
         {
             .dockStyle       = .None
             .backgroundStyle = .ToolBar
 
             // The information lane already owns the seam above. The viewer bar owns the chrome
             // below, so the side panel meets it directly instead of accumulating a second edge.
-            .padding = {0, 0, gutter, 0}
+            .padding = Math.Vector4{0, 0, gutter, 0}
             .hide()
         }
 
@@ -222,8 +222,8 @@ impl Viewer.Host for ViewerPluginHost
             .backgroundStyle = .Panel
         }
 
-        let actionSize      = themeActionButtonSize(.infoParent.themeMetrics())
-        with .session.sidePanelButton = IconButton.create(.infoParent, icon, {0, 0, actionSize, actionSize}, flags: .Toggle)
+        let actionSize = themeActionButtonSize(.infoParent.themeMetrics())
+        with .session.sidePanelButton = IconButton.create(.infoParent, icon, Math.Rectangle{0, 0, actionSize, actionSize}, flags: .Toggle)
         {
             .toolTip = toolTip
             .setCheckIndicator(.Frame)
@@ -234,7 +234,7 @@ impl Viewer.Host for ViewerPluginHost
         {
             let splitter: *SplitterCtrl = .sideSplitter
             let paneIndex = .sidePaneIndex
-            .session.sidePanelItem = splitter.items[paneIndex]!
+            .session.sidePanelItem      = splitter.items[paneIndex]!
             .session.sidePanelItem.size = panelWidth + gutter
             .session.sidePanelButton.sigCheckedChanged += func|target = splitter, paneIndex|(button)
             {
@@ -256,7 +256,7 @@ impl Viewer.Host for ViewerPluginHost
             }
         }
 
-        return {.session.sidePanel, .session.sidePanelButton}
+        return Viewer.SidePanel{.session.sidePanel, .session.sidePanelButton}
     }
 
     mtd impl attachView(view: *Wnd)

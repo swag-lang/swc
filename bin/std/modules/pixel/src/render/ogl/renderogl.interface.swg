@@ -49,7 +49,7 @@ impl IRenderer for RenderOgl
         let storage = Memory.new'OglContext()
         storage[]     = ogl
         .contextCount += 1
-        return {renderHandle, storage, width, height}
+        return RenderContext{renderHandle, storage, width, height}
     }
 
     mtd impl deleteContext(context: *RenderContext)

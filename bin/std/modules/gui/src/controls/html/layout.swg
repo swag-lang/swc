@@ -1023,7 +1023,7 @@ impl HtmlLayout
     mtd intrinsicWidths(box: u32)->HtmlIntrinsicWidths
     {
         if .boxes[box].hasIntrinsic do
-            return {.boxes[box].minContent, .boxes[box].maxContent}
+            return HtmlIntrinsicWidths{.boxes[box].minContent, .boxes[box].maxContent}
 
         var result: retval
         let style = &.styles[.boxes[box].style]
@@ -1220,7 +1220,7 @@ impl HtmlLayout
         if .root == HtmlNoNode do
             return
 
-        .viewport = {Math.max(width, 1), Math.max(height, 1)}
+        .viewport = Math.Point{Math.max(width, 1), Math.max(height, 1)}
 
         .outOfFlow.clear()
 
@@ -1238,8 +1238,8 @@ impl HtmlLayout
         containing.height    = .viewport.y
         containing.hasHeight = true
 
-        .boxes[.root].rect    = {0, 0, .viewport.x, 0}
-        .boxes[.root].content = {0, 0, .viewport.x, 0}
+        .boxes[.root].rect    = Math.Rectangle{0, 0, .viewport.x, 0}
+        .boxes[.root].content = Math.Rectangle{0, 0, .viewport.x, 0}
         .floats.clear()
 
         // A document whose root carries only inline content — bare text, or a lone image — has
@@ -1405,8 +1405,8 @@ impl HtmlLayout
         let contentX     = x + style.borderLeft.width + padLeft
         let contentY     = originY + style.borderTop.width + padTop
 
-        .boxes[box].rect    = {x, originY, borderWidth, extraY}
-        .boxes[box].content = {contentX, contentY, contentWidth, 0}
+        .boxes[box].rect    = Math.Rectangle{x, originY, borderWidth, extraY}
+        .boxes[box].content = Math.Rectangle{contentX, contentY, contentWidth, 0}
 
         // A child resolves a percentage height only against a parent whose height is already
         // known, so this box settles its own first. That is what makes the classic
@@ -1570,7 +1570,7 @@ impl HtmlLayout
         if .boxes[box].outOfFlowQueued do
             return
         .boxes[box].outOfFlowQueued = true
-        .boxes[box].staticPos       = {staticX, staticY}
+        .boxes[box].staticPos       = Math.Point{staticX, staticY}
         .outOfFlow.add(box)
     }
 
@@ -1623,7 +1623,7 @@ impl HtmlLayout
         {
             let containerStyle = &.styles[.boxes[container].style]
             let containerRect  = .boxes[container].rect
-            frame = {containerRect.x + containerStyle.borderLeft.width, containerRect.y + containerStyle.borderTop.width, Math.max(containerRect.width - containerStyle.borderWidthX(), 0), Math.max(containerRect.height - containerStyle.borderWidthY(), 0)}
+            frame = Math.Rectangle{containerRect.x + containerStyle.borderLeft.width, containerRect.y + containerStyle.borderTop.width, Math.max(containerRect.width - containerStyle.borderWidthX(), 0), Math.max(containerRect.height - containerStyle.borderWidthY(), 0)}
         }
 
         var inner: HtmlContainingBlock
@@ -1750,7 +1750,7 @@ impl HtmlLayout
 
         var band: HtmlFloatBand
         band.left = style.floatLeft
-        band.rect = {x, y, bandWidth, bandHeight}
+        band.rect = Math.Rectangle{x, y, bandWidth, bandHeight}
         .floats.add(#move band)
     }
 }
@@ -2096,8 +2096,8 @@ private impl HtmlLayout
         var scan = 0'u64
         while scan < text.count
         {
-            let {_, eat} = Utf8.decodeRune(text[scan to])
-            let next     = scan + eat
+            let {c: _, eat} = Utf8.decodeRune(text[scan to])
+            let next        = scan + eat
             if next >= text.count do
                 break
             if .measure(styleIndex, text[0 until next]) > room do
@@ -2552,7 +2552,7 @@ private impl HtmlLayout
                     .translateContents(cells[index], 0, extra)
             }
 
-            .boxes[row].rect    = {contentX, y, contentWidth, height}
+            .boxes[row].rect    = Math.Rectangle{contentX, y, contentWidth, height}
             .boxes[row].content = .boxes[row].rect
             y += height
         }

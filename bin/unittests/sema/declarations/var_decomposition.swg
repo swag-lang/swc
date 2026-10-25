@@ -2,18 +2,18 @@
 
 func toto()->{x: s32, y: bool}
 {
-    return {42, true}
+    return {x: 42, y: true}
 }
 
 func semaTest001()
 {
     let s = toto()
     #assert(#typeof(s).kind == .Struct)
-    let {a, b} = s
+    let {x: a, y: b} = s
     #assert(#typeof(a) == s32)
     #assert(#typeof(b) == bool)
-    let {c, _} = s
+    let {x: c, y: _} = s
     #assert(#typeof(c) == s32)
-    let {_, d} = s
+    let {x: _, y: d} = s
     #assert(#typeof(d) == bool)
 }

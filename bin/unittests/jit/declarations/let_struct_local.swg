@@ -61,15 +61,15 @@ struct LocalVarBigDefaults
 
 struct LocalVarDirectDefaultNode
 {
-    p:     LocalVarPoint = {x: 9, y: 4}
-    state: LocalVarState = {enabled: true, weight: 30}
+    p:     LocalVarPoint = LocalVarPoint{x: 9, y: 4}
+    state: LocalVarState = LocalVarState{enabled: true, weight: 30}
 }
 
 #test
 {
     func typedStructInit()->s32
     {
-        let p: LocalVarPoint = {x: 4, y: 9}
+        let p: LocalVarPoint = LocalVarPoint{x: 4, y: 9}
         return p.x * 10 + p.y
     }
 
@@ -93,9 +93,9 @@ struct LocalVarDirectDefaultNode
 {
     func nestedStructInit()->s32
     {
-        let n: LocalVarNode = {
-            pos: {x: 3, y: 8},
-            state: {enabled: false, weight: 12}
+        let n: LocalVarNode = LocalVarNode{
+            pos: LocalVarPoint{x: 3, y: 8},
+            state: LocalVarState{enabled: false, weight: 12}
             }
 
         if n.state.enabled
@@ -114,7 +114,7 @@ struct LocalVarDirectDefaultNode
 {
     func structWithDefaults()->s32
     {
-        let s: LocalVarState = {weight: 11}
+        let s: LocalVarState = LocalVarState{weight: 11}
         if s.enabled
         {
             return s.weight
@@ -131,7 +131,7 @@ struct LocalVarDirectDefaultNode
 {
     func multiDeclStructVar()->s32
     {
-        var a, b: LocalVarPoint = {x: 2, y: 6}
+        var a, b: LocalVarPoint = LocalVarPoint{x: 2, y: 6}
         return a.x * 100 + a.y * 10 + b.x + b.y
     }
 
@@ -143,7 +143,7 @@ struct LocalVarDirectDefaultNode
 {
     func bigStructLiteralInit()->u64
     {
-        let v: LocalVarBig = {
+        let v: LocalVarBig = LocalVarBig{
             a0: 1,
             a1: 2,
             a2: 3,
@@ -181,7 +181,7 @@ struct LocalVarDirectDefaultNode
 {
     func bigStructDefaultsAll()->u64
     {
-        let v: LocalVarBigDefaults = {}
+        let v: LocalVarBigDefaults = LocalVarBigDefaults{}
         return v.b0 + v.b4 + v.b7
     }
 
@@ -193,7 +193,7 @@ struct LocalVarDirectDefaultNode
 {
     func bigStructDefaultsPartial()->u64
     {
-        let v: LocalVarBigDefaults = {b1: 100, b6: 200}
+        let v: LocalVarBigDefaults = LocalVarBigDefaults{b1: 100, b6: 200}
         return v.b0 + v.b1 + v.b6 + v.b7
     }
 
@@ -205,7 +205,7 @@ struct LocalVarDirectDefaultNode
 {
     func aggregateDefaultsFromFieldDecl()->s32
     {
-        let n: LocalVarDirectDefaultNode = {}
+        let n: LocalVarDirectDefaultNode = LocalVarDirectDefaultNode{}
         if n.state.enabled
         {
             return n.p.x + n.p.y + n.state.weight

@@ -95,16 +95,16 @@ impl FormCallout
         {
             let ex = dx > 0 ? b.right() : b.x
             let s  = tailSpan(tip.y, Math.abs(tip.x - ex), b.y, b.bottom(), minWH, cr)
-            result.p0   = {ex, s.c - s.hb}
-            result.p1   = {ex, s.c + s.hb}
+            result.p0   = Math.Vector2{ex, s.c - s.hb}
+            result.p1   = Math.Vector2{ex, s.c + s.hb}
             result.edge = dx > 0 ? TailEdge.Right : .Left
         }
         else
         {
             let ey = dy > 0 ? b.bottom() : b.y
             let s  = tailSpan(tip.x, Math.abs(tip.y - ey), b.x, b.right(), minWH, cr)
-            result.p0   = {s.c - s.hb, ey}
-            result.p1   = {s.c + s.hb, ey}
+            result.p0   = Math.Vector2{s.c - s.hb, ey}
+            result.p1   = Math.Vector2{s.c + s.hb, ey}
             result.edge = dy > 0 ? TailEdge.Bottom : .Top
         }
 
@@ -279,7 +279,7 @@ impl IForm for FormCallout
             .gizmoRect.rotateEnabled = false
             .gizmoRect.paint(painter, not flags.has(.Selected))
 
-            .gizmoTail.anchors[0] = {.tailX * z, .tailY * z}
+            .gizmoTail.anchors[0] = Math.Point{.tailX * z, .tailY * z}
             .gizmoTail.paint(null, painter, not flags.has(.Selected))
         }
     }

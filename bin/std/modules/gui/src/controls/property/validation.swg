@@ -172,7 +172,7 @@ internal impl Properties
     {
         let font = lbl.font().regular
         if font do
-            lbl.setTextPadding({me.valBarGlyphWidth, -font.descent * 0.5, me.valBarPaddingX, font.descent * 0.5})
+            lbl.setTextPadding(Math.Vector4{me.valBarGlyphWidth, -font.descent * 0.5, me.valBarPaddingX, font.descent * 0.5})
     }
 
     // Match the validation bar to the editor column and size the row to host it. Called once
@@ -267,7 +267,7 @@ private impl Properties
         if item.validationLabel != null do
             return
 
-        with let lbl = Label.create(item.line, "", {0, 0, .position.width, 0})
+        with let lbl = Label.create(item.line, "", Math.Rectangle{0, 0, .position.width, 0})
         {
             .updateFlags(.WordWrap | .AutoHeight)
             .setTextAlignment(.Left, .Center)
@@ -275,11 +275,11 @@ private impl Properties
             // The Label draws the severity icon on the left and the text after it (both vertically
             // centered by the Label — iconVerticalAlignment defaults to Center), like InfoBar.
             .setIconHorizontalAlignment(.Left)
-            .setIconPadding({(me.valBarGlyphWidth - me.valBarIconSize) * 0.5, 0, 0, 0})
+            .setIconPadding(Math.Vector4{(me.valBarGlyphWidth - me.valBarIconSize) * 0.5, 0, 0, 0})
 
             // Reserve room for the glyph on the left and inset the text from the colored
             // background edges (vertical breathing room is added when painting the bar).
-            .setTextPadding({me.valBarGlyphWidth, 0, me.valBarPaddingX, 0})
+            .setTextPadding(Math.Vector4{me.valBarGlyphWidth, 0, me.valBarPaddingX, 0})
 
             // Gap above the bar + the painted vertical breathing room top and bottom.
             .margin.y = me.valBarGap + me.valBarPaddingY

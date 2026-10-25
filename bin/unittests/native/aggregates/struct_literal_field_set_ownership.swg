@@ -97,7 +97,7 @@ func assertBalanced(sets: u32)
     resetCounts()
     scope
     {
-        let holder: Holder = {owned: "abc"}
+        let holder: Holder = Holder{owned: "abc"}
         Swag.assert(holder.owned.value == "abc")
         Swag.assert(holder.owned.addr == &holder.owned)
     }
@@ -121,7 +121,7 @@ func assertBalanced(sets: u32)
     resetCounts()
     scope
     {
-        let request: Request = {stage: "pre-emit", holder: {owned: Holder.Default}}
+        let request: Request = Request{stage: "pre-emit", holder: Holder{owned: Holder.Default}}
         Swag.assert(request.stage.value == "pre-emit")
         Swag.assert(request.stage.addr == &request.stage)
         Swag.assert(request.holder.owned.value == "default")
@@ -135,7 +135,7 @@ func assertBalanced(sets: u32)
     resetCounts()
     scope
     {
-        let holder: Holder = {owned: name()}
+        let holder: Holder = Holder{owned: name()}
         Swag.assert(holder.owned.value == "dyn")
         Swag.assert(holder.owned.addr == &holder.owned)
     }
@@ -147,7 +147,7 @@ func assertBalanced(sets: u32)
     resetCounts()
     scope
     {
-        let holder: Holder = {owned: FromBytes}
+        let holder: Holder = Holder{owned: FromBytes}
         Swag.assert(holder.owned.value == "ABC")
         Swag.assert(holder.owned.addr == &holder.owned)
     }

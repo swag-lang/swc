@@ -94,7 +94,7 @@ namespace LifecycleOwningCopy.Reflection
     Swag.assert(b.value == 5)
     Swag.assert(a.value == 4)
 
-    var c: DuplicableMember = {{10}}
+    var c: DuplicableMember = DuplicableMember{Duplicable{10}}
     let d = c
     Swag.assert(d.inner.value == 11)
 }

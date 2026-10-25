@@ -22,7 +22,7 @@ func day3B()
     let lines    = expect File.readAllLines(dataPath)
 
     var total: u64 = 1
-    for slope in [{1, 1}, {3, 1}, {5, 1}, {7, 1}, {1, 2}]
+    for slope in [(1, 1), (3, 1), (5, 1), (7, 1), (1, 2)]
     {
         let rightStep = slope.item0
         let downStep  = slope.item1

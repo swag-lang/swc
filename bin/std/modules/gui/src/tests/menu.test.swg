@@ -70,7 +70,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         captured[] = true
     }
 
-    discard popup.doModal({24, 20}, .TopLeft, autoDestroy: true)
+    discard popup.doModal(Math.Point{24, 20}, .TopLeft, autoDestroy: true)
     Swag.assert(captured)
     host.pump()
 }
@@ -102,7 +102,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
-    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     bar.addItem("New", Menu_New)
     Swag.assert(bar.items.count == 1)
     Swag.assert(bar.items[0]!.name.raw == "New")
@@ -139,7 +139,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     defer host.shutdown()
 
     MenuResolvedLabel = "Open"
-    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     bar.addItem("New", Menu_New)
     bar.addItem(&menuResolvedLabel, Menu_Open)
 
@@ -170,7 +170,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     let sub = MenuCtrl.createPopup(&host.root)
     sub.addItem("Quit", Menu_Quit)
 
-    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     bar.addPopup(&menuResolvedLabel, sub)
     Swag.assert(bar.items[0]!.name.raw == "File")
     Swag.assert(bar.items[0]!.popup == sub)
@@ -199,7 +199,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.setup(400, 200, 1.5)
     defer host.shutdown()
 
-    let bar = MenuCtrl.createBar(&host.root, {0, 0, 380, 0})
+    let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 380, 0})
     bar.addItem("Affichage", Menu_New)
     bar.computeLayoutBar()
 
@@ -211,7 +211,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         var run: Pixel.RichString
         run.set(text)
         run.compute()
-        Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &run, format, scale)
+        Pixel.Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &run, format, scale)
         return run.boundRect.width
     }
 
@@ -250,7 +250,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         }
     }
 
-    let result = popup.doModal({40, 40}, autoDestroy: true)
+    let result = popup.doModal(Math.Point{40, 40}, autoDestroy: true)
 
     Swag.assert(result == Menu_Open)
     Swag.assert(MenuSelectedCount == 1)
@@ -277,7 +277,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         host.clickPopupMenuItemWhenShown(expected)
 
         let before   = host.commandCount
-        let selected = popup.doModal({40, 40}, autoDestroy: true)
+        let selected = popup.doModal(Math.Point{40, 40}, autoDestroy: true)
         Swag.assert(selected == expected)
         Swag.assert(host.autoHandled and host.autoFailure.isEmpty())
         Swag.assert(host.commandCount == before)
@@ -349,7 +349,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         }
     }
 
-    let result = popup.doModal({40, 40}, autoDestroy: true)
+    let result = popup.doModal(Math.Point{40, 40}, autoDestroy: true)
 
     Swag.assert(result == Menu_Open)
     Swag.assert(didOpen)
@@ -413,7 +413,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         }
     }
 
-    let result = popup.doModal({40, 40}, autoDestroy: true)
+    let result = popup.doModal(Math.Point{40, 40}, autoDestroy: true)
 
     Swag.assert(result == null)
     Swag.assert(didDismiss)
@@ -432,7 +432,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let button = IconButton.create(&host.root, host.theme.icon(.Options, 20), {24, 6, 48, 36}, flags: .CenterContent)
+    let button = IconButton.create(&host.root, host.theme.icon(.Options, 20), Math.Rectangle{24, 6, 48, 36}, flags: .CenterContent)
     button.setArrowPosition(.RightDownward)
     Swag.assert(button.themeRects().menuPopup_BarAnchorBk.radius == button.themeRects().btnIcon_RoundSquareBk.radius)
 
@@ -473,7 +473,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let button = IconButton.create(&host.root, host.theme.icon(.Redo, 20), {24, 198, 52, 36}, flags: .CenterContent)
+    let button = IconButton.create(&host.root, host.theme.icon(.Redo, 20), Math.Rectangle{24, 198, 52, 36}, flags: .CenterContent)
     button.setArrowPosition(.RightUpward)
 
     let popup = MenuCtrl.createPopup(&host.root)
@@ -527,7 +527,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         checked[] = true
     }
 
-    discard popup.doModal({310, 18}, .AnchorBottomCenter, autoDestroy: true)
+    discard popup.doModal(Math.Point{310, 18}, .AnchorBottomCenter, autoDestroy: true)
     Swag.assert(checked)
     host.pump()
 }
@@ -544,7 +544,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let button = IconButton.create(&host.root, host.theme.icon(.Filter, 20), {312, 6, 48, 36}, flags: .CenterContent)
+    let button = IconButton.create(&host.root, host.theme.icon(.Filter, 20), Math.Rectangle{312, 6, 48, 36}, flags: .CenterContent)
     button.setArrowPosition(.RightDownward)
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Search", Menu_Open, checked: true)
@@ -596,7 +596,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         checked[] = true
     }
 
-    let modalResult = popup.doModal({315, 50}, .AnchorTopCenter, autoDestroy: true)
+    let modalResult = popup.doModal(Math.Point{315, 50}, .AnchorTopCenter, autoDestroy: true)
     Swag.assert(modalResult == Menu_Open)
     Swag.assert(checked)
     host.pump()
@@ -629,7 +629,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         checked[] = true
     }
 
-    let modalResult = popup.doModal({280, 50}, autoDestroy: true)
+    let modalResult = popup.doModal(Math.Point{280, 50}, autoDestroy: true)
     Swag.assert(modalResult == Menu_Open)
     Swag.assert(checked)
     host.pump()
@@ -667,7 +667,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         checked[] = true
     }
 
-    discard popup.doModal({348, 204}, .AnchorBottomCenter, autoDestroy: true)
+    discard popup.doModal(Math.Point{348, 204}, .AnchorBottomCenter, autoDestroy: true)
     Swag.assert(checked)
     host.pump()
 }
@@ -720,7 +720,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
         checked[] = true
     }
 
-    discard popup.doModal({348, 204}, .AnchorBottomCenter, autoDestroy: true)
+    discard popup.doModal(Math.Point{348, 204}, .AnchorBottomCenter, autoDestroy: true)
     Swag.assert(checked)
     host.pump()
 }
@@ -746,7 +746,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     let quitIt   = popup.items[3]!
     hiddenIt.hidden = true
     popup.computeLayoutPopup()
-    popup.setPosition({0, 0, popup.position.width, popup.position.height})
+    popup.setPosition(Math.Rectangle{0, 0, popup.position.width, popup.position.height})
 
     // Move the hidden row on top of Quit: it keeps its stale layout but must not steal the hit.
     hiddenIt.pos  = quitIt.pos
@@ -762,7 +762,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
-    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     bar.addItem("New", Menu_New)
 
     let sub = MenuCtrl.createPopup(&host.root)
@@ -782,7 +782,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
-    let bar = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     let sub = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
     bar.addPopup("File", sub)
@@ -792,12 +792,12 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     let itemX  = barIt0.pos + barIt0.size * 0.5
     let itemY  = bar.position.height * 0.5
 
-    host.mouseDown({itemX, itemY})
+    host.mouseDown(Math.Point{itemX, itemY})
 
     Swag.assert(bar.subVisible == sub)
     Swag.assert(sub.ignoreNextRelease)
 
-    host.mouseUp({0, 0})
+    host.mouseUp(Math.Point{0, 0})
 
     Swag.assert(bar.subVisible == sub)
     Swag.assert(not sub.ignoreNextRelease)
@@ -812,7 +812,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     defer host.shutdown()
     let metrics   = host.root.themeMetrics()
     let barHeight = metrics.menuBar_Height + 12
-    let bar       = MenuCtrl.createBar(&host.root, {0, 0, 300, barHeight})
+    let bar       = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, barHeight})
     let sub       = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
     bar.addPopup("File", sub)
@@ -822,10 +822,10 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 
     let barIt0 = bar.items[0]!
     let itemX  = barIt0.pos + barIt0.size * 0.5
-    Swag.assert(bar.hitTestBar({itemX, 1}) == Swag.U32.Max)
-    Swag.assert(bar.hitTestBar({itemX, expectedItemY + 1}) == 0)
+    Swag.assert(bar.hitTestBar(Math.Point{itemX, 1}) == Swag.U32.Max)
+    Swag.assert(bar.hitTestBar(Math.Point{itemX, expectedItemY + 1}) == 0)
 
-    host.mouseDown({itemX, expectedItemY + 1})
+    host.mouseDown(Math.Point{itemX, expectedItemY + 1})
 
     Swag.assert(sub.popupBarItemSurfaceRect.y == expectedItemY)
     Swag.assert(sub.popupBarItemSurfaceRect.height == metrics.menuBar_Height)
@@ -834,7 +834,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     var image = host.render()
     Pixel.Testing.assertImageGolden(&image, "menu.popup.text-anchor.tall")
 
-    host.mouseUp({0, 0})
+    host.mouseUp(Math.Point{0, 0})
 }
 
 // A menu-bar popup carries the opened bar item inside its own themed area.
@@ -844,7 +844,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     host.setup(320, 200)
     defer host.shutdown()
     let metrics = host.root.themeMetrics()
-    let bar     = MenuCtrl.createBar(&host.root, {0, 0, 300, 0})
+    let bar     = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     let sub     = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
     bar.addPopup("File", sub)

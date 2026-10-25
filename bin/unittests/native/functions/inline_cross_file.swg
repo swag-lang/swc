@@ -21,7 +21,7 @@ func assignText(item: *TextItem, event: *TextEvent)
     Swag.assert(InlineCrossFile.identity(value) == 20)
     Swag.assert(InlineCrossFile.withCallback(value) == 60)
     Swag.assert(createValue(value) == 23)
-    var event = TextEvent{{"abc".buffer, 3}}
+    var event = TextEvent{InlineCrossFile.Text{"abc".buffer, 3}}
     var item: TextItem
     assignText(&item, &event)
     Swag.assert(item.text.count == 3)

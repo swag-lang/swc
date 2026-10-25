@@ -67,7 +67,7 @@ impl SliderCtrl
 {
     // Creates a labelled numeric slider.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null)->*SliderCtrl
+    func create(parent: *Wnd, name: string?, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*SliderCtrl
     {
         Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
@@ -79,10 +79,10 @@ impl SliderCtrl
 
         with let ctrl = Wnd.create'SliderCtrl(parent, pos, id)
         {
-            .label = Label.create(ctrl, name, {})
+            .label = Label.create(ctrl, name, Math.Rectangle{})
             .label.setTextAlignment(.Right, .Center)
 
-            .slider = Slider.create(ctrl, {})
+            .slider = Slider.create(ctrl, Math.Rectangle{})
             .slider.sigChanged += func|ctrl|(wnd)
             {
                 var val: String
@@ -97,7 +97,7 @@ impl SliderCtrl
                 ctrl.sigChanged.call(ctrl)
             }
 
-            .edit = EditBox.create(ctrl, "", {})
+            .edit = EditBox.create(ctrl, "", Math.Rectangle{})
             .edit.setForm(.Rectangle)
             .edit.updateFlags(.RightAligned)
             .edit.setTrailingMargin(metrics.editBox_UnitMargin)
@@ -105,13 +105,13 @@ impl SliderCtrl
             {
                 switch edit.inputMode
                 {
-                case .UnsignedInteger: let {val, _, _} = catch StrConv.parseU64(edit.text())
+                case .UnsignedInteger: let {value: val, eat: _, ovf: _} = catch StrConv.parseU64(edit.text())
                     ctrl.slider.setValue(cast(f32, val))
 
-                case .SignedInteger: let {val, _, _} = catch StrConv.parseS64(edit.text())
+                case .SignedInteger: let {value: val, eat: _, ovf: _} = catch StrConv.parseS64(edit.text())
                     ctrl.slider.setValue(cast(f32, val))
 
-                case .FloatingPoint: let {val, _, _} = catch StrConv.parseF64(edit.text())
+                case .FloatingPoint: let {value: val, eat: _, ovf: _} = catch StrConv.parseF64(edit.text())
                     ctrl.slider.setValue(cast(f32, val))
                 }
             }

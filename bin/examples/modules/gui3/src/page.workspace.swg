@@ -11,7 +11,7 @@ func createWorkspacePage(parent: *Wnd)
     // This page keeps only the enclosing panel and the splitter bars: every
     // richedit/splitter frame border is removed so the panes read as a single
     // continuous composition.
-    let split = SplitterCtrl.create(panel, {18, 88, rect.width - 36, rect.height - 106}, vertical: false)
+    let split = SplitterCtrl.create(panel, Math.Rectangle{18, 88, rect.width - 36, rect.height - 106}, vertical: false)
     split.setFrameFlags(.None, .Borders | .FocusBorder)
 
     let code = createCodeEditor(split,
@@ -23,7 +23,7 @@ func createWorkspacePage(parent: *Wnd)
     code.marginRight = 22
     split.addPane(code, 760)
 
-    let side = SplitterCtrl.create(split, {}, vertical: true)
+    let side = SplitterCtrl.create(split, Math.Rectangle{}, vertical: true)
     side.setFrameFlags(.None, .Borders | .FocusBorder)
     let sideItem = split.addPane(side, 420)
     sideItem.preserveSize = true

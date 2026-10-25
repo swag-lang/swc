@@ -179,11 +179,11 @@ impl HtmlLength
 {
     // Creates the CSS `auto` length.
     #[ConstExpr]
-    public func auto()->HtmlLength => {.Auto, 0}
+    public func auto()->HtmlLength => HtmlLength{.Auto, 0}
 
-    func pixels(value: f32)->HtmlLength => {.Pixels, value}
+    func pixels(value: f32)->HtmlLength => HtmlLength{.Pixels, value}
 
-    func percent(value: f32)->HtmlLength => {.Percent, value}
+    func percent(value: f32)->HtmlLength => HtmlLength{.Percent, value}
 
     mtd const isAuto()->bool => .kind == .Auto
 

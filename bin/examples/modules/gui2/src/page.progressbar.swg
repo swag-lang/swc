@@ -10,11 +10,11 @@ func createProgressBarPage(parent: *Wnd)
     scope
     {
         createCaption(left, "25 percent", 24, 88, 160)
-        var prg = ProgressBar.create(left, {24, 116, 320})
+        var prg = ProgressBar.create(left, Math.Rectangle{24, 116, 320})
         prg.setValue(0.25)
 
         createCaption(left, "75 percent", 24, 154, 160)
-        prg = ProgressBar.create(left, {24, 182, 320})
+        prg = ProgressBar.create(left, Math.Rectangle{24, 182, 320})
         prg.setValue(0.75)
     }
 
@@ -24,13 +24,13 @@ func createProgressBarPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let prg = ProgressBar.create(right, {24, 116, 330})
+        let prg = ProgressBar.create(right, Math.Rectangle{24, 116, 330})
         prg.updateFlags(.Indeterminate)
 
         // Three sizes of the same drawn ring: it is exact at each of them, which is the point.
-        Spinner.create(right, {24, 154, 16})
-        Spinner.create(right, {56, 154})
-        Spinner.create(right, {96, 154, 40})
+        Spinner.create(right, Math.Rectangle{24, 154, 16})
+        Spinner.create(right, Math.Rectangle{56, 154})
+        Spinner.create(right, Math.Rectangle{96, 154, 40})
     }
 
     let bottom = createPanel(parent,
@@ -40,12 +40,12 @@ func createProgressBarPage(parent: *Wnd)
     scope
     {
         createCaption(bottom, "Application frame", 24, 92, 180)
-        let framePrg = ProgressBar.create(bottom, {24, 124, 420})
+        let framePrg = ProgressBar.create(bottom, Math.Rectangle{24, 124, 420})
         g_Progress = framePrg
         framePrg.setValue(0.0)
 
         createCaption(bottom, "Disabled 50 percent", 500, 92, 200)
-        let disabled = ProgressBar.create(bottom, {500, 124, 360})
+        let disabled = ProgressBar.create(bottom, Math.Rectangle{500, 124, 360})
         disabled.setValue(0.5)
         disabled.disable()
     }

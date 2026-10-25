@@ -197,7 +197,7 @@ private impl Track
         while frames
         {
             let part = Math.min(frames, AudioGapPacketFrames)
-            .audioPackets.add({0, 0, cast(u32, part)})
+            .audioPackets.add(SoundPacket{0, 0, cast(u32, part)})
             frames -= part
         }
     }
@@ -210,17 +210,17 @@ private impl Track
     mtd const displaySize(width, height: s32)->{ width, height: s32 }
     {
         if .displayUnit != 0 and .displayUnit != 3 do
-            return {0, 0}
+            return {width: 0, height: 0}
         if not .displayWidth or not .displayHeight or width <= 0 or height <= 0 do
-            return {0, 0}
+            return {width: 0, height: 0}
         if .displayWidth * cast(u64, height) == .displayHeight * cast(u64, width) do
-            return {0, 0}
+            return {width: 0, height: 0}
 
         // The taller of the two axes keeps its stored resolution, so a picture is only ever
         // stretched: shrinking one instead would throw away samples the stream carries.
         if .displayWidth * cast(u64, height) > .displayHeight * cast(u64, width) do
-            return {cast(s32, ((cast(u64, height) * .displayWidth + .displayHeight / 2) / .displayHeight)), height}
-        return {width, cast(s32, ((cast(u64, width) * .displayHeight + .displayWidth / 2) / .displayWidth))}
+            return {width: cast(s32, ((cast(u64, height) * .displayWidth + .displayHeight / 2) / .displayHeight)), height: height}
+        return {width: width, height: cast(s32, ((cast(u64, width) * .displayHeight + .displayWidth / 2) / .displayWidth))}
     }
 
     mtd const isPlayableVideo()->bool
@@ -719,7 +719,7 @@ private impl Layout
 
     mtd openContainer(bytes: const [..] u8)->Container fail
     {
-        var result: retval = {Cursor.open(bytes), {}}
+        var result: retval = Container{Cursor.open(bytes), {}}
         if not bytes.count do
             fail InvalidFormatError{"Matroska stream is empty"}
 
@@ -1431,7 +1431,7 @@ private impl Layout
         {
             let timestamp = try .timestampNanoseconds(clusterTimestamp, relative)
             let isSync    = keyFromContainer and (block.id != SimpleBlockId or flags & 0x80 != 0)
-            track.videoSamples.add({payload, .laceSizes[0], timestamp, isSync})
+            track.videoSamples.add(SampleEntry{payload, .laceSizes[0], timestamp, isSync})
             if track.videoSamples.count == 1 and track.needsInlineSetup()
             {
                 let end = Math.min(payload + .laceSizes[0], cursor.bytes.count)
@@ -1451,7 +1451,7 @@ private impl Layout
             for size, index in .laceSizes
             {
                 let start = cast(f64, timestamp) / 1_000_000_000.0 + cast(f64, index) * part
-                track.subtitleSamples.add({offset, size, start, start + part})
+                track.subtitleSamples.add(SubtitleSample{offset, size, start, start + part})
                 offset += size
             }
 
@@ -1488,7 +1488,7 @@ private impl Layout
                 frameCount = discarded < frameCount ? frameCount - cast(u32, discarded) : 0
             }
 
-            track.audioPackets.add({offset, cast(u32, size), frameCount})
+            track.audioPackets.add(SoundPacket{offset, cast(u32, size), frameCount})
             if track.audioFrameCount > Swag.U64.Max - frameCount do
                 fail OverflowError{"Matroska audio packet table is too large"}
             track.audioFrameCount += frameCount
@@ -1787,7 +1787,7 @@ private impl Decoder
             // once more when the sample table exists.
             var probe: Hevc.HevcStream
             var empty: Array'SampleEntry
-            empty.add({0, 0, 0, true})
+            empty.add(SampleEntry{0, 0, 0, true})
             try probe.open(video.codecPrivate.toSlice(), #move empty)
             .info.width  = probe.width
             .info.height = probe.height
@@ -2150,7 +2150,7 @@ private impl Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl format()->StreamFormat => {"Matroska multimedia container", ".mkv"}
+    mtd impl format()->StreamFormat => StreamFormat{"Matroska multimedia container", ".mkv"}
 
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {

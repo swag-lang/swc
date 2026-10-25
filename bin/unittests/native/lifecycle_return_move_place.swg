@@ -83,7 +83,7 @@ func takePointee(source: *WidePlace)->WidePlace
     resetPlaceCounters()
     scope
     {
-        var holder = PlaceHolder{wide: {value: 5}}
+        var holder = PlaceHolder{wide: WidePlace{value: 5}}
         let taken  = holder.takeWide()
         Swag.assert(taken.value == 5 and holder.wide.value == 0)
         Swag.assert(PlaceCopies == 0 and PlaceMoves == 1)
@@ -97,7 +97,7 @@ func takePointee(source: *WidePlace)->WidePlace
     resetPlaceCounters()
     scope
     {
-        var holder = PlaceHolder{wide: {value: 6}}
+        var holder = PlaceHolder{wide: WidePlace{value: 6}}
         let taken  = holder.takeWideExpression()
         Swag.assert(taken.value == 6 and holder.wide.value == 0)
         Swag.assert(PlaceCopies == 0)
@@ -111,7 +111,7 @@ func takePointee(source: *WidePlace)->WidePlace
     resetPlaceCounters()
     scope
     {
-        var holder = PlaceHolder{narrow: {value: 7}}
+        var holder = PlaceHolder{narrow: NarrowPlace{value: 7}}
         let taken  = holder.takeNarrow()
         Swag.assert(taken.value == 7 and holder.narrow.value == 0)
     }
@@ -124,7 +124,7 @@ func takePointee(source: *WidePlace)->WidePlace
     resetPlaceCounters()
     scope
     {
-        var holder = PlaceHolder{wide: {value: 8}}
+        var holder = PlaceHolder{wide: WidePlace{value: 8}}
         let taken  = holder.takeWideInline()
         Swag.assert(taken.value == 8 and holder.wide.value == 0)
         Swag.assert(PlaceCopies == 0)

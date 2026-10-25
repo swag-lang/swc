@@ -110,9 +110,9 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 {
     const starterInvoice: [3] InvoiceLine =
         [
-        {sku: "seat-license", quantity: 4, unitPriceCents: 2500, taxable: true},
-        {sku: "onboarding",   quantity: 1, unitPriceCents: 8000, taxable: false},
-        {sku: "backup-addon", quantity: 2, unitPriceCents: 1500, taxable: true}
+        InvoiceLine{sku: "seat-license", quantity: 4, unitPriceCents: 2500, taxable: true},
+        InvoiceLine{sku: "onboarding", quantity: 1, unitPriceCents: 8000, taxable: false},
+        InvoiceLine{sku: "backup-addon", quantity: 2, unitPriceCents: 1500, taxable: true}
         ]
 
     let starterTotals = buildInvoiceTotals(starterInvoice, false)
@@ -128,10 +128,10 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 
     const enterpriseInvoice: [4] InvoiceLine =
         [
-        {sku: "seat-license", quantity: 10, unitPriceCents: 2500, taxable: true},
-        {sku: "audit-log",    quantity: 4,  unitPriceCents: 2200, taxable: true},
-        {sku: "migration",    quantity: 1,  unitPriceCents: 9500, taxable: false},
-        {sku: "training",     quantity: 2,  unitPriceCents: 5000, taxable: false}
+        InvoiceLine{sku: "seat-license", quantity: 10, unitPriceCents: 2500, taxable: true},
+        InvoiceLine{sku: "audit-log", quantity: 4, unitPriceCents: 2200, taxable: true},
+        InvoiceLine{sku: "migration", quantity: 1, unitPriceCents: 9500, taxable: false},
+        InvoiceLine{sku: "training", quantity: 2, unitPriceCents: 5000, taxable: false}
         ]
 
     let enterpriseTotals = buildInvoiceTotals(enterpriseInvoice, true)

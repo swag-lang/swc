@@ -3,6 +3,7 @@
 #include "Backend/Runtime.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Cast/Cast.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
 #include "Compiler/Sema/Helpers/SemaCheck.h"
@@ -10,6 +11,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 #include "Support/Report/Diagnostic.h"
 
@@ -215,6 +217,100 @@ namespace
         return false;
     }
 
+    struct ConstantEquality
+    {
+        bool known = true;
+        bool equal = true;
+    };
+
+    ConstantRef aggregateFieldConstant(Sema& sema, const ConstantValue& source, TypeRef fieldTypeRef, uint64_t offset, size_t index)
+    {
+        if (source.isAggregate())
+            return source.getAggregate()[index];
+        const uint64_t size = sema.typeMgr().get(fieldTypeRef).sizeOf(sema.ctx());
+        if (!size)
+            return sema.cstMgr().addZeroPayloadConstant(sema.ctx(), fieldTypeRef);
+        const auto bytes = source.isStruct() ? source.getStruct() : source.getArray();
+        SWC_ASSERT(offset + size <= bytes.size());
+        return ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, bytes.subspan(offset, size));
+    }
+
+    Result compareConstantFields(Sema& sema, ConstantEquality& result, TypeRef typeRef, ConstantRef leftRef, TypeRef rightTypeRef, ConstantRef rightRef)
+    {
+        const TypeInfo&      type  = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), typeRef);
+        const ConstantValue& left  = sema.cstMgr().get(leftRef);
+        const ConstantValue& right = sema.cstMgr().get(rightRef);
+        if (!SemaHelpers::isByValueAggregateType(type))
+        {
+            result.equal = left.kind() == right.kind() && left.eq(right);
+            return Result::Continue;
+        }
+        if (typeRef != rightTypeRef && SemaHelpers::sameRecordOrTupleShape(sema.ctx(), typeRef, rightTypeRef))
+        {
+            SmallVector<SemaHelpers::RecordOrTupleField> leftFields;
+            SmallVector<SemaHelpers::RecordOrTupleField> rightFields;
+            SemaHelpers::collectRecordOrTupleFields(sema.ctx(), leftFields, typeRef);
+            SemaHelpers::collectRecordOrTupleFields(sema.ctx(), rightFields, rightTypeRef);
+            for (size_t i = 0; i < leftFields.size(); ++i)
+            {
+                size_t j = i;
+                if (leftFields[i].nameRef.isValid())
+                    j = std::ranges::find(rightFields, leftFields[i].nameRef, &SemaHelpers::RecordOrTupleField::nameRef) - rightFields.begin();
+                const auto& leftField  = leftFields[i];
+                const auto& rightField = rightFields[j];
+                SWC_RESULT(compareConstantFields(sema, result, leftField.typeRef, aggregateFieldConstant(sema, left, leftField.typeRef, leftField.offset, i),
+                                                 rightField.typeRef, aggregateFieldConstant(sema, right, rightField.typeRef, rightField.offset, j)));
+                if (!result.known || !result.equal)
+                    return Result::Continue;
+            }
+            return Result::Continue;
+        }
+        if (type.isStruct())
+        {
+            SWC_RESULT(sema.waitSemaCompleted(&type, sema.curNodeRef()));
+            const SymbolStruct& owner = type.payloadSymStruct();
+            if (owner.isUnion() || owner.selfEqualsFunction(sema.ctx()))
+            {
+                result.known = false;
+                return Result::Continue;
+            }
+        }
+        size_t count;
+        if (type.isStruct())
+            count = type.payloadSymStruct().fields().size();
+        else if (type.isAggregate())
+            count = type.payloadAggregate().types.size();
+        else
+        {
+            const TypeInfo& element = sema.typeMgr().get(type.payloadArrayElemTypeRef());
+            const uint64_t  size    = element.sizeOf(sema.ctx());
+            count                   = size ? type.sizeOf(sema.ctx()) / size : 0;
+            if (!left.isAggregate() && !right.isAggregate() && (element.isIntLike() || element.isBool() || element.isAnyPointer()))
+            {
+                result.equal = left.eq(right);
+                return Result::Continue;
+            }
+        }
+        uint64_t offset = 0;
+        for (size_t i = 0; i < count; ++i)
+        {
+            const TypeRef   fieldTypeRef = type.isStruct() ? type.payloadSymStruct().fields()[i]->typeRef() : type.isAggregate() ? type.payloadAggregate().types[i]
+                                                                                                                                 : type.payloadArrayElemTypeRef();
+            const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
+            if (type.isStruct())
+                offset = type.payloadSymStruct().fields()[i]->offset();
+            else
+                offset = Math::alignUpU64(offset, std::max<uint32_t>(fieldType.alignOf(sema.ctx()), 1));
+            const ConstantRef leftField  = aggregateFieldConstant(sema, left, fieldTypeRef, offset, i);
+            const ConstantRef rightField = aggregateFieldConstant(sema, right, fieldTypeRef, offset, i);
+            SWC_RESULT(compareConstantFields(sema, result, fieldTypeRef, leftField, fieldTypeRef, rightField));
+            if (!result.known || !result.equal)
+                return Result::Continue;
+            offset += fieldType.sizeOf(sema.ctx());
+        }
+        return Result::Continue;
+    }
+
     Result constantFoldEqual(Sema& sema, ConstantRef& result, const SemaNodeView& nodeLeftView, const SemaNodeView& nodeRightView)
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
@@ -263,6 +359,15 @@ namespace
             const auto [leftAddress, rightAddress] = constantPointerAddresses(compareLeftView, compareRightView);
 
             result = sema.cstMgr().cstBool(leftAddress == rightAddress);
+            return Result::Continue;
+        }
+
+        if (SemaHelpers::isByValueAggregateType(compareLeftType))
+        {
+            ConstantEquality comparison;
+            SWC_RESULT(compareConstantFields(sema, comparison, compareLeftView.typeRef(), compareLeftView.cstRef(), compareRightView.typeRef(), compareRightView.cstRef()));
+            if (comparison.known)
+                result = sema.cstMgr().cstBool(comparison.equal);
             return Result::Continue;
         }
 
@@ -427,7 +532,8 @@ namespace
 
             case TokenId::SymBangEqual:
                 SWC_RESULT(constantFoldEqual(sema, result, nodeLeftView, nodeRightView));
-                result = sema.cstMgr().cstNegBool(result);
+                if (result.isValid())
+                    result = sema.cstMgr().cstNegBool(result);
                 return Result::Continue;
 
             case TokenId::SymLess:
@@ -454,7 +560,7 @@ namespace
     {
         const SemaNodeView compareLeftView  = scalarReadView(sema, nodeLeftView);
         const SemaNodeView compareRightView = scalarReadView(sema, nodeRightView);
-        if (compareLeftView.typeRef() == compareRightView.typeRef())
+        if (SemaHelpers::sameRecordOrTupleShape(sema.ctx(), compareLeftView.typeRef(), compareRightView.typeRef()))
             return Result::Continue;
         if (SemaHelpers::aliasType(sema, compareLeftView).isScalarNumeric() && SemaHelpers::aliasType(sema, compareRightView).isScalarNumeric())
             return Result::Continue;
@@ -721,6 +827,9 @@ namespace
                                     op == TokenId::SymGreaterEqual ||
                                     op == TokenId::SymLessEqualGreater;
 
+        if (Token::isOpEquality(op) && nodeLeftView.typeRef() != nodeRightView.typeRef() && SemaHelpers::sameRecordOrTupleShape(sema.ctx(), nodeLeftView.typeRef(), nodeRightView.typeRef()))
+            return Result::Continue;
+
         const bool readScalarReference = orderedCompare &&
                                          (scalarReferencePayloadType(sema, nodeLeftView) ||
                                           scalarReferencePayloadType(sema, nodeRightView));
@@ -839,6 +948,22 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
             SemaHelpers::clearLateFieldReadGuard(sema, nodeLeftRef);
     }
 
+    // An interface value is an object view, while a type operand is metadata. Comparing their
+    // storage does not test the object's concrete type; that operation is expressed with 'is'.
+    if (Token::isOpEquality(tok.id))
+    {
+        const TypeInfo& leftType  = SemaHelpers::aliasEnumType(sema, nodeLeftView);
+        const TypeInfo& rightType = SemaHelpers::aliasEnumType(sema, nodeRightView);
+        if ((leftType.isInterface() && rightType.isTypeValue()) || (rightType.isInterface() && leftType.isTypeValue()))
+        {
+            Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_compare_operand_type, codeRef());
+            diag.addArgument(Diagnostic::ARG_LEFT, nodeLeftView.typeRef());
+            diag.addArgument(Diagnostic::ARG_RIGHT, nodeRightView.typeRef());
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+    }
+
     bool handledSpecialOp = false;
     SWC_RESULT(SemaSpecOp::tryResolveRelational(sema, *this, nodeLeftView, handledSpecialOp));
     if (handledSpecialOp)
@@ -868,13 +993,15 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
     else
         sema.setType(sema.curNodeRef(), sema.typeMgr().typeBool());
 
-    const bool canConstantFold = nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid();
+    bool canConstantFold = nodeLeftView.cstRef().isValid() && nodeRightView.cstRef().isValid();
     if (canConstantFold)
     {
         ConstantRef result;
         SWC_RESULT(constantFold(sema, result, tok.id, nodeLeftView, nodeRightView));
 
-        sema.setConstant(sema.curNodeRef(), result);
+        canConstantFold = result.isValid();
+        if (canConstantFold)
+            sema.setConstant(sema.curNodeRef(), result);
     }
 
     if (!canConstantFold &&
@@ -885,6 +1012,14 @@ Result AstRelationalExpr::semaPostNode(Sema& sema)
         {
             const TypeInfo& compareLeftType  = SemaHelpers::aliasEnumType(sema, nodeLeftView);
             const TypeInfo& compareRightType = SemaHelpers::aliasEnumType(sema, nodeRightView);
+
+            for (const SemaNodeView* operand : {&nodeLeftView, &nodeRightView})
+            {
+                const TypeInfo& type = *operand->type();
+                const uint64_t  size = type.sizeOf(sema.ctx());
+                if (SemaHelpers::isByValueAggregateType(type) && (size == 1 || size == 2 || size == 4 || size == 8))
+                    SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, operand->nodeRef(), sema.node(operand->nodeRef()), operand->typeRef(), "__compare_operand_storage"));
+            }
 
             // Type checking has already unified slice element types and sizes.
             if (compareLeftType.isString() && compareRightType.isString())

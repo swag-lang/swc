@@ -77,11 +77,11 @@ internal impl Properties
         {
             let vt  = Reflection.dynamicArrayElementType(arrayItem.type)!
             let arr = cast(*Array'u8, arrayItem.data!)
-            return {arr.buffer, vt, arr.count}
+            return {base: arr.buffer, valueType: vt, count: arr.count}
         }
 
         let typeArr = assume cast(const *Swag.TypeInfoArray, arrayItem.type)
-        return {cast([*] u8?, arrayItem.data), typeArr.pointedType, typeArr.count}
+        return {base: cast([*] u8?, arrayItem.data), valueType: typeArr.pointedType, count: typeArr.count}
     }
 
     // Ordinal of an array element among the array's direct children. Robust for struct arrays,
@@ -174,7 +174,7 @@ internal impl Properties
         }
 
         let parentForBtn = .isGridLike() ? item.line : cast(*Wnd?, item.label)
-        let addBtn       = IconButton.create(parentForBtn!, .theme().icon(ThemeIcons.Plus, 20), {0, 0, 24, 24})
+        let addBtn       = IconButton.create(parentForBtn!, .theme().icon(ThemeIcons.Plus, 20), Math.Rectangle{0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Circle)
         item.arrayAddButton = addBtn

@@ -107,7 +107,7 @@ func semaTest001()
             }
     }
 
-    var holder: LambdaHolder = {cb: cb}
+    var holder: LambdaHolder = LambdaHolder{cb: cb}
     let result = invokeAggregate(holder.cb, {base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
     #assert(#typeof(result) == LambdaResult)
     #assert(#typeof(result.mirrored) == [4] s32)
@@ -236,7 +236,7 @@ func semaTest009()
 
 func semaTest010()
 {
-    var holder: LambdaRuntimeHolder = {
+    var holder: LambdaRuntimeHolder = LambdaRuntimeHolder{
         unary: func(value) => value - 2,
         predicate: func(left, right) => left >= right,
         defaulted: func(value) => value + 5

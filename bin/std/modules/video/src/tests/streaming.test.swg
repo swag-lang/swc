@@ -8,14 +8,14 @@ using Core, Core.Errors, Pixel
 #test
 {
     var stream: H264.AvcStream
-    stream.frames.add([{0, 0, 0, true}, {0, 0, 400, false}, {0, 0, 100, false}, {0, 0, 500, false}])
+    stream.frames.add([SampleEntry{0, 0, 0, true}, SampleEntry{0, 0, 400, false}, SampleEntry{0, 0, 100, false}, SampleEntry{0, 0, 500, false}])
     stream.sampleAtRank.add([0, 2, 1, 3])
     stream.rankOfSample.add([0, 2, 1, 3])
     stream.syncFlags.add([1, 0, 0, 0])
     stream.nextRank   = 2
     stream.nextDecode = 3
 
-    const Added: [2] SampleEntry = [{0, 0, 300, false}, {0, 0, 200, false}]
+    const Added: [2] SampleEntry = [SampleEntry{0, 0, 300, false}, SampleEntry{0, 0, 200, false}]
     expect stream.appendFrames(Added)
 
     Swag.assert(stream.sampleAtRank.count == 6)
@@ -32,14 +32,14 @@ using Core, Core.Errors, Pixel
 #test
 {
     var stream: H264.AvcStream
-    stream.frames.add([{0, 0, 0, true}, {0, 0, 100, false}, {0, 0, 400, false}, {0, 0, 500, false}])
+    stream.frames.add([SampleEntry{0, 0, 0, true}, SampleEntry{0, 0, 100, false}, SampleEntry{0, 0, 400, false}, SampleEntry{0, 0, 500, false}])
     stream.sampleAtRank.add([0, 1, 2, 3])
     stream.rankOfSample.add([0, 1, 2, 3])
     stream.syncFlags.add([1, 0, 0, 0])
     stream.nextRank   = 1
     stream.nextDecode = 2
 
-    const Added: [2] SampleEntry = [{0, 0, 300, false}, {0, 0, 200, false}]
+    const Added: [2] SampleEntry = [SampleEntry{0, 0, 300, false}, SampleEntry{0, 0, 200, false}]
     expect stream.appendFrames(Added)
 
     Swag.assert(stream.sampleAtRank.count == 6)
@@ -54,7 +54,7 @@ using Core, Core.Errors, Pixel
 #test
 {
     var stream: H264.AvcStream
-    stream.frames.add([{0, 0, 0, true}, {0, 0, 200, false}, {0, 0, 100, false}, {0, 0, 300, false}])
+    stream.frames.add([SampleEntry{0, 0, 0, true}, SampleEntry{0, 0, 200, false}, SampleEntry{0, 0, 100, false}, SampleEntry{0, 0, 300, false}])
     stream.sampleAtRank.add([0, 2, 1, 3])
     stream.rankOfSample.add([0, 2, 1, 3])
     stream.syncFlags.add([1, 0, 0, 0])
@@ -86,7 +86,7 @@ struct BarColor
 }
 
 // The eight bars, in the order the fixture scrolls them through.
-const BarColors: [8] BarColor = [{255, 255, 255}, {255, 255, 0}, {0, 255, 255}, {0, 255, 0}, {255, 0, 255}, {255, 0, 0}, {0, 0, 255}, {0, 0, 0}]
+const BarColors: [8] BarColor = [BarColor{255, 255, 255}, BarColor{255, 255, 0}, BarColor{0, 255, 255}, BarColor{0, 255, 0}, BarColor{255, 0, 255}, BarColor{255, 0, 0}, BarColor{0, 0, 255}, BarColor{0, 0, 0}]
 
 // Returns the neutral value the corner block of frame `index` decodes to.
 func barsTimecodeGray(index: u64)->s32 => videoLumaToGray(cast(u8, (16 + index % BarsTimecodePeriod)))

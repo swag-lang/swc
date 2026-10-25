@@ -29,34 +29,34 @@ private func renderCorpus(fixtures: const [..] CorpusPdf)
 #test
 {
     const fixtures: [5] CorpusPdf = [
-        {"llvm-polly-passes-only.pdf",  1},
-        {"llvm-polly-passes-late.pdf",  1},
-        {"llvm-polly-passes-early.pdf", 1},
-        {"llvm-polly-passes-all.pdf",   1},
-        {"llvm-openmp-reference.pdf",   67}]
+        CorpusPdf{"llvm-polly-passes-only.pdf", 1},
+        CorpusPdf{"llvm-polly-passes-late.pdf", 1},
+        CorpusPdf{"llvm-polly-passes-early.pdf", 1},
+        CorpusPdf{"llvm-polly-passes-all.pdf", 1},
+        CorpusPdf{"llvm-openmp-reference.pdf", 67}]
     renderCorpus(fixtures)
 }
 
 #test
 {
     const fixtures: [3] CorpusPdf = [
-        {"llvm-polly-impact-2011-paper.pdf", 6},
-        {"llvm-polly-impact-2011-slides.pdf", 27, 96.0 / 72.0},
-        {"llvm-polly-raghesh-masters-thesis.pdf", 70}]
+        CorpusPdf{"llvm-polly-impact-2011-paper.pdf", 6},
+        CorpusPdf{"llvm-polly-impact-2011-slides.pdf", 27, 96.0 / 72.0},
+        CorpusPdf{"llvm-polly-raghesh-masters-thesis.pdf", 70}]
     renderCorpus(fixtures)
 }
 
 #test
 {
-    const fixtures: [1] CorpusPdf = [{"llvm-polly-grosser-diploma-thesis.pdf", 101}]
+    const fixtures: [1] CorpusPdf = [CorpusPdf{"llvm-polly-grosser-diploma-thesis.pdf", 101}]
     renderCorpus(fixtures)
 }
 
 #test
 {
     const fixtures: [2] CorpusPdf = [
-        {"llvm-polly-kernelgen-pavt-2012-slides.pdf", 51},
-        {"llvm-polly-kernelgen-ncar-2012-slides.pdf", 28}]
+        CorpusPdf{"llvm-polly-kernelgen-pavt-2012-slides.pdf", 51},
+        CorpusPdf{"llvm-polly-kernelgen-ncar-2012-slides.pdf", 28}]
     renderCorpus(fixtures)
 }
 

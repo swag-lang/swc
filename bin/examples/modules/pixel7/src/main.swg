@@ -219,7 +219,7 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
-        .rect   = {0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
+        .rect   = Math.Rectangle{0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
         .rect.x = Math.round((cast(f32, surfaceWidth) - .rect.width) * 0.5)
         .rect.y = Math.round((cast(f32, surfaceHeight) - .rect.height) * 0.5)
     }
@@ -236,7 +236,7 @@ func getCardRect(index: s32)->Math.Rectangle
     let cardHeight  = (H - top - bottomInset - (GalleryRows - 1) * gap) / cast(f32, GalleryRows)
     let col         = index % GalleryCols
     let row         = index / GalleryCols
-    return {28 + col * (cardWidth + gap), top + row * (cardHeight + gap), cardWidth, cardHeight}
+    return Math.Rectangle{28 + col * (cardWidth + gap), top + row * (cardHeight + gap), cardWidth, cardHeight}
 }
 
 func fitTextureRect(bounds: Math.Rectangle, texture: Texture)->Math.Rectangle
@@ -244,7 +244,7 @@ func fitTextureRect(bounds: Math.Rectangle, texture: Texture)->Math.Rectangle
     let scale  = Math.min(bounds.width / cast(f32, texture.width), bounds.height / cast(f32, texture.height))
     let width  = cast(f32, texture.width) * scale
     let height = cast(f32, texture.height) * scale
-    return {bounds.horzCenter() - width * 0.5, bounds.vertCenter() - height * 0.5, width, height}
+    return Math.Rectangle{bounds.horzCenter() - width * 0.5, bounds.vertCenter() - height * 0.5, width, height}
 }
 
 func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: DecoderCard)
@@ -277,7 +277,7 @@ func drawScene(painter: *Pixel.Painter)
     painter.setColorMaskColor()
     painter.setParams(.Antialiased)
     painter.drawString(28, 22, pageTitle(g_Page), g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont, Argb.DimGray)
+    drawWrappedText(painter, Math.Rectangle{30, 64, W - 60, 42}, pageDescription(g_Page), g_HelpFont, Argb.DimGray)
 
     for i in CardsPerPage do
         drawCard(painter, getCardRect(i), g_Cards[g_Page][i])

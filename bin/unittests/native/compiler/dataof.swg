@@ -136,7 +136,7 @@ impl ConstDataOfSpecBuffer
 
 #test
 {
-    var value: DataOfSpecBuffer = {data: [4, 5, 6]}
+    var value: DataOfSpecBuffer = DataOfSpecBuffer{data: [4, 5, 6]}
     let p = value.buffer
     #assert(#typeof(p) == [*] s32)
     p[1] = 42
@@ -147,7 +147,7 @@ impl ConstDataOfSpecBuffer
 
 #test
 {
-    const value: ConstDataOfSpecBuffer = {data: [7'u8, 9'u8]}
+    const value: ConstDataOfSpecBuffer = ConstDataOfSpecBuffer{data: [7'u8, 9'u8]}
     let p = value.buffer
     #assert(#typeof(p) == const [*] u8)
     Swag.assert(p[] == 7'u8)

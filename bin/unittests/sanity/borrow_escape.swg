@@ -1503,7 +1503,7 @@ struct BorrowEscapePairResult
 #[Swag.NoInline]
 func borrowEscapePairResult(first, second: *s32)->BorrowEscapePairResult
 {
-    return {first, second}
+    return BorrowEscapePairResult{first, second}
 }
 
 func borrowEscapePairResultSecondLocal()->BorrowEscapePairResult
@@ -1667,7 +1667,7 @@ func borrowEscapeAggregateAssignmentSibling()->*s32?
 {
     var local: s32
     var state: BorrowEscapeFieldState
-    state = {&local, &borrowEscapeGlobalInt}
+    state = BorrowEscapeFieldState{&local, &borrowEscapeGlobalInt}
     return state.shared
 }
 
@@ -1675,7 +1675,7 @@ func borrowEscapeAggregateAssignmentLocal()->*s32?
 {
     var local: s32
     var state: BorrowEscapeFieldState
-    state = {&local, &borrowEscapeGlobalInt}
+    state = BorrowEscapeFieldState{&local, &borrowEscapeGlobalInt}
     return state.local     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 

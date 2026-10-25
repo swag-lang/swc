@@ -69,7 +69,7 @@ func makeBlock(value: s64)->FreshOwner
 #[Swag.NoInline]
 func makeBare(value: s64)->FreshOwner
 {
-    return {value, value + 1}
+    return FreshOwner{value, value + 1}
 }
 
 #[Swag.NoInline]
@@ -337,7 +337,7 @@ func makeAuto(value: s64)->FreshOwner
     resetFresh(27)
     scope
     {
-        var owner: FreshOwner = {FreshSeed, 1}
+        var owner: FreshOwner = FreshOwner{FreshSeed, 1}
         Swag.assert(owner.value == 27 and owner.extra == 1)
     }
     expectFresh(0, 0, 1, 27)

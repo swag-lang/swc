@@ -49,7 +49,7 @@ impl AstGeneratedBuilder
 
     mtd const toString()->AstGeneratedString
     {
-        return {.buffer, .length}
+        return AstGeneratedString{.buffer, .length}
     }
 }
 

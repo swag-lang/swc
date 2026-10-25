@@ -61,29 +61,29 @@ const StandardStrings: [391] string = [
 // Codes 32 through 126 name the first ninety-five standard strings in order, which is
 // why only the sparse tail needs spelling out.
 private const StandardEncodingHigh: [54] { code: u8, sid: u16 } = [
-    {161, 96}, {162, 97}, {163, 98}, {164, 99}, {165, 100}, {166, 101}, {167, 102}, {168, 103},
-    {169, 104}, {170, 105}, {171, 106}, {172, 107}, {173, 108}, {174, 109}, {175, 110}, {177, 111},
-    {178, 112}, {179, 113}, {180, 114}, {182, 115}, {183, 116}, {184, 117}, {185, 118}, {186, 119},
-    {187, 120}, {188, 121}, {189, 122}, {191, 123}, {193, 124}, {194, 125}, {195, 126}, {196, 127},
-    {197, 128}, {198, 129}, {199, 130}, {200, 131}, {202, 132}, {203, 133}, {205, 134}, {206, 135},
-    {207, 136}, {208, 137}, {225, 138}, {227, 139}, {232, 140}, {233, 141}, {234, 142}, {235, 143},
-    {241, 144}, {245, 145}, {248, 146}, {249, 147}, {250, 148}, {251, 149}]
+    {code: 161, sid: 96}, {code: 162, sid: 97}, {code: 163, sid: 98}, {code: 164, sid: 99}, {code: 165, sid: 100}, {code: 166, sid: 101}, {code: 167, sid: 102}, {code: 168, sid: 103},
+    {code: 169, sid: 104}, {code: 170, sid: 105}, {code: 171, sid: 106}, {code: 172, sid: 107}, {code: 173, sid: 108}, {code: 174, sid: 109}, {code: 175, sid: 110}, {code: 177, sid: 111},
+    {code: 178, sid: 112}, {code: 179, sid: 113}, {code: 180, sid: 114}, {code: 182, sid: 115}, {code: 183, sid: 116}, {code: 184, sid: 117}, {code: 185, sid: 118}, {code: 186, sid: 119},
+    {code: 187, sid: 120}, {code: 188, sid: 121}, {code: 189, sid: 122}, {code: 191, sid: 123}, {code: 193, sid: 124}, {code: 194, sid: 125}, {code: 195, sid: 126}, {code: 196, sid: 127},
+    {code: 197, sid: 128}, {code: 198, sid: 129}, {code: 199, sid: 130}, {code: 200, sid: 131}, {code: 202, sid: 132}, {code: 203, sid: 133}, {code: 205, sid: 134}, {code: 206, sid: 135},
+    {code: 207, sid: 136}, {code: 208, sid: 137}, {code: 225, sid: 138}, {code: 227, sid: 139}, {code: 232, sid: 140}, {code: 233, sid: 141}, {code: 234, sid: 142}, {code: 235, sid: 143},
+    {code: 241, sid: 144}, {code: 245, sid: 145}, {code: 248, sid: 146}, {code: 249, sid: 147}, {code: 250, sid: 148}, {code: 251, sid: 149}]
 
 // Characters StandardEncoding places where it departs from ASCII.
 //
 // A font program that ships no `cmap` is addressed through its built-in encoding, so this
 // is what turns that encoding into the Unicode map the rest of the module expects.
 private const StandardEncodingRunes: [56] { code: u8, value: u16 } = [
-    {0x27, 0x2019}, {0x60, 0x2018}, {0xA1, 0x00A1}, {0xA2, 0x00A2}, {0xA3, 0x00A3}, {0xA4, 0x2044},
-    {0xA5, 0x00A5}, {0xA6, 0x0192}, {0xA7, 0x00A7}, {0xA8, 0x00A4}, {0xA9, 0x0027}, {0xAA, 0x201C},
-    {0xAB, 0x00AB}, {0xAC, 0x2039}, {0xAD, 0x203A}, {0xAE, 0xFB01}, {0xAF, 0xFB02}, {0xB1, 0x2013},
-    {0xB2, 0x2020}, {0xB3, 0x2021}, {0xB4, 0x00B7}, {0xB6, 0x00B6}, {0xB7, 0x2022}, {0xB8, 0x201A},
-    {0xB9, 0x201E}, {0xBA, 0x201D}, {0xBB, 0x00BB}, {0xBC, 0x2026}, {0xBD, 0x2030}, {0xBF, 0x00BF},
-    {0xC1, 0x0060}, {0xC2, 0x00B4}, {0xC3, 0x02C6}, {0xC4, 0x02DC}, {0xC5, 0x00AF}, {0xC6, 0x02D8},
-    {0xC7, 0x02D9}, {0xC8, 0x00A8}, {0xCA, 0x02DA}, {0xCB, 0x00B8}, {0xCD, 0x02DD}, {0xCE, 0x02DB},
-    {0xCF, 0x02C7}, {0xD0, 0x2014}, {0xE1, 0x00C6}, {0xE3, 0x00AA}, {0xE8, 0x0141}, {0xE9, 0x00D8},
-    {0xEA, 0x0152}, {0xEB, 0x00BA}, {0xF1, 0x00E6}, {0xF5, 0x0131}, {0xF8, 0x0142}, {0xF9, 0x00F8},
-    {0xFA, 0x0153}, {0xFB, 0x00DF}]
+    {code: 0x27, value: 0x2019}, {code: 0x60, value: 0x2018}, {code: 0xA1, value: 0x00A1}, {code: 0xA2, value: 0x00A2}, {code: 0xA3, value: 0x00A3}, {code: 0xA4, value: 0x2044},
+    {code: 0xA5, value: 0x00A5}, {code: 0xA6, value: 0x0192}, {code: 0xA7, value: 0x00A7}, {code: 0xA8, value: 0x00A4}, {code: 0xA9, value: 0x0027}, {code: 0xAA, value: 0x201C},
+    {code: 0xAB, value: 0x00AB}, {code: 0xAC, value: 0x2039}, {code: 0xAD, value: 0x203A}, {code: 0xAE, value: 0xFB01}, {code: 0xAF, value: 0xFB02}, {code: 0xB1, value: 0x2013},
+    {code: 0xB2, value: 0x2020}, {code: 0xB3, value: 0x2021}, {code: 0xB4, value: 0x00B7}, {code: 0xB6, value: 0x00B6}, {code: 0xB7, value: 0x2022}, {code: 0xB8, value: 0x201A},
+    {code: 0xB9, value: 0x201E}, {code: 0xBA, value: 0x201D}, {code: 0xBB, value: 0x00BB}, {code: 0xBC, value: 0x2026}, {code: 0xBD, value: 0x2030}, {code: 0xBF, value: 0x00BF},
+    {code: 0xC1, value: 0x0060}, {code: 0xC2, value: 0x00B4}, {code: 0xC3, value: 0x02C6}, {code: 0xC4, value: 0x02DC}, {code: 0xC5, value: 0x00AF}, {code: 0xC6, value: 0x02D8},
+    {code: 0xC7, value: 0x02D9}, {code: 0xC8, value: 0x00A8}, {code: 0xCA, value: 0x02DA}, {code: 0xCB, value: 0x00B8}, {code: 0xCD, value: 0x02DD}, {code: 0xCE, value: 0x02DB},
+    {code: 0xCF, value: 0x02C7}, {code: 0xD0, value: 0x2014}, {code: 0xE1, value: 0x00C6}, {code: 0xE3, value: 0x00AA}, {code: 0xE8, value: 0x0141}, {code: 0xE9, value: 0x00D8},
+    {code: 0xEA, value: 0x0152}, {code: 0xEB, value: 0x00BA}, {code: 0xF1, value: 0x00E6}, {code: 0xF5, value: 0x0131}, {code: 0xF8, value: 0x0142}, {code: 0xF9, value: 0x00F8},
+    {code: 0xFA, value: 0x0153}, {code: 0xFB, value: 0x00DF}]
 
 // Returns the standard string a name identifier selects, or an empty name for one that
 // belongs to the font's own string INDEX.

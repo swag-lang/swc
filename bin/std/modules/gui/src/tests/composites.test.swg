@@ -69,7 +69,7 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     var host: Testing.HeadlessHost
     host.setup(260, 60)
     defer host.shutdown()
-    let ctrl = EditCtrl.create(&host.root, "Name", "Bob", {0, 0, 240, 26})
+    let ctrl = EditCtrl.create(&host.root, "Name", "Bob", Math.Rectangle{0, 0, 240, 26})
     Swag.assert(ctrl.label.text() == "Name")
     Swag.assert(ctrl.edit.text() == "Bob")
     Swag.assert(ctrl.label.position.width == ctrl.labelWidth)
@@ -90,7 +90,7 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     defer host.shutdown()
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Edit")
     dlg.addButton("OK", Dialog.BtnOk, true)
-    let ctrl = EditCtrl.create(dlg, "Name", "Bob", {20, 20, 210, 26})
+    let ctrl = EditCtrl.create(dlg, "Name", "Bob", Math.Rectangle{20, 20, 210, 26})
 
     var didSet: bool
     host.app.sigFrame += func|host = &host, ctrl, didSet = &didSet|(_)
@@ -120,7 +120,7 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     defer host.shutdown()
     CompositeSliderChangedCount = 0
 
-    let ctrl = SliderCtrl.create(&host.root, "Vol", {0, 0, 300, 30})
+    let ctrl = SliderCtrl.create(&host.root, "Vol", Math.Rectangle{0, 0, 300, 30})
     ctrl.sigChanged += &compositeSliderChanged
     ctrl.setLayoutMetrics(50, 55, 6)
     ctrl.setAutomaticValueWidth(false)
@@ -140,7 +140,7 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     var host: Testing.HeadlessHost
     host.setup(320, 60)
     defer host.shutdown()
-    let ctrl = SliderCtrl.create(&host.root, "N", {0, 0, 300, 30})
+    let ctrl = SliderCtrl.create(&host.root, "N", Math.Rectangle{0, 0, 300, 30})
     ctrl.setUnsignedBounds(0, 100)
 
     ctrl.setValue(40)
@@ -154,7 +154,7 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     var host: Testing.HeadlessHost
     host.setup(260, 60)
     defer host.shutdown()
-    let ctrl = ComboCtrl.create(&host.root, "Mode", {0, 0, 240, 26})
+    let ctrl = ComboCtrl.create(&host.root, "Mode", Math.Rectangle{0, 0, 240, 26})
     Swag.assert(ctrl.label.text() == "Mode")
 
     ctrl.combo.addItem("One")
@@ -219,7 +219,7 @@ func compositeColorChanged(_: *ColorPickerCtrl)
     defer host.shutdown()
     CompositeColorChangedCount = 0
 
-    let picker = ColorPickerCtrl.create(&host.root, {0, 0, 340, 330})
+    let picker = ColorPickerCtrl.create(&host.root, Math.Rectangle{0, 0, 340, 330})
     picker.sigColorChanged += &compositeColorChanged
 
     picker.setColor(Argb.Red)

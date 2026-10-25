@@ -6,7 +6,7 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
                             title,
                             "Standalone Header items can be resized, clamped, decorated and marked as sorted.",
                             rect)
-    let header = Header.create(panel, {18, 94, rect.width - 36, 34})
+    let header = Header.create(panel, Math.Rectangle{18, 94, rect.width - 36, 34})
     header.form = round ? .Round : .Flat
     if disabledClick do
         header.updateFlags(remove: .Clickable)
@@ -23,12 +23,12 @@ func createHeaderBand(parent: *Wnd, rect: Math.Rectangle, title: string, round: 
     for i in 4
     {
         let y    = rowY + i * 34
-        let icon = Label.create(panel, "", {34, y, 20, 24})
+        let icon = Label.create(panel, "", Math.Rectangle{34, y, 20, 24})
         icon.setIcon(sampleIcon(i, 16))
-        discard createText(panel, Format.toString("Header row %", i + 1), {60, y, 180, 24})
-        discard createText(panel, i % 2 == 0 ? "ready" : "waiting", {250, y, 110, 24})
-        discard createText(panel, Format.toString("% KB", 24 + i * 9), {370, y, 80, 24})
-        discard createText(panel, i % 2 == 0 ? "runtime" : "editor", {470, y, 160, 24})
+        discard createText(panel, Format.toString("Header row %", i + 1), (60, y, 180, 24))
+        discard createText(panel, i % 2 == 0 ? "ready" : "waiting", (250, y, 110, 24))
+        discard createText(panel, Format.toString("% KB", 24 + i * 9), (370, y, 80, 24))
+        discard createText(panel, i % 2 == 0 ? "runtime" : "editor", (470, y, 160, 24))
     }
 }
 
@@ -44,7 +44,7 @@ func createHeadersPage(parent: *Wnd)
                              "ListCtrl owns a Header and keeps it synchronized with scrolling and column resizing.",
                              layout.bottom)
     let list = ListCtrl.createMultiColumns(bottom,
-                                           {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+                                           (18, 92, layout.bottom.width - 36, layout.bottom.height - 112))
     list.setFrameForm(.Round)
     list.setSelectionMode(.Single)
     list.setIconSize(16)

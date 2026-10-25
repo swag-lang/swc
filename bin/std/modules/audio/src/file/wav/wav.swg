@@ -360,7 +360,7 @@ private func openAdpcm(path: string, layout: const *Layout)->SoundFile fail
         let blockFrames = Adpcm.blockFrameCount(format.encoding, format.channels, blockBytes)
         if not blockFrames do
             break
-        packets.add({layout.dataOffset + dataOffset, cast(u32, blockBytes), cast(u32, blockFrames)})
+        packets.add(SoundPacket{layout.dataOffset + dataOffset, cast(u32, blockBytes), cast(u32, blockFrames)})
         totalFrames += blockFrames
         dataOffset  += blockBytes
     }

@@ -170,7 +170,7 @@ so this is opt-in per widget and per axis.
 
 ```swag
 // Width measured from the caption, height stated because the row is a design decision.
-let action = PushButton.create(card, appStrings().createVault, {0, 0, 0, 36})
+let action = PushButton.create(card, appStrings().createVault, Math.Rectangle{0, 0, 0, 36})
 
 // A paragraph that decides its own height, whatever the language costs.
 let help = Label.create(card, appStrings().createHelp, {}, null, .WordWrap | .SecondaryText | .AutoHeight)

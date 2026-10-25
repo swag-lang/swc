@@ -16,10 +16,10 @@ impl FormDraw
     mtd setDefaultShape()
     {
         .points.clear()
-        .points.add({48, 0})
-        .points.add({0, 12})
-        .points.add({34, 28})
-        .points.add({0, 48})
+        .points.add(Math.Vector2{48, 0})
+        .points.add(Math.Vector2{0, 12})
+        .points.add(Math.Vector2{34, 28})
+        .points.add(Math.Vector2{0, 48})
     }
 
     mtd paintOutlineSize(cxt: FormPaintContext)->f32 => BaseForm.adaptSize(.outlineSize, MinOutlineSize, MaxOutlineSize, cxt, 0, 3)
@@ -58,19 +58,19 @@ impl IForm for FormDraw
         {
             let xs = movingStart.x / zoom
             let ys = movingStart.y / zoom
-            .points.add({xs, ys})
-            .points.add({x0, y0})
+            .points.add(Math.Vector2{xs, ys})
+            .points.add(Math.Vector2{x0, y0})
         }
         elif evt.kind == .Move
         {
             let xs = Math.abs(x0 - .points.back().x)
             let ys = Math.abs(y0 - .points.back().y)
             if xs > 5 or ys > 5 do
-                .points.add({x0, y0})
+                .points.add(Math.Vector2{x0, y0})
         }
         else
         {
-            .points[.points.count - 1] = {x0, y0}
+            .points[.points.count - 1] = Math.Vector2{x0, y0}
         }
 
         return true
@@ -130,7 +130,7 @@ impl IForm for FormDraw
         }
     }
 
-    mtd impl isInside(pt: Math.Point)->bool        => Math.Geometry.polygonContainsPoint(.points, {pt.x, pt.y})
+    mtd impl isInside(pt: Math.Point)->bool        => Math.Geometry.polygonContainsPoint(.points, Math.Vector2{pt.x, pt.y})
     mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)

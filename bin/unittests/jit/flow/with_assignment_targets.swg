@@ -156,7 +156,7 @@ func jitWithAssignmentsAndScopes()->s32
 func jitWithNestedMemberTarget()->s32
 {
     var point   = jitWithAssignMakePoint(4, 5)
-    var wrapper = JitWithAssignWrapper{holder: {ptr: &point}}
+    var wrapper = JitWithAssignWrapper{holder: JitWithAssignHolder{ptr: &point}}
     var total   = 0
 
     with wrapper.holder

@@ -108,7 +108,7 @@ func strictFloatDefault(value: StrictDefaultFloat = cast(StrictDefaultFloat, 1.2
     return value == cast(StrictDefaultFloat, 1.25)
 }
 
-func vecDefaultSum(v: DefaultVec = {x: 10, y: 20})->s32
+func vecDefaultSum(v: DefaultVec = DefaultVec{x: 10, y: 20})->s32
 {
     return v.x + v.y
 }

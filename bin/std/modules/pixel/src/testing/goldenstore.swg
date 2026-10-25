@@ -83,7 +83,7 @@ func assertGoldenText(text: string, name: string, loc = #callerlocation)
 // [[Pixel.Testing.ImageGoldenOptions.maxDifferentPixels]] pixels may exceed it. A failed comparison
 // writes `<name>.expected.png` and `<name>.actual.png` beside the calling test.
 // The check remains active when Pixel is built as a release dependency.
-func assertImagesNear(expected, actual: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
+func assertImagesNear(expected, actual: const *Image, name: string, options: ImageGoldenOptions = ImageGoldenOptions{}, loc = #callerlocation)
 {
     Swag.assert(expected != null and expected.isValid(), "expected image needs allocated pixels")
     Swag.assert(actual != null and actual.isValid(), "actual image needs allocated pixels")
@@ -114,7 +114,7 @@ func assertImagesNear(expected, actual: const *Image, name: string, options: Ima
 // devmode, and the release preset contracts multiply-add into FMA, which rounds antialiased
 // samples slightly differently: a release build also accepts a channel delta of two and four
 // pixels beyond it, for a glyph that crosses into its neighbouring quarter-pixel phase.
-func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = {}, loc = #callerlocation)
+func assertImageGolden(image: const *Image, name: string, options: ImageGoldenOptions = ImageGoldenOptions{}, loc = #callerlocation)
 {
     Swag.assert(image != null and image.isValid(), "image golden needs allocated pixels")
     let path = goldenPath(name, ".png", loc)

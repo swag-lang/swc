@@ -54,12 +54,12 @@ func sumXRef(p: const [*] Wide, n: u64)->f64
 
 #test
 {
-    let pairs: [4] Pair = [{1, -2, 30}, {2, 5, -12}, {3, 7, 100}, {4, -9, 5}]
+    let pairs: [4] Pair = [Pair{1, -2, 30}, Pair{2, 5, -12}, Pair{3, 7, 100}, Pair{4, -9, 5}]
     Swag.assert(sumPrices(&pairs[0], 4) == sumPricesRef(&pairs[0], 4))
     for i in 4 do
         Swag.assert(weightAt(&pairs[0], i) == pairs[i].w)
 
-    let wides: [3] Wide = [{1, 2, 0.5, -1.5}, {3, 4, 2.25, 8}, {5, 6, -4, 0.125}]
+    let wides: [3] Wide = [Wide{1, 2, 0.5, -1.5}, Wide{3, 4, 2.25, 8}, Wide{5, 6, -4, 0.125}]
     Swag.assert(sumX(&wides[0], 3) == sumXRef(&wides[0], 3))
     for i in 3 do
         Swag.assert(yAt(&wides[0], i) == wides[i].y)

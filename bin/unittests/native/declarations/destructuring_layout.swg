@@ -21,9 +21,9 @@ func runtimeByte(value: u8)->u8 => value
 // Runtime tuples retain their aggregate layout, including padding and skipped fields.
 #test
 {
-    let {head, _, wide, _, tail} = {
+    let (head, _, wide, _, tail) = (
         runtimeByte(3), Empty{}, cast(u64, runtimeByte(11)) << 40,
-        cast(u16, runtimeByte(17)), runtimeByte(23)}
+        cast(u16, runtimeByte(17)), runtimeByte(23))
     Swag.assert(head == 3)
     Swag.assert(wide == 11'u64 << 40)
     Swag.assert(tail == 23)
@@ -46,9 +46,9 @@ func runtimeByte(value: u8)->u8 => value
     var head, tail: u8
     var wide:       u64
     var word:       u16
-    {head, _, wide, word, tail} = {
+    (head, _, wide, word, tail) = (
         runtimeByte(7), Empty{}, cast(u64, runtimeByte(17)) << 40,
-        cast(u16, runtimeByte(31)), runtimeByte(37)}
+        cast(u16, runtimeByte(31)), runtimeByte(37))
     Swag.assert(head == 7)
     Swag.assert(wide == 17'u64 << 40)
     Swag.assert(word == 31)

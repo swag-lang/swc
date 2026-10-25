@@ -31,10 +31,10 @@ func zoomOut(percent: u32)->u32 => percent > MinZoom + ZoomStep ? percent - Zoom
 // the level in use, `100 %` until the viewer sets one. The caller connects what pressing it does.
 func createZoomButton(info: *Wnd, id, toolTip: string, width = ZoomButtonWidth)->*IconButton
 {
-    with let result = IconButton.create(info, {}, {0, 0, width, 32}, id, .CenterContent)
+    with let result = IconButton.create(info, {}, Math.Rectangle{0, 0, width, 32}, id, .CenterContent)
     {
         .dockStyle = .Center
-        .margin    = {ZoomButtonInset, 0, ZoomButtonInset, 0}
+        .margin    = Math.Vector4{ZoomButtonInset, 0, ZoomButtonInset, 0}
         .toolTip   = toolTip
         .setText(zoomText(100))
         .setArrowPosition(.RightDownward)
@@ -78,11 +78,11 @@ private struct ZoomPreset
 }
 
 private const ZoomPresets: [5] ZoomPreset = [
-    {75,  "75%",  "scope.zoom75"},
-    {100, "100%", "scope.zoom100"},
-    {125, "125%", "scope.zoom125"},
-    {150, "150%", "scope.zoom150"},
-    {200, "200%", "scope.zoom200"}]
+    ZoomPreset{75, "75%", "scope.zoom75"},
+    ZoomPreset{100, "100%", "scope.zoom100"},
+    ZoomPreset{125, "125%", "scope.zoom125"},
+    ZoomPreset{150, "150%", "scope.zoom150"},
+    ZoomPreset{200, "200%", "scope.zoom200"}]
 
 // Shows the zoom menu of a reading viewer under `anchor`, with the level in use checked, and
 // returns the level the reader picked, or 0 when the menu closed without a choice.

@@ -248,8 +248,8 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     defer discard catch File.delete(path)
     discard expect File.writeAllBytes(path, bytes.toSlice())
 
-    let corePackets:     [1] SoundPacket = [{0, cast(u32, info.frameBytes), info.frames}]
-    let extendedPackets: [1] SoundPacket = [{extendedOffset, cast(u32, info.frameBytes) + 60, info.frames}]
+    let corePackets:     [1] SoundPacket = [SoundPacket{0, cast(u32, info.frameBytes), info.frames}]
+    let extendedPackets: [1] SoundPacket = [SoundPacket{extendedOffset, cast(u32, info.frameBytes) + 60, info.frames}]
     var config:          Array'u8
     let options                          = PacketStreamOptions{speakerMask: info.speakerMask}
     var core                             = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, corePackets, config.toSlice(), options)
@@ -279,7 +279,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     defer discard catch File.delete(path)
     discard expect File.writeAllBytes(path, bytes.toSlice())
 
-    let packets: [1] SoundPacket = [{0, cast(u32, bytes.count), info.frames}]
+    let packets: [1] SoundPacket = [SoundPacket{0, cast(u32, bytes.count), info.frames}]
     var config:  Array'u8
     var sound = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, packets, config.toSlice(), {speakerMask: info.speakerMask})
     discard expect createNoSoundEngine()
@@ -300,7 +300,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     defer discard catch File.delete(path)
     discard expect File.writeAllBytes(path, bytes.toSlice())
 
-    let packets: [1] SoundPacket = [{0, cast(u32, bytes.count), info.frames}]
+    let packets: [1] SoundPacket = [SoundPacket{0, cast(u32, bytes.count), info.frames}]
     var config:  Array'u8
     var sound = expect SoundFile.openPacketStream(path, .Dts, info.sampleRate, info.channels, info.frames, packets, config.toSlice(), {speakerMask: info.speakerMask})
     discard expect createNoSoundEngine()

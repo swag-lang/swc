@@ -95,8 +95,8 @@ declaration that holds it can give it one, as `= .None` does above.
     {
         using mode: union(Mode)
         {
-            case .Signed:   signed:   {min, max: s64} = {-10, 10}
-            case .Unsigned: unsigned: {min, max: u64} = {0, 100}
+            case .Signed:   signed:   {min, max: s64} = {min: -10, max: 10}
+            case .Unsigned: unsigned: {min, max: u64} = {min: 0, max: 100}
         } = .Text
     }
 

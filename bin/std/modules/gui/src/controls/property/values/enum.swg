@@ -198,7 +198,7 @@ internal impl Properties
             line.hookOnEvent = func|prop = me, itemB|(hwnd, evt) => prop.onItemEvent(itemB, hwnd, evt)
 
             let checkHeight = me.kind == .Condensed ? PropCondensedControlHeight : me.gridLineHeight
-            with let ed     = CheckButton.create(line, "", {0, 0, checkHeight, checkHeight})
+            with let ed     = CheckButton.create(line, "", Math.Rectangle{0, 0, checkHeight, checkHeight})
             {
                 if me.isGridLike() do
                     .margin.x = me.leftMargin
@@ -215,7 +215,7 @@ internal impl Properties
             var labelWidth = me.position.width - item.line.position.height
             if not me.isGridLike() do
                 labelWidth = me.listContentWidth() - me.gridLineHeight
-            with let label1 = Label.create(line, "", {item.line.position.height, 0, Math.max(labelWidth, 1.0)})
+            with let label1 = Label.create(line, "", Math.Rectangle{item.line.position.height, 0, Math.max(labelWidth, 1.0)})
             {
                 .dockStyle = .Center
                 if me.kind == .Condensed do

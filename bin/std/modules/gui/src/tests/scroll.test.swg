@@ -10,16 +10,16 @@ using Swag, Core
     host.setup(260, 260)
     defer host.shutdown()
     host.setReducedMotion(false)
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", Math.Rectangle{0, 0, 200, 200})
     scroll.createView'Wnd()
     scroll.setScrollSize(100000, 100000)
-    scroll.smoothScrollTo({10000, 10000})
+    scroll.smoothScrollTo(Math.Point{10000, 10000})
     host.advanceAnimations(0.079)
     let before = scroll.scrollPosition()
     host.advanceAnimations(0.001)
     let current      = scroll.scrollPosition()
     let previousStep = current - before
-    scroll.smoothScrollTo({20000, 20000})
+    scroll.smoothScrollTo(Math.Point{20000, 20000})
     Swag.assert(scroll.scrollPosition() == current)
     host.advanceAnimations(0.001)
     let nextStep = scroll.scrollPosition() - current
@@ -36,22 +36,22 @@ using Swag, Core
     Swag.assert(scroll.scrollPosition() == Math.Point{20000, 20000})
 
     // Reversal must not carry forward momentum past the point where the request changed.
-    scroll.smoothScrollTo({30000, 30000})
+    scroll.smoothScrollTo(Math.Point{30000, 30000})
     host.advanceAnimations(0.04)
     let reversal = scroll.scrollPosition()
-    scroll.smoothScrollTo({0, 0})
+    scroll.smoothScrollTo(Math.Point{0, 0})
     host.advanceAnimations(0.01)
     Swag.assert(scroll.scrollPosition().x < reversal.x and scroll.scrollPosition().y < reversal.y)
     host.finishAnimations()
     Swag.assert(scroll.scrollPosition() == Math.Point{0, 0})
 
-    scroll.smoothScrollTo({10000, 10000})
+    scroll.smoothScrollTo(Math.Point{10000, 10000})
     host.advanceAnimations(0.04)
-    scroll.setScrollPos({123, 456})
+    scroll.setScrollPos(Math.Point{123, 456})
     host.finishAnimations()
     Swag.assert(scroll.scrollPosition() == Math.Point{123, 456})
     host.setReducedMotion(true)
-    scroll.smoothScrollTo({789, 987})
+    scroll.smoothScrollTo(Math.Point{789, 987})
     Swag.assert(scroll.scrollPosition() == Math.Point{789, 987})
 }
 
@@ -79,7 +79,7 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
     ScrollHeadlessPosCount  = 0
     ScrollHeadlessSizeCount = 0
 
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", Math.Rectangle{0, 0, 200, 200})
     scroll.createView'Wnd()
     scroll.sigScrollPositionChanged += &scrollHeadlessPos
     scroll.sigScrollSizeChanged     += &scrollHeadlessSize
@@ -108,7 +108,7 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
     var host: Testing.HeadlessHost
     host.setup(260, 260)
     defer host.shutdown()
-    let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
+    let scroll = Wnd.create'ScrollWnd(&host.root, "", Math.Rectangle{0, 0, 200, 200})
     scroll.createView'Wnd()
     scroll.setScrollSize(50, 50)
 
@@ -122,14 +122,14 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
     var host: Testing.HeadlessHost
     host.setup(360, 260)
     defer host.shutdown()
-    let outer = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 300, 200})
+    let outer = Wnd.create'ScrollWnd(&host.root, "", Math.Rectangle{0, 0, 300, 200})
     outer.createView'Wnd()
     outer.setScrollSize(900, 900)
-    let first = PushButton.create(outer.view, "First", {0, 0, 80, 26})
-    let inner = Wnd.create'ScrollWnd(outer.view, "", {500, 500, 200, 140})
+    let first = PushButton.create(outer.view, "First", Math.Rectangle{0, 0, 80, 26})
+    let inner = Wnd.create'ScrollWnd(outer.view, "", Math.Rectangle{500, 500, 200, 140})
     inner.createView'Wnd()
     inner.setScrollSize(800, 800)
-    let last = PushButton.create(inner.view, "Last", {600, 600, 80, 26})
+    let last = PushButton.create(inner.view, "Last", Math.Rectangle{600, 600, 80, 26})
     host.pump()
 
     first.setFocus()
@@ -164,10 +164,10 @@ struct ScrollHeadlessViewport
     var host: Testing.HeadlessHost
     host.setup(360, 260)
     defer host.shutdown()
-    let outer = Wnd.create'ScrollHeadlessViewport(&host.root, "", {0, 0, 300, 200})
+    let outer = Wnd.create'ScrollHeadlessViewport(&host.root, "", Math.Rectangle{0, 0, 300, 200})
     outer.createView'Wnd()
     outer.setScrollSize(900, 900)
-    let last = PushButton.create(outer.view, "Last", {600, 600, 80, 26})
+    let last = PushButton.create(outer.view, "Last", Math.Rectangle{600, 600, 80, 26})
     host.pump()
 
     last.setFocus()

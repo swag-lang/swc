@@ -87,7 +87,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
     var bulk:  BulkDiscount
     var rules: [1] IDiscountRule = [cast(IDiscountRule, bulk)]
 
-    var line: OrderLine = {kind: ProductKind.Electronics, quantity: 10, unitCent: 200}
+    var line: OrderLine = OrderLine{kind: ProductKind.Electronics, quantity: 10, unitCent: 200}
     let disc = rules[0].apply(&line)
     Swag.assert(disc == 200)
 }
@@ -96,8 +96,8 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 #test
 {
     var bd:        BookDiscount
-    var bookLine:  OrderLine = {kind: ProductKind.Book, quantity: 1, unitCent: 1000}
-    var otherLine: OrderLine = {kind: ProductKind.Food, quantity: 1, unitCent: 1000}
+    var bookLine:  OrderLine = OrderLine{kind: ProductKind.Book, quantity: 1, unitCent: 1000}
+    var otherLine: OrderLine = OrderLine{kind: ProductKind.Food, quantity: 1, unitCent: 1000}
 
     let itf = cast(IDiscountRule, bd)
     Swag.assert(itf.apply(&bookLine) == 150)
@@ -109,12 +109,12 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 {
     var bulk: BulkDiscount
     var book: BookDiscount
-    var flat: FlatDiscount = {amountCent: 50}
+    var flat: FlatDiscount = FlatDiscount{amountCent: 50}
 
     var rules: [3] IDiscountRule = [cast(IDiscountRule, bulk), cast(IDiscountRule, book), cast(IDiscountRule, flat)]
 
     // 8 books at 1000c each: bulk=800, book=1200, flat=50 -> best=1200
-    var line: OrderLine = {kind: ProductKind.Book, quantity: 8, unitCent: 1000}
+    var line: OrderLine = OrderLine{kind: ProductKind.Book, quantity: 8, unitCent: 1000}
     Swag.assert(bestDiscount(Swag.makeSlice(&rules[0], 3), &line) == 1200)
 }
 
@@ -123,7 +123,7 @@ func bestDiscount(rules: [..] IDiscountRule, line: *OrderLine)->s32
 {
     var bulk: BulkDiscount
     var book: BookDiscount
-    var flat: FlatDiscount = {amountCent: 25}
+    var flat: FlatDiscount = FlatDiscount{amountCent: 25}
 
     var rules: [3] IDiscountRule = [cast(IDiscountRule, bulk), cast(IDiscountRule, book), cast(IDiscountRule, flat)]
 
@@ -152,7 +152,7 @@ func classifyRule(rule: IDiscountRule)->s32
 {
     var bulk: BulkDiscount
     var book: BookDiscount
-    var flat: FlatDiscount = {amountCent: 10}
+    var flat: FlatDiscount = FlatDiscount{amountCent: 10}
     Swag.assert(classifyRule(cast(IDiscountRule, bulk)) == 1)
     Swag.assert(classifyRule(cast(IDiscountRule, book)) == 2)
     Swag.assert(classifyRule(cast(IDiscountRule, flat)) == 3)

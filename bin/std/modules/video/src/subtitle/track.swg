@@ -216,7 +216,7 @@ private func cueTimeLine(line: string)->{startSeconds, endSeconds: f64} fail
     let end = try parseTimestamp(rest[0 until endAt])
     if end <= start do
         fail InvalidFormatError{"subtitle cue end does not follow its start"}
-    return {start, end}
+    return {startSeconds: start, endSeconds: end}
 }
 
 private func joinCueLines(result: *String, lines: const [..] string, first, last: u64)

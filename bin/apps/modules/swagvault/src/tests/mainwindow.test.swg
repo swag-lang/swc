@@ -156,7 +156,7 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
     Swag.assert(not window.mountedDrives.startupEnabled)
 
     window.mountSettings.path = "C:\\private\\unlisted"
-    window.startupVaults.add({"C:\\private\\startup", "mount-x", true, false})
+    window.startupVaults.add(StartupVault{"C:\\private\\startup", "mount-x", true, false})
     window.fileDlgState.currentFolder = "C:\\private\\browse-private"
     var state = saveMainWindowState(window)
     Swag.assert(not containsStateBytes(state.toSlice(), "unlisted"))
@@ -406,8 +406,8 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
 
-    window.mountedDrives.drives.add({null, "C:\\protected", "mount-x", "X:", true, false, true, 0, 0})
-    window.mountedDrives.drives.add({null, "C:\\open", "mount-y", "Y:", false, false, false, 0, 0})
+    window.mountedDrives.drives.add(MountedDrive{null, "C:\\protected", "mount-x", "X:", true, false, true, 0, 0})
+    window.mountedDrives.drives.add((null, "C:\\open", "mount-y", "Y:", false, false, false, 0, 0))
     window.mountedDrives.refresh()
     window.handleAutoUnmount(.SessionLock)
 
@@ -416,7 +416,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     Swag.assert(window.statusMessage == .AutoUnmounted)
 
     window.autoUnmount.onSessionLock = false
-    window.mountedDrives.drives.add({null, "C:\\second", "mount-z", "Z:", true, false, false, 0, 0})
+    window.mountedDrives.drives.add((null, "C:\\second", "mount-z", "Z:", true, false, false, 0, 0))
     window.handleAutoUnmount(.SessionLock)
     Swag.assert(window.mountedDrives.drives.count == 2)
 }
@@ -735,7 +735,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     {
         openAndDismiss(host, dialog)
         let form   = dialog.form
-        let needed = form.measure({form.position.width, 0}).preferred.y
+        let needed = form.measure(Math.Point{form.position.width, 0}).preferred.y
         if needed > form.position.height + 0.5
         {
             Console.println("form does not end inside its box: needs ", needed, ", box holds ", form.position.height)
@@ -793,8 +793,8 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(window.mountedDrives.selectedIndex() == Swag.U64.Max)
     Swag.assert(not window.mountedDrives.unmountButton.isEnabled())
 
-    window.mountedDrives.drives.add({null, "C:\\vaults\\one", "mount-x", "X:", true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
-    window.mountedDrives.drives.add({null, "C:\\vaults\\two", "mount-y", "Y:", false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
+    window.mountedDrives.drives.add(MountedDrive{null, "C:\\vaults\\one", "mount-x", "X:", true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
+    window.mountedDrives.drives.add((null, "C:\\vaults\\two", "mount-y", "Y:", false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024))
     window.mountedDrives.refresh()
 
     Swag.assert(window.mountedDrives.list.isLocallyVisible())
@@ -840,7 +840,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     window.privacyMode = false
     window.applyPrivacyControl()
 
-    window.mountedDrives.drives.add({null, "C:\\one", "mount-x", "X:", true, false, false, 0, 0})
+    window.mountedDrives.drives.add(MountedDrive{null, "C:\\one", "mount-x", "X:", true, false, false, 0, 0})
     window.mountedDrives.refresh()
 
     window.mountedDrives.list.setLineChecked(0, true)
@@ -852,7 +852,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     discard window.mountedDrives.detach(0)
     Swag.assert(window.startupVaults.count == 1)
 
-    window.mountedDrives.drives.add({null, "C:\\one", "mount-x", "X:", true, false, true, 0, 0})
+    window.mountedDrives.drives.add((null, "C:\\one", "mount-x", "X:", true, false, true, 0, 0))
     window.mountedDrives.refresh()
     window.mountedDrives.list.setLineChecked(0, false)
     Swag.assert(window.startupVaults.isEmpty())
@@ -1057,7 +1057,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 
     // The snapshot owns its mount destination; occupied host drives must not change the image.
     window.mountDestinations.clear()
-    window.mountDestinations.add({"D:", "D:"})
+    window.mountDestinations.add(MountDestination{"D:", "D:"})
     window.drive.clear()
     window.drive.addItem("D:")
     window.drive.setSelectedIndex(0, notify: false)
@@ -1077,7 +1077,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     let window = testSetupMainWindow(&host)
     defer host.shutdown()
     window.privacyMode = false
-    window.startupVaults.add({"C:\\vault.bin", "mount-x", true, false, true})
+    window.startupVaults.add(StartupVault{"C:\\vault.bin", "mount-x", true, false, true})
     var keyFiles: Array'String
     window.operation.hiddenAccess.setInputs("private hidden credentials", keyFiles.toSlice())
     window.protectHidden.setState(.Checked)
@@ -1111,7 +1111,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
                 window.showTab(cast(u32, index))
                 Testing.assertContentFits(window)
                 available = card.panel.position.height
-                tallest   = Math.max(tallest, card.panel.itf.measureContent({card.panel.position.width, 0}).y)
+                tallest   = Math.max(tallest, card.panel.itf.measureContent(Math.Point{card.panel.position.width, 0}).y)
                 Swag.assert(host.surface.position.height == height)
                 if not card.form.rows.isEmpty() do
                     Swag.assert(card.form.position.width == card.body.clientRect().width)

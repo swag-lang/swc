@@ -35,7 +35,7 @@ struct BitReader
 
 impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => {payload.buffer, payload.count * 8, 0}
+    func create(payload: const [..] u8)->BitReader => BitReader{payload.buffer, payload.count * 8, 0}
 
     // Reads `count` bits. Past the end every bit reads as zero, and `overran` says so.
     mtd read(count: u32)->u32

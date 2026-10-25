@@ -22,7 +22,7 @@ public impl Image
                 let factor = image.width > 1 ? x / cast(f32, (image.width - 1)) : 0
                 let first  = colorPixelValue(params.color0)
                 let second = colorPixelValue(params.color1)
-                value = {
+                value = PixelValue{
                     Math.lerp(first.r, second.r, factor),
                     Math.lerp(first.g, second.g, factor),
                     Math.lerp(first.b, second.b, factor),
@@ -89,7 +89,7 @@ public impl Image
                 let upper = PixelValue{
                     Math.lerp(topLeft.r, topRight.r, factor0), Math.lerp(topLeft.g, topRight.g, factor0),
                     Math.lerp(topLeft.b, topRight.b, factor0), Math.lerp(topLeft.a, topRight.a, factor0)}
-                value = {
+                value = PixelValue{
                     Math.lerp(lower.r, upper.r, factor1), Math.lerp(lower.g, upper.g, factor1),
                     Math.lerp(lower.b, upper.b, factor1), Math.lerp(lower.a, upper.a, factor1)}
             }

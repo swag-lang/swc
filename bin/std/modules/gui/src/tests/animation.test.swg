@@ -98,9 +98,9 @@ func linearSecond()->AnimationOptions
     var group = AnimationGroup.concurrent()
     group.addF32(target, AnimationChannel.from("test.scalar"), 0, 10, &animationSetF32, options)
     group.addColor(target, AnimationChannel.from("test.color"), Argb.Black, Argb.White, &animationSetColor, options)
-    group.addPoint(target, AnimationChannel.from("test.point"), {}, {10, 20}, &animationSetPoint, options)
-    group.addVector4(target, AnimationChannel.from("test.vector"), {}, {2, 4, 6, 8}, &animationSetVector, options)
-    group.addRectangle(target, AnimationChannel.from("test.rectangle"), {}, {10, 20, 30, 40}, &animationSetRectangle, options)
+    group.addPoint(target, AnimationChannel.from("test.point"), {}, Math.Point{10, 20}, &animationSetPoint, options)
+    group.addVector4(target, AnimationChannel.from("test.vector"), {}, Math.Vector4{2, 4, 6, 8}, &animationSetVector, options)
+    group.addRectangle(target, AnimationChannel.from("test.rectangle"), {}, Math.Rectangle{10, 20, 30, 40}, &animationSetRectangle, options)
     group.setCompletion(&animationCompleted)
     let handle = host.app.animator.start(#move group)
 
@@ -280,7 +280,7 @@ func linearSecond()->AnimationOptions
     let target  = Wnd.create'Wnd(&host.root)
     let channel = AnimationChannel.from("test.environment")
 
-    discard host.app.animator.animatePoint(target, channel, {}, {100, 50}, &animationSetPoint, linearSecond())
+    discard host.app.animator.animatePoint(target, channel, {}, Math.Point{100, 50}, &animationSetPoint, linearSecond())
     host.advanceAnimations(0.3)
     let before = AnimationTestPoint
     host.surface.setDpiScaleRaw(1.75)
@@ -467,10 +467,10 @@ func linearSecond()->AnimationOptions
     defer host.shutdown()
     host.setReducedMotion(false)
 
-    let target = Wnd.create'Wnd(&host.root, {40, 20, 100, 50})
+    let target = Wnd.create'Wnd(&host.root, Math.Rectangle{40, 20, 100, 50})
     Swag.assert(target.presentationRect() == Math.Rectangle{40, 20, 100, 50})
 
-    target.setPresentationScale({0.5, 0.5})
+    target.setPresentationScale(Math.Point{0.5, 0.5})
     Swag.assert(target.presentationRect() == Math.Rectangle{65, 32.5, 50, 25})
     Swag.assert(target.position == Math.Rectangle{40, 20, 100, 50})
 
@@ -478,7 +478,7 @@ func linearSecond()->AnimationOptions
     target.setPresentationPivot({})
     Swag.assert(target.presentationRect() == Math.Rectangle{40, 20, 50, 25})
 
-    target.setPresentationOffset({10, -4})
+    target.setPresentationOffset(Math.Point{10, -4})
     Swag.assert(target.presentationRect() == Math.Rectangle{50, 16, 50, 25})
 
     target.resetPresentation()
@@ -486,7 +486,7 @@ func linearSecond()->AnimationOptions
     Swag.assert(target.presentationScale == Math.Point{1, 1} and target.presentationPivot == Math.Point{0.5, 0.5})
 
     // The same state, driven through the scheduler.
-    discard host.app.animator.animateF32(target, AnimationChannel.from("test.scale"), 1, 2, func(wnd, value) { wnd.setPresentationScale({value, value}) }, linearSecond())
+    discard host.app.animator.animateF32(target, AnimationChannel.from("test.scale"), 1, 2, func(wnd, value) { wnd.setPresentationScale(Math.Point{value, value}) }, linearSecond())
     host.advanceAnimations(0.5)
     Swag.assert(target.presentationScale == Math.Point{1.5, 1.5})
     Swag.assert(target.presentationRect() == Math.Rectangle{15, 7.5, 150, 75})

@@ -428,7 +428,7 @@ impl Volume
         discard catch result.restore(selected.plain.toSlice()) { fail volumeError(.PasswordOrDamaged) }
 
         if result.file.protectedEnd do
-            try result.validateHiddenRegion({result.file.protectedFirst, result.file.protectedEnd - result.file.protectedFirst})
+            try result.validateHiddenRegion(FreeExtent{result.file.protectedFirst, result.file.protectedEnd - result.file.protectedFirst})
 
         // A shrink publishes its authenticated geometry before truncating the now-unused tail.
         // If the process stopped between those steps, the next writable open completes the
@@ -494,7 +494,7 @@ impl Volume
         {
             let size = extent.count * BlockRecordSize
             if size >= requestedSize and size > region.count do
-                region = {DataOffset + extent.first * BlockRecordSize, size}
+                region = FreeExtent{DataOffset + extent.first * BlockRecordSize, size}
         }
 
         if region.count < requestedSize do

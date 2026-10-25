@@ -310,7 +310,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     let padded: [8] u8 = ['V', '_', 'X', 0, 0, 0, 0, 0]
     var cursor         = Matroska.Cursor.open(padded[0 until 8])
-    let value          = expect cursor.readString({0, 0, 8, false})
+    let value          = expect cursor.readString(Matroska.Element{0, 0, 8, false})
     Swag.assert(value.toString() == "V_X")
     Swag.assert((value.toString()).count == 3)
 }
@@ -320,7 +320,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     let exact: [3] u8 = ['V', '_', 'X']
     var cursor        = Matroska.Cursor.open(exact[0 until 3])
-    let value         = expect cursor.readString({0, 0, 3, false})
+    let value         = expect cursor.readString(Matroska.Element{0, 0, 3, false})
     Swag.assert(value.toString() == "V_X")
 }
 

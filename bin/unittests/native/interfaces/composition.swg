@@ -35,7 +35,7 @@ impl IValue for Counter
 // Cast one struct to two different interfaces.
 #test
 {
-    var c: Counter = {label: "hits", count: 0}
+    var c: Counter = Counter{label: "hits", count: 0}
     var n = cast(IName, c)
     var v = cast(IValue, c)
 
@@ -62,7 +62,7 @@ func increment(h: *Holder)
 
 #test
 {
-    var c: Counter = {label: "held", count: 10}
+    var c: Counter = Counter{label: "held", count: 10}
     var h: Holder
     h.itf = cast(IValue, c)
     increment(&h)
@@ -90,8 +90,8 @@ impl IValue for Tripler
 
 #test
 {
-    var d:     Doubler    = {val: 5}
-    var t:     Tripler    = {val: 5}
+    var d:     Doubler    = Doubler{val: 5}
+    var t:     Tripler    = Tripler{val: 5}
     var items: [2] IValue = [cast(IValue, d), cast(IValue, t)]
 
     var sum = 0
@@ -104,9 +104,9 @@ impl IValue for Tripler
 // Mutation through interface array elements.
 #test
 {
-    var a: Counter = {label: "a", count: 1}
-    var b: Counter = {label: "b", count: 2}
-    var c: Counter = {label: "c", count: 3}
+    var a: Counter = Counter{label: "a", count: 1}
+    var b: Counter = Counter{label: "b", count: 2}
+    var c: Counter = Counter{label: "c", count: 3}
 
     var arr: [3] IValue = [cast(IValue, a), cast(IValue, b), cast(IValue, c)]
 
@@ -121,8 +121,8 @@ impl IValue for Tripler
 // Interface reassignment between different concrete types via Swag.kindOf.
 #test
 {
-    var d: Doubler = {val: 7}
-    var t: Tripler = {val: 7}
+    var d: Doubler = Doubler{val: 7}
+    var t: Tripler = Tripler{val: 7}
 
     var itf: IValue = cast(IValue, d)
     Swag.assert(itf.getValue() == 14)
@@ -144,9 +144,9 @@ func sumValues(items: [*] IValue, count: u32)->s32
 
 #test
 {
-    var d1: Doubler = {val: 3}
-    var d2: Doubler = {val: 7}
-    var t1: Tripler = {val: 2}
+    var d1: Doubler = Doubler{val: 3}
+    var d2: Doubler = Doubler{val: 7}
+    var t1: Tripler = Tripler{val: 2}
 
     var arr: [3] IValue = [cast(IValue, d1), cast(IValue, d2), cast(IValue, t1)]
 

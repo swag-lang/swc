@@ -53,7 +53,7 @@ func writePixel(image: *Image, sourceIndex: u64, pixel: Pixel)
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"QOI - Quite OK Image", ".qoi"}
+    mtd impl format()->ImageFormat => ImageFormat{"QOI - Quite OK Image", ".qoi"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

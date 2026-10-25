@@ -36,7 +36,7 @@ struct RenderCpu
         scissorRect: Math.Rectangle
 
         blendingMode: BlendingMode = Alpha
-        colorMask:    ColorMask    = {true, true, true, false}
+        colorMask:    ColorMask    = ColorMask{true, true, true, false}
 
         paint:         BrushBinding
         gradientStops: const [..] GradientStop?
@@ -424,7 +424,7 @@ private impl RenderCpu
 
         case .Gray8, .GrayAlpha8, .Gray16, .GrayAlpha16, .GrayF16, .GrayAlphaF16, .GrayF32,
              .GrayAlphaF32, .RGB16, .RGBA16, .RGBF16, .RGBAF16, .RGBF32, .RGBAF32:
-            writeLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode, {cast(f32, color.r) / 255.0, cast(f32, color.g) / 255.0, cast(f32, color.b) / 255.0, cast(f32, color.a) / 255.0})
+            writeLogicalPixelValue(pixel, image.pixelFormat, image.alphaMode, PixelValue{cast(f32, color.r) / 255.0, cast(f32, color.g) / 255.0, cast(f32, color.b) / 255.0, cast(f32, color.a) / 255.0})
 
         case .BGRA8:
             pixel[0] = color.b
@@ -1088,22 +1088,22 @@ private impl RenderCpu
         if atlas.bytesPerPixel == 1
         {
             let value = cast(f32, ptr[0]) / 255.0
-            return {value, value, value, value}
+            return Vector4{value, value, value, value}
         }
 
-        return {cast(f32, ptr[0]) / 255.0,
-                cast(f32, ptr[1]) / 255.0,
-                cast(f32, ptr[2]) / 255.0,
-                cast(f32, ptr[3]) / 255.0}
+        return Vector4{cast(f32, ptr[0]) / 255.0,
+                       cast(f32, ptr[1]) / 255.0,
+                       cast(f32, ptr[2]) / 255.0,
+                       cast(f32, ptr[3]) / 255.0}
     }
 
     // Keep the interpolation rounded before quantizing font coverage and effect colors.
     func lerpFontSample(src, dst: Vector4, factor: f32)->Vector4
     {
-        return {Math.mulAdd(factor, dst.x - src.x, src.x),
-                Math.mulAdd(factor, dst.y - src.y, src.y),
-                Math.mulAdd(factor, dst.z - src.z, src.z),
-                Math.mulAdd(factor, dst.w - src.w, src.w)}
+        return Vector4{Math.mulAdd(factor, dst.x - src.x, src.x),
+                       Math.mulAdd(factor, dst.y - src.y, src.y),
+                       Math.mulAdd(factor, dst.z - src.z, src.z),
+                       Math.mulAdd(factor, dst.w - src.w, src.w)}
     }
 
     func sampleFontAtlas(atlas: const *GlyphAtlas, uv: Vector2, linear: bool)->Vector4
@@ -1136,10 +1136,10 @@ private impl RenderCpu
                 let yy  = Math.clamp(y, 0, height - 1)
                 let row = height - yy - 1
                 let ptr = atlas.data.storage() + cast(u64, row) * atlas.width + cast(u64, xx) * atlas.bytesPerPixel
-                return {cast(f32, ptr[0]) / 255.0,
-                        cast(f32, ptr[1]) / 255.0,
-                        cast(f32, ptr[2]) / 255.0,
-                        cast(f32, ptr[3]) / 255.0}
+                return Vector4{cast(f32, ptr[0]) / 255.0,
+                               cast(f32, ptr[1]) / 255.0,
+                               cast(f32, ptr[2]) / 255.0,
+                               cast(f32, ptr[3]) / 255.0}
             }
 
             let f00 = fetch(atlas, width, height, x0, y0)
@@ -2043,7 +2043,7 @@ private impl RenderCpu
     mtd clipBounds(image: *Image)->PixelBounds
     {
         if not .scissorOn do
-            return {0, 0, image.width - 1, image.height - 1}
+            return PixelBounds{0, 0, image.width - 1, image.height - 1}
 
         var result: retval
         result.minX = Math.clamp(cast(s32, .scissorRect.x), 0, image.width - 1)
@@ -2204,7 +2204,7 @@ private impl RenderCpu
         .modelTransform = Transform2.Identity
         .scissorOn      = false
         .blendingMode   = .Alpha
-        .colorMask      = {true, true, true, false}
+        .colorMask      = ColorMask{true, true, true, false}
         .paintOn        = false
         .program        = CpuProgram_Default
         .stencilOn      = false
@@ -2470,8 +2470,8 @@ impl RenderCpu
     {
         let image = .currentImage()
         if image do
-            return {image.width, image.height}
-        return {0, 0}
+            return {width: image.width, height: image.height}
+        return {width: 0, height: 0}
     }
 
     // Restricts following writes to a surface-space rectangle.

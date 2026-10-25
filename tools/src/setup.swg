@@ -136,7 +136,7 @@ impl IEnvironmentStore for WindowsEnvironmentStore
             let units = cast(u64, bytes) / #sizeof(u16)
             data[units] = 0
             let length = Utf16.lengthUntilZero(data.toSlice()[0 until units])
-            return {Utf8.fromUtf16(data.toSlice()[0 until length]), kind == REG_EXPAND_SZ}
+            return PathValue{Utf8.fromUtf16(data.toSlice()[0 until length]), kind == REG_EXPAND_SZ}
         }
 
         fail Swag.SystemError{"user PATH kept changing while setup read it"}

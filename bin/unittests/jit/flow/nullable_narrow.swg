@@ -174,7 +174,7 @@ func narrowKillPair(p, q, nextP, nextQ: *NarrowNode?)->s32
     var second = q
     if first and second
     {
-        {first, second} = {nextP, nextQ}
+        {nextP: first, nextQ: second} = {nextP, nextQ}
         return (first?.value orelse -10) + (second?.value orelse -100)
     }
     return -1000
@@ -399,8 +399,8 @@ func lendOwner(owner: *NarrowOwner) { discard owner }
 // the `if`. The false branch never lends it, so the proof made before the `if` still holds in it.
 func narrowElseKeepsProof(lend: bool)->s32
 {
-    var node:  NarrowNode  = {value: 7}
-    var owner: NarrowOwner = {node: &node}
+    var node:  NarrowNode  = NarrowNode{value: 7}
+    var owner: NarrowOwner = NarrowOwner{node: &node}
     if not owner.node do
         return 0
 

@@ -57,7 +57,7 @@ struct Bundle
 // One level below the typed literal, with fields left to their defaults.
 #test
 {
-    let artifact = Artifact{request: {source: "a", stage: "b"}}
+    let artifact = Artifact{request: Request{source: "a", stage: "b"}}
     Swag.assert(artifact.request.source.value == "a" and artifact.request.stage.value == "b")
     Swag.assert(artifact.request.level == 0 and artifact.count == 0)
     Swag.assert(artifact.request.options.kind == .Native)
@@ -66,11 +66,11 @@ struct Bundle
 // Two levels below the typed literal.
 #test
 {
-    let artifact = Artifact{request: {source: "a", stage: "b", level: 1, options: {level: 2}}, count: 3}
+    let artifact = Artifact{request: Request{source: "a", stage: "b", level: 1, options: Options{level: 2}}, count: 3}
     Swag.assert(artifact.request.source.value == "a" and artifact.request.stage.value == "b")
     Swag.assert(artifact.request.level == 1 and artifact.request.options.level == 2 and artifact.count == 3)
 
-    let options = Artifact{request: {source: "s", options: {scale: 1.5, kind: .Microcode, name: "n"}}}
+    let options = Artifact{request: Request{source: "s", options: Options{scale: 1.5, kind: .Microcode, name: "n"}}}
     Swag.assert(options.request.options.scale == 1.5 and options.request.options.kind == .Microcode)
     Swag.assert(options.request.options.name.value == "n" and options.request.source.value == "s")
 }
@@ -78,12 +78,12 @@ struct Bundle
 // Three levels below the typed literal, and the same literal without a type prefix.
 #test
 {
-    let bundle = Bundle{artifact: {request: {stage: "pre", options: {level: 4, scale: 0.5, kind: .Microcode, name: "deep"}}}, tag: "t"}
+    let bundle = Bundle{artifact: Artifact{request: Request{stage: "pre", options: Options{level: 4, scale: 0.5, kind: .Microcode, name: "deep"}}}, tag: "t"}
     Swag.assert(bundle.tag.value == "t" and bundle.artifact.request.stage.value == "pre")
     Swag.assert(bundle.artifact.request.options.level == 4 and bundle.artifact.request.options.scale == 0.5)
     Swag.assert(bundle.artifact.request.options.kind == .Microcode and bundle.artifact.request.options.name.value == "deep")
 
-    let untyped: Bundle = {artifact: {request: {source: "u", options: {level: 5}}}}
+    let untyped: Bundle = Bundle{artifact: Artifact{request: Request{source: "u", options: Options{level: 5}}}}
     Swag.assert(untyped.artifact.request.source.value == "u" and untyped.artifact.request.options.level == 5)
 }
 
@@ -91,7 +91,7 @@ struct Bundle
 #test
 {
     let level: u32 = 7
-    let artifact   = Artifact{request: {source: "a", options: {level: level, name: "r"}}}
+    let artifact   = Artifact{request: Request{source: "a", options: Options{level: level, name: "r"}}}
     Swag.assert(artifact.request.options.level == 7 and artifact.request.options.name.value == "r")
     Swag.assert(artifact.request.source.value == "a")
 }

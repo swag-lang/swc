@@ -173,8 +173,8 @@ struct Bounds
 {
     using mode: union(ShapeKind)
     {
-        case .Circle: signed:   {min, max: s64} = {-10, 10}
-        case .Rect:   unsigned: {min, max: u64} = {0, 100}
+        case .Circle: signed:   {min, max: s64} = {min: -10, max: 10}
+        case .Rect:   unsigned: {min, max: u64} = {min: 0, max: 100}
     } = .Rect
 }
 

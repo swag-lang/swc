@@ -21,7 +21,7 @@ private struct BitReader
 
 private impl BitReader
 {
-    func create(data: const [*] u8, length: u64)->BitReader => {data, cast(s32, length), 0, false}
+    func create(data: const [*] u8, length: u64)->BitReader => BitReader{data, cast(s32, length), 0, false}
 
     mtd left()->s32 => .length * 8 - .bitPos
 

@@ -109,7 +109,7 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
 
 #test
 {
-    var value: PartialUndefinedDefaults = {}
+    var value: PartialUndefinedDefaults = PartialUndefinedDefaults{}
     value.required = 31
 
     Swag.assert(value.required == 31)
@@ -134,13 +134,13 @@ const ALL_UNDEFINED_CONST:     AllUndefinedDefaults
 #test
 {
     let descriptors: const [..] PartialSliceDescriptor = [
-        {"one",   runtimeDescriptorLabels().one,   .Value},
-        {"two",   runtimeDescriptorLabels().two,   .Value},
-        {"three", runtimeDescriptorLabels().three, .Value},
-        {"four",  runtimeDescriptorLabels().four,  .Value},
-        {"five",  runtimeDescriptorLabels().five,  .Value},
-        {"six",   runtimeDescriptorLabels().six,   .Value},
-        {"seven", runtimeDescriptorLabels().seven, .Value},
-        {"eight", runtimeDescriptorLabels().eight, .Value}]
+        PartialSliceDescriptor{"one", runtimeDescriptorLabels().one, .Value},
+        PartialSliceDescriptor{"two", runtimeDescriptorLabels().two, .Value},
+        PartialSliceDescriptor{"three", runtimeDescriptorLabels().three, .Value},
+        PartialSliceDescriptor{"four", runtimeDescriptorLabels().four, .Value},
+        PartialSliceDescriptor{"five", runtimeDescriptorLabels().five, .Value},
+        PartialSliceDescriptor{"six", runtimeDescriptorLabels().six, .Value},
+        PartialSliceDescriptor{"seven", runtimeDescriptorLabels().seven, .Value},
+        PartialSliceDescriptor{"eight", runtimeDescriptorLabels().eight, .Value}]
     Swag.assert(countHiddenDescriptors(descriptors) == 0)
 }

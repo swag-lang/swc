@@ -26,26 +26,26 @@ using Swag, Core
     host.setup(420, 220)
     defer host.shutdown()
 
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 200})
     var lexer: RichEditLexerSwag
     ed.setLexer(&lexer)
     ed.setText("Swag.assert(value)\nSwag.vecSplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)\n#[Swag.Inline]")
     ed.lexAll()
 
-    Swag.assert(ed.runeAt({0, 0}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({0, 4}).style == RichEditLexerSwag.Style.Default)
-    Swag.assert(ed.runeAt({0, 5}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(ed.runeAt({1, 0}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({1, 5}).style == RichEditLexerSwag.Style.Builtin)
-    Swag.assert(ed.runeAt({2, 0}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({2, 5}).style == RichEditLexerSwag.Style.Class)
-    Swag.assert(ed.runeAt({3, 0}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({3, 5}).style == RichEditLexerSwag.Style.Function)
-    Swag.assert(ed.runeAt({4, 0}).style == RichEditLexerSwag.Style.Class)
-    Swag.assert(ed.runeAt({5, 0}).style == RichEditLexerSwag.Style.Preprocessor)
-    Swag.assert(ed.runeAt({5, 2}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(ed.runeAt({5, 6}).style == RichEditLexerSwag.Style.Default)
-    Swag.assert(ed.runeAt({5, 7}).style == RichEditLexerSwag.Style.Preprocessor)
+    Swag.assert(ed.runeAt(RichEditCursor{0, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt(RichEditCursor{0, 4}).style == RichEditLexerSwag.Style.Default)
+    Swag.assert(ed.runeAt(RichEditCursor{0, 5}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.assert(ed.runeAt(RichEditCursor{1, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt(RichEditCursor{1, 5}).style == RichEditLexerSwag.Style.Builtin)
+    Swag.assert(ed.runeAt(RichEditCursor{2, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt(RichEditCursor{2, 5}).style == RichEditLexerSwag.Style.Class)
+    Swag.assert(ed.runeAt(RichEditCursor{3, 0}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt(RichEditCursor{3, 5}).style == RichEditLexerSwag.Style.Function)
+    Swag.assert(ed.runeAt(RichEditCursor{4, 0}).style == RichEditLexerSwag.Style.Class)
+    Swag.assert(ed.runeAt(RichEditCursor{5, 0}).style == RichEditLexerSwag.Style.Preprocessor)
+    Swag.assert(ed.runeAt(RichEditCursor{5, 2}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(ed.runeAt(RichEditCursor{5, 6}).style == RichEditLexerSwag.Style.Default)
+    Swag.assert(ed.runeAt(RichEditCursor{5, 7}).style == RichEditLexerSwag.Style.Preprocessor)
 }
 
 // The default shortcut table contains one command per key/modifier pair.
@@ -54,7 +54,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     defer host.shutdown()
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Shift) == .SelectRuneDown)
     Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Control) == .ScrollLineDown)
 
@@ -79,7 +79,7 @@ using Swag, Core
     defer host.shutdown()
 
     let dlg = Dialog.create(&host.surface, 320, 230, title: "Edit")
-    let ed  = RichEditCtrl.create(dlg.view(), {16, 16, 280, 120})
+    let ed  = RichEditCtrl.create(dlg.view(), Math.Rectangle{16, 16, 280, 120})
     dlg.addButton("Ok", Dialog.BtnOk, true)
     dlg.addButton("Cancel", Dialog.BtnCancel)
     dlg.applyLayout()
@@ -112,7 +112,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     defer host.shutdown()
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     ed.setText("Hello")
     Swag.assert(ed.text() == "Hello")
 
@@ -129,7 +129,7 @@ using Swag, Core
     host.setup(320, 120)
     defer host.shutdown()
 
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 100})
     var notified: bool
     ed.sigScrollPositionChanged += func|&notified|(_, _, newPosition)
     {
@@ -154,7 +154,7 @@ using Swag, Core
     host.setup(320, 120)
     defer host.shutdown()
 
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 100})
     for 20 do
         ed.addText("one line\n")
     host.settleAnimations(ed)
@@ -162,7 +162,7 @@ using Swag, Core
     let loadedHeight = ed.loadedDocumentHeight()
     Swag.assert(loadedHeight > 0)
     ed.setEstimatedDocumentHeight(loadedHeight * 4)
-    ed.setScrollPosition({0, loadedHeight * 2})
+    ed.setScrollPosition(Math.Point{0, loadedHeight * 2})
     let position = ed.scrollPosition()
     Swag.assert(position.y > loadedHeight)
 
@@ -185,7 +185,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     defer host.shutdown()
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     ed.setText("Selectable")
     ed.selectAll()
     Swag.assert(ed.selectedText() == "Selectable")
@@ -197,7 +197,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     defer host.shutdown()
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     ed.setText("abc")
 
     // An undoable edit is bracketed by pushUndo()/popUndo().
@@ -220,22 +220,22 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     defer host.shutdown()
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     ed.setText("First line")
 
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxSelectAll)
-    ed.showContextMenu({60, 60})
+    ed.showContextMenu(Math.Point{60, 60})
     host.pump()
     Swag.assert(ed.selectedText() == "First line")
 
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCopy)
-    ed.showContextMenu({60, 60})
+    ed.showContextMenu(Math.Point{60, 60})
     host.pump()
     Swag.assert(Clipboard.getString() == "First line")
 
     // Cut through the menu edits the document, which a read-only editor must refuse to offer.
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCut)
-    ed.showContextMenu({60, 60})
+    ed.showContextMenu(Math.Point{60, 60})
     host.pump()
     Swag.assert(ed.text() == "")
 
@@ -243,7 +243,7 @@ using Swag, Core
     ed.setFlags(.ReadOnly)
     ed.selectAll()
     host.clickPopupMenuItemWhenShown(RichEditCtrl.CtxCopy)
-    ed.showContextMenu({60, 60})
+    ed.showContextMenu(Math.Point{60, 60})
     host.pump()
     Swag.assert(Clipboard.getString() == "Frozen")
     Swag.assert(ed.text() == "Frozen")
@@ -255,7 +255,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(360, 220)
     defer host.shutdown()
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 340, 200})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 340, 200})
     ed.marginLeft  = 12
     ed.marginRight = 12
     ed.setFlags(.ReadOnly | .WordWrap)
@@ -272,7 +272,7 @@ using Swag, Core
     let right = ed.scrollWnd.paddedClientRect().width - ed.scrollWnd.paddingZ - ed.marginRight
     for line, index in ed.lines
     {
-        let position = ed.cursorDisplayPosition({index, line!.length()})
+        let position = ed.cursorDisplayPosition(RichEditCursor{index, line!.length()})
         Swag.assert(position.x <= right + 1)
     }
 
@@ -293,9 +293,9 @@ using Swag, Core
     host.setup(420, 220)
     defer host.shutdown()
 
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 200})
     ed.clear()
-    let cursor = ed.cursorAt({20, 20})
+    let cursor = ed.cursorAt(Math.Point{20, 20})
     Swag.assert(cursor.lineIndex == 0 and cursor.charPosInLine == 0)
 }
 
@@ -322,7 +322,7 @@ impl IRichEditLexer for CountingLexer
     host.setup(420, 260)
     defer host.shutdown()
 
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 240})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 240})
     var lexer: CountingLexer
     ed.setLexer(&lexer)
 
@@ -335,7 +335,7 @@ impl IRichEditLexer for CountingLexer
     Swag.assert(lexer.lexed > 0, "the first paint lexes the document it was given")
 
     lexer.lexed = 0
-    ed.setPosition({0, 0, 300, 240})
+    ed.setPosition(Math.Rectangle{0, 0, 300, 240})
     host.root.applyLayout()
     discard host.render(ed)
     Swag.assert(lexer.lexed == 0, "a resize must not lex a single line")
@@ -350,7 +350,7 @@ impl IRichEditLexer for CountingLexer
     host.setup(420, 260)
     defer host.shutdown()
 
-    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 240})
+    let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 240})
     ed.setFlags(.WordWrap)
 
     var text: Core.String
@@ -364,7 +364,7 @@ impl IRichEditLexer for CountingLexer
     Swag.assert(wrapped > 1)
 
     host.surface.setSizing(true)
-    ed.setPosition({0, 0, 200, 240})
+    ed.setPosition(Math.Rectangle{0, 0, 200, 240})
     host.root.applyLayout()
     discard host.render(ed)
     Swag.assert(ed.lines.count == wrapped, "a live border drag must not reflow the document")

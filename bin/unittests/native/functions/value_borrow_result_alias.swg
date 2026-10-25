@@ -6,13 +6,13 @@ struct Complex { x, y: f64 }
 #[Swag.NoInline]
 func multiply(left: Complex, right: Complex)->Complex
 {
-    return {left.x * right.x - left.y * right.y,
-            left.x * right.y + left.y * right.x}
+    return Complex{left.x * right.x - left.y * right.y,
+                   left.x * right.y + left.y * right.x}
 }
 
 #test
 {
-    let imaginary: Complex = {0, 1}
+    let imaginary: Complex = Complex{0, 1}
     var value = imaginary
     value = multiply(value, value)
     Swag.assert(value.x == -1 and value.y == 0)
@@ -30,16 +30,16 @@ struct Matrix { a, b, c, d: s64 }
 #[Swag.NoInline]
 func product(left: Matrix, right: Matrix)->Matrix
 {
-    return {left.a * right.a + left.b * right.c,
-            left.a * right.b + left.b * right.d,
-            left.c * right.a + left.d * right.c,
-            left.c * right.b + left.d * right.d}
+    return Matrix{left.a * right.a + left.b * right.c,
+                  left.a * right.b + left.b * right.d,
+                  left.c * right.a + left.d * right.c,
+                  left.c * right.b + left.d * right.d}
 }
 
 #test
 {
-    let first:  Matrix = {1, 2, 3, 4}
-    let second: Matrix = {5, 6, 7, 8}
+    let first:  Matrix = Matrix{1, 2, 3, 4}
+    let second: Matrix = Matrix{5, 6, 7, 8}
     let expected       = product(product(first, second), first)
     var value          = first
     value = product(value, second)

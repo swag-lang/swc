@@ -115,15 +115,15 @@ func expectRect(actual, expected: Math.Rectangle)
     const Source = Math.Rectangle{10, 20, 30, 40}
 
     expectRect(Math.Transform2.Identity.transformBounds(Source), Source)
-    expectRect(Math.Transform2.createTranslation(5, -7).transformBounds(Source), {15, 13, 30, 40})
-    expectRect(Math.Transform2.createScale(2, 3, 0, 0).transformBounds(Source), {20, 60, 60, 120})
+    expectRect(Math.Transform2.createTranslation(5, -7).transformBounds(Source), Math.Rectangle{15, 13, 30, 40})
+    expectRect(Math.Transform2.createScale(2, 3, 0, 0).transformBounds(Source), Math.Rectangle{20, 60, 60, 120})
 
     // A negative scale keeps the rectangle positive: the corners are ordered again.
-    expectRect(Math.Transform2.createScale(-1, 1, 0, 0).transformBounds(Source), {-40, 20, 30, 40})
+    expectRect(Math.Transform2.createScale(-1, 1, 0, 0).transformBounds(Source), Math.Rectangle{-40, 20, 30, 40})
 
     // A quarter turn about the origin swaps the extents.
     let quarter = Math.Transform2.createRotation(Math.ConstF32.PiBy2, 0, 0)
-    expectRect(quarter.transformBounds(Source), {-60, 10, 40, 30})
+    expectRect(quarter.transformBounds(Source), Math.Rectangle{-60, 10, 40, 30})
 }
 
 // The inverse undoes a general affine transform, and a singular one answers the identity.

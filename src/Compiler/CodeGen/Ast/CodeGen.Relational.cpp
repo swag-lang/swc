@@ -9,6 +9,7 @@
 #include "Compiler/CodeGen/Core/CodeGenCompareHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenIntegerConversion.h"
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
+#include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
@@ -412,16 +413,19 @@ namespace
         enum class Kind : uint8_t
         {
             Bytes,   // 'size' bytes that must be identical
+            Float,   // one floating-point field, with ordered numeric equality
             Content, // a view of 'size'-wide elements, compared through '__sliceCmp'
             SpecOp,  // a struct, compared through the 'opEquals' it owns
+            Fields,  // corresponding record fields at independent offsets
             Array,   // 'count' elements 'size' bytes apart, each compared through 'elemParts'
         };
 
-        Kind            kind     = Kind::Bytes;
-        uint64_t        offset   = 0;
-        uint64_t        size     = 0;
-        uint64_t        count    = 0;
-        SymbolFunction* equalsFn = nullptr;
+        Kind            kind        = Kind::Bytes;
+        uint64_t        offset      = 0;
+        uint64_t        rightOffset = 0;
+        uint64_t        size        = 0;
+        uint64_t        count       = 0;
+        SymbolFunction* equalsFn    = nullptr;
 
         std::vector<ComparePart> elemParts;
     };
@@ -456,6 +460,12 @@ namespace
         const TypeInfo& type = declaredType.unwrapAliasEnumTypeOrSelf(ctx);
         const uint64_t  size = type.sizeOf(ctx);
 
+        if (type.isFloat())
+        {
+            out.push_back({.kind = ComparePart::Kind::Float, .offset = base, .size = size});
+            return;
+        }
+
         if (type.isString())
         {
             out.push_back({.kind = ComparePart::Kind::Content, .offset = base, .size = 1});
@@ -489,6 +499,17 @@ namespace
                     appendCompareParts(codeGen, out, ctx.typeMgr().get(field->typeRef()), base + field->offset());
             }
 
+            return;
+        }
+
+        if (type.isAggregateStruct())
+        {
+            CodeGenStructHelpers::StructLikeFieldLayoutCursor cursor;
+            for (size_t i = 0; i < type.payloadAggregate().types.size(); ++i)
+            {
+                const auto layout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, cursor, type, i);
+                appendCompareParts(codeGen, out, ctx.typeMgr().get(layout.typeRef), base + layout.offset);
+            }
             return;
         }
 
@@ -537,6 +558,32 @@ namespace
         }
 
         appendCompareBytes(out, base, size);
+    }
+
+    void appendRecordOrTupleCompareParts(CodeGen& codeGen, SmallVector<ComparePart>& out, TypeRef leftTypeRef, TypeRef rightTypeRef)
+    {
+        if (leftTypeRef == rightTypeRef)
+        {
+            appendCompareParts(codeGen, out, codeGen.typeMgr().get(leftTypeRef), 0);
+            return;
+        }
+        SmallVector<SemaHelpers::RecordOrTupleField> leftFields;
+        SmallVector<SemaHelpers::RecordOrTupleField> rightFields;
+        const bool                                   leftRecord  = SemaHelpers::collectRecordOrTupleFields(codeGen.ctx(), leftFields, leftTypeRef);
+        const bool                                   rightRecord = SemaHelpers::collectRecordOrTupleFields(codeGen.ctx(), rightFields, rightTypeRef);
+        SWC_ASSERT(leftRecord && rightRecord);
+        for (size_t i = 0; i < leftFields.size(); ++i)
+        {
+            const auto&              leftField  = leftFields[i];
+            const auto&              rightField = leftField.nameRef.isValid() ? *std::ranges::find(rightFields, leftField.nameRef, &SemaHelpers::RecordOrTupleField::nameRef) : rightFields[i];
+            SmallVector<ComparePart> fieldParts;
+            appendRecordOrTupleCompareParts(codeGen, fieldParts, leftField.typeRef, rightField.typeRef);
+            ComparePart& part = out.emplace_back();
+            part.kind         = ComparePart::Kind::Fields;
+            part.offset       = leftField.offset;
+            part.rightOffset  = rightField.offset;
+            part.elemParts.assign(std::make_move_iterator(fieldParts.begin()), std::make_move_iterator(fieldParts.end()));
+        }
     }
 
     // Packed equality plus a move-mask reduces sixteen byte results to one
@@ -748,6 +795,31 @@ namespace
     {
         switch (part.kind)
         {
+            case ComparePart::Kind::Fields:
+            {
+                CodeGenNodePayload left  = leftPayload;
+                CodeGenNodePayload right = rightPayload;
+                left.reg                 = codeGen.nextVirtualIntRegister();
+                right.reg                = codeGen.nextVirtualIntRegister();
+                codeGen.builder().emitLoadAddressRegMem(left.reg, leftPayload.reg, part.offset, MicroOpBits::B64);
+                codeGen.builder().emitLoadAddressRegMem(right.reg, rightPayload.reg, part.rightOffset, MicroOpBits::B64);
+                for (const ComparePart& fieldPart : part.elemParts)
+                    SWC_RESULT(emitComparePart(codeGen, left, right, fieldPart, notEqualLabel));
+                return Result::Continue;
+            }
+            case ComparePart::Kind::Float:
+            {
+                MicroBuilder&     builder = codeGen.builder();
+                const MicroOpBits bits    = CodeGenTypeHelpers::bitsFromStorageSize(part.size);
+                const MicroReg    left    = codeGen.nextVirtualFloatRegister();
+                const MicroReg    right   = codeGen.nextVirtualFloatRegister();
+                builder.emitLoadRegMem(left, leftPayload.reg, part.offset, bits);
+                builder.emitLoadRegMem(right, rightPayload.reg, part.offset, bits);
+                builder.emitCmpRegReg(left, right, bits);
+                builder.emitJumpToLabel(MicroCond::NotEqual, MicroOpBits::B32, notEqualLabel);
+                builder.emitJumpToLabel(MicroCond::Parity, MicroOpBits::B32, notEqualLabel);
+                return Result::Continue;
+            }
             case ComparePart::Kind::Content:
                 return emitCompareContentPart(codeGen, leftPayload, rightPayload, part, notEqualLabel);
             case ComparePart::Kind::SpecOp:
@@ -835,14 +907,32 @@ namespace
             (SemaHelpers::isByValueAggregateType(compareType) || compareType.isInterface()))
         {
             SmallVector<ComparePart> parts;
-            appendCompareParts(codeGen, parts, compareType, 0);
+            if (leftCompareTypeRef != rightCompareTypeRef && SemaHelpers::sameRecordOrTupleShape(codeGen.ctx(), leftCompareTypeRef, rightCompareTypeRef))
+                appendRecordOrTupleCompareParts(codeGen, parts, leftCompareTypeRef, rightCompareTypeRef);
+            else
+                appendCompareParts(codeGen, parts, compareType, 0);
 
             const bool isWiderThanRegister = compareType.sizeOf(codeGen.ctx()) > sizeof(uint64_t);
-            if (isWiderThanRegister || hasOwnAnswerPart(parts.span()))
+            const bool hasPadding          = parts.size() != 1 || parts.front().offset != 0 || parts.front().size != compareType.sizeOf(codeGen.ctx());
+            if (isWiderThanRegister || hasOwnAnswerPart(parts.span()) || hasPadding)
             {
-                // Wide values are memory-backed. Narrow values only reach this
-                // path for a member with custom equality, accessed through a place.
-                SWC_ASSERT(isWiderThanRegister || (leftOperandPayload.isAddress() && rightOperandPayload.isAddress()));
+                auto materializeAddress = [&](CodeGenNodePayload& payload, AstNodeRef operandRef, TypeRef operandTypeRef) {
+                    if (payload.isAddress())
+                        return;
+                    const uint64_t size = codeGen.typeMgr().get(operandTypeRef).sizeOf(codeGen.ctx());
+                    // Wide ABI values already carry an address, including typed null constants.
+                    if (size > sizeof(uint64_t) || size == 0)
+                    {
+                        payload.setIsAddress();
+                        return;
+                    }
+                    const MicroReg address = codeGen.runtimeStorageAddressReg(operandRef);
+                    codeGen.builder().emitLoadMemReg(address, 0, payload.reg, CodeGenTypeHelpers::bitsFromStorageSize(size));
+                    payload.reg = address;
+                    payload.setIsAddress();
+                };
+                materializeAddress(leftOperandPayload, node.nodeLeftRef, leftOperandTypeRef);
+                materializeAddress(rightOperandPayload, node.nodeRightRef, rightOperandTypeRef);
                 return emitAggregateEqualsBool(codeGen, resultTypeRef, tokId, leftOperandPayload, rightOperandPayload, parts.span());
             }
         }

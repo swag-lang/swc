@@ -499,13 +499,13 @@ func drawScene(painter: *Pixel.Painter)
     painter.setParams(.Antialiased)
     drawHeader(painter)
 
-    drawGdiGrid(painter, {Margin, 108, W - Margin * 2, 246})
+    drawGdiGrid(painter, Math.Rectangle{Margin, 108, W - Margin * 2, 246})
     drawSampleGrid(painter,
-                   {Margin, 374, W - Margin * 2, 246},
+                   Math.Rectangle{Margin, 374, W - Margin * 2, 246},
                    "Pixel supersampled path-stroke outline",
                    .PathStroke)
     drawSampleGrid(painter,
-                   {Margin, 640, W - Margin * 2, 246},
+                   Math.Rectangle{Margin, 640, W - Margin * 2, 246},
                    "Legacy offset-fill outline",
                    .OffsetFill)
 }

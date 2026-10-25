@@ -423,7 +423,7 @@ impl HevcStream
                 continue
             }
 
-            .pending.add({decoded.frame, decoded.rank})
+            .pending.add(PendingFrame{decoded.frame, decoded.rank})
             if .pending.count > MaxReorderDepth do
                 fail InvalidFormatError{"H.265 stream reorders more pictures than the buffer holds"}
         }
@@ -608,7 +608,7 @@ impl HevcStream
             fail InvalidFormatError{"H.265 access unit carries no picture"}
         .laneStates[threaded.lane] = .Free
         try .fillFrameThreads(source)
-        return {frame, threaded.rank}
+        return DecodedHevcSample{frame, threaded.rank}
     }
 
     private mtd codedUnitCount(data: const [..] u8)->u32 fail

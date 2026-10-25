@@ -40,7 +40,7 @@ struct GradientStop
 // ## Example
 //
 // ```swag
-// var brush = Brush.createLinearGradient({0, 0}, {160, 0}, Color.fromArgb(Argb.DodgerBlue), Color.fromArgb(Argb.DeepPink))
+// var brush = Brush.createLinearGradient(Math.Vector2{0, 0}, Math.Vector2{160, 0}, Color.fromArgb(Argb.DodgerBlue), Color.fromArgb(Argb.DeepPink))
 // brush.addGradientStop(0.5, Color.fromArgb(Argb.White))
 // ```
 struct Brush

@@ -128,10 +128,10 @@ func buildRestockPlan(items: const [..] InventoryItem)->RestockPlan
 {
     const inventory: [4] InventoryItem =
         [
-        {sku: "router",      inStock: 2,  targetStock: 12,  unitCostCents: 7500,  leadTimeDays: 3,  essential: true},
-        {sku: "switch-24p",  inStock: 1,  targetStock: 6,   unitCostCents: 18500, leadTimeDays: 10, essential: true},
-        {sku: "patch-cable", inStock: 40, targetStock: 120, unitCostCents: 300,   leadTimeDays: 2,  essential: false},
-        {sku: "label-pack",  inStock: 25, targetStock: 25,  unitCostCents: 900,   leadTimeDays: 1,  essential: false}
+        InventoryItem{sku: "router", inStock: 2, targetStock: 12, unitCostCents: 7500, leadTimeDays: 3, essential: true},
+        InventoryItem{sku: "switch-24p", inStock: 1, targetStock: 6, unitCostCents: 18500, leadTimeDays: 10, essential: true},
+        InventoryItem{sku: "patch-cable", inStock: 40, targetStock: 120, unitCostCents: 300, leadTimeDays: 2, essential: false},
+        InventoryItem{sku: "label-pack", inStock: 25, targetStock: 25, unitCostCents: 900, leadTimeDays: 1, essential: false}
         ]
 
     Swag.assert(inventory.count == 4)

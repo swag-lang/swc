@@ -65,7 +65,7 @@ func semaTest002()
     var holders: [2] Holder
     holders[0].cb = func(value: s32)->s32 { return value }
 
-    let pair: Pair = {base: 4, step: 6}
+    let pair: Pair = Pair{base: 4, step: 6}
     holders[1].cb = func|pair|(value: s32)->s32 { return pair.base + pair.step + value }
 
     #assert(#typeof(holders[0].cb) == ClosureUnary?)

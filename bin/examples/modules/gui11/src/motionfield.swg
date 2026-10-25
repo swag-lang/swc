@@ -30,7 +30,7 @@ impl MotionField
 {
     func create(parent: *Wnd)->*MotionField
     {
-        let result = Wnd.create'MotionField(parent, {})
+        let result = Wnd.create'MotionField(parent, Math.Rectangle{})
         result.backgroundStyle = .Transparent
         result.cursor = Cursor.from(CursorShape.Hand)
         return result
@@ -99,7 +99,7 @@ impl IWnd for MotionField
         if .hasGoal do
             return
         let rect = .clientRect()
-        .puck = {rect.horzCenter(), rect.vertCenter()}
+        .puck = (rect.horzCenter(), rect.vertCenter())
     }
 
     mtd impl onPaint(evt: *PaintEvent)
@@ -121,7 +121,7 @@ impl IWnd for MotionField
             var x = rect.x + FieldGrid
             while x < rect.right()
             {
-                painter.fillRect({x - 1, y - 1, 2, 2}, dotColor)
+                painter.fillRect(Math.Rectangle{x - 1, y - 1, 2, 2}, dotColor)
                 x += FieldGrid
             }
 

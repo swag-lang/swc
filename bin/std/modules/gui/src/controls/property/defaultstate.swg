@@ -55,7 +55,7 @@ internal impl Properties
 
         // A pristine instance with every field at its declared default value.
         let def = Memory.new(rootType)
-        .defaultRoots.add({def, rootType})
+        .defaultRoots.add(PropDefaultRoot{def, rootType})
 
         let defBase  = cast([*] u8, def)
         let rootSize = cast(u64, rootType.sizeof)
@@ -279,12 +279,12 @@ internal impl Properties
             return
 
         let h = .revertButtonSize()
-        with item.revertButton = IconButton.create(host, .theme().icon(.Undo, .revertIconSize(h)), {0, 0, h, h})
+        with item.revertButton = IconButton.create(host, .theme().icon(.Undo, .revertIconSize(h)), Math.Rectangle{0, 0, h, h})
         {
             .setForm(.Circle)
             .updateFlags(.Overlay)     // Elegant translucent hover without an opaque box.
-            .maxSize     = {h, h}      // square: symmetric horizontally and vertically
-            .minSize     = {h, h}
+            .maxSize     = Math.Point{h, h}     // square: symmetric horizontally and vertically
+            .minSize     = Math.Point{h, h}
             .focusPolicy = .None     // stays out of the keyboard nav order
             .dockStyle   = .Right
             .margin.x    = PropRevertGap     // breathing room from the editor / previous action

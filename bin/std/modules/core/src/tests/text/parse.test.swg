@@ -12,7 +12,7 @@ using Swag
     let signOnly = signOnlyOutcome.value()
     Swag.assert(signOnly != null)
 
-    let {value, eat, _} = expect StrConv.parseS64(text)
+    let {value, eat, ovf: _} = expect StrConv.parseS64(text)
     Swag.assert(value == -5 and eat == 2)
 
     var floatSignOnlyOutcome: Swag.Error

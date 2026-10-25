@@ -574,5 +574,5 @@ func loadDocument(fileName: string)->Document fail
     if previews.isEmpty() do
         fail InvalidFormatError{texts().err_Preview}
 
-    return {header, fileName, fileSize, declaredBytes, xmpObjectStreams, #move previews}
+    return Document{header, fileName, fileSize, declaredBytes, xmpObjectStreams, #move previews}
 }

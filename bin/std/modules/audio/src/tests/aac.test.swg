@@ -16,7 +16,7 @@ private func aacTestPackets(path: string)->Array'SoundPacket fail
                         (cast(u32, bytes[offset + 5]) >> 5)
         if frameSize < 7 or frameSize > bytes.count - offset do
             fail InvalidFormatError{"AAC test fixture has a truncated ADTS frame"}
-        result.add({offset + 7, frameSize - 7, 1024})
+        result.add(SoundPacket{offset + 7, frameSize - 7, 1024})
         offset += frameSize
     }
 
@@ -52,7 +52,7 @@ private func aacTestSound51()->SoundFile fail
     for packet, index in packets
     {
         if index == GapAt do
-            gapped.add({0, 0, GapFrames})
+            gapped.add(SoundPacket{0, 0, GapFrames})
         gapped.add(packet)
     }
 

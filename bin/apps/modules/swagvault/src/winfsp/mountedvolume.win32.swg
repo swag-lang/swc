@@ -83,5 +83,5 @@ func mountedVaultSpaceNative(handle: *void)->MountedVaultSpace
     let mounted = cast(*WinFsp.MountedVolume, handle)
     mounted.volume.accessLock.lockShared()
     defer mounted.volume.accessLock.unlockShared()
-    return {mounted.volume.totalBytes(), mounted.volume.freeBytes()}
+    return MountedVaultSpace{mounted.volume.totalBytes(), mounted.volume.freeBytes()}
 }

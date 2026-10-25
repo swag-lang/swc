@@ -38,7 +38,7 @@ impl EditCtrl
 {
     // Creates a labelled single-line edit box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string?, text: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditCtrl
+    func create(parent: *Wnd, name: string?, text: string?, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditCtrl
     {
         Swag.assert(parent != null)
         let metrics = parent.themeMetrics()

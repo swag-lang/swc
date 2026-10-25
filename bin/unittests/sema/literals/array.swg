@@ -100,7 +100,7 @@ const SemaLitArr6: [3] u8 = HexFill
 
 func semaTest003()
 {
-    const values = [{x: 1, y: 2}, {3, 4}]
+    const values = [{x: 1, y: 2}, {x: 3, y: 4}]
     var firstX  = values[0].x
     var secondY = values[1].y
     #assert(#typeof(firstX) == s32)

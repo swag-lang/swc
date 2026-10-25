@@ -108,7 +108,7 @@ impl MainWnd
         else
         {
             .recentBar.resize(0, height)
-            .applyLayout({.position.width, .position.height})
+            .applyLayout(Math.Point{.position.width, .position.height})
         }
     }
 }

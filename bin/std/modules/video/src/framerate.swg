@@ -25,7 +25,7 @@ impl FrameRate
     {
         if not numerator or not denominator do
             fail BadParameterError{"frame rate numerator and denominator need positive values"}
-        return {numerator, denominator}
+        return FrameRate{numerator, denominator}
     }
 
     // Returns the rate numerator, in frames.

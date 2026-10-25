@@ -9,9 +9,9 @@ func createRadioButtonPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        let r0 = RadioButton.create(left, "Compact", {24, 90, 180})
-        let r1 = RadioButton.create(left, "Comfortable", {24, 128, 180})
-        let r2 = RadioButton.create(left, "Expanded", {24, 166, 180})
+        let r0 = RadioButton.create(left, "Compact", Math.Rectangle{24, 90, 180})
+        let r1 = RadioButton.create(left, "Comfortable", Math.Rectangle{24, 128, 180})
+        let r2 = RadioButton.create(left, "Expanded", Math.Rectangle{24, 166, 180})
         r0.groupId, r1.groupId, r2.groupId = "density"
         r1.setChecked(true)
     }
@@ -22,14 +22,14 @@ func createRadioButtonPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        var radio = RadioButton.create(right, "Marker right", {24, 90, 250})
+        var radio = RadioButton.create(right, "Marker right", Math.Rectangle{24, 90, 250})
         radio.updateFlags(.RightAligned)
 
-        radio = RadioButton.create(right, "Selected right", {24, 128, 250})
+        radio = RadioButton.create(right, "Selected right", Math.Rectangle{24, 128, 250})
         radio.updateFlags(.RightAligned)
         radio.setChecked(true)
 
-        radio = RadioButton.create(right, "Disabled selected", {24, 166, 250})
+        radio = RadioButton.create(right, "Disabled selected", Math.Rectangle{24, 166, 250})
         radio.updateFlags(.RightAligned)
         radio.setChecked(true)
         radio.disable()
@@ -41,15 +41,15 @@ func createRadioButtonPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        var radio = RadioButton.create(bottom, "Normal idle radio button", {24, 94, 250})
+        var radio = RadioButton.create(bottom, "Normal idle radio button", Math.Rectangle{24, 94, 250})
 
-        radio = RadioButton.create(bottom, "Disabled radio button", {24, 132, 250})
+        radio = RadioButton.create(bottom, "Disabled radio button", Math.Rectangle{24, 132, 250})
         radio.disable()
 
-        radio = RadioButton.create(bottom, "Disabled selected radio button", {320, 94, 300})
+        radio = RadioButton.create(bottom, "Disabled selected radio button", Math.Rectangle{320, 94, 300})
         radio.setChecked(true)
         radio.disable()
 
-        discard RadioButton.create(bottom, "Very long radio button label that must clip inside its bounds", {320, 132, 360})
+        discard RadioButton.create(bottom, "Very long radio button label that must clip inside its bounds", Math.Rectangle{320, 132, 360})
     }
 }

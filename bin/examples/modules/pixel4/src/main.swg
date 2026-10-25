@@ -159,7 +159,7 @@ func isAnchorCap(cap: LineCapStyle)->bool
 func drawPageHeader(painter: *Pixel.Painter, title, subtitle: string)
 {
     painter.drawString(28, 22, title, g_TitleFont, Argb.MidnightBlue)
-    drawWrappedText(painter, {30, 62, W - 60, 38}, subtitle, g_SubTitleFont, Argb.DimGray)
+    drawWrappedText(painter, Math.Rectangle{30, 62, W - 60, 38}, subtitle, g_SubTitleFont, Argb.DimGray)
 }
 
 func drawFooter(painter: *Pixel.Painter)
@@ -174,7 +174,7 @@ func drawPanel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: s
     painter.drawRoundRect(rect.x, rect.y, rect.width, rect.height, 18, 18, Color.fromArgb(96, Argb.SlateGray), 2)
     painter.drawString(rect.x + 18, rect.y + 12, title, g_SubTitleFont, Argb.DarkSlateBlue)
     drawWrappedText(painter,
-                    {rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40},
+                    Math.Rectangle{rect.x + 18, rect.y + 36, rect.width - 36, PanelHeaderHeight - 40},
                     subtitle,
                     g_HelpFont,
                     Argb.Gray)

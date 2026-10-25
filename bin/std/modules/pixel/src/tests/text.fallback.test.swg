@@ -139,7 +139,7 @@ private func fallbackTestFace(symbols: bool)->*TypeFace fail
     rich.compute()
     var format: RichStringFormat
     format.font.regular = font
-    Painter.computeLayout({0, 0, 300, 300}, &rich, format)
+    Painter.computeLayout(Math.Rectangle{0, 0, 300, 300}, &rich, format)
     Swag.assert(rich.boundRect.height >= Painter.measureString("A\u2192V", font).height * 2)
     cache.setFallbackTypeFaces(empty.toSlice(), false)
     Swag.assert(font.resolveRune('\u2192'rune) == font)

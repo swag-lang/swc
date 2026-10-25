@@ -135,7 +135,7 @@ func touch(flag: bool, delta: s32)->bool
 {
     var base    = CompareIdentityBase{value: 10}
     var other   = CompareIdentityBase{value: 20}
-    var derived = CompareIdentityDerived{base: {value: 30}, extra: 40}
+    var derived = CompareIdentityDerived{base: CompareIdentityBase{value: 30}, extra: 40}
 
     let basePtr:        *CompareIdentityBase = &base
     let otherPtr:       *CompareIdentityBase = &other

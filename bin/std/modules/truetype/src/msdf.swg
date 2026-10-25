@@ -274,7 +274,7 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
             msdfAddSeg(segs, curX, curY, x, y)
             el.segCount = cast(u32, segs.count) - el.firstSeg
 
-            let {dx, dy} = msdfNormDir(x - curX, y - curY)
+            let {x: dx, y: dy} = msdfNormDir(x - curX, y - curY)
             el.sdx0, el.edx1 = dx
             el.sdy0, el.edy1 = dy
             elements.add(el)
@@ -309,8 +309,8 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
                 e1y = y - curY
             }
 
-            let {sdx, sdy} = msdfNormDir(s0x, s0y)
-            let {edx, edy} = msdfNormDir(e1x, e1y)
+            let {x: sdx, y: sdy} = msdfNormDir(s0x, s0y)
+            let {x: edx, y: edy} = msdfNormDir(e1x, e1y)
             el.sdx0 = sdx
             el.sdy0 = sdy
             el.edx1 = edx
@@ -363,8 +363,8 @@ func buildMsdfSegments(outline: const *Outline, segs, edges: *Array'MsdfSeg)
                 e1y = y - curY
             }
 
-            let {sdx, sdy} = msdfNormDir(s0x, s0y)
-            let {edx, edy} = msdfNormDir(e1x, e1y)
+            let {x: sdx, y: sdy} = msdfNormDir(s0x, s0y)
+            let {x: edx, y: edy} = msdfNormDir(e1x, e1y)
             el.sdx0 = sdx
             el.sdy0 = sdy
             el.edx1 = edx
@@ -668,7 +668,7 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
     {
         let ortho = (s.aby * aqx - s.abx * aqy) * s.invLen
         if Math.abs(ortho) < endpointDist do
-            return {ortho, 0.0, param}
+            return {sd: ortho, dt: 0.0, param: param}
     }
 
     let crs = aqx * s.aby - aqy * s.abx
@@ -678,7 +678,7 @@ func msdfSegSignedDistance(s: const *MsdfSeg, px, py: f64)->{ sd: f64, dt: f64, 
     if s.len > 0 and endpointDist > 0 do
         dt = Math.abs((s.abx * eqx + s.aby * eqy) / (s.len * endpointDist))
 
-    return {sgn * endpointDist, dt, param}
+    return {sd: sgn * endpointDist, dt: dt, param: param}
 }
 
 // Extend a segment's true distance to a pseudo-distance past its endpoints, so the

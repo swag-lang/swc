@@ -319,12 +319,12 @@ private func sampleDocument()->Document
     let whole = expect page.render({scale: 1})
     Swag.assert(whole.width == 200 and whole.height == 100)
 
-    let region = expect page.render({scale: 1, sourceRect: {100, 0, 100, 100}})
+    let region = expect page.render({scale: 1, sourceRect: Math.Rectangle{100, 0, 100, 100}})
     Swag.assert(region.width == 100 and region.height == 100)
     Swag.assert(region.pixelColor(50, 50).g == 255 and region.pixelColor(50, 50).r == 0)
 
     // The same region at twice the scale is the zoomed view: same content, more pixels.
-    let zoomed = expect page.render({scale: 2, sourceRect: {100, 0, 100, 100}})
+    let zoomed = expect page.render({scale: 2, sourceRect: Math.Rectangle{100, 0, 100, 100}})
     Swag.assert(zoomed.width == 200 and zoomed.height == 200)
     Swag.assert(zoomed.pixelColor(100, 100).g == 255)
 }

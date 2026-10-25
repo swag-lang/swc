@@ -478,12 +478,45 @@ namespace
         if (srcFields.size() != dstFields.size())
             return failStructFieldCount(args, srcFields.size(), dstFields.size());
 
-        for (size_t i = 0; i < srcFields.size(); ++i)
+        const bool          named = args.srcType->payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous) || args.dstType->payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous);
+        SmallVector<size_t> sourceIndices;
+        for (size_t i = 0; i < dstFields.size(); ++i)
         {
-            if (srcFields[i]->typeRef() != dstFields[i]->typeRef())
-                return failStructFieldType(args, srcFields[i]->typeRef(), *dstFields[i]);
+            size_t sourceIndex = i;
+            if (named && !args.srcType->payloadSymStruct().tryGetFieldIndexByName(sourceIndex, dstFields[i]->idRef()))
+                return args.castRequest->fail(DiagnosticId::sema_err_cannot_cast, args.srcTypeRef, args.dstTypeRef);
+            sourceIndices.push_back(sourceIndex);
+            if (srcFields[sourceIndex]->typeRef() != dstFields[i]->typeRef())
+            {
+                if (!named)
+                    return failStructFieldType(args, srcFields[sourceIndex]->typeRef(), *dstFields[i]);
+                CastRequest fieldRequest = args.castRequest->makeNested();
+                SWC_RESULT(CastElementHelpers::allowed(*args.sema, *args.castRequest, fieldRequest, srcFields[sourceIndex]->typeRef(), dstFields[i]->typeRef()));
+            }
         }
 
+        if (named && args.castRequest->materializeConstantResult())
+        {
+            const ConstantValue&                               constant = args.sema->cstMgr().get(args.castRequest->constantFoldingSrc());
+            SmallVector<ConstantHelpers::ConstantPayloadWrite> writes;
+            for (size_t i = 0; i < dstFields.size(); ++i)
+            {
+                const SymbolVariable& sourceField = *srcFields[sourceIndices[i]];
+                ConstantRef           value;
+                if (constant.isAggregateStruct())
+                    value = constant.getAggregateStruct()[sourceIndices[i]];
+                else
+                {
+                    const uint64_t size = args.sema->typeMgr().get(sourceField.typeRef()).sizeOf(args.sema->ctx());
+                    value               = ConstantHelpers::materializeStaticPayloadConstant(*args.sema, sourceField.typeRef(), constant.getStruct().subspan(sourceField.offset(), size));
+                }
+                CastRequest fieldRequest = args.castRequest->makeNested();
+                ConstantRef converted;
+                SWC_RESULT(CastElementHelpers::foldConstant(*args.sema, *args.castRequest, fieldRequest, sourceField.typeRef(), dstFields[i]->typeRef(), value, converted));
+                writes.push_back({dstFields[i]->offset(), dstFields[i]->typeRef(), converted});
+            }
+            args.castRequest->setConstantFoldingResult(ConstantHelpers::materializeAggregateConstructionConstant(*args.sema, args.dstTypeRef, writes.span()));
+        }
         return Result::Continue;
     }
 
@@ -860,6 +893,12 @@ Result Cast::castToStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeR
 
     if (srcType.isAggregateStruct())
     {
+        const AstNodeRef literalRef  = unwrapLiteralSuffixCarrier(sema, castRequest.errorNodeRef);
+        const bool       constructor = literalRef.isValid() && sema.node(literalRef).is(AstNodeId::StructInitializerList);
+        if (srcType.isPositionalTuple() && !constructor)
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        if (!constructor && dstType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous) && srcType.payloadAggregate().types.size() != dstType.payloadSymStruct().fields().size())
+            return failStructFieldCount(ctx, srcType.payloadAggregate().types.size(), dstType.payloadSymStruct().fields().size());
         std::vector<size_t> srcToDst;
         const auto&         srcTypes  = srcType.payloadAggregate().types;
         const auto&         dstFields = dstType.payloadSymStruct().fields();

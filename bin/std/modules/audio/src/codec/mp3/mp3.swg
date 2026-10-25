@@ -120,7 +120,7 @@ struct BitReader
 
 impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => {payload.buffer, payload.count * 8, 0}
+    func create(payload: const [..] u8)->BitReader => BitReader{payload.buffer, payload.count * 8, 0}
 
     // Reads `count` bits, at most 24 at a time. Past the end every bit reads as zero, which lets a
     // truncated granule finish rather than fault; the caller sees it through `overran`.

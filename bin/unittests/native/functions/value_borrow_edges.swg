@@ -57,7 +57,7 @@ func write(value: Value, target: *Value)->u64
 }
 #test
 {
-    var value: Value = {first: 191}
+    var value: Value = Value{first: 191}
     let encoded      = cast(u64, cast(*void, &write))
     let callback     = cast(Writer, cast(*void, encoded))
     mustReject(func|callback, &value|() { discard callback(value, &value) })
@@ -84,7 +84,7 @@ func mutatePublished(value: PublishedValue, target: *PublishedValue)->u64
 }
 #test
 {
-    var value: PublishedValue = {first: 193}
+    var value: PublishedValue = PublishedValue{first: 193}
     mustReject(func|&value|() {
         discard mutatePublished(#copy value, cast(*PublishedValue, published))
     })
@@ -136,7 +136,7 @@ func readLater(value: Value, later: u64)->u64 => value.first + later
 func readFailingLater(value: Value)->u64 fail => readLater(value, try failLater())
 #test
 {
-    var value:    Value = {first: 197}
+    var value:    Value = Value{first: 197}
     var observed: u64
     catch failWhileBorrowing(value, &observed)
     Swag.assert(observed == 197)
@@ -154,7 +154,7 @@ func writeInDefer(value: Value, target: *Value)->u64
 }
 #test
 {
-    var value: Value = {first: 223}
+    var value: Value = Value{first: 223}
     mustReject(func|&value|() { discard writeInDefer(value, &value) })
     Swag.assert(value.first == 223)
     let observed = writeInDefer(#copy value, &value)
@@ -200,7 +200,7 @@ func sumEarlierArgument(value: Value, other: u64)->u64 => value.first + other
 func inlineEarlierArgument(value: Value, other: u64)->u64 => value.first + other
 #test
 {
-    var value: Value = {first: 229}
+    var value: Value = Value{first: 229}
     let ordinary     = sumEarlierArgument(value, probeEarlierArgument(&value, true))
     Swag.assert(ordinary == 230 and value.first == 229)
     let copied = sumEarlierArgument(#copy value, probeEarlierArgument(&value, false))
@@ -208,7 +208,7 @@ func inlineEarlierArgument(value: Value, other: u64)->u64 => value.first + other
 }
 #test
 {
-    var value: Value = {first: 233}
+    var value: Value = Value{first: 233}
     let inlined      = inlineEarlierArgument(value, probeEarlierArgument(&value, true))
     Swag.assert(inlined == 234 and value.first == 233)
     let copied = inlineEarlierArgument(#copy value, probeEarlierArgument(&value, false))
@@ -255,7 +255,7 @@ func writePublished()->u64
 }
 #test
 {
-    var value: PublishedValue = {first: 293}
+    var value: PublishedValue = PublishedValue{first: 293}
     mustReject(func|&value|() { discard readBesidePublished(#copy value, writePublished()) })
     Swag.assert(value.first == 293)
     published = 0
@@ -278,7 +278,7 @@ func readAcrossTask(value: Value, target: *Value)->u64
 // Joining orders the accesses; the guard observes an existing borrow across task contexts.
 #test
 {
-    var value: Value = {first: 307}
+    var value: Value = Value{first: 307}
     let observed     = readAcrossTask(value, &value)
     Swag.assert(observed == 307 and value.first == 307)
     value.first = 311

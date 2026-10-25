@@ -70,13 +70,13 @@ public impl Image
                     result    = hslPixelValue(params.hsl.h, fx, lightness)
 
                 case .GreenBlue:
-                    result = {params.color.r / 255.0, fx, 1 - fy, 1}
+                    result = PixelValue{params.color.r / 255.0, fx, 1 - fy, 1}
 
                 case .RedBlue:
-                    result = {fx, params.color.g / 255.0, 1 - fy, 1}
+                    result = PixelValue{fx, params.color.g / 255.0, 1 - fy, 1}
 
                 case .RedGreen:
-                    result = {fx, 1 - fy, params.color.b / 255.0, 1}
+                    result = PixelValue{fx, 1 - fy, params.color.b / 255.0, 1}
                 }
 
                 value = result

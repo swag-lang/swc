@@ -206,7 +206,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
         case WM_MOUSEWHEEL:
             let z = GET_WHEEL_DELTA_WPARAM(wParam) / WHEEL_DELTA
-            surface.app.sendMouseWheelEvent(surface, {GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}, z)
+            surface.app.sendMouseWheelEvent(surface, Math.Point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}, z)
             return 0
 
         case WM_SETCURSOR:
@@ -290,7 +290,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
                 return 0
             }
 
-            surface.invalidatePhysicalRect({cast(f32, ps.rcPaint.left), cast(f32, ps.rcPaint.top), cast(f32, (ps.rcPaint.right - ps.rcPaint.left)), cast(f32, (ps.rcPaint.bottom - ps.rcPaint.top))})
+            surface.invalidatePhysicalRect(Math.Rectangle{cast(f32, ps.rcPaint.left), cast(f32, ps.rcPaint.top), cast(f32, (ps.rcPaint.right - ps.rcPaint.left)), cast(f32, (ps.rcPaint.bottom - ps.rcPaint.top))})
 
             // The application loop is suspended during a native border drag. Paint on this
             // window-owning thread before EndPaint validates the native update region.
@@ -637,7 +637,7 @@ impl Surface
         discard GetWindowPlacement(.hWnd, &result)
         result.flags   = 0
         result.showCmd = showCmd
-        result.rcNormalPosition = {cast(s32, pos.x), cast(s32, pos.y), cast(s32, pos.right()), cast(s32, pos.bottom())}
+        result.rcNormalPosition = RECT{cast(s32, pos.x), cast(s32, pos.y), cast(s32, pos.right()), cast(s32, pos.bottom())}
         if not .flags.has(.ToolWindow)
         {
             let point   = POINT{cast(s32, pos.x), cast(s32, pos.y)}
@@ -706,7 +706,7 @@ impl Surface
     {
         .presentationDirtyRect = .paintPhysicalRect
         if .presentationDirtyRect.isEmpty() or (.isDisabled and .app.fadeDisabledSurface) do
-            .presentationDirtyRect = {0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
+            .presentationDirtyRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
         let rect = .presentationDirtyRect
         if .readback.submit(target, cast(s32, rect.x), cast(s32, rect.y), cast(s32, rect.width), cast(s32, rect.height)) do
             return true
@@ -777,7 +777,7 @@ impl Surface
 
         let image = .app.renderer.readRenderTarget(target, 0, 0, .rc.width, .rc.height)
         Memory.copy(.presentationPixels!, image.pixels.storage(), image.byteCount)
-        .presentationDirtyRect = {0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
+        .presentationDirtyRect = Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
     }
 
     internal mtd publishNativePresentation()

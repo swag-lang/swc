@@ -48,11 +48,11 @@ func readRawGamepadState(padIndex: u32)->RawGamepadState fail
     default: try Win32.failWinError(status)
     }
 
-    return {rawButtons(state.Gamepad.wButtons),
-            state.Gamepad.sThumbLX,
-            state.Gamepad.sThumbLY,
-            state.Gamepad.sThumbRX,
-            state.Gamepad.sThumbRY,
-            state.Gamepad.bLeftTrigger,
-            state.Gamepad.bRightTrigger}
+    return RawGamepadState{rawButtons(state.Gamepad.wButtons),
+                           state.Gamepad.sThumbLX,
+                           state.Gamepad.sThumbLY,
+                           state.Gamepad.sThumbRX,
+                           state.Gamepad.sThumbRY,
+                           state.Gamepad.bLeftTrigger,
+                           state.Gamepad.bRightTrigger}
 }

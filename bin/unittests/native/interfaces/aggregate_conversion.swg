@@ -54,7 +54,7 @@ struct OptionalHolder
 #test
 {
     var value      = Value{43}
-    var named: OptionalHolder = {item: &value}
+    var named: OptionalHolder = OptionalHolder{item: &value}
     var positional = OptionalHolder{&value}
     Swag.assert(named.item!.value() == 43)
     Swag.assert(positional.item!.value() == 43)

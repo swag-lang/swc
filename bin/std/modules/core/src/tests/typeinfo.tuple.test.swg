@@ -40,10 +40,9 @@ func coreTupleLifecycleProbeAt(base: [*] u8, type: const *TypeInfoStruct, index:
     return cast(*CoreTupleLifecycleProbe, (base + fields[index].offset))
 }
 
-func testCoreTupleRuntimeLifecycle()->bool
+func testCoreTupleRuntimeLifecycle(tupleType: typeinfo, flag: TypeInfoFlags)->bool
 {
-    let tupleType = #typeof({first: CoreTupleLifecycleProbe{}, second: CoreTupleLifecycleProbe{}})
-    if tupleType.kind != TypeInfoKind.Struct or not (tupleType.flags & TypeInfoFlags.Tuple) do
+    if tupleType.kind != TypeInfoKind.Struct or not (tupleType.flags & flag) do
         return false
 
     let tupleStruct = assume cast(const *TypeInfoStruct, tupleType)
@@ -105,7 +104,7 @@ func testCoreTupleArrayRuntimeLifecycle()->bool
         return false
 
     let arrayStruct = assume cast(const *TypeInfoArray, arrayType)
-    if not (arrayStruct.pointedType.flags & TypeInfoFlags.Tuple) do
+    if not (arrayStruct.pointedType.flags & TypeInfoFlags.Record) do
         return false
 
     let tupleStruct = assume cast(const *TypeInfoStruct, arrayStruct.pointedType)
@@ -154,7 +153,7 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
         return false
 
     let rawType = assume cast(const *TypeInfoAlias, aliasType).rawType
-    if not (rawType.flags & TypeInfoFlags.Tuple) do
+    if not (rawType.flags & TypeInfoFlags.Record) do
         return false
 
     let tupleStruct = assume cast(const *TypeInfoStruct, rawType)
@@ -188,7 +187,12 @@ func testCoreTupleAliasRuntimeLifecycle()->bool
 
 #test
 {
-    Swag.assert(testCoreTupleRuntimeLifecycle())
+    let recordType = #typeof({first: CoreTupleLifecycleProbe{}, second: CoreTupleLifecycleProbe{}})
+    let tupleType  = #typeof((CoreTupleLifecycleProbe{}, CoreTupleLifecycleProbe{}))
+    Swag.assert(Reflection.isRecord(recordType) and not Reflection.isTuple(recordType))
+    Swag.assert(Reflection.isTuple(tupleType) and not Reflection.isRecord(tupleType))
+    Swag.assert(testCoreTupleRuntimeLifecycle(recordType, .Record))
+    Swag.assert(testCoreTupleRuntimeLifecycle(tupleType, .Tuple))
     Swag.assert(testCoreTupleArrayRuntimeLifecycle())
     Swag.assert(testCoreTupleAliasRuntimeLifecycle())
 }

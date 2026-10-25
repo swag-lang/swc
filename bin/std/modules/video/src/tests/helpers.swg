@@ -91,10 +91,10 @@ func videoFixtureSamples(width, height: s32, index: u64)->[4] VideoFixtureSample
     let top    = height / 4
     let bottom = height - height / 4
     let gray   = cast(u8, videoFixtureGray(index))
-    return [{left, top, 255, 0, 0},
-            {right, top, 0, 255, 0},
-            {left, bottom, 0, 0, 255},
-            {right, bottom, gray, gray, gray}]
+    return [VideoFixtureSample{left, top, 255, 0, 0},
+            VideoFixtureSample{right, top, 0, 255, 0},
+            VideoFixtureSample{left, bottom, 0, 0, 255},
+            VideoFixtureSample{right, bottom, gray, gray, gray}]
 }
 
 // Asserts that `frame` is frame `index` of a fixture clip.

@@ -213,8 +213,8 @@ impl OffsetOwnedEvent
 {
     var mouseEvt: MouseEvent
     mouseEvt.kind       = .Move
-    mouseEvt.surfacePos = {10, 20}
-    mouseEvt.delta      = {-3, 4}
+    mouseEvt.surfacePos = Math.Point{10, 20}
+    mouseEvt.delta      = Math.Point{-3, 4}
     mouseEvt.modifiers  = Input.KeyModifiers.Control | .Shift
 
     Swag.assert(mouseEvt.kind == .Move)
@@ -235,13 +235,13 @@ impl OffsetOwnedEvent
 
     let resize = Event.create'ResizeEvent()
     defer Memory.delete(resize)
-    resize.oldSize = {640, 480}
+    resize.oldSize = Math.Point{640, 480}
     Swag.assert(Swag.kindOf(cast(IEvent, resize)) == #typeof(ResizeEvent))
     Swag.assert(resize.oldSize == Math.Point{640, 480})
 
     let move = Event.create'MoveEvent()
     defer Memory.delete(move)
-    move.oldPos = {12, 34}
+    move.oldPos = Math.Point{12, 34}
     Swag.assert(Swag.kindOf(cast(IEvent, move)) == #typeof(MoveEvent))
     Swag.assert(move.oldPos == Math.Point{12, 34})
 }

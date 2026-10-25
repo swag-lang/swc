@@ -83,18 +83,18 @@ func shebang(source: string)->Shebang
     let line  = String.from(lines[0])
     let lower = line.toLower()
     if Utf8.contains(lower, "python") do
-        return {true, .Python}
+        return Shebang{true, .Python}
     if Utf8.contains(lower, "ruby") do
-        return {true, .Ruby}
+        return Shebang{true, .Ruby}
     if Utf8.contains(lower, "perl") do
-        return {true, .Perl}
+        return Shebang{true, .Perl}
     if Utf8.contains(lower, "pwsh") or Utf8.contains(lower, "powershell") do
-        return {true, .PowerShell}
+        return Shebang{true, .PowerShell}
     if Utf8.contains(lower, "deno") do
-        return {true, .TypeScript}
+        return Shebang{true, .TypeScript}
     if Utf8.contains(lower, "node") or Utf8.contains(lower, "bun") do
-        return {true, .JavaScript}
-    return {true, .Shell}
+        return Shebang{true, .JavaScript}
+    return Shebang{true, .Shell}
 }
 
 // Reads the interpreter line of a file without retaining it.

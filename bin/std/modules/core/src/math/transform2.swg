@@ -156,10 +156,10 @@ impl Transform2
     // ```
     mtd const transformBounds(rect: Rectangle)->Rectangle
     {
-        let p0  = .transformPoint({rect.x, rect.y})
-        let p1  = .transformPoint({rect.right(), rect.y})
-        let p2  = .transformPoint({rect.x, rect.bottom()})
-        let p3  = .transformPoint({rect.right(), rect.bottom()})
+        let p0  = .transformPoint(Vector2{rect.x, rect.y})
+        let p1  = .transformPoint(Vector2{rect.right(), rect.y})
+        let p2  = .transformPoint(Vector2{rect.x, rect.bottom()})
+        let p3  = .transformPoint(Vector2{rect.right(), rect.bottom()})
         let min = Vector2.min(Vector2.min(p0, p1), Vector2.min(p2, p3))
         let max = Vector2.max(Vector2.max(p0, p1), Vector2.max(p2, p3))
         return Rectangle{min.x, min.y, max.x - min.x, max.y - min.y}

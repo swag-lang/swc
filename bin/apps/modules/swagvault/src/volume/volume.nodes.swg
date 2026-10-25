@@ -75,18 +75,18 @@ impl Volume
     {
         let parts = splitPath(path)
         if parts.isEmpty() do
-            return {null, ""}
+            return {parent: null, name: ""}
         var parent = .nodeById(RootNodeId)
         if not parent do
-            return {null, parts[parts.count - 1]}
+            return {parent: null, name: parts[parts.count - 1]}
         for i in 0 until parts.count - 1
         {
             parent = .findChild(parent.id, parts[i])
             if not parent or not parent.isDirectory() do
-                return {null, parts[parts.count - 1]}
+                return {parent: null, name: parts[parts.count - 1]}
         }
 
-        return {parent, parts[parts.count - 1]}
+        return {parent: parent, name: parts[parts.count - 1]}
     }
 
     // Creates an in-memory node and leaves its journal commit to the caller.

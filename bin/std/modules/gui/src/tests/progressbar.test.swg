@@ -9,7 +9,7 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(240, 60)
     defer host.shutdown()
-    let bar = ProgressBar.create(&host.root, {20, 20, 200, 20})
+    let bar = ProgressBar.create(&host.root, Math.Rectangle{20, 20, 200, 20})
     Swag.assert(bar.value == 0)
 
     bar.setValue(0.5)

@@ -44,7 +44,7 @@ impl CurveWall
 {
     func create(parent: *Wnd)->*CurveWall
     {
-        let result = Wnd.create'CurveWall(parent, {})
+        let result = Wnd.create'CurveWall(parent, Math.Rectangle{})
         result.backgroundStyle = .Transparent
         return result
     }
@@ -95,7 +95,7 @@ impl CurveWall
         painter.drawString(card.x + CardPadding, nameY, curveName(easing), nameFont, colors.label_Text)
 
         var plot = card
-        plot.applyPadding({CardPadding, CardPadding + NameHeight, CardPadding, CardPadding + RailHeight + RailGap})
+        plot.applyPadding(Math.Vector4{CardPadding, CardPadding + NameHeight, CardPadding, CardPadding + RailHeight + RailGap})
         if plot.width < 24 or plot.height < 24 do
             return
 
@@ -103,8 +103,8 @@ impl CurveWall
         // the overshoot it was chosen for.
         let restY  = plotY(plot, 1)
         let startY = plotY(plot, 0)
-        painter.fillRect({plot.x, startY, plot.width, 1}, colors.border)
-        painter.fillRect({plot.x, restY, plot.width, 1}, colors.hilight.withAlphaF32(0.35))
+        painter.fillRect(Math.Rectangle{plot.x, startY, plot.width, 1}, colors.border)
+        painter.fillRect(Math.Rectangle{plot.x, restY, plot.width, 1}, colors.hilight.withAlphaF32(0.35))
 
         // The straight line is the same motion with no curve at all, kept faint behind each card
         // as the reference every other shape is read against.
@@ -135,7 +135,7 @@ impl CurveWall
             width: card.width - 2 * CardPadding,
             height: RailHeight}
         let midY = rail.y + rail.height * 0.5
-        painter.fillRoundRect({rail.x, midY - 2, rail.width, 4}, 2, 2, colors.border)
+        painter.fillRoundRect(Math.Rectangle{rail.x, midY - 2, rail.width, 4}, 2, 2, colors.border)
 
         let travel = rail.width - 2 * PuckRadius
         let puckX  = rail.x + PuckRadius + eased * travel

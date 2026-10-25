@@ -19,7 +19,7 @@ func stepInward(first, last: s64)->Cursors
         }
 
         if lo > hi do
-            return {lo, hi}
+            return Cursors{lo, hi}
     }
 }
 

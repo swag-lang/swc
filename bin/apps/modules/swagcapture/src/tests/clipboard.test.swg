@@ -75,7 +75,7 @@ func testResetClipboardToImage()
     f.capture.selection.add(0)
     f.main.sendCommandEvent(ActionCopyPaste.Copy)
 
-    f.capture.paintRect = {0, 0, f.capture.width, f.capture.height}
+    f.capture.paintRect = Math.Rectangle{0, 0, f.capture.width, f.capture.height}
     f.capture.selection.clear()
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 
@@ -113,7 +113,7 @@ func testResetClipboardToImage()
     Swag.assert(copiedImage.height == 24)
 
     testSetClipboardImage(11, 7)
-    f.capture.paintRect = {0, 0, f.capture.width, f.capture.height}
+    f.capture.paintRect = Math.Rectangle{0, 0, f.capture.width, f.capture.height}
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 
     Swag.assert(f.capture.forms.count == 1)

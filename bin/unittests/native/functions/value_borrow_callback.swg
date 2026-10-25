@@ -28,7 +28,7 @@ func same(value: Value, address: const *Value)->bool
 
 #test
 {
-    var value: Value = {first: 1, second: 2, third: 3}
+    var value: Value = Value{first: 1, second: 2, third: 3}
     Swag.assert(invoke(value, &same))
     Swag.assert(forward(value, &same))
     let expected = 1'u64
@@ -50,7 +50,7 @@ func sameAfterLocalWrite(value: Value, address: const *Value)->bool
 
 #test
 {
-    var value: Value = {first: 1}
+    var value: Value = Value{first: 1}
     Swag.assert(invoke(value, &sameAfterLocalWrite))
 }
 
@@ -61,7 +61,7 @@ func sameWithMath(value: Value, address: const *Value)->bool
 
 #test
 {
-    var value: Value = {first: 1}
+    var value: Value = Value{first: 1}
     Swag.assert(invoke(value, &sameWithMath))
 }
 
@@ -73,7 +73,7 @@ func invokeFunction(value: Value, callback: func(Value, const *Value)->bool)->bo
 
 #test
 {
-    var value: Value = {first: 1, second: 2}
+    var value: Value = Value{first: 1, second: 2}
     Swag.assert(invokeFunction(value, &same))
 }
 
@@ -109,16 +109,16 @@ struct NestedCallback
 
 #test
 {
-    var value:  Value = {first: 1, second: 2}
-    var holder: StoredCallback = {callback: &same}
+    var value:  Value = Value{first: 1, second: 2}
+    var holder: StoredCallback = StoredCallback{callback: &same}
     Swag.assert(invoke(value, holder.callback))
-    var nested: NestedCallback = {stored: {callback: &same}}
+    var nested: NestedCallback = NestedCallback{stored: StoredCallback{callback: &same}}
     Swag.assert(invoke(value, nested.stored.callback))
 }
 
 #test
 {
-    var value:    Value = {first: 1, second: 2}
+    var value:    Value = Value{first: 1, second: 2}
     var callback: func||(Value, const *Value)->bool = &same
     let selected        = callback
     Swag.assert(invoke(value, selected))

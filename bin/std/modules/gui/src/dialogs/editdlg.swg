@@ -33,7 +33,7 @@ public impl EditDlg
     // Run it with [[Gui.Dialog.doModal]]; when the result is `Dialog.BtnOk`, read the answer with
     // [[Gui.EditDlg.text]].
     #[Swag.Discardable]
-    func createSingleLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
+    func createSingleLine(from: *Surface, options: EditDlgOptions = EditDlgOptions{})->*EditDlg
     {
         Swag.assert(from != null)
         let dlg = Wnd.create'EditDlg()
@@ -55,7 +55,7 @@ public impl EditDlg
 
     // Creates a resizable multi-line text prompt, centered on its owner.
     #[Swag.Discardable]
-    func createMultiLine(from: *Surface, options: EditDlgOptions = {})->*EditDlg
+    func createMultiLine(from: *Surface, options: EditDlgOptions = EditDlgOptions{})->*EditDlg
     {
         Swag.assert(from != null)
         Swag.assert(options.editorHeight > 0, "editor height must be positive")
@@ -64,7 +64,7 @@ public impl EditDlg
         srf.setTitle(options.title)
         srf.minSize.x = 500
 
-        with dlg.richEdit = RichEditCtrl.create(dlg.createContentView(), {0, 0, 0, options.editorHeight})
+        with dlg.richEdit = RichEditCtrl.create(dlg.createContentView(), Math.Rectangle{0, 0, 0, options.editorHeight})
         {
             .anchorStyle = .Height
             .dockStyle   = .Bottom
@@ -127,7 +127,7 @@ public impl EditDlg
             // band the caller asked to keep for it. Read back from the layout instead, the band
             // was whatever the authored shell had left over, so a message needing a second line
             // was cut in half by a box that had never measured it.
-            let wording = .label.itf.measureContent({.label.position.width, 0}).y
+            let wording = .label.itf.measureContent(Math.Point{.label.position.width, 0}).y
             contentHeight += Math.max(wording, .label.preferredSize.y) + .label.margin.w
         }
 
@@ -177,7 +177,7 @@ public impl EditDlg
         if .label == null
         {
             Swag.assert(.surface != null)
-            .label = Label.create(.contentView!, message, {0, 0, 0, height}, flags: .WordWrap | .SecondaryText)
+            .label = Label.create(.contentView!, message, Math.Rectangle{0, 0, 0, height}, flags: .WordWrap | .SecondaryText)
             with me.label
             {
                 .dockStyle = .Center

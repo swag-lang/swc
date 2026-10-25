@@ -109,10 +109,10 @@ var g_TimeStamp = -1
 
 var g_PacMan: Pacman
 var g_Ghosts: [4] Ghost = [
-    {13.5, 19, GhostColor.RED},
-    {13.5, 16, GhostColor.PINK},
-    {11.5, 16, GhostColor.BLUE},
-    {15.5, 16, GhostColor.YELLOW}]
+    Ghost{13.5, 19, GhostColor.RED},
+    Ghost{13.5, 16, GhostColor.PINK},
+    Ghost{11.5, 16, GhostColor.BLUE},
+    Ghost{15.5, 16, GhostColor.YELLOW}]
 
 struct Dest
 {
@@ -465,10 +465,10 @@ impl Ghost
         // Each colour selects a unique corner to target
         switch .colour
         {
-        case .RED:    target = {25, 33}
-        case .PINK:   target = {2, 33}
-        case .BLUE:   target = {27, -2}
-        case .YELLOW: target = {0, -2}
+        case .RED:    target = (25, 33)
+        case .PINK:   target = (2, 33)
+        case .BLUE:   target = (27, -2)
+        case .YELLOW: target = (0, -2)
         }
 
         // Set direction at junction to head towards SCATTER point
@@ -484,7 +484,7 @@ impl Ghost
      */
     func targetPacmanOffsetBy(offsetSize: s32)->Dest
     {
-        var offset: retval = {g_PacMan.getX(), g_PacMan.getY()}
+        var offset: retval = Dest{g_PacMan.getX(), g_PacMan.getY()}
 
         // Apply offset to correct coordinate based on Pacman's direction
         switch g_PacMan.dir
@@ -511,10 +511,10 @@ impl Ghost
      */
     mtd aiChase(redGhost: Ghost)
     {
-        var target: Dest = {g_PacMan.getX(), g_PacMan.getY()}
+        var target: Dest = Dest{g_PacMan.getX(), g_PacMan.getY()}
 
         // Default target for RED and (sometimes) YELLOW
-        let currentPos: Dest = {.getX(), .getY()}
+        let currentPos: Dest = Dest{.getX(), .getY()}
         var dx, dy:     s32
 
         // Determine ghost chasing behaviour based on their colour
@@ -533,11 +533,11 @@ impl Ghost
             dy     = target.y - redGhost.getY()
 
             // BLUE's target is then twice the change in X and Y from RED's position
-            target = {redGhost.getX() + 2 * dx, redGhost.getY() + 2 * dy}
+            target = (redGhost.getX() + 2 * dx, redGhost.getY() + 2 * dy)
 
         case .YELLOW:
             if distanceBetween(currentPos, target) <= 8 do
-                target = {0, -2}
+                target = (0, -2)
         }
 
         .dir = .targetTile(target)
@@ -570,7 +570,7 @@ impl Ghost
     mtd aiDead()
     {
         // Coordinate directly above SPAWN entrance
-        let target: Dest = {14, 19}
+        let target: Dest = Dest{14, 19}
         .dir = .targetTile(target)
         .setSpeed(200)
     }
@@ -614,7 +614,7 @@ impl Ghost
             // Prevent direction reversing and ensure exit is traversible
             if .dir != .DOWN and not isImpassible(.getNextTile(.UP))
             {
-                nextPos = {.getX(), .getY() + 1}
+                nextPos = (.getX(), .getY() + 1)
                 let d = distanceBetween(nextPos, target)
                 if d < distance
                 {
@@ -629,7 +629,7 @@ impl Ghost
         // Check RIGHT exit
         if .dir != .LEFT and not isImpassible(.getNextTile(.RIGHT))
         {
-            nextPos = {.getX() + 1, .getY()}
+            nextPos = (.getX() + 1, .getY())
             let d = distanceBetween(nextPos, target)
             if d < distance
             {
@@ -641,7 +641,7 @@ impl Ghost
         // Check DOWN exit
         if .dir != .UP and not isImpassible(.getNextTile(.DOWN))
         {
-            nextPos = {.getX(), .getY() - 1}
+            nextPos = (.getX(), .getY() - 1)
             let d = distanceBetween(nextPos, target)
             if d < distance
             {
@@ -653,7 +653,7 @@ impl Ghost
         // Check LEFT exit
         if .dir != .RIGHT and not isImpassible(.getNextTile(.LEFT))
         {
-            nextPos = {.getX() - 1, .getY()}
+            nextPos = (.getX() - 1, .getY())
             let d = distanceBetween(nextPos, target)
             if d < distance
             {

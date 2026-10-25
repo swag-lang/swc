@@ -105,12 +105,12 @@ func narrowOverWide(p: *Pair, low: u32)->s64
     let reloadedTogether = reloadAroundWrite(&first, &first, 30)
     Swag.assert(reloadedTogether == 35 and first.a == 35)
 
-    var reals: Reals = {1.0, 10.0}
+    var reals: Reals = Reals{1.0, 10.0}
     let summed       = accumulate(&reals, 0.5)
     Swag.assert(summed == 13.0 and reals.x == 4.5 and reals.y == 8.5)
 
-    var left:  Reals = {1.0, 0.0}
-    var right: Reals = {3.0, 0.0}
+    var left:  Reals = Reals{1.0, 0.0}
+    var right: Reals = Reals{3.0, 0.0}
     let kept         = accumulateAround(&left, &right, 0.5)
     Swag.assert(kept == 4.5 and right.x == 12.0)
     left.x = 1.0

@@ -74,7 +74,7 @@ namespace Swag
         HasDrop              = 0x00000040     // This is a struct with a 'opDrop'
         Strict               = 0x00000080     // This is an alias with the Swag.Strict attribute
         CanCopy              = 0x00000100     // This is a struct that can be copied
-        Tuple                = 0x00000200     // This is a tuple
+        Tuple                = 0x00000200     // This is a positional tuple
         CString              = 0x00000400     // This is a 'cstring'
         Generic              = 0x00000800     // This is a generic type
         PointerRef           = 0x00001000     // This is a reference
@@ -85,6 +85,7 @@ namespace Swag
         Nullable             = 0x00020000     // This is a nullable type
         RequiresExplicitInit = 0x00080000     // This type must be explicitly initialized
         HasDynamicStorage    = 0x00100000     // This value contains compiler-managed dynamic identity slots
+        Record               = 0x00200000     // This is an anonymous record with named fields
     }
 
     // Runtime representation of an interface value.

@@ -117,15 +117,15 @@ var g_other: [3] u8 = ['a', 'b', 'z']
 #test
 {
     Swag.assert(Point{1, 2} == Point{1, 9})
-    Swag.assert(eqPoints([{1, 2}, {3, 4}], [{1, 9}, {3, 9}]))
-    Swag.assert(not eqPoints([{1, 2}, {3, 4}], [{1, 9}, {4, 9}]))
+    Swag.assert(eqPoints([Point{1, 2}, Point{3, 4}], [Point{1, 9}, Point{3, 9}]))
+    Swag.assert(not eqPoints([Point{1, 2}, Point{3, 4}], [Point{1, 9}, Point{4, 9}]))
 }
 
 // An array no wider than a machine register still asks its elements.
 #test
 {
-    Swag.assert(eqTolerances([{10}, {20}], [{11}, {21}]))
-    Swag.assert(not eqTolerances([{10}, {20}], [{11}, {30}]))
+    Swag.assert(eqTolerances([Tolerance{10}, Tolerance{20}], [Tolerance{11}, Tolerance{21}]))
+    Swag.assert(not eqTolerances([Tolerance{10}, Tolerance{20}], [Tolerance{11}, Tolerance{30}]))
 }
 
 // A struct holding such an array asks the array, which asks its elements.

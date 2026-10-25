@@ -164,7 +164,7 @@ impl DateTime
     // Parses an 8-bit unsigned integer from the buffer and adds the consumed bytes to `eat`.
     internal func parseU8(buf: *string, eat: *u32)->u16 fail
     {
-        let {value, consumedBytes, ovf} = try StrConv.parseU8(buf[])
+        let {value, eat: consumedBytes, ovf} = try StrConv.parseU8(buf[])
         if ovf do
             fail SyntaxError{}
         eat[] += consumedBytes
@@ -175,7 +175,7 @@ impl DateTime
     // Parses a 16-bit unsigned integer from the buffer and adds the consumed bytes to `eat`.
     internal func parseU16(buf: *string, eat: *u32)->u16 fail
     {
-        let {value, consumedBytes, ovf} = try StrConv.parseU16(buf[])
+        let {value, eat: consumedBytes, ovf} = try StrConv.parseU16(buf[])
         if ovf do
             fail SyntaxError{}
         eat[] += consumedBytes

@@ -46,7 +46,7 @@ func runOp(subject, clip: *ClipperPaths, op: ClipType, rules: Rules)->ClipperPat
 func selfArea(paths: *ClipperPaths, rule: PolyFillType, strictSimple: bool)->f64
 {
     var none: ClipperPaths
-    return solutionArea(runOp(paths, &none, .Union, {rule, rule, strictSimple}))
+    return solutionArea(runOp(paths, &none, .Union, Rules{rule, rule, strictSimple}))
 }
 
 // The shapes a generator can draw. Each stresses a different part of the solver.
@@ -205,7 +205,7 @@ func assertSolutionsAreSimple(subject, clip: *ClipperPaths, rules: Rules)
             {
                 var subject = randomSet(&rng, shape)
                 var clip    = randomSet(&rng, shape)
-                assertBooleanAlgebra(&subject, &clip, {fill, fill, strictSimple: (round & 1) == 1})
+                assertBooleanAlgebra(&subject, &clip, Rules{subject: fill, clip: fill, strictSimple: (round & 1) == 1})
             }
         }
     }
@@ -228,7 +228,7 @@ func assertSolutionsAreSimple(subject, clip: *ClipperPaths, rules: Rules)
             {
                 var subject = randomSet(&rng, shape)
                 var clip    = randomSet(&rng, shape)
-                assertSolutionsAreSimple(&subject, &clip, {fill, fill, strictSimple: (round & 1) == 1})
+                assertSolutionsAreSimple(&subject, &clip, Rules{subject: fill, clip: fill, strictSimple: (round & 1) == 1})
             }
         }
     }

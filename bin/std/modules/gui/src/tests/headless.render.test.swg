@@ -33,7 +33,7 @@ using Swag, Core, Pixel
     Swag.assert(background.width == 96 and background.height == 64)
     Swag.assert(background.pixelFormat == .BGRA8)
 
-    let button  = PushButton.create(&host.root, "", {20, 16, 56, 32})
+    let button  = PushButton.create(&host.root, "", Math.Rectangle{20, 16, 56, 32})
     let enabled = host.render()
     Swag.assert(not Slice.equals(enabled.pixels.toSlice(), background.pixels.toSlice()))
     Pixel.Testing.assertImageGolden(&enabled, "widget.cpu.pushbutton")
@@ -58,7 +58,7 @@ using Swag, Core, Pixel
     for row in Rows
     {
         for column in Columns do
-            discard PushButton.create(&host.root, "grid", {cast(f32, (column * 78 + 4)), cast(f32, (row * 46 + 4)), 70, 38})
+            discard PushButton.create(&host.root, "grid", Math.Rectangle{cast(f32, (column * 78 + 4)), cast(f32, (row * 46 + 4)), 70, 38})
     }
 
     host.pump()
@@ -75,7 +75,7 @@ using Swag, Core, Pixel
     // buttons are outside it by more than the margin a window is allowed to paint into, so they
     // never reach the painter at all.
     host.surface.isDirty = false
-    host.surface.invalidateRect({4, 4, 70, 38})
+    host.surface.invalidateRect(Math.Rectangle{4, 4, 70, 38})
     host.surface.paintWnd(&host.root)
     Swag.assert(host.surface.paintedWnds + host.surface.skippedWnds == Columns * Rows)
     Swag.assert(host.surface.paintedWnds < 12)
@@ -89,7 +89,7 @@ using Swag, Core, Pixel
     host.setup(320, 200)
     defer host.shutdown()
 
-    let button = PushButton.create(&host.root, "edge", {200, 120, 80, 40})
+    let button = PushButton.create(&host.root, "edge", Math.Rectangle{200, 120, 80, 40})
     host.pump()
     host.root.applyLayout()
 
@@ -99,7 +99,7 @@ using Swag, Core, Pixel
     Swag.assert(host.surface.paintedWnds == 1 and host.surface.skippedWnds == 0)
 
     host.surface.isDirty = false
-    host.surface.invalidateRect({0, 0, 8, 8})
+    host.surface.invalidateRect(Math.Rectangle{0, 0, 8, 8})
     host.surface.paintWnd(&host.root)
     Swag.assert(host.surface.paintedWnds == 0 and host.surface.skippedWnds == 1)
 }

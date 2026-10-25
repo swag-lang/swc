@@ -830,6 +830,12 @@ struct AstArrayLiteral : AstCompoundT<AstNodeId::ArrayLiteral>
     AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 
+struct AstTupleType : AstCompoundT<AstNodeId::TupleType>
+{
+    Result semaPostNode(Sema& sema) const;
+    AstNodeRef semaClone(Sema& sema, const CloneContext& cloneContext) const;
+};
+
 struct AstStructLiteral : AstCompoundT<AstNodeId::StructLiteral>
 {
     Result codeGenPostNode(CodeGen& codeGen) const;
@@ -1466,11 +1472,11 @@ struct AstMultiVarDecl : AstNodeT<AstNodeId::MultiVarDecl, AstVarDeclFlagsE>, As
 struct AstVarDeclDestructuring : AstNodeT<AstNodeId::VarDeclDestructuring, AstVarDeclFlagsE>
 {
     SpanRef spanNamesRef;
-    SpanRef spanFieldNamesRef;
+    AstNodeRef nodePatternRef;
 
     AstNodeRef nodeInitRef;
 
-    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodeInitRef}); }
+    void collectChildren(SmallVector<AstNodeRef>& out, const Ast&) const { AstNode::collectChildren(out, {nodePatternRef, nodeInitRef}); }
 
     Result     codeGenPostNode(CodeGen& codeGen) const;
     Result     semaPostNode(Sema& sema) const;
@@ -2009,13 +2015,15 @@ enum class AstAssignListFlagsE : AstNode::ParserFlags
     Zero               = 0,
     Destructuring      = 1 << 0,
     NamedDestructuring = 1 << 1,
+    DeclarationPattern = 1 << 2,
 };
 
 struct AstAssignList : AstCompoundT<AstNodeId::AssignList, AstAssignListFlagsE>
 {
     SpanRef spanFieldNamesRef;
 
-    static Result semaPreNode(Sema&) { return Result::Continue; }
+    Result semaPreNode(Sema&) const { return hasFlag(AstAssignListFlagsE::DeclarationPattern) ? Result::SkipChildren : Result::Continue; }
+    Result codeGenPreNode(CodeGen&) const { return hasFlag(AstAssignListFlagsE::DeclarationPattern) ? Result::SkipChildren : Result::Continue; }
     AstNodeRef    semaClone(Sema& sema, const CloneContext& cloneContext) const;
 };
 

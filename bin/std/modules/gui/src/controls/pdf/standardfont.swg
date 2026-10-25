@@ -112,7 +112,7 @@ impl StandardFont
         if plain.count > 7 and plain[6] == '+' do
             plain = plain[7 until]
         if not plain.count do
-            return {StandardFont.Helvetica, false}
+            return {font: StandardFont.Helvetica, found: false}
 
         var lower: String = plain
         lower.makeLower()
@@ -122,12 +122,12 @@ impl StandardFont
         if lower.contains("courier") or lower.contains("mono")
         {
             if bold and slant do
-                return {StandardFont.CourierBoldOblique, true}
+                return {font: StandardFont.CourierBoldOblique, found: true}
             if bold do
-                return {StandardFont.CourierBold, true}
+                return {font: StandardFont.CourierBold, found: true}
             if slant do
-                return {StandardFont.CourierOblique, true}
-            return {StandardFont.Courier, true}
+                return {font: StandardFont.CourierOblique, found: true}
+            return {font: StandardFont.Courier, found: true}
         }
 
         if lower.contains("times") or
@@ -137,26 +137,26 @@ impl StandardFont
            lower.contains("garamond")
         {
             if bold and slant do
-                return {StandardFont.TimesBoldItalic, true}
+                return {font: StandardFont.TimesBoldItalic, found: true}
             if bold do
-                return {StandardFont.TimesBold, true}
+                return {font: StandardFont.TimesBold, found: true}
             if slant do
-                return {StandardFont.TimesItalic, true}
-            return {StandardFont.TimesRoman, true}
+                return {font: StandardFont.TimesItalic, found: true}
+            return {font: StandardFont.TimesRoman, found: true}
         }
 
         if lower.contains("helvetica") or lower.contains("arial")
         {
             if bold and slant do
-                return {StandardFont.HelveticaBoldOblique, true}
+                return {font: StandardFont.HelveticaBoldOblique, found: true}
             if bold do
-                return {StandardFont.HelveticaBold, true}
+                return {font: StandardFont.HelveticaBold, found: true}
             if slant do
-                return {StandardFont.HelveticaOblique, true}
-            return {StandardFont.Helvetica, true}
+                return {font: StandardFont.HelveticaOblique, found: true}
+            return {font: StandardFont.Helvetica, found: true}
         }
 
-        return {StandardFont.Helvetica, false}
+        return {font: StandardFont.Helvetica, found: false}
     }
 
     // Returns the advance width of one character, in fractions of the text size.

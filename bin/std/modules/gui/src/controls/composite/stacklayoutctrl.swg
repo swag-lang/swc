@@ -75,7 +75,7 @@ impl IWnd for StackLayoutCtrl
         }
 
         if not count do
-            return {}
+            return Math.Point{}
 
         main += cast(f32, (count - 1)) * .spacing
 
@@ -196,8 +196,8 @@ private impl StackLayoutCtrl
             if not c.isLocallyVisible() do
                 continue
             visible.add(c)
-            hints.add(c.measure({client.width, client.height}))
-            oldSizes.add({c.position.width, c.position.height})
+            hints.add(c.measure(Math.Point{client.width, client.height}))
+            oldSizes.add(Math.Point{c.position.width, c.position.height})
         }
 
         if visible.isEmpty() do
@@ -380,7 +380,7 @@ private impl StackLayoutCtrl
 impl StackLayoutCtrl
 {
     // Creates an empty stack using `mode`.
-    func create(parent: *Wnd, mode: StackLayoutMode = .Top, position: Math.Rectangle = {})->*StackLayoutCtrl
+    func create(parent: *Wnd, mode: StackLayoutMode = .Top, position: Math.Rectangle = Math.Rectangle{})->*StackLayoutCtrl
     {
         let res = Wnd.create'StackLayoutCtrl(parent, position)
         res.mode = mode

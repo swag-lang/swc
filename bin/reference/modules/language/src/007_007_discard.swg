@@ -79,7 +79,7 @@ declaration, and reading it is an error.
         total += index
     Swag.assert(total == 3)
 
-    let {_, second} = {1, 2}
+    let (_, second) = (1, 2)
     Swag.assert(second == 2)
 
     // A counting loop that does not read its index simply has no name.

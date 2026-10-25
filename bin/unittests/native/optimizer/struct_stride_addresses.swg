@@ -130,7 +130,7 @@ func none()->u64 => 0
     for i in 5
     {
         let f = cast(f64, i)
-        bodies[i] = {f, f * 2.0, -f, 0.5 * f, -0.25 * f, 1.0 + f, 3.0}
+        bodies[i] = Body{f, f * 2.0, -f, 0.5 * f, -0.25 * f, 1.0 + f, 3.0}
         want[i]   = bodies[i]
     }
     moveBodies(bodies, 0.01)
@@ -145,14 +145,14 @@ func none()->u64 => 0
 {
     var triples: [9] Triple
     for i in 9 do
-        triples[i] = {cast(u32, i) * 11, cast(u32, i) * 7 + 1, 100 - cast(u32, i)}
+        triples[i] = Triple{cast(u32, i) * 11, cast(u32, i) * 7 + 1, 100 - cast(u32, i)}
     Swag.assert(sumTriples(triples) == sumTriplesRef(triples))
     Swag.assert(sumTriples(triples[3 until 5]) == sumTriplesRef(triples[3 until 5]))
     Swag.assert(sumTriples(triples[0 until none()]) == 0)
 
     var pairs: [7] Pair24
     for i in 7 do
-        pairs[i] = {cast(u64, i) * 13 + 2, cast(u64, i) * 5, cast(u64, i) ^ 3}
+        pairs[i] = Pair24{cast(u64, i) * 13 + 2, cast(u64, i) * 5, cast(u64, i) ^ 3}
     Swag.assert(sumEveryOther(pairs) == sumEveryOtherRef(pairs))
     Swag.assert(sumEveryOther(pairs[1 until 4]) == sumEveryOtherRef(pairs[1 until 4]))
     Swag.assert(sumDownwards(pairs) == sumDownwardsRef(pairs))

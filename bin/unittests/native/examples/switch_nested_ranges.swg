@@ -240,7 +240,7 @@ func computeEscalationLevel(ticket: SupportTicket)->s32
 func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 {
     var result: TriageDecision =
-        {
+        TriageDecision{
         queue: routeQueue(ticket),
         responseTargetMinutes: computeResponseTargetMinutes(ticket),
         escalationLevel: computeEscalationLevel(ticket),
@@ -310,7 +310,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
 #test
 {
     const securityIncident: SupportTicket =
-        {
+        SupportTicket{
         plan: CustomerPlan.Enterprise,
         priority: TicketPriority.Critical,
         channel: TicketChannel.Api,
@@ -330,7 +330,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
     Swag.assert(securityDecision.sendStatusPageLink == true)
 
     const billingRequest: SupportTicket =
-        {
+        SupportTicket{
         plan: CustomerPlan.Standard,
         priority: TicketPriority.Normal,
         channel: TicketChannel.Email,
@@ -350,7 +350,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
     Swag.assert(billingDecision.sendStatusPageLink == false)
 
     const identityLockout: SupportTicket =
-        {
+        SupportTicket{
         plan: CustomerPlan.Business,
         priority: TicketPriority.High,
         channel: TicketChannel.Chat,
@@ -370,7 +370,7 @@ func buildTriageDecision(ticket: SupportTicket)->TriageDecision
     Swag.assert(identityDecision.sendStatusPageLink == false)
 
     const analyticsBacklog: SupportTicket =
-        {
+        SupportTicket{
         plan: CustomerPlan.Business,
         priority: TicketPriority.Normal,
         channel: TicketChannel.Chat,

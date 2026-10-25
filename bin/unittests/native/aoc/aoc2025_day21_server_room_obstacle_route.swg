@@ -155,31 +155,31 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
 {
     const sampleDrops: [25] ByteDrop =
         [
-        {5, 4},
-        {4, 2},
-        {4, 5},
-        {3, 0},
-        {2, 1},
-        {6, 3},
-        {2, 4},
-        {1, 5},
-        {0, 6},
-        {3, 3},
-        {2, 6},
-        {5, 1},
-        {1, 2},
-        {5, 5},
-        {2, 5},
-        {6, 5},
-        {1, 4},
-        {0, 4},
-        {6, 4},
-        {1, 1},
-        {6, 1},
-        {1, 0},
-        {0, 5},
-        {1, 6},
-        {2, 0}
+        ByteDrop{5, 4},
+        ByteDrop{4, 2},
+        ByteDrop{4, 5},
+        ByteDrop{3, 0},
+        ByteDrop{2, 1},
+        ByteDrop{6, 3},
+        ByteDrop{2, 4},
+        ByteDrop{1, 5},
+        ByteDrop{0, 6},
+        ByteDrop{3, 3},
+        ByteDrop{2, 6},
+        ByteDrop{5, 1},
+        ByteDrop{1, 2},
+        ByteDrop{5, 5},
+        ByteDrop{2, 5},
+        ByteDrop{6, 5},
+        ByteDrop{1, 4},
+        ByteDrop{0, 4},
+        ByteDrop{6, 4},
+        ByteDrop{1, 1},
+        ByteDrop{6, 1},
+        ByteDrop{1, 0},
+        ByteDrop{0, 5},
+        ByteDrop{1, 6},
+        ByteDrop{2, 0}
         ]
 
     let sampleReport = analyzeObstacleDrops(sampleDrops, 7, 12)
@@ -191,13 +191,13 @@ func analyzeObstacleDrops(drops: const [..] ByteDrop, gridSize, initialDropCount
 
     const compactDrops: [7] ByteDrop =
         [
-        {1, 0},
-        {1, 1},
-        {1, 2},
-        {3, 2},
-        {2, 3},
-        {1, 3},
-        {0, 3}
+        ByteDrop{1, 0},
+        ByteDrop{1, 1},
+        ByteDrop{1, 2},
+        ByteDrop{3, 2},
+        ByteDrop{2, 3},
+        ByteDrop{1, 3},
+        ByteDrop{0, 3}
         ]
 
     let compactReport = analyzeObstacleDrops(compactDrops, 5, 4)

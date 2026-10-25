@@ -22,7 +22,7 @@ private struct NameKey
 
 private impl NameKey
 {
-    func from(fileName: string)->NameKey => {String.toLower(Path.fileName(fileName)), String.toLower(Path.extension(fileName))}
+    func from(fileName: string)->NameKey => NameKey{String.toLower(Path.fileName(fileName)), String.toLower(Path.extension(fileName))}
 
     // Reports whether `plugin` claims this name through an extension or an exact name, or, with
     // `wildcard`, through its `*` fallback.
@@ -176,7 +176,7 @@ impl ViewerPluginRegistry
 
         for plugin, index in .plugins where plugin.matchNames and key.selectedBy(plugin, wildcard: false)
         {
-            result.add({index, plugin.key})
+            result.add(ViewerPluginChoice{index, plugin.key})
             matched[index]      = true
             content.claimed     = true
             content.claimedText = content.claimedText and plugin.textual
@@ -184,14 +184,14 @@ impl ViewerPluginRegistry
 
         for plugin, index in .plugins where not matched[index] and plugin.probe and plugin.probe(content)
         {
-            result.add({index, plugin.key})
+            result.add(ViewerPluginChoice{index, plugin.key})
             matched[index]      = true
             content.claimed     = true
             content.claimedText = content.claimedText and plugin.textual
         }
 
         for plugin, index in .plugins where not matched[index] and key.selectedBy(plugin, wildcard: true) do
-            result.add({index, plugin.key})
+            result.add(ViewerPluginChoice{index, plugin.key})
         return result
     }
 

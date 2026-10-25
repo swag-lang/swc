@@ -9,9 +9,9 @@ func createRgbModesPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        discard createModePicker(left, "Red / green", {24, 122, 176, 176}, .RedGreen)
-        discard createModePicker(left, "Red / blue", {226, 122, 176, 176}, .RedBlue)
-        discard createModePicker(left, "Green / blue", {428, 122, 176, 176}, .GreenBlue)
+        discard createModePicker(left, "Red / green", (24, 122, 176, 176), .RedGreen)
+        discard createModePicker(left, "Red / blue", (226, 122, 176, 176), .RedBlue)
+        discard createModePicker(left, "Green / blue", (428, 122, 176, 176), .GreenBlue)
     }
 
     let right = createPanel(parent,
@@ -20,10 +20,10 @@ func createRgbModesPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        discard createModePicker(right, "Red", {120, 122, 32, 210}, .RedVertical)
-        discard createModePicker(right, "Green", {250, 122, 32, 210}, .GreenVertical)
-        discard createModePicker(right, "Blue", {380, 122, 32, 210}, .BlueVertical)
-        discard createModePicker(right, "Alpha", {510, 122, 32, 210}, .AlphaVertical)
+        discard createModePicker(right, "Red", (120, 122, 32, 210), .RedVertical)
+        discard createModePicker(right, "Green", (250, 122, 32, 210), .GreenVertical)
+        discard createModePicker(right, "Blue", (380, 122, 32, 210), .BlueVertical)
+        discard createModePicker(right, "Alpha", (510, 122, 32, 210), .AlphaVertical)
     }
 
     let bottom = createPanel(parent,
@@ -32,10 +32,10 @@ func createRgbModesPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        discard createModePicker(bottom, "Red", {24, 118, 270, 24}, .RedHorizontal)
-        discard createModePicker(bottom, "Green", {330, 118, 270, 24}, .GreenHorizontal)
-        discard createModePicker(bottom, "Blue", {636, 118, 270, 24}, .BlueHorizontal)
-        discard createModePicker(bottom, "Alpha", {942, 118, 270, 24}, .AlphaHorizontal)
-        discard createQuickPalette(bottom, {24, 202, 520, 36}, "RGB presets")
+        discard createModePicker(bottom, "Red", (24, 118, 270, 24), .RedHorizontal)
+        discard createModePicker(bottom, "Green", (330, 118, 270, 24), .GreenHorizontal)
+        discard createModePicker(bottom, "Blue", (636, 118, 270, 24), .BlueHorizontal)
+        discard createModePicker(bottom, "Alpha", (942, 118, 270, 24), .AlphaHorizontal)
+        discard createQuickPalette(bottom, (24, 202, 520, 36), "RGB presets")
     }
 }

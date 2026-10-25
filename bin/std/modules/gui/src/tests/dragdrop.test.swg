@@ -56,8 +56,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.root, {10, 10, 100, 100})
-    let effect  = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
+    let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 100, 100})
+    let effect  = host.dropFiles(Math.Point{50, 50}, ["c:/tmp/one.txt"])
 
     Swag.assert(effect == .Copy)
     Swag.assert(catcher.drops == 1)
@@ -72,18 +72,18 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
+    let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
 
-    discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
-    discard host.dragFilesOver({60, 60}, ["c:/tmp/one.txt"])
+    discard host.dragFilesOver(Math.Point{50, 50}, ["c:/tmp/one.txt"])
+    discard host.dragFilesOver(Math.Point{60, 60}, ["c:/tmp/one.txt"])
     Swag.assert(catcher.enters == 1)
     Swag.assert(catcher.overs == 2)
     Swag.assert(catcher.leaves == 0)
 
     // Moving outside the window leaves it, and moving back enters it again.
-    discard host.dragFilesOver({150, 150}, ["c:/tmp/one.txt"])
+    discard host.dragFilesOver(Math.Point{150, 150}, ["c:/tmp/one.txt"])
     Swag.assert(catcher.leaves == 1)
-    discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
+    discard host.dragFilesOver(Math.Point{50, 50}, ["c:/tmp/one.txt"])
     Swag.assert(catcher.enters == 2)
 }
 
@@ -94,8 +94,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
-    discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
+    let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
+    discard host.dragFilesOver(Math.Point{50, 50}, ["c:/tmp/one.txt"])
     host.cancelDrag()
 
     Swag.assert(catcher.enters == 1)
@@ -110,8 +110,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
-    discard host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
+    let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
+    discard host.dropFiles(Math.Point{50, 50}, ["c:/tmp/one.txt"])
 
     Swag.assert(catcher.drops == 1)
     Swag.assert(catcher.leaves == 1)
@@ -124,8 +124,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
-    discard host.dragFilesOver({50, 50}, ["c:/tmp/one.txt"])
+    let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
+    discard host.dragFilesOver(Math.Point{50, 50}, ["c:/tmp/one.txt"])
     Swag.assert(host.app.dragEnterWnd == cast(*Wnd?, catcher))
 
     catcher.destroy()
@@ -133,7 +133,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     Swag.assert(host.app.dragEnterWnd == null)
 
     // The gesture goes on over what is left, which is nothing that takes a drop.
-    let effect = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
+    let effect = host.dropFiles(Math.Point{50, 50}, ["c:/tmp/one.txt"])
     Swag.assert(effect == .None)
 }
 
@@ -144,11 +144,11 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let outer = makeCatcher(&host.root, {10, 10, 150, 150})
-    let inner = makeCatcher(outer, {10, 10, 50, 50})
+    let outer = makeCatcher(&host.root, Math.Rectangle{10, 10, 150, 150})
+    let inner = makeCatcher(outer, Math.Rectangle{10, 10, 50, 50})
     inner.claim = false
 
-    let effect = host.dropFiles({40, 40}, ["c:/tmp/one.txt"])
+    let effect = host.dropFiles(Math.Point{40, 40}, ["c:/tmp/one.txt"])
     Swag.assert(effect == .Copy)
     Swag.assert(inner.drops == 0)
     Swag.assert(outer.drops == 1)
@@ -269,7 +269,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.root, {10, 10, 80, 80})
+    let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
 
     var empty: DragData
     var effect = catcher.startDrag(&empty)
@@ -295,8 +295,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.root, {10, 10, 20, 20})
-    let effect  = host.dropFiles({500, 500}, ["c:/tmp/one.txt"])
+    let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 20, 20})
+    let effect  = host.dropFiles(Math.Point{500, 500}, ["c:/tmp/one.txt"])
 
     Swag.assert(effect == .None)
     Swag.assert(catcher.drops == 0)
@@ -309,7 +309,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(240, 60)
     defer host.shutdown()
 
-    let edit    = EditBox.create(&host.root, "AC", {0, 0, 240, 26})
+    let edit    = EditBox.create(&host.root, "AC", Math.Rectangle{0, 0, 240, 26})
     var changed = 0'u32
     edit.sigTextChanged += func|&changed|(_)
     {
@@ -321,12 +321,12 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     let rect = edit.surfaceRect()
     edit.setSelection(0, 0)
 
-    let effect = host.dropText({rect.right() - 2, rect.center().y}, "B")
+    let effect = host.dropText(Math.Point{rect.right() - 2, rect.center().y}, "B")
     Swag.assert(effect == .Copy)
     Swag.assert(edit.text() == "ACB")
     Swag.assert(changed == 1)
 
-    discard host.dropText({rect.x + 2, rect.center().y}, "Z")
+    discard host.dropText(Math.Point{rect.x + 2, rect.center().y}, "Z")
     Swag.assert(edit.text() == "ZACB")
 }
 
@@ -337,7 +337,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(240, 60)
     defer host.shutdown()
 
-    let edit = EditBox.create(&host.root, "keep", {0, 0, 240, 26})
+    let edit = EditBox.create(&host.root, "keep", Math.Rectangle{0, 0, 240, 26})
     edit.updateFlags(.ReadOnly)
 
     let effect = host.dropText(edit.surfaceRect().center(), "no")
@@ -352,7 +352,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(240, 60)
     defer host.shutdown()
 
-    let edit = EditBox.create(&host.root, "", {0, 0, 240, 26})
+    let edit = EditBox.create(&host.root, "", Math.Rectangle{0, 0, 240, 26})
     let pt   = edit.surfaceRect().center()
 
     var effect = host.dropFiles(pt, ["c:/tmp/one.vault"])
@@ -379,8 +379,8 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.surfaceWnd, {10, 10, 100, 100})
-    let effect  = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
+    let catcher = makeCatcher(&host.surfaceWnd, Math.Rectangle{10, 10, 100, 100})
+    let effect  = host.dropFiles(Math.Point{50, 50}, ["c:/tmp/one.txt"])
 
     Swag.assert(effect == .Copy)
     Swag.assert(catcher.drops == 1)
@@ -396,11 +396,11 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
     defer host.shutdown()
 
-    let catcher = makeCatcher(&host.root, {10, 10, 100, 100})
-    let overlay = Wnd.create'Wnd(catcher, {0, 0, 100, 100})
+    let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 100, 100})
+    let overlay = Wnd.create'Wnd(catcher, Math.Rectangle{0, 0, 100, 100})
     overlay.disable()
 
-    let effect = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])
+    let effect = host.dropFiles(Math.Point{50, 50}, ["c:/tmp/one.txt"])
     Swag.assert(effect == .Copy)
     Swag.assert(catcher.drops == 1)
 }

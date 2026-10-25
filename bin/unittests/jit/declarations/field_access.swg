@@ -141,7 +141,7 @@ impl Nested
 {
     mtd fill()
     {
-        .pair       = {1, 2}
+        .pair       = {key: 1, value: 2}
         .inner.slot = 3
     }
 
@@ -161,7 +161,7 @@ impl Nested
 }
 
 // A returned tuple is an anonymous aggregate too, so a caller reads what it names.
-func split(value: s32)->{ half: s32, rest: s32 } => {value / 2, value % 2}
+func split(value: s32)->{ half: s32, rest: s32 } => {half: value / 2, rest: value % 2}
 
 #test
 {

@@ -120,10 +120,10 @@ func day3A1()
             let val = expect StrConv.toF32(v[1 to])
             switch v[0]
             {
-            case 'U': pos += {0, -val}
-            case 'D': pos += {0, val}
-            case 'R': pos += {-val, 0}
-            case 'L': pos += {val, 0}
+            case 'U': pos += Math.Vector2{0, -val}
+            case 'D': pos += Math.Vector2{0, val}
+            case 'R': pos += Math.Vector2{-val, 0}
+            case 'L': pos += Math.Vector2{val, 0}
             }
 
             result.add(pos)

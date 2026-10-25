@@ -73,7 +73,7 @@ impl HiddenLocator
                count < MinimumSize or
                count > hostSize - first do
                 break
-            return {first, count}
+            return FreeExtent{first, count}
         }
 
         fail volumeError(.PasswordOrDamaged)

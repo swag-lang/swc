@@ -75,7 +75,7 @@ in its module backlog; a general request for better names is not a missing langu
 - Done when: a local initializer and a function return can use a total multi-arm expression
   without a mutable relay; JIT/native tests cover type inference, evaluation order, cleanup and
   borrowed-result escapes, and the formatter/reference/editor agree on the chosen syntax.
-- Related: language.design.001, language.design.002, language.design.006.
+- Related: language.design.001, language.design.002.
 
 ### language.design.035 — Move a non-defaultable owner without resetting its consumed source
 
@@ -107,25 +107,6 @@ in its module backlog; a general request for better names is not a missing langu
 - Related: language.design.024 owns implicit copies at consuming boundaries. `expect` already
   accepts non-defaultable results; this entry concerns resetting consumed sources.
 
-### language.design.036 — Struct equality compares float members by their bytes
-
-- Evidence: the [operators reference](../bin/reference/modules/language/src/003_006_operators.swg)
-  says that `==` on a struct compares member by member, and that the compiler compares the bytes
-  only when every member gives the answer its bytes give, "which is what a struct of numbers
-  does". A float member does not: `-0.0 == 0.0` holds and `NaN == NaN` does not, while their
-  bytes say the opposite. [Aggregate codegen](../src/Compiler/CodeGen/Ast/CodeGen.Relational.cpp)
-  (`appendCompareParts`) treats every float member as bytes, and a struct of at most eight bytes
-  such as `Core.Math.Point` compares as one integer. Since scalar float negation flips the sign
-  bit, `-Math.Point.Zero == Math.Point.Zero` is false; the core test that asserted it held only
-  because negation used to compute `0 - x`.
-- Decisions: either float members compare as floats, which the reference promises, or the
-  reference states that numeric structs compare by bytes. Comparing as floats has to cover the
-  Sema constant fold, small structs carried in registers, and float arrays (a packed `cmpeqps`
-  answers IEEE equality sixteen bytes at a time), and it makes a byte hash disagree with `==` for
-  `-0.0` and NaN keys, as it does in C++.
-- Next: decide the contract, then align the reference, the constant fold, and codegen together.
-- Done when: the reference and every compile-time and run-time comparison of a float-bearing
-  struct or array give the same answer, with JIT and native tests for `-0.0` and NaN members.
 
 ### language.design.033 — Choose one canonical instance-method declaration
 
@@ -182,37 +163,6 @@ in its module backlog; a general request for better names is not a missing langu
   tested lifetime and cost contract with a migration path for opVisit.
 - Related: language.design.018; compiler.safety.014 in [compiler.safety.md](compiler.safety.md).
 
-### language.design.006 — Positional destructuring binds by position even when every name matches a field
-
-- Evidence: `let {a, b} = tuple` is positional, and the reference says so
-  ([004_003_tuple.swg](../bin/reference/modules/language/src/004_003_tuple.swg)).
-  The reference explicitly states that binding names do not select source fields and tests
-  a reordered `{y, x}` pattern. The named form (`{y: vertical}`) selects by field name. The
-  remaining design question is whether positional and named
-  patterns should share a form that lets a reordered field-looking pattern mean something else.
-- Evidence: with `let point = {x: 10, y: 20}`, `let {y, x} = point` gives `y == 10` and `x == 20`.
-  Confirmed under both the JIT and the forged binary. The same indifference to names governs
-  assignment: a `{width, height}` tuple takes a `{x, y}` tuple of the same field types, and
-  [004_003_tuple.swg](../bin/reference/modules/language/src/004_003_tuple.swg)
-  documents it — "tuples can be assigned to each other if their field types match, even if field
-  names differ", with `#typeof(x) != #typeof(y)` asserted on the same page.
-- Elsewhere: Rust distinguishes tuple patterns from named-field struct patterns, where a bare field name
-  abbreviates a binding to that same field
-  ([Rust patterns](https://doc.rust-lang.org/reference/patterns.html#destructuring)).
-- Proposed contract: Named destructuring already exists as field: binding. The change is to make named
-  shorthand actually select the named fields and give positional tuples/patterns a distinct form.
-  On a record with x = 10 and y = 20, a named y, x pattern must produce 20, 10; positional extraction
-  must visibly request positions. Specify record compatibility as well as pattern spelling so
-  assignment does not discard field names while destructuring depends on them.
-- Next: Compare positional parentheses and named braces against existing tuple literals, grouped
-  expressions, one-element tuples, ignored fields, renaming and rest patterns. Inventory the
-  migration of {a, b}, including inferred field names; settle equality, assignment and parameter
-  compatibility before choosing syntax. Preserve evaluation and binding order.
-- Done when: named and positional construction, assignment and destructuring have separate predictable
-  contracts, and reordered-name tests cannot silently select the wrong fields.
-- Related: the same pattern syntax is what `let {r, g, b} = getWhite()` uses in
-  [007_008_retval.swg](../bin/reference/modules/language/src/007_008_retval.swg), where the
-  names read as field names and happen to be in order.
 
 ### language.design.001 — Enum switches are silently non-exhaustive
 

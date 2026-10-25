@@ -61,7 +61,7 @@ struct AnyCompareType {}
 
 #test
 {
-    var boxed: any = AnyCastDerived{base: {value: 9}, extra: 2}
+    var boxed: any = AnyCastDerived{base: AnyCastBase{value: 9}, extra: 2}
     let baseRef    = assume cast(const *AnyCastBase, boxed)
     let basePtr    = assume cast(const *AnyCastBase, boxed)
     Swag.assert(baseRef.value == 9)
@@ -110,7 +110,7 @@ struct AnyCompareType {}
 
 #test
 {
-    var raw: any = AnyCastDerived{base: {value: 9}, extra: 2}
+    var raw: any = AnyCastDerived{base: AnyCastBase{value: 9}, extra: 2}
     let boxed    = cast(const *AnyCastStrictAny, (&raw))[]
     let baseRef  = assume cast(const *AnyCastBase, boxed)
     let basePtr  = assume cast(const *AnyCastBase, boxed)

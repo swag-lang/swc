@@ -19,6 +19,6 @@ func checkTupleRef(param: { x: s32, y: s32 })
 
 #test
 {
-    Swag.assert(takeTupleRef({3, 4}) == 7)
-    checkTupleRef({1, 2})
+    Swag.assert(takeTupleRef({x: 3, y: 4}) == 7)
+    checkTupleRef({x: 1, y: 2})
 }

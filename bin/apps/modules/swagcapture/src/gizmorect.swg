@@ -141,13 +141,13 @@ impl GizmoRect
             return false
         .moving, .firstMoving = true
         .gizmoRad    = .gizmoAngleRad()
-        .gizmoCenter = {.rect.horzCenter(), .rect.vertCenter()}
+        .gizmoCenter = Math.Point{.rect.horzCenter(), .rect.vertCenter()}
         if .gizmoRad != 0
         {
             // Work in a frame centered on the box and aligned to its axes
             let halfW = .rect.width * 0.5
             let halfH = .rect.height * 0.5
-            .startRect  = {-halfW, -halfH, .rect.width, .rect.height}
+            .startRect  = Math.Rectangle{-halfW, -halfH, .rect.width, .rect.height}
             .movingRect = .startRect
         }
         else
@@ -311,7 +311,7 @@ impl GizmoRect
             return pos
         let cx = .rect.horzCenter()
         let cy = .rect.vertCenter()
-        let r  = GizmoRect.rotateVec({pos.x - cx, pos.y - cy}, -ang)
+        let r  = GizmoRect.rotateVec(Math.Point{pos.x - cx, pos.y - cy}, -ang)
         return Math.Point{cx + r.x, cy + r.y}
     }
 
@@ -330,7 +330,7 @@ impl GizmoRect
         if ang != 0
         {
             painter.pushTransform()
-            let sc = painter.transform().transformPoint({.rect.horzCenter(), .rect.vertCenter()})
+            let sc = painter.transform().transformPoint(Math.Vector2{.rect.horzCenter(), .rect.vertCenter()})
             painter.rotateTransform(ang, sc.x, sc.y)
         }
 
@@ -358,14 +358,14 @@ impl GizmoRect
             }
         }
 
-        .anchors[0] = {.rect.x - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[1] = {.rect.horzCenter() - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[2] = {.rect.right() - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[3] = {.rect.x - anchorSize2, .rect.vertCenter() - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[4] = {.rect.right() - anchorSize2, .rect.vertCenter() - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[5] = {.rect.x - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[6] = {.rect.horzCenter() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
-        .anchors[7] = {.rect.right() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[0] = Math.Rectangle{.rect.x - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[1] = Math.Rectangle{.rect.horzCenter() - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[2] = Math.Rectangle{.rect.right() - anchorSize2, .rect.y - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[3] = Math.Rectangle{.rect.x - anchorSize2, .rect.vertCenter() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[4] = Math.Rectangle{.rect.right() - anchorSize2, .rect.vertCenter() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[5] = Math.Rectangle{.rect.x - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[6] = Math.Rectangle{.rect.horzCenter() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
+        .anchors[7] = Math.Rectangle{.rect.right() - anchorSize2, .rect.bottom() - anchorSize2, .anchorSize, .anchorSize}
 
         for c in .anchors
         {
@@ -390,7 +390,7 @@ impl GizmoRect
             let knobR   = anchorSize2 + 2
             let knobCol = .rotateHot ? Argb.White : Argb.LightGray
 
-            .rotateAnchor = {cx - knobR, handleY - knobR, knobR * 2, knobR * 2}
+            .rotateAnchor = Math.Rectangle{cx - knobR, handleY - knobR, knobR * 2, knobR * 2}
 
             // Embossed leader line, matching the big-border style (dark core + light overlay)
             painter.drawLine(cx, topY, cx, handleY, Argb.DarkGray, 4)
@@ -424,7 +424,7 @@ impl GizmoRect
         // Convert it back to an absolute axis-aligned model box (no snapping).
         if .gizmoRad != 0
         {
-            let cl  = GizmoRect.rotateVec({.movingRect.horzCenter(), .movingRect.vertCenter()}, .gizmoRad)
+            let cl  = GizmoRect.rotateVec(Math.Point{.movingRect.horzCenter(), .movingRect.vertCenter()}, .gizmoRad)
             let scx = .gizmoCenter.x + cl.x
             let scy = .gizmoCenter.y + cl.y
 

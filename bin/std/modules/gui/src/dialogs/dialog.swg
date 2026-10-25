@@ -104,13 +104,13 @@ impl Dialog
 
         let metrics = .themeMetrics()
         let h       = metrics.btnPush_Height + 2 * metrics.dialog_BtnPadding
-        with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", {0, 0, 0, h})
+        with me.buttonBar = Wnd.create'StackLayoutCtrl(srf.wnd.view, "", Math.Rectangle{0, 0, 0, h})
         {
             .spacing         = metrics.dialog_BtnPadding
             .mode            = .HorizontalEnd
             .dockStyle       = .Bottom
             .backgroundStyle = .DialogActionBar
-            .padding         = {metrics.dialog_Padding, metrics.dialog_BtnPadding, metrics.dialog_Padding, metrics.dialog_BtnPadding}
+            .padding         = Math.Vector4{metrics.dialog_Padding, metrics.dialog_BtnPadding, metrics.dialog_Padding, metrics.dialog_BtnPadding}
         }
 
         return srf
@@ -211,7 +211,7 @@ impl Dialog
                 button.setForm(.Normal)
         }
 
-        with let btn = PushButton.create(me.buttonBar, str, {}, id)
+        with let btn = PushButton.create(me.buttonBar, str, Math.Rectangle{}, id)
         {
             // One dominant action per box. Created `Strong`, every button of the bar was
             // filled and the bar said nothing about which one Enter would press.

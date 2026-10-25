@@ -62,7 +62,7 @@ impl CompilerOutput
             {
                 let offset = .text.length
                 .text.append(source[start until index])
-                .runs.add({offset, .text.length, style})
+                .runs.add(Run{offset, .text.length, style})
             }
 
             if index == bytes.count do

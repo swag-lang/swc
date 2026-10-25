@@ -31,7 +31,7 @@ impl RuneClass
     // Adds one scalar value.
     mtd addRune(value: rune)
     {
-        .ranges.add({value, value})
+        .ranges.add(RuneRange{value, value})
     }
 
     // Adds every interval of another class.
@@ -48,14 +48,14 @@ impl RuneClass
         {
             if range.stride == 1
             {
-                .ranges.add({range.lo, range.hi})
+                .ranges.add(RuneRange{range.lo, range.hi})
                 continue
             }
 
             var scalar = range.lo
             while scalar <= range.hi
             {
-                .ranges.add({scalar, scalar})
+                .ranges.add(RuneRange{scalar, scalar})
                 scalar += range.stride
             }
         }
@@ -99,7 +99,7 @@ impl RuneClass
         for &range in .ranges
         {
             if range.lo > nextScalar do
-                result.add({nextScalar, range.lo - 1})
+                result.add(RuneRange{nextScalar, range.lo - 1})
             if range.hi >= Utf8.MaxRune
             {
                 .ranges = #move result
@@ -109,7 +109,7 @@ impl RuneClass
             nextScalar = range.hi + 1
         }
 
-        result.add({nextScalar, Utf8.MaxRune})
+        result.add(RuneRange{nextScalar, Utf8.MaxRune})
         .ranges = #move result
     }
 

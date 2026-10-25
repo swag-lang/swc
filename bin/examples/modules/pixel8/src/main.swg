@@ -76,7 +76,7 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
-        .rect   = {0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
+        .rect   = Math.Rectangle{0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
         .rect.x = Math.round((cast(f32, surfaceWidth) - .rect.width) * 0.5)
         .rect.y = Math.round((cast(f32, surfaceHeight) - .rect.height) * 0.5)
     }
@@ -89,7 +89,7 @@ func drawCard(painter: *Pixel.Painter, rect: Math.Rectangle, index: u64)
     let accent = Color.fromArgb(Accents[index])
     painter.fillRoundRect(rect, 12, 12, Argb.White)
     painter.drawRoundRect(rect, 12, 12, Color.fromArgb(38, Argb.SlateGray), 1)
-    painter.fillRoundRect({rect.x, rect.y, 6, rect.height}, 3, 3, accent)
+    painter.fillRoundRect(Math.Rectangle{rect.x, rect.y, 6, rect.height}, 3, 3, accent)
 
     painter.drawString(rect.x + 22, rect.y + 16, Titles[index], g_LabelFont, accent)
     painter.drawString(rect.x + 22, rect.bottom() - 31, Sources[index], g_SourceFont, Argb.DimGray)

@@ -42,7 +42,7 @@ struct MixedHolder
 #test
 {
     DropCount = 0
-    var source: Holder'u32 = {{3}}
+    var source: Holder'u32 = Holder'u32{Gated'u32{3}}
     #assert(not #defined(source.field.opPostCopy))
     let copied = source
     Swag.assert(copied.field.value == 3)
@@ -57,7 +57,7 @@ struct MixedHolder
 #test
 {
     DropCount = 0
-    var source: Holder's32 = {{3}}
+    var source: Holder's32 = Holder's32{Gated's32{3}}
     #assert(#defined(source.field.opPostCopy))
     let copied = source
     Swag.assert(copied.field.value == 13)
@@ -80,7 +80,7 @@ struct MixedHolder
 
 #test
 {
-    var source: MixedHolder = {[{1}, {2}], {3}}
+    var source: MixedHolder = MixedHolder{[Gated'u32{1}, Gated'u32{2}], Gated's32{3}}
     let copied = source
     Swag.assert(copied.absent[0].value == 1)
     Swag.assert(copied.absent[1].value == 2)

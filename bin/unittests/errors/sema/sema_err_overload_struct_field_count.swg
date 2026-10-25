@@ -2,6 +2,7 @@
 
 struct Source {x, y: s32}
 struct Target {x, y, z: s32}
+struct Excess {x, y, z, w: s32}
 
 func accept(value: Target) { discard value }
 func accept(value: *s32) { discard value }
@@ -16,6 +17,6 @@ func accept(value: *s32) { discard value }
 
 #test
 {
-    // swc-expected-note@+1 {{parameter 'value' cannot accept argument 1: struct literal for 'Target' provides 4 fields}}
-    accept({1, 2, 3, 4})     // swc-expected-error {{sema_err_no_overload_match}}
+    // swc-expected-note@+1 {{cannot cast from 'Excess' to 'Target'; source provides 4 fields, destination needs 3}}
+    accept(Excess{})     // swc-expected-error {{sema_err_no_overload_match}}
 }

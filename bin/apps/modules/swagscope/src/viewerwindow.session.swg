@@ -132,7 +132,7 @@ impl ViewerWindow
             .mode  = .SelectFile
             .title = appStrings().dlg_TitleOpen
             .confirmButtonText = appStrings().dlg_ButtonOpen
-            .filters.add({appStrings().dlg_AllFiles, ""})
+            .filters.add({name: appStrings().dlg_AllFiles, extensions: ""})
         }
 
         let dialog = FileDlg.create(.surface!, options)
@@ -570,7 +570,7 @@ impl ViewerWindow
             return false
 
         var next: ViewerSession
-        let plugin = &.index.plugins[choice.pluginIndex]
+        let plugin   = &.index.plugins[choice.pluginIndex]
         let splitter = me.mainSplitter
         with var pluginHost: ViewerPluginHost
         {

@@ -69,19 +69,19 @@ impl DocumentOutline
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = {12, 8, 12, 8}
+            .padding         = Math.Vector4{12, 8, 12, 8}
             .toggle          = side.toggle
         }
 
         let size = themeCompactButtonSize(result.themeMetrics())
 
-        with let header = Wnd.create'Wnd(result, {0, 0, 0, size})
+        with let header = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, size})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
         }
 
-        with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), {0, 0, size, size})
+        with result.closeButton = IconButton.create(header, theme.icon(.WndClose, themeRowIconSize(result.themeMetrics())), Math.Rectangle{0, 0, size, size})
         {
             .dockStyle  = .Right
             .sigPressed += func|panel = result|(_)
@@ -91,23 +91,23 @@ impl DocumentOutline
             }
         }
 
-        with result.title = Label.create(header, "", {}, null, .Ellipsis)
+        with result.title = Label.create(header, "", Math.Rectangle{}, null, .Ellipsis)
         {
             .dockStyle = .Center
             .setTextAlignment(.Left, .Center)
             .style.setFont(theme.createDefaultFont(13, .Bold), .Regular)
         }
 
-        with result.status = Label.create(result, "", {}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        with result.status = Label.create(result, "", Math.Rectangle{}, null, .WordWrap | .AutoHeight | .SecondaryText)
         {
             .dockStyle = .Top
             .margin.y  = 8
         }
 
-        with result.filterBox = EditBox.create(result, "", {0, 0, 0, size})
+        with result.filterBox = EditBox.create(result, "", Math.Rectangle{0, 0, 0, size})
         {
             .dockStyle = .Top
-            .margin    = {0, 8, 0, 0}
+            .margin    = Math.Vector4{0, 8, 0, 0}
             .setIcon(theme.icon(.Search, themeRowIconSize(&theme.metrics)))
             .setPlaceholder(g_DocumentOutlineStrings.filter)
             .updateFlags(.ClearButton)

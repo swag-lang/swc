@@ -751,7 +751,7 @@ impl Panel
             }
         }
 
-        with .pageLabel = IconButton.create(me.commands, {}, {0, 0, PageLabelWidth, buttonSize}, "scope.indesign.page", .CenterContent)
+        with .pageLabel = IconButton.create(me.commands, {}, Math.Rectangle{0, 0, PageLabelWidth, buttonSize}, "scope.indesign.page", .CenterContent)
         {
             .dockStyle = .Left
             .margin.x  = 8

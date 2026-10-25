@@ -267,13 +267,13 @@ func layoutRootView()
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
 
-    g_Title!.setPosition({RootMargin, 16, contentWidth, 34})
-    g_SubTitle!.setPosition({RootMargin + 2, 52, contentWidth - 4, 36})
+    g_Title!.setPosition(Math.Rectangle{RootMargin, 16, contentWidth, 34})
+    g_SubTitle!.setPosition(Math.Rectangle{RootMargin + 2, 52, contentWidth - 4, 36})
 
     var x = RootMargin
     for btn in g_ThemeButtons
     {
-        btn.setPosition({x, HeaderHeight, 118, BarHeight})
+        btn.setPosition(Math.Rectangle{x, HeaderHeight, 118, BarHeight})
         x += 118 + 6
     }
 
@@ -281,19 +281,19 @@ func layoutRootView()
     let barY = HeaderHeight + BarHeight + BarGap
     for btn in g_PageButtons
     {
-        btn.setPosition({x, barY, 104, BarHeight})
+        btn.setPosition(Math.Rectangle{x, barY, 104, BarHeight})
         x += 104 + 6
     }
 
-    g_Filter!.setPosition({RootMargin + contentWidth - FilterWidth, barY, FilterWidth, BarHeight})
-    g_Rings!.setPosition({RootMargin + contentWidth - FilterWidth - RingsWidth - 12, barY, RingsWidth, BarHeight})
+    g_Filter!.setPosition(Math.Rectangle{RootMargin + contentWidth - FilterWidth, barY, FilterWidth, BarHeight})
+    g_Rings!.setPosition(Math.Rectangle{RootMargin + contentWidth - FilterWidth - RingsWidth - 12, barY, RingsWidth, BarHeight})
 
     let pageY      = barY + BarHeight + BarGap
     let pageHeight = Math.max(rect.height - pageY - PageBottomMargin, 120.0)
-    g_Sheet!.setPosition({RootMargin, pageY, contentWidth, pageHeight})
-    g_Widgets!.setPosition({RootMargin, pageY, contentWidth, pageHeight})
+    g_Sheet!.setPosition(Math.Rectangle{RootMargin, pageY, contentWidth, pageHeight})
+    g_Widgets!.setPosition(Math.Rectangle{RootMargin, pageY, contentWidth, pageHeight})
 
-    g_Footer!.setPosition({RootMargin, Math.max(rect.height - 34.0, pageY + pageHeight + 4.0), contentWidth, 26})
+    g_Footer!.setPosition(Math.Rectangle{RootMargin, Math.max(rect.height - 34.0, pageY + pageHeight + 4.0), contentWidth, 26})
 }
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
@@ -369,19 +369,19 @@ func createRootView()
     g_View = view
     view.backgroundStyle = .View
 
-    let title = Label.create(view, "", {})
+    let title = Label.create(view, "", Math.Rectangle{})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(26), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
     for i in ThemeVariantCount
     {
         let variant = cast(ThemeVariant, cast(s32, i))
-        let btn     = PushButton.create(view, variantName(variant), {})
+        let btn     = PushButton.create(view, variantName(variant), Math.Rectangle{})
         btn.sigPressed += func|variant|(_) { setVariant(variant) }
         g_ThemeButtons.add(btn)
     }
@@ -389,12 +389,12 @@ func createRootView()
     for i in MaxPages
     {
         let page = cast(s32, i)
-        let btn  = PushButton.create(view, pageTitle(page), {})
+        let btn  = PushButton.create(view, pageTitle(page), Math.Rectangle{})
         btn.sigPressed += func|page|(_) { showPage(page) }
         g_PageButtons.add(btn)
     }
 
-    let filter = EditBox.create(view, "", {})
+    let filter = EditBox.create(view, "", Math.Rectangle{})
     g_Filter = filter
     filter.setPlaceholder("filter by name")
     filter.setIcon(app.theme.icon(.Search, 16))
@@ -403,7 +403,7 @@ func createRootView()
     // Only one control of a surface can hold the keyboard, so the focus mark is the one state
     // the wall cannot show by standing still. The diagnostic draws every ring at once, which is
     // how the mark is judged against every shape a palette answers for rather than one at a time.
-    let rings = CheckButton.create(view, "focus rings", {})
+    let rings = CheckButton.create(view, "focus rings", Math.Rectangle{})
     g_Rings = rings
     rings.sigChanged += func(box)
     {
@@ -414,7 +414,7 @@ func createRootView()
     g_Sheet   = SheetWnd.create(view)
     g_Widgets = WidgetWall.create(view)
 
-    let footer = Label.create(view, "", {}, null, .SecondaryText)
+    let footer = Label.create(view, "", Math.Rectangle{}, null, .SecondaryText)
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
 

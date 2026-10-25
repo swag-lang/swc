@@ -24,10 +24,10 @@ func readPixel(image: Image, source: const [*] u8)->Pixel
 {
     switch image.pixelFormat
     {
-    case .RGB8:  return {source[0], source[1], source[2], 255}
-    case .RGBA8: return {source[0], source[1], source[2], source[3]}
-    case .BGR8:  return {source[2], source[1], source[0], 255}
-    case .BGRA8: return {source[2], source[1], source[0], source[3]}
+    case .RGB8:  return Pixel{source[0], source[1], source[2], 255}
+    case .RGBA8: return Pixel{source[0], source[1], source[2], source[3]}
+    case .BGR8:  return Pixel{source[2], source[1], source[0], 255}
+    case .BGRA8: return Pixel{source[2], source[1], source[0], source[3]}
     }
 
     return {}
@@ -82,7 +82,7 @@ func writePixelChunk(result: *ConcatBuffer, pixel, previous: Pixel, index: *[64]
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => {"QOI - Quite OK Image", ".qoi"}
+    mtd impl format()->ImageFormat => ImageFormat{"QOI - Quite OK Image", ".qoi"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {

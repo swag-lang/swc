@@ -47,11 +47,11 @@ func day9BA()
         let r = t - '0'
         if index & 1
         {
-            map.add({-1, r})
+            map.add({what: -1, num: r})
         }
         else
         {
-            map.add({toCheck, r})
+            map.add({what: toCheck, num: r})
             toCheck += 1
         }
     }
@@ -80,7 +80,7 @@ func day9BA()
         {
             let n = map[i].num - map[last].num
             map[i].num = map[last].num
-            map.insertAt(i + 1, {-1, n})
+            map.insertAt(i + 1, {what: -1, num: n})
         }
     }
 

@@ -1,5 +1,7 @@
 #pragma once
+#include "Backend/Micro/MicroReg.h"
 #include "Support/Core/RefTypes.h"
+#include "Support/Core/Result.h"
 
 SWC_BEGIN_NAMESPACE();
 
@@ -8,6 +10,11 @@ class SymbolStruct;
 class SymbolVariable;
 class TypeInfo;
 struct SourceCodeRef;
+
+namespace SemaHelpers
+{
+    struct DestructuringField;
+}
 
 namespace CodeGenStructHelpers
 {
@@ -32,6 +39,11 @@ namespace CodeGenStructHelpers
     const SymbolVariable* tryResolveConcreteStructMemberSymbol(CodeGen& codeGen, TypeRef leftTypeRef, const SymbolVariable& memberSym);
     const SymbolVariable* tryResolveConcreteReceiverFieldSymbol(CodeGen& codeGen, const SymbolVariable& fieldSym);
     const SymbolVariable* tryResolveSameGenericFamilyFieldSymbol(const SymbolStruct& runtimeStruct, const SymbolVariable& fieldSym);
+
+    bool   destructuringSourceIsLValue(CodeGen& codeGen, AstNodeRef sourceRef);
+    Result emitDropDestructuringRemainder(CodeGen& codeGen, MicroReg source, std::span<const SemaHelpers::DestructuringField> fields);
+
+    void emitRecordOrTupleCast(CodeGen& codeGen, MicroReg destination, MicroReg source, TypeRef sourceType, TypeRef targetType);
 
     size_t                structLikeFieldIndex(CodeGen& codeGen, const TypeInfo& typeInfo, const SourceCodeRef& fieldNameRef);
     size_t                structLikeFieldCount(const TypeInfo& typeInfo);

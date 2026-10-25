@@ -16,18 +16,18 @@ internal func htmlLocalResourcePath(basePath, source: string)->String
     if not Path.isValidPathName(source) or
        Utf8.contains(source, "://") or
        Utf8.startsWith(source, "data:") do
-        return {}
+        return String{}
     let colon = Utf8.indexOf(source, ':'rune)
     if colon != Swag.U64.Max and not (WINDOWS and colon == 1 and Latin1.isLetter(source[0])) do
-        return {}
+        return String{}
     if basePath.count and not Path.isValidPathName(basePath) do
-        return {}
+        return String{}
 
     let fileName = Path.isRooted(source) ? String.from(source) : Path.combine(basePath, source)
     if fileName.count >= 2 and
        Path.isDirectorySeparator(fileName[0]) and
        Path.isDirectorySeparator(fileName[1]) do
-        return {}
+        return String{}
     return fileName
 }
 
@@ -119,7 +119,7 @@ impl HtmlImageCache
         let metrics = wnd.themeMetrics()
         let size    = Math.min(metrics.spinner_Size, Math.min(frame.width, frame.height))
         Spinner.paintRing(painter,
-                          {frame.horzCenter() - size * 0.5, frame.vertCenter() - size * 0.5, size, size},
+                          Math.Rectangle{frame.horzCenter() - size * 0.5, frame.vertCenter() - size * 0.5, size, size},
                           .loadingPhase,
                           wnd.themeColors().label_Text,
                           metrics.spinner_DotCount)
@@ -162,7 +162,7 @@ impl HtmlImageCache
         {
             let embedded = catch Image.fromDataUri(source) { return null }
             .entries[slot].image       = embedded
-            .entries[slot].naturalSize = {cast(f32, embedded.width), cast(f32, embedded.height)}
+            .entries[slot].naturalSize = Math.Vector2{cast(f32, embedded.width), cast(f32, embedded.height)}
             .entries[slot].loaded      = true
             return &.entries[slot]
         }
@@ -200,7 +200,7 @@ impl HtmlImageCache
         let image = catch Image.load(fileName.toString()) { return null }
 
         .entries[slot].image       = image
-        .entries[slot].naturalSize = {cast(f32, image.width), cast(f32, image.height)}
+        .entries[slot].naturalSize = Math.Vector2{cast(f32, image.width), cast(f32, image.height)}
         .entries[slot].loaded      = true
         return &.entries[slot]
     }

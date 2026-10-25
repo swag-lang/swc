@@ -21,7 +21,7 @@ impl IWnd for ViewerDropHighlight
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
         var rect    = .clientRect()
-        rect.applyPadding({ViewerDropHighlightInset, ViewerDropHighlightInset, ViewerDropHighlightInset, ViewerDropHighlightInset})
+        rect.applyPadding(Math.Vector4{ViewerDropHighlightInset, ViewerDropHighlightInset, ViewerDropHighlightInset, ViewerDropHighlightInset})
         if rect.isEmpty() do
             return
 

@@ -67,7 +67,7 @@ func day6A()
         let split = Tokenize.split(l[], ','u8)
         let vx    = expect StrConv.toS32(Latin1.trim(split[0]))
         let vy    = expect StrConv.toS32(Latin1.trim(split[1]))
-        coords.add({vx, vy})
+        coords.add({x: vx, y: vy})
     }
 
     const W = 300
@@ -99,7 +99,7 @@ func day6A()
                     borders[r.who - 1] -= border
                 }
 
-                r[] = {d, cast(s32, who) + 1}
+                r[] = Claim{d, cast(s32, who) + 1}
 
                 count[who]   += 1
                 borders[who] += border

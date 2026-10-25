@@ -67,13 +67,13 @@ using Swag, Core
     Swag.assert(assume cast(*FormArrow, arrow).endSize == 8)
     testDeleteForm(arrow)
 
-    f.main.mdlFormPolygon.points.add({1, 1})
+    f.main.mdlFormPolygon.points.add(Math.Vector2{1, 1})
     let polygon = f.main.newFormFromModel(.Polygon, clear: true)
     Swag.assert(Swag.kindOf(polygon) == FormPolygon)
     Swag.assert(assume cast(*FormPolygon, polygon).points.count == 0)
     testDeleteForm(polygon)
 
-    f.main.mdlFormDraw.points.add({1, 1})
+    f.main.mdlFormDraw.points.add(Math.Vector2{1, 1})
     let draw = f.main.newFormFromModel(.Draw, clear: true)
     Swag.assert(Swag.kindOf(draw) == FormDraw)
     Swag.assert(assume cast(*FormDraw, draw).points.count == 0)

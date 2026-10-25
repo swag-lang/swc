@@ -47,7 +47,7 @@ impl Volume
         try .file.flush()
         if .file.base
         {
-            try HiddenLocator.write(&.file.stream, index, password, {.file.base, .file.limit})
+            try HiddenLocator.write(&.file.stream, index, password, FreeExtent{.file.base, .file.limit})
             let verified = try HiddenLocator.find(&.file.stream, password)
             if verified.first != .file.base or verified.count != .file.limit do
                 fail volumeError(.Io)

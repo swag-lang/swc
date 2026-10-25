@@ -152,7 +152,7 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     fmt.minLineHeight = 18
     fmt.maxLines      = 2
     fmt.letterSpacing = 0.3
-    painter.drawRichString({sample.x + 24, sample.bottom() - 54, sample.width - 48, 46}, &paragraph, fmt)
+    painter.drawRichString((sample.x + 24, sample.bottom() - 54, sample.width - 48, 46), &paragraph, fmt)
 }
 
 func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
@@ -190,7 +190,7 @@ func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.popTransform()
     painter.popClippingRect()
     drawWrappedText(painter,
-                    {body.x + 18, body.bottom() - 32, body.width - 36, 22},
+                    (body.x + 18, body.bottom() - 32, body.width - 36, 22),
                     "TypeFace.buildStringOutline + gradient fill + textured outline",
                     g_HelpFont,
                     Argb.DimGray)
@@ -201,8 +201,8 @@ func drawTextPage(painter: *Pixel.Painter)
     drawPageHeader(painter,
                    "Pixel text rendering",
                    "Page 7 : shaped runs, rich layout, painted glyphs, baseline metrics and vector outlines in one painter pass.")
-    drawTextFlowCard(painter, {28, 104, 452, 280})
-    drawPaintedGlyphCard(painter, {500, 104, 452, 280})
-    drawBaselineCard(painter, {28, 406, 452, 258})
-    drawOutlineTextCard(painter, {500, 406, 452, 258})
+    drawTextFlowCard(painter, Math.Rectangle{28, 104, 452, 280})
+    drawPaintedGlyphCard(painter, Math.Rectangle{500, 104, 452, 280})
+    drawBaselineCard(painter, Math.Rectangle{28, 406, 452, 258})
+    drawOutlineTextCard(painter, Math.Rectangle{500, 406, 452, 258})
 }

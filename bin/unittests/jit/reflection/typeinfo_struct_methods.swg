@@ -159,7 +159,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
        methodInfo.value == null do
         return false
 
-    var probe: SimpleMethodProbe = {value: seed}
+    var probe: SimpleMethodProbe = SimpleMethodProbe{value: seed}
     let method = cast(SimplePingFn, methodInfo.value)
     let result = method(&probe)
     RuntimeMethodPointerCalls += 1
@@ -263,7 +263,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
         return false
     RuntimeMethodPointerCalls += 1
 
-    var probe: ExportedMethodProbe = {value: seed}
+    var probe: ExportedMethodProbe = ExportedMethodProbe{value: seed}
 
     let add = cast(ExportedAddFn, addInfo.value)
     if add(&probe, 5) != seed + 5 or probe.value != seed + 5 do

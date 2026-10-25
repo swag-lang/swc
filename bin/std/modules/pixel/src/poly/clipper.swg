@@ -348,7 +348,7 @@ impl Transform
 
         var edges  = Memory.new'Edge(cast(u64, highI) + 1)
         var isFlat = true
-        .edgeList.add({edges, cast(u64, highI) + 1})
+        .edgeList.add({edge: edges, rank: cast(u64, highI) + 1})
 
         // 1. Basic (first) edge initialization ...
         edges[1].curr = pgBuf[1]

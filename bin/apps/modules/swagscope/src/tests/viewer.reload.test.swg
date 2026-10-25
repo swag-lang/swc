@@ -257,7 +257,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
         .setZoom(2)
         .mirrorHorizontally()
         .rotateClockwise()
-        .setPanOffset({31, -47})
+        .setPanOffset(Math.Point{31, -47})
     }
 
     let pan = view.panOffset

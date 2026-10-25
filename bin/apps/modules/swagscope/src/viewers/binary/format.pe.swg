@@ -721,10 +721,10 @@ private func peDirectory(image: *BinaryImage, layout: *PeLayout, index: u64)->{ 
     let optional  = peOffset + 4 + PeFileHeaderSize
     let available = cast(u64, image.u32At(optional + (layout.is64 ? 108'u64 : 92)))
     if index >= available do
-        return {0, 0}
+        return {rva: 0, size: 0}
 
     let entryAt = optional + (layout.is64 ? 112'u64 : 96) + index * 8
-    return {image.u32At(entryAt), image.u32At(entryAt + 4)}
+    return {rva: image.u32At(entryAt), size: image.u32At(entryAt + 4)}
 }
 
 // Reports the export directory: the exports reachable by name, in name-table order, then those

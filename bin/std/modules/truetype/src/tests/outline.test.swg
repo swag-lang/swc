@@ -99,13 +99,13 @@ using Swag, Core
 // Its fixed-point result must not change when automatic FMA is enabled in Release.
 #test
 {
-    var points:   [12] Vector = [{272, 298}, {147, 473}, {53, 473}, {229, 239}, {48, 0}, {143, 0}, {273, 180}, {404, 0}, {498, 0}, {317, 239}, {493, 473}, {398, 473}]
+    var points:   [12] Vector = [Vector{272, 298}, Vector{147, 473}, Vector{53, 473}, Vector{229, 239}, Vector{48, 0}, Vector{143, 0}, Vector{273, 180}, Vector{404, 0}, Vector{498, 0}, Vector{317, 239}, Vector{493, 473}, Vector{398, 473}]
     var tags:     [12] u8     = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     var contours: [1] s16     = [11]
     var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 12, 1)
     discard expect outline.embolden(3)
 
-    let expected: [12] Vector = [{272, 301}, {148, 475}, {50, 475}, {227, 239}, {45, -2}, {144, -2}, {273, 177}, {403, -2}, {501, -2}, {319, 239}, {496, 475}, {397, 475}]
+    let expected: [12] Vector = [Vector{272, 301}, Vector{148, 475}, Vector{50, 475}, Vector{227, 239}, Vector{45, -2}, Vector{144, -2}, Vector{273, 177}, Vector{403, -2}, Vector{501, -2}, Vector{319, 239}, Vector{496, 475}, Vector{397, 475}]
     for point, index in expected
     {
         Swag.assert(points[index].x == point.x)
@@ -117,13 +117,13 @@ using Swag, Core
 // crosses the lower baseline tie when either dot-product term is fused.
 #test
 {
-    var points:   [17] Vector = [{23, 0}, {259, 652}, {356, 652}, {595, 0}, {508, 0}, {443, 182}, {174, 182}, {111, 0}, {200, 255}, {417, 255}, {370, 387}, {358, 420}, {328, 515}, {307, 585}, {287, 513}, {256, 417}, {245, 387}]
+    var points:   [17] Vector = [Vector{23, 0}, Vector{259, 652}, Vector{356, 652}, Vector{595, 0}, Vector{508, 0}, Vector{443, 182}, Vector{174, 182}, Vector{111, 0}, Vector{200, 255}, Vector{417, 255}, Vector{370, 387}, Vector{358, 420}, Vector{328, 515}, Vector{307, 585}, Vector{287, 513}, Vector{256, 417}, Vector{245, 387}]
     var tags:     [17] u8     = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1]
     var contours: [2] s16     = [7, 16]
     var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 17, 2)
     discard expect outline.embolden(3)
 
-    let expected: [17] Vector = [{21, -2}, {258, 654}, {357, 654}, {597, -2}, {507, -2}, {442, 181}, {175, 181}, {112, -2}, {202, 257}, {415, 257}, {369, 386}, {357, 420}, {327, 515}, {307, 580}, {288, 513}, {257, 417}, {246, 386}]
+    let expected: [17] Vector = [Vector{21, -2}, Vector{258, 654}, Vector{357, 654}, Vector{597, -2}, Vector{507, -2}, Vector{442, 181}, Vector{175, 181}, Vector{112, -2}, Vector{202, 257}, Vector{415, 257}, Vector{369, 386}, Vector{357, 420}, Vector{327, 515}, Vector{307, 580}, Vector{288, 513}, Vector{257, 417}, Vector{246, 386}]
     for point, index in expected
     {
         Swag.assert(points[index].x == point.x)
@@ -135,13 +135,13 @@ using Swag, Core
 // the first point from just above the negative half-unit tie onto it.
 #test
 {
-    var points:   [13] Vector = [{277, 0}, {19, 699}, {219, 699}, {336, 336}, {351, 289}, {375, 194}, {386, 146}, {397, 194}, {420, 289}, {435, 336}, {551, 699}, {748, 699}, {490, 0}]
+    var points:   [13] Vector = [Vector{277, 0}, Vector{19, 699}, Vector{219, 699}, Vector{336, 336}, Vector{351, 289}, Vector{375, 194}, Vector{386, 146}, Vector{397, 194}, Vector{420, 289}, Vector{435, 336}, Vector{551, 699}, Vector{748, 699}, Vector{490, 0}]
     var tags:     [13] u8     = [1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 1]
     var contours: [1] s16     = [12]
     var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 13, 1)
     discard expect outline.embolden(1)
 
-    let expected: [13] Vector = [{277, 0}, {18, 700}, {219, 700}, {336, 336}, {351, 289}, {375, 194}, {386, 147}, {397, 194}, {420, 289}, {435, 336}, {551, 700}, {749, 700}, {490, -1}]
+    let expected: [13] Vector = [Vector{277, 0}, Vector{18, 700}, Vector{219, 700}, Vector{336, 336}, Vector{351, 289}, Vector{375, 194}, Vector{386, 147}, Vector{397, 194}, Vector{420, 289}, Vector{435, 336}, Vector{551, 700}, Vector{749, 700}, Vector{490, -1}]
     for point, index in expected
     {
         Swag.assert(points[index].x == point.x)
@@ -153,7 +153,7 @@ using Swag, Core
 // Rounding that displacement before adding the origin preserves the +0.5 tie.
 #test
 {
-    var points:   [6] Vector = [{58, 11}, {55, 3}, {53, 3}, {53, 3}, {52, 3}, {47, 8}]
+    var points:   [6] Vector = [Vector{58, 11}, Vector{55, 3}, Vector{53, 3}, Vector{53, 3}, Vector{52, 3}, Vector{47, 8}]
     var tags:     [6] u8     = [1, 0, 1, 1, 0, 1]
     var contours: [2] s16    = [2, 5]
     var outline = Outline.borrowed(&points[0], &tags[0], &contours[0], 6, 2)

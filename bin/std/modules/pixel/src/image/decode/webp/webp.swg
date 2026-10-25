@@ -69,7 +69,7 @@ func readU24(data: const [*] u8)->u32 => data[0] | (cast(u32, data[1]) << 8) | (
 
 func readU32(data: const [*] u8)->u32 => data[0] | (cast(u32, data[1]) << 8) | (cast(u32, data[2]) << 16) | (cast(u32, data[3]) << 24)
 
-func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Container fail
+func parseContainer(buffer: const [..] u8, options: DecodeOptions = DecodeOptions{})->Container fail
 {
     if buffer.count < 12 do
         fail InvalidFormatError{"WebP data ends before the RIFF header"}
@@ -179,12 +179,12 @@ func parseContainer(buffer: const [..] u8, options: DecodeOptions = {})->Contain
                 case WEBP_FOURCC_ALPH:
                     if frame.alpha.data or frame.image.data do
                         fail InvalidFormatError{"WebP animation alpha chunk is duplicated or misplaced"}
-                    frame.alpha = {frameKind, payload, frameSize}
+                    frame.alpha = Chunk{frameKind, payload, frameSize}
 
                 case WEBP_FOURCC_VP8, WEBP_FOURCC_VP8L:
                     if frame.image.data or (frameKind == WEBP_FOURCC_VP8L and frame.alpha.data) do
                         fail InvalidFormatError{"WebP animation frame has conflicting image chunks"}
-                    frame.image = {frameKind, payload, frameSize}
+                    frame.image = Chunk{frameKind, payload, frameSize}
                 }
 
                 nested = payload + padded
@@ -386,7 +386,7 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 {
     let imageData = Swag.makeSlice(cast(const [*] u8, container.image.data!), container.image.size)
-    var decoder: Vp8Decoder = {source: imageData.buffer}
+    var decoder: Vp8Decoder = Vp8Decoder{source: imageData.buffer}
     try vp8DecodeFrameHeader(&decoder, imageData)
 
     if container.hasExtendedHeader and
@@ -430,7 +430,7 @@ func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"WebP - Google WebP", ".webp"}
+    mtd impl format()->ImageFormat => ImageFormat{"WebP - Google WebP", ".webp"}
 
     #[Swag.Propagate]
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
@@ -489,7 +489,7 @@ impl IImageSetDecoder for Decoder
         if index >= .container.frames.count do
             fail InvalidFormatError{"WebP image index is out of range"}
         let frame = &.container.frames[index]
-        let container: Container = {image: frame.image, alpha: frame.alpha, canvasWidth: frame.info.width, canvasHeight: frame.info.height, hasExtendedHeader: true, expectsAlpha: frame.alpha.data != null}
+        let container: Container = Container{image: frame.image, alpha: frame.alpha, canvasWidth: frame.info.width, canvasHeight: frame.info.height, hasExtendedHeader: true, expectsAlpha: frame.alpha.data != null}
         var result:    retval    = container.image.kind == WEBP_FOURCC_VP8L ? try decodeLossless(container, options) : try decodeLossy(container, options)
         if options.decodeMetadata do
             result.metadata = .container.metadata

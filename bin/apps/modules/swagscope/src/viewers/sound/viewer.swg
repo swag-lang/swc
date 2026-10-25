@@ -189,7 +189,7 @@ func buildWaveform(bytes: const [..] u8, encoding: SoundFileEncoding, channels: 
             sum  += level
         }
 
-        result[point] = {peak, sum / cast(f32, last - first)}
+        result[point] = WaveformPoint{peak, sum / cast(f32, last - first)}
     }
 
     return result
@@ -241,7 +241,7 @@ impl WaveformReducer
             if target != .currentPoint
             {
                 let body = .sampleCount ? cast(f32, (.sum / cast(f64, .sampleCount))) : 0
-                .points[][.currentPoint] = {.peak, body}
+                .points[][.currentPoint] = WaveformPoint{.peak, body}
                 .readyCount   = .currentPoint + 1
                 .currentPoint = target
                 .peak         = 0
@@ -264,7 +264,7 @@ impl WaveformReducer
     {
         if not .sampleCount or .currentPoint >= .pointCount do
             return
-        .points[][.currentPoint] = {.peak, cast(f32, (.sum / cast(f64, .sampleCount)))}
+        .points[][.currentPoint] = WaveformPoint{.peak, cast(f32, (.sum / cast(f64, .sampleCount)))}
         .readyCount = .currentPoint + 1
     }
 }
@@ -304,10 +304,10 @@ private impl WaveformView
     mtd const plotRect()->Math.Rectangle
     {
         let rect = .clientRect()
-        return {rect.x + WaveformInsetX,
-                rect.y + WaveformInsetY,
-                Math.max(rect.width - 2 * WaveformInsetX, 1),
-                Math.max(rect.height - 2 * WaveformInsetY - WaveformScaleHeight, 1)}
+        return Math.Rectangle{rect.x + WaveformInsetX,
+                              rect.y + WaveformInsetY,
+                              Math.max(rect.width - 2 * WaveformInsetX, 1),
+                              Math.max(rect.height - 2 * WaveformInsetY - WaveformScaleHeight, 1)}
     }
 
     // Draws the graduated scale under the wave, skipping any mark whose label would touch the one
@@ -888,10 +888,10 @@ impl Panel
             .sigPressed += func|view = me|(_) { view.seekRelative(SeekSeconds) }
         }
 
-        with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
+        with .volumeSlider = Slider.create(.commands, Math.Rectangle{0, 0, 96, 36})
         {
             .dockStyle = .Right
-            .margin    = {8, 1, 0, 1}
+            .margin    = Math.Vector4{8, 1, 0, 1}
             .toolTip   = texts().ui_TipVolume
             .setBounds(0, 1, 0.05)
             .setValueWithoutGesture(1)
@@ -909,17 +909,17 @@ impl Panel
             .sigCheckedChanged += func|view = me|(button) { view.setMuted(button.isChecked) }
         }
 
-        with .timeLabel = Label.create(.commands, "", {0, 0, 112, 36}, null, .SecondaryText)
+        with .timeLabel = Label.create(.commands, "", Math.Rectangle{0, 0, 112, 36}, null, .SecondaryText)
         {
             .dockStyle = .Right
             .margin.x  = 8
             .setTextAlignment(.Right, .Center)
         }
 
-        with .timeline = Slider.create(.commands, {0, 0, 0, 36})
+        with .timeline = Slider.create(.commands, Math.Rectangle{0, 0, 0, 36})
         {
             .dockStyle = .Center
-            .margin    = {12, 1, 12, 1}
+            .margin    = Math.Vector4{12, 1, 12, 1}
             .toolTip   = texts().ui_TipSeek
             .enable(false)
             .sigEndChange += func|view = me|(slider) { view.seekSeconds(slider.value()) }

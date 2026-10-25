@@ -336,7 +336,7 @@ impl Decoder
                 }
 
                 let blend = data[25] ? ImageBlend.Over : .Replace
-                let frame: ImageFrameInfo = {
+                let frame: ImageFrameInfo = ImageFrameInfo{
                     kind: .Animation,
                     width: cast(s32, width),
                     height: cast(s32, height),
@@ -572,7 +572,7 @@ impl Decoder
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"PNG - Portable Network Graphics", ".png;.apng"}
+    mtd impl format()->ImageFormat => ImageFormat{"PNG - Portable Network Graphics", ".png;.apng"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

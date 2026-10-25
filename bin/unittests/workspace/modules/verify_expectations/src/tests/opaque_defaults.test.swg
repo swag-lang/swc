@@ -7,10 +7,10 @@ union RuntimeDefaultUnion
     value:   StaticApi.OpaqueDefaultPointer
 }
 
-const OPAQUE_SCALAR_CONSTANT: StaticApi.OpaqueDefaultScalar   = {}
-const OPAQUE_TEXT_CONSTANT:   StaticApi.OpaqueDefaultText     = {}
-const OPAQUE_NESTED_CONSTANT: StaticApi.OpaqueDefaultNested   = {}
-const OPAQUE_ARRAY_CONSTANT:  [2] StaticApi.OpaqueDefaultText = [{}]
+const OPAQUE_SCALAR_CONSTANT: StaticApi.OpaqueDefaultScalar   = StaticApi.OpaqueDefaultScalar{}
+const OPAQUE_TEXT_CONSTANT:   StaticApi.OpaqueDefaultText     = StaticApi.OpaqueDefaultText{}
+const OPAQUE_NESTED_CONSTANT: StaticApi.OpaqueDefaultNested   = StaticApi.OpaqueDefaultNested{}
+const OPAQUE_ARRAY_CONSTANT:  [2] StaticApi.OpaqueDefaultText = [StaticApi.OpaqueDefaultText{}]
 
 var opaqueScalarGlobal: StaticApi.OpaqueDefaultScalar
 var opaqueTextGlobal:   StaticApi.OpaqueDefaultText
@@ -117,7 +117,7 @@ var opaqueArrayGlobal:  [2] StaticApi.OpaqueDefaultText
 #test
 {
     let implicit: StaticApi.OpaqueDefaultPointer
-    var values:   [2] StaticApi.OpaqueDefaultPointer    = [{}]
+    var values:   [2] StaticApi.OpaqueDefaultPointer    = [StaticApi.OpaqueDefaultPointer{}]
     var matrix:   [2, 2] StaticApi.OpaqueDefaultPointer = [[{}]]
     Swag.assert(implicit.isDefault())
     Swag.assert(values[0].isDefault())

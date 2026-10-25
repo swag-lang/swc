@@ -10,7 +10,7 @@ struct NativeAssignDestructRet
 
 func nativeMakeAnonymousAssignDestructRet(first, second: u32)->{ first, second: u32 }
 {
-    return {first, second}
+    return {first: first, second: second}
 }
 
 func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
@@ -35,7 +35,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 {
     var s: Pair
     var a: s32
-    {a, _} = s
+    {a, b: _} = s
     Swag.assert(a == 0)
 }
 
@@ -55,14 +55,14 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 
 #test
 {
-    var namedThenUnnamed = {x: 91's32, 92's32}
+    var namedThenUnnamed = {x: 91's32, item1: 92's32}
     var first:  s32
     var second: s32
     {item1: second, x: first} = namedThenUnnamed
     Swag.assert(first == 91)
     Swag.assert(second == 92)
 
-    var unnamedThenNamed = {101's32, y: 102's32}
+    var unnamedThenNamed = {item0: 101's32, y: 102's32}
     {y: second, item0: first} = unnamedThenNamed
     Swag.assert(first == 101)
     Swag.assert(second == 102)
@@ -72,15 +72,15 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 {
     var first:  s32
     var second: s32
-    {first, second} = {111, 112}
+    (first, second) = (111, 112)
     Swag.assert(first == 111)
     Swag.assert(second == 112)
 
-    {x: first, item1: second} = {x: 113, 114}
+    {x: first, item1: second} = {x: 113, item1: 114}
     Swag.assert(first == 113)
     Swag.assert(second == 114)
 
-    {item0: first, y: second} = {115, y: 116}
+    {item0: first, y: second} = {item0: 115, y: 116}
     Swag.assert(first == 115)
     Swag.assert(second == 116)
 }
@@ -97,7 +97,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 #test
 {
     var second: u32
-    {_, second} = nativeMakeAssignDestructRet(33, 44)
+    {first: _, second} = nativeMakeAssignDestructRet(33, 44)
     Swag.assert(second == 44)
 }
 
@@ -122,7 +122,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
 #test
 {
     var second: u32
-    {_, second} = nativeMakeAnonymousAssignDestructRet(77, 88)
+    {first: _, second} = nativeMakeAnonymousAssignDestructRet(77, 88)
     Swag.assert(second == 88)
 }
 
@@ -133,16 +133,16 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
         func read(value: u32)->{ next, sum: u32 }
         {
             if value >= 3 do
-                return {value + 1, value * 10}
+                return {next: value + 1, sum: value * 10}
 
             var next = value
             var sum: u32
             {next, sum} = read(value + 1)
-            return {next, sum + value}
+            return {next: next, sum: sum + value}
         }
 
         var total: u32
-        {_, total} = read(1)
+        {next: _, sum: total} = read(1)
         return total
     }
 
@@ -156,7 +156,7 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
     func read(n: const [..] u32, s: u32)->{ next, sum: u32 }
     {
         var start    = s
-        let {nc, nm} = {n[start], n[start + 1]}
+        let (nc, nm) = (n[start], n[start + 1])
         start += 2
 
         if not nc
@@ -164,15 +164,15 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
             var sum: u32
             for i in nm do
                 sum += n[start + i]
-            return {start + nm, sum}
+            return {next: start + nm, sum: sum}
         }
 
         var childValues: [4] u32
         for i in nc
         {
             var sum: u32
-            {start, sum}   = read(n, start)
-            childValues[i] = sum
+            {next: start, sum} = read(n, start)
+            childValues[i]     = sum
         }
 
         var sum: u32
@@ -183,18 +183,18 @@ func nativeMakeAssignDestructRet(first, second: u32)->NativeAssignDestructRet
                 sum += childValues[idx - 1]
         }
 
-        return {start + nm, sum}
+        return {next: start + nm, sum: sum}
     }
 
-    let {nextLeaf, sumLeaf} = read(data[to], 2)
+    let {next: nextLeaf, sum: sumLeaf} = read(data[to], 2)
     Swag.assert(nextLeaf == 7)
     Swag.assert(sumLeaf == 33)
 
-    let {nextBranch, sumBranch} = read(data[to], 7)
+    let {next: nextBranch, sum: sumBranch} = read(data[to], 7)
     Swag.assert(nextBranch == 13)
     Swag.assert(sumBranch == 0)
 
     var total: u32
-    {_, total} = read(data[to], 0)
+    {next: _, sum: total} = read(data[to], 0)
     Swag.assert(total == 66)
 }

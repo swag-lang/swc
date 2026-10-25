@@ -26,17 +26,17 @@ private struct SoundFileFormatSpec
 }
 
 private const SoundFileFormats: [11] SoundFileFormatSpec = [
-    {".wav",  .Wav},
-    {".flac", .Flac},
-    {".mp3",  .Mp3},
-    {".aac",  .Aac},
-    {".ac3",  .Ac3},
-    {".eac3", .Eac3},
-    {".ec3",  .Eac3},
-    {".dts",  .Dts},
-    {".ogg",  .Ogg},
-    {".oga",  .Ogg},
-    {".opus", .Ogg}]
+    SoundFileFormatSpec{".wav", .Wav},
+    SoundFileFormatSpec{".flac", .Flac},
+    SoundFileFormatSpec{".mp3", .Mp3},
+    SoundFileFormatSpec{".aac", .Aac},
+    SoundFileFormatSpec{".ac3", .Ac3},
+    SoundFileFormatSpec{".eac3", .Eac3},
+    SoundFileFormatSpec{".ec3", .Eac3},
+    SoundFileFormatSpec{".dts", .Dts},
+    SoundFileFormatSpec{".ogg", .Ogg},
+    SoundFileFormatSpec{".oga", .Ogg},
+    SoundFileFormatSpec{".opus", .Ogg}]
 
 private func findSoundFileFormat(path: string)->u64
 {
@@ -331,7 +331,7 @@ impl SoundFile
     // durations. `options.timelineStartSeconds` locates frame zero on an enclosing media timeline;
     // voice seeking and playback positions remain local to this sound. The optional display name
     // and language are copied from `options` and remain valid for this value's lifetime.
-    func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = {})->SoundFile fail
+    func openPacketStream(path: string, encoding: SoundFileEncoding, sampleRateHz, channels: u32, frameCount: u64, packets: const [..] SoundPacket, decoderConfig: const [..] u8, options: PacketStreamOptions = PacketStreamOptions{})->SoundFile fail
     {
         if not isPacketEncoding(encoding) do
             fail UnsupportedFormatError{"unsupported packetized sound encoding"}

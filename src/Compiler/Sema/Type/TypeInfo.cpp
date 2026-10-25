@@ -653,9 +653,27 @@ namespace
                 break;
 
             case TypeInfoKind::AggregateStruct:
+            {
                 out.resize(start);
-                out += "struct literal";
+                const bool  positional = typeInfo.isPositionalTuple();
+                const auto& aggregate  = typeInfo.payloadAggregate();
+                out += positional ? "(" : "{";
+                for (size_t i = 0; i < aggregate.types.size(); ++i)
+                {
+                    if (i)
+                        out += ", ";
+                    if (!positional && aggregate.names[i].isValid())
+                    {
+                        out += ctx.idMgr().get(aggregate.names[i]).name;
+                        out += ": ";
+                    }
+                    appendTypeName(ctx, out, ctx.typeMgr().get(aggregate.types[i]), mode);
+                }
+                if (positional && aggregate.types.size() == 1)
+                    out += ",";
+                out += positional ? ")" : "}";
                 break;
+            }
             case TypeInfoKind::AggregateArray:
                 out.resize(start);
                 out += "array literal";
@@ -673,6 +691,24 @@ namespace
                 const SymbolStruct& instance = typeInfo.payloadSymStruct();
                 const SymbolStruct* root     = instance.genericRootOrSelf();
                 SWC_ASSERT(root != nullptr);
+                if (instance.hasExtraFlag(SymbolStructFlagsE::Anonymous))
+                {
+                    out += "{";
+                    for (size_t i = 0; i < instance.fields().size(); ++i)
+                    {
+                        if (i)
+                            out += ", ";
+                        const SymbolVariable& field = *instance.fields()[i];
+                        out += field.name(ctx);
+                        out += ": ";
+                        if (field.typeRef().isValid())
+                            appendTypeName(ctx, out, ctx.typeMgr().get(field.typeRef()), mode);
+                        else
+                            out += "unresolved";
+                    }
+                    out += "}";
+                    break;
+                }
 
                 if (mode == TypeNameMode::Full)
                     out += root->getFullScopedName(ctx);
@@ -1162,11 +1198,16 @@ TypeInfo TypeInfo::makeArray(const std::span<const uint64_t>& dims, TypeRef elem
     return ti;
 }
 
+bool TypeInfo::isPositionalTuple() const noexcept
+{
+    return isAggregateStruct() && !payloadAggregate_.names.empty() && std::ranges::all_of(payloadAggregate_.names, [](IdentifierRef name) { return name.isInvalid(); });
+}
+
 TypeInfo TypeInfo::makeAggregateStruct(const std::span<const IdentifierRef>& names, const std::span<const TypeRef>& types)
 {
     SWC_ASSERT(types.size() == names.size());
 
-    TypeInfo ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Const};
+    TypeInfo ti{TypeInfoKind::AggregateStruct, TypeInfoFlagsE::Zero};
     std::construct_at(&ti.payloadAggregate_.types, types.begin(), types.end());
     std::construct_at(&ti.payloadAggregate_.names, names.begin(), names.end());
 

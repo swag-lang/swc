@@ -50,7 +50,7 @@ func runTransformPointers()->bool
     let direct:    Transform = &addTransform
     let alternate: Transform = &scaleTransform
 
-    var holder:    TransformHolder = {cb: &addTransform}
+    var holder:    TransformHolder = TransformHolder{cb: &addTransform}
     let callbacks: [2] Transform   = [&addTransform, alternate]
 
     return direct({base: 10, delta: 2}, 3) == 15 and

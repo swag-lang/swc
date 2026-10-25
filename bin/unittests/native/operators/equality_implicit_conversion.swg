@@ -37,6 +37,6 @@ struct EqualityPoint
 {
     var point = EqualityPoint{10, 20}
     let pointRef: const *EqualityPoint = &point
-    Swag.assert(pointRef[] == {10, 20})
-    Swag.assert({10, 20} == pointRef[])
+    Swag.assert(pointRef[] == EqualityPoint{10, 20})
+    Swag.assert(EqualityPoint{10, 20} == pointRef[])
 }

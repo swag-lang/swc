@@ -52,7 +52,7 @@ impl PreviewViewer
             .gui             = gui
         }
 
-        with result.status = Label.create(result, "", {0, 0, 0, 28}, null, .SecondaryText)
+        with result.status = Label.create(result, "", Math.Rectangle{0, 0, 0, 28}, null, .SecondaryText)
         {
             .dockStyle = .Bottom
         }

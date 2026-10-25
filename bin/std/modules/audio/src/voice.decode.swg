@@ -59,7 +59,7 @@ impl Voice
             if .streamPacketIdx >= file.packets.count
             {
                 if not .playFlags.has(.Loop) do
-                    return {null, 0}
+                    return {buffer: null, size: 0}
                 .rewindData()
             }
 
@@ -68,7 +68,7 @@ impl Voice
             let destBuffer   = .decodedBuffers[.decodedBufferIdx].storage()
             let decodedBytes = try .decodePacketData(destBuffer, .decodedFillSize())
             .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
-            return {destBuffer, decodedBytes}
+            return {buffer: destBuffer, size: decodedBytes}
         }
 
         // At the end of the source, return no buffer unless looping is enabled. A loop rewinds
@@ -76,7 +76,7 @@ impl Voice
         if .streamCurSeek >= file.dataSize
         {
             if not .playFlags.has(.Loop) do
-                return {null, 0}
+                return {buffer: null, size: 0}
             .rewindData()
         }
 
@@ -88,7 +88,7 @@ impl Voice
             let readBytes        = (file.data.count - .streamCurSeek)
             .streamCurSeek = file.data.count
             let dataBuffer = file.data.storage()
-            return {dataBuffer + prefetchedOffset, readBytes}
+            return {buffer: dataBuffer + prefetchedOffset, size: readBytes}
         }
 
         // Otherwise decode into a temporary buffer.
@@ -99,7 +99,7 @@ impl Voice
         let decodedBytes = try .decodeData(destBuffer, .decodedFillSize())
 
         .decodedBufferIdx = (.decodedBufferIdx + 1) % NumDecodedBuffers
-        return {destBuffer, decodedBytes}
+        return {buffer: destBuffer, size: decodedBytes}
     }
 
     mtd closeBuffer()

@@ -39,8 +39,8 @@ func consumeJitNonNullMoveArray(value: JitNonNullMoveArrayNestedAlias)->bool
 
 #test
 {
-    var source: [2] JitNonNullMoveArrayDefault = [{value: "assign-a"}, {value: "assign-b"}]
-    var target: [2] JitNonNullMoveArrayDefault = [{value: "old-a"}, {value: "old-b"}]
+    var source: [2] JitNonNullMoveArrayDefault = [JitNonNullMoveArrayDefault{value: "assign-a"}, JitNonNullMoveArrayDefault{value: "assign-b"}]
+    var target: [2] JitNonNullMoveArrayDefault = [JitNonNullMoveArrayDefault{value: "old-a"}, JitNonNullMoveArrayDefault{value: "old-b"}]
     target = #move source
     Swag.assert(target[0].value == "assign-a" and target[1].value == "assign-b")
     Swag.assert(source[0].value == "reset" and source[1].value == "reset")

@@ -6,7 +6,7 @@ func addTabSample(tab: *Tab, prefix: string)
     {
         let view = Wnd.create'Wnd(tab)
         let name = Format.toString("%%", prefix, index + 1)
-        discard createText(view, Format.toString("View %", index + 1), {14, 12, 120, 24})
+        discard createText(view, Format.toString("View %", index + 1), (14, 12, 120, 24))
         tab.addItem(name, app.theme.icon(ThemeIcons.Search, 14), view)
     }
 }
@@ -20,7 +20,7 @@ func createTabPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        let tab = Tab.create(left, {22, 88, 430, 122})
+        let tab = Tab.create(left, Math.Rectangle{22, 88, 430, 122})
         tab.setForm(.Flat)
         addTabSample(tab, "Flat ")
     }
@@ -31,7 +31,7 @@ func createTabPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let tab = Tab.create(right, {22, 88, 420, 124})
+        let tab = Tab.create(right, Math.Rectangle{22, 88, 420, 124})
         tab.setForm(.Round)
         tab.setLayout(.Fixed)
         addTabSample(tab, "Round ")
@@ -44,12 +44,12 @@ func createTabPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        var tab = Tab.create(bottom, {24, 92, 440, 120})
+        var tab = Tab.create(bottom, Math.Rectangle{24, 92, 440, 120})
         tab.setForm(.Button)
         addTabSample(tab, "Button ")
         tab.setSelectedIndex(2)
 
-        tab = Tab.create(bottom, {520, 92, 440, 120})
+        tab = Tab.create(bottom, Math.Rectangle{520, 92, 440, 120})
         tab.setForm(.PushButton)
         addTabSample(tab, "Push ")
         tab.setSelectedIndex(1)

@@ -23,7 +23,7 @@ impl PreviewCanvas
         let height      = Pipeline.FrameChannel.Height * scale
         let x           = client.horzCenter() - width / 2
         let y           = client.vertCenter() - height / 2
-        return {x, y, width, height}
+        return Math.Rectangle{x, y, width, height}
     }
 
     mtd update(image: *Image)

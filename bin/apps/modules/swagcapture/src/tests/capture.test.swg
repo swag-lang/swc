@@ -10,7 +10,7 @@ func testAddMonitorAt(main: *MainWnd, rect: Math.Rectangle)
 
 func testAddMonitor(main: *MainWnd, idx: u32)
 {
-    testAddMonitorAt(main, {cast(f32, idx) * 320, 0, 320, 240})
+    testAddMonitorAt(main, Math.Rectangle{cast(f32, idx) * 320, 0, 320, 240})
 }
 
 // Capture command states cover every toolbar/menu entry, including monitor
@@ -148,8 +148,8 @@ func testAddMonitor(main: *MainWnd, idx: u32)
     // real screen grab inside any display.
     f.main.monitors.clear()
     for 4 do
-        testAddMonitorAt(f.main, {0, 0, 8, 8})
-    testAddMonitorAt(f.main, {0, 0, 320, 240})
+        testAddMonitorAt(f.main, Math.Rectangle{0, 0, 8, 8})
+    testAddMonitorAt(f.main, Math.Rectangle{0, 0, 320, 240})
 
     let actionExecuted = Gui.Testing.actionExecute'ActionCapture(f.main, ActionCapture.screenId(4))
     Swag.assert(actionExecuted)

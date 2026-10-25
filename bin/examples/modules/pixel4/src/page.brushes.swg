@@ -9,7 +9,7 @@ func drawBrushCellBackground(painter: *Pixel.Painter, rect: Math.Rectangle)
 func drawBrushCellLabel(painter: *Pixel.Painter, rect: Math.Rectangle, title, subtitle: string)
 {
     painter.drawString(rect.x + 18, rect.bottom() - 48, title, g_LabelFont, Argb.DarkSlateBlue)
-    drawWrappedText(painter, {rect.x + 18, rect.bottom() - 28, rect.width - 36, 24}, subtitle, g_HelpFont, Argb.DimGray)
+    drawWrappedText(painter, (rect.x + 18, rect.bottom() - 28, rect.width - 36, 24), subtitle, g_HelpFont, Argb.DimGray)
 }
 
 func drawFilledBrushCells(painter: *Pixel.Painter, rect: Math.Rectangle)
@@ -115,13 +115,13 @@ func drawBrushesPage(painter: *Pixel.Painter)
                    "Page 5 : drawing and filling forms with texture, tiled and hatch brushes.")
 
     let fillBody = drawPanel(painter,
-                             {28, 104, 924, 272},
+                             (28, 104, 924, 272),
                              "Filled forms",
                              "Three non-solid brushes filling the same kinds of primitives used across the showcase.")
     drawFilledBrushCells(painter, fillBody)
 
     let drawBody = drawPanel(painter,
-                             {28, 402, 924, 262},
+                             (28, 402, 924, 262),
                              "Drawn forms",
                              "The same brush family can drive pen strokes as well, including closed paths and rounded geometry.")
     drawOutlinedBrushCells(painter, drawBody)

@@ -38,7 +38,7 @@ func makeShadowItem(value: s32)->ShadowItem { return {count: value} }
 
 func semaTest001()
 {
-    let set: ShadowItem = {count: 3}
+    let set: ShadowItem = ShadowItem{count: 3}
     let count = set.count
 
     #assert(#typeof(count) == s32)
@@ -67,7 +67,7 @@ func semaTest004()
 {
     scope
     {
-        let set: ShadowItem = {count: 6}
+        let set: ShadowItem = ShadowItem{count: 6}
         let count = set.count
         #assert(#typeof(count) == s32)
     }

@@ -49,7 +49,7 @@ private impl PasswordEdit
         var byteOffset = 0'u64
         for runeIndex
         {
-            let {_, eat} = Utf8.decodeRune(.storage[byteOffset until .byteCount])
+            let {c: _, eat} = Utf8.decodeRune(.storage[byteOffset until .byteCount])
             byteOffset += eat
         }
 
@@ -150,9 +150,9 @@ private impl PasswordEdit
         let start = Math.min(.edit.selBeg, .edit.selEnd)
         let end   = Math.max(.edit.selBeg, .edit.selEnd)
         if start == end do
-            return {false, start}
+            return {changed: false, caret: start}
         .eraseRunes(start, end)
-        return {true, start}
+        return {changed: true, caret: start}
     }
 
     mtd insertRune(value: rune)
@@ -306,7 +306,7 @@ impl PasswordEdit
     // [[Gui.PasswordEditFlags.RevealButton]] is enabled by default. Passing
     // [[Gui.PasswordEditFlags.None]] omits the button and leaves the field permanently masked.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags: PasswordEditFlags = .RevealButton)->*PasswordEdit
     {
         Swag.assert(parent != null)
         var pos = position

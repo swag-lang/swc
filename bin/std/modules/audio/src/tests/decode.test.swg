@@ -8,8 +8,8 @@ func audioPcmPacketSound()->SoundFile fail
 {
     let path   = audioGetTestDataPath("pcm16_stereo.wav")
     let source = try SoundFile.load(path, preloadData: false)
-    let packets: [2] SoundPacket = [{source.dataOffset + 4, 4, 1},
-                                    {source.dataOffset, 4, 1}]
+    let packets: [2] SoundPacket = [SoundPacket{source.dataOffset + 4, 4, 1},
+                                    SoundPacket{source.dataOffset, 4, 1}]
     return try SoundFile.openPcmPacketStream(path, .Pcm16, 44_100, 2, packets)
 }
 
@@ -30,7 +30,7 @@ func audioPcmPacketSound()->SoundFile fail
     Swag.assert(voice.streamCurSeek == file.payloadSize())
 
     let first = expect file.packet(0)
-    let malformed:        [1] SoundPacket = [{first.sourceOffset, 3, 1}]
+    let malformed:        [1] SoundPacket = [SoundPacket{first.sourceOffset, 3, 1}]
     var chunkSizeOutcome: Swag.Error
     discard catch SoundFile.openPcmPacketStream(file.sourcePath(), .Pcm16, 44_100, 2, malformed) as chunkSizeOutcome
     let chunkSize = chunkSizeOutcome.value()
@@ -58,15 +58,15 @@ func audioPcmPacketSound()->SoundFile fail
     voice.file = &file
     voice.requestedEncoding = .Pcm16
 
-    let {buffer0, size0} = expect voice.readBuffer()
+    let {buffer: buffer0, size: size0} = expect voice.readBuffer()
     audioAssertBufferBytes(buffer0, size0, [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F])
     Swag.assert(voice.streamCurSeek == file.dataSize)
 
-    let {_, size1} = expect voice.readBuffer()
+    let {size: size1} = expect voice.readBuffer()
     Swag.assert(size1 == 0)
 
     voice.playFlags = .Loop
-    let {buffer2, size2} = expect voice.readBuffer()
+    let {buffer: buffer2, size: size2} = expect voice.readBuffer()
     audioAssertBufferBytes(buffer2, size2, [0x00, 0x80, 0xFF, 0xFF, 0x00, 0x00, 0xFF, 0x7F])
     Swag.assert(voice.streamCurSeek == file.dataSize)
 }

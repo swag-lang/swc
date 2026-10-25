@@ -203,7 +203,7 @@ func registerStrings(type: typeinfo, table: *void, file: string)
     let state = &g_Localization
     for &existing in state.tables where existing.data == table do
         return
-    state.tables.add({type, table, file})
+    state.tables.add(StringTable{type, table, file})
 
     // A table joining an already-translated program takes the active language now. A file it
     // has no translation for, or one a disk override left malformed, leaves it on its
@@ -230,7 +230,7 @@ private func ensureReferenceLanguage()
 {
     let registry = &g_Localization.languages
     if registry.isEmpty() do
-        registry.add({String.from(ReferenceLanguage), String.from("English"), true})
+        registry.add(Language{String.from(ReferenceLanguage), String.from("English"), true})
 }
 
 // Registers a language the interface can present.
@@ -251,7 +251,7 @@ func registerLanguage(tag, nativeName: string)
         return
     }
 
-    g_Localization.languages.add({String.from(tag), String.from(nativeName), false})
+    g_Localization.languages.add(Language{String.from(tag), String.from(nativeName), false})
 }
 
 // Returns the registered languages, [[Gui.ReferenceLanguage]] first.

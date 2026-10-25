@@ -22,11 +22,11 @@ func compactMutationFor(text: string)->u64
         let runLength = ch - '0'
         if index & 1
         {
-            map.add({MutationFreeSpanId, runLength})
+            map.add({what: MutationFreeSpanId, num: runLength})
         }
         else
         {
-            map.add({nextId, runLength})
+            map.add({what: nextId, num: runLength})
             nextId += 1
         }
     }
@@ -84,11 +84,11 @@ func compactMutationWhile(text: string)->u64
         let runLength = ch - '0'
         if index & 1
         {
-            map.add({MutationFreeSpanId, runLength})
+            map.add({what: MutationFreeSpanId, num: runLength})
         }
         else
         {
-            map.add({nextId, runLength})
+            map.add({what: nextId, num: runLength})
             nextId += 1
         }
     }

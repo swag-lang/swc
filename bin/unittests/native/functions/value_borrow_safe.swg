@@ -32,7 +32,7 @@ func writeOther(value: Value, other: *u64)->u64
 
 func accepted()->u64
 {
-    var value: Value = {a: 1, b: 2, c: 3}
+    var value: Value = Value{a: 1, b: 2, c: 3}
     var other: u64
     let first        = read(value)
     let second       = readAlias(value, &value)
@@ -50,7 +50,7 @@ func cValue(value: Value, target: *Value)->u64
 
 func cCopy()->u64
 {
-    var value: Value = {a: 1, b: 2, c: 3}
+    var value: Value = Value{a: 1, b: 2, c: 3}
     return cValue(value, &value)
 }
 
@@ -62,7 +62,7 @@ func sameStorage(value: Value, expected: const *Value)->bool
 
 func zeroCopy()->bool
 {
-    var value: Value = {a: 1, b: 2, c: 3}
+    var value: Value = Value{a: 1, b: 2, c: 3}
     return sameStorage(value, &value)
 }
 
@@ -114,15 +114,15 @@ func inlineRead(value: Value)->u64 => value.a
 
 #test
 {
-    var unique: Unique = {a: 42}
+    var unique: Unique = Unique{a: 42}
     Swag.assert(readUnique(unique, &unique))
-    var small: Small = {value: 3}
+    var small: Small = Small{value: 3}
     Swag.assert(registerValue(small, &small) == 3)
     Swag.assert(small.value == 9)
-    var odd: Odd = {a: 4, b: 5, c: 6}
+    var odd: Odd = Odd{a: 4, b: 5, c: 6}
     Swag.assert(cOdd(odd, &odd) == 4)
     Swag.assert(odd.a == 9)
-    var value: Value = {a: 7}
+    var value: Value = Value{a: 7}
     Swag.assert(inlineRead(value) == 7)
 }
 
@@ -139,7 +139,7 @@ func replaceFrom(value: Value)->Value
 
 #test
 {
-    var value: Value = {a: 1, b: 2, c: 3}
+    var value: Value = Value{a: 1, b: 2, c: 3}
     value = replaceFrom(value)
     Swag.assert(value.a == 41 and value.b == 1 and value.c == 2)
 }
@@ -151,7 +151,7 @@ struct Header
 }
 
 #[Swag.NoInline]
-func makeHeader(target: *u64)->Header => {target, 3, 5}
+func makeHeader(target: *u64)->Header => Header{target, 3, 5}
 
 #[Swag.NoInline]
 func writeHeaderTarget(header: Header)->u64
@@ -180,7 +180,7 @@ func writeSlice(bytes: [..] u8)
 
 #test
 {
-    var value: Value = {a: 1, b: 2, c: 3}
+    var value: Value = Value{a: 1, b: 2, c: 3}
     let callback     = &cValue
     Swag.assert(callback(value, &value) == 1)
     Swag.assert(value.a == 13)
@@ -211,7 +211,7 @@ func writeSliceAfterReadingHeader(bytes: [..] u8)->u64
 #test
 {
     var target: u64
-    let header: Header = {&target, 5, 7}
+    let header: Header = Header{&target, 5, 7}
     Swag.assert(writePayloadAfterReadingHeader(header) == 12)
     Swag.assert(target == 23)
     var bytes: [4] u8
@@ -273,7 +273,7 @@ func makeTextUsingInline()->string
 
 #test
 {
-    let header: TextHeader = {text: "borrow"}
+    let header: TextHeader = TextHeader{text: "borrow"}
     Swag.assert(useTextHeader(header) == 6)
     Swag.assert(updateCounter(header) == 6)
     Swag.assert(updateCounter(forwardText()) == 6)
@@ -340,8 +340,8 @@ func readWithSeparateSink(value: Value, owner: *SinkOwner)->u64
 #test
 {
     var counter: WriteCounter
-    var owner:   SinkOwner = {sink: &counter}
-    let value:   Value     = {a: 37}
+    var owner:   SinkOwner = SinkOwner{sink: &counter}
+    let value:   Value     = Value{a: 37}
     let result             = readWithSeparateSink(value, &owner)
     Swag.assert(result == 37)
     Swag.assert(counter.count == 1)
@@ -366,9 +366,9 @@ func readWithSelectedSink(value: Value, first: *SinkOwner, second: *SinkOwner)->
 #test
 {
     var firstCounter, secondCounter: WriteCounter
-    var first:  SinkOwner = {sink: &firstCounter}
-    var second: SinkOwner = {sink: &secondCounter}
-    let value:  Value     = {a: 41}
+    var first:  SinkOwner = SinkOwner{sink: &firstCounter}
+    var second: SinkOwner = SinkOwner{sink: &secondCounter}
+    let value:  Value     = Value{a: 41}
     let result            = readWithSelectedSink(value, &first, &second)
     Swag.assert(result == 41)
     Swag.assert(firstCounter.count == 0)
@@ -400,7 +400,7 @@ func readEncodedValue(value: Value)->u64 => decodeReadAddress(cast(u64, &value))
 
 #test
 {
-    let value: Value = {a: 61}
+    let value: Value = Value{a: 61}
     let result       = readEncodedValue(value)
     Swag.assert(result == 61)
 }
@@ -425,7 +425,7 @@ func readPackedEncoding(value: Value)->u64
 
 #test
 {
-    let value: Value = {a: 67}
+    let value: Value = Value{a: 67}
     let result       = readPackedEncoding(value)
     Swag.assert(result == 134)
 }
@@ -479,8 +479,8 @@ func readAndClearPointerSlot(value: Value, slot: *PointerSlot)->u64
 
 #test
 {
-    var value: Value       = {a: 83}
-    var slot:  PointerSlot = {target: &value}
+    var value: Value       = Value{a: 83}
+    var slot:  PointerSlot = PointerSlot{target: &value}
     let result             = readAndClearPointerSlot(value, &slot)
     Swag.assert(result == 83)
     Swag.assert(slot.target == null)
@@ -515,7 +515,7 @@ alias CValueCallback = func(value: Value, target: *Value)->u64
 #test
 {
     let callback: CValueCallback = &cValue
-    var value:    Value = {a: 131}
+    var value:    Value = Value{a: 131}
     let result = callback(value, &value)
     Swag.assert(result == 131 and value.a == 13)
 }
@@ -549,16 +549,16 @@ func readAndClearOffsetPointerSlot(value: Value, slot: [*] PointerSlot)->u64
 
 #test
 {
-    var value: Value       = {a: 137}
-    var slot:  PointerSlot = {target: &value}
+    var value: Value       = Value{a: 137}
+    var slot:  PointerSlot = PointerSlot{target: &value}
     let result             = readAndClearIndexedPointerSlot(value, cast([*] PointerSlot, &slot))
     Swag.assert(result == 137 and slot.target == null)
 }
 
 #test
 {
-    var value: Value       = {a: 139}
-    var slot:  PointerSlot = {target: &value}
+    var value: Value       = Value{a: 139}
+    var slot:  PointerSlot = PointerSlot{target: &value}
     let result             = readAndClearOffsetPointerSlot(value, cast([*] PointerSlot, &slot))
     Swag.assert(result == 139 and slot.target == null)
 }
@@ -592,8 +592,8 @@ func storeAndClearDeepAlias(table: *DepthTable, value: DepthValue)->u64
 func compileTimeDeepCopy()->bool
 {
     var entry: DepthEntry
-    var table: DepthTable = {entry: &entry}
-    var value: DepthValue = {value: 163}
+    var table: DepthTable = DepthTable{entry: &entry}
+    var value: DepthValue = DepthValue{value: 163}
     let result = storeAndClearDeepAlias(&table, #copy value)
     return result == 163 and entry.stamp == 157 and entry.target == null
 }

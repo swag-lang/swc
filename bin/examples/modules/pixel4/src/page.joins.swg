@@ -31,9 +31,9 @@ func makeJoinPath(rect: Math.Rectangle)->LinePath
 func getJoinCardRect(index: s32)->Math.Rectangle
 {
     if index < 3 do
-        return {28 + index * 308, 118, 288, 224}
+        return Math.Rectangle{28 + index * 308, 118, 288, 224}
 
-    return {182 + (index - 3) * 308, 372, 288, 224}
+    return Math.Rectangle{182 + (index - 3) * 308, 372, 288, 224}
 }
 
 func drawJoinCard(painter: *Pixel.Painter, rect: Math.Rectangle, card: JoinCard)

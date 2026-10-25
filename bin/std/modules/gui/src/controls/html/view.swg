@@ -102,7 +102,7 @@ struct HtmlStyle
 impl HtmlStyle
 {
     // Returns the document defaults that follow the active GUI theme.
-    func theme()->HtmlStyle => {}
+    func theme()->HtmlStyle => HtmlStyle{}
 }
 
 // The surface an [[Gui.HtmlView]] draws its document on.
@@ -289,7 +289,7 @@ internal impl HtmlView
     mtd viewportSize()->Math.Point
     {
         let rect = .scroll.paddedClientRect()
-        return {Math.max(rect.width, 1), Math.max(rect.height, 1)}
+        return Math.Point{Math.max(rect.width, 1), Math.max(rect.height, 1)}
     }
 
     // Appends stylesheets that became complete since the previous streaming rebuild.
@@ -466,7 +466,7 @@ internal impl HtmlView
         // quarter of a million pixels, which is not a shape the surface geometry is built for.
         let laidOutHeight = Math.max(.layout.documentHeight, viewport.y)
         let height        = .embedded ? viewport.y : (.virtualSource and .virtualHeight > 0 ? .virtualHeight : laidOutHeight)
-        .canvas.setPosition({0, 0, viewport.x, viewport.y})
+        .canvas.setPosition(Math.Rectangle{0, 0, viewport.x, viewport.y})
 
         // Updating the extent already clamps the viewport. Reapplying its position would
         // cancel an active glide every time streaming publishes another layout.
@@ -1171,7 +1171,7 @@ internal impl HtmlView
         var scan = 0'u64
         while scan < source.count
         {
-            let {value, eat} = Utf8.decodeRune(source[scan to])
+            let {c: value, eat} = Utf8.decodeRune(source[scan to])
             starts.add(scan)
             words.add(Unicode.isLetterOrDigit(value) or value == '_'rune)
             scan += eat
@@ -1354,7 +1354,7 @@ internal impl HtmlView
             .parser.start(&.document)
         }
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", {})
+        result.scroll = Wnd.create'ScrollWnd(result, "", Math.Rectangle{})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
 
@@ -1514,7 +1514,7 @@ internal impl HtmlView
     }
 
     // Creates a view and renders the complete in-memory HTML source.
-    public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = {})->*HtmlView
+    public func createText(contentParent: *Wnd, source: string, documentStyle: HtmlStyle = HtmlStyle{})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.setInitialFocus(result)
@@ -1530,7 +1530,7 @@ internal impl HtmlView
     // Creates a complete HTML fragment that contributes its natural height to a parent document.
     // Embedded fragments leave keyboard focus with their host during progressive loading.
     // A supplied image cache is consumed before layout; it must not own uploaded textures.
-    func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = {}, preparedImages: *HtmlImageCache? = null)->*HtmlView
+    func createEmbedded(contentParent: *Wnd, source: string, basePath: string, documentStyle: HtmlStyle = HtmlStyle{}, preparedImages: *HtmlImageCache? = null)->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.embedded = true
@@ -1557,7 +1557,7 @@ internal impl HtmlView
     // or its bytes — so a legacy code page 1252 page reads as the accented text it means.
     // File-open and decoding failures remain visible in the document and are also exposed through
     // [[Gui.HtmlView.failureReason]] and [[Gui.HtmlView.sigLoadFailed]].
-    public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = {})->*HtmlView
+    public func createFile(contentParent: *Wnd, fileName: string, documentStyle: HtmlStyle = HtmlStyle{})->*HtmlView
     {
         let result = HtmlView.createBase(contentParent, documentStyle)
         result.setInitialFocus(result)

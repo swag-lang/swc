@@ -23,8 +23,8 @@ var g_T1: typeinfo = MyStruct
 #assert(CT1 == #typeof(MyStruct))
 
 // Const struct literal, positional and named
-const CH1: Holder = {MyStruct, 1}
-const CH2: Holder = {t: OtherStruct, tag: 2}
+const CH1: Holder = Holder{MyStruct, 1}
+const CH2: Holder = Holder{t: OtherStruct, tag: 2}
 #assert(CH1.t == MyStruct)
 #assert(CH1.tag == 1)
 #assert(CH2.t == OtherStruct)
@@ -37,8 +37,8 @@ const CA1: [?] typeinfo = [MyStruct, OtherStruct]
 
 // Const array of structs with a typeinfo field: the registry pattern
 const CReg: [?] Holder = [
-    {MyStruct,    10},
-    {OtherStruct, 20}]
+    Holder{MyStruct, 10},
+    Holder{OtherStruct, 20}]
 #assert(CReg[0].t == MyStruct)
 #assert(CReg[1].t == OtherStruct)
 #assert(CReg[1].tag == 20)

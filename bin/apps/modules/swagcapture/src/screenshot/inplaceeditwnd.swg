@@ -25,13 +25,13 @@ struct InPlaceEditTool
 func inPlaceEditTools()->[7] InPlaceEditTool
 {
     let texts = appStrings()
-    return [{.Draw, "draw", .Draw, texts.tip_InpDraw},
-            {.Line, "line", .Line, texts.tip_InpLine},
-            {.Circle, "circle", .Circle, texts.tip_InpCircle},
-            {.Rect, "rect", .Rect, texts.tip_InpRect},
-            {.Arrow, "arrow", .Arrow, texts.tip_InpArrow},
-            {.Text, "text", .Text, texts.tip_InpText},
-            {.Marker, "marker", .Highlight, texts.tip_InpMarker}]
+    return [InPlaceEditTool{.Draw, "draw", .Draw, texts.tip_InpDraw},
+            InPlaceEditTool{.Line, "line", .Line, texts.tip_InpLine},
+            InPlaceEditTool{.Circle, "circle", .Circle, texts.tip_InpCircle},
+            InPlaceEditTool{.Rect, "rect", .Rect, texts.tip_InpRect},
+            InPlaceEditTool{.Arrow, "arrow", .Arrow, texts.tip_InpArrow},
+            InPlaceEditTool{.Text, "text", .Text, texts.tip_InpText},
+            InPlaceEditTool{.Marker, "marker", .Highlight, texts.tip_InpMarker}]
 }
 
 // The editor shown over a fresh capture, where the area can be annotated before it leaves the
@@ -96,7 +96,7 @@ impl InPlaceEditWnd
     // edits `capture` where it was taken.
     func createMainFrame(main: *MainWnd, parent: *Wnd, capture: *Capture)->*InPlaceEditWnd
     {
-        with let newMain = Wnd.create'MainWnd(main.parent, {})
+        with let newMain = Wnd.create'MainWnd(main.parent, Math.Rectangle{})
         {
             .registerActions()
             .registerShortcuts()
@@ -135,17 +135,17 @@ impl InPlaceEditWnd
     {
         // The padding scales with the icon, or the buttons come out chunkier the further the
         // grabbed monitor sits below the surface's own scale.
-        with .actionBar = IconBar.create(.editWnd.editView, 24 * .uiScale, {}, itemPadding: 4 * .uiScale)
+        with .actionBar = IconBar.create(.editWnd.editView, 24 * .uiScale, Math.Rectangle{}, itemPadding: 4 * .uiScale)
         {
             .backgroundStyle = .Window
             .sigPressed      += func|editor = me|(btn) { editor.handleActionBarPress(btn.id orelse "") }
         }
 
         let actions = [
-            {"save",  ThemeIcons.Save,     appStrings().tip_InpSave},
-            {"copy",  ThemeIcons.Copy,     appStrings().tip_InpCopy},
-            {"edit",  ThemeIcons.Edit,     appStrings().tip_InpEdit},
-            {"close", ThemeIcons.WndClose, appStrings().tip_InpClose}]
+            ("save", ThemeIcons.Save, appStrings().tip_InpSave),
+            ("copy", ThemeIcons.Copy, appStrings().tip_InpCopy),
+            ("edit", ThemeIcons.Edit, appStrings().tip_InpEdit),
+            ("close", ThemeIcons.WndClose, appStrings().tip_InpClose)]
 
         let theme = .theme()
         for action in actions do
@@ -154,7 +154,7 @@ impl InPlaceEditWnd
 
     mtd createEditBar(main: *MainWnd)
     {
-        with .editBar = IconBar.create(.editWnd.editView, 32 * .uiScale, {}, itemPadding: 4 * .uiScale)
+        with .editBar = IconBar.create(.editWnd.editView, 32 * .uiScale, Math.Rectangle{}, itemPadding: 4 * .uiScale)
         {
             .backgroundStyle = .Window
             .setOrientation(.Vertical)

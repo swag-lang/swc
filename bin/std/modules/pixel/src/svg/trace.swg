@@ -33,7 +33,7 @@ struct TraceOptions
 // let doc   = Svg.trace(&image)
 // try doc.save("icon.svg")
 // ```
-func trace(image: const *Image, options: TraceOptions = {})->Document
+func trace(image: const *Image, options: TraceOptions = TraceOptions{})->Document
 {
     Swag.assert(image != null and image.isValid())
 
@@ -389,7 +389,7 @@ private func simplifyPath(path: *LinePath, tolerance: f32)
 
     // Iterative stack instead of recursion.
     var stack: Array'{ first: u64, last: u64 }
-    stack.add({0, points.count - 1})
+    stack.add({first: 0, last: points.count - 1})
 
     while stack.count
     {
@@ -420,8 +420,8 @@ private func simplifyPath(path: *LinePath, tolerance: f32)
         if farDist > tolerance * tolerance
         {
             keep[far] = true
-            stack.add({first, far})
-            stack.add({far, last})
+            stack.add({first, last: far})
+            stack.add({first: far, last})
         }
     }
 

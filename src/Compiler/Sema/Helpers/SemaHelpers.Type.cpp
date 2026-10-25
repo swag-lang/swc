@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
 #include "Compiler/Sema/Constant/ConstantExtract.h"
+#include "Compiler/Sema/Constant/ConstantHelpers.h"
 #include "Compiler/Sema/Constant/ConstantManager.h"
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
@@ -14,6 +15,7 @@
 #include "Compiler/Sema/Symbol/Symbol.Struct.h"
 #include "Compiler/Sema/Symbol/Symbol.h"
 #include "Compiler/Sema/Type/TypeManager.h"
+#include "Support/Math/Helpers.h"
 #include "Support/Report/Assert.h"
 
 SWC_BEGIN_NAMESPACE();
@@ -28,6 +30,7 @@ namespace
             case AstNodeId::NamedType:
             case AstNodeId::QualifiedType:
             case AstNodeId::ArrayType:
+            case AstNodeId::TupleType:
             case AstNodeId::SliceType:
             case AstNodeId::MoveRefType:
             case AstNodeId::ValuePointerType:
@@ -972,6 +975,18 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
         else
             memberNames.push_back(IdentifierRef::invalid());
 
+        if (autoNameFromIdentifiers)
+        {
+            const IdentifierRef name = memberNames.back();
+            if (std::ranges::find(memberNames.span().first(memberNames.size() - 1), name) != memberNames.span().first(memberNames.size() - 1).end())
+            {
+                Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_record_duplicate_field, child);
+                diag.addArgument(Diagnostic::ARG_VALUE, sema.idMgr().get(name).name);
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+        }
+
         const AstNodeRef valueRef = childNode.is(AstNodeId::NamedArgument) ? childNode.cast<AstNamedArgument>().nodeArgRef : child;
         SemaNodeView     view     = sema.viewTypeConstant(valueRef);
 
@@ -1009,6 +1024,170 @@ Result SemaHelpers::finalizeAggregateStruct(Sema& sema, const SmallVector<AstNod
     sema.setIsValue(sema.curNodeRef());
 
     return Result::Continue;
+}
+
+namespace
+{
+    struct DestructuringSource
+    {
+        TypeRef     typeRef;
+        ConstantRef constantRef;
+        uint64_t    offset;
+    };
+
+    Result resolvePatternFields(Sema& sema, SmallVector<SemaHelpers::DestructuringField>& out, AstNodeRef patternRef, DestructuringSource source)
+    {
+        source.typeRef = sema.typeMgr().unwrapAliasEnumOrSelf(sema.ctx(), source.typeRef);
+        if (sema.typeMgr().get(source.typeRef).isReference())
+            source.typeRef = sema.typeMgr().get(source.typeRef).payloadTypeRef();
+        const TypeInfo& type = sema.typeMgr().get(source.typeRef);
+        if (!type.isStructOrAggregateStruct() || (type.isStruct() && type.payloadSymStruct().isUnion()))
+        {
+            Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, patternRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, source.typeRef);
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+        SWC_RESULT(sema.waitSemaCompleted(&type, patternRef));
+        const auto& pattern = sema.node(patternRef).cast<AstAssignList>();
+        const bool  named   = pattern.hasFlag(AstAssignListFlagsE::NamedDestructuring);
+        if (type.isPositionalTuple() == named)
+        {
+            Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_kind, patternRef);
+            diag.addArgument(Diagnostic::ARG_TYPE, source.typeRef);
+            diag.addArgument(Diagnostic::ARG_VALUE, named ? "named" : "positional");
+            diag.report(sema.ctx());
+            return Result::Error;
+        }
+
+        SmallVector<AstNodeRef> children;
+        sema.ast().appendNodes(children, pattern.spanChildrenRef);
+        const size_t        count = type.isStruct() ? type.payloadSymStruct().fields().size() : type.payloadAggregate().types.size();
+        SmallVector<size_t> indices;
+        if (named)
+        {
+            SmallVector<TokenRef> names;
+            sema.ast().appendTokens(names, pattern.spanFieldNamesRef);
+            SWC_RESULT(SemaHelpers::resolveDestructuringFieldIndices(sema, indices, source.typeRef, pattern.srcViewRef(), names.span()));
+        }
+        else
+        {
+            if (children.size() != count)
+            {
+                const DiagnosticId id   = children.size() > count ? DiagnosticId::sema_err_decomposition_too_many_names : DiagnosticId::sema_err_decomposition_not_enough_names;
+                Diagnostic         diag = SemaError::report(sema, id, children.size() > count ? children[count] : patternRef);
+                diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(count));
+                diag.report(sema.ctx());
+                return Result::Error;
+            }
+            for (size_t i = 0; i < count; ++i)
+                indices.push_back(i);
+        }
+
+        SmallVector<DestructuringSource> fields;
+        fields.reserve(count);
+        uint64_t offset = 0;
+        for (size_t i = 0; i < count; ++i)
+        {
+            const TypeRef   fieldTypeRef = type.isStruct() ? type.payloadSymStruct().fields()[i]->typeRef() : type.payloadAggregate().types[i];
+            const TypeInfo& fieldType    = sema.typeMgr().get(fieldTypeRef);
+            if (type.isStruct())
+                offset = type.payloadSymStruct().fields()[i]->offset();
+            else if (fieldType.sizeOf(sema.ctx()))
+                offset = Math::alignUpU64(offset, std::max<uint32_t>(fieldType.alignOf(sema.ctx()), 1));
+            ConstantRef constantRef = ConstantRef::invalid();
+            if (source.constantRef.isValid())
+            {
+                const ConstantValue& constant = sema.cstMgr().get(source.constantRef);
+                if (constant.isAggregateStruct())
+                    constantRef = constant.getAggregateStruct()[i];
+                else if (constant.isStruct())
+                {
+                    const auto     bytes = constant.getStruct();
+                    const uint64_t size  = fieldType.sizeOf(sema.ctx());
+                    SWC_ASSERT(offset + size <= bytes.size());
+                    constantRef = ConstantHelpers::materializeStaticPayloadConstant(sema, fieldTypeRef, bytes.subspan(offset, size));
+                }
+            }
+            fields.push_back({fieldTypeRef, constantRef, source.offset + offset});
+            offset += fieldType.sizeOf(sema.ctx());
+        }
+
+        SmallVector<bool> selected;
+        selected.resize(count, false);
+        for (size_t i = 0; i < children.size(); ++i)
+        {
+            const size_t index   = indices[i];
+            selected[index]      = true;
+            const AstNode& child = sema.node(children[i]);
+            if (child.is(AstNodeId::AssignList))
+                SWC_RESULT(resolvePatternFields(sema, out, children[i], fields[index]));
+            else
+                out.push_back({children[i], fields[index].typeRef, fields[index].constantRef, fields[index].offset, child.is(AstNodeId::AssignIgnore)});
+        }
+        for (size_t i = 0; i < count; ++i)
+        {
+            if (!selected[i])
+                out.push_back({AstNodeRef::invalid(), fields[i].typeRef, fields[i].constantRef, fields[i].offset, true});
+        }
+        return Result::Continue;
+    }
+}
+
+Result SemaHelpers::resolveDestructuringPattern(Sema& sema, SmallVector<DestructuringField>& out, AstNodeRef patternRef, TypeRef sourceTypeRef, ConstantRef sourceConstantRef)
+{
+    out.clear();
+    return resolvePatternFields(sema, out, patternRef, {sourceTypeRef, sourceConstantRef, 0});
+}
+
+bool SemaHelpers::collectRecordOrTupleFields(TaskContext& ctx, SmallVector<RecordOrTupleField>& out, TypeRef typeRef)
+{
+    const TypeInfo& type = ctx.typeMgr().get(typeRef).unwrapAliasTypeOrSelf(ctx);
+    if (type.isStruct() && type.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous))
+    {
+        for (const SymbolVariable* field : type.payloadSymStruct().fields())
+            out.push_back({field->idRef(), field->typeRef(), field->offset()});
+        return true;
+    }
+    if (!type.isAggregateStruct())
+        return false;
+
+    const auto& aggregate = type.payloadAggregate();
+    uint64_t    offset    = 0;
+    for (size_t i = 0; i < aggregate.types.size(); ++i)
+    {
+        const TypeInfo& field = ctx.typeMgr().get(aggregate.types[i]);
+        offset                = Math::alignUpU64(offset, std::max<uint32_t>(field.alignOf(ctx), 1));
+        out.push_back({aggregate.names[i], aggregate.types[i], offset});
+        offset += field.sizeOf(ctx);
+    }
+    return true;
+}
+
+bool SemaHelpers::sameRecordOrTupleShape(TaskContext& ctx, TypeRef leftTypeRef, TypeRef rightTypeRef)
+{
+    if (leftTypeRef == rightTypeRef)
+        return true;
+    SmallVector<RecordOrTupleField> leftFields;
+    SmallVector<RecordOrTupleField> rightFields;
+    if (!collectRecordOrTupleFields(ctx, leftFields, leftTypeRef) || !collectRecordOrTupleFields(ctx, rightFields, rightTypeRef) || leftFields.size() != rightFields.size())
+        return false;
+    for (size_t i = 0; i < leftFields.size(); ++i)
+    {
+        const RecordOrTupleField* rightField = &rightFields[i];
+        if (leftFields[i].nameRef.isValid())
+        {
+            auto match = std::ranges::find(rightFields, leftFields[i].nameRef, &RecordOrTupleField::nameRef);
+            if (match == rightFields.end())
+                return false;
+            rightField = &*match;
+        }
+        else if (rightField->nameRef.isValid())
+            return false;
+        if (!sameRecordOrTupleShape(ctx, leftFields[i].typeRef, rightField->typeRef))
+            return false;
+    }
+    return true;
 }
 
 Result SemaHelpers::resolveDestructuringFieldIndices(Sema& sema, SmallVector<size_t>& outIndices, TypeRef sourceTypeRef, SourceViewRef patternSrcViewRef, std::span<const TokenRef> fieldNameRefs)
@@ -1149,6 +1328,23 @@ TypeRef SemaHelpers::structuralTypeRefFromTypeNode(Sema& sema, AstNodeRef typeNo
 
     if (const auto* builtinType = typeNode.safeCast<AstBuiltinType>())
         return typeMgr.builtinType(sema.token(builtinType->codeRef()).id);
+
+    if (const auto* tupleType = typeNode.safeCast<AstTupleType>())
+    {
+        SmallVector<AstNodeRef> children;
+        tupleType->collectChildren(children, sema.ast());
+        SmallVector<TypeRef>       types;
+        SmallVector<IdentifierRef> names;
+        for (const AstNodeRef child : children)
+        {
+            const TypeRef fieldTypeRef = structuralTypeRefFromTypeNode(sema, child);
+            if (fieldTypeRef.isInvalid())
+                return TypeRef::invalid();
+            types.push_back(fieldTypeRef);
+            names.push_back(IdentifierRef::invalid());
+        }
+        return typeMgr.addAggregateStructType(names.span(), types.span());
+    }
 
     if (const auto* codeType = typeNode.safeCast<AstCodeType>())
     {

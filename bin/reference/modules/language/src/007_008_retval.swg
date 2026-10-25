@@ -47,7 +47,7 @@ step, or when the return type has no name you could write.
         return result
     }
 
-    let {r, g, b} = getWhite()
+    let {x: r, y: g, z: b} = getWhite()
     Swag.assert(r == 0.5)
     Swag.assert(g == 0.1)
     Swag.assert(b == 1.0)

@@ -253,7 +253,7 @@ impl RollView
             let y        = .plotTop + cast(f32, .highKey - note.key) * .rowHeight + 1
             let strength = 0.58'f32 + cast(f32, note.track % 4) * 0.09
             let color    = Color.lerp(colors.view_Bk, alternate, strength)
-            painter.fillRoundRect({x, y, width, Math.max(.rowHeight - 2, 1)}, 2, 2, color)
+            painter.fillRoundRect(Math.Rectangle{x, y, width, Math.max(.rowHeight - 2, 1)}, 2, 2, color)
         }
     }
 
@@ -380,7 +380,7 @@ impl RollView
     // Builds the piano roll inside its own scroll window, taking ownership of `document`.
     func create(parent: *Wnd, document: #move Document)->*RollView
     {
-        with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", {})
+        with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", Math.Rectangle{})
         {
             .dockStyle = .Center
             .updateFlags(.CompactBars | .TransparentBars)

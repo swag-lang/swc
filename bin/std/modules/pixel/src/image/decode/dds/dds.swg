@@ -299,7 +299,7 @@ impl Decoder
 
                         if collect
                         {
-                            let frame: ImageFrameInfo = {kind: .Texture, width: cast(s32, frameWidth), height: cast(s32, frameHeight), pixelFormat: format, layer: layer, face: face, level: level, depthSlice: slice}
+                            let frame: ImageFrameInfo = ImageFrameInfo{kind: .Texture, width: cast(s32, frameWidth), height: cast(s32, frameHeight), pixelFormat: format, layer: layer, face: face, level: level, depthSlice: slice}
                             .frames.add(frame)
                         }
 
@@ -337,7 +337,7 @@ impl Decoder
 
 impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"DDS - DirectDraw Surface", ".dds"}
+    mtd impl format()->ImageFormat => ImageFormat{"DDS - DirectDraw Surface", ".dds"}
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodeSurface(buffer, options)
 }
 

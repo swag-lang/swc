@@ -31,15 +31,15 @@ func triCount(pts: [..] Vector2)->u64
 #test
 {
     var open: Pixel.Polygon
-    open.add({0, 0})
-    open.add({4, 0})
-    open.add({0, 3})
+    open.add(Math.Vector2{0, 0})
+    open.add(Math.Vector2{4, 0})
+    open.add(Math.Vector2{0, 3})
     open.recompute()
 
     Swag.assert(Math.isEqualEpsilon(open.area, 6, 0.001))
     Swag.assert(Math.isEqualEpsilon(open.perimeter, 12, 0.001))
-    Swag.assert(open.minBounds == Vector2{0, 0})
-    Swag.assert(open.maxBounds == Vector2{4, 3})
+    Swag.assert(open.minBounds == Math.Vector2{0, 0})
+    Swag.assert(open.maxBounds == Math.Vector2{4, 3})
     Swag.assert(open.isClockwise)
     Swag.assert(open.isConvex)
     Swag.assert(open.isSimple)
@@ -59,27 +59,27 @@ func triCount(pts: [..] Vector2)->u64
 #test
 {
     var poly: Pixel.Polygon
-    poly.add({7, 9})
+    poly.add(Math.Vector2{7, 9})
     poly.recompute()
     Swag.assert(poly.area == 0)
     Swag.assert(poly.perimeter == 0)
-    Swag.assert(poly.minBounds == Vector2{7, 9})
-    Swag.assert(poly.maxBounds == Vector2{7, 9})
+    Swag.assert(poly.minBounds == Math.Vector2{7, 9})
+    Swag.assert(poly.maxBounds == Math.Vector2{7, 9})
 
     poly.clear()
     poly.recompute()
-    Swag.assert(poly.minBounds == Vector2{})
-    Swag.assert(poly.maxBounds == Vector2{})
+    Swag.assert(poly.minBounds == Math.Vector2{})
+    Swag.assert(poly.maxBounds == Math.Vector2{})
 }
 
 // Regular convex N-gon centered at (cx,cy).
-func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
+func makeNgon(cx, cy, radius: f32, count: s32)->Array'Math.Vector2
 {
     var result: retval
     for i in count
     {
         let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, count))
-        result.add(Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
+        result.add(Math.Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
     }
 
     return result
@@ -98,8 +98,8 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
 // Axis-aligned quad and triangle.
 #test
 {
-    var tri  = [Vector2{0, 0}, Vector2{100, 0}, Vector2{50, 100}]
-    var quad = [Vector2{0, 0}, Vector2{100, 0}, Vector2{100, 100}, Vector2{0, 100}]
+    var tri  = [Math.Vector2{0, 0}, Math.Vector2{100, 0}, Math.Vector2{50, 100}]
+    var quad = [Math.Vector2{0, 0}, Math.Vector2{100, 0}, Math.Vector2{100, 100}, Math.Vector2{0, 100}]
 
     Swag.assert(triCount(tri) == 1)
     Swag.assert(triCount(quad) == 2)
@@ -109,13 +109,13 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
 #test
 {
     // Concave dart (4 vertices)
-    var dart = [Vector2{0, 0}, Vector2{50, 30}, Vector2{100, 0}, Vector2{50, 100}]
+    var dart = [Math.Vector2{0, 0}, Math.Vector2{50, 30}, Math.Vector2{100, 0}, Math.Vector2{50, 100}]
     Swag.assert(triCount(dart) == 2)
 
     // L-shape (6 vertices)
     var lshape = [
-        Vector2{0, 0}, Vector2{60, 0}, Vector2{60, 20},
-        Vector2{20, 20}, Vector2{20, 60}, Vector2{0, 60}]
+        Math.Vector2{0, 0}, Math.Vector2{60, 0}, Math.Vector2{60, 20},
+        Math.Vector2{20, 20}, Math.Vector2{20, 60}, Math.Vector2{0, 60}]
     Swag.assert(triCount(lshape) == 4)
 
     // Plus / cross (12 vertices). Coordinates are deliberately irregular: a
@@ -123,9 +123,9 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
     // sweep, which is a known degeneracy of the poly2tri algorithm (collinear
     // points are not supported) and unrelated to path construction.
     var plus = [
-        Vector2{21, 1}, Vector2{41, 2}, Vector2{43, 21}, Vector2{61, 23},
-        Vector2{62, 41}, Vector2{43, 43}, Vector2{41, 61}, Vector2{22, 62},
-        Vector2{21, 43}, Vector2{2, 41}, Vector2{1, 22}, Vector2{19, 19}]
+        Math.Vector2{21, 1}, Math.Vector2{41, 2}, Math.Vector2{43, 21}, Math.Vector2{61, 23},
+        Math.Vector2{62, 41}, Math.Vector2{43, 43}, Math.Vector2{41, 61}, Math.Vector2{22, 62},
+        Math.Vector2{21, 43}, Math.Vector2{2, 41}, Math.Vector2{1, 22}, Math.Vector2{19, 19}]
     Swag.assert(triCount(plus) == 10)
 }
 
@@ -142,7 +142,7 @@ func makeNgon(cx, cy, radius: f32, count: s32)->Array'Vector2
             if (i & 1) == 0 do
                 r = 60
             let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, total))
-            pts.add(Vector2{100 + Math.cos(a) * r, 100 + Math.sin(a) * r})
+            pts.add(Math.Vector2{100 + Math.cos(a) * r, 100 + Math.sin(a) * r})
         }
 
         // A 2b-vertex simple star ring -> 2b-2 triangles.
@@ -182,10 +182,10 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
 #test
 {
     let ngon   = makeNgon(100, 100, 60, 7)
-    var dart   = [Vector2{0, 0}, Vector2{50, 30}, Vector2{100, 0}, Vector2{50, 100}]
+    var dart   = [Math.Vector2{0, 0}, Math.Vector2{50, 30}, Math.Vector2{100, 0}, Math.Vector2{50, 100}]
     var lshape = [
-        Vector2{0, 0}, Vector2{60, 0}, Vector2{60, 20},
-        Vector2{20, 20}, Vector2{20, 60}, Vector2{0, 60}]
+        Math.Vector2{0, 0}, Math.Vector2{60, 0}, Math.Vector2{60, 20},
+        Math.Vector2{20, 20}, Math.Vector2{20, 60}, Math.Vector2{0, 60}]
 
     var reused: Pixel.Poly2Tri.Tessellate
     for 3
@@ -210,7 +210,7 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
         for i in count
         {
             let a = cast(f32, i) * (Math.ConstF32.TwoPi / cast(f32, count))
-            result.add(Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
+            result.add(Math.Vector2{cx + Math.cos(a) * radius, cy + Math.sin(a) * radius})
         }
 
         result.add(result.points[0])
@@ -220,18 +220,18 @@ func assertRecycledMatchesFresh(reused: *Pixel.Poly2Tri.Tessellate, pts: [..] Ve
 
     // Both rings carry the point (0, 0) exactly, plus a run of vertices repeated inside one ring.
     var left: Pixel.Polygon
-    left.add({0, 0})
-    left.add({-40, -20})
-    left.add({-40, 20})
-    left.add({-40, 20})
-    left.add({0, 0})
+    left.add(Math.Vector2{0, 0})
+    left.add(Math.Vector2{-40, -20})
+    left.add(Math.Vector2{-40, 20})
+    left.add(Math.Vector2{-40, 20})
+    left.add(Math.Vector2{0, 0})
     left.recompute()
 
     var right: Pixel.Polygon
-    right.add({0, 0})
-    right.add({40, 20})
-    right.add({40, -20})
-    right.add({0, 0})
+    right.add(Math.Vector2{0, 0})
+    right.add(Math.Vector2{40, 20})
+    right.add(Math.Vector2{40, -20})
+    right.add(Math.Vector2{0, 0})
     right.recompute()
 
     tess.addPolyLine(left)

@@ -93,7 +93,7 @@ struct Cursor
 
 impl Cursor
 {
-    func open(bytes: const [..] u8)->Cursor => {bytes, 0}
+    func open(bytes: const [..] u8)->Cursor => Cursor{bytes, 0}
 
     mtd seek(position: u64) fail
     {
@@ -132,7 +132,7 @@ impl Cursor
         var value  = keepMarker ? cast(u64, first) : cast(u64, (first & (marker - 1)))
         for 1 until width do
             value = (value << 8) | (try .readByte(limit))
-        return {value, width}
+        return Vint{value, width}
     }
 
     // Reads an element header and bounds it by its parent.
@@ -170,10 +170,10 @@ impl Cursor
         }
 
         if unknown do
-            return {cast(u32, idVint.value), .position, limit, true}
+            return Element{cast(u32, idVint.value), .position, limit, true}
         if size > limit - .position do
             fail InvalidFormatError{"Matroska element size exceeds its parent"}
-        return {cast(u32, idVint.value), .position, .position + size, false}
+        return Element{cast(u32, idVint.value), .position, .position + size, false}
     }
 
     // Reads an unsigned EBML element value.

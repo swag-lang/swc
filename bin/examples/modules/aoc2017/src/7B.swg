@@ -66,7 +66,7 @@ func day7B()
         for v, i in w.children
         {
             let s = sum(set, result, set.find(v).value)
-            sums.add({i, s})
+            sums.add(ChildTotal{i, s})
             total += s
         }
 

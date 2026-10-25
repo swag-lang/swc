@@ -8,7 +8,7 @@ func createActionButton(parent: *Wnd, icon: ThemeIcons, flags = IconButtonFlags.
 {
     let metrics = parent.themeMetrics()
     let size    = themeActionButtonSize(metrics)
-    return IconButton.create(parent, parent.theme().icon(icon, themeActionIconSize(metrics)), {0, 0, size, size}, flags: flags)
+    return IconButton.create(parent, parent.theme().icon(icon, themeActionIconSize(metrics)), Math.Rectangle{0, 0, size, size}, flags: flags)
 }
 
 // Creates a command button showing `icon` with room for the arrow of the menu it opens.
@@ -17,5 +17,5 @@ func createActionDropDown(parent: *Wnd, icon: ThemeIcons)->*IconButton
     let metrics = parent.themeMetrics()
     let width   = themeDropDownButtonWidth(metrics)
     let height  = themeActionButtonSize(metrics)
-    return IconButton.create(parent, parent.theme().icon(icon, themeActionIconSize(metrics)), {0, 0, width, height}, flags: .CenterContent)
+    return IconButton.create(parent, parent.theme().icon(icon, themeActionIconSize(metrics)), Math.Rectangle{0, 0, width, height}, flags: .CenterContent)
 }

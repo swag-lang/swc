@@ -48,7 +48,7 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(ratingLabel(3) == appStrings().act_Rating3)
     Swag.assert(ratingLabel(5) == appStrings().act_Rating5)
 
-    with f.main.recentBar = Wnd.create'Wnd(f.main, {0, 0, 0, 128})
+    with f.main.recentBar = Wnd.create'Wnd(f.main, Math.Rectangle{0, 0, 0, 128})
     {
         .dockStyle = .Bottom
     }
@@ -215,7 +215,7 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(view.focusItem == 1)
 
     lib.previewSize = .Medium
-    view.setPosition({0, 0, 360, 420})
+    view.setPosition(Math.Rectangle{0, 0, 360, 420})
     view.focusItem = 0
     wnd.sendCommandEvent(ActionLibSel.Down)
     Swag.assert(view.focusItem == 1)
@@ -607,7 +607,7 @@ impl IAllocator for LibraryRejectAllocator
     f.main.libWnd = LibraryWnd.create(f.main)
     with let lib = f.main.libWnd
     {
-        .setPosition({0, 0, 1100, 700})
+        .setPosition(Math.Rectangle{0, 0, 1100, 700})
         .applyLayout()
         .layoutSidebarColumns()
         .listCtrl.computeLayout()

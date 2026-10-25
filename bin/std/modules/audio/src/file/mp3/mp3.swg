@@ -132,7 +132,7 @@ private func readFrameIndex(source: *ByteSource,
 
         if header.frameBytes > Swag.U32.Max do
             fail InvalidFormatError{"MP3 frame is larger than a packet may be"}
-        packets.add({byteOffset, cast(u32, header.frameBytes), header.frameSamples})
+        packets.add(SoundPacket{byteOffset, cast(u32, header.frameBytes), header.frameSamples})
         totalFrames += cast(u64, header.frameSamples)
         byteOffset  += header.frameBytes
     }

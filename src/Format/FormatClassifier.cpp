@@ -370,18 +370,42 @@ namespace
             return close.match;
         }
 
-        void markDestructuringPattern(const uint32_t openPiece) const
+        void markTupleComma(const uint32_t openPiece) const
+        {
+            const FormatPiece& open = model_->piece(openPiece);
+            if (open.isNot(TokenId::SymLeftParen) || open.match == INVALID_PIECE)
+                return;
+            uint32_t comma = INVALID_PIECE;
+            for (uint32_t i = nextCode(openPiece); i != INVALID_PIECE && i < open.match; i = nextCode(i))
+            {
+                const FormatPiece& piece = model_->piece(i);
+                if (piece.is(TokenId::SymComma))
+                {
+                    if (comma != INVALID_PIECE)
+                        return;
+                    comma = i;
+                }
+                else if (piece.match != INVALID_PIECE && piece.match > i)
+                    i = piece.match;
+            }
+            if (comma != INVALID_PIECE && nextCode(comma) == open.match)
+                addRole(comma, FormatRoleE::RequiredTupleComma);
+        }
+
+        void markDestructuringPattern(const uint32_t openPiece, bool statementLevel = true) const
         {
             if (openPiece == INVALID_PIECE)
                 return;
 
             const FormatPiece& open = model_->piece(openPiece);
-            if (open.isNot(TokenId::SymLeftCurly) || open.match == INVALID_PIECE)
+            if ((!open.is(TokenId::SymLeftCurly) && !open.is(TokenId::SymLeftParen)) || open.match == INVALID_PIECE)
                 return;
 
             addRole(openPiece, FormatRoleE::LiteralOpen);
             addRole(open.match, FormatRoleE::LiteralClose);
-            addRole(open.match, FormatRoleE::DestructuringClose);
+            if (statementLevel)
+                addRole(open.match, FormatRoleE::DestructuringClose);
+            markTupleComma(openPiece);
         }
 
         void registerBlock(const uint32_t openPiece, const FormatBlockKind kind, const uint32_t headPiece, const bool exprLevel = false) const
@@ -1158,7 +1182,7 @@ namespace
                 case AstNodeId::VarDeclDestructuring:
                 {
                     const auto&    var  = node.cast<AstVarDeclDestructuring>();
-                    const uint32_t open = span.valid() ? nextCodeIf(span.minPiece, TokenId::SymLeftCurly) : INVALID_PIECE;
+                    const uint32_t open = span.valid() ? nextCode(span.minPiece) : INVALID_PIECE;
                     classifyVarDecl(node, span, AstNodeRef::invalid(), var.nodeInitRef, parentCompound);
                     markDestructuringPattern(open);
                     break;
@@ -1371,6 +1395,11 @@ namespace
                     addRole(span.minPiece, FormatRoleE::UsingStart);
                     break;
 
+                case AstNodeId::AssignList:
+                    if (isDestructuringAssignList(nodeRef) && span.valid())
+                        markDestructuringPattern(span.minPiece, false);
+                    break;
+
                 case AstNodeId::AssignStmt:
                 {
                     const auto& stmt            = node.cast<AstAssignStmt>();
@@ -1530,16 +1559,18 @@ namespace
                     break;
                 }
 
+                case AstNodeId::TupleType:
                 case AstNodeId::ArrayLiteral:
                 case AstNodeId::StructLiteral:
                 {
                     if (span.valid())
                     {
                         const FormatPiece& open = model_->piece(span.minPiece);
-                        if ((open.is(TokenId::SymLeftCurly) || open.is(TokenId::SymLeftBracket)) && open.match != INVALID_PIECE)
+                        if ((open.is(TokenId::SymLeftCurly) || open.is(TokenId::SymLeftBracket) || open.is(TokenId::SymLeftParen)) && open.match != INVALID_PIECE)
                         {
                             addRole(span.minPiece, FormatRoleE::LiteralOpen);
                             addRole(open.match, FormatRoleE::LiteralClose);
+                            markTupleComma(span.minPiece);
                         }
                     }
                     break;

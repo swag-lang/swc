@@ -70,7 +70,7 @@ func day8A()
         let right          = l[12 to 14]
         let leftNodeIndex  = nodeIndexByName.find(left).value
         let rightNodeIndex = nodeIndexByName.find(right).value
-        nodes[i - 2] = {leftNodeIndex, rightNodeIndex}
+        nodes[i - 2] = {left: leftNodeIndex, right: rightNodeIndex}
     }
 
     var steps: u64

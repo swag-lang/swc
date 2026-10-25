@@ -33,7 +33,7 @@ impl MainWindow
 
             if known != Swag.U64.Max do
                 .startupVaults.removeAtOrdered(known)
-            .startupVaults.add({one.path, one.drive, one.needsPassword, one.readOnly, one.protectHidden})
+            .startupVaults.add(StartupVault{one.path, one.drive, one.needsPassword, one.readOnly, one.protectHidden})
         }
 
         catch g_App.saveState()

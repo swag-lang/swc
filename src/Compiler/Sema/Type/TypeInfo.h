@@ -272,6 +272,7 @@ public:
     bool isNonNullable() const noexcept { return isSupportsNullableQualifier() && !flags_.has(TypeInfoFlagsE::Nullable); }
 
     bool isAggregateStruct() const noexcept { return kind_ == TypeInfoKind::AggregateStruct; }
+    bool isPositionalTuple() const noexcept;
     bool isAggregateArray() const noexcept { return kind_ == TypeInfoKind::AggregateArray; }
     bool isStructOrAggregateStruct() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::StructOrAggregateStruct); }
     bool isArrayOrAggregateArray() const noexcept { return hasKindFlag(TypeInfoKindFlagsE::ArrayOrAggregateArray); }

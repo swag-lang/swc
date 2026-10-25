@@ -222,15 +222,15 @@ impl HtmlMatchContext
     mtd const elementPosition(element: u32)->{ index: u32, count: u32 }
     {
         if element >= (.elementIndex).count or not .elementIndex[element] do
-            return {1, 1}
-        return {.elementIndex[element], .elementCount[element]}
+            return {index: 1, count: 1}
+        return {index: .elementIndex[element], count: .elementCount[element]}
     }
 
     mtd const typePosition(element: u32)->{ index: u32, count: u32 }
     {
         if element >= (.typeIndex).count or not .typeIndex[element] do
-            return {1, 1}
-        return {.typeIndex[element], .typeCount[element]}
+            return {index: 1, count: 1}
+        return {index: .typeIndex[element], count: .typeCount[element]}
     }
 
     mtd const previous(element: u32)->u32

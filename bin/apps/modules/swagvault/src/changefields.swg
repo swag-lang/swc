@@ -29,7 +29,7 @@ func buildPasswordChangeForm(dialog: *FormDlg)->PasswordChangeFields
     let confirm     = form.addPasswordField(texts.ui_ConfirmPassword, placeholder: texts.ui_EnterAgain)
 
     VaultForm.finish(form)
-    return {replacement, confirm}
+    return PasswordChangeFields{replacement, confirm}
 }
 
 // Fills `dialog` with the work-specific choices for resizing a vault, and returns its fields.
@@ -62,7 +62,7 @@ func buildVaultResizeForm(dialog: *FormDlg)->VaultResizeFields
     }
 
     VaultForm.finish(form)
-    return {capacity, unit, keepCapacity}
+    return VaultResizeFields{capacity, unit, keepCapacity}
 }
 
 // Builds the complete replacement key-file set from the current selection. The current files

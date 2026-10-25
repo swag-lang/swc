@@ -43,8 +43,8 @@ impl Timestamp
     mtd const toDateTime()->DateTime
     {
         var dateTime: retval
-        {dateTime.year, dateTime.month, dateTime.day} = ticksToDate(.ticks)
-        {dateTime.hour, dateTime.minute, dateTime.second, dateTime.millisecond} = ticksToTime(.ticks)
+        {year: dateTime.year, month: dateTime.month, day: dateTime.day} = ticksToDate(.ticks)
+        {hour: dateTime.hour, minute: dateTime.minute, second: dateTime.second, millisecond: dateTime.millisecond} = ticksToTime(.ticks)
         return dateTime
     }
 
@@ -59,7 +59,7 @@ impl Timestamp
     mtd addMonths(months: s32)
     {
         Swag.assert(-120000 <= months and months <= 120000, "overflow")
-        var {calendarYear, month, day} = ticksToDate(.ticks)
+        var {year: calendarYear, month, day} = ticksToDate(.ticks)
         var year = cast(s32, calendarYear)
 
         // Shift a zero-based month index, accounting for years crossed in either direction.

@@ -5,13 +5,13 @@ func createDockLabel(parent: *Wnd,
                      text: string,
                      dock: DockStyle,
                      size: Math.Point,
-                     margin: Math.Vector4 = {})->*Label
+                     margin: Math.Vector4 = Math.Vector4{})->*Label
 {
-    let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), {0, 0, size.x, size.y}, null, .WordWrap)
+    let label = Label.create(parent, Format.toString("<b>%</b>\n%", title, text), Math.Rectangle{0, 0, size.x, size.y}, null, .WordWrap)
     label.backgroundStyle = .Window
     label.dockStyle       = dock
     label.margin          = margin
-    label.setTextPadding({12, 8, 12, 8})
+    label.setTextPadding(Math.Vector4{12, 8, 12, 8})
     label.setTextAlignment(.Left, .Top)
     return label
 }
@@ -24,15 +24,15 @@ func createConstraintsPage(parent: *Wnd)
                              "Docked children consume the client rectangle in order; center fills the remaining space while min/max sizes clamp panes.",
                              layout.full)
 
-    let host = Wnd.create'Wnd(page, {18, 92, layout.full.width - 36, layout.full.height - 114})
+    let host = Wnd.create'Wnd(page, Math.Rectangle{18, 92, layout.full.width - 36, layout.full.height - 114})
     host.padding = 8
 
-    with let topStack = StackLayoutCtrl.create(host, .Left, {0, 0, 0, 56})
+    with let topStack = StackLayoutCtrl.create(host, .Left, Math.Rectangle{0, 0, 0, 56})
     {
         .backgroundStyle = .CommandBar
         .dockStyle       = .Top
-        .margin          = {0, 0, 0, 10}
-        .padding         = {12, 12, 12, 12}
+        .margin          = Math.Vector4{0, 0, 0, 10}
+        .padding         = Math.Vector4{12, 12, 12, 12}
         .spacing         = 8
     }
 
@@ -45,38 +45,38 @@ func createConstraintsPage(parent: *Wnd)
                             "Status",
                             "Bottom dock keeps its height; center is recomputed after it.",
                             .Bottom,
-                            {0, 52},
-                            {0, 10, 0, 0})
+                            Math.Point{0, 52},
+                            Math.Vector4{0, 10, 0, 0})
 
-    let left = createDockLabel(host, "Nav", "Left dock with min/max width.", .Left, {170, 0}, {0, 0, 10, 0})
+    let left = createDockLabel(host, "Nav", "Left dock with min/max width.", .Left, Math.Point{170, 0}, Math.Vector4{0, 0, 10, 0})
     left.minSize.x = 130
     left.maxSize.x = 210
 
-    let right = createDockLabel(host, "Inspector", "Right dock with clamped width.", .Right, {240, 0}, {10, 0, 0, 0})
+    let right = createDockLabel(host, "Inspector", "Right dock with clamped width.", .Right, Math.Point{240, 0}, Math.Vector4{10, 0, 0, 0})
     right.minSize.x = 180
     right.maxSize.x = 280
 
-    let center = Wnd.create'Wnd(host, {0, 0, 260, 160})
+    let center = Wnd.create'Wnd(host, Math.Rectangle{0, 0, 260, 160})
     center.backgroundStyle = .View
     center.dockStyle       = .Center
     center.margin          = 0
 
     host.sendResizeEvent()
 
-    discard createText(center, "Anchored center", {14, 12, Math.max(center.position.width - 28, 120.0), 24})
+    discard createText(center, "Anchored center", (14, 12, Math.max(center.position.width - 28, 120.0), 24))
     discard createHelpText(center,
                            "The center pane fills the remaining rectangle. The action button keeps its distance to the bottom-right corner.",
-                           {14, 42, Math.max(center.position.width - 28, 120.0), 46})
+                           (14, 42, Math.max(center.position.width - 28, 120.0), 46))
 
     let actionX = Math.max(center.position.width - 190, 14.0)
     let actionY = Math.max(center.position.height - 54, 96.0)
-    let action  = PushButton.create(center, "Anchored action", {actionX, actionY, 170, 34})
+    let action  = PushButton.create(center, "Anchored action", Math.Rectangle{actionX, actionY, 170, 34})
     action.setIcon(app.theme.icon(.Link, 18))
     action.anchorStyle = .Right | .Bottom
 
     let stretch = Label.create(center,
                                "Anchored width + height",
-                               {
+                               Math.Rectangle{
                                    14,
                                    100,
                                    Math.max(center.position.width - 220, 160.0),

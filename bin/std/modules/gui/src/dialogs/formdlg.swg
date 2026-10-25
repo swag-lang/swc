@@ -44,7 +44,7 @@ impl FormDlg
 {
     // Creates a centered modal dialog holding an empty form and the standard buttons.
     #[Swag.Discardable]
-    func create(from: *Surface, options: FormDlgOptions = {})->*FormDlg
+    func create(from: *Surface, options: FormDlgOptions = FormDlgOptions{})->*FormDlg
     {
         Swag.assert(from != null)
         Swag.assert(options.width > 0 and options.height > 0, "form dialog dimensions must be positive")
@@ -54,7 +54,7 @@ impl FormDlg
         let surface = result.createSurface(from, 0, 0, options.width, options.height, flags)
         surface.setTitle(options.title)
         surface.center(from)
-        surface.minSize = {Math.min(options.width, 360), Math.min(options.height, 240)}
+        surface.minSize = Math.Point{Math.min(options.width, 360), Math.min(options.height, 240)}
 
         result.form = FormLayoutCtrl.create(result.createContentView(), options.formOptions)
         result.form.dockStyle = .Center
@@ -85,7 +85,7 @@ impl FormDlg
     {
         .applyLayout()
 
-        let grow = .form.measure({.form.position.width, 0}).preferred.y - .form.position.height
+        let grow = .form.measure(Math.Point{.form.position.width, 0}).preferred.y - .form.position.height
         if Math.abs(grow) < 0.5 do
             return
 

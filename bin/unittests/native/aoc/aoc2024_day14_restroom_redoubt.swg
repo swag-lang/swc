@@ -281,7 +281,7 @@ func findClusterStep(fleet: *Fleet, maxSteps: u32)->u32
 // Single robot advance
 #test
 {
-    let bot: Robot = {px: 2, py: 4, vx: 2, vy: -3}
+    let bot: Robot = Robot{px: 2, py: 4, vx: 2, vy: -3}
     let b1         = advanceRobot(bot, 1, SampleWidth, SampleHeight)
     Swag.assert(b1.px == 4)
     Swag.assert(b1.py == 1)

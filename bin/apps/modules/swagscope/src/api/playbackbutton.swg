@@ -42,7 +42,7 @@ impl PlaybackButton
     {
         let metrics = parent.themeMetrics()
 
-        with let result = Wnd.create'PlaybackButton(parent, null, {0, 0, themeDropDownButtonWidth(metrics), themeActionButtonSize(metrics)})
+        with let result = Wnd.create'PlaybackButton(parent, null, Math.Rectangle{0, 0, themeDropDownButtonWidth(metrics), themeActionButtonSize(metrics)})
         {
             .view              = view
             .playback          = playback

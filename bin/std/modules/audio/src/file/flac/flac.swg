@@ -195,7 +195,7 @@ private func readFrameIndex(source: *ByteSource, firstFrame: u64, packets: *Arra
         let count = try packetFrameCount(frame[0 until next - start])
         if next - start > Swag.U32.Max do
             fail InvalidFormatError{"FLAC audio frame is larger than a packet may be"}
-        packets.add({start, cast(u32, (next - start)), count})
+        packets.add(SoundPacket{start, cast(u32, (next - start)), count})
         total += count
         start = next
     }

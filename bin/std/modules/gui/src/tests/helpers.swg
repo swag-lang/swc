@@ -92,7 +92,7 @@ func pdfPageRectOnScreen(view: *Gui.PdfView, index: u64)->Math.Rectangle
 {
     let rect   = view.pageRect(index)
     let origin = view.documentOrigin()
-    return {origin.x + rect.x, origin.y + rect.y, rect.width, rect.height}
+    return Math.Rectangle{origin.x + rect.x, origin.y + rect.y, rect.width, rect.height}
 }
 
 // Returns the path of one real-document fixture.

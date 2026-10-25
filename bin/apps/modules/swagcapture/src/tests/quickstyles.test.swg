@@ -21,9 +21,9 @@ using Swag, Core
     Swag.assert(assume cast(*FormText, textPaint.itf!).text == "A")
     textPaint.release()
 
-    f.main.mdlFormPolygon.points.add({10, 10})
-    f.main.mdlFormPolygon.points.add({40, 20})
-    f.main.mdlFormPolygon.points.add({20, 50})
+    f.main.mdlFormPolygon.points.add(Math.Vector2{10, 10})
+    f.main.mdlFormPolygon.points.add(Math.Vector2{40, 20})
+    f.main.mdlFormPolygon.points.add(Math.Vector2{20, 50})
     let polyItf     = f.main.editModeToModel(.Polygon)
     let pointBefore = f.main.mdlFormPolygon.points[0]
 
@@ -79,7 +79,7 @@ using Swag, Core
             }
         }
 
-        return {cast(x0), cast(y0), cast(f32, x1 - x0), cast(f32, y1 - y0)}
+        return Math.Rectangle{cast(x0), cast(y0), cast(f32, x1 - x0), cast(f32, y1 - y0)}
     }
 
     var f: HeadlessFixture
@@ -91,13 +91,13 @@ using Swag, Core
         let itf = newTextStyle(border)
         defer testDeleteForm(itf)
 
-        let button = IconButton.create(&f.gui.root, {}, {0, 0, QuickCellSize, QuickCellSize})
+        let button = IconButton.create(&f.gui.root, {}, Math.Rectangle{0, 0, QuickCellSize, QuickCellSize})
         defer button.destroy()
         button.iconPainter = func|itf|(_, bc, _, _)
         {
             var paint = QuickStylePaintForm.create(itf)
             defer paint.release()
-            Capture.paintForm(bc.painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paint.itf!, zoom: 1, quickMode: true)
+            Capture.paintForm(bc.painter, {}, Math.Rectangle{0, 0, QuickCellSize, QuickCellSize}, paint.itf!, zoom: 1, quickMode: true)
         }
 
         var image = f.gui.render(button)
@@ -121,7 +121,7 @@ using Swag, Core
     defer f.shutdown()
     f.gui.surfaceWnd.view = f.main
 
-    with f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
+    with f.main.quickStyleBar = SplitterCtrl.create(f.main, Math.Rectangle{600, 0, 300, 650}, vertical: true)
     {
         .flags.add(.HideDividers)
     }
@@ -335,7 +335,7 @@ using Swag, Core
     let quick = QuickWnd.create(f.main, f.main)
     f.main.quickWnd = quick
     f.main.editMode = .Shape
-    quick.setPosition({0, 0, 300, 300})
+    quick.setPosition(Math.Rectangle{0, 0, 300, 300})
     quick.setDefault()
     let defaultCount = quick.qsShape.forms.count
 

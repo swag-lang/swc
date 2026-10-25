@@ -278,7 +278,7 @@ impl DocumentView
     // the bytes it was loaded from; `sampleEdit` supplies the specimen text.
     func create(parent: *Wnd, face: *Face, typeFace: *TypeFace, fontBytes: #move Array'u8, sampleEdit: *EditBox)->*DocumentView
     {
-        with let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", {})
+        with let scroll = Wnd.create'ScrollWnd(parent, "scope.font.scroll", Math.Rectangle{})
         {
             .dockStyle = .Center
             .updateFlags(.CompactBars | .TransparentBars | .DisableHorizontal)

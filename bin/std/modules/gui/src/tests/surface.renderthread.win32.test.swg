@@ -134,7 +134,7 @@ func observePlacement(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM, _: 
 
     for step in 4
     {
-        surface.setPosition({40, 40, cast(f32, (320 + step * 2)), 180})
+        surface.setPosition(Math.Rectangle{40, 40, cast(f32, (320 + step * 2)), 180})
         surface.paint()
         Swag.assert(Ogl.wglGetCurrentContext() == context)
         Swag.assert(surface.rt.colorBuffer.isValid())

@@ -32,7 +32,7 @@ func readValue(value: Value, original: const *Value)->u64
 
 #test
 {
-    var value: Value = {first: 41}
+    var value: Value = Value{first: 41}
     injected()
     {
         injected()
@@ -46,10 +46,10 @@ func readValue(value: Value, original: const *Value)->u64
 // Injection still honors a local shadow before the call is resolved.
 #test
 {
-    var value: Value = {first: 43}
+    var value: Value = Value{first: 43}
     injected()
     {
-        var value: Value = {first: 47}
+        var value: Value = Value{first: 47}
         let observed     = readValue(value: value, original: &value)
         Swag.assert(observed == 47)
     }

@@ -26,14 +26,14 @@ func invoke(value: CopyCounter, callback: func||()->u64)->u64
 
 func copyLocal()->u64
 {
-    var source: CopyCounter = {value: 5}
+    var source: CopyCounter = CopyCounter{value: 5}
     let copy = source
     return copy.value
 }
 
 #test
 {
-    var value: CopyCounter = {value: 3}
+    var value: CopyCounter = CopyCounter{value: 3}
     Swag.assert(readWithCopy(value) == 7)
     Swag.assert(value.value == 3)
     Swag.assert(invoke(value, &copyLocal) == 9)
@@ -54,8 +54,8 @@ func updateDistinct(value: CopyCounter, destination: *Destination)->u64
 
 #test
 {
-    var value:       CopyCounter = {value: 11}
-    var destination: Destination = {target: &value}
+    var value:       CopyCounter = CopyCounter{value: 11}
+    var destination: Destination = Destination{target: &value}
     let observed = updateDistinct(value, &destination)
     Swag.assert(observed == 11)
     Swag.assert(destination.value == 13)

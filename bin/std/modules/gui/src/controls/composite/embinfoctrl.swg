@@ -136,7 +136,7 @@ impl InfoBar
         Swag.assert(autoDismissDelay.seconds > 0, "auto-dismiss delay must be positive")
 
         let theme    = parent.theme()
-        with let bar = Wnd.create'InfoBar(parent, {0, 0, 0, height})
+        with let bar = Wnd.create'InfoBar(parent, Math.Rectangle{0, 0, 0, height})
         {
             .wndFlags.add(.NoScroll)
             .dockStyle        = flags.has(.Bottom) ? .Bottom : .Top
@@ -151,12 +151,12 @@ impl InfoBar
             .updateFlags(add: .Ellipsis)
             .setTextHorizontalAlignment(.Left)
             .setIconHorizontalAlignment(.Left)
-            .setIconPadding({IconLeft, 0, 0, 0})
-            .setTextPadding({TextLeft, 0, TextRight, 0})
+            .setIconPadding(Math.Vector4{IconLeft, 0, 0, 0})
+            .setTextPadding(Math.Vector4{TextLeft, 0, TextRight, 0})
             .dockStyle = .Center
         }
 
-        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, 18), {0, 0, CloseSize, CloseSize})
+        with bar.closeButton = IconButton.create(bar.label, theme.icon(.WndClose, 18), Math.Rectangle{0, 0, CloseSize, CloseSize})
         {
             .margin     = CloseMargin
             .dockStyle  = .Right

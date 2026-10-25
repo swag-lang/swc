@@ -996,7 +996,7 @@ namespace
         {
             const FormatPiece& piece = model.piece(i);
             if (piece.removed || piece.frozen || piece.isNot(TokenId::SymComma) ||
-                piece.hasRole(FormatRoleE::ClosureCaptureComma))
+                piece.hasRole(FormatRoleE::ClosureCaptureComma) || piece.hasRole(FormatRoleE::RequiredTupleComma))
                 continue;
             if (!FormatPassUtil::canEditGap(model, i))
                 continue;

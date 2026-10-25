@@ -323,7 +323,7 @@ impl HtmlEdges
     // The four automatic offsets a statically placed box carries, which is what `inset` means
     // before a document says anything.
     #[ConstExpr]
-    public func auto()->HtmlEdges => {HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto()}
+    public func auto()->HtmlEdges => HtmlEdges{HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto(), HtmlLength.auto()}
 }
 
 impl HtmlComputedStyle

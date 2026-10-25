@@ -24,7 +24,7 @@ private func parseDecimal(text: string, start: u64)->{value: u32, end: u64}
         pos   += 1
     }
 
-    return {value, pos}
+    return {value: value, end: pos}
 }
 
 private func auditBacklogFile(fileName: string, seen: *HashSet'String)->FileAudit fail

@@ -65,7 +65,7 @@ func computeSceneLayout(width, height: s32)->SceneLayout
     with var result: retval
     {
         .scale  = Math.min(scaleX, scaleY)
-        .rect   = {0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
+        .rect   = Math.Rectangle{0, 0, cast(f32, W) * .scale, cast(f32, H) * .scale}
         .rect.x = Math.round((cast(f32, surfaceWidth) - .rect.width) * 0.5)
         .rect.y = Math.round((cast(f32, surfaceHeight) - .rect.height) * 0.5)
     }

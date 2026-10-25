@@ -13,9 +13,9 @@ struct Pair
 func contextualRows(index: u32)->u32
 {
     let rows: [3] Pair = [
-        {second: .C, first: .A},
-        {first: .B,  second: .D},
-        {second: .D, first: .A}
+        Pair{second: .C, first: .A},
+        Pair{first: .B, second: .D},
+        Pair{second: .D, first: .A}
         ]
     let firsts: [3] FirstKind = [.A, .B, .A]
     let seconds = [SecondKind.C, .D, .D]

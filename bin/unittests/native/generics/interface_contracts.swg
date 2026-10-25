@@ -85,14 +85,14 @@ struct(T) Holder where (T is IValue)
     Swag.assert(pointer.value() == explicit.value())
     #assert(#typeof(pointer) == IValue)
 
-    var wrapper = Wrapper{prefix: 10, counter: {21}}
+    var wrapper = Wrapper{prefix: 10, counter: Counter{21}}
     let wrapped = cast(ValueAlias, &wrapper)
     Swag.assert(wrapped.value() == 21)
     Swag.assert(readValue(&wrapper) == 21)
     Swag.assert(readAndReset(&wrapper) == 21)
     Swag.assert(wrapper.count == 0)
 
-    var holder: Holder'Counter = {value: {12}}
+    var holder: Holder'Counter = {value: Counter{12}}
     Swag.assert(readValue(&holder.value) == 12)
 
     let same = cast(IValue, pointer)

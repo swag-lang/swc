@@ -91,7 +91,7 @@ func drawCompositingPage(painter: *Pixel.Painter)
     drawPageHeader(painter,
                    "Pixel clipping and composition",
                    "Page 8 : rectangular and stencil clipping, followed by separate and merged path-list rendering.")
-    drawClipRectCard(painter, {28, 104, 452, 262})
-    drawClipRegionCard(painter, {500, 104, 452, 262})
-    drawPathModeCard(painter, {28, 392, 924, 272})
+    drawClipRectCard(painter, Math.Rectangle{28, 104, 452, 262})
+    drawClipRegionCard(painter, Math.Rectangle{500, 104, 452, 262})
+    drawPathModeCard(painter, Math.Rectangle{28, 392, 924, 272})
 }

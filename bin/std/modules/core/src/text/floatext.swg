@@ -23,103 +23,103 @@ const firstPowerOfTen = -348
 const stepPowerOfTen  = 8
 
 var SmallPowersOfTen: [?] FloatExt = [
-    {1'u64 << 63, -63, false},           // 1
-    {0xA'u64 << 60, -60, false},         // 1e1
-    {0x64'u64 << 57, -57, false},        // 1e2
-    {0x3E8'u64 << 54, -54, false},       // 1e3
-    {0x2710'u64 << 50, -50, false},      // 1e4
-    {0x186A0'u64 << 47, -47, false},     // 1e5
-    {0xF4240'u64 << 44, -44, false},     // 1e6
-    {0x989680'u64 << 40, -40, false}]
+    FloatExt{1'u64 << 63, -63, false},           // 1
+    FloatExt{0xA'u64 << 60, -60, false},         // 1e1
+    FloatExt{0x64'u64 << 57, -57, false},        // 1e2
+    FloatExt{0x3E8'u64 << 54, -54, false},       // 1e3
+    FloatExt{0x2710'u64 << 50, -50, false},      // 1e4
+    FloatExt{0x186A0'u64 << 47, -47, false},     // 1e5
+    FloatExt{0xF4240'u64 << 44, -44, false},     // 1e6
+    FloatExt{0x989680'u64 << 40, -40, false}]
 
 var powersOfTen: [?] FloatExt = [
-    {0xFA8FD5A0081C0288, -1220, false},     // 10^-348
-    {0xBAAEE17FA23EBF76, -1193, false},     // 10^-340
-    {0x8B16FB203055AC76, -1166, false},     // 10^-332
-    {0xCF42894A5DCE35EA, -1140, false},     // 10^-324
-    {0x9A6BB0AA55653B2D, -1113, false},     // 10^-316
-    {0xE61ACF033D1A45DF, -1087, false},     // 10^-308
-    {0xAB70FE17C79AC6CA, -1060, false},     // 10^-300
-    {0xFF77B1FCBEBCDC4F, -1034, false},     // 10^-292
-    {0xBE5691EF416BD60C, -1007, false},     // 10^-284
-    {0x8DD01FAD907FFC3C, -980, false},      // 10^-276
-    {0xD3515C2831559A83, -954, false},      // 10^-268
-    {0x9D71AC8FADA6C9B5, -927, false},      // 10^-260
-    {0xEA9C227723EE8BCB, -901, false},      // 10^-252
-    {0xAECC49914078536D, -874, false},      // 10^-244
-    {0x823C12795DB6CE57, -847, false},      // 10^-236
-    {0xC21094364DFB5637, -821, false},      // 10^-228
-    {0x9096EA6F3848984F, -794, false},      // 10^-220
-    {0xD77485CB25823AC7, -768, false},      // 10^-212
-    {0xA086CFCD97BF97F4, -741, false},      // 10^-204
-    {0xEF340A98172AACE5, -715, false},      // 10^-196
-    {0xB23867FB2A35B28E, -688, false},      // 10^-188
-    {0x84C8D4DFD2C63F3B, -661, false},      // 10^-180
-    {0xC5DD44271AD3CDBA, -635, false},      // 10^-172
-    {0x936B9FCEBB25C996, -608, false},      // 10^-164
-    {0xDBAC6C247D62A584, -582, false},      // 10^-156
-    {0xA3AB66580D5FDAF6, -555, false},      // 10^-148
-    {0xF3E2F893DEC3F126, -529, false},      // 10^-140
-    {0xB5B5ADA8AAFF80B8, -502, false},      // 10^-132
-    {0x87625F056C7C4A8B, -475, false},      // 10^-124
-    {0xC9BCFF6034C13053, -449, false},      // 10^-116
-    {0x964E858C91BA2655, -422, false},      // 10^-108
-    {0xDFF9772470297EBD, -396, false},      // 10^-100
-    {0xA6DFBD9FB8E5B88F, -369, false},      // 10^-92
-    {0xF8A95FCF88747D94, -343, false},      // 10^-84
-    {0xB94470938FA89BCF, -316, false},      // 10^-76
-    {0x8A08F0F8BF0F156B, -289, false},      // 10^-68
-    {0xCDB02555653131B6, -263, false},      // 10^-60
-    {0x993FE2C6D07B7FAC, -236, false},      // 10^-52
-    {0xE45C10C42A2B3B06, -210, false},      // 10^-44
-    {0xAA242499697392D3, -183, false},      // 10^-36
-    {0xFD87B5F28300CA0E, -157, false},      // 10^-28
-    {0xBCE5086492111AEB, -130, false},      // 10^-20
-    {0x8CBCCC096F5088CC, -103, false},      // 10^-12
-    {0xD1B71758E219652C, -77, false},       // 10^-4
-    {0x9C40000000000000, -50, false},       // 10^4
-    {0xE8D4A51000000000, -24, false},       // 10^12
-    {0xAD78EBC5AC620000, 3, false},         // 10^20
-    {0x813F3978F8940984, 30, false},        // 10^28
-    {0xC097CE7BC90715B3, 56, false},        // 10^36
-    {0x8F7E32CE7BEA5C70, 83, false},        // 10^44
-    {0xD5D238A4ABE98068, 109, false},       // 10^52
-    {0x9F4F2726179A2245, 136, false},       // 10^60
-    {0xED63A231D4C4FB27, 162, false},       // 10^68
-    {0xB0DE65388CC8ADA8, 189, false},       // 10^76
-    {0x83C7088E1AAB65DB, 216, false},       // 10^84
-    {0xC45D1DF942711D9A, 242, false},       // 10^92
-    {0x924D692CA61BE758, 269, false},       // 10^100
-    {0xDA01EE641A708DEA, 295, false},       // 10^108
-    {0xA26DA3999AEF774A, 322, false},       // 10^116
-    {0xF209787BB47D6B85, 348, false},       // 10^124
-    {0xB454E4A179DD1877, 375, false},       // 10^132
-    {0x865B86925B9BC5C2, 402, false},       // 10^140
-    {0xC83553C5C8965D3D, 428, false},       // 10^148
-    {0x952AB45CFA97A0B3, 455, false},       // 10^156
-    {0xDE469FBD99A05FE3, 481, false},       // 10^164
-    {0xA59BC234DB398C25, 508, false},       // 10^172
-    {0xF6C69A72A3989F5C, 534, false},       // 10^180
-    {0xB7DCBF5354E9BECE, 561, false},       // 10^188
-    {0x88FCF317F22241E2, 588, false},       // 10^196
-    {0xCC20CE9BD35C78A5, 614, false},       // 10^204
-    {0x98165AF37B2153DF, 641, false},       // 10^212
-    {0xE2A0B5DC971F303A, 667, false},       // 10^220
-    {0xA8D9D1535CE3B396, 694, false},       // 10^228
-    {0xFB9B7CD9A4A7443C, 720, false},       // 10^236
-    {0xBB764C4CA7A44410, 747, false},       // 10^244
-    {0x8BAB8EEFB6409C1A, 774, false},       // 10^252
-    {0xD01FEF10A657842C, 800, false},       // 10^260
-    {0x9B10A4E5E9913129, 827, false},       // 10^268
-    {0xE7109BFBA19C0C9D, 853, false},       // 10^276
-    {0xAC2820D9623BF429, 880, false},       // 10^284
-    {0x80444B5E7AA7CF85, 907, false},       // 10^292
-    {0xBF21E44003ACDD2D, 933, false},       // 10^300
-    {0x8E679C2F5E44FF8F, 960, false},       // 10^308
-    {0xD433179D9C8CB841, 986, false},       // 10^316
-    {0x9E19DB92B4E31BA9, 1013, false},      // 10^324
-    {0xEB96BF6EBADF77D9, 1039, false},      // 10^332
-    {0xAF87023B9BF0EE6B, 1066, false}]
+    FloatExt{0xFA8FD5A0081C0288, -1220, false},     // 10^-348
+    FloatExt{0xBAAEE17FA23EBF76, -1193, false},     // 10^-340
+    FloatExt{0x8B16FB203055AC76, -1166, false},     // 10^-332
+    FloatExt{0xCF42894A5DCE35EA, -1140, false},     // 10^-324
+    FloatExt{0x9A6BB0AA55653B2D, -1113, false},     // 10^-316
+    FloatExt{0xE61ACF033D1A45DF, -1087, false},     // 10^-308
+    FloatExt{0xAB70FE17C79AC6CA, -1060, false},     // 10^-300
+    FloatExt{0xFF77B1FCBEBCDC4F, -1034, false},     // 10^-292
+    FloatExt{0xBE5691EF416BD60C, -1007, false},     // 10^-284
+    FloatExt{0x8DD01FAD907FFC3C, -980, false},      // 10^-276
+    FloatExt{0xD3515C2831559A83, -954, false},      // 10^-268
+    FloatExt{0x9D71AC8FADA6C9B5, -927, false},      // 10^-260
+    FloatExt{0xEA9C227723EE8BCB, -901, false},      // 10^-252
+    FloatExt{0xAECC49914078536D, -874, false},      // 10^-244
+    FloatExt{0x823C12795DB6CE57, -847, false},      // 10^-236
+    FloatExt{0xC21094364DFB5637, -821, false},      // 10^-228
+    FloatExt{0x9096EA6F3848984F, -794, false},      // 10^-220
+    FloatExt{0xD77485CB25823AC7, -768, false},      // 10^-212
+    FloatExt{0xA086CFCD97BF97F4, -741, false},      // 10^-204
+    FloatExt{0xEF340A98172AACE5, -715, false},      // 10^-196
+    FloatExt{0xB23867FB2A35B28E, -688, false},      // 10^-188
+    FloatExt{0x84C8D4DFD2C63F3B, -661, false},      // 10^-180
+    FloatExt{0xC5DD44271AD3CDBA, -635, false},      // 10^-172
+    FloatExt{0x936B9FCEBB25C996, -608, false},      // 10^-164
+    FloatExt{0xDBAC6C247D62A584, -582, false},      // 10^-156
+    FloatExt{0xA3AB66580D5FDAF6, -555, false},      // 10^-148
+    FloatExt{0xF3E2F893DEC3F126, -529, false},      // 10^-140
+    FloatExt{0xB5B5ADA8AAFF80B8, -502, false},      // 10^-132
+    FloatExt{0x87625F056C7C4A8B, -475, false},      // 10^-124
+    FloatExt{0xC9BCFF6034C13053, -449, false},      // 10^-116
+    FloatExt{0x964E858C91BA2655, -422, false},      // 10^-108
+    FloatExt{0xDFF9772470297EBD, -396, false},      // 10^-100
+    FloatExt{0xA6DFBD9FB8E5B88F, -369, false},      // 10^-92
+    FloatExt{0xF8A95FCF88747D94, -343, false},      // 10^-84
+    FloatExt{0xB94470938FA89BCF, -316, false},      // 10^-76
+    FloatExt{0x8A08F0F8BF0F156B, -289, false},      // 10^-68
+    FloatExt{0xCDB02555653131B6, -263, false},      // 10^-60
+    FloatExt{0x993FE2C6D07B7FAC, -236, false},      // 10^-52
+    FloatExt{0xE45C10C42A2B3B06, -210, false},      // 10^-44
+    FloatExt{0xAA242499697392D3, -183, false},      // 10^-36
+    FloatExt{0xFD87B5F28300CA0E, -157, false},      // 10^-28
+    FloatExt{0xBCE5086492111AEB, -130, false},      // 10^-20
+    FloatExt{0x8CBCCC096F5088CC, -103, false},      // 10^-12
+    FloatExt{0xD1B71758E219652C, -77, false},       // 10^-4
+    FloatExt{0x9C40000000000000, -50, false},       // 10^4
+    FloatExt{0xE8D4A51000000000, -24, false},       // 10^12
+    FloatExt{0xAD78EBC5AC620000, 3, false},         // 10^20
+    FloatExt{0x813F3978F8940984, 30, false},        // 10^28
+    FloatExt{0xC097CE7BC90715B3, 56, false},        // 10^36
+    FloatExt{0x8F7E32CE7BEA5C70, 83, false},        // 10^44
+    FloatExt{0xD5D238A4ABE98068, 109, false},       // 10^52
+    FloatExt{0x9F4F2726179A2245, 136, false},       // 10^60
+    FloatExt{0xED63A231D4C4FB27, 162, false},       // 10^68
+    FloatExt{0xB0DE65388CC8ADA8, 189, false},       // 10^76
+    FloatExt{0x83C7088E1AAB65DB, 216, false},       // 10^84
+    FloatExt{0xC45D1DF942711D9A, 242, false},       // 10^92
+    FloatExt{0x924D692CA61BE758, 269, false},       // 10^100
+    FloatExt{0xDA01EE641A708DEA, 295, false},       // 10^108
+    FloatExt{0xA26DA3999AEF774A, 322, false},       // 10^116
+    FloatExt{0xF209787BB47D6B85, 348, false},       // 10^124
+    FloatExt{0xB454E4A179DD1877, 375, false},       // 10^132
+    FloatExt{0x865B86925B9BC5C2, 402, false},       // 10^140
+    FloatExt{0xC83553C5C8965D3D, 428, false},       // 10^148
+    FloatExt{0x952AB45CFA97A0B3, 455, false},       // 10^156
+    FloatExt{0xDE469FBD99A05FE3, 481, false},       // 10^164
+    FloatExt{0xA59BC234DB398C25, 508, false},       // 10^172
+    FloatExt{0xF6C69A72A3989F5C, 534, false},       // 10^180
+    FloatExt{0xB7DCBF5354E9BECE, 561, false},       // 10^188
+    FloatExt{0x88FCF317F22241E2, 588, false},       // 10^196
+    FloatExt{0xCC20CE9BD35C78A5, 614, false},       // 10^204
+    FloatExt{0x98165AF37B2153DF, 641, false},       // 10^212
+    FloatExt{0xE2A0B5DC971F303A, 667, false},       // 10^220
+    FloatExt{0xA8D9D1535CE3B396, 694, false},       // 10^228
+    FloatExt{0xFB9B7CD9A4A7443C, 720, false},       // 10^236
+    FloatExt{0xBB764C4CA7A44410, 747, false},       // 10^244
+    FloatExt{0x8BAB8EEFB6409C1A, 774, false},       // 10^252
+    FloatExt{0xD01FEF10A657842C, 800, false},       // 10^260
+    FloatExt{0x9B10A4E5E9913129, 827, false},       // 10^268
+    FloatExt{0xE7109BFBA19C0C9D, 853, false},       // 10^276
+    FloatExt{0xAC2820D9623BF429, 880, false},       // 10^284
+    FloatExt{0x80444B5E7AA7CF85, 907, false},       // 10^292
+    FloatExt{0xBF21E44003ACDD2D, 933, false},       // 10^300
+    FloatExt{0x8E679C2F5E44FF8F, 960, false},       // 10^308
+    FloatExt{0xD433179D9C8CB841, 986, false},       // 10^316
+    FloatExt{0x9E19DB92B4E31BA9, 1013, false},      // 10^324
+    FloatExt{0xEB96BF6EBADF77D9, 1039, false},      // 10^332
+    FloatExt{0xAF87023B9BF0EE6B, 1066, false}]
 
 impl FloatExt
 {
@@ -239,7 +239,7 @@ impl FloatExt
     // frexp10Many applies a common shift by a power of ten to a, b, c.
     func frexp10Many(a, b, c: *FloatExt)->s64
     {
-        let {exp10, i} = c.frexp10()
+        let {exp10, index: i} = c.frexp10()
         a.multiply(powersOfTen[i])
         b.multiply(powersOfTen[i])
         return exp10
@@ -261,7 +261,7 @@ impl FloatExt
         // Multiply by an appropriate power of ten to have a reasonable
         // number to process.
         .normalize()
-        let {exp10, _} = .frexp10()
+        let {exp10, index: _} = .frexp10()
 
         let shift    = cast(u32, -.exp)
         var integer  = cast(u32, (.mant >> shift))

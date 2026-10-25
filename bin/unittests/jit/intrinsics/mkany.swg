@@ -60,7 +60,7 @@ enum MkanyKind: u16
 {
     func mkanyRoundtripPair()->s32
     {
-        var p: MkanyPair = {a: 11, b: 31}
+        var p: MkanyPair = MkanyPair{a: 11, b: 31}
         let a: any       = Swag.makeAny(&p, MkanyPair)
         let data         = cast(*MkanyPair, a.buffer)
         let value        = data[]

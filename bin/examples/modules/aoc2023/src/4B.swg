@@ -63,7 +63,7 @@ func day4B()
                 matchCount += 1
         }
 
-        cards.add({matchCount, copies: 1})
+        cards.add({ matchCount, copies: 1 })
     }
 
     var total = 0'u64

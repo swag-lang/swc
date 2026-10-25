@@ -73,6 +73,7 @@ namespace Runtime
         Nullable             = 0x00020000,
         RequiresExplicitInit = 0x00080000,
         HasDynamicStorage    = 0x00100000,
+        Record               = 0x00200000,
     };
 
     enum class TypeValueFlags : uint32_t

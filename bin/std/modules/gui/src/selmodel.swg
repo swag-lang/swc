@@ -113,11 +113,11 @@ impl SelModel
 
         if insertAt == mergeEnd
         {
-            .rangesStorage.insertAt(insertAt, {rangeStart, rangeEnd})
+            .rangesStorage.insertAt(insertAt, SelRange{rangeStart, rangeEnd})
             return
         }
 
-        .rangesStorage[insertAt] = {rangeStart, rangeEnd}
+        .rangesStorage[insertAt] = SelRange{rangeStart, rangeEnd}
         if mergeEnd > insertAt + 1 do
             .rangesStorage.removeAtOrdered(insertAt + 1, mergeEnd - insertAt - 1)
     }
@@ -151,7 +151,7 @@ impl SelModel
             {
                 let oldEnd = range.end
                 range.end = rangeStart - 1
-                .rangesStorage.insertAt(rangeIndex + 1, {rangeEnd + 1, oldEnd})
+                .rangesStorage.insertAt(rangeIndex + 1, SelRange{rangeEnd + 1, oldEnd})
                 break
             }
 

@@ -12,7 +12,7 @@ func createModesPage(parent: *Wnd)
     {
         let rect = left.clientRect()
         discard createCodeEditor(left,
-                                 {18, 88, rect.width - 36, rect.height - 106},
+                                 (18, 88, rect.width - 36, rect.height - 106),
                                  cast(string, SourcePageModes),
                                  .ShowFocusSel | .CurLineBorder | .TabToSpaces)
     }
@@ -25,7 +25,7 @@ func createModesPage(parent: *Wnd)
     {
         let rect = right.clientRect()
         let ed   = createDocumentEditor(right,
-                                        {18, 88, rect.width - 36, rect.height - 106},
+                                        (18, 88, rect.width - 36, rect.height - 106),
                                         "This variant uses the Edit form.\n\nIt keeps the rich selection model but relaxes the visual framing so notes sit more naturally beside buttons, forms and inspectors.\n\nBecause the control stays the same underneath, switching between prose and code does not mean switching engines.")
         ed.lineSpacing = 2
     }

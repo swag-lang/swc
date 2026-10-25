@@ -14,13 +14,13 @@ struct(N: u32) RegistryPadding
 
 impl IImageEncoder for RegistryPadding
 {
-    mtd impl format()->ImageFormat => {"Registry padding", ".registrypadding"}
+    mtd impl format()->ImageFormat => ImageFormat{"Registry padding", ".registrypadding"}
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail {}
 }
 
 impl IImageDecoder for RegistryPadding
 {
-    mtd impl format()->ImageFormat => {"Registry padding", ".registrypadding"}
+    mtd impl format()->ImageFormat => ImageFormat{"Registry padding", ".registrypadding"}
     mtd impl decode(bytes: const [..] u8, options: DecodeOptions)->Image fail => Image.create(1, 1, .RGBA8)
 }
 
@@ -48,7 +48,7 @@ impl RegistryEncoder
 
 impl IImageEncoder for RegistryEncoder
 {
-    mtd impl format()->ImageFormat => {"Registry encoder", ".registrytest"}
+    mtd impl format()->ImageFormat => ImageFormat{"Registry encoder", ".registrytest"}
 
     mtd impl encode(result: *ConcatBuffer, _: Image, options: any?) fail
     {
@@ -75,7 +75,7 @@ impl RegistryDecoder
 
 impl IImageDecoder for RegistryDecoder
 {
-    mtd impl format()->ImageFormat => {"Registry decoder", ".registrytest"}
+    mtd impl format()->ImageFormat => ImageFormat{"Registry decoder", ".registrytest"}
 
     mtd impl decode(bytes: const [..] u8, _: DecodeOptions)->Image fail
     {

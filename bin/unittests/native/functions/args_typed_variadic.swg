@@ -124,15 +124,15 @@ func variadicTypedStrictF32(values: TypedVariadicStrictF32...)->f32
 
 #test
 {
-    const p0: TypedVariadicPair = {a: 2, b: 3}
-    const p1: TypedVariadicPair = {a: 5, b: 7}
+    const p0: TypedVariadicPair = TypedVariadicPair{a: 2, b: 3}
+    const p1: TypedVariadicPair = TypedVariadicPair{a: 5, b: 7}
     Swag.assert(variadicTypedPair(1, p0, p1) == 18)
 }
 
 #test
 {
-    const p0: TypedVariadicPair = {a: 2, b: 3}
-    const p1: TypedVariadicPair = {a: 5, b: 7}
+    const p0: TypedVariadicPair = TypedVariadicPair{a: 2, b: 3}
+    const p1: TypedVariadicPair = TypedVariadicPair{a: 5, b: 7}
     Swag.assert(variadicTypedForward(10, 20, 30) == 60)
     Swag.assert(variadicTypedAliasForward(10, 20, 30) == 60)
     Swag.assert(variadicTypedBaseForwardToAlias(10, 20, 30) == 60)

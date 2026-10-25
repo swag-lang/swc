@@ -45,7 +45,7 @@ private var nestedReturnFactory = NestedReturnFactory{1}
 #test
 {
     let result = NestedReturnContainer{
-        defaulted: {},
+        defaulted: DefaultedNestedValue{},
         nested: nestedReturnFactory.make()
         }
 

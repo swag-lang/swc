@@ -397,7 +397,7 @@ impl Capture
             undo.oldForms.add(itf)
             .pushUndo(undo)
 
-            if itf != FormStep
+            if not (itf is FormStep)
             {
                 .selection.clear()
                 .selection.add(.forms.count - 1)

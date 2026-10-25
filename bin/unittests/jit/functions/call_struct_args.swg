@@ -133,7 +133,7 @@ func PackedReturnValueCaller(header: PackedHeader18)->PackedPointerTarget
     result.bpp       = 3
     result.buffer[3] = 40
 
-    var palette: PackedPaletteLike = {data: result.buffer, count: 1}
+    var palette: PackedPaletteLike = PackedPaletteLike{data: result.buffer, count: 1}
     result.buffer[0] = PackedForwardingCaller(&result, header, palette, 1, result.buffer)
     return result
 }
@@ -154,7 +154,7 @@ func PackedReturnValueCaller(header: PackedHeader18)->PackedPointerTarget
     header.bpp           = 24
     Swag.assert(PackedPointerAfterHeader(&target, header, 1) == 42)
 
-    var palette: PackedPaletteLike = {data: target.buffer, count: 1}
+    var palette: PackedPaletteLike = PackedPaletteLike{data: target.buffer, count: 1}
     Swag.assert(PackedForwardingCaller(&target, header, palette, 1, target.buffer) == 42)
 
     let ret = PackedReturnValueCaller(header)

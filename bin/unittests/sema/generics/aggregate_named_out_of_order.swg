@@ -20,7 +20,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    let unnamedFirst = pairFirst({1'u16, second: 2'u16})
+    let unnamedFirst = pairFirst({first: 1'u16, second: 2'u16})
     #assert(#typeof(unnamedFirst) == u16)
     Swag.assert(unnamedFirst == 1'u16)
 }

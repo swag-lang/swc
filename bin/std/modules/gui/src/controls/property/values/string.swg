@@ -154,7 +154,7 @@ internal impl Properties
         if Reflection.hasAttribute(value, .MultiLine)
         {
             edit.setTrailingMargin(24)
-            with let btn = IconButton.create(edit, .theme().icon(.More, 20), {0, 0, 20, 20})
+            with let btn = IconButton.create(edit, .theme().icon(.More, 20), Math.Rectangle{0, 0, 20, 20})
             {
                 .dockStyle  = .Right
                 .sigPressed += func|prop = me, item, ed = edit|(_)

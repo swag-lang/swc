@@ -163,7 +163,7 @@ impl RecentView
         if infos.showLinked and infos.linked != null
         {
             let backColor = infos.linkedUpToDate ? colors.bk : ColorYellow
-            painter.fillRoundRect({rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
+            painter.fillRoundRect(Math.Rectangle{rect.x, rect.y, LinkBadgeSize, LinkBadgeSize}, corner, corner, backColor)
 
             var icon = parent.theme().icon(.Link)
             icon.sizeX, icon.sizeY = LinkBadgeGlyph
@@ -389,7 +389,7 @@ impl RecentWnd
     // Builds the recent strip: a horizontal scroll of capture thumbnails.
     func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
-        with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
+        with let recent = Wnd.create'RecentWnd(parent, Math.Rectangle{0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
             .updateFlags(.CompactBars | .AlwaysShowHorizontal)
             .backgroundStyle = .Panel

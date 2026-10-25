@@ -47,7 +47,7 @@ func assertContentFits(root: *Wnd, tolerance = 0.5'f32)
     if not root.isLocallyVisible() do
         return
 
-    let content = root.itf.measureContent({root.position.width, root.position.height})
+    let content = root.itf.measureContent(Math.Point{root.position.width, root.position.height})
     if content.x > root.position.width + tolerance or content.y > root.position.height + tolerance
     {
         var excused = settlesForLess(root)

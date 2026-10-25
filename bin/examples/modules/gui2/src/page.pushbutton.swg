@@ -9,18 +9,18 @@ func createPushButtonPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        var btn = PushButton.create(left, "Normal", {22, 92, 150})
+        var btn = PushButton.create(left, "Normal", Math.Rectangle{22, 92, 150})
         btn.setIcon(app.theme.icon(ThemeIcons.Play, 18))
 
-        btn = PushButton.create(left, "Default", {190, 92, 150})
+        btn = PushButton.create(left, "Default", Math.Rectangle{190, 92, 150})
         btn.setForm(.Default)
         btn.setIcon(app.theme.icon(ThemeIcons.Save, 18))
 
-        btn = PushButton.create(left, "Flat", {22, 142, 150})
+        btn = PushButton.create(left, "Flat", Math.Rectangle{22, 142, 150})
         btn.setForm(.Flat)
         btn.setIcon(app.theme.icon(ThemeIcons.Search, 18))
 
-        btn = PushButton.create(left, "Strong", {190, 142, 150})
+        btn = PushButton.create(left, "Strong", Math.Rectangle{190, 142, 150})
         btn.setForm(.Strong)
         btn.setIcon(app.theme.icon(ThemeIcons.Download, 18))
     }
@@ -31,19 +31,19 @@ func createPushButtonPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let status = createText(right, "No button pressed yet.", {22, 190, 430, 28})
+        let status = createText(right, "No button pressed yet.", (22, 190, 430, 28))
 
-        var btn = PushButton.create(right, "Press me", {22, 92, 150})
+        var btn = PushButton.create(right, "Press me", Math.Rectangle{22, 92, 150})
         btn.sigPressed += func|status|(_) { status.setText("Pressed: standard button") }
 
-        btn = PushButton.create(right, "Disabled", {190, 92, 150})
+        btn = PushButton.create(right, "Disabled", Math.Rectangle{190, 92, 150})
         btn.disable()
 
-        btn = PushButton.create(right, "Long label clipped cleanly", {22, 142, 210})
+        btn = PushButton.create(right, "Long label clipped cleanly", Math.Rectangle{22, 142, 210})
         btn.setForm(.Default)
         btn.sigPressed += func|status|(_) { status.setText("Pressed: long label button") }
 
-        btn        = PushButton.create(right, "Help cursor", {250, 142, 150})
+        btn        = PushButton.create(right, "Help cursor", Math.Rectangle{250, 142, 150})
         btn.cursor = Cursor.from(CursorShape.Help)
     }
 
@@ -53,7 +53,7 @@ func createPushButtonPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        var btn = PushButton.create(bottom, "Custom flat action", {22, 96, 220})
+        var btn = PushButton.create(bottom, "Custom flat action", Math.Rectangle{22, 96, 220})
         btn.setForm(.Flat)
         btn.setIcon(app.theme.icon(ThemeIcons.Filter, 18))
         btn.style.addStyleSheetColors("btnPushFlat_HotBk 0xFF2F8F5B")
@@ -61,8 +61,8 @@ func createPushButtonPage(parent: *Wnd)
         btn.style.addStyleSheetColors("btnPushFlat_HotText 0xFFFFFFFF")
         btn.style.addStyleSheetColors("btnPushFlat_PressedText 0xFFFFFFFF")
 
-        btn = PushButton.create(bottom, "Narrow", {270, 96, 82})
+        btn = PushButton.create(bottom, "Narrow", Math.Rectangle{270, 96, 82})
 
-        btn = PushButton.create(bottom, "Wide command button", {380, 96, 260})
+        btn = PushButton.create(bottom, "Wide command button", Math.Rectangle{380, 96, 260})
     }
 }

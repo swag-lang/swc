@@ -16,7 +16,7 @@ var TabHeadlessSelChangedCount: u32
         host.theme.colors.apply(palette)
         host.setReducedMotion(false)
 
-        let tab = Tab.create(&host.root, {0, 0, 320, 120})
+        let tab = Tab.create(&host.root, Math.Rectangle{0, 0, 320, 120})
         tab.setForms(.Flat, .Flat, .None)
         for name in ["Create", "Open", "Mounted", "Options"] do
             tab.addItem(name)
@@ -37,7 +37,7 @@ var TabHeadlessSelChangedCount: u32
         Swag.assert(halfway.pixelColor(316, y) == colors.tabBar_FlatBk)
 
         host.finishAnimations()
-        host.moveMouse({40, tab.barHeight / 2})
+        host.moveMouse(Math.Point{40, tab.barHeight / 2})
         host.settleAnimations()
         let hovered = host.render()
         Swag.assert(hovered.pixelColor(40, y) == colors.tabItem_FlatHot)
@@ -53,7 +53,7 @@ var TabHeadlessSelChangedCount: u32
     defer host.shutdown()
     TabHeadlessSelChangedCount = 0
 
-    let tab = Tab.create(&host.root, {10, 10, 300, 180})
+    let tab = Tab.create(&host.root, Math.Rectangle{10, 10, 300, 180})
     tab.sigSelectionChanged += func(_) { TabHeadlessSelChangedCount += 1 }
 
     tab.addItem("A")
@@ -84,9 +84,9 @@ var TabHeadlessSelChangedCount: u32
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     defer host.shutdown()
-    let tab   = Tab.create(&host.root, {10, 10, 300, 180})
-    let viewA = Wnd.create'Wnd(tab, null, {0, 0, 100, 100})
-    let viewB = Wnd.create'Wnd(tab, null, {0, 0, 100, 100})
+    let tab   = Tab.create(&host.root, Math.Rectangle{10, 10, 300, 180})
+    let viewA = Wnd.create'Wnd(tab, null, Math.Rectangle{0, 0, 100, 100})
+    let viewB = Wnd.create'Wnd(tab, null, Math.Rectangle{0, 0, 100, 100})
 
     tab.addItem("A", {}, viewA)
     tab.addItem("B", {}, viewB)
@@ -107,7 +107,7 @@ var TabHeadlessSelChangedCount: u32
     host.setup(320, 200)
     defer host.shutdown()
     host.setReducedMotion(false)
-    let tab   = Tab.create(&host.root, {10, 10, 300, 180})
+    let tab   = Tab.create(&host.root, Math.Rectangle{10, 10, 300, 180})
     let viewA = Wnd.create'Wnd(tab)
     let viewB = Wnd.create'Wnd(tab)
     tab.setForms(.Transparent, .Transparent, .None)
@@ -154,7 +154,7 @@ var TabHeadlessSelChangedCount: u32
     defer host.shutdown()
     TabHeadlessSelChangedCount = 0
 
-    let tab   = Tab.create(&host.root, {10, 10, 300, 180})
+    let tab   = Tab.create(&host.root, Math.Rectangle{10, 10, 300, 180})
     let viewA = Wnd.create'Wnd(tab)
     let viewB = Wnd.create'Wnd(tab)
     let viewC = Wnd.create'Wnd(tab)
@@ -187,12 +187,12 @@ var TabHeadlessSelChangedCount: u32
     let tab = Tab.create(&host.root)
     tab.addItem("First")
     tab.addItem("Second")
-    tab.padding = {3, 5, 7, 9}
+    tab.padding = Math.Vector4{3, 5, 7, 9}
     let wnd: *Wnd = tab
     for form in [TabForm.Flat, TabForm.Round, TabForm.Button]
     {
         tab.setForm(form)
-        let hint = wnd.measure({300, 0})
+        let hint = wnd.measure(Math.Point{300, 0})
         Swag.assert(hint.preferred.y == tab.barHeight + 14)
         Swag.assert(hint.preferred.x >= tab.minimumItemWidth * 2 + 10)
     }

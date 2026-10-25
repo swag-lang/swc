@@ -76,7 +76,7 @@ surface paint pipeline through Pixel's software renderer and returns owned pixel
     var host: Testing.HeadlessHost
     host.setup(160, 80)
     defer host.shutdown()
-    discard PushButton.create(&host.root, "Continue", {20, 20, 120, 32})
+    discard PushButton.create(&host.root, "Continue", Math.Rectangle{20, 20, 120, 32})
 
     let image = host.render()
     Pixel.Testing.assertImageGolden(&image, "continue-button")

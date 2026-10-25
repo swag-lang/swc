@@ -18,7 +18,7 @@ func readInline(value: Value, other: u64)->u64 => value.first + other
             target.first = 0     // swc-expected-error {{safety_err_runtime}}
             return 1
         }
-        var value: Value = {first: 11}
+        var value: Value = Value{first: 11}
         discard read(value, write(&value))
         return 0
     }
@@ -34,7 +34,7 @@ func readInline(value: Value, other: u64)->u64 => value.first + other
             target.first = 0     // swc-expected-error {{safety_err_runtime}}
             return 1
         }
-        var value: Value = {first: 13}
+        var value: Value = Value{first: 13}
         discard readInline(value, write(&value))
         return 0
     }

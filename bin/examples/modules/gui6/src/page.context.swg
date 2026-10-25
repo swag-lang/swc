@@ -58,19 +58,19 @@ func onContextCanvasEvent(view: *Wnd, evt: IEvent)->bool
         painter.drawRoundRect(card, 22, 22, Color.fromArgb(70'u8, Argb.Black), 1)
         painter.drawString(card.x + 28, card.y + 28, "Right-click target", titleFont, Argb.DarkSlateGray)
         drawWrappedText(painter,
-                        {card.x + 28, card.y + 72, card.width - 56, 56},
+                        (card.x + 28, card.y + 72, card.width - 56, 56),
                         "Right-click this panel or use the buttons to open the same context menu at different anchors.",
                         font,
                         Argb.DimGray,
                         2)
         drawStatePill(painter,
-                      {card.x + 28, card.y + 130, 132, 34},
+                      (card.x + 28, card.y + 130, 132, 34),
                       g_ContextPinned ? "pinned" : "unpinned",
                       g_ContextPinned,
                       font,
                       colors)
         drawStatePill(painter,
-                      {card.x + 176, card.y + 130, 132, 34},
+                      (card.x + 176, card.y + 130, 132, 34),
                       Format.toString("delete %", boolWord(not g_ContextPinned)),
                       not g_ContextPinned,
                       font,
@@ -86,31 +86,31 @@ func createContextMenuPage(parent: *Wnd)
     createContextMenuModel(parent)
 
     let left   = createPanel(parent, "Context surface", "The menu is reusable and can be opened from the canvas or command buttons.", layout.left)
-    let canvas = Wnd.create'Wnd(left, {18, 86, layout.left.width - 36, layout.left.height - 104})
+    let canvas = Wnd.create'Wnd(left, Math.Rectangle{18, 86, layout.left.width - 36, layout.left.height - 104})
     canvas.hookOnEvent = &onContextCanvasEvent
 
     let right = createPanel(parent,
                             "Launch points",
                             "The same menu can be shown at raw mouse coordinates or anchored near controls.",
                             layout.right)
-    let openBtn = PushButton.create(right, "Open at button", {24, 100, 220})
+    let openBtn = PushButton.create(right, "Open at button", Math.Rectangle{24, 100, 220})
     openBtn.setIcon(app.theme.icon(.More, 18))
     openBtn.sigPressed += func(btn)
     {
         let pos = btn.surfaceRect()
-        showContextMenuAt({pos.x, pos.bottom() + 6})
+        showContextMenuAt(Math.Point{pos.x, pos.bottom() + 6})
     }
 
-    let inspectBtn = PushButton.create(right, "Open centered", {24, 154, 220})
+    let inspectBtn = PushButton.create(right, "Open centered", Math.Rectangle{24, 154, 220})
     inspectBtn.setIcon(app.theme.icon(.Search, 18))
     inspectBtn.sigPressed += func(btn)
     {
         let pos = btn.surfaceRect()
-        showContextMenuAt({pos.horzCenter(), pos.vertCenter()})
+        showContextMenuAt(Math.Point{pos.horzCenter(), pos.vertCenter()})
     }
 
-    discard createActionButton(right, "Toggle pin state", {24, 224, 220}, MenuCmd.ContextPin, .Link)
-    discard createActionButton(right, "Try delete command", {24, 278, 220}, MenuCmd.ContextDelete, .Remove)
+    discard createActionButton(right, "Toggle pin state", (24, 224, 220), MenuCmd.ContextPin, .Link)
+    discard createActionButton(right, "Try delete command", (24, 278, 220), MenuCmd.ContextDelete, .Remove)
 
     createStatusPanel(parent, layout.bottom)
 }

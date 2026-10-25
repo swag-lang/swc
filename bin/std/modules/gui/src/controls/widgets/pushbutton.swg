@@ -143,17 +143,17 @@ impl IWnd for PushButton
             var rest, hot, pressed: {bk, border, text: Color}
             switch form
             {
-            case .Strong: rest = {colors.btnPush_StrongBk, colors.btnPush_StrongBorder, colors.btnPush_StrongText}
-                hot     = {colors.btnPush_StrongHotBk, colors.btnPush_StrongHotBorder, colors.btnPush_StrongHotText}
-                pressed = {colors.btnPush_StrongPressedBk, colors.btnPush_StrongPressedBorder, colors.btnPush_StrongPressedText}
+            case .Strong: rest = {bk: colors.btnPush_StrongBk, border: colors.btnPush_StrongBorder, text: colors.btnPush_StrongText}
+                hot     = {bk: colors.btnPush_StrongHotBk, border: colors.btnPush_StrongHotBorder, text: colors.btnPush_StrongHotText}
+                pressed = {bk: colors.btnPush_StrongPressedBk, border: colors.btnPush_StrongPressedBorder, text: colors.btnPush_StrongPressedText}
 
-            case .Alternate: rest = {colors.btnPush_AlternateBk, colors.btnPush_AlternateBorder, colors.btnPush_AlternateText}
-                hot     = {colors.btnPush_AlternateHotBk, colors.btnPush_AlternateHotBorder, colors.btnPush_AlternateHotText}
-                pressed = {colors.btnPush_AlternatePressedBk, colors.btnPush_AlternatePressedBorder, colors.btnPush_AlternatePressedText}
+            case .Alternate: rest = {bk: colors.btnPush_AlternateBk, border: colors.btnPush_AlternateBorder, text: colors.btnPush_AlternateText}
+                hot     = {bk: colors.btnPush_AlternateHotBk, border: colors.btnPush_AlternateHotBorder, text: colors.btnPush_AlternateHotText}
+                pressed = {bk: colors.btnPush_AlternatePressedBk, border: colors.btnPush_AlternatePressedBorder, text: colors.btnPush_AlternatePressedText}
 
-            default: rest = {colors.btnPush_Bk, colors.btnPush_Border, colors.btnPush_Text}
-                hot     = {colors.btnPush_HotBk, colors.btnPush_HotBorder, colors.btnPush_HotText}
-                pressed = {colors.btnPush_PressedBk, colors.btnPush_PressedBorder, colors.btnPush_PressedText}
+            default: rest = {bk: colors.btnPush_Bk, border: colors.btnPush_Border, text: colors.btnPush_Text}
+                hot     = {bk: colors.btnPush_HotBk, border: colors.btnPush_HotBorder, text: colors.btnPush_HotText}
+                pressed = {bk: colors.btnPush_PressedBk, border: colors.btnPush_PressedBorder, text: colors.btnPush_PressedText}
             }
 
             switch
@@ -251,7 +251,7 @@ impl IWnd for PushButton
     mtd impl measureContent(_: Math.Point)->Math.Point
     {
         let metrics = .themeMetrics()
-        return {Math.max(.labelWidth(), metrics.btnPush_Width), metrics.btnPush_Height}
+        return Math.Point{Math.max(.labelWidth(), metrics.btnPush_Width), metrics.btnPush_Height}
     }
 }
 
@@ -271,7 +271,7 @@ impl PushButton
     // A zero `position` height takes the theme height. A zero width starts at the theme width
     // and then follows the caption, keeping the theme width as a floor.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, form = PushButtonForm.Normal)->*PushButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, form = PushButtonForm.Normal)->*PushButton
     {
         Swag.assert(parent != null)
         var pos = position

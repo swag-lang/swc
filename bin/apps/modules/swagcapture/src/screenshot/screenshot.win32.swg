@@ -18,7 +18,7 @@ impl CapturePlatformScope
 }
 
 // Enters the native coordinate context required by the Windows capture backend.
-func beginCapturePlatformScope()->CapturePlatformScope => {SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)}
+func beginCapturePlatformScope()->CapturePlatformScope => CapturePlatformScope{SetThreadDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE)}
 
 internal
 {
@@ -151,7 +151,7 @@ func getCaptureWindowAtPos(srf: *Surface, x, y: f32)->{ rect: Math.Rectangle, in
 
     var r: RECT
     GetWindowRect(hit, &r)
-    result.rect = {r.left, r.top, r.right - r.left, r.bottom - r.top}
+    result.rect = Math.Rectangle{r.left, r.top, r.right - r.left, r.bottom - r.top}
     result.info = captureWindowInfo(hit)
     return result
 }
@@ -193,7 +193,7 @@ func getBackgroundWindow()->{ rect: Math.Rectangle, info: CaptureWindowInfo }
 
     var r: RECT
     GetWindowRect(hit, &r)
-    result.rect = {r.left, r.top, r.right - r.left, r.bottom - r.top}
+    result.rect = Math.Rectangle{r.left, r.top, r.right - r.left, r.bottom - r.top}
     result.info = captureWindowInfo(hit)
     return result
 }

@@ -703,7 +703,7 @@ public impl Window
         var clientRect: RECT
         if not GetClientRect(.win32Handle(), &clientRect) do
             try failWinError(GetLastError())
-        return {clientRect.right - clientRect.left, clientRect.bottom - clientRect.top}
+        return {width: clientRect.right - clientRect.left, height: clientRect.bottom - clientRect.top}
     }
 
     internal mtd showNative() fail

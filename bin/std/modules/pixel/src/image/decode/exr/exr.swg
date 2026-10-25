@@ -425,7 +425,7 @@ impl IImageSetDecoder for Decoder
 
 impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"EXR - OpenEXR", ".exr"}
+    mtd impl format()->ImageFormat => ImageFormat{"EXR - OpenEXR", ".exr"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

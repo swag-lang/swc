@@ -106,7 +106,7 @@ impl Point
     mtd(op: Swag.Operator) const opUnary()->Point
         where op == .Neg
     {
-        return {-.x, -.y}
+        return Point{-.x, -.y}
     }
 
     // Sets both coordinates to zero.

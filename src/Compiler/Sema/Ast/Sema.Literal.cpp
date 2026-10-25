@@ -327,23 +327,6 @@ namespace
         return Result::Continue;
     }
 
-    // Only an untyped declaration infers field names from {rank, str}. Typed
-    // slots, parameters and generic arguments use positional fields.
-    bool isUntypedVarInitializer(const Sema& sema, AstNodeRef nodeRef)
-    {
-        const AstNodeRef parentRef = sema.visit().parentNodeRef();
-        if (parentRef.isInvalid())
-            return false;
-
-        const AstNode& parentNode = sema.node(parentRef);
-        if (const auto* singleVar = parentNode.safeCast<AstSingleVarDecl>())
-            return !singleVar->hasFlag(AstVarDeclFlagsE::Parameter) && singleVar->nodeTypeRef.isInvalid() && singleVar->nodeInitRef == nodeRef;
-
-        if (const auto* multiVar = parentNode.safeCast<AstMultiVarDecl>())
-            return !multiVar->hasFlag(AstVarDeclFlagsE::Parameter) && multiVar->nodeTypeRef.isInvalid() && multiVar->nodeInitRef == nodeRef;
-
-        return false;
-    }
 }
 
 Result AstBoolLiteral::semaPreNode(Sema& sema) const
@@ -730,7 +713,16 @@ Result AstStructLiteral::semaPostNode(Sema& sema) const
     SmallVector<AstNodeRef> children;
     collectChildren(children, sema.ast());
 
-    const bool autoName = isUntypedVarInitializer(sema, sema.curNodeRef());
+    const bool autoName = sema.token(codeRef()).is(TokenId::SymLeftCurly);
+    if (autoName)
+    {
+        for (const AstNodeRef child : children)
+        {
+            const AstNode& node = sema.node(child);
+            if (node.isNot(AstNodeId::NamedArgument) && node.isNot(AstNodeId::Identifier))
+                return SemaError::raise(sema, DiagnosticId::sema_err_record_needs_field_name, child);
+        }
+    }
     SWC_RESULT(SemaHelpers::finalizeAggregateStruct(sema, children, autoName));
 
     const SemaNodeView literalView = sema.curViewNodeTypeConstant();

@@ -595,8 +595,8 @@ impl Painter
         var max = bvMax
         if brush.hasPaintRect
         {
-            min = {brush.paintRect.x, brush.paintRect.y}
-            max = {brush.paintRect.right(), brush.paintRect.bottom()}
+            min = Vector2{brush.paintRect.x, brush.paintRect.y}
+            max = Vector2{brush.paintRect.right(), brush.paintRect.bottom()}
         }
 
         params.boundRect.x = min.x
@@ -604,7 +604,7 @@ impl Painter
         params.boundRect.z = max.x
         params.boundRect.w = max.y
 
-        let {wt, ht} = getTextureSize(brush)
+        let {w: wt, h: ht} = getTextureSize(brush)
         if brush.uvMode == .FillSubRect
         {
             params.textureRect.x = brush.uvRect.x / wt
@@ -749,7 +749,7 @@ impl Painter
 
         // An empty batch starts inverted, so the first point it takes in becomes both bounds.
         let cmd = .newCommand(.DrawTriangles)
-        cmd.op = .DrawTriangles{start: cast(u32, .vertexBuffer.count), bbMin: {Swag.F32.Max, Swag.F32.Max}, bbMax: {-Swag.F32.Max, -Swag.F32.Max}}
+        cmd.op = .DrawTriangles{start: cast(u32, .vertexBuffer.count), bbMin: Vector2{Swag.F32.Max, Swag.F32.Max}, bbMax: Vector2{-Swag.F32.Max, -Swag.F32.Max}}
         return &cmd.drawTriangles
     }
 
@@ -809,17 +809,17 @@ impl Painter
         // back.
         var ptr = .vertexBuffer.emplaceAddress(3)
         ptr.pos   = p1
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = p2
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = p3
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color.argb
         ptr.cov   = 1
 
@@ -841,32 +841,32 @@ impl Painter
 
         var ptr = .vertexBuffer.emplaceAddress(6)
         ptr.pos   = innerA
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = innerB
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = outerA
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = 0
         ptr       += 1
         ptr.pos   = innerB
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = 1
         ptr       += 1
         ptr.pos   = outerB
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = 0
         ptr       += 1
         ptr.pos   = outerA
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = 0
     }
@@ -900,32 +900,32 @@ impl Painter
         let first = .vertexBuffer.count
         var ptr   = .vertexBuffer.emplaceAddress(6)
         ptr.pos   = w0
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = covNeg
         ptr       += 1
         ptr.pos   = w1
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = covNeg
         ptr       += 1
         ptr.pos   = w3
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = covPos
         ptr       += 1
         ptr.pos   = w1
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = covNeg
         ptr       += 1
         ptr.pos   = w3
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = covPos
         ptr       += 1
         ptr.pos   = w2
-        ptr.uv    = {0, 0}
+        ptr.uv    = Vector2{0, 0}
         ptr.color = color
         ptr.cov   = covPos
 
@@ -1416,7 +1416,7 @@ impl Painter
     {
         if .curState.clippingRectOn do
             return .curState.clippingRect
-        return {0, 0, Swag.F32.Max, Swag.F32.Max}
+        return Math.Rectangle{0, 0, Swag.F32.Max, Swag.F32.Max}
     }
 
     // Reports whether rectangular clipping is currently enabled.

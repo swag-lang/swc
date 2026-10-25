@@ -151,9 +151,9 @@ impl ImageReader
                     let remainder = behind.a * (1 - value.a)
                     let alpha     = value.a + remainder
                     if alpha > 0 do
-                        value = {(value.r * value.a + behind.r * remainder) / alpha, (value.g * value.a + behind.g * remainder) / alpha, (value.b * value.a + behind.b * remainder) / alpha, alpha}
+                        value = PixelValue{(value.r * value.a + behind.r * remainder) / alpha, (value.g * value.a + behind.g * remainder) / alpha, (value.b * value.a + behind.b * remainder) / alpha, alpha}
                     else do
-                        value = {0, 0, 0, 0}
+                        value = PixelValue{0, 0, 0, 0}
                 }
 
                 writePixelValue(target, .canvas.pixelFormat, value)
@@ -182,7 +182,7 @@ public impl ImageReader
     // Unsupported or malformed input reports `fail`. Still-only registered decoders automatically appear as a one-image set. Limits
     // apply before frame decoding. The first frame represents animated containers;
     // icon containers retain their largest-entry representative selection.
-    func decode(fileName: string, bytes: const [..] u8, options: DecodeOptions = {})->ImageReader fail
+    func decode(fileName: string, bytes: const [..] u8, options: DecodeOptions = DecodeOptions{})->ImageReader fail
     {
         if options.maxInputBytes and bytes.count > options.maxInputBytes do
             fail UnsupportedFormatError{"image exceeds the encoded byte limit"}
@@ -230,7 +230,7 @@ public impl ImageReader
 
     // Loads a file into owned storage and indexes its images.
     #[Swag.Propagate]
-    func load(fileName: string, options: DecodeOptions = {})->ImageReader fail
+    func load(fileName: string, options: DecodeOptions = DecodeOptions{})->ImageReader fail
     {
         var file = File.MappedFile.open(fileName)
         if options.maxInputBytes and file.size() > options.maxInputBytes do

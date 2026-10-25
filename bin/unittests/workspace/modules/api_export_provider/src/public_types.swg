@@ -75,8 +75,8 @@ struct DepPublicWithPrivateInlineUnion
     public publicValue: s32
     using bounds:       union
     {
-        signed:   { min: s32, max: s32 } = {0, 0}
-        floating: { min: f32, max: f32 } = {0, 0}
+        signed:   { min: s32, max: s32 } = {min: 0, max: 0}
+        floating: { min: f32, max: f32 } = {min: 0, max: 0}
     }
 }
 

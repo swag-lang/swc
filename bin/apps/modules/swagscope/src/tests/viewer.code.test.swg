@@ -248,7 +248,7 @@ struct CodeLanguageSample
     var host:  Testing.HeadlessHost
     host.setup(640, 180)
     defer host.shutdown()
-    let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})
+    let editor = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 620, 160})
     lexer.configure(.TypeScript)
     editor.setLexer(&lexer)
     editor.setText("export async function answer(): Promise<number> { return 42; } // typed")
@@ -261,32 +261,32 @@ struct CodeLanguageSample
     Swag.assert(content.styles[content.styles.count - 1] == Code.GenericLexer.Style.Comment)
 
     const Samples: [26] CodeLanguageSample = [
-        {.Html,       "<main>content</main>"},
-        {.Assembly,   "MOV eax, ebx ; comment"},
-        {.Zig,        "const answer = 42;"},
-        {.Nim,        "proc answer(): int = 42"},
-        {.Haskell,    "module Answer where"},
-        {.Scala,      "class Answer"},
-        {.Groovy,     "class Answer"},
-        {.Elixir,     "def answer do 42 end"},
-        {.Erlang,     "case Value of ok -> true end"},
-        {.Clojure,    "defn answer [] 42"},
-        {.Julia,      "function answer() 42 end"},
-        {.Fortran,    "PROGRAM ANSWER"},
-        {.Pascal,     "program Answer;"},
-        {.D,          "module answer;"},
-        {.ObjectiveC, "@interface Answer"},
-        {.Matlab,     "function answer()"},
-        {.Tcl,        "proc answer {} { return 42 }"},
-        {.Awk,        "BEGIN { print 42 }"},
-        {.Vim,        "function Answer()"},
-        {.Latex,      "\\section{Answer}"},
-        {.Protobuf,   "message Answer {}"},
-        {.GraphQl,    "type Answer { value: Int }"},
-        {.Gradle,     "class Answer {}"},
-        {.Makefile,   "include common.mk"},
-        {.Dockerfile, "FROM scratch"},
-        {.Nix,        "let answer = 42; in answer"}]
+        CodeLanguageSample{.Html, "<main>content</main>"},
+        CodeLanguageSample{.Assembly, "MOV eax, ebx ; comment"},
+        CodeLanguageSample{.Zig, "const answer = 42;"},
+        CodeLanguageSample{.Nim, "proc answer(): int = 42"},
+        CodeLanguageSample{.Haskell, "module Answer where"},
+        CodeLanguageSample{.Scala, "class Answer"},
+        CodeLanguageSample{.Groovy, "class Answer"},
+        CodeLanguageSample{.Elixir, "def answer do 42 end"},
+        CodeLanguageSample{.Erlang, "case Value of ok -> true end"},
+        CodeLanguageSample{.Clojure, "defn answer [] 42"},
+        CodeLanguageSample{.Julia, "function answer() 42 end"},
+        CodeLanguageSample{.Fortran, "PROGRAM ANSWER"},
+        CodeLanguageSample{.Pascal, "program Answer;"},
+        CodeLanguageSample{.D, "module answer;"},
+        CodeLanguageSample{.ObjectiveC, "@interface Answer"},
+        CodeLanguageSample{.Matlab, "function answer()"},
+        CodeLanguageSample{.Tcl, "proc answer {} { return 42 }"},
+        CodeLanguageSample{.Awk, "BEGIN { print 42 }"},
+        CodeLanguageSample{.Vim, "function Answer()"},
+        CodeLanguageSample{.Latex, "\\section{Answer}"},
+        CodeLanguageSample{.Protobuf, "message Answer {}"},
+        CodeLanguageSample{.GraphQl, "type Answer { value: Int }"},
+        CodeLanguageSample{.Gradle, "class Answer {}"},
+        CodeLanguageSample{.Makefile, "include common.mk"},
+        CodeLanguageSample{.Dockerfile, "FROM scratch"},
+        CodeLanguageSample{.Nix, "let answer = 42; in answer"}]
 
     for sample in Samples
     {
@@ -310,13 +310,13 @@ struct CodeLanguageSample
     defer host.shutdown()
     let view = Code.Panel.create(&host.root, fileName)
     view.editor.lexAll()
-    Swag.assert(view.editor.runeAt({0, 0}).style == RichEditLexerSwag.Style.Keyword)
-    Swag.assert(view.editor.runeAt({0, 15}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(view.editor.runeAt({0, 23}).style == RichEditLexerSwag.Style.Namespace)
-    Swag.assert(view.editor.runeAt({0, 27}).style == RichEditLexerSwag.Style.Default)
-    Swag.assert(view.editor.runeAt({0, 28}).style == RichEditLexerSwag.Style.Intrinsic)
-    Swag.assert(view.editor.runeAt({0, 40}).style == RichEditLexerSwag.Style.Keyword)
-    Swag.assert(view.editor.runeAt({0, 45}).style == RichEditLexerSwag.Style.Control)
+    Swag.assert(view.editor.runeAt(RichEditCursor{0, 0}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.assert(view.editor.runeAt(RichEditCursor{0, 15}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.assert(view.editor.runeAt(RichEditCursor{0, 23}).style == RichEditLexerSwag.Style.Namespace)
+    Swag.assert(view.editor.runeAt(RichEditCursor{0, 27}).style == RichEditLexerSwag.Style.Default)
+    Swag.assert(view.editor.runeAt(RichEditCursor{0, 28}).style == RichEditLexerSwag.Style.Intrinsic)
+    Swag.assert(view.editor.runeAt(RichEditCursor{0, 40}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.assert(view.editor.runeAt(RichEditCursor{0, 45}).style == RichEditLexerSwag.Style.Control)
 }
 
 // The generic lexer colors strings, numbers, calls, and types in code, and the tags, attribute
@@ -326,7 +326,7 @@ struct CodeLanguageSample
     var host: Testing.HeadlessHost
     host.setup(640, 180)
     defer host.shutdown()
-    let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})
+    let editor = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 620, 160})
 
     var code: Code.GenericLexer
     code.configure(.TypeScript)

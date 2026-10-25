@@ -172,7 +172,7 @@ func callReflectedSimpleMethod(type: typeinfo, seed: s32)->bool
        methodInfo.value == null do
         return false
 
-    var probe: SimpleMethodProbe = {value: seed}
+    var probe: SimpleMethodProbe = SimpleMethodProbe{value: seed}
     let method = cast(SimplePingFn, methodInfo.value)
     return method(&probe) == seed + 1
 }
@@ -272,7 +272,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if scaleValue(seed, 3) != seed * 3 do
         return false
 
-    var probe: ExportedMethodProbe = {value: seed}
+    var probe: ExportedMethodProbe = ExportedMethodProbe{value: seed}
 
     let add = cast(ExportedAddFn, addInfo.value)
     if add(&probe, 5) != seed + 5 or probe.value != seed + 5 do

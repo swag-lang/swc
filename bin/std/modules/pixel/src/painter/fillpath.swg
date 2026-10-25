@@ -46,7 +46,7 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'u64, regions
         if (p.polygon.isClockwise or serial != p.serial) and hasFlush
         {
             serial = p.serial
-            regions.add({flush, first, contours.count - first})
+            regions.add(FillRegion{flush, first, contours.count - first})
             first    = contours.count
             hasFlush = false
         }
@@ -60,7 +60,7 @@ internal func fillRegions(pathList: *LinePathList, contours: *Array'u64, regions
     }
 
     if hasFlush do
-        regions.add({flush, first, contours.count - first})
+        regions.add(FillRegion{flush, first, contours.count - first})
 }
 
 // Returns the sign that turns a region's contour directions outward.

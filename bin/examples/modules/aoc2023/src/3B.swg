@@ -68,12 +68,12 @@ func day3B()
                     x   += 1
                 }
 
-                nums.add({num, sx, x - 1, cast(s32, y)})
+                nums.add({num, x: sx, lx: x - 1, y: cast(s32, y)})
             }
 
             if c != '.' and x < l.length
             {
-                symbols.add({c, x, cast(s32, y)})
+                symbols.add({s: c, x, y: cast(s32, y)})
             }
         }
     }
@@ -92,7 +92,7 @@ func day3B()
                hasSymbol(x + 1, n.y) or
                hasSymbol(x + 1, n.y + 1)
             {
-                parts.add({n.num, n.x, n.lx, n.y})
+                parts.add({num: n.num, x: n.x, lx: n.lx, y: n.y})
                 break
             }
         }

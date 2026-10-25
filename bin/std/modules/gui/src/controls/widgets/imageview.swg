@@ -83,13 +83,13 @@ private impl ImageView
     mtd const sourceSize()->{ width, height: s32 }
     {
         if .displayWidth > 0 and .displayHeight > 0 do
-            return {.displayWidth, .displayHeight}
+            return {width: .displayWidth, height: .displayHeight}
         let source = .currentImage()
         if source.isValid() do
-            return {source.width, source.height}
+            return {width: source.width, height: source.height}
         if .hasDrawing() do
-            return {cast(s32, Math.max(Math.round(.drawing.width), 1.0'f32)), cast(s32, Math.max(Math.round(.drawing.height), 1.0'f32))}
-        return {.planarWidth, .planarHeight}
+            return {width: cast(s32, Math.max(Math.round(.drawing.width), 1.0'f32)), height: cast(s32, Math.max(Math.round(.drawing.height), 1.0'f32))}
+        return {width: .planarWidth, height: .planarHeight}
     }
 
     // Returns the axis-aligned size after the temporary view transform.
@@ -97,14 +97,14 @@ private impl ImageView
     {
         let source = .sourceSize()
         if .rotationQuarterTurns & 1 do
-            return {source.height, source.width}
+            return {width: source.height, height: source.width}
         return source
     }
 
     mtd const contentRect()->Math.Rectangle
     {
         if not .hasContent() do
-            return {}
+            return Math.Rectangle{}
 
         let size   = .contentSize()
         let client = .paddedClientRect()
@@ -126,7 +126,7 @@ private impl ImageView
         let scale   = .effectiveZoom()
         let width   = source.width * scale
         let height  = source.height * scale
-        return {content.horzCenter() - width * 0.5, content.vertCenter() - height * 0.5, width, height}
+        return Math.Rectangle{content.horzCenter() - width * 0.5, content.vertCenter() - height * 0.5, width, height}
     }
 
     // Composes the source-space reflection and rotation beneath the window's paint transform.
@@ -202,7 +202,7 @@ private impl ImageView
 
         let base = painter.transform()
         if .rotationQuarterTurns or .isMirrored do
-            painter.setTransform(.transformedPaint(base, {content.horzCenter(), content.vertCenter()}))
+            painter.setTransform(.transformedPaint(base, Math.Point{content.horzCenter(), content.vertCenter()}))
         .drawing.paint(painter, content.x, content.y, scale)
         painter.setTransform(base)
     }
@@ -278,7 +278,7 @@ impl IWnd for ImageView
         if .rotationQuarterTurns or .isMirrored
         {
             let base = painter.transform()
-            painter.setTransform(.transformedPaint(base, {sourceRect.horzCenter(), sourceRect.vertCenter()}))
+            painter.setTransform(.transformedPaint(base, Math.Point{sourceRect.horzCenter(), sourceRect.vertCenter()}))
             painter.drawTexture(sourceRect, .uploadedTexture, tint)
             painter.setTransform(base)
         }
@@ -351,7 +351,7 @@ impl ImageView
 
     // Creates an empty image viewer.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ImageView
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ImageView
     {
         Swag.assert(parent != null)
         let result = Wnd.create'ImageView(parent, null, position, id)

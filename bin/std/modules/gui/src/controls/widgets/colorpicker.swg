@@ -493,13 +493,13 @@ private impl ColorPicker
     mtd computeRGB()
     {
         let color = Color.fromHsl(.hue, .saturation, .lightness)
-        {.red, .green, .blue} = color.toRgbF32()
+        {r: .red, g: .green, b: .blue} = color.toRgbF32()
     }
 
     mtd computeHsl()
     {
         let color = Color.fromRgbF32(.red, .green, .blue)
-        {.hue, .saturation, .lightness} = color.toHsl()
+        {h: .hue, s: .saturation, l: .lightness} = color.toHsl()
     }
 }
 
@@ -507,14 +507,14 @@ impl ColorPicker
 {
     // Creates a saturation-lightness picker initialized to opaque red.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*ColorPicker
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*ColorPicker
     {
         Swag.assert(parent != null)
         let result = Wnd.create'ColorPicker(parent, null, position, id)
         result.focusPolicy = .Click
         result.wndFlags    |= .AfterChildrenPaint
         result.setColor(Argb.Red, false)
-        result.invalidatePadding = {-32, -32, -32, -32}
+        result.invalidatePadding = Math.Vector4{-32, -32, -32, -32}
         return result
     }
 
@@ -554,11 +554,11 @@ impl ColorPicker
     // Replaces the selected color and, when `notify` is true and it changed, emits [[Gui.ColorPicker.sigColorChanged]].
     mtd setColor(color: Color, notify = true)
     {
-        let {newAlpha, newRed, newGreen, newBlue} = color.toArgbF32()
+        let {a: newAlpha, r: newRed, g: newGreen, b: newBlue} = color.toArgbF32()
         if .alpha == newAlpha and .red == newRed and .green == newGreen and .blue == newBlue do
             return
 
-        {.alpha, .red, .green, .blue} = {newAlpha, newRed, newGreen, newBlue}
+        {newAlpha: .alpha, newRed: .red, newGreen: .green, newBlue: .blue} = {newAlpha, newRed, newGreen, newBlue}
         .computeHsl()
         .dirty = true
         .computeXY()

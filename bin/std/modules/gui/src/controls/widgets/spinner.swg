@@ -13,7 +13,7 @@ using Core, Pixel
 // shows and hides it:
 //
 // ```swag
-// let busy = Spinner.create(view, {4, 4})
+// let busy = Spinner.create(view, Math.Rectangle{4, 4})
 // busy.hide()
 // ```
 struct Spinner
@@ -74,7 +74,7 @@ impl Spinner
 
     // Creates a spinner, square by default and sized by the theme when `position` says nothing.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Spinner
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*Spinner
     {
         Swag.assert(parent != null)
 

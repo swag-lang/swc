@@ -21,19 +21,19 @@ func radioButtonHeadlessChanged(_: *RadioButton)
     host.recordCommands()
     RadioButtonHeadlessChangedCount = 0
 
-    let radio = RadioButton.create(&host.root, "A", {20, 20, 120, 30}, RadioButtonHeadless_Command)
+    let radio = RadioButton.create(&host.root, "A", Math.Rectangle{20, 20, 120, 30}, RadioButtonHeadless_Command)
     radio.sigChanged += &radioButtonHeadlessChanged
 
     Swag.assert(not radio.isChecked())
 
-    host.click({40, 35})
+    host.click(Math.Point{40, 35})
     Swag.assert(radio.isChecked())
     Swag.assert(RadioButtonHeadlessChangedCount == 1)
     Swag.assert(host.commandCount == 1)
     Swag.assert(host.lastCommand == RadioButtonHeadless_Command)
 
     // Already checked: no new signal/command.
-    host.click({40, 35})
+    host.click(Math.Point{40, 35})
     Swag.assert(radio.isChecked())
     Swag.assert(RadioButtonHeadlessChangedCount == 1)
     Swag.assert(host.commandCount == 1)
@@ -48,7 +48,7 @@ func radioButtonHeadlessChanged(_: *RadioButton)
     host.recordCommands()
     RadioButtonHeadlessChangedCount = 0
 
-    let radio = RadioButton.create(&host.root, "A", {20, 20, 120, 30})
+    let radio = RadioButton.create(&host.root, "A", Math.Rectangle{20, 20, 120, 30})
     radio.sigChanged += &radioButtonHeadlessChanged
 
     radio.setChecked(true)
@@ -68,13 +68,13 @@ func radioButtonHeadlessChanged(_: *RadioButton)
     defer host.shutdown()
     host.recordCommands()
 
-    let a = RadioButton.create(&host.root, "A", {20, 20, 120, 30})
-    let b = RadioButton.create(&host.root, "B", {20, 60, 120, 30})
+    let a = RadioButton.create(&host.root, "A", Math.Rectangle{20, 20, 120, 30})
+    let b = RadioButton.create(&host.root, "B", Math.Rectangle{20, 60, 120, 30})
 
-    Swag.assert(host.wndAt({40, 35}) == a)
-    Swag.assert(host.wndAt({40, 75}) == b)
+    Swag.assert(host.wndAt(Math.Point{40, 35}) == a)
+    Swag.assert(host.wndAt(Math.Point{40, 75}) == b)
 
-    host.click({40, 35})
+    host.click(Math.Point{40, 35})
     Swag.assert(a.isChecked())
     Swag.assert(not b.isChecked())
 
@@ -90,21 +90,21 @@ func radioButtonHeadlessChanged(_: *RadioButton)
     var host: Testing.HeadlessHost
     host.setup(240, 280)
     defer host.shutdown()
-    let a = RadioButton.create(&host.root, "A", {20, 20, 160, 30})
-    let b = RadioButton.create(&host.root, "B", {20, 60, 160, 30})
-    let c = RadioButton.create(&host.root, "C", {20, 100, 160, 30})
+    let a = RadioButton.create(&host.root, "A", Math.Rectangle{20, 20, 160, 30})
+    let b = RadioButton.create(&host.root, "B", Math.Rectangle{20, 60, 160, 30})
+    let c = RadioButton.create(&host.root, "C", Math.Rectangle{20, 100, 160, 30})
     a.groupId, b.groupId, c.groupId = "density"
 
     a.setChecked(true)
     Swag.assert(a.isChecked() and not b.isChecked() and not c.isChecked())
 
     // Clicking b checks it and unchecks a automatically.
-    host.click({40, 75})
+    host.click(Math.Point{40, 75})
     Swag.assert(not a.isChecked() and b.isChecked() and not c.isChecked())
 
     // A separate group under the same parent is not disturbed.
-    let d = RadioButton.create(&host.root, "D", {20, 140, 160, 30})
-    let e = RadioButton.create(&host.root, "E", {20, 180, 160, 30})
+    let d = RadioButton.create(&host.root, "D", Math.Rectangle{20, 140, 160, 30})
+    let e = RadioButton.create(&host.root, "E", Math.Rectangle{20, 180, 160, 30})
     d.groupId, e.groupId = "align"
 
     d.setChecked(true)

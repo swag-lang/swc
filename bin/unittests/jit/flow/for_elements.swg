@@ -270,8 +270,8 @@ enum ForeachIndexedSlot: u8
         return acc
     }
 
-    const p0: ForeachVariadicPayload = {arr: [7, 8, 9], flag: true, tag: 2'u8}
-    const p1: ForeachVariadicPayload = {arr: [1, 2, 3], flag: false, tag: 4'u8}
+    const p0: ForeachVariadicPayload = ForeachVariadicPayload{arr: [7, 8, 9], flag: true, tag: 2'u8}
+    const p1: ForeachVariadicPayload = ForeachVariadicPayload{arr: [1, 2, 3], flag: false, tag: 4'u8}
     const V = #run foreachTypedVariadicPayload(p0, p1)
     #assert(V == 28'u64)
 }

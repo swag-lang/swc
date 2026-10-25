@@ -21,7 +21,7 @@ impl IRenderer for PresentProbe
         Swag.assert(renderHandle == null, "CPU renderer contexts do not use a platform drawable")
         Swag.assert(width > 0 and height > 0, "renderer context dimensions must be positive")
         .workerId = Env.Process.currentThreadId()
-        return {renderHandle, null, width, height}
+        return RenderContext{renderHandle, null, width, height}
     }
 
     mtd impl deleteContext(context: *RenderContext)

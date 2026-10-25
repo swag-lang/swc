@@ -159,7 +159,7 @@ struct Derived
         return assume cast(Base, a)
     }
 
-    const value = #run castAnyToBase2(Derived{mid: {base: {value: 99}, midValue: 50}, derivedValue: 60})
+    const value = #run castAnyToBase2(Derived{mid: Mid{base: Base{value: 99}, midValue: 50}, derivedValue: 60})
     #assert(value.value == 99)
 }
 

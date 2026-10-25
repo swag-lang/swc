@@ -85,7 +85,7 @@ using Core
     const Levels: [?] Swag.Build.BackendOptimLevel = [.O0, .O1, .O2]
     for level in Levels
     {
-        var artifact = Pipeline.BuildArtifact{request: {source: "using Core\nfunc value()->s32 => 42", stage: "pre-emit", kind: .Microcode, settings: {optimization: level}}}
+        var artifact = Pipeline.BuildArtifact{request: Pipeline.BuildRequest{source: "using Core\nfunc value()->s32 => 42", stage: "pre-emit", kind: .Microcode, settings: Pipeline.BuildSettings{optimization: level}}}
         expect artifact.run()
         let result = &artifact.result
         Swag.assert(not result.failed, result.text)
@@ -101,7 +101,7 @@ using Core
 // Microcode does not import the rendering stack implicitly.
 #test
 {
-    var artifact = Pipeline.BuildArtifact{request: {source: "using Pixel\nfunc value()->u32 => 0", stage: "pre-emit", kind: .Microcode}}
+    var artifact = Pipeline.BuildArtifact{request: Pipeline.BuildRequest{source: "using Pixel\nfunc value()->u32 => 0", stage: "pre-emit", kind: .Microcode}}
     expect artifact.run()
     let result = &artifact.result
     Swag.assert(result.failed)

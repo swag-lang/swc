@@ -84,7 +84,7 @@ impl Painter
                 .setDefaultShader()
         }
 
-        .setTexture0({l, t}, {l + w, t + h}, brush)
+        .setTexture0(Vector2{l, t}, Vector2{l + w, t + h}, brush)
         .resetTextureFont()
 
         let v0 = Math.Vector2{l, t}

@@ -149,7 +149,7 @@ private impl IWnd for SubtitleOverlay
         case .Shadow:
             let offset = Math.round(cast(f32, font.size) * SubtitleShadowOffset)
             effect.shadowColor    = Color.fromArgb(SubtitleEdgeColor)
-            effect.shadowOffset   = {offset, offset}
+            effect.shadowOffset   = Math.Point{offset, offset}
             effect.shadowDilate   = SubtitleShadowDilate
             effect.shadowSoftness = SubtitleShadowSoftness
 
@@ -263,7 +263,7 @@ impl SeekOverlay
 {
     func create(parent: *Wnd)->*SeekOverlay
     {
-        with let result = Wnd.create'SeekOverlay(parent, "scope.video.seek", {0, 0, SeekOverlaySize.x, SeekOverlaySize.y})
+        with let result = Wnd.create'SeekOverlay(parent, "scope.video.seek", Math.Rectangle{0, 0, SeekOverlaySize.x, SeekOverlaySize.y})
         {
             .wndFlags        |= .TopMost | .Disabled
             .backgroundStyle = .Transparent
@@ -300,7 +300,7 @@ impl SeekOverlay
         let size = .preferredSize
         let x    = Math.floor((rect.width - size.x) * 0.5)
         let y    = Math.floor(Math.clamp((rect.height - size.y) * 0.5 + SeekOverlayOffsetY, 0, Math.max(rect.height - size.y, 0)))
-        .setPosition({x, y, size.x, size.y}, computeLayout: false)
+        .setPosition(Math.Rectangle{x, y, size.x, size.y}, computeLayout: false)
         .resetPresentation()
         .show()
         .bringToFront()
@@ -311,11 +311,11 @@ impl SeekOverlay
             return
 
         let direction = cast(f32, .direction)
-        .setPresentationOffset({-10 * direction, 0})
-        .setPresentationScale({0.9, 0.9})
+        .setPresentationOffset(Math.Point{-10 * direction, 0})
+        .setPresentationScale(Math.Point{0.9, 0.9})
 
-        .offsetAni  = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Offset"), {-10 * direction, 0}, {14 * direction, 0}, func(wnd, value) { wnd.setPresentationOffset(value) }, {duration: 600'ms, easing: .EaseOut})
-        .scaleAni   = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Scale"), {0.9, 0.9}, {1, 1}, func(wnd, value) { wnd.setPresentationScale(value) }, {duration: 180'ms, easing: .EaseOut})
+        .offsetAni  = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Offset"), Math.Point{-10 * direction, 0}, Math.Point{14 * direction, 0}, func(wnd, value) { wnd.setPresentationOffset(value) }, {duration: 600'ms, easing: .EaseOut})
+        .scaleAni   = animator.animatePoint(me, AnimationChannel.from("scope.VideoSeek.Scale"), Math.Point{0.9, 0.9}, Math.Point{1, 1}, func(wnd, value) { wnd.setPresentationScale(value) }, {duration: 180'ms, easing: .EaseOut})
         .opacityAni = animator.animateF32(me, AnimationChannel.from("scope.VideoSeek.Opacity"), 1, 0, func(wnd, value) { wnd.setPresentationOpacity(value) }, {delay: 350'ms, duration: 250'ms, easing: .EaseIn})
     }
 }

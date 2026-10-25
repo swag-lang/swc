@@ -138,8 +138,8 @@ is a matter of where the type reads best, never of syntax.
     Swag.assert(v2.x == 1)
     Swag.assert(v2.y == 20)
 
-    // Tuple initialization
-    let v3: MyStruct = {10, 20}
+    // Explicit construction with a declared type
+    let v3: MyStruct = MyStruct{10, 20}
     Swag.assert(v3.x == 10)
     Swag.assert(v3.y == 20)
 }
@@ -205,13 +205,13 @@ func titi(v: Struct3)
     // Calling with explicit values
     toto(Struct3{5, 5, 666})
 
-    // Type inferred from arguments
-    toto({5, 5, 666})
+    // Named record fields match the parameter fields
+    toto({z: 666, y: 5, x: 5})
 
     // Partial initialization
-    titi({5})
-    titi({5, 666})
+    titi(Struct3{5})
+    titi(Struct3{5, 666})
 
     // Named field initialization
-    titi({x: 5, z: 5})
+    titi(Struct3{x: 5, z: 5})
 }

@@ -36,10 +36,10 @@ func copyParameter(value: #move Owner)->u64
 #test
 {
     copies, drops = 0
-    var first: Owner = {value: 17}
+    var first: Owner = Owner{value: 17}
     Swag.assert(take(#move first) == 17 and first.value == 0)
     Swag.assert(copies == 0 and drops == 1)
-    var second: Owner = {value: 23}
+    var second: Owner = Owner{value: 23}
     Swag.assert(takeParenthesized(#move second) == 24 and second.value == 0)
     Swag.assert(copies == 0 and drops == 2)
 }
@@ -47,7 +47,7 @@ func copyParameter(value: #move Owner)->u64
 #test
 {
     copies, drops = 0
-    var value: Owner = {value: 29}
+    var value: Owner = Owner{value: 29}
     Swag.assert(copyParameter(#move value) == 29)
     Swag.assert(value.value == 29 and copies == 1 and drops == 1)
 }

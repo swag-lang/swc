@@ -61,8 +61,8 @@ struct LocalVarBigDefaults
 
 struct LocalVarDirectDefaultNode
 {
-    p:     LocalVarPoint = {x: 9, y: 4}
-    state: LocalVarState = {enabled: true, weight: 30}
+    p:     LocalVarPoint = LocalVarPoint{x: 9, y: 4}
+    state: LocalVarState = LocalVarState{enabled: true, weight: 30}
 }
 
 struct LocalVarEventBase
@@ -89,7 +89,7 @@ struct LocalVarKeyEvent
 {
     func typedStructInit()->s32
     {
-        var p: LocalVarPoint = {x: 4, y: 9}
+        var p: LocalVarPoint = LocalVarPoint{x: 4, y: 9}
         return p.x * 10 + p.y
     }
 
@@ -113,9 +113,9 @@ struct LocalVarKeyEvent
 {
     func nestedStructInit()->s32
     {
-        var n: LocalVarNode = {
-            pos: {x: 3, y: 8},
-            state: {enabled: false, weight: 12}
+        var n: LocalVarNode = LocalVarNode{
+            pos: LocalVarPoint{x: 3, y: 8},
+            state: LocalVarState{enabled: false, weight: 12}
             }
 
         if n.state.enabled
@@ -134,7 +134,7 @@ struct LocalVarKeyEvent
 {
     func structWithDefaults()->s32
     {
-        var s: LocalVarState = {weight: 11}
+        var s: LocalVarState = LocalVarState{weight: 11}
         if s.enabled
         {
             return s.weight
@@ -169,7 +169,7 @@ struct LocalVarKeyEvent
 {
     func multiDeclStructVar()->s32
     {
-        var a, b: LocalVarPoint = {x: 2, y: 6}
+        var a, b: LocalVarPoint = LocalVarPoint{x: 2, y: 6}
         return a.x * 100 + a.y * 10 + b.x + b.y
     }
 
@@ -182,7 +182,7 @@ struct LocalVarKeyEvent
     //#[Swag.PrintMicro]
     func bigStructLiteralInit()->u64
     {
-        var v: LocalVarBig = {
+        var v: LocalVarBig = LocalVarBig{
             a0: 1,
             a1: 2,
             a2: 3,
@@ -220,7 +220,7 @@ struct LocalVarKeyEvent
 {
     func bigStructDefaultsAll()->u64
     {
-        var v: LocalVarBigDefaults = {}
+        var v: LocalVarBigDefaults = LocalVarBigDefaults{}
         return v.b0 + v.b4 + v.b7
     }
 
@@ -232,7 +232,7 @@ struct LocalVarKeyEvent
 {
     func bigStructDefaultsPartial()->u64
     {
-        var v: LocalVarBigDefaults = {b1: 100, b6: 200}
+        var v: LocalVarBigDefaults = LocalVarBigDefaults{b1: 100, b6: 200}
         return v.b0 + v.b1 + v.b6 + v.b7
     }
 
@@ -244,7 +244,7 @@ struct LocalVarKeyEvent
 {
     func aggregateDefaultsFromFieldDecl()->s32
     {
-        var n: LocalVarDirectDefaultNode = {}
+        var n: LocalVarDirectDefaultNode = LocalVarDirectDefaultNode{}
         if n.state.enabled
         {
             return n.p.x + n.p.y + n.state.weight

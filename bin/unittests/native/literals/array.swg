@@ -148,7 +148,7 @@ private
 
 #test
 {
-    const a = [{x: 1, y: 2}, {3, 4}]
+    const a = [{x: 1, y: 2}, {x: 3, y: 4}]
     Swag.assert(a[0].x == 1)
     Swag.assert(a[0].y == 2)
     Swag.assert(a[1].x == 3)

@@ -499,7 +499,7 @@ impl MainWindow
         let result  = Wnd.create'MainWindow(parent, "vault.mainWindow")
         let surface = result.surface!
         surface.setView(result)
-        surface.minSize        = {WindowWidth, 0}
+        surface.minSize        = Math.Point{WindowWidth, 0}
         result.backgroundStyle = .View
         result.language        = ReferenceLanguage
 
@@ -557,7 +557,7 @@ impl MainWindow
         with .tabs = Tab.create(me)
         {
             .dockStyle       = .Center
-            .margin          = {32, 16, 32, 16}
+            .margin          = Math.Vector4{32, 16, 32, 16}
             .backgroundStyle = .Panel
             .setForm(.Flat)
             .setForms(.Flat, .Flat, .None)
@@ -636,12 +636,12 @@ impl MainWindow
                 let pageWidth = Math.max(0, room - inset.x - inset.z)
                 var tallest   = 0'f32
                 for card in [&.createCard, &.mountCard, &.optionsCard, &.mountedDrives.card] do
-                    tallest = Math.max(tallest, card.panel.itf.measureContent({pageWidth, 0}).y)
-                height += .tabs.itf.measureContent({room, 0}).y + Math.ceil(tallest)
+                    tallest = Math.max(tallest, card.panel.itf.measureContent(Math.Point{pageWidth, 0}).y)
+                height += .tabs.itf.measureContent(Math.Point{room, 0}).y + Math.ceil(tallest)
             }
             else
             {
-                height += Math.ceil(child.measure({room, 0}).preferred.y)
+                height += Math.ceil(child.measure(Math.Point{room, 0}).preferred.y)
             }
 
             height += margin.y + margin.w

@@ -686,7 +686,7 @@ func intrinsicSingleInfo()->IntrinsicInfo
     Swag.postCopy(a)
     Swag.postMove(b)
     Swag.drop(a)
-    return {a.value, b.value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{a.value, b.value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicArrayWholeInfo()->IntrinsicInfo
@@ -695,7 +695,7 @@ func intrinsicArrayWholeInfo()->IntrinsicInfo
     var arr: [2] Tracked = [Tracked{3}, Tracked{4}]
     Swag.postCopy(arr)
     Swag.drop(arr)
-    return {arr[0].value, arr[1].value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{arr[0].value, arr[1].value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicArrayCountInfo()->IntrinsicInfo
@@ -705,7 +705,7 @@ func intrinsicArrayCountInfo()->IntrinsicInfo
     var count: u64         = 2
     Swag.postMove(&arr[0], count)
     Swag.drop(&arr[0], count)
-    return {arr[0].value, arr[1].value, arr[2].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{arr[0].value, arr[1].value, arr[2].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicEmbeddedInfo()->IntrinsicInfo
@@ -717,7 +717,7 @@ func intrinsicEmbeddedInfo()->IntrinsicInfo
     Swag.postCopy(a)
     Swag.postMove(b)
     Swag.drop(c)
-    return {a.inner.value, b.inner.value, c.inner[1].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{a.inner.value, b.inner.value, c.inner[1].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicEmbeddedOuterCopyDropInfo()->IntrinsicInfo
@@ -726,7 +726,7 @@ func intrinsicEmbeddedOuterCopyDropInfo()->IntrinsicInfo
     var a = EmbeddedTrackedWithOps{Tracked{7}}
     Swag.postCopy(a)
     Swag.drop(a)
-    return {a.inner.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{a.inner.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicInitInfo()->InitInfo
@@ -758,7 +758,7 @@ func intrinsicInitInfo()->InitInfo
     Swag.init(rgbArr)(50, 60, 70)
     let rgbArrayWholeTrace = rgbArr[3].r * 10000 + rgbArr[3].g * 100 + rgbArr[3].b
 
-    return {x, cast(s32, (y * 100)), arrDefaultTrace, arrExplicitTrace, rgbDefaultTrace, rgbExplicitTrace, rgbArrayCountTrace, rgbArrayWholeTrace}
+    return InitInfo{x, cast(s32, (y * 100)), arrDefaultTrace, arrExplicitTrace, rgbDefaultTrace, rgbExplicitTrace, rgbArrayCountTrace, rgbArrayWholeTrace}
 }
 
 func intrinsicDropThenInitArrayInfo()->s32
@@ -780,7 +780,7 @@ func intrinsicAutoDropPairInfo()->IntrinsicInfo
         first = value.first.value
     }
 
-    return {first, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicAutoDropNestedInfo()->IntrinsicInfo
@@ -796,7 +796,7 @@ func intrinsicAutoDropNestedInfo()->IntrinsicInfo
         last  = value.tail.value
     }
 
-    return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
@@ -812,7 +812,7 @@ func intrinsicAutoDropStructArrayInfo()->IntrinsicInfo
         last  = values[1].second.value
     }
 
-    return {first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, last, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicAutoDropReturnInfo()->IntrinsicInfo
@@ -946,7 +946,7 @@ func intrinsicAutoDropContinueInfo()->IntrinsicInfo
         }
     }
 
-    return {first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
@@ -975,7 +975,7 @@ func intrinsicAutoDropBreakScopeInfo()->IntrinsicInfo
         third = outer.second.value
     }
 
-    return {first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicAutoDropSwitchReturnInfo()->IntrinsicInfo
@@ -1045,7 +1045,7 @@ func intrinsicAutoDropCatchResumeInfo()->IntrinsicInfo
         }
     }
 
-    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicAutoDropCatchLoopStep(base: s32)->s32 fail
@@ -1082,7 +1082,7 @@ func intrinsicAutoDropCatchLoopInfo()->IntrinsicInfo
         }
     }
 
-    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicAutoDropSwitchFallthroughInfo()->IntrinsicInfo
@@ -1192,7 +1192,7 @@ func intrinsicAutoDropIfVarElseInfo()->IntrinsicInfo
         }
     }
 
-    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicAutoDropWithVarReturnInfo()->IntrinsicInfo
@@ -1248,7 +1248,7 @@ func intrinsicAutoDropShadowInfo()->IntrinsicInfo
         third = pair.second.value
     }
 
-    return {first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, second, third, DropCount, DropCompactTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicInitRuntimeCountScalarInfo()->s32
@@ -1291,7 +1291,7 @@ func intrinsicRemoveAtDropOnlyInfo()->IntrinsicInfo
     var storage: [3] DropOnlyTracked = [DropOnlyTracked{1}, DropOnlyTracked{2}, DropOnlyTracked{3}]
     var values = RemoveBuffer{cast([*] DropOnlyTracked, &storage[0]), 3}
     values.removeAt(1)
-    return {storage[0].value, storage[1].value, cast(s32, values.count), DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{storage[0].value, storage[1].value, cast(s32, values.count), DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
@@ -1313,7 +1313,7 @@ func intrinsicHeapRemoveAtDropOnlyInfo()->IntrinsicInfo
     let second = ptr[1].value
     Swag.drop(ptr, 2)
     itf.free(&req)
-    return {first, second, 2, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, second, 2, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
@@ -1331,7 +1331,7 @@ func intrinsicOwnedBufferFreeInfo()->IntrinsicInfo
         buffer[i].value = cast(s32, (i + 1))
 
     values.free()
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicMemoryAllocatorGenericBufferFreeInfo()->IntrinsicInfo
@@ -1348,7 +1348,7 @@ func intrinsicMemoryAllocatorGenericBufferFreeInfo()->IntrinsicInfo
         values.free()
     }
 
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
@@ -1375,7 +1375,7 @@ func intrinsicMemoryAllocatorGenericBufferRemoveRangeInfo()->IntrinsicInfo
         values.free()
     }
 
-    return {first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{first, second, third, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
@@ -1391,7 +1391,7 @@ func intrinsicReallocOwnedBufferAutoDropInfo()->IntrinsicInfo
             ptr[i].value = cast(s32, (i + 1))
     }
 
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
@@ -1407,7 +1407,7 @@ func intrinsicGenericOwnedBufferAutoDropInfo()->IntrinsicInfo
             ptr[i].value = cast(s32, (i + 1))
     }
 
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()->IntrinsicInfo
@@ -1422,7 +1422,7 @@ func intrinsicGenericOwnedBufferContextAllocatorAutoDropInfo()->IntrinsicInfo
             ptr[i].value = cast(s32, (i + 1))
     }
 
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicLazyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
@@ -1437,7 +1437,7 @@ func intrinsicLazyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
             ptr[i].value = cast(s32, (i + 1))
     }
 
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicHelperAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
@@ -1452,7 +1452,7 @@ func intrinsicHelperAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
             ptr[i].value = cast(s32, (i + 1))
     }
 
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicPostCopyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
@@ -1467,7 +1467,7 @@ func intrinsicPostCopyAllocatorGenericBufferAutoDropInfo()->IntrinsicInfo
             ptr[i].value = cast(s32, (i + 1))
     }
 
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicPostCopyAllocatorGenericBufferExplicitOpDropInfo()->IntrinsicInfo
@@ -1483,7 +1483,7 @@ func intrinsicPostCopyAllocatorGenericBufferExplicitOpDropInfo()->IntrinsicInfo
         values.opDrop()
     }
 
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
@@ -1497,7 +1497,7 @@ func intrinsicReallocOwnedBufferFreeInfo()->IntrinsicInfo
         ptr[i].value = cast(s32, (i + 1))
 
     values.free()
-    return {0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{0, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
@@ -1508,7 +1508,7 @@ func intrinsicReceiverLifecycleInfo()->IntrinsicInfo
     value.touchPostMove()
     value.touchDrop()
     value.reset()
-    return {value.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return IntrinsicInfo{value.value, 0, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 #test

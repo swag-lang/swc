@@ -60,7 +60,7 @@ impl Image
                         output.a = source.a + destination.a * (1.0 - source.a)
                         if Math.isZeroEpsilon(output.a)
                         {
-                            output = {0, 0, 0, 0}
+                            output = PixelValue{0, 0, 0, 0}
                         }
                         else
                         {

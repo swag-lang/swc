@@ -94,7 +94,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     }
     func conflict()->u64
     {
-        var parent: Parent = {item: {first: 11}}
+        var parent: Parent = Parent{item: BorrowedValue{first: 11}}
         return mutate(&parent, parent.item)
     }
     const result = #run conflict()
@@ -112,7 +112,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     func read(value: BorrowedValue, extra: u64)->u64 => value.first + extra
     func conflict()->u64
     {
-        var value: BorrowedValue = {first: 13}
+        var value: BorrowedValue = BorrowedValue{first: 13}
         return read(value, write(&value))
     }
     const result = #run conflict()
@@ -128,7 +128,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     }
     func conflict()->u64
     {
-        var value: BorrowedValue = {first: 17}
+        var value: BorrowedValue = BorrowedValue{first: 17}
         return mutate(value, &value)
     }
     const result = #run conflict()
@@ -144,7 +144,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     }
     func conflict()->u64
     {
-        var value: BorrowedValue = {first: 19}
+        var value: BorrowedValue = BorrowedValue{first: 19}
         return mutate(value, &value)
     }
     const result = #run conflict()
@@ -160,7 +160,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     }
     func conflict()->u64
     {
-        var value: BorrowedValue = {first: 23}
+        var value: BorrowedValue = BorrowedValue{first: 23}
         return mutate(value, &value)
     }
     const result = #run conflict()
@@ -176,7 +176,7 @@ func inlineReadAlongsideWrite(value: BorrowedValue, destination: *BorrowedValue)
     }
     func conflict()->u64
     {
-        var value: BorrowedValue = {first: 29}
+        var value: BorrowedValue = BorrowedValue{first: 29}
         return mutate(value, cast(u64, &value))
     }
     const result = #run conflict()

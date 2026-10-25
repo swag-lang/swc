@@ -39,7 +39,7 @@ func capture(value: string, state: State)->State
         inner.alpha = 1
     }
     mutate(&inner)
-    return {outerMask, outerAlpha}
+    return State{outerMask, outerAlpha}
 }
 
 #test

@@ -47,7 +47,7 @@ internal func openElementaryStream(path: string, encoding: SoundFileEncoding)->S
 
         if info.frameBytes > Swag.U32.Max do
             fail InvalidFormatError{"Dolby sync frame is larger than a packet may be"}
-        packets.add({byteOffset, cast(u32, info.frameBytes), info.frames})
+        packets.add(SoundPacket{byteOffset, cast(u32, info.frameBytes), info.frames})
         totalFrames += cast(u64, info.frames)
         byteOffset  += info.frameBytes
     }

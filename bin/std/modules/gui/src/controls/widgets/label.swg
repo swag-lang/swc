@@ -242,7 +242,7 @@ impl Label
 
     // Creates a label with optional wrapping, sizing, and link behavior.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: LabelFlags = .None)->*Label
+    func create(parent: *Wnd, name: string?, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags: LabelFlags = .None)->*Label
     {
         Swag.assert(parent != null)
         var pos = position

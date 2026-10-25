@@ -202,7 +202,7 @@ impl Slice
                     break
                 if kind > 2 do
                     fail InvalidFormatError{"H.264 slice carries an unknown reference-list modification"}
-                .listOps[list].add({kind, .bits.ue()})
+                .listOps[list].add(ListOp{kind, .bits.ue()})
                 if .listOps[list].count > 64 do
                     fail InvalidFormatError{"H.264 slice carries more list modifications than references"}
             }

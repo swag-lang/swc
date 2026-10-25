@@ -282,7 +282,7 @@ impl LibraryWnd
             .main            = parent
             .dockStyle       = .Center
             .backgroundStyle = .ToolBar
-            .padding         = {metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize}
+            .padding         = Math.Vector4{metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize, metrics.panel_GutterSize}
             .registerActions()
         }
 
@@ -291,19 +291,19 @@ impl LibraryWnd
         // the selected form on the right; the library puts its dates on the left and the
         // captures themselves fill the rest. A date list on the right would swap the meaning
         // of the same edge when switching modes.
-        with result.sideBar = Wnd.create'Wnd(result, {0, 0, SideBarWidth, 0})
+        with result.sideBar = Wnd.create'Wnd(result, Math.Rectangle{0, 0, SideBarWidth, 0})
         {
             .dockStyle       = .Left
             .backgroundStyle = .Panel
             .margin.z        = metrics.panel_GutterSize
-            .padding         = {0, 8, 0, 8}
+            .padding         = Math.Vector4{0, 8, 0, 8}
         }
 
         // The path and command rows are chrome and the captures are content. One panel holding
         // both would make the recessed capture ground read as a square dropped inside a larger
         // box, so each role stands on its own panel, parted by the same gutter that already
         // separates the rail from this column.
-        with result.barPanel = Wnd.create'Wnd(result, {0, 0, 0, 2 * themeActionButtonSize(metrics)})
+        with result.barPanel = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, 2 * themeActionButtonSize(metrics)})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Panel

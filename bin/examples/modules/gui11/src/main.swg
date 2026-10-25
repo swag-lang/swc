@@ -161,7 +161,7 @@ func buildCurvePage(parent: *Wnd)->*Wnd
     page.backgroundStyle = .View
     g_CurvePage = page
 
-    g_CurveNote = Label.create(page, "Nine curves, one clock. The dot on the graph and the puck under it are the same number: the shape is the movement. The clock repeats forever and reverses on every play, which is one track, not a frame callback.", {}, null, .WordWrap | .SecondaryText)
+    g_CurveNote = Label.create(page, "Nine curves, one clock. The dot on the graph and the puck under it are the same number: the shape is the movement. The clock repeats forever and reverses on every play, which is one track, not a frame callback.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
     g_Wall      = CurveWall.create(page)
 
     page.hookOnEvent = &onCurvePageEvent
@@ -176,9 +176,9 @@ func layoutCurvePage()
 
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
-    g_CurveNote!.setPosition({PagePad, PagePad, width, NoteHeight})
+    g_CurveNote!.setPosition(Math.Rectangle{PagePad, PagePad, width, NoteHeight})
     let wallHeight = Math.max(rect.height - 2 * PagePad - NoteHeight - RowGap, 1.0)
-    g_Wall!.setPosition({PagePad, PagePad + NoteHeight + RowGap, width, wallHeight})
+    g_Wall!.setPosition(Math.Rectangle{PagePad, PagePad + NoteHeight + RowGap, width, wallHeight})
 }
 
 func onCurvePageEvent(_: *Wnd, evt: IEvent)->bool
@@ -204,7 +204,7 @@ func setCardOffset(wnd: *Wnd, value: Math.Point)
 
 func setCardScale(wnd: *Wnd, value: f32)
 {
-    wnd.setPresentationScale({value, value})
+    wnd.setPresentationScale(Math.Point{value, value})
 }
 
 func buildStagePage(parent: *Wnd)->*Wnd
@@ -213,13 +213,13 @@ func buildStagePage(parent: *Wnd)->*Wnd
     page.backgroundStyle = .View
     g_StagePage = page
 
-    g_StageNote = Label.create(page, "Six tiles, one parallel group, eighteen tracks. Each tile fades, rises, and grows on the same timeline, offset by its rank. Nothing below moves: presentation state never touches a layout rectangle.", {}, null, .WordWrap | .SecondaryText)
+    g_StageNote = Label.create(page, "Six tiles, one parallel group, eighteen tracks. Each tile fades, rises, and grows on the same timeline, offset by its rank. Nothing below moves: presentation state never touches a layout rectangle.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
 
     let controls = PanelWnd.create(page, "Timeline")
     g_StageControls = controls
 
     for caption in ["Curve", "Duration", "Stagger"] do
-        g_StageCaptions.add(Label.create(controls, caption, {}, null, .SecondaryText))
+        g_StageCaptions.add(Label.create(controls, caption, Math.Rectangle{}, null, .SecondaryText))
 
     let easing = ComboBox.create(controls)
     g_StageEasing = easing
@@ -243,9 +243,9 @@ func buildStagePage(parent: *Wnd)->*Wnd
     stagger.setValue(70)
     stagger.sigChanged += &onStageSlider
 
-    g_StageReadout = Label.create(controls, "", {}, null, .SecondaryText)
+    g_StageReadout = Label.create(controls, "", Math.Rectangle{}, null, .SecondaryText)
 
-    let replay = PushButton.create(controls, "Replay", {}, null, .Strong)
+    let replay = PushButton.create(controls, "Replay", Math.Rectangle{}, null, .Strong)
     g_StageReplay     = replay
     replay.sigPressed += func(_)
     {
@@ -255,7 +255,7 @@ func buildStagePage(parent: *Wnd)->*Wnd
     for index in StageCardCount do
         g_Cards.add(MotionCard.create(page, cast(s32, index) + 1, StageTitles[index], StageDetails[index]))
 
-    g_StageHint = Label.create(page, "Press Replay while the strip is still arriving: each tile keeps the value it is showing and continues from there.", {}, null, .SecondaryText)
+    g_StageHint = Label.create(page, "Press Replay while the strip is still arriving: each tile keeps the value it is showing and continues from there.", Math.Rectangle{}, null, .SecondaryText)
 
     updateStageReadout()
     page.hookOnEvent = &onStagePageEvent
@@ -309,7 +309,7 @@ func playEntrance()
         fade.easing   = .EaseOut
 
         group.addF32(wnd, AnimationChannel.from("Gui11.Stage.Opacity"), 0, 1, &setCardOpacity, fade)
-        group.addPoint(wnd, AnimationChannel.from("Gui11.Stage.Offset"), {0, 42}, {}, &setCardOffset, motion)
+        group.addPoint(wnd, AnimationChannel.from("Gui11.Stage.Offset"), Math.Point{0, 42}, {}, &setCardOffset, motion)
         group.addF32(wnd, AnimationChannel.from("Gui11.Stage.Scale"), 0.86, 1, &setCardScale, motion)
     }
 
@@ -336,11 +336,11 @@ func layoutStagePage()
 
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
-    g_StageNote!.setPosition({PagePad, PagePad, width, NoteHeight})
+    g_StageNote!.setPosition(Math.Rectangle{PagePad, PagePad, width, NoteHeight})
 
     let controlsY = PagePad + NoteHeight + RowGap
     let controls  = g_StageControls!
-    controls.setPosition({PagePad, controlsY, width, PanelHeight})
+    controls.setPosition(Math.Rectangle{PagePad, controlsY, width, PanelHeight})
 
     let inner   = controls.contentRect()
     let rowY    = inner.y + CaptionGap
@@ -348,26 +348,26 @@ func layoutStagePage()
     var x       = inner.x
     for caption, index in g_StageCaptions
     {
-        caption.setPosition({x, inner.y, columns[index], 20})
+        caption.setPosition(Math.Rectangle{x, inner.y, columns[index], 20})
         x += columns[index] + 16
     }
 
     x = inner.x
-    g_StageEasing!.setPosition({x, rowY, columns[0], BarHeight})
+    g_StageEasing!.setPosition(Math.Rectangle{x, rowY, columns[0], BarHeight})
     x += columns[0] + 16
-    g_StageDuration!.setPosition({x, rowY, columns[1], BarHeight})
+    g_StageDuration!.setPosition(Math.Rectangle{x, rowY, columns[1], BarHeight})
     x += columns[1] + 16
-    g_StageStagger!.setPosition({x, rowY, columns[2], BarHeight})
-    g_StageReplay!.setPosition({inner.right() - 120, rowY, 120, BarHeight})
-    g_StageReadout!.setPosition({inner.x, rowY + BarHeight + 8, inner.width, 22})
+    g_StageStagger!.setPosition(Math.Rectangle{x, rowY, columns[2], BarHeight})
+    g_StageReplay!.setPosition(Math.Rectangle{inner.right() - 120, rowY, 120, BarHeight})
+    g_StageReadout!.setPosition(Math.Rectangle{inner.x, rowY + BarHeight + 8, inner.width, 22})
 
     let stripY = controlsY + PanelHeight + RowGap
     let cardH  = Math.clamp(rect.height - stripY - PagePad - 30, 90.0, MaxCardH)
     let cardW  = (width - cast(f32, (StageCardCount - 1)) * RowGap) / cast(f32, StageCardCount)
 
     for card, index in g_Cards do
-        card.setPosition({PagePad + cast(f32, index) * (cardW + RowGap), stripY, cardW, cardH})
-    g_StageHint!.setPosition({PagePad, stripY + cardH + 10, width, 22})
+        card.setPosition(Math.Rectangle{PagePad + cast(f32, index) * (cardW + RowGap), stripY, cardW, cardH})
+    g_StageHint!.setPosition(Math.Rectangle{PagePad, stripY + cardH + 10, width, 22})
 }
 
 func onStagePageEvent(_: *Wnd, evt: IEvent)->bool
@@ -387,12 +387,12 @@ func buildFieldPage(parent: *Wnd)->*Wnd
     page.backgroundStyle = .View
     g_FieldPage = page
 
-    g_FieldNote = Label.create(page, "One channel owns the puck. Clicking again while it travels does not stack a second animation: it replaces the first one from the value on screen, which is why the trail bends instead of jumping.", {}, null, .WordWrap | .SecondaryText)
+    g_FieldNote = Label.create(page, "One channel owns the puck. Clicking again while it travels does not stack a second animation: it replaces the first one from the value on screen, which is why the trail bends instead of jumping.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
 
     let controls = PanelWnd.create(page, "Track")
     g_FieldControls = controls
 
-    g_FieldCaption = Label.create(controls, "Curve, duration, and how a replacement treats the run it interrupts", {}, null, .SecondaryText)
+    g_FieldCaption = Label.create(controls, "Curve, duration, and how a replacement treats the run it interrupts", Math.Rectangle{}, null, .SecondaryText)
 
     let easing = ComboBox.create(controls)
     g_FieldEasing = easing
@@ -414,7 +414,7 @@ func buildFieldPage(parent: *Wnd)->*Wnd
         updateFieldReadout()
     }
 
-    g_FieldReadout = Label.create(controls, "", {}, null, .SecondaryText)
+    g_FieldReadout = Label.create(controls, "", Math.Rectangle{}, null, .SecondaryText)
 
     let preserve = CheckButton.create(controls, "Keep progress on replacement")
     g_FieldPreserve     = preserve
@@ -451,27 +451,27 @@ func layoutFieldPage()
 
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
-    g_FieldNote!.setPosition({PagePad, PagePad, width, NoteHeight})
+    g_FieldNote!.setPosition(Math.Rectangle{PagePad, PagePad, width, NoteHeight})
 
     let controlsY = PagePad + NoteHeight + RowGap
     let controls  = g_FieldControls!
-    controls.setPosition({PagePad, controlsY, width, PanelHeight})
+    controls.setPosition(Math.Rectangle{PagePad, controlsY, width, PanelHeight})
 
     let inner = controls.contentRect()
     let rowY  = inner.y + CaptionGap
-    g_FieldCaption!.setPosition({inner.x, inner.y, inner.width, 20})
+    g_FieldCaption!.setPosition(Math.Rectangle{inner.x, inner.y, inner.width, 20})
 
     var x = inner.x
-    g_FieldEasing!.setPosition({x, rowY, 168, BarHeight})
+    g_FieldEasing!.setPosition(Math.Rectangle{x, rowY, 168, BarHeight})
     x += 168 + 16
-    g_FieldDuration!.setPosition({x, rowY, 190, BarHeight})
+    g_FieldDuration!.setPosition(Math.Rectangle{x, rowY, 190, BarHeight})
     x += 190 + 16
-    g_FieldPreserve!.setPosition({x, rowY, 250, BarHeight})
-    g_FieldClear!.setPosition({inner.right() - 120, rowY, 120, BarHeight})
-    g_FieldReadout!.setPosition({inner.x, rowY + BarHeight + 8, inner.width, 22})
+    g_FieldPreserve!.setPosition(Math.Rectangle{x, rowY, 250, BarHeight})
+    g_FieldClear!.setPosition(Math.Rectangle{inner.right() - 120, rowY, 120, BarHeight})
+    g_FieldReadout!.setPosition(Math.Rectangle{inner.x, rowY + BarHeight + 8, inner.width, 22})
 
     let fieldY = controlsY + PanelHeight + RowGap
-    g_Field!.setPosition({PagePad, fieldY, width, Math.max(rect.height - fieldY - PagePad, 80.0)})
+    g_Field!.setPosition(Math.Rectangle{PagePad, fieldY, width, Math.max(rect.height - fieldY - PagePad, 80.0)})
 }
 
 func onFieldPageEvent(_: *Wnd, evt: IEvent)->bool
@@ -492,7 +492,7 @@ func onFieldPageEvent(_: *Wnd, evt: IEvent)->bool
 func startDecorativePulse()
 {
     let btn = g_DecorativeBtn!
-    btn.setPresentationPivot({0.5, 0.5})
+    btn.setPresentationPivot((0.5, 0.5))
 
     with var options: AnimationOptions
     {
@@ -545,17 +545,17 @@ func buildPrefPage(parent: *Wnd)->*Wnd
     page.backgroundStyle = .View
     g_PrefPage = page
 
-    g_PrefNote = Label.create(page, "A track says whether it decorates or whether it reports. Turn reduced motion on in the header: the left loop ends on its resting frame and the right one keeps going, because only one of them is carrying information.", {}, null, .WordWrap | .SecondaryText)
+    g_PrefNote = Label.create(page, "A track says whether it decorates or whether it reports. Turn reduced motion on in the header: the left loop ends on its resting frame and the right one keeps going, because only one of them is carrying information.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
 
     let decorative = PanelWnd.create(page, "Decorative")
     g_Decorative     = decorative
-    g_DecorativeBtn  = PushButton.create(decorative, "Ship it", {}, null, .Strong)
-    g_DecorativeNote = Label.create(decorative, "An endless ping-pong on presentation scale. It exists to draw the eye, so a reader who asked for stillness gets the button at rest.", {}, null, .WordWrap | .SecondaryText)
+    g_DecorativeBtn  = PushButton.create(decorative, "Ship it", Math.Rectangle{}, null, .Strong)
+    g_DecorativeNote = Label.create(decorative, "An endless ping-pong on presentation scale. It exists to draw the eye, so a reader who asked for stillness gets the button at rest.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
 
     let essential = PanelWnd.create(page, "Essential")
     g_Essential     = essential
     g_EssentialLbl  = Label.create(essential, "Uploading three files...")
-    g_EssentialNote = Label.create(essential, "The same endless ping-pong, on opacity, classified as essential. It answers a question the reader is asking, so the preference leaves it alone.", {}, null, .WordWrap | .SecondaryText)
+    g_EssentialNote = Label.create(essential, "The same endless ping-pong, on opacity, classified as essential. It answers a question the reader is asking, so the preference leaves it alone.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
 
     let expander = PanelWnd.create(page, "Layout")
     g_Expander = expander
@@ -578,7 +578,7 @@ func buildPrefPage(parent: *Wnd)->*Wnd
     detail.preferredSize.y = CollapsedDetail
     detail.position.height = CollapsedDetail
 
-    g_DetailText = Label.create(detail, "This panel changes the layout, not only the picture: the track carries an .Layout impact, so the parent is arranged again on every frame. That is why layout animation is a separate call from the presentation ones.", {12, 12, 400, 96}, null, .WordWrap | .SecondaryText)
+    g_DetailText = Label.create(detail, "This panel changes the layout, not only the picture: the track carries an .Layout impact, so the parent is arranged again on every frame. That is why layout animation is a separate call from the presentation ones.", Math.Rectangle{12, 12, 400, 96}, null, .WordWrap | .SecondaryText)
 
     page.hookOnEvent = &onPrefPageEvent
     return page
@@ -592,31 +592,31 @@ func layoutPrefPage()
 
     let rect  = page.clientRect()
     let width = Math.max(rect.width - 2 * PagePad, 1.0)
-    g_PrefNote!.setPosition({PagePad, PagePad, width, NoteHeight})
+    g_PrefNote!.setPosition(Math.Rectangle{PagePad, PagePad, width, NoteHeight})
 
     let topY  = PagePad + NoteHeight + RowGap
     let topH  = 190.0
     let halfW = (width - RowGap) * 0.5
-    g_Decorative!.setPosition({PagePad, topY, halfW, topH})
-    g_Essential!.setPosition({PagePad + halfW + RowGap, topY, halfW, topH})
+    g_Decorative!.setPosition(Math.Rectangle{PagePad, topY, halfW, topH})
+    g_Essential!.setPosition(Math.Rectangle{PagePad + halfW + RowGap, topY, halfW, topH})
 
     let decoInner = g_Decorative!.contentRect()
-    g_DecorativeBtn!.setPosition({decoInner.x, decoInner.y, 150, 40})
-    g_DecorativeNote!.setPosition({decoInner.x, decoInner.y + 52, decoInner.width, decoInner.height - 52})
+    g_DecorativeBtn!.setPosition(Math.Rectangle{decoInner.x, decoInner.y, 150, 40})
+    g_DecorativeNote!.setPosition(Math.Rectangle{decoInner.x, decoInner.y + 52, decoInner.width, decoInner.height - 52})
 
     let essInner = g_Essential!.contentRect()
-    g_EssentialLbl!.setPosition({essInner.x, essInner.y + 8, essInner.width, 24})
-    g_EssentialNote!.setPosition({essInner.x, essInner.y + 52, essInner.width, essInner.height - 52})
+    g_EssentialLbl!.setPosition(Math.Rectangle{essInner.x, essInner.y + 8, essInner.width, 24})
+    g_EssentialNote!.setPosition(Math.Rectangle{essInner.x, essInner.y + 52, essInner.width, essInner.height - 52})
 
     let expY = topY + topH + RowGap
     let expH = Math.min(Math.max(rect.height - expY - PagePad, 120.0), 96 + ExpandedDetail)
-    g_Expander!.setPosition({PagePad, expY, width, expH})
+    g_Expander!.setPosition(Math.Rectangle{PagePad, expY, width, expH})
 
     let expInner = g_Expander!.contentRect()
-    g_ExpandBtn!.setPosition({expInner.x, expInner.y, 170, 36})
+    g_ExpandBtn!.setPosition(Math.Rectangle{expInner.x, expInner.y, 170, 36})
     let hostHeight = Math.max(expInner.height - 46, 20.0)
-    g_ExpandHost!.setPosition({expInner.x, expInner.y + 46, expInner.width, hostHeight})
-    g_DetailText!.setPosition({12, 12, Math.max(expInner.width - 24, 40.0), ExpandedDetail - 24})
+    g_ExpandHost!.setPosition(Math.Rectangle{expInner.x, expInner.y + 46, expInner.width, hostHeight})
+    g_DetailText!.setPosition(Math.Rectangle{12, 12, Math.max(expInner.width - 24, 40.0), ExpandedDetail - 24})
 }
 
 func onPrefPageEvent(_: *Wnd, evt: IEvent)->bool
@@ -639,14 +639,14 @@ func layoutRootView()
     let rect  = view.clientRect()
     let width = Math.max(rect.width - 2 * RootMargin, 1.0)
 
-    g_Title!.setPosition({RootMargin, HeaderTop, width, 36})
-    g_SubTitle!.setPosition({RootMargin + 2, HeaderTop + 38, width - 4, 34})
-    g_ThemeButton!.setPosition({RootMargin, BarY, 136, BarHeight})
-    g_Reduced!.setPosition({RootMargin + 148, BarY, 190, BarHeight})
+    g_Title!.setPosition(Math.Rectangle{RootMargin, HeaderTop, width, 36})
+    g_SubTitle!.setPosition(Math.Rectangle{RootMargin + 2, HeaderTop + 38, width - 4, 34})
+    g_ThemeButton!.setPosition(Math.Rectangle{RootMargin, BarY, 136, BarHeight})
+    g_Reduced!.setPosition(Math.Rectangle{RootMargin + 148, BarY, 190, BarHeight})
 
     let tabsH = Math.max(rect.height - TabsY - FooterSpace, 120.0)
-    g_Tabs!.setPosition({RootMargin, TabsY, width, tabsH})
-    g_Footer!.setPosition({RootMargin, TabsY + tabsH + 8, width, 24})
+    g_Tabs!.setPosition(Math.Rectangle{RootMargin, TabsY, width, tabsH})
+    g_Footer!.setPosition(Math.Rectangle{RootMargin, TabsY + tabsH + 8, width, 24})
 }
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
@@ -727,7 +727,7 @@ func onFrame(_: *Application)
 
     case 2:
         let rect = g_Field!.clientRect()
-        g_Field!.moveTo({rect.x + rect.width * 0.25, rect.y + rect.height * 0.7})
+        g_Field!.moveTo((rect.x + rect.width * 0.25, rect.y + rect.height * 0.7))
 
     case 3:
         toggleExpander(g_ExpandBtn!)
@@ -745,11 +745,11 @@ func createRootView()
     title.style.setFont(view.theme().createDefaultFont(26), .Regular)
     title.setTextAlignment(.Left, .Center)
 
-    let subTitle = Label.create(view, "Curves, choreography, interruption, and the preference that ends all three.", {}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "Curves, choreography, interruption, and the preference that ends all three.", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     subTitle.setTextAlignment(.Left, .Top)
 
-    let themeButton = PushButton.create(view, "", {}, null, .Flat)
+    let themeButton = PushButton.create(view, "", Math.Rectangle{}, null, .Flat)
     g_ThemeButton = themeButton
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
@@ -767,7 +767,7 @@ func createRootView()
     discard tabs.addItem("Interruption", view: buildFieldPage(tabs))
     discard tabs.addItem("Preference", view: buildPrefPage(tabs))
 
-    g_Footer = Label.create(view, "", {}, null, .SecondaryText)
+    g_Footer = Label.create(view, "", Math.Rectangle{}, null, .SecondaryText)
 
     layoutRootView()
     view.hookOnEvent = &onRootEvent

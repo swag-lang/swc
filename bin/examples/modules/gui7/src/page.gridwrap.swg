@@ -2,14 +2,14 @@ using Core, Gui, Pixel
 
 func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons)->*Label
 {
-    with let label = Label.create(parent, text, {0, 0, 120, 42}, null, .WordWrap)
+    with let label = Label.create(parent, text, Math.Rectangle{0, 0, 120, 42}, null, .WordWrap)
     {
         .backgroundStyle = .Window
         .setIcon(app.theme.icon(icon, 16))
         .setIconHorizontalAlignment(.Left)
         .setTextHorizontalAlignment(.Left)
-        .setIconPadding({10, 0, 0, 0})
-        .setTextPadding({34, 0, 10, 0})
+        .setIconPadding((10, 0, 0, 0))
+        .setTextPadding(Math.Vector4{34, 0, 10, 0})
     }
 
     return label
@@ -17,7 +17,7 @@ func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons)->*Label
 
 func createWrapTile(parent: *Wnd, text: string, icon: ThemeIcons)
 {
-    let btn = PushButton.create(parent, text, {})
+    let btn = PushButton.create(parent, text, Math.Rectangle{})
     btn.setForm(.Flat)
     btn.setIcon(app.theme.icon(icon, 16))
 }
@@ -30,11 +30,14 @@ func createGridWrapPage(parent: *Wnd)
                            "GridLayoutCtrl",
                            "Cells can span columns and rows while the grid recomputes direct child windows.",
                            layout.left)
-    let grid = GridLayoutCtrl.create(left, 4, 3, {
-        18,
-        92,
-        Math.max(layout.left.width - 36, 320.0),
-        Math.max(layout.left.height - 112, 180.0)})
+    let grid = GridLayoutCtrl.create(left,
+                                     4,
+                                     3,
+                                     Math.Rectangle{
+                                         18,
+                                         92,
+                                         Math.max(layout.left.width - 36, 320.0),
+                                         Math.max(layout.left.height - 112, 180.0)})
     grid.backgroundStyle = .Dialog
     grid.flags.add(.EqualColumnWidths)
     grid.flags.add(.EqualRowHeights)
@@ -58,7 +61,7 @@ func createGridWrapPage(parent: *Wnd)
                             "WrapLayoutCtrl",
                             "Tiles wrap to the next row as the pane narrows.",
                             layout.right)
-    let wrap = WrapLayoutCtrl.create(right, {18, 92, layout.right.width - 36, layout.right.height - 112})
+    let wrap = WrapLayoutCtrl.create(right, Math.Rectangle{18, 92, layout.right.width - 36, layout.right.height - 112})
     wrap.itemWidth  = 128
     wrap.itemHeight = 38
     wrap.spacing    = 10
@@ -79,7 +82,7 @@ func createGridWrapPage(parent: *Wnd)
                              "Combined layouts",
                              "A grid is useful for stable dashboards; wrap is better for tool groups whose count or width changes.",
                              layout.bottom)
-    let center = StackLayoutCtrl.create(bottom, .Center, {18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
+    let center = StackLayoutCtrl.create(bottom, .Center, Math.Rectangle{18, 92, layout.bottom.width - 36, layout.bottom.height - 112})
     center.spacing = 14
     discard createChip(center, "Grid", .Sort)
     discard createChip(center, "Wrap", .Options)

@@ -45,11 +45,11 @@ internal impl Properties
 
         if .isGridLike()
         {
-            rowWnd = Wnd.create'Wnd(.edView, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
+            rowWnd = Wnd.create'Wnd(.edView, Math.Rectangle{0, 0, .position.width, height != 0 ? height : .gridLineHeight})
         }
         else
         {
-            let stk = StackLayoutCtrl.create(.edView, .Top, {0, 0, .position.width, height != 0 ? height : .gridLineHeight})
+            let stk = StackLayoutCtrl.create(.edView, .Top, Math.Rectangle{0, 0, .position.width, height != 0 ? height : .gridLineHeight})
             stk.fitToContent = true
             rowWnd = stk
         }
@@ -103,12 +103,12 @@ internal impl Properties
                 var labelWidth = cast(f32, .gridColumnSize)
                 if not .isGridLike() do
                     labelWidth = .listContentWidth()
-                with let label = Label.create(line, dispName, {0, 0, labelWidth, item.line.position.height})
+                with let label = Label.create(line, dispName, Math.Rectangle{0, 0, labelWidth, item.line.position.height})
                 {
                     if me.isGridLike()
                     {
                         .setTextAlignment(.Left, .Center)
-                        .setTextPadding({me.leftMargin, 0, 0, 0})
+                        .setTextPadding(Math.Vector4{me.leftMargin, 0, 0, 0})
                         .dockStyle = .Left
                         .margin.z  = me.gridMarginColumn
                     }
@@ -148,7 +148,7 @@ internal impl Properties
             {
                 if not .isGridLike() and .kind != .Panel
                 {
-                    with let labelDesc = Label.create(line, "", {0, 0, .listContentWidth(), 0})
+                    with let labelDesc = Label.create(line, "", Math.Rectangle{0, 0, .listContentWidth(), 0})
                     {
                         .updateFlags(.WordWrap | .AutoHeight)
                         .setTextAlignment(.Left, .Top)
@@ -349,7 +349,7 @@ internal impl Properties
                     {
                         let parentForCateg = not categPath.isEmpty() ? categPath[categPath.count - 1].item : parentItem
                         let citem = .addCategoryHeader(segs[i], parentForCateg)
-                        categPath.add({segs[i], citem})
+                        categPath.add({name: segs[i], item: citem})
                     }
                 }
 
@@ -415,7 +415,7 @@ internal impl Properties
         item.flags.add(.Category | .NoSeparator | .Expanded | .NoFocus)
         if not parentForCateg!.flags.has(.Category) do
             item.level = 0
-        .sections.add({item, 1})
+        .sections.add({item, lvl: 1})
         return item
     }
 
@@ -471,12 +471,12 @@ internal impl Properties
         item.level = parentItem!.level
         item.flags.add(.Note | .NoSeparator | .NoFocus)
 
-        with let lbl = Label.create(item.line, text, {0, 0, .position.width, item.line.position.height})
+        with let lbl = Label.create(item.line, text, Math.Rectangle{0, 0, .position.width, item.line.position.height})
         {
             .setTextAlignment(.Left, .Center)
             .setIconHorizontalAlignment(.Left)
-            .setIconPadding({(me.valBarGlyphWidth - me.valBarIconSize) * 0.5, 0, 0, 0})
-            .setTextPadding({me.valBarGlyphWidth, 0, me.valBarPaddingX, 0})
+            .setIconPadding(Math.Vector4{(me.valBarGlyphWidth - me.valBarIconSize) * 0.5, 0, 0, 0})
+            .setTextPadding(Math.Vector4{me.valBarGlyphWidth, 0, me.valBarPaddingX, 0})
             .dockStyle = .Center
         }
 

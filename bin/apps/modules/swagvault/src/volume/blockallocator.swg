@@ -26,7 +26,7 @@ impl BlockAllocator
     {
         Swag.assert(.free.isEmpty() and .deferredFree.isEmpty())
         if blockCount do
-            .free.add({0, blockCount})
+            .free.add(FreeExtent{0, blockCount})
         .freeBlocksCount = blockCount
     }
 
@@ -49,7 +49,7 @@ impl BlockAllocator
             {
                 if inRun
                 {
-                    .free.add({first, index - first})
+                    .free.add(FreeExtent{first, index - first})
                     inRun = false
                 }
             }
@@ -61,7 +61,7 @@ impl BlockAllocator
         }
 
         if inRun do
-            .free.add({first, blockCount - first})
+            .free.add(FreeExtent{first, blockCount - first})
         for extent in .free do
             .freeBlocksCount += extent.count
     }
@@ -84,7 +84,7 @@ impl BlockAllocator
         }
 
         Swag.assert(.free.isEmpty() or .free.back().first + .free.back().count < first)
-        .free.add({first, count})
+        .free.add(FreeExtent{first, count})
         .freeBlocksCount += count
     }
 
@@ -199,7 +199,7 @@ impl BlockAllocator
     mtd deferReleaseRun(first, count: u64)
     {
         if count do
-            .deferredFree.add({first, count})
+            .deferredFree.add(FreeExtent{first, count})
     }
 
     // Frees one block once the pending change is durable.

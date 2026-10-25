@@ -116,14 +116,14 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
     case CreateEvent:
         g_FontCell = wnd.theme().createDefaultFont(20)
 
-        let btn = PushButton.create(wnd, "Again!", {CellSize, (CellSize * 2) + GridSize * CellSize})
+        let btn = PushButton.create(wnd, "Again!", Math.Rectangle{CellSize, (CellSize * 2) + GridSize * CellSize})
         btn.sigPressed += func|wnd|(_)
         {
             setup()
             wnd.invalidate()
         }
 
-        let sli = SliderCtrl.create(wnd, "Density", {CellSize + 120, (CellSize * 2) + GridSize * CellSize, 250})
+        let sli = SliderCtrl.create(wnd, "Density", Math.Rectangle{CellSize + 120, (CellSize * 2) + GridSize * CellSize, 250})
         sli.slider.setBounds(1, 10)
         sli.edit.setUnsignedIntegerRange(1, 10)
         sli.slider.setValue(cast(g_Density))

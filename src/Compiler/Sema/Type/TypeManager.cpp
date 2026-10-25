@@ -411,7 +411,7 @@ TypeRef TypeManager::addAggregateStructType(const std::span<const IdentifierRef>
 {
     SWC_ASSERT(types.size() == names.size());
 
-    constexpr TypeInfoFlags flags = TypeInfoFlagsE::Const;
+    constexpr TypeInfoFlags flags = TypeInfoFlagsE::Zero;
     const uint32_t          hash  = TypeInfo::hashAggregatePayload(TypeInfo::hashHeader(TypeInfoKind::AggregateStruct, flags), TypeInfoKind::AggregateStruct, types, names);
     const uint32_t          place = compiler_ ? TypeRuntimeHash::computeAggregate(TaskContext(*compiler_), TypeInfoKind::AggregateStruct, flags, types, names) : hash;
     const TypeRef           found = findInternedIf(publishedInternTable(place), hash, [&](const TypeInfo& type) {

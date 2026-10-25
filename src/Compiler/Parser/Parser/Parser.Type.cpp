@@ -85,12 +85,26 @@ AstNodeRef Parser::parseSingleType()
 
         case TokenId::SymLeftParen:
         {
-            const TokenRef   openRef = consume();
-            const AstNodeRef typeRef = parseType();
+            const TokenRef   openRef  = consume();
+            const AstNodeRef firstRef = parseType();
+            if (consumeIf(TokenId::SymComma).isValid())
+            {
+                SmallVector<AstNodeRef> children;
+                children.push_back(firstRef);
+                while (!is(TokenId::SymRightParen) && !atEnd())
+                {
+                    children.push_back(parseType());
+                    if (consumeIf(TokenId::SymComma).isInvalid())
+                        break;
+                }
+                expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+                const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::TupleType>(openRef);
+                nodePtr->spanChildrenRef      = ast_->pushSpan(children.span());
+                return nodeRef;
+            }
             if (expectAndConsumeClosing(TokenId::SymRightParen, openRef).isInvalid())
                 return AstNodeRef::invalid();
-
-            return typeRef;
+            return firstRef;
         }
 
         default:

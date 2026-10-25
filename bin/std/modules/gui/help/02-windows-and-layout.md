@@ -32,7 +32,7 @@ the caller stated keeps it, unmeasured.
 
 ```swag
 // The height is a design decision; the width is the caption's business.
-let action = PushButton.create(bar, "Create encrypted vault", {0, 0, 0, 36})
+let action = PushButton.create(bar, "Create encrypted vault", Math.Rectangle{0, 0, 0, 36})
 ```
 
 This is what keeps a surface correct when its text changes — a translation, a

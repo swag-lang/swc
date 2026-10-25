@@ -35,7 +35,7 @@ func readConstAddr(value: ConstAddrValue)->s32 { return value.x }
 
 func semaTest003()
 {
-    let holder:   ConstAddrHolder       = {value: {x: 123}}
+    let holder:   ConstAddrHolder       = ConstAddrHolder{value: ConstAddrValue{x: 123}}
     var valueRef: const *ConstAddrValue = &holder.value
     let result = readConstAddr(&holder.value)
 
@@ -137,7 +137,7 @@ func semaTest008()
 
 func semaTest009()
 {
-    var box: RefFloatBox = {value: 1.5}
+    var box: RefFloatBox = RefFloatBox{value: 1.5}
     let sum  = addRefValue(&box.value, 2.5'f32)
     let temp = dampRefValue(&box.value, 2.0'f32, 3.0'f32, 0.5'f32)
 
@@ -176,7 +176,7 @@ func semaTest012()
 
 func semaTest013()
 {
-    var values: RefIndexBuffer = {values: [12]}
+    var values: RefIndexBuffer = RefIndexBuffer{values: [12]}
     var total = 1's32
     var index = 0's64
 

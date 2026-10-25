@@ -180,7 +180,7 @@ private func readDescriptor(source: *ByteSource, parentEnd: u64)->Descriptor fai
         fail InvalidFormatError{"MP4 descriptor length exceeds four bytes"}
     if size > parentEnd - source.position() do
         fail InvalidFormatError{"MP4 descriptor runs past its parent descriptor"}
-    return {tag, source.position() + size}
+    return Descriptor{tag, source.position() + size}
 }
 
 // Reads a box header within `parentEnd`.
@@ -212,7 +212,7 @@ func readBox(source: *ByteSource, parentEnd: u64)->Box fail
 
     if size > parentEnd - start do
         fail InvalidFormatError{"MP4 box runs past its parent box"}
-    return {kind, source.position(), start + size}
+    return Box{kind, source.position(), start + size}
 }
 
 // Returns a four-character identifier as printable text.
@@ -651,7 +651,7 @@ impl Track
             fail InvalidFormatError{"MP4 time-to-sample table is truncated"}
         .times.reserve(count)
         for count do
-            .times.add({try source.readBigEndian'u32(), try source.readBigEndian'u32()})
+            .times.add(TimeEntry{try source.readBigEndian'u32(), try source.readBigEndian'u32()})
     }
 
     mtd parseSampleToChunk(source: *ByteSource, end: u64) fail
@@ -861,7 +861,7 @@ impl Track
 
         for frame in frames
         {
-            result.packets.add({frame.offset, cast(u32, frame.size), AacFrameSamples})
+            result.packets.add(SoundPacket{frame.offset, cast(u32, frame.size), AacFrameSamples})
             result.frameCount += AacFrameSamples
         }
 
@@ -897,7 +897,7 @@ struct Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl format()->StreamFormat => {"MP4 - ISO Base Media File Format", ".mp4;.m4v;.mov"}
+    mtd impl format()->StreamFormat => StreamFormat{"MP4 - ISO Base Media File Format", ".mp4;.m4v;.mov"}
 
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {
@@ -972,7 +972,7 @@ impl IDecoder for Decoder
             var samples: Array'SampleEntry
             samples.reserve(frames.count)
             for frame, index in frames do
-                samples.add({frame.offset, frame.size, times[index], syncFlags[index] != 0})
+                samples.add(SampleEntry{frame.offset, frame.size, times[index], syncFlags[index] != 0})
 
             .isCoded = true
             try .video.open(layout.track.isHevc ? PictureHevc : PictureAvc, layout.track.videoConfig.toSlice(), samples.toSlice(), Video.storedNothing())

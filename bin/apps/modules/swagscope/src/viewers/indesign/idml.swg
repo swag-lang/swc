@@ -309,11 +309,11 @@ private func parseNumber(text: string)->{ value: f32, valid: bool }
 {
     let trimmed = Latin1.trim(text)
     if not trimmed.count do
-        return {}
-    let parsed = catch StrConv.parseF32(trimmed) { return {} }
+        return {value: 0, valid: false}
+    let parsed = catch StrConv.parseF32(trimmed) { return {value: 0, valid: false} }
     if parsed.eat != trimmed.count or parsed.ovf do
-        return {}
-    return {parsed.value, true}
+        return {value: 0, valid: false}
+    return {value: parsed.value, valid: true}
 }
 
 // Returns the radius of one rounded frame corner, or zero when that corner is not rounded.
@@ -505,7 +505,7 @@ private func pathAnchors(item: string, transform: const *Transform)->Array'Math.
         let values = parseNumbers(attribute(item[pointStart until pointEnd + 1], "Anchor"))
         if values.count != 2 do
             return {}
-        result.add({transform.a * values[0] + transform.c * values[1] + transform.x,
+        result.add(Math.Vector2{transform.a * values[0] + transform.c * values[1] + transform.x,
                     transform.b * values[0] + transform.d * values[1] + transform.y})
         cursor = pointEnd + 1
     }
@@ -644,24 +644,24 @@ private func lineClipPath(item: string, transform: const *Transform, pageLeft, p
     var outline: Array'Math.Vector2
     if startArrow
     {
-        outline.add({firstX, firstY})
-        outline.add({startBaseX + normalX, startBaseY + normalY})
+        outline.add(Math.Vector2{firstX, firstY})
+        outline.add(Math.Vector2{startBaseX + normalX, startBaseY + normalY})
     }
     else
     {
-        outline.add({firstX + normalX, firstY + normalY})
+        outline.add(Math.Vector2{firstX + normalX, firstY + normalY})
     }
 
-    outline.add({endBaseX + normalX, endBaseY + normalY})
+    outline.add(Math.Vector2{endBaseX + normalX, endBaseY + normalY})
     if endArrow do
-        outline.add({secondX, secondY})
+        outline.add(Math.Vector2{secondX, secondY})
     else do
-        outline.add({secondX + normalX, secondY + normalY})
-    outline.add({endBaseX - normalX, endBaseY - normalY})
+        outline.add(Math.Vector2{secondX + normalX, secondY + normalY})
+    outline.add(Math.Vector2{endBaseX - normalX, endBaseY - normalY})
     if startArrow do
-        outline.add({startBaseX - normalX, startBaseY - normalY})
+        outline.add(Math.Vector2{startBaseX - normalX, startBaseY - normalY})
     else do
-        outline.add({firstX - normalX, firstY - normalY})
+        outline.add(Math.Vector2{firstX - normalX, firstY - normalY})
 
     var result: retval
     result += "clip-path:polygon("
@@ -1620,7 +1620,7 @@ private func findTextFrame(pages: *Array'Page, self: string, startPage: u64)->Fo
     {
         let pageIndex = (startPage + offset) % pages.count
         for &item in pages[pageIndex].items where item.self == self do
-            return {item, pageIndex}
+            return FoundFrame{item, pageIndex}
     }
 
     return {}
@@ -1784,7 +1784,7 @@ private func loadMasters(fileName: string, archive: const *Archive.Zip, designMa
 //
 // Linked external assets deliberately remain offline; a missing link never causes the viewer to
 // fetch it. `limits` bounds the pages and frames of the whole document, masters included.
-func load(fileName: string, limits: LoadLimits = {})->Document fail
+func load(fileName: string, limits: LoadLimits = LoadLimits{})->Document fail
 {
     let archive = try Archive.Zip.load(fileName)
     if archive.uncompressedSize > DocumentByteLimit do

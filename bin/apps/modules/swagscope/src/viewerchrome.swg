@@ -21,11 +21,11 @@ impl ViewerActionBar
 {
     func create(parent: *Wnd)->*ViewerActionBar
     {
-        with let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerWindow.ActionBarHeight})
+        with let result = Wnd.create'ViewerActionBar(parent, Math.Rectangle{0, 0, 0, ViewerWindow.ActionBarHeight})
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
-            .padding         = {12, 6, 12, 0}
+            .padding         = Math.Vector4{12, 6, 12, 0}
         }
 
         return result
@@ -46,7 +46,7 @@ impl ViewerActionBar
             width = client.width
         else do
             width = group.position.width
-        group.setPosition({client.horzCenter() - width * 0.5, client.vertCenter() - group.position.height * 0.5, width, group.position.height}, computeLayout: false)
+        group.setPosition(Math.Rectangle{client.horzCenter() - width * 0.5, client.vertCenter() - group.position.height * 0.5, width, group.position.height}, computeLayout: false)
         group.applyLayout()
     }
 }
@@ -97,7 +97,7 @@ impl ViewerInfoLayout
         let filesWidth = .filesButton.isLocallyVisible() ? .filesButton.position.width : 0
         if filesWidth
         {
-            .filesButton.setPosition({client.x, client.y, filesWidth, client.height}, computeLayout: false)
+            .filesButton.setPosition(Math.Rectangle{client.x, client.y, filesWidth, client.height}, computeLayout: false)
             .filesButton.applyLayout()
         }
 
@@ -105,8 +105,8 @@ impl ViewerInfoLayout
         // they sit closer together than two unrelated groups of the band do.
         let fileLeft     = client.x + (filesWidth ? filesWidth + FileSpacing : 0)
         let maxFileWidth = Math.max(client.horzCenter() - fileLeft - GroupSpacing, 0)
-        let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent({maxFileWidth, client.height}).x), maxFileWidth)
-        .fileGroup.setPosition({fileLeft, client.y, fileWidth, client.height}, computeLayout: false)
+        let fileWidth    = Math.min(Math.ceil(.fileGroup.itf.measureContent(Math.Point{maxFileWidth, client.height}).x), maxFileWidth)
+        .fileGroup.setPosition(Math.Rectangle{fileLeft, client.y, fileWidth, client.height}, computeLayout: false)
         .fileGroup.computeLayout()
 
         var right = client.right()
@@ -114,7 +114,7 @@ impl ViewerInfoLayout
         {
             let button = .sideButton
             right -= button.position.width
-            button.setPosition({right, client.y, button.position.width, client.height}, computeLayout: false)
+            button.setPosition(Math.Rectangle{right, client.y, button.position.width, client.height}, computeLayout: false)
             button.applyLayout()
             right -= SideButtonSpacing
         }
@@ -144,7 +144,7 @@ impl ViewerInfoLayout
             // it: reading the current width back would let the group only ever shrink.
             let spacing = run ? GroupSpacing : 0
             let limit   = one.preferredSize.x > 0 ? one.preferredSize.x : one.position.width
-            let wanted  = Math.min(Math.ceil(one.itf.measureContent({available, client.height}).x), limit)
+            let wanted  = Math.min(Math.ceil(one.itf.measureContent(Math.Point{available, client.height}).x), limit)
             let width   = Math.max(Math.min(wanted, available - run - spacing), 0)
             widths.add(width)
             if width do
@@ -156,13 +156,13 @@ impl ViewerInfoLayout
         let generalWidth   = Math.max(Math.min(generalWanted, available - run - generalSpacing), 0)
 
         var x = right - run - generalWidth - (generalWidth ? generalSpacing : 0)
-        .generalLabel.setPosition({x, client.y, generalWidth, client.height}, computeLayout: false)
+        .generalLabel.setPosition(Math.Rectangle{x, client.y, generalWidth, client.height}, computeLayout: false)
         if generalWidth do
             x += generalWidth + generalSpacing
 
         for one, i in viewers
         {
-            one.setPosition({x, client.y, widths[i], client.height}, computeLayout: false)
+            one.setPosition(Math.Rectangle{x, client.y, widths[i], client.height}, computeLayout: false)
             one.applyLayout()
             if widths[i] do
                 x += widths[i] + GroupSpacing
@@ -231,7 +231,7 @@ impl IWnd for ViewerSearchOverlay
 
         // The band, and around it the room the halo falls off in.
         var mark = .clientRect()
-        mark.applyPadding({GlowReach, GlowReach, GlowReach, GlowReach})
+        mark.applyPadding(Math.Vector4{GlowReach, GlowReach, GlowReach, GlowReach})
         if mark.isEmpty() do
             return
 
@@ -291,7 +291,7 @@ impl ViewerSearchOverlay
     {
         let parent  = .parent!
         let topLeft = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
-        .setPosition({topLeft.x - InsetX, topLeft.y - InsetY, bounds.width + InsetX * 2, bounds.height + InsetY * 2}, computeLayout: false)
+        .setPosition(Math.Rectangle{topLeft.x - InsetX, topLeft.y - InsetY, bounds.width + InsetX * 2, bounds.height + InsetY * 2}, computeLayout: false)
         .show()
         .bringToFront()
     }
@@ -349,7 +349,7 @@ impl ViewerLoadingOverlay
         {
             .wndFlags                |= WndFlags.TopMost | WndFlags.Disabled
             .backgroundStyle         = .Transparent
-            .spinner                 = Wnd.create'ViewerLoadingSpinner(result, {0, 0, ViewerLoadingSpinner.Size, ViewerLoadingSpinner.Size})
+            .spinner                 = Wnd.create'ViewerLoadingSpinner(result, Math.Rectangle{0, 0, ViewerLoadingSpinner.Size, ViewerLoadingSpinner.Size})
             .spinner.backgroundStyle = .Transparent
             .hide()
         }
@@ -362,7 +362,7 @@ impl ViewerLoadingOverlay
     {
         let size = ViewerLoadingSpinner.Size
         .setPosition(rect, computeLayout: false)
-        .spinner.setPosition({(rect.width - size) * 0.5, (rect.height - size) * 0.5, size, size}, computeLayout: false)
+        .spinner.setPosition(Math.Rectangle{(rect.width - size) * 0.5, (rect.height - size) * 0.5, size, size}, computeLayout: false)
     }
 
     // Shows the mark, fading it in unless motion is reduced.
@@ -412,24 +412,24 @@ impl ViewerErrorView
         with let stack = StackLayoutCtrl.create(result, .VerticalCenter)
         {
             .dockStyle = .Center
-            .padding   = {48, 48, 48, 48}
+            .padding   = Math.Vector4{48, 48, 48, 48}
             .spacing   = 8
         }
 
-        with result.iconLabel = Label.create(stack, "", {0, 0, 48, 48})
+        with result.iconLabel = Label.create(stack, "", Math.Rectangle{0, 0, 48, 48})
         {
             .layoutSpec.alignX = .Center
             .setIcon(result.theme().icon(.Critical, 48))
             .setIconColor(result.themeColors().error)
         }
 
-        with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        with result.summaryLabel = Label.create(stack, appStrings().ui_ViewerError, Math.Rectangle{0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
         }
 
-        with result.reasonLabel = Label.create(stack, reason, {0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight)
+        with result.reasonLabel = Label.create(stack, reason, Math.Rectangle{0, 0, TextWidth, 0}, null, .WordWrap | .AutoHeight)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)

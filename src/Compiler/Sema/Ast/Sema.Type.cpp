@@ -19,6 +19,21 @@
 
 SWC_BEGIN_NAMESPACE();
 
+Result AstTupleType::semaPostNode(Sema& sema) const
+{
+    SmallVector<AstNodeRef> children;
+    collectChildren(children, sema.ast());
+    SmallVector<TypeRef>       types;
+    SmallVector<IdentifierRef> names;
+    for (const AstNodeRef child : children)
+    {
+        types.push_back(sema.viewType(child).typeRef());
+        names.push_back(IdentifierRef::invalid());
+    }
+    sema.setType(sema.curNodeRef(), sema.typeMgr().addAggregateStructType(names.span(), types.span()));
+    return Result::Continue;
+}
+
 namespace
 {
     const SymbolEnum* enumSymbolFromTypeExpr(Sema& sema, const SemaNodeView& view)

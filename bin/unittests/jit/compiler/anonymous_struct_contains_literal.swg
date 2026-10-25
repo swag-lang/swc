@@ -6,8 +6,8 @@ using Swag
     func checkCompare()->bool
     {
         var value: struct { x: s32; y: s32 }
-        value = {1, 2}
-        return value == {1, 2} and value != {2, 1}
+        value = {x: 1, y: 2}
+        return value == {x: 1, y: 2} and value != {x: 2, y: 1}
     }
 
     const V = #run checkCompare()

@@ -869,7 +869,7 @@ internal namespace Win32Priv
     func waitForSingleObjectStatus(hHandle: HANDLE, dwMilliseconds: DWORD)->{result: DWORD, errorCode: DWORD}
     {
         let result = Win32Priv.WaitForSingleObject(hHandle, dwMilliseconds)
-        return {result, result == WAIT_FAILED ? GetLastError() : 0}
+        return {result: result, errorCode: result == WAIT_FAILED ? GetLastError() : 0}
     }
 
     #[Discardable]
@@ -908,7 +908,7 @@ internal namespace Win32Priv
     func resetEventStatus(hEvent: HANDLE)->{succeeded: bool, errorCode: DWORD}
     {
         let succeeded = Win32Priv.ResetEvent(hEvent) != 0
-        return {succeeded, succeeded ? 0 : GetLastError()}
+        return {succeeded: succeeded, errorCode: succeeded ? 0 : GetLastError()}
     }
 
     // Signals an event and captures a native failure code for later handling.
@@ -918,7 +918,7 @@ internal namespace Win32Priv
     func setEventStatus(hEvent: HANDLE)->{succeeded: bool, errorCode: DWORD}
     {
         let succeeded = Win32Priv.SetEvent(hEvent) != 0
-        return {succeeded, succeeded ? 0 : GetLastError()}
+        return {succeeded: succeeded, errorCode: succeeded ? 0 : GetLastError()}
     }
 
     func CreateProcessA(lpApplicationName: LPCSTR, lpCommandLine: LPCSTR, lpProcessAttributes: *SECURITY_ATTRIBUTES?, lpThreadAttributes: *SECURITY_ATTRIBUTES?, bInheritHandles: BOOL, dwCreationFlags: DWORD, lpEnvironment: LPVOID, lpCurrentDirectory: LPCSTR, lpStartupInfo: *STARTUPINFOA, lpProcessInformation: *PROCESS_INFORMATION) fail

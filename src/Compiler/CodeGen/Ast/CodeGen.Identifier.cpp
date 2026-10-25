@@ -15,6 +15,7 @@
 #include "Compiler/Sema/Constant/ConstantValue.h"
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaInline.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
@@ -438,26 +439,6 @@ namespace
             return true;
 
         return symVar.hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack) && codeGen.localStackBaseReg().isValid();
-    }
-
-    // Whether a destructured source is a named value that keeps its fields, rather than a temporary
-    // whose fields move out.
-    bool destructuringSourceIsLValue(CodeGen& codeGen, AstNodeRef initRef)
-    {
-        const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.resolvedNodeRef(initRef) : AstNodeRef::invalid();
-        if (resolvedInitRef.isInvalid())
-            return false;
-
-        if (codeGen.sema().isLValue(resolvedInitRef))
-            return true;
-
-        // An address-backed selection ('a ? b : c', 'a orelse b') forwards the storage of whichever
-        // operand won, possibly a named variable.
-        const AstNode& resolvedInit = codeGen.node(resolvedInitRef);
-        if (!resolvedInit.is(AstNodeId::ConditionalExpr) && !resolvedInit.is(AstNodeId::NullCoalescingExpr))
-            return false;
-
-        return codeGen.payload(initRef).isAddress();
     }
 
     void materializeAggregateSourceAddress(CodeGen& codeGen, MicroReg& outAddressReg, AstNodeRef storageNodeRef, const TypeInfo& sourceType, const CodeGenNodePayload& sourcePayload)
@@ -915,156 +896,78 @@ Result AstMultiVarDecl::codeGenPostNode(CodeGen& codeGen) const
 
 Result AstVarDeclDestructuring::codeGenPostNode(CodeGen& codeGen) const
 {
-    const SemaNodeView initView = codeGen.viewTypeConstant(nodeInitRef);
-    SWC_ASSERT(initView.type() && (initView.type()->isStruct() || initView.type()->isAggregateStruct()));
-    const TypeInfo& initType = *initView.type();
+    if (hasFlag(AstVarDeclFlagsE::Const))
+        return Result::Continue;
+    const SemaNodeView                           initView = codeGen.viewTypeConstant(nodeInitRef);
+    const TypeInfo&                              initType = *initView.type();
+    SmallVector<SemaHelpers::DestructuringField> fields;
+    SWC_RESULT(SemaHelpers::resolveDestructuringPattern(codeGen.sema(), fields, nodePatternRef, initView.typeRef(), initView.cstRef()));
 
-    const SymbolVariable* initStorageSym     = codeGen.runtimeStorageSymbol(nodeInitRef);
-    const bool            movesInitTemporary = initStorageSym && codeGen.hasTemporaryDrop(*initStorageSym);
-
-    // Fields copied into their own storage need the same lifecycle hook as a
-    // single declaration: copy a named source, move from a temporary even when
-    // it has no drop. Bindings that alias the source storage need neither.
-    const bool copiesFromLValue  = destructuringSourceIsLValue(codeGen, nodeInitRef);
-    const auto emitFieldPostMove = [&codeGen, copiesFromLValue](const SymbolVariable& symVar) -> Result {
-        if (!variableHasOwnStorage(codeGen, symVar))
-            return Result::Continue;
-
-        const CodeGen::LifecycleKind postKind = copiesFromLValue ? CodeGen::LifecycleKind::PostCopy : CodeGen::LifecycleKind::PostMove;
-        if (!codeGen.hasLifecycle(symVar.typeRef(), postKind))
-            return Result::Continue;
-
-        const CodeGenNodePayload symbolPayload = resolveIdentifierVariablePayload(codeGen, symVar);
-        SWC_ASSERT(symbolPayload.isAddress());
-        SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symVar.typeRef(), symbolPayload.reg));
-        return codeGen.emitLifecycle(symVar.typeRef(), postKind, symbolPayload.reg);
-    };
-
-    SmallVector<TokenRef> tokNames;
-    codeGen.ast().appendTokens(tokNames, spanNamesRef);
-
-    const SemaNodeView       view = codeGen.curViewSymbol();
+    SmallVector<TokenRef> names;
+    codeGen.ast().appendTokens(names, spanNamesRef);
     SmallVector<Symbol*>     recoveredSymbols;
-    std::span<Symbol* const> symbols = view.symList();
+    std::span<Symbol* const> symbols = codeGen.curViewSymbol().symList();
     if (symbols.empty())
     {
-        recoverFunctionVariableDeclSymbols(codeGen, codeGen.curNodeRef(), tokNames.span(), recoveredSymbols);
+        recoverFunctionVariableDeclSymbols(codeGen, codeGen.curNodeRef(), names.span(), recoveredSymbols);
         symbols = recoveredSymbols.span();
     }
 
-    SWC_ASSERT(!symbols.empty());
-
-    // Aggregate struct literals can be purely compile-time values or runtime
-    // temporaries materialized in scratch storage. Handle the constant case
-    // directly, and otherwise destructure from the runtime aggregate layout.
-    if (initType.isAggregateStruct() && initView.hasConstant())
-    {
-        MicroBuilder& builder = codeGen.builder();
-        for (Symbol* sym : symbols)
-        {
-            auto& symVar = sym->cast<SymbolVariable>();
-            if (symVar.hasGlobalStorage())
-                continue;
-            if (symVar.hasExtraFlag(SymbolVariableFlagsE::Let))
-                continue;
-
-            if (symVar.cstRef().isValid())
-            {
-                const ConstantValue& cst = codeGen.cstMgr().get(symVar.cstRef());
-
-                CodeGenNodePayload fieldPayload;
-                fieldPayload.typeRef = symVar.typeRef();
-                fieldPayload.setIsValue();
-
-                if (cst.isInt())
-                {
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(static_cast<uint64_t>(cst.getInt().asI64()), 64), MicroOpBits::B64);
-                }
-                else if (cst.isBool())
-                {
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(cst.getBool() ? 1 : 0, 64), MicroOpBits::B64);
-                }
-                else if (cst.isFloat())
-                {
-                    fieldPayload.reg = codeGen.nextVirtualFloatRegister();
-                    const auto bits  = std::bit_cast<uint64_t>(cst.getFloat().asDouble());
-                    builder.emitLoadRegImm(fieldPayload.reg, ApInt(bits, 64), MicroOpBits::B64);
-                }
-                else if (cst.isString())
-                {
-                    const std::string_view strVal    = cst.getString();
-                    const ConstantRef      strCstRef = CodeGenConstantHelpers::materializeRuntimeBufferConstant(codeGen, symVar.typeRef(), strVal.data(), strVal.size());
-                    const ConstantValue&   strCst    = codeGen.cstMgr().get(strCstRef);
-                    fieldPayload.reg                 = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegPtrReloc(fieldPayload.reg, reinterpret_cast<uint64_t>(strCst.getStruct().data()), strCstRef);
-                }
-                else if (cst.isValuePointer())
-                {
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
-                    builder.emitLoadRegPtrReloc(fieldPayload.reg, cst.getValuePointer(), symVar.cstRef());
-                }
-                else
-                {
-                    fieldPayload.reg = codeGen.nextVirtualIntRegister();
-                    builder.emitClearReg(fieldPayload.reg, identifierPayloadCopyBits(codeGen, symVar.typeRef()));
-                }
-
-                materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
-            }
-            else
-            {
-                SWC_RESULT(materializeSingleVarFromInit(codeGen, symVar, AstNodeRef::invalid()));
-            }
-
-            SWC_RESULT(emitFieldPostMove(symVar));
-            codeGen.registerImplicitDrop(symVar);
-        }
-
-        if (movesInitTemporary)
-            codeGen.cancelTemporaryDrop(*initStorageSym);
-
+    const CodeGenNodePayload* valuePayload   = codeGen.safePayload(nodeInitRef);
+    const SymbolVariable*     sourceStorage  = valuePayload && valuePayload->runtimeStorageSym ? valuePayload->runtimeStorageSym : codeGen.runtimeStorageSymbol(nodeInitRef);
+    const bool                movesTemporary = sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage);
+    const AstModifierFlags    modifiers      = varInitModifierFlags(codeGen, nodeInitRef);
+    const bool                movesSource    = modifiers.hasAny({AstModifierFlagsE::Move, AstModifierFlagsE::Relocate});
+    if (fields.empty() || (symbols.empty() && !movesTemporary && !movesSource))
         return Result::Continue;
-    }
+    const bool                   copiesSource = !movesSource && CodeGenStructHelpers::destructuringSourceIsLValue(codeGen, nodeInitRef);
+    const CodeGen::LifecycleKind postKind     = copiesSource ? CodeGen::LifecycleKind::PostCopy : CodeGen::LifecycleKind::PostMove;
+    MicroReg                     source       = MicroReg::invalid();
+    if (!initView.hasConstant() || movesTemporary || movesSource)
+        materializeAggregateSourceAddress(codeGen, source, codeGen.curNodeRef(), initType, codeGen.payload(nodeInitRef));
 
-    SmallVector<TokenRef> fieldNames;
-    if (hasFlag(AstVarDeclFlagsE::NamedDestructuring))
+    size_t symbolIndex = 0;
+    for (const auto& field : fields)
     {
-        codeGen.ast().appendTokens(fieldNames, spanFieldNamesRef);
-        SWC_ASSERT(fieldNames.size() == tokNames.size());
-    }
-
-    const CodeGenNodePayload& initPayload = codeGen.payload(nodeInitRef);
-    MicroReg                  baseAddress = MicroReg::invalid();
-    materializeAggregateSourceAddress(codeGen, baseAddress, codeGen.curNodeRef(), initType, initPayload);
-
-    CodeGenStructHelpers::StructLikeFieldLayoutCursor layoutCursor;
-    size_t                                            symbolIndex = 0;
-    for (size_t i = 0; i < tokNames.size(); ++i)
-    {
-        if (tokNames[i].isInvalid())
+        if (field.ignored)
             continue;
-
         SWC_ASSERT(symbolIndex < symbols.size());
-
-        const size_t          fieldIndex  = hasFlag(AstVarDeclFlagsE::NamedDestructuring) ? CodeGenStructHelpers::structLikeFieldIndex(codeGen, initType, SourceCodeRef{srcViewRef(), fieldNames[i]}) : i;
-        const auto            fieldLayout = CodeGenStructHelpers::structLikeFieldLayout(codeGen, layoutCursor, initType, fieldIndex);
-        const SymbolVariable& symVar      = symbols[symbolIndex++]->cast<SymbolVariable>();
-
+        const SymbolVariable& symbol = symbols[symbolIndex++]->cast<SymbolVariable>();
+        if (symbol.hasGlobalStorage())
+            continue;
         CodeGenNodePayload fieldPayload;
-        fieldPayload.typeRef = fieldLayout.typeRef;
-        fieldPayload.setIsAddress();
-        fieldPayload.reg = codeGen.offsetAddressReg(baseAddress, fieldLayout.offset);
-
-        materializeSingleVarFromPayload(codeGen, symVar, fieldPayload);
-        SWC_RESULT(emitFieldPostMove(symVar));
-        codeGen.registerImplicitDrop(symVar);
+        if (field.constantRef.isValid())
+            SWC_INTERNAL_CHECK(CodeGenCallHelpers::materializeTypedConstantPayload(codeGen, fieldPayload, symbol.typeRef(), field.constantRef));
+        else
+        {
+            fieldPayload.typeRef = field.typeRef;
+            fieldPayload.setIsAddress();
+            fieldPayload.reg = codeGen.offsetAddressReg(source, static_cast<uint32_t>(field.offset));
+        }
+        materializeSingleVarFromPayload(codeGen, symbol, fieldPayload);
+        if (variableHasOwnStorage(codeGen, symbol) && codeGen.hasLifecycle(symbol.typeRef(), postKind))
+        {
+            const CodeGenNodePayload destination = resolveIdentifierVariablePayload(codeGen, symbol);
+            SWC_RESULT(CodeGenMemoryHelpers::emitDynamicIdentity(codeGen, symbol.typeRef(), destination.reg));
+            SWC_RESULT(codeGen.emitLifecycle(symbol.typeRef(), postKind, destination.reg));
+        }
+        codeGen.registerImplicitDrop(symbol);
     }
-
-    if (movesInitTemporary)
-        codeGen.cancelTemporaryDrop(*initStorageSym);
-
+    if (movesTemporary || movesSource)
+    {
+        SWC_RESULT(CodeGenStructHelpers::emitDropDestructuringRemainder(codeGen, source, fields.span()));
+        if (movesTemporary)
+            codeGen.cancelTemporaryDrop(*sourceStorage);
+    }
+    if (movesSource && !movesTemporary && codeGen.hasLifecycle(initView.typeRef(), CodeGen::LifecycleKind::Drop))
+    {
+        const AstNodeRef reference = varInitMoveReferenceSource(codeGen, nodeInitRef);
+        const MicroReg   original  = reference.isValid() ? moveReferencePointeeReg(codeGen, reference) : source;
+        if (!modifiers.has(AstModifierFlagsE::Relocate))
+            SWC_RESULT(CodeGenFunctionHelpers::emitMovedFromDefaultValue(codeGen, initView.typeRef(), original));
+        else if (CodeGenSafety::hasLifecycleInvalidate(codeGen))
+            SWC_RESULT(CodeGenSafety::emitLifecycleInvalidate(codeGen, original, initView.typeRef(), nodeInitRef));
+    }
     return Result::Continue;
 }
 

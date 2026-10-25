@@ -44,6 +44,6 @@ func(T) choose(box: const *OtherQualified.Box'T)->u32 => 2
     Swag.assert(makeShadowed(19'u32).value == 19)
     Swag.assert(holder.buffer.values[2] == 3)
     Swag.assert(choose(&holder.box) == 1)
-    var other: OtherQualified.Box'u32 = {12}
+    var other: OtherQualified.Box'u32 = OtherQualified.Box'u32{12}
     Swag.assert(choose(&other) == 2)
 }

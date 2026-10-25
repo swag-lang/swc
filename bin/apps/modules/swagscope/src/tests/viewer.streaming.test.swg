@@ -16,7 +16,7 @@ using Core, Pixel, Gui, Viewers
     var host: Testing.HeadlessHost
     host.setup(640, 360)
     defer host.shutdown()
-    let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
     var session  = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, session.view)
@@ -27,10 +27,10 @@ using Core, Pixel, Gui, Viewers
 
     completeTextReads(&host, view)
 
-    view.editor.setScrollPosition({0, view.virtualHeight * 0.8})
+    view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.8})
     view.loadNextChunk()
     Swag.assert(view.read.started)
-    view.editor.setScrollPosition({0, 0})
+    view.editor.setScrollPosition(Math.Point{0, 0})
     Swag.assert(not view.pendingSeek and view.read.wasCancelled())
     completeTextReads(&host, view)
     Swag.assert(view.residentStart == 0)
@@ -38,10 +38,10 @@ using Core, Pixel, Gui, Viewers
     for ratio in [0.85'f32, 0.15'f32, 0.65'f32]
     {
         let previousStart = view.residentStart
-        view.editor.setScrollPosition({0, view.virtualHeight * 0.45})
+        view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.45})
         view.loadNextChunk()
         Swag.assert(view.read.started)
-        view.editor.setScrollPosition({0, view.virtualHeight * ratio})
+        view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * ratio})
         let requested = view.pendingSeekOffset
         Swag.assert(view.pendingSeek and view.read.wasCancelled())
         discard host.render(view)
@@ -83,11 +83,11 @@ using Core, Pixel, Gui, Viewers
     {
         let start = view.residentOffsetY
         let end   = start + view.editor.loadedDocumentHeight()
-        view.editor.setScrollPosition({0, forward ? end - viewport.height * 8 : start + viewport.height * 8})
+        view.editor.setScrollPosition(Math.Point{0, forward ? end - viewport.height * 8 : start + viewport.height * 8})
         view.pendingSeek = false
         let previousStart = view.residentStart
         for 20 where not view.pendingSeek do
-            view.editor.setScrollPosition({0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
+            view.editor.setScrollPosition(Math.Point{0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
         Swag.assert(view.pendingSeek)
         Swag.assert(view.editor.scrollPosition().y >= start + viewport.height * 3)
         Swag.assert(view.editor.scrollPosition().y + viewport.height <= end - viewport.height * 3)
@@ -96,7 +96,7 @@ using Core, Pixel, Gui, Viewers
         for 28
         {
             let residentBefore = view.residentStart
-            view.editor.setScrollPosition({0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
+            view.editor.setScrollPosition(Math.Point{0, view.editor.scrollPosition().y + viewport.height * (forward ? 0.25 : -0.25)})
             if view.residentStart != residentBefore
             {
                 discard host.render(view)
@@ -113,8 +113,8 @@ using Core, Pixel, Gui, Viewers
 
     for ratio in [0.85'f32, 0.15'f32, 0.65'f32]
     {
-        view.editor.setScrollPosition({0, view.virtualHeight * 0.45})
-        view.editor.setScrollPosition({0, view.virtualHeight * ratio})
+        view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.45})
+        view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * ratio})
         discard host.render(view)
         Swag.assert(not view.pendingSeek)
         Swag.assert(view.editor.scrollPosition().y >= view.residentOffsetY - 1)

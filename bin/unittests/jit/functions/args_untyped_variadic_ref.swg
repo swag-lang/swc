@@ -25,7 +25,7 @@ func passVariadicReferencedValue(value: VariadicReferencedValue)->bool
 
 func runVariadicReferencedValue()->bool
 {
-    let value: VariadicReferencedValue = {first: 11, second: 22, third: 33}
+    let value: VariadicReferencedValue = VariadicReferencedValue{first: 11, second: 22, third: 33}
     return passVariadicReferencedValue(value)
 }
 

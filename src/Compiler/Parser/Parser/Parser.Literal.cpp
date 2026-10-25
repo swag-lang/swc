@@ -194,7 +194,19 @@ AstNodeRef Parser::parseLiteralStruct()
 {
     auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructLiteral>(ref());
 
-    nodePtr->spanChildrenRef = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
+    const SpanRef           fields = parseCompoundContent(AstNodeId::NamedArgumentList, TokenId::SymLeftCurly);
+    SmallVector<AstNodeRef> children;
+    ast_->appendNodes(children, fields);
+    for (AstNodeRef& child : children)
+    {
+        const AstNode& field = ast_->node(child);
+        if (field.isNot(AstNodeId::Identifier))
+            continue;
+        const auto [argumentRef, argument] = ast_->makeNode<AstNodeId::NamedArgument>(field.tokRef());
+        argument->nodeArgRef               = child;
+        child                              = argumentRef;
+    }
+    nodePtr->spanChildrenRef = ast_->pushSpan(children.span());
 
     return nodeRef;
 }

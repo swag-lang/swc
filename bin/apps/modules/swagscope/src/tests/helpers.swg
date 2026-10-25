@@ -24,7 +24,7 @@ func testViewerPlugin(create: Viewer.PluginCreate)->Viewer.Plugin
 }
 
 // Creates one plugin through the same host API used by the application window.
-func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: *Wnd? = null, actionParent: *Wnd? = null, infoParent: *Wnd? = null, icon: Icon = {}, services: Viewer.HostServices = {}, waitForText = true)->ViewerSession
+func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string, commandParent: *Wnd? = null, actionParent: *Wnd? = null, infoParent: *Wnd? = null, icon: Icon = Icon{}, services: Viewer.HostServices = Viewer.HostServices{}, waitForText = true)->ViewerSession
 {
     var result: retval
     if plugin.attach do

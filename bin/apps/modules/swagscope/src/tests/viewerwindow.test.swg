@@ -191,7 +191,7 @@ func createSidePanelFixture(host: Viewer.Host)
     host.setup(720, 460)
     defer host.shutdown()
 
-    let infoParent = Wnd.create'Wnd(&host.root, {0, 0, 720, 40})
+    let infoParent = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 720, 40})
     var session    = openTestViewer(testViewerPlugin(&createSidePanelFixture), &host.root, "fixture.panel", infoParent: infoParent)
     host.root.applyLayout()
 
@@ -270,7 +270,7 @@ func createSidePanelFixture(host: Viewer.Host)
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -289,13 +289,13 @@ func createSidePanelFixture(host: Viewer.Host)
     Swag.assert(image.isValid() and loadedHeight > 0)
     Swag.assert(view.editor.scrollableClientRect().height > loadedHeight)
 
-    view.editor.setScrollPosition({0, loadedHeight * 2})
+    view.editor.setScrollPosition(Math.Point{0, loadedHeight * 2})
     let position = view.editor.scrollPosition()
     Swag.assert(position.y > loadedHeight)
     view.loadNextChunk()
     Swag.assert(view.editor.scrollPosition() == position)
 
-    view.editor.setScrollPosition({0, 0})
+    view.editor.setScrollPosition(Math.Point{0, 0})
     let beforeEnd = view.editor.scrollPosition()
     var end       = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
     let handled   = view.hookOnChildEvent!(view.editor, &end)
@@ -315,7 +315,7 @@ func createSidePanelFixture(host: Viewer.Host)
     var host: Testing.HeadlessHost
     host.setup(640, 420)
     defer host.shutdown()
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
     let view          = assume cast(*PlainText.Panel, viewerSession.view)
     completeTextStatistics(&host, view)
@@ -392,7 +392,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, wideFile, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -420,7 +420,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, file, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -454,7 +454,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, file, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -562,7 +562,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.filePanel.setPaneSize(0, 120)
     let panelWidth = window.mainSplitter.items[0]!.size
-    let state = saveViewerState(window)
+    let state      = saveViewerState(window)
     window.recent.clear()
     window.filePanel.setPaneSize(0, 180)
     window.setFilePanelVisible(false)
@@ -800,20 +800,20 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     clipboardImage.clear()
     Clipboard.addImage(clipboardImage)
     host.clickPopupMenuItemWhenShown("scope.file.copyPath")
-    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    window.showFileMenu(list, window.recent.toSlice(), Math.Point{120, 120})
     host.pump()
     Swag.assert(host.autoHandled and Clipboard.getString() == names[1])
     Swag.assert(not Clipboard.hasImage())
 
     Clipboard.addImage(clipboardImage)
     host.clickPopupMenuItemWhenShown("scope.file.copyName")
-    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    window.showFileMenu(list, window.recent.toSlice(), Math.Point{120, 120})
     host.pump()
     Swag.assert(host.autoHandled and Clipboard.getString() == "file1.txt")
     Swag.assert(not Clipboard.hasImage())
 
     host.clickPopupMenuItemWhenShown("scope.file.forget")
-    window.showFileMenu(list, window.recent.toSlice(), {120, 120})
+    window.showFileMenu(list, window.recent.toSlice(), Math.Point{120, 120})
     host.pump()
     Swag.assert(host.autoHandled)
     Swag.assert(window.recent.count == 2 and window.recent[0] == names[2] and window.recent[1] == names[0])
@@ -948,7 +948,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -986,7 +986,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(view.bytesRead < view.fileSize)
 
     let firstStart = view.residentStart
-    view.editor.setScrollPosition({0, view.virtualHeight * 0.5})
+    view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.5})
     Swag.assert(view.pendingSeek)
     host.fireTimers()
     completeTextReads(&host, view)
@@ -1025,7 +1025,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var host: Testing.HeadlessHost
     host.setup(800, 560)
     defer host.shutdown()
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -1037,13 +1037,13 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     discard host.render(view)
     view.updateEstimatedHeight()
 
-    view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
+    view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.85})
     Swag.assert(view.pendingSeek)
-    view.editor.setScrollPosition({0, 0})
+    view.editor.setScrollPosition(Math.Point{0, 0})
     Swag.assert(not view.pendingSeek)
 
-    view.editor.setScrollPosition({0, view.virtualHeight * 0.85})
-    view.editor.setScrollPosition({0, view.virtualHeight * 0.2})
+    view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.85})
+    view.editor.setScrollPosition(Math.Point{0, view.virtualHeight * 0.2})
     Swag.assert(view.pendingSeek and view.isStreaming())
     completeTextReads(&host, view)
     let lowOffset = cast(u64, (0.2 * cast(f32, view.fileSize)))
@@ -1053,7 +1053,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     for ratio in ratios
     {
         let requestedY = view.virtualHeight * ratio
-        view.editor.setScrollPosition({0, requestedY})
+        view.editor.setScrollPosition(Math.Point{0, requestedY})
         Swag.assert(view.pendingSeek and view.isStreaming())
         completeTextReads(&host, view)
         let offset = cast(u64, (ratio * cast(f32, view.fileSize)))
@@ -1529,7 +1529,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // Viewer tools have their own full-width band and cannot collide with the global selector.
     window.resize(ViewerWindow.MinWidth, 680)
     window.viewerCombo.show()
-    let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 0, 36})
+    let widestCommands = Wnd.create'Wnd(window.viewerBar, Math.Rectangle{0, 0, 0, 36})
     widestCommands.dockStyle         = .Center
     window.viewerBar.position.height = ViewerWindow.BarHeight
     window.viewerBar.show()
@@ -1647,7 +1647,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.currentFile = "clip.mp4"
     window.updateFileInfo(wideDetails)
     let wideClient      = window.infoBar.paddedClientRect()
-    let wideFileWidth   = Math.ceil(window.infoFileGroup.itf.measureContent({wideClient.width, wideClient.height}).x)
+    let wideFileWidth   = Math.ceil(window.infoFileGroup.itf.measureContent(Math.Point{wideClient.width, wideClient.height}).x)
     let wideDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
     Swag.assert(wideFileWidth + wideDetailWidth <= wideClient.width)
     Swag.assert(window.infoStatsLabel.position.width >= wideDetailWidth)
@@ -1658,7 +1658,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     window.currentFile = "a-very-long-file-name-that-needs-the-left-side-of-the-information-bar.mp4"
     window.updateFileInfo(wideDetails)
     let narrowClient      = window.infoBar.paddedClientRect()
-    let narrowFileWidth   = Math.ceil(window.infoFileGroup.itf.measureContent({narrowClient.width, narrowClient.height}).x)
+    let narrowFileWidth   = Math.ceil(window.infoFileGroup.itf.measureContent(Math.Point{narrowClient.width, narrowClient.height}).x)
     let narrowDetailWidth = Math.ceil(window.infoStatsLabel.itf.measureContent({}).x)
     Swag.assert(narrowFileWidth + narrowDetailWidth > narrowClient.width)
     Swag.assert(window.infoStatsLabel.position.width < narrowDetailWidth)
@@ -1690,12 +1690,12 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(not window.commandBar.isLocallyVisible() and not window.infoBarHost.isLocallyVisible())
     Swag.assert(not window.viewerBar.isLocallyVisible() and not window.filePanelHost.isLocallyVisible())
 
-    window.updateFullScreenChrome({10, 1})
+    window.updateFullScreenChrome(Math.Point{10, 1})
     Swag.assert(window.commandBar.isLocallyVisible() and window.infoBarHost.isLocallyVisible())
     Swag.assert(not window.viewerBar.isLocallyVisible())
-    window.updateFullScreenChrome({10, window.clientRect().height / 2})
+    window.updateFullScreenChrome(Math.Point{10, window.clientRect().height / 2})
     Swag.assert(not window.commandBar.isLocallyVisible() and not window.infoBarHost.isLocallyVisible())
-    window.updateFullScreenChrome({10, window.clientRect().height - 1})
+    window.updateFullScreenChrome(Math.Point{10, window.clientRect().height - 1})
     Swag.assert(window.viewerBar.isLocallyVisible())
 
     window.setFullScreen(false)
@@ -1803,7 +1803,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.currentView       = loading
     window.activeChoiceIndex = 0
-    loading.setPosition({17, 83, 611, 391})
+    loading.setPosition(Math.Rectangle{17, 83, 611, 391})
 
     reportViewerLoadingChanged(loading)
     Swag.assert(not window.loadingOverlay.isLocallyVisible() and window.loadingTimer != null)
@@ -1837,7 +1837,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // A newly selected progressive viewer loads behind the preceding document. The activity
     // mark belongs over that preserved document until the replacement can publish its first frame.
     let outgoing = Wnd.create'Wnd(window)
-    outgoing.setPosition({23, 71, 577, 363})
+    outgoing.setPosition(Math.Rectangle{23, 71, 577, 363})
     window.outgoingView = outgoing
     window.currentView  = outgoing
     reportViewerLoadingChanged(loading)
@@ -1877,7 +1877,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     let old    = Wnd.create'Wnd(window)
-    old.setPosition({19, 73, 617, 389})
+    old.setPosition(Math.Rectangle{19, 73, 617, 389})
     var retireCalls: u32
     old.userData = &retireCalls
     window.instances.add(ViewerSession{view: old, retire: func|old|()->bool => delayTestViewerRetirement(old)})
@@ -1948,6 +1948,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         .resize(1000, 720)
         .openFile(hexViewerFixturePath())
     }
+
     completeQueuedViewerFile(&host, window)
     var hexChoice = Swag.U32.Max
     for choice, index in window.choices where choice.key == "hex" do
@@ -1970,7 +1971,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.mainSplitter.setPaneSize(2, 500)
     let panelSize = window.mainSplitter.items[2]!.size
-    let state = saveViewerState(window)
+    let state     = saveViewerState(window)
     window.mainSplitter.setPaneSize(2, 560)
     loadViewerState(window, state.toSlice())
     Swag.assert(window.rightPanelWidth == panelSize - window.themeMetrics().panel_GutterSize)

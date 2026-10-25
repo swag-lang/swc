@@ -257,7 +257,7 @@ impl Encoder
                             return false
 
                         paletteIndex = cast(u8, data.count)
-                        data.colors[paletteIndex] = {col.r, col.g, col.b}
+                        data.colors[paletteIndex] = PaletteColor{col.r, col.g, col.b}
                         colorMap.add(key, paletteIndex)
                         data.count += 1
                     }

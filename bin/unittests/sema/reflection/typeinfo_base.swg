@@ -25,7 +25,7 @@ func semaTest001()
     let literalArrayInfo = #typeof([1, 2, 3])
     #assert(#typeof(literalArrayInfo) == #typeof(const *TypeInfoArray))
     #assert(literalArrayInfo.kind == TypeInfoKind.Array)
-    #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct)
+    #assert(#typeof((1, 2, 3)).kind == TypeInfoKind.Struct)
 }
 
 const PA = assume cast(const *Swag.TypeInfoStruct, #typeof(A))

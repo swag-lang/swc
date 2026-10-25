@@ -213,7 +213,7 @@ impl IWnd for CaptureRectWnd
         // multiplies the texture by the brush color, so a gray tint darkens the image
         // exactly like the former {0,0,0,100} black overlay (100/255 ~= 0.61 -> 155),
         // but without alpha-blending the entire virtual desktop every frame.
-        let dimTint: Color = {155, 155, 155, 255}
+        let dimTint: Color = Color{155, 155, 155, 255}
         painter.drawTexture(.position, g_DesktopTexture, dimTint)
 
         // The grab rectangle lives in desktop-physical pixels; drawing works in
@@ -250,7 +250,7 @@ impl IWnd for CaptureRectWnd
         if .main.captureOptions.drawCross and not .autoGrab
         {
             // Translucent: the cross has to guide the eye without cutting the image.
-            let cross: Color = {255, 255, 255, 110}
+            let cross: Color = Color{255, 255, 255, 110}
             let endX         = g_EndGrabX / k
             let endY         = g_EndGrabY / k
             painter.drawLine(endX, 0, endX, dstGrab.y, cross)
@@ -281,7 +281,7 @@ impl IWnd for CaptureRectWnd
                 yy = dstGrab.y + BadgeGap
             }
 
-            painter.fillRect({xx, yy, width, height}, colors.bk)
+            painter.fillRect(Math.Rectangle{xx, yy, width, height}, colors.bk)
             painter.drawString(xx + BadgePad, yy + BadgePad, size, fontR, col)
             painter.drawString(xx + BadgePad, yy + BadgePad + fontR.height, org, fontR, colors.label_TextLight)
         }

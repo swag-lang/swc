@@ -133,7 +133,7 @@ impl IWnd for IconButton
             .name.compute()
             var format: RichStringFormat
             format.font = .font()
-            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format, .deviceScale())
+            Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &.name, format, .deviceScale())
 
             let labelWidth  = .name.boundRect.width
             let labelHeight = .name.boundRect.height
@@ -178,7 +178,7 @@ impl IWnd for IconButton
         }
 
         let padding = 2 * metrics.btnIcon_Padding
-        return {width + padding, height + padding}
+        return Math.Point{width + padding, height + padding}
     }
 
     mtd impl onHookEvent(evt: IEvent)
@@ -824,7 +824,7 @@ impl IconButton
             format.horzAlignment = .Left
             format.vertAlignment = .Center
             format.flags         = .Clip
-            painter.drawRichString({x, rect.y, textWidth, rect.height}, &.name, format)
+            painter.drawRichString(Math.Rectangle{x, rect.y, textWidth, rect.height}, &.name, format)
             x += textWidth
         }
 
@@ -888,7 +888,7 @@ impl IconButton
 
     // Creates an icon button with optional command identifier and interaction flags.
     #[Swag.Discardable]
-    func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = {}, id: WndId? = null, flags = IconButtonFlags.None)->*IconButton
+    func create(parent: *Wnd, icon: Icon, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags = IconButtonFlags.None)->*IconButton
     {
         Swag.assert(parent != null)
         var pos = position
@@ -982,9 +982,9 @@ impl IconButton
         let anchorHeight = metrics.frameWnd_AnchorHeight
         let sdw          = metrics.frameWnd_SmallShadowSize
 
-        let ptTop        = topView.surfaceToLocal({pos.x, pos.y})
-        let ptBottom     = topView.surfaceToLocal({pos.x, pos.bottom()})
-        let anchorCenter = topView.surfaceToLocal({pos.horzCenter(), pos.y}).x
+        let ptTop        = topView.surfaceToLocal(Math.Point{pos.x, pos.y})
+        let ptBottom     = topView.surfaceToLocal(Math.Point{pos.x, pos.bottom()})
+        let anchorCenter = topView.surfaceToLocal(Math.Point{pos.horzCenter(), pos.y}).x
 
         var anchor = FrameWndAnchor.Top
         var x      = ptBottom.x
@@ -1006,7 +1006,7 @@ impl IconButton
             y = topView.position.height - height - sdw.w
         y = Math.max(y, sdw.y)
 
-        with let frame = Wnd.create'FrameWnd(topView, {x, y, width, height})
+        with let frame = Wnd.create'FrameWnd(topView, Math.Rectangle{x, y, width, height})
         {
             .owner = me
             .setFrameForm(.themeColors().activeRail.a ? .Square : .Round)

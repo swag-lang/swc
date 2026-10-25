@@ -47,7 +47,7 @@ struct DepBorrowPair
 
 func depBorrowMakePair(first, second: *s32)->DepBorrowPair
 {
-    return {first, second}
+    return DepBorrowPair{first, second}
 }
 
 // Pair summary: the item is stored into storage reachable from 'me'.

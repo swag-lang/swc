@@ -48,7 +48,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
             let click = Atomic.get(&header.click)
             if click != Atomic.get(&header.clicked)
             {
-                host.click({cast(f32, header.clickX), cast(f32, header.clickY)})
+                host.click(Math.Point{cast(f32, header.clickX), cast(f32, header.clickY)})
                 Atomic.exchange(&header.clicked, click)
             }
 

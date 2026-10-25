@@ -384,7 +384,7 @@ private func indexRuns(walker: *Walker, info: const *StreamInfo)->u64 fail
                 {
                     if run.bytes > Swag.U32.Max or frames > Swag.U32.Max do
                         fail InvalidFormatError{"Ogg page run is larger than a packet may be"}
-                    walker.packets.add({run.start, cast(u32, run.bytes), cast(u32, frames)})
+                    walker.packets.add(SoundPacket{run.start, cast(u32, run.bytes), cast(u32, frames)})
                     total += frames
                 }
 

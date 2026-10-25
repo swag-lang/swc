@@ -15,8 +15,8 @@ struct Holder
 }
 
 const CReg: [?] Holder = [
-    {MyStruct,    10},
-    {OtherStruct, 20}]
+    Holder{MyStruct, 10},
+    Holder{OtherStruct, 20}]
 
 #test
 {
@@ -29,8 +29,8 @@ const CReg: [?] Holder = [
 #test
 {
     // Runtime struct literal, positional and named
-    var h1: Holder = {MyStruct, 1}
-    var h2: Holder = {t: OtherStruct, tag: 2}
+    var h1: Holder = Holder{MyStruct, 1}
+    var h2: Holder = Holder{t: OtherStruct, tag: 2}
     Swag.assert(h1.t == MyStruct)
     Swag.assert(h1.tag == 1)
     Swag.assert(h2.t == OtherStruct)
@@ -50,8 +50,8 @@ const CReg: [?] Holder = [
 {
     // Runtime array of structs with a typeinfo field
     var reg: [2] Holder = [
-        {MyStruct,    10},
-        {OtherStruct, 20}]
+        Holder{MyStruct, 10},
+        Holder{OtherStruct, 20}]
     Swag.assert(reg[0].t == MyStruct)
     Swag.assert(reg[1].t == OtherStruct)
     Swag.assert(reg[0].tag == 10)
@@ -61,7 +61,7 @@ const CReg: [?] Holder = [
 {
     // A typeinfo variable mixed with real values in the same literal
     let t: typeinfo = MyStruct
-    var h: Holder   = {t, 3}
+    var h: Holder   = Holder{t, 3}
     Swag.assert(h.t == MyStruct)
     Swag.assert(h.tag == 3)
 

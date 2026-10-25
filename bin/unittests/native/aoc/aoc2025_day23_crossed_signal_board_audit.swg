@@ -184,7 +184,7 @@ func suspectsMatch(audit: BoardAudit, expected: const [..] string)->bool
 
 func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)->BoardAudit
 {
-    var result:        BoardAudit        = {outputValue: 0, suspectCount: 0, suspects: ""}
+    var result:        BoardAudit        = BoardAudit{outputValue: 0, suspectCount: 0, suspects: ""}
     var wireNames:     [MaxWires] string = ""
     var wireKnown:     [MaxWires] bool
     var wireValues:    [MaxWires] u8
@@ -285,56 +285,56 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 {
     const sampleInputs: [10] WireValue =
         [
-        {name: "x00", value: 1},
-        {name: "x01", value: 0},
-        {name: "x02", value: 1},
-        {name: "x03", value: 1},
-        {name: "x04", value: 0},
-        {name: "y00", value: 1},
-        {name: "y01", value: 1},
-        {name: "y02", value: 1},
-        {name: "y03", value: 1},
-        {name: "y04", value: 1}
+        WireValue{name: "x00", value: 1},
+        WireValue{name: "x01", value: 0},
+        WireValue{name: "x02", value: 1},
+        WireValue{name: "x03", value: 1},
+        WireValue{name: "x04", value: 0},
+        WireValue{name: "y00", value: 1},
+        WireValue{name: "y01", value: 1},
+        WireValue{name: "y02", value: 1},
+        WireValue{name: "y03", value: 1},
+        WireValue{name: "y04", value: 1}
         ]
 
     const sampleGates: [36] LogicGate =
         [
-        {left: "ntg", op: GateOp.Xor, right: "fgs", output: "mjb"},
-        {left: "y02", op: GateOp.Or,  right: "x01", output: "tnw"},
-        {left: "kwq", op: GateOp.Or,  right: "kpj", output: "z05"},
-        {left: "x00", op: GateOp.Or,  right: "x03", output: "fst"},
-        {left: "tgd", op: GateOp.Xor, right: "rvg", output: "z01"},
-        {left: "vdt", op: GateOp.Or,  right: "tnw", output: "bfw"},
-        {left: "bfw", op: GateOp.And, right: "frj", output: "z10"},
-        {left: "ffh", op: GateOp.Or,  right: "nrd", output: "bqk"},
-        {left: "y00", op: GateOp.And, right: "y03", output: "djm"},
-        {left: "y03", op: GateOp.Or,  right: "y00", output: "psh"},
-        {left: "bqk", op: GateOp.Or,  right: "frj", output: "z08"},
-        {left: "tnw", op: GateOp.Or,  right: "fst", output: "frj"},
-        {left: "gnj", op: GateOp.And, right: "tgd", output: "z11"},
-        {left: "bfw", op: GateOp.Xor, right: "mjb", output: "z00"},
-        {left: "x03", op: GateOp.Or,  right: "x00", output: "vdt"},
-        {left: "gnj", op: GateOp.And, right: "wpb", output: "z02"},
-        {left: "x04", op: GateOp.And, right: "y00", output: "kjc"},
-        {left: "djm", op: GateOp.Or,  right: "pbm", output: "qhw"},
-        {left: "nrd", op: GateOp.And, right: "vdt", output: "hwm"},
-        {left: "kjc", op: GateOp.And, right: "fst", output: "rvg"},
-        {left: "y04", op: GateOp.Or,  right: "y02", output: "fgs"},
-        {left: "y01", op: GateOp.And, right: "x02", output: "pbm"},
-        {left: "ntg", op: GateOp.Or,  right: "kjc", output: "kwq"},
-        {left: "psh", op: GateOp.Xor, right: "fgs", output: "tgd"},
-        {left: "qhw", op: GateOp.Xor, right: "tgd", output: "z09"},
-        {left: "pbm", op: GateOp.Or,  right: "djm", output: "kpj"},
-        {left: "x03", op: GateOp.Xor, right: "y03", output: "ffh"},
-        {left: "x00", op: GateOp.Xor, right: "y04", output: "ntg"},
-        {left: "bfw", op: GateOp.Or,  right: "bqk", output: "z06"},
-        {left: "nrd", op: GateOp.Xor, right: "fgs", output: "wpb"},
-        {left: "frj", op: GateOp.Xor, right: "qhw", output: "z04"},
-        {left: "bqk", op: GateOp.Or,  right: "frj", output: "z07"},
-        {left: "y03", op: GateOp.Or,  right: "x01", output: "nrd"},
-        {left: "hwm", op: GateOp.And, right: "bqk", output: "z03"},
-        {left: "tgd", op: GateOp.Xor, right: "rvg", output: "z12"},
-        {left: "tnw", op: GateOp.Or,  right: "pbm", output: "gnj"}
+        LogicGate{left: "ntg", op: GateOp.Xor, right: "fgs", output: "mjb"},
+        LogicGate{left: "y02", op: GateOp.Or, right: "x01", output: "tnw"},
+        LogicGate{left: "kwq", op: GateOp.Or, right: "kpj", output: "z05"},
+        LogicGate{left: "x00", op: GateOp.Or, right: "x03", output: "fst"},
+        LogicGate{left: "tgd", op: GateOp.Xor, right: "rvg", output: "z01"},
+        LogicGate{left: "vdt", op: GateOp.Or, right: "tnw", output: "bfw"},
+        LogicGate{left: "bfw", op: GateOp.And, right: "frj", output: "z10"},
+        LogicGate{left: "ffh", op: GateOp.Or, right: "nrd", output: "bqk"},
+        LogicGate{left: "y00", op: GateOp.And, right: "y03", output: "djm"},
+        LogicGate{left: "y03", op: GateOp.Or, right: "y00", output: "psh"},
+        LogicGate{left: "bqk", op: GateOp.Or, right: "frj", output: "z08"},
+        LogicGate{left: "tnw", op: GateOp.Or, right: "fst", output: "frj"},
+        LogicGate{left: "gnj", op: GateOp.And, right: "tgd", output: "z11"},
+        LogicGate{left: "bfw", op: GateOp.Xor, right: "mjb", output: "z00"},
+        LogicGate{left: "x03", op: GateOp.Or, right: "x00", output: "vdt"},
+        LogicGate{left: "gnj", op: GateOp.And, right: "wpb", output: "z02"},
+        LogicGate{left: "x04", op: GateOp.And, right: "y00", output: "kjc"},
+        LogicGate{left: "djm", op: GateOp.Or, right: "pbm", output: "qhw"},
+        LogicGate{left: "nrd", op: GateOp.And, right: "vdt", output: "hwm"},
+        LogicGate{left: "kjc", op: GateOp.And, right: "fst", output: "rvg"},
+        LogicGate{left: "y04", op: GateOp.Or, right: "y02", output: "fgs"},
+        LogicGate{left: "y01", op: GateOp.And, right: "x02", output: "pbm"},
+        LogicGate{left: "ntg", op: GateOp.Or, right: "kjc", output: "kwq"},
+        LogicGate{left: "psh", op: GateOp.Xor, right: "fgs", output: "tgd"},
+        LogicGate{left: "qhw", op: GateOp.Xor, right: "tgd", output: "z09"},
+        LogicGate{left: "pbm", op: GateOp.Or, right: "djm", output: "kpj"},
+        LogicGate{left: "x03", op: GateOp.Xor, right: "y03", output: "ffh"},
+        LogicGate{left: "x00", op: GateOp.Xor, right: "y04", output: "ntg"},
+        LogicGate{left: "bfw", op: GateOp.Or, right: "bqk", output: "z06"},
+        LogicGate{left: "nrd", op: GateOp.Xor, right: "fgs", output: "wpb"},
+        LogicGate{left: "frj", op: GateOp.Xor, right: "qhw", output: "z04"},
+        LogicGate{left: "bqk", op: GateOp.Or, right: "frj", output: "z07"},
+        LogicGate{left: "y03", op: GateOp.Or, right: "x01", output: "nrd"},
+        LogicGate{left: "hwm", op: GateOp.And, right: "bqk", output: "z03"},
+        LogicGate{left: "tgd", op: GateOp.Xor, right: "rvg", output: "z12"},
+        LogicGate{left: "tnw", op: GateOp.Or, right: "pbm", output: "gnj"}
         ]
 
     let sampleAudit = auditBoard(sampleInputs, sampleGates)
@@ -343,28 +343,28 @@ func auditBoard(initialWires: const [..] WireValue, gates: const [..] LogicGate)
 
     const swappedInputs: [6] WireValue =
         [
-        {name: "x00", value: 1},
-        {name: "x01", value: 0},
-        {name: "x02", value: 1},
-        {name: "y00", value: 1},
-        {name: "y01", value: 1},
-        {name: "y02", value: 0}
+        WireValue{name: "x00", value: 1},
+        WireValue{name: "x01", value: 0},
+        WireValue{name: "x02", value: 1},
+        WireValue{name: "y00", value: 1},
+        WireValue{name: "y01", value: 1},
+        WireValue{name: "y02", value: 0}
         ]
 
     const swappedAdder: [12] LogicGate =
         [
-        {left: "x00", op: GateOp.Xor, right: "y00", output: "z00"},
-        {left: "x00", op: GateOp.And, right: "y00", output: "c01"},
-        {left: "x01", op: GateOp.Xor, right: "y01", output: "s01"},
-        {left: "x01", op: GateOp.And, right: "y01", output: "z01"},
-        {left: "s01", op: GateOp.Xor, right: "c01", output: "a01"},
-        {left: "s01", op: GateOp.And, right: "c01", output: "t01"},
-        {left: "t01", op: GateOp.Or,  right: "z01", output: "c02"},
-        {left: "x02", op: GateOp.Xor, right: "y02", output: "s02"},
-        {left: "x02", op: GateOp.And, right: "y02", output: "a02"},
-        {left: "s02", op: GateOp.Xor, right: "c02", output: "z02"},
-        {left: "s02", op: GateOp.And, right: "c02", output: "t02"},
-        {left: "t02", op: GateOp.Or,  right: "a02", output: "z03"}
+        LogicGate{left: "x00", op: GateOp.Xor, right: "y00", output: "z00"},
+        LogicGate{left: "x00", op: GateOp.And, right: "y00", output: "c01"},
+        LogicGate{left: "x01", op: GateOp.Xor, right: "y01", output: "s01"},
+        LogicGate{left: "x01", op: GateOp.And, right: "y01", output: "z01"},
+        LogicGate{left: "s01", op: GateOp.Xor, right: "c01", output: "a01"},
+        LogicGate{left: "s01", op: GateOp.And, right: "c01", output: "t01"},
+        LogicGate{left: "t01", op: GateOp.Or, right: "z01", output: "c02"},
+        LogicGate{left: "x02", op: GateOp.Xor, right: "y02", output: "s02"},
+        LogicGate{left: "x02", op: GateOp.And, right: "y02", output: "a02"},
+        LogicGate{left: "s02", op: GateOp.Xor, right: "c02", output: "z02"},
+        LogicGate{left: "s02", op: GateOp.And, right: "c02", output: "t02"},
+        LogicGate{left: "t02", op: GateOp.Or, right: "a02", output: "z03"}
         ]
 
     let swappedAudit = auditBoard(swappedInputs, swappedAdder)

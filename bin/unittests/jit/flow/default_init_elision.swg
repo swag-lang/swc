@@ -160,7 +160,7 @@ func defaultPair()->{ x: s32, y: s32 }
 {
     var a: s32
     var b: s32
-    {a, b} = defaultPair()
+    {x: a, y: b} = defaultPair()
     Swag.assert(a == 1 and b == 2)
 }
 

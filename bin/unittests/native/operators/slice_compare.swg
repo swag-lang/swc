@@ -85,8 +85,8 @@ var g_pairs: [2] [3] Pair
 // A slice of structs compares whole elements, trailing field included.
 #test
 {
-    g_pairs[0] = [{1, 2}, {3, 4}, {5, 6}]
-    g_pairs[1] = [{1, 2}, {3, 4}, {5, 7}]
+    g_pairs[0] = [Pair{1, 2}, Pair{3, 4}, Pair{5, 6}]
+    g_pairs[1] = [Pair{1, 2}, Pair{3, 4}, Pair{5, 7}]
 
     Swag.assert(eqPairs(g_pairs[0][0 to 1], g_pairs[1][0 to 1]))
     Swag.assert(not eqPairs(g_pairs[0][0 to 2], g_pairs[1][0 to 2]))

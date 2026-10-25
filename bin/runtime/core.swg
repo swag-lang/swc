@@ -443,15 +443,17 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
             return true
     }
 
-    // For tuples, we compare field by field
-    if type1.flags & .Tuple
+    // Tuples and records compare their reflected layouts field by field.
+    if type1.flags & (.Tuple | .Record)
     {
         let type1S  = cast(const *TypeInfoStruct, cast(const *void, type1))
         let type2S  = cast(const *TypeInfoStruct, cast(const *void, type2))
         let fields1 = type1S.fields
         let fields2 = type2S.fields
+        if fields1.count != fields2.count do
+            return false
         if fields1 == null or fields2 == null do
-            return fields1.count == fields2.count
+            return true
 
         for i in fields1.count
         {

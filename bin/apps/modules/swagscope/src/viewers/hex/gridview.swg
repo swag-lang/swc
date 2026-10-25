@@ -386,11 +386,11 @@ impl GridView
         if firstRow == lastRow
         {
             let column = first % .bytesPerRow
-            local = {.textCellX(column) - .scrollPos.x, .rowTop(firstRow), cast(f32, last - first + 1) * .charWidth, .rowHeight}
+            local = Math.Rectangle{.textCellX(column) - .scrollPos.x, .rowTop(firstRow), cast(f32, last - first + 1) * .charWidth, .rowHeight}
         }
         else
         {
-            local = {.textColumnLeft() - .scrollPos.x, .rowTop(firstRow), cast(f32, .bytesPerRow) * .charWidth,
+            local = Math.Rectangle{.textColumnLeft() - .scrollPos.x, .rowTop(firstRow), cast(f32, .bytesPerRow) * .charWidth,
                      cast(f32, lastRow - firstRow + 1) * .rowHeight}
         }
 
@@ -1327,7 +1327,7 @@ impl GridView
     // Creates an empty grid inside a scroll frame.
     func create(parent: *Wnd)->*GridView
     {
-        let scroll = Wnd.create'ScrollWnd(parent, "", {})
+        let scroll = Wnd.create'ScrollWnd(parent, "", Math.Rectangle{})
         scroll.dockStyle = .Center
 
         with let result = scroll.createView'GridView()

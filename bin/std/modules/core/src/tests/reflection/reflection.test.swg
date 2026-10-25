@@ -125,7 +125,7 @@ func runtimeMethodReflectionWorks(type: typeinfo, seed: s32)->bool
        Reflection.findMethod(type, "visitMacro") != null do
         return false
 
-    var probe: ReflectionProbe = {x: seed}
+    var probe: ReflectionProbe = ReflectionProbe{x: seed}
     let ping   = cast(ReflectionProbePingFn, method.value)
     let result = ping(&probe)
     ReflectionRuntimePointerCalls += 1

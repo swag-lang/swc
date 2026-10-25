@@ -17,7 +17,7 @@ internal impl Properties
             width = .listContentWidthFromUseful(width)
         }
 
-        let line = Wnd.create'Wnd(item.line, {0, 0, width, .themeMetrics().editBox_Height})
+        let line = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, width, .themeMetrics().editBox_Height})
         if not .isGridLike() do
             line.maxSize.x = width
 
@@ -34,13 +34,13 @@ internal impl Properties
             let dataField   = cast(*f32, (data + v.offset)!)
             let fieldOffset = cast(u64, v.offset)
 
-            with let label = Label.create(line, v.name![0 to 0], {0, 0, item.line.position.height})
+            with let label = Label.create(line, v.name![0 to 0], Math.Rectangle{0, 0, item.line.position.height})
             {
                 .dockStyle = .Left
                 .setTextHorizontalAlignment(.Center)
             }
 
-            with let ed = EditBox.create(line, "", {0, 0, item.line.position.height * 2})
+            with let ed = EditBox.create(line, "", Math.Rectangle{0, 0, item.line.position.height * 2})
             {
                 .dockStyle = .Left
                 .setFloatingPointRange()

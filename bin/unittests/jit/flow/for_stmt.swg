@@ -138,8 +138,8 @@ impl StringRefIndexBox
         return acc
     }
 
-    const V0 = #run structCountLoop({4})
-    const V1 = #run structCountLoop({0})
+    const V0 = #run structCountLoop(CountedLoop{4})
+    const V1 = #run structCountLoop(CountedLoop{0})
     #assert(V0 == 4)
     #assert(V1 == 0)
 }

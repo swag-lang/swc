@@ -6,22 +6,24 @@ SWC_BEGIN_NAMESPACE();
 
 bool Parser::isDestructuringAssignmentAhead() const
 {
-    SWC_ASSERT(is(TokenId::SymLeftCurly));
+    SWC_ASSERT(is(TokenId::SymLeftCurly) || is(TokenId::SymLeftParen));
+    const TokenId openId  = id();
+    const TokenId closeId = openId == TokenId::SymLeftCurly ? TokenId::SymRightCurly : TokenId::SymRightParen;
 
     const Token* cursor = tokPtr();
     uint32_t     depth  = 0;
+    bool         comma  = false;
     while (cursor <= lastToken_)
     {
-        if (cursor->id == TokenId::SymLeftCurly)
+        if (cursor->isAny({TokenId::SymLeftCurly, TokenId::SymLeftParen, TokenId::SymLeftBracket}))
             depth++;
-        else if (cursor->id == TokenId::SymRightCurly)
+        else if (cursor->isAny({TokenId::SymRightCurly, TokenId::SymRightParen, TokenId::SymRightBracket}))
         {
-            SWC_ASSERT(depth);
-            depth--;
-            if (depth == 0)
-                return cursor < lastToken_ && (cursor + 1)->id == TokenId::SymEqual;
+            if (--depth == 0)
+                return cursor->id == closeId && (openId == TokenId::SymLeftCurly || comma) && cursor < lastToken_ && (cursor + 1)->id == TokenId::SymEqual;
         }
-
+        else if (depth == 1 && cursor->id == TokenId::SymComma)
+            comma = true;
         cursor++;
     }
 
@@ -894,41 +896,8 @@ AstNodeRef Parser::parseAssignStmt()
     AstNodeRef nodeLeft;
 
     // Destructuring assignment
-    if (is(TokenId::SymLeftCurly))
-    {
-        const TokenRef openRef = consume();
-
-        const auto [listRef, listPtr] = ast_->makeNode<AstNodeId::AssignList>(ref());
-        listPtr->addFlag(AstAssignListFlagsE::Destructuring);
-
-        SmallVector<AstNodeRef> affects;
-        SmallVector<TokenRef>   fieldNames;
-        bool                    hasNamed      = false;
-        bool                    hasPositional = false;
-        bool                    reportedMixed = false;
-        do
-        {
-            const TokenRef itemRef = ref();
-            parseDestructuringFieldName(fieldNames, hasNamed, hasPositional);
-            const TokenRef ignoreRef = consumeIf(TokenId::KwdUnnamed);
-            if (ignoreRef.isValid())
-            {
-                const auto [ignoreNodeRef, _] = ast_->makeNode<AstNodeId::AssignIgnore>(ignoreRef);
-                affects.push_back(ignoreNodeRef);
-            }
-            else
-                affects.push_back(parseExpression());
-
-            reportMixedDestructuring(itemRef, hasNamed, hasPositional, reportedMixed);
-        } while (consumeIf(TokenId::SymComma).isValid());
-
-        expectAndConsumeClosing(TokenId::SymRightCurly, openRef);
-        listPtr->spanChildrenRef   = ast_->pushSpan(affects.span());
-        listPtr->spanFieldNamesRef = ast_->pushSpan(fieldNames.span());
-        if (hasNamed && !hasPositional)
-            listPtr->addFlag(AstAssignListFlagsE::NamedDestructuring);
-        nodeLeft = listRef;
-    }
+    if (is(TokenId::SymLeftCurly) || (is(TokenId::SymLeftParen) && isDestructuringAssignmentAhead()))
+        nodeLeft = parseDestructuringPattern(false);
     else
     {
         // Simple affectation
@@ -1227,7 +1196,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
         case TokenId::KwdGlobal:
         {
             AstNodeRef nodeRef;
-            if (nextIs(TokenId::SymLeftCurly))
+            if (nextIs(TokenId::SymLeftCurly) || nextIs(TokenId::SymLeftParen))
                 nodeRef = parseVarDeclDecomposition();
             else
                 nodeRef = parseVarDecl();

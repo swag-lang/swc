@@ -20,7 +20,7 @@ impl Decoder
         .table.nentries = (1 << keySize) + 2
         .table.entries.resize(.table.bulk)
         for key in 1 << keySize do
-            .table.entries[key] = {1, 0xFFF, cast(u8, key)}
+            .table.entries[key] = Entry{1, 0xFFF, cast(u8, key)}
     }
 
     mtd getKey(keySize: s32, subLen, shift, byte: *u8)->u16 fail

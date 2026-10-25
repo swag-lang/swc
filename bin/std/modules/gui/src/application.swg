@@ -516,7 +516,7 @@ private impl Application
             if it is CommandEvent do
                 needUpdateState = true
 
-            .toDelete.add({it.buffer, Swag.kindOf(it)})
+            .toDelete.add({ptr: it.buffer, type: Swag.kindOf(it)})
         }
 
         if needUpdateState do
@@ -551,7 +551,7 @@ private impl Application
             .endModal = true
 
         surface.destroyNative()
-        .toDelete.add({surface, #typeof(surface[])})
+        .toDelete.add({ptr: surface, type: #typeof(surface[])})
     }
 
     mtd unregisterWnd(wnd: *Wnd)
@@ -879,7 +879,7 @@ internal impl Application
 
     mtd dispatchHotKey(modifiers: Input.KeyModifiers, key: Input.Key)
     {
-        let {id, target} = .hotKeyShortcut(modifiers, key)
+        let {id, wnd: target} = .hotKeyShortcut(modifiers, key)
         if id and target do
             target.sendCommandEvent(id)
     }
@@ -918,7 +918,7 @@ impl Application
         .sendDestroyEvents()
 
         for it in .postedEvents do
-            .toDelete.add({it.buffer, Swag.kindOf(it)})
+            .toDelete.add({ptr: it.buffer, type: Swag.kindOf(it)})
 
         .deletePointers()
         if .appIconLoaded
@@ -1432,7 +1432,7 @@ impl Application
 
         if wnd.isAllocated
         {
-            .toDelete.add({wnd.itf.buffer, Swag.kindOf(wnd.itf)})
+            .toDelete.add({ptr: wnd.itf.buffer, type: Swag.kindOf(wnd.itf)})
         }
     }
 
@@ -1681,7 +1681,7 @@ impl Application
             }
         }
 
-        .hotKeys.add({modifiers, key, wndId, target})
+        .hotKeys.add(KeyShortcut{modifiers, key, wndId, target})
         if not .hotKeysDisabled do
             try registerNativeHotKey(modifiers, key)
     }
@@ -1720,10 +1720,10 @@ impl Application
         for c in .hotKeys
         {
             if c.modifiers == modifiers and c.key == key do
-                return {c.id, c.target}
+                return {id: c.id, wnd: c.target}
         }
 
-        return {null, null}
+        return {id: null, wnd: null}
     }
 
     internal mtd hotKeyShortcutName(wndId: WndId)->String

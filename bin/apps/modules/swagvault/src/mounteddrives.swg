@@ -128,7 +128,7 @@ impl MountedDrives
         // An empty table is a card with a heading and nothing under it, which reads as a table
         // that failed to load. One quiet line says the truth instead, and steps aside the
         // moment there is a row to show.
-        with let empty = Label.create(card.body, appStrings().ui_NoDriveMounted, {}, null, .SecondaryText)
+        with let empty = Label.create(card.body, appStrings().ui_NoDriveMounted, Math.Rectangle{}, null, .SecondaryText)
         {
             .layoutSpec.policyY = .Expand
             .setTextAlignment(.Center, .Center)

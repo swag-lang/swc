@@ -8,14 +8,14 @@ using Core
 func parseImageTag(text: string)->{ alt: string, source: string, eat: u64 }
 {
     if not Utf8.startsWith(text, "<img>") do
-        return {"", "", 0}
+        return {alt: "", source: "", eat: 0}
     let altEnd = Utf8.indexOf(text, "</img><src>", 5)
     if altEnd == Swag.U64.Max do
-        return {"", "", 0}
+        return {alt: "", source: "", eat: 0}
     let sourceEnd = Utf8.indexOf(text, "</src>", altEnd + 11)
     if sourceEnd == Swag.U64.Max do
-        return {"", "", 0}
-    return {text[5 until altEnd], text[altEnd + 11 until sourceEnd], sourceEnd + 6}
+        return {alt: "", source: "", eat: 0}
+    return {alt: text[5 until altEnd], source: text[altEnd + 11 until sourceEnd], eat: sourceEnd + 6}
 }
 
 func decodeEntity(source: string, start: u64)->{ value: String, eat: u64 }

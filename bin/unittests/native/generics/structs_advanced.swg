@@ -127,7 +127,7 @@ impl Matrix
 // Non-generic struct with many generic instantiations
 #test
 {
-    let mb: MultiBox = {
+    let mb: MultiBox = MultiBox{
         intBox: {value: 1},
         floatBox: {value: 2.5},
         boolBox: {value: true},

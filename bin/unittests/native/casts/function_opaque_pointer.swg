@@ -17,7 +17,7 @@ struct CallbackAddress
 }
 
 #[Swag.NoInline]
-func wrappedFunctionAddress()->CallbackAddress => {cast(const *void, &increment)}
+func wrappedFunctionAddress()->CallbackAddress => CallbackAddress{cast(const *void, &increment)}
 
 #[Swag.NoInline]
 func invokeDeferred(value: *u32)

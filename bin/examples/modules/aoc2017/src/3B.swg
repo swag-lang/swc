@@ -26,14 +26,14 @@ func day3B()
     const D = 312051
 
     var arr: HashTable'({ x, y: s32 }, s32)
-    arr[{0, 0}] = 1
+    arr[{x: 0, y: 0}] = 1
 
     func sum(x, y: s32, a: #decltype(arr))->s32
     {
         var s: s32
         for dx in -1 to 1 do
             for dy in -1 to 1 do
-                s += a.getOrDefault({x + dx, y + dy}, 0)
+                s += a.getOrDefault({x: x + dx, y: y + dy}, 0)
         return s
     }
 
@@ -42,7 +42,7 @@ func day3B()
 
     for
     {
-        const O = [{dl: 1, dx: 1, dy: 0}, {0, 0, -1}, {1, -1, 0}, {0, 0, 1}]
+        const O = [{dl: 1, dx: 1, dy: 0}, {dl: 0, dx: 0, dy: -1}, {dl: 1, dx: -1, dy: 0}, {dl: 0, dx: 0, dy: 1}]
         for v in O
         {
             l += v.dl

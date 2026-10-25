@@ -12,7 +12,7 @@ struct Named
     name: string
 }
 
-const Folded: Named = {name: Text}
+const Folded: Named = Named{name: Text}
 
 #assert(Text == "ABC")
 #assert(cast(string, Slice) == "DE")

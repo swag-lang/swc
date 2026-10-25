@@ -60,7 +60,7 @@ private impl BitReader
 
         let packed14 = bigEndian14 or littleEndian14
         let bitSize  = packed14 ? (packet.count / 2) * 14 : packet.count * 8
-        return {packet.buffer, bitSize, 0, littleEndian16 or littleEndian14, packed14}
+        return BitReader{packet.buffer, bitSize, 0, littleEndian16 or littleEndian14, packed14}
     }
 
     mtd read(count: u32)->u32
@@ -213,7 +213,7 @@ internal func frameInfo(packet: const [..] u8)->FrameInfo fail
 {
     var reader = try BitReader.create(packet)
     let header = try parseFrameHeader(&reader)
-    return {header.frameBytes, header.sampleRate, header.channels, header.frames, speakerMask(header.mode, header.lfe)}
+    return FrameInfo{header.frameBytes, header.sampleRate, header.channels, header.frames, speakerMask(header.mode, header.lfe)}
 }
 
 internal func packetFrameCount(packet: const [..] u8)->u32 fail => (try frameInfo(packet)).frames

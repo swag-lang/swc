@@ -68,7 +68,7 @@ impl Flow
         .newLine()
         .y += SectionTop
 
-        let label = Label.create(.view, title, {WallPadding, .y, .width, SectionHigh})
+        let label = Label.create(.view, title, Math.Rectangle{WallPadding, .y, .width, SectionHigh})
         label.setTextAlignment(.Left, .Center)
         label.style.setFont(app.theme.createDefaultFont(16, .Bold), .Regular)
 
@@ -107,7 +107,7 @@ impl WidgetWall
 {
     func create(parent: *Wnd)->*WidgetWall
     {
-        let result = Wnd.create'WidgetWall(parent, {})
+        let result = Wnd.create'WidgetWall(parent, Math.Rectangle{})
         result.setFrameForm(.Square)
         result.setFrameFlags(.Borders)
         result.view = result.createView'Wnd()
@@ -426,7 +426,7 @@ private func showAboutDialog(_: *Button)
         surfaceTitle: "About GUI10",
         contentTitle: "Theme inspector",
         message: "The reference surface for every palette and standard widget.",
-        surfaceIcon: {},
+        surfaceIcon: Icon{},
         contentIcon: app.theme.icon(.About, 64)}
     discard AboutDlg.create(g_Surface!, params).doModal()
 }

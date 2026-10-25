@@ -164,19 +164,19 @@ func day4BWithRegexRules()
     var rulesByField: HashTable'(string, Day4Rule)
     var rule:         Day4Rule
 
-    rule = {expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1}
+    rule = Day4Rule{expect Parser.RegExp.create("19[2-9][0-9]|200[0-2]"), 1}
     rulesByField.add("byr", #move rule)
-    rule = {expect Parser.RegExp.create("201[0-9]|2020"), 2}
+    rule = Day4Rule{expect Parser.RegExp.create("201[0-9]|2020"), 2}
     rulesByField.add("iyr", #move rule)
-    rule = {expect Parser.RegExp.create("202[0-9]|2030"), 4}
+    rule = Day4Rule{expect Parser.RegExp.create("202[0-9]|2030"), 4}
     rulesByField.add("eyr", #move rule)
-    rule = {expect Parser.RegExp.create("((1[5678][0-9])|(19[0-3]))cm|(59|6[0-9]|7[0-6])in"), 8}
+    rule = Day4Rule{expect Parser.RegExp.create("((1[5678][0-9])|(19[0-3]))cm|(59|6[0-9]|7[0-6])in"), 8}
     rulesByField.add("hgt", #move rule)
-    rule = {expect Parser.RegExp.create("#([a-f0-9]){6}"), 16}
+    rule = Day4Rule{expect Parser.RegExp.create("#([a-f0-9]){6}"), 16}
     rulesByField.add("hcl", #move rule)
-    rule = {expect Parser.RegExp.create("amb|blu|brn|gry|grn|hzl|oth"), 32}
+    rule = Day4Rule{expect Parser.RegExp.create("amb|blu|brn|gry|grn|hzl|oth"), 32}
     rulesByField.add("ecl", #move rule)
-    rule = {expect Parser.RegExp.create("[0-9]{9}"), 64}
+    rule = Day4Rule{expect Parser.RegExp.create("[0-9]{9}"), 64}
     rulesByField.add("pid", #move rule)
 
     var validPassportCount, validFields: u32

@@ -60,7 +60,7 @@ func createHelpText(parent: *Wnd, text: string, rect: Math.Rectangle)->*Label
 
 func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
-    let label = createText(parent, text, {x, y, width, 24})
+    let label = createText(parent, text, Math.Rectangle{x, y, width, 24})
     label.updateFlags(.SecondaryText)
 }
 
@@ -71,8 +71,8 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
     frame.setFrameFlags(.Borders)
 
     let view = frame.createView'Wnd()
-    discard createText(view, title, {16, 10, rect.width - 32, 24})
-    discard createHelpText(view, subtitle, {16, 36, rect.width - 32, 42})
+    discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
+    discard createHelpText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 42})
     return view
 }
 
@@ -87,16 +87,16 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
     var result: retval
-    result.left   = {0, 0, halfWidth, topHeight}
-    result.right  = {halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
-    result.bottom = {0, bottomY, width, bottomHeight}
+    result.left   = (0, 0, halfWidth, topHeight)
+    result.right  = (halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight)
+    result.bottom = (0, bottomY, width, bottomHeight)
     return result
 }
 
 func getFullPageRect(parent: *Wnd)->Math.Rectangle
 {
     let rect = parent.clientRect()
-    return {0, 0, Math.max(rect.width, 1.0), Math.max(rect.height, 1.0)}
+    return Math.Rectangle{0, 0, Math.max(rect.width, 1.0), Math.max(rect.height, 1.0)}
 }
 
 func pageTitle(page: s32)->string
@@ -247,11 +247,11 @@ func layoutRootView()
     let themeButton = g_ThemeButton!
     let subTitle    = g_SubTitle!
     let footer      = g_Footer!
-    title.setPosition({RootMargin, 18, titleWidth, 34})
-    themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    subTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
-    pageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
-    footer.setPosition({RootMargin, footerY, contentWidth, 28})
+    title.setPosition(Math.Rectangle{RootMargin, 18, titleWidth, 34})
+    themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
+    subTitle.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
+    pageView.setPosition(Math.Rectangle{RootMargin, PageTop, contentWidth, pageHeight})
+    footer.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth, 28})
 }
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
@@ -341,26 +341,26 @@ func createRootView()
     g_View = view
     view.backgroundStyle = .View
 
-    let title = Label.create(view, "", {})
+    let title = Label.create(view, "", Math.Rectangle{})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
-    let themeButton = PushButton.create(view, "", {})
+    let themeButton = PushButton.create(view, "", Math.Rectangle{})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, {})
+    let pageView = Wnd.create'Wnd(view, Math.Rectangle{})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
-    let footer = Label.create(view, "", {})
+    let footer = Label.create(view, "", Math.Rectangle{})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
     footer.updateFlags(.SecondaryText)

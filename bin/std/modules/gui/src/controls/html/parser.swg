@@ -95,7 +95,7 @@ impl HtmlParser
     {
         .document = document
         .stack.clear()
-        .stack.add({0, HtmlTag.Unknown})
+        .stack.add(HtmlOpenElement{0, HtmlTag.Unknown})
         .parseIndex  = 0
         .mode        = mode
         .baseOffset  = 0
@@ -131,7 +131,7 @@ impl HtmlParser
         if .htmlElement != HtmlNoNode
         {
             if not .isOpen(.Html) do
-                .stack.add({.htmlElement, HtmlTag.Html})
+                .stack.add(HtmlOpenElement{.htmlElement, HtmlTag.Html})
             return
         }
 
@@ -147,7 +147,7 @@ impl HtmlParser
         if .headElement != HtmlNoNode
         {
             if not .isOpen(.Head) do
-                .stack.add({.headElement, HtmlTag.Head})
+                .stack.add(HtmlOpenElement{.headElement, HtmlTag.Head})
             return
         }
 
@@ -166,7 +166,7 @@ impl HtmlParser
         if .bodyElement != HtmlNoNode
         {
             if not .isOpen(.Body) do
-                .stack.add({.bodyElement, HtmlTag.Body})
+                .stack.add(HtmlOpenElement{.bodyElement, HtmlTag.Body})
             return
         }
 
@@ -490,7 +490,7 @@ impl HtmlParser
                 index += 1
             }
 
-            attribute.name = {cast(u32, nameStart), cast(u32, (index - nameStart))}
+            attribute.name = HtmlRange{cast(u32, nameStart), cast(u32, (index - nameStart))}
 
             while index < count and Latin1.isSpace(source[index]) do
                 index += 1
@@ -529,7 +529,7 @@ impl HtmlParser
                     closing = next + 1
                 }
 
-                attribute.value = {cast(u32, valueStart), cast(u32, (closing - valueStart))}
+                attribute.value = HtmlRange{cast(u32, valueStart), cast(u32, (closing - valueStart))}
                 index = closing + 1
             }
             else
@@ -542,7 +542,7 @@ impl HtmlParser
                     index += 1
                 }
 
-                attribute.value = {cast(u32, valueStart), cast(u32, (index - valueStart))}
+                attribute.value = HtmlRange{cast(u32, valueStart), cast(u32, (index - valueStart))}
             }
 
             attribute.hasValue = true
@@ -651,7 +651,7 @@ impl HtmlParser
             return
         }
 
-        .stack.add({element, interned})
+        .stack.add(HtmlOpenElement{element, interned})
 
         // The newline immediately following the start tag of these two elements is not content,
         // which is what lets an author put the tag on a line of its own.
@@ -750,7 +750,7 @@ impl HtmlParser
             for attribute in cloneAttributes do
                 .document.addAttribute(clone, attribute.name, attribute.value)
 
-            .stack.add({clone, source.tag})
+            .stack.add(HtmlOpenElement{clone, source.tag})
         }
     }
 

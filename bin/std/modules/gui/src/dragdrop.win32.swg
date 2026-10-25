@@ -355,7 +355,7 @@ private func comDragEnter(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState
     target.allowed = toDropEffect(pdwEffect[])
 
     let surface = target.surface!
-    let effect  = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
+    let effect  = surface.app.dragUpdate(surface, Math.Point{pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     pdwEffect[] = fromDropEffect(effect)
 
     let helper = dropTargetHelper(surface)
@@ -375,7 +375,7 @@ private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwE
     target.allowed = toDropEffect(pdwEffect[])
 
     let surface = target.surface!
-    let effect  = surface.app.dragUpdate(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
+    let effect  = surface.app.dragUpdate(surface, Math.Point{pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     pdwEffect[] = fromDropEffect(effect)
 
     let helper = dropTargetHelper(surface)
@@ -414,7 +414,7 @@ private func comDrop(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState: DWO
     target.allowed = toDropEffect(pdwEffect[])
 
     let surface = target.surface!
-    let effect  = surface.app.dragDrop(surface, {pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
+    let effect  = surface.app.dragDrop(surface, Math.Point{pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     pdwEffect[] = fromDropEffect(effect)
     target.data.clear()
 
@@ -1171,8 +1171,8 @@ private func attachDragImage(dataObj: *IDataObject, image: const *Image)
     {
         .hbmpDragImage = picture.bmp
         .crColorKey    = CLR_NONE
-        .sizeDragImage = {picture.width, picture.height}
-        .ptOffset      = {picture.width / 2, picture.height / 2}
+        .sizeDragImage = SIZEL{picture.width, picture.height}
+        .ptOffset      = POINT{picture.width / 2, picture.height / 2}
     }
 
     // The bitmap is the helper's from here, and only on the path where it took it.

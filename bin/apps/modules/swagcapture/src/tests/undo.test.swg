@@ -102,7 +102,7 @@ using Swag, Core
     defer f.shutdown()
     var u = f.capture.newUndo(.SetImage)
     u.newImg      = Image.create(50, 40, .BGRA8)
-    u.newImagePos = {5, 7}
+    u.newImagePos = Math.Point{5, 7}
     f.capture.pushUndo(u)
     Swag.assert(f.capture.backImg.width == 50)
     Swag.assert(f.capture.backImg.height == 40)
@@ -311,14 +311,14 @@ func testUndoFuzzFormOf(itf: IForm)->UndoFuzzForm
     if result.kind == FormLine
     {
         let line = assume cast(*FormLine, itf)
-        result.points.add({cast(f32, line.xa), cast(f32, line.ya)})
-        result.points.add({cast(f32, line.xb), cast(f32, line.yb)})
+        result.points.add(Math.Vector2{cast(f32, line.xa), cast(f32, line.ya)})
+        result.points.add(Math.Vector2{cast(f32, line.xb), cast(f32, line.yb)})
     }
     elif result.kind == FormArrow
     {
         let arrow = assume cast(*FormArrow, itf)
-        result.points.add({cast(f32, arrow.xa), cast(f32, arrow.ya)})
-        result.points.add({cast(f32, arrow.xb), cast(f32, arrow.yb)})
+        result.points.add(Math.Vector2{cast(f32, arrow.xa), cast(f32, arrow.ya)})
+        result.points.add(Math.Vector2{cast(f32, arrow.xb), cast(f32, arrow.yb)})
     }
     elif result.kind == FormPolygon
     {
@@ -407,9 +407,9 @@ func testUndoFuzzSelect(capture: *Capture, rng: *Random.Generator, count: u32)
     discard testAddStep(f.capture, 200, 40, 30, 30)
 
     var points: Array'Math.Vector2
-    points.add({30, 150})
-    points.add({80, 150})
-    points.add({60, 200})
+    points.add(Math.Vector2{30, 150})
+    points.add(Math.Vector2{80, 150})
+    points.add(Math.Vector2{60, 200})
     discard testAddPolygon(f.capture, points.toSlice())
     discard testAddDraw(f.capture, points.toSlice())
 

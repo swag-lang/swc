@@ -55,7 +55,7 @@ private struct BitReader
 
 private impl BitReader
 {
-    func create(data: const [*] u8, size: u64)->BitReader => {data, size * 8}
+    func create(data: const [*] u8, size: u64)->BitReader => BitReader{data, size * 8}
 
     mtd read(count: u32)->u32
     {
@@ -441,7 +441,7 @@ private struct MantissaReader
 
 private impl MantissaReader
 {
-    func create(reader: *BitReader)->MantissaReader => {reader}
+    func create(reader: *BitReader)->MantissaReader => MantissaReader{reader}
 
     mtd get(bap: s32)->f64
     {

@@ -121,7 +121,7 @@ func isWholeWordMatch(source: string, match, length: u64)->bool
 {
     if match
     {
-        let {c, _} = Utf8.decodeLastRune(source[until match])
+        let {c, eat: _} = Utf8.decodeLastRune(source[until match])
         if Unicode.isWord(c) do
             return false
     }
@@ -129,7 +129,7 @@ func isWholeWordMatch(source: string, match, length: u64)->bool
     let end = match + length
     if end < source.count
     {
-        let {c, _} = Utf8.decodeRune(source[end to])
+        let {c, eat: _} = Utf8.decodeRune(source[end to])
         if Unicode.isWord(c) do
             return false
     }
@@ -166,7 +166,7 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
                 continue
             let found = cast(u64, cast(s64, value.buffer - sourceData))
             if not options.wholeWord or isWholeWordMatch(source, found, value.count) do
-                result.add({major, minor, baseOffset + found, value.count})
+                result.add(SearchMatch{major, minor, baseOffset + found, value.count})
         }
 
         return
@@ -181,7 +181,7 @@ func collectTextMatches(source, query: string, options: SearchOptions, major, mi
             break
 
         if not options.wholeWord or isWholeWordMatch(source, found, query.count) do
-            result.add({major, minor, baseOffset + found, query.count})
+            result.add(SearchMatch{major, minor, baseOffset + found, query.count})
         from = found + Math.max(query.count, 1)
     }
 }

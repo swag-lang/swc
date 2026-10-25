@@ -71,9 +71,9 @@ func buildInvoiceTotals(lines: const [..] InvoiceLine, expeditedShipping: bool)-
 {
     const starterInvoice: [3] InvoiceLine =
         [
-        {sku: "seat-license", quantity: 4, unitPriceCents: 2500, taxable: true},
-        {sku: "onboarding",   quantity: 1, unitPriceCents: 8000, taxable: false},
-        {sku: "backup-addon", quantity: 2, unitPriceCents: 1500, taxable: true}
+        InvoiceLine{sku: "seat-license", quantity: 4, unitPriceCents: 2500, taxable: true},
+        InvoiceLine{sku: "onboarding", quantity: 1, unitPriceCents: 8000, taxable: false},
+        InvoiceLine{sku: "backup-addon", quantity: 2, unitPriceCents: 1500, taxable: true}
         ]
 
     let starterTotals = buildInvoiceTotals(starterInvoice, false)

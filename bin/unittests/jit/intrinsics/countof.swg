@@ -123,8 +123,8 @@ impl RefCountedRuntime
 #test
 {
     func countStruct(value: CountedRuntime)->u64 { return value.count }
-    const V0 = #run countStruct({7})
-    const V1 = #run countStruct({0})
+    const V0 = #run countStruct(CountedRuntime{7})
+    const V1 = #run countStruct(CountedRuntime{0})
     #assert(V0 == 7'u64)
     #assert(V1 == 0'u64)
 }

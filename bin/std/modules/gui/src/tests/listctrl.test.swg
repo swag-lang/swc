@@ -146,7 +146,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     var host: Testing.HeadlessHost
     host.setup(240, 180)
     defer host.shutdown()
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 220, 160})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 220, 160})
     list.setVirtualCount(6)
     list.setSelectionMode(.Multi)
 
@@ -181,7 +181,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     host.setup(420, 320)
     defer host.shutdown()
 
-    let list = ListCtrl.createMultiColumns(&host.root, {0, 0, 400, 300})
+    let list = ListCtrl.createMultiColumns(&host.root, Math.Rectangle{0, 0, 400, 300})
     list.addColumn("Name", 200)
     list.addColumn("Kind", 180)
     host.root.applyLayout()
@@ -226,7 +226,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     host.setup(420, 320)
     defer host.shutdown()
 
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 400, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 400, 300})
     list.onFillVirtualLine = func(_, line, index)
     {
         if line do
@@ -247,7 +247,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     var host: Testing.HeadlessHost
     host.setup(220, 320)
     defer host.shutdown()
-    let list  = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list  = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     let root0 = list.createLine("root0")
     list.createLine("childA", parentLine: root0)
     list.createLine("childB", parentLine: root0)
@@ -274,7 +274,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     defer host.shutdown()
     ListCtrlHeadlessSelCount = 0
 
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     Swag.assert(list.iconSize == 16)
     Swag.assert(list.lineHeight() >= 24)
     list.sigSelectionChanged += &listCtrlHeadlessSel
@@ -303,7 +303,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     var host: Testing.HeadlessHost
     host.setup(220, 320)
     defer host.shutdown()
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
     list.createLine("c")
@@ -321,7 +321,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     defer host.shutdown()
     ListCtrlHeadlessSelCount = 0
 
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.sigSelectionChanged += &listCtrlHeadlessSel
     list.createLine("a")
     list.createLine("b")
@@ -330,11 +330,11 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     let lh = list.lineHeight()
     let vs = list.listView.surfaceRect()
 
-    host.click({vs.x + 30, vs.y + lh * 0.5})
+    host.click(Math.Point{vs.x + 30, vs.y + lh * 0.5})
     Swag.assert(list.isLineSelected(0))
     Swag.assert(not list.isLineSelected(1))
 
-    host.click({vs.x + 30, vs.y + lh * 2 + lh * 0.5})
+    host.click(Math.Point{vs.x + 30, vs.y + lh * 2 + lh * 0.5})
     Swag.assert(list.isLineSelected(2))
     Swag.assert(not list.isLineSelected(0))
     Swag.assert(ListCtrlHeadlessSelCount >= 2)
@@ -346,7 +346,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     var host: Testing.HeadlessHost
     host.setup(220, 320)
     defer host.shutdown()
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.setSelectionMode(.Multi)
     list.createLine("a")
     list.createLine("b")
@@ -355,8 +355,8 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     let lh = list.lineHeight()
     let vs = list.listView.surfaceRect()
 
-    host.click({vs.x + 30, vs.y + lh * 0.5})
-    host.click({vs.x + 30, vs.y + lh * 2 + lh * 0.5}, Input.MouseButton.Left, Input.KeyModifiers.Control)
+    host.click(Math.Point{vs.x + 30, vs.y + lh * 0.5})
+    host.click(Math.Point{vs.x + 30, vs.y + lh * 2 + lh * 0.5}, Input.MouseButton.Left, Input.KeyModifiers.Control)
 
     Swag.assert(list.isLineSelected(0))
     Swag.assert(not list.isLineSelected(1))
@@ -369,7 +369,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     var host: Testing.HeadlessHost
     host.setup(220, 320)
     defer host.shutdown()
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
     list.createLine("c")
@@ -396,7 +396,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     var host: Testing.HeadlessHost
     host.setup(220, 320)
     defer host.shutdown()
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
     list.createLine("c")
@@ -404,24 +404,24 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     let lh = list.lineHeight()
     let vs = list.listView.surfaceRect()
 
-    let top = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.05})
+    let top = list.dropMarkAt(Math.Point{vs.x + 30, vs.y + lh * 0.05})
     Swag.assert(top.index == 0 and top.mark == ListDropMark.Before)
 
-    let middle = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.5})
+    let middle = list.dropMarkAt(Math.Point{vs.x + 30, vs.y + lh * 0.5})
     Swag.assert(middle.index == 0 and middle.mark == ListDropMark.On)
 
-    let bottom = list.dropMarkAt({vs.x + 30, vs.y + lh * 0.95})
+    let bottom = list.dropMarkAt(Math.Point{vs.x + 30, vs.y + lh * 0.95})
     Swag.assert(bottom.index == 0 and bottom.mark == ListDropMark.After)
 
-    let second = list.dropMarkAt({vs.x + 30, vs.y + lh * 1.5})
+    let second = list.dropMarkAt(Math.Point{vs.x + 30, vs.y + lh * 1.5})
     Swag.assert(second.index == 1 and second.mark == ListDropMark.On)
 
     // Past the last row is the gap after it, so a list is appended to by aiming at its empty part.
-    let past = list.dropMarkAt({vs.x + 30, vs.y + lh * 10})
+    let past = list.dropMarkAt(Math.Point{vs.x + 30, vs.y + lh * 10})
     Swag.assert(past.index == 2 and past.mark == ListDropMark.After)
 
     // Outside the rows entirely is no answer at all.
-    Swag.assert(list.dropMarkAt({vs.x - 20, vs.y + lh * 0.5}).mark == ListDropMark.None)
+    Swag.assert(list.dropMarkAt(Math.Point{vs.x - 20, vs.y + lh * 0.5}).mark == ListDropMark.None)
 }
 
 // Showing the mark is what a window does with that answer, and clearing it is what every leave
@@ -431,7 +431,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     var host: Testing.HeadlessHost
     host.setup(220, 320)
     defer host.shutdown()
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
 
@@ -458,14 +458,14 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     var host: Testing.HeadlessHost
     host.setup(220, 320)
     defer host.shutdown()
-    let list = ListCtrl.createSimple(&host.root, {0, 0, 200, 300})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
 
     let vs   = list.listView.surfaceRect()
-    let mark = list.dropMarkAt({vs.x + 30, vs.y + 10})
+    let mark = list.dropMarkAt(Math.Point{vs.x + 30, vs.y + 10})
     Swag.assert(mark.index == 0 and mark.mark == ListDropMark.Before)
 
     // Outside it is still no answer at all, so the two cases stay apart.
-    Swag.assert(list.dropMarkAt({vs.x - 20, vs.y + 10}).mark == ListDropMark.None)
+    Swag.assert(list.dropMarkAt(Math.Point{vs.x - 20, vs.y + 10}).mark == ListDropMark.None)
 
     // And the mark it is asked to show is drawn against a row that is not there.
     list.setDropMark(mark.index, mark.mark)
@@ -483,7 +483,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     host.root.backgroundStyle = .View
     host.notify(.ThemeChanged)
 
-    let list = ListCtrl.createSimple(&host.root, {20, 20, 180, 60})
+    let list = ListCtrl.createSimple(&host.root, Math.Rectangle{20, 20, 180, 60})
     list.setSelectionMode(.Single)
     discard list.createLine("selected")
     list.selectLine(0)
@@ -508,7 +508,7 @@ func listCtrlHeadlessSel(_: *ListCtrl)
     host.setup(240, 180)
     defer host.shutdown()
 
-    let list  = ListCtrl.createSimple(&host.root, {0, 0, 220, 160})
+    let list  = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 220, 160})
     let root0 = list.createLine("b-root")
     discard list.createLine("child0", parentLine: root0)
     discard list.createLine("child1", parentLine: root0)

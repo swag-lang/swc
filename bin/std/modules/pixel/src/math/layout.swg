@@ -129,7 +129,7 @@ private func mathPrepareNode(node: *MathNode, style: MathStyle)
 
 private func mathAddText(node: *MathNode, text: string, font: *Font, scale, x, baseline: f32)
 {
-    node.draws.add({text: text, pos: {x, baseline}, font: font, scale: scale})
+    node.draws.add({text: text, pos: Vector2{x, baseline}, font: font, scale: scale})
 }
 
 private func mathLayoutSymbol(node: *MathNode, font: *Font, style: MathStyle, variant: MathFontVariant, options: MathLayoutOptions)
@@ -172,7 +172,7 @@ private func mathLayoutRow(node: *MathNode, font: *Font, style: MathStyle, varia
             hasPrevious   = true
         }
 
-        node.offsets[idx]    = {x, 0}
+        node.offsets[idx]    = Vector2{x, 0}
         x += child.metrics.width
         node.metrics.ascent  = Math.max(node.metrics.ascent, child.metrics.ascent)
         node.metrics.descent = Math.max(node.metrics.descent, child.metrics.descent)
@@ -205,15 +205,15 @@ private func mathLayoutFraction(node: *MathNode, font: *Font, style: MathStyle, 
     node.metrics.width = Math.max(numerator.metrics.width, denominator.metrics.width) + pad * 2
     let numeratorY   = axisY - rule * 0.5 - gap - numerator.metrics.descent
     let denominatorY = axisY + rule * 0.5 + gap + denominator.metrics.ascent
-    node.offsets[0] = {(node.metrics.width - numerator.metrics.width) * 0.5, numeratorY}
-    node.offsets[1] = {(node.metrics.width - denominator.metrics.width) * 0.5, denominatorY}
+    node.offsets[0] = Vector2{(node.metrics.width - numerator.metrics.width) * 0.5, numeratorY}
+    node.offsets[1] = Vector2{(node.metrics.width - denominator.metrics.width) * 0.5, denominatorY}
 
     node.metrics.ascent  = Math.max(-axisY + rule * 0.5, -(numeratorY - numerator.metrics.ascent))
     node.metrics.descent = Math.max(axisY + rule * 0.5, denominatorY + denominator.metrics.descent)
     if node.flag
     {
         let y = axisY
-        node.rules.add({start: {0, y}, end: {node.metrics.width, y}, width: rule})
+        node.rules.add(MathRule{start: Math.Vector2{0, y}, end: Math.Vector2{node.metrics.width, y}, width: rule})
     }
 }
 
@@ -238,11 +238,11 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
 
     let rootTop    = -radicand.metrics.ascent - gap - rule * 0.5
     let rootBottom = Math.max(radicand.metrics.descent, 0.18 * em)
-    node.offsets[0]    = {contentX, 0}
+    node.offsets[0]    = Vector2{contentX, 0}
     node.metrics.width = contentX + radicand.metrics.width + 0.06 * em
     node.paths.add(MathDrawPath{
         kind: MathPathKind.Radical,
-        rect: {0, rootTop, node.metrics.width, rootBottom - rootTop},
+        rect: Math.Rectangle{0, rootTop, node.metrics.width, rootBottom - rootTop},
         lineWidth: rule,
         aux: contentX})
 
@@ -254,7 +254,7 @@ private func mathLayoutRadical(node: *MathNode, font: *Font, style: MathStyle, v
         let value  = index
         let target = rootBottom - rootTop
         let indexY = rootTop + value.metrics.ascent + 0.16 * target
-        node.offsets[1]     = {0, indexY}
+        node.offsets[1]     = Vector2{0, indexY}
         node.metrics.ascent = Math.max(node.metrics.ascent, -(indexY - value.metrics.ascent))
     }
 }
@@ -301,7 +301,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         if sup do
             node.metrics.width = Math.max(node.metrics.width, sup.metrics.width)
 
-        node.offsets[0]      = {(node.metrics.width - base.metrics.width) * 0.5, 0}
+        node.offsets[0]      = Vector2{(node.metrics.width - base.metrics.width) * 0.5, 0}
         node.metrics.ascent  = base.metrics.ascent
         node.metrics.descent = base.metrics.descent
 
@@ -309,7 +309,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         {
             let value     = sup
             let baselineY = -base.metrics.ascent - gap - value.metrics.descent
-            node.offsets[supIndex] = {(node.metrics.width - value.metrics.width) * 0.5, baselineY}
+            node.offsets[supIndex] = Vector2{(node.metrics.width - value.metrics.width) * 0.5, baselineY}
             node.metrics.ascent    = Math.max(node.metrics.ascent, -(baselineY - value.metrics.ascent))
         }
 
@@ -317,7 +317,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         {
             let value     = sub
             let baselineY = base.metrics.descent + gap + value.metrics.ascent
-            node.offsets[subIndex] = {(node.metrics.width - value.metrics.width) * 0.5, baselineY}
+            node.offsets[subIndex] = Vector2{(node.metrics.width - value.metrics.width) * 0.5, baselineY}
             node.metrics.descent   = Math.max(node.metrics.descent, baselineY + value.metrics.descent)
         }
     }
@@ -352,14 +352,14 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
             }
         }
 
-        node.offsets[0]      = {0, 0}
+        node.offsets[0]      = Vector2{0, 0}
         node.metrics.width   = base.metrics.width
         node.metrics.ascent  = base.metrics.ascent
         node.metrics.descent = base.metrics.descent
         if sup
         {
             let value = sup
-            node.offsets[supIndex] = {scriptX, supY}
+            node.offsets[supIndex] = Vector2{scriptX, supY}
             node.metrics.width     = Math.max(node.metrics.width, scriptX + value.metrics.width)
             node.metrics.ascent    = Math.max(node.metrics.ascent, -(supY - value.metrics.ascent))
         }
@@ -367,7 +367,7 @@ private func mathLayoutScripts(node: *MathNode, font: *Font, style: MathStyle, v
         if sub
         {
             let value = sub
-            node.offsets[subIndex] = {scriptX, subY}
+            node.offsets[subIndex] = Vector2{scriptX, subY}
             node.metrics.width     = Math.max(node.metrics.width, scriptX + value.metrics.width)
             node.metrics.descent   = Math.max(node.metrics.descent, subY + value.metrics.descent)
         }
@@ -415,7 +415,7 @@ private func mathDelimiterPathKind(text: string)->{ kind: MathPathKind, found: b
         return {kind: .Bar, found: true}
     if text == "\u2016" do
         return {kind: .DoubleBar, found: true}
-    return {}
+    return {kind: .Radical, found: false}
 }
 
 private func mathMeasureDelimiter(text: string, font: *Font, minScale, targetHeight, em: f32)->MathDelimiterMeasure
@@ -473,7 +473,7 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
         let top = axisY - left.height * 0.5
         if left.usesPath
         {
-            node.paths.add(MathDrawPath{kind: left.kind, rect: {0, top, left.width, left.height}, lineWidth: rule})
+            node.paths.add(MathDrawPath{kind: left.kind, rect: Math.Rectangle{0, top, left.width, left.height}, lineWidth: rule})
         }
         else
         {
@@ -484,7 +484,7 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
         x += left.width + pad
     }
 
-    node.offsets[0] = {x, 0}
+    node.offsets[0] = Vector2{x, 0}
     x += body.metrics.width
 
     if node.text2.toString() != "."
@@ -493,7 +493,7 @@ private func mathLayoutDelimited(node: *MathNode, font: *Font, style: MathStyle,
         let top = axisY - right.height * 0.5
         if right.usesPath
         {
-            node.paths.add(MathDrawPath{kind: right.kind, rect: {x, top, right.width, right.height}, lineWidth: rule})
+            node.paths.add(MathDrawPath{kind: right.kind, rect: Math.Rectangle{x, top, right.width, right.height}, lineWidth: rule})
         }
         else
         {
@@ -539,14 +539,14 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
     elif accentText == "\u2192" do
         accentWidth = Math.max(accentWidth, 0.72 * em)
 
-    node.offsets[0]    = {(accentWidth - base.metrics.width) * 0.5, 0}
+    node.offsets[0]    = Vector2{(accentWidth - base.metrics.width) * 0.5, 0}
     node.metrics       = base.metrics
     node.metrics.width = accentWidth
 
     if node.flag2
     {
         let y = node.flag ? base.metrics.descent + gap : -base.metrics.ascent - gap
-        node.rules.add({start: {0, y}, end: {accentWidth, y}, width: rule})
+        node.rules.add(MathRule{start: Vector2{0, y}, end: Vector2{accentWidth, y}, width: rule})
         if node.flag do
             node.metrics.descent = Math.max(node.metrics.descent, y + rule * 0.5)
         else do
@@ -557,7 +557,7 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
     if accentText == "\u00AF"
     {
         let y = -base.metrics.ascent - gap
-        node.rules.add({start: {0, y}, end: {accentWidth, y}, width: rule})
+        node.rules.add(MathRule{start: Vector2{0, y}, end: Vector2{accentWidth, y}, width: rule})
         node.metrics.ascent = Math.max(node.metrics.ascent, -y + rule * 0.5)
         return
     }
@@ -588,7 +588,7 @@ private func mathLayoutAccent(node: *MathNode, font: *Font, style: MathStyle, va
     {
         let bottom = -base.metrics.ascent - gap
         let top    = bottom - pathHeight
-        node.paths.add(MathDrawPath{kind: pathKind, rect: {0, top, accentWidth, pathHeight}, lineWidth: rule})
+        node.paths.add(MathDrawPath{kind: pathKind, rect: Math.Rectangle{0, top, accentWidth, pathHeight}, lineWidth: rule})
         node.metrics.ascent = Math.max(node.metrics.ascent, -top + rule * 0.5)
         return
     }
@@ -677,7 +677,7 @@ private func mathLayoutMatrix(node: *MathNode, font: *Font, style: MathStyle, va
         for column in count
         {
             let child = node.children[childIndex]
-            node.offsets[childIndex] = {x + (columnWidths[column] - child.metrics.width) * 0.5, baseline}
+            node.offsets[childIndex] = Vector2{x + (columnWidths[column] - child.metrics.width) * 0.5, baseline}
             x += columnWidths[column] + columnGap
             childIndex += 1
         }
@@ -726,7 +726,7 @@ private func mathLayoutNode(node: *MathNode, font: *Font, style: MathStyle, vari
     case .Style:
         let child = node.children[0]
         mathLayoutNode(child, font, style, node.fontVariant, options)
-        node.offsets[0] = {0, 0}
+        node.offsets[0] = Vector2{0, 0}
         node.metrics    = child.metrics
         node.atomClass  = child.atomClass
     }
@@ -912,7 +912,7 @@ impl MathExpression
     //
     // Repeated calls are allowed; the latest font, style, and options replace the
     // cached box metrics.
-    mtd measure(font: *Font, options: MathLayoutOptions = {})->MathMetrics
+    mtd measure(font: *Font, options: MathLayoutOptions = MathLayoutOptions{})->MathMetrics
     {
         Swag.assert(font != null, "math layout needs a font")
         mathLayoutNode(.root, font, options.style, .Default, options)
@@ -927,7 +927,7 @@ impl Painter
     // Returns the metrics [[Pixel.MathExpression.measure]] reports. A fully transparent color
     // measures without drawing.
     #[Swag.Discardable]
-    mtd drawMath(left, top: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics
+    mtd drawMath(left, top: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = MathLayoutOptions{})->MathMetrics
     {
         let metrics = expression.measure(font, options)
         if color.a != 0 do
@@ -937,7 +937,7 @@ impl Painter
 
     // Draws a parsed expression centered on `(centerX, centerY)` and returns its metrics.
     #[Swag.Discardable]
-    mtd drawMathCenter(centerX, centerY: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics
+    mtd drawMathCenter(centerX, centerY: f32, expression: *MathExpression, font: *Font, color: Color, options: MathLayoutOptions = MathLayoutOptions{})->MathMetrics
     {
         let metrics = expression.measure(font, options)
         if color.a != 0 do
@@ -950,7 +950,7 @@ impl Painter
     // Keep the result of [[Pixel.MathExpression.parse]] instead when the same formula is drawn
     // every frame. Parse failures are reported through `fail`.
     #[Swag.Discardable]
-    mtd drawMathLatex(left, top: f32, source: string, font: *Font, color: Color, options: MathLayoutOptions = {})->MathMetrics fail
+    mtd drawMathLatex(left, top: f32, source: string, font: *Font, color: Color, options: MathLayoutOptions = MathLayoutOptions{})->MathMetrics fail
     {
         var expression = try MathExpression.parse(source)
         return .drawMath(left, top, &expression, font, color, options)

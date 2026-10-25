@@ -124,7 +124,7 @@ internal func openFile(path: string)->SoundFile fail
         let payload = header.frameBytes - header.headerBytes
         if not payload do
             fail InvalidFormatError{"ADTS frame carries no audio"}
-        packets.add({byteOffset + header.headerBytes, cast(u32, payload), header.blocks * 1024})
+        packets.add(SoundPacket{byteOffset + header.headerBytes, cast(u32, payload), header.blocks * 1024})
         totalFrames += cast(u64, header.blocks) * 1024
         byteOffset  += header.frameBytes
     }

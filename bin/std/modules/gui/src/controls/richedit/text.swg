@@ -596,7 +596,7 @@ public impl RichEditCtrl
         if cp.charPosInLine > len do
             return result
         if cp.charPosInLine == len do
-            return {'\n', 0}
+            return {char: '\n', style: 0}
         result.char  = .lines[cp.lineIndex]!.chars[cp.charPosInLine]
         result.style = .lines[cp.lineIndex]!.styles[cp.charPosInLine]
         return result

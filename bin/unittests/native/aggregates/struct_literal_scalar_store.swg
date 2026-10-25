@@ -16,10 +16,10 @@ func buildMutationMap(text: string)->[3] MutationSpan
     {
         let runLength = ch - '0'
         if index & 1 do
-            map[index] = {MutationFreeSpanId, runLength}
+            map[index] = MutationSpan{MutationFreeSpanId, runLength}
         else
         {
-            map[index] = {nextId, runLength}
+            map[index] = MutationSpan{nextId, runLength}
             nextId     += 1
         }
     }

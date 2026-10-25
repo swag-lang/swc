@@ -26,7 +26,7 @@ func failWithoutBase() fail
 
 func failDeep() fail
 {
-    fail DeepError{{"the deep text"}}
+    fail DeepError{Errors.BadParameterError{"the deep text"}}
 }
 
 #test

@@ -88,18 +88,18 @@ func verifyImportedGenericRootMethodSema()
 
 func verifyImportedClosureCallbacks()
 {
-    var unarySet: DepByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
+    var unarySet: DepByteSet = DepByteSet{values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(depInvokeUnary('C'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
     Swag.assert(not depInvokeUnary('Z'u8, func|&unarySet|(x: u8)->bool { return unarySet.contains(x) }))
     Swag.assert(depInvokeUnary('A'u8, func|&unarySet|(x: u8)->bool { return unarySet.containsViaGeneric(x) }))
 
-    var genericSet: DepByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
+    var genericSet: DepByteSet = DepByteSet{values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(depInvokeGeneric('A'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
     Swag.assert(not depInvokeGeneric('Z'u8, func|&genericSet|(x: u8)->bool { return genericSet.contains(x) }))
     Swag.assert(depInvokeGeneric('B'u8, func|&genericSet|(x: u8)->bool { return genericSet.containsViaGeneric(x) }))
 
     var prev:     [3] u8     = ['C', 'A', 'B']
-    var allOfSet: DepByteSet = {values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
+    var allOfSet: DepByteSet = DepByteSet{values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
     Swag.assert(depAllOf(prev[to], func|&allOfSet|(x: u8)->bool { return allOfSet.contains(x) }))
     Swag.assert(depAllOf(prev[to], func|&allOfSet|(x: u8)->bool { return allOfSet.containsViaGeneric(x) }))
 
@@ -118,18 +118,18 @@ func verifyImportedClosureCallbacks()
         Swag.assert(depAllOf(wrapper.prev.toSlice(), func|&selfBufferSet|(x: u8)->bool { return selfBufferSet.containsViaGeneric(x) }))
     }
 
-    var sharedUnarySet: CtxClosureByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
+    var sharedUnarySet: CtxClosureByteSet = CtxClosureByteSet{values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(ctxSharedInvokeUnary('C'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
     Swag.assert(not ctxSharedInvokeUnary('Z'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.contains(x) }))
     Swag.assert(ctxSharedInvokeUnary('A'u8, func|&sharedUnarySet|(x: u8)->bool { return sharedUnarySet.containsViaGeneric(x) }))
 
-    var sharedGenericSet: CtxClosureByteSet = {values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
+    var sharedGenericSet: CtxClosureByteSet = CtxClosureByteSet{values: ['C'u8, 'A'u8, 'B'u8, 0], count: 3}
     Swag.assert(ctxSharedInvokeGeneric('A'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
     Swag.assert(not ctxSharedInvokeGeneric('Z'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.contains(x) }))
     Swag.assert(ctxSharedInvokeGeneric('B'u8, func|&sharedGenericSet|(x: u8)->bool { return sharedGenericSet.containsViaGeneric(x) }))
 
     var sharedPrev:     [3] u8 = ['C', 'A', 'B']
-    var sharedAllOfSet: CtxClosureByteSet = {values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
+    var sharedAllOfSet: CtxClosureByteSet = CtxClosureByteSet{values: ['A'u8, 'B'u8, 'C'u8, 'D'u8], count: 4}
     Swag.assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.contains(x) }))
     Swag.assert(ctxSharedAllOf(sharedPrev[to], func|&sharedAllOfSet|(x: u8)->bool { return sharedAllOfSet.containsViaGeneric(x) }))
 
@@ -293,7 +293,7 @@ func verifyDllAbiCalls()
     Swag.assert(ctxSharedPassMixed(3, "mix", {a: 10, b: 11}, [8, 9], null) == 131)
     Swag.assert(ctxSharedPassMixed(30, "mix2", {a: 100, b: 110}, [80, 90], cast(*void?, 0x4567'u64)) == 330)
 
-    const pairRef: CtxAbiPair = {a: 6, b: 7}
+    const pairRef: CtxAbiPair = CtxAbiPair{a: 6, b: 7}
     Swag.assert(ctxSharedPassConstRef(pairRef) == 13)
     Swag.assert(ctxSharedPassConstRef({a: 8, b: 9}) == 17)
     Swag.assert(ctxSharedPassScalars(-5's8, -123's16, 77's32, 5000's64, 9'u8, 10'u16, 11'u32, 12'u64, 1.25'f32, 2.5'f64, true, 'R') == 5077)
@@ -338,7 +338,7 @@ func verifyDllAbiCalls()
 
     // A method and a free function whose flattened names would collide must stay two
     // distinct exports: calling one has to run its own body, not the other's.
-    let cursor = CtxAbiCursor{pos: {x: 12, y: 34}}
+    let cursor = CtxAbiCursor{pos: CtxAbiFloatPair{x: 12, y: 34}}
     let viaMtd = cursor.position()
     let viaFn  = ctxAbiCursorPosition()
     Swag.assert(viaMtd.x == cast(f32, 12))
@@ -355,7 +355,7 @@ func verifyDllAbiCalls()
     Swag.assert(float1.g == 1.75)
     Swag.assert(float1.b == 2.0)
 
-    var writtenPair: CtxAbiPair = {a: 0, b: 0}
+    var writtenPair: CtxAbiPair = CtxAbiPair{a: 0, b: 0}
     ctxSharedWritePair(&writtenPair, 77, -33)
     Swag.assert(writtenPair.a == 77)
     Swag.assert(writtenPair.b == -33)

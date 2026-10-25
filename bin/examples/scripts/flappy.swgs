@@ -363,7 +363,7 @@ func move()
     g_Bird.pos   += g_Bird.speed * g_Dt
     g_Bird.pos.y = Math.max(g_Bird.pos.y, 0)
     if g_Start do
-        g_Bird.speed += {0, Gravity}
+        g_Bird.speed += (0, Gravity)
 
     g_Bird.frame += 10 * g_Dt
 

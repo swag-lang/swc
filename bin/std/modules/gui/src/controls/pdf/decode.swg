@@ -101,13 +101,13 @@ private func transformedBounds(state: const *GraphicsState, page: const *Page, x
         maxY = Math.max(maxY, corner.y)
     }
 
-    return {minX, minY, maxX - minX, maxY - minY}
+    return Math.Rectangle{minX, minY, maxX - minX, maxY - minY}
 }
 
 private func transformPoint(state: const *GraphicsState, page: const *Page, x, y: f32)->Vector2
 {
-    let point = state.ctm.transformPoint({x, y})
-    return {point.x, page.height - point.y}
+    let point = state.ctm.transformPoint(Math.Vector2{x, y})
+    return Math.Vector2{point.x, page.height - point.y}
 }
 
 // One operand waiting for the operator that consumes it.
@@ -670,25 +670,25 @@ private func blendingMode(name: string)->{ mode: BlendingMode, found: bool }
 {
     switch name
     {
-    case "Normal", "Compatible": return {.Alpha, true}
-    case "Multiply":   return {.Multiply, true}
-    case "Screen":     return {.Screen, true}
-    case "Overlay":    return {.Overlay, true}
-    case "Darken":     return {.Darken, true}
-    case "Lighten":    return {.Lighten, true}
-    case "ColorDodge": return {.ColorDodge, true}
-    case "ColorBurn":  return {.ColorBurn, true}
-    case "HardLight":  return {.HardLight, true}
-    case "SoftLight":  return {.SoftLight, true}
-    case "Difference": return {.Difference, true}
-    case "Exclusion":  return {.Exclusion, true}
-    case "Hue":        return {.Hue, true}
-    case "Saturation": return {.Saturation, true}
-    case "Color":      return {.Color, true}
-    case "Luminosity": return {.Luminosity, true}
+    case "Normal", "Compatible": return {mode: .Alpha, found: true}
+    case "Multiply":   return {mode: .Multiply, found: true}
+    case "Screen":     return {mode: .Screen, found: true}
+    case "Overlay":    return {mode: .Overlay, found: true}
+    case "Darken":     return {mode: .Darken, found: true}
+    case "Lighten":    return {mode: .Lighten, found: true}
+    case "ColorDodge": return {mode: .ColorDodge, found: true}
+    case "ColorBurn":  return {mode: .ColorBurn, found: true}
+    case "HardLight":  return {mode: .HardLight, found: true}
+    case "SoftLight":  return {mode: .SoftLight, found: true}
+    case "Difference": return {mode: .Difference, found: true}
+    case "Exclusion":  return {mode: .Exclusion, found: true}
+    case "Hue":        return {mode: .Hue, found: true}
+    case "Saturation": return {mode: .Saturation, found: true}
+    case "Color":      return {mode: .Color, found: true}
+    case "Luminosity": return {mode: .Luminosity, found: true}
     }
 
-    return {.Alpha, false}
+    return {mode: .Alpha, found: false}
 }
 
 // Reads the parts of an ExtGState that change how later operators paint.
@@ -840,7 +840,7 @@ private func maskImagePixels(item: *Item, coverage: const *Image, region: Math.R
         for column in width
         {
             let u     = (cast(f32, column) + 0.5) / cast(f32, width)
-            let point = item.transform.transformPoint({u, v})
+            let point = item.transform.transformPoint(Math.Vector2{u, v})
             let x     = cast(s32, ((point.x - region.x) / region.width * cast(f32, coverage.width)))
             let y     = cast(s32, ((point.y - region.y) / region.height * cast(f32, coverage.height)))
             let alpha = coverage.pixelColor(x, y).a
@@ -1442,7 +1442,7 @@ private func boxRectangle(parser: *PdfParser, boxId: u32)->Math.Rectangle
     let y0     = nodeNumber(parser, values[1])
     let x1     = nodeNumber(parser, values[2])
     let y1     = nodeNumber(parser, values[3])
-    return {Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)}
+    return Math.Rectangle{Math.min(x0, x1), Math.min(y0, y1), Math.abs(x1 - x0), Math.abs(y1 - y0)}
 }
 
 // Returns the region of a page a reader displays, and the rotation it is displayed through.
@@ -1498,8 +1498,8 @@ internal func pageBoxSize(parser: *PdfParser, pageId, inheritedMediaBox, inherit
 {
     let resolved = try pageBox(parser, pageId, inheritedMediaBox, inheritedCropBox, rotate)
     if resolved.rotate == 90 or resolved.rotate == 270 do
-        return {resolved.box.height, resolved.box.width}
-    return {resolved.box.width, resolved.box.height}
+        return Math.Point{resolved.box.height, resolved.box.width}
+    return Math.Point{resolved.box.width, resolved.box.height}
 }
 
 internal func decodePage(parser: *PdfParser, pageId, inheritedResources, inheritedMediaBox, inheritedCropBox: u32, rotate: s64, decode: PageDecode)->Page fail

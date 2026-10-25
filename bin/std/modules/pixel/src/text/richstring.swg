@@ -380,7 +380,7 @@ impl RichString
                 if c == '\r' and count
                 {
                     sl = Swag.makeSlice(scan, count)
-                    let {next, nextEat} = Utf8.decodeRune(sl)
+                    let {c: next, eat: nextEat} = Utf8.decodeRune(sl)
                     if next == '\n'
                     {
                         byteIdx, scan += nextEat

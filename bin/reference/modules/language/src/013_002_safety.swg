@@ -107,7 +107,7 @@ through that pointer; it does not promise that other aliases leave the pointee u
         return value.first
     }
 
-    var value: Value = {first: 17}
+    var value: Value = Value{first: 17}
     let observed     = readSnapshot(#copy value, &value)
     Swag.assert(observed == 17 and value.first == 0)
 }

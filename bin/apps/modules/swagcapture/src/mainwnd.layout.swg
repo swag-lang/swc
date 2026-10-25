@@ -142,7 +142,7 @@ impl MainWnd
         let cellSize    = themeActionButtonSize(metrics)
         let glyphSize   = themeActionIconSize(metrics)
         let cellPadding = (cellSize - glyphSize) * 0.5
-        with me.toolRail = StackLayoutCtrl.create(me, .Top, {0, 0, cellSize, 0})
+        with me.toolRail = StackLayoutCtrl.create(me, .Top, Math.Rectangle{0, 0, cellSize, 0})
         {
             .dockStyle       = .Left
             .spacing         = 0
@@ -158,13 +158,13 @@ impl MainWnd
 
         for id in toolButtons
         {
-            with let b = IconButton.create(me.toolRail, {}, position: {0, 0, cellSize, cellSize})
+            with let b = IconButton.create(me.toolRail, {}, position: Math.Rectangle{0, 0, cellSize, cellSize})
             {
                 .id = id
 
                 // Air on both sides of the glyph, so the column is separated from the window
                 // edge and from the canvas by space rather than by a line.
-                .setAllPaddings({cellPadding, 0, cellPadding, 0})
+                .setAllPaddings(Math.Vector4{cellPadding, 0, cellPadding, 0})
                 if id == ActionToolMode.Callout
                 {
                     .iconPainter = func(btn, bc, pos, flags) { drawCalloutGlyph(btn, bc, pos, flags) }
@@ -197,40 +197,40 @@ impl MainWnd
     {
         let metrics  = .themeMetrics()
         let cellSize = themeActionButtonSize(metrics)
-        with .topBar = Wnd.create'Wnd(me, {0, 0, 0, cellSize})
+        with .topBar = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, cellSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
             .style.addStyleSheetColors("wnd_Bk $wnd_CaptionBk")
         }
 
-        with let verbs = StackLayoutCtrl.create(me.topBar, .Left, {0, 0, VerbsWidth, cellSize})
+        with let verbs = StackLayoutCtrl.create(me.topBar, .Left, Math.Rectangle{0, 0, VerbsWidth, cellSize})
         {
             .dockStyle = .Left
             .spacing   = metrics.iconBar_ButtonsPadding
-            .padding   = {2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
+            .padding   = Math.Vector4{2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
         }
 
         // Capture is the primary Voltage action. Library has the same push-button shape and
         // footprint, and takes the theme's alternate tone only while its page is active (see
         // updateLibraryButtonAppearance).
-        .captureBtn = PushButton.create(verbs, "", {0, 0, 104, cellSize - 2 * metrics.iconBar_ButtonsPadding}, ActionCapture.DoIt, .Strong)
+        .captureBtn = PushButton.create(verbs, "", Math.Rectangle{0, 0, 104, cellSize - 2 * metrics.iconBar_ButtonsPadding}, ActionCapture.DoIt, .Strong)
 
-        with .libraryBtn = PushButton.create(verbs, appStrings().act_Library, {0, 0, 104, cellSize - 2 * metrics.iconBar_ButtonsPadding}, ActionGlobal.ShowLibrary)
+        with .libraryBtn = PushButton.create(verbs, appStrings().act_Library, Math.Rectangle{0, 0, 104, cellSize - 2 * metrics.iconBar_ButtonsPadding}, ActionGlobal.ShowLibrary)
         {
             .setIcon(me.icon(.Library))
         }
 
-        with .commandReadouts = StackLayoutCtrl.create(me.topBar, .Right, {0, 0, ReadoutsWidth, cellSize})
+        with .commandReadouts = StackLayoutCtrl.create(me.topBar, .Right, Math.Rectangle{0, 0, ReadoutsWidth, cellSize})
         {
             .dockStyle = .Right
             .spacing   = metrics.iconBar_ButtonsPadding
-            .padding   = {2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
+            .padding   = Math.Vector4{2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding, 2 * metrics.iconBar_ButtonsPadding, metrics.iconBar_ButtonsPadding}
         }
 
         // Zoom keeps its menu, so it stays a button; size is a pure readout and is not
         // one. Both carry the fixed-width family, so neither jumps as its value changes.
-        with .zoomBtn = IconButton.create(.commandReadouts, {}, {0, 0, ReadoutWidth, cellSize - 2 * metrics.iconBar_ButtonsPadding})
+        with .zoomBtn = IconButton.create(.commandReadouts, {}, Math.Rectangle{0, 0, ReadoutWidth, cellSize - 2 * metrics.iconBar_ButtonsPadding})
         {
             .updateFlags(.CenterContent)
             .setArrowPosition(.RightDownward)
@@ -249,7 +249,7 @@ impl MainWnd
             }
         }
 
-        with .sizeBtn = IconButton.create(.commandReadouts, {}, {0, 0, ReadoutWidth + 24, cellSize - 2 * metrics.iconBar_ButtonsPadding})
+        with .sizeBtn = IconButton.create(.commandReadouts, {}, Math.Rectangle{0, 0, ReadoutWidth + 24, cellSize - 2 * metrics.iconBar_ButtonsPadding})
         {
             .updateFlags(.CenterContent | .Flat)
             .style.setFont(me.theme().res.fontDefaultFs)
@@ -278,12 +278,12 @@ impl MainWnd
             if showLabels
             {
                 button.updateFlags(remove: .IconOnly)
-                button.setAllPaddings({cellPadding, 0, cellPadding, 0})
+                button.setAllPaddings(Math.Vector4{cellPadding, 0, cellPadding, 0})
             }
             else
             {
                 button.updateFlags(.IconOnly)
-                button.setAllPaddings({0, 0, cellPadding, 0})
+                button.setAllPaddings(Math.Vector4{0, 0, cellPadding, 0})
             }
 
             button.position.width  = width
@@ -356,11 +356,11 @@ impl MainWnd
     mtd createRecentBar()
     {
         let panelGutter = .themeMetrics().panel_GutterSize
-        with .recentBar = Wnd.create'Wnd(me, {0, 0, 0, 136})
+        with .recentBar = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, 136})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar
-            .padding         = {0, panelGutter, panelGutter, 0}
+            .padding         = Math.Vector4{0, panelGutter, panelGutter, 0}
         }
 
         with .recentWnd = RecentWnd.create(me.recentBar, me)
@@ -374,20 +374,20 @@ impl MainWnd
     mtd createToolPanel()
     {
         let panelGutter = .themeMetrics().panel_GutterSize
-        with .rightBar = Wnd.create'Wnd(me, {0, 0, RightPanelWidth + 2 * panelGutter, 0})
+        with .rightBar = Wnd.create'Wnd(me, Math.Rectangle{0, 0, RightPanelWidth + 2 * panelGutter, 0})
         {
             .dockStyle       = .Right
             .backgroundStyle = .ToolBar
-            .padding         = {panelGutter, panelGutter, panelGutter, 0}
+            .padding         = Math.Vector4{panelGutter, panelGutter, panelGutter, 0}
         }
 
-        with let rightPanel = Wnd.create'Wnd(me.rightBar, {0, 0, RightPanelWidth, 0})
+        with let rightPanel = Wnd.create'Wnd(me.rightBar, Math.Rectangle{0, 0, RightPanelWidth, 0})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
         }
 
-        with .quickStyleBar = SplitterCtrl.create(rightPanel, {0, 0, RightPanelWidth, 600}, vertical: true)
+        with .quickStyleBar = SplitterCtrl.create(rightPanel, Math.Rectangle{0, 0, RightPanelWidth, 600}, vertical: true)
         {
             .dockStyle       = .Center
             .backgroundStyle = .ToolBar
@@ -400,12 +400,12 @@ impl MainWnd
 
         // The heading starts on the same margin as the cells and the rows under it: a title
         // centred over a left-aligned column is a second alignment on one narrow panel.
-        with .toolTitle = Label.create(quickPane, "", {0, 0, 0, ToolTitleHeight})
+        with .toolTitle = Label.create(quickPane, "", Math.Rectangle{0, 0, 0, ToolTitleHeight})
         {
             .dockStyle = .Top
             .style.setFont(me.theme().res.fontDefaultFs)
             .setTextAlignment(.Left, .Center)
-            .setTextPadding({12, 8, 12, 0})
+            .setTextPadding(Math.Vector4{12, 8, 12, 0})
             .setTextColor(me.themeColors().label_TextLight)
         }
 

@@ -247,7 +247,7 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let p: IfElsePoint = {x: 4, y: 7}
+            let p: IfElsePoint = IfElsePoint{x: 4, y: 7}
             return p.x * 10 + p.y
         }
         else
@@ -588,12 +588,12 @@ enum IfElseKind: u16
     {
         if flag
         {
-            let v: IfElsePoint = {x: 1, y: 2}
+            let v: IfElsePoint = IfElsePoint{x: 1, y: 2}
             return v
         }
         else
         {
-            let v: IfElsePoint = {x: 3, y: 4}
+            let v: IfElsePoint = IfElsePoint{x: 3, y: 4}
             return v
         }
     }

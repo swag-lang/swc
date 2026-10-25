@@ -166,7 +166,7 @@ struct BorrowFieldNestedView { view: BorrowFieldView }
 impl BorrowFieldCache
 {
     #[Swag.NoInline]
-    mtd nestedView()->BorrowFieldNestedView => {.view()}
+    mtd nestedView()->BorrowFieldNestedView => BorrowFieldNestedView{.view()}
 }
 
 func borrowFieldRejectNestedView(cache: *BorrowFieldCache)->s32

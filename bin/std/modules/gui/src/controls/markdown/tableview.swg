@@ -200,7 +200,7 @@ impl TableView
             for &cell in .cells where cell.row == row
             {
                 let x = .columnOffset(cell.column)
-                cell.view.setPosition({x + 10, y + 4, Math.max(.columnWidths[cell.column] - CellPadding, 1), .rowHeights[row] - 8})
+                cell.view.setPosition(Math.Rectangle{x + 10, y + 4, Math.max(.columnWidths[cell.column] - CellPadding, 1), .rowHeights[row] - 8})
             }
 
             y += .rowHeights[row]
@@ -261,23 +261,23 @@ impl IWnd for TableView
         let painter = evt.paintContext.painter
         discard .layout(rect.width)
         if .rowHeights.count do
-            painter.fillRect({0, 0, .tableWidth, .rowHeights[0]}, .themeColors().edit_Bk)
+            painter.fillRect(Math.Rectangle{0, 0, .tableWidth, .rowHeights[0]}, .themeColors().edit_Bk)
 
         let border = .themeColors().edit_Border
         var y      = 0'f32
         for height in .rowHeights
         {
-            painter.fillRect({0, y, .tableWidth, 1}, border)
+            painter.fillRect(Math.Rectangle{0, y, .tableWidth, 1}, border)
             y += height
         }
 
-        painter.fillRect({0, y - 1, .tableWidth, 1}, border)
+        painter.fillRect(Math.Rectangle{0, y - 1, .tableWidth, 1}, border)
 
         if .columnCount
         {
             for column in .columnCount do
-                painter.fillRect({.columnOffset(column), 0, 1, rect.height}, border)
-            painter.fillRect({.tableWidth - 1, 0, 1, rect.height}, border)
+                painter.fillRect(Math.Rectangle{.columnOffset(column), 0, 1, rect.height}, border)
+            painter.fillRect(Math.Rectangle{.tableWidth - 1, 0, 1, rect.height}, border)
         }
     }
 

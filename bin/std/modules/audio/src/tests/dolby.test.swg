@@ -22,7 +22,7 @@ private func ac3TestPackets(path: string)->Array'SoundPacket fail
                         6 * bitRate
         if frameSize > bytes.count - offset do
             fail InvalidFormatError{"AC-3 test fixture has a truncated sync frame"}
-        result.add({offset, frameSize, 1536})
+        result.add(SoundPacket{offset, frameSize, 1536})
         offset += frameSize
     }
 
@@ -58,7 +58,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
         let blockCount = fscod == 3 ? 6 : Blocks[(bytes[offset + 4] >> 4) & 3]
         if frameSize > bytes.count - offset do
             fail InvalidFormatError{"E-AC-3 test fixture has a truncated sync frame"}
-        result.add({offset, frameSize, blockCount * 256})
+        result.add(SoundPacket{offset, frameSize, blockCount * 256})
         offset += frameSize
     }
 

@@ -179,7 +179,7 @@ impl IForm for FormLine
                 return .cacheBv
             .cacheCoords  = newCoords
             .cacheCoords2 = newCoords2
-            .cacheBv      = Math.Curve.bezierBounds({.xa, .ya}, {.xb, .yb}, {.xa + .xc, .ya + .yc})
+            .cacheBv      = Math.Curve.bezierBounds(Math.Vector2{.xa, .ya}, Math.Vector2{.xb, .yb}, Math.Vector2{.xa + .xc, .ya + .yc})
         }
         else
         {
@@ -199,11 +199,11 @@ impl IForm for FormLine
     {
         if flags.has(.Hot | .Selected)
         {
-            .gizmo.anchors[0] = {.xa * z, .ya * z}
-            .gizmo.anchors[1] = {.xb * z, .yb * z}
+            .gizmo.anchors[0] = Math.Point{.xa * z, .ya * z}
+            .gizmo.anchors[1] = Math.Point{.xb * z, .yb * z}
             if .gizmo.anchors.count == 3
             {
-                .gizmo.anchors[2] = {(.xa + .xc) * z, (.ya + .yc) * z}
+                .gizmo.anchors[2] = Math.Point{(.xa + .xc) * z, (.ya + .yc) * z}
                 painter.drawLine(.gizmo.anchors[0].x, .gizmo.anchors[0].y, .gizmo.anchors[2].x, .gizmo.anchors[2].y, Argb.White, 2)
                 painter.drawLine(.gizmo.anchors[1].x, .gizmo.anchors[1].y, .gizmo.anchors[2].x, .gizmo.anchors[2].y, Argb.White, 2)
             }
@@ -217,7 +217,7 @@ impl IForm for FormLine
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)
     {
-        let {bSize, sSize, eSize} = .paintSizes(cxt)
+        let {stroke: bSize, begScale: sSize, endScale: eSize} = .paintSizes(cxt)
         let outlineSize = .paintOutlineSize(cxt)
 
         if .bezier

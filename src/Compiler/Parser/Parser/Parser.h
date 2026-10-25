@@ -251,7 +251,8 @@ private:
 
     AstNodeRef parseContinue();
     AstNodeRef parseVarDeclDecomposition();
-    void       parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool& hasNamed, bool& hasPositional);
+    AstNodeRef parseDestructuringPattern(bool declaration, SmallVector<TokenRef>* bindings = nullptr);
+    void       parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool named);
     bool       isDestructuringAssignmentAhead() const;
     AstNodeRef parseDefer();
     AstNodeRef parseDiscard();
@@ -382,7 +383,6 @@ private:
     void       finishReportError(Diagnostic& diag, TokenRef tknRef);
     Diagnostic reportError(DiagnosticId id, TokenRef tknRef);
     Diagnostic reportError(DiagnosticId id, AstNodeRef nodeRef);
-    void       reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed);
 
     void raiseError(DiagnosticId id, TokenRef tknRef);
     void raiseExpected(DiagnosticId id, TokenRef tknRef, TokenId tknExpected);
@@ -499,31 +499,31 @@ inline EnumFlags<AstVarStorageFlagsE> Parser::parseStorageModifiers()
     return storageFlags;
 }
 
-inline void Parser::parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool& hasNamed, bool& hasPositional)
+inline void Parser::parseDestructuringFieldName(SmallVector<TokenRef>& fieldNames, bool named)
 {
-    TokenRef   fieldNameRef = TokenRef::invalid();
-    const bool isNamed      = is(TokenId::Identifier) && nextIs(TokenId::SymColon) && !tok().flags.has(TokenFlagsE::BlankAfter);
-    if (isNamed)
+    TokenRef fieldNameRef = TokenRef::invalid();
+    if (named)
     {
-        hasNamed     = true;
-        fieldNameRef = consume();
+        if (is(TokenId::KwdUnnamed))
+        {
+            const Diagnostic diag = reportError(DiagnosticId::parser_err_named_pattern_field, ref());
+            diag.report(*ctx_);
+        }
+        fieldNameRef = ref();
+        if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
+        {
+            consume();
+            consumeAssert(TokenId::SymColon);
+        }
+    }
+    else if (is(TokenId::Identifier) && nextIs(TokenId::SymColon))
+    {
+        const Diagnostic diag = reportError(DiagnosticId::parser_err_mixed_destructuring, ref());
+        diag.report(*ctx_);
+        consume();
         consumeAssert(TokenId::SymColon);
     }
-    else
-        hasPositional = true;
-
     fieldNames.push_back(fieldNameRef);
-}
-
-inline void Parser::reportMixedDestructuring(TokenRef itemRef, bool hasNamed, bool hasPositional, bool& reportedMixed)
-{
-    if (hasNamed && hasPositional && !reportedMixed)
-    {
-        const Diagnostic diag = reportError(DiagnosticId::parser_err_mixed_destructuring, itemRef);
-        diag.report(*ctx_);
-
-        reportedMixed = true;
-    }
 }
 
 inline bool Parser::prepareNextArgument()

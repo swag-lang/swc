@@ -489,7 +489,7 @@ public impl CtxAbiCalculator
 {
     func make(base: s32)->CtxAbiCalculator
     {
-        return {base}
+        return CtxAbiCalculator{base}
     }
 
     func resolve(value: s32)->s32

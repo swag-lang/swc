@@ -25,7 +25,7 @@ impl ScenarioFixture
         expect g_Library.setFolder(.rootFolder)
 
         .main = MainWnd.create(&.gui.surfaceWnd)
-        .main.setPosition({0, 0, 1024, 640})
+        .main.setPosition(Math.Rectangle{0, 0, 1024, 640})
         .main.applyLayout()
 
         // Production registers the history observer from the initial-load timer. Run that

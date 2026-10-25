@@ -25,12 +25,12 @@ impl Guid128
     private func hexDigit(character: u8)->{ value: u8, valid: bool }
     {
         if character >= '0' and character <= '9' do
-            return {character - '0'u8, true}
+            return {value: character - '0'u8, valid: true}
         if character >= 'a' and character <= 'f' do
-            return {character - 'a'u8 + 10, true}
+            return {value: character - 'a'u8 + 10, valid: true}
         if character >= 'A' and character <= 'F' do
-            return {character - 'A'u8 + 10, true}
-        return {0, false}
+            return {value: character - 'A'u8 + 10, valid: true}
+        return {value: 0, valid: false}
     }
 
     // Returns whether both identifiers have the same bits.

@@ -56,7 +56,7 @@ func writePreviewFile()->String
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*Hex.Panel
 {
     Hex.registerTexts(&host.app)
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 640, 36})
     var viewerSession = openTestViewer(Hex.viewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
     let view          = assume cast(*Hex.Panel, viewerSession.view)
     completeViewerBackgroundLoad(host, &view.load)
@@ -263,7 +263,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     expect File.writeAllBytes(fileName, payload.toSlice())
 
     var operation: Hex.AnalysisOperation
-    operation.start(fileName, {0, payload.count})
+    operation.start(fileName, Viewers.Hex.AnalysisRange{0, payload.count})
     operation.task.wait()
     let result = operation.finish()
     Swag.assert(result.failureReason.isEmpty() and not result.cancelled and result.scanned == payload.count)
@@ -294,7 +294,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     stopper.submit(func|self, path, count|()->Hex.AnalysisResult
     {
         self.cancel()
-        return Hex.analyzeRange(path, {0, count})
+        return Hex.analyzeRange(path, Viewers.Hex.AnalysisRange{0, count})
     })
     let stopped = expect stopper.take()
     Swag.assert(stopped.cancelled and not stopped.scanned)
@@ -358,7 +358,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     window.layoutFileInfo()
     window.resize(960, 680)
     window.applyLayout()
-    host.moveMouse({-1, -1})
+    host.moveMouse(Math.Point{-1, -1})
     host.settleAnimations(window, 4)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.hex.search-inspector")
@@ -432,7 +432,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     window.layoutFileInfo()
     window.resize(1_100, 700)
     window.applyLayout()
-    host.moveMouse({-1, -1})
+    host.moveMouse(Math.Point{-1, -1})
     host.settleAnimations(window, 4)
     var image = host.render(window)
     Pixel.Testing.assertImageGolden(&image, "viewer.hex.analysis")
@@ -612,9 +612,9 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     let row    = 3'u64
     let column = 5'u64
-    Swag.assert(grid.offsetAt({grid.hexCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
-    Swag.assert(grid.offsetAt({grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
-    Swag.assert(grid.offsetAt({4, 2}) == Swag.U64.Max)
+    Swag.assert(grid.offsetAt(Math.Point{grid.hexCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
+    Swag.assert(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
+    Swag.assert(grid.offsetAt(Math.Point{4, 2}) == Swag.U64.Max)
 }
 
 // Byte order is an action-bar option and immediately changes multi-byte decoding.
@@ -709,7 +709,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     let grid = view.grid
 
     host.clickPopupMenuItemWhenShown(Hex.Action.SelectAll)
-    grid.showContextMenu({120, 120})
+    grid.showContextMenu(Math.Point{120, 120})
     host.pump()
     Swag.assert(grid.selectionStart() == 0 and grid.selectionLength() == 4096)
 
@@ -840,7 +840,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.fireTimer(grid.selectionTimer)
     Swag.assert(grid.topRow > firstTop and grid.selectionLength() > 1)
 
-    with let other = Wnd.create'Wnd(&host.root, "hex.capture.other", {0, 0, 40, 20})
+    with let other = Wnd.create'Wnd(&host.root, "hex.capture.other", Math.Rectangle{0, 0, 40, 20})
     {
         .focusPolicy = .Tab
         .setFocus()
@@ -865,7 +865,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     let row    = 2'u64
     let column = 13'u64
     Swag.assert(grid.deviceScale() == 1.5)
-    Swag.assert(grid.offsetAt({grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
+    Swag.assert(grid.offsetAt(Math.Point{grid.textCellX(column) + 1, grid.rowTop(row) + 2}) == row * 16 + column)
     Swag.assert(grid.contentWidth() <= grid.clientRect().width)
     discard host.render(view)
 }

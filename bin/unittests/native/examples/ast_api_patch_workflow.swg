@@ -192,7 +192,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 #test
 {
     let base: TenantSettings =
-        {
+        TenantSettings{
         seatLimit: 25,
         storageGb: 250,
         auditRetentionDays: 30,
@@ -227,7 +227,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 #test
 {
     let source: TenantSettings =
-        {
+        TenantSettings{
         seatLimit: 120,
         storageGb: 2000,
         auditRetentionDays: 365,
@@ -240,7 +240,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
     capturePatch'(TenantSettings)(&patch, source)
 
     let blank: TenantSettings =
-        {
+        TenantSettings{
         seatLimit: 0,
         storageGb: 0,
         auditRetentionDays: 0,
@@ -268,7 +268,7 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
 #test
 {
     let base: NotificationPolicy =
-        {
+        NotificationPolicy{
         dailyDigest: true,
         weeklyReport: false,
         escalationMinutes: 45,

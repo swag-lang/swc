@@ -1,7 +1,7 @@
 #global if #command == Swag.CompilerCommand.Test
 #global private
 
-const OPAQUE_SPARSE_CONSTANT: StaticApi.OpaqueSparseDefault = {}
+const OPAQUE_SPARSE_CONSTANT: StaticApi.OpaqueSparseDefault = StaticApi.OpaqueSparseDefault{}
 var opaqueSparseGlobal: StaticApi.OpaqueSparseDefault
 
 #test

@@ -176,9 +176,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
     var left:  [3] u8 = ['a', 'b', 'c']
     var right: [3] u8 = ['a', 'b', 'c']
 
-    let a = NestedHolder{holder: {text: viewText(cast(const [*] u8, &left[0])), tag: 7}, extra: 3}
-    let b = NestedHolder{holder: {text: viewText(cast(const [*] u8, &right[0])), tag: 7}, extra: 3}
-    let c = NestedHolder{holder: {text: viewText(cast(const [*] u8, &right[0])), tag: 7}, extra: 4}
+    let a = NestedHolder{holder: StringHolder{text: viewText(cast(const [*] u8, &left[0])), tag: 7}, extra: 3}
+    let b = NestedHolder{holder: StringHolder{text: viewText(cast(const [*] u8, &right[0])), tag: 7}, extra: 3}
+    let c = NestedHolder{holder: StringHolder{text: viewText(cast(const [*] u8, &right[0])), tag: 7}, extra: 4}
     Swag.assert(a == b)
     Swag.assert(a != c)
 }
@@ -198,9 +198,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 #test
 {
     // The member's 'opEquals' decides, so two different values compare equal.
-    let a = OverloadHolder{inner: {value: 1}, tag: 7}
-    let b = OverloadHolder{inner: {value: 2}, tag: 7}
-    let c = OverloadHolder{inner: {value: 2}, tag: 8}
+    let a = OverloadHolder{inner: AlwaysEqual{value: 1}, tag: 7}
+    let b = OverloadHolder{inner: AlwaysEqual{value: 2}, tag: 7}
+    let c = OverloadHolder{inner: AlwaysEqual{value: 2}, tag: 8}
     Swag.assert(a == b)
     Swag.assert(a != c)
 }
@@ -279,9 +279,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 {
     // A comparison declared by the embedder wins over the one its 'using' member promotes,
     // instead of tying with it.
-    let a = Embedder{base: {tag: 1}, extra: 5}
-    let b = Embedder{base: {tag: 2}, extra: 5}
-    let c = Embedder{base: {tag: 1}, extra: 6}
+    let a = Embedder{base: EmbeddedBase{tag: 1}, extra: 5}
+    let b = Embedder{base: EmbeddedBase{tag: 2}, extra: 5}
+    let c = Embedder{base: EmbeddedBase{tag: 1}, extra: 6}
     Swag.assert(a == b)
     Swag.assert(a != c)
 }
@@ -290,9 +290,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 {
     // Without one of its own, the embedder gets a member-wise comparison because a member owns
     // an 'opEquals': that member answers for itself, and 'extra' still compares as a number.
-    let a = PlainEmbedder{base: {tag: 1}, extra: 5}
-    let b = PlainEmbedder{base: {tag: 2}, extra: 5}
-    let c = PlainEmbedder{base: {tag: 1}, extra: 6}
+    let a = PlainEmbedder{base: EmbeddedBase{tag: 1}, extra: 5}
+    let b = PlainEmbedder{base: EmbeddedBase{tag: 2}, extra: 5}
+    let c = PlainEmbedder{base: EmbeddedBase{tag: 1}, extra: 6}
     Swag.assert(a == b)
     Swag.assert(a != c)
 }
@@ -304,9 +304,9 @@ func viewBytes(buffer: const [*] u8)->const [..] u8
 
     // The overload against another type is additive: two 'Counted' values still compare, and
     // the holder still gets its member-wise comparison.
-    let a = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8, &left[0]))}
-    let b = CountedHolder{counted: {length: 3}, text: viewText(cast(const [*] u8, &right[0]))}
-    let c = CountedHolder{counted: {length: 4}, text: viewText(cast(const [*] u8, &right[0]))}
+    let a = CountedHolder{counted: Counted{length: 3}, text: viewText(cast(const [*] u8, &left[0]))}
+    let b = CountedHolder{counted: Counted{length: 3}, text: viewText(cast(const [*] u8, &right[0]))}
+    let c = CountedHolder{counted: Counted{length: 4}, text: viewText(cast(const [*] u8, &right[0]))}
     Swag.assert(a == b)
     Swag.assert(a != c)
 

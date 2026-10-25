@@ -117,8 +117,8 @@ namespace
 
     Result collectAggregateStructConstantFieldValues(Sema& sema, SmallVector<ConstantRef>& outValues, ConstantRef srcCstRef, const TypeInfo& srcType)
     {
-        const auto&          srcTypes = srcType.payloadAggregate().types;
-        const ConstantValue& srcCst   = sema.cstMgr().get(srcCstRef);
+        const size_t         count  = srcType.isStruct() ? srcType.payloadSymStruct().fields().size() : srcType.payloadAggregate().types.size();
+        const ConstantValue& srcCst = sema.cstMgr().get(srcCstRef);
         if (srcCst.isAggregateStruct())
         {
             for (const ConstantRef valueRef : srcCst.getAggregateStruct())
@@ -131,17 +131,18 @@ namespace
 
         const std::span<const std::byte> srcBytes = srcCst.getStruct();
         uint64_t                         offset   = 0;
-        outValues.reserve(srcTypes.size());
+        outValues.reserve(count);
 
-        for (const TypeRef elemTypeRef : srcTypes)
+        for (size_t i = 0; i < count; ++i)
         {
-            const TypeInfo& elemType = sema.typeMgr().get(elemTypeRef);
-            uint32_t        align    = elemType.alignOf(sema.ctx());
-            const uint64_t  elemSize = elemType.sizeOf(sema.ctx());
+            const TypeRef   elemTypeRef = srcType.isStruct() ? srcType.payloadSymStruct().fields()[i]->typeRef() : srcType.payloadAggregate().types[i];
+            const TypeInfo& elemType    = sema.typeMgr().get(elemTypeRef);
+            uint32_t        align       = elemType.alignOf(sema.ctx());
+            const uint64_t  elemSize    = elemType.sizeOf(sema.ctx());
             if (!align)
                 align = 1;
 
-            offset = Math::alignUpU64(offset, align);
+            offset = srcType.isStruct() ? srcType.payloadSymStruct().fields()[i]->offset() : Math::alignUpU64(offset, align);
             if (!elemSize)
             {
                 outValues.push_back(sema.cstMgr().addZeroPayloadConstant(sema.ctx(), elemTypeRef));
@@ -159,23 +160,41 @@ namespace
         return Result::Continue;
     }
 
-    Result castAggregateStructToAggregateStruct(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
+    Result castRecordOrTupleToAggregate(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRef, TypeRef dstTypeRef, const TypeInfo& srcType, const TypeInfo& dstType)
     {
-        const auto& srcAggregate = srcType.payloadAggregate();
+        SmallVector<TypeRef>     structTypes;
+        std::span<const TypeRef> sourceTypes;
+        if (srcType.isStruct())
+        {
+            SWC_RESULT(sema.waitSemaCompleted(&srcType, castRequest.errorNodeRef));
+            if (srcType.payloadSymStruct().isUnion() || !srcType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous))
+                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            for (const SymbolVariable* field : srcType.payloadSymStruct().fields())
+                structTypes.push_back(field->typeRef());
+            sourceTypes = structTypes.span();
+        }
+        else
+            sourceTypes = srcType.payloadAggregate().types;
         const auto& dstAggregate = dstType.payloadAggregate();
-        if (srcAggregate.types.size() != dstAggregate.types.size() ||
-            srcAggregate.names.size() != dstAggregate.names.size())
+        if (sourceTypes.size() != dstAggregate.types.size())
             return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
-        for (size_t i = 0; i < srcAggregate.types.size(); ++i)
-        {
-            const IdentifierRef srcName = srcAggregate.names[i];
-            const IdentifierRef dstName = dstAggregate.names[i];
-            if (srcName.isValid() && (!dstName.isValid() || srcName != dstName))
-                return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+        if (srcType.isPositionalTuple() != dstType.isPositionalTuple())
+            return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
 
+        SmallVector<size_t> sourceIndices;
+        for (size_t i = 0; i < dstAggregate.types.size(); ++i)
+        {
+            size_t sourceIndex = i;
+            if (!dstType.isPositionalTuple())
+            {
+                const bool found = srcType.isStruct() ? srcType.payloadSymStruct().tryGetFieldIndexByName(sourceIndex, dstAggregate.names[i]) : srcType.tryGetAggregateMemberIndexByName(sourceIndex, sema.ctx(), dstAggregate.names[i]);
+                if (!found)
+                    return castRequest.fail(DiagnosticId::sema_err_cannot_cast, srcTypeRef, dstTypeRef);
+            }
+            sourceIndices.push_back(sourceIndex);
             CastRequest  elemRequest = castRequest.makeNested();
-            const Result res         = Cast::castAllowed(sema, elemRequest, srcAggregate.types[i], dstAggregate.types[i]);
+            const Result res         = Cast::castAllowed(sema, elemRequest, sourceTypes[sourceIndex], dstAggregate.types[i]);
             if (res != Result::Continue)
             {
                 castRequest.failure = elemRequest.failure;
@@ -188,26 +207,25 @@ namespace
 
         SmallVector<ConstantRef> values;
         SWC_RESULT(collectAggregateStructConstantFieldValues(sema, values, castRequest.constantFoldingSrc(), srcType));
-        SWC_ASSERT(values.size() == srcAggregate.types.size());
+        SWC_ASSERT(values.size() == sourceTypes.size());
 
+        SmallVector<ConstantRef> reordered;
         for (size_t i = 0; i < values.size(); ++i)
         {
-            CastRequest elemRequest = castRequest.makeNested();
-            elemRequest.setConstantFoldingSrc(values[i]);
-
-            const Result res = Cast::castAllowed(sema, elemRequest, srcAggregate.types[i], dstAggregate.types[i]);
+            const size_t sourceIndex = sourceIndices[i];
+            CastRequest  elemRequest = castRequest.makeNested();
+            elemRequest.setConstantFoldingSrc(values[sourceIndex]);
+            const Result res = Cast::castAllowed(sema, elemRequest, sourceTypes[sourceIndex], dstAggregate.types[i]);
             if (res != Result::Continue)
             {
                 castRequest.failure = elemRequest.failure;
                 return res;
             }
-
             const ConstantRef castedRef = elemRequest.constantFoldingResult();
-            if (castedRef.isValid())
-                values[i] = castedRef;
+            reordered.push_back(castedRef.isValid() ? castedRef : values[sourceIndex]);
         }
 
-        const ConstantValue result = ConstantValue::makeAggregateStruct(sema.ctx(), dstAggregate.names, values);
+        const ConstantValue result = ConstantValue::makeAggregateStruct(sema.ctx(), dstAggregate.names, reordered.span());
         castRequest.setConstantFoldingResult(sema.cstMgr().addConstant(sema.ctx(), result));
 
         return Result::Continue;
@@ -1609,8 +1627,8 @@ Result Cast::castAllowed(Sema& sema, CastRequest& castRequest, TypeRef srcTypeRe
         res = castFromAny(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (dstType.isAlias())
         res = castAllowed(sema, castRequest, srcTypeRef, dstType.payloadSymAlias().underlyingTypeRef());
-    else if (srcType.isAggregateStruct() && dstType.isAggregateStruct())
-        res = castAggregateStructToAggregateStruct(sema, castRequest, srcTypeRef, dstTypeRef, srcType, dstType);
+    else if (srcType.isStructOrAggregateStruct() && dstType.isAggregateStruct())
+        res = castRecordOrTupleToAggregate(sema, castRequest, srcTypeRef, dstTypeRef, srcType, dstType);
     else if (castRequest.flags.has(CastFlagsE::BitCast))
         res = castBit(sema, castRequest, srcTypeRef, dstTypeRef);
     else if (shouldRouteEnumViaUnderlying(castRequest, srcTypeRef, srcType, dstType))
@@ -1976,7 +1994,10 @@ Result Cast::cast(Sema& sema, SemaNodeView& view, TypeRef dstTypeRef, CastKind c
             castRequest.failure.noteId = DiagnosticId::sema_note_cast_explicit;
     }
 
-    if (callSite)
+    // Contextual typing also casts individual aggregate elements. Their destination is not
+    // the function's return type, so keep the element conversion's own wording in that case.
+    const bool matchesReturnType = !callSite || !callSite->returnValue || !callSite->function || castRequest.failure.dstTypeRef == callSite->function->returnTypeRef();
+    if (callSite && matchesReturnType)
         castRequest.failure.mergeArguments(callSiteErrorArguments(sema.ctx(), *callSite));
 
     return emitCastFailure(sema, castRequest.failure);

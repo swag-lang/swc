@@ -506,7 +506,7 @@ impl Vector3
         let radius = .length()
         let phi    = Math.acos(.y / radius)
         let theta  = Math.atan2(.z, .x)
-        return {theta, phi, radius}
+        return {theta: theta, phi: phi, radius: radius}
     }
 
     // Creates a vector from cylindrical coordinates around the Y axis.
@@ -523,6 +523,6 @@ impl Vector3
     {
         let radius = Math.sqrt((.x * .x) + (.z * .z))
         let theta  = Math.atan2(.z, .x)
-        return {theta, radius, .y}
+        return {theta: theta, radius: radius, height: .y}
     }
 }

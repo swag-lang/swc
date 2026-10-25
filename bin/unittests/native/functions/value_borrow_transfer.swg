@@ -28,7 +28,7 @@ func inlineOwnedForward(value: #move Owner)->u64 => consume(#move value)
 
 #test
 {
-    var value: Owner = {value: 353}
+    var value: Owner = Owner{value: 353}
     let caught       = Swag.catchPanic(func|&value|() { discard borrowedForward(value) })
     Swag.assert(caught.raised)
     Swag.assert(caught.message() == "write overlaps storage borrowed by a value argument")
@@ -40,7 +40,7 @@ func inlineOwnedForward(value: #move Owner)->u64 => consume(#move value)
     for inlineCall in [false, true]
     {
         copies, drops = 0
-        var value: Owner = {value: 359}
+        var value: Owner = Owner{value: 359}
         let result       = inlineCall ? inlineOwnedForward(#move value) : ownedForward(#move value)
         Swag.assert(result == 359 and value.value == 0)
         Swag.assert(copies == 0 and drops == 1)

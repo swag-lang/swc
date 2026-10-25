@@ -347,8 +347,10 @@ namespace
             addFlag(rtType, Runtime::TypeInfoFlags::Nullable);
         if (type.isAlias() && type.payloadSymAlias().isStrict())
             addFlag(rtType, Runtime::TypeInfoFlags::Strict);
-        if (type.isAggregateStruct())
+        if (type.isPositionalTuple())
             addFlag(rtType, Runtime::TypeInfoFlags::Tuple);
+        else if (type.isAggregateStruct() || (type.isStruct() && type.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous)))
+            addFlag(rtType, Runtime::TypeInfoFlags::Record);
         if (SymbolStruct::typeRequiresExplicitInitialization(sema, typeRef))
             addFlag(rtType, Runtime::TypeInfoFlags::RequiresExplicitInit);
         if (SymbolStruct::typeHasDynamicStorage(ctx, type))

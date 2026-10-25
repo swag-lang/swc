@@ -175,13 +175,13 @@ private impl Panel
         var matches: Array'PdfTextMatch
         let complete = .pdfView.collectTextMatches(text, pdfOptions, progress, &matches)
         for match in matches do
-            result.add({match.pageIndex, 0, match.byteOffset, match.byteLength})
+            result.add(Viewer.SearchMatch{match.pageIndex, 0, match.byteOffset, match.byteLength})
         return complete
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool => .pdfView.revealTextMatch({match.major, match.offset, match.length})
+    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool => .pdfView.revealTextMatch(PdfTextMatch{match.major, match.offset, match.length})
 
-    mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool => .pdfView.textMatchRect({match.major, match.offset, match.length}, result)
+    mtd searchBounds(match: Viewer.SearchMatch, result: *Math.Rectangle)->bool => .pdfView.textMatchRect(PdfTextMatch{match.major, match.offset, match.length}, result)
 
     mtd refreshNavigation()
     {
@@ -258,7 +258,7 @@ private impl Panel
 
     // Creates the page view of `fileName`, with its page and zoom controls in `info`, and starts
     // opening the document in the background.
-    func create(contentParent, info: *Wnd, fileName: string, services: Viewer.HostServices = {})->*Panel
+    func create(contentParent, info: *Wnd, fileName: string, services: Viewer.HostServices = Viewer.HostServices{})->*Panel
     {
         with let result = Wnd.create'Panel(contentParent, "scope.pdf")
         {
@@ -289,7 +289,7 @@ private impl Panel
             .sigPressed      += func|view = me|(_) { view.pdfView.previousPage() }
         }
 
-        with .pageLabel = IconButton.create(.info, {}, {0, 0, PageWidth, 32}, "scope.pdf.page", .CenterContent)
+        with .pageLabel = IconButton.create(.info, {}, Math.Rectangle{0, 0, PageWidth, 32}, "scope.pdf.page", .CenterContent)
         {
             .dockStyle       = .Left
             .preferredSize.x = PageWidth
@@ -316,7 +316,7 @@ private impl Panel
         {
             .dockStyle       = .Right
             .preferredSize.x = Viewer.ZoomButtonWidth
-            .margin          = {Viewer.ZoomButtonInset + 8, 0, Viewer.ZoomButtonInset, 0}
+            .margin          = Math.Vector4{Viewer.ZoomButtonInset + 8, 0, Viewer.ZoomButtonInset, 0}
             .sigPressed      += func|view = me|(_) { view.showZoomMenu() }
         }
     }
@@ -351,7 +351,7 @@ func createViewer(host: Viewer.Host)
     let services  = host.services()
     let infoWidth = infoWidth(host.contentParent().themeMetrics())
 
-    with let info = Wnd.create'InfoControls(host.createInfoGroup(infoWidth), {0, 0, infoWidth, 36})
+    with let info = Wnd.create'InfoControls(host.createInfoGroup(infoWidth), Math.Rectangle{0, 0, infoWidth, 36})
     {
         .dockStyle       = .Left
         .backgroundStyle = .Transparent

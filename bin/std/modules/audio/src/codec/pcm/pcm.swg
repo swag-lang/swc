@@ -105,7 +105,7 @@ private func(SampleBytes: s32, SourceEncoding: SoundFileEncoding) convertSamples
         sourceBytes   += SampleBytes
     }
 
-    return {sampleCount * #sizeof(s16), sampleCount * SampleBytes}
+    return CodecProgress{sampleCount * #sizeof(s16), sampleCount * SampleBytes}
 }
 
 impl ICodec for CodecPcmToPcm16
@@ -133,7 +133,7 @@ impl ICodec for CodecPcmToPcm16
         {
             let length = Math.min(sourceSize, destinationSize)
             Memory.copy(destination, source, length)
-            return {length, length}
+            return CodecProgress{length, length}
         }
 
         switch .sourceEncoding

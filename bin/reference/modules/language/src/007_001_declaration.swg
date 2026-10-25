@@ -180,7 +180,7 @@ These can be accessed directly or destructured.
 {
     func myFunction()->{ x, y: f32 }
     {
-        return {1.0, 2.0}
+        return {x: 1.0, y: 2.0}
     }
 
     let result = myFunction()
@@ -189,7 +189,7 @@ These can be accessed directly or destructured.
     let {x, y} = myFunction()
     Swag.assert(x == 1.0)
     Swag.assert(y == 2.0)
-    let {z, w} = myFunction()
+    let {x: z, y: w} = myFunction()
     Swag.assert(z == 1.0)
     Swag.assert(w == 2.0)
 }

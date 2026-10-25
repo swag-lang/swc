@@ -1096,8 +1096,9 @@ namespace
                     break;
 
                 case AstNodeId::AssignList:
-                    // Multi-assign / destructuring: give up on attribution.
-                    outKillAll = true;
+                    // Declaration patterns bind fresh locals and do not overwrite an outer path.
+                    if (!node.cast<AstAssignList>().hasFlag(AstAssignListFlagsE::DeclarationPattern))
+                        outKillAll = true;
                     break;
 
                 case AstNodeId::UnaryExpr:

@@ -144,7 +144,7 @@ func append(buf: *ConcatBuffer, fmt: string, values: ...)
         if formatOptions != null and formatOptions.count and formatOptions[0] == '#'u8
         {
             let indexSpec = cast(string, Swag.makeSlice(formatOptions.buffer + 1, formatOptions.count - 1))
-            let {parsedIndex, consumedBytes, ovf} = expect StrConv.parseU64(indexSpec)
+            let {value: parsedIndex, eat: consumedBytes, ovf} = expect StrConv.parseU64(indexSpec)
             Swag.assert(consumedBytes != 0, "missing argument index after '#'")
             Swag.assert(not ovf and parsedIndex <= Swag.U32.Max, "format argument index is out of range")
             argumentIndex = cast(u32, parsedIndex)

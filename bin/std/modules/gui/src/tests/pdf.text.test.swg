@@ -283,7 +283,7 @@ endcmap
     Swag.assert(page.items[0].textAdvances.count == 2 and
                 page.items[0].textAdvances[0] == 10 and
                 page.items[0].textAdvances[1] == 5)
-    Swag.assert(page.fonts[0].glyphIndex(4) == {4, true})
+    Swag.assert(page.fonts[0].glyphIndex(4) == {index: 4, found: true})
 
     // The two glyphs are 500 and 250 thousandths wide at size twenty.
     Swag.assert(Math.isEqualEpsilon(page.items[1].itemTransform().tx - page.items[0].itemTransform().tx, 15, 0.01))
@@ -301,8 +301,8 @@ endcmap
     let document = expect Document.decode(singlePagePdf("/Font << /F0 5 0 R >>", cast(const [..] u8, ""), objects.toSlice()).toSlice())
     let font     = &document.pages[0].fonts[0]
     Swag.assert(not font.identityGlyphs)
-    Swag.assert(font.glyphIndex(3) == {7, true})
-    Swag.assert(font.glyphIndex(4) == {8, true})
+    Swag.assert(font.glyphIndex(3) == {index: 7, found: true})
+    Swag.assert(font.glyphIndex(4) == {index: 8, found: true})
     Swag.assert(not font.glyphIndex(5).found)
 }
 

@@ -70,7 +70,7 @@ func inlineForeachMoveInfo()->InlineForeachMoveInfo
     resetInlineForeachMoveLifecycleHooks()
     for value in values do
         inlineForeachMoveAssign(&dst, #move value[])
-    return {dst.value, values.item.value, InlineForeachMoveDropCount, InlineForeachMoveDropTrace, InlineForeachMovePostMoveCount}
+    return InlineForeachMoveInfo{dst.value, values.item.value, InlineForeachMoveDropCount, InlineForeachMoveDropTrace, InlineForeachMovePostMoveCount}
 }
 
 func semaTest001()

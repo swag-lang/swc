@@ -452,8 +452,8 @@ func reverseIndexOfByteAtLeast(value: String, minByte: u8)->u64
     }
 
     let cases: [2] AliasCase = [
-        {"abc123abc123abc",       "X123X123X",     "abcabc23abcabc23abc"},
-        {"abc123abc123abc123abc", "X123X123X123X", "abcabc23abcabc23abcabc23abc"}]
+        AliasCase{"abc123abc123abc", "X123X123X", "abcabc23abcabc23abc"},
+        AliasCase{"abc123abc123abc123abc", "X123X123X123X", "abcabc23abcabc23abcabc23abc"}]
 
     for sample in cases
     {

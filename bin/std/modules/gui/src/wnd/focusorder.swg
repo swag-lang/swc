@@ -191,7 +191,7 @@ private impl FocusOrder
 
         var candidates: Array'FocusCandidate
         for child, index in wnd.children do
-            candidates.add({child, index})
+            candidates.add(FocusCandidate{child, index})
 
         // Top to bottom first, so the rows come out in the order they are stacked. This also
         // orders the seed of each row; the sweep below is what forms the rows themselves.

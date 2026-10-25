@@ -2,7 +2,9 @@
 #include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGen.h"
 #include "Compiler/Parser/Ast/AstNodes.h"
+#include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Core/SemaNodeView.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Symbol/IdentifierManager.h"
 #include "Compiler/Sema/Symbol/Symbol.Function.h"
 #include "Compiler/Sema/Symbol/Symbol.Impl.h"
@@ -223,6 +225,38 @@ CodeGenStructHelpers::StructLikeFieldLayout CodeGenStructHelpers::structLikeFiel
     }
 
     SWC_UNREACHABLE();
+}
+
+// Whether a destructured source is a named value that keeps its fields, rather than a temporary
+// whose fields move out.
+bool CodeGenStructHelpers::destructuringSourceIsLValue(CodeGen& codeGen, AstNodeRef initRef)
+{
+    const AstNodeRef resolvedInitRef = initRef.isValid() ? codeGen.resolvedNodeRef(initRef) : AstNodeRef::invalid();
+    if (resolvedInitRef.isInvalid())
+        return false;
+
+    if (codeGen.sema().isLValue(resolvedInitRef))
+        return true;
+
+    // An address-backed selection ('a ? b : c', 'a orelse b') forwards the storage of whichever
+    // operand won, possibly a named variable.
+    const AstNode& resolvedInit = codeGen.node(resolvedInitRef);
+    if (!resolvedInit.is(AstNodeId::ConditionalExpr) && !resolvedInit.is(AstNodeId::NullCoalescingExpr))
+        return false;
+
+    return codeGen.payload(initRef).isAddress();
+}
+
+Result CodeGenStructHelpers::emitDropDestructuringRemainder(CodeGen& codeGen, MicroReg source, std::span<const SemaHelpers::DestructuringField> fields)
+{
+    for (const auto& field : fields)
+    {
+        if (!field.ignored || !codeGen.hasLifecycle(field.typeRef, CodeGen::LifecycleKind::Drop))
+            continue;
+        const MicroReg address = codeGen.offsetAddressReg(source, static_cast<uint32_t>(field.offset));
+        SWC_RESULT(codeGen.emitLifecycle(field.typeRef, CodeGen::LifecycleKind::Drop, address));
+    }
+    return Result::Continue;
 }
 
 SWC_END_NAMESPACE();

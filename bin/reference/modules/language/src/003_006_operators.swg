@@ -159,7 +159,9 @@ does. A 'string' or a slice member therefore compares the content it views rathe
 view itself, and a member owning an 'opEquals' has that method called.
 
 The compiler compares the bytes in one go whenever every member gives the same answer its bytes
-give, which is what a struct of numbers, pointers and enums does. It compares the bytes the
+give, as with integer, pointer and enum members. Float members use numeric equality: positive
+and negative zero compare equal, and a NaN compares unequal, including to itself. This also
+applies to float arrays and nested aggregates. It compares the bytes the
 members occupy and no others: the padding a layout inserts between them is not a member, so two
 values whose every member is equal are equal whatever those bytes hold. A union is the exception
 and compares all of its storage, because its members share it and there is no member-wise answer
@@ -193,9 +195,9 @@ struct Measure
 
 #test
 {
-    let a = Measure{reading: {value: 10}, label: 7}
-    let b = Measure{reading: {value: 11}, label: 7}
-    let c = Measure{reading: {value: 10}, label: 8}
+    let a = Measure{reading: Tolerance{value: 10}, label: 7}
+    let b = Measure{reading: Tolerance{value: 11}, label: 7}
+    let c = Measure{reading: Tolerance{value: 10}, label: 8}
 
     Swag.assert(a.reading == b.reading)     // the member decides these readings are equal
     Swag.assert(a == b)     // so the two measures are equal too
@@ -214,9 +216,9 @@ contiguous run of bytes. A struct member that is an array follows the same rule.
 
 #test
 {
-    var readings: [2] Tolerance = [{value: 10}, {value: 20}]
-    var nearby:   [2] Tolerance = [{value: 11}, {value: 21}]
-    var distant:  [2] Tolerance = [{value: 11}, {value: 30}]
+    var readings: [2] Tolerance = [Tolerance{value: 10}, Tolerance{value: 20}]
+    var nearby:   [2] Tolerance = [Tolerance{value: 11}, Tolerance{value: 21}]
+    var distant:  [2] Tolerance = [Tolerance{value: 11}, Tolerance{value: 30}]
 
     Swag.assert(readings == nearby)     // every element decides it is the same reading
     Swag.assert(readings != distant)

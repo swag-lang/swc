@@ -19,7 +19,7 @@ func patchMemberExactMatrix(grid: [2, 3] s16, base: s16)
 
 #test
 {
-    var holder = MemberExactArrayParamHolder{matrix: {m: [[1, 2, 3], [4, 5, 6]]}}
+    var holder = MemberExactArrayParamHolder{matrix: MemberExactArrayParamMatrix{m: [[1, 2, 3], [4, 5, 6]]}}
     patchMemberExactMatrix(holder.matrix.m, 20's16)
     Swag.assert(holder.matrix.m[0, 0] == 1's16)
     Swag.assert(holder.matrix.m[0, 1] == 20's16)

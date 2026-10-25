@@ -33,7 +33,7 @@ impl Table
     // the LZW decoder's table growth.
     mtd add(length: u16, prefix: u16, suffix: u8)
     {
-        .entries[.n] = {length, prefix, suffix}
+        .entries[.n] = InlineCodePayload.Entry{length, prefix, suffix}
         .n += 1
     }
 }
@@ -44,7 +44,7 @@ func fillTable(table: *Table)
     // Unsized constants and a runtime field must all use the concrete element layout
     // when the implicit aggregate conversion is cloned into the indexed write.
     for i in 4 do
-        table.entries[i] = {1, 0xFFF, cast(u8, i)}
+        table.entries[i] = InlineCodePayload.Entry{1, 0xFFF, cast(u8, i)}
 }
 
 #test
@@ -52,7 +52,7 @@ func fillTable(table: *Table)
     var raw: [8] u8
     // A zero 'count' on the host: a receiver member resolved against the host instead of the
     // container makes every bound check fail.
-    var host = Host{0, {&raw[0], 8}}
+    var host = Host{0, InlineCodePayload.Store'u8{&raw[0], 8}}
     fill(&host, 100, 0xEE, 8)
 
     // Read back through the raw buffer, so a wrong store is not masked by an equally wrong read.
@@ -60,7 +60,7 @@ func fillTable(table: *Table)
         Swag.assert(raw[i] == cast(u8, (i + 100)))
 
     var ents: [4] InlineCodePayload.Entry
-    var table = Table{0, {&ents[0], 4}}
+    var table = Table{0, InlineCodePayload.Store'InlineCodePayload.Entry{&ents[0], 4}}
     table.add(1, 0xFFF, 7)
     table.add(2, 0, 9)
     Swag.assert(ents[0].length == 1 and ents[0].prefix == 0xFFF and ents[0].suffix == 7)

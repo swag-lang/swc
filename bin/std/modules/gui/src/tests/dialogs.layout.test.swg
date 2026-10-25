@@ -38,7 +38,7 @@ using Swag, Core, Pixel
     let long = EditDlg.createSingleLine(&host.surface, options)
 
     Swag.assert(long.surface!.position.height > short.surface!.position.height)
-    Swag.assert(long.label.itf.measureContent({long.label.position.width, 0}).y <= long.label.position.height + 0.5)
+    Swag.assert(long.label.itf.measureContent(Math.Point{long.label.position.width, 0}).y <= long.label.position.height + 0.5)
 
     short.surface.destroy()
     long.surface.destroy()
@@ -77,13 +77,13 @@ using Swag, Core, Pixel
         surfaceTitle: "About",
         contentTitle: "Swag",
         message: "A systems programming language.",
-        surfaceIcon: {},
-        contentIcon: {}}
+        surfaceIcon: Icon{},
+        contentIcon: Icon{}}
     let dlg = AboutDlg.create(&host.surface, params)
 
     let metrics       = dlg.themeMetrics()
     var contentHeight = dlg.identityView.position.height
-    contentHeight += dlg.labelMessage.measure({dlg.labelMessage.position.width, 0}).preferred.y
+    contentHeight += dlg.labelMessage.measure(Math.Point{dlg.labelMessage.position.width, 0}).preferred.y
     contentHeight += metrics.dialog_BtnPadding * 2
     var expected = contentHeight + 2 * metrics.dialog_Padding + dlg.buttonBar.position.height + 2 * metrics.wnd_BorderSize
     expected += metrics.wnd_SmallCaptionCY + 2 * dlg.surface!.shadowMargin()
@@ -218,7 +218,7 @@ using Swag, Core, Pixel
         dlg.surface!.setDpiScaleRaw(1.5)
         dlg.adaptSizeToMessage()
 
-        let needed = dlg.label.itf.measureContent({dlg.label.position.width, 0}).y
+        let needed = dlg.label.itf.measureContent(Math.Point{dlg.label.position.width, 0}).y
         Swag.assert(needed <= dlg.label.position.height + 0.5)
 
         dlg.surface.destroy()
@@ -243,7 +243,7 @@ using Swag, Core, Pixel
     Swag.assert(dlg.surface!.size().y <= 400)
     Swag.assert(dlg.messageScroll != null)
     let scroll = dlg.messageScroll
-    let needed = dlg.label.itf.measureContent({dlg.label.position.width, 0}).y
+    let needed = dlg.label.itf.measureContent(Math.Point{dlg.label.position.width, 0}).y
     Swag.assert(dlg.label.position.height >= needed)
     Swag.assert(scroll.scrollSize.y > scroll.view.position.height)
     scroll.setFocus()

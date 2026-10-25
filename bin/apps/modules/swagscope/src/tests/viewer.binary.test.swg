@@ -276,7 +276,7 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
     var host: Testing.HeadlessHost
     host.setup(860, 520)
     defer host.shutdown()
-    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
+    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 36, 36})
     var viewerSession = openTestViewer(Binary.viewerPlugin(), &host.root, fileName, actionParent: commands)
     let view          = assume cast(*Binary.Panel, viewerSession.view)
     finishBinaryViewer(&host, view)

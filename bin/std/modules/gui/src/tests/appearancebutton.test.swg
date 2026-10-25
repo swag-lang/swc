@@ -18,8 +18,8 @@ using Swag, Core, Pixel
     for icon, idx in icons
     {
         let x = 8 + cast(f32, idx) * 48
-        IconButton.create(&host.root, host.theme.icon(icon, 20), {x, 8, 40, 36})
-        IconButton.create(&host.root, host.theme.icon(icon, 16), {x, 52, 40, 36})
+        IconButton.create(&host.root, host.theme.icon(icon, 20), Math.Rectangle{x, 8, 40, 36})
+        IconButton.create(&host.root, host.theme.icon(icon, 16), Math.Rectangle{x, 52, 40, 36})
     }
 
     host.settleAnimations(&host.root, 4)
@@ -46,7 +46,7 @@ using Swag, Core, Pixel
     {
         let x = 8 + cast(f32, (idx % 5)) * 48
         let y = 8 + cast(f32, (idx / 5)) * 44
-        IconButton.create(&host.root, host.theme.icon(icon, 20), {x, y, 40, 36})
+        IconButton.create(&host.root, host.theme.icon(icon, 20), Math.Rectangle{x, y, 40, 36})
     }
 
     host.settleAnimations(&host.root, 4)

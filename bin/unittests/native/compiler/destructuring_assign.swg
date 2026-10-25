@@ -22,19 +22,19 @@ struct DestructAssignPair
 
 func makeDate()->DestructAssignDate
 {
-    return {2024, 2, 29}
+    return DestructAssignDate{2024, 2, 29}
 }
 
 func makeTime()->DestructAssignTime
 {
-    return {1, 2, 3, 4}
+    return DestructAssignTime{1, 2, 3, 4}
 }
 
 func makeDateTime()->DestructAssignDateTime
 {
     var result: retval
-    {result.year, result.month, result.day} = makeDate()
-    {result.hour, result.minute, result.second, result.millisecond} = makeTime()
+    {year: result.year, month: result.month, day: result.day} = makeDate()
+    {hour: result.hour, minute: result.minute, second: result.second, millisecond: result.millisecond} = makeTime()
     return result
 }
 
@@ -53,12 +53,12 @@ func makeDateTime()->DestructAssignDateTime
 #test
 {
     var pair = DestructAssignPair{1, 2}
-    {pair.b, pair.a} = pair
+    {a: pair.b, b: pair.a} = pair
     Swag.assert(pair.a == 2)
     Swag.assert(pair.b == 1)
 
     var other = DestructAssignPair{0, 0}
-    {other.a, _} = pair
+    {a: other.a, b: _} = pair
     Swag.assert(other.a == 2)
     Swag.assert(other.b == 0)
 }

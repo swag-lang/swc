@@ -118,7 +118,7 @@ internal impl Properties
         if not .isGridLike() do
             editWidth = .listContentWidthFromUseful(editWidth)
         let lineHeight = .kind == .Condensed ? PropCondensedControlHeight : .themeMetrics().btnPush_Height
-        let line       = Wnd.create'Wnd(item.line, {0, 0, editWidth, lineHeight})
+        let line       = Wnd.create'Wnd(item.line, Math.Rectangle{0, 0, editWidth, lineHeight})
 
         // Grid cell: the check line is capped to the value column. List rows let it span
         // the whole row so the side description wraps over the full control width.
@@ -139,14 +139,14 @@ internal impl Properties
             line.margin.w = .listNameMarginAfter
         }
 
-        with let ed = CheckButton.create(line, "", {0, 0, lineHeight, 0})
+        with let ed = CheckButton.create(line, "", Math.Rectangle{0, 0, lineHeight, 0})
         {
             .dockStyle = .Left
         }
 
         if .kind == .List
         {
-            with let label = Label.create(line, "", {lineHeight, 0, Math.max(editWidth - lineHeight, 1.0)})
+            with let label = Label.create(line, "", Math.Rectangle{lineHeight, 0, Math.max(editWidth - lineHeight, 1.0)})
             {
                 .dockStyle = .Center
                 .updateFlags(.WordWrap | .AutoHeight)
@@ -164,7 +164,7 @@ internal impl Properties
                 // padding translates the text rect without clipping wrapped lines.
                 let font = label.font().regular
                 if font do
-                    label.setTextPadding({0, -font.descent * 0.5, 0, font.descent * 0.5})
+                    label.setTextPadding(Math.Vector4{0, -font.descent * 0.5, 0, font.descent * 0.5})
 
                 label.updateAutomaticHeight()
                 line.position.height = Math.max(lineHeight, label.position.height)

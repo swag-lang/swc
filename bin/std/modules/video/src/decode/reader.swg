@@ -167,7 +167,7 @@ impl Reader
     {
         for decoder in decoders where decoder.type == type do
             return
-        decoders.add({itf.format(), type})
+        decoders.add(DecoderDesc{itf.format(), type})
     }
 
     // Returns the format read by each registered decoder, in registration order.

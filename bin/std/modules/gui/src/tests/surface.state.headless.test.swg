@@ -46,7 +46,7 @@ using Core
 
     surface.showMaximized()
     Swag.assert(surface.isMaximized and not surface.isMinimized)
-    surface.setPosition({40, 40, 640, 400})
+    surface.setPosition(Math.Rectangle{40, 40, 640, 400})
     surface.paint()
     Swag.assert(surface.rc.width == 640 and surface.rc.height == 400)
     Swag.assert(surface.rt.colorBuffer.width >= surface.rc.width and surface.rt.colorBuffer.height >= surface.rc.height)

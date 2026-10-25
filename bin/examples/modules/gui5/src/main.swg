@@ -59,14 +59,14 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
     frame.setFrameFlags(.Borders)
 
     let view = frame.createView'Wnd()
-    discard createText(view, title, {16, 10, rect.width - 32, 24})
-    discard createHelpText(view, subtitle, {16, 36, rect.width - 32, 44})
+    discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
+    discard createHelpText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 44})
     return view
 }
 
 func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
-    let label = createText(parent, text, {x, y, width, 22})
+    let label = createText(parent, text, Math.Rectangle{x, y, width, 22})
     label.updateFlags(.SecondaryText)
 }
 
@@ -81,9 +81,9 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
     var result: retval
-    result.left   = {0, 0, halfWidth, topHeight}
-    result.right  = {halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
-    result.bottom = {0, bottomY, width, bottomHeight}
+    result.left   = (0, 0, halfWidth, topHeight)
+    result.right  = (halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight)
+    result.bottom = (0, bottomY, width, bottomHeight)
     return result
 }
 
@@ -302,7 +302,7 @@ func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 
     painter.drawString(rect.x + 24, rect.y + 82, "Live swatch", titleFont, textColor)
     drawWrappedText(painter,
-                    {rect.x + 24, rect.y + 118, rect.width - 48, 48},
+                    Math.Rectangle{rect.x + 24, rect.y + 118, rect.width - 48, 48},
                     "Every picker and palette page feeds this shared selected color.",
                     bodyFont,
                     textColor.withAlpha(220'u8),
@@ -324,7 +324,7 @@ func drawColorRow(painter: *Painter, rect: Math.Rectangle, font: *Font, colors: 
     for c, i in cols
     {
         let x = rect.x + pad + cast(f32, i) * (sw + pad)
-        drawSwatch(painter, {x, rect.y + 6, sw, sh}, names[i], c, font, colors)
+        drawSwatch(painter, Math.Rectangle{x, rect.y + 6, sw, sh}, names[i], c, font, colors)
     }
 }
 
@@ -350,25 +350,25 @@ func onLivePreviewEvent(view: *Wnd, evt: IEvent)->bool
             let y     = card.bottom() + 28
             let width = Math.max((rect.width - 96) / 4, 70.0)
             drawSwatch(painter,
-                       {24, y, width, 40},
+                       Math.Rectangle{24, y, width, 40},
                        "lighter",
                        Color.lighter(g_Color, 0.34),
                        font,
                        colors)
             drawSwatch(painter,
-                       {24 + width + 16, y, width, 40},
+                       Math.Rectangle{24 + width + 16, y, width, 40},
                        "darker",
                        Color.darker(g_Color, 0.34),
                        font,
                        colors)
             drawSwatch(painter,
-                       {24 + (width + 16) * 2, y, width, 40},
+                       Math.Rectangle{24 + (width + 16) * 2, y, width, 40},
                        "complement",
                        g_Color.complementary(),
                        font,
                        colors)
             drawSwatch(painter,
-                       {24 + (width + 16) * 3, y, width, 40},
+                       Math.Rectangle{24 + (width + 16) * 3, y, width, 40},
                        "muted",
                        g_Color.adjustSaturation(-0.55),
                        font,
@@ -435,7 +435,7 @@ func onDerivedPreviewEvent(view: *Wnd, evt: IEvent)->bool
                 let row = cast(f32, (i / 3))
                 let x   = rect.x + pad + col * (cellW + pad)
                 let y   = rect.y + pad + row * (cellH + 24 + pad)
-                drawSwatch(painter, {x, y, cellW, cellH}, names[i], c, font, colors)
+                drawSwatch(painter, Math.Rectangle{x, y, cellW, cellH}, names[i], c, font, colors)
             }
         }
         else
@@ -476,7 +476,7 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
         painter.drawRoundRect(left, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
         painter.drawString(left.x + 24, left.y + 20, "Contrast pick", titleFont, text)
         drawWrappedText(painter,
-                        {left.x + 24, left.y + bodyTop, left.width - 48, left.height - bodyTop - 12},
+                        Math.Rectangle{left.x + 24, left.y + bodyTop, left.width - 48, left.height - bodyTop - 12},
                         "Foreground uses Color.contrasting() on the selected color.",
                         font,
                         text.withAlpha(220'u8),
@@ -487,7 +487,7 @@ func onContrastPreviewEvent(view: *Wnd, evt: IEvent)->bool
         painter.drawRoundRect(right, 18, 18, Color.fromArgb(80'u8, Argb.Black), 1)
         painter.drawString(right.x + 24, right.y + 20, "Alpha sample", titleFont, text)
         drawWrappedText(painter,
-                        {right.x + 24, right.y + bodyTop, right.width - 48, right.height - bodyTop - 12},
+                        Math.Rectangle{right.x + 24, right.y + bodyTop, right.width - 48, right.height - bodyTop - 12},
                         "The checkerboard makes semi-transparent selections visible.",
                         font,
                         text.withAlpha(220'u8),
@@ -550,11 +550,11 @@ func layoutRootView()
     let themeButton = g_ThemeButton!
     let subTitle2   = g_SubTitle!
     let footer2     = g_Footer!
-    title2.setPosition({RootMargin, 18, titleWidth, 34})
-    themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
-    pageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
-    footer2.setPosition({RootMargin, footerY, contentWidth, 28})
+    title2.setPosition(Math.Rectangle{RootMargin, 18, titleWidth, 34})
+    themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
+    subTitle2.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
+    pageView.setPosition(Math.Rectangle{RootMargin, PageTop, contentWidth, pageHeight})
+    footer2.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth, 28})
 }
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
@@ -644,26 +644,26 @@ func createRootView()
     g_View = view
     view.backgroundStyle = .View
 
-    let title = Label.create(view, "", {})
+    let title = Label.create(view, "", Math.Rectangle{})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
-    let themeButton = PushButton.create(view, "", {})
+    let themeButton = PushButton.create(view, "", Math.Rectangle{})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, {})
+    let pageView = Wnd.create'Wnd(view, Math.Rectangle{})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
-    let footer = Label.create(view, "", {})
+    let footer = Label.create(view, "", Math.Rectangle{})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
     footer.updateFlags(.SecondaryText)

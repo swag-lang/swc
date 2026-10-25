@@ -61,11 +61,11 @@ func day9A()
         let r = t - '0'
         if index & 1
         {
-            map.add({-1, r})
+            map.add({what: -1, num: r})
         }
         else
         {
-            map.add({cpt, r})
+            map.add({what: cpt, num: r})
             cpt += 1
         }
     }
@@ -92,7 +92,7 @@ func day9A()
             let n = map[i].num - map[last].num
             map[i].num     = map[last].num
             map[last].what = -1
-            map.insertAt(i + 1, {-1, n})
+            map.insertAt(i + 1, {what: -1, num: n})
         }
         elif map[i].num < map[last].num
         {

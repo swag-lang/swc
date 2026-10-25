@@ -14,7 +14,7 @@ internal impl Properties
 
         let iconX       = r.x + .itemIndent(item) + Math.max(.leftMargin - icon.sizeX, 0.0) * 0.5
         let iconCenterY = (item.label != null) ? item.label.position.vertCenter() : r.vertCenter()
-        return {iconX, iconCenterY - icon.sizeY * 0.5 + OpticalTextCenterY}
+        return Math.Point{iconX, iconCenterY - icon.sizeY * 0.5 + OpticalTextCenterY}
     }
 
     mtd paintBackItem(painter: *Painter, item: *PropertiesItem, wndItem: *Wnd)

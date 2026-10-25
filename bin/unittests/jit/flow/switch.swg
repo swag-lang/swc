@@ -458,7 +458,7 @@ const SwitchPointerValues = [11, 22, 33]
         }
     }
 
-    var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
+    var a: any = SwitchAnyDerived{base: SwitchAnyBase{value: 7}, extra: 11}
     Swag.assert(switchAnyUsingBase(a) == 1)
 }
 
@@ -475,7 +475,7 @@ const SwitchPointerValues = [11, 22, 33]
         }
     }
 
-    var a: any = SwitchAnyDerived{base: {value: 7}, extra: 11}
+    var a: any = SwitchAnyDerived{base: SwitchAnyBase{value: 7}, extra: 11}
     Swag.assert(switchAnyUsingBaseBinding(a) == 7)
 }
 

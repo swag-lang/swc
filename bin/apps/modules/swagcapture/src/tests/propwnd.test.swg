@@ -9,7 +9,7 @@ func testSetupPropWnd(f: *HeadlessFixture)->*PropWnd
 {
     f.gui.surfaceWnd.view = f.main
 
-    f.main.quickStyleBar = SplitterCtrl.create(f.main, {600, 0, 300, 650}, vertical: true)
+    f.main.quickStyleBar = SplitterCtrl.create(f.main, Math.Rectangle{600, 0, 300, 650}, vertical: true)
 
     let splitter = f.main.quickStyleBar
     f.main.quickWnd = QuickWnd.create(splitter, f.main)
@@ -153,8 +153,8 @@ func testFindStyleButton(prop: *PropWnd, tip: string)->*IconButton?
 
     f.capture.selection.clear()
     var points: Array'Math.Vector2
-    points.add({10, 50})
-    points.add({100, 50})
+    points.add(Math.Vector2{10, 50})
+    points.add(Math.Vector2{100, 50})
     let draw = testAddDraw(f.capture, points.toSlice())
     f.capture.selection.add(2)
     prop.selectionHasChanged()

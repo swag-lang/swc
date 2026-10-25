@@ -85,7 +85,7 @@ struct SizeHint
     {
         min:       Math.Point     // Smallest valid width and height.
         preferred: Math.Point     // Natural width and height before surplus distribution.
-        max:       Math.Point = {Swag.F32.Max, Swag.F32.Max}     // Largest valid width and height.
+        max:       Math.Point = Math.Point{Swag.F32.Max, Swag.F32.Max}     // Largest valid width and height.
     }
 }
 
@@ -276,12 +276,12 @@ struct Wnd
 
         readonly
         {
-            presentationOpacity: f32        = 1              // Opacity of this window and its descendants, from zero through one.
-            presentationOffset:  Math.Point                  // Paint-only displacement in logical pixels.
-            presentationScale:   Math.Point = {1, 1}         // Paint-only horizontal and vertical scale factors, both positive.
-            presentationPivot:   Math.Point = {0.5, 0.5}     // Fixed point of the scale, normalized inside the logical rectangle.
-            presentationClip:    Math.Rectangle              // Local reveal rectangle when presentation clipping is enabled.
-            hasPresentationClip: bool                        // Whether `presentationClip` limits painting.
+            presentationOpacity: f32        = 1                        // Opacity of this window and its descendants, from zero through one.
+            presentationOffset:  Math.Point                            // Paint-only displacement in logical pixels.
+            presentationScale:   Math.Point = Math.Point{1, 1}         // Paint-only horizontal and vertical scale factors, both positive.
+            presentationPivot:   Math.Point = Math.Point{0.5, 0.5}     // Fixed point of the scale, normalized inside the logical rectangle.
+            presentationClip:    Math.Rectangle                        // Local reveal rectangle when presentation clipping is enabled.
+            hasPresentationClip: bool                                  // Whether `presentationClip` limits painting.
         }
 
         parent: *Wnd?     // Structural parent responsible for position, layout, and lifetime.
@@ -449,7 +449,7 @@ impl IWnd for Wnd
     // Reports no content size by default, which keeps the authored size on both axes.
     mtd impl measureContent(_: Math.Point)->Math.Point
     {
-        return {}
+        return Math.Point{}
     }
 
     // Performs no additional creation work by default.
@@ -616,7 +616,7 @@ impl Wnd
             .name.set(name)
             .id            = id
             .position      = position
-            .preferredSize = {position.width, position.height}
+            .preferredSize = Math.Point{position.width, position.height}
             .hookOnEvent   = hook
 
             if parent
@@ -1093,7 +1093,7 @@ impl Wnd
     {
         var result: retval = rect
         result.applyPadding(.invalidatePadding)
-        result.applyPadding({-PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin})
+        result.applyPadding(Math.Vector4{-PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin, -PaintExtentMargin})
         return result
     }
 
@@ -1183,7 +1183,7 @@ impl Wnd
 
     // Changes the fixed point of [[Gui.Wnd.presentationScale]], normalized inside the logical rectangle.
     //
-    // `{0.5, 0.5}` scales about the center, `{0, 0}` about the top-left corner. Values outside
+    // `Math.Point{0.5, 0.5}` scales about the center, `Math.Point{0, 0}` about the top-left corner. Values outside
     // the unit square are accepted and place the fixed point beyond the window.
     mtd setPresentationPivot(pivot: Math.Point)
     {
@@ -1226,8 +1226,8 @@ impl Wnd
         .invalidatePresentation()
         .presentationOpacity = 1
         .presentationOffset  = {}
-        .presentationScale   = {1, 1}
-        .presentationPivot   = {0.5, 0.5}
+        .presentationScale   = Math.Point{1, 1}
+        .presentationPivot   = Math.Point{0.5, 0.5}
         .hasPresentationClip = false
         .invalidatePresentation()
     }
@@ -1452,7 +1452,7 @@ impl Wnd
     mtd const screenToSurface(pos: Math.Point)->Math.Point
     {
         let srfn = .surface!
-        return {(pos.x - srfn.position.x) / srfn.dpiScale, (pos.y - srfn.position.y) / srfn.dpiScale}
+        return Math.Point{(pos.x - srfn.position.x) / srfn.dpiScale, (pos.y - srfn.position.y) / srfn.dpiScale}
     }
 
     // Returns the number of physical device pixels covered by one logical unit of this window.
@@ -1471,25 +1471,25 @@ impl Wnd
     mtd const surfaceToLocal(pos: Math.Point)->Math.Point
     {
         let r = .surfaceRect()
-        return {pos.x - r.x, pos.y - r.y}
+        return Math.Point{pos.x - r.x, pos.y - r.y}
     }
 
     // Converts a position in this window's local coordinates to surface coordinates.
     mtd const localToSurface(pos: Math.Point)->Math.Point
     {
         let r = .surfaceRect()
-        return {pos.x + r.x, pos.y + r.y}
+        return Math.Point{pos.x + r.x, pos.y + r.y}
     }
 
     // Converts a rectangle in this window's local coordinates to surface coordinates.
     mtd const localToSurface(pos: Math.Rectangle)->Math.Rectangle
     {
         let r = .surfaceRect()
-        return {pos.x + r.x, pos.y + r.y, pos.width, pos.height}
+        return Math.Rectangle{pos.x + r.x, pos.y + r.y, pos.width, pos.height}
     }
 
     // Returns the unpadded local client rectangle.
-    mtd const clientRect()->Math.Rectangle => {0, 0, .position.width, .position.height}
+    mtd const clientRect()->Math.Rectangle => Math.Rectangle{0, 0, .position.width, .position.height}
 
     // Returns the local client rectangle inset by [[Gui.Wnd.padding]].
     mtd const paddedClientRect()->Math.Rectangle
@@ -1678,7 +1678,7 @@ impl Wnd
         if .position.x == x and .position.y == y do
             return
         var evt = MoveEvent{}
-        evt.oldPos  = {.position.x, .position.y}
+        evt.oldPos  = Math.Point{.position.x, .position.y}
         .position.x = Math.round(x)
         .position.y = Math.round(y)
         .sendEvent(&evt)
@@ -1694,7 +1694,7 @@ impl Wnd
     {
         if .preferredSize.x > 0 do
             return pos.width
-        return Math.max(.measure({client.width, pos.height}).preferred.x, 0)
+        return Math.max(.measure(Math.Point{client.width, pos.height}).preferred.x, 0)
     }
 
     // Returns the height of a band docked top or bottom, measured when none was authored.
@@ -1706,7 +1706,7 @@ impl Wnd
     {
         if .preferredSize.y > 0 do
             return pos.height
-        return Math.max(.measure({pos.width, client.height}).preferred.y, 0)
+        return Math.max(.measure(Math.Point{pos.width, client.height}).preferred.y, 0)
     }
 
     private mtd clampSize(pos: *Math.Rectangle)
@@ -1732,7 +1732,7 @@ impl Wnd
 
         if computeLayout
         {
-            .preferredSize = {pos.width, pos.height}
+            .preferredSize = Math.Point{pos.width, pos.height}
             .invalidateLayout()
         }
 
@@ -1740,7 +1740,7 @@ impl Wnd
             return
 
         var evt = ResizeEvent{}
-        evt.oldSize      = {.position.width, .position.height}
+        evt.oldSize      = Math.Point{.position.width, .position.height}
         .position.width  = pos.width
         .position.height = pos.height
 
@@ -1753,7 +1753,7 @@ impl Wnd
     // Places the children by their anchor and dock styles, then lays out each visible child.
     mtd applyLayout()
     {
-        .applyLayout({.position.width, .position.height})
+        .applyLayout(Math.Point{.position.width, .position.height})
     }
 
     // Places the children after a resize from `oldSize`.
@@ -1800,7 +1800,7 @@ impl Wnd
 
         for c in .children
         {
-            oldSizes.add({c.position.width, c.position.height})
+            oldSizes.add(Math.Point{c.position.width, c.position.height})
             if not c.isLocallyVisible() do
                 continue
             switch c.dockStyle
@@ -2322,7 +2322,7 @@ impl Wnd
             }
         }
 
-        .keyShortcuts.add({modifiers, key, wndId})
+        .keyShortcuts.add(KeyShortcut{modifiers, key, wndId})
     }
 
     // Resolves a shortcut locally, then through the owner or parent chain.
@@ -2563,7 +2563,7 @@ impl Wnd
     mtd sendComputeCommandStateEvent(cmdId: WndId?)->CommandStateEvent
     {
         if cmdId == null do
-            return {}
+            return CommandStateEvent{}
         let safeCmdId = cmdId orelse ""
 
         var evtState: retval

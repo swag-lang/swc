@@ -8,7 +8,7 @@ struct SmallColor
 #[Swag.Inline, Swag.ConstExpr]
 func makeColor(raw: u32)->SmallColor
 {
-    return {raw}
+    return SmallColor{raw}
 }
 
 #[Swag.Inline]

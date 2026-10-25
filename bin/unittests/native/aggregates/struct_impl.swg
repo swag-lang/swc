@@ -31,19 +31,19 @@ impl Vec2
 // Basic method calls.
 #test
 {
-    var v: Vec2 = {x: 3, y: 4}
+    var v: Vec2 = Vec2{x: 3, y: 4}
     Swag.assert(v.length2() == 25)
     Swag.assert(not v.isZero())
 
-    var z: Vec2 = {x: 0, y: 0}
+    var z: Vec2 = Vec2{x: 0, y: 0}
     Swag.assert(z.isZero())
 }
 
 // Method returning new struct, chained.
 #test
 {
-    var a: Vec2 = {x: 1, y: 2}
-    var b: Vec2 = {x: 3, y: 4}
+    var a: Vec2 = Vec2{x: 1, y: 2}
+    var b: Vec2 = Vec2{x: 3, y: 4}
     let result  = a.add(b).scale(2)
     Swag.assert(result.x == 8)
     Swag.assert(result.y == 12)
@@ -67,7 +67,7 @@ impl Vec2
 
 #test
 {
-    var v: Vec2 = {x: 5, y: -3}
+    var v: Vec2 = Vec2{x: 5, y: -3}
     v.negate()
     Swag.assert(v.x == -5)
     Swag.assert(v.y == 3)
@@ -75,8 +75,8 @@ impl Vec2
 
 #test
 {
-    var a: Vec2 = {x: 10, y: 20}
-    var b: Vec2 = {x: 1, y: 2}
+    var a: Vec2 = Vec2{x: 10, y: 20}
+    var b: Vec2 = Vec2{x: 1, y: 2}
     a.addInPlace(b)
     a.addInPlace(b)
     Swag.assert(a.x == 12)
@@ -85,7 +85,7 @@ impl Vec2
 
 #test
 {
-    var v: Vec2 = {x: 6, y: 8}
+    var v: Vec2 = Vec2{x: 6, y: 8}
     let p       = cast(StructImplStrictVec2Ptr, &v)
     Swag.assert(p.length2() == 100)
     p.negate()
@@ -117,7 +117,7 @@ impl Circle
 
 #test
 {
-    var c: Circle = {center: {x: 0, y: 0}, radius: 10}
+    var c: Circle = Circle{center: Vec2{x: 0, y: 0}, radius: 10}
     Swag.assert(c.area100() == 31400)
     c.translate(5, 7)
     Swag.assert(c.center.x == 5)
@@ -148,9 +148,9 @@ impl ListNode
 
 #test
 {
-    var c: ListNode = {value: 3, next: null}
-    var b: ListNode = {value: 2, next: &c}
-    var a: ListNode = {value: 1, next: &b}
+    var c: ListNode = ListNode{value: 3, next: null}
+    var b: ListNode = ListNode{value: 2, next: &c}
+    var a: ListNode = ListNode{value: 1, next: &b}
     Swag.assert(a.count() == 3)
     Swag.assert(b.count() == 2)
     Swag.assert(c.count() == 1)

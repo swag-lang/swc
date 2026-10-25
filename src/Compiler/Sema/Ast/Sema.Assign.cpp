@@ -146,9 +146,10 @@ namespace
         return Cast::emitCastFailure(sema, castRequest.failure);
     }
 
-    Result tryAssignmentCast(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView, TypeRef srcTypeRef, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None)
+    Result tryAssignmentCast(Sema& sema, AstNodeRef leftRef, const SemaNodeView& leftView, TypeRef srcTypeRef, AstNodeRef errorNodeRef = AstNodeRef::invalid(), DiagnosticId noteId = DiagnosticId::None, ConstantRef sourceConstant = ConstantRef::invalid())
     {
         CastRequest castRequest(CastKind::Assignment);
+        castRequest.srcConstRef  = sourceConstant;
         castRequest.errorNodeRef = errorNodeRef.isValid() ? errorNodeRef : leftRef;
 
         const TypeRef targetTypeRef = assignmentTargetTypeRef(leftView);
@@ -298,80 +299,21 @@ namespace
         applyMoveAssignmentModifiers(sema, modifierFlags, nodeRightView);
         SWC_RESULT(SemaCheck::checkMoveSourceCanReset(sema, nodeRightView.nodeRef(), nodeRightView.typeRef(), modifierFlags));
 
-        SmallVector<AstNodeRef> leftRefs;
-        sema.ast().appendNodes(leftRefs, assignList.spanChildrenRef);
-
         SWC_RESULT(SemaCheck::isValue(sema, nodeRightView.nodeRef()));
-
-        const bool isStruct    = nodeRightView.type()->isStruct();
-        const bool isAggregate = nodeRightView.type()->isAggregateStruct();
-        if (!isStruct && !isAggregate)
-        {
-            auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_struct, nodeRightView.nodeRef());
-            diag.addArgument(Diagnostic::ARG_TYPE, nodeRightView.typeRef());
-            diag.report(sema.ctx());
-
-            return Result::Error;
-        }
-
-        SWC_RESULT(sema.waitSemaCompleted(nodeRightView.type(), nodeRightView.nodeRef()));
-
-        const auto*  structFields   = isStruct ? &nodeRightView.type()->payloadSymStruct().fields() : nullptr;
-        const auto*  aggregateTypes = isAggregate ? &nodeRightView.type()->payloadAggregate().types : nullptr;
-        const size_t fieldCount     = isStruct ? structFields->size() : aggregateTypes->size();
-
+        SmallVector<SemaHelpers::DestructuringField> fields;
+        SWC_RESULT(SemaHelpers::resolveDestructuringPattern(sema, fields, assignList.nodeRef(sema.ast()), nodeRightView.typeRef(), nodeRightView.cstRef()));
         SWC_RESULT(SemaHelpers::attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), sema.node(sema.curNodeRef()), nodeRightView.typeRef(), "__assign_decomp_runtime_storage"));
-
-        SmallVector<size_t> patternFieldIndices;
-        if (assignList.hasFlag(AstAssignListFlagsE::NamedDestructuring))
+        for (const auto& field : fields)
         {
-            SmallVector<TokenRef> fieldNames;
-            sema.ast().appendTokens(fieldNames, assignList.spanFieldNamesRef);
-            SWC_ASSERT(fieldNames.size() == leftRefs.size());
-
-            SWC_RESULT(SemaHelpers::resolveDestructuringFieldIndices(sema, patternFieldIndices, nodeRightView.typeRef(), assignList.srcViewRef(), fieldNames.span()));
-        }
-        else
-        {
-            if (leftRefs.size() > fieldCount)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_too_many_names, leftRefs[fieldCount]);
-                diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
-                diag.report(sema.ctx());
-
-                return Result::Error;
-            }
-
-            if (leftRefs.size() < fieldCount)
-            {
-                auto diag = SemaError::report(sema, DiagnosticId::sema_err_decomposition_not_enough_names, leftRefs.empty() ? sema.curNodeRef() : leftRefs.back());
-                diag.addArgument(Diagnostic::ARG_COUNT, static_cast<uint32_t>(fieldCount));
-                diag.report(sema.ctx());
-
-                return Result::Error;
-            }
-
-            patternFieldIndices.reserve(leftRefs.size());
-            for (size_t i = 0; i < leftRefs.size(); i++)
-                patternFieldIndices.push_back(i);
-        }
-
-        for (size_t i = 0; i < leftRefs.size(); i++)
-        {
-            const auto leftRef = leftRefs[i];
-            if (leftRef.isInvalid())
+            if (field.ignored)
                 continue;
-            if (sema.node(leftRef).is(AstNodeId::AssignIgnore))
-                continue;
-
-            const SemaNodeView leftView = sema.viewNodeTypeSymbol(leftRef);
-            SWC_RESULT(SemaCheck::isAssignable(sema, leftRef, leftView, true));
+            const SemaNodeView leftView = sema.viewNodeTypeSymbol(field.bindingRef);
+            SWC_RESULT(SemaCheck::isAssignable(sema, field.bindingRef, leftView, true));
             markAssignmentTargetAddressableStorage(leftView);
-            SemaHelpers::clearLateFieldReadGuard(sema, leftRef);
-
-            const size_t  fieldIndex   = patternFieldIndices[i];
-            const TypeRef fieldTypeRef = isStruct ? (*structFields)[fieldIndex]->typeRef() : (*aggregateTypes)[fieldIndex];
-            SWC_RESULT(tryAssignmentCast(sema, leftRef, leftView, fieldTypeRef));
+            SemaHelpers::clearLateFieldReadGuard(sema, field.bindingRef);
+            SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, nodeRightView.nodeRef(), field.typeRef, leftView.typeRef(), modifierFlags, false));
+            SWC_RESULT(tryAssignmentCast(sema, field.bindingRef, leftView, field.typeRef, AstNodeRef::invalid(), DiagnosticId::None, field.constantRef));
+            SWC_RESULT(SemaEscape::applyAssignment(sema, field.bindingRef, nodeRightView.nodeRef()));
         }
 
         return Result::Continue;

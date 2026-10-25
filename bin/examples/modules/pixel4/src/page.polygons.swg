@@ -84,7 +84,7 @@ func drawPolygonHoleCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.drawPath(&list, outlinePen)
 
     drawWrappedText(painter,
-                    {body.x + 22, body.bottom() - 38, body.width - 44, 24},
+                    (body.x + 22, body.bottom() - 38, body.width - 44, 24),
                     "Counter-wound inner contour",
                     g_HelpFont,
                     Argb.Indigo)

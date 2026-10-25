@@ -18,7 +18,7 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     var host: Testing.HeadlessHost
     host.setup(400, 60)
     defer host.shutdown()
-    let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
+    let bc = BreadcrumbCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 32})
     bc.addItem("Home", bc.theme().icon(.OpenFile, 28), 1)
     bc.addItem("Docs", {}, 2)
     bc.addItem("Workspace", {}, 3, hasArrow: false)
@@ -52,19 +52,19 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     BreadcrumbPressedCount = 0
     BreadcrumbPressedIndex = Swag.U64.Max
 
-    let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
+    let bc = BreadcrumbCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 32})
     bc.addItem("Home", {}, 1)
     bc.addItem("Docs", {}, 2)
     bc.sigItemPressed += &breadcrumbPressed
     bc.layout()
 
     let r = bc.items[1].bodyRect
-    host.click({r.horzCenter(), r.vertCenter()})
+    host.click(Math.Point{r.horzCenter(), r.vertCenter()})
     Swag.assert(BreadcrumbPressedCount == 1)
     Swag.assert(BreadcrumbPressedIndex == 1)
 
     // A chevron with no sigFillMenu produces an empty (destroyed) popup, so no navigation.
     let a = bc.items[0].arrowRect
-    host.click({a.horzCenter(), a.vertCenter()})
+    host.click(Math.Point{a.horzCenter(), a.vertCenter()})
     Swag.assert(BreadcrumbPressedCount == 1)
 }

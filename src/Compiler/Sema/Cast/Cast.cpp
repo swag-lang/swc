@@ -135,7 +135,10 @@ namespace
         if (!srcTypeRef.isValid() || !dstTypeRef.isValid())
             return TypeRef::invalid();
 
+        const TypeInfo& srcType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
         const TypeInfo& dstType = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
+        if (srcType.isStructOrAggregateStruct() && dstType.isStructOrAggregateStruct() && srcTypeRef != dstTypeRef && srcType.sizeOf(sema.ctx()) <= sizeof(uint64_t))
+            return srcTypeRef;
         if (!dstType.isSlice() && !dstType.isString())
             return TypeRef::invalid();
 
@@ -223,6 +226,12 @@ TypeRef Cast::runtimeStorageTypeRef(Sema& sema, TypeRef srcTypeRef, TypeRef dstT
             return sema.typeMgr().addArrayType(dims, sema.typeMgr().typeU8());
         }
     }
+
+    if (srcType.isStructOrAggregateStruct() && dstType.isAggregateStruct() && srcTypeRef != dstTypeRef && !srcConstRef.isValid())
+        return dstTypeRef;
+    if (srcType.isStruct() && dstType.isStruct() && srcTypeRef != dstTypeRef &&
+        (srcType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous) || dstType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous)))
+        return dstTypeRef;
 
     if (dstType.isStruct())
     {
@@ -346,7 +355,18 @@ Result Cast::attachCastRuntimeStorageIfNeeded(Sema& sema, AstNodeRef castNodeRef
     if (sema.isGlobalScope())
         return Result::Continue;
 
-    const auto& castNode = sema.node(castNodeRef);
+    const TypeInfo& sourceType       = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), srcTypeRef);
+    const TypeInfo& targetType       = sema.typeMgr().unwrapAliasEnumTypeOrSelf(sema.ctx(), dstTypeRef);
+    const bool      recordStructCast = sourceType.isStruct() && targetType.isStruct() &&
+                                  (sourceType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous) || targetType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous));
+    const bool  remapsFields = sourceType.typeRef() != targetType.typeRef() && ((sourceType.isStructOrAggregateStruct() && targetType.isAggregateStruct()) || recordStructCast);
+    const auto& castNode     = sema.node(castNodeRef);
+    if (remapsFields)
+    {
+        const AstNodeRef sourceRef = castNode.is(AstNodeId::CastExpr) ? castNode.cast<AstCastExpr>().nodeExprRef : castNode.cast<AstAutoCastExpr>().nodeExprRef;
+        SWC_RESULT(SemaCheck::noCopyOfNonCopyable(sema, sourceRef, srcTypeRef, srcTypeRef, AstModifierFlagsE::Zero, true));
+        SemaHelpers::ensureCodeGenLoweringPayload(sema, castNodeRef).ownsValue = true;
+    }
     if (castNode.is(AstNodeId::CastExpr))
     {
         const AstNodeRef srcNodeRef           = castNode.cast<AstCastExpr>().nodeExprRef;

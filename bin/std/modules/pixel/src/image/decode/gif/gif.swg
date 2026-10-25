@@ -191,7 +191,7 @@ public impl Decoder
 
 public impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
+    mtd impl format()->ImageFormat => ImageFormat{"GIF - Graphics Interchange Format", ".gif"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
@@ -220,7 +220,7 @@ struct SetDecoder
 
 impl IImageDecoder for SetDecoder
 {
-    mtd impl format()->ImageFormat => {"GIF - Graphics Interchange Format", ".gif"}
+    mtd impl format()->ImageFormat => ImageFormat{"GIF - Graphics Interchange Format", ".gif"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {
@@ -249,7 +249,7 @@ impl IImageSetDecoder for SetDecoder
         while try .decoder.getFrame(false)
         {
             try options.checkFrameCount(.frames.count + 1)
-            .frames.add({.decoder.descriptorOffset, .decoder.descriptorRemaining, .decoder.gce})
+            .frames.add(IndexedFrame{.decoder.descriptorOffset, .decoder.descriptorRemaining, .decoder.gce})
             let control = .decoder.gce
             var disposal: ImageDisposal
             if control.disposal == 3 do
@@ -259,7 +259,7 @@ impl IImageSetDecoder for SetDecoder
             else do
                 disposal = .Keep
 
-            let frame: ImageFrameInfo = {
+            let frame: ImageFrameInfo = ImageFrameInfo{
                 kind: .Animation,
                 width: .decoder.fw,
                 height: .decoder.fh,

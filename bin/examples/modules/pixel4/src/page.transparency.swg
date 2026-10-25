@@ -50,7 +50,7 @@ func drawTransparencyPage(painter: *Pixel.Painter)
                    "Page 3 : color stacking and alpha blending on a filled surface plus overlapping strokes.")
 
     let sceneBody = drawPanel(painter,
-                              {28, 102, 924, 374},
+                              (28, 102, 924, 374),
                               "Transparency and layering",
                               "A translucent surface sits behind overlapping paths, with a border that stays outside the fill.")
     painter.fillRoundRect(sceneBody.x,
@@ -103,20 +103,20 @@ func drawTransparencyPage(painter: *Pixel.Painter)
     painter.popClippingRect()
 
     let alphaBody = drawPanel(painter,
-                              {28, 496, 924, 188},
+                              (28, 496, 924, 188),
                               "Opacity samples",
                               "Same compact path and pen geometry, with only the source alpha changed.")
     let alphaRowHeight = alphaBody.height / 3.0
     drawAlphaRow(painter,
-                 {alphaBody.x, alphaBody.y + 0 * alphaRowHeight, alphaBody.width, alphaRowHeight},
+                 Math.Rectangle{alphaBody.x, alphaBody.y + 0 * alphaRowHeight, alphaBody.width, alphaRowHeight},
                  64,
                  "25% alpha")
     drawAlphaRow(painter,
-                 {alphaBody.x, alphaBody.y + 1 * alphaRowHeight, alphaBody.width, alphaRowHeight},
+                 Math.Rectangle{alphaBody.x, alphaBody.y + 1 * alphaRowHeight, alphaBody.width, alphaRowHeight},
                  128,
                  "50% alpha")
     drawAlphaRow(painter,
-                 {alphaBody.x, alphaBody.y + 2 * alphaRowHeight, alphaBody.width, alphaRowHeight},
+                 Math.Rectangle{alphaBody.x, alphaBody.y + 2 * alphaRowHeight, alphaBody.width, alphaRowHeight},
                  216,
                  "85% alpha")
 }

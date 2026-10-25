@@ -43,7 +43,7 @@ impl ViewerReadingState
     {
         if wnd is ScrollWnd as scroll
         {
-            .scrolls.add({path[], scroll.scrollPosition()})
+            .scrolls.add(ViewerScrollState{path[], scroll.scrollPosition()})
             return
         }
 

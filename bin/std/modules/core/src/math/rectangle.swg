@@ -28,7 +28,7 @@ impl Rectangle
     mtd(op: Swag.Operator) const opBinary(value: f32)->Rectangle
         where op == .Mul
     {
-        return {.x * value, .y * value, .width * value, .height * value}
+        return Rectangle{.x * value, .y * value, .width * value, .height * value}
     }
 
     // Multiplies the position and size of this rectangle by `value`, as `*` does.

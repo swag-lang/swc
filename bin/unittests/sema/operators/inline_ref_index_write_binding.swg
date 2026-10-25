@@ -36,7 +36,7 @@ func inlineRefIndexWriteResult()->InlineRefIndexWriteInfo
     var values = InlineRefIndexWriteValues{values: [11, 22]}
     var index  = 0
     inlineRefIndexWriteAt(&values, &index, 42)
-    return {values[0], index}
+    return InlineRefIndexWriteInfo{values[0], index}
 }
 
 func semaTest001()

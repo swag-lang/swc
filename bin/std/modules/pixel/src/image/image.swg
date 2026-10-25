@@ -78,7 +78,7 @@ internal struct PixelValue
 }
 
 #[Swag.Inline]
-internal func colorPixelValue(color: Color)->PixelValue => {color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0}
+internal func colorPixelValue(color: Color)->PixelValue => PixelValue{color.r / 255.0, color.g / 255.0, color.b / 255.0, color.a / 255.0}
 
 internal func hslPixelValue(hue, saturation, lightness: f32)->PixelValue
 {
@@ -102,10 +102,10 @@ internal func hslPixelValue(hue, saturation, lightness: f32)->PixelValue
     let s = Math.saturate(saturation)
     let l = Math.saturate(lightness)
     if s == 0 do
-        return {l, l, l, 1}
+        return PixelValue{l, l, l, 1}
     let m2 = l < 0.5 ? l * (1 + s) : (l + s) - l * s
     let m1 = 2 * l - m2
-    return {hueComponent(m1, m2, h + 1.0 / 3.0), hueComponent(m1, m2, h), hueComponent(m1, m2, h - 1.0 / 3.0), 1}
+    return PixelValue{hueComponent(m1, m2, h + 1.0 / 3.0), hueComponent(m1, m2, h), hueComponent(m1, m2, h - 1.0 / 3.0), 1}
 }
 
 #[Swag.Inline]
@@ -132,71 +132,71 @@ internal func readPixelValue(source: const [*] u8, format: PixelFormat)->PixelVa
     {
     case .Gray8:
         let value = cast(f32, source[0]) / 255.0
-        result = {value, value, value, 1}
+        result = PixelValue{value, value, value, 1}
 
     case .GrayAlpha8:
         let value = cast(f32, source[0]) / 255.0
-        result = {value, value, value, cast(f32, source[1]) / 255.0}
+        result = PixelValue{value, value, value, cast(f32, source[1]) / 255.0}
 
     case .Gray16, .GrayAlpha16:
         let value = cast(f32, cast(const *u16, source)[]) / 65535.0
-        result = {value, value, value, format == .GrayAlpha16 ? cast(f32, cast(const *u16, (source + 2))[]) / 65535.0 : 1}
+        result = PixelValue{value, value, value, format == .GrayAlpha16 ? cast(f32, cast(const *u16, (source + 2))[]) / 65535.0 : 1}
 
     case .GrayF16, .GrayAlphaF16:
         let value = halfToFloat(cast(const *u16, source)[])
-        result = {value, value, value, format == .GrayAlphaF16 ? halfToFloat(cast(const *u16, (source + 2))[]) : 1}
+        result = PixelValue{value, value, value, format == .GrayAlphaF16 ? halfToFloat(cast(const *u16, (source + 2))[]) : 1}
 
     case .GrayF32, .GrayAlphaF32:
         let value = cast(const *f32, source)[]
-        result = {value, value, value, format == .GrayAlphaF32 ? cast(const *f32, (source + 4))[] : 1}
+        result = PixelValue{value, value, value, format == .GrayAlphaF32 ? cast(const *f32, (source + 4))[] : 1}
 
     case .BGR8:
-        result = {cast(f32, source[2]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[0]) / 255.0, 1}
+        result = PixelValue{cast(f32, source[2]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[0]) / 255.0, 1}
 
     case .BGRA8:
-        result = {cast(f32, source[2]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[0]) / 255.0, cast(f32, source[3]) / 255.0}
+        result = PixelValue{cast(f32, source[2]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[0]) / 255.0, cast(f32, source[3]) / 255.0}
 
     case .RGB8:
-        result = {cast(f32, source[0]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[2]) / 255.0, 1}
+        result = PixelValue{cast(f32, source[0]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[2]) / 255.0, 1}
 
     case .RGBA8:
-        result = {cast(f32, source[0]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[2]) / 255.0, cast(f32, source[3]) / 255.0}
+        result = PixelValue{cast(f32, source[0]) / 255.0, cast(f32, source[1]) / 255.0, cast(f32, source[2]) / 255.0, cast(f32, source[3]) / 255.0}
 
     case .RGB16:
         let samples = cast(const [*] u16, source)
-        result = {cast(f32, samples[0]) / 65535.0,
-                  cast(f32, samples[1]) / 65535.0,
-                  cast(f32, samples[2]) / 65535.0,
-                  1}
+        result = PixelValue{cast(f32, samples[0]) / 65535.0,
+                            cast(f32, samples[1]) / 65535.0,
+                            cast(f32, samples[2]) / 65535.0,
+                            1}
 
     case .RGBA16:
         let samples = cast(const [*] u16, source)
-        result = {cast(f32, samples[0]) / 65535.0,
-                  cast(f32, samples[1]) / 65535.0,
-                  cast(f32, samples[2]) / 65535.0,
-                  cast(f32, samples[3]) / 65535.0}
+        result = PixelValue{cast(f32, samples[0]) / 65535.0,
+                            cast(f32, samples[1]) / 65535.0,
+                            cast(f32, samples[2]) / 65535.0,
+                            cast(f32, samples[3]) / 65535.0}
 
     case .RGBF16:
         let samples = cast(const [*] u16, source)
-        result = {halfToFloat(samples[0]),
-                  halfToFloat(samples[1]),
-                  halfToFloat(samples[2]),
-                  1}
+        result = PixelValue{halfToFloat(samples[0]),
+                            halfToFloat(samples[1]),
+                            halfToFloat(samples[2]),
+                            1}
 
     case .RGBAF16:
         let samples = cast(const [*] u16, source)
-        result = {halfToFloat(samples[0]),
-                  halfToFloat(samples[1]),
-                  halfToFloat(samples[2]),
-                  halfToFloat(samples[3])}
+        result = PixelValue{halfToFloat(samples[0]),
+                            halfToFloat(samples[1]),
+                            halfToFloat(samples[2]),
+                            halfToFloat(samples[3])}
 
     case .RGBF32:
         let samples = cast(const [*] f32, source)
-        result = {samples[0], samples[1], samples[2], 1}
+        result = PixelValue{samples[0], samples[1], samples[2], 1}
 
     case .RGBAF32:
         let samples = cast(const [*] f32, source)
-        result = {samples[0], samples[1], samples[2], samples[3]}
+        result = PixelValue{samples[0], samples[1], samples[2], samples[3]}
 
     case .Yuv420, .Yuv444:
         Swag.assert(false, "a planar pixel cannot be read from packed storage")
@@ -326,7 +326,7 @@ impl Image
     // ## Example
     //
     // ```swag
-    // let pixels: [4] u8 = {255, 0, 0, 255}
+    // let pixels: [4] u8 = [255, 0, 0, 255]
     // let image = Image.create(1, 1, .RGBA8, pixels)
     // ```
     func create(width, height: s32, pixelFormat: PixelFormat, buffer: const [..] u8? = null, alphaMode = AlphaMode.Straight)->Image

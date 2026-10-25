@@ -26,7 +26,7 @@ func isGreen(value: A)->bool
 #test
 {
     let value:  A        = .G
-    let holder: Holder   = {value: A.B}
+    let holder: Holder   = Holder{value: A.B}
     let values: [3] A    = [.R, .G, .B]
     let matrix: [2, 2] A = [[.R, .G], [.B, .R]]
 

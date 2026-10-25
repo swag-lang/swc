@@ -73,7 +73,7 @@ struct Encoder
 
 impl IEncoder for Encoder
 {
-    mtd impl format()->StreamFormat => {"AVI - Audio Video Interleave", ".avi"}
+    mtd impl format()->StreamFormat => StreamFormat{"AVI - Audio Video Interleave", ".avi"}
 
     #[Swag.Propagate]
     mtd impl begin(sink: *ByteSink, info: StreamInfo, options: any?) fail
@@ -134,7 +134,7 @@ impl IEncoder for Encoder
         let size    = payload.count
         .reserve(sink, size)
 
-        .index.add({cast(u32, (sink.position() - .frameList)), cast(u32, size)})
+        .index.add(IndexEntry{cast(u32, (sink.position() - .frameList)), cast(u32, size)})
         sink.writeNative(FrameChunkId)
         sink.writeNative(cast(u32, size))
         sink.write(payload)

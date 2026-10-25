@@ -63,13 +63,13 @@ func availableMountDestinationsNative()->Array'MountDestination
     for letter in available where letter >= 'D'
     {
         let name = Format.toString("%:", letter)
-        result.add({name, name})
+        result.add(MountDestination{name, name})
     }
 
     for letter in available where letter < 'D'
     {
         let name = Format.toString("%:", letter)
-        result.add({name, name})
+        result.add(MountDestination{name, name})
     }
 
     return result

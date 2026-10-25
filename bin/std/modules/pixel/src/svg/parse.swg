@@ -362,16 +362,16 @@ private struct Gradient
     href:      String     // Gradient this one inherits from, without its `#`.
     specified: GradientSpecified     // Attributes this gradient states itself.
 
-    x1: SvgLength = {0, true}
-    y1: SvgLength = {0, true}
-    x2: SvgLength = {1, true}
-    y2: SvgLength = {0, true}
+    x1: SvgLength = SvgLength{0, true}
+    y1: SvgLength = SvgLength{0, true}
+    x2: SvgLength = SvgLength{1, true}
+    y2: SvgLength = SvgLength{0, true}
 
-    cx: SvgLength = {0.5, true}
-    cy: SvgLength = {0.5, true}
-    r:  SvgLength = {0.5, true}
-    fx: SvgLength = {0.5, true}
-    fy: SvgLength = {0.5, true}
+    cx: SvgLength = SvgLength{0.5, true}
+    cy: SvgLength = SvgLength{0.5, true}
+    r:  SvgLength = SvgLength{0.5, true}
+    fx: SvgLength = SvgLength{0.5, true}
+    fy: SvgLength = SvgLength{0.5, true}
     fr: SvgLength
 
     userSpace: bool
@@ -425,7 +425,7 @@ private func scanNumber(s: string, pos: *u64)->f32
     return catch StrConv.toF32(s[start until i])
 }
 
-private func parseLength(value: string, defaultValue: SvgLength = {})->SvgLength
+private func parseLength(value: string, defaultValue: SvgLength = SvgLength{})->SvgLength
 {
     var pos = 0'u64
     while pos < value.count and (value[pos] == ' ' or value[pos] == '\t' or value[pos] == '\n' or value[pos] == '\r') do
@@ -853,7 +853,7 @@ private func applyStyleProperty(state: *GroupState, name, value: string)
             state.fontFamily = family.kind
 
     case "font-size":
-        state.fontSize = Math.max(parseLength(value, {state.fontSize, false}).value, 1)
+        state.fontSize = Math.max(parseLength(value, SvgLength{state.fontSize, false}).value, 1)
 
     // `normal` is the absence of extra spacing, and a percentage is relative to the
     // font size, which is what `em` already resolves against here.
@@ -1091,7 +1091,7 @@ private func prependTranslation(transform: Math.Transform2, x, y: f32)->Math.Tra
 
 // Maps one user-space point into drawing space.
 #[Swag.Inline]
-private func mapPoint(state: *GroupState, x, y: f32)->Vector2 => state.transform.transformPoint({x, y})
+private func mapPoint(state: *GroupState, x, y: f32)->Vector2 => state.transform.transformPoint(Vector2{x, y})
 
 // The single length scale a transform applies, as the square root of the area it multiplies.
 //
@@ -1367,11 +1367,11 @@ private func polyVertices(points: string, wanted: bool)->Array'MarkerVertex
             let previous  = result[result.count - 1].point
             let direction = Vector2{x - previous.x, y - previous.y}
             result[result.count - 1].outDir = direction
-            result.add(MarkerVertex{{x, y}, direction, {}})
+            result.add(MarkerVertex{Vector2{x, y}, direction, Vector2{}})
         }
         else
         {
-            result.add(MarkerVertex{{x, y}, {}, {}})
+            result.add(MarkerVertex{Vector2{x, y}, Vector2{}, Vector2{}})
         }
     }
 
@@ -1385,7 +1385,7 @@ private func addMarkerVertex(vertices: *Array'MarkerVertex?, point, inDir, previ
         return
     if vertices.count and (previousOutDir.x != 0 or previousOutDir.y != 0) do
         vertices[vertices.count - 1].outDir = previousOutDir
-    vertices.add(MarkerVertex{point, inDir, {}})
+    vertices.add(MarkerVertex{point, inDir, Vector2{}})
 }
 
 // Parses one `d` attribute into subpath contours, transformed by `state`.
@@ -1512,7 +1512,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             let start = mapPoint(state, x, y)
             path = list.newPath()
             path.start(start.x, start.y)
-            addMarkerVertex(vertices, {x, y}, {}, {})
+            addMarkerVertex(vertices, Vector2{x, y}, {}, {})
             started = true
             curX    = x
             curY    = y
@@ -1540,7 +1540,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             {
                 let target = mapPoint(state, x, y)
                 path!.lineTo(target.x, target.y)
-                addMarkerVertex(vertices, {x, y}, {x - curX, y - curY}, {x - curX, y - curY})
+                addMarkerVertex(vertices, Vector2{x, y}, Vector2{x - curX, y - curY}, Vector2{x - curX, y - curY})
             }
 
             curX = x
@@ -1554,7 +1554,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 x += curX
             let target = mapPoint(state, x, curY)
             path!.lineTo(target.x, target.y)
-            addMarkerVertex(vertices, {x, curY}, {x - curX, 0}, {x - curX, 0})
+            addMarkerVertex(vertices, Vector2{x, curY}, Vector2{x - curX, 0}, Vector2{x - curX, 0})
             curX = x
 
         case 'V', 'v':
@@ -1565,7 +1565,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 y += curY
             let target = mapPoint(state, curX, y)
             path!.lineTo(target.x, target.y)
-            addMarkerVertex(vertices, {curX, y}, {0, y - curY}, {0, y - curY})
+            addMarkerVertex(vertices, Vector2{curX, y}, Vector2{0, y - curY}, Vector2{0, y - curY})
             curY = y
 
         case 'C', 'c', 'S', 's':
@@ -1610,7 +1610,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             let control1 = mapPoint(state, c1x, c1y)
             let control2 = mapPoint(state, c2x, c2y)
             path!.bezierTo(target.x, target.y, control1.x, control1.y, control2.x, control2.y)
-            addMarkerVertex(vertices, {x, y}, {x - c2x, y - c2y}, {c1x - curX, c1y - curY})
+            addMarkerVertex(vertices, Vector2{x, y}, Vector2{x - c2x, y - c2y}, Vector2{c1x - curX, c1y - curY})
             ctlX      = c2x
             ctlY      = c2y
             curX      = x
@@ -1654,7 +1654,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             let target  = mapPoint(state, x, y)
             let control = mapPoint(state, c1x, c1y)
             path!.bezierTo(target.x, target.y, control.x, control.y)
-            addMarkerVertex(vertices, {x, y}, {x - c1x, y - c1y}, {c1x - curX, c1y - curY})
+            addMarkerVertex(vertices, Vector2{x, y}, Vector2{x - c1x, y - c1y}, Vector2{c1x - curX, c1y - curY})
             ctlX      = c1x
             ctlY      = c1y
             curX      = x
@@ -1679,7 +1679,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
             }
 
             appendArc(path!, state, curX, curY, rx, ry, rotation, largeArc, sweepF, x, y)
-            addMarkerVertex(vertices, {x, y}, {x - curX, y - curY}, {x - curX, y - curY})
+            addMarkerVertex(vertices, Vector2{x, y}, Vector2{x - curX, y - curY}, Vector2{x - curX, y - curY})
             curX = x
             curY = y
 
@@ -1931,7 +1931,7 @@ private impl Parser
                 break
 
             if selector.count and selector[0] != '@' do
-                .styles.add({String.from(selector), String.from(Latin1.trim(content[declarationsStart until pos]))})
+                .styles.add(StyleRule{String.from(selector), String.from(Latin1.trim(content[declarationsStart until pos]))})
             pos += 1
         }
 
@@ -2192,7 +2192,7 @@ private impl Parser
                 let opacityAttr = geo.tryFind("stop-opacity")
                 if opacityAttr
                 {
-                    let parsed = parseLength(opacityAttr.value.toString(), {1, false})
+                    let parsed = parseLength(opacityAttr.value.toString(), SvgLength{1, false})
                     opacity = Math.saturate(parsed.value)
                 }
 
@@ -2201,7 +2201,7 @@ private impl Parser
                     let styled = styleValue(style.value.toString(), "stop-opacity")
                     if not styled.isEmpty()
                     {
-                        let parsed = parseLength(styled.toString(), {1, false})
+                        let parsed = parseLength(styled.toString(), SvgLength{1, false})
                         opacity = Math.saturate(parsed.value)
                     }
                 }
@@ -2210,7 +2210,7 @@ private impl Parser
                 var normalizedOffset = Math.saturate(offset.value)
                 if not gradient.stops.isEmpty() do
                     normalizedOffset = Math.max(normalizedOffset, gradient.stops.back().offset)
-                gradient.stops.add({normalizedOffset, color})
+                gradient.stops.add(GradientStop{normalizedOffset, color})
             }
 
             if not selfClosed do
@@ -2353,7 +2353,7 @@ private impl Parser
         // The rectangle stays in user units and carries its transform, so a mirrored or turned
         // picture is painted through the same matrix as its siblings instead of being
         // flattened into an upright rectangle.
-        item.rect      = {.geoNumber(geo, "x"), .geoNumber(geo, "y"), width, height}
+        item.rect      = Rectangle{.geoNumber(geo, "x"), .geoNumber(geo, "y"), width, height}
         item.transform = state.transform
         item.opacity   = state.opacity
         if not state.inDefs do
@@ -2406,7 +2406,7 @@ private impl Parser
         run.hasX     = first or x != null
         run.hasY     = first or y != null
         let anchor = mapPoint(state, x ? .geoNumber(geo, "x") : 0, y ? .geoNumber(geo, "y") : 0)
-        let offset = state.transform.transformVector({dx, dy})
+        let offset = state.transform.transformVector(Vector2{dx, dy})
         run.x  = anchor.x
         run.y  = anchor.y
         run.dx = offset.x
@@ -2757,8 +2757,8 @@ private impl Parser
                 {
                     let direction = Vector2{x2 - x1, y2 - y1}
                     var vertices: Array'MarkerVertex
-                    vertices.add(MarkerVertex{{x1, y1}, {}, direction})
-                    vertices.add(MarkerVertex{{x2, y2}, direction, {}})
+                    vertices.add(MarkerVertex{Vector2{x1, y1}, Vector2{}, direction})
+                    vertices.add(MarkerVertex{Vector2{x2, y2}, direction, Vector2{}})
                     .applyMarkers(&state, vertices.toSlice())
                 }
 
@@ -2787,7 +2787,7 @@ private impl Parser
 
                 let clipId = geo.tryFind("id")
                 if clipId and .drawing.shapes.count > clipFirst do
-                    .clipPaths.add(clipId.value, {clipFirst, .drawing.shapes.count - clipFirst})
+                    .clipPaths.add(clipId.value, {first: clipFirst, count: .drawing.shapes.count - clipFirst})
 
             case "symbol":
 
@@ -2803,7 +2803,7 @@ private impl Parser
                 let symbolId = geo.tryFind("id")
                 if symbolId and .drawing.shapes.count > symbolFirst
                 {
-                    .defs.add(symbolId.value, {symbolFirst, .drawing.shapes.count - symbolFirst})
+                    .defs.add(symbolId.value, {first: symbolFirst, count: .drawing.shapes.count - symbolFirst})
 
                     var viewport: SymbolViewport
                     let box = geo.tryFind("viewBox")
@@ -2943,7 +2943,7 @@ private impl Parser
             {
                 let idAttr = geo.tryFind("id")
                 if idAttr do
-                    .defs.add(idAttr.value, {firstShape, .drawing.shapes.count - firstShape})
+                    .defs.add(idAttr.value, {first: firstShape, count: .drawing.shapes.count - firstShape})
             }
 
             .applyClipPath(&state, firstItem)
@@ -3060,7 +3060,7 @@ private impl Parser
             placement.multiply(Math.Transform2.createScale(fit, fit, 0, 0))
             placement.multiply(Math.Transform2.createTranslation((definition.width - definition.viewWidth * fit) * 0.5, (definition.height - definition.viewHeight * fit) * 0.5))
 
-            let reference = placement.transformPoint({definition.refX, definition.refY})
+            let reference = placement.transformPoint(Vector2{definition.refX, definition.refY})
             placement.multiply(Math.Transform2.createTranslation(-reference.x, -reference.y))
         }
         else
@@ -3185,12 +3185,12 @@ private impl Parser
         // A user-space stop is a point of the element's own coordinate system, so it goes
         // through the gradient's transform and then through the element's.
         if gradient.userSpace do
-            return shape.paintTransform.transformPoint(gradient.transform.transformPoint({px, py}))
+            return shape.paintTransform.transformPoint(gradient.transform.transformPoint(Vector2{px, py}))
 
         // An object-bounding-box stop is a fraction of the shape's extent, and the gradient
         // transform applies in that unit square before it is stretched back over the bounds.
-        let unit = gradient.transform.transformPoint({(px - boundsMin.x) / Math.max(boundsSize.x, 0.000001), (py - boundsMin.y) / Math.max(boundsSize.y, 0.000001)})
-        return {boundsMin.x + unit.x * boundsSize.x, boundsMin.y + unit.y * boundsSize.y}
+        let unit = gradient.transform.transformPoint(Vector2{(px - boundsMin.x) / Math.max(boundsSize.x, 0.000001), (py - boundsMin.y) / Math.max(boundsSize.y, 0.000001)})
+        return Vector2{boundsMin.x + unit.x * boundsSize.x, boundsMin.y + unit.y * boundsSize.y}
     }
 
     mtd gradientBrush(gradient: const *Gradient, shape: const *Shape)->Brush
@@ -3612,10 +3612,10 @@ impl Drawing
         if .imageSize.x > 0 and .imageSize.y > 0 do
             return .imageSize
         if .imageSize.x > 0 and .width > 0 do
-            return {.imageSize.x, .imageSize.x * .height / .width}
+            return Vector2{.imageSize.x, .imageSize.x * .height / .width}
         if .imageSize.y > 0 and .height > 0 do
-            return {.imageSize.y * .width / .height, .imageSize.y}
-        return {.width, .height}
+            return Vector2{.imageSize.y * .width / .height, .imageSize.y}
+        return Vector2{.width, .height}
     }
 
     // Parses an SVG document authored in the supported subset.
@@ -3634,7 +3634,7 @@ impl Drawing
     //
     // `options` confines external image references and selects the typefaces for text;
     // see [[Pixel.Svg.ParseOptions]]. Unknown elements and attributes are ignored.
-    func parse(text: string, options: ParseOptions = {})->Drawing fail
+    func parse(text: string, options: ParseOptions = ParseOptions{})->Drawing fail
     {
         var result: retval
 
@@ -3975,7 +3975,7 @@ impl Drawing
 
         painter.setTransform(outerTransform)
         var draw: LayerDrawInfo
-        draw.dstRect = {x + offsetX, y + offsetY, .width * scale, .height * scale}
+        draw.dstRect = Rectangle{x + offsetX, y + offsetY, .width * scale, .height * scale}
         draw.shadow  = shadow
         layer.draw(draw)
         painter.setTransform(drawingTransform)
@@ -4195,7 +4195,7 @@ impl Drawing
                     // matte colors without unpremultiplying them by a discarded alpha plane.
                     painter.setColorMaskAlpha()
                     painter.setBlendingMode(.Copy)
-                    painter.fillRect({0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)}, Argb.White)
+                    painter.fillRect(Rectangle{0, 0, cast(f32, sampledWidth), cast(f32, sampledHeight)}, Argb.White)
                     painter.unbindRenderTarget()
 
                     // Average each matte before recovering straight RGB; averaging straight

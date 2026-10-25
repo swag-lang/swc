@@ -22,7 +22,7 @@ internal impl IPropertyEditor for FontStyleEditor
 
         // Grid mode packs the pair left in the value column; the panel/list modes center
         // it as its own full-width row.
-        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorizontalFit : .HorizontalCenter, {0, 0, 0, lineH})
+        with let line = StackLayoutCtrl.create(item.line, list.isGridLike() ? .HorizontalFit : .HorizontalCenter, Math.Rectangle{0, 0, 0, lineH})
         {
             .anchorStyle = .Right
             .spacing     = 4
@@ -34,7 +34,7 @@ internal impl IPropertyEditor for FontStyleEditor
         // A switch that is on says so in the accent it is lettered in. The rule a tool rail
         // marks its picked tool with would run under a field of the form here, which reads
         // as an underlined row rather than as one letter being on.
-        with let btnBold = IconButton.create(line, {}, {0, 0, BtnW, lineH})
+        with let btnBold = IconButton.create(line, {}, Math.Rectangle{0, 0, BtnW, lineH})
         {
             .name = "B"
             .setForm(.RoundedRectangle)
@@ -42,7 +42,7 @@ internal impl IPropertyEditor for FontStyleEditor
             .setCheckIndicator(.Ink)
         }
 
-        with let btnItalic = IconButton.create(line, {}, {0, 0, BtnW, lineH})
+        with let btnItalic = IconButton.create(line, {}, Math.Rectangle{0, 0, BtnW, lineH})
         {
             .name = "I"
             .setForm(.RoundedRectangle)

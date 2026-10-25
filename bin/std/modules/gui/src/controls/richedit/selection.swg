@@ -180,11 +180,11 @@ impl RichEditCtrl
 
         if first.lineIndex == last.lineIndex
         {
-            result = {start.x, start.y - height, Math.max(end.x - start.x, 2), height}
+            result = Math.Rectangle{start.x, start.y - height, Math.max(end.x - start.x, 2), height}
         }
         else
         {
-            result = {view.clientRect().x, start.y - height, view.clientRect().width, Math.max(end.y - start.y + height, height)}
+            result = Math.Rectangle{view.clientRect().x, start.y - height, view.clientRect().width, Math.max(end.y - start.y + height, height)}
         }
 
         result.offset(-view.scrollPos.x, -view.scrollPos.y)

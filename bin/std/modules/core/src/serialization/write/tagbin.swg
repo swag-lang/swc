@@ -552,7 +552,7 @@ impl TagBin
         else
         {
             // track a non-compressed element to keep nesting consistent
-            .elemStack.add({false, null})
+            .elemStack.add({compressed: false, tmpBuf: null})
         }
     }
 

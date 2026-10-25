@@ -35,7 +35,7 @@ private func writeRandomKeyFile(path: string) fail
 
 impl IWnd for KeyFileField
 {
-    mtd impl measureContent(_: Math.Point)->Math.Point => {0, .themeMetrics().comboBox_Height}
+    mtd impl measureContent(_: Math.Point)->Math.Point => Math.Point{0, .themeMetrics().comboBox_Height}
 
     mtd impl onResizeEvent(_: *ResizeEvent)
     {
@@ -49,11 +49,11 @@ impl IWnd for KeyFileField
         for button in [.remove, .generate, .add] where button.isVisible()
         {
             right -= cell
-            button.arrange({right, room.y, cell, cell})
+            button.arrange(Math.Rectangle{right, room.y, cell, cell})
             right -= gap
         }
 
-        .files.arrange({room.x, room.y, Math.max(0, right - room.x), room.height})
+        .files.arrange(Math.Rectangle{room.x, room.y, Math.max(0, right - room.x), room.height})
     }
 }
 
@@ -108,8 +108,8 @@ private impl KeyFileField
             .mode  = .SelectFiles
             .title = appStrings().dlg_TitleKeyFiles
             .confirmButtonText = appStrings().dlg_BtnAdd
-            .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
-            .shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+            .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
+            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
         }
 
         let dialog = FileDlg.create(.surface!, options)
@@ -126,8 +126,8 @@ private impl KeyFileField
             .title             = appStrings().dlg_TitleGenerateKey
             .confirmButtonText = appStrings().dlg_BtnCreate
             .initialName       = "vault.key"
-            .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
-            .shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+            .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
+            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
         }
 
         let dialog = FileDlg.create(.surface!, options)

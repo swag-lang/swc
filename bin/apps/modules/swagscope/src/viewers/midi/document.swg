@@ -267,7 +267,7 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
                     closeNote(document, &active[index], tick)
                     if document.notes.count >= NoteLimit do
                         fail UnsupportedFormatError{Errors.mkString(texts().err_TooManyNotes)}
-                    document.notes.add({tick, Swag.U64.Max, trackIndex, channel, key, data2})
+                    document.notes.add(Note{tick, Swag.U64.Max, trackIndex, channel, key, data2})
                     active[index]   = document.notes.count
                     track.noteCount += 1
                     document.minKey = Math.min(document.minKey, key)
@@ -295,15 +295,15 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
             case 0x51 where length.value == 3:
                 let micros = Math.make32(0, bytes[body], bytes[body + 1], bytes[body + 2])
                 if micros do
-                    document.tempos.add({tick, micros})
+                    document.tempos.add(Tempo{tick, micros})
 
             case 0x58 where length.value == 4 and bytes[body + 1] < 16:
-                document.timeSignatures.add({tick, bytes[body], 1'u32 << bytes[body + 1]})
+                document.timeSignatures.add(TimeSignature{tick, bytes[body], 1'u32 << bytes[body + 1]})
 
             case 0x59 where length.value == 2:
                 let encoded = cast(s32, bytes[body])
                 let sharps  = encoded >= 128 ? encoded - 256 : encoded
-                document.keySignatures.add({tick, sharps, bytes[body + 1] != 0})
+                document.keySignatures.add(KeySignature{tick, sharps, bytes[body + 1] != 0})
             }
 
             scan = body + length.value

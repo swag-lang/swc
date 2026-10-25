@@ -16,13 +16,13 @@ using Swag, Core, Pixel
             host.surface.flags = .StandardWindow
             host.theme.metrics.surfaceWnd_ShadowSize   = 0
             host.theme.metrics.surfaceWnd_CornerRadius = radius
-            host.surface.setPosition({0, 0, 180 * scale, 120 * scale})
+            host.surface.setPosition(Math.Rectangle{0, 0, 180 * scale, 120 * scale})
             host.root.setPosition(host.surfaceWnd.position)
             let full = host.render()
 
             host.app.frameTrace.enabled = true
             host.surface.isDirty        = false
-            host.surface.invalidateRect({50, 50, 20, 20})
+            host.surface.invalidateRect(Math.Rectangle{50, 50, 20, 20})
             host.surface.paintWnd(&host.root)
             let withBorder = host.app.frameTrace.batches
             let partial    = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)
@@ -30,7 +30,7 @@ using Swag, Core, Pixel
 
             host.surface.flags.remove(.Border)
             host.app.frameTrace.batches = 0
-            host.surface.invalidateRect({50, 50, 20, 20})
+            host.surface.invalidateRect(Math.Rectangle{50, 50, 20, 20})
             host.surface.paintWnd(&host.root)
             Swag.assert(host.app.frameTrace.batches == withBorder)
 
@@ -53,7 +53,7 @@ using Swag, Core, Pixel
         host.surface.flags = .StandardWindow
         host.theme.metrics.surfaceWnd_ShadowSize   = 18
         host.theme.metrics.surfaceWnd_CornerRadius = 0
-        host.surface.setPosition({0, 0, 180 * scale, 120 * scale})
+        host.surface.setPosition(Math.Rectangle{0, 0, 180 * scale, 120 * scale})
         host.root.setPosition(host.surfaceWnd.position)
         let restored = host.render()
         host.surface.isMaximized = true
@@ -71,7 +71,7 @@ using Swag, Core, Pixel
         }
 
         Swag.assert(maximized.pixelColor(0, 0).argb == 0)
-        host.surface.invalidateRect({50, 50, 10, 10})
+        host.surface.invalidateRect(Math.Rectangle{50, 50, 10, 10})
         host.surface.paintWnd(&host.root)
         let partial = host.app.renderer.readRenderTarget(&host.surface.rt, 0, 0, host.surface.rc.width, host.surface.rc.height)
         Pixel.Testing.assertImagesNear(&maximized, &partial, "surface.maximized.partial")
@@ -91,14 +91,14 @@ using Swag, Core, Pixel
         host.surface.flags = .StandardWindow
         host.theme.metrics.surfaceWnd_ShadowSize   = 18
         host.theme.metrics.surfaceWnd_CornerRadius = 12
-        host.surface.setPosition({0, 0, 180 * scale, 120 * scale})
+        host.surface.setPosition(Math.Rectangle{0, 0, 180 * scale, 120 * scale})
         host.root.setPosition(host.surfaceWnd.position)
         let image = host.render()
         Pixel.Testing.assertImageGolden(&image, Format.toString("surface.shadow.%", index).toString())
 
         // A partial repaint can end inside any band or entirely inside the opaque body. Its
         // scissors must leave exactly the same pixels as the original complete frame.
-        let clips: [4] Math.Rectangle = [{0, 0, 45, 120}, {45, 0, 90, 40}, {45, 80, 135, 40}, {50, 50, 10, 10}]
+        let clips: [4] Math.Rectangle = [Math.Rectangle{0, 0, 45, 120}, Math.Rectangle{45, 0, 90, 40}, Math.Rectangle{45, 80, 135, 40}, Math.Rectangle{50, 50, 10, 10}]
         for clip in clips
         {
             host.surface.invalidateRect(clip)

@@ -49,7 +49,7 @@ func day7B0()
         {
             let splitVal = Tokenize.split(v, ' 'u8, 1)
             let count    = expect StrConv.toU32(splitVal[0])
-            id.findOrAdd(split[0]).value.add({count, splitVal[1]})
+            id.findOrAdd(split[0]).value.add({count, name: splitVal[1]})
         }
     }
 
@@ -88,7 +88,7 @@ func day7B1()
         {
             discard r.match(v)
             let count = expect StrConv.toU32(r.getCapture(1))
-            id.findOrAdd(split[0]).value.add({count, r.getCapture(2)})
+            id.findOrAdd(split[0]).value.add({count, name: r.getCapture(2)})
         }
     }
 

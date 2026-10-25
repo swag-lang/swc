@@ -250,8 +250,8 @@ impl Image
         let lo = tmp[il]
         let hi = tmp[ih]
         if hi <= lo do
-            return {lo, lo + 1e-6}
-        return {lo, hi}
+            return {a: lo, b: lo + 1e-6}
+        return {a: lo, b: hi}
     }
 
     // Core saliency builder that reuses extracted lum/sat and Sobel edges
@@ -329,9 +329,9 @@ impl Image
         }
 
         // Normalize features, then combine
-        let {cLo, cHi} = estimatePercentiles(&contrast, N, 0.01, 0.99)
-        let {sLo, sHi} = estimatePercentiles(&sat, N, 0.01, 0.99)
-        let {eLo, eHi} = estimatePercentiles(&edgeMag, N, 0.01, 0.99)
+        let {a: cLo, b: cHi} = estimatePercentiles(&contrast, N, 0.01, 0.99)
+        let {a: sLo, b: sHi} = estimatePercentiles(&sat, N, 0.01, 0.99)
+        let {a: eLo, b: eHi} = estimatePercentiles(&edgeMag, N, 0.01, 0.99)
 
         let cDen = Math.max(1e-6, cHi - cLo)
         let sDen = Math.max(1e-6, sHi - sLo)
@@ -351,7 +351,7 @@ impl Image
             S[i] = combined
         }
 
-        return {S, edgeMag}
+        return {S, Eedge: edgeMag}
     }
 
     func getThirdsOrZero(w, h: s32, enabled: bool)->Array'f32
@@ -453,7 +453,7 @@ impl Image
         let d2  = (cwx - ctx.cx) * (cwx - ctx.cx) + (cwy - ctx.cy) * (cwy - ctx.cy)
         s += ctx.centerW * (1.0 - (d2 / ctx.d2Max))
 
-        return {s, d2}
+        return {score: s, d2: d2}
     }
 
     func fitAspect(cw, ch, w, h: s32, aspect, imgAspect: f32)->{ w0: s32, h0: s32 }
@@ -470,7 +470,7 @@ impl Image
             h0 = Math.min(h, Math.max(4, Math.roundS32(cast(f32, w0) / aspect)))
         }
 
-        return {w0, h0}
+        return {w0: w0, h0: h0}
     }
 
     func refinePosition(ctx: *ScoreCtx, bestX, bestY, bestW, bestH: s32, range: s32 = 2)->{ x: s32, y: s32, score: f32, d2: f32 }
@@ -505,7 +505,7 @@ impl Image
             }
         }
 
-        return {bx, by, bScore, bD2}
+        return {x: bx, y: by, score: bScore, d2: bD2}
     }
 
     func tryScaledVariants(ctx: *ScoreCtx, aspect, imgAspect: f32, bestX, bestY, bestW, bestH: s32)->{ x: s32, y: s32, w: s32, h: s32, score: f32, d2: f32 }
@@ -534,7 +534,7 @@ impl Image
             if cw > ctx.w or ch > ctx.h do
                 continue
 
-            let {fw, fh} = fitAspect(cw, ch, ctx.w, ctx.h, aspect, imgAspect)
+            let {w0: fw, h0: fh} = fitAspect(cw, ch, ctx.w, ctx.h, aspect, imgAspect)
             if fw < 4 or fh < 4 do
                 continue
 
@@ -558,7 +558,7 @@ impl Image
             }
         }
 
-        return {bx, by, bw, bh, bScore, bD2}
+        return {x: bx, y: by, w: bw, h: bh, score: bScore, d2: bD2}
     }
 
     mtd const calculateSingleScale(aspect, imgAspect: f32, w, h: s32, opts: SmartCropSearchOpts)->Math.Rectangle
@@ -844,7 +844,7 @@ public impl Image
     // Higher scores are preferred. `rect` uses image pixel coordinates. When
     // `opts.maxSize` is positive, scoring may use a reduced working copy while
     // preserving the rectangle's proportions.
-    mtd evaluateCropScore(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})->f32
+    mtd evaluateCropScore(rect: Math.Rectangle, opts: SmartCropSearchOpts = SmartCropSearchOpts{})->f32
     {
         // If a max working size is set and we’re larger, evaluate on a resized copy
         if opts.maxSize > 0
@@ -885,7 +885,7 @@ public impl Image
     // The position in `rect` is ignored: Pixel searches the source for the
     // highest-scoring placement with the requested width and height. The final
     // crop always uses the original pixels, even when search downscaling is enabled.
-    mtd smartCrop(rect: Math.Rectangle, opts: SmartCropSearchOpts = {})
+    mtd smartCrop(rect: Math.Rectangle, opts: SmartCropSearchOpts = SmartCropSearchOpts{})
     {
         Swag.assert(rect.width > 0 and rect.height > 0)
 

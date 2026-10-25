@@ -67,14 +67,14 @@ func drawCapGlyph(painter: *Painter, cap: LineCapStyle, begin: bool, pos: Math.R
     {
         pen.begCapStyle = cap
         pen.endCapStyle = .None
-        let {_, l0} = Painter.capStyleExtent(cap, size, pen.capBegScaleX)
+        let {l: l0} = Painter.capStyleExtent(cap, size, pen.capBegScaleX)
         rect.moveLeft(l0)
     }
     else
     {
         pen.begCapStyle = .None
         pen.endCapStyle = cap
-        let {_, l0} = Painter.capStyleExtent(cap, size, pen.capEndScaleX)
+        let {l: l0} = Painter.capStyleExtent(cap, size, pen.capEndScaleX)
         rect.moveRight(-l0)
     }
 
@@ -367,7 +367,7 @@ impl PropWnd
         // The cells start at the panel margin like every row under them, instead of floating
         // in the middle of the column: a group centred on its own is a third alignment on a
         // surface that already has one.
-        let stack0 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, {0, 0, 0, StyleCellSize})
+        let stack0 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, Math.Rectangle{0, 0, 0, StyleCellSize})
         stack0.spacing = StyleCellGap
         .propBackColor(stack0)
         .propBorderColor(stack0)
@@ -378,7 +378,7 @@ impl PropWnd
         if stack0.children.isEmpty() do
             stack0.destroyNow()
 
-        let stack1 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, {0, 0, 0, StyleCellSize})
+        let stack1 = StackLayoutCtrl.create(.topLayout, .HorizontalCenter, Math.Rectangle{0, 0, 0, StyleCellSize})
         stack1.spacing = StyleCellGap
         .propStartCapStyle(stack1)
         .propDashStyle(stack1)
@@ -404,7 +404,7 @@ impl PropWnd
     // Builds the property panel: the row of style cells above the grid of fields.
     func create(parent: *Wnd, main: *MainWnd)->*PropWnd
     {
-        with let prop = Wnd.create'PropWnd(parent, {0, 0, 0, 300})
+        with let prop = Wnd.create'PropWnd(parent, Math.Rectangle{0, 0, 0, 300})
         {
             .backgroundStyle = .Transparent
 
@@ -416,7 +416,7 @@ impl PropWnd
 
             // The head keeps the margin of the panel on both edges, and a block of air
             // between itself and the rows the grid generates under it.
-            .topLayout.padding = {12, 16, 12, 16}
+            .topLayout.padding = Math.Vector4{12, 16, 12, 16}
 
             .grid = Properties.create(prop, kind: .Panel)
             .grid.dockStyle = .Center

@@ -102,7 +102,7 @@ func initCells()
         {
             let xinfo = x - 2
             g_BoardInfo[i].odd  = (xinfo + y) % 2 == 1
-            g_BoardInfo[i].rect = {BorderSize + xinfo * CellSize, BorderSize + (7 - y) * CellSize, CellSize, CellSize}
+            g_BoardInfo[i].rect = Math.Rectangle{BorderSize + xinfo * CellSize, BorderSize + (7 - y) * CellSize, CellSize, CellSize}
             g_Board[i].content  = (y < 2) ? .White : ((y > 5) ? .Black : .Empty)
         }
     }
@@ -218,7 +218,7 @@ func computeMoves()
     {
         var board = doMove(g_Board, ki, ki + 2)
         if not isCheck(board, g_Game.whiteTurn) do
-            g_Game.possibleMoves.add({ki, ki + 2})
+            g_Game.possibleMoves.add((ki, ki + 2))
     }
 
     if bigCastle and
@@ -230,7 +230,7 @@ func computeMoves()
     {
         var board = doMove(g_Board, ki, ki - 2)
         if not isCheck(board, g_Game.whiteTurn) do
-            g_Game.possibleMoves.add({ki, ki - 2})
+            g_Game.possibleMoves.add((ki, ki - 2))
     }
 
     if g_Game.possibleMoves.isEmpty() do
@@ -410,10 +410,10 @@ func paintBoard(paintEvt: *PaintEvent)
     let s = BoardSize
     let b = BorderSize
 
-    painter.fillRect({0, 0, b + s + b, b}, ColorBorder)
-    painter.fillRect({0, b + s, b + s + b, b}, ColorBorder)
-    painter.fillRect({0, b, b, s}, ColorBorder)
-    painter.fillRect({b + s, b, b, s}, ColorBorder)
+    painter.fillRect(Math.Rectangle{0, 0, b + s + b, b}, ColorBorder)
+    painter.fillRect(Math.Rectangle{0, b + s, b + s + b, b}, ColorBorder)
+    painter.fillRect(Math.Rectangle{0, b, b, s}, ColorBorder)
+    painter.fillRect(Math.Rectangle{b + s, b, b, s}, ColorBorder)
 
     var rs:  RichString
     var rsf: RichStringFormat
@@ -524,7 +524,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         initGame()
         initCells()
 
-        let btn = PushButton.create(wnd, "Restart !", {BoardWithBorderSize + 12, 12})
+        let btn = PushButton.create(wnd, "Restart !", Math.Rectangle{BoardWithBorderSize + 12, 12})
         btn.sigPressed += func|wnd|(_)
         {
             initGame()

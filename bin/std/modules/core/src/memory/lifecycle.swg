@@ -99,7 +99,7 @@ internal func canDefaultInit(type: typeinfo)->bool
     let typeStruct = assume cast(const *TypeInfoStruct, concreteType)
     if typeStruct.opInit do
         return true
-    if not (concreteType.flags & TypeInfoFlags.Tuple) do
+    if not (concreteType.flags & (TypeInfoFlags.Tuple | TypeInfoFlags.Record)) do
         return false
 
     for field in typeStruct.fields
@@ -146,7 +146,7 @@ internal func defaultInit(dst: *void?, type: typeinfo)
 
         // Every struct gets a generated 'opInit' except one that requires explicit initialization,
         // which has no default value to write.
-        if not (concreteType.flags & TypeInfoFlags.Tuple)
+        if not (concreteType.flags & (TypeInfoFlags.Tuple | TypeInfoFlags.Record))
         {
             Swag.assert(false, "the type requires explicit initialization and has no default value")
             return
@@ -199,7 +199,7 @@ internal func dropType(dst: *void?, type: typeinfo)
             return
         }
 
-        if concreteType.flags & TypeInfoFlags.Tuple
+        if concreteType.flags & (TypeInfoFlags.Tuple | TypeInfoFlags.Record)
         {
             for field in typeStruct.fields!.reversed()
             {
@@ -245,7 +245,7 @@ internal func postCopyType(dst: *void?, type: typeinfo)
             return
         }
 
-        if concreteType.flags & TypeInfoFlags.Tuple
+        if concreteType.flags & (TypeInfoFlags.Tuple | TypeInfoFlags.Record)
         {
             for field in typeStruct.fields
             {
@@ -291,7 +291,7 @@ internal func postMoveType(dst: *void?, type: typeinfo)
             return
         }
 
-        if concreteType.flags & TypeInfoFlags.Tuple
+        if concreteType.flags & (TypeInfoFlags.Tuple | TypeInfoFlags.Record)
         {
             for field in typeStruct.fields
             {

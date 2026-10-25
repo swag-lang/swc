@@ -172,7 +172,7 @@ private func appendStrokeStyle(result: *String, item: const *Item)
 private func encodedPoint(page: const *Page, item: const *Item, point: Vector2)->Vector2
 {
     let transformed = item.transform.transformPoint(point)
-    return {transformed.x, page.height - transformed.y}
+    return Math.Vector2{transformed.x, page.height - transformed.y}
 }
 
 private func appendPath(result: *String, page: const *Page, item: const *Item)
@@ -219,8 +219,8 @@ private func appendPath(result: *String, page: const *Page, item: const *Item)
                 let c1y = current.y + 2.0 / 3.0 * (element.p1.y - current.y)
                 let c2x = element.position.x + 2.0 / 3.0 * (element.p1.x - element.position.x)
                 let c2y = element.position.y + 2.0 / 3.0 * (element.p1.y - element.position.y)
-                let c1  = encodedPoint(page, item, {c1x, c1y})
-                let c2  = encodedPoint(page, item, {c2x, c2y})
+                let c1  = encodedPoint(page, item, Math.Vector2{c1x, c1y})
+                let c2  = encodedPoint(page, item, Math.Vector2{c2x, c2y})
                 let p   = encodedPoint(page, item, element.position)
                 result.appendFormat("% % % % % % c\n", pdfNumber(c1.x), pdfNumber(c1.y), pdfNumber(c2.x), pdfNumber(c2.y), pdfNumber(p.x), pdfNumber(p.y))
 
@@ -298,7 +298,7 @@ private func pageContent(page: const *Page, fonts: const [..] StandardFont)->Str
         {
         case .Text:
             appendColor(&result, item.fillColor, false)
-            let baseline = item.transform.transformPoint({0, item.fontSize})
+            let baseline = item.transform.transformPoint(Math.Vector2{0, item.fontSize})
             result.appendFormat("BT\n/F% % Tf\n% % % % % % Tm\n", fontSlot(fonts, item.standardFont), pdfNumber(item.fontSize), pdfNumber(item.transform.m11), pdfNumber(-item.transform.m12), pdfNumber(-item.transform.m21), pdfNumber(item.transform.m22), pdfNumber(baseline.x), pdfNumber(page.height - baseline.y))
             if item.invisibleText do
                 result += "3 Tr\n"
@@ -382,12 +382,12 @@ private func infoDictionary(metadata: const *Metadata)->String fail
 {
     var result: retval = "<<"
     let fields: [6] { name: string, value: string } = [
-        {"Title",    metadata.title.toString()},
-        {"Author",   metadata.author.toString()},
-        {"Subject",  metadata.subject.toString()},
-        {"Keywords", metadata.keywords.toString()},
-        {"Creator",  metadata.creator.toString()},
-        {"Producer", metadata.producer.toString()}]
+        {name: "Title",    value: metadata.title.toString()},
+        {name: "Author",   value: metadata.author.toString()},
+        {name: "Subject",  value: metadata.subject.toString()},
+        {name: "Keywords", value: metadata.keywords.toString()},
+        {name: "Creator",  value: metadata.creator.toString()},
+        {name: "Producer", value: metadata.producer.toString()}]
     for field in fields where field.value.count
     {
         result.appendFormat(" /% ", field.name)

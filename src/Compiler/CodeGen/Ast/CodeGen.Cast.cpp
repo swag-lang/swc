@@ -12,6 +12,7 @@
 #include "Compiler/CodeGen/Core/CodeGenMemoryHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenReferenceHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenSafety.h"
+#include "Compiler/CodeGen/Core/CodeGenStructHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTaggedHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenTypeHelpers.h"
 #include "Compiler/CodeGen/Core/CodeGenVectorHelpers.h"
@@ -103,7 +104,7 @@ namespace
         return codeGen.payload(srcNodeRef);
     }
 
-    MicroReg materializeArrayCastSourceAddress(CodeGen& codeGen, AstNodeRef srcNodeRef, const CodeGenNodePayload& srcPayload, const TypeInfo& srcType)
+    MicroReg materializeCastSourceAddress(CodeGen& codeGen, AstNodeRef srcNodeRef, const CodeGenNodePayload& srcPayload, const TypeInfo& srcType)
     {
         if (srcPayload.isAddress())
             return srcPayload.reg;
@@ -687,7 +688,7 @@ namespace
 
         const uint64_t length          = srcType.sizeOf(codeGen.ctx());
         const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-        const MicroReg srcDataReg      = materializeArrayCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
+        const MicroReg srcDataReg      = materializeCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
 
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::String, ptr), srcDataReg, MicroOpBits::B64);
 
@@ -731,7 +732,7 @@ namespace
         }
 
         const MicroReg runtimeValueReg = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
-        const MicroReg srcDataReg      = materializeArrayCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
+        const MicroReg srcDataReg      = materializeCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
 
         builder.emitLoadMemReg(runtimeValueReg, offsetof(Runtime::Slice<std::byte>, ptr), srcDataReg, MicroOpBits::B64);
 
@@ -768,7 +769,7 @@ namespace
         }
 
         CodeGenNodePayload& dstPayload = codeGen.setPayloadValue(codeGen.curNodeRef(), dstTypeRef);
-        dstPayload.reg                 = materializeArrayCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
+        dstPayload.reg                 = materializeCastSourceAddress(codeGen, srcNodeRef, srcPayload, srcType);
         dstPayload.markMaterializedPointerLikeValue();
         return Result::Continue;
     }
@@ -1421,6 +1422,41 @@ namespace
         return CodeGenCallHelpers::codeGenCallExprCommon(codeGen, AstNodeRef::invalid(), castPayload.calledFn);
     }
 
+    void emitAggregateFieldsCast(CodeGen& codeGen, MicroReg destination, MicroReg source, const TypeInfo& srcType, const TypeInfo& dstType)
+    {
+        CodeGenStructHelpers::StructLikeFieldLayoutCursor dstCursor;
+        for (size_t i = 0; i < CodeGenStructHelpers::structLikeFieldCount(dstType); ++i)
+        {
+            size_t sourceIndex = i;
+            if (!dstType.isPositionalTuple())
+            {
+                const IdentifierRef name  = dstType.isStruct() ? dstType.payloadSymStruct().fields()[i]->idRef() : dstType.payloadAggregate().names[i];
+                const bool          found = srcType.isStruct() ? srcType.payloadSymStruct().tryGetFieldIndexByName(sourceIndex, name) : srcType.tryGetAggregateMemberIndexByName(sourceIndex, codeGen.ctx(), name);
+                SWC_ASSERT(found);
+            }
+            CodeGenStructHelpers::StructLikeFieldLayoutCursor srcCursor;
+            const auto                                        srcLayout    = CodeGenStructHelpers::structLikeFieldLayout(codeGen, srcCursor, srcType, sourceIndex);
+            const auto                                        dstLayout    = CodeGenStructHelpers::structLikeFieldLayout(codeGen, dstCursor, dstType, i);
+            const MicroReg                                    srcAddress   = codeGen.offsetAddressReg(source, srcLayout.offset);
+            const MicroReg                                    dstAddress   = codeGen.offsetAddressReg(destination, dstLayout.offset);
+            const TypeInfo&                                   srcFieldType = codeGen.typeMgr().get(srcLayout.typeRef);
+            const TypeInfo&                                   dstFieldType = codeGen.typeMgr().get(dstLayout.typeRef);
+            if (srcFieldType.isStructOrAggregateStruct() && dstFieldType.isStructOrAggregateStruct() && srcLayout.typeRef != dstLayout.typeRef)
+                emitAggregateFieldsCast(codeGen, dstAddress, srcAddress, srcFieldType, dstFieldType);
+            else if (srcLayout.typeRef != dstLayout.typeRef && CodeGenTypeHelpers::scalarStoreBits(dstFieldType, codeGen.ctx()) != MicroOpBits::Zero)
+            {
+                CodeGenNodePayload fieldPayload;
+                fieldPayload.reg     = srcAddress;
+                fieldPayload.typeRef = srcLayout.typeRef;
+                fieldPayload.setIsAddress();
+                const MicroReg value = CodeGenMemoryHelpers::materializeScalarPayloadForStore(codeGen, fieldPayload, srcLayout.typeRef, dstLayout.typeRef);
+                codeGen.builder().emitLoadMemReg(dstAddress, 0, value, CodeGenTypeHelpers::scalarStoreBits(dstFieldType, codeGen.ctx()));
+            }
+            else
+                CodeGenMemoryHelpers::emitMemCopy(codeGen, dstAddress, srcAddress, static_cast<uint32_t>(dstFieldType.sizeOf(codeGen.ctx())));
+        }
+    }
+
     Result emitNumericCast(CodeGen& codeGen, AstNodeRef srcNodeRef, TypeRef dstTypeRef)
     {
         const auto* castPayload = codeGen.loweringPayload(codeGen.curNodeRef());
@@ -1481,6 +1517,26 @@ namespace
         const TypeInfo& resolvedDstType    = dstType.unwrapAliasEnumTypeOrSelf(codeGen.ctx());
         const TypeRef   resolvedSrcTypeRef = resolvedSrcType.typeRef();
         const TypeRef   resolvedDstTypeRef = resolvedDstType.typeRef();
+
+        const bool recordStructCast = resolvedSrcType.isStruct() && resolvedDstType.isStruct() &&
+                                      (resolvedSrcType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous) || resolvedDstType.payloadSymStruct().hasExtraFlag(SymbolStructFlagsE::Anonymous));
+        if (resolvedSrcTypeRef != resolvedDstTypeRef && ((resolvedSrcType.isStructOrAggregateStruct() && resolvedDstType.isAggregateStruct()) || recordStructCast))
+        {
+            const MicroReg destination = codeGen.runtimeStorageAddressReg(codeGen.curNodeRef());
+            const MicroReg source      = materializeCastSourceAddress(codeGen, srcNodeRef, srcPayload, resolvedSrcType);
+            emitAggregateFieldsCast(codeGen, destination, source, resolvedSrcType, resolvedDstType);
+            const bool                   copiesSource = codeGen.sema().isLValueStored(srcNodeRef);
+            const CodeGen::LifecycleKind postKind     = copiesSource ? CodeGen::LifecycleKind::PostCopy : CodeGen::LifecycleKind::PostMove;
+            if (codeGen.hasLifecycle(dstTypeRef, postKind))
+                SWC_RESULT(codeGen.emitLifecycle(dstTypeRef, postKind, destination));
+            const SymbolVariable* sourceStorage = codeGen.runtimeStorageSymbol(srcNodeRef);
+            if (!copiesSource && sourceStorage && codeGen.hasTemporaryDrop(*sourceStorage))
+                codeGen.cancelTemporaryDrop(*sourceStorage);
+            codeGen.setPayloadAddressReg(codeGen.curNodeRef(), destination, dstTypeRef).ownsValue = true;
+            if (codeGen.hasLifecycle(dstTypeRef, CodeGen::LifecycleKind::Drop))
+                codeGen.registerTemporaryDrop(codeGen.curNodeRef(), dstTypeRef, *castPayload->runtimeStorageSym);
+            return Result::Continue;
+        }
 
         // Address homes refer to the descriptor itself, including an 'any' value.
         // Resolve them before unboxing or converting the descriptor's contents.
@@ -2023,6 +2079,13 @@ Result AstAsCastExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeR
 Result AstAutoCastExpr::codeGenPostNode(CodeGen& codeGen) const
 {
     return emitNumericCast(codeGen, nodeExprRef, codeGen.curViewType().typeRef());
+}
+
+void CodeGenStructHelpers::emitRecordOrTupleCast(CodeGen& codeGen, MicroReg destination, MicroReg source, TypeRef sourceType, TypeRef targetType)
+{
+    const TypeInfo& sourceInfo = codeGen.typeMgr().get(sourceType).unwrapAliasTypeOrSelf(codeGen.ctx());
+    const TypeInfo& targetInfo = codeGen.typeMgr().get(targetType).unwrapAliasTypeOrSelf(codeGen.ctx());
+    emitAggregateFieldsCast(codeGen, destination, source, sourceInfo, targetInfo);
 }
 
 Result AstCastExpr::codeGenPreNodeChild(const CodeGen& codeGen, const AstNodeRef& childRef) const

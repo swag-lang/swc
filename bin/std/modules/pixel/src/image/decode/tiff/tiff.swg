@@ -442,7 +442,7 @@ impl Decoder
 
 impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"TIFF - Tagged Image File Format", ".tif;.tiff"}
+    mtd impl format()->ImageFormat => ImageFormat{"TIFF - Tagged Image File Format", ".tif;.tiff"}
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail => try .decodePage(buffer, options)
 }
 

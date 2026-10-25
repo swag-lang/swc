@@ -16,9 +16,9 @@ private func readRgb(image: Image, source: const [*] u8)->{ r: s32, g: s32, b: s
 {
     switch image.pixelFormat
     {
-    case .RGB8, .RGBA8: return {source[0], source[1], source[2]}
-    case .BGR8, .BGRA8: return {source[2], source[1], source[0]}
-    default: return {}
+    case .RGB8, .RGBA8: return {r: source[0], g: source[1], b: source[2]}
+    case .BGR8, .BGRA8: return {r: source[2], g: source[1], b: source[0]}
+    default: return {r: 0, g: 0, b: 0}
     }
 }
 
@@ -38,7 +38,7 @@ struct Encoder
 
 impl IEncoder for Encoder
 {
-    mtd impl format()->StreamFormat => {"Y4M - YUV4MPEG2 video", ".y4m"}
+    mtd impl format()->StreamFormat => StreamFormat{"Y4M - YUV4MPEG2 video", ".y4m"}
 
     mtd impl begin(sink: *ByteSink, info: StreamInfo, _: any?) fail
     {

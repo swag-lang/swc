@@ -2,7 +2,7 @@
 
 func toto()->{x: s32, y: bool}
 {
-    return {42, true}
+    return {x: 42, y: true}
 }
 
 #test

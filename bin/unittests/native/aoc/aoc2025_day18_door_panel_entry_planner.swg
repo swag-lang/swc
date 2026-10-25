@@ -33,20 +33,20 @@ func numericPos(key: u8)->KeyPos
 {
     switch key
     {
-    case '7'u8: return {0, 0}
-    case '8'u8: return {1, 0}
-    case '9'u8: return {2, 0}
-    case '4'u8: return {0, 1}
-    case '5'u8: return {1, 1}
-    case '6'u8: return {2, 1}
-    case '1'u8: return {0, 2}
-    case '2'u8: return {1, 2}
-    case '3'u8: return {2, 2}
-    case '0'u8: return {1, 3}
-    case 'A'u8: return {2, 3}
+    case '7'u8: return KeyPos{0, 0}
+    case '8'u8: return KeyPos{1, 0}
+    case '9'u8: return KeyPos{2, 0}
+    case '4'u8: return KeyPos{0, 1}
+    case '5'u8: return KeyPos{1, 1}
+    case '6'u8: return KeyPos{2, 1}
+    case '1'u8: return KeyPos{0, 2}
+    case '2'u8: return KeyPos{1, 2}
+    case '3'u8: return KeyPos{2, 2}
+    case '0'u8: return KeyPos{1, 3}
+    case 'A'u8: return KeyPos{2, 3}
     default:
         Swag.assert(false)
-        return {0, 0}
+        return KeyPos{0, 0}
     }
 }
 
@@ -54,14 +54,14 @@ func directionalPos(key: u8)->KeyPos
 {
     switch key
     {
-    case '^'u8: return {1, 0}
-    case 'A'u8: return {2, 0}
-    case '<'u8: return {0, 1}
-    case 'v'u8: return {1, 1}
-    case '>'u8: return {2, 1}
+    case '^'u8: return KeyPos{1, 0}
+    case 'A'u8: return KeyPos{2, 0}
+    case '<'u8: return KeyPos{0, 1}
+    case 'v'u8: return KeyPos{1, 1}
+    case '>'u8: return KeyPos{2, 1}
     default:
         Swag.assert(false)
-        return {0, 0}
+        return KeyPos{0, 0}
     }
 }
 

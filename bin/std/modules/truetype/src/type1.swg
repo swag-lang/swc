@@ -111,7 +111,7 @@ private func readPostScriptToken(data: const [..] u8, from: u64)->{ text: string
     while pos < data.count and not isPostScriptDelimiter(data[pos]) do
         pos += 1
 
-    return {cast(string, data[start until pos]), pos}
+    return {text: cast(string, data[start until pos]), next: pos}
 }
 
 private func readPostScriptNumber(data: const [..] u8, from: u64)->{ value: f64, next: u64 }
@@ -144,7 +144,7 @@ private func readPostScriptNumber(data: const [..] u8, from: u64)->{ value: f64,
         }
     }
 
-    return {negative ? -value : value, pos}
+    return {value: negative ? -value : value, next: pos}
 }
 
 // Concatenates the segments of a PFB container, or returns the bytes unchanged.

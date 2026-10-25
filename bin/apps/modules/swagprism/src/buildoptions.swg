@@ -27,16 +27,16 @@ impl BuildOptions
         let result = Wnd.create'BuildOptions(parent)
         result.backgroundStyle = .Transparent
 
-        with let bar = Wnd.create'Wnd(result, {0, 0, 0, 36})
+        with let bar = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, 36})
         {
             .dockStyle = .Top
-            .margin    = {0, 0, 0, 8}
+            .margin    = Math.Vector4{0, 0, 0, 8}
         }
 
-        with result.resetButton = IconButton.create(bar, result.theme().icon(.Undo, 18), {0, 0, 36, 36})
+        with result.resetButton = IconButton.create(bar, result.theme().icon(.Undo, 18), Math.Rectangle{0, 0, 36, 36})
         {
             .dockStyle = .Right
-            .margin    = {8, 0, 0, 0}
+            .margin    = Math.Vector4{8, 0, 0, 0}
             .setIconSize(18, 18)
             .sigPressed += func|options = result|(_) { options.reset() }
         }

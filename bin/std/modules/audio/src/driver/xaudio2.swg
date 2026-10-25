@@ -295,7 +295,7 @@ impl Voice
         getState(handle, &voiceState, 0)
         while voiceState.buffersQueued < NumDecodedBuffers - 1
         {
-            let {ptrBuffer, sizeBuffer} = try .readBuffer()
+            let {buffer: ptrBuffer, size: sizeBuffer} = try .readBuffer()
             if not sizeBuffer do
                 break
 

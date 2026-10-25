@@ -43,7 +43,7 @@ func blockCall(value: Block, output: *u64)->u64
 {
     for 5
     {
-        var value:    Small = {17, 19}
+        var value:    Small = Small{17, 19}
         var output:   u64
         var checksum: u64
         let start = monotonicTicks()
@@ -105,7 +105,7 @@ func activeStores(value: Small, output: *u64)->u64
 {
     for 5
     {
-        var value:  Small = {17, 19}
+        var value:  Small = Small{17, 19}
         var output: u64
         let start         = monotonicTicks()
         let checksum      = activeStores(value, &output)

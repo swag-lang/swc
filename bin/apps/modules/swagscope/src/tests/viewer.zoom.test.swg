@@ -17,21 +17,21 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
 
     var textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, zoomFixturePath("comprehensive.txt"))
     let text       = assume cast(*PlainText.Panel, textResult.view)
-    var wheel      = MouseEvent{kind: .Wheel, delta: {0, 120}, modifiers: .Control}
+    var wheel      = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.assert(text.hookOnChildEvent!(text.editor, &wheel) and text.zoomPercent == 125)
     textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, zoomFixturePath("comprehensive.txt"))
     Swag.assert(assume cast(*PlainText.Panel, textResult.view).zoomPercent == 125)
 
     var codeResult = openTestViewer(Code.viewerPlugin(), &host.root, zoomFixturePath("sample.cpp"))
     let code       = assume cast(*Code.Panel, codeResult.view)
-    wheel = {kind: .Wheel, delta: {0, 120}, modifiers: .Control}
+    wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.assert(code.hookOnChildEvent!(code.editor, &wheel) and code.zoomPercent == 125)
     codeResult = openTestViewer(Code.viewerPlugin(), &host.root, zoomFixturePath("sample.cpp"))
     Swag.assert(assume cast(*Code.Panel, codeResult.view).zoomPercent == 125)
 
     var htmlResult = openTestViewer(Html.viewerPlugin(), &host.root, zoomFixturePath("viewer.html"))
     let html       = assume cast(*Html.Panel, htmlResult.view)
-    wheel = {kind: .Wheel, delta: {0, 120}, modifiers: .Control}
+    wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.assert(html.hookOnChildEvent!(html.view, &wheel) and html.zoomPercent == 125)
     htmlResult = openTestViewer(Html.viewerPlugin(), &host.root, zoomFixturePath("viewer.html"))
     Swag.assert(assume cast(*Html.Panel, htmlResult.view).zoomPercent == 125)

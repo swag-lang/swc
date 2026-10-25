@@ -82,7 +82,7 @@ array, struct, etc. This is essential when handling types generically.
     using Swag
     #assert(#typeof(*u8?).kind == TypeInfoKind.Pointer)         // Pointer
     #assert(#typeof([1, 2, 3]).kind == TypeInfoKind.Array)      // Array
-    #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct)     // Struct
+    #assert(#typeof((1, 2, 3)).kind == TypeInfoKind.Struct)     // Struct
 }
 
 /**

@@ -40,7 +40,7 @@ private struct BitReader
 
 private impl BitReader
 {
-    func create(payload: const [..] u8)->BitReader => {payload.buffer, payload.count, 0, false}
+    func create(payload: const [..] u8)->BitReader => BitReader{payload.buffer, payload.count, 0, false}
 
     mtd const bitsLeft()->u64 => .bitPos >= .size * 8 ? 0 : .size * 8 - .bitPos
 

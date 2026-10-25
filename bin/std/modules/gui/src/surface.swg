@@ -87,7 +87,7 @@ struct Surface
     // Drawable and viewport of the surface, plus repaint bookkeeping. The platform layer and
     // the paint loop own them; callers reach the drawable with 'renderingContext'.
     rc:        RenderContext     // Drawable and viewport the frame targets.
-    dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
+    dirtyRect: Math.Rectangle = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
     isDirty:   bool     // Whether a repaint is pending.
 
     // Recorded before a native placement and reported when its prepared image is presented.
@@ -169,7 +169,7 @@ impl Surface
     //
     // The window tree, painting, and mouse surface positions live in this space;
     // multiply by [[Gui.Surface.dpiScale]] to obtain physical pixels.
-    mtd const size()->Math.Point => {.position.width / .dpiScale, .position.height / .dpiScale}
+    mtd const size()->Math.Point => Math.Point{.position.width / .dpiScale, .position.height / .dpiScale}
 
     // Sets the surface scale outside the native creation path.
     //
@@ -268,7 +268,7 @@ impl Surface
         surface.rc      = try app.renderer.createContext(surface.nativeRenderHandle(), physWidth, physHeight, mainSurface ? &mainSurface.rc : null)
         surface.painter = Painter.create(app.renderer)
 
-        surface.minSize = {128, 128}
+        surface.minSize = Math.Point{128, 128}
         let w = Math.max(surface.minSize.x * surface.dpiScale, cast(f32, physWidth))
         let h = Math.max(surface.minSize.y * surface.dpiScale, cast(f32, physHeight))
 
@@ -314,7 +314,7 @@ impl Surface
     mtd invalidate()
     {
         let sz = .size()
-        .invalidateRect({0, 0, sz.x, sz.y})
+        .invalidateRect(Math.Rectangle{0, 0, sz.x, sz.y})
     }
 
     // Adds a rectangle in surface coordinates to the pending repaint region.
@@ -346,7 +346,7 @@ impl Surface
         let top    = Math.floor(rect.y / .dpiScale)
         let right  = Math.ceil(rect.right() / .dpiScale)
         let bottom = Math.ceil(rect.bottom() / .dpiScale)
-        .invalidateRect({left, top, right - left, bottom - top})
+        .invalidateRect(Math.Rectangle{left, top, right - left, bottom - top})
     }
 
     // Centers this surface over `from` without changing its size.
@@ -370,7 +370,7 @@ impl Surface
             return
 
         // The surface position and the constraint work in physical desktop pixels.
-        let monitor = Env.monitorForPoint({.position.x, .position.y})
+        let monitor = Env.monitorForPoint(Math.Point{.position.x, .position.y})
         var np      = .position
 
         if topLeft
@@ -479,7 +479,7 @@ impl Surface
         clipRect.round()
         .paintedWnds = 0
         .skippedWnds = 0
-        .dirtyRect   = {Swag.F32.Max, Swag.F32.Max, 0, 0}
+        .dirtyRect   = Math.Rectangle{Swag.F32.Max, Swag.F32.Max, 0, 0}
         .isDirty     = false
 
         var traceWatch: Time.Stopwatch
@@ -548,7 +548,7 @@ impl Surface
         physClip.y         = Math.round(clipRect.y * .dpiScale)
         physClip.width     = Math.round(clipRect.right() * .dpiScale) - physClip.x
         physClip.height    = Math.round(clipRect.bottom() * .dpiScale) - physClip.y
-        .paintPhysicalRect = Math.Rectangle.intersect(physClip, {0, 0, cast(f32, .rc.width), cast(f32, .rc.height)})
+        .paintPhysicalRect = Math.Rectangle.intersect(physClip, Math.Rectangle{0, 0, cast(f32, .rc.width), cast(f32, .rc.height)})
 
         with cxt
         {
@@ -667,7 +667,7 @@ impl Surface
 
         let sz  = .size()
         let sdw = .shadowMargin()
-        .wnd.setPosition({sdw, sdw, sz.x - 2 * sdw, sz.y - 2 * sdw})
+        .wnd.setPosition(Math.Rectangle{sdw, sdw, sz.x - 2 * sdw, sz.y - 2 * sdw})
 
         // A resize can reuse the existing render target, in which case
         // resource creation has no reason to dirty the surface. The newly exposed
@@ -713,7 +713,7 @@ impl Surface
         let t    = Math.round(body.y * k) / k
         let r    = Math.round(body.right() * k) / k
         let b    = Math.round(body.bottom() * k) / k
-        return {l, t, r - l, b - t}
+        return Math.Rectangle{l, t, r - l, b - t}
     }
 
     // Strokes the outline of the surface, above everything the hierarchy painted.
@@ -754,10 +754,10 @@ impl Surface
         // document's entire viewport just to draw the two visible side edges.
         let size = .size()
         let strips: [4] Math.Rectangle = [
-            {0,                0,                 size.x,                    interior.y},
-            {0,                interior.bottom(), size.x,                    size.y - interior.bottom()},
-            {0,                interior.y,        interior.x,                interior.height},
-            {interior.right(), interior.y,        size.x - interior.right(), interior.height}]
+            Math.Rectangle{0, 0, size.x, interior.y},
+            Math.Rectangle{0, interior.bottom(), size.x, size.y - interior.bottom()},
+            Math.Rectangle{0, interior.y, interior.x, interior.height},
+            Math.Rectangle{interior.right(), interior.y, size.x - interior.right(), interior.height}]
         for strip in strips where strip.intersects(.painter.clippingRect())
         {
             .painter.pushClippingRect(strip)
@@ -799,7 +799,7 @@ impl Surface
             return
 
         .painter.startClippingRegion()
-        .painter.fillRect({0, 0, .position.width, .position.height}, Argb.White)
+        .painter.fillRect(Math.Rectangle{0, 0, .position.width, .position.height}, Argb.White)
         .painter.setClippingRegionMode(.Clear)
         if radius > 0 do
             .painter.fillRoundRect(body, radius, radius, Argb.White)
@@ -809,7 +809,7 @@ impl Surface
 
         .painter.setColorMaskFull()
         .painter.setBlendingMode(.Copy)
-        .painter.fillRect({0, 0, .position.width, .position.height}, Color.fromArgb(Argb.Zero))
+        .painter.fillRect(Math.Rectangle{0, 0, .position.width, .position.height}, Color.fromArgb(Argb.Zero))
         .painter.setBlendingMode(.Alpha)
         .paintShadow()
         .painter.resetClippingRegion()
@@ -844,10 +844,10 @@ impl Surface
 
         let clip = .painter.clippingRect()
         let bands: [4] Math.Rectangle = [
-            {clip.x,           clip.y,            clip.width,                      interior.y - clip.y},
-            {clip.x,           interior.bottom(), clip.width,                      clip.bottom() - interior.bottom()},
-            {clip.x,           interior.y,        interior.x - clip.x,             interior.height},
-            {interior.right(), interior.y,        clip.right() - interior.right(), interior.height}]
+            Math.Rectangle{clip.x, clip.y, clip.width, interior.y - clip.y},
+            Math.Rectangle{clip.x, interior.bottom(), clip.width, clip.bottom() - interior.bottom()},
+            Math.Rectangle{clip.x, interior.y, interior.x - clip.x, interior.height},
+            Math.Rectangle{interior.right(), interior.y, clip.right() - interior.right(), interior.height}]
         for band in bands where not band.isEmpty()
         {
             .painter.pushClippingRect(band)
@@ -1063,7 +1063,7 @@ impl Surface
                 // the window forever; a real scale change is at least 25%.
                 if .savedDpiScale > 0
                 {
-                    let target = Env.monitorForPoint({.position.x, .position.y})
+                    let target = Env.monitorForPoint(Math.Point{.position.x, .position.y})
                     if target.scaleFactor > 0 and Math.abs(target.scaleFactor - .savedDpiScale) > 0.02 * .savedDpiScale
                     {
                         let factor = target.scaleFactor / .savedDpiScale

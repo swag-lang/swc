@@ -157,7 +157,7 @@ struct RenderOgl
         gradientOffsetUpload:    Array'Vector4             // Reused first texture row.
         gradientColorUpload:     Array'Vector4             // Reused second texture row.
         blendingMode:            BlendingMode = .Alpha     // Active OpenGL blending mode.
-        colorMask:               ColorMask    = {true, true, true, false}     // Painter-requested channel mask.
+        colorMask:               ColorMask    = ColorMask{true, true, true, false}     // Painter-requested channel mask.
         curRC:                   RenderContext             // Active drawable and viewport.
 
         stackReleasedRT: Array'(*RenderTarget?)     // Targets queued for deferred release.
@@ -653,8 +653,8 @@ impl RenderOgl
     internal mtd targetSizeImpl()->{ width, height: s32 }
     {
         if .curRT do
-            return {.curRT.colorBuffer.width, .curRT.colorBuffer.height}
-        return {.curRC.width, .curRC.height}
+            return {width: .curRT.colorBuffer.width, height: .curRT.colorBuffer.height}
+        return {width: .curRC.width, height: .curRC.height}
     }
 
     // Restricts following writes to a surface-space rectangle.
@@ -677,7 +677,7 @@ impl RenderOgl
     {
         .scissorBox = rect
         .scissorOn  = true
-        let {_, h} = .targetSizeImpl()
+        let {width: _, height: h} = .targetSizeImpl()
         glEnable(GL_SCISSOR_TEST)
         glScissor(cast(GLint, rect.x), cast(GLint, (cast(f32, h) - rect.y - rect.height)), cast(GLint, rect.width), cast(GLint, rect.height))
     }
@@ -692,8 +692,8 @@ impl RenderOgl
     // Returns the whole bound target, in device pixels from its top left.
     private mtd targetRect()->Math.Rectangle
     {
-        let {w, h} = .targetSizeImpl()
-        return {0, 0, cast(f32, w), cast(f32, h)}
+        let {width: w, height: h} = .targetSizeImpl()
+        return Math.Rectangle{0, 0, cast(f32, w), cast(f32, h)}
     }
 
     // Sets the destination alpha to one where a batch bounded by `bbMin`/`bbMax` can reach.
@@ -739,7 +739,7 @@ impl RenderOgl
         if bbMin.x > bbMax.x or bbMin.y > bbMax.y do
             return false
 
-        var box = .deviceTransform.transformBounds({bbMin.x, bbMin.y, bbMax.x - bbMin.x, bbMax.y - bbMin.y})
+        var box = .deviceTransform.transformBounds(Math.Rectangle{bbMin.x, bbMin.y, bbMax.x - bbMin.x, bbMax.y - bbMin.y})
 
         // Grow to whole pixels, which is a superset of the pixels the batch can shade: a fragment
         // is lit from its centre, and every centre inside the bound falls in this range. It is the
@@ -750,8 +750,8 @@ impl RenderOgl
         let x1 = Math.ceil(box.right())
         let y1 = Math.ceil(box.bottom())
 
-        let {w, h} = .targetSizeImpl()
-        var clip   = Math.Rectangle{0, 0, cast(f32, w), cast(f32, h)}
+        let {width: w, height: h} = .targetSizeImpl()
+        var clip = Math.Rectangle{0, 0, cast(f32, w), cast(f32, h)}
         if .scissorOn do
             clip = .scissorBox
 
@@ -771,7 +771,7 @@ impl RenderOgl
         if nx0 <= clip.x and ny0 <= clip.y and nx1 >= clip.right() and ny1 >= clip.bottom() do
             return false
 
-        .applyScissor({nx0, ny0, nx1 - nx0, ny1 - ny0})
+        .applyScissor(Math.Rectangle{nx0, ny0, nx1 - nx0, ny1 - ny0})
         return true
     }
 
@@ -1340,7 +1340,7 @@ impl RenderOgl
             let y0 = Math.round(params.rect.y * k)
             let x1 = Math.round(params.rect.right() * k)
             let y1 = Math.round(params.rect.bottom() * k)
-            .applyScissor({x0, y0, x1 - x0, y1 - y0})
+            .applyScissor(Math.Rectangle{x0, y0, x1 - x0, y1 - y0})
 
         case .ResetClippingRect:
             .clearScissor()
@@ -1648,7 +1648,7 @@ impl RenderOgl
                     .gradientColorUpload.resize(params.gradientStopCount)
                     for i in params.gradientStopCount
                     {
-                        .gradientOffsetUpload[i] = {stops[i].offset, 0, 0, 0}
+                        .gradientOffsetUpload[i] = Vector4{stops[i].offset, 0, 0, 0}
                         .gradientColorUpload[i]  = stops[i].color.toVector4()
                     }
 
@@ -1848,7 +1848,7 @@ impl RenderOgl
         glActiveTexture(GL_TEXTURE1)
         glBindTexture(GL_TEXTURE_2D, .whiteTexture)
         .setBlendingMode(BlendingMode.Alpha)
-        .setColorMask({true, true, true, false})
+        .setColorMask(ColorMask{true, true, true, false})
 
         for i in 4 do
             glEnableVertexAttribArray(cast(GLuint, i))

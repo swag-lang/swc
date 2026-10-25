@@ -20,9 +20,9 @@ func showAnchorMenu(btn: *Button, pos: PopupPosition)
     var pt: Math.Point
     switch pos
     {
-    case .AnchorTopCenter:    pt = {rect.horzCenter(), rect.bottom()}
-    case .AnchorBottomCenter: pt = {rect.horzCenter(), rect.y}
-    default: pt = {rect.x, rect.bottom()}
+    case .AnchorTopCenter:    pt = (rect.horzCenter(), rect.bottom())
+    case .AnchorBottomCenter: pt = (rect.horzCenter(), rect.y)
+    default: pt = (rect.x, rect.bottom())
     }
 
     discard menu.doModal(pt, pos, autoDestroy: true)
@@ -36,26 +36,26 @@ func createAnchoredPopupPage(parent: *Wnd)
                            "Toolbar anchors",
                            "AnchorTopCenter and AnchorBottomCenter make compact menus feel attached to toolbar buttons.",
                            layout.left)
-    let topBtn = PushButton.create(left, "Open below", {24, 112, 200})
+    let topBtn = PushButton.create(left, "Open below", Math.Rectangle{24, 112, 200})
     topBtn.setForm(.Default)
     topBtn.setIcon(app.theme.icon(.ChevronDown, 18))
     topBtn.sigPressed += func(btn) { showAnchorMenu(btn, .AnchorTopCenter); }
 
-    let bottomBtn = PushButton.create(left, "Open above", {246, 112, 200})
+    let bottomBtn = PushButton.create(left, "Open above", Math.Rectangle{246, 112, 200})
     bottomBtn.setIcon(app.theme.icon(.ChevronUp, 18))
     bottomBtn.sigPressed += func(btn) { showAnchorMenu(btn, .AnchorBottomCenter); }
 
-    let plainBtn = PushButton.create(left, "Plain popup", {24, 178, 200})
+    let plainBtn = PushButton.create(left, "Plain popup", Math.Rectangle{24, 178, 200})
     plainBtn.setIcon(app.theme.icon(.More, 18))
     plainBtn.sigPressed += func(btn) { showAnchorMenu(btn, .TopLeft); }
 
-    discard createActionButton(left, "Switch to columns", {246, 178, 200}, MenuCmd.ModeColumns, .Sort)
+    discard createActionButton(left, "Switch to columns", (246, 178, 200), MenuCmd.ModeColumns, .Sort)
 
     let right = createPanel(parent,
                             "Current selection",
                             "Anchored popups reuse the same commands as the menu bar and state page.",
                             layout.right)
-    g_Preview = createPreview(right, {18, 86, layout.right.width - 36, layout.right.height - 104})
+    g_Preview = createPreview(right, (18, 86, layout.right.width - 36, layout.right.height - 104))
 
     createStatusPanel(parent, layout.bottom)
 }

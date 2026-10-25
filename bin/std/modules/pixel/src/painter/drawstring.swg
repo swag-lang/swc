@@ -807,7 +807,7 @@ impl Painter
         if brush.type != .SolidColor
         {
             let paintBounds = shaped.hasInk ? shaped.inkBounds : Math.Rectangle{0, -shaped.metrics.ascent, shaped.metrics.width, shaped.metrics.height}
-            .setTexture0({drawLeft + paintBounds.x * zoom, y + paintBounds.y * zoom}, {drawLeft + paintBounds.right() * zoom, y + paintBounds.bottom() * zoom}, brush)
+            .setTexture0(Vector2{drawLeft + paintBounds.x * zoom, y + paintBounds.y * zoom}, Vector2{drawLeft + paintBounds.right() * zoom, y + paintBounds.bottom() * zoom}, brush)
         }
         else
         {
@@ -965,7 +965,7 @@ impl Painter
             let lineMetrics = c.shaped.lineMetrics()
             var ms = c.shaped.metrics
             ms.width    = measureStringSnapped(&c.shaped, deviceScale: deviceScale)
-            c.boundRect = {0, 0, ms.width, Math.max(c.font.height, ms.height)}
+            c.boundRect = Math.Rectangle{0, 0, ms.width, Math.max(c.font.height, ms.height)}
 
             // User eol
             if c.isEol

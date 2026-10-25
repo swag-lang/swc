@@ -306,7 +306,7 @@ impl Encoder
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => {"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg"}
+    mtd impl format()->ImageFormat => ImageFormat{"JPEG - Joint Photographic Experts Group", ".jpg;.jpeg"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, options: any?) fail
     {
@@ -343,7 +343,7 @@ internal impl IImageEncoder for Encoder
         // The last byte of the scan is padded with one bits, so a decoder cannot read the marker
         // that follows as entropy-coded data.
         let padding = 8 - .bitCount
-        .writeBits({cast(u8, padding), cast(u16, ((1'u32 << padding) - 1))})
+        .writeBits(BitString{cast(u8, padding), cast(u16, ((1'u32 << padding) - 1))})
 
         .writeWord(0xFFD9)     // EOI
         .flushStaged()

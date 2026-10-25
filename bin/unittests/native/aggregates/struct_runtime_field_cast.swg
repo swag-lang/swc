@@ -32,14 +32,14 @@ func runtimeChoiceScore(choice: RuntimeChoice)->u64
 
 func runtimeResolved(parent: *RuntimeNode)->{parent: *RuntimeNode, name: RuntimeText}
 {
-    return {parent, "vault"}
+    return {parent, name: "vault"}
 }
 
 // A field conversion implemented by a runtime special operator prevents the
 // enclosing aggregate literal from being folded as a static struct constant.
 #test
 {
-    Swag.assert(runtimeChoiceScore({"MiB", "mib"}) == 83)
+    Swag.assert(runtimeChoiceScore(RuntimeChoice{"MiB", "mib"}) == 83)
 }
 
 // A returned aggregate can be destructured after one of its fields was built

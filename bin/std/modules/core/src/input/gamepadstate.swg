@@ -69,8 +69,8 @@ impl GamepadState
         .pressed[DPadLeft]      = raw.buttons.has(.DPadLeft)
         .pressed[DPadRight]     = raw.buttons.has(.DPadRight)
 
-        .position[LeftStick]      = {normalizedStick(raw.leftStickX), normalizedStick(raw.leftStickY)}
-        .position[RightStick]     = {normalizedStick(raw.rightStickX), normalizedStick(raw.rightStickY)}
+        .position[LeftStick]      = Point{normalizedStick(raw.leftStickX), normalizedStick(raw.leftStickY)}
+        .position[RightStick]     = Point{normalizedStick(raw.rightStickX), normalizedStick(raw.rightStickY)}
         .position[LeftTrigger].y  = raw.leftTrigger / 255.0'f32
         .position[RightTrigger].y = raw.rightTrigger / 255.0'f32
 

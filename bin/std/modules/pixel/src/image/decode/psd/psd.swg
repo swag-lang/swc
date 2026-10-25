@@ -117,7 +117,7 @@ func storeChannel(image: *Image, channel: u16, sourceY: s32, source: const [..] 
 
 internal impl IImageDecoder for Decoder
 {
-    mtd impl format()->ImageFormat => {"PSD - Adobe Photoshop Document", ".psd"}
+    mtd impl format()->ImageFormat => ImageFormat{"PSD - Adobe Photoshop Document", ".psd"}
 
     mtd impl decode(buffer: const [..] u8, options: DecodeOptions)->Image fail
     {

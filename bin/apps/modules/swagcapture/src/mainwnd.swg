@@ -337,7 +337,7 @@ impl MainWnd
         let shadowSize = .themeMetrics().surfaceWnd_ShadowSize
         menu.position.width  += 2 * shadowSize
         menu.position.height += 2 * shadowSize
-        sf.setPosition({pt.x, pt.y, menu.position.width * sf.dpiScale, menu.position.height * sf.dpiScale})
+        sf.setPosition(Math.Rectangle{pt.x, pt.y, menu.position.width * sf.dpiScale, menu.position.height * sf.dpiScale})
         sf.constrainPositionToScreen()
         sf.wnd.view.backgroundStyle = .Window
 
@@ -771,7 +771,7 @@ impl MainWnd
     func create(parent: *Wnd)->*MainWnd
     {
         let srf = parent.surface!
-        srf.minSize = {1024, 512}
+        srf.minSize = Math.Point{1024, 512}
 
         var imgApp: Image
         #static if #command == Swag.CompilerCommand.Test do

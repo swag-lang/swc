@@ -166,19 +166,19 @@ private func renderParityScene(renderer: IRenderer)->Image
     painter.setBlendingMode(.Alpha)
     painter.setAntialiased(true)
     painter.fillCircle(18, 18, 12, Color.fromArgb(220'u8, 239'u8, 71'u8, 111'u8))
-    painter.drawRoundRect({34, 6, 34, 24}, 7, 7, Color.fromArgb(Argb.White), 3)
+    painter.drawRoundRect(Math.Rectangle{34, 6, 34, 24}, 7, 7, Color.fromArgb(Argb.White), 3)
     painter.setAntialiased(false)
-    painter.fillEllipse({74, 6, 34, 24}, Color.fromArgb(255'u8, 72'u8, 149'u8, 239'u8))
+    painter.fillEllipse(Math.Rectangle{74, 6, 34, 24}, Color.fromArgb(255'u8, 72'u8, 149'u8, 239'u8))
     painter.setAntialiased(true)
 
     painter.pushTransform()
     painter.rotateTransform(12.0'deg, 131, 18)
-    painter.fillRect({114, 8, 34, 20}, Color.fromArgb(210'u8, 255'u8, 184'u8, 77'u8))
+    painter.fillRect(Math.Rectangle{114, 8, 34, 20}, Color.fromArgb(210'u8, 255'u8, 184'u8, 77'u8))
     painter.popTransform()
 
     // Every built-in brush family.
     let linear = Brush.createLinearGradient(6, 42, 58, 42, Color.fromArgb(Argb.Crimson), Color.fromArgb(Argb.DodgerBlue))
-    painter.fillRect({6, 38, 52, 18}, linear)
+    painter.fillRect(Math.Rectangle{6, 38, 52, 18}, linear)
 
     let radial = Brush.createRadialGradient(84, 47, 18, Color.fromArgb(Argb.White), Color.fromArgb(Argb.DarkViolet))
     painter.fillCircle(84, 47, 18, radial)
@@ -187,34 +187,34 @@ private func renderParityScene(renderer: IRenderer)->Image
     painter.fillCircle(126, 47, 18, sweep)
 
     let hatch = Brush.createHatch(.DiagonalCross, Color.fromArgb(Argb.LimeGreen))
-    painter.fillRect({150, 36, 34, 22}, hatch)
+    painter.fillRect(Math.Rectangle{150, 36, 34, 22}, hatch)
 
     // Texture sampling modes and source-rectangle handling.
     painter.setInterpolationMode(.Pixel)
-    painter.drawTexture({6, 68, 34, 24}, texture)
+    painter.drawTexture(Math.Rectangle{6, 68, 34, 24}, texture)
     painter.setInterpolationMode(.Linear)
-    painter.drawTexture({46, 68, 34, 24}, texture)
-    painter.drawTexture({86, 68, 34, 24}, {1, 1, 2, 2}, texture)
+    painter.drawTexture(Math.Rectangle{46, 68, 34, 24}, texture)
+    painter.drawTexture(Math.Rectangle{86, 68, 34, 24}, Math.Rectangle{1, 1, 2, 2}, texture)
     let tiled = Brush.createTiled(texture)
-    painter.fillRect({126, 68, 58, 24}, tiled)
+    painter.fillRect(Math.Rectangle{126, 68, 58, 24}, tiled)
 
     // Scissor and stencil clipping must agree in surface coordinates.
     painter.setInterpolationMode(.Pixel)
-    painter.setClippingRect({6, 100, 34, 20})
+    painter.setClippingRect(Math.Rectangle{6, 100, 34, 20})
     painter.fillCircle(23, 110, 20, Color.fromArgb(Argb.OrangeRed))
     painter.resetClippingRect()
 
     painter.startClippingRegion()
     painter.fillCircle(62, 110, 14, Color.fromArgb(Argb.White))
     painter.endClippingRegion()
-    painter.fillRect({44, 96, 36, 28}, Color.fromArgb(Argb.MediumPurple))
+    painter.fillRect(Math.Rectangle{44, 96, 36, 28}, Color.fromArgb(Argb.MediumPurple))
     painter.resetClippingRegion()
 
     // Channel masking followed by all framebuffer blend equations.
     painter.setBlendingMode(.Copy)
-    painter.fillRect({86, 98, 18, 22}, Color.fromArgb(255'u8, 30'u8, 80'u8, 140'u8))
+    painter.fillRect(Math.Rectangle{86, 98, 18, 22}, Color.fromArgb(255'u8, 30'u8, 80'u8, 140'u8))
     painter.setColorMask(true, false, false, true)
-    painter.fillRect({90, 102, 18, 14}, Color.fromArgb(160'u8, 240'u8, 20'u8, 20'u8))
+    painter.fillRect(Math.Rectangle{90, 102, 18, 14}, Color.fromArgb(160'u8, 240'u8, 20'u8, 20'u8))
     painter.setColorMaskFull()
 
     let modes: [7] BlendingMode = [.Copy, .Alpha, .Add, .Sub, .SubDst, .Min, .Max]
@@ -222,9 +222,9 @@ private func renderParityScene(renderer: IRenderer)->Image
     {
         let x = 114 + cast(f32, idx) * 11
         painter.setBlendingMode(.Copy)
-        painter.fillRect({x, 100, 9, 18}, Color.fromArgb(190'u8, 35'u8, 90'u8, 145'u8))
+        painter.fillRect(Math.Rectangle{x, 100, 9, 18}, Color.fromArgb(190'u8, 35'u8, 90'u8, 145'u8))
         painter.setBlendingMode(mode)
-        painter.fillRect({x + 3, 104, 6, 10}, Color.fromArgb(135'u8, 210'u8, 70'u8, 25'u8))
+        painter.fillRect(Math.Rectangle{x + 3, 104, 6, 10}, Color.fromArgb(135'u8, 210'u8, 70'u8, 25'u8))
     }
 
     painter.unbindRenderTarget()
@@ -263,7 +263,7 @@ private func renderTextParityScene(renderer: IRenderer)->Image
 
     var shadow: TextEffect
     shadow.shadowColor    = Color.fromArgb(150'u8, Argb.Black)
-    shadow.shadowOffset   = {3, 3}
+    shadow.shadowOffset   = Math.Point{3, 3}
     shadow.shadowDilate   = 0.08
     shadow.shadowSoftness = 0.32
 
@@ -302,10 +302,10 @@ private func renderLayerParityScene(renderer: IRenderer)->Image
     painter.clear(Color.fromArgb(255'u8, 24'u8, 30'u8, 42'u8))
 
     layer.begin(&painter, {width: 72, height: 48, renderScale: 2})
-    painter.fillRoundRect({7, 7, 58, 34}, 9, 9, Brush.createLinearGradient(7, 7, 65, 41, Color.fromArgb(Argb.DeepPink), Color.fromArgb(Argb.DodgerBlue)))
+    painter.fillRoundRect(Math.Rectangle{7, 7, 58, 34}, 9, 9, Brush.createLinearGradient(7, 7, 65, 41, Color.fromArgb(Argb.DeepPink), Color.fromArgb(Argb.DodgerBlue)))
     painter.fillCircle(36, 24, 10, Color.fromArgb(190'u8, Argb.White))
     layer.end()
-    layer.draw({dstRect: {42, 26, 72, 48},
+    layer.draw({dstRect: Math.Rectangle{42, 26, 72, 48},
                 shadow: {enabled: true, margin: 10, radius: 4, offsetX: 5, offsetY: 6,
                          color: Color.fromArgb(170'u8, Argb.Black)}})
 
@@ -470,7 +470,7 @@ func renderPlanarParityScene(renderer: IRenderer)->Image
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
     painter.clear(Color.fromArgb(Argb.Zero))
-    painter.drawTexture({0, 0, RenderPlanarWidth, RenderPlanarHeight}, texture)
+    painter.drawTexture(Math.Rectangle{0, 0, RenderPlanarWidth, RenderPlanarHeight}, texture)
     painter.unbindRenderTarget()
     painter.end()
     renderer.draw(&painter)
@@ -528,8 +528,8 @@ private func renderClipRegionParityScene(renderer: IRenderer)->Image
     painter.fillCircle(48, 64, 40, Color.fromArgb(Argb.White))
     painter.endClippingRegion()
     var brush = Brush.createTexture(texture)
-    brush.mapOver({8, 24, 80, 80})
-    painter.fillRect({0, 0, 96, RenderParityHeight}, brush)
+    brush.mapOver(Math.Rectangle{8, 24, 80, 80})
+    painter.fillRect(Math.Rectangle{0, 0, 96, RenderParityHeight}, brush)
     painter.resetClippingRegion()
 
     // A solid fill over the whole target through a circle on the right: it must reach only that
@@ -537,7 +537,7 @@ private func renderClipRegionParityScene(renderer: IRenderer)->Image
     painter.startClippingRegion(.Set)
     painter.fillCircle(144, 64, 40, Color.fromArgb(Argb.White))
     painter.endClippingRegion()
-    painter.fillRect({0, 0, RenderParityWidth, RenderParityHeight}, Color.fromArgb(Argb.DodgerBlue))
+    painter.fillRect(Math.Rectangle{0, 0, RenderParityWidth, RenderParityHeight}, Color.fromArgb(Argb.DodgerBlue))
     painter.resetClippingRegion()
 
     painter.unbindRenderTarget()
@@ -595,7 +595,7 @@ private func renderOpaqueBackdropParityScene(renderer: IRenderer)->Image
     painter.setColorMaskFull()
     painter.setBlendingMode(.Copy)
     painter.clear(ClearDst)
-    painter.fillRect({0, 24, RenderBlendWidth, 24}, OpaqueDst)
+    painter.fillRect(Math.Rectangle{0, 24, RenderBlendWidth, 24}, OpaqueDst)
     painter.setColorMaskColor()
 
     for mode, idx in ArtisticBlendModes

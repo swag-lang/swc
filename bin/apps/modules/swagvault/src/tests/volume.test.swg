@@ -11,7 +11,7 @@ struct CryptoBatchTestError
 
 func raiseCryptoBatchTestError(marker: u32) fail
 {
-    fail CryptoBatchTestError{base: {Errors.mkString(Format.toString("batch failure %", marker))}, marker: marker}
+    fail CryptoBatchTestError{base: Swag.BaseError{Errors.mkString(Format.toString("batch failure %", marker))}, marker: marker}
 }
 
 // The first worker failure keeps its dynamic type and message after every producer catch ends.

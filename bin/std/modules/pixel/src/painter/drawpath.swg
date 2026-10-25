@@ -362,8 +362,8 @@ impl Painter
         // We divide a segment by half until the computed point on the curve is
         // close to the corresponding segment
         .sharedRoundTmp.clear()
-        .sharedRoundTmp.add({angle0, startPos})
-        .sharedRoundTmp.add({angle1, endPos})
+        .sharedRoundTmp.add({factor: angle0, pos: startPos})
+        .sharedRoundTmp.add({factor: angle1, pos: endPos})
 
         var point: Math.Vector2
         for var i = 0; i < .sharedRoundTmp.count - 1; i += 1
@@ -375,7 +375,7 @@ impl Painter
             if dist < minDist do
                 continue
 
-            .sharedRoundTmp.insertAt(cast(u64, i) + 1, {angle, point})
+            .sharedRoundTmp.insertAt(cast(u64, i) + 1, {factor: angle, pos: point})
             i -= 1
         }
 
@@ -1304,14 +1304,14 @@ public impl Painter
         let half = lineSize * 0.5
         switch #complete capStyle
         {
-        case .None:         return {half, 0}
-        case .Triangle:     return {half, half}
-        case .Round:        return {half, half}
-        case .Square:       return {half, half}
-        case .ArrowAnchor:  return {half * capScaleX, 0}
-        case .ArrowAnchor2: return {half * capScaleX, 0}
-        case .SquareAnchor: return {half * capScaleX, half * capScaleX * capScaleY * 0.5}
-        case .RoundAnchor:  return {half * capScaleX, half * capScaleX}
+        case .None:         return {w: half, l: 0}
+        case .Triangle:     return {w: half, l: half}
+        case .Round:        return {w: half, l: half}
+        case .Square:       return {w: half, l: half}
+        case .ArrowAnchor:  return {w: half * capScaleX, l: 0}
+        case .ArrowAnchor2: return {w: half * capScaleX, l: 0}
+        case .SquareAnchor: return {w: half * capScaleX, l: half * capScaleX * capScaleY * 0.5}
+        case .RoundAnchor:  return {w: half * capScaleX, l: half * capScaleX}
         }
     }
 

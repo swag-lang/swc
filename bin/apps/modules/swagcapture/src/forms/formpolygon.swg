@@ -17,12 +17,12 @@ impl FormPolygon
     mtd setDefaultShape()
     {
         .points.clear()
-        .points.add({0, 10})
-        .points.add({16, 0})
-        .points.add({36, 10})
-        .points.add({48, 32})
-        .points.add({36, 48})
-        .points.add({0, 48})
+        .points.add(Math.Vector2{0, 10})
+        .points.add(Math.Vector2{16, 0})
+        .points.add(Math.Vector2{36, 10})
+        .points.add(Math.Vector2{48, 32})
+        .points.add(Math.Vector2{36, 48})
+        .points.add(Math.Vector2{0, 48})
     }
 }
 
@@ -60,12 +60,12 @@ impl IForm for FormPolygon
         {
             let xs = cast(s32, movingStart.x / zoom)
             let ys = cast(s32, movingStart.y / zoom)
-            .points.add({xs, ys})
-            .points.add({x0, y0})
+            .points.add(Math.Vector2{xs, ys})
+            .points.add(Math.Vector2{x0, y0})
         }
         elif evt.kind == .Released and evt.button == .Left
         {
-            .points.add({x0, y0})
+            .points.add(Math.Vector2{x0, y0})
         }
         else
         {
@@ -117,13 +117,13 @@ impl IForm for FormPolygon
         {
             .gizmo.anchors.clear()
             for pt in .points do
-                .gizmo.anchors.add({pt.x * z, pt.y * z})
+                .gizmo.anchors.add(Math.Point{pt.x * z, pt.y * z})
             let col = .subKind == .PixSel ? Argb.Yellow : Argb.White
             .gizmo.paint(null, painter, not flags.has(.Selected), col)
         }
     }
 
-    mtd impl isInside(pt: Math.Point)->bool        => Math.Geometry.polygonContainsPoint(.points, {pt.x, pt.y})
+    mtd impl isInside(pt: Math.Point)->bool        => Math.Geometry.polygonContainsPoint(.points, Math.Vector2{pt.x, pt.y})
     mtd impl hitTest(pt: Math.Point, z: f32)->bool => BaseForm.drawHitTest(me, pt, z)
 
     mtd impl paint(painter: *Painter, cxt: FormPaintContext)

@@ -28,7 +28,7 @@ private impl HistogramView
         let pitch     = Math.floor(available / 16)
         let extent    = pitch * 16
         var result: retval
-        result.origin = {client.horzCenter() - extent * 0.5, client.vertCenter() - extent * 0.5}
+        result.origin = Math.Point{client.horzCenter() - extent * 0.5, client.vertCenter() - extent * 0.5}
         result.pitch  = pitch
         result.cell   = Math.max(pitch - Gap, 1)
         return result
@@ -98,7 +98,7 @@ impl HistogramView
 
     func create(parent: *Wnd)->*HistogramView
     {
-        with let result = Wnd.create'HistogramView(parent, {0, 0, 0, Size})
+        with let result = Wnd.create'HistogramView(parent, Math.Rectangle{0, 0, 0, Size})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -251,20 +251,20 @@ private impl AnalysisView
         let compactSize = themeCompactButtonSize(.themeMetrics())
         let rowIconSize = themeRowIconSize(.themeMetrics())
 
-        with let header = Wnd.create'Wnd(me, {0, 0, 0, compactSize})
+        with let header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
         }
 
-        with .closeButton = IconButton.create(header, .theme().icon(.WndClose, rowIconSize), {0, 0, compactSize, compactSize})
+        with .closeButton = IconButton.create(header, .theme().icon(.WndClose, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
             .toolTip    = texts().ui_AnalysisClose
             .sigPressed += func|view = me|(_) { view.sigClose.call(view) }
         }
 
-        with .cancelButton = IconButton.create(header, .theme().icon(.Stop, rowIconSize), {0, 0, compactSize, compactSize})
+        with .cancelButton = IconButton.create(header, .theme().icon(.Stop, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
         {
             .dockStyle = .Right
             .toolTip   = texts().ui_AnalysisCancel
@@ -272,14 +272,14 @@ private impl AnalysisView
             .sigPressed += func|view = me|(_) { view.sigCancel.call(view) }
         }
 
-        with .analyzeButton = IconButton.create(header, .theme().icon(.Play, rowIconSize), {0, 0, compactSize, compactSize})
+        with .analyzeButton = IconButton.create(header, .theme().icon(.Play, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
             .toolTip    = texts().ui_AnalysisRun
             .sigPressed += func|view = me|(_) { view.sigAnalyze.call(view) }
         }
 
-        with .titleLabel = Label.create(header, texts().ui_Analysis, {0, 0, 0, compactSize})
+        with .titleLabel = Label.create(header, texts().ui_Analysis, Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle = .Center
             .style.setFont(me.theme().createDefaultFont(13, .Bold), .Regular)
@@ -386,19 +386,19 @@ impl AnalysisView
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = {12, 8, 12, 8}
+            .padding         = Math.Vector4{12, 8, 12, 8}
         }
 
         result.createHeader()
 
-        with result.scopeLabel = Label.create(result, "", {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.scopeLabel = Label.create(result, "", Math.Rectangle{0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.metricsLabel = Label.create(result, "", {0, 0, 0, MetricsHeight}, null, .SecondaryText | .WordWrap)
+        with result.metricsLabel = Label.create(result, "", Math.Rectangle{0, 0, 0, MetricsHeight}, null, .SecondaryText | .WordWrap)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
@@ -410,14 +410,14 @@ impl AnalysisView
             .sigByteChanged += func|view = result|(_, value) { view.updateByteDetail(value) }
         }
 
-        with result.byteLabel = Label.create(result, texts().ui_AnalysisByteHint, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.byteLabel = Label.create(result, texts().ui_AnalysisByteHint, Math.Rectangle{0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .style.setFont(result.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with result.stringsLabel = Label.create(result, texts().ui_AnalysisStrings, {0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
+        with result.stringsLabel = Label.create(result, texts().ui_AnalysisStrings, Math.Rectangle{0, 0, 0, LabelHeight}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Top
             .setTextAlignment(.Left, .OpticalCenter)

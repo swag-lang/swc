@@ -411,7 +411,7 @@ func writeLocals(value: u64)->u64
     var scalar = value
     scalar = scalar * 3 + 1
     var pair: Pair
-    pair = {scalar, value}
+    pair = Pair{scalar, value}
     return pair.first + pair.second
 }
 

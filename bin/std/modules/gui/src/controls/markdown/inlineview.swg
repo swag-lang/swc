@@ -321,7 +321,7 @@ impl InlineView
         var runes = 0'u32
         while index < text.count
         {
-            let {_, eat} = Utf8.decodeRune(text[index to])
+            let {c: _, eat} = Utf8.decodeRune(text[index to])
             index += eat
             runes += 1
             if runes < 24 do
@@ -330,7 +330,7 @@ impl InlineView
             // Keep a closing mark attached even at an emergency word split.
             if index < text.count
             {
-                let {_, nextSize} = Utf8.decodeRune(text[index to])
+                let {c: _, eat: nextSize} = Utf8.decodeRune(text[index to])
                 if Utf8.indexOf(".,;:!?)]}»”’…、。，；：！？）】》", text[index until index + nextSize]) != Swag.U64.Max do
                     continue
             }
@@ -638,29 +638,29 @@ impl InlineView
         {
         case .Heading1, .Heading2, .Heading3, .Heading4, .Heading5, .Heading6:
             let index = cast(u32, .kind) - cast(u32, BlockKind.Heading1)
-            return {0, .owner.documentStyle.headingTopSpacing[index], 0, .owner.documentStyle.headingBottomSpacing[index]}
+            return Math.Vector4{0, .owner.documentStyle.headingTopSpacing[index], 0, .owner.documentStyle.headingBottomSpacing[index]}
 
         case .Code:
-            return {18, 14, 18, 14}
+            return Math.Vector4{18, 14, 18, 14}
 
         case .Table:
-            return {16, 12, 16, 12}
+            return Math.Vector4{16, 12, 16, 12}
 
         case .Quote, .AlertNote, .AlertTip, .AlertImportant,
              .AlertWarning, .AlertCaution:
-            return {18, 10, 10, 10}
+            return Math.Vector4{18, 10, 10, 10}
 
         case .Metadata:
-            return {12, 8, 12, 8}
+            return Math.Vector4{12, 8, 12, 8}
 
         case .TableOfContents:
-            return {18, 12, 18, 12}
+            return Math.Vector4{18, 12, 18, 12}
 
         case .Footnote:
-            return {0, 4, 0, 4}
+            return Math.Vector4{0, 4, 0, 4}
 
         default:
-            return {0, 2, 0, 2}
+            return Math.Vector4{0, 2, 0, 2}
         }
     }
 
@@ -1008,7 +1008,7 @@ impl InlineView
                 batch.font        = font
                 batch.shaped.font = info.drawFont
                 batch.firstAtom   = index
-                batch.origin      = {atom.position.x, top}
+                batch.origin      = Math.Point{atom.position.x, top}
                 batch.color       = color
                 current           = cast(u32, .textBatches.count)
                 .textBatches.add(#move batch)
@@ -1100,8 +1100,8 @@ impl InlineView
         var before = 0'f32
         while scan < source.count
         {
-            let {_, eat} = Utf8.decodeRune(source[scan to])
-            let after    = Painter.measureStringSnapped(source[0 until scan + eat], font, deviceScale: .deviceScale())
+            let {c: _, eat} = Utf8.decodeRune(source[scan to])
+            let after       = Painter.measureStringSnapped(source[0 until scan + eat], font, deviceScale: .deviceScale())
             if x < (before + after) * 0.5 do
                 return scan
             before = after
@@ -1140,7 +1140,7 @@ impl InlineView
             }
 
             if right > left do
-                painter.fillRect({left, line.top, right - left, line.height}, .themeColors().edit_SelectedBk)
+                painter.fillRect(Math.Rectangle{left, line.top, right - left, line.height}, .themeColors().edit_SelectedBk)
         }
     }
 
@@ -1264,7 +1264,7 @@ impl InlineView
         var scan = 0'u64
         while scan < length
         {
-            let {value, eat} = Utf8.decodeRune(source.toString()[scan to])
+            let {c: value, eat} = Utf8.decodeRune(source.toString()[scan to])
             starts.add(scan)
             words.add(Unicode.isLetterOrDigit(value) or value == '_'rune)
             scan += eat
@@ -1433,12 +1433,12 @@ impl IWnd for InlineView
                 painter.fillRect(rect, .themeColors().embInfo_CriticalBk)
             }
 
-            painter.fillRect({0, 8, 3, Math.max(rect.height - 16, 0)}, accent)
+            painter.fillRect(Math.Rectangle{0, 8, 3, Math.max(rect.height - 16, 0)}, accent)
         }
 
         if .kind == .Rule
         {
-            painter.fillRect({0, Math.floor(rect.vertCenter()), rect.width, 1}, .themeColors().edit_Border)
+            painter.fillRect(Math.Rectangle{0, Math.floor(rect.vertCenter()), rect.width, 1}, .themeColors().edit_Border)
             return
         }
 
@@ -1503,7 +1503,7 @@ impl IWnd for InlineView
                 {
                     let font = .font(atom)
                     let size = Math.max(Math.round(font.height * 0.3), 4)
-                    painter.fillRect({atom.position.x + (atom.position.width - size) * 0.5, atom.position.y + (font.height - size) * 0.5, size, size}, color)
+                    painter.fillRect(Math.Rectangle{atom.position.x + (atom.position.width - size) * 0.5, atom.position.y + (font.height - size) * 0.5, size, size}, color)
                     continue
                 }
 
@@ -1513,7 +1513,7 @@ impl IWnd for InlineView
                     let size = Math.max(Math.round(font.height * 0.62), 8)
                     let x    = atom.position.x + (atom.position.width - size) * 0.5
                     let y    = atom.position.y + (font.height - size) * 0.5
-                    painter.drawRect({x, y, size, size}, color, 1)
+                    painter.drawRect(Math.Rectangle{x, y, size, size}, color, 1)
                     if atom.flags.has(.ListChecked)
                     {
                         let stroke = Math.max(Math.round(size * 0.14), 1)

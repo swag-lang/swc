@@ -127,14 +127,14 @@ impl HeadlessHost
 
         .surface.app = &.app
         .surface.setDpiScaleRaw(dpiScale)
-        .surface.position = {0, 0, width * dpiScale, height * dpiScale}
+        .surface.position = Math.Rectangle{0, 0, width * dpiScale, height * dpiScale}
         .app.mainSurface  = &.surface
 
         let root = &.root
         root.itf     = root[]
         root.surface = &.surface
         root.style.share(&.app.style)
-        root.position        = {0, 0, width, height}
+        root.position        = Math.Rectangle{0, 0, width, height}
         root.backgroundStyle = .Dialog
         root.sendCreateEvent()
         root.sendResizeEvent()
@@ -145,7 +145,7 @@ impl HeadlessHost
         .surfaceWnd.itf     = &.surfaceWnd
         .surfaceWnd.surface = &.surface
         .surfaceWnd.style.share(&.app.style)
-        .surfaceWnd.position = {0, 0, width, height}
+        .surfaceWnd.position = Math.Rectangle{0, 0, width, height}
         .surface.wnd         = &.surfaceWnd
         .surfaceWnd.view     = root
         .app.registerSurface(&.surface)

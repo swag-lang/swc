@@ -125,7 +125,7 @@ func squareValue(value: s32)->s32 => value * value
             }
     }
 
-    var holder:    LambdaHolder        = {cb: cb}
+    var holder:    LambdaHolder        = LambdaHolder{cb: cb}
     var callbacks: [2] LambdaAggregate = [holder.cb, cb]
 
     let direct = cb({base: 7, step: 9, marks: [3'u16, 4'u16, 5'u16]}, [10, 20, 30, 40], 6)
@@ -315,7 +315,7 @@ func squareValue(value: s32)->s32 => value * value
 #test
 {
     let seedDefaulted: LambdaDefaultUnary  = func(value) => value + 1
-    var holder:        LambdaRuntimeHolder = {
+    var holder:        LambdaRuntimeHolder = LambdaRuntimeHolder{
         unary: func(value) => value + 4,
         predicate: func(left, right) => left == right,
         defaulted: func(value) => value + 5

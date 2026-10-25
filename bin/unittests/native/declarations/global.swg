@@ -11,7 +11,7 @@ struct Pair
 var GZero:  s32
 var GInt:   s32     = 21
 var GBool:  bool    = true
-var GPair:  Pair    = {x: 7, y: 9}
+var GPair:  Pair    = Pair{x: 7, y: 9}
 var GArray: [3] s32 = [1, 2, 3]
 var GText:  string  = "abc"
 

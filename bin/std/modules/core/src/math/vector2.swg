@@ -146,7 +146,7 @@ impl Vector2
     //
     // The result lies in the plane: it is [[Core.Math.Vector2.perpendicularClockwise]] scaled by `axis`.
     #[Swag.Inline]
-    mtd const cross(axis: f32)->Vector2 => {.y * axis, -.x * axis}
+    mtd const cross(axis: f32)->Vector2 => Vector2{.y * axis, -.x * axis}
 
     // Returns the Z component of the cross product of this vector and `other`.
     //
@@ -503,7 +503,7 @@ impl Vector2
     func fromPolar(angle, radius: f32)->Vector2 => Vector2{radius * cos(angle), radius * sin(angle)}
 
     // Returns the polar coordinates of this vector: its angle in radians within [-π, π], and its length.
-    mtd const toPolar()->{ angle: f32, radius: f32 } => {Math.atan2(.y, .x), .length()}
+    mtd const toPolar()->{ angle: f32, radius: f32 } => {angle: Math.atan2(.y, .x), radius: .length()}
 
     // Returns the angle of this vector from the positive X axis, in radians within [-π, π].
     //

@@ -86,7 +86,7 @@ func day10B()
     for l, y in lines do
         for c, x in l do
             if c == '#' do
-                arr.add({{cast(f32, x), cast(f32, y)}})
+                arr.add(Pos{Math.Vector2{cast(f32, x), cast(f32, y)}})
     tot.resize(arr.count)
 
     if arr.count > 1

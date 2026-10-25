@@ -151,7 +151,7 @@ func copyAssignInfo()->LifecycleInfo
     var dst = Tracked{1}
     var src = Tracked{2}
     dst = src
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func moveAssignInfo()->LifecycleInfo
@@ -160,7 +160,7 @@ func moveAssignInfo()->LifecycleInfo
     var dst = Tracked{7}
     var src = Tracked{3}
     dst = #move src
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func noDropCopyInfo()->LifecycleInfo
@@ -169,7 +169,7 @@ func noDropCopyInfo()->LifecycleInfo
     var dst = Tracked{9}
     var src = Tracked{4}
     dst = #nodrop src
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func noDropMoveInfo()->LifecycleInfo
@@ -178,7 +178,7 @@ func noDropMoveInfo()->LifecycleInfo
     var dst = Tracked{6}
     var src = Tracked{6}
     dst = #nodrop #move src
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func dropRelocateInfo()->LifecycleInfo
@@ -188,7 +188,7 @@ func dropRelocateInfo()->LifecycleInfo
     var src = Tracked{3}
     Swag.drop(&dst)
     dst = #relocate src
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func relocateInfo()->LifecycleInfo
@@ -197,7 +197,7 @@ func relocateInfo()->LifecycleInfo
     var dst = Tracked{8}
     var src = Tracked{3}
     dst = #relocate src
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func selfCopyInfo()->LifecycleInfo
@@ -205,7 +205,7 @@ func selfCopyInfo()->LifecycleInfo
     resetLifecycleHooks()
     var value = Tracked{6}
     value = value
-    return {value.value, value.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{value.value, value.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func selfMoveInfo()->LifecycleInfo
@@ -213,7 +213,7 @@ func selfMoveInfo()->LifecycleInfo
     resetLifecycleHooks()
     var value = Tracked{6}
     value = #move value
-    return {value.value, value.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{value.value, value.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func moveRefAssignInfo()->LifecycleInfo
@@ -222,7 +222,7 @@ func moveRefAssignInfo()->LifecycleInfo
     var dst = Tracked{6}
     var src = Tracked{4}
     assignTracked(&dst, #move src)
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func sliceMoveRefAssignInfo()->LifecycleInfo
@@ -232,7 +232,7 @@ func sliceMoveRefAssignInfo()->LifecycleInfo
     var src: [2] Tracked = [Tracked{1}, Tracked{2}]
     let slice = Swag.makeSlice(&src[0], 2)
     assignTracked(&dst, #move slice[0])
-    return {dst.value, src[0].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src[0].value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func overloadCopyInfo()->LifecycleInfo
@@ -241,7 +241,7 @@ func overloadCopyInfo()->LifecycleInfo
     var dst: Tracked
     var src = Tracked{9}
     assignTracked(&dst, src)
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func overloadMoveInfo()->LifecycleInfo
@@ -250,7 +250,7 @@ func overloadMoveInfo()->LifecycleInfo
     var dst: Tracked
     var src = Tracked{9}
     assignTracked(&dst, #move src)
-    return {dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func foreachOverloadCopyInfo()->LifecycleInfo
@@ -260,7 +260,7 @@ func foreachOverloadCopyInfo()->LifecycleInfo
     resetLifecycleHooks()
     for value in values do
         assignTracked(&dst, value)
-    return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func foreachOverloadMoveInfo()->LifecycleInfo
@@ -270,7 +270,7 @@ func foreachOverloadMoveInfo()->LifecycleInfo
     resetLifecycleHooks()
     for value in values do
         assignTracked(&dst, #move value[])
-    return {dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.value, values.item.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func borrowedParamInfo()->LifecycleInfo
@@ -278,7 +278,7 @@ func borrowedParamInfo()->LifecycleInfo
     resetLifecycleHooks()
     var src   = Tracked{7}
     let value = takeTracked(src)
-    return {value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{value, src.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func embeddedCopyAssignInfo()->LifecycleInfo
@@ -287,7 +287,7 @@ func embeddedCopyAssignInfo()->LifecycleInfo
     var dst = EmbeddedTracked{Tracked{1}}
     var src = EmbeddedTracked{Tracked{2}}
     dst = src
-    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func embeddedMoveAssignInfo()->LifecycleInfo
@@ -296,7 +296,7 @@ func embeddedMoveAssignInfo()->LifecycleInfo
     var dst = EmbeddedTracked{Tracked{7}}
     var src = EmbeddedTracked{Tracked{3}}
     dst = #move src
-    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func embeddedOuterCopyAssignInfo()->LifecycleInfo
@@ -305,7 +305,7 @@ func embeddedOuterCopyAssignInfo()->LifecycleInfo
     var dst = EmbeddedTrackedWithOps{Tracked{4}}
     var src = EmbeddedTrackedWithOps{Tracked{5}}
     dst = src
-    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func embeddedOuterMoveAssignInfo()->LifecycleInfo
@@ -314,7 +314,7 @@ func embeddedOuterMoveAssignInfo()->LifecycleInfo
     var dst = EmbeddedTrackedWithOps{Tracked{8}}
     var src = EmbeddedTrackedWithOps{Tracked{3}}
     dst = #move src
-    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func embeddedOuterNoDropCopyAssignInfo()->LifecycleInfo
@@ -323,7 +323,7 @@ func embeddedOuterNoDropCopyAssignInfo()->LifecycleInfo
     var dst = EmbeddedTrackedWithOps{Tracked{6}}
     var src = EmbeddedTrackedWithOps{Tracked{2}}
     dst = #nodrop src
-    return {dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{dst.inner.value, src.inner.value, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 #[NoInline]
@@ -337,7 +337,7 @@ func returnMoveInfo()->LifecycleInfo
 {
     resetLifecycleHooks()
     let value = makeTrackedReturn()
-    return {value.value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
+    return LifecycleInfo{value.value, 0, DropCount, DropTrace, PostCopyCount, PostMoveCount}
 }
 
 func semaTest001()

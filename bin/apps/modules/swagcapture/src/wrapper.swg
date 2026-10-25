@@ -10,15 +10,15 @@ struct FormDesc
 }
 
 const FormRegistry: [?] FormDesc = [
-    {FormShape,   EditMode.Shape,   true,  true},
-    {FormArrow,   EditMode.Arrow,   false, false},
-    {FormLine,    EditMode.Line,    true,  false},
-    {FormPolygon, EditMode.Polygon, true,  true},
-    {FormText,    EditMode.Text,    false, false},
-    {FormDraw,    EditMode.Draw,    true,  true},
-    {FormStep,    EditMode.Step,    false, false},
-    {FormImage,   EditMode.Image,   false, false},
-    {FormCallout, EditMode.Callout, false, false}]
+    FormDesc{FormShape, EditMode.Shape, true, true},
+    FormDesc{FormArrow, EditMode.Arrow, false, false},
+    FormDesc{FormLine, EditMode.Line, true, false},
+    FormDesc{FormPolygon, EditMode.Polygon, true, true},
+    FormDesc{FormText, EditMode.Text, false, false},
+    FormDesc{FormDraw, EditMode.Draw, true, true},
+    FormDesc{FormStep, EditMode.Step, false, false},
+    FormDesc{FormImage, EditMode.Image, false, false},
+    FormDesc{FormCallout, EditMode.Callout, false, false}]
 
 func formDescIndex(type: typeinfo)->u64
 {

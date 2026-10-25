@@ -95,7 +95,7 @@ using Core, Pixel
     for index in [2_000'u64, 2_002, 500, 502, 3_999, 0]
     {
         host.setReducedMotion(false)
-        host.mouseWheel({360, 240}, -1)
+        host.mouseWheel(Math.Point{360, 240}, -1)
         let revealed = view.revealHeading(offsets[index])
         Swag.assert(revealed)
         discard host.render(view)
@@ -126,7 +126,7 @@ using Core, Pixel
         for delta in [direction, -direction]
         {
             let before = view.scroll.scrollPosition().y
-            host.mouseWheel({360, 240}, delta)
+            host.mouseWheel(Math.Point{360, 240}, delta)
             for 2
             {
                 discard host.render(view)
@@ -153,7 +153,7 @@ using Core, Pixel
         var before: f32
         for block in view.blocks where block.sourceOffset == offsets[2] do
             before = block.wnd.surfaceRect().y
-        host.mouseWheel({360, 240}, 1)
+        host.mouseWheel(Math.Point{360, 240}, 1)
         discard host.render(view)
         host.finishAnimations()
         for block in view.blocks where block.sourceOffset == offsets[2]
@@ -222,6 +222,6 @@ using Core, Pixel
     Swag.assert(view.pageIndex == 1)
     Swag.assert(Math.abs(view.scroll.scrollPosition().y - (view.pageRect(1).y + 400 - 12)) < 2)
     view.setPageLayout(.Single)
-    view.showPosition(1, {24, 400})
+    view.showPosition(1, Math.Point{24, 400})
     Swag.assert(view.pageIndex == 1 and view.scroll.scrollPosition().y >= 390)
 }

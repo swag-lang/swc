@@ -218,12 +218,12 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
 
     case .Bool:
         var val: bool
-        {val, eat} = try parseBool(one)
+        {value: val, eat}    = try parseBool(one)
         cast(*bool, patch)[] = val
 
     case .Rune:
         var val: rune
-        {val, eat} = try parseRune(one)
+        {value: val, eat}    = try parseRune(one)
         cast(*rune, patch)[] = val
 
     default:

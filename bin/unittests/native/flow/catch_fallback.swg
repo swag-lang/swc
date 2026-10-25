@@ -50,7 +50,7 @@ func fallbackTuple(ok: bool)->{value: s32, valid: bool} fail
 {
     if not ok do
         fail FallbackError{base: Swag.BaseError{"no tuple"}, code: 14}
-    return {8, true}
+    return {value: 8, valid: true}
 }
 
 func fallbackValue(value: s32)->s32
@@ -92,7 +92,7 @@ func fallbackCode(err: any?)->s32 => err == null ? 0 : assume cast(FallbackError
     let success = catch fallbackPoint(true)
     Swag.assert(success.x == 1 and success.y == 2)
 
-    let pair = catch fallbackTuple(false) orelse {-1, false}
+    let pair = catch fallbackTuple(false) orelse {value: -1, valid: false}
     Swag.assert(pair.value == -1 and not pair.valid)
 }
 

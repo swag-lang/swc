@@ -309,7 +309,7 @@ public impl LinePath
         // Boolean operations adopt a polygon without rebuilding authored segments. Its
         // cached bounds enclose the geometry; the start point alone does not.
         if .isPolyOnly do
-            return {.minBounds.x, .minBounds.y, .maxBounds.x - .minBounds.x, .maxBounds.y - .minBounds.y}
+            return Math.Rectangle{.minBounds.x, .minBounds.y, .maxBounds.x - .minBounds.x, .maxBounds.y - .minBounds.y}
 
         var min = .startPoint
         var max = .startPoint
@@ -341,7 +341,7 @@ public impl LinePath
             }
         }
 
-        return {min.x, min.y, max.x - min.x, max.y - min.y}
+        return Math.Rectangle{min.x, min.y, max.x - min.x, max.y - min.y}
     }
 
     // Closes the contour, joining the last point to the first when they differ.
@@ -704,10 +704,10 @@ impl LinePath
     }
 
     // Returns the point of an arc at `angle`, as [[Pixel.LinePath.arcTo]] parameterizes it.
-    private func arcPoint(center, radii: Vector2, angle: f32)->Vector2 => {center.x + Math.sin(angle) * radii.x, center.y - Math.cos(angle) * radii.y}
+    private func arcPoint(center, radii: Vector2, angle: f32)->Vector2 => Vector2{center.x + Math.sin(angle) * radii.x, center.y - Math.cos(angle) * radii.y}
 
     // Returns the direction an arc travels at `angle`, per radian.
-    private func arcTangent(radii: Vector2, angle: f32)->Vector2 => {Math.cos(angle) * radii.x, Math.sin(angle) * radii.y}
+    private func arcTangent(radii: Vector2, angle: f32)->Vector2 => Vector2{Math.cos(angle) * radii.x, Math.sin(angle) * radii.y}
 
     // Appends the cubic Bézier segments tracing one arc element, from the path's current point.
     //
@@ -744,8 +744,8 @@ impl LinePath
             var cubic: Element
             cubic.type     = .Bezier2
             cubic.position = p3
-            cubic.p1       = {p0.x + t0.x * k, p0.y + t0.y * k}
-            cubic.p2       = {p3.x - t1.x * k, p3.y - t1.y * k}
+            cubic.p1       = Vector2{p0.x + t0.x * k, p0.y + t0.y * k}
+            cubic.p2       = Vector2{p3.x - t1.x * k, p3.y - t1.y * k}
             target.add(cubic)
         }
     }

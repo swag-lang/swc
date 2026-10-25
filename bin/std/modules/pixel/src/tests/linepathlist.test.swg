@@ -63,7 +63,7 @@ func nestedSquares()->LinePathList
     Swag.assert(moved.count() == 2)
     var holeBounds: Math.Rectangle
     for p in moved.paths where not p.polygon.isClockwise do
-        holeBounds = {p.minBounds.x, p.minBounds.y, p.maxBounds.x - p.minBounds.x, p.maxBounds.y - p.minBounds.y}
+        holeBounds = Math.Rectangle{p.minBounds.x, p.minBounds.y, p.maxBounds.x - p.minBounds.x, p.maxBounds.y - p.minBounds.y}
     Swag.assert(Math.isEqualEpsilon(holeBounds.x, 10, 0.01) and Math.isEqualEpsilon(holeBounds.width, 10, 0.01))
 }
 
@@ -219,8 +219,8 @@ func square(x, y, size: f32)->LinePathList
     let bounds = list.controlBounds()
     Swag.assert(Math.isEqualEpsilon(bounds.x, 5, 0.001) and Math.isEqualEpsilon(bounds.y, 7, 0.001))
     Swag.assert(Math.isEqualEpsilon(bounds.width, 80, 0.001) and Math.isEqualEpsilon(bounds.height, 30, 0.001))
-    Swag.assert(list.paths[1].startPoint.isEqualEpsilon({45, 7}, 0.001))
-    Swag.assert(list.paths[1].endPoint.isEqualEpsilon({85, 7}, 0.001))
+    Swag.assert(list.paths[1].startPoint.isEqualEpsilon(Math.Vector2{45, 7}, 0.001))
+    Swag.assert(list.paths[1].endPoint.isEqualEpsilon(Math.Vector2{85, 7}, 0.001))
 
     // A half circle of radius 10 about (10, 10) becomes a half ellipse about (25, 37) with radii
     // 20 and 30: every flattened point lies on it.
@@ -254,8 +254,8 @@ func square(x, y, size: f32)->LinePathList
     clip.flatten(.Normal)
     shape.intersect(&clip)
     Swag.assert(shape.count() == 1)
-    Swag.assert(shape.minBounds.isEqualEpsilon({50, 50}, 0.01))
-    Swag.assert(shape.maxBounds.isEqualEpsilon({100, 100}, 0.01))
+    Swag.assert(shape.minBounds.isEqualEpsilon(Math.Vector2{50, 50}, 0.01))
+    Swag.assert(shape.maxBounds.isEqualEpsilon(Math.Vector2{100, 100}, 0.01))
     Swag.assert(shape.controlBounds() == Math.Rectangle{50, 50, 50, 50})
     Swag.assert(shape.paths[0].controlBounds() == Math.Rectangle{50, 50, 50, 50})
 
@@ -286,11 +286,11 @@ struct Cell
 // did not name it as its predecessor; tidying that ring never terminated, and a real document
 // froze its viewer on the page that holds this table.
 const TouchingCells: [5] Cell = [
-    {34.894001, 195.505005, 44.815002, 206.843994},
-    {34.894001, 206.843018, 44.815002, 218.182007},
-    {44.814999, 206.843018, 54.736000, 218.182007},
-    {34.894001, 218.182007, 44.815002, 229.520996},
-    {44.814999, 218.182007, 54.736000, 229.520996}]
+    Cell{34.894001, 195.505005, 44.815002, 206.843994},
+    Cell{34.894001, 206.843018, 44.815002, 218.182007},
+    Cell{44.814999, 206.843018, 54.736000, 218.182007},
+    Cell{34.894001, 218.182007, 44.815002, 229.520996},
+    Cell{44.814999, 218.182007, 54.736000, 229.520996}]
 
 #test
 {
@@ -313,15 +313,15 @@ const TouchingCells: [5] Cell = [
     // The strip joins the two columns, so the union is one contour: the full left column with
     // the right column's pair of cells attached below its own top edge.
     Swag.assert(list.count() == 1)
-    Swag.assert(list.minBounds.isEqualEpsilon({34.894, 195.505}, 0.01))
-    Swag.assert(list.maxBounds.isEqualEpsilon({54.736, 229.521}, 0.01))
+    Swag.assert(list.minBounds.isEqualEpsilon(Math.Vector2{34.894, 195.505}, 0.01))
+    Swag.assert(list.maxBounds.isEqualEpsilon(Math.Vector2{54.736, 229.521}, 0.01))
 
     // Six corners, because the step from the left column's top down to the right column's is the
     // only place the outline turns away from its bounding box.
     let outline = list.paths[0].polygon.points
     Swag.assert(outline.count == 7 and outline[0] == outline[6])
-    Swag.assert(outline[3].isEqualEpsilon({44.815, 195.505}, 0.01))
-    Swag.assert(outline[4].isEqualEpsilon({44.815, 206.843}, 0.01))
+    Swag.assert(outline[3].isEqualEpsilon(Math.Vector2{44.815, 195.505}, 0.01))
+    Swag.assert(outline[4].isEqualEpsilon(Math.Vector2{44.815, 206.843}, 0.01))
 }
 
 // A contour of straight segments reads the same at every tolerance, so asking for a finer one
@@ -388,7 +388,7 @@ const TouchingCells: [5] Cell = [
         Swag.assert(dirs[i] == expected[i])
 
     // Editing the contour in place is announced through its revision, and the directions follow.
-    path.polygon.points[0] += {10, 10}
+    path.polygon.points[0] += Math.Vector2{10, 10}
     path.touchContour()
     path.polygon.fillOffsetDirections(&expected)
     let moved = path.offsetDirections()

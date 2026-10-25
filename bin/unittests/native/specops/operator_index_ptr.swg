@@ -143,7 +143,7 @@ impl NestedContainer
 #test
 {
     var c: PtrContainer
-    c[1] = {7, 8}
+    c[1] = PtrElem{7, 8}
     Swag.assert(c.values[1].x == 7)
     Swag.assert(c.values[1].y == 8)
 }
@@ -171,7 +171,7 @@ impl NestedContainer
 #test
 {
     var c: PtrContainer
-    c[0] = {1, 2}
+    c[0] = PtrElem{1, 2}
     var v = c[0]
     v.x = 99
     Swag.assert(c.values[0].x == 1)
@@ -181,7 +181,7 @@ impl NestedContainer
 #test
 {
     var c: PtrContainer
-    c[0] = {3, 4}
+    c[0] = PtrElem{3, 4}
     Swag.assert(c.constProbe() == 7)
 }
 

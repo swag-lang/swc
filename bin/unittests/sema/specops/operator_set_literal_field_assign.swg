@@ -25,7 +25,7 @@ func name()->string => "dyn"
 
 func initialized()->u64
 {
-    let holder: Holder = {text: name()}
+    let holder: Holder = Holder{text: name()}
     return holder.text.length
 }
 

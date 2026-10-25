@@ -216,7 +216,7 @@ impl Driver
         defer .mutexVoicesToUpdate.unlock()
         if .driverIsClosing do
             return
-        .voicesToUpdate.add({voice, cmd})
+        .voicesToUpdate.add({voice, command: cmd})
         .wakeupUpdate.signal()
     }
 

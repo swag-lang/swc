@@ -53,12 +53,12 @@ using Core, Pixel
     {
         let revealed = view.revealFileOffset(source.length / 2, "")
         Swag.assert(revealed)
-        let direction = forward ? 1.0 : -1.0
+        let direction = forward ? 1.0'f32 : -1.0'f32
         let start     = view.virtualOrigin
         let end       = start + view.layout.documentHeight
         view.scroll.setScrollPos(0, forward ? end - viewport.height * 8 : start + viewport.height * 7)
         view.virtualPendingSeek = false
-        view.scroll.smoothScrollTo({0, view.scroll.scrollPosition().y + direction * viewport.height * 3})
+        view.scroll.smoothScrollTo(Math.Point{0, view.scroll.scrollPosition().y + direction * viewport.height * 3})
         host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
         Swag.assert(view.virtualPendingSeek and view.loadTimer != null)
         Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
@@ -73,7 +73,7 @@ using Core, Pixel
         host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
         Swag.assert((view.scroll.scrollPosition().y - position.y) * direction > 0)
         let reversal = view.scroll.scrollPosition()
-        view.scroll.smoothScrollTo({0, reversal.y - direction * viewport.height})
+        view.scroll.smoothScrollTo(Math.Point{0, reversal.y - direction * viewport.height})
         host.advanceAnimations(view.themeMetrics().motion_PanelSeconds * 0.25)
         Swag.assert((view.scroll.scrollPosition().y - reversal.y) * direction < 0)
         host.finishAnimations()
@@ -83,7 +83,7 @@ using Core, Pixel
     // moved yet and the requested destination equals the current position.
     let atStart = view.revealFileOffset(view.virtualContentStart, "")
     Swag.assert(atStart and view.scroll.scrollPosition().y == 0)
-    view.scroll.smoothScrollTo({0, viewport.height * 2})
+    view.scroll.smoothScrollTo(Math.Point{0, viewport.height * 2})
     Swag.assert(host.app.animator.isActive(view.scroll.scrollAnimation))
     let returned = view.revealFileOffset(view.virtualContentStart, "")
     Swag.assert(returned and not host.app.animator.isActive(view.scroll.scrollAnimation))
@@ -688,7 +688,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     let rail = view.boxOfNode(view.elementById("rail"))
     Swag.assert(rail != HtmlNoNode and view.layout.constBox(rail).scrollable)
     Swag.assert(view.layout.constBox(rail).rect.y == 40)
-    Swag.assert(view.painter().scrollableAt({20, 60}) == rail)
+    Swag.assert(view.painter().scrollableAt(Math.Point{20, 60}) == rail)
     Swag.assert(view.scrollRegion(rail, 80))
     Swag.assert(view.layout.constBox(rail).scrollTop == 80)
 
@@ -738,17 +738,17 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     let rail = view.boxOfNode(view.elementById("rail"))
     Swag.assert(rail != HtmlNoNode)
-    let bar = view.painter().scrollBarAt({96, 75})
+    let bar = view.painter().scrollBarAt(Math.Point{96, 75})
     Swag.assert(bar.box == rail and bar.track.contains(Math.Point{96, 75}))
 
-    host.click({96, 75})
+    host.click(Math.Point{96, 75})
     Swag.assert(view.layout.constBox(rail).scrollTop == 100)
 
-    let moved = view.painter().scrollBarAt({96, 50})
+    let moved = view.painter().scrollBarAt(Math.Point{96, 50})
     Swag.assert(moved.box == rail and moved.thumb.y <= 50 and moved.thumb.bottom() >= 50)
-    host.mouseDown({91, 50})
-    host.moveMouse({91, 95})
-    host.mouseUp({91, 95})
+    host.mouseDown(Math.Point{91, 50})
+    host.moveMouse(Math.Point{91, 95})
+    host.mouseUp(Math.Point{91, 95})
     Swag.assert(view.layout.constBox(rail).scrollTop > 190)
 }
 
@@ -777,7 +777,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     Swag.assert(rail != HtmlNoNode)
     Swag.assert(Math.abs(view.layout.constBox(rail).content.height - (view.layout.viewport.y - 40)) <= 1)
     Swag.assert(view.layout.constBox(rail).scrollable)
-    Swag.assert(view.painter().scrollableAt({20, 80}) == rail)
+    Swag.assert(view.painter().scrollableAt(Math.Point{20, 80}) == rail)
     Swag.assert(view.scrollRegion(rail, 70))
     Swag.assert(view.layout.constBox(rail).scrollTop == 70)
 }
@@ -804,7 +804,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     var image = host.render(view)
     Swag.assert(image.pixelColor(120, 20).argb == 0xFFFF0000)
     Swag.assert(image.pixelColor(120, 80).argb == 0xFF0000FF)
-    Swag.assert(view.document.constNode(view.painter().nodeAt({120, 20})).tag == .Header)
+    Swag.assert(view.document.constNode(view.painter().nodeAt(Math.Point{120, 20})).tag == .Header)
 }
 
 // The complete fixture renders, and nothing a document hides reaches the drawn text.
@@ -1254,7 +1254,7 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
     // the keyboard, so later navigation keys cannot disappear into stale focus.
     host.focus(&host.root)
     Swag.assert(not view.hasFocus())
-    host.click({20, 20})
+    host.click(Math.Point{20, 20})
     Swag.assert(view.hasFocus())
 }
 
@@ -1657,17 +1657,17 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
     view.scroll.setScrollPos(0, 520)
     let pageStart = view.scroll.scrollPosition().y
 
-    host.mouseWheel({60, 100}, -1)
+    host.mouseWheel(Math.Point{60, 100}, -1)
     Swag.assert(view.layout.constBox(rail).scrollTop > 0)
     Swag.assert(view.scroll.scrollPosition().y == pageStart)
 
     discard view.scrollRegion(rail, 100_000)
     let railEnd = view.layout.constBox(rail).scrollTop
-    host.mouseWheel({60, 100}, -1)
+    host.mouseWheel(Math.Point{60, 100}, -1)
     Swag.assert(view.layout.constBox(rail).scrollTop == railEnd)
     Swag.assert(view.scroll.scrollPosition().y == pageStart)
 
-    host.mouseWheel({420, 180}, -1)
+    host.mouseWheel(Math.Point{420, 180}, -1)
     Swag.assert(view.scroll.scrollPosition().y > pageStart)
     Swag.assert(view.layout.constBox(rail).scrollTop == railEnd)
 }
@@ -2665,7 +2665,7 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
         {
             let item = &box.items[itemIndex]
             if view.layout.inlineText(item) == text do
-                return {item.x, item.y, item.width, item.ascent + item.descent}
+                return Math.Rectangle{item.x, item.y, item.width, item.ascent + item.descent}
         }
     }
 
@@ -2735,12 +2735,12 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
     view.rebuild()
 
     host.clickPopupMenuItemWhenShown(HtmlView.CtxSelectAll)
-    view.showContextMenu({50, 50})
+    view.showContextMenu(Math.Point{50, 50})
     host.pump()
     Swag.assert(view.selectedText() == "menu content")
 
     host.clickPopupMenuItemWhenShown(HtmlView.CtxCopy)
-    view.showContextMenu({50, 50})
+    view.showContextMenu(Math.Point{50, 50})
     host.pump()
     Swag.assert(Clipboard.getString() == "menu content")
 }

@@ -17,10 +17,10 @@ impl IActionUI for ActionPixSel
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         return updateFromTable(cxt, evt, [
-            {Clear,     appStrings().act_Clear,     .PixSel, hideDisabled: true},
-            {Fill,      appStrings().act_Fill,      .PixSel, hideDisabled: true},
-            {SmartFill, appStrings().act_SmartFill, .PixSel, hideDisabled: true},
-            {SmartMove, appStrings().act_SmartMove, .PixSel, hideDisabled: true}])
+            CmdDesc{Clear, appStrings().act_Clear, .PixSel, hideDisabled: true},
+            CmdDesc{Fill, appStrings().act_Fill, .PixSel, hideDisabled: true},
+            CmdDesc{SmartFill, appStrings().act_SmartFill, .PixSel, hideDisabled: true},
+            CmdDesc{SmartMove, appStrings().act_SmartMove, .PixSel, hideDisabled: true}])
     }
 
     mtd impl execute(cxt: ActionContext)->bool

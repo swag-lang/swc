@@ -37,7 +37,7 @@ namespace Scoped
     #assert(#typeof(arrayInfo) == #typeof(const *TypeInfoArray))
     #assert(#typeof(literalArrayInfo) == #typeof(const *TypeInfoArray))
     #assert(literalArrayInfo.kind == TypeInfoKind.Array)
-    #assert(#typeof({1, 2, 3}).kind == TypeInfoKind.Struct)
+    #assert(#typeof((1, 2, 3)).kind == TypeInfoKind.Struct)
 }
 
 #[Swag.ConstExpr]

@@ -1,4 +1,4 @@
-﻿#global private
+#global private
 
 struct Rect { x, y, width, height: f32 }
 struct Window { position: Rect }
@@ -18,7 +18,7 @@ func(T) create(out: *T, name: string?, position: Rect, id: string? = null, hook:
 #test
 {
     var window: Window
-    let target = create'Window(&window, {40, 20, 100, 50})
+    let target = create'Window(&window, Rect{40, 20, 100, 50})
     Swag.assert(target.position.x == 40 and target.position.y == 20)
     Swag.assert(target.position.width == 100 and target.position.height == 50)
 }
@@ -60,5 +60,5 @@ func readNested(value: Nested)->f32 => value.rect.width + value.options.height
 
 #test
 {
-    Swag.assert(readNested({{40, 20, 100, 50}, {}}) == 150)
+    Swag.assert(readNested(Nested{Rect{40, 20, 100, 50}, Options{}}) == 150)
 }

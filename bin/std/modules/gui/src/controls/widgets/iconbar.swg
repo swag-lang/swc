@@ -74,7 +74,7 @@ impl IconBar
 {
     // Creates an empty icon bar with a non-negative icon size and item padding.
     #[Swag.Discardable]
-    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = {}, id: WndId? = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32)->*IconBar
+    func create(parent: *Wnd, iconSize: f32, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, orientation = IconBarOrientation.Horizontal, itemPadding = 4'f32)->*IconBar
     {
         Swag.assert(parent != null)
         Swag.assert(iconSize >= 0 and itemPadding >= 0)
@@ -94,7 +94,7 @@ impl IconBar
         sizedIcon.sizeX, sizedIcon.sizeY = .iconSize
 
         let size   = .iconSize + 2 * .itemPadding
-        let button = IconButton.create(me, sizedIcon, {0, 0, size, size}, id, flags)
+        let button = IconButton.create(me, sizedIcon, Math.Rectangle{0, 0, size, size}, id, flags)
         button.dockStyle = .orientation == .Vertical ? .Top : .Left
         button.setForm(.orientation == .Horizontal ? .RoundedRectangle : .Rectangle)
         button.setCheckIndicator(.orientation == .Horizontal ? .Frame : .Left)

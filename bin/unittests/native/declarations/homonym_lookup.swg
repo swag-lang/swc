@@ -38,7 +38,7 @@ func makeShadowItem(value: s32)->ShadowItem { return {count: value} }
 
 #test
 {
-    let set: ShadowItem = {count: 3}
+    let set: ShadowItem = ShadowItem{count: 3}
     Swag.assert(set.count == 3)
 }
 
@@ -62,7 +62,7 @@ func readShadow(set: ShadowItem)->s32
 {
     scope
     {
-        let set: ShadowItem = {count: 6}
+        let set: ShadowItem = ShadowItem{count: 6}
         Swag.assert(set.count == 6)
     }
 }

@@ -166,7 +166,7 @@ private impl GridLayoutCtrl
 
                 let sh     = .spanH(col, row, child)
                 let sv     = .spanV(col, row, child)
-                let hint   = child.measure({client.width, client.height})
+                let hint   = child.measure(Math.Point{client.width, client.height})
                 let margin = child.layoutMargin()
                 if columns
                 {
@@ -299,7 +299,7 @@ private impl GridLayoutCtrl
 impl GridLayoutCtrl
 {
     // Creates an empty grid with `numColumns` columns and `numRows` rows.
-    func create(parent: *Wnd, numColumns, numRows: s32, position: Math.Rectangle = {})->*GridLayoutCtrl
+    func create(parent: *Wnd, numColumns, numRows: s32, position: Math.Rectangle = Math.Rectangle{})->*GridLayoutCtrl
     {
         Swag.assert(numColumns > 0 and numRows > 0)
 
@@ -360,7 +360,7 @@ impl GridLayoutCtrl
         {
             .position.width  = maxW
             .position.height = maxH
-            .preferredSize   = {maxW, maxH}
+            .preferredSize   = Math.Point{maxW, maxH}
         }
     }
 

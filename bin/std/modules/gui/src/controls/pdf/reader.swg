@@ -123,7 +123,7 @@ impl Reader
             pages[source.objectId] = index
         var pending: Array'{node: u32, level: u32}
         var visited: HashTable'(u32, bool)
-        pending.add({firstOutline, 1})
+        pending.add({node: firstOutline, level: 1})
         while pending.count
         {
             let item = pending.popBack()
@@ -202,9 +202,9 @@ impl Reader
                             switch region.rotate
                             {
                             case 90:  entry.position = {y, x}
-                            case 180: entry.position = {region.box.width - x, y}
-                            case 270: entry.position = {region.box.height - y, region.box.width - x}
-                            default:  entry.position = {x, region.box.height - y}
+                            case 180: entry.position = Math.Point{region.box.width - x, y}
+                            case 270: entry.position = Math.Point{region.box.height - y, region.box.width - x}
+                            default:  entry.position = Math.Point{x, region.box.height - y}
                             }
 
                             if mode == "Fit" or mode == "FitB" do
@@ -219,9 +219,9 @@ impl Reader
             let next  = .parser.dict(node, "Next")
             let first = .parser.dict(node, "First")
             if next != InvalidNode do
-                pending.add({next, item.level})
+                pending.add({node: next, level: item.level})
             if first != InvalidNode do
-                pending.add({first, item.level + 1})
+                pending.add({node: first, level: item.level + 1})
         }
 
         return result

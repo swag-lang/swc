@@ -204,7 +204,7 @@ public impl IWnd for MenuCtrl
             let subRect      = &theme.rects.menuPopup_Shadow
             let anchorHeight = .getPopupBarAnchorHeight()
             let shadowY      = .popupButtonOpensUp ? 0 : anchorHeight
-            theme.drawSubRect(painter, {0, shadowY, .position.width, .position.height - anchorHeight}, subRect, colors.menuPopup_Shadow)
+            theme.drawSubRect(painter, Math.Rectangle{0, shadowY, .position.width, .position.height - anchorHeight}, subRect, colors.menuPopup_Shadow)
         }
 
         // Back
@@ -506,7 +506,7 @@ impl MenuCtrl
         let popupParent   = .parent!
         let bounds        = popupParent.clientRect()
         let metrics       = .themeMetrics()
-        let parentTopLeft = popupParent.surfaceToLocal({surfaceRect.x, surfaceRect.y})
+        let parentTopLeft = popupParent.surfaceToLocal(Math.Point{surfaceRect.x, surfaceRect.y})
         let openRight     = parentTopLeft.x + surfaceRect.width - 2 * metrics.menuPopup_ShadowSize
         let openLeft      = parentTopLeft.x - submenuWidth + 2 * metrics.menuPopup_ShadowSize
         let margin        = metrics.menuPopup_WindowMargin
@@ -567,7 +567,7 @@ impl MenuCtrl
         let parent = .parent!
         let shadow = .themeMetrics().menuPopup_ShadowSize
         let anchor = .popupBarItemSurfaceRect
-        let local  = parent.surfaceToLocal({anchor.x, anchor.y})
+        let local  = parent.surfaceToLocal(Math.Point{anchor.x, anchor.y})
 
         if .popupButtonOpensUp do
             return local.y - (.position.height - anchor.height - shadow) >= -shadow
@@ -609,7 +609,7 @@ impl MenuCtrl
     {
         let clientRect = .clientRect()
         let height     = .getBarItemHeight()
-        return {
+        return Math.Rectangle{
             item.pos,
             clientRect.y + (clientRect.height - height) * 0.5,
             item.size,
@@ -852,7 +852,7 @@ impl MenuCtrl
         with me.subVisible
         {
             let pt = .parent!.surfaceToLocal(ptSurface)
-            .setPosition({pt.x, pt.y, .position.width, .position.height})
+            .setPosition(Math.Rectangle{pt.x, pt.y, .position.width, .position.height})
             .resolveSubmenuDirections()
             .bringToFront()
             .show()
@@ -891,7 +891,7 @@ impl MenuCtrl
         // the popup inside the surface without moving it away from its bar item.
         let popupParent = sub.parent!
         let bounds      = popupParent.clientRect()
-        var pt          = popupParent.surfaceToLocal({pos.x, pos.y})
+        var pt          = popupParent.surfaceToLocal(Math.Point{pos.x, pos.y})
         let subPos      = sub.position
         pt.x = Math.clamp(pt.x, bounds.x, Math.max(bounds.right() - subPos.width, bounds.x))
         pt.y = Math.clamp(pt.y, bounds.y, Math.max(bounds.bottom() - subPos.height, bounds.y))
@@ -918,7 +918,7 @@ impl MenuCtrl
         sub.computeLayoutPopup()
         let popupParent   = sub.parent!
         let bounds        = popupParent.clientRect()
-        let parentTopLeft = popupParent.surfaceToLocal({surfaceRect.x, surfaceRect.y})
+        let parentTopLeft = popupParent.surfaceToLocal(Math.Point{surfaceRect.x, surfaceRect.y})
         let subPos        = sub.position
         let openRight     = parentTopLeft.x + surfaceRect.width - 2 * sdw
         let openLeft      = parentTopLeft.x - subPos.width + 2 * sdw
@@ -1019,7 +1019,7 @@ impl MenuCtrl
                 it.name.set(it.nameResolver())
             it.pos = x + metrics.menuBar_SpaceBetween * 0.5
             it.name.compute()
-            Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
+            Pixel.Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
             it.size = it.name.boundRect.width
             x       = it.pos + it.size + metrics.menuBar_SpaceBetween * 0.5
         }
@@ -1079,13 +1079,13 @@ impl MenuCtrl
             it.size = Math.max(rsf.font.regular!.height, metrics.menuPopup_ItemHeight - metrics.menuPopup_SpaceLines)
 
             it.name.compute()
-            Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
+            Pixel.Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.name, rsf, deviceScale)
             var w = it.name.boundRect.width
 
             if not .flags.has(.HideShortcuts) and not it.rightName.isEmpty()
             {
                 it.rightName.compute()
-                Pixel.Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.rightName, rsf, deviceScale)
+                Pixel.Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &it.rightName, rsf, deviceScale)
                 w += it.rightName.boundRect.width + rsf.font.regular.height * 3
             }
 
@@ -1191,7 +1191,7 @@ public impl MenuCtrl
         Swag.assert(parent != null)
         let topView     = parent.topView()
         let popupParent = parent == topView or topView.isAncestorOf(parent) ? topView : parent.topWindow()
-        with let res    = Wnd.create'MenuCtrl(popupParent, null, {}, id)
+        with let res    = Wnd.create'MenuCtrl(popupParent, null, Math.Rectangle{}, id)
         {
             .focusPolicy = .Click
             .owner       = owner orelse parent
@@ -1205,7 +1205,7 @@ public impl MenuCtrl
 
     // Creates a persistent horizontal menu bar.
     #[Swag.Discardable]
-    func createBar(parent: *Wnd, pos: Math.Rectangle = {}, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
+    func createBar(parent: *Wnd, pos: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, owner: *Wnd? = null)->*MenuCtrl
     {
         Swag.assert(parent != null)
         with let res = Wnd.create'MenuCtrl(parent, null, pos, id)
@@ -1276,7 +1276,7 @@ public impl MenuCtrl
 
     // Adds a command with explicit presentation and returns its mutable item descriptor.
     #[Swag.Discardable]
-    mtd addItem(name: string?, id: WndId, icon: Icon = {}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
+    mtd addItem(name: string?, id: WndId, icon: Icon = Icon{}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
     {
         with let mitem = me.items.allocate()
         {
@@ -1316,7 +1316,7 @@ public impl MenuCtrl
     // Use this rather than a literal for a label that has to follow a language switch; see
     // [[Gui.MenuLabelResolver]].
     #[Swag.Discardable]
-    mtd addItem(name: MenuLabelResolver, id: WndId, icon: Icon = {}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
+    mtd addItem(name: MenuLabelResolver, id: WndId, icon: Icon = Icon{}, rightName: string? = null, disabled = false, checked = false)->*PopupMenuItem
     {
         with let mitem = .addItem(name(), id, icon, rightName, disabled, checked)
         {
@@ -1328,7 +1328,7 @@ public impl MenuCtrl
 
     // Adds a submenu with explicit presentation and returns its mutable item descriptor.
     #[Swag.Discardable]
-    mtd addPopup(name: string?, popup: *MenuCtrl, icon: Icon = {}, id: WndId? = null)->*PopupMenuItem
+    mtd addPopup(name: string?, popup: *MenuCtrl, icon: Icon = Icon{}, id: WndId? = null)->*PopupMenuItem
     {
         with let mitem = me.items.allocate()
         {
@@ -1350,7 +1350,7 @@ public impl MenuCtrl
     // once, so the six entries of an application bar would otherwise keep the language they
     // were built in while everything below them refreshes through the command state.
     #[Swag.Discardable]
-    mtd addPopup(name: MenuLabelResolver, popup: *MenuCtrl, icon: Icon = {}, id: WndId? = null)->*PopupMenuItem
+    mtd addPopup(name: MenuLabelResolver, popup: *MenuCtrl, icon: Icon = Icon{}, id: WndId? = null)->*PopupMenuItem
     {
         with let mitem = .addPopup(name(), popup, icon, id)
         {
@@ -1436,8 +1436,8 @@ public impl MenuCtrl
             elif .popupButtonOpensUp do
                 y = anchor.y - (.position.height - anchor.height - sdw)
 
-            pt = .parent.surfaceToLocal({anchor.x - sdw, y})
-            .setPosition({pt.x, pt.y, .position.width, .position.height})
+            pt = .parent.surfaceToLocal(Math.Point{anchor.x - sdw, y})
+            .setPosition(Math.Rectangle{pt.x, pt.y, .position.width, .position.height})
         }
 
         else
@@ -1446,11 +1446,11 @@ public impl MenuCtrl
             {
             case .TopLeft:
                 pt -= .themeMetrics().menuPopup_ShadowSize
-                .setPosition({pt.x, pt.y, .position.width, .position.height})
+                .setPosition(Math.Rectangle{pt.x, pt.y, .position.width, .position.height})
 
             case .AnchorTopCenter:
                 pt.y += .themeMetrics().menuPopup_ShadowSize
-                .setPosition({pt.x - .position.width * 0.5, pt.y, .position.width, .position.height})
+                .setPosition(Math.Rectangle{pt.x - .position.width * 0.5, pt.y, .position.width, .position.height})
                 .anchor         = .Top
                 .anchorPosition = .position.width * 0.5
                 .setFrameFlags(.Borders | .SmallShadow)
@@ -1460,7 +1460,7 @@ public impl MenuCtrl
 
             case .AnchorBottomCenter:
                 pt.y -= .themeMetrics().menuPopup_ShadowSize
-                .setPosition({pt.x - .position.width * 0.5, pt.y - .position.height, .position.width, .position.height})
+                .setPosition(Math.Rectangle{pt.x - .position.width * 0.5, pt.y - .position.height, .position.width, .position.height})
                 .anchor         = .Bottom
                 .anchorPosition = .position.width * 0.5
                 .setFrameFlags(.Borders | .SmallShadow)

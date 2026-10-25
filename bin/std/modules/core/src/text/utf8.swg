@@ -88,11 +88,11 @@ private
     }
 
     const AcceptRanges: [?] AcceptRange = [
-        {LoCB, HiCB},
-        {0xA0, HiCB},
-        {LoCB, 0x9F},
-        {0x90, HiCB},
-        {LoCB, 0x8F}]
+        AcceptRange{LoCB, HiCB},
+        AcceptRange{0xA0, HiCB},
+        AcceptRange{LoCB, 0x9F},
+        AcceptRange{0x90, HiCB},
+        AcceptRange{LoCB, 0x8F}]
 }
 
 // Searches for one byte, which is what every scanner over text asks for.
@@ -1259,7 +1259,7 @@ func firstRune(src: const [..] u8)->rune
     let dataof = src.buffer
     if Latin1.isAscii(dataof[0]) do
         return cast(rune, dataof[0])
-    let {c, _} = decodeRune(src)
+    let {c, eat: _} = decodeRune(src)
     return c
 }
 
@@ -1272,7 +1272,7 @@ func lastRune(src: const [..] u8)->rune
     let dataof = src.buffer
     if Latin1.isAscii(dataof[countof - 1]) do
         return cast(rune, dataof[countof - 1])
-    let {c, _} = decodeLastRune(src)
+    let {c, eat: _} = decodeLastRune(src)
     return c
 }
 
@@ -1312,8 +1312,8 @@ func compare(src, dst: const [..] u8, comparisonType = ComparisonType.Latin1)->s
         var eat1, eat2: u32
         for
         {
-            {c1, eat1} = decodeRune(Swag.makeSlice(data, length))
-            {c2, eat2} = decodeRune(Swag.makeSlice(otherData, otherLength))
+            {c: c1, eat: eat1} = decodeRune(Swag.makeSlice(data, length))
+            {c: c2, eat: eat2} = decodeRune(Swag.makeSlice(otherData, otherLength))
             if eat1 == 0 or eat2 == 0 do
                 break
 
@@ -1353,7 +1353,7 @@ func visitRunes(buffer: const [..] u8, stmt: #code(c: rune, charIdx: u64, byteId
     var scan       = buffer.buffer
     while count
     {
-        let {curRune, eat} = decodeRune(Swag.makeSlice(scan, count))
+        let {c: curRune, eat} = decodeRune(Swag.makeSlice(scan, count))
         if eat == 0 do
             break
 

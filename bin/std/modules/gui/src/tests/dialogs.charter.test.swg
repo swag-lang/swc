@@ -123,7 +123,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     host.setup(900, 620)
     defer host.shutdown()
 
-    let fb = FileBrowserCtrl.create(&host.root, {mode: .SelectFile, showLocationsPane: false}, {0, 0, 860, 580})
+    let fb = FileBrowserCtrl.create(&host.root, {mode: .SelectFile, showLocationsPane: false}, Math.Rectangle{0, 0, 860, 580})
     fb.applyLayout()
 
     let list = fb.listCtrl

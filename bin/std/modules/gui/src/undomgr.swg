@@ -99,7 +99,7 @@ impl UndoManager
         }
 
         let s = serial != 0 ? serial : .newSerial()
-        .steps.add({s, cmd})
+        .steps.add(UndoStep{s, cmd})
         .next = .steps.count
 
         if apply do

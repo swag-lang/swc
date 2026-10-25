@@ -319,7 +319,7 @@ private impl Layout
                 let format = try source.readNative'AudioFormat()
                 if format.isPlayable()
                 {
-                    .audioTracks.add({format, index})
+                    .audioTracks.add(AudioTrack{format, index})
                     hasAudio = true
                 }
             }
@@ -405,7 +405,7 @@ struct Decoder
 
 impl IDecoder for Decoder
 {
-    mtd impl format()->StreamFormat => {"AVI - Audio Video Interleave", ".avi"}
+    mtd impl format()->StreamFormat => StreamFormat{"AVI - Audio Video Interleave", ".avi"}
 
     mtd impl open(source: *ByteSource)->StreamInfo fail
     {
@@ -548,7 +548,7 @@ private impl Decoder
                 {
                     if chunk.size % track.format.blockAlign do
                         fail InvalidFormatError{"AVI PCM chunk does not hold complete sample frames"}
-                    packets.add({chunk.data, cast(u32, chunk.size), cast(u32, (chunk.size / track.format.blockAlign))})
+                    packets.add(SoundPacket{chunk.data, cast(u32, chunk.size), cast(u32, (chunk.size / track.format.blockAlign))})
                 }
 
                 position = chunk.next
@@ -661,7 +661,7 @@ private impl Decoder
             if start > source.size() or size > source.size() - start do
                 fail InvalidFormatError{"AVI index points past the end of the stream"}
 
-            .frames.add({start, size, (flags & IndexKeyFrameFlag) != 0})
+            .frames.add(FrameEntry{start, size, (flags & IndexKeyFrameFlag) != 0})
         }
     }
 
@@ -678,7 +678,7 @@ private impl Decoder
             let chunk = try readChunk(source, layout.frameEnd)
             if chunk.id == dataId or chunk.id == compressedId
             {
-                .frames.add({chunk.data, chunk.size, .frames.isEmpty()})
+                .frames.add(FrameEntry{chunk.data, chunk.size, .frames.isEmpty()})
                 position = chunk.next
                 continue
             }
@@ -713,7 +713,7 @@ private impl Decoder
         for index in .frames.count
         {
             let entry = .frames[index]
-            samples.add({entry.offset, entry.size, cast(s64, (index * step)), entry.isSync})
+            samples.add(SampleEntry{entry.offset, entry.size, cast(s64, (index * step)), entry.isSync})
         }
 
         // The setup headers of such a file live at the front of its first frame, never in the

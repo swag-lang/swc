@@ -33,10 +33,10 @@ func iconButtonHeadlessReset()
     host.recordCommands()
     iconButtonHeadlessReset()
 
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40})
     btn.sigPressed += &iconButtonHeadlessPressed
 
-    host.click({40, 40})
+    host.click(Math.Point{40, 40})
     Swag.assert(IconButtonHeadlessPressedCount == 1)
     Swag.assert(not btn.isChecked)
 }
@@ -50,15 +50,15 @@ func iconButtonHeadlessReset()
     host.recordCommands()
     iconButtonHeadlessReset()
 
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, IconButtonHeadless_Command)
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40}, IconButtonHeadless_Command)
     btn.updateFlags(.Toggle)
     btn.sigCheckedChanged += &iconButtonHeadlessChecked
 
-    host.click({40, 40})
+    host.click(Math.Point{40, 40})
     Swag.assert(btn.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 1)
 
-    host.click({40, 40})
+    host.click(Math.Point{40, 40})
     Swag.assert(not btn.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 2)
 }
@@ -72,15 +72,15 @@ func iconButtonHeadlessReset()
     host.recordCommands()
     iconButtonHeadlessReset()
 
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40})
     btn.updateFlags(.Radio)
     btn.sigCheckedChanged += &iconButtonHeadlessChecked
 
-    host.click({40, 40})
+    host.click(Math.Point{40, 40})
     Swag.assert(btn.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 1)
 
-    host.click({40, 40})
+    host.click(Math.Point{40, 40})
     Swag.assert(btn.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 1)
 }
@@ -93,7 +93,7 @@ func iconButtonHeadlessReset()
     defer host.shutdown()
     iconButtonHeadlessReset()
 
-    let toggle = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
+    let toggle = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40}, flags: .Toggle)
     toggle.sigCheckedChanged += &iconButtonHeadlessChecked
     toggle.setChecked(true)
     Swag.assert(toggle.isChecked)
@@ -103,7 +103,7 @@ func iconButtonHeadlessReset()
     Swag.assert(not toggle.isChecked)
     Swag.assert(IconButtonHeadlessCheckCount == 0)
 
-    let radio = IconButton.create(&host.root, {}, {80, 20, 40, 40}, flags: .Radio)
+    let radio = IconButton.create(&host.root, {}, Math.Rectangle{80, 20, 40, 40}, flags: .Radio)
     radio.sigCheckedChanged += &iconButtonHeadlessChecked
     radio.setChecked(true)
     Swag.assert(radio.isChecked)
@@ -119,7 +119,7 @@ func iconButtonHeadlessReset()
     host.recordCommands()
     iconButtonHeadlessReset()
 
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, IconButtonHeadless_Command, .Toggle)
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40}, IconButtonHeadless_Command, .Toggle)
     btn.sigCheckedChanged += &iconButtonHeadlessChecked
     host.focus(btn)
 
@@ -162,7 +162,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     host.theme.setSwagDark()     // a palette that marks the active item with a rail
     host.notify(.ThemeChanged)
 
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40}, flags: .Toggle)
     btn.setForm(.Rectangle)
     btn.setChecked(true)
 
@@ -204,7 +204,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40}, flags: .Toggle)
     btn.setCheckIndicator(.Frame)
     btn.setChecked(true)
 
@@ -253,7 +253,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     host.setup(80, 80)
     defer host.shutdown()
 
-    let btn = IconButton.create(&host.root, host.theme.icon(.Filter, 24), {20, 20, 40, 40}, flags: .Toggle)
+    let btn = IconButton.create(&host.root, host.theme.icon(.Filter, 24), Math.Rectangle{20, 20, 40, 40}, flags: .Toggle)
     btn.setCheckIndicator(.Frame)
     btn.setChecked(true)
 
@@ -284,7 +284,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40}, flags: .Toggle)
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40}, flags: .Toggle)
     btn.setForm(.Rectangle)
     btn.setChecked(true)
 
@@ -307,7 +307,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     var host: Testing.HeadlessHost
     host.setup(120, 120)
     defer host.shutdown()
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40})
     btn.isHot          = true
     btn.isPressed      = true
     btn.aniBk.themeCrc = 42'u32
@@ -325,7 +325,7 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     var host: Testing.HeadlessHost
     host.setup(120, 120)
     defer host.shutdown()
-    let btn = IconButton.create(&host.root, {}, {20, 20, 40, 40})
+    let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40})
     btn.isHot              = true
     btn.isIn               = true
     btn.isPressed          = true
@@ -354,26 +354,26 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     defer host.shutdown()
 
     let icon = host.root.theme().icon(ThemeIcons.Play, 18)
-    let btn  = IconButton.create(&host.root, icon, {0, 0, 80, 30}, IconButtonHeadless_Command)
+    let btn  = IconButton.create(&host.root, icon, Math.Rectangle{0, 0, 80, 30}, IconButtonHeadless_Command)
     btn.setText("Save")
     btn.setTextPosition(.Right)
 
-    let short = btn.itf.measureContent({320, 200})
+    let short = btn.itf.measureContent(Math.Point{320, 200})
     btn.setText("Enregistrer sous")
-    let long = btn.itf.measureContent({320, 200})
+    let long = btn.itf.measureContent(Math.Point{320, 200})
     Swag.assert(long.x > short.x)
     Swag.assert(long.y == short.y)
 
     // Stacked, the same wording grows the other axis instead.
     btn.setTextPosition(.Bottom)
-    let stacked = btn.itf.measureContent({320, 200})
+    let stacked = btn.itf.measureContent(Math.Point{320, 200})
     Swag.assert(stacked.y > short.y)
 
     // A button hiding its label answers for the icon alone, whatever the wording is.
     btn.updateFlags(.IconOnly)
-    let hidden = btn.itf.measureContent({320, 200})
+    let hidden = btn.itf.measureContent(Math.Point{320, 200})
     btn.setText("A much longer caption nobody sees")
-    Swag.assert(btn.itf.measureContent({320, 200}).x == hidden.x)
+    Swag.assert(btn.itf.measureContent(Math.Point{320, 200}).x == hidden.x)
 }
 
 // A compact toolbar menu centers icon, wording, and disclosure as one horizontal group. Its
@@ -391,15 +391,15 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
     Swag.assert(metrics.btnIcon_Padding == metrics.btnIcon_SpacingTextH)
     Swag.assert(metrics.btnIcon_SpacingArrowH == metrics.btnIcon_SpacingTextH)
 
-    let btn = IconButton.create(&host.root, host.theme.icon(.Redo, 18), {20, 16, 120, 36}, flags: .CenterContent)
+    let btn = IconButton.create(&host.root, host.theme.icon(.Redo, 18), Math.Rectangle{20, 16, 120, 36}, flags: .CenterContent)
     btn.setArrowPosition(.RightDownward)
-    let iconOnly = btn.itf.measureContent({160, 68})
+    let iconOnly = btn.itf.measureContent(Math.Point{160, 68})
     Swag.assert(iconOnly.x == 2 * metrics.btnIcon_Padding + 18 + metrics.btnIcon_SpacingArrowH + metrics.btnIcon_ArrowSize)
     Swag.assert(iconOnly.y == 2 * metrics.btnIcon_Padding + 18)
 
     btn.setText("View")
     btn.setTextPosition(.Right)
-    let withText = btn.itf.measureContent({160, 68})
+    let withText = btn.itf.measureContent(Math.Point{160, 68})
     Swag.assert(withText.x > iconOnly.x + metrics.btnIcon_SpacingTextH)
     Swag.assert(withText.y == iconOnly.y)
 

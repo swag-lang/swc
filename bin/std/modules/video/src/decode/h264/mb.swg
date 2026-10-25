@@ -2255,11 +2255,11 @@ impl Slice
     mtd const planeResidual(mb: *Mb, plane: u32)->PlaneResidual
     {
         if plane == 0 do
-            return {(mb.residual!.lumaDc).buffer, (mb.residual!.lumaAc).buffer, (mb.residual!.luma8).buffer, (mb.nzLuma).buffer}
+            return PlaneResidual{(mb.residual!.lumaDc).buffer, (mb.residual!.lumaAc).buffer, (mb.residual!.luma8).buffer, (mb.nzLuma).buffer}
 
         let side  = mb.residual444!
         let index = cast(u64, plane) - 1
-        return {
+        return PlaneResidual{
             (side.dc).buffer + index * 16,
             (side.ac).buffer + index * 256,
             (side.t8).buffer + index * 256,

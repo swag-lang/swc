@@ -92,7 +92,7 @@ func day8A()
         for f, c in lines[l]
         {
             if f != '.' do
-                antennas.add({f, c, l})
+                antennas.add({f, x: c, y: l})
         }
     }
 
@@ -108,7 +108,7 @@ func day8A()
             let ay = antenna0.y - dy
             if ax < 0 or ay < 0 or ax >= w or ay >= h do
                 continue
-            antinodes.add({cast(u32, ax), cast(u32, ay)})
+            antinodes.add({x: cast(u32, ax), y: cast(u32, ay)})
         }
     }
 

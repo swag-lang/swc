@@ -367,7 +367,7 @@ namespace compiler2957
 
     func toto()->V
     {
-        return {1, 2, 3}
+        return V{1, 2, 3}
     }
 
     const C = #run toto()
@@ -384,10 +384,10 @@ namespace compiler2959
 
     func toto(x, y: V)->V
     {
-        return {x.x + y.x, x.y + y.y}
+        return V{x.x + y.x, x.y + y.y}
     }
 
-    const C = #run toto({1, 2}, {10, 20})
+    const C = #run toto(V{1, 2}, V{10, 20})
     #assert(C.x == 11)
     #assert(C.y == 22)
 }
@@ -437,7 +437,7 @@ namespace compiler3029
 
     #test
     {
-        let {x1, y1} = #run toto(2, 2)
+        let {x: x1, y: y1} = #run toto(2, 2)
         Swag.assert(x1 == 4)
         Swag.assert(y1 == 8)
     }

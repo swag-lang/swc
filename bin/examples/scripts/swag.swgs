@@ -71,7 +71,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
             for &el in flattened.points
             {
                 var c: C
-                c.pos, c.target = {el.x, el.y}
+                c.pos, c.target = (el.x, el.y)
                 g_Points.add(c)
 
                 minPos.x = min(minPos.x, el.x)

@@ -112,7 +112,7 @@ func day5B()
         let seedIndex  = pairIndex * 2
         let rangeStart = seeds[seedIndex]
         let rangeEnd   = rangeStart + seeds[seedIndex + 1] - 1
-        ranges.add({rangeStart, rangeEnd})
+        ranges.add(SeedRange{rangeStart, rangeEnd})
     }
 
     for i in 7
@@ -130,15 +130,15 @@ func day5B()
 
                     // Keep the portions outside the mapped source range for the remaining rules.
                     if seedRange.start < mapping.sourceStart do
-                        ranges.add({seedRange.start, mapping.sourceStart - 1})
+                        ranges.add(SeedRange{seedRange.start, mapping.sourceStart - 1})
                     if seedRange.end > mapping.sourceEnd do
-                        ranges.add({mapping.sourceEnd + 1, seedRange.end})
+                        ranges.add(SeedRange{mapping.sourceEnd + 1, seedRange.end})
 
                     let overlapStart     = Math.max(seedRange.start, mapping.sourceStart)
                     let overlapEnd       = Math.min(seedRange.end, mapping.sourceEnd)
                     let destinationStart = overlapStart - mapping.sourceStart + mapping.destinationStart
                     let destinationEnd   = overlapEnd - mapping.sourceStart + mapping.destinationStart
-                    newRanges.add({destinationStart, destinationEnd})
+                    newRanges.add(SeedRange{destinationStart, destinationEnd})
                     break to Done
                 }
 

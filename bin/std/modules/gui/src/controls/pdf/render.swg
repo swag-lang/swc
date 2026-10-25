@@ -619,7 +619,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             // image's unit square, where a segment is as many times shorter than on the page as
             // the image is wide in points, so the flattening tolerance follows the image's scale.
             var brush = Brush.createTexture(textures[textureIndex])
-            brush.mapOver({0, 0, 1, 1})
+            brush.mapOver(Math.Rectangle{0, 0, 1, 1})
             brush.setTint(item.fillColor)
             let clip = page.clipPaths[item.clipPath]!
             painter.setFlattenScale(flattenScale * unitSquareScale(item.transform))
@@ -680,10 +680,10 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
         if item.kind == .Image
         {
             let corners: [4] Vector2 = [
-                item.transform.transformPoint({0, 0}),
-                item.transform.transformPoint({1, 0}),
-                item.transform.transformPoint({1, 1}),
-                item.transform.transformPoint({0, 1})]
+                item.transform.transformPoint(Math.Vector2{0, 0}),
+                item.transform.transformPoint(Math.Vector2{1, 0}),
+                item.transform.transformPoint(Math.Vector2{1, 1}),
+                item.transform.transformPoint(Math.Vector2{0, 1})]
             var minX = corners[0].x
             var minY = corners[0].y
             var maxX = corners[0].x
@@ -696,7 +696,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
                 maxY = Math.max(maxY, corner.y)
             }
 
-            bounds = {minX, minY, maxX - minX, maxY - minY}
+            bounds = Math.Rectangle{minX, minY, maxX - minX, maxY - minY}
         }
         elif not item.hasMask
         {
@@ -743,7 +743,7 @@ internal func renderPage(page: *Page, options: RenderOptions)->Image fail
     {
         painter.setBlendingMode(.Copy)
         painter.setColorMaskAlpha()
-        painter.fillRect({0, 0, region.width, region.height}, options.background)
+        painter.fillRect(Math.Rectangle{0, 0, region.width, region.height}, options.background)
         painter.setColorMaskColor()
         painter.setBlendingMode(.Alpha)
     }

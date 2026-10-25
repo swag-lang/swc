@@ -1750,7 +1750,7 @@ AstNodeRef AstVarDeclDestructuring::semaClone(Sema& sema, const CloneContext& cl
     auto&            cloned        = sema.node(newRef).cast<AstVarDeclDestructuring>();
     const auto       inlineContext = cloneContextAsInline(cloneContext);
     cloned.spanNamesRef            = cloneTokenSpan(sema, spanNamesRef, inlineContext);
-    cloned.spanFieldNamesRef       = cloneTokenSpan(sema, spanFieldNamesRef, inlineContext);
+    cloned.nodePatternRef          = cloneNodeRef(sema, nodePatternRef, inlineContext);
     cloned.nodeInitRef             = cloneNodeRef(sema, nodeInitRef, inlineContext);
     return newRef;
 }
@@ -2526,6 +2526,13 @@ AstNodeRef AstInitializerExpr::semaClone(Sema& sema, const CloneContext& cloneCo
 AstNodeRef AstArrayLiteral::semaClone(Sema& sema, const CloneContext& cloneContext) const
 {
     auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::ArrayLiteral>(tokRef());
+    newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
+    return newRef;
+}
+
+AstNodeRef AstTupleType::semaClone(Sema& sema, const CloneContext& cloneContext) const
+{
+    auto [newRef, newPtr]   = sema.ast().makeNode<AstNodeId::TupleType>(tokRef());
     newPtr->spanChildrenRef = cloneSpan(sema, spanChildrenRef, cloneContextAsInline(cloneContext));
     return newRef;
 }

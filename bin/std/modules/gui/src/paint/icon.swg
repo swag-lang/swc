@@ -83,6 +83,6 @@ impl Icon
             painter.setInterpolationMode(InterpolationMode.Linear)
         defer painter.setInterpolationMode(oldInterpol)
 
-        painter.drawTexture({x, y, .sizeX, .sizeY}, {srcX, srcY, .imageList.frameWidth, .imageList.frameHeight}, .imageList.texture, color)
+        painter.drawTexture(Math.Rectangle{x, y, .sizeX, .sizeY}, Math.Rectangle{srcX, srcY, .imageList.frameWidth, .imageList.frameHeight}, .imageList.texture, color)
     }
 }

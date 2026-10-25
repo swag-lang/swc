@@ -109,9 +109,9 @@ impl YuvPlanarView
         let lumaOffset = .studioRange ? 16 : 0
         switch #complete .matrix
         {
-        case .Bt601:  return .studioRange ? {lumaScale, lumaOffset, 409, -100, -208, 516} : {lumaScale, lumaOffset, 359, -88, -183, 454}
-        case .Bt709:  return .studioRange ? {lumaScale, lumaOffset, 459, -55, -136, 541} : {lumaScale, lumaOffset, 403, -48, -120, 475}
-        case .Bt2020: return .studioRange ? {lumaScale, lumaOffset, 430, -48, -167, 548} : {lumaScale, lumaOffset, 377, -42, -146, 483}
+        case .Bt601:  return .studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 409, -100, -208, 516} : YuvConversionFactors{lumaScale, lumaOffset, 359, -88, -183, 454}
+        case .Bt709:  return .studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 459, -55, -136, 541} : YuvConversionFactors{lumaScale, lumaOffset, 403, -48, -120, 475}
+        case .Bt2020: return .studioRange ? YuvConversionFactors{lumaScale, lumaOffset, 430, -48, -167, 548} : YuvConversionFactors{lumaScale, lumaOffset, 377, -42, -146, 483}
         }
     }
 }

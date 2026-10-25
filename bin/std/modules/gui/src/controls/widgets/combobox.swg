@@ -229,7 +229,7 @@ impl IWnd for ComboBox
             if current.isSeparator do
                 continue
             current.name.compute()
-            Painter.computeLayout({0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &current.name, format, deviceScale)
+            Painter.computeLayout(Math.Rectangle{0, 0, MaxTextLayoutExtent, MaxTextLayoutExtent}, &current.name, format, deviceScale)
             text = Math.max(text, current.name.boundRect.width)
         }
 
@@ -239,7 +239,7 @@ impl IWnd for ComboBox
         var width = 2 * metrics.comboBox_Padding + text + metrics.comboBox_RightMargin
         if .maxIconSize do
             width += cast(f32, .maxIconSize) + metrics.comboBox_IconTextMargin
-        return {Math.max(width, metrics.comboBox_Width), metrics.comboBox_Height}
+        return Math.Point{Math.max(width, metrics.comboBox_Width), metrics.comboBox_Height}
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -432,7 +432,7 @@ impl ComboBox
 
     // Creates a selection or editable combo box with optional presentation flags.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null, mode = ComboBoxMode.Selection, flags = ComboBoxFlags.None)->*ComboBox
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, mode = ComboBoxMode.Selection, flags = ComboBoxFlags.None)->*ComboBox
     {
         Swag.assert(parent != null)
         let metrics = parent.themeMetrics()
@@ -460,7 +460,7 @@ impl ComboBox
         if result.mode == .Editable
         {
             // The field is the control's own writing surface, not a second stop beside it.
-            result.editBox = EditBox.create(result, null, {})
+            result.editBox = EditBox.create(result, null, Math.Rectangle{})
             result.editBox.focusPolicy = .Inner
             result.editBox.setForm(EditBoxForm.Transparent)
         }
@@ -483,7 +483,7 @@ impl ComboBox
 
     // Appends a selectable item and returns its stable heap object.
     #[Swag.Discardable]
-    mtd addItem(name: string?, id: WndId? = null, icon: Icon = {}, userData0: *void? = null, userData1: *void? = null)->*ComboBoxItem
+    mtd addItem(name: string?, id: WndId? = null, icon: Icon = Icon{}, userData0: *void? = null, userData1: *void? = null)->*ComboBoxItem
     {
         with let item = .items.allocate()
         {

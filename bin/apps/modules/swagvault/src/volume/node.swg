@@ -43,7 +43,7 @@ impl Node
                 high = middle
         }
 
-        return {low < .blocks.count and .blocks[low].logical <= logical, low}
+        return {found: low < .blocks.count and .blocks[low].logical <= logical, index: low}
     }
 
     // Adds one mapping while preserving the canonical coalesced representation.

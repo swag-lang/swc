@@ -106,8 +106,8 @@ func onFileOpen(_: *Button)
     var opt: FileDlgOptions
     opt.mode  = .SelectFile
     opt.state = &g_FileState
-    opt.filters.add({"All files", ""})
-    opt.filters.add({"Images", ".png;.jpg;.bmp"})
+    opt.filters.add({name: "All files", extensions: ""})
+    opt.filters.add({name: "Images", extensions: ".png;.jpg;.bmp"})
     discard FileDlg.create(g_Surface!, opt).doModal()
 }
 
@@ -116,7 +116,7 @@ func onFileSave(_: *Button)
     var opt: FileDlgOptions
     opt.mode  = .CreateFile
     opt.state = &g_FileState
-    opt.filters.add({"Text", ".txt"})
+    opt.filters.add({name: "Text", extensions: ".txt"})
     discard FileDlg.create(g_Surface!, opt).doModal()
 }
 
@@ -134,7 +134,7 @@ func onSelectFolder(_: *Button)
 
 func addDlgButton(parent: *Wnd, text: string, fn: func(*Button))
 {
-    let btn = PushButton.create(parent, text, {0, 0, 240, 34})
+    let btn = PushButton.create(parent, text, Math.Rectangle{0, 0, 240, 34})
     btn.sigPressed += fn
 }
 
@@ -145,16 +145,16 @@ func createRootView()
     view.backgroundStyle = .View
 
     // Title bar (docked top so the layout reflows on resize).
-    with let title = Label.create(g_View!, "GUI9 - Dialogs & FileBrowserCtrl", {0, 0, 0, 46})
+    with let title = Label.create(g_View!, "GUI9 - Dialogs & FileBrowserCtrl", Math.Rectangle{0, 0, 0, 46})
     {
         .dockStyle = .Top
-        .margin    = {16, 12, 16, 0}
+        .margin    = Math.Vector4{16, 12, 16, 0}
         .setTextAlignment(.Left, .Center)
         .style.setFont(view.theme().createDefaultFont(24), .Regular)
     }
 
     // Content area below the title.
-    let content = Wnd.create'Wnd(g_View!, {})
+    let content = Wnd.create'Wnd(g_View!, Math.Rectangle{})
     content.dockStyle       = .Center
     content.backgroundStyle = .Transparent
 
@@ -164,23 +164,23 @@ func createRootView()
     var opt: FileDlgOptions
     opt.mode = .SelectFile
     opt.initialFolder = g_StartDir.toString()
-    opt.filters.add({"All files", ""})
-    opt.filters.add({"Text", ".txt"})
-    opt.shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
-    opt.shortcuts.add({Env.SpecialDirectory.Desktop, "Desktop"})
+    opt.filters.add({name: "All files", extensions: ""})
+    opt.filters.add({name: "Text", extensions: ".txt"})
+    opt.shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
+    opt.shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Desktop"})
 
-    with g_Browser = FileBrowserCtrl.create(content, opt, {0, 0, 620, 600})
+    with g_Browser = FileBrowserCtrl.create(content, opt, Math.Rectangle{0, 0, 620, 600})
     {
         .dockStyle = .Left
-        .margin    = {16, 8, 12, 16}
+        .margin    = Math.Vector4{16, 8, 12, 16}
     }
 
     // Right: a column of buttons launching each predefined dialog.
-    let panel = Wnd.create'Wnd(content, {})
+    let panel = Wnd.create'Wnd(content, Math.Rectangle{})
     panel.dockStyle       = .Center
     panel.backgroundStyle = .Transparent
 
-    with let stack = StackLayoutCtrl.create(panel, .Top, {})
+    with let stack = StackLayoutCtrl.create(panel, .Top, Math.Rectangle{})
     {
         .dockStyle = .Center
         .spacing   = 8

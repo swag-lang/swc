@@ -14,9 +14,9 @@ func anchorSplit(delta: s32, cell: u64)->{before: s32, after: s32}
 {
     switch cell
     {
-    case 0:  return {0, delta}
-    case 1:  return {delta / 2, delta / 2}
-    default: return {delta, 0}
+    case 0:  return {before: 0, after: delta}
+    case 1:  return {before: delta / 2, after: delta / 2}
+    default: return {before: delta, after: 0}
     }
 }
 
@@ -51,14 +51,14 @@ impl IActionUI for ActionImage
     mtd impl update(cxt: ActionContext, evt: *CommandStateEvent)->bool
     {
         if updateFromTable(cxt, evt, [
-            {ResizeImage,      appStrings().act_ResizeImage,      .Capture, hideDisabled: false},
-            {ExpandImage,      appStrings().act_ExpandImage,      .Capture, hideDisabled: false},
-            {ExpandCapture,    appStrings().act_ExpandCapture,    .Capture, hideDisabled: false},
-            {TrimCapture,      appStrings().act_TrimCapture,      .Capture, hideDisabled: false},
-            {FlipImage,        appStrings().act_FlipImage,        .Capture, hideDisabled: false},
-            {MirrorImage,      appStrings().act_MirrorImage,      .Capture, hideDisabled: false},
-            {RotateImageRight, appStrings().act_RotateImageRight, .Capture, hideDisabled: false},
-            {RotateImageLeft,  appStrings().act_RotateImageLeft,  .Capture, hideDisabled: false}])
+            CmdDesc{ResizeImage, appStrings().act_ResizeImage, .Capture, hideDisabled: false},
+            CmdDesc{ExpandImage, appStrings().act_ExpandImage, .Capture, hideDisabled: false},
+            CmdDesc{ExpandCapture, appStrings().act_ExpandCapture, .Capture, hideDisabled: false},
+            CmdDesc{TrimCapture, appStrings().act_TrimCapture, .Capture, hideDisabled: false},
+            CmdDesc{FlipImage, appStrings().act_FlipImage, .Capture, hideDisabled: false},
+            CmdDesc{MirrorImage, appStrings().act_MirrorImage, .Capture, hideDisabled: false},
+            CmdDesc{RotateImageRight, appStrings().act_RotateImageRight, .Capture, hideDisabled: false},
+            CmdDesc{RotateImageLeft, appStrings().act_RotateImageLeft, .Capture, hideDisabled: false}])
         {
             return true
         }
@@ -191,11 +191,11 @@ impl MainWnd
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
         }
 
-        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", capture.width), {80, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", capture.height), {80, 50}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", capture.width), Math.Rectangle{80, 15}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", capture.height), Math.Rectangle{80, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
         edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
-        let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, {120, 85})
+        let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, Math.Rectangle{120, 85})
         btnRatio.setState(g_KeepRatio ? .Checked : .Unchecked)
 
         edit0.edit.sigTextChanged += func|ratio, btnRatio, edit1|(edt)
@@ -262,7 +262,7 @@ impl MainWnd
         {
             let x = X + cast(f32, cell % 3) * (S + O)
             let y = Y + cast(f32, cell / 3) * (S + O)
-            createBtn(dlg, {x, y, S, S}, cell + 1)
+            createBtn(dlg, Math.Rectangle{x, y, S, S}, cell + 1)
         }
     }
 
@@ -280,8 +280,8 @@ impl MainWnd
 
         g_Width  = w
         g_Height = h
-        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", w), {30, 15}, flags: .RightAligned)
-        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", h), {30, 50}, flags: .RightAligned)
+        let edit0 = EditCtrl.create(dialog, appStrings().ui_Width, Format.toString("%", w), Math.Rectangle{30, 15}, flags: .RightAligned)
+        let edit1 = EditCtrl.create(dialog, appStrings().ui_Height, Format.toString("%", h), Math.Rectangle{30, 50}, flags: .RightAligned)
         edit0.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
         edit1.edit.setUnsignedIntegerRange(cast(Capture.MinSize), cast(Capture.MaxSize))
 
@@ -305,7 +305,7 @@ impl MainWnd
             }
         }
 
-        with let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, {70, 85})
+        with let btnRatio = CheckButton.create(dialog, appStrings().ui_KeepRatio, Math.Rectangle{70, 85})
         {
             .setState(g_KeepRatio ? .Checked : .Unchecked)
             .sigChanged += func||(btn) { g_KeepRatio = btn.isChecked() }

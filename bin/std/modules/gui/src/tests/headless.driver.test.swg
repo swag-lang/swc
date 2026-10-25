@@ -16,7 +16,7 @@ using Swag, Core
     Swag.assert(not host.autoArmed and not host.autoHandled)
     Swag.assert(host.autoFailure == "modal did not appear while waiting for button 'missing'")
 
-    discard PushButton.create(&host.root, "Close", {10, 10, 90, 28}, id: "close")
+    discard PushButton.create(&host.root, "Close", Math.Rectangle{10, 10, 90, 28}, id: "close")
     host.clickModalButtonWhenShown("missing", maxFrames: 1)
     Swag.assert(host.autoFailure.isEmpty())
     host.app.modalSurfaces.add(&host.surface)

@@ -263,14 +263,14 @@ impl Frame
     {
         if .colUniform[mbIndex] != 0
         {
-            return {
+            return ColMotion{
                 [.colMbMv[mbIndex * 2], .colMbMv[mbIndex * 2 + 1]],
                 .colMbRef[mbIndex],
                 .colMbPoc[mbIndex],
                 .colMbShort[mbIndex] != 0}
         }
 
-        return {
+        return ColMotion{
             [.colMv[blockIndex * 2], .colMv[blockIndex * 2 + 1]],
             .colRef[blockIndex],
             .colPoc[blockIndex],

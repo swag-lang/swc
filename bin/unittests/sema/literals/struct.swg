@@ -1,9 +1,9 @@
 #global private
 
-const ANONYMOUS = {1's32, 2}
+const ANONYMOUS = (1's32, 2)
 
 struct Vec3F {x, y, z: f32}
-const VEC3F_TYPED: Vec3F = {10, 5, 2}
+const VEC3F_TYPED: Vec3F = Vec3F{10, 5, 2}
 #assert(VEC3F_TYPED.x == 10)
 #assert(VEC3F_TYPED.y == 5)
 #assert(VEC3F_TYPED.z == 2)
@@ -14,7 +14,7 @@ const VEC3F_INFERRED = {x: 10, y: 5, z: 2}
 #assert(VEC3F_INFERRED.y == 5)
 #assert(VEC3F_INFERRED.z == 2)
 
-const MIXED_NAMED_UNNAMED = {10, y: 5, 2}
+const MIXED_NAMED_UNNAMED = {item0: 10, y: 5, item2: 2}
 #assert(MIXED_NAMED_UNNAMED.item0 == 10)
 #assert(MIXED_NAMED_UNNAMED.y == 5)
 #assert(MIXED_NAMED_UNNAMED.item2 == 2)
@@ -28,7 +28,7 @@ struct Single2 {x: f32}
 
 func semaTest001()
 {
-    const VEC3I: Vec3I = {y: 2, x: 1, z: 3}
+    const VEC3I: Vec3I = Vec3I{y: 2, x: 1, z: 3}
     #assert(VEC3I.x == 1)
     #assert(VEC3I.y == 2)
     #assert(VEC3I.z == 3)
@@ -36,7 +36,7 @@ func semaTest001()
 
 func semaTest002()
 {
-    const VEC3I: Vec3I = {1, z: 3, y: 2}
+    const VEC3I: Vec3I = Vec3I{1, z: 3, y: 2}
     #assert(VEC3I.x == 1)
     #assert(VEC3I.y == 2)
     #assert(VEC3I.z == 3)
@@ -44,7 +44,7 @@ func semaTest002()
 
 func semaTest003()
 {
-    const VEC3I: Vec3I = {1, 2}
+    const VEC3I: Vec3I = Vec3I{1, 2}
     #assert(VEC3I.x == 1)
     #assert(VEC3I.y == 2)
     #assert(VEC3I.z == 0)
@@ -53,10 +53,10 @@ func semaTest003()
 struct InvalidCast {x: s32, y: s32}
 
 struct Vec3FDefault {x, y, z: f32 = 10}
-const VEC3F_DEFAULTS: Vec3FDefault = {x: 1, y: 1}
+const VEC3F_DEFAULTS: Vec3FDefault = Vec3FDefault{x: 1, y: 1}
 #assert(VEC3F_DEFAULTS.z == 10)
 
-const VEC3F_PARTIAL: Vec3FDefault = {1, 2}
+const VEC3F_PARTIAL: Vec3FDefault = Vec3FDefault{1, 2}
 #assert(VEC3F_PARTIAL.x == 1)
 #assert(VEC3F_PARTIAL.y == 2)
 #assert(VEC3F_PARTIAL.z == 10)
@@ -79,7 +79,7 @@ const VEC3F_NAMED_CAST: Vec3FDefault = Vec3FDefault{5, 7}
 struct RequiredDefaults {x: s32, y: s32 = 5, z: s32}
 func semaTest004()
 {
-    const REQUIRED_DEFAULTS: RequiredDefaults = {x: 1, y: 2, z: 3}
+    const REQUIRED_DEFAULTS: RequiredDefaults = RequiredDefaults{x: 1, y: 2, z: 3}
     #assert(REQUIRED_DEFAULTS.x == 1)
     #assert(REQUIRED_DEFAULTS.y == 2)
     #assert(REQUIRED_DEFAULTS.z == 3)
@@ -89,7 +89,7 @@ struct Rect {topLeft: Point, bottomRight: Point}
 
 func semaTest005()
 {
-    const RECT: Rect = {{1, 2}, {3, 4}}
+    const RECT: Rect = Rect{Point{1, 2}, Point{3, 4}}
     #assert(RECT.topLeft.x == 1)
     #assert(RECT.topLeft.y == 2)
     #assert(RECT.bottomRight.x == 3)
@@ -98,7 +98,7 @@ func semaTest005()
 
 func semaTest006()
 {
-    const RECT: Rect = {topLeft: {x: 1, y: 2}, bottomRight: {x: 3, y: 4}}
+    const RECT: Rect = Rect{topLeft: Point{x: 1, y: 2}, bottomRight: Point{x: 3, y: 4}}
     #assert(RECT.topLeft.x == 1)
     #assert(RECT.topLeft.y == 2)
     #assert(RECT.bottomRight.x == 3)
@@ -107,7 +107,7 @@ func semaTest006()
 
 func semaTest007()
 {
-    const RECT: Rect = {topLeft: {1, 2}, bottomRight: {3, 4}}
+    const RECT: Rect = Rect{topLeft: Point{1, 2}, bottomRight: Point{3, 4}}
     #assert(RECT.topLeft.x == 1)
     #assert(RECT.topLeft.y == 2)
     #assert(RECT.bottomRight.x == 3)
@@ -116,7 +116,7 @@ func semaTest007()
 
 func semaTest008()
 {
-    const RECT: Rect = {{x: 1, y: 2}, {x: 3, y: 4}}
+    const RECT: Rect = Rect{Point{x: 1, y: 2}, Point{x: 3, y: 4}}
     #assert(RECT.topLeft.x == 1)
     #assert(RECT.topLeft.y == 2)
     #assert(RECT.bottomRight.x == 3)
@@ -128,7 +128,7 @@ struct Vertex {pos: Point, color: Color}
 
 func semaTest009()
 {
-    const VERTEX: Vertex = {{5, 10}, {255, 128, 64}}
+    const VERTEX: Vertex = Vertex{Point{5, 10}, Color{255, 128, 64}}
     #assert(VERTEX.pos.x == 5)
     #assert(VERTEX.pos.y == 10)
     #assert(VERTEX.color.r == 255)
@@ -138,7 +138,7 @@ func semaTest009()
 
 func semaTest010()
 {
-    const VERTEX: Vertex = {{5, 10}, {255, 128}}
+    const VERTEX: Vertex = Vertex{Point{5, 10}, Color{255, 128}}
     #assert(VERTEX.pos.x == 5)
     #assert(VERTEX.pos.y == 10)
     #assert(VERTEX.color.r == 255)
@@ -148,7 +148,7 @@ func semaTest010()
 
 func semaTest011()
 {
-    const VERTEX: Vertex = {pos: {x: 5, y: 10}, color: {r: 255, g: 128, b: 64}}
+    const VERTEX: Vertex = Vertex{pos: Point{x: 5, y: 10}, color: Color{r: 255, g: 128, b: 64}}
     #assert(VERTEX.pos.x == 5)
     #assert(VERTEX.pos.y == 10)
     #assert(VERTEX.color.r == 255)
@@ -158,7 +158,7 @@ func semaTest011()
 
 func semaTest012()
 {
-    const VERTEX: Vertex = {pos: {1, 2}, color: {}}
+    const VERTEX: Vertex = Vertex{pos: Point{1, 2}, color: Color{}}
     #assert(VERTEX.pos.x == 1)
     #assert(VERTEX.pos.y == 2)
     #assert(VERTEX.color.r == 0)
@@ -171,7 +171,7 @@ struct Entity {name: Simple2, transform: Transform}
 
 func semaTest013()
 {
-    const ENTITY: Entity = {{10, 20}, {{100, 200}, {1, 2, 3}}}
+    const ENTITY: Entity = Entity{Simple2{10, 20}, Transform{Point{100, 200}, Vec3F{1, 2, 3}}}
     #assert(ENTITY.name.x == 10)
     #assert(ENTITY.name.y == 20)
     #assert(ENTITY.transform.pos.x == 100)
@@ -183,7 +183,7 @@ func semaTest013()
 
 func semaTest014()
 {
-    const ENTITY: Entity = {name: {x: 10, y: 20}, transform: {pos: {x: 100, y: 200}, scale: {x: 1, y: 2, z: 3}}}
+    const ENTITY: Entity = Entity{name: Simple2{x: 10, y: 20}, transform: Transform{pos: Point{x: 100, y: 200}, scale: Vec3F{x: 1, y: 2, z: 3}}}
     #assert(ENTITY.name.x == 10)
     #assert(ENTITY.name.y == 20)
     #assert(ENTITY.transform.pos.x == 100)

@@ -33,7 +33,7 @@ func outlineTestRender(pen: Pen)->Image
 // which is what its width is.
 func outlineTestSpan(img: Image, x: s32, whiteOnly: bool)->{ top, bottom: s32 }
 {
-    var result: retval = {-1, -1}
+    var result: retval = {top: -1, bottom: -1}
     for y in OutlineTestHeight
     {
         let c = img.pixelColor(x, cast(s32, y))

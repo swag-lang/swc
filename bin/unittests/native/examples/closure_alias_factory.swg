@@ -73,7 +73,7 @@ func buildQuote(plan: SubscriptionPlan, order: TeamOrder, supportFeeRule: Suppor
 // SaaS subscription quote with closure discounts
 #test
 {
-    const growthPlan: SubscriptionPlan = {code: "growth", baseSeatPriceCents: 2400, includedSeats: 3}
+    const growthPlan: SubscriptionPlan = SubscriptionPlan{code: "growth", baseSeatPriceCents: 2400, includedSeats: 3}
 
     let supportFeeRule: SupportFeeRule = func(needsPrioritySupport: bool)->s32
     {

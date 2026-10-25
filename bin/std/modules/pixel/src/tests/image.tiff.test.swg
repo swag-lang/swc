@@ -250,7 +250,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
     return cb.toArray()
 }
 
-func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = {})->Image fail
+func decodeTiff(bytes: const [..] u8, opt: DecodeOptions = DecodeOptions{})->Image fail
 {
     var dec: Tiff.Decoder
     let itf: IImageDecoder = &dec

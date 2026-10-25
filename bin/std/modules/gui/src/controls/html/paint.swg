@@ -415,11 +415,11 @@ impl HtmlPainter
         let thickness = style.textDecorationThickness > 0 ? style.textDecorationThickness : Math.max(Math.round(style.fontSize / 14), 1)
         let offset    = style.textUnderlineOffset != 0 ? style.textUnderlineOffset : thickness
         if style.textDecoration.has(.Underline) do
-            .paintDecorationLine({x, Math.round(y + item.ascent + offset), item.width, thickness}, color, style.textDecorationStyle)
+            .paintDecorationLine(Math.Rectangle{x, Math.round(y + item.ascent + offset), item.width, thickness}, color, style.textDecorationStyle)
         if style.textDecoration.has(.Overline) do
-            .paintDecorationLine({x, Math.round(y), item.width, thickness}, color, style.textDecorationStyle)
+            .paintDecorationLine(Math.Rectangle{x, Math.round(y), item.width, thickness}, color, style.textDecorationStyle)
         if style.textDecoration.has(.LineThrough) do
-            .paintDecorationLine({x, Math.round(y + item.ascent * 0.68), item.width, thickness}, color, style.textDecorationStyle)
+            .paintDecorationLine(Math.Rectangle{x, Math.round(y + item.ascent * 0.68), item.width, thickness}, color, style.textDecorationStyle)
     }
 
     private mtd paintDecorationLine(rect: Math.Rectangle, color: Color, style: HtmlTextDecorationStyle)
@@ -434,7 +434,7 @@ impl HtmlPainter
         var x   = rect.x
         while x < rect.right()
         {
-            .painter.fillRect({x, rect.y, Math.min(dot, rect.right() - x), rect.height}, color)
+            .painter.fillRect(Math.Rectangle{x, rect.y, Math.min(dot, rect.right() - x), rect.height}, color)
             x += dot * 2
         }
     }
@@ -489,7 +489,7 @@ impl HtmlPainter
             {
                 let padTop    = item.ascent * 0.28
                 let padBottom = item.descent * 0.4
-                .painter.fillRect({x, y - padTop, item.width, item.ascent + item.descent + padTop + padBottom}, HtmlPainter.withAlpha(style.background, alpha))
+                .painter.fillRect(Math.Rectangle{x, y - padTop, item.width, item.ascent + item.descent + padTop + padBottom}, HtmlPainter.withAlpha(style.background, alpha))
             }
 
             .paintSelectionHit(item, alpha, x, y)
@@ -557,8 +557,8 @@ impl HtmlPainter
         var end    = 0'u64
         while end < source.count
         {
-            let {_, eat} = Utf8.decodeRune(source[end to])
-            let next     = end + eat
+            let {c: _, eat} = Utf8.decodeRune(source[end to])
+            let next        = end + eat
             if .layout.measure(item.style, source[0 until next]) + markerWidth > room do
                 break
             end = next
@@ -686,7 +686,7 @@ impl HtmlPainter
             return
         let padTop    = item.ascent * 0.28
         let padBottom = item.descent * 0.4
-        .painter.fillRect({left, y - padTop, width, item.ascent + item.descent + padTop + padBottom}, HtmlPainter.withAlpha(.selection, alpha))
+        .painter.fillRect(Math.Rectangle{left, y - padTop, width, item.ascent + item.descent + padTop + padBottom}, HtmlPainter.withAlpha(.selection, alpha))
     }
 
     // Draws the marker a list item or a disclosure summary carries beside its content.
@@ -721,15 +721,15 @@ impl HtmlPainter
         var points: Array'Math.Vector2
         if target.markerKind == .DisclosureOpen
         {
-            points.add({left, midY - size * 0.5})
-            points.add({left + size * 2, midY - size * 0.5})
-            points.add({left + size, midY + size * 0.7})
+            points.add(Math.Vector2{left, midY - size * 0.5})
+            points.add(Math.Vector2{left + size * 2, midY - size * 0.5})
+            points.add(Math.Vector2{left + size, midY + size * 0.7})
         }
         else
         {
-            points.add({left + size * 0.5, midY - size})
-            points.add({left + size * 0.5 + size * 1.4, midY})
-            points.add({left + size * 0.5, midY + size})
+            points.add(Math.Vector2{left + size * 0.5, midY - size})
+            points.add(Math.Vector2{left + size * 0.5 + size * 1.4, midY})
+            points.add(Math.Vector2{left + size * 0.5, midY + size})
         }
 
         .painter.fillPolygon(points.toSlice(), Brush.createSolid(ink))
@@ -963,7 +963,7 @@ impl HtmlPainter
         if canvas.box != HtmlNoNode do
             .painter.fillRect(.visible, canvas.color)
 
-        .paintBox(.layout.root, {0, -.scrollY}, 1)
+        .paintBox(.layout.root, Math.Point{0, -.scrollY}, 1)
     }
 }
 
@@ -974,8 +974,8 @@ impl HtmlPainter
     mtd const scrollBarAt(point: Math.Point)->HtmlRegionScrollBar
     {
         if .layout.root == HtmlNoNode do
-            return {}
-        return .scrollBarAtBox(.layout.root, point, {0, -.scrollY})
+            return HtmlRegionScrollBar{}
+        return .scrollBarAtBox(.layout.root, point, Math.Point{0, -.scrollY})
     }
 
     private mtd const scrollBarAtStackedChildren(box: u32, point: Math.Point, offset: Math.Point, positive: bool)->HtmlRegionScrollBar
@@ -987,7 +987,7 @@ impl HtmlPainter
         {
             let next = .nextStackingLevel(box, previous, hasPrevious, positive, false)
             if not next.found do
-                return {}
+                return HtmlRegionScrollBar{}
             for index in children.count
             {
                 let child = children[children.count - index - 1]
@@ -1015,7 +1015,7 @@ impl HtmlPainter
                     return found
             }
 
-            return {}
+            return HtmlRegionScrollBar{}
         }
 
         let positive = .scrollBarAtStackedChildren(box, point, offset, true)
@@ -1039,7 +1039,7 @@ impl HtmlPainter
     {
         let style = .layout.constStyle(.layout.constBox(box).style)
         if not style.visible or style.display == .None do
-            return {}
+            return HtmlRegionScrollBar{}
 
         var offset = parentOffset
         offset.y += .stickyOffset(box, parentOffset)
@@ -1047,7 +1047,7 @@ impl HtmlPainter
         var rect = .layout.constBox(box).rect
         rect.offset(offset.x, offset.y)
         if not rect.contains(point) do
-            return {}
+            return HtmlRegionScrollBar{}
 
         // A region paints its own bar after its contents, so that bar also wins hit testing over
         // any descendant that happens to extend beneath it.
@@ -1072,7 +1072,7 @@ impl HtmlPainter
     {
         if .layout.root == HtmlNoNode do
             return HtmlNoNode
-        return .nodeAtBox(.layout.root, point, {0, -.scrollY})
+        return .nodeAtBox(.layout.root, point, Math.Point{0, -.scrollY})
     }
 
     // Hit-tests one sign of positioned stacking levels from front to back.
@@ -1192,7 +1192,7 @@ impl HtmlPainter
     {
         if .layout.root == HtmlNoNode do
             return HtmlNoNode
-        return .scrollableAtBox(.layout.root, point, {0, -.scrollY})
+        return .scrollableAtBox(.layout.root, point, Math.Point{0, -.scrollY})
     }
 
     // Finds a scrollable box through one sign of positioned stacking levels, frontmost first.
@@ -1295,7 +1295,7 @@ impl HtmlPainter
         var result: retval
         result.distance = Swag.F32.Max
         if .layout.root != HtmlNoNode do
-            .textHitBox(.layout.root, point, {0, -.scrollY}, &result)
+            .textHitBox(.layout.root, point, Math.Point{0, -.scrollY}, &result)
         return result
     }
 
@@ -1384,9 +1384,9 @@ impl HtmlPainter
         var previous = 0.0'f32
         while end < source.count
         {
-            let {_, eat} = Utf8.decodeRune(source[end to])
-            let next     = end + eat
-            let width    = .layout.measure(item.style, source[0 until next])
+            let {c: _, eat} = Utf8.decodeRune(source[end to])
+            let next        = end + eat
+            let width       = .layout.measure(item.style, source[0 until next])
             if width >= localX do
                 return localX - previous < width - localX ? item.sourceStart + end : item.sourceStart + next
             previous = width

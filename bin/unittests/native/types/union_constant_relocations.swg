@@ -106,7 +106,7 @@ var globalPointer:       PointerDefault
 var globalNested:        NestedDefaults
 var globalInteger:       IntegerAlternative       = {words: [29, 31]}
 var globalIntegerArray:  [2] IntegerAlternative   = [{words: [97, 101]}, {words: [103, 107]}]
-var globalNestedInteger: NestedIntegerAlternative = {value: {words: [109, 113]}}
+var globalNestedInteger: NestedIntegerAlternative = NestedIntegerAlternative{value: {words: [109, 113]}}
 var globalReplaced:      PartialDefault           = {whole: 79}
 
 #test

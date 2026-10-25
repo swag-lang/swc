@@ -38,8 +38,11 @@ using Swag
     // Returns whether `t` is a generic type.
     func isGeneric(t: typeinfo?) => t and t.flags & .Generic
 
-    // Returns whether `t` is a tuple type.
+    // Returns whether `t` is a positional tuple type.
     func isTuple(t: typeinfo?) => t and t.flags & .Tuple
+
+    // Returns whether `t` is an anonymous record type with named fields.
+    func isRecord(t: typeinfo?) => t and t.flags & .Record
 
     // Returns whether `t` is a pointer to type information, such as `typeinfo`.
     func isType(t: typeinfo?) => t and t.flags & .PointerTypeInfo

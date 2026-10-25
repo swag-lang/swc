@@ -6,6 +6,9 @@
       "include": "#one-line-comment"
     },
     {
+      "include": "#tuple-destructuring-pattern"
+    },
+    {
       "include": "#multi-line-comment"
     },
     {
@@ -142,7 +145,7 @@
     },
     "destructuring-pattern": {
       "name": "meta.destructuring.swag",
-      "begin": "(?:(\\b(?:late|tls|global|let|var|const)\\b)\\s*)?(\\{)(?=[^}]*\\}\\s*=)",
+      "begin": "(?:(\\b(?:late|tls|global|let|var|const)\\b)\\s*)?(\\{)(?=[^\\n]*\\}\\s*=(?![=>]))",
       "beginCaptures": {
         "1": {
           "name": "keyword.declaration"
@@ -151,7 +154,7 @@
           "name": "punctuation.section.braces.begin"
         }
       },
-      "end": "(\\})(?=\\s*=)",
+      "end": "(\\})",
       "endCaptures": {
         "1": {
           "name": "punctuation.section.braces.end"
@@ -159,15 +162,7 @@
       },
       "patterns": [
         {
-          "name": "variable.other.member",
-          "match": "\\b[A-Za-z_]\\w*(?=\\s*:)"
-        },
-        {
-          "name": "constant.language.ignore",
-          "match": "\\?"
-        },
-        {
-          "include": "$self"
+          "include": "#destructuring-elements"
         }
       ]
     },
@@ -616,6 +611,64 @@
         {
           "name": "keyword.operator",
           "match": "[\\/=\\-+!?*%<>&|^~.`'!:]"
+        }
+      ]
+    },
+    "tuple-destructuring-pattern": {
+      "name": "meta.destructuring.tuple.swag",
+      "begin": "(?:(\\b(?:late|tls|global|let|var|const)\\b)\\s*)?(\\()(?=[^\\n]*\\)\\s*=(?![=>]))",
+      "beginCaptures": {
+        "1": {
+          "name": "keyword.declaration"
+        },
+        "2": {
+          "name": "punctuation.section.parens.begin"
+        }
+      },
+      "end": "(\\))",
+      "endCaptures": {
+        "1": {
+          "name": "punctuation.section.parens.end"
+        }
+      },
+      "patterns": [
+        {
+          "include": "#destructuring-elements"
+        }
+      ]
+    },
+    "destructuring-elements": {
+      "patterns": [
+        {
+          "name": "meta.destructuring.tuple.swag",
+          "begin": "\\(",
+          "end": "\\)",
+          "patterns": [
+            {
+              "include": "#destructuring-elements"
+            }
+          ]
+        },
+        {
+          "name": "meta.destructuring.swag",
+          "begin": "\\{",
+          "end": "\\}",
+          "patterns": [
+            {
+              "include": "#destructuring-elements"
+            }
+          ]
+        },
+        {
+          "name": "variable.other.member",
+          "match": "\\b[A-Za-z_]\\w*(?=\\s*:)"
+        },
+        {
+          "name": "constant.language.ignore",
+          "match": "\\b_\\b"
+        },
+        {
+          "include": "$self"
         }
       ]
     }

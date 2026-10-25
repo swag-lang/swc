@@ -46,7 +46,7 @@ impl DepCalculator
 {
     func make(base: s32)->DepCalculator
     {
-        return {base}
+        return DepCalculator{base}
     }
 
     func resolve(value: s32)->s32

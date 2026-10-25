@@ -70,7 +70,7 @@ struct Style
 impl Style
 {
     // Returns the document style that follows the active GUI theme.
-    func theme()->Style => {}
+    func theme()->Style => Style{}
 }
 
 internal struct VisualBlock
@@ -315,7 +315,7 @@ private func streamBoundary(source: string)->u64
 private func takeStreamSource(source: *String, sourceDone: bool)->String
 {
     if source.isEmpty() do
-        return {}
+        return String{}
 
     var boundary = sourceDone ? source.length : streamBoundary(source.toString())
     if not boundary and source.length >= StreamCarryLimit
@@ -327,7 +327,7 @@ private func takeStreamSource(source: *String, sourceDone: bool)->String
     }
 
     if not boundary do
-        return {}
+        return String{}
 
     let result    = String.from(source.toString()[0 until boundary])
     var remaining = String.from(source.toString()[boundary to])
@@ -352,7 +352,7 @@ private impl View
     {
         let viewport = .scroll.paddedClientRect()
         let width    = Math.min(Math.max(viewport.width - .documentStyle.horizontalInset * 2, 280), .documentStyle.maxContentWidth)
-        return {Math.max((viewport.width - width) * 0.5, 16), width}
+        return {x: Math.max((viewport.width - width) * 0.5, 16), width: width}
     }
 
     mtd updateDocumentSize()
@@ -407,7 +407,7 @@ private impl View
     {
         // Retain the current height while measuring. Collapsing an embedded HTML view first
         // makes it lay out once at zero height and again at its final size.
-        block.wnd.setPosition({x, y[], width, block.wnd.position.height})
+        block.wnd.setPosition(Math.Rectangle{x, y[], width, block.wnd.position.height})
         if block.kind == .Math do
             block.wnd.resize(width, assume cast (*MathView, block.wnd).preferredHeight())
         elif block.kind == .Table do
@@ -936,7 +936,7 @@ private impl View
         {
             .scroll.setScrollPos(position.x, position.y - shift)
             if animating do
-                .scroll.smoothScrollTo({target.x, target.y - shift})
+                .scroll.smoothScrollTo(Math.Point{target.x, target.y - shift})
         }
 
         .repositioning = false
@@ -1089,7 +1089,7 @@ private impl View
 
             best          = score
             result.view   = index
-            result.offset = view.textPositionAt({surfacePos.x - rect.x, surfacePos.y - rect.y}).offset
+            result.offset = view.textPositionAt(Math.Point{surfacePos.x - rect.x, surfacePos.y - rect.y}).offset
             result.has    = true
         }
 
@@ -1162,7 +1162,7 @@ impl View
 {
     // Creates an empty Markdown document view.
     #[Swag.Discardable]
-    func create(contentParent: *Wnd, documentStyle: Style = {})->*View
+    func create(contentParent: *Wnd, documentStyle: Style = Style{})->*View
     {
         with let result = Wnd.create'View(contentParent, "gui.markdown")
         {
@@ -1173,7 +1173,7 @@ impl View
             .contentHeight   = documentStyle.topInset
         }
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", {})
+        result.scroll = Wnd.create'ScrollWnd(result, "", Math.Rectangle{})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
         result.scroll.verticalScrollStep       = result.documentFont(.Paragraph, documentStyle.bodyFontSize).height * documentStyle.lineHeight
@@ -1322,7 +1322,7 @@ impl View
     }
 
     // Creates a view and renders the complete Markdown source.
-    func createText(contentParent: *Wnd, source: string, documentStyle: Style = {})->*View
+    func createText(contentParent: *Wnd, source: string, documentStyle: Style = Style{})->*View
     {
         let result = View.create(contentParent, documentStyle)
         result.sourceDone = true
@@ -1341,7 +1341,7 @@ impl View
     //
     // File-open and decoding failures remain visible in the document and are also exposed through
     // [[Gui.Markdown.View.failureReason]] and [[Gui.Markdown.View.sigLoadFailed]].
-    func createFile(contentParent: *Wnd, fileName: string, documentStyle: Style = {})->*View
+    func createFile(contentParent: *Wnd, fileName: string, documentStyle: Style = Style{})->*View
     {
         let result = View.create(contentParent, documentStyle)
         result.fileName = fileName
@@ -1419,8 +1419,8 @@ impl View
     {
         if not .retainedBlocks.isEmpty() or .inlineOrder.isEmpty() do
             return
-        .selAnchor = {0, 0}
-        .selCaret  = {.inlineOrder.count - 1, .inlineOrder[.inlineOrder.count - 1].textLength}
+        .selAnchor = SelectionPoint{0, 0}
+        .selCaret  = SelectionPoint{.inlineOrder.count - 1, .inlineOrder[.inlineOrder.count - 1].textLength}
         .selecting = false
         .invalidateInlines(0, .inlineOrder.count - 1)
     }
@@ -1865,7 +1865,7 @@ internal impl View
             return
         .setFocus()
         .clearSelection()
-        .selAnchor = {view.orderIndex, offset}
+        .selAnchor = SelectionPoint{view.orderIndex, offset}
         .selCaret  = .selAnchor
         .selecting = true
     }
@@ -1882,7 +1882,7 @@ internal impl View
         // Both the range the caret left and the range it now covers have to be repainted, so the
         // union of where it was, where it is, and the anchor is what the drag touches.
         let previous = .selCaret
-        .selCaret = {hit.view, hit.offset}
+        .selCaret = SelectionPoint{hit.view, hit.offset}
         let low  = Math.min(previous.view, hit.view, .selAnchor.view)
         let high = Math.max(previous.view, hit.view, .selAnchor.view)
         .invalidateInlines(low, high)
@@ -1902,8 +1902,8 @@ internal impl View
         .setFocus()
         .clearSelection()
         let word = view.wordRangeAt(offset)
-        .selAnchor = {view.orderIndex, word.start}
-        .selCaret  = {view.orderIndex, word.end}
+        .selAnchor = SelectionPoint{view.orderIndex, word.start}
+        .selCaret  = SelectionPoint{view.orderIndex, word.end}
         .selecting = false
         view.invalidateRenderCache()
     }

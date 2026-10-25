@@ -205,14 +205,14 @@ internal impl PdfView
     mtd const viewportSize()->Math.Point
     {
         let rect = .scroll.view.clientRect()
-        return {Math.max(rect.width, 1), Math.max(rect.height, 1)}
+        return Math.Point{Math.max(rect.width, 1), Math.max(rect.height, 1)}
     }
 
     // Returns the size of the laid-out document, in logical units.
     mtd const contentSize()->Math.Point
     {
         if not .hasDocument do
-            return {}
+            return Math.Point{}
 
         let scale = .effectiveZoom()
         var result: retval
@@ -261,7 +261,7 @@ internal impl PdfView
         let viewport = .viewportSize()
         let content  = .contentSize()
         let scroll   = .scroll.scrollPosition()
-        return {Math.max((viewport.x - content.x) * 0.5, 0) - scroll.x, Math.max((viewport.y - content.y) * 0.5, 0) - scroll.y}
+        return Math.Point{Math.max((viewport.x - content.x) * 0.5, 0) - scroll.x, Math.max((viewport.y - content.y) * 0.5, 0) - scroll.y}
     }
 
     // Returns the band of the document the viewport shows, in document coordinates.
@@ -328,7 +328,7 @@ internal impl PdfView
         var result: retval
         result.pageIndex = .pageAt(local.y - origin.y)
         let rect = .pageRect(result.pageIndex)
-        result.point = {(local.x - origin.x - rect.x) / scale, (local.y - origin.y - rect.y) / scale}
+        result.point = Math.Point{(local.x - origin.x - rect.x) / scale, (local.y - origin.y - rect.y) / scale}
         return result
     }
 
@@ -368,7 +368,7 @@ internal impl PdfView
         {
             let rect  = .pageRect(anchorPage)
             let scale = .effectiveZoom()
-            .scrollDocumentPointTo({rect.x + anchorPoint.x * scale, rect.y + anchorPoint.y * scale}, anchor[])
+            .scrollDocumentPointTo(Math.Point{rect.x + anchorPoint.x * scale, rect.y + anchorPoint.y * scale}, anchor[])
         }
 
         .updateCurrentPage()
@@ -463,7 +463,7 @@ internal impl PdfView
     {
         if offset
         {
-            let {c, _} = Utf8.decodeLastRune(source[0 until offset])
+            let {c, eat: _} = Utf8.decodeLastRune(source[0 until offset])
             if Unicode.isWord(c) do
                 return false
         }
@@ -471,7 +471,7 @@ internal impl PdfView
         let end = offset + length
         if end < source.count
         {
-            let {c, _} = Utf8.decodeRune(source[end to])
+            let {c, eat: _} = Utf8.decodeRune(source[end to])
             if Unicode.isWord(c) do
                 return false
         }
@@ -493,7 +493,7 @@ internal impl PdfView
                     continue
                 let found = cast(u64, cast(s64, (value.buffer - sourceData)))
                 if not options.wholeWord or isWholeWord(source, found, value.count) do
-                    result.add({pageIndex, found, value.count})
+                    result.add(PdfTextMatch{pageIndex, found, value.count})
             }
 
             return
@@ -506,7 +506,7 @@ internal impl PdfView
             if found == Swag.U64.Max do
                 break
             if not options.wholeWord or isWholeWord(source, found, text.count) do
-                result.add({pageIndex, found, text.count})
+                result.add(PdfTextMatch{pageIndex, found, text.count})
             from = found + Math.max(text.count, 1)
         }
     }
@@ -514,8 +514,8 @@ internal impl PdfView
     // Makes a found range the selection and brings it into view, then remembers where to resume.
     mtd revealMatch(pageIdx, offset, length: u64)
     {
-        .selAnchor     = {pageIdx, offset}
-        .selCaret      = {pageIdx, offset + length}
+        .selAnchor     = PdfTextPosition{pageIdx, offset}
+        .selCaret      = PdfTextPosition{pageIdx, offset + length}
         .selecting     = false
         .searchPage    = pageIdx
         .searchOffset  = offset + length
@@ -567,7 +567,7 @@ internal impl PdfView
             return
 
         let viewport = .viewportSize()
-        .canvas.setPosition({0, 0, viewport.x, viewport.y})
+        .canvas.setPosition(Math.Rectangle{0, 0, viewport.x, viewport.y})
 
         let content = .contentSize()
         .scroll.setScrollSize(content.x, content.y)
@@ -651,9 +651,9 @@ internal impl PdfView
         let target = .scroll.scrollTarget()
         let step   = notches * WheelScrollStep
         if modifiers.has(.Shift) or .contentSize().y <= .viewportSize().y do
-            .scroll.smoothScrollTo({target.x - step, target.y})
+            .scroll.smoothScrollTo(Math.Point{target.x - step, target.y})
         else do
-            .scroll.smoothScrollTo({target.x, target.y - step})
+            .scroll.smoothScrollTo(Math.Point{target.x, target.y - step})
     }
 
     // Publishes a page a worker finished decoding.
@@ -860,7 +860,7 @@ internal impl PdfView
         var wash = .themeColors().edit_SelectedBk
         wash.a = cast(u8, (cast(u32, wash.a) * 140 / 255))
         for rect in rects do
-            painter.fillRect({box.x + rect.x * scale, box.y + rect.y * scale, rect.width * scale, rect.height * scale}, wash)
+            painter.fillRect(Math.Rectangle{box.x + rect.x * scale, box.y + rect.y * scale, rect.width * scale, rect.height * scale}, wash)
     }
 
     // Returns the byte range of one page the selection covers, which is empty when it covers none.
@@ -915,7 +915,7 @@ internal impl PdfView
         if found.offset == Swag.U64.Max do
             return result
 
-        result.position = {hit.pageIndex, found.offset}
+        result.position = PdfTextPosition{hit.pageIndex, found.offset}
         result.distance = found.distance
         return result
     }
@@ -1022,35 +1022,35 @@ impl IWnd for PdfView
         switch evt.key
         {
         case .Up where evt.modifiers == .None:
-            .scroll.smoothScrollTo({target.x, target.y - WheelScrollStep})
+            .scroll.smoothScrollTo(Math.Point{target.x, target.y - WheelScrollStep})
 
         case .Down where evt.modifiers == .None:
-            .scroll.smoothScrollTo({target.x, target.y + WheelScrollStep})
+            .scroll.smoothScrollTo(Math.Point{target.x, target.y + WheelScrollStep})
 
         case .PageUp, .Space where evt.modifiers == .Shift:
             if .pageLayout == .Single do
                 .previousPage()
             else do
-                .scroll.smoothScrollTo({target.x, target.y - step})
+                .scroll.smoothScrollTo(Math.Point{target.x, target.y - step})
 
         case .PageDown, .Space where evt.modifiers == .None:
             if .pageLayout == .Single do
                 .nextPage()
             else do
-                .scroll.smoothScrollTo({target.x, target.y + step})
+                .scroll.smoothScrollTo(Math.Point{target.x, target.y + step})
 
         case .Left:
 
             // A page wider than the viewport is scrolled sideways; one that fits has nothing to
             // move, so the same key turns to the page before it.
             if .contentSize().x > viewport.x do
-                .scroll.smoothScrollTo({target.x - WheelScrollStep, target.y})
+                .scroll.smoothScrollTo(Math.Point{target.x - WheelScrollStep, target.y})
             else do
                 .previousPage()
 
         case .Right:
             if .contentSize().x > viewport.x do
-                .scroll.smoothScrollTo({target.x + WheelScrollStep, target.y})
+                .scroll.smoothScrollTo(Math.Point{target.x + WheelScrollStep, target.y})
             else do
                 .nextPage()
 
@@ -1235,7 +1235,7 @@ impl PdfView
 
     // Creates an empty PDF viewer.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PdfView
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*PdfView
     {
         Swag.assert(parent != null)
         let result = Wnd.create'PdfView(parent, null, position, id)
@@ -1246,7 +1246,7 @@ impl PdfView
         result.focusPolicy = .Tab
         result.wndFlags    |= .NoFocusRing
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", {})
+        result.scroll = Wnd.create'ScrollWnd(result, "", Math.Rectangle{})
         result.scroll.dockStyle = .Center
 
         // The document is laid out from the viewport the scroll frame gives its view, so the
@@ -1523,7 +1523,7 @@ impl PdfView
     // is the same search without the wait. The returned value owns stable page and UTF-8 text
     // coordinates; pass one of its entries to [[Gui.PdfView.revealTextMatch]] while this document
     // remains open. An invalid regular expression returns an empty array.
-    mtd findTextMatches(text: string, options: PdfTextSearchOptions = {})->Array'PdfTextMatch
+    mtd findTextMatches(text: string, options: PdfTextSearchOptions = PdfTextSearchOptions{})->Array'PdfTextMatch
     {
         var result: retval
         if not .hasDocument or not text.count do
@@ -1629,8 +1629,8 @@ impl PdfView
         if entry.textIndex.text.isEmpty() do
             return
 
-        .selAnchor = {.pageIndex, 0}
-        .selCaret  = {.pageIndex, entry.textIndex.text.length}
+        .selAnchor = PdfTextPosition{.pageIndex, 0}
+        .selCaret  = PdfTextPosition{.pageIndex, entry.textIndex.text.length}
         .selecting = false
         .invalidate()
     }
@@ -1742,8 +1742,8 @@ impl PdfView
         if range.end <= range.start do
             return
 
-        .selAnchor = {position.pageIndex, range.start}
-        .selCaret  = {position.pageIndex, range.end}
+        .selAnchor = PdfTextPosition{position.pageIndex, range.start}
+        .selCaret  = PdfTextPosition{position.pageIndex, range.end}
         .selecting = false
         .invalidate()
     }

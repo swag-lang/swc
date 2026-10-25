@@ -189,7 +189,7 @@ impl State
         // A tip is a passive annotation, so it is a frame and a label and nothing else: no editor,
         // no viewport, no scroll bar, and nothing the keyboard or the wheel can reach. The frame
         // opens at its cap and `fitToText` cuts it down before anything paints.
-        let cur = Wnd.create'FrameWnd(top, {pos.x, pos.y, room.x, room.y})
+        let cur = Wnd.create'FrameWnd(top, Math.Rectangle{pos.x, pos.y, room.x, room.y})
         .current      = cur
         .currentOwner = owner
         cur.setFrameForm(.Square)
@@ -260,12 +260,12 @@ private func fitToText(label: *Label, pos, room: Math.Point, inset: Math.Vector4
     // axis carrying no authored size, and creating the label authored both.
     label.preferredSize = {}
 
-    var need = label.measure({roomX, 0}).preferred
+    var need = label.measure(Math.Point{roomX, 0}).preferred
     if need.y > roomY
     {
         let lineHeight = Math.max(label.font().regular!.height, 1)
         label.setMaxLines(cast(u32, Math.max(Math.floor(roomY / lineHeight), 1)))
-        need = label.measure({roomX, 0}).preferred
+        need = label.measure(Math.Point{roomX, 0}).preferred
     }
 
     // Both axes round up. `Wnd.resize` rounds the size it is committed, and a dropped fraction is

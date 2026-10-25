@@ -88,7 +88,7 @@ impl IWnd for Header
     mtd impl measureContent(_: Math.Point)->Math.Point
     {
         let metrics = .themeMetrics()
-        return {.contentWidth() + .padding.z, metrics.header_Height}
+        return Math.Point{.contentWidth() + .padding.z, metrics.header_Height}
     }
 
     private mtd paintItem(bc: PaintContext, item: *HeaderItem, idx: u32, x: f32)
@@ -200,7 +200,7 @@ impl IWnd for Header
         {
             if .clicked and not .sigColumnClicked.isEmpty()
             {
-                let {hit, _} = .hitTest(evt.surfacePos)
+                let {idx: hit, sep: _} = .hitTest(evt.surfacePos)
                 if hit == .hotIdx do
                     .sigColumnClicked.call(me, .items[.hotIdx]!.column)
             }
@@ -215,8 +215,8 @@ impl IWnd for Header
 
         if not .moving and not .clicked
         {
-            let {hitr, sep} = .hitTest(evt.surfacePos)
-            var hit         = hitr
+            let {idx: hitr, sep} = .hitTest(evt.surfacePos)
+            var hit = hitr
 
             // Hot, if not a separator, is disabled if item is not clickable
             if hit != Swag.U32.Max
@@ -305,17 +305,17 @@ private impl Header
         {
             let item = itemIt!
             if pos.x >= x and pos.x < x + item.width do
-                return {cast(u32, idx), false}
+                return {idx: cast(u32, idx), sep: false}
             x += item.width
             if .flags.has(.Separators) and
                pos.x >= x and
                pos.x <= x + metrics.header_Separator and
                item.isResizable do
-                return {cast(u32, idx), true}
+                return {idx: cast(u32, idx), sep: true}
             x += metrics.header_Separator
         }
 
-        return {Swag.U32.Max, false}
+        return {idx: Swag.U32.Max, sep: false}
     }
 }
 
@@ -343,7 +343,7 @@ impl Header
 
     // Creates an empty header using the current theme height by default.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*Header
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*Header
     {
         Swag.assert(parent != null)
 
@@ -360,7 +360,7 @@ impl Header
     //
     // A negative `width` is clamped to zero.
     #[Swag.Discardable]
-    mtd addColumn(name: string, width = 100'f32, icon: Icon = {})->*HeaderItem
+    mtd addColumn(name: string, width = 100'f32, icon: Icon = Icon{})->*HeaderItem
     {
         let item = .items.allocate()
         item.name   = name

@@ -41,7 +41,7 @@ renderer.begin(context)
 
 painter.begin()
 painter.clear(Color.fromRgb(20, 22, 30))
-painter.fillRect({24, 24, 120, 48}, Color.fromRgb(60, 140, 240))
+painter.fillRect(Math.Rectangle{24, 24, 120, 48}, Color.fromRgb(60, 140, 240))
 painter.end()
 painter.render()
 
@@ -94,7 +94,7 @@ var layer: Layer
 layer.begin(&painter, {width: 320, height: 180})
 // Record layer content with painter.
 layer.end()
-layer.draw({dstRect: {0, 0, 320, 180}})
+layer.draw({dstRect: Math.Rectangle{0, 0, 320, 180}})
 ```
 
 Textures created by [[Pixel.IRenderer.addImage]] and targets created by

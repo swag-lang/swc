@@ -38,8 +38,8 @@ struct NativeNonNullDefaultContainer
     aliased: NativeNonNullStringDefaultAlias
 }
 
-const NATIVE_NONULL_DEFAULT_CONTAINER: NativeNonNullDefaultContainer  = {}
-const NATIVE_NONULL_PARTIAL_ARRAY:     [2] NativeNonNullStringDefault = [{value: "explicit"}]
+const NATIVE_NONULL_DEFAULT_CONTAINER: NativeNonNullDefaultContainer  = NativeNonNullDefaultContainer{}
+const NATIVE_NONULL_PARTIAL_ARRAY:     [2] NativeNonNullStringDefault = [NativeNonNullStringDefault{value: "explicit"}]
 
 #assert(NATIVE_NONULL_DEFAULT_CONTAINER.direct.value == "fallback")
 #assert(NATIVE_NONULL_DEFAULT_CONTAINER.array[0].value == "fallback")
@@ -112,7 +112,7 @@ func nativeNonNullConstruction()->bool
 {
     var first  = NativeNonNullItem{value: 11}
     var second = NativeNonNullItem{value: 22}
-    var blockStorage:   [2] NativeNonNullItem = [{value: 31}, {value: 32}]
+    var blockStorage:   [2] NativeNonNullItem = [NativeNonNullItem{value: 31}, NativeNonNullItem{value: 32}]
     var cstringStorage: [4] u8 = ['a'u8, 'b'u8, 'c'u8, 0]
 
     let direct:                    *NativeNonNullItem              = &first
@@ -194,11 +194,11 @@ func nativeNonNullConstruction()->bool
     var moveSource                          = NativeNonNullHolder{required: &first}
     let moveTarget                          = #move moveSource
     let blockHolder                         = NativeNonNullBlockHolder{required: block}
-    let contextual: NativeNonNullHolder     = {required: &second, count: 9}
-    let nested                              = NativeNonNullNested{holder: {required: &first}}
+    let contextual: NativeNonNullHolder     = NativeNonNullHolder{required: &second, count: 9}
+    let nested                              = NativeNonNullNested{holder: NativeNonNullHolder{required: &first}}
     let array:      [2] NativeNonNullHolder = [
-        {required: &first},
-        {required: &second, count: 8}
+        NativeNonNullHolder{required: &first},
+        NativeNonNullHolder{required: &second, count: 8}
         ]
     let genericRequired: NativeNonNullGenericBox'(*NativeNonNullItem) = {value: &first}
     var genericDefault:  NativeNonNullGenericBox'NativeNonNullStringDefault
@@ -275,7 +275,7 @@ func nativeNonNullConstruction()->bool
     var defaultItem:     NativeNonNullStringDefault
     var defaultArray:    [2] NativeNonNullStringDefault
     let omittedDefaults = NativeNonNullDefaultContainer{}
-    let partialDefaults: [2] NativeNonNullStringDefault = [{value: "explicit"}]
+    let partialDefaults: [2] NativeNonNullStringDefault = [NativeNonNullStringDefault{value: "explicit"}]
 
     if defaultItem.value != "fallback" do
         return false

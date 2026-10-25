@@ -256,8 +256,28 @@ namespace SemaHelpers
     Result deduceDefaultValueType(Sema& sema, AstNodeRef defaultValueRef, TypeRef& outTypeRef);
     Result finalizeDefaultValue(Sema& sema, AstNodeRef defaultValueRef, SymbolVariable& symVar);
 
-    Result  tryMaterializeAggregateLiteralConstant(Sema& sema, AstNodeRef exprRef, TypeRef typeRef);
-    Result  finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
+    Result tryMaterializeAggregateLiteralConstant(Sema& sema, AstNodeRef exprRef, TypeRef typeRef);
+    Result finalizeAggregateStruct(Sema& sema, const SmallVector<AstNodeRef>& children, bool autoNameFromIdentifiers = false);
+    struct RecordOrTupleField
+    {
+        IdentifierRef nameRef = IdentifierRef::invalid();
+        TypeRef       typeRef = TypeRef::invalid();
+        uint64_t      offset  = 0;
+    };
+
+    bool collectRecordOrTupleFields(TaskContext& ctx, SmallVector<RecordOrTupleField>& out, TypeRef typeRef);
+    bool sameRecordOrTupleShape(TaskContext& ctx, TypeRef leftTypeRef, TypeRef rightTypeRef);
+
+    struct DestructuringField
+    {
+        AstNodeRef  bindingRef  = AstNodeRef::invalid();
+        TypeRef     typeRef     = TypeRef::invalid();
+        ConstantRef constantRef = ConstantRef::invalid();
+        uint64_t    offset      = 0;
+        bool        ignored     = false;
+    };
+
+    Result  resolveDestructuringPattern(Sema& sema, SmallVector<DestructuringField>& out, AstNodeRef patternRef, TypeRef sourceTypeRef, ConstantRef sourceConstantRef);
     Result  resolveDestructuringFieldIndices(Sema& sema, SmallVector<size_t>& outIndices, TypeRef sourceTypeRef, SourceViewRef patternSrcViewRef, std::span<const TokenRef> fieldNameRefs);
     TypeRef deduceConcretizedAggregateArrayType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);
     TypeRef deduceConcretizedAggregateLiteralType(Sema& sema, TypeRef typeRef, ConstantRef cstRef);

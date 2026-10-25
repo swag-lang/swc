@@ -46,7 +46,7 @@ struct ThemeTone
 impl ThemeTone
 {
     // Returns a tone that fills with `block`, writes `ink` on it, and points with `block` until the theme has to deepen it.
-    func from(block, ink: Color)->ThemeTone => {block, block, ink}
+    func from(block, ink: Color)->ThemeTone => ThemeTone{block, block, ink}
 }
 
 // The decisions a theme actually makes.

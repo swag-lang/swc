@@ -60,7 +60,7 @@ struct SceneCard
 
     // Transform group, with a nested "Advanced" subgroup ("Transform/Advanced").
     #[Category("Transform"), Description("Offset from the slot center.")]
-    offset: Math.Point = {0, 0}
+    offset: Math.Point = (0, 0)
 
     #[SliderMinMax(0.5, 1.8), Description("Uniform scale factor.")]
     scale: f32 = 1.0
@@ -92,7 +92,7 @@ struct SceneCard
     badges: CardBadge = CardBadge.Accent | CardBadge.Tag
 
     #[Name("Rating"), Description("Custom editor registered for the Rating type (click a pip).")]
-    quality: Rating = {4}
+    quality: Rating = Rating{4}
 }
 
 impl IPropertyNotify for SceneCard
@@ -116,11 +116,11 @@ impl IPropertyNotify for SceneCard
         {
         case #nameof(SceneCard.label):
             if .label.isEmpty() do
-                return {.Error, "A label is required."}
+                return PropValidationResult{.Error, "A label is required."}
 
         case #nameof(SceneCard.scale):
             if .scale >= 1.6 do
-                return {.Warning, "Large cards may overflow their slot."}
+                return PropValidationResult{.Warning, "Large cards may overflow their slot."}
         }
 
         return {}
@@ -180,8 +180,8 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
     frame.setFrameFlags(.Borders)
 
     let view = frame.createView'Wnd()
-    discard createText(view, title, {16, 10, rect.width - 32, 24})
-    let help = createText(view, subtitle, {16, 36, rect.width - 32, 42}, .WordWrap | .SecondaryText)
+    discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
+    let help = createText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 42}, .WordWrap | .SecondaryText)
     help.setTextVerticalAlignment(.Top)
     return frame
 }
@@ -369,17 +369,17 @@ func setCardCount(count: s32)
 func createInspectorPage(parent: *Wnd)
 {
     // Left column: a control row (display mode + edited count), then the property controller.
-    let objHost = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
+    let objHost = Wnd.create'Wnd(parent, Math.Rectangle{0, 0, InspectorWidth, 10})
     g_ObjHost         = objHost
     objHost.dockStyle = .Left
     objHost.margin.z  = SplitGap
 
-    let controls = Wnd.create'Wnd(objHost, {0, 0, 0, 44})
+    let controls = Wnd.create'Wnd(objHost, Math.Rectangle{0, 0, 0, 44})
     controls.dockStyle = .Top
     controls.margin.w  = 8
 
-    discard createText(controls, "Display:", {0, 0, 60, 44})
-    with g_DisplayCombo = ComboBox.create(controls, {62, 8, 170, 28})
+    discard createText(controls, "Display:", Math.Rectangle{0, 0, 60, 44})
+    with g_DisplayCombo = ComboBox.create(controls, Math.Rectangle{62, 8, 170, 28})
     {
         .addItem("Normal")
         .addItem("Condensed")
@@ -389,8 +389,8 @@ func createInspectorPage(parent: *Wnd)
         .sigChanged += func(_, idx) { setDisplayMode(displayModeFromIndex(idx)); }
     }
 
-    discard createText(controls, "Edit:", {252, 0, 40, 44})
-    with g_CountCombo = ComboBox.create(controls, {294, 8, 150, 28})
+    discard createText(controls, "Edit:", Math.Rectangle{252, 0, 40, 44})
+    with g_CountCombo = ComboBox.create(controls, Math.Rectangle{294, 8, 150, 28})
     {
         .addItem("1 card")
         .addItem("2 cards")
@@ -524,7 +524,7 @@ impl IPropertyEditor for RatingEditor
         let prop   = list
 
         let line = Wnd.create'Wnd(item.line,
-                                  {0, 0, RatingMax * RatingPipSize, list.themeMetrics().editBox_Height})
+                                  Math.Rectangle{0, 0, RatingMax * RatingPipSize, list.themeMetrics().editBox_Height})
         line.maxSize.x = RatingMax * RatingPipSize
         if list.isGridLike() do
             line.dockStyle = .CenterKeepSizeVert
@@ -534,7 +534,7 @@ impl IPropertyEditor for RatingEditor
         for i in RatingMax
         {
             let idx      = cast(s32, i)
-            with let btn = IconButton.create(line, {}, {0, 0, RatingPipSize, item.line.position.height})
+            with let btn = IconButton.create(line, {}, Math.Rectangle{0, 0, RatingPipSize, item.line.position.height})
             {
                 .dockStyle = .Left
                 .updateFlags(.Flat)
@@ -620,11 +620,11 @@ func layoutRootView()
     let themeButton = g_ThemeButton!
     let subTitle    = g_SubTitle!
     let footer      = g_Footer!
-    title.setPosition({RootMargin, 18, titleWidth, 34})
-    themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    subTitle.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
-    pageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
-    footer.setPosition({RootMargin, footerY, contentWidth, 28})
+    title.setPosition(Math.Rectangle{RootMargin, 18, titleWidth, 34})
+    themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
+    subTitle.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
+    pageView.setPosition(Math.Rectangle{RootMargin, PageTop, contentWidth, pageHeight})
+    footer.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth, 28})
 }
 
 func onRootEvent(_: *Wnd, evt: IEvent)->bool
@@ -660,26 +660,26 @@ func createRootView()
     g_View = view
     view.backgroundStyle = .View
 
-    let title = Label.create(view, "", {})
+    let title = Label.create(view, "", Math.Rectangle{})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
-    let themeButton = PushButton.create(view, "", {})
+    let themeButton = PushButton.create(view, "", Math.Rectangle{})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, {})
+    let pageView = Wnd.create'Wnd(view, Math.Rectangle{})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
-    let footer = Label.create(view, "", {})
+    let footer = Label.create(view, "", Math.Rectangle{})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
     footer.updateFlags(.SecondaryText)

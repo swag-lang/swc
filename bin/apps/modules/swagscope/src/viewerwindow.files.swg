@@ -89,7 +89,7 @@ impl ViewerWindow
             break
         }
 
-        .folderHistory.insertAt(0, {folder, fileName})
+        .folderHistory.insertAt(0, ViewerFolderHistory{folder, fileName})
         while .folderHistory.count > FolderHistoryCount do
             .folderHistory.removeAtOrdered(.folderHistory.count - 1)
         .folderHistoryButton.enable(true)

@@ -551,7 +551,7 @@ impl LibraryView
 
     mtd const numImagesPerLine()->u32
     {
-        let {w, _} = .getPreviewSize()
+        let {w, h: _} = .getPreviewSize()
         return cast(u32, (.paddedClientRect().width / (w + ItemMargin)))
     }
 
@@ -566,7 +566,7 @@ impl LibraryView
         case .Big:    h = 512
         }
 
-        return {h * 4.0 / 3.0, h}
+        return {w: h * 4.0 / 3.0, h: h}
     }
 
     // Gives the library item of `capture` its new preview.

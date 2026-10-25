@@ -712,10 +712,27 @@ AstNodeRef Parser::parseNamedArg()
 
 AstNodeRef Parser::parseParenExpr()
 {
-    const TokenRef openRef        = ref();
-    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>(consume());
-    nodePtr->nodeExprRef          = parseExpression();
-    if (nodePtr->nodeExprRef.isInvalid())
+    const TokenRef   openRef  = consume();
+    const AstNodeRef firstRef = parseExpression();
+    if (consumeIf(TokenId::SymComma).isValid())
+    {
+        SmallVector<AstNodeRef> children;
+        children.push_back(firstRef);
+        while (!is(TokenId::SymRightParen) && !atEnd())
+        {
+            children.push_back(parseExpression());
+            if (consumeIf(TokenId::SymComma).isInvalid())
+                break;
+        }
+        expectAndConsumeClosing(TokenId::SymRightParen, openRef);
+        const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::StructLiteral>(openRef);
+        nodePtr->spanChildrenRef      = ast_->pushSpan(children.span());
+        return nodeRef;
+    }
+
+    const auto [nodeRef, nodePtr] = ast_->makeNode<AstNodeId::ParenExpr>(openRef);
+    nodePtr->nodeExprRef          = firstRef;
+    if (firstRef.isInvalid())
         skipTo({TokenId::SymRightParen}, SkipUntilFlagsE::EolBefore);
     expectAndConsumeClosing(TokenId::SymRightParen, openRef);
     return nodeRef;

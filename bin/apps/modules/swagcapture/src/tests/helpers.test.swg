@@ -28,7 +28,7 @@ impl HeadlessFixture
         registerAppStrings(&g_App.resources)
         registerAppStrings(&.gui.app.resources)
 
-        .main  = Wnd.create'MainWnd(&.gui.root, {x: 0, y: 0, width: width, height: height})
+        .main  = Wnd.create'MainWnd(&.gui.root, Math.Rectangle{x: 0, y: 0, width: width, height: height})
         g_Main = .main
         let renderer = .gui.app.renderer
         .main.icons.setup(renderer, captureIcons())
@@ -37,8 +37,8 @@ impl HeadlessFixture
         .main.mdlHighlight = &.main.mdlFormShape
         .main.mdlPixSel    = &.main.mdlFormShape
         .main.editWnd      = EditWnd.create(.main, .main)
-        .main.editWnd.setPosition({x: 0, y: 0, width: width, height: height})
-        .main.editWnd.editView.setPosition({x: 0, y: 0, width: width, height: height})
+        .main.editWnd.setPosition(Math.Rectangle{x: 0, y: 0, width: width, height: height})
+        .main.editWnd.editView.setPosition(Math.Rectangle{x: 0, y: 0, width: width, height: height})
 
         let editWnd = .main.editWnd
         .editView = editWnd.editView
@@ -60,12 +60,12 @@ impl HeadlessFixture
 
     mtd setupLibraryWnd()->*LibraryWnd
     {
-        .main.libWnd      = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
+        .main.libWnd      = Wnd.create'LibraryWnd(.main, Math.Rectangle{0, 0, 520, 420})
         .main.libWnd.main = .main
         .main.libWnd.registerActions()
 
-        let scroll = Wnd.create'ScrollWnd(.main.libWnd, {0, 0, 520, 420})
-        let view   = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})
+        let scroll = Wnd.create'ScrollWnd(.main.libWnd, Math.Rectangle{0, 0, 520, 420})
+        let view   = Wnd.create'LibraryView(scroll, Math.Rectangle{0, 0, 520, 420})
         view.libWnd    = .main.libWnd
         view.mainWnd   = .main
         view.scrollWnd = scroll
@@ -234,7 +234,7 @@ func testPrimeGizmo(form: IForm, z: f32 = 1)
 
 func testPrimeCaptureGizmo(capture: *Capture)
 {
-    capture.gizmo.rect = {0, 0, capture.width, capture.height}
+    capture.gizmo.rect = Math.Rectangle{0, 0, capture.width, capture.height}
 
     var painter: Painter
     painter.begin(layoutOnly: true)
@@ -321,7 +321,7 @@ func testAddLibraryItem(view: *LibraryView, name: String, size: u64, day: u16, l
         .loaded           = true
         .width            = 100
         .height           = 100
-        .rect             = {cast(f32, view.items.count) * 60, 0, 50, 50}
+        .rect             = Math.Rectangle{cast(f32, view.items.count) * 60, 0, 50, 50}
     }
 
     with let capture = Memory.new'Capture()

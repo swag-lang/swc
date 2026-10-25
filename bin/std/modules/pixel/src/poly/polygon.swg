@@ -126,7 +126,7 @@ impl Polygon
         let vva0 = v0 + n0
         let vvb1 = v2 + n1
         let vvb0 = v1 + n1
-        let {intersects, intersectionPoint} = Geometry.intersectLines(vva0, vva1, vvb0, vvb1)
+        let {intersects, point: intersectionPoint} = Geometry.intersectLines(vva0, vva1, vvb0, vvb1)
 
         var result: retval = v1
         if intersects
@@ -191,7 +191,7 @@ impl Polygon
             // Rebuilt the way the per-point answer builds it, down to landing on the point and
             // stepping away from it again, so that a contour offset in one pass and a contour
             // offset point by point stay the same geometry to the last bit.
-            let {intersects, intersectionPoint} = Geometry.intersectLines(v0 + n0, v1 + n0, v1 + n1, v2 + n1)
+            let {intersects, point: intersectionPoint} = Geometry.intersectLines(v0 + n0, v1 + n0, v1 + n1, v2 + n1)
             var offsetPoint: Vector2 = v1
             if intersects do
                 offsetPoint += (intersectionPoint - v1) * 1
@@ -665,8 +665,8 @@ impl Polygon
             pair      += 2
         }
 
-        .minBounds = {Math.min(packedMin[0], packedMin[2]), Math.min(packedMin[1], packedMin[3])}
-        .maxBounds = {Math.max(packedMax[0], packedMax[2]), Math.max(packedMax[1], packedMax[3])}
+        .minBounds = Vector2{Math.min(packedMin[0], packedMin[2]), Math.min(packedMin[1], packedMin[3])}
+        .maxBounds = Vector2{Math.max(packedMax[0], packedMax[2]), Math.max(packedMax[1], packedMax[3])}
         if pair < count
         {
             .minBounds = Vector2.min(.minBounds, points[pair])

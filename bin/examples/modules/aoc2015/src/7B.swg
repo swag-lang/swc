@@ -13,7 +13,7 @@ using Core
     var r:      Parser.RegExp
 
     var map: HashTable'(string, string)
-    map = [{"AND", "&"}, {"OR", "|"}, {"LSHIFT", "<<"}, {"RSHIFT", ">>"}]
+    map = [{k: "AND", v: "&"}, {k: "OR", v: "|"}, {k: "LSHIFT", v: "<<"}, {k: "RSHIFT", v: ">>"}]
 
     expect
     {

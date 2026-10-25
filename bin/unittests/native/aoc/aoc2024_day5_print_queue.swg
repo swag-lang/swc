@@ -57,58 +57,58 @@ struct QueueAudit
 }
 
 const SampleScenario: PrintQueueScenario =
-    {
+    PrintQueueScenario{
     ruleCount: 21'u32,
     rules:
     [
-        {before: 47, after: 53},
-        {before: 97, after: 13},
-        {before: 97, after: 61},
-        {before: 97, after: 47},
-        {before: 75, after: 29},
-        {before: 61, after: 13},
-        {before: 75, after: 53},
-        {before: 29, after: 13},
-        {before: 97, after: 29},
-        {before: 53, after: 29},
-        {before: 61, after: 53},
-        {before: 97, after: 53},
-        {before: 61, after: 29},
-        {before: 47, after: 13},
-        {before: 75, after: 47},
-        {before: 97, after: 75},
-        {before: 47, after: 61},
-        {before: 75, after: 61},
-        {before: 47, after: 29},
-        {before: 75, after: 13},
-        {before: 53, after: 13}
+        RulePair{before: 47, after: 53},
+        RulePair{before: 97, after: 13},
+        RulePair{before: 97, after: 61},
+        RulePair{before: 97, after: 47},
+        RulePair{before: 75, after: 29},
+        RulePair{before: 61, after: 13},
+        RulePair{before: 75, after: 53},
+        RulePair{before: 29, after: 13},
+        RulePair{before: 97, after: 29},
+        RulePair{before: 53, after: 29},
+        RulePair{before: 61, after: 53},
+        RulePair{before: 97, after: 53},
+        RulePair{before: 61, after: 29},
+        RulePair{before: 47, after: 13},
+        RulePair{before: 75, after: 47},
+        RulePair{before: 97, after: 75},
+        RulePair{before: 47, after: 61},
+        RulePair{before: 75, after: 61},
+        RulePair{before: 47, after: 29},
+        RulePair{before: 75, after: 13},
+        RulePair{before: 53, after: 13}
     ],
     updateCount: 6'u32,
     updates:
     [
-        {count: 5'u32, pages: [75, 47, 61, 53, 29]},
-        {count: 5'u32, pages: [97, 61, 53, 29, 13]},
-        {count: 3'u32, pages: [75, 29, 13, 0, 0]},
-        {count: 5'u32, pages: [75, 97, 47, 61, 53]},
-        {count: 3'u32, pages: [61, 13, 29, 0, 0]},
-        {count: 5'u32, pages: [97, 13, 75, 29, 47]}
+        Update{count: 5'u32, pages: [75, 47, 61, 53, 29]},
+        Update{count: 5'u32, pages: [97, 61, 53, 29, 13]},
+        Update{count: 3'u32, pages: [75, 29, 13, 0, 0]},
+        Update{count: 5'u32, pages: [75, 97, 47, 61, 53]},
+        Update{count: 3'u32, pages: [61, 13, 29, 0, 0]},
+        Update{count: 5'u32, pages: [97, 13, 75, 29, 47]}
     ]
     }
 
 const TieBreakScenario: PrintQueueScenario =
-    {
+    PrintQueueScenario{
     ruleCount: 2'u32,
     rules:
     [
-        {before: 10, after: 30},
-        {before: 20, after: 30}
+        RulePair{before: 10, after: 30},
+        RulePair{before: 20, after: 30}
     ],
     updateCount: 3'u32,
     updates:
     [
-        {count: 3'u32, pages: [10, 20, 30, 0, 0]},
-        {count: 3'u32, pages: [30, 20, 10, 0, 0]},
-        {count: 3'u32, pages: [30, 10, 20, 0, 0]}
+        Update{count: 3'u32, pages: [10, 20, 30, 0, 0]},
+        Update{count: 3'u32, pages: [30, 20, 10, 0, 0]},
+        Update{count: 3'u32, pages: [30, 10, 20, 0, 0]}
     ]
     }
 
@@ -272,7 +272,7 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 
 #test
 {
-    var update: Update = {count: 3'u32, pages: [75, 47, 61, 0, 0]}
+    var update: Update = Update{count: 3'u32, pages: [75, 47, 61, 0, 0]}
     let first = update[0]
     writePage(&update.pages[1], 53)
 
@@ -296,15 +296,15 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 
     var repaired0: Update
     repairUpdate(&repaired0, &sample, &sample.updates[3])
-    let expected0: Update = {count: 5'u32, pages: [97, 75, 47, 61, 53]}
+    let expected0: Update = Update{count: 5'u32, pages: [97, 75, 47, 61, 53]}
 
     var repaired1: Update
     repairUpdate(&repaired1, &sample, &sample.updates[4])
-    let expected1: Update = {count: 3'u32, pages: [61, 29, 13, 0, 0]}
+    let expected1: Update = Update{count: 3'u32, pages: [61, 29, 13, 0, 0]}
 
     var repaired2: Update
     repairUpdate(&repaired2, &sample, &sample.updates[5])
-    let expected2: Update = {count: 5'u32, pages: [97, 75, 47, 29, 13]}
+    let expected2: Update = Update{count: 5'u32, pages: [97, 75, 47, 29, 13]}
 
     Swag.assert(isOrderedUpdate(&sample, &sample.updates[0]))
     Swag.assert(not isOrderedUpdate(&sample, &sample.updates[3]))
@@ -325,11 +325,11 @@ func auditQueue(result: *QueueAudit, scenario: PrintQueueScenario)
 
     var repairedA: Update
     repairUpdate(&repairedA, &tieBreak, &tieBreak.updates[1])
-    let expectedA: Update = {count: 3'u32, pages: [20, 10, 30, 0, 0]}
+    let expectedA: Update = Update{count: 3'u32, pages: [20, 10, 30, 0, 0]}
 
     var repairedB: Update
     repairUpdate(&repairedB, &tieBreak, &tieBreak.updates[2])
-    let expectedB: Update = {count: 3'u32, pages: [10, 20, 30, 0, 0]}
+    let expectedB: Update = Update{count: 3'u32, pages: [10, 20, 30, 0, 0]}
 
     Swag.assert(tieBreakAudit.updateCount == 3'u32)
     Swag.assert(tieBreakAudit.validUpdateCount == 1'u32)

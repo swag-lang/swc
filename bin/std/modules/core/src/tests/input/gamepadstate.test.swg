@@ -11,7 +11,7 @@ using Swag
     {
         let button = cast(Input.GamepadButton, i)
         state.setPressed(button, true)
-        state.setPosition(button, {cast(f32, i) + 0.25, cast(f32, i) + 0.75})
+        state.setPosition(button, Math.Point{cast(f32, i) + 0.25, cast(f32, i) + 0.75})
     }
 
     state.clear()

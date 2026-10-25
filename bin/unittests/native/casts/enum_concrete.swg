@@ -73,7 +73,7 @@ struct TinyCodeBytes
 
 #test
 {
-    var bytes: TinyCodeBytes = {value: TinyCode.Three, x: 0x44'u8, y: 0x55'u8, z: 0x66'u8}
+    var bytes: TinyCodeBytes = TinyCodeBytes{value: TinyCode.Three, x: 0x44'u8, y: 0x55'u8, z: 0x66'u8}
 
     Swag.assert(cast(u32, bytes.value) == 3'u32)
     bytes.value = TinyCode.Zero

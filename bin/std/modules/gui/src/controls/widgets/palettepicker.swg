@@ -36,7 +36,7 @@ private impl PalettePicker
         var y = rect.y
         for i in .colors.count
         {
-            .itemRects[i] = {x, y, cast(f32, .itemSize), cast(f32, .itemSize)}
+            .itemRects[i] = Math.Rectangle{x, y, cast(f32, .itemSize), cast(f32, .itemSize)}
             x += .itemSize + .spacing
             if x + .itemSize > rect.right()
             {
@@ -146,7 +146,7 @@ impl PalettePicker
 {
     // Creates an empty palette picker.
     #[Swag.Discardable]
-    func create(parent: *Wnd, position: Math.Rectangle = {}, id: WndId? = null)->*PalettePicker
+    func create(parent: *Wnd, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null)->*PalettePicker
     {
         Swag.assert(parent != null)
         let result = Wnd.create'PalettePicker(parent, null, position, id)
@@ -223,7 +223,7 @@ impl PalettePicker
     mtd addLightnessRamp(count: s32, base: Color)
     {
         Swag.assert(count >= 0, "palette color count cannot be negative")
-        let {hue, saturation, _} = base.toHsl()
+        let {h: hue, s: saturation, l: _} = base.toHsl()
         for i in count
         {
             let lightness = count <= 1 ? 0.5 : i / cast(f32, (count - 1))
@@ -240,7 +240,7 @@ impl PalettePicker
     {
         Swag.assert(count >= 0, "palette color count cannot be negative")
         Swag.assert(lightness >= 0 and lightness <= 1, "lightness must be between zero and one")
-        let {hue, _, _} = base.toHsl()
+        let {h: hue, s: _, l: _} = base.toHsl()
         for i in count
         {
             let saturation = count <= 1 ? 0 : i / cast(f32, (count - 1))

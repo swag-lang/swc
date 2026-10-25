@@ -118,7 +118,7 @@ impl Decoder
             .previousHeader = header
             .sliceAddrRs    = header.segmentAddress
             .sliceIndex     = cast(u32, .sliceParams.count)
-            .sliceParams.add({header.deblockingDisabled, header.loopFilterAcrossSlices, cast(s8, header.betaOffsetDiv2), cast(s8, header.tcOffsetDiv2)})
+            .sliceParams.add(SliceDeblock{header.deblockingDisabled, header.loopFilterAcrossSlices, cast(s8, header.betaOffsetDiv2), cast(s8, header.tcOffsetDiv2)})
         }
 
         .header = header

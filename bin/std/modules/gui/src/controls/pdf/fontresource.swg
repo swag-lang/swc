@@ -88,10 +88,10 @@ impl FontResource
     mtd const glyphIndex(code: u32)->{index: u32, found: bool}
     {
         if .identityGlyphs do
-            return {code, true}
+            return {index: code, found: true}
         if code < .glyphIndices.count do
-            return {.glyphIndices[code], true}
-        return {}
+            return {index: .glyphIndices[code], found: true}
+        return {index: 0, found: false}
     }
 
     // Resolves one PDF character code to a glyph of the embedded font program.
@@ -108,7 +108,7 @@ impl FontResource
             if not .cidKeyed do
                 return .glyphIndex(code)
             let mapped = font.glyphIndexByCid(code)
-            return mapped ? {mapped, true} : .glyphIndex(code)
+            return mapped ? {index: mapped, found: true} : .glyphIndex(code)
         }
 
         let named = .glyphNames.tryFind(code)
@@ -116,7 +116,7 @@ impl FontResource
         {
             let mapped = font.glyphIndexByName(named.value.toString())
             if mapped do
-                return {mapped, true}
+                return {index: mapped, found: true}
         }
 
         let value = .runeOf(code)
@@ -127,28 +127,28 @@ impl FontResource
             {
                 let mapped = font.glyphIndexByName(name)
                 if mapped do
-                    return {mapped, true}
+                    return {index: mapped, found: true}
             }
         }
 
         let builtIn = font.glyphIndexByCode(code)
         if builtIn do
-            return {builtIn, true}
+            return {index: builtIn, found: true}
 
         if value
         {
             let mapped = font.glyphIndex(value)
             if mapped do
-                return {mapped, true}
+                return {index: mapped, found: true}
         }
 
         // A symbolic TrueType subset maps its codes into the private use area rather than
         // declaring them as characters, which is the one place a raw code is an address.
         let symbol = font.glyphIndex(cast(rune, (0xF000 + code)))
         if symbol do
-            return {symbol, true}
+            return {index: symbol, found: true}
 
-        return {}
+        return {index: 0, found: false}
     }
 
     // Returns the text one character code stands for, for drawing with a substitute face.

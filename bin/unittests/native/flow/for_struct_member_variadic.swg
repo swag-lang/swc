@@ -29,14 +29,14 @@ func argCount(args: ...)->u64
 #test
 {
     // Direct member.
-    var items: [2] Tagged = [{name: "alpha", kind: 1}, {name: "beta", kind: 2}]
+    var items: [2] Tagged = [Tagged{name: "alpha", kind: 1}, Tagged{name: "beta", kind: 2}]
     Swag.assert(argCount(items[0].name) == 5)
 }
 
 #test
 {
     // Member through an explicit pointer.
-    var items: [2] Tagged = [{name: "alpha", kind: 1}, {name: "beta", kind: 2}]
+    var items: [2] Tagged = [Tagged{name: "alpha", kind: 1}, Tagged{name: "beta", kind: 2}]
     let p = &items[1]
     Swag.assert(argCount(p.name) == 4)
 }
@@ -44,7 +44,7 @@ func argCount(args: ...)->u64
 #test
 {
     // Member through the loop binding.
-    var items:  [2] Tagged = [{name: "alpha", kind: 1}, {name: "beta", kind: 2}]
+    var items:  [2] Tagged = [Tagged{name: "alpha", kind: 1}, Tagged{name: "beta", kind: 2}]
     var total:  u64
     var firsts: u64
     for it in items

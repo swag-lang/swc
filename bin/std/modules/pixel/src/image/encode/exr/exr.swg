@@ -64,7 +64,7 @@ func channelOffset(name: string, grayscale: bool)->u64
 
 internal impl IImageEncoder for Encoder
 {
-    mtd impl format()->ImageFormat => {"EXR - OpenEXR", ".exr"}
+    mtd impl format()->ImageFormat => ImageFormat{"EXR - OpenEXR", ".exr"}
 
     mtd impl encode(result: *ConcatBuffer, image: Image, _: any?) fail
     {

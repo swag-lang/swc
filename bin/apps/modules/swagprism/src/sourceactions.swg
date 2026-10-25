@@ -50,19 +50,19 @@ impl SourceActions
         let formatWidth = Math.max(36.0, .formatButton.IWnd.measureContent({}).x)
         let autoWidth   = Math.max(36.0, .liveEdit.IWnd.measureContent({}).x)
         var x           = rect.x
-        .runButton.arrange({x, rect.y, runWidth, 36})
+        .runButton.arrange(Math.Rectangle{x, rect.y, runWidth, 36})
         x += runWidth + 8
-        .formatButton.arrange({x, rect.y, formatWidth, 36})
+        .formatButton.arrange(Math.Rectangle{x, rect.y, formatWidth, 36})
         x += formatWidth + 8
-        .liveEdit.arrange({x, rect.y, autoWidth, 36})
+        .liveEdit.arrange(Math.Rectangle{x, rect.y, autoWidth, 36})
         x += autoWidth + 8
-        .exampleCombo.arrange({x, rect.y, Math.max(0.0, rect.right() - x), 36})
+        .exampleCombo.arrange(Math.Rectangle{x, rect.y, Math.max(0.0, rect.right() - x), 36})
     }
 }
 
 impl IWnd for SourceActions
 {
-    mtd impl measureContent(_: Math.Point)->Math.Point => {0, 36}
+    mtd impl measureContent(_: Math.Point)->Math.Point => Math.Point{0, 36}
     mtd impl onLayout() { .layoutFields() }
 
     mtd impl onResizeEvent(evt: *ResizeEvent)

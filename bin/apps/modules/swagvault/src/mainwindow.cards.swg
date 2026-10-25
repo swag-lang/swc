@@ -8,11 +8,11 @@ impl MainWindow
         with let header = StackLayoutCtrl.create(me, .Top)
         {
             .dockStyle = .Top
-            .margin    = {32, 20, 32, 0}
+            .margin    = Math.Vector4{32, 20, 32, 0}
             .spacing   = 4
         }
 
-        with let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
+        with let titleRow = Wnd.create'Wnd(header, Math.Rectangle{0, 0, 0, 44})
         {
             .dockStyle = .Top
         }
@@ -31,7 +31,7 @@ impl MainWindow
         // is set in another face.
         titleRow.resize(titleRow.position.width, Math.max(titleRow.position.height, titleFont.height))
 
-        with .subtitle = Label.create(header, appStrings().ui_Subtitle, {}, null, .WordWrap | .SecondaryText | .AutoHeight)
+        with .subtitle = Label.create(header, appStrings().ui_Subtitle, Math.Rectangle{}, null, .WordWrap | .SecondaryText | .AutoHeight)
         {
             .dockStyle = .Top
             .setTextAlignment(.Left, .Top)
@@ -44,16 +44,16 @@ impl MainWindow
     // Creates the attribution row and, above it, the status line.
     mtd createFooter()
     {
-        with let footerRow = Wnd.create'Wnd(&.wnd, {0, 0, 0, 24})
+        with let footerRow = Wnd.create'Wnd(&.wnd, Math.Rectangle{0, 0, 0, 24})
         {
             .dockStyle = .Bottom
-            .margin    = {32, 0, 32, 12}
+            .margin    = Math.Vector4{32, 0, 32, 12}
         }
 
         // The attribution keeps what it owes: the product, the holder, and where it comes from.
         // Expanding the acronym as well made the line the widest thing on the surface, and the
         // window is now one card wide.
-        with let credit = Label.create(footerRow, "WinFsp — Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", {}, null, .SecondaryText)
+        with let credit = Label.create(footerRow, "WinFsp — Copyright (C) Bill Zissimopoulos — github.com/winfsp/winfsp", Math.Rectangle{}, null, .SecondaryText)
         {
             .dockStyle = .Center
             .setTextAlignment(.Left, .Center)
@@ -65,15 +65,15 @@ impl MainWindow
 
         // The status line is raised off the ground by the same slight panel shape as the card. A
         // border around it would draw a third box on a surface that already reads without one.
-        with .statusView = Wnd.create'Wnd(&.wnd, {0, 0, 0, 52})
+        with .statusView = Wnd.create'Wnd(&.wnd, Math.Rectangle{0, 0, 0, 52})
         {
             .dockStyle       = .Bottom
-            .margin          = {32, 0, 32, 12}
+            .margin          = Math.Vector4{32, 0, 32, 12}
             .backgroundStyle = .Panel
-            .padding         = {20, 8, 20, 8}
+            .padding         = Math.Vector4{20, 8, 20, 8}
         }
 
-        with .statusIcon = Label.create(.statusView, "", {0, 0, 24})
+        with .statusIcon = Label.create(.statusView, "", Math.Rectangle{0, 0, 24})
         {
             .dockStyle = .Left
             .margin.z  = 12
@@ -82,7 +82,7 @@ impl MainWindow
         // The spinner takes the glyph's place rather than a slot of its own: it is the same
         // 24-pixel square, and a docked window that is hidden takes no room, so the status text
         // starts at the same column whether work is running or not.
-        with .statusBusy = Spinner.create(.statusView, {0, 0, 24, 24})
+        with .statusBusy = Spinner.create(.statusView, Math.Rectangle{0, 0, 24, 24})
         {
             .dockStyle = .Left
             .margin.z  = 12
@@ -344,8 +344,8 @@ impl MainWindow
             .title             = create ? appStrings().dlg_TitleCreate : appStrings().dlg_TitleOpen
             .confirmButtonText = create ? appStrings().dlg_BtnCreate : appStrings().dlg_BtnOpen
             .initialName       = create ? "volume" : ""
-            .shortcuts.add({Env.SpecialDirectory.Desktop, appStrings().ui_Desktop})
-            .shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
+            .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: appStrings().ui_Desktop})
+            .shortcuts.add({type: Env.SpecialDirectory.UserDocuments, name: "Documents"})
         }
 
         let dialog = FileDlg.create(.surface!, options)

@@ -132,7 +132,7 @@ public impl AboutDlg
         dlg.applyLayout()
 
         let identityInset = metrics.dialog_Padding
-        with dlg.identityView = Wnd.create'Wnd(stackLayout, {0, 0, stackLayout.position.width, 0})
+        with dlg.identityView = Wnd.create'Wnd(stackLayout, Math.Rectangle{0, 0, stackLayout.position.width, 0})
         {
             .backgroundStyle = .View
         }
@@ -140,14 +140,14 @@ public impl AboutDlg
         dlg.identityAccent = Separator.create(dlg.identityView, .Top, .Accent)
         let identityContent = Wnd.create'Wnd(dlg.identityView)
         identityContent.dockStyle = .Center
-        identityContent.padding   = {identityInset, identityInset, identityInset, identityInset}
+        identityContent.padding   = Math.Vector4{identityInset, identityInset, identityInset, identityInset}
 
         if params.contentIcon.isValid()
         {
             // The mark has a reserved lane, which keeps the heading optically centered in the
             // remaining product block without making the descriptive copy inherit that inset.
             let gap = metrics.dialog_BtnPadding * 2
-            with dlg.labelIcon = Label.create(identityContent, "", {0, 0, params.contentIcon.sizeX + gap, 0})
+            with dlg.labelIcon = Label.create(identityContent, "", Math.Rectangle{0, 0, params.contentIcon.sizeX + gap, 0})
             {
                 .dockStyle = .Left
                 .setIcon(params.contentIcon)
@@ -166,7 +166,7 @@ public impl AboutDlg
             .updateFlags(.AutoHeight)
         }
 
-        let titleHeight    = dlg.labelMessageTitle.measure({w, 0}).preferred.y
+        let titleHeight    = dlg.labelMessageTitle.measure(Math.Point{w, 0}).preferred.y
         var identityHeight = titleHeight
         if params.contentIcon.isValid() do
             identityHeight = Math.max(identityHeight, cast(f32, params.contentIcon.sizeY))
@@ -215,7 +215,7 @@ public impl AboutDlg
         {
             // Authored width, like the identity block above it: the column centers its children
             // vertically as a group and leaves the cross axis to each of them.
-            with let scroll = Wnd.create'ScrollWnd(.contentStack, "", {0, 0, .contentStack.position.width, 0})
+            with let scroll = Wnd.create'ScrollWnd(.contentStack, "", Math.Rectangle{0, 0, .contentStack.position.width, 0})
             {
                 .padding = 0
                 .updateFlags(.DisableHorizontal | .CompactBars | .TransparentBars)
@@ -268,7 +268,7 @@ public impl AboutDlg
             // the viewport, and a resized window answers for the size it was given. Rounded out,
             // because the window it goes in lands on whole units: a viewport a fraction shorter
             // than its content shows a scroll bar over a list that fits.
-            let needed = Math.ceil(inner.itf.measureContent({room, 0}).y)
+            let needed = Math.ceil(inner.itf.measureContent(Math.Point{room, 0}).y)
             scroll.position.height = Math.min(needed, MaxSectionsHeight)
             scroll.setScrollSize(0, needed)
             .applyLayout()
@@ -287,7 +287,7 @@ public impl AboutDlg
             return
 
         let availableWidth = Math.max(stack.position.width, 1)
-        let contentHeight  = stack.measure({availableWidth, 0}).preferred.y
+        let contentHeight  = stack.measure(Math.Point{availableWidth, 0}).preferred.y
         .fitHeightToContent(contentHeight)
         if .parentSurface do
             .surface!.center(.parentSurface)

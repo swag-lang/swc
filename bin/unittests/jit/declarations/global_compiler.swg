@@ -10,7 +10,7 @@ struct Pair
 var CGZero: s32
 
 #[Swag.Compiler]
-var CGPair: Pair = {x: 1, y: 2}
+var CGPair: Pair = Pair{x: 1, y: 2}
 
 #[Swag.Compiler]
 func updateCompilerGlobals()->s32

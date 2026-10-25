@@ -260,9 +260,9 @@ func costTier(cost: u64)->u32
 // Vec2 equality helper
 #test
 {
-    let a: Vec2 = {x: 10, y: 20}
-    let b: Vec2 = {x: 10, y: 20}
-    let c: Vec2 = {x: 10, y: 99}
+    let a: Vec2 = Vec2{x: 10, y: 20}
+    let b: Vec2 = Vec2{x: 10, y: 20}
+    let c: Vec2 = Vec2{x: 10, y: 99}
     Swag.assert(vec2Eq(a, b))
     Swag.assert(not vec2Eq(a, c))
 }
@@ -297,19 +297,19 @@ func costTier(cost: u64)->u32
 #test
 {
     // Machine 1: A=(94,34) B=(22,67) Prize=(8400,5400) → 80A+40B = 280
-    let m1: Machine = {a: {x: 94, y: 34}, b: {x: 22, y: 67}, prize: {x: 8400, y: 5400}}
+    let m1: Machine = Machine{a: Vec2{x: 94, y: 34}, b: Vec2{x: 22, y: 67}, prize: Vec2{x: 8400, y: 5400}}
     Swag.assert(solveMachine(m1) == 280'u64)
 
     // Machine 2: no integer solution
-    let m2: Machine = {a: {x: 26, y: 66}, b: {x: 67, y: 21}, prize: {x: 12748, y: 12176}}
+    let m2: Machine = Machine{a: Vec2{x: 26, y: 66}, b: Vec2{x: 67, y: 21}, prize: Vec2{x: 12748, y: 12176}}
     Swag.assert(solveMachine(m2) == 0'u64)
 
     // Machine 3: A=(17,86) B=(84,37) Prize=(7870,6450) → 38A+86B = 200
-    let m3: Machine = {a: {x: 17, y: 86}, b: {x: 84, y: 37}, prize: {x: 7870, y: 6450}}
+    let m3: Machine = Machine{a: Vec2{x: 17, y: 86}, b: Vec2{x: 84, y: 37}, prize: Vec2{x: 7870, y: 6450}}
     Swag.assert(solveMachine(m3) == 200'u64)
 
     // Machine 4: no integer solution
-    let m4: Machine = {a: {x: 69, y: 23}, b: {x: 27, y: 71}, prize: {x: 18641, y: 10279}}
+    let m4: Machine = Machine{a: Vec2{x: 69, y: 23}, b: Vec2{x: 27, y: 71}, prize: Vec2{x: 18641, y: 10279}}
     Swag.assert(solveMachine(m4) == 0'u64)
 }
 
@@ -357,14 +357,14 @@ func costTier(cost: u64)->u32
 // Edge case: zero-delta buttons (det=0)
 #test
 {
-    let m: Machine = {a: {x: 0, y: 0}, b: {x: 0, y: 0}, prize: {x: 100, y: 100}}
+    let m: Machine = Machine{a: Vec2{x: 0, y: 0}, b: Vec2{x: 0, y: 0}, prize: Vec2{x: 100, y: 100}}
     Swag.assert(solveMachine(m) == 0'u64)
 }
 
 // Edge case: prize at origin
 #test
 {
-    let m: Machine = {a: {x: 1, y: 0}, b: {x: 0, y: 1}, prize: {x: 0, y: 0}}
+    let m: Machine = Machine{a: Vec2{x: 1, y: 0}, b: Vec2{x: 0, y: 1}, prize: Vec2{x: 0, y: 0}}
     Swag.assert(solveMachine(m) == 0'u64)
 }
 

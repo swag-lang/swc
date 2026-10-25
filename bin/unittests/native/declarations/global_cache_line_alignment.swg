@@ -12,7 +12,7 @@ struct CacheLineFields
 }
 
 var GZeroLines: CacheLineFields
-var GInitLines: CacheLineFields = {head: 1, hot: 2, tail: 3}
+var GInitLines: CacheLineFields = CacheLineFields{head: 1, hot: 2, tail: 3}
 
 #test
 {

@@ -128,7 +128,7 @@ impl Volume
             {
                 if not inserted
                 {
-                    updated.add({logical, physical, count})
+                    updated.add(BlockMapping{logical, physical, count})
                     inserted = true
                 }
 
@@ -137,7 +137,7 @@ impl Volume
             }
 
             if mapping.logical < logical do
-                updated.add({mapping.logical, mapping.physical, logical - mapping.logical})
+                updated.add(BlockMapping{mapping.logical, mapping.physical, logical - mapping.logical})
 
             let overlapFirst = Math.max(mapping.logical, logical)
             let overlapEnd   = Math.min(mappingEnd, end)
@@ -147,16 +147,16 @@ impl Volume
             {
                 if not inserted
                 {
-                    updated.add({logical, physical, count})
+                    updated.add(BlockMapping{logical, physical, count})
                     inserted = true
                 }
 
-                updated.add({end, mapping.physical + end - mapping.logical, mappingEnd - end})
+                updated.add(BlockMapping{end, mapping.physical + end - mapping.logical, mappingEnd - end})
             }
         }
 
         if not inserted do
-            updated.add({logical, physical, count})
+            updated.add(BlockMapping{logical, physical, count})
 
         node.blocks.clear()
         for mapping in updated do

@@ -410,7 +410,7 @@ impl PopupListCtrl
         // reads on its own while nothing is highlighted.
         .listView().hotIdx = .markSelectionOnly ? Swag.U32.Max : .selectedIndex
 
-        let pt  = .parent!.surfaceToLocal({x, y})
+        let pt  = .parent!.surfaceToLocal(Math.Point{x, y})
         var pos = Math.Rectangle{pt.x, pt.y, 0, 0}
         pos.width  = Math.max(width, .minimumWidth, 0)
         pos.height = Math.min(.scrollWnd.scrollSize.y, Math.max(.maximumHeight, 0))
@@ -423,7 +423,7 @@ impl PopupListCtrl
 
     // Appends a selectable item and returns its stable heap object.
     #[Swag.Discardable]
-    mtd addItem(name: string, id: WndId? = null, icon: Icon = {}, userData0: *void? = null, userData1: *void? = null)->*PopupListCtrlItem
+    mtd addItem(name: string, id: WndId? = null, icon: Icon = Icon{}, userData0: *void? = null, userData1: *void? = null)->*PopupListCtrlItem
     {
         with let item = .items.allocate()
         {

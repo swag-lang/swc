@@ -176,7 +176,7 @@ using Swag, Core
 
     f.main.sendCommandEvent(ActionCopyPaste.Copy)
 
-    f.capture.paintRect = {0, 0, f.capture.width, f.capture.height}
+    f.capture.paintRect = Math.Rectangle{0, 0, f.capture.width, f.capture.height}
     f.capture.selection.clear()
     f.main.sendCommandEvent(ActionCopyPaste.Paste)
 

@@ -96,7 +96,7 @@ func makeSquarePath(x0, y0, x1, y1: f32)->LinePath
 {
     var canvas = expect ImageCanvas.create(32, 32)
 
-    canvas.painter.fillRect({0, 0, 32, 16}, Color.fromRgb(80, 90, 100))
+    canvas.painter.fillRect(Math.Rectangle{0, 0, 32, 16}, Color.fromRgb(80, 90, 100))
     canvas.painter.drawLine(0, 24, 32, 24, Color.fromRgb(255, 255, 255), 4)
 
     let img = expect canvas.toImage()

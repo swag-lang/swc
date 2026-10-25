@@ -581,7 +581,7 @@ impl AvcStream
             fail InvalidFormatError{"H.264 access unit carries no picture"}
         .laneStates[threaded.lane] = .Free
         try .fillFrameThreads(source)
-        return {frame, threaded.rank}
+        return DecodedAvcSample{frame, threaded.rank}
     }
 
     // Decodes until the frame with the current display rank exists, and returns it.
@@ -611,7 +611,7 @@ impl AvcStream
                 continue
             }
 
-            .pending.add({decoded.frame, decoded.rank})
+            .pending.add(PendingFrame{decoded.frame, decoded.rank})
             if .pending.count > 34 do
                 fail InvalidFormatError{"H.264 stream reorders more than 34 frames"}
         }

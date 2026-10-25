@@ -88,9 +88,9 @@ struct EditBox
             // Current built-in validation mode, with the bounds of the numeric modes.
             using inputMode: union(EditBoxInputMode)
             {
-                case .SignedInteger: minMaxS64: {min, max: s64} = {Swag.S64.Min, Swag.S64.Max}          // Signed integer bounds
-                case .UnsignedInteger, .Hexadecimal: minMaxU64: {min, max: u64} = {0, Swag.U64.Max}     // Unsigned integer bounds
-                case .FloatingPoint: minMaxF64: {min, max: f64} = {-Swag.F64.Max, Swag.F64.Max}         // Floating-point bounds
+                case .SignedInteger: minMaxS64: {min, max: s64} = {min: Swag.S64.Min, max: Swag.S64.Max}          // Signed integer bounds
+                case .UnsignedInteger, .Hexadecimal: minMaxU64: {min, max: u64} = {min: 0, max: Swag.U64.Max}     // Unsigned integer bounds
+                case .FloatingPoint: minMaxF64: {min, max: f64} = {min: -Swag.F64.Max, max: Swag.F64.Max}         // Floating-point bounds
             } = .Text
         }
     }
@@ -99,8 +99,8 @@ struct EditBox
     // the reader backs out of leaves the value the surface around it had written here.
     originalText: String
 
-    aniBk:     BlendColor = {speed: 4}     // Color animation of the background.
-    aniBorder: BlendColor = {speed: 4}     // Color animation of the border.
+    aniBk:     BlendColor = BlendColor{speed: 4}     // Color animation of the background.
+    aniBorder: BlendColor = BlendColor{speed: 4}     // Color animation of the border.
 
     isInvalid:          bool             // Whether the content is invalid.
     isHot:              bool             // Whether the mouse is over the box.
@@ -478,7 +478,7 @@ private impl EditBox
 
         if not .clearBtn
         {
-            .clearBtn = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), {0, 0, 24, 24})
+            .clearBtn = IconButton.create(me, .theme().icon(ThemeIcons.WndClose, 18), Math.Rectangle{0, 0, 24, 24})
             .clearBtn.dockStyle = .Right
             .clearBtn.setForm(IconButtonForm.Circle)
             .clearBtn.sigPressed += func|edit = me|(_)
@@ -845,7 +845,7 @@ private impl EditBox
         case .Transparent:      break
         }
 
-        return {}
+        return Math.Vector4{}
     }
 
     // Returns the width the box needs to display the widest value of its numeric input range.
@@ -1078,8 +1078,8 @@ private impl EditBox
     {
         if not sel do
             return sel
-        let str      = Swag.makeString(.textStorage.buffer, sel)
-        let {_, eat} = Utf8.decodeLastRune(str)
+        let str         = Swag.makeString(.textStorage.buffer, sel)
+        let {c: _, eat} = Utf8.decodeLastRune(str)
         return sel - eat
     }
 
@@ -1088,8 +1088,8 @@ private impl EditBox
     {
         if sel == .textStorage.length do
             return sel
-        let str      = Swag.makeString(.textStorage.buffer + sel, .textStorage.length - sel)
-        let {_, eat} = Utf8.decodeRune(str)
+        let str         = Swag.makeString(.textStorage.buffer + sel, .textStorage.length - sel)
+        let {c: _, eat} = Utf8.decodeRune(str)
         return sel + eat
     }
 
@@ -1183,7 +1183,7 @@ internal impl EditBox
     {
         var caret = .caretRect()
         caret.x -= .scrollPosX
-        return {caret, .editRect()}
+        return {caret, view: .editRect()}
     }
 }
 
@@ -1191,7 +1191,7 @@ impl EditBox
 {
     // Creates a single-line edit box.
     #[Swag.Discardable]
-    func create(parent: *Wnd, content: string?, position: Math.Rectangle = {}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditBox
+    func create(parent: *Wnd, content: string?, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags: EditBoxFlags = .None)->*EditBox
     {
         Swag.assert(parent != null)
         var pos = position
@@ -1416,7 +1416,7 @@ impl EditBox
     }
 
     // Returns the selected byte range; `end` is the caret and may precede `start`.
-    mtd const selection()->{ start: u64, end: u64 } => {.selBeg, .selEnd}
+    mtd const selection()->{ start: u64, end: u64 } => {start: .selBeg, end: .selEnd}
 
     // Returns whether the current content is valid.
     mtd const isValid()->bool => not .isInvalid

@@ -7,7 +7,7 @@ impl Image
         let cw = .width + l + r
         let ch = .height + t + b
         Swag.assert(cw > 0 and ch > 0)
-        return {cw, ch}
+        return {w: cw, h: ch}
     }
 
     mtd const doExpand(dstImage: *Image, l, t, r, b: s32, color: Color)
@@ -49,7 +49,7 @@ impl Image
     // stay positive.
     public mtd expand(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))
     {
-        let {cw, ch} = .getWH(l, t, r, b)
+        let {w: cw, h: ch} = .getWH(l, t, r, b)
         .allocWorkingBuffer(cw, ch, .pixelFormat)
         .doExpand(.safeWorkingBuffer(), l, t, r, b, color)
         .applyWorkingBuffer()
@@ -58,7 +58,7 @@ impl Image
     // Returns a copy grown by a margin on each side, filled with `color`.
     public mtd const expanded(l, t, r, b: s32, color: Color = Color.fromArgb(Argb.White))->Image
     {
-        let {cw, ch}       = .getWH(l, t, r, b)
+        let {w: cw, h: ch} = .getWH(l, t, r, b)
         var result: retval = create(cw, ch, .pixelFormat, alphaMode: me.alphaMode)
         .doExpand(&result, l, t, r, b, color)
         return result

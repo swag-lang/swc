@@ -163,7 +163,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
 #test
 {
     let before: DeployConfig =
-        {
+        DeployConfig{
         replicas: 3,
         rollout: .Manual,
         pauseSeconds: 20,
@@ -172,7 +172,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
         }
 
     let after: DeployConfig =
-        {
+        DeployConfig{
         replicas: 6,
         rollout: .Progressive,
         pauseSeconds: 20,
@@ -214,7 +214,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
 #test
 {
     let before: WarehouseLimits =
-        {
+        WarehouseLimits{
         maxBins: 48,
         maxLoadKg: 1200,
         requiresScan: true,
@@ -222,7 +222,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
         }
 
     let after: WarehouseLimits =
-        {
+        WarehouseLimits{
         maxBins: 48,
         maxLoadKg: 1800,
         requiresScan: false,

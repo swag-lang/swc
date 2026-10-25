@@ -40,14 +40,14 @@ impl RefRangeModel
         let end = range.end
 
         range.end = idx - 1
-        .selection.add({idx + 1, end})
+        .selection.add(RefRange{idx + 1, end})
     }
 }
 
 #test
 {
     var model: RefRangeModel
-    model.selection.add({2, 6})
+    model.selection.add(RefRange{2, 6})
 
     model.split(4)
 

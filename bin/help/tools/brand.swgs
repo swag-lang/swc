@@ -136,18 +136,18 @@ func buildMark(scale, originX, originY: f32)->LinePath
 
     // Clockwise from the top-left, the corner every edge of the outline runs between.
     let corners: [12] Corner = [
-        {0, 0, SHOULDER},     // The shoulder that opens the top of the S.
-        {w, 0, TERMINAL},     // The free end of the top bar,
-        {w, s, NOTCH},        // closing onto the upper counter.
-        {s, s, NOTCH},
-        {s, m0, NOTCH},     // The blind end of the upper counter.
-        {w, m0, NOTCH},
-        {w, GRID, SHOULDER},     // The shoulder that opens the bottom of the S.
-        {0, GRID, TERMINAL},     // The free end of the bottom bar,
-        {0, b0, NOTCH},          // closing onto the lower counter.
-        {w - s, b0, NOTCH},
-        {w - s, m1, NOTCH},     // The blind end of the lower counter.
-        {0, m1, NOTCH}]
+        Corner{0, 0, SHOULDER},     // The shoulder that opens the top of the S.
+        Corner{w, 0, TERMINAL},     // The free end of the top bar,
+        Corner{w, s, NOTCH},        // closing onto the upper counter.
+        Corner{s, s, NOTCH},
+        Corner{s, m0, NOTCH},     // The blind end of the upper counter.
+        Corner{w, m0, NOTCH},
+        Corner{w, GRID, SHOULDER},     // The shoulder that opens the bottom of the S.
+        Corner{0, GRID, TERMINAL},     // The free end of the bottom bar,
+        Corner{0, b0, NOTCH},          // closing onto the lower counter.
+        Corner{w - s, b0, NOTCH},
+        Corner{w - s, m1, NOTCH},     // The blind end of the lower counter.
+        Corner{0, m1, NOTCH}]
 
     var result: retval
     var pen = MarkPen{&result, scale, originX, originY}

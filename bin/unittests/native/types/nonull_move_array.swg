@@ -39,8 +39,8 @@ func consumeNativeNonNullMoveArray(value: NativeNonNullMoveArrayNestedAlias)->bo
 
 #test
 {
-    var source: [2] NativeNonNullMoveArrayDefault = [{value: "assign-a"}, {value: "assign-b"}]
-    var target: [2] NativeNonNullMoveArrayDefault = [{value: "old-a"}, {value: "old-b"}]
+    var source: [2] NativeNonNullMoveArrayDefault = [NativeNonNullMoveArrayDefault{value: "assign-a"}, NativeNonNullMoveArrayDefault{value: "assign-b"}]
+    var target: [2] NativeNonNullMoveArrayDefault = [NativeNonNullMoveArrayDefault{value: "old-a"}, NativeNonNullMoveArrayDefault{value: "old-b"}]
     target = #move source
     Swag.assert(target[0].value == "assign-a" and target[1].value == "assign-b")
     Swag.assert(source[0].value == "reset" and source[1].value == "reset")

@@ -53,7 +53,7 @@ func day8B()
     {
         for f, c in lines[l] where f != '.'
         {
-            antennas.add({f, c, l})
+            antennas.add({f, x: c, y: l})
         }
     }
 
@@ -67,7 +67,7 @@ func day8B()
             var ay = antenna0.y
             while ax >= 0 and ay >= 0 and ax < w and ay < h
             {
-                antinodes.add({cast(u32, ax), cast(u32, ay)})
+                antinodes.add({x: cast(u32, ax), y: cast(u32, ay)})
                 ax -= dx
                 ay -= dy
             }

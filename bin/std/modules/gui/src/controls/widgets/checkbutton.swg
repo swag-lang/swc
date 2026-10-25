@@ -150,7 +150,7 @@ impl IWnd for CheckButton
     {
         let metrics = .themeMetrics()
         let width   = metrics.btnCheck_Size + metrics.btnCheck_Padding + .captionWidth() + metrics.btnPush_TextMargin
-        return {Math.max(width, metrics.btnPush_Width), metrics.btnPush_Height}
+        return Math.Point{Math.max(width, metrics.btnPush_Width), metrics.btnPush_Height}
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
@@ -179,7 +179,7 @@ impl CheckButton
 {
     // Creates a check button with an optional command identifier and initial options.
     #[Swag.Discardable]
-    func create(parent: *Wnd, name: string, position: Math.Rectangle = {}, id: WndId? = null, flags = CheckButtonFlags.None)->*CheckButton
+    func create(parent: *Wnd, name: string, position: Math.Rectangle = Math.Rectangle{}, id: WndId? = null, flags = CheckButtonFlags.None)->*CheckButton
     {
         Swag.assert(parent != null)
         var pos = position

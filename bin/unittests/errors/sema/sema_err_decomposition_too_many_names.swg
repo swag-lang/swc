@@ -1,11 +1,11 @@
 #global private
 
-func toto()->{x: s32, y: bool}
+func toto()->(s32, bool)
 {
-    return {42, true}
+    return (42, true)
 }
 
 #test
 {
-    let {a, b, c} = toto()     // swc-expected-error {{sema_err_decomposition_too_many_names}}
+    let (a, b, c) = toto()     // swc-expected-error {{sema_err_decomposition_too_many_names}}
 }

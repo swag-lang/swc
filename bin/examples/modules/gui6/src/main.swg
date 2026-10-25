@@ -112,14 +112,14 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
     frame.setFrameFlags(.Borders)
 
     let view = frame.createView'Wnd()
-    discard createText(view, title, {16, 10, rect.width - 32, 24})
-    discard createHelpText(view, subtitle, {16, 36, rect.width - 32, 44})
+    discard createText(view, title, Math.Rectangle{16, 10, rect.width - 32, 24})
+    discard createHelpText(view, subtitle, Math.Rectangle{16, 36, rect.width - 32, 44})
     return view
 }
 
 func createCaption(parent: *Wnd, text: string, x, y, width: f32)
 {
-    let label = createText(parent, text, {x, y, width, 22})
+    let label = createText(parent, text, Math.Rectangle{x, y, width, 22})
     label.updateFlags(.SecondaryText)
 }
 
@@ -141,9 +141,9 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
     var result: retval
-    result.left   = {0, 0, halfWidth, topHeight}
-    result.right  = {halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
-    result.bottom = {0, bottomY, width, bottomHeight}
+    result.left   = (0, 0, halfWidth, topHeight)
+    result.right  = (halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight)
+    result.bottom = (0, bottomY, width, bottomHeight)
     return result
 }
 
@@ -356,7 +356,7 @@ func createStatusPanel(parent: *Wnd, rect: Math.Rectangle)
                             "Command feedback",
                             "The last selected menu item is reflected here while checked and disabled rows update from shared state.",
                             rect)
-    g_StatusLabel = createHelpText(panel, g_StatusText, {20, 92, rect.width - 40, rect.height - 112})
+    g_StatusLabel = createHelpText(panel, g_StatusText, Math.Rectangle{20, 92, rect.width - 40, rect.height - 112})
 }
 
 func drawWrappedText(painter: *Painter, rect: Math.Rectangle, text: string, font: *Font, color: Color, maxLines = 2'u32)
@@ -398,7 +398,7 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         let contentX     = card.x + 24
         let contentWidth = Math.max(card.width - 48, 1.0)
         painter.drawString(contentX, card.y + 22, "Menu-driven workspace", titleFont, Argb.DarkSlateGray)
-        drawWrappedText(painter, {contentX, card.y + 60, contentWidth, 42}, g_StatusText, font, Argb.DimGray, 2)
+        drawWrappedText(painter, Math.Rectangle{contentX, card.y + 60, contentWidth, 42}, g_StatusText, font, Argb.DimGray, 2)
 
         let pillGap    = 12.0
         let pillHeight = 32.0
@@ -409,25 +409,25 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         {
             let pillWidth = (contentWidth - 3 * pillGap) * 0.25
             drawStatePill(painter,
-                          {contentX, pillTop, pillWidth, pillHeight},
+                          Math.Rectangle{contentX, pillTop, pillWidth, pillHeight},
                           Format.toString("grid %", boolWord(g_ShowGrid)),
                           g_ShowGrid,
                           font,
                           colors)
             drawStatePill(painter,
-                          {contentX + pillWidth + pillGap, pillTop, pillWidth, pillHeight},
+                          Math.Rectangle{contentX + pillWidth + pillGap, pillTop, pillWidth, pillHeight},
                           Format.toString("guides %", boolWord(g_ShowGuides)),
                           g_ShowGuides,
                           font,
                           colors)
             drawStatePill(painter,
-                          {contentX + 2 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
+                          Math.Rectangle{contentX + 2 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
                           currentModeName(),
                           true,
                           font,
                           colors)
             drawStatePill(painter,
-                          {contentX + 3 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
+                          Math.Rectangle{contentX + 3 * (pillWidth + pillGap), pillTop, pillWidth, pillHeight},
                           g_DocumentDirty ? "dirty" : "saved",
                           g_DocumentDirty,
                           font,
@@ -440,25 +440,25 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
             let secondX   = contentX + pillWidth + pillGap
             let secondRow = pillTop + pillHeight + 10
             drawStatePill(painter,
-                          {contentX, pillTop, pillWidth, pillHeight},
+                          Math.Rectangle{contentX, pillTop, pillWidth, pillHeight},
                           Format.toString("grid %", boolWord(g_ShowGrid)),
                           g_ShowGrid,
                           font,
                           colors)
             drawStatePill(painter,
-                          {secondX, pillTop, pillWidth, pillHeight},
+                          Math.Rectangle{secondX, pillTop, pillWidth, pillHeight},
                           Format.toString("guides %", boolWord(g_ShowGuides)),
                           g_ShowGuides,
                           font,
                           colors)
             drawStatePill(painter,
-                          {contentX, secondRow, pillWidth, pillHeight},
+                          Math.Rectangle{contentX, secondRow, pillWidth, pillHeight},
                           currentModeName(),
                           true,
                           font,
                           colors)
             drawStatePill(painter,
-                          {secondX, secondRow, pillWidth, pillHeight},
+                          Math.Rectangle{secondX, secondRow, pillWidth, pillHeight},
                           g_DocumentDirty ? "dirty" : "saved",
                           g_DocumentDirty,
                           font,
@@ -471,7 +471,7 @@ func onPreviewEvent(view: *Wnd, evt: IEvent)->bool
         {
             painter.drawLine(contentX, lineY, contentX + contentWidth, lineY, Color.fromArgb(60'u8, Argb.Black), 1)
             drawWrappedText(painter,
-                            {contentX, lineY + 12, contentWidth, card.bottom() - lineY - 18},
+                            Math.Rectangle{contentX, lineY + 12, contentWidth, card.bottom() - lineY - 18},
                             stateSummary(),
                             font,
                             Argb.DimGray,
@@ -795,11 +795,11 @@ func layoutRootView()
     let themeButton = g_ThemeButton!
     let subTitle2   = g_SubTitle!
     let footer2     = g_Footer!
-    title2.setPosition({RootMargin, 18, titleWidth, 34})
-    themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
-    subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
-    pageView.setPosition({RootMargin, PageTop, contentWidth, pageHeight})
-    footer2.setPosition({RootMargin, footerY, contentWidth, 28})
+    title2.setPosition(Math.Rectangle{RootMargin, 18, titleWidth, 34})
+    themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
+    subTitle2.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
+    pageView.setPosition(Math.Rectangle{RootMargin, PageTop, contentWidth, pageHeight})
+    footer2.setPosition(Math.Rectangle{RootMargin, footerY, contentWidth, 28})
 }
 
 func nextPage()
@@ -883,26 +883,26 @@ func createRootView()
     g_View = view
     view.backgroundStyle = .View
 
-    let title = Label.create(view, "", {})
+    let title = Label.create(view, "", Math.Rectangle{})
     g_Title = title
     setLabelTextStyle(title, .Left, .Center)
     title.style.setFont(view.theme().createDefaultFont(28), .Regular)
 
-    let subTitle = Label.create(view, "", {}, null, .WordWrap | .SecondaryText)
+    let subTitle = Label.create(view, "", Math.Rectangle{}, null, .WordWrap | .SecondaryText)
     g_SubTitle = subTitle
     setLabelTextStyle(subTitle, .Left, .Top)
 
-    let themeButton = PushButton.create(view, "", {})
+    let themeButton = PushButton.create(view, "", Math.Rectangle{})
     g_ThemeButton = themeButton
     themeButton.setForm(.Flat)
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, {})
+    let pageView = Wnd.create'Wnd(view, Math.Rectangle{})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 
-    let footer = Label.create(view, "", {})
+    let footer = Label.create(view, "", Math.Rectangle{})
     g_Footer = footer
     setLabelTextStyle(footer, .Left, .Center)
     footer.updateFlags(.SecondaryText)

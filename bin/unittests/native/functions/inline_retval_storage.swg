@@ -6,7 +6,7 @@ struct Large { first, second, third: u64 }
 func makeLarge()->Large
 {
     var result: retval
-    result = {11, 13, 17}
+    result = Large{11, 13, 17}
     return result
 }
 
@@ -35,7 +35,7 @@ func nestedLarge()->Large
 {
     var result: retval
     let first = makeLarge()
-    result = {first.third, first.second, first.first}
+    result = Large{first.third, first.second, first.first}
     return result
 }
 
@@ -43,7 +43,7 @@ func nestedLarge()->Large
 func enclosingLarge()->Large
 {
     var result: retval
-    result = {23, 29, 31}
+    result = Large{23, 29, 31}
     let inner = nestedLarge()
     Swag.assert(result.first == 23 and result.second == 29 and result.third == 31)
     Swag.assert(inner.first == 17 and inner.second == 13 and inner.third == 11)

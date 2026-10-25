@@ -20,7 +20,7 @@ struct PropHeadlessHiddenData
 
 struct PropHeadlessCustomData
 {
-    origin: Math.Point = {10, 20}
+    origin: Math.Point = Math.Point{10, 20}
     count:  s32        = 3
 }
 
@@ -106,7 +106,7 @@ impl IPropertyNotify for PropHeadlessRoData
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     // 1 implicit section item + 3 fields.
@@ -122,7 +122,7 @@ impl IPropertyNotify for PropHeadlessRoData
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.setEditorWidth(280)
     prop.setUsingFieldsLast(true)
     prop.setRevertButtonsVisible(false)
@@ -150,7 +150,7 @@ impl IPropertyNotify for PropHeadlessRoData
     host.setup(260, 180)
     defer host.shutdown()
     var data: PropHeadlessHiddenData
-    let prop = Properties.create(&host.root, {0, 0, 240, 160})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 160})
     prop.addStruct(data)
 
     Swag.assert(prop.items.count == 2)
@@ -166,10 +166,10 @@ impl IPropertyNotify for PropHeadlessRoData
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
     defer host.shutdown()
-    let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
+    let page = Wnd.create'Wnd(&host.root, Math.Rectangle{24, 104, 1192, 666})
 
     var data: PropHeadlessGroupedData
-    let ctrl = PropertiesCtrl.create(page, {0, 0, 560, 10}, .Grid, .SectionTabs | .SectionNavigation | .SearchBar)
+    let ctrl = PropertiesCtrl.create(page, Math.Rectangle{0, 0, 560, 10}, .Grid, .SectionTabs | .SectionNavigation | .SearchBar)
     ctrl.dockStyle = .Left
     ctrl.margin.z  = 24
     ctrl.properties.setEditorWidth(300)
@@ -179,7 +179,7 @@ impl IPropertyNotify for PropHeadlessRoData
     let paneIt = ctrl.splitter.items[0]!
     paneIt.preserveSize = true
 
-    let preview = Wnd.create'FrameWnd(page, {})
+    let preview = Wnd.create'FrameWnd(page, Math.Rectangle{})
     preview.dockStyle = .Center
 
     page.applyLayout()
@@ -206,7 +206,7 @@ impl IPropertyNotify for PropHeadlessRoData
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)     // [0]=section [1]=count [2]=label [3]=enabled
 
     prop.focusNavigation()
@@ -236,7 +236,7 @@ impl IPropertyNotify for PropHeadlessRoData
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     prop.focusNavigation()     // selItem = count row
@@ -266,7 +266,7 @@ struct PropHeadlessCancelData
         defer host.shutdown()
         var data: PropHeadlessCancelData
         data.text = "before"
-        let prop = Properties.create(&host.root, {0, 0, 400, 400}, kind)
+        let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 400, 400}, kind)
         prop.addStruct(data)
         Swag.assert(prop.items.count == 4)
 
@@ -308,7 +308,7 @@ struct PropHeadlessCancelData
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     prop.focusNavigation()     // count row
@@ -327,7 +327,7 @@ struct PropHeadlessCancelData
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     prop.focusNavigation()
@@ -345,7 +345,7 @@ struct PropHeadlessActionData
 
 struct PropHeadlessArrayData
 {
-    origin:  Math.Point = {36, 46}
+    origin:  Math.Point = Math.Point{36, 46}
     actions: Array'PropHeadlessActionData
 }
 
@@ -360,7 +360,7 @@ struct PropHeadlessArrayData
     defer host.shutdown()
     var data: PropHeadlessArrayData
     data.actions.resize(1)
-    let prop = Properties.create(&host.root, {0, 0, 380, 560}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 380, 560}, .List)
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
@@ -425,7 +425,7 @@ struct PropHeadlessColorData
     host.setup(300, 200)
     defer host.shutdown()
     var data: PropHeadlessColorData
-    let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 280, 180}, .List)
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
@@ -435,7 +435,7 @@ struct PropHeadlessColorData
     {
         var wheel = MouseEvent{kind: .Wheel}
         wheel.delta.y    = deltaY
-        wheel.surfacePos = {20, 90}
+        wheel.surfacePos = Math.Point{20, 90}
         p.edView.sendEvent(&wheel)
     }
 
@@ -446,7 +446,7 @@ struct PropHeadlessColorData
     Swag.assert(y1 != y0)
 
     // Modal: with a popup open, the same wheel is swallowed and the list stays put.
-    let popup = Wnd.create'Wnd(&host.root, {})
+    let popup = Wnd.create'Wnd(&host.root, Math.Rectangle{})
     prop.editPopup = popup
     sendWheel(prop, -6)
     Swag.assert(prop.scrollWnd.scrollPosition().y == y1)
@@ -480,20 +480,20 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(300, 200)
     defer host.shutdown()
     var data: PropHeadlessColorData
-    let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 280, 180}, .List)
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
     let btn = findIconButton(prop.items[9]!.line)!     // the color swatch button
 
     // Hover the button (no popup yet) -> hot.
-    host.sendMouseEvent(btn, .Enter, {0, 0}, .Left, .None)
+    host.sendMouseEvent(btn, .Enter, Math.Point{0, 0}, .Left, .None)
     Swag.assert(btn.isHot)
 
     // With a popup open, a MouseLeave must still reach the button and clear the hover.
-    let popup = Wnd.create'Wnd(&host.root, {})
+    let popup = Wnd.create'Wnd(&host.root, Math.Rectangle{})
     prop.editPopup = popup
-    host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
+    host.sendMouseEvent(btn, .Leave, Math.Point{0, 0}, .Left, .None)
     Swag.assert(not btn.isHot)
 }
 
@@ -504,7 +504,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData     // enabled = true
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     prop.focusNavigation()
@@ -526,7 +526,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(320, 220)
     defer host.shutdown()
     var data: PropHeadlessSliderData     // volume=50, level=5
-    let prop = Properties.create(&host.root, {0, 0, 300, 200})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
     prop.edView.sendResizeEvent()
 
@@ -560,7 +560,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(320, 220)
     defer host.shutdown()
     var data: PropHeadlessSliderData     // volume=50, level=5
-    let prop = Properties.create(&host.root, {0, 0, 300, 200})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
     prop.edView.sendResizeEvent()
 
@@ -584,7 +584,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(300, 200)
     defer host.shutdown()
     var data: PropHeadlessEnumData     // choice = Mid (index 1)
-    let prop = Properties.create(&host.root, {0, 0, 280, 180})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 280, 180})
     prop.addStruct(data, "E")     // [0]=section [1]=choice
     prop.edView.sendResizeEvent()
 
@@ -609,7 +609,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(data.choice == .Mid)
 
     // A per-frame mouse-move outside the popup must not wipe the keyboard highlight.
-    host.sendMouseEvent(cast(*Wnd, pview), MouseEvent.Kind.Move, {2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
+    host.sendMouseEvent(cast(*Wnd, pview), MouseEvent.Kind.Move, Math.Point{2, 2}, Input.MouseButton.Left, Input.KeyModifiers.None)
     Swag.assert(pview.hotIdx == 2)
 
     // Enter commits the highlighted item (writes the data) and closes the edit.
@@ -629,7 +629,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(320, 200)
     defer host.shutdown()
     var data: PropHeadlessCustomData
-    let prop = Properties.create(&host.root, {0, 0, 300, 180})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 180})
     prop.addStruct(data, "C")     // [0]=section [1]=origin [2]=count
     prop.edView.sendResizeEvent()
 
@@ -653,7 +653,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(320, 200)
     defer host.shutdown()
     var data: PropHeadlessCustomData
-    let prop = Properties.create(&host.root, {0, 0, 300, 180})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 180})
     prop.addStruct(data, "C")
 
     prop.setSelItem(prop.items[1])     // as if 'origin' was just clicked
@@ -668,7 +668,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data, "Settings")
 
     Swag.assert(prop.items.count == 4)
@@ -683,7 +683,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     host.setup(360, 180)
     defer host.shutdown()
     var data: PropHeadlessData
-    let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 320, 120}, .Grid, .None)
+    let ctrl = PropertiesCtrl.create(&host.root, Math.Rectangle{0, 0, 320, 120}, .Grid, .None)
     ctrl.addStruct(data, "Settings")
     ctrl.properties.edView.sendResizeEvent()
 
@@ -716,18 +716,18 @@ func findIconButton(w: *Wnd)->*IconButton?
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
     defer host.shutdown()
-    let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
+    let page = Wnd.create'Wnd(&host.root, Math.Rectangle{24, 104, 1192, 666})
 
     let filter = EditBox.create(page, "")
     filter.dockStyle = .Top
-    filter.margin    = {16, 16, 16, 4}
+    filter.margin    = Math.Vector4{16, 16, 16, 4}
 
     var dataA: PropHeadlessGroupedData
     var dataB: PropHeadlessGroupedData
     var dataC: PropHeadlessGroupedData
-    let prop = Properties.create(page, {}, .List)
+    let prop = Properties.create(page, Math.Rectangle{}, .List)
     prop.dockStyle = .Center
-    prop.margin    = {16, 8, 16, 16}
+    prop.margin    = Math.Vector4{16, 8, 16, 16}
     prop.addStruct(dataA, "Appearance")
     prop.addStruct(dataB, "Content")
     prop.addStruct(dataC, "Layout")
@@ -778,7 +778,7 @@ struct MultiTile
     choice: MultiChoice = .Low
     badges: MultiBadges
     tint:   Pixel.Color
-    pos:    Math.Point  = {0, 0}
+    pos:    Math.Point  = Math.Point{0, 0}
 }
 
 func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
@@ -802,7 +802,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     defer host.shutdown()
 
     var data: MultiTile
-    let prop = Properties.create(&host.root, {0, 0, 500, 400}, .Condensed)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 500, 400}, .Condensed)
     prop.addStruct(data, "Tile")
 
     host.root.applyLayout()
@@ -823,7 +823,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     host.setup(320, 360)
     defer host.shutdown()
     var t0, t1, t2: MultiTile
-    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 340}, .List)
 
     var bases: Array'(*u8)
     bases.add(cast(*u8, &t0))
@@ -865,7 +865,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     t0.flag  = true
     t1.flag  = false     // differs -> mixed
 
-    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
@@ -896,7 +896,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     defer host.shutdown()
     var t0: MultiTile
     t0.count = 3
-    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
     bases.add(cast(*u8, &t0))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
@@ -930,10 +930,10 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     host.setup(320, 380)
     defer host.shutdown()
     var t0, t1: MultiTile
-    t0.pos = {1, 10}
-    t1.pos = {2, 10}     // x differs (mixed), y uniform
+    t0.pos = Math.Point{1, 10}
+    t1.pos = Math.Point{2, 10}     // x differs (mixed), y uniform
 
-    let prop = Properties.create(&host.root, {0, 0, 300, 360}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 360}, .List)
     var bases: Array'(*u8)
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
@@ -968,7 +968,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     var host: Testing.HeadlessHost
     host.setup(200, 120)
     defer host.shutdown()
-    let prop = Properties.create(&host.root, {0, 0, 180, 100}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 180, 100}, .List)
 
     var b0, b1: MultiBadges
     b0 = .Star
@@ -1009,7 +1009,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     t0.name = "alpha"
     t1.name = "beta"     // differs -> mixed
 
-    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
@@ -1041,7 +1041,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     t0.tint = Pixel.Argb.Red
     t1.tint = Pixel.Argb.Blue     // differs -> mixed
 
-    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
@@ -1075,11 +1075,11 @@ impl Gui.IPropertyNotify for ValData
         {
         case Reflection.fieldCrc(ValData, #nameof(ValData.name)):
             if .name.isEmpty() do
-                return {.Error, "Name is required."}
+                return Gui.PropValidationResult{.Error, "Name is required."}
 
         case Reflection.fieldCrc(ValData, #nameof(ValData.count)):
             if .count > 100 do
-                return {.Warning, "Count is unusually large."}
+                return Gui.PropValidationResult{.Warning, "Count is unusually large."}
         }
 
         return {}
@@ -1093,7 +1093,7 @@ impl Gui.IPropertyNotify for ValData
     host.setup(300, 240)
     defer host.shutdown()
     var data: ValData     // name empty -> error, count ok
-    let prop = Properties.create(&host.root, {0, 0, 280, 220}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 280, 220}, .List)
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
@@ -1127,7 +1127,7 @@ impl Gui.IPropertyNotify for ValData
     host.setup(280, 220)
     defer host.shutdown()
     var data: PropHeadlessData     // no IPropertyNotify
-    let prop = Properties.create(&host.root, {0, 0, 260, 200}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 260, 200}, .List)
     prop.addStruct(data)
     prop.edView.sendResizeEvent()
 
@@ -1154,7 +1154,7 @@ impl Gui.IPropertyNotify for ValData
     g_PropRoDynamic = true
 
     var data: PropHeadlessRoData
-    let prop = Properties.create(&host.root, {0, 0, 240, 340})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 340})
     prop.addStruct(data)
 
     let normalItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.normal))!
@@ -1196,7 +1196,7 @@ impl Gui.IPropertyNotify for ValData
     data.stat[1]   = 2
     data.stat[2]   = 3
 
-    let prop = Properties.create(&host.root, {0, 0, 280, 500}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 280, 500}, .List)
     prop.addStruct(data)
 
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))!
@@ -1244,7 +1244,7 @@ impl Gui.IPropertyNotify for ValData
     data.dyn[1].id = 20
     data.dyn[2].id = 30
 
-    let prop = Properties.create(&host.root, {0, 0, 280, 500}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 280, 500}, .List)
     prop.addStruct(data)
 
     // Copy the first element's 'id' field (value 10) and read it back from the clipboard.
@@ -1306,7 +1306,7 @@ impl IPropertyEditor for PropAngleEditor
         let item  = list.addItem(value, data, parent)
         let angle = cast(*PropHeadlessAngle, data!)
 
-        with let ed = EditBox.create(item.line, "", {0, 0, 120, 24})
+        with let ed = EditBox.create(item.line, "", Math.Rectangle{0, 0, 120, 24})
         {
             // No numeric input mask: the editor shows a "<deg> deg" suffixed string, so the
             // writer parses the leading number out of the free text.
@@ -1339,7 +1339,7 @@ impl IPropertyEditor for PropAngleEditor
     defer host.shutdown()
     var data: PropHeadlessAngleData
 
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     g_PropAngleEditorCalls = 0
     prop.addStruct(data)
 
@@ -1410,7 +1410,7 @@ impl IPropertyNotify for PropDefaultCustom
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropDefaultData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
@@ -1462,7 +1462,7 @@ impl IPropertyNotify for PropDefaultCustom
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropDefaultData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
@@ -1494,7 +1494,7 @@ impl IPropertyNotify for PropDefaultCustom
     g_PropDefForceModified = true
 
     var data: PropDefaultCustom
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))!
@@ -1522,7 +1522,7 @@ impl IPropertyNotify for PropDefaultCustom
     host.setup(360, 320)
     defer host.shutdown()
     var data: PropDefaultData
-    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 340, 300}, .Grid)
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
@@ -1571,7 +1571,7 @@ impl IPropertyNotify for PropDefaultCustom
     host.setup(360, 320)
     defer host.shutdown()
     var data: PropDefaultData
-    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Condensed)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 340, 300}, .Condensed)
     prop.addStruct(data)
 
     let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
@@ -1599,7 +1599,7 @@ impl IPropertyNotify for PropDefaultCustom
     t0.count = 42     // at default
     t1.count = 7      // differs
 
-    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 340}, .List)
     var bases: Array'(*u8)
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
@@ -1622,7 +1622,7 @@ impl IPropertyNotify for PropDefaultCustom
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
 
     let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
@@ -1670,7 +1670,7 @@ impl IPropertyNotify for PropDefaultCustom
     defer host.shutdown()
     var data: MultiTile
     data.name = "alpha"
-    let prop = Properties.create(&host.root, {0, 0, 280, 340}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 280, 340}, .List)
     prop.addStruct(data)
 
     let it = findFieldItem(prop, #nameof(MultiTile.name))!
@@ -1692,7 +1692,7 @@ impl IPropertyNotify for PropDefaultCustom
     host.setup(320, 360)
     defer host.shutdown()
     var t0, t1: PropHeadlessData     // both count = 42
-    let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 340}, .List)
     var bases:  Array'(*u8)
     bases.add(cast(*u8, &t0))
     bases.add(cast(*u8, &t1))
@@ -1717,7 +1717,7 @@ impl IPropertyNotify for PropDefaultCustom
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.addStruct(data)
     prop.focusNavigation()
 
@@ -1761,7 +1761,7 @@ struct PropDecorData
     host.setup(360, 480)
     defer host.shutdown()
     var data: PropDecorData
-    let prop = Properties.create(&host.root, {0, 0, 340, 460}, .Grid)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 340, 460}, .Grid)
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
@@ -1834,7 +1834,7 @@ struct PropHeadlessPanelStringData
 
     var data: PropHeadlessPanelStringData
     data.dynamic = "Editable"
-    let prop = Properties.create(&host.root, {0, 0, 300, 240}, kind: .Panel)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 300, 240}, kind: .Panel)
     prop.addStruct(data)
     host.root.applyLayout()
     host.pump()
@@ -1860,7 +1860,7 @@ struct PropHeadlessPanelStringData
     host.setup(260, 320)
     defer host.shutdown()
     var data: PropHeadlessFontStyleData
-    let prop = Properties.create(&host.root, {0, 0, 240, 300}, kind: .Panel)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300}, kind: .Panel)
     prop.addStruct(data)
     host.root.applyLayout()
     host.pump()
@@ -1916,12 +1916,12 @@ struct PropHeadlessUsingDerived
     var data: PropHeadlessUsingDerived
 
     // Declaration order by default: the 'using' base fields come first
-    let prop0 = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop0 = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop0.addStruct(data)
     Swag.assert(indexOf(prop0, "baseVal") < indexOf(prop0, "ownVal"))
 
     // Most specific first with usingFieldsLast
-    let prop1 = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop1 = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop1.setUsingFieldsLast(true)
     prop1.addStruct(data)
     Swag.assert(indexOf(prop1, "ownVal") < indexOf(prop1, "baseVal"))
@@ -1956,7 +1956,7 @@ impl IPropertyNotify for PropFilterHost
     defer host.shutdown()
     var data: PropFilterData
     var ntfy: PropFilterHost
-    let prop = Properties.create(&host.root, {0, 0, 240, 300})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 240, 300})
     prop.setNotify(&ntfy)
     prop.addStruct(data)
 
@@ -1992,7 +1992,7 @@ struct PropDropData
     defer host.shutdown()
 
     var data: PropDropData
-    let prop = Properties.create(&host.root, {0, 0, 420, 200}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 420, 200}, .List)
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
     host.root.applyLayout()
@@ -2083,7 +2083,7 @@ struct PropAlignData
     host.setup(800, 600)
     defer host.shutdown()
     var data: PropAlignData
-    let prop = Properties.create(&host.root, {0, 0, 400, 560}, .List)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 400, 560}, .List)
     prop.addStruct(data, "S")
     host.root.applyLayout()
     host.pump()
@@ -2116,12 +2116,12 @@ struct PropAlignData
     assertAligned(prop)
 
     // Grow then shrink the control: the editors must not drift
-    prop.setPosition({0, 0, 760, 560})
+    prop.setPosition(Math.Rectangle{0, 0, 760, 560})
     host.root.applyLayout()
     host.pump()
     assertAligned(prop)
 
-    prop.setPosition({0, 0, 300, 560})
+    prop.setPosition(Math.Rectangle{0, 0, 300, 560})
     host.root.applyLayout()
     host.pump()
     assertAligned(prop)
@@ -2182,7 +2182,7 @@ struct PropAlignData
     defer host.shutdown()
 
     var data: PropHeadlessResolvedData
-    let prop = Properties.create(&host.root, {0, 0, 560, 360})
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 560, 360})
     prop.addStruct(data)
     host.root.applyLayout()
     host.pump()
@@ -2217,7 +2217,7 @@ struct PropAlignData
     defer host.shutdown()
 
     var data: PropHeadlessGroupedData
-    let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 340, 300}, .Grid)
     prop.addStruct(data, "Settings")
 
     let numbers = findFieldItem(prop, "Numbers")!
@@ -2242,7 +2242,7 @@ struct PropAlignData
     defer host.shutdown()
 
     var data: PropHeadlessGroupedData
-    let prop = Properties.create(&host.root, {0, 0, 340, 340}, .Grid)
+    let prop = Properties.create(&host.root, Math.Rectangle{0, 0, 340, 340}, .Grid)
     prop.addStruct(data, "Settings")
 
     let count   = findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))!
@@ -2284,7 +2284,7 @@ func assertPropertyViewMenuAnchor(light: bool)
         host.theme.setDark()
     host.notify(.ThemeChanged)
 
-    let panel = Wnd.create'Wnd(&host.root, {36, 40, 440, 280})
+    let panel = Wnd.create'Wnd(&host.root, Math.Rectangle{36, 40, 440, 280})
     let ctrl  = PropertiesCtrl.create(panel, flags: .SearchBar)
     ctrl.dockStyle = .Center
     host.root.applyLayout()
@@ -2339,7 +2339,7 @@ struct PropGoldenData
     tint: Pixel.Color = 0xFF38BDF8
 
     #[Category("Layout"), Name("Offset")]
-    offset: Math.Point = {12, 8}
+    offset: Math.Point = Math.Point{12, 8}
 
     #[Category("Layout"), Name("Mode")]
     mode = PropGoldenChoice.Automatic

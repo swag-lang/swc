@@ -23,10 +23,10 @@ enum Orientation
 //
 // ```swag
 // var polygon: Pixel.Polygon
-// polygon.add({0, 0})
-// polygon.add({100, 0})
-// polygon.add({50, 80})
-// polygon.add({0, 0}) // Close the ring.
+// polygon.add(Math.Vector2{0, 0})
+// polygon.add(Math.Vector2{100, 0})
+// polygon.add(Math.Vector2{50, 80})
+// polygon.add(Math.Vector2{0, 0}) // Close the ring.
 // polygon.recompute()
 //
 // var tessellator: Pixel.Poly2Tri.Tessellate
@@ -1005,7 +1005,7 @@ impl Tessellate
             {
                 var direction = Math.Vector2.normalizedOrZero(center - pt)
                 if direction.isEqualEpsilon({}) do
-                    direction = {1, 0}
+                    direction = Vector2{1, 0}
                 pt += direction * 0.001
             }
 

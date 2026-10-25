@@ -67,7 +67,7 @@ impl ViewerWindow
             .sigCheckedChanged += func|window = me|(button) { window.setFullScreen(button.isChecked) }
         }
 
-        with .searchGroup = StackLayoutCtrl.create(.commandBar, .Center, {0, 0, searchBarWidth, actionSize})
+        with .searchGroup = StackLayoutCtrl.create(.commandBar, .Center, Math.Rectangle{0, 0, searchBarWidth, actionSize})
         {
             .backgroundStyle = .Transparent
             .spacing         = SearchGroupSpacing
@@ -84,7 +84,7 @@ impl ViewerWindow
             .sigPressed += func|window = me|(_) { window.showSearchOptionsMenu() }
         }
 
-        with .searchBox = EditBox.create(.searchGroup, "", {0, 0, SearchFieldWidth, 36}, flags: .ClearButton)
+        with .searchBox = EditBox.create(.searchGroup, "", Math.Rectangle{0, 0, SearchFieldWidth, 36}, flags: .ClearButton)
         {
             .setIcon(me.theme().icon(.Search, iconSize))
             .setPlaceholder(appStrings().ui_Search)
@@ -95,7 +95,7 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with .searchNavigation = StackLayoutCtrl.create(.searchGroup, .Center, {0, 0, searchNavigationWidth, actionSize})
+        with .searchNavigation = StackLayoutCtrl.create(.searchGroup, .Center, Math.Rectangle{0, 0, searchNavigationWidth, actionSize})
         {
             .backgroundStyle = .Transparent
             .spacing         = 0
@@ -117,7 +117,7 @@ impl ViewerWindow
             .enable(false)
         }
 
-        with .searchCountLabel = Label.create(.searchNavigation, "", {0, 0, SearchCountWidth, 36}, null, .SecondaryText)
+        with .searchCountLabel = Label.create(.searchNavigation, "", Math.Rectangle{0, 0, SearchCountWidth, 36}, null, .SecondaryText)
         {
             .margin.x = 8
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
@@ -128,7 +128,7 @@ impl ViewerWindow
 
         // Wide enough for the longest viewer name a shipped viewer registers beside its glyph.
         // Viewer commands have their own row, so this selector can close the global bar's right edge.
-        with .viewerCombo = ComboBox.create(.commandBar, {0, 0, 180, 36})
+        with .viewerCombo = ComboBox.create(.commandBar, Math.Rectangle{0, 0, 180, 36})
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_Viewer
@@ -144,21 +144,21 @@ impl ViewerWindow
         // File identity and content statistics are read before the document. The information
         // surface follows the same panel composition as both side panes: a rounded semantic
         // ground inside one shared chrome seam. Viewer tools belong to the dedicated band below.
-        with .infoBarHost = Wnd.create'Wnd(me, {0, 0, 0, InfoHeight + panelGutter * 2})
+        with .infoBarHost = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, InfoHeight + panelGutter * 2})
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
-            .padding         = {panelGutter, panelGutter, panelGutter, panelGutter}
+            .padding         = Math.Vector4{panelGutter, panelGutter, panelGutter, panelGutter}
         }
 
         with .infoBar = Wnd.create'ViewerInfoBar(.infoBarHost)
         {
             .dockStyle       = .Center
             .backgroundStyle = .InformationPanel
-            .padding         = {8, 2, 8, 2}
+            .padding         = Math.Vector4{8, 2, 8, 2}
         }
 
-        with .infoContentGroup = Wnd.create'ViewerInfoLayout(.infoBar, {0, 0, 0, 36})
+        with .infoContentGroup = Wnd.create'ViewerInfoLayout(.infoBar, Math.Rectangle{0, 0, 0, 36})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -177,19 +177,19 @@ impl ViewerWindow
 
         .infoContentGroup.filesButton = .filesButton
 
-        with .infoFileGroup = StackLayoutCtrl.create(.infoContentGroup, .Left, {0, 0, 0, 36})
+        with .infoFileGroup = StackLayoutCtrl.create(.infoContentGroup, .Left, Math.Rectangle{0, 0, 0, 36})
         {
             .backgroundStyle = .Transparent
             .spacing         = 0
         }
 
-        with .infoIconLabel = Label.create(.infoFileGroup, "", {0, 0, 24, 36})
+        with .infoIconLabel = Label.create(.infoFileGroup, "", Math.Rectangle{0, 0, 24, 36})
         {
             .margin.z = me.themeMetrics().btnIcon_SpacingIcon
             .setIconAlignment(.Center, .Center)
         }
 
-        with .infoNameLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .Ellipsis)
+        with .infoNameLabel = Label.create(.infoFileGroup, "", Math.Rectangle{0, 0, 0, 36}, null, .Ellipsis)
         {
             .layoutSpec.policyX = .Expand
             .layoutSpec.weightX = 0
@@ -197,14 +197,14 @@ impl ViewerWindow
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with .infoSizeLabel = Label.create(.infoFileGroup, "", {0, 0, 0, 36}, null, .SecondaryText)
+        with .infoSizeLabel = Label.create(.infoFileGroup, "", Math.Rectangle{0, 0, 0, 36}, null, .SecondaryText)
         {
             .margin.x = 8
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .OpticalCenter)
         }
 
-        with .infoStatsLabel = Label.create(.infoContentGroup, "", {0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
+        with .infoStatsLabel = Label.create(.infoContentGroup, "", Math.Rectangle{0, 0, 0, 36}, null, .SecondaryText | .Ellipsis)
         {
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Right, .OpticalCenter)
@@ -216,11 +216,11 @@ impl ViewerWindow
 
     private mtd createViewerBar()
     {
-        with .viewerBar = Wnd.create'ViewerActionBar(me, {0, 0, 0, BarHeight})
+        with .viewerBar = Wnd.create'ViewerActionBar(me, Math.Rectangle{0, 0, 0, BarHeight})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar
-            .padding         = {12, 6, 12, 6}
+            .padding         = Math.Vector4{12, 6, 12, 6}
             .fillCenterGroup = true
         }
     }
@@ -253,17 +253,17 @@ impl ViewerWindow
         // The toolbar-colored lane is the static seam shared with the application chrome. The
         // rounded structural panel sits inside it, so the lists read as one integrated surface
         // instead of a square block divided from the document by an unrelated rule.
-        with .filePanelHost = Wnd.create'Wnd(.mainSplitter, {0, 0, .leftPanelWidth + panelGutter, 0})
+        with .filePanelHost = Wnd.create'Wnd(.mainSplitter, Math.Rectangle{0, 0, .leftPanelWidth + panelGutter, 0})
         {
             .backgroundStyle = .ToolBar
 
             // The information lane supplies the upper seam and the viewer bar supplies the
             // lower chrome. Only the exposed outer edges need their own integration gutter.
-            .padding = {panelGutter, 0, 0, 0}
+            .padding = Math.Vector4{panelGutter, 0, 0, 0}
             .hide()
         }
 
-        with .filePanel = SplitterCtrl.create(.filePanelHost, {0, 0, .leftPanelWidth, 0}, vertical: true)
+        with .filePanel = SplitterCtrl.create(.filePanelHost, Math.Rectangle{0, 0, .leftPanelWidth, 0}, vertical: true)
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -272,24 +272,24 @@ impl ViewerWindow
         with .recentPane = Wnd.create'Wnd(.filePanel)
         {
             .backgroundStyle = .Panel
-            .padding         = {0, 8, 0, 8}
+            .padding         = Math.Vector4{0, 8, 0, 8}
         }
 
-        with let recentHeader = Wnd.create'Wnd(.recentPane, {0, 0, 0, compactSize})
+        with let recentHeader = Wnd.create'Wnd(.recentPane, Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .margin          = {10, 0, 10, 0}
+            .margin          = Math.Vector4{10, 0, 10, 0}
         }
 
-        with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, rowIconSize), {0, 0, compactSize, compactSize})
+        with .recentClearButton = IconButton.create(recentHeader, .theme().icon(.RemoveAll, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize})
         {
             .dockStyle  = .Right
             .toolTip    = appStrings().ui_ClearHistory
             .sigPressed += func|window = me|(_) { window.confirmClearRecent() }
         }
 
-        with .recentLabel = Label.create(recentHeader, appStrings().ui_Recent, {0, 0, 0, compactSize}, null, .SecondaryText)
+        with .recentLabel = Label.create(recentHeader, appStrings().ui_Recent, Math.Rectangle{0, 0, 0, compactSize}, null, .SecondaryText)
         {
             .dockStyle = .Center
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
@@ -314,19 +314,19 @@ impl ViewerWindow
         with .folderPane = Wnd.create'Wnd(.filePanel)
         {
             .backgroundStyle = .Panel
-            .padding         = {0, 8, 0, 8}
+            .padding         = Math.Vector4{0, 8, 0, 8}
         }
 
         // The header carries the filter beside the folder name: the toggle changes what this
         // list holds, and the next/previous arrows walk the same list.
-        with let folderHeader = Wnd.create'Wnd(.folderPane, {0, 0, 0, compactSize})
+        with let folderHeader = Wnd.create'Wnd(.folderPane, Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
-            .margin          = {10, 0, 10, 0}
+            .margin          = Math.Vector4{10, 0, 10, 0}
         }
 
-        with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, rowIconSize), {0, 0, compactSize, compactSize}, flags: .Toggle)
+        with .kindButton = IconButton.create(folderHeader, .theme().icon(.Filter, rowIconSize), Math.Rectangle{0, 0, compactSize, compactSize}, flags: .Toggle)
         {
             .dockStyle = .Right
             .toolTip   = appStrings().ui_SameKind
@@ -336,7 +336,7 @@ impl ViewerWindow
 
         with .folderHistoryButton = IconButton.create(folderHeader,
                                                       .theme().icon(.History, rowIconSize),
-                                                      {0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize},
+                                                      Math.Rectangle{0, 0, themeDropDownButtonWidth(.themeMetrics()), compactSize},
                                                       flags: .CenterContent)
         {
             .dockStyle = .Right
@@ -347,17 +347,17 @@ impl ViewerWindow
             .sigPressed += func|window = me|(_) { window.showFolderHistory() }
         }
 
-        with .folderLabel = Label.create(folderHeader, appStrings().ui_Folder, {0, 0, 0, compactSize}, null, .SecondaryText | .Ellipsis)
+        with .folderLabel = Label.create(folderHeader, appStrings().ui_Folder, Math.Rectangle{0, 0, 0, compactSize}, null, .SecondaryText | .Ellipsis)
         {
             .dockStyle = .Center
             .style.setFont(me.theme().createDefaultFontFs(12), .Regular)
             .setTextAlignment(.Left, .Center)
         }
 
-        with .folderFilterBox = EditBox.create(.folderPane, "", {0, 0, 0, compactSize})
+        with .folderFilterBox = EditBox.create(.folderPane, "", Math.Rectangle{0, 0, 0, compactSize})
         {
             .dockStyle = .Top
-            .margin    = {8, 4, 8, 4}
+            .margin    = Math.Vector4{8, 4, 8, 4}
             .setIcon(.theme().icon(.Search, themeRowIconSize(.themeMetrics())))
             .setPlaceholder(appStrings().ui_FilterFiles)
             .updateFlags(.ClearButton)
@@ -404,7 +404,7 @@ impl ViewerWindow
         with .documentHost = Wnd.create'Wnd(.mainSplitter)
         {
             .backgroundStyle = .ToolBar
-            .padding         = {panelGutter, 0, panelGutter, 0}
+            .padding         = Math.Vector4{panelGutter, 0, panelGutter, 0}
         }
 
         with .documentPanel = Wnd.create'Wnd(.documentHost)
@@ -418,23 +418,23 @@ impl ViewerWindow
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
-            .padding         = {48, 48, 48, 48}
+            .padding         = Math.Vector4{48, 48, 48, 48}
             .spacing         = 12
         }
 
-        with .emptyIconLabel = Label.create(.emptyView, "", {0, 0, 48, 48})
+        with .emptyIconLabel = Label.create(.emptyView, "", Math.Rectangle{0, 0, 48, 48})
         {
             .layoutSpec.alignX = .Center
             .setIconAlignment(.Center, .Center)
         }
 
-        with .emptyLabel = Label.create(.emptyView, Format.toString("<b>%</b>", appStrings().ui_DropTitle), {0, 0, 480, 0}, null, .WordWrap | .AutoHeight)
+        with .emptyLabel = Label.create(.emptyView, Format.toString("<b>%</b>", appStrings().ui_DropTitle), Math.Rectangle{0, 0, 480, 0}, null, .WordWrap | .AutoHeight)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
         }
 
-        with .emptyHintLabel = Label.create(.emptyView, appStrings().ui_DropHint, {0, 0, 480, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
+        with .emptyHintLabel = Label.create(.emptyView, appStrings().ui_DropHint, Math.Rectangle{0, 0, 480, 0}, null, .WordWrap | .AutoHeight | .SecondaryText)
         {
             .layoutSpec.alignX = .Center
             .setTextAlignment(.Center, .Center)
@@ -449,11 +449,13 @@ impl ViewerWindow
             .backgroundStyle = .Transparent
             .hide()
         }
+
         with let sideItem = .mainSplitter.addPane(.sidePanelPlaceholder, RightPanelDefaultWidth + panelGutter)
         {
             .minimumSize = RightPanelMinWidth + panelGutter
             .maximumSize = RightPanelMaxWidth + panelGutter
         }
+
         .mainSplitter.setPaneVisible(2, false)
     }
 

@@ -114,10 +114,10 @@ namespace TweakDeep
     }
 
     let cases: [4] InvalidLine = [
-        {"\n/\n",        "invalid folder name"},
-        {"\n@\n",        "invalid value name"},
-        {"\nfoo $\n",    "invalid reference name"},
-        {"\n/Missing\n", "unknown folder [[Missing]]"}]
+        InvalidLine{"\n/\n", "invalid folder name"},
+        InvalidLine{"\n@\n", "invalid value name"},
+        InvalidLine{"\nfoo $\n", "invalid reference name"},
+        InvalidLine{"\n/Missing\n", "unknown folder [[Missing]]"}]
 
     for invalid in cases
     {

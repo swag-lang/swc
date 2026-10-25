@@ -64,12 +64,12 @@ private func reportPage(name: string, pageIndex: u64)->ProgramReport
 #test
 {
     const pages: [6] { name: string, page: u64 } = [
-        {"llvm-polly-impact-2011-paper.pdf",          0},
-        {"llvm-polly-impact-2011-paper.pdf",          3},
-        {"llvm-openmp-reference.pdf",                 12},
-        {"llvm-polly-raghesh-masters-thesis.pdf",     20},
-        {"llvm-polly-kernelgen-ncar-2012-slides.pdf", 4},
-        {"llvm-polly-impact-2011-slides.pdf",         5}]
+        {name: "llvm-polly-impact-2011-paper.pdf",          page: 0},
+        {name: "llvm-polly-impact-2011-paper.pdf",          page: 3},
+        {name: "llvm-openmp-reference.pdf",                 page: 12},
+        {name: "llvm-polly-raghesh-masters-thesis.pdf",     page: 20},
+        {name: "llvm-polly-kernelgen-ncar-2012-slides.pdf", page: 4},
+        {name: "llvm-polly-impact-2011-slides.pdf",         page: 5}]
 
     for entry in pages
     {

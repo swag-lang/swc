@@ -273,7 +273,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     var sawHat, sawTilde, sawVector: bool
     for nodeRef in accents.nodes
     {
-        let node = nodeRef!
+        let node = unwrap nodeRef
         if node.kind == .Accent
         {
             ruleCount += node.rules.count
@@ -306,7 +306,7 @@ private func assertMathDelimiterPaths(font: *Font, source: string, leftKind, rig
     var sawRoman, sawItalic, sawBold, sawBoldItalic: bool
     for nodeRef in styled.nodes
     {
-        let node = nodeRef!
+        let node = unwrap nodeRef
         if node.kind != .Style do
             continue
         if node.fontVariant == .Roman do

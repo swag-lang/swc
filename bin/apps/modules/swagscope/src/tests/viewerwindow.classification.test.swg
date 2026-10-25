@@ -89,7 +89,7 @@ func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStat
 
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey)
-    let previousView = window.currentView!
+    let previousView = unwrap window.currentView
     let previous     = assume cast(*PlainText.Panel, previousView)
     Swag.assert(not previous.isStreaming())
 

@@ -16,7 +16,7 @@ public impl Image
             var context = Math.clamp(factor, -1.0, 1.0)
             .transformLogicalPixels(&context)
             {
-                let adjustment = cast(const *f32, userData!)[]
+                let adjustment = cast(const *f32, unwrap userData)[]
                 value.r += adjustment
                 value.g += adjustment
                 value.b += adjustment
@@ -32,7 +32,7 @@ public impl Image
         {
             .visitVectorBytes(&context) #code(block, data)
             {
-                let params     = cast(*#decltype(context), data!)
+                let params     = cast(*#decltype(context), unwrap data)
                 let adjustment = Math.Simd.splat(params.adjustment)
                 let alphaMask  = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                 let values     = Math.Simd.load(block)
@@ -47,7 +47,7 @@ public impl Image
         {
             .visitVectorBytes(&context) #code(block, data)
             {
-                let params     = cast(*#decltype(context), data!)
+                let params     = cast(*#decltype(context), unwrap data)
                 let adjustment = Math.Simd.splat(params.adjustment)
                 let alphaMask  = cast(Math.Simd.U8x16, [0'u8, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255])
                 let values     = Math.Simd.load(block)

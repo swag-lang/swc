@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func htmlViewerFixturePath()->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.html")
+func htmlViewerFixturePath()->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), "viewer.html")
 
 func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {

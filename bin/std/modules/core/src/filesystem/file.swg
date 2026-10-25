@@ -162,7 +162,7 @@ func readAllBytes(fullName: string)->Array'u8 fail
     if not length do
         return result
     result.reserve(length)
-    result.count = try stream.read(result.buffer!, length)
+    result.count = try stream.read(unwrap result.buffer, length)
     return result
 }
 
@@ -182,7 +182,7 @@ func writeAllBytes(fullName: string, buffer: ConcatBuffer)->u64 fail
 
     var total = 0'u64
     for chunk in buffer where chunk.count do
-        total += try stream.write(chunk.data!, chunk.count)
+        total += try stream.write(unwrap chunk.data, chunk.count)
     return total
 }
 

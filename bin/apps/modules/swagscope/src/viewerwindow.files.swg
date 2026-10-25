@@ -305,7 +305,7 @@ impl ViewerWindow
     // Confirms the destructive history action before applying it.
     mtd confirmClearRecent()
     {
-        if MessageDlg.confirm(.surface!, appStrings().ui_ConfirmClearHistory) == Dialog.BtnYes do
+        if MessageDlg.confirm(unwrap .surface, appStrings().ui_ConfirmClearHistory) == Dialog.BtnYes do
             .clearRecent()
     }
 

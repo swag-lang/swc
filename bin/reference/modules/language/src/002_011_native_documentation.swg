@@ -100,7 +100,7 @@ For example, a separate module could contain:
 // Readers borrow their input buffer. Keep it alive until reading finishes.
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.genDoc.kind         = .Api
     cfg.genDoc.titleContent = "Message API"
     cfg.genDoc.outputName   = "messages"

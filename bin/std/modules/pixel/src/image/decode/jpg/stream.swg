@@ -42,7 +42,7 @@ impl Decoder
             .bitBuf = rol(.bitBuf, cast(u32, (numBits + .bitsLeft)))
 
             var c1, c2: u32
-            let inBufOfs = .inBufOfs!
+            let inBufOfs = unwrap .inBufOfs
 
             // Two bytes that are neither a marker nor a stuffed 0xFF are what entropy-coded data
             // is almost entirely made of, and taking them here keeps the marker rules, the buffer
@@ -116,7 +116,7 @@ impl Decoder
         }
 
         paddingFlag[] = false
-        let inBufOfs = .inBufOfs!
+        let inBufOfs = unwrap .inBufOfs
         let c        = inBufOfs[]
         .inBufOfs  += 1
         .inBufLeft -= 1
@@ -138,7 +138,7 @@ impl Decoder
             }
         }
 
-        let inBufOfs = .inBufOfs!
+        let inBufOfs = unwrap .inBufOfs
         let c        = inBufOfs[0]
         .inBufOfs  += 1
         .inBufLeft -= 1
@@ -533,7 +533,7 @@ impl Decoder
             }
 
             let bytesRead = size
-            Memory.copy(cast([*] u8, &.inBuf[0]) + .inBufLeft, .stream! + .streamSeek, cast(u64, size))
+            Memory.copy(cast([*] u8, &.inBuf[0]) + .inBufLeft, unwrap .stream + .streamSeek, cast(u64, size))
             .streamSeek += size
             .inBufLeft  += bytesRead
             if .inBufLeft >= InBufSize or .eofReached do

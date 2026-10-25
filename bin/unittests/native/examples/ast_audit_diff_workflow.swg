@@ -44,19 +44,19 @@ func appendAuditDiffFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
     for field in typeStruct.fields
     {
         len = appendAst(buffer, len, "changed_")
-        len = appendAst(buffer, len, field.name!)
+        len = appendAst(buffer, len, unwrap field.name)
         len = appendAst(buffer, len, ": bool\n")
 
         len = appendAst(buffer, len, "old_")
         len = appendAst(buffer, len, field.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, field.pointedType!.name!)
+        len = appendAst(buffer, len, unwrap field.pointedType!.name)
         len = appendAst(buffer, len, "\n")
 
         len = appendAst(buffer, len, "new_")
         len = appendAst(buffer, len, field.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, field.pointedType.name!)
+        len = appendAst(buffer, len, unwrap field.pointedType.name)
         len = appendAst(buffer, len, "\n")
     }
 
@@ -86,7 +86,7 @@ func(T) buildAuditDiff(before: T, after: T)->AuditDiff'T
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "result.changed_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " = before.")
             len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, " != after.")
@@ -123,7 +123,7 @@ func(T) auditChangedCount(diff: AuditDiff'T)->s32
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    count += 1\n")
         }
@@ -145,7 +145,7 @@ func(T) applyAuditDiff(base: T, diff: AuditDiff'T)->T
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if diff.changed_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    result.")
             len = appendAst(&buffer[0], len, field.name)

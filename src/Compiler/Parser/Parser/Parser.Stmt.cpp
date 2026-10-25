@@ -1301,6 +1301,7 @@ AstNodeRef Parser::parseEmbeddedStmt()
             return parseDiscard();
 
         case TokenId::Identifier:
+        case TokenId::KwdUnwrap:
         case TokenId::KwdCast:
         case TokenId::SymDot:
         case TokenId::SymLeftParen:

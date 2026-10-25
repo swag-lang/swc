@@ -135,7 +135,7 @@ impl SheetView
 
         for field in type.fields
         {
-            let name = field.name!
+            let name = unwrap field.name
             if not .keeps(name) do
                 continue
             .openFamily(familyOf(name))
@@ -165,7 +165,7 @@ impl SheetView
         let type = assume cast(const *Swag.TypeInfoStruct, #typeof(ThemeColors))
         for field in type.fields
         {
-            let name = field.name!
+            let name = unwrap field.name
             if not .keeps(name) do
                 continue
 
@@ -186,7 +186,7 @@ impl SheetView
 
         for field in type.fields
         {
-            let name = field.name!
+            let name = unwrap field.name
             if not .keeps(name) do
                 continue
             .openFamily(familyOf(name))
@@ -267,7 +267,7 @@ impl IWnd for SheetView
             if row.group
             {
                 let head = Math.Rectangle{rect.x, rect.y + 12, rect.width, rect.height - 12}
-                drawCell(painter, head, row.name.toString(), .fontHead!, colors.label_Text)
+                drawCell(painter, head, row.name.toString(), unwrap .fontHead, colors.label_Text)
 
                 // The palette sheet repeats its column captions on every family head: with
                 // three hundred rows scrolling under a single caption row, a reader four
@@ -280,7 +280,7 @@ impl IWnd for SheetView
                         drawCell(painter,
                                  {captionX + 2, head.y, SwatchWidth, head.height},
                                  variantName(cast(ThemeVariant, cast(s32, i))),
-                                 .fontName!,
+                                 unwrap .fontName,
                                  colors.label_TextFaint)
                         captionX += SwatchWidth + SwatchGap
                     }
@@ -290,7 +290,7 @@ impl IWnd for SheetView
                 continue
             }
 
-            drawCell(painter, {rect.x, rect.y, NameWidth, height}, row.name.toString(), .fontName!, colors.label_Text)
+            drawCell(painter, {rect.x, rect.y, NameWidth, height}, row.name.toString(), unwrap .fontName, colors.label_Text)
 
             var x = rect.x + NameWidth
             switch #complete .kind
@@ -300,7 +300,7 @@ impl IWnd for SheetView
                 .drawSwatch(painter, swatch, row.colors[0], colors.bk)
                 .drawSwatch(painter, {swatch.x + SwatchWidth + SwatchGap, swatch.y, SwatchWidth, swatch.height}, row.colors[0], colors.view_Bk)
                 x += 2 * SwatchWidth + 2 * SwatchGap
-                drawCell(painter, {x, rect.y, HexWidth, height}, row.text.toString(), .fontMono!, colors.label_TextLight)
+                drawCell(painter, {x, rect.y, HexWidth, height}, row.text.toString(), unwrap .fontMono, colors.label_TextLight)
 
             case .Palettes:
                 for i in ThemeVariantCount
@@ -311,7 +311,7 @@ impl IWnd for SheetView
                 }
 
             case .Metrics:
-                drawCell(painter, {x, rect.y, HexWidth, height}, row.text.toString(), .fontMono!, colors.label_TextLight)
+                drawCell(painter, {x, rect.y, HexWidth, height}, row.text.toString(), unwrap .fontMono, colors.label_TextLight)
             }
         }
 

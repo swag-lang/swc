@@ -32,7 +32,7 @@ func cross(a, b: Vec2)->f32 => a.x * b.y - a.y * b.x
 func longer(a: Vec2)->bool => a.y > a.x
 
 #[Swag.Optimize(true), Swag.NoInline]
-func unwrap(w: Wrapper)->f64 => w.v * 2
+func unwrapValue(w: Wrapper)->f64 => w.v * 2
 
 #[Swag.Optimize(true), Swag.NoInline]
 func score(t: Tagged)->f32 => t.weight * cast(f32, t.id)
@@ -44,6 +44,6 @@ func score(t: Tagged)->f32 => t.weight * cast(f32, t.id)
     Swag.assert(cross(Vec2{1, 2}, Vec2{3, 4}) == -2)
     Swag.assert(longer(Vec2{1, 2}))
     Swag.assert(not longer(Vec2{-1, -2}))
-    Swag.assert(unwrap(Wrapper{-2.25}) == -4.5)
+    Swag.assert(unwrapValue(Wrapper{-2.25}) == -4.5)
     Swag.assert(score(Tagged{0.5, 6}) == 3)
 }

@@ -281,7 +281,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     captionMenu.addItem("File", "GuiHeadlessSmoke.File")
     captionMenu.computeLayoutBar()
 
-    let menuIt0   = captionMenu.items[0]!
+    let menuIt0   = unwrap captionMenu.items[0]
     let menuItemX = menuIt0.pos + menuIt0.size * 0.5
     Swag.assert(not host.surfaceWnd.hitTestCaption({menuItemX, 15}))
     Swag.assert(host.surfaceWnd.hitTestCaption({180, 15}))

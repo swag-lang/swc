@@ -7,7 +7,7 @@ using Win32
 // remains reserved, so copying the new length out of the inline buffer faults.
 #test
 {
-    let pages = cast([*] u8, VirtualAlloc(null, 8192, MEM_RESERVE, PAGE_READWRITE)!)
+    let pages = cast([*] u8, unwrap VirtualAlloc(null, 8192, MEM_RESERVE, PAGE_READWRITE))
     defer discard VirtualFree(pages, 0, MEM_RELEASE)
     let committed = VirtualAlloc(pages, 4096, MEM_COMMIT, PAGE_READWRITE)
     Swag.assert(committed != null)

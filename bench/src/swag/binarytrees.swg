@@ -9,7 +9,7 @@ struct Node
 
 func bottomUp(depth: s32)->*Node
 {
-    let node = cast(*Node, (benchAlloc(#sizeof(Node)))!)
+    let node = cast(*Node, unwrap (benchAlloc(#sizeof(Node))))
     if depth > 0
     {
         node.left  = bottomUp(depth - 1)

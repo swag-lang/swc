@@ -197,7 +197,7 @@ impl Volume
             .drop(existingId)
         }
 
-        let node = .nodeById(id)!
+        let node = unwrap .nodeById(id)
         if node.isDirectory()
         {
             var ancestor = destinationParentId
@@ -209,7 +209,7 @@ impl Volume
             }
         }
 
-        let updated      = .nodeById(id)!
+        let updated      = unwrap .nodeById(id)
         let indexUpdated = .nodeLookup.changeParent(updated, destinationParentId, name)
         Swag.assert(indexUpdated)
         updated.changeTime = volumeTimeNow()

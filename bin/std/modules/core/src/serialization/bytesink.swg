@@ -104,7 +104,7 @@ impl ByteSink
             try .flush()
         if .pending.count != WindowSize do
             .pending.resize(WindowSize)
-        Memory.copy(.pending.buffer! + .pendingCount, bytes.buffer, count)
+        Memory.copy(unwrap .pending.buffer + .pendingCount, bytes.buffer, count)
         .pendingCount += count
     }
 
@@ -164,7 +164,7 @@ impl ByteSink
 
         if not .isFile
         {
-            let target = .buffer!
+            let target = unwrap .buffer
             let resume = target.position()
             target.setPosition(.origin)
             target.advance(offset)

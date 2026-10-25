@@ -135,7 +135,7 @@ impl ViewerWindow
             .filters.add({appStrings().dlg_AllFiles, ""})
         }
 
-        let dialog = FileDlg.create(.surface!, options)
+        let dialog = FileDlg.create(unwrap .surface, options)
         if dialog.doModal() == Dialog.BtnOk do
             .queueFile(dialog.selectedPath())
     }
@@ -533,7 +533,7 @@ impl ViewerWindow
     // without a frame where neither shows.
     mtd stageIncoming(next: *ViewerSession)
     {
-        let view = next.view!
+        let view = unwrap next.view
         view.dockStyle = .None
         view.setPosition(.outgoingView!.position, computeLayout: false)
         next.actions?.hide()
@@ -570,7 +570,7 @@ impl ViewerWindow
             return false
 
         var next: ViewerSession
-        let plugin = &.index.plugins[choice.pluginIndex]
+        let plugin   = &.index.plugins[choice.pluginIndex]
         let splitter = me.mainSplitter
         with var pluginHost: ViewerPluginHost
         {

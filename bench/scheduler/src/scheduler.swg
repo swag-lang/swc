@@ -234,7 +234,7 @@ struct ObserverPayload
 
 func observerEntry(th: Threading.Thread)
 {
-    let payload = cast(*ObserverPayload, th.userParam!)
+    let payload = cast(*ObserverPayload, unwrap th.userParam)
     payload.task.wait()
 }
 

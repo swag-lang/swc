@@ -59,13 +59,13 @@ impl Array
             #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
             {
                 .initNewSlots(0, .count)
-                let buffer = .buffer!
+                let buffer = unwrap .buffer
                 for index in .count do
                     buffer[index] = #nodrop oldBuffer[index]
             }
             else
             {
-                Memory.copy(.buffer!, oldBuffer, #sizeof(T) * .count)
+                Memory.copy(unwrap .buffer, oldBuffer, #sizeof(T) * .count)
             }
         }
     }
@@ -85,7 +85,7 @@ impl Array
         Debug.safetyBoundCheck(lower <= upper, "lower bound greater than upper bound")
         Debug.safetyBoundCheck(lower < .count, "lower bound out of range")
         Debug.safetyBoundCheck(upper < .count, "upper bound out of range")
-        return Swag.makeSlice(.buffer! + lower, (upper + 1) - lower)
+        return Swag.makeSlice(unwrap .buffer + lower, (upper + 1) - lower)
     }
 
     // Returns the address of the element at `index`.
@@ -93,7 +93,7 @@ impl Array
     mtd const opIndexPtr(index: u64)->const *T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        return .buffer! + index
+        return unwrap .buffer + index
     }
 
     // Returns the mutable address of the element at `index`.
@@ -101,7 +101,7 @@ impl Array
     mtd opIndexPtr(index: u64)->*T
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        return .buffer! + index
+        return unwrap .buffer + index
     }
 
     // Assigns a copy of `value` to the element at `index`.
@@ -118,7 +118,7 @@ impl Array
     mtd(op: Swag.Operator) opIndexAssign(index: u64, value: T)
     {
         Debug.safetyBoundCheck(index < .count, "index out of range")
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         #ast("buffer[index] ", op.symbol(), " value")
     }
 
@@ -151,14 +151,14 @@ impl Array
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
             .initNewSlots(0, countof)
-            let buffer = .buffer!
-            let srcPtr = dataof!
+            let buffer = unwrap .buffer
+            let srcPtr = unwrap dataof
             for i in countof do
                 buffer[i] = #nodrop srcPtr[i]
         }
         else
         {
-            Memory.copy(.buffer!, dataof, #sizeof(T) * countof)
+            Memory.copy(unwrap .buffer, dataof, #sizeof(T) * countof)
         }
 
         .count += countof
@@ -173,7 +173,7 @@ impl Array
     {
         if not .count do
             return
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
 
         // The cursor advances at the top of the loop, so a 'continue' in the visited code cannot skip it.
         var scan = buffer - 1
@@ -205,7 +205,7 @@ impl Array
     mtd ptr1(x: u64)->*T
     {
         Debug.safetyBoundCheck(x < .count, "index out of range")
-        return .buffer! + x
+        return unwrap .buffer + x
     }
 
     // Returns the mutable address of the element at column `x` and row `y` of a grid `w` elements wide.
@@ -216,7 +216,7 @@ impl Array
     {
         let indexIsValid = x < .count and (not w or y <= (.count - x - 1) / w)
         Debug.safetyBoundCheck(indexIsValid, "index out of range")
-        return .buffer! + x + y * w
+        return unwrap .buffer + x + y * w
     }
 
     // Reallocates the buffer to `newCapacity` elements, relocating the existing ones.
@@ -394,7 +394,7 @@ impl Array
     {
         if not .count do
             return
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         for i in .count do
             buffer[i] = value
     }
@@ -435,7 +435,7 @@ impl Array
         }
 
         .initNewSlots(.count, 1)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         buffer[.count] = #nodrop #fwd value
         .count         += 1
     }
@@ -473,7 +473,7 @@ impl Array
     {
         .grow(.count + num)
         .count += num
-        return .buffer! + .count - num
+        return unwrap .buffer + .count - num
     }
 
     // Appends `num` default-initialized elements and returns the address of the first one.
@@ -481,7 +481,7 @@ impl Array
     {
         .grow(.count + num)
         .count += num
-        let res = .buffer! + .count - num
+        let res = unwrap .buffer + .count - num
         Swag.init(res, num)
         return res
     }
@@ -519,7 +519,7 @@ impl Array
         .grow(.count + 1)
         .count += 1
         .initNewSlots(.count - 1, 1)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
@@ -558,7 +558,7 @@ impl Array
         .grow(.count + sliceCount)
         .count += sliceCount
         .initNewSlots(.count - sliceCount, sliceCount)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
@@ -605,7 +605,7 @@ impl Array
         .grow(.count + sliceCount)
         .count += sliceCount
         .initNewSlots(.count - sliceCount, sliceCount)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
@@ -659,11 +659,11 @@ impl Array
         var oldCount = .count
         .count += sliceCount
         .initNewSlots(oldCount, sliceCount)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
 
         #static if Reflection.hasPostCopy(T) or Reflection.hasDynamicStorage(T)
         {
-            let vals    = values!
+            let vals    = unwrap values
             var destPtr = buffer + oldCount
             for index in sliceCount
             {
@@ -684,7 +684,7 @@ impl Array
             return
         Debug.safetyBoundCheck(idx0 < .count, "index out of range")
         Debug.safetyBoundCheck(idx1 < .count, "index out of range")
-        swap((.buffer + idx0)!, (.buffer + idx1)!)
+        swap(unwrap (.buffer + idx0), unwrap (.buffer + idx1))
     }
 
     // Removes `num` elements starting at `index`, shifting the following elements to the left.
@@ -699,7 +699,7 @@ impl Array
 
         #static if not (Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)) and not Reflection.hasDrop(T)
         {
-            Memory.copyOverlapping(.buffer! + index, .buffer + index + num, shiftCount * #sizeof(T))
+            Memory.copyOverlapping(unwrap .buffer + index, .buffer + index + num, shiftCount * #sizeof(T))
         }
         else
         {
@@ -709,7 +709,7 @@ impl Array
                 Swag.drop(.buffer + index, num)
             }
 
-            let buffer = .buffer!
+            let buffer = unwrap .buffer
             for i in shiftCount
             {
                 buffer[index + i] = #relocate buffer[index + num + i]
@@ -744,7 +744,7 @@ impl Array
         else
         {
             Swag.drop(.buffer + index)
-            let buffer = .buffer!
+            let buffer = unwrap .buffer
             buffer[index] = #relocate buffer[.count]
         }
     }
@@ -770,7 +770,7 @@ impl Array
 
         #static if Reflection.hasPostMove(T) or Reflection.hasDynamicStorage(T)
         {
-            let buffer = .buffer!
+            let buffer = unwrap .buffer
             var idx    = index
             for .count - index
             {
@@ -780,7 +780,7 @@ impl Array
         }
         else
         {
-            Memory.copyOverlapping(.buffer! + index,
+            Memory.copyOverlapping(unwrap .buffer + index,
                                    .buffer + index + numValues,
                                    #sizeof(T) * (.count - index))
         }
@@ -842,7 +842,7 @@ impl Array
     mtd frontPtr()->*T
     {
         Swag.assert(.count > 0, "array is empty")
-        return .buffer!
+        return unwrap .buffer
     }
 
     // Returns a copy of the last element.
@@ -861,7 +861,7 @@ impl Array
     mtd backPtr()->*T
     {
         Swag.assert(.count > 0, "array is empty")
-        return .buffer! + .count - 1
+        return unwrap .buffer + .count - 1
     }
 
     // Removes the last element and returns it.
@@ -894,7 +894,7 @@ impl StrConv.IConvert for Array
         buf.addBytes("[")
         if .count
         {
-            let buffer = .buffer!
+            let buffer = unwrap .buffer
             for i in .count
             {
                 if i do

@@ -318,7 +318,7 @@ private func applyPendingClip(page: *Page, state: *GraphicsState, path: *LinePat
         return
     }
 
-    let outer = page.clipPaths[state.clipPath]!
+    let outer = unwrap page.clipPaths[state.clipPath]
     var frame: LinePathList = outer.path
     frame.flatten(.High, ClipIntersectionScale)
     shape.flatten(.High, ClipIntersectionScale)

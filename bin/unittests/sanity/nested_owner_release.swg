@@ -11,7 +11,7 @@ func allocate(size: u64)->*void
     var req: AllocatorRequest
     req.size = size
     Swag.getContext().allocator!.alloc(&req)
-    return req.address!
+    return unwrap req.address
 }
 
 #[Swag.NoInline]

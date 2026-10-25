@@ -742,8 +742,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     // Consecutive separators collapse into one, so this is Open / Hidden / --- / Quit.
     Swag.assert(popup.items.count == 4)
 
-    let hiddenIt = popup.items[1]!
-    let quitIt   = popup.items[3]!
+    let hiddenIt = unwrap popup.items[1]
+    let quitIt   = unwrap popup.items[3]
     hiddenIt.hidden = true
     popup.computeLayoutPopup()
     popup.setPosition({0, 0, popup.position.width, popup.position.height})
@@ -788,7 +788,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     bar.addPopup("File", sub)
 
     bar.computeLayoutBar()
-    let barIt0 = bar.items[0]!
+    let barIt0 = unwrap bar.items[0]
     let itemX  = barIt0.pos + barIt0.size * 0.5
     let itemY  = bar.position.height * 0.5
 
@@ -820,7 +820,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     bar.computeLayoutBar()
     let expectedItemY = (barHeight - metrics.menuBar_Height) * 0.5
 
-    let barIt0 = bar.items[0]!
+    let barIt0 = unwrap bar.items[0]
     let itemX  = barIt0.pos + barIt0.size * 0.5
     Swag.assert(bar.hitTestBar({itemX, 1}) == Swag.U32.Max)
     Swag.assert(bar.hitTestBar({itemX, expectedItemY + 1}) == 0)

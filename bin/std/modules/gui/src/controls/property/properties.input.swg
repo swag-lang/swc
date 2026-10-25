@@ -26,7 +26,7 @@ internal impl Properties
         let pt = ptLoc + .scrollWnd.scrollPosition()
         for itemIt in .items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if not item.line.isVisible() do
                 continue
             if item.line.position.contains(pt) do

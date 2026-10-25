@@ -314,7 +314,7 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            opt = cast(const *EncodeOptions, options.buffer!)[]
+            opt = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
         .stream      = result

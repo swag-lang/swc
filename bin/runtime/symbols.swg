@@ -49,7 +49,7 @@ func __dbgStr(off: u32)->string
     if off == 0 do
         return ""
 
-    let sec = __dbgCacheSection!
+    let sec = unwrap __dbgCacheSection
     let p   = cast([*] u8, &sec[cast(u64, off)])
     return Swag.makeString(p, cast(cstring, p).count)
 }
@@ -67,7 +67,7 @@ func __symbolize(addr: *void)->__SwagSym
         return result
 
     let rva = cast(u32, (cast(u64, addr) - cast(u64, imageBase)))
-    let sec = __dbgCacheSection!
+    let sec = unwrap __dbgCacheSection
     for i in __dbgCacheCount
     {
         let entry = 16 + cast(u64, i) * 20
@@ -111,7 +111,7 @@ func __logStackTrace(wh: const [..] (*void?), startAfter: *Swag.SourceCodeLocati
     {
         if not wh[i] do
             continue
-        let info = __symbolize(wh[i]!)
+        let info = __symbolize(unwrap wh[i])
         if not info.found do
             continue
         if not info.hasLine and not printNoLine do

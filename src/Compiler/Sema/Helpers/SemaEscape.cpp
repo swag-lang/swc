@@ -377,7 +377,7 @@ namespace
                 return storageProjection(sema, node.cast<AstAsCastExpr>().nodeExprRef, outProjection, depth + 1);
 
             case AstNodeId::ErrorManagementExpr:
-                if (sema.token(node.codeRef()).id == TokenId::SymBang)
+                if (Token::isPresenceAssertion(sema.token(node.codeRef()).id))
                     return storageProjection(sema, node.cast<AstErrorManagementExpr>().nodeExprRef, outProjection, depth + 1);
 
                 return false;
@@ -2001,7 +2001,7 @@ namespace
                 resolvedRef = sema.resolvedNodeRef(node.cast<AstAutoCastExpr>().nodeExprRef);
             else if (node.is(AstNodeId::AsCastExpr))
                 resolvedRef = sema.resolvedNodeRef(node.cast<AstAsCastExpr>().nodeExprRef);
-            else if (node.is(AstNodeId::ErrorManagementExpr) && sema.token(node.codeRef()).id == TokenId::SymBang)
+            else if (node.is(AstNodeId::ErrorManagementExpr) && Token::isPresenceAssertion(sema.token(node.codeRef()).id))
                 resolvedRef = sema.resolvedNodeRef(node.cast<AstErrorManagementExpr>().nodeExprRef);
             else
                 break;
@@ -4376,7 +4376,7 @@ namespace
                 fn.markExternalBorrowObservation();
 
             if (node.is(AstNodeId::FailExpr) || node.is(AstNodeId::ErrorManagementStmt) ||
-                (node.is(AstNodeId::ErrorManagementExpr) && sema.token(node.codeRef()).id != TokenId::SymBang))
+                (node.is(AstNodeId::ErrorManagementExpr) && !Token::isPresenceAssertion(sema.token(node.codeRef()).id)))
                 fn.markExternalBorrowObservation();
 
             node.collectChildrenFromAst(pending, sema.ast());

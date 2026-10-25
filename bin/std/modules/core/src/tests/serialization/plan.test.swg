@@ -30,7 +30,7 @@ func buildSerializationPlan(type: typeinfo) fail
     let error = errorOutcome.value()
     Swag.assert(error is Errors.SerializationError)
     let message = Errors.message(error)
-    Swag.assert(Utf8.contains(message, #typeof(DuplicatePlanKeys).fullname!))
+    Swag.assert(Utf8.contains(message, unwrap #typeof(DuplicatePlanKeys).fullname))
     Swag.assert(Utf8.endsWith(message, "fields [[first]] and [[second]] use key [[shared]]"))
 }
 

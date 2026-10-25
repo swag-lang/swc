@@ -65,7 +65,7 @@ using Swag, Core
     {
         if id != Dialog.BtnOk do
             return true
-        return MessageDlg.confirm(bdlg.surface!, "Continue?") == Dialog.BtnYes
+        return MessageDlg.confirm(unwrap bdlg.surface, "Continue?") == Dialog.BtnYes
     }
 
     host.clickModalButtonWhenShown(Dialog.BtnOk)

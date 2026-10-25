@@ -440,8 +440,8 @@ internal func runPendingWork()->bool
 #[Swag.CallingConvention(.C)]
 private func schedulerWorkerEntry(param: *void?)->u32
 {
-    let worker = cast(*Worker, param!)
-    let sched  = worker.scheduler!
+    let worker = cast(*Worker, unwrap param)
+    let sched  = unwrap worker.scheduler
 
     enterWorkerContext(&worker.context)
 

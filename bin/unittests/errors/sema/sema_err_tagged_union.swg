@@ -43,7 +43,7 @@ func taggedErrAlreadyProven(holder: TaggedErrHolder)->s32
     switch holder.value
     {
     case .Number:
-        return holder.number!     // swc-expected-error {{sema_err_tagged_case_already_proven}}
+        return unwrap holder.number     // swc-expected-error {{sema_err_tagged_case_already_proven}}
     default:
         return 0
     }

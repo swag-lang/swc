@@ -102,7 +102,7 @@ impl Latency
     {
         if .count == 0 do
             return 0
-        let sorted = Swag.makeSlice(.samples!, .count)
+        let sorted = Swag.makeSlice(unwrap .samples, .count)
         Slice.sort(sorted)
         let index = Math.min((.count * rank) / 1000, .count - 1)
         return cast(f64, sorted[index]) * 1.0e9 / cast(f64, Time.monotonicFrequency())
@@ -502,11 +502,11 @@ func work(job: *Job)
     }
     elif job.producer
     {
-        produce(job.ring!, job.seed)
+        produce(unwrap job.ring, job.seed)
     }
     else
     {
-        consume(job.ring!, job.latency)
+        consume(unwrap job.ring, job.latency)
         job.operations = XferCount
     }
 
@@ -580,7 +580,7 @@ func parseWorkload(name: string)->Workload fail
         jobs[i].gate     = gated ? &gate : null
         jobs[i].latency  = latency and i == (workload == .Xfer ? 1 : 0) ? &recorder : null
         jobs[i].producer = i % 2 == 0
-        try pool[i].init(func||(thread: const *Threading.Thread) { work(cast(*Job, thread.userParam!)) }, &jobs[i])
+        try pool[i].init(func||(thread: const *Threading.Thread) { work(cast(*Job, unwrap thread.userParam)) }, &jobs[i])
         try pool[i].start()
     }
 

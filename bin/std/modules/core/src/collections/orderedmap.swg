@@ -133,7 +133,7 @@ impl OrderedMap
     private mtd const compareKeys(left, right: K)->s32
     {
         if .comparator do
-            return cast(func(const *K, const *K)->s32, .comparator!)(&left, &right)
+            return cast(func(const *K, const *K)->s32, unwrap .comparator)(&left, &right)
 
         Swag.assert(false, "ordered map has not been initialized with a comparator")
         return 0
@@ -227,7 +227,7 @@ impl OrderedMap
     {
         let result = .tryFind(key)
         Swag.assert(result != null, "key not found")
-        return result!
+        return unwrap result
     }
 
     // Returns the entry for `key` and asserts if the key is absent.
@@ -235,7 +235,7 @@ impl OrderedMap
     {
         let result = .tryFind(key)
         Swag.assert(result != null, "key not found")
-        return result!
+        return unwrap result
     }
 
     // Returns the mutable address of the value for `key` and asserts if the key is absent.

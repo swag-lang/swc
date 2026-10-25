@@ -42,7 +42,7 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
 #main
 {
     // ---- data generation (not timed) ----
-    let text = cast([*] u8, (benchAlloc(ROWS * 48))!)
+    let text = cast([*] u8, unwrap (benchAlloc(ROWS * 48)))
     var n    = 0'u64
 
     for j in ROWS
@@ -95,10 +95,10 @@ func writeUInt2(buf: [*] u8, pos, v: u64)->u64
     var agg: ByteMap
     mapInit(&agg, 64, text)
 
-    var slotCount = cast([*] u64, (benchAlloc(64 * #sizeof(u64)))!)
-    var slotQty   = cast([*] u64, (benchAlloc(64 * #sizeof(u64)))!)
-    var slotRev   = cast([*] f64, (benchAlloc(64 * #sizeof(f64)))!)
-    var slotMax   = cast([*] f64, (benchAlloc(64 * #sizeof(f64)))!)
+    var slotCount = cast([*] u64, unwrap (benchAlloc(64 * #sizeof(u64))))
+    var slotQty   = cast([*] u64, unwrap (benchAlloc(64 * #sizeof(u64))))
+    var slotRev   = cast([*] f64, unwrap (benchAlloc(64 * #sizeof(f64))))
+    var slotMax   = cast([*] f64, unwrap (benchAlloc(64 * #sizeof(f64))))
 
     var pos  = 0'u64
     var rows = 0'u64

@@ -260,7 +260,7 @@ private func encodeHeader(header: const *Header)->Array'u8 fail
     output.makeLinear()
 
     var result: retval
-    result.add(output.toSlice()!)
+    result.add(unwrap output.toSlice())
     return result
 }
 

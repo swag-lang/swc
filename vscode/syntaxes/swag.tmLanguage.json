@@ -203,7 +203,7 @@
       "patterns": [
         {
           "name": "keyword",
-          "match": "\\b(using|with|cast|retval|assume|try|catch|expect|fail|discard)\\b"
+          "match": "\\b(using|with|cast|retval|assume|try|catch|expect|unwrap|fail|discard)\\b"
         }
       ]
     },

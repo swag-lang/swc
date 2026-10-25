@@ -31,9 +31,9 @@ private impl BitArray
         return result
     }
 
-    mtd dataPtr()->[*] u32 => .buffer!
+    mtd dataPtr()->[*] u32 => unwrap .buffer
 
-    mtd const constDataPtr()->const [*] u32 => cast(const [*] u32, .buffer!)
+    mtd const constDataPtr()->const [*] u32 => cast(const [*] u32, unwrap .buffer)
 
     // Releases the storage and leaves the array empty; does nothing when nothing is allocated.
     mtd release()
@@ -166,7 +166,7 @@ public impl BitArray
         if totalWords << 5 < .count do
             totalWords += 1
         var countBits = 0'u64
-        let buffer    = .buffer!
+        let buffer    = unwrap .buffer
 
         scope(Up)
         for idx in totalWords

@@ -304,7 +304,7 @@ impl MainWnd
     // applies a choice itself; the application only persists it and refreshes what it caches.
     mtd createAppearanceButton()
     {
-        with .appearanceButton = AppearanceButton.create(.surface!, "capture.appearance")
+        with .appearanceButton = AppearanceButton.create(unwrap .surface, "capture.appearance")
         {
             .sigThemeChanged += func|main = me|(button)
             {

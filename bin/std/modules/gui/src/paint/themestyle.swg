@@ -70,7 +70,7 @@ impl ThemeStyle
     // holders instead of having to be set to match it.
     mtd share(other: *ThemeStyle)
     {
-        let refr = other.refr!
+        let refr = unwrap other.refr
         if .refr == refr do
             return
 
@@ -134,7 +134,7 @@ impl ThemeStyle
             .create(parent)
 
         // Then tweak it with the stylesheet
-        let own = .refr!
+        let own = unwrap .refr
         if not .styleSheetColors.isEmpty()
         {
             var tf: File.TweakFile

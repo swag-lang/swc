@@ -3,7 +3,7 @@
 
 using Core, Gui, Viewers
 
-func zoomFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+func zoomFixturePath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
 
 private var g_ReportedDetails: String
 

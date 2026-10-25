@@ -36,7 +36,7 @@ func audioDecodePcmToPcm16(sourceEncoding: SoundFileEncoding,
                            destinationCapacity: u64)->{ destination: Array'u8, progress: CodecProgress } fail
 {
     var codec: CodecPcmToPcm16
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     codec.configure(sourceEncoding, .Pcm16, #typeof(CodecPcmToPcm16), allocator)
 
     var result: retval

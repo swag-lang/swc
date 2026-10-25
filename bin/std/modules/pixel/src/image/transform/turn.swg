@@ -16,7 +16,7 @@ impl Image
         var f = {img: me, angle: angle}
         dstImage.visitPixels(&f)
         {
-            let data     = cast(*#decltype(f), userData!)
+            let data     = cast(*#decltype(f), unwrap userData)
             let srcImage = cast(const *Image, data.img)
             var nx, ny: s32
             switch data.angle

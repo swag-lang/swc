@@ -326,6 +326,6 @@ impl IImageSetDecoder for Decoder
     {
         if index >= .entryCount do
             fail InvalidFormatError{"icon entry index is out of range"}
-        return try .decodeEntry(.bytes!, options, cast(s32, index))
+        return try .decodeEntry(unwrap .bytes, options, cast(s32, index))
     }
 }

@@ -672,7 +672,7 @@ impl HashTable
     {
         let result = .tryFind(key)
         Swag.assert(result != null, "key not found")
-        return result!
+        return unwrap result
     }
 
     // Returns the entry for `key` and asserts if the key is absent.
@@ -682,7 +682,7 @@ impl HashTable
     {
         let result = .tryFind(key)
         Swag.assert(result != null, "key not found")
-        return result!
+        return unwrap result
     }
 
     // Returns a copy of the value mapped to `key`, or `defaultValue` when the key is absent.

@@ -68,7 +68,7 @@ impl ScenarioFixture
 func scenarioNewCapture(main: *MainWnd, application: string)->String
 {
     main.newCapture(Gui.Testing.indexedImage(96, 64), sourceKind: .Screen)
-    with let capture = main.editWnd.getCapture()!
+    with let capture = unwrap main.editWnd.getCapture()
     {
         .sourceApplication = application
         .sourceExecutable  = "scenario.exe"
@@ -130,7 +130,7 @@ func scenarioDeleteCaptureFiles(path: String)
     let path = scenarioNewCapture(f.main, "Scenario Save")
     defer scenarioDeleteCaptureFiles(path)
 
-    let capture = f.main.editWnd.getCapture()!
+    let capture = unwrap f.main.editWnd.getCapture()
     capture.title = "Persisted scenario"
     discard testAddShape(capture, 8, 10, 30, 20)
     capture.changed = true

@@ -4,7 +4,7 @@
 using Core, Pixel, Gui, Viewers
 
 // Returns the path of one immutable fixture of this test suite.
-func binaryFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+func binaryFixturePath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
 
 func finishBinaryViewer(host: *Testing.HeadlessHost, view: *Binary.Panel)
 {
@@ -895,7 +895,7 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
     let revealed = view.revealMatch(matches[0], "")
     Swag.assert(revealed)
     Swag.assert(view.list.selectedLine() != null)
-    Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == "e_lfanew")
+    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == "e_lfanew")
     let item = view.list.selectedLine()!.itemAt(cast(u32, Binary.Column.Detail))
     Swag.assert(item.name.raw == "file offset of the PE signature")
     Swag.assert(not item.colorBk.a)
@@ -1021,7 +1021,7 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
     Swag.assert(findRow(&view.doc.report, "En-tête DOS") != null)
     Swag.assert(view.list.header.itemAt(cast(u32, Binary.Column.Detail)).name.raw == "Signification")
     Swag.assert(view.list.selectedLine() != null)
-    Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
+    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
 }
 
 // File-offset jumps and row history make a large report navigable without flattening its tree.
@@ -1038,21 +1038,21 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
     let view    = createTestViewer(&host, fileName, 1100, 600)
     var reached = view.goToTypedOffset("400")
     Swag.assert(reached)
-    Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
+    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
     reached = view.goToTypedOffset("7F0")
     Swag.assert(reached)
-    Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".rdata")
+    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".rdata")
 
     // The hexadecimal viewer's go-to grammar holds here too: `0d` is decimal, not hexadecimal 0xD1024.
     reached = view.goToTypedOffset("0d1024")
     Swag.assert(reached)
-    Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
+    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
     reached = view.goToTypedOffset("7F0")
     Swag.assert(reached)
     var navigated = view.navigateHistory(-1)
     Swag.assert(navigated)
-    Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".text")
+    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".text")
     navigated = view.navigateHistory(1)
     Swag.assert(navigated)
-    Swag.assert(binaryCellText(view.list.selectedLine()!, .Field) == ".rdata")
+    Swag.assert(binaryCellText(unwrap view.list.selectedLine(), .Field) == ".rdata")
 }

@@ -92,7 +92,7 @@ public impl TypeFace
         if let here = g_HashTypeFace.tryFind(fullName) do
             return here.value
 
-        let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
+        let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
         let tf        = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)
@@ -137,7 +137,7 @@ public impl TypeFace
         if let here = g_HashTypeFace.tryFind(fullName) do
             return here.value
 
-        let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
+        let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
         let tf        = Memory.new'TypeFace(allocator)
         tf.allocationAllocator = allocator
         defer #fail Memory.delete(tf, allocator)

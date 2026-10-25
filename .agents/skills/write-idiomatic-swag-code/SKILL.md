@@ -433,9 +433,9 @@ through it directly, and only a whole-value read or write opens the place with t
 - Before adding a local, ask what it contributes beyond another name for the same value. A local
   that only relays a receiver, field, call result, or arithmetic expression to one nearby use adds
   a step without adding meaning; compose the expression directly. For example, call
-  `.parent!.invalidate()` instead of binding `.parent!` just to call through it, return
+  `.parent!.invalidate()` instead of binding `unwrap .parent` just to call through it, return
   `operation()` instead of binding it just to return it, and write
-  `return .buffer! + x + y * w` instead of binding `.buffer!` to `buffer` first. Apply this to
+  `return unwrap .buffer + x + y * w` instead of binding `unwrap .buffer` to `buffer` first. Apply this to
   alias chains too: remove relay steps rather than shortening each temporary's name.
 - Keep a local when it names a meaningful domain value, unit, condition, or algorithmic step; when
   several operations reuse it; or when it makes a long expression easier to inspect. Keep it too
@@ -572,7 +572,9 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   from the values themselves, especially numeric, boolean, and enum settings. Keep their original
   parameter order, and leave an obvious owner or primary value positional. Do not name every
   argument solely to make a call longer.
-- Use `orelse`, the postfix `!`, optional chaining, and `with` when they express absence or
+- Extract a present `T` from `T?` with `unwrap value`; reserve postfix `!` for a following
+  member access, index, dereference, or call. Both assert presence under `.Expect`.
+- Use `orelse`, `unwrap`, asserted accesses with `!`, optional chaining, and `with` when they express absence or
   structured initialization more directly than temporary variables and repeated checks.
 - Use range, value, index, and filtered iteration instead of manual counters when iteration itself
   is the intent.

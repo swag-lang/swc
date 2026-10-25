@@ -172,7 +172,7 @@ impl IWnd for ComboBox
         if not .editBox and .selectedIndex < .items.count
         {
             var format: RichStringFormat
-            let item     = .items[.selectedIndex]!
+            let item     = unwrap .items[.selectedIndex]
             var itemRect = clientRect
             itemRect.width -= metrics.comboBox_RightMargin
             itemRect.moveLeft(metrics.comboBox_Padding)
@@ -225,7 +225,7 @@ impl IWnd for ComboBox
         var text = 0'f32
         for item in .items
         {
-            let current = item!
+            let current = unwrap item
             if current.isSeparator do
                 continue
             current.name.compute()
@@ -376,7 +376,7 @@ private impl ComboBox
 
         for itemIt in .items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if item.isSeparator do
                 popup.addSeparator()
             else do
@@ -599,7 +599,7 @@ private impl ComboBox
         .maxIconSize = 0
         for item in .items
         {
-            let current = item!
+            let current = unwrap item
             if current.icon.isValid() do
                 .maxIconSize = Math.max(.maxIconSize, cast(s32, current.icon.sizeX))
         }

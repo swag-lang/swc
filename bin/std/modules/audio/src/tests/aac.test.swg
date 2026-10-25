@@ -78,7 +78,7 @@ private func aacTestSound51()->SoundFile fail
     Swag.assert(sparseSamples.count == plainSamples.count + gapCount)
     for index in gapCount do
         Swag.assert(sparseSamples[gapStart + index] == 0)
-    Swag.assert(Memory.compare(sparseSamples.buffer!, plainSamples.buffer!, gapStart * #sizeof(s16)) == 0)
+    Swag.assert(Memory.compare(unwrap sparseSamples.buffer, unwrap plainSamples.buffer, gapStart * #sizeof(s16)) == 0)
     Swag.assert(Memory.compare(sparseSamples.buffer + gapStart + gapCount, plainSamples.buffer + gapStart, after * #sizeof(s16)) == 0)
 
     // A streaming voice plays the same samples, including after a seek into the gap.
@@ -92,16 +92,16 @@ private func aacTestSound51()->SoundFile fail
         let chunk = expect voice.readBuffer()
         if not chunk.size do
             break
-        streamed.add(cast(const [*] s16, chunk.buffer!)[0 until chunk.size / #sizeof(s16)])
+        streamed.add(cast(const [*] s16, unwrap chunk.buffer)[0 until chunk.size / #sizeof(s16)])
     }
 
     Swag.assert(streamed.count == sparseSamples.count)
-    Swag.assert(Memory.compare(streamed.buffer!, sparseSamples.buffer, streamed.count * #sizeof(s16)) == 0)
+    Swag.assert(Memory.compare(unwrap streamed.buffer, sparseSamples.buffer, streamed.count * #sizeof(s16)) == 0)
 
     const IntoGap = GapAt * 1024 + 1000
     discard expect voice.seekSampleFrame(IntoGap)
     let resumed = expect voice.readBuffer()
-    let first   = cast(const [*] s16, resumed.buffer!)
+    let first   = cast(const [*] s16, unwrap resumed.buffer)
     Swag.assert(resumed.size >= gapCount * #sizeof(s16))
     Swag.assert(Memory.compare(first, sparseSamples.buffer + IntoGap * 2, resumed.size) == 0)
 }
@@ -143,7 +143,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     let voice   = expect Voice.create(&sound)
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 4 * 1024 * 2 * #sizeof(s16))
-    let samples = cast(const [*] s16, decoded.buffer!)
+    let samples = cast(const [*] s16, unwrap decoded.buffer)
     var peak    = 0's32
     for index in decoded.size / #sizeof(s16) do
         peak = Math.max(peak, Math.abs(cast(s32, samples[index])))
@@ -171,7 +171,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
 
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 4 * 1024 * 6 * #sizeof(s16))
-    let samples = cast(const [*] s16, decoded.buffer!)
+    let samples = cast(const [*] s16, unwrap decoded.buffer)
     const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
     for channel in 6
     {
@@ -222,15 +222,15 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     let expected = expect fullVoice.readBuffer()
     let actual   = expect trimmedVoice.readBuffer()
     Swag.assert(actual.size == expected.size)
-    Swag.assert(Memory.compare(actual.buffer!, expected.buffer!, actual.size) == 0)
+    Swag.assert(Memory.compare(unwrap actual.buffer, unwrap expected.buffer, actual.size) == 0)
     var firstRead: Array'u8
     firstRead.resize(actual.size)
-    Memory.copy(firstRead.buffer!, actual.buffer, actual.size)
+    Memory.copy(unwrap firstRead.buffer, actual.buffer, actual.size)
 
     discard expect trimmedVoice.seekSampleFrame(0)
     let rewound = expect trimmedVoice.readBuffer()
     Swag.assert(rewound.size == actual.size)
-    Swag.assert(Memory.compare(rewound.buffer!, firstRead.buffer, actual.size) == 0)
+    Swag.assert(Memory.compare(unwrap rewound.buffer, firstRead.buffer, actual.size) == 0)
 }
 
 #test
@@ -242,7 +242,7 @@ private func aacTonePower(samples: const [*] s16, firstFrame, frameCount, channe
     discard expect voice.play()
     discard expect voice.updateNoSound()
     Swag.assert(voice.playbackSampleFrame() == sound.sampleFrameCount())
-    Swag.assert(not cast(*NoSoundVoice, voice.handle!).isPlaying)
+    Swag.assert(not cast(*NoSoundVoice, unwrap voice.handle).isPlaying)
     voice.destroy()
 }
 

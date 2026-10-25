@@ -41,7 +41,7 @@ func reserve(s: *DynString, want: u64)
 func storeBytes(s: *DynString, src: const [*] u8, len: u64)
 {
     reserve(s, len)
-    let data = s.data!
+    let data = unwrap s.data
     for i in len do
         data[i] = src[i]
     s.count = len
@@ -52,8 +52,8 @@ func appendBytes(s: *DynString, src: const [*] u8?, len: u64)
     if len == 0 do
         return
     reserve(s, s.count + len)
-    let data = s.data!
-    let from = src!
+    let data = unwrap s.data
+    let from = unwrap src
     for i in len do
         data[s.count + i] = from[i]
     s.count += len
@@ -89,11 +89,11 @@ impl DynString
             return
         }
 
-        let oldData = .data!
+        let oldData = unwrap .data
         .data     = null
         .capacity = 0
         reserve(me, .count)
-        let data = .data!
+        let data = unwrap .data
         for i in .count do
             data[i] = oldData[i]
     }
@@ -127,7 +127,7 @@ impl DynString
     mtd opIndexSet(index: u64, value: u8)
     {
         Swag.assert(index < .count)
-        let data = .data!
+        let data = unwrap .data
         data[index] = value
     }
 
@@ -155,8 +155,8 @@ impl DynString
             return false
         if .count == 0 do
             return true
-        let data      = .data!
-        let otherData = other.data!
+        let data      = unwrap .data
+        let otherData = unwrap other.data
         for i in .count
         {
             if data[i] != otherData[i] do

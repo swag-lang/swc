@@ -17,10 +17,10 @@ struct ByteMap
 
 func mapInit(m: *ByteMap, capacity: u64, base: [*] u8)
 {
-    m.keyOff = cast([*] u64, (benchAlloc(capacity * #sizeof(u64)))!)
-    m.keyLen = cast([*] u64, (benchAlloc(capacity * #sizeof(u64)))!)
-    m.val    = cast([*] u64, (benchAlloc(capacity * #sizeof(u64)))!)
-    m.used   = cast([*] u8, benchAlloc(capacity)!)
+    m.keyOff = cast([*] u64, unwrap (benchAlloc(capacity * #sizeof(u64))))
+    m.keyLen = cast([*] u64, unwrap (benchAlloc(capacity * #sizeof(u64))))
+    m.val    = cast([*] u64, unwrap (benchAlloc(capacity * #sizeof(u64))))
+    m.used   = cast([*] u8, unwrap benchAlloc(capacity))
     Swag.memset(m.used, 0'u8, capacity)
     m.base  = base
     m.mask  = capacity - 1

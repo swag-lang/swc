@@ -357,7 +357,7 @@ impl DocumentView
     // Shows the page of mapped characters that begins at or after `start`, one cell per character.
     mtd loadPage(start: u32)
     {
-        let page = characterPage(.face!, start)
+        let page = characterPage(unwrap .face, start)
         .pageStart = not page.characters.isEmpty() ? cast(u32, page.characters[0]) : start
         .pageEnd   = page.end
         .hasNext   = page.hasNext

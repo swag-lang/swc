@@ -81,7 +81,7 @@ func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
 func viewerFixturePath()->String
 {
     var result: retval
-    result = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
+    result = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/comprehensive.txt")
     Path.normalize(&result)
     return result
 }
@@ -89,7 +89,7 @@ func viewerFixturePath()->String
 func hexViewerFixturePath()->String
 {
     var result: retval
-    result = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.hex")
+    result = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.hex")
     Path.normalize(&result)
     return result
 }
@@ -124,14 +124,14 @@ func assertViewerPanelCorner(image: const *Image, panel: *Wnd)
 
 func markTestViewerRetired(wnd: *Wnd)->bool
 {
-    let retired = cast(*bool, wnd.userData!)
+    let retired = cast(*bool, unwrap wnd.userData)
     retired[] = true
     return true
 }
 
 func delayTestViewerRetirement(wnd: *Wnd)->bool
 {
-    let calls = cast(*u32, wnd.userData!)
+    let calls = cast(*u32, unwrap wnd.userData)
     calls[] += 1
     return calls[] >= 2
 }
@@ -261,7 +261,7 @@ func createSidePanelFixture(host: Viewer.Host)
     let fileName = Gui.Testing.tempFilePath("scope-text-stream-", ".txt")
     defer discard catch File.delete(fileName)
 
-    let fixture = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.txt")
+    let fixture = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/comprehensive.txt")
     var source  = expect File.readAllText(fixture)
     for 2_000 do
         source += "A source line that stays readable while the rest remains on disk.\n"
@@ -1133,7 +1133,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     let dialog = window.createAboutDialog({year: 2026, month: 9, day: 1}, version: "1.2.3")
     dialog.applyLayout()
 
-    let surface  = dialog.surface!
+    let surface  = unwrap dialog.surface
     let rendered = host.render(dialog)
     var image    = rendered.cropped(0, 0, cast(s32, surface.position.width), cast(s32, surface.position.height))
     Pixel.Testing.assertImageGolden(&image, "about")
@@ -1584,7 +1584,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.searchBox.setFocus()
     Swag.assert(window.searchBox.hasFocus())
-    let midiFile = Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "viewer.mid")
+    let midiFile = Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), "viewer.mid")
     window.openFile(midiFile)
     completeQueuedViewerFile(&host, window)
 
@@ -2362,7 +2362,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     discard expect File.writeAllBytes(Path.combine(folder, "t1.txt"), "a readable line\n")
     discard expect File.writeAllBytes(Path.combine(folder, "t2.txt"), "a readable line\n")
-    let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
+    let imageSource = expect File.readAllText(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/sample.svg"))
     let imageBytes  = imageSource.bytes()
     discard expect File.writeAllBytes(Path.combine(folder, "pic1.svg"), imageBytes)
     discard expect File.writeAllBytes(Path.combine(folder, "pic2.svg"), imageBytes)
@@ -2401,7 +2401,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 {
     let folder = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("%_%", stem, Guid64.random()))
     expect Directory.create(folder)
-    let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
+    let imageSource = expect File.readAllText(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/sample.svg"))
     let imageBytes  = imageSource.bytes()
     for name in names do
         discard expect File.writeAllBytes(Path.combine(folder, name), imageBytes)
@@ -2416,7 +2416,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     expect Directory.create(folder)
     defer discard catch Directory.delete(folder, recurse: true)
 
-    let imageSource = expect File.readAllText(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/sample.svg"))
+    let imageSource = expect File.readAllText(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/sample.svg"))
     let imageBytes  = imageSource.bytes()
     for i in 24 do
         discard expect File.writeAllBytes(Path.combine(folder, Format.toString("pic%.svg", i)), imageBytes)
@@ -2573,7 +2573,7 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     }
 
     completeQueuedViewerFile(&host, window)
-    let view = window.currentView!
+    let view = unwrap window.currentView
 
     Swag.assert(window.playMode == .Once)
     Swag.assert(reportViewerFinished(view) == .Stop and window.pendingFile.isEmpty())

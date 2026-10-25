@@ -55,7 +55,7 @@ impl VolumeCopy
                 .files += 1
             }
 
-            with let copied = .target.nodeById(id)!
+            with let copied = unwrap .target.nodeById(id)
             {
                 .attributes     = node.attributes
                 .creationTime   = node.creationTime

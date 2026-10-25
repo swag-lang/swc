@@ -97,7 +97,7 @@ func memoInit()->Memo
     m.keys  = cast([*] u64?, testAlloc(cast(u64, MapCap) * #sizeof(u64)))
     m.vals  = cast([*] u64?, testAlloc(cast(u64, MapCap) * #sizeof(u64)))
     m.alive = cast([*] bool?, testAlloc(cast(u64, MapCap) * #sizeof(bool)))
-    let alive = m.alive!
+    let alive = unwrap m.alive
     for index in MapCap { alive[index] = false }
     return m
 }
@@ -115,8 +115,8 @@ func memoProbe(m: *Memo, key: u64)->u32
     h *= 0x45D9F3B
     h ^= h >> 16
     var idx   = cast(u32, (h % cast(u64, MapCap)))
-    let alive = m.alive!
-    let keys  = m.keys!
+    let alive = unwrap m.alive
+    let keys  = unwrap m.keys
     for MapCap
     {
         if not alive[idx] or keys[idx] == key do
@@ -130,9 +130,9 @@ func memoProbe(m: *Memo, key: u64)->u32
 func memoGet(m: *Memo, key: u64, found: *bool)->u64
 {
     let idx   = memoProbe(m, key)
-    let alive = m.alive!
-    let keys  = m.keys!
-    let vals  = m.vals!
+    let alive = unwrap m.alive
+    let keys  = unwrap m.keys
+    let vals  = unwrap m.vals
     if alive[idx] and keys[idx] == key
     {
         found[] = true
@@ -145,9 +145,9 @@ func memoGet(m: *Memo, key: u64, found: *bool)->u64
 func memoPut(m: *Memo, key: u64, val: u64)
 {
     let idx   = memoProbe(m, key)
-    let keys  = m.keys!
-    let vals  = m.vals!
-    let alive = m.alive!
+    let keys  = unwrap m.keys
+    let vals  = unwrap m.vals
+    let alive = unwrap m.alive
     keys[idx]  = key
     vals[idx]  = val
     alive[idx] = true

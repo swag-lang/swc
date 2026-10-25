@@ -7,7 +7,7 @@ func allocate(size: u64)->*void
     var req: AllocatorRequest
     req.size = size
     Swag.getContext().allocator!.alloc(&req)
-    return req.address!
+    return unwrap req.address
 }
 
 #[Swag.NoInline]
@@ -108,7 +108,7 @@ impl Owner
     }
 
     #[Swag.NoInline]
-    mtd const view()->*s32 => cast(*s32, .data!)
+    mtd const view()->*s32 => cast(*s32, unwrap .data)
 
     #[Swag.NoInline]
     mtd const forwardedView()->*s32 => identity(.view())
@@ -220,7 +220,7 @@ func rejectReleaseDeepNestedAlias()
 func rejectReleaseAssertedNestedAlias()
 {
     var value: s32
-    release(nullableIdentity(&value)!, #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
+    release(unwrap nullableIdentity(&value), #sizeof(s32))     // swc-expected-error {{sanity_err_free_borrowed}}
 }
 
 func rejectEscapeNestedAlias()->*s32

@@ -642,7 +642,7 @@ impl Track
     #[Swag.NoInline]
     func loadOwned(fileName: string)->*Track fail
     {
-        let allocator   = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
+        let allocator   = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
         with let result = Memory.new'Track(allocator)
         {
             .allocationAllocator   = allocator

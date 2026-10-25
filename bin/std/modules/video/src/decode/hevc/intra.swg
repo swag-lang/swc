@@ -53,7 +53,7 @@ impl Decoder
     // `yLuma` the same position in luma samples, which is what availability is answered in.
     mtd intraPredict(x, y, xLuma, yLuma: s32, log2Size, component, mode: u32)
     {
-        let sps      = .activeSps!
+        let sps      = unwrap .activeSps
         let size     = 1'u32 << log2Size
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
 
@@ -73,7 +73,7 @@ impl Decoder
     // clauses 8.4.4.2.1 and 8.4.4.2.2.
     private mtd gatherReference(reference: *IntraReference, x, y, xLuma, yLuma: s32, size, component, bitDepth: u32)
     {
-        let pps   = .activePps!
+        let pps   = unwrap .activePps
         let total = size * 2
         let scale = component == 0 ? 1's32 : 2's32
 
@@ -180,7 +180,7 @@ impl Decoder
     // Smooths the reference samples when the prediction direction calls for it, clause 8.4.4.2.3.
     private mtd const filterReference(reference: *IntraReference, size, log2Size, component, mode, bitDepth: u32)
     {
-        let sps = .activeSps!
+        let sps = unwrap .activeSps
         if component != 0 or size == 4 or mode == IntraDc or sps.intraSmoothingDisabled do
             return
 

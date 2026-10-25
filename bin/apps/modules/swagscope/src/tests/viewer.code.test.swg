@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func codeFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+func codeFixturePath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
 
 // Builds the Swag document the highlighting test lexes.
 //
@@ -67,7 +67,7 @@ struct CodeLanguageSample
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, infoParent: &host.root)
     Swag.assert(result.view != null and result.info != null)
     let view = assume cast(*Code.Panel, result.view)
-    assertViewerInfoButton(view.zoomLabel!)
+    assertViewerInfoButton(unwrap view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
 
     view.setZoom(150)

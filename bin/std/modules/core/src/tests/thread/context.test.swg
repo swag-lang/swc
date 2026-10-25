@@ -9,7 +9,7 @@ struct ContextProbe
 
 func probeContext(thread: const *Threading.Thread)
 {
-    let probe   = cast(*ContextProbe, thread.userParam!)
+    let probe   = cast(*ContextProbe, unwrap thread.userParam)
     let context = Swag.getContext()
     probe.isolated = context != probe.parent and
                      context.errorAllocator.block == null and

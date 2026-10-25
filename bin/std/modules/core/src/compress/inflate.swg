@@ -242,7 +242,7 @@ impl Inflate
             // masks what it peeks, and 'nb' never drops below 48 inside one iteration.
             if cur < fastLimit
             {
-                cb  |= cast(const *u64, (src! + cur))[] << #wrap nb
+                cb  |= cast(const *u64, (unwrap src + cur))[] << #wrap nb
                 cur += cast(u64, ((63 - nb) >> 3))
                 nb  |= 56
             }
@@ -309,7 +309,7 @@ impl Inflate
                     cap = dest.capacity
                 }
 
-                let obuf = buf!
+                let obuf = unwrap buf
                 obuf[count] = cast(u8, value)
                 count       += 1
                 continue
@@ -402,7 +402,7 @@ impl Inflate
                 cap = dest.capacity
             }
 
-            let obuf = buf!
+            let obuf = unwrap buf
             var from = count - distance
             if distance >= #sizeof(Math.Simd.U8x16)
             {

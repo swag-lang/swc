@@ -51,7 +51,7 @@
 {
     <span class="SCmt">// Obtain the compiler interface and this script's mutable build configuration.</span>
     <span class="SKwd">let</span> itf = <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>()
-    <span class="SKwd">let</span> cfg = itf.<span class="SFct">getBuildCfg</span>()!
+    <span class="SKwd">let</span> cfg = <span class="SKwd">unwrap</span> itf.<span class="SFct">getBuildCfg</span>()
 
     <span class="SCmt">// Keep runtime safety guards outside release builds.</span>
     <span class="SCmp">#static</span> <span class="SLgc">if</span> <span class="SCmp">#cfg</span> == <span class="SStr">"release"</span> <span class="SLgc">do</span>

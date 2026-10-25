@@ -176,7 +176,7 @@ impl IPropertyNotify for PropHeadlessRoData
     ctrl.properties.setNameColumnWidth(150)
     ctrl.addStruct(data, "Settings")
     ctrl.splitter.setPaneSize(0, 160)
-    let paneIt = ctrl.splitter.items[0]!
+    let paneIt = unwrap ctrl.splitter.items[0]
     paneIt.preserveSize = true
 
     let preview = Wnd.create'FrameWnd(page, {})
@@ -278,7 +278,7 @@ struct PropHeadlessCancelData
 
         for index in 1 until prop.items.count
         {
-            let item = prop.items[index]!
+            let item = unwrap prop.items[index]
             let edit = item.sliderBox != null ? item.sliderBox.edit : item.editBox
             edit.setFocus()
             edit.selectAll()
@@ -379,18 +379,18 @@ struct PropHeadlessArrayData
         }
     }
 
-    assertBelowLabel(prop.items[1]!)     // vector
-    assertBelowLabel(prop.items[2]!)     // array count editor
-    assertBelowLabel(prop.items[4]!)     // bool
+    assertBelowLabel(unwrap prop.items[1])     // vector
+    assertBelowLabel(unwrap prop.items[2])     // array count editor
+    assertBelowLabel(unwrap prop.items[4])     // bool
 
     // Rows and labels span the whole control (the value editors keep their own cap)
-    let originItem = prop.items[1]!
+    let originItem = unwrap prop.items[1]
     let rowWidth   = originItem.line.position.width
     Swag.assert(rowWidth > cast(f32, prop.editorWidth))
     Swag.assert(Math.isEqualEpsilon(originItem.label.position.x, cast(f32, prop.leftMargin), 0.01))
     Swag.assert(Math.isEqualEpsilon(originItem.label.position.width, rowWidth - prop.leftMargin - prop.rightMargin, 0.01))
 
-    let actionsItem = prop.items[2]!
+    let actionsItem = unwrap prop.items[2]
     let actionRight = cast(f32, prop.editorWidth) - prop.rightMargin - PropRevertGap
     Swag.assert((actionsItem.arrayAddButton != null))
     Swag.assert(Math.isEqualEpsilon(actionsItem.label.position.x + actionsItem.arrayAddButton.position.right(), actionRight, 0.01))
@@ -398,12 +398,12 @@ struct PropHeadlessArrayData
     // The bool description is nudged down to optically center on the box: it carries a
     // positive top text padding derived from the font descent (never a hard-coded value).
     let chk    = prop.items[4]!.checkBox
-    let chkRow = chk.parent!
+    let chkRow = unwrap chk.parent
     var desc: *Label?
     for c in chkRow.children do
         if c != cast(*Wnd?, chk) do
             desc = assume cast (*Label, c)
-    let descLbl = desc!
+    let descLbl = unwrap desc
     Swag.assert(descLbl.textPadding.y > 0)
     Swag.assert(Math.abs(descLbl.textPadding.y + descLbl.textPadding.w) < 0.01)     // pure translation, no height loss
     Swag.assert(chkRow.position.height >= descLbl.position.bottom())     // wrapped info text is not clipped
@@ -484,7 +484,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    let btn = findIconButton(prop.items[9]!.line)!     // the color swatch button
+    let btn = unwrap findIconButton(prop.items[9]!.line)     // the color swatch button
 
     // Hover the button (no popup yet) -> hot.
     host.sendMouseEvent(btn, .Enter, {0, 0}, .Left, .None)
@@ -637,7 +637,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(prop.selItem == prop.items[1])     // the custom 'origin' row is selectable
 
     host.keyPress(Input.Key.Return)     // edit -> focus the first inner editbox
-    let f = host.app.keyboardFocusWnd!
+    let f = unwrap host.app.keyboardFocusWnd
     Swag.assert(f is EditBox)
 
     host.keyPress(Input.Key.Down)     // commit + move to the next row
@@ -688,10 +688,10 @@ func findIconButton(w: *Wnd)->*IconButton?
     ctrl.properties.edView.sendResizeEvent()
 
     Swag.assert(ctrl.properties.items.count == 4)
-    let it0 = ctrl.properties.items[0]!
-    let it1 = ctrl.properties.items[1]!
-    let it2 = ctrl.properties.items[2]!
-    let it3 = ctrl.properties.items[3]!
+    let it0 = unwrap ctrl.properties.items[0]
+    let it1 = unwrap ctrl.properties.items[1]
+    let it2 = unwrap ctrl.properties.items[2]
+    let it3 = unwrap ctrl.properties.items[3]
     Swag.assert(it0.line.position.y == 2)
     Swag.assert(it1.line.position.y == 38)
     Swag.assert(it2.line.position.y == 74)
@@ -735,8 +735,8 @@ func findIconButton(w: *Wnd)->*IconButton?
     page.applyLayout()
 
     Swag.assert(prop.items.count == 18)
-    let it0 = prop.items[0]!
-    let it1 = prop.items[1]!
+    let it0 = unwrap prop.items[0]
+    let it1 = unwrap prop.items[1]
     Swag.assert(it0.line.isVisible())
     Swag.assert(it1.line.isVisible())
     Swag.assert(it0.line.position.height > 0)
@@ -785,7 +785,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
 {
     for it in prop.items
     {
-        let item = it!
+        let item = unwrap it
         if item.typeValue.name == name do
             return item
     }
@@ -808,7 +808,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     host.root.applyLayout()
     host.pump()
 
-    let option      = findFieldItem(prop, #nameof(MultiBadges.Star))!
+    let option      = unwrap findFieldItem(prop, #nameof(MultiBadges.Star))
     let optionLabel = assume cast (*Label, option.line.children[1])
     Swag.assert(option.checkBox.dockStyle == .Left)
     Swag.assert(option.line.position.height == prop.gridLineHeight)
@@ -832,7 +832,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let countItem = findFieldItem(prop, "count")!
+    let countItem = unwrap findFieldItem(prop, "count")
     Swag.assert(prop.instanceCount(countItem) == 3)
     Swag.assert(not prop.fieldIsMixed(countItem))     // all start equal (0)
 
@@ -842,12 +842,12 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     Swag.assert(t0.count == 9 and t1.count == 9 and t2.count == 9)
 
     // Bool toggle propagates to all.
-    let flagItem = findFieldItem(prop, "flag")!
+    let flagItem = unwrap findFieldItem(prop, "flag")
     flagItem.checkBox.toggle()
     Swag.assert(t0.flag and t1.flag and t2.flag)
 
     // Enum selection propagates to all.
-    let choiceItem = findFieldItem(prop, "choice")!
+    let choiceItem = unwrap findFieldItem(prop, "choice")
     choiceItem.comboBox.setSelectedIndex(2)     // High
     Swag.assert(t0.choice == .High and t1.choice == .High and t2.choice == .High)
 }
@@ -872,11 +872,11 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let countItem = findFieldItem(prop, "count")!
+    let countItem = unwrap findFieldItem(prop, "count")
     Swag.assert(prop.fieldIsMixed(countItem))
     Swag.assert(countItem.editBox.text() == "")     // blank when mixed
 
-    let flagItem = findFieldItem(prop, "flag")!
+    let flagItem = unwrap findFieldItem(prop, "flag")
     Swag.assert(prop.fieldIsMixed(flagItem))
     Swag.assert(flagItem.checkBox.state == .Indeterminate)     // indeterminate when mixed
 
@@ -902,7 +902,7 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let countItem = findFieldItem(prop, "count")!
+    let countItem = unwrap findFieldItem(prop, "count")
     Swag.assert(prop.instanceCount(countItem) == 1)
     Swag.assert(not prop.fieldIsMixed(countItem))
     Swag.assert(countItem.editBox.text() == "3")
@@ -940,7 +940,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let posItem = findFieldItem(prop, "pos")!
+    let posItem = unwrap findFieldItem(prop, "pos")
 
     // x component differs -> mixed; y component is uniform -> not mixed.
     Swag.assert(prop.subFieldIsMixed(posItem, 0, #sizeof(f32)))
@@ -951,7 +951,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     Swag.assert(boxes.count == 2)     // x and y
 
     // Set x = 5 on the first component box; both instances get x = 5, y is preserved.
-    let box0 = boxes[0]!
+    let box0 = unwrap boxes[0]
     box0.setText("5")
     box0.sigCommitted.call(box0)
     Swag.assert(t0.pos.x == 5 and t1.pos.x == 5)
@@ -1016,7 +1016,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let nameItem = findFieldItem(prop, "name")!
+    let nameItem = unwrap findFieldItem(prop, "name")
     Swag.assert(prop.fieldIsMixed(nameItem))
     Swag.assert(nameItem.editBox.text() == "")
 
@@ -1048,7 +1048,7 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
     prop.addStructMulti(MultiTile, bases.toSlice(), "S")
     prop.edView.sendResizeEvent()
 
-    let tintItem = findFieldItem(prop, "tint")!
+    let tintItem = unwrap findFieldItem(prop, "tint")
     Swag.assert(prop.fieldIsMixed(tintItem))
 
     // Make them equal and refresh: no longer mixed.
@@ -1097,8 +1097,8 @@ impl Gui.IPropertyNotify for ValData
     prop.addStruct(data, "S")
     prop.edView.sendResizeEvent()
 
-    let nameItem  = findFieldItem(prop, "name")!
-    let countItem = findFieldItem(prop, "count")!
+    let nameItem  = unwrap findFieldItem(prop, "name")
+    let countItem = unwrap findFieldItem(prop, "count")
 
     Swag.assert(nameItem.validation == .Error)     // empty name flagged on build
     Swag.assert(nameItem.validationMsg == "Name is required.")
@@ -1131,7 +1131,7 @@ impl Gui.IPropertyNotify for ValData
     prop.addStruct(data)
     prop.edView.sendResizeEvent()
 
-    let it = findFieldItem(prop, "count")!
+    let it = unwrap findFieldItem(prop, "count")
 
     prop.setItemValidation(it, .Error, "bad value")
     Swag.assert(it.validation == .Error and it.validationMsg == "bad value")
@@ -1157,9 +1157,9 @@ impl Gui.IPropertyNotify for ValData
     let prop = Properties.create(&host.root, {0, 0, 240, 340})
     prop.addStruct(data)
 
-    let normalItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.normal))!
-    let lockedItem  = findFieldItem(prop, #nameof(PropHeadlessRoData.locked))!
-    let dynamicItem = findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))!
+    let normalItem  = unwrap findFieldItem(prop, #nameof(PropHeadlessRoData.normal))
+    let lockedItem  = unwrap findFieldItem(prop, #nameof(PropHeadlessRoData.locked))
+    let dynamicItem = unwrap findFieldItem(prop, #nameof(PropHeadlessRoData.dynamic))
     Swag.assert(normalItem.editBox != null and lockedItem.editBox != null and (dynamicItem.editBox != null))
 
     // Edit-box editors stay focusable but become read-only. The editable field is not; the
@@ -1199,34 +1199,34 @@ impl Gui.IPropertyNotify for ValData
     let prop = Properties.create(&host.root, {0, 0, 280, 500}, .List)
     prop.addStruct(data)
 
-    let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))!
+    let dynArr = unwrap findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(*PropertiesItem?)
     for it in prop.items where it!.parent == dynArr do
         elems.add(it)
     Swag.assert(elems.count == 3)
 
     // Move element 0 down -> [20,10,30], then element 2 up -> [20,30,10].
-    prop.moveArrayValue(elems[0]!, 1)
+    prop.moveArrayValue(unwrap elems[0], 1)
     Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 10 and data.dyn[2].id == 30)
-    prop.moveArrayValue(elems[2]!, -1)
+    prop.moveArrayValue(unwrap elems[2], -1)
     Swag.assert(data.dyn[0].id == 20 and data.dyn[1].id == 30 and data.dyn[2].id == 10)
 
     // Move at the boundaries is a no-op.
-    prop.moveArrayValue(elems[0]!, -1)
+    prop.moveArrayValue(unwrap elems[0], -1)
     Swag.assert(data.dyn[0].id == 20)
 
     // Remove the element at index 1 (id 30) -> [20,10]. Used to compute an out-of-bounds index
     // for struct arrays with more than one element.
-    prop.removeArrayValue(elems[1]!)
+    prop.removeArrayValue(unwrap elems[1])
     Swag.assert(data.dyn.count == 2 and data.dyn[0].id == 20 and data.dyn[1].id == 10)
 
     // Static array reorder: [1,2,3], move index 0 down -> [2,1,3].
-    let statArr = findFieldItem(prop, #nameof(PropMoveData.stat))!
+    let statArr = unwrap findFieldItem(prop, #nameof(PropMoveData.stat))
     var statElems: Array'(*PropertiesItem?)
     for it in prop.items where it!.parent == statArr do
         statElems.add(it)
     Swag.assert(statElems.count == 3)
-    prop.moveArrayValue(statElems[0]!, 1)
+    prop.moveArrayValue(unwrap statElems[0], 1)
     Swag.assert(data.stat[0] == 2 and data.stat[1] == 1 and data.stat[2] == 3)
 }
 
@@ -1248,11 +1248,11 @@ impl Gui.IPropertyNotify for ValData
     prop.addStruct(data)
 
     // Copy the first element's 'id' field (value 10) and read it back from the clipboard.
-    let idField = findFieldItem(prop, #nameof(PropMoveElem.id))!
+    let idField = unwrap findFieldItem(prop, #nameof(PropMoveElem.id))
     prop.menuItem = idField
     prop.sendCommandEvent(ActionProperties.Copy)
     var got: s32
-    Swag.assert(Clipboard.getTypedValue(&got, idField.type!) and got == 10)
+    Swag.assert(Clipboard.getTypedValue(&got, unwrap idField.type) and got == 10)
 
     let dynArr = findFieldItem(prop, #nameof(PropMoveData.dyn))
     var elems: Array'(*PropertiesItem?)
@@ -1304,7 +1304,7 @@ impl IPropertyEditor for PropAngleEditor
         g_PropAngleEditorCalls += 1
 
         let item  = list.addItem(value, data, parent)
-        let angle = cast(*PropHeadlessAngle, data!)
+        let angle = cast(*PropHeadlessAngle, unwrap data)
 
         with let ed = EditBox.create(item.line, "", {0, 0, 120, 24})
         {
@@ -1348,7 +1348,7 @@ impl IPropertyEditor for PropAngleEditor
     Swag.assert(g_PropAngleEditorCalls == 1)
     Swag.assert(prop.items.count == 3)
 
-    let rot = findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))!
+    let rot = unwrap findFieldItem(prop, #nameof(PropHeadlessAngleData.rot))
     Swag.assert((rot.editBox != null))
     Swag.assert(rot.numChilds == 0)
     Swag.assert(rot.editBox.text() == "45 deg")
@@ -1413,7 +1413,7 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
 
     // The default value comes from a real default-constructed instance of the struct.
     Swag.assert(countItem.defaultData != null)
@@ -1425,14 +1425,14 @@ impl IPropertyNotify for PropDefaultCustom
     Swag.assert(countItem.revertButton == null or not countItem.revertButton.isVisible())
 
     // Static string field is read-only -> never resettable and never modified.
-    let nameItem = findFieldItem(prop, #nameof(PropDefaultData.name))!
+    let nameItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.name))
     Swag.assert(not prop.canReset(nameItem))
     Swag.assert(not nameItem.isModified)
 
     // Bool list rows span the whole row (the side description wraps over the control
     // width). List mode has NO revert button: a modified row is marked by the painted
     // vertical accent bar (VSCode-style), and reset lives in the context menu.
-    let enabledItem = findFieldItem(prop, #nameof(PropDefaultData.enabled))!
+    let enabledItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.enabled))
     Swag.assert((enabledItem.checkBox != null))
     data.enabled = false
     prop.updateStates()
@@ -1465,7 +1465,7 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
     prop.menuItem = countItem
 
     // At default: the command exists but is disabled.
@@ -1497,10 +1497,10 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    let valItem = findFieldItem(prop, #nameof(PropDefaultCustom.val))!
+    let valItem = unwrap findFieldItem(prop, #nameof(PropDefaultCustom.val))
 
     // Value equals the declared default (5), but the override forces "modified".
-    Swag.assert(cast(const *s32, valItem.data!)[] == 5)
+    Swag.assert(cast(const *s32, unwrap valItem.data)[] == 5)
     Swag.assert(valItem.isModified)
 
     // Reset is taken over by the notify interface: our handler runs, the built-in copy does not.
@@ -1525,7 +1525,7 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
     prop.addStruct(data)
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
     Swag.assert((countItem.editBox != null))
 
     // The revert arrow is docked to the right of the row (the trailing action margin) and present
@@ -1574,7 +1574,7 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Condensed)
     prop.addStruct(data)
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
     Swag.assert((countItem.revertButton != null))
 
     let btn = countItem.revertButton
@@ -1605,7 +1605,7 @@ impl IPropertyNotify for PropDefaultCustom
     bases.add(cast(*u8, &t1))
     prop.addStructMulti(PropDefaultData, bases.toSlice(), "S")
 
-    let countItem = findFieldItem(prop, #nameof(PropDefaultData.count))!
+    let countItem = unwrap findFieldItem(prop, #nameof(PropDefaultData.count))
     Swag.assert(countItem.isModified)     // one instance differs
 
     prop.resetItemDefault(countItem)
@@ -1625,11 +1625,11 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
 
-    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
+    let it = unwrap findFieldItem(prop, #nameof(PropHeadlessData.count))
     Swag.assert(not prop.canUndo() and not prop.canRedo())
 
     // Writing the same value back records nothing.
-    cast(*s32, it.data!)[] = 42
+    cast(*s32, unwrap it.data)[] = 42
     prop.commitItemChange(it)
     Swag.assert(not prop.canUndo())
 
@@ -1673,9 +1673,9 @@ impl IPropertyNotify for PropDefaultCustom
     let prop = Properties.create(&host.root, {0, 0, 280, 340}, .List)
     prop.addStruct(data)
 
-    let it = findFieldItem(prop, #nameof(MultiTile.name))!
+    let it = unwrap findFieldItem(prop, #nameof(MultiTile.name))
 
-    cast(*String, it.data!)[] = "beta"
+    cast(*String, unwrap it.data)[] = "beta"
     prop.commitItemChange(it)
     Swag.assert(data.name == "beta")
 
@@ -1698,9 +1698,9 @@ impl IPropertyNotify for PropDefaultCustom
     bases.add(cast(*u8, &t1))
     prop.addStructMulti(PropHeadlessData, bases.toSlice(), "S")
 
-    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
+    let it = unwrap findFieldItem(prop, #nameof(PropHeadlessData.count))
 
-    cast(*s32, it.data!)[] = 100     // edit instance 0; hasChanged propagates
+    cast(*s32, unwrap it.data)[] = 100     // edit instance 0; hasChanged propagates
     prop.commitItemChange(it)
     Swag.assert(t0.count == 100 and t1.count == 100)
 
@@ -1721,8 +1721,8 @@ impl IPropertyNotify for PropDefaultCustom
     prop.addStruct(data)
     prop.focusNavigation()
 
-    let it = findFieldItem(prop, #nameof(PropHeadlessData.count))!
-    cast(*s32, it.data!)[] = 100
+    let it = unwrap findFieldItem(prop, #nameof(PropHeadlessData.count))
+    cast(*s32, unwrap it.data)[] = 100
     prop.commitItemChange(it)
     Swag.assert(data.count == 100)
 
@@ -1767,9 +1767,9 @@ struct PropDecorData
 
     // Nested categories: Transform is a top-level group (level 0); Advanced is nested under it
     // (level 1, reusing the same Transform header); Physics is a second top-level group (level 0).
-    let transform = findFieldItem(prop, "Transform")!
-    let advanced  = findFieldItem(prop, "Advanced")!
-    let physics   = findFieldItem(prop, "Physics")!
+    let transform = unwrap findFieldItem(prop, "Transform")
+    let advanced  = unwrap findFieldItem(prop, "Advanced")
+    let physics   = unwrap findFieldItem(prop, "Physics")
     Swag.assert(transform.flags.has(.Category) and transform.level == 0)
     Swag.assert(advanced.flags.has(.Category) and advanced.level == 1)
     Swag.assert(physics.flags.has(.Category) and physics.level == 0)
@@ -1777,8 +1777,8 @@ struct PropDecorData
 
     // Fields indent with their group depth: a top-level field is at indent 0, a subgroup field one
     // step further, and the subgroup header lines up with the fields it groups.
-    let px    = findFieldItem(prop, #nameof(PropDecorData.px))!
-    let shear = findFieldItem(prop, #nameof(PropDecorData.shear))!
+    let px    = unwrap findFieldItem(prop, #nameof(PropDecorData.px))
+    let shear = unwrap findFieldItem(prop, #nameof(PropDecorData.shear))
     Swag.assert(prop.itemIndent(px) == 0)
     Swag.assert(prop.itemIndent(transform) == 0)
     Swag.assert(prop.itemIndent(shear) > prop.itemIndent(px))
@@ -1788,7 +1788,7 @@ struct PropDecorData
     var spacer, heading, note: *PropertiesItem?
     for it in prop.items
     {
-        let item = it!
+        let item = unwrap it
         if item.flags.has(.Spacer) do
             spacer = item
         if item.flags.has(.Header) do
@@ -1797,9 +1797,9 @@ struct PropDecorData
             note = item
     }
 
-    let spacerIt  = spacer!
-    let headingIt = heading!
-    let noteIt    = note!
+    let spacerIt  = unwrap spacer
+    let headingIt = unwrap heading
+    let noteIt    = unwrap note
     Swag.assert(headingIt.parent == physics and spacerIt.parent == physics and noteIt.parent == physics)
     Swag.assert(headingIt.typeValue.name == "Body")
     Swag.assert(spacerIt.line.position.height == 16)     // Gap(16)
@@ -1839,8 +1839,8 @@ struct PropHeadlessPanelStringData
     host.root.applyLayout()
     host.pump()
 
-    let dynamic     = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.dynamic))!
-    let fixed       = findFieldItem(prop, #nameof(PropHeadlessPanelStringData.fixed))!
+    let dynamic     = unwrap findFieldItem(prop, #nameof(PropHeadlessPanelStringData.dynamic))
+    let fixed       = unwrap findFieldItem(prop, #nameof(PropHeadlessPanelStringData.fixed))
     let dynamicCtrl = assume cast (*EditCtrl, dynamic.line.children[1])
     let fixedCtrl   = assume cast (*EditCtrl, fixed.line.children[1])
     Swag.assert(not dynamic.label.isVisible() and not fixed.label.isVisible())
@@ -1867,7 +1867,7 @@ struct PropHeadlessPanelStringData
 
     // items[0] is the implicit section. In Panel mode the persistent field label is the
     // first child, followed by the sub-line that stacks the B and I buttons.
-    let item      = prop.items[1]!
+    let item      = unwrap prop.items[1]
     let stack     = item.line.children[1]
     let btnBold   = assume cast (*IconButton, stack.children[0])
     let btnItalic = assume cast (*IconButton, stack.children[1])
@@ -1960,7 +1960,7 @@ impl IPropertyNotify for PropFilterHost
     prop.setNotify(&ntfy)
     prop.addStruct(data)
 
-    let item = prop.items[1]!
+    let item = unwrap prop.items[1]
     Swag.assert((item.comboBox != null))
     Swag.assert(item.comboBox.items.count == 3)
 
@@ -1998,8 +1998,8 @@ struct PropDropData
     host.root.applyLayout()
     host.pump()
 
-    let sourceItem = findFieldItem(prop, "source")!
-    let noteItem   = findFieldItem(prop, "note")!
+    let sourceItem = unwrap findFieldItem(prop, "source")
+    let noteItem   = unwrap findFieldItem(prop, "note")
 
     Swag.assert(host.dropFilesOnWnd(sourceItem.editBox, ["c:/assets/mesh.obj"]) == DropEffect.Copy)
     Swag.assert(sourceItem.editBox.text() == "c:/assets/mesh.obj")
@@ -2057,7 +2057,7 @@ struct PropSameCategData
             descItem = item
     }
 
-    let descIt = descItem!
+    let descIt = unwrap descItem
     Swag.assert((descIt.checkBox != null))
     Swag.assert(descIt.checkBox.parent!.position.width > cast(f32, opt.properties.editorWidth))
 }
@@ -2093,7 +2093,7 @@ struct PropAlignData
         var right = -1.0'f32
         for item in prop.items
         {
-            let it = item!
+            let it = unwrap item
             var w: *Wnd?
             if it.sliderBox != null do
                 w = it.sliderBox
@@ -2190,7 +2190,7 @@ struct PropAlignData
     var sawCategory, sawLabel, sawCombo = false
     for item in prop.items
     {
-        let it = item!
+        let it = unwrap item
         if it.label == null do
             continue
         if it.label.text() == "Nombres" do
@@ -2220,8 +2220,8 @@ struct PropAlignData
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
     prop.addStruct(data, "Settings")
 
-    let numbers = findFieldItem(prop, "Numbers")!
-    let count   = findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))!
+    let numbers = unwrap findFieldItem(prop, "Numbers")
+    let count   = unwrap findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))
     prop.collapseAll()
     Swag.assert(not numbers.flags.has(.Expanded) and not count.line.isVisible())
 
@@ -2245,10 +2245,10 @@ struct PropAlignData
     let prop = Properties.create(&host.root, {0, 0, 340, 340}, .Grid)
     prop.addStruct(data, "Settings")
 
-    let count   = findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))!
-    let enabled = findFieldItem(prop, #nameof(PropHeadlessGroupedData.enabled))!
-    let numbers = findFieldItem(prop, "Numbers")!
-    let flags   = findFieldItem(prop, "Flags")!
+    let count   = unwrap findFieldItem(prop, #nameof(PropHeadlessGroupedData.count))
+    let enabled = unwrap findFieldItem(prop, #nameof(PropHeadlessGroupedData.enabled))
+    let numbers = unwrap findFieldItem(prop, "Numbers")
+    let flags   = unwrap findFieldItem(prop, "Flags")
 
     data.enabled = false
     prop.updateStates()
@@ -2295,7 +2295,7 @@ func assertPropertyViewMenuAnchor(light: bool)
     {
         if checked[] do
             return
-        let popup  = host.capturedPopupMenu()!
+        let popup  = unwrap host.capturedPopupMenu()
         let anchor = ctrl.viewButton.surfaceRect()
         let body   = popup.getPopupBodyRect()
         let origin = popup.surfaceRect()

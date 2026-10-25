@@ -31,7 +31,7 @@ impl Decoder
     // needs to know about where they sit is reported back.
     mtd residualCoding(_, _: s32, log2TrafoSize, component: u32, predModeIntra: u32, isIntra, bypass: bool)->ResidualResult fail
     {
-        let pps  = .activePps!
+        let pps  = unwrap .activePps
         let size = 1'u32 << log2TrafoSize
 
         var result: retval

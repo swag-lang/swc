@@ -45,19 +45,19 @@ using Swag, Core, File
     fb.setFileName("notes")
     Swag.assert(fb.fileName() == "notes")
     let name     = fb.selectedPath()
-    let fileName = Path.fileName(name.toString())!
+    let fileName = unwrap Path.fileName(name.toString())
     Swag.assert(fileName == "notes.txt")
 
     // A name that already carries the extension is kept as-is.
     fb.setFileName("report.txt")
     let name2     = fb.selectedPath()
-    let fileName2 = Path.fileName(name2.toString())!
+    let fileName2 = unwrap Path.fileName(name2.toString())
     Swag.assert(fileName2 == "report.txt")
 
     // Every extension offered by one filter is accepted as-is, not only its first one.
     fb.setFileName("readme.md")
     let name3     = fb.selectedPath()
-    let fileName3 = Path.fileName(name3.toString())!
+    let fileName3 = unwrap Path.fileName(name3.toString())
     Swag.assert(fileName3 == "readme.md")
     Swag.assert(not fb.setCurrentFolder("this-folder-does-not-exist"))
     Swag.assert(not fb.createFolder("bad/name"))
@@ -82,7 +82,7 @@ using Swag, Core, File
     // selectedPath must not index the (empty) filter list in SelectFolder mode.
     fb.setFileName("myfolder")
     let name     = fb.selectedPath()
-    let fileName = Path.fileName(name.toString())!
+    let fileName = unwrap Path.fileName(name.toString())
     Swag.assert(fileName == "myfolder")
 }
 
@@ -146,7 +146,7 @@ using Swag, Core, File
     {
         if checked[] do
             return
-        let popup  = host.capturedPopupMenu()!
+        let popup  = unwrap host.capturedPopupMenu()
         let anchor = fb.historyButton.surfaceRect()
         Swag.assert(popup.popupAnchorButton == fb.historyButton)
         Swag.assert(popup.popupBarItemSurfaceRect == anchor)
@@ -188,8 +188,8 @@ using Swag, Core, File
 
     // The two bottom-docked strips stack: the name/type form sits at the bottom
     // edge, and the status line sits directly above it, above the file list.
-    let form      = fb.editFile.parent!
-    let statusBar = fb.statusLabel.parent!
+    let form      = unwrap fb.editFile.parent
+    let statusBar = unwrap fb.statusLabel.parent
     Swag.assert(form.position.bottom() <= fb.position.height)
     Swag.assert(form.position.bottom() >= fb.position.height - 1)
     Swag.assert(statusBar.position.bottom() <= form.position.y)

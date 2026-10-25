@@ -101,8 +101,8 @@ the left operand, creating concise expressions.
 
 Unary operators operate on a single operand. These include logical NOT, bitwise
 NOT, and negation. Logical NOT is the keyword 'not', beside 'and' and 'or'; a
-prefix '!' is rejected, which leaves '!' the single postfix meaning it carries on
-a nullable value.
+prefix '!' is rejected. Use 'unwrap value' to extract a non-null value, or a
+postfix asserted access such as 'value!.field', 'buffer![index]', or 'handler!()'.
 */
 #test
 {
@@ -397,7 +397,7 @@ Precedence runs from tightest (top) to loosest (bottom). Operators listed on the
 same line share a level.
 
 ```swag
-not ~ - +    (prefix)
+unwrap not ~ - +    (prefix)
 * / %
 + -
 >> <<

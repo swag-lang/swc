@@ -98,7 +98,7 @@ Each field of 'cfg.warnings' takes warning names separated with '|'.
 ```swag
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.warnings.asErrors = "all"
     cfg.warnings.disabled = "sema_warn_unreachable_code"
 }

@@ -103,7 +103,7 @@ impl TypeFace
         if here do
             return here.value
 
-        let allocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
+        let allocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
 
         // Everything that can fail runs before the cached value exists. Dropping a typeface
         // destroys its face. Build the face first so a failure cannot read an unassigned pointer

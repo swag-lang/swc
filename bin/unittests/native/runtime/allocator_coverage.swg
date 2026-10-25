@@ -137,7 +137,7 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.assert(address != null)
         Swag.assert(cast(u64, address) % 16 == 0 or i == 0)
 
-        let page = allocatorPageOf(cast(u64, address))!
+        let page = unwrap allocatorPageOf(cast(u64, address))
         Swag.assert(page.classIndex == cast(u32, i))
         Swag.assert(page.blockSize == expected)
         Swag.assert(page.isBlockAddress(cast(u64, address)))
@@ -206,8 +206,8 @@ func freeOne(itf: IAllocator, address: *void?)
     var alloc: Allocator
     let itf = makeAllocator(&alloc)
 
-    let address = allocOne(itf, 64)!
-    let page    = allocatorPageOf(cast(u64, address))!
+    let address = unwrap allocOne(itf, 64)
+    let page    = unwrap allocatorPageOf(cast(u64, address))
     Swag.assert(page.isBlockAddress(cast(u64, address)))
     Swag.assert(not page.isBlockAddress(cast(u64, address) + 1))
     Swag.assert(not page.isBlockAddress(cast(u64, address) + 8))
@@ -229,9 +229,9 @@ func freeOne(itf: IAllocator, address: *void?)
     var alloc: Allocator
     let itf = makeAllocator(&alloc)
 
-    let live = allocOne(itf, 96)!
-    let gone = allocOne(itf, 96)!
-    let page = allocatorPageOf(cast(u64, live))!
+    let live = unwrap allocOne(itf, 96)
+    let gone = unwrap allocOne(itf, 96)
+    let page = unwrap allocatorPageOf(cast(u64, live))
 
     Swag.assert(not page.holdsFreeBlock(cast(u64, live)))
     Swag.assert(not page.holdsFreeBlock(cast(u64, gone)))
@@ -242,7 +242,7 @@ func freeOne(itf: IAllocator, address: *void?)
     Swag.assert(page.isBlockAddress(cast(u64, gone)))
 
     // Handing it back out takes it off the list again.
-    let again = allocOne(itf, 96)!
+    let again = unwrap allocOne(itf, 96)
     Swag.assert(again == gone)
     Swag.assert(not page.holdsFreeBlock(cast(u64, again)))
 
@@ -264,9 +264,9 @@ func freeOne(itf: IAllocator, address: *void?)
     var alloc: Allocator
     let itf = makeAllocator(&alloc)
 
-    let first  = allocOne(itf, 64)!
-    let second = allocOne(itf, 64)!
-    let page   = allocatorPageOf(cast(u64, first))!
+    let first  = unwrap allocOne(itf, 64)
+    let second = unwrap allocOne(itf, 64)
+    let page   = unwrap allocatorPageOf(cast(u64, first))
     Swag.assert(page.key % 2 == cast(u64, #hastag("Swag.AllocatorSafety")))
 
     freeOne(itf, first)
@@ -584,7 +584,7 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.assert(alloc.stats().countAlloc == 1)
         Swag.assert(alloc.firstAbandoned != null)
 
-        let page = allocatorPageOf(cast(u64, blockAddr))!
+        let page = unwrap allocatorPageOf(cast(u64, blockAddr))
         Swag.assert(page.state == AllocatorPageState.Abandoned)
         Swag.assert(page.ownerHeap == null)
 
@@ -621,8 +621,8 @@ func freeOne(itf: IAllocator, address: *void?)
         Swag.assert(blockAddr != null)
         Swag.assert(alloc.firstAbandoned != null)
 
-        let abandoned = allocatorPageOf(cast(u64, blockAddr))!
-        let adopted   = allocOne(itf, 64)!
+        let abandoned = unwrap allocatorPageOf(cast(u64, blockAddr))
+        let adopted   = unwrap allocOne(itf, 64)
         Swag.assert(allocatorPageOf(cast(u64, adopted)) == abandoned)
         Swag.assert(abandoned.state == AllocatorPageState.Owned)
         Swag.assert(alloc.firstAbandoned == null)
@@ -679,7 +679,7 @@ func freeOne(itf: IAllocator, address: *void?)
     func pageThread(param: *void)->Th.DWORD
     {
         let shared = cast(*PageThreadShared, param)
-        let itf    = shared.itf!
+        let itf    = unwrap shared.itf
         var addresses: [PageThreadAllocCount] (*void?)
 
         Swag.atomicAdd(&shared.ready, 1)
@@ -721,8 +721,8 @@ func freeOne(itf: IAllocator, address: *void?)
 
         for i in PageThreadCount
         {
-            discard Th.WaitForSingleObject(handles[i]!, Th.INFINITE)
-            Th.CloseHandle(handles[i]!)
+            discard Th.WaitForSingleObject(unwrap handles[i], Th.INFINITE)
+            Th.CloseHandle(unwrap handles[i])
         }
 
         let after = alloc.stats()
@@ -752,7 +752,7 @@ func freeOne(itf: IAllocator, address: *void?)
         let s    = cast(*StressShared, param)
         let slot = Swag.atomicAdd(&s.index, 1)
 
-        s.slots[slot] = allocOne(s.itf!, 64)
+        s.slots[slot] = allocOne(unwrap s.itf, 64)
 
         releaseAllocatorThreadCache()
         return 0
@@ -763,7 +763,7 @@ func freeOne(itf: IAllocator, address: *void?)
     {
         let s = cast(*StressShared, param)
         for i in StressCount do
-            freeOne(s.itf!, s.slots[i])
+            freeOne(unwrap s.itf, s.slots[i])
         Swag.atomicAdd(&s.freerDone, 1)
         return 0
     }
@@ -801,8 +801,8 @@ func freeOne(itf: IAllocator, address: *void?)
         }
         for i in StressCount
         {
-            discard Th.WaitForSingleObject(handles[i]!, Th.INFINITE)
-            Th.CloseHandle(handles[i]!)
+            discard Th.WaitForSingleObject(unwrap handles[i], Th.INFINITE)
+            Th.CloseHandle(unwrap handles[i])
         }
         Swag.assert(alloc.stats().countAlloc == StressCount)
 
@@ -1004,7 +1004,7 @@ func writeAt(address: u64, value: u64)
         var clean: Allocator
         let cleanItf = makeAllocator(&clean, fillMemory: false)
         let live     = allocOne(cleanItf, 48)
-        cast([*] u8, live!)[47] = 1
+        cast([*] u8, unwrap live)[47] = 1
         freeOne(cleanItf, live)
         let again = allocOne(cleanItf, 48)
         Swag.assert(again == live)

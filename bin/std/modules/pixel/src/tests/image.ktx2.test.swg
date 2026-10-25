@@ -32,7 +32,7 @@ func ktx2Roundtrip(source: Image)->Image
     source.fill(Color.fromArgb(123, 17, 34, 51))
     var encoded = expect source.encode("plain.ktx2")
     encoded.makeLinear()
-    var plain      = encoded.toSlice()!
+    var plain      = unwrap encoded.toSlice()
     let dataOffset = cast(const *u64, (plain.buffer + 80))[]
     let rawLength  = cast(const *u64, (plain.buffer + 96))[]
     var zlib: Compress.ZLib

@@ -27,7 +27,7 @@ impl VisitBag
     {
         if not .count do
             return
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
 
         var scan = buffer - 1
         for idx in .count

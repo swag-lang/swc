@@ -46,7 +46,7 @@ func hiddenTestPath()->String => Path.combine(Env.getSpecialDirectory(.Temp), Fo
 
     var reopened = expect Volume.open(path, InnerPassword)
     Swag.assert(reopened.file.base == first)
-    let node      = reopened.resolve("\\secret.txt")!
+    let node      = unwrap reopened.resolve("\\secret.txt")
     var data: [12] u8
     let bytesRead = expect reopened.readNode(node.id, 0, data)
     Swag.assert(bytesRead == data.count)

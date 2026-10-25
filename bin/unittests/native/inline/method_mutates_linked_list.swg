@@ -55,7 +55,7 @@ impl InlineBug11List
     var list = InlineBug11List{&nodes[0]}
     var popped: *InlineBug11Node? = null
     Swag.assert(list.pop(&popped))
-    Swag.assert(popped! == &nodes[0])
+    Swag.assert(unwrap popped == &nodes[0])
     Swag.assert(list.head == &nodes[1])
     Swag.assert(nodes[0].next == null)
     Swag.assert(nodes[0].prev == null)

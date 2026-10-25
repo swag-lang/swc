@@ -15,7 +15,7 @@ using Swag, Core, Pixel
     let fileName = Testing.tempFilePath("gui-imageview-", ".gif")
     defer discard catch File.delete(fileName)
     let encoded = expect image.encode("prepared.gif")
-    expect File.writeAllBytes(fileName, encoded.toSlice()!)
+    expect File.writeAllBytes(fileName, unwrap encoded.toSlice())
     var movie: Movie
     expect movie.load(fileName)
 

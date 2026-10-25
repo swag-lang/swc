@@ -99,7 +99,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(f.gui.autoHandled)
     Swag.assert(f.gui.openedSurfaceCount() == 0)
 
-    let capture       = f.main.getCapture()!
+    let capture       = unwrap f.main.getCapture()
     let generatedPath = capture.file
     defer
     {
@@ -132,7 +132,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(actionExecuted)
     f.gui.pump()
 
-    let capture       = f.main.getCapture()!
+    let capture       = unwrap f.main.getCapture()
     let generatedPath = capture.file
     defer
     {
@@ -171,7 +171,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(f.gui.autoHandled)
     Swag.assert(f.gui.openedSurfaceCount() == 0)
 
-    let capture       = f.main.getCapture()!
+    let capture       = unwrap f.main.getCapture()
     let generatedPath = capture.file
     defer
     {
@@ -266,7 +266,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
 
     Swag.assert(f.gui.dropFilesOnWnd(f.editView, [sourcePath.toString()]) == Gui.DropEffect.Copy)
 
-    let capture       = f.main.getCapture()!
+    let capture       = unwrap f.main.getCapture()
     let generatedPath = capture.file
     defer
     {
@@ -305,7 +305,7 @@ func testPrepareRecentLibrary(main: *MainWnd)
     Swag.assert(f.main.recentWnd.recentView.items.count == 2)
 
     // The last one dropped is the one left on the easel.
-    let capture = f.main.getCapture()!
+    let capture = unwrap f.main.getCapture()
     defer discard catch File.delete(capture.file)
     Swag.assert(capture.width == 31)
     Swag.assert(capture.height == 7)

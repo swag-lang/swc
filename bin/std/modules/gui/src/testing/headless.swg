@@ -852,7 +852,7 @@ impl HeadlessHost
 
         for itemIt in menu.items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if item.id != id do
                 continue
             if item.hidden or item.separator or item.disabled do
@@ -878,7 +878,7 @@ impl HeadlessHost
 
         for itemIt in menu.items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if item.name.raw != label do
                 continue
             if item.hidden or item.separator or item.disabled do
@@ -1076,7 +1076,7 @@ impl HeadlessHost
     // Sends one simulated character to the focused window.
     mtd sendRune(key: Input.Key, char: rune, modifiers: Input.KeyModifiers = None)
     {
-        let target = .app.keyboardFocusWnd!
+        let target = unwrap .app.keyboardFocusWnd
 
         .setModifierKeys(modifiers, true)
         .setKeyState(key, true)

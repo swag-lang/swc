@@ -82,7 +82,7 @@ impl Decoder
     // Filters every edge of one direction, clause 8.7.2.3.
     private mtd filterEdges(vertical: bool)
     {
-        let sps       = .activeSps!
+        let sps       = unwrap .activeSps
         let stepX     = vertical ? 8'u32 : 4'u32
         let stepY     = vertical ? 4'u32 : 8'u32
         let bandCount = (sps.height + stepY - 1) / stepY
@@ -130,7 +130,7 @@ impl Decoder
     // Filters the leading edge of one four-sample block, when it carries one.
     private mtd filterBlockEdge(x, y: s32, vertical: bool)
     {
-        let sps = .activeSps!
+        let sps = unwrap .activeSps
         if vertical and not x do
             return
         if not vertical and not y do
@@ -172,7 +172,7 @@ impl Decoder
     // Reports whether the loop filter may cross this edge, clause 8.7.2.
     private mtd const filterAcrossAllowed(x, y, xP, yP: s32)->bool
     {
-        let pps = .activePps!
+        let pps = unwrap .activePps
 
         let currentCtb   = .ctbRsToTs[.ctbAddressRs(x, y)]
         let neighbourCtb = .ctbRsToTs[.ctbAddressRs(xP, yP)]
@@ -277,8 +277,8 @@ impl Decoder
         if slice.disabled do
             return
 
-        let sps      = .activeSps!
-        let frame    = .current!
+        let sps      = unwrap .activeSps
+        let frame    = unwrap .current
         let bitDepth = sps.bitDepthLuma
         let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
 
@@ -469,9 +469,9 @@ impl Decoder
         if slice.disabled do
             return
 
-        let sps      = .activeSps!
-        let pps      = .activePps!
-        let frame    = .current!
+        let sps      = unwrap .activeSps
+        let pps      = unwrap .activePps
+        let frame    = unwrap .current
         let bitDepth = sps.bitDepthChroma
         let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
 

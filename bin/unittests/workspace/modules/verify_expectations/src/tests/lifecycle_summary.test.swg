@@ -53,7 +53,7 @@ func localFree(ptr: *void, size: u64)
     var req: Swag.AllocatorRequest
     req.address = ptr
     req.size    = size
-    let allocItf = Swag.getContext().allocator!
+    let allocItf = unwrap Swag.getContext().allocator
     allocItf.free(&req)
 }
 

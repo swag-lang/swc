@@ -15,7 +15,7 @@ func allocate(size: u64)->*void
     var request: AllocatorRequest
     request.size = size
     Swag.getContext().allocator!.alloc(&request)
-    return request.address!
+    return unwrap request.address
 }
 
 #[Swag.Inline]
@@ -106,7 +106,7 @@ func releaseParameter(value: *u32)
     var request: AllocatorRequest
     request.address = first
     request.size    = 4
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     var empty: AllocatorRequest
     allocator.free(&empty)
     allocator.free(&empty)

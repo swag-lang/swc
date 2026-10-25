@@ -77,7 +77,7 @@ internal impl Properties
     {
         var changed = false
         for it in .items do
-            if .updateItemValidation(it!) do
+            if .updateItemValidation(unwrap it) do
                 changed = true
         return changed
     }

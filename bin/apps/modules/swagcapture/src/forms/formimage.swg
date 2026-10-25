@@ -85,7 +85,7 @@ impl FormImage
     mtd backCapture()
     {
         let renderer = g_App.renderer
-        let capture  = .capture!
+        let capture  = unwrap .capture
         let x1       = cast(s32, .x - capture.backImagePos.x)
         let y1       = cast(s32, .y - capture.backImagePos.y)
 
@@ -162,7 +162,7 @@ impl FormImage
     mtd refreshTexture()
     {
         let renderer = g_App.renderer
-        let capture  = .capture!
+        let capture  = unwrap .capture
         switch .kind
         {
         case .Image:

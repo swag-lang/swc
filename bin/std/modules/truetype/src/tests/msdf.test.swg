@@ -7,7 +7,7 @@ using Swag, Core
 private func countMsdfSignMismatches(bitmap: const *Bitmap)->u32
 {
     var result: u32
-    let buf = bitmap.buffer!
+    let buf = unwrap bitmap.buffer
     for i in cast(u64, bitmap.width) * bitmap.rows
     {
         let p      = i * 4
@@ -61,7 +61,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 
     let col = cast(u64, (x - face.glyph.bitmapLeft))
     let row = cast(u64, (face.glyph.bitmapTop - y))
-    let buf = bitmap.buffer!
+    let buf = unwrap bitmap.buffer
     let p   = (row * bitmap.width + col) * 4
 
     var result: retval
@@ -77,7 +77,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     discard expect face.setPixelSize(0, 40)
     for c in "MWkx"
@@ -97,7 +97,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     let squares: [2] [4] s32 = [[0, 0, 1280, 1280], [640, 640, 1920, 1920]]
     let texel = renderSquares(face, squares, 15.5, 15.5)
@@ -112,7 +112,7 @@ private func renderSquares(face: *Face, squares: const [..] [4] s32, x, y: f64)-
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     let squares: [2] [4] s32 = [[0, 0, 1280, 1280], [320, 320, 960, 960]]
     let texel = renderSquares(face, squares, 4.5, 10.5)

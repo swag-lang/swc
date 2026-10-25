@@ -441,7 +441,7 @@ impl Image
     // Returns the allocated working image.
     //
     // The caller must have called an `allocWorkingBuffer` overload first.
-    internal mtd safeWorkingBuffer()->*Image => .workingBuffer!
+    internal mtd safeWorkingBuffer()->*Image => unwrap .workingBuffer
 
     // Releases the working image, if any.
     internal mtd freeWorkingBuffer()
@@ -470,7 +470,7 @@ impl Image
     // current image.
     internal mtd applyWorkingBuffer()
     {
-        let wb = .workingBuffer!
+        let wb = unwrap .workingBuffer
         swap(&.pixelFormat, &wb.pixelFormat)
         swap(&.alphaMode, &wb.alphaMode)
         swap(&.pixels, &wb.pixels)

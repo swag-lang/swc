@@ -167,7 +167,7 @@ func assertJsonPayload(value: JsonPayload)->bool
     Swag.assert(buffer.toString() == "{\"text\":\"quote=\\\" slash=\\\\ controls=\\b\\f\\n\\r\\t caf\u00E9 \U0001F642\"}")
 
     var decoder: Serialization.Decoder'Serialization.Read.Json
-    let decoded = expect decoder.readAll'JsonStringPayload(buffer.toSlice()!)
+    let decoded = expect decoder.readAll'JsonStringPayload(unwrap buffer.toSlice())
     defer Memory.delete(decoded)
     Swag.assert(decoded.text == payload.text)
 

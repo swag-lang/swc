@@ -21,7 +21,7 @@ using Core, Pixel, Gui, Video, Audio, Viewers
 
 func countVideoLoadingChange(wnd: *Wnd)
 {
-    let count = cast(*u32, wnd.userData!)
+    let count = cast(*u32, unwrap wnd.userData)
     count[] += 1
 }
 
@@ -48,7 +48,7 @@ func videoPreviewFileAt(fileName: string, frameCount = 4'u32)->String fail
 // Answers a movie that has been played through with the continuation stored on the view.
 func answerVideoEnd(wnd: *Wnd)->Viewer.Continuation
 {
-    let answer = cast(*Viewer.Continuation, wnd.userData!)
+    let answer = cast(*Viewer.Continuation, unwrap wnd.userData)
     return answer[]
 }
 
@@ -162,17 +162,17 @@ func waitForVideoVoicePlaying(view: *Film.Panel)
     Swag.assert(view.voice != null and view.voice.isPlaying())
 }
 
-func videoAudioFixturePath()->String    => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/glint-aac-mjpeg.mp4")
-func videoAvcFixturePath()->String      => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-baseline.mp4")
-func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/ffmpeg-h264-two-aac.mkv")
+func videoAudioFixturePath()->String    => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/glint-aac-mjpeg.mp4")
+func videoAvcFixturePath()->String      => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/ffmpeg-h264-baseline.mp4")
+func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/ffmpeg-h264-two-aac.mkv")
 
 // A same-stem sidecar is discovered, selected, and presented on the movie clock. Rendering
 // preferences and manual synchronization are available from the same track menu.
 #test
 {
     let fileName = expect videoPreviewFile(Format.toString("scope-video-subtitle-%.mp4", Guid64.random()))
-    let folder   = Path.directoryName(fileName)!
-    let stem     = Path.fileNameWithoutExtension(fileName)!
+    let folder   = unwrap Path.directoryName(fileName)
+    let stem     = unwrap Path.fileNameWithoutExtension(fileName)
     let sidecar  = Path.combine(folder, Format.toString("%.fr.srt", stem))
     defer
     {
@@ -728,7 +728,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     expireViewerLoadingLinger(window)
     Swag.assert(not window.loadingOverlay.isLocallyVisible())
 
-    let voice = view.voice!
+    let voice = unwrap view.voice
 
     window.setFullScreen(true)
     window.updateFullScreenChrome({10, 1})
@@ -828,10 +828,10 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(Utf8.contains(view.information.text(), "Name: Alternate"))
     Swag.assert(Utf8.contains(view.information.text(), "44100 Hz"))
     Swag.assert(view.audioButton.isVisible() and view.audioButton.icon.isValid() and view.audioTrackIndex == 0)
-    let primaryTrackText = Film.audioTrackText(0, view.video.audioTrack(0)!)
+    let primaryTrackText = Film.audioTrackText(0, unwrap view.video.audioTrack(0))
     Swag.assert(primaryTrackText == "<b>Primary</b> · <p3>AAC-LC · 2 ch · 44.1 kHz</p>")
     Swag.assert(RichString.plainText(primaryTrackText) == "Primary · AAC-LC · 2 ch · 44.1 kHz")
-    Swag.assert(Film.audioTrackText(1, view.video.audioTrack(1)!) == "<b>Alternate</b> · <p3>AAC-LC · 2 ch · 44.1 kHz</p>")
+    Swag.assert(Film.audioTrackText(1, unwrap view.video.audioTrack(1)) == "<b>Alternate</b> · <p3>AAC-LC · 2 ch · 44.1 kHz</p>")
     Swag.assert(Format.toString(Film.texts().ui_AudioTrackLang, "fre") == "<p2> (fre)</p>")
     Swag.assert(view.muteButton.isVisible() and view.volumeSlider.isVisible())
     Swag.assert(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
@@ -851,7 +851,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     view.seekFrame(5)
     waitForVideoFrame(view)
     Swag.assert(not view.playing and not view.voice!.isPlaying())
-    let previousVoice = view.voice!
+    let previousVoice = unwrap view.voice
 
     host.clickPopupMenuItemWhenShown("scope.video.audioTrack.1")
     view.showAudioTrackMenu()
@@ -861,7 +861,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(view.muted and Math.isEqualEpsilon(expect view.voice.volume(), 0, 0.001))
     let switchedSample = view.voice.playbackSampleFrame()
     let seekSample     = cast(u64, Math.round(view.video.frameTimestamp(5) * 44_100.0))
-    let currentSample  = Film.soundSample(view.audio!, view.currentSeconds())
+    let currentSample  = Film.soundSample(unwrap view.audio, view.currentSeconds())
     let sampleDrift    = switchedSample > currentSample ? switchedSample - currentSample : currentSample - switchedSample
     Swag.assert(switchedSample >= seekSample and sampleDrift < 4_410)
 
@@ -886,7 +886,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     host.notify(.LanguageChanged)
     Swag.assert(view.audioButton.toolTip == "Piste audio")
     Swag.assert(view.speedButton.toolTip == Film.texts().ui_TipPlaybackSpeed)
-    Swag.assert(Film.audioTrackText(1, view.video.audioTrack(1)!).indexOf("can.") != Swag.U64.Max)
+    Swag.assert(Film.audioTrackText(1, unwrap view.video.audioTrack(1)).indexOf("can.") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("2 can.") != Swag.U64.Max)
 
     view.dockStyle = .Center

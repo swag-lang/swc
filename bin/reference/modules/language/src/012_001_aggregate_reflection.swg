@@ -34,7 +34,7 @@ enum ReflectedState: u8
     Swag.assert(base.kind == .Struct)
 
     let type   = assume cast(const *Swag.TypeInfoStruct, base)
-    let fields = type.fields!
+    let fields = unwrap type.fields
 
     Swag.assert(type.structName == "ReflectedPoint")
     Swag.assert(type.sizeof == #sizeof(ReflectedPoint))
@@ -45,7 +45,7 @@ enum ReflectedState: u8
     Swag.assert(fields[1].name == "y")
     Swag.assert(fields[1].offset == #offsetof(ReflectedPoint.y))
 
-    let methods = type.methods!
+    let methods = unwrap type.methods
     Swag.assert(methods.count == 1)
     Swag.assert(methods[0].name == "sum")
     Swag.assert(methods[0].pointedType!.kind == .Func)
@@ -63,7 +63,7 @@ typed reflection helper before reading it in general-purpose code.
     Swag.assert(base.kind == .Enum)
 
     let type   = assume cast(const *Swag.TypeInfoEnum, base)
-    let values = type.values!
+    let values = unwrap type.values
 
     Swag.assert(type.rawType == u8)
     Swag.assert(values.count == 3)

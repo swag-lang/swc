@@ -32,7 +32,7 @@ func observeViewerPlacement(app: *Application)
     let window   = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
     var fileName = Env.variable("SWAG_SCOPE_PLACEMENT_DOCUMENT")
     if fileName.isEmpty() do
-        fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+        fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
     window.openFile(fileName, remember: false)
     surface.show()
 

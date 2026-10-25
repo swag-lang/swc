@@ -334,13 +334,13 @@ impl PropWnd
         var editOptions: EditDlgOptions
         editOptions.title = appStrings().dlg_TitleEnterText
         editOptions.text  = curText.toString()
-        let dialog = EditDlg.createMultiLine(main.surface!, editOptions)
+        let dialog = EditDlg.createMultiLine(unwrap main.surface, editOptions)
         if main.inPlaceEdit do
             dialog.surface?.setTopMost()
 
         if dialog.doModal() != Dialog.BtnOk do
             return curText
-        let capture = main.getCapture()!
+        let capture = unwrap main.getCapture()
         let undo    = capture.newUndo(.SetText)
         undo.text = dialog.text()
         capture.pushUndo(undo)

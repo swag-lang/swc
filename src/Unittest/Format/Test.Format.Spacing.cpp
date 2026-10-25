@@ -434,10 +434,10 @@ SWC_TEST_BEGIN(FormatSpacing_PostfixBangKeepsReceiverKeyword)
         "{\n"
         "    mtd f()\n"
         "    {\n"
-        "        let cap = me.capture!\n"
-        "        let font = me.font().regular!\n"
+        "        let cap = unwrap me.capture\n"
+        "        let font = unwrap me.font().regular\n"
         "        let size = &me.bar.items[0]!.size\n"
-        "        let item = try me.bar.load()!\n"
+        "        let item = unwrap try me.bar.load()\n"
         "    }\n"
         "}\n";
 

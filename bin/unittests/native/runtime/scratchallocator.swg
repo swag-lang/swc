@@ -148,7 +148,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size = 256
     itf.alloc(&req)
 
-    let ptr = cast([*] u8, req.address!)
+    let ptr = cast([*] u8, unwrap req.address)
     for i in 256 do
         ptr[i] = cast(u8, ((i * 3 + 5) & 0xFF))
 
@@ -332,7 +332,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size = 32
     itf.alloc(&req)
 
-    let ptr = cast([*] u8, req.address!)
+    let ptr = cast([*] u8, unwrap req.address)
     for i in 32 do
         ptr[i] = cast(u8, (i + 1))
 
@@ -466,7 +466,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.alignment = 8
     itf.alloc(&req)
 
-    let vals = cast([*] u32, req.address!)
+    let vals = cast([*] u32, unwrap req.address)
     for i in 10 do
         vals[i] = cast(u32, (i * 777 + 11))
 
@@ -521,7 +521,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
     req.size = 128
     itf.alloc(&req)
     let oldAddress = req.address
-    let data       = cast([*] u8, req.address!)
+    let data       = cast([*] u8, unwrap req.address)
     for i in 128 do
         data[i] = cast(u8, i)
 
@@ -679,7 +679,7 @@ func makeScratchAllocator(scratch: *ScratchAllocator, alloc: *Allocator)->IAlloc
         req.alignment = alignment
         itf.alloc(&req)
 
-        let address = cast(u64, req.address!)
+        let address = cast(u64, unwrap req.address)
         Swag.assert(address % cast(u64, alignment) == 0)
         Swag.assert(address >= cast(u64, scratch.block))
     }

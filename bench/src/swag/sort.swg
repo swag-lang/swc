@@ -74,7 +74,7 @@ func qsort(a: [*] u64, first, last: s64)
 #run
 {
     // ---- data generation (not timed) ----
-    let a = cast([*] u64, (benchAlloc(cast(u64, N) * #sizeof(u64)))!)
+    let a = cast([*] u64, unwrap (benchAlloc(cast(u64, N) * #sizeof(u64))))
     for i in N do
         a[i] = rnd()
 

@@ -52,7 +52,7 @@ impl Decoder
     // block.
     mtd beginQuantizationGroup(x0, y0: s32)
     {
-        let sps = .activeSps!
+        let sps = unwrap .activeSps
 
         var left = .qpYPrev
         if x0 > 0 and (x0 & cast(s32, (sps.ctbSize - 1))) != 0 and .isAvailable(x0, y0, x0 - 1, y0) do
@@ -69,7 +69,7 @@ impl Decoder
     // Recomputes the quantization parameter of the current unit, equation 8-283.
     mtd refreshQp()
     {
-        let sps   = .activeSps!
+        let sps   = unwrap .activeSps
         let range = 52 + sps.qpBdOffsetY
         .currentQp = ((.qpYPred + .cuQpDeltaVal + 52 + 2 * sps.qpBdOffsetY) % range) - sps.qpBdOffsetY
     }
@@ -77,8 +77,8 @@ impl Decoder
     // Returns the chroma quantization parameter of one component, clause 8.6.1.
     mtd const chromaQp(component: u32)->s32
     {
-        let sps    = .activeSps!
-        let pps    = .activePps!
+        let sps    = unwrap .activeSps
+        let pps    = unwrap .activePps
         let header = &.header
         let offset = component == 1 ? pps.cbQpOffset + header.cbQpOffset : pps.crQpOffset + header.crQpOffset
 
@@ -93,8 +93,8 @@ impl Decoder
     // Adds the residual of one transform block to samples already in the picture, clause 8.6.6.
     mtd addResidualInPlace(block: const *TransformBlock)
     {
-        let sps      = .activeSps!
-        let frame    = .current!
+        let sps      = unwrap .activeSps
+        let frame    = unwrap .current
         let bitDepth = block.component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
         let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
         let size     = block.size
@@ -141,7 +141,7 @@ impl Decoder
     #[Swag.Inline]
     mtd const reconstructedSample(component: u32, x, y: s32)->u16
     {
-        let frame = .current!
+        let frame = unwrap .current
         if not component do
             return frame.lumaAt(x, y)![0]
         return frame.chromaAtMutable(component - 1, x, y)[0]
@@ -152,7 +152,7 @@ impl Decoder
     // The coefficients are scaled in place and the result is left in `.residual`, in raster order.
     mtd reconstructResidual(block: const *TransformBlock)
     {
-        let sps      = .activeSps!
+        let sps      = unwrap .activeSps
         let size     = block.size
         let bitDepth = block.component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
 
@@ -183,8 +183,8 @@ impl Decoder
     // Scales the parsed coefficients into the coefficient array, clause 8.6.3.
     private mtd scaleCoefficients(block: const *TransformBlock, bitDepth: u32)
     {
-        let sps      = .activeSps!
-        let pps      = .activePps!
+        let sps      = unwrap .activeSps
+        let pps      = unwrap .activePps
         let size     = block.size
         let bdShift  = cast(s32, (bitDepth + block.log2Size + 10 - Log2TransformRange))
         let rounding = 1's32 << (bdShift - 1)
@@ -554,8 +554,8 @@ impl Decoder
     // Adds the residual of one transform block to the reconstructed picture, clause 8.6.6.
     mtd addResidual(block: const *TransformBlock, hasResidual: bool)
     {
-        let sps      = .activeSps!
-        let frame    = .current!
+        let sps      = unwrap .activeSps
+        let frame    = unwrap .current
         let bitDepth = block.component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
         let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
         let size     = block.size

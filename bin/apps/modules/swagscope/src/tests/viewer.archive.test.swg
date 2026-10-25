@@ -25,7 +25,7 @@ using Core, Pixel, Gui, Viewers
     Swag.assert(failure == failureShape(appStrings().ui_FailureFormat, Format.toString(Archive.texts().err_Method, 99)))
 }
 
-func archiveViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.zip")
+func archiveViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.archive.zip")
 
 struct ZipFixtureEntry
 {
@@ -270,21 +270,21 @@ func writeZipFixture()->String
 
     // Shell icon pixels depend on Windows, file associations, and its scaling path. Keep
     // checking that the viewer supplied icons, then render fixed folder/JSON/text inputs.
-    let iconFile  = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.archive.icons.png")
+    let iconFile  = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.archive.icons.png")
     let iconImage = expect Image.load(iconFile)
     var icons     = ImageList.create(host.app.renderer.addImage(&iconImage), 16, 16)
     defer icons.release(host.app.renderer)
     Swag.assert(icons.frameCount == 3)
     for index in viewer.list.lineCount()
     {
-        let row  = viewer.list.lineAt(index)!
+        let row  = unwrap viewer.list.lineAt(index)
         let item = row.itemAt(0)
         Swag.assert(item.icon.isValid())
         let frame = row.canExpand() ? 0 : item.name == "sample.json" ? 1 : 2
         item.icon = Icon.from(&icons, frame)
     }
 
-    let line         = viewer.entryLines[1]!
+    let line         = unwrap viewer.entryLines[1]
     var visibleIndex = Swag.U32.Max
     for index in viewer.list.lineCount() where viewer.list.lineAt(index) == line do
         visibleIndex = index
@@ -312,7 +312,7 @@ func writeZipFixture()->String
 
     var matches: Array'Viewer.SearchMatch
     let session = &window.instances[window.activeChoiceIndex]
-    collectViewerMatches(session.collectMatches!, "readme", &matches)
+    collectViewerMatches(unwrap session.collectMatches, "readme", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
     let revealed = session.revealMatch!(matches[0], "readme")
     Swag.assert(revealed)

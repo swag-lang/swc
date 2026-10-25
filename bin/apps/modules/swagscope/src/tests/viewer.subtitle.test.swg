@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.srt")
+func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.srt")
 
 // Go-to-time accepts its documented forms and rejects values that only look like timestamps.
 #test
@@ -78,9 +78,13 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     var nextAtEnd = KeyEvent{kind: .Pressed, key: .PageDown, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent(view.editor, &nextAtEnd) and view.currentCue == 1)
     var firstCue = KeyEvent{kind: .Pressed, key: .Home, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &firstCue) and view.currentCue == 0 and view.cueButton.text() == "1 / 2")
+    Swag.assert(view.hookOnChildEvent(view.editor, &firstCue) and
+                view.currentCue == 0 and
+                view.cueButton.text() == "1 / 2")
     var lastCue = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &lastCue) and view.currentCue == 1 and view.cueButton.text() == "2 / 2")
+    Swag.assert(view.hookOnChildEvent(view.editor, &lastCue) and
+                view.currentCue == 1 and
+                view.cueButton.text() == "2 / 2")
 
     let oldCount = String.from(view.cueButton.text())
     expect host.app.setLanguage("fr")

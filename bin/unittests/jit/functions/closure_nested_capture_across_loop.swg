@@ -90,13 +90,13 @@ impl Owner
     g_owner.tag = 7
     g_owner.build(&g_color, &g_item, true, false)
 
-    let outerFn = g_outer!
+    let outerFn = unwrap g_outer
     outerFn(0)
     // The early use must have written through the captured pointers.
     Swag.assert(g_owner.pop == &g_item)
     Swag.assert(g_item.a == 1)
 
-    let innerFn = g_inner!
+    let innerFn = unwrap g_inner
     innerFn(5)
     // The nested closure must write through the re-captured pointers.
     Swag.assert(g_color.v == (5 | 0x10) + 7)

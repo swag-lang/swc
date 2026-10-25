@@ -40,7 +40,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: *NullDerefItem? = null
-    let q = p!
+    let q = unwrap p
     q.x = 1     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -49,7 +49,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: *NullDerefItem? = null
-    let q = p!
+    let q = unwrap p
     q.y = 2     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -58,7 +58,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: *s32? = null
-    let q        = p!
+    let q        = unwrap p
     q[] = 9     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -67,7 +67,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: *NullDerefItem? = null
-    var q = p!
+    var q = unwrap p
     q.x = 3     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -77,7 +77,7 @@ func nullSafetyEnabled()->bool
 #test
 {
     var p: *NullDerefItem? = null
-    let q = p!
+    let q = unwrap p
     Swag.assert(q.x == 0)     // swc-expected-error {{sanity_err_null_deref}}
 }
 
@@ -89,7 +89,7 @@ func nullSafetyEnabled()->bool
     var p: *NullDerefItem? = null
     if p == null
     {
-        let q = p!
+        let q = unwrap p
         q.x = 4     // swc-expected-error {{sanity_err_null_deref}}
     }
 }
@@ -125,7 +125,7 @@ func correlatedGuard(cond: bool)
     }
     if cond
     {
-        let q = p!
+        let q = unwrap p
         q.x = 5
     }
 }

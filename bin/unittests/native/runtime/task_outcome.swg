@@ -381,13 +381,13 @@ func failWithTaskMessage()->s32 fail
 {
     let context = Swag.getContext()
     if not context.errorAllocator.capacity do
-        context.errorAllocator.setCapacity(64, context.allocator!)
+        context.errorAllocator.setCapacity(64, unwrap context.allocator)
     let allocator = Swag.makeInterface(&context.errorAllocator, Swag.ScratchAllocator, Swag.IAllocator)
     let text      = "a task retains the copied text of its failure"
     var request: Swag.AllocatorRequest
     request.size = text.count
     allocator.alloc(&request)
-    let bytes = cast([*] u8, request.address!)
+    let bytes = cast([*] u8, unwrap request.address)
     Swag.memcpy(bytes, text.buffer, text.count)
     fail Swag.BaseError{Swag.makeString(bytes, text.count)}
 }

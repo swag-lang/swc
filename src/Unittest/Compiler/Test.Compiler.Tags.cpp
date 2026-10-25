@@ -18,7 +18,7 @@ SWC_TEST_BEGIN(Compiler_OptimizerConfigurationReachesNativeLayout)
     static constexpr std::string_view SOURCE     = R"(#global private
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.backend.optimizer.iterations.preRaSweeps = 48
     cfg.backend.optimizer.unroll.maxTrips = 32
     cfg.backend.optimizer.unroll.memoryBytes = 512

@@ -203,7 +203,7 @@ private impl FileBrowserCtrl
     // Appends one selectable location row bound to `path`.
     mtd addLocationLine(name: string, path: string, icon: Icon)
     {
-        let treeCtrl = .treeCtrl!
+        let treeCtrl = unwrap .treeCtrl
         let l        = treeCtrl.createLine(name, icon)
         l.userData0      = cast(*void?, .treePathStr.count)
         l.leftTextMargin = 10
@@ -271,7 +271,7 @@ private impl FileBrowserCtrl
         var sel      = .listCtrl.selectedLines()
         for lineIt in sel
         {
-            let fi = cast(const *FileInfo, lineIt!.userData0!)
+            let fi = cast(const *FileInfo, unwrap lineIt!.userData0)
             if fi.isDirectory() and .options.mode != FileDlgMode.SelectFolder do
                 continue
             selCount += 1
@@ -362,7 +362,7 @@ private impl FileBrowserCtrl
                     let l = list.focusedLine()
                     if not l do
                         break
-                    let fi = cast(const *FileInfo, l.userData0!)
+                    let fi = cast(const *FileInfo, unwrap l.userData0)
                     if fi.isDirectory()
                     {
                         fileBrowser.setCurrentFolder(fi.fullName)
@@ -382,7 +382,7 @@ private impl FileBrowserCtrl
                 var l = list.selectedLine()
                 if not l do
                     return
-                var fi = cast(const *FileInfo, l.userData0!)
+                var fi = cast(const *FileInfo, unwrap l.userData0)
                 if fi.isDirectory()
                 {
                     fileBrowser.setCurrentFolder(fi.fullName)
@@ -400,7 +400,7 @@ private impl FileBrowserCtrl
                 var txt: String
                 for l in sel
                 {
-                    let fi = cast(const *FileInfo, l!.userData0!)
+                    let fi = cast(const *FileInfo, unwrap l!.userData0)
                     if fi.isDirectory()
                     {
                         if fileBrowser.options.mode != .SelectFolder do
@@ -427,8 +427,8 @@ private impl FileBrowserCtrl
                 if not l1 or not l2 do
                     return 0
 
-                var fi1 = cast(*FileInfo, l1.userData0!)
-                var fi2 = cast(*FileInfo, l2.userData0!)
+                var fi1 = cast(*FileInfo, unwrap l1.userData0)
+                var fi2 = cast(*FileInfo, unwrap l2.userData0)
                 if fi1.isDirectory() and not fi2.isDirectory() do
                     return -1
                 if not fi1.isDirectory() and fi2.isDirectory() do
@@ -787,7 +787,7 @@ impl FileBrowserCtrl
 
         for &fi in .currentEntries
         {
-            let fname = Path.fileName(fi.fullName)!
+            let fname = unwrap Path.fileName(fi.fullName)
 
             // Filter
             var show = true

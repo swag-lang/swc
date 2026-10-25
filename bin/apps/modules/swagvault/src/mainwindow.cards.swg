@@ -348,7 +348,7 @@ impl MainWindow
             .shortcuts.add({Env.SpecialDirectory.UserDocuments, "Documents"})
         }
 
-        let dialog = FileDlg.create(.surface!, options)
+        let dialog = FileDlg.create(unwrap .surface, options)
         if dialog.doModal() == Dialog.BtnOk do
             target.setText(dialog.selectedPath())
     }

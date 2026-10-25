@@ -6,7 +6,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init("arial.ttf")
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     let glyphA = face.glyphIndex('A')
     let glyphV = face.glyphIndex('V')
@@ -36,7 +36,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init("arial.ttf")
-    let face     = faceScope.face!
+    let face     = unwrap faceScope.face
     let faceData = getFaceData(face)
 
     Swag.assert(face.hasKerning())
@@ -59,7 +59,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init("segoeui.ttf")
-    let face     = faceScope.face!
+    let face     = unwrap faceScope.face
     let faceData = getFaceData(face)
 
     let glyphLeft  = face.glyphIndex(0xFE84)
@@ -82,7 +82,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init("segoeui.ttf")
-    let face     = faceScope.face!
+    let face     = unwrap faceScope.face
     let faceData = getFaceData(face)
 
     Swag.assert(not faceData.gposPairSubtables.isEmpty())
@@ -110,7 +110,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init("arial.ttf")
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     discard expect face.setPixelSize(0, 100)
     let beyondU16 = face.getKerning(0x1_0024, face.glyphIndex('V'))

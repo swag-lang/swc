@@ -55,7 +55,7 @@ struct Holder
 
 func increment(h: *Holder)
 {
-    let itf = h.itf!
+    let itf = unwrap h.itf
     let cur = itf.getValue()
     itf.setValue(cur + 1)
 }

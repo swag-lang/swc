@@ -459,11 +459,11 @@ namespace ResizeTools
         {
             dstImage.visitPixels(&f)
             {
-                let params = cast(*#decltype(f), userData!)
+                let params = cast(*#decltype(f), unwrap userData)
                 let fx     = cast(u32, (x * params.xscale))
                 let fy     = cast(u32, (y * params.yscale))
                 let pixSrc = params.srcImage.pixels.buffer + (fx * image.bytesPerPixel) + (fy * params.srcImage.width * image.bytesPerPixel)
-                Image.copyPixelDirect'BPP(cast([*] u8, pix), cast([*] u8, pixSrc!))
+                Image.copyPixelDirect'BPP(cast([*] u8, pix), cast([*] u8, unwrap pixSrc))
             }
         }
 
@@ -478,7 +478,7 @@ namespace ResizeTools
         default:
             dstImage.visitPixels(&f)
             {
-                let params = cast(*#decltype(f), userData!)
+                let params = cast(*#decltype(f), unwrap userData)
                 let fx     = cast(u32, (x * params.xscale))
                 let fy     = cast(u32, (y * params.yscale))
                 let pixSrc = params.srcImage.pixels.storage() + cast(u64, fx) * image.bytesPerPixel + cast(u64, fy) * params.srcImage.rowStride

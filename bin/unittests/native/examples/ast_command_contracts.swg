@@ -113,9 +113,9 @@ func appendCommandEnvelopeDefinition(buffer: [*] u8, start: u64, contractName: s
     for parameter in typeFunc.parameters
     {
         len = appendAst(buffer, len, "    ")
-        len = appendAst(buffer, len, parameter.name!)
+        len = appendAst(buffer, len, unwrap parameter.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, (parameter.pointedType!.name)!)
+        len = appendAst(buffer, len, unwrap (parameter.pointedType!.name))
         len = appendAst(buffer, len, "\n")
     }
 
@@ -140,14 +140,14 @@ func appendCommandValidation(buffer: [*] u8, start: u64, contractName: string, t
     {
         for attribute in typeFunc.attributes
         {
-            let params = attribute.params!
-            if assume cast(string, params[0].value!) != parameter.name do
+            let params = unwrap attribute.params
+            if assume cast(string, unwrap params[0].value) != parameter.name do
                 continue
 
             if attribute.type == #typeof(IntRangeRule)
             {
                 len = appendAst(buffer, len, "    ok = ok and command.")
-                len = appendAst(buffer, len, parameter.name!)
+                len = appendAst(buffer, len, unwrap parameter.name)
                 len = appendAst(buffer, len, " >= ")
                 len = appendS32Literal(buffer, len, assume cast(s32, params[1].value))
                 len = appendAst(buffer, len, " and command.")
@@ -163,12 +163,12 @@ func appendCommandValidation(buffer: [*] u8, start: u64, contractName: string, t
                 if assume cast (bool, params[2].value)
                 {
                     len = appendAst(buffer, len, "    ok = ok and (command.")
-                    len = appendAst(buffer, len, parameter.name!)
+                    len = appendAst(buffer, len, unwrap parameter.name)
                     len = appendAst(buffer, len, ").count > 0\n")
                 }
 
                 len = appendAst(buffer, len, "    ok = ok and (command.")
-                len = appendAst(buffer, len, parameter.name!)
+                len = appendAst(buffer, len, unwrap parameter.name)
                 len = appendAst(buffer, len, ").count >= ")
                 len = appendS32Literal(buffer, len, assume cast (s32, params[1].value))
                 len = appendAst(buffer, len, "\n")
@@ -201,8 +201,8 @@ func appendCommandRedaction(buffer: [*] u8, start: u64, contractName: string, ty
     {
         for attribute in typeFunc.attributes
         {
-            let params = attribute.params!
-            if assume cast(string, params[0].value!) != parameter.name do
+            let params = unwrap attribute.params
+            if assume cast(string, unwrap params[0].value) != parameter.name do
                 continue
             if attribute.type != #typeof(StringPolicyRule) do
                 continue
@@ -210,7 +210,7 @@ func appendCommandRedaction(buffer: [*] u8, start: u64, contractName: string, ty
                 continue
 
             len = appendAst(buffer, len, "    result.")
-            len = appendAst(buffer, len, parameter.name!)
+            len = appendAst(buffer, len, unwrap parameter.name)
             len = appendAst(buffer, len, " = \"<redacted>\"\n")
         }
     }
@@ -234,8 +234,8 @@ func appendCommandSecretCount(buffer: [*] u8, start: u64, contractName: string, 
     {
         for attribute in typeFunc.attributes
         {
-            let params = attribute.params!
-            if assume cast(string, params[0].value!) != parameter.name do
+            let params = unwrap attribute.params
+            if assume cast(string, unwrap params[0].value) != parameter.name do
                 continue
             if attribute.type != #typeof(StringPolicyRule) do
                 continue
@@ -265,7 +265,7 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
     if not returnsVoid
     {
         len = appendAst(buffer, len, "->")
-        len = appendAst(buffer, len, (typeFunc.returnType!.name)!)
+        len = appendAst(buffer, len, unwrap (typeFunc.returnType!.name))
     }
 
     len = appendAst(buffer, len, "\n{\n    ")
@@ -280,7 +280,7 @@ func appendCommandInvoke(buffer: [*] u8, start: u64, contractName, handlerName: 
             len = appendAst(buffer, len, ", ")
 
         len = appendAst(buffer, len, "command.")
-        len = appendAst(buffer, len, parameter.name!)
+        len = appendAst(buffer, len, unwrap parameter.name)
     }
 
     len = appendAst(buffer, len, ")\n}\n\n")

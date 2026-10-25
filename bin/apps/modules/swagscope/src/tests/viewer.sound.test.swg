@@ -54,7 +54,7 @@ func previewWav()->Array'u8
     return result
 }
 
-func waveformFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/waveform.samples.txt")
+func waveformFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/waveform.samples.txt")
 
 func writeU16(bytes: *Array'u8, offset: u64, value: u16)
 {
@@ -85,7 +85,7 @@ func waitForSoundOpen(host: *Testing.HeadlessHost, view: *Sound.Panel)
 
 func markSoundOpenFailure(wnd: *Wnd, _: string)
 {
-    let failed = cast(*bool, wnd.userData!)
+    let failed = cast(*bool, unwrap wnd.userData)
     failed[] = true
 }
 
@@ -333,7 +333,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 // on whether a playback device can be opened.
 #test
 {
-    let pacmanWav = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/pacman_beginning.wav")
+    let pacmanWav = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/pacman_beginning.wav")
     let sound     = expect SoundFile.load(pacmanWav)
     Swag.assert(sound.sampleRateHz() == 11_025)
     Swag.assert(sound.numChannels() == 1)
@@ -370,7 +370,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 // Answers a sound that has been played through with the continuation stored on the view.
 func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 {
-    let answer = cast(*Viewer.Continuation, wnd.userData!)
+    let answer = cast(*Viewer.Continuation, unwrap wnd.userData)
     return answer[]
 }
 

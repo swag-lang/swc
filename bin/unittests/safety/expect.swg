@@ -70,7 +70,7 @@ func expectSafetyEnabled()->bool
     func expectNullableFailurePanic()->bool
     {
         let value: *s32? = null
-        let ptr = value!     // swc-expected-error {{safety_err_runtime}}
+        let ptr = unwrap value     // swc-expected-error {{safety_err_runtime}}
         return ptr != null
     }
 
@@ -128,7 +128,7 @@ func expectRawNode(present: bool)->*void? => present ? cast(*void, &g_expectAcce
     #[Swag.Safety(.Expect, true)]
     func unNullCastPanic()->s32
     {
-        let node = cast(*ExpectAccessNode, expectRawNode(false)!)     // swc-expected-error {{safety_err_runtime}}
+        let node = cast(*ExpectAccessNode, unwrap expectRawNode(false))     // swc-expected-error {{safety_err_runtime}}
         return node.value
     }
 
@@ -140,7 +140,7 @@ func expectRawNode(present: bool)->*void? => present ? cast(*void, &g_expectAcce
     #[Swag.Safety(.Expect, true)]
     func unNullCastSuccess()->s32
     {
-        let node = cast(*ExpectAccessNode, expectRawNode(true)!)
+        let node = cast(*ExpectAccessNode, unwrap expectRawNode(true))
         return node.value
     }
 

@@ -3,7 +3,7 @@ SWC_DIAG_DEF(sema_warn_unreachable_code, Warning, "unreachable code; [help] remo
 SWC_DIAG_DEF(sema_warn_redundant_try, Warning, "'try' is implied in '{sym}', which has 'Swag.Propagate'; [help] remove 'try'")
 
 SWC_DIAG_DEF(sema_err_unknown_warning, Error, "'#[Swag.Warning]' does not accept value '{value}'; it accepts a warning identifier, or 'all' for every warning")
-SWC_DIAG_DEF(sema_err_notnull_already_proven, Error, "'!' asserts a value of type '{type}' that cannot be null here; [help] remove the '!'")
+SWC_DIAG_DEF(sema_err_notnull_already_proven, Error, "'{tok}' asserts a value of type '{type}' that cannot be null here; [help] remove '{tok}'")
 
 SWC_DIAG_DEF(sema_err_expr_not_const, Error, "expression needs a compile-time value")
 SWC_DIAG_DEF(sema_err_invalid_type, Error, "expression has type '{type}', but this context needs '{requested-type}'")
@@ -371,8 +371,8 @@ SWC_DIAG_DEF(sema_err_tagged_case_one_member, Error, "a 'case' label selects one
 SWC_DIAG_DEF(sema_err_tagged_case_not_const, Error, "a 'case' label needs a constant value of the tag '{type}'")
 SWC_DIAG_DEF(sema_err_tagged_case_duplicate, Error, "tag value '{value}' already selects a member of this union")
 SWC_DIAG_DEF(sema_err_tagged_member_without_case, Error, "member '{sym}' of a tagged union needs a 'case' label naming the tag values that select it")
-SWC_DIAG_DEF(sema_err_tagged_payload_unproven, Error, "access to payload '{sym}' needs a proof that its case is the active one; [help] test the case first with 'switch' or 'is', or assert it with '!'")
-SWC_DIAG_DEF(sema_err_tagged_case_already_proven, Error, "'!' asserts the active case of payload '{sym}', which is already proven here; [help] remove the '!'")
+SWC_DIAG_DEF(sema_err_tagged_payload_unproven, Error, "access to payload '{sym}' needs a proof that its case is the active one; [help] test the case first with 'switch' or 'is', or assert it with 'unwrap' or an asserted access")
+SWC_DIAG_DEF(sema_err_tagged_case_already_proven, Error, "'{tok}' asserts the active case of payload '{sym}', which is already proven here; [help] remove '{tok}'")
 SWC_DIAG_DEF(sema_err_tagged_case_no_payload, Error, "case '{value}' has no payload to initialize; [help] write the case without braces")
 SWC_DIAG_DEF(sema_err_tagged_case_needs_payload, Error, "case '{value}' needs a payload, because '{sym}' has no default value; [help] initialize it with braces after the case")
 SWC_DIAG_DEF(sema_err_tagged_union_literal, Error, "a tagged union is built from one of its cases; [help] name the case with a leading dot, followed by its payload in braces when it has one")

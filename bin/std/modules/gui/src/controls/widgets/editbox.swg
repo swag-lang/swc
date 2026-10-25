@@ -133,7 +133,7 @@ impl IWnd for EditBox
         case .Lost:
             .sigCommitted.call(me)
             .sigFocusLost.call(me)
-            .surface!.app.removeTimer(.timerCaret!)
+            .surface!.app.removeTimer(unwrap .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()

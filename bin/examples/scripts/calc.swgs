@@ -56,7 +56,7 @@ func validateOp(str: string)
 
     let edit = g_Edit
     if g_Error do
-        edit.setText(g_Error!)
+        edit.setText(unwrap g_Error)
     else do
         edit.setText(Format.toString("%", g_CurValue))
 }

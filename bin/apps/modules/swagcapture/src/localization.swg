@@ -396,7 +396,7 @@ func resolvePropertyText(key: string)->string?
     let reference = cast(const [*] u8, &g_PropertyKeys)
     let active    = cast(const [*] u8, &g_AppStrings)
 
-    for field in type.fields! where Utf8.startsWith(field.name orelse "", PropertyKeyPrefix)
+    for field in unwrap type.fields where Utf8.startsWith(field.name orelse "", PropertyKeyPrefix)
     {
         if cast(const *string, reference + field.offset)[] == key do
             return cast(const *string, active + field.offset)[]
@@ -433,7 +433,7 @@ private func checkPropertyKeysAreDistinct()
     let type = assume cast(const *Swag.TypeInfoStruct, #typeof(AppStrings))
     let data = cast(const [*] u8, &keys)
 
-    for field in type.fields!
+    for field in unwrap type.fields
     {
         let name = field.name orelse ""
         if not Utf8.startsWith(name, PropertyKeyPrefix) do

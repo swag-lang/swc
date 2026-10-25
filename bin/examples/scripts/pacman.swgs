@@ -1940,7 +1940,7 @@ func gameLoop()
     case .STARTLEVEL:
         if not g_VoiceReady do
             g_VoiceReady = expect Audio.Voice.play(&g_SoundReady)
-        let voice = g_VoiceReady!
+        let voice = unwrap g_VoiceReady
         if not voice.isPlaying()
         {
             voice.destroy()
@@ -2000,7 +2000,7 @@ func gameLoop()
             g_VoiceEatFruit = expect Audio.Voice.play(&g_SoundEatFruit)
 
         // if g_Ticks == g_TimeStamp + 90
-        let voice = g_VoiceEatFruit!
+        let voice = unwrap g_VoiceEatFruit
         if not voice.isPlaying()
         {
             voice.destroy()
@@ -2015,7 +2015,7 @@ func gameLoop()
             g_VoiceEatGhost = expect Audio.Voice.play(&g_SoundEatGhost)
 
         // if g_Ticks == g_TimeStamp + 90
-        let voice = g_VoiceEatGhost!
+        let voice = unwrap g_VoiceEatGhost
         if not voice.isPlaying()
         {
             voice.destroy()
@@ -2030,7 +2030,7 @@ func gameLoop()
             g_VoiceDeath = expect Audio.Voice.play(&g_SoundDeath)
 
         // if g_Ticks > g_TimeStamp + 180
-        let voice = g_VoiceDeath!
+        let voice = unwrap g_VoiceDeath
         if not voice.isPlaying()
         {
             voice.destroy()

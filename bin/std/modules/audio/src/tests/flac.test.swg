@@ -115,7 +115,7 @@ private func flacAssertLossless(name: string, sampleRate, channels: u32)
     Swag.assert(decoded.size != 0)
 
     let wanted = expect File.readAllBytes(audioGetTestDataPath("flac-5.1-48000.pcm").toString())
-    let bytes  = cast(const [*] u8, decoded.buffer!)
+    let bytes  = cast(const [*] u8, unwrap decoded.buffer)
     let count  = Math.min(cast(u64, decoded.size), wanted.count)
     for index in count do
         Swag.assert(bytes[index] == wanted[index])

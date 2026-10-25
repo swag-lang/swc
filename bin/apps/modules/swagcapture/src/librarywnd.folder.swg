@@ -23,7 +23,7 @@ impl LibraryWnd
         options.initialFolder = initialFolder
         options.title         = makeLibrary ? appStrings().dlg_TitleChooseLibrary : appStrings().dlg_TitleBrowseFolder
 
-        let dialog = FileDlg.create(.main.surface!, options)
+        let dialog = FileDlg.create(unwrap .main.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
@@ -40,7 +40,7 @@ impl LibraryWnd
     {
         discard catch g_Library.setFolder(folder)
         {
-            MessageDlg.error(.main.surface!, appStrings().msg_FailedOpenLibrary, Swag.err)
+            MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedOpenLibrary, Swag.err)
             return
         }
 

@@ -68,7 +68,7 @@ impl TweakFile
                 return {}
 
             result.offset += field.offset
-            current       = field.pointedType!
+            current       = unwrap field.pointedType
             if dot == Swag.U64.Max do
                 break
 

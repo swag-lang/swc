@@ -22,7 +22,7 @@ namespace WinFsp
 
     // The context and volume WinFsp hands back with every request.
     func mountContext(fileSystem: *FspFileSystem)->*NativeMountContext
-        => cast(*NativeMountContext, fileSystem.userContext!)
+        => cast(*NativeMountContext, unwrap fileSystem.userContext)
 
     func mountedVolume(fileSystem: *FspFileSystem)->*Volume
         => mountContext(fileSystem).volume
@@ -67,7 +67,7 @@ namespace WinFsp
         if security and available < required do
             return StatusBufferOverflow
         if security and required do
-            Swag.memcpy(security, context.defaultSecurity!, required)
+            Swag.memcpy(security, unwrap context.defaultSecurity, required)
         return StatusSuccess
     }
 
@@ -230,7 +230,7 @@ namespace WinFsp
     // Appends one entry to the WinFsp directory buffer; 0 once it is full.
     func emitFspDir(emitContext: *void?, name: const [*] u8?, info: const *FileInfo)->u8
     {
-        let context = cast(*FspEmitContext, emitContext!)
+        let context = cast(*FspEmitContext, unwrap emitContext)
         let name16  = Utf16.toZeroTerminated(cString(name))
         let bytes   = #offsetof(FspDirInfo.fileName) + name16.count * #sizeof(u16)
         if bytes > Swag.U16.Max do

@@ -257,7 +257,7 @@ impl IImageSetDecoder for Decoder
         if index >= .frames.count do
             fail InvalidFormatError{"KTX2 image index is out of range"}
         let frame  = &.frames[index]
-        let buffer = .bytes!
+        let buffer = unwrap .bytes
         let faces  = readU32(buffer.buffer + 36)
         let slices = Math.max(readU32(buffer.buffer + 28) >> frame.level, 1'u32)
         return try .decodeImage(buffer, options, frame.level, (cast(u64, frame.layer) * faces + frame.face) * slices + frame.depthSlice)

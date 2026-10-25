@@ -117,7 +117,7 @@ using Swag, Core
     Swag.assert(view.pendingSeek and view.pendingSeekPreservesPosition)
     host.fireTimer(view.loadTimer)
     Swag.assert(not view.retainedBlocks.isEmpty())
-    view.beginSelection(view.retainedBlocks[0].inline!, 0)
+    view.beginSelection(unwrap view.retainedBlocks[0].inline, 0)
     view.selectAll()
     Swag.assert(not view.isSelecting() and not view.hasSelection())
     let anchorOffset = view.replacementAnchorOffset
@@ -227,7 +227,7 @@ using Swag, Core
     }
 
     source += "    \n\n---\n\n# 530 — Le premier chant\n\n"
-    let imageName = Path.fileName(imagePath.toString())!
+    let imageName = unwrap Path.fileName(imagePath.toString())
     source += Format.toString("<div align=\"center\">\n\n<img src=\"%\" width=\"49%%\"> <img src=\"%\" width=\"49%%\">\n\n", imageName, imageName)
     source += "> *FIG. 10 — **Bourges au centre.** The caption keeps its Markdown formatting.*\n\n</div>\n\n"
     source += "## Tendre l'oreille\n\nThe next section remains a Markdown paragraph."
@@ -262,15 +262,15 @@ using Swag, Core
     let source = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\"><rect width=\"40\" height=\"20\" fill=\"#285078\"/></svg>"
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
     var cache: HtmlImageCache
-    cache.basePath = Path.directoryName(fileName.toString())!
-    let entry = cache.fetch(Path.fileName(fileName.toString())!)
+    cache.basePath = unwrap Path.directoryName(fileName.toString())
+    let entry = cache.fetch(unwrap Path.fileName(fileName.toString()))
     Swag.assert(entry != null and entry.loaded)
     Swag.assert(entry.naturalSize == Math.Vector2{40, 20} and not entry.image.isValid())
     var host: Testing.HeadlessHost
     host.setup(80, 40)
     defer host.shutdown()
     defer cache.release()
-    let texture = cache.texture(host.app.renderer, Path.fileName(fileName.toString())!, 40, 20)
+    let texture = cache.texture(host.app.renderer, unwrap Path.fileName(fileName.toString()), 40, 20)
     Swag.assert(texture != null)
     Swag.assert(cache.entries[0].image.width == 40 and cache.entries[0].image.height == 20)
     Swag.assert(cache.entries[0].image.pixelColor(20, 10).argb == 0xFF285078)
@@ -302,7 +302,7 @@ using Swag, Core
     var centered = view.documentStyle
     centered.imageAlignment = .Center
     view.setDocumentStyle(centered)
-    let inline       = view.blocks[0].inline!
+    let inline       = unwrap view.blocks[0].inline
     let centeredAtom = &inline.atoms[0]
     Swag.assert(Math.abs(centeredAtom.position.x - (inline.position.width - 464) * 0.5) < 1)
     Swag.assert(centeredAtom.position.width == 464 and centeredAtom.position.height == 464)
@@ -327,7 +327,7 @@ using Swag, Core
     picture.fill(Pixel.Color.fromArgb(0xFF285078))
     expect picture.save(imagePath)
 
-    let source = Format.toString("![Local figure](<%>)\n\n![Embedded](%)\n\n![Reference][figure] and <img src=\"%\" alt=\"Inline\">\n\n[figure]: <%>\n\n![Remote](https://example.com/image.png)\n\n![Missing](missing-image.png)", Path.fileName(imagePath.toString())!, Embedded, Path.fileName(imagePath.toString())!, Path.fileName(imagePath.toString())!)
+    let source = Format.toString("![Local figure](<%>)\n\n![Embedded](%)\n\n![Reference][figure] and <img src=\"%\" alt=\"Inline\">\n\n[figure]: <%>\n\n![Remote](https://example.com/image.png)\n\n![Missing](missing-image.png)", unwrap Path.fileName(imagePath.toString()), Embedded, unwrap Path.fileName(imagePath.toString()), unwrap Path.fileName(imagePath.toString()))
     discard expect File.writeAllBytes(markdownPath, cast(const [..] u8, source.toString()))
 
     var host: Testing.HeadlessHost
@@ -459,7 +459,7 @@ using Swag, Core
     Swag.assert(not view.findText("hidden note") and not view.findText("</div>"))
 }
 
-func markdownFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.comprehensive.md")
+func markdownFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.comprehensive.md")
 
 // The checked-in Markdown fixture exercises the extended block grammar from its canonical data
 // directory, rather than rebuilding a second document inside the test source.
@@ -916,8 +916,8 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     let delta = markdownAtomRect(view, 1, "delta")
     Swag.assert(alpha.width > 0 and beta.width > 0 and delta.width > 0)
 
-    let first  = view.blocks[0].inline!
-    let second = view.blocks[1].inline!
+    let first  = unwrap view.blocks[0].inline
+    let second = unwrap view.blocks[1].inline
     host.drag(first.localToSurface(Math.Point{alpha.x + 1, alpha.vertCenter()}), second.localToSurface(Math.Point{delta.right(), delta.vertCenter()}))
     Swag.assert(view.selectedText() == "alpha beta\ngamma delta")
 
@@ -1008,7 +1008,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.layoutDocument()
     view.selectAll()
 
-    let inline = view.blocks[0].inline!
+    let inline = unwrap view.blocks[0].inline
     Swag.assert(inline.lines.count >= 3)
     for index in inline.lines.count - 1 do
         Swag.assert(Math.abs(inline.lines[index].top + inline.lines[index].height - inline.lines[index + 1].top) < 0.01)
@@ -1075,7 +1075,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.layoutDocument()
 
     Swag.assert(view.findText("alpha"))
-    let inline = view.blocks[0].inline!
+    let inline = unwrap view.blocks[0].inline
     Swag.assert(inline.searchStart == 0 and inline.searchEnd == 5)
     var bounds: Math.Rectangle
     Swag.assert(view.searchMatchRect(&bounds) and bounds.width > 0 and bounds.width < inline.position.width)
@@ -1188,7 +1188,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     view.layoutDocument()
 
     Swag.assert(view.blocks.count == 1)
-    let table = view.blocks[0].table!
+    let table = unwrap view.blocks[0].table
     Swag.assert(table.columnCount == 2)
     Swag.assert(table.columnWidths[1] > table.columnWidths[0] * 2)
 }
@@ -1663,7 +1663,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
 
     let text = Markdown.View.createText(&host.root, "> [!WARNING]\n> Retain this body.")
     text.resize(720, 1000)
-    let textInline = text.blocks[0].inline!
+    let textInline = unwrap text.blocks[0].inline
     Swag.assert(Utf8.contains(textInline.text().toString(), strings().markdown_AlertWarning))
 
     let fileName = Testing.tempFilePath("markdown-language-", ".md")
@@ -1677,7 +1677,7 @@ func markdownAtomRect(view: *Markdown.View, block: u64, word: string)->Math.Rect
     file.applyLayout()
     host.fireTimer(file.loadTimer)
     Swag.assert(file.blocks.count == 8)
-    let firstInline  = file.blocks[0].inline!
+    let firstInline  = unwrap file.blocks[0].inline
     let englishTitle = String.from(strings().markdown_AlertWarning)
 
     expect applyLanguage(&host.app.resources, "fr")

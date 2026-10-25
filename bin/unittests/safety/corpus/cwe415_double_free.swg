@@ -131,7 +131,7 @@ func releaseHandle(handle: *Handle)
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -173,7 +173,7 @@ func freeReallocateFree()
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -189,7 +189,7 @@ func freeReallocateFree()
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 

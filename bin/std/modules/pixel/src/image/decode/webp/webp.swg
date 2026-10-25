@@ -233,7 +233,7 @@ func flipRgbaRows(pixels: *Array'u8, width, height: s32)
 
 func decodeLossless(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData = Swag.makeSlice(cast(const [*] u8, container.image.data!), container.image.size)
+    let imageData = Swag.makeSlice(cast(const [*] u8, unwrap container.image.data), container.image.size)
     var reader:        LosslessBitReader
     var width, height: s32
     try losslessDecodeHeader(&reader, imageData, &width, &height)
@@ -290,7 +290,7 @@ func vp8DecodeAlpha(container: Container, width, height: s32, alpha: *Array'u8) 
         compressed[2] = losslessWrap8(cast(s32, ((widthMinusOne >> 8) | (heightMinusOne << 6))))
         compressed[3] = losslessWrap8(cast(s32, (heightMinusOne >> 2)))
         compressed[4] = losslessWrap8(cast(s32, (heightMinusOne >> 10)))
-        Memory.copy(cast([*] u8, (compressed.buffer + 5)!), source + 1, container.alpha.size - 1)
+        Memory.copy(cast([*] u8, unwrap (compressed.buffer + 5)), source + 1, container.alpha.size - 1)
 
         var rgba: Array'u8
         var decodedWidth, decodedHeight: s32
@@ -385,7 +385,7 @@ func vp8ToRgba(decoder: *Vp8Decoder, alpha: *Array'u8, result: *Image)
 
 func decodeLossy(container: Container, options: DecodeOptions)->Image fail
 {
-    let imageData = Swag.makeSlice(cast(const [*] u8, container.image.data!), container.image.size)
+    let imageData = Swag.makeSlice(cast(const [*] u8, unwrap container.image.data), container.image.size)
     var decoder: Vp8Decoder = {source: imageData.buffer}
     try vp8DecodeFrameHeader(&decoder, imageData)
 

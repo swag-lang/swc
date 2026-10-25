@@ -502,7 +502,7 @@ impl LinePathList
     internal mtd normalizedFill(rule: Clipper.PolyFillType, byDirection: bool)->*LinePathList
     {
         if .fillCacheMatches(rule, byDirection) do
-            return .fillCacheDirect ? me : .fillCache!
+            return .fillCacheDirect ? me : unwrap .fillCache
 
         .invalidateFillCache()
 
@@ -527,6 +527,6 @@ impl LinePathList
         .fillCacheDirect      = direct
         .fillCacheByDirection = byDirection
         .fillCacheValid       = true
-        return direct ? me : .fillCache!
+        return direct ? me : unwrap .fillCache
     }
 }

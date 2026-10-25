@@ -568,9 +568,9 @@ namespace
         auto          frame   = sema.frame();
         const TokenId tokenId = sema.token(sema.curNode().codeRef()).id;
 
-        // `notnull` is not an error handler: fallibles inside its operand keep the
+        // A presence assertion is not an error handler: fallibles inside its operand keep the
         // surrounding error context (`try`/`catch`/... must be spelled explicitly).
-        if (tokenId == TokenId::SymBang)
+        if (Token::isPresenceAssertion(tokenId))
             return Result::Continue;
 
         frame.setCurrentErrorContext(sema.curNodeRef(), errorContextMode(tokenId));
@@ -597,6 +597,7 @@ namespace
 
         auto diag = SemaError::report(sema, DiagnosticId::sema_err_notnull_already_proven, operandRef);
         diag.addArgument(Diagnostic::ARG_TYPE, operandView.typeRef());
+        diag.addArgument(Diagnostic::ARG_TOK, Token::toName(sema.token(sema.curNode().codeRef()).id));
         diag.report(sema.ctx());
 
         return Result::Error;
@@ -613,10 +614,10 @@ namespace
         if (tok.id == TokenId::KwdTry)
             reportRedundantTry(sema);
 
-        // notnull unwraps nullable values and installs a safety panic for null.
+        // Presence assertions unwrap nullable values and install a safety panic for null.
         // It preserves the surrounding error context, so fallible operands still
         // need their own handler.
-        if (tokenId == TokenId::SymBang)
+        if (Token::isPresenceAssertion(tokenId))
         {
             // On a tagged-union payload, '!' asserts the case instead of presence.
             bool taggedAssertion = false;

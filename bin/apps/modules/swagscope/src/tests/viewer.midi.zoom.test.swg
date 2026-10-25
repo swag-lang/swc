@@ -3,7 +3,7 @@
 
 using Core, Gui, Viewers
 
-func midiZoomFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.mid")
+func midiZoomFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.mid")
 
 #test
 {

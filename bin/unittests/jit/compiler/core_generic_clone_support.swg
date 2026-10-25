@@ -12,7 +12,7 @@ namespace GenericCloneCodegenSupport
         req.size    = size
         req.address = buffer
 
-        let talloc = (allocator orelse Swag.getContext().allocator)!
+        let talloc = unwrap (allocator orelse Swag.getContext().allocator)
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericCloneCodegenSupport
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = (allocator orelse Swag.getContext().allocator)!
+        let talloc = unwrap (allocator orelse Swag.getContext().allocator)
         talloc.realloc(&req)
         return req.address
     }
@@ -54,7 +54,7 @@ namespace GenericCloneCodegenSupport
 
         mtd add(value: T)
         {
-            let buf = .buffer!
+            let buf = unwrap .buffer
             buf[.count] = value
             .count      += 1
         }
@@ -76,7 +76,7 @@ namespace GenericCloneCodegenSupport
     {
         mtd addNew(value: T)
         {
-            let ptr = cast(*T, testAlloc(#sizeof(T))!)
+            let ptr = cast(*T, unwrap testAlloc(#sizeof(T)))
             ptr[] = value
             .values.add(ptr)
         }

@@ -64,7 +64,7 @@ namespace WinFsp
     // Reports the size, the free space, and the label of the volume, cut to `labelCapacity`.
     func callbackGetVolumeInfo(context: *void?, total, free: *u64, label: [*] u8, labelCapacity: u32)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         total[] = volume.totalBytes()
@@ -79,7 +79,7 @@ namespace WinFsp
     // Renames the volume and commits; a label holds at most 32 characters, so 128 UTF-8 bytes.
     func callbackSetVolumeLabel(context: *void?, label: const [*] u8?)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let value = cString(label)
@@ -95,7 +95,7 @@ namespace WinFsp
 
     func callbackLookup(context: *void?, path: const [*] u8?, nodeId: *u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.resolve(cString(path))
@@ -109,7 +109,7 @@ namespace WinFsp
     // data and times are journaled with it.
     func callbackCreate(context: *void?, path: const [*] u8?, directory: u8, attributes: u32, allocationSize: u64, security: const *void?, securitySize: u32, nodeId: *u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let name = cString(path)
@@ -120,7 +120,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
         var securityBytes = cast(const [..] u8, "")
         if securitySize do
-            securityBytes = Swag.makeSlice(cast(const [*] u8, security!), securitySize)
+            securityBytes = Swag.makeSlice(cast(const [*] u8, unwrap security), securitySize)
         let id = catch volume.createNodePending(name, directory != 0, attributes, securityBytes) { return statusFromError(Swag.err) }
         nodeId[] = id
         if not directory and allocationSize
@@ -134,7 +134,7 @@ namespace WinFsp
     // Empties a file opened for overwrite, and replaces or merges its attributes.
     func callbackOverwrite(context: *void?, nodeId: u64, attributes: u32, replaceAttributes: u8, _: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
@@ -161,7 +161,7 @@ namespace WinFsp
     // attribute updates, and commits what is pending.
     func callbackCleanup(context: *void?, nodeId: u64, flags: u32)
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         if (flags & CleanupDelete) != 0
@@ -207,7 +207,7 @@ namespace WinFsp
             return StatusSuccess
         }
 
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.nodeById(nodeId)
@@ -215,7 +215,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
         if node.isDirectory() do
             return StatusFileIsDirectory
-        let count = catch volume.readNode(nodeId, offset, Swag.makeSlice(cast([*] u8, buffer!), length)) { return statusFromError(Swag.err) }
+        let count = catch volume.readNode(nodeId, offset, Swag.makeSlice(cast([*] u8, unwrap buffer), length)) { return statusFromError(Swag.err) }
         transferred[] = count
         return StatusSuccess
     }
@@ -230,7 +230,7 @@ namespace WinFsp
             return callbackGetFileInfo(context, nodeId, info)
         }
 
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
@@ -264,7 +264,7 @@ namespace WinFsp
                 return StatusDiskFull
         }
 
-        let count = catch volume.writeNode(nodeId, offset, Swag.makeSlice(cast(const [*] u8, buffer!), length), writeToEnd != 0, constrained != 0) { return statusFromError(Swag.err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull) }
+        let count = catch volume.writeNode(nodeId, offset, Swag.makeSlice(cast(const [*] u8, unwrap buffer), length), writeToEnd != 0, constrained != 0) { return statusFromError(Swag.err, volume.freeBlockCount() ? StatusIoDeviceError : StatusDiskFull) }
         transferred[] = count
         return fillInfo(volume, nodeId, info)
     }
@@ -272,7 +272,7 @@ namespace WinFsp
     // Commits every pending change, which is how Windows learns of a durability failure.
     func callbackFlush(context: *void?, nodeId: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         discard catch volume.commit() { return statusFromError(Swag.err) }
@@ -283,7 +283,7 @@ namespace WinFsp
 
     func callbackGetFileInfo(context: *void?, nodeId: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         return fillInfo(volume, nodeId, info)
@@ -293,7 +293,7 @@ namespace WinFsp
     // the current value.
     func callbackSetBasicInfo(context: *void?, nodeId: u64, attributes: u32, creationTime, lastAccessTime, lastWriteTime, changeTime: u64, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
@@ -324,7 +324,7 @@ namespace WinFsp
     // size, refusing a growth the volume has no block left for.
     func callbackSetFileSize(context: *void?, nodeId, newSize: u64, setAllocationSize: u8, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
@@ -347,7 +347,7 @@ namespace WinFsp
     // Refuses to delete the root, a read-only node, or a directory that is not empty.
     func callbackCanDelete(context: *void?, nodeId: u64)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.nodeById(nodeId)
@@ -365,7 +365,7 @@ namespace WinFsp
     // Moves a node to `newPath`, over an existing target when `replace` allows it.
     func callbackRename(context: *void?, nodeId: u64, _, newPath: const [*] u8?, replace: u8)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         var errOutcome: Swag.Error
@@ -377,7 +377,7 @@ namespace WinFsp
     // Copies the security descriptor of a node; without a buffer, only reports its size.
     func callbackGetSecurity(context: *void?, nodeId: u64, security: *void?, securitySize: *u32)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let node = volume.nodeById(nodeId)
@@ -396,7 +396,7 @@ namespace WinFsp
 
     func callbackSetSecurity(context: *void?, nodeId: u64, security: const *void?, securitySize: u32)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lock()
         defer volume.accessLock.unlock()
         let node = volume.nodeById(nodeId)
@@ -404,7 +404,7 @@ namespace WinFsp
             return StatusObjectNameNotFound
         node.security.resize(securitySize)
         if securitySize do
-            Swag.memcpy(node.security.storage(), security!, securitySize)
+            Swag.memcpy(node.security.storage(), unwrap security, securitySize)
         node.changeTime = volumeTimeNow()
         volume.touch(nodeId)
         return StatusSuccess
@@ -417,7 +417,7 @@ namespace WinFsp
     // `emit` has no room left.
     func callbackReadDirectory(context: *void?, nodeId: u64, marker: const [*] u8?, emit: EmitDirFn, emitContext: *void?, complete: *u8)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let directory = volume.nodeById(nodeId)
@@ -480,7 +480,7 @@ namespace WinFsp
     // Reports the entry `name` of a directory, `.` and `..` included.
     func callbackGetDirInfoByName(context: *void?, directoryId: u64, name: const [*] u8?, info: *FileInfo)->s32
     {
-        let volume = cast(*Volume, context!)
+        let volume = cast(*Volume, unwrap context)
         volume.accessLock.lockShared()
         defer volume.accessLock.unlockShared()
         let directory = volume.nodeById(directoryId)

@@ -17,7 +17,7 @@ func updateFractal()
     var bounds = {minimum: slider.lowerValue(), maximum: slider.upperValue()}
     g_Image.visitPixels(&bounds)
     {
-        let parameters = cast(*#decltype(bounds), userData!)
+        let parameters = cast(*#decltype(bounds), unwrap userData)
         let minimum    = parameters.minimum
         let maximum    = parameters.maximum
 

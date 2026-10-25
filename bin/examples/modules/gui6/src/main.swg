@@ -200,9 +200,9 @@ func stateSummary()->String
 
 func updateHeader()
 {
-    let title    = g_Title!
-    let subTitle = g_SubTitle!
-    let footer   = g_Footer!
+    let title    = unwrap g_Title
+    let subTitle = unwrap g_SubTitle
+    let footer   = unwrap g_Footer
     title.setText(Format.toString("GUI6 menu showcase - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
     footer.setText(Format.toString("F1 : next page (%/%). %", g_Page + 1, MaxPages, stateSummary()))
@@ -750,7 +750,7 @@ func clearPage()
     g_StatusLabel = null
     g_Preview     = null
 
-    let pageView0 = g_PageView!
+    let pageView0 = unwrap g_PageView
     for child in pageView0.children
     {
         child.destroy()
@@ -764,15 +764,15 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:  createMenuBarPage(g_PageView!)
-    case 1:  createContextMenuPage(g_PageView!)
-    case 2:  createCommandStatePage(g_PageView!)
-    case 3:  createAnchoredPopupPage(g_PageView!)
+    case 0:  createMenuBarPage(unwrap g_PageView)
+    case 1:  createContextMenuPage(unwrap g_PageView)
+    case 2:  createCommandStatePage(unwrap g_PageView)
+    case 3:  createAnchoredPopupPage(unwrap g_PageView)
     default: unreachable
     }
 
     updateStatusLabel()
-    let pv = g_PageView!
+    let pv = unwrap g_PageView
     pv.updateCommandState()
     pv.invalidate()
 }
@@ -782,8 +782,8 @@ func layoutRootView()
     if not g_View or not g_PageView do
         return
 
-    let view     = g_View!
-    let pageView = g_PageView!
+    let view     = unwrap g_View
+    let pageView = unwrap g_PageView
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -791,10 +791,10 @@ func layoutRootView()
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title2      = g_Title!
-    let themeButton = g_ThemeButton!
-    let subTitle2   = g_SubTitle!
-    let footer2     = g_Footer!
+    let title2      = unwrap g_Title
+    let themeButton = unwrap g_ThemeButton
+    let subTitle2   = unwrap g_SubTitle
+    let footer2     = unwrap g_Footer
     title2.setPosition({RootMargin, 18, titleWidth, 34})
     themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
@@ -840,8 +840,8 @@ func canUsePageArrows()->bool
     if not g_View or not g_PageView do
         return false
 
-    let view2     = g_View!
-    let pageView2 = g_PageView!
+    let view2     = unwrap g_View
+    let pageView2 = unwrap g_PageView
 
     let focus = view2.focusedWindow()
     if not focus or focus == g_View do
@@ -863,7 +863,7 @@ func onFrame(app: *Application)
 
 func registerMenuShortcuts()
 {
-    let view3 = g_View!
+    let view3 = unwrap g_View
     view3.registerKeyShortcut(.Control, .N, MenuCmd.NewFile)
     view3.registerKeyShortcut(.Control, .O, MenuCmd.OpenFile)
     view3.registerKeyShortcut(.Control, .S, MenuCmd.SaveFile)

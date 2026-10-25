@@ -175,7 +175,7 @@ using Core, Pixel
     }
 }
 
-func guiFixturePath(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
+func guiFixturePath(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), Format.toString("datas/%", name).toString())
 
 func htmlFixturePath()->String => guiFixturePath("html.comprehensive.html")
 

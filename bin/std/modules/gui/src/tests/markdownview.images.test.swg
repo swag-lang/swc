@@ -38,8 +38,8 @@ using Swag, Core, Pixel
             view.setDocumentThemeColors("view_Bk 0xFFFFFFFF\nlabel_Text 0xFF333333")
         view.resize(480, 240)
         view.applyLayout()
-        let inline = view.blocks[0].inline!
-        let html   = view.blocks[1].html!
+        let inline = unwrap view.blocks[0].inline
+        let html   = unwrap view.blocks[1].html
         let first  = view.blocks[0].wnd.position
         let second = view.blocks[1].wnd.position
         var image  = host.render(view)
@@ -89,7 +89,7 @@ using Swag, Core, Pixel
     let view = Markdown.View.createText(&host.root, source.toString())
     view.resize(480, 240)
     view.applyLayout()
-    let html = view.blocks[20].html!
+    let html = unwrap view.blocks[20].html
     view.scroll.setScrollPos(0, html.position.y - 40)
     Swag.assert(view.scroll.scrollPosition().y > 240)
     Swag.assert(html.canvas.surfaceRect().y == html.surfaceRect().y)
@@ -211,10 +211,10 @@ using Swag, Core, Pixel
 
     // Distinct authored references can name the same local file.
     var sources: Array'String
-    var relative = String.from(Path.fileName(fileName.toString())!)
+    var relative = String.from(unwrap Path.fileName(fileName.toString()))
     for index in 5
     {
-        sources.add(Path.combine(Path.directoryName(fileName.toString())!, relative.toString()))
+        sources.add(Path.combine(unwrap Path.directoryName(fileName.toString()), relative.toString()))
         relative = Format.toString("./%", relative.toString())
         discard cache.fetch(sources[index].toString())
         if index == 4 do

@@ -82,7 +82,7 @@ impl IActionUI for ActionCopyPaste
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()!
+        let capture = unwrap main.getCapture()
 
         switch cxt.id
         {

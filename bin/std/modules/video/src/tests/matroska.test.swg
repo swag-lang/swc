@@ -89,8 +89,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-two-aac.mkv"))
     waitForMatroskaAudio(&reader, 2)
-    let primary   = reader.audioTrack(0)!
-    let alternate = reader.audioTrack(1)!
+    let primary   = unwrap reader.audioTrack(0)
+    let alternate = unwrap reader.audioTrack(1)
     Swag.assert(primary.sampleEncoding() == .AacLc and alternate.sampleEncoding() == .AacLc)
     Swag.assert(primary.displayName() == "Primary" and alternate.displayName() == "Alternate")
     Swag.assert(primary.language() == "und" and alternate.language() == "und")
@@ -109,7 +109,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
 {
     var reader = expect Reader.open(videoFixturePath("ffmpeg-h264-subtitle.mkv"))
     waitForMatroskaSubtitles(&reader, 1)
-    let track = reader.subtitleTrack(0)!
+    let track = unwrap reader.subtitleTrack(0)
     Swag.assert(track.name == "French" and track.language == "fra" and track.format == .MatroskaText)
     Swag.assert(track.cues.count == 3)
     Swag.assert(track.presentationAt(0.75).text == "First caption.")
@@ -130,7 +130,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
         waitForMatroskaAudio(&reader, 1)
         Swag.assert(reader.audioTrackCount() == 1)
-        let sound = reader.audioTrack(0)!
+        let sound = unwrap reader.audioTrack(0)
         Swag.assert(sound.sampleEncoding() == Encodings[fileIndex])
         Swag.assert(sound.sampleRateHz() == 48_000 and sound.numChannels() == 6)
         Swag.assert(sound.speakerChannelMask() == 0x3F and not sound.isDataPreloaded())
@@ -146,8 +146,8 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     var delayed = expect Reader.open(videoFixturePath("mkv-aac-codec-delay.mkv"))
     waitForMatroskaAudio(&plain, 2)
     waitForMatroskaAudio(&delayed, 2)
-    let plainSound   = plain.audioTrack(0)!
-    let delayedSound = delayed.audioTrack(0)!
+    let plainSound   = unwrap plain.audioTrack(0)
+    let delayedSound = unwrap delayed.audioTrack(0)
     Swag.assert(delayedSound.packetCount() == plainSound.packetCount())
     Swag.assert(delayedSound.sampleFrameCount() + 1024 == plainSound.sampleFrameCount())
 }
@@ -173,7 +173,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     expect longStream.decodeFrameInto(&indexed, 12_007)
     Swag.assert(longStream.frameCount() == 0)
     Swag.assert(Math.isEqualEpsilon(longStream.durationInSeconds(), 600.0, 0.001))
-    let seekSound = longStream.audioTrack(0)!
+    let seekSound = unwrap longStream.audioTrack(0)
     Swag.assert(seekSound.timelineStartSeconds() == 0 or seekSound.timelineStartSeconds() < 480.28)
     Swag.assert(480.28 - seekSound.timelineStartSeconds() < seekSound.durationInSeconds())
 
@@ -389,7 +389,7 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
         var reader = expect Reader.open(videoFixturePath(Files[fileIndex]))
         waitForMatroskaAudio(&reader, 1)
         Swag.assert(reader.audioTrackCount() == 1)
-        let sound = reader.audioTrack(0)!
+        let sound = unwrap reader.audioTrack(0)
         Swag.assert(sound.sampleEncoding() == Encodings[fileIndex])
         Swag.assert(sound.sampleRateHz() == Rates[fileIndex] and sound.numChannels() == 2)
         Swag.assert(not sound.isDataPreloaded() and sound.packetCount() > 40)

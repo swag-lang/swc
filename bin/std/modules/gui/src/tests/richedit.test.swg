@@ -29,7 +29,7 @@ using Swag, Core
     let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
     var lexer: RichEditLexerSwag
     ed.setLexer(&lexer)
-    ed.setText("Swag.assert(value)\nSwag.vecSplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)\n#[Swag.Inline]")
+    ed.setText("Swag.assert(value)\nSwag.vecSplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)\n#[Swag.Inline]\nunwrap nullable\nunwrapped")
     ed.lexAll()
 
     Swag.assert(ed.runeAt({0, 0}).style == RichEditLexerSwag.Style.Namespace)
@@ -46,6 +46,8 @@ using Swag, Core
     Swag.assert(ed.runeAt({5, 2}).style == RichEditLexerSwag.Style.Namespace)
     Swag.assert(ed.runeAt({5, 6}).style == RichEditLexerSwag.Style.Default)
     Swag.assert(ed.runeAt({5, 7}).style == RichEditLexerSwag.Style.Preprocessor)
+    Swag.assert(ed.runeAt({6, 0}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.assert(ed.runeAt({7, 0}).style == RichEditLexerSwag.Style.Default)
 }
 
 // The default shortcut table contains one command per key/modifier pair.

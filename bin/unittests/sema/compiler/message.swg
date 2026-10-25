@@ -86,7 +86,7 @@ var MessageUnknownCountArrayCount = 0
 
 #message(CompilerMsgMask.SemFunctions)
 {
-    let msg = Swag.compiler().getMessage()!
+    let msg = unwrap Swag.compiler().getMessage()
     Swag.assert(msg.kind == CompilerMsgKind.SemFunctions)
 
     if msg.name == "messageCompilerOnlyFn" do
@@ -115,7 +115,7 @@ var MessageUnknownCountArrayCount = 0
         MessagePlaceholderFunctionCount += 1
         MessageSawPlaceholderFunction   = true
         let typeFunc = assume cast(const *TypeInfoFunc, msg.type)
-        let params   = typeFunc.parameters!
+        let params   = unwrap typeFunc.parameters
         Swag.assert(params.count == 1)
         Swag.assert(params[0].name == "value")
         Swag.assert(params[0].pointedType!.name == "s32")
@@ -149,14 +149,14 @@ var MessageUnknownCountArrayCount = 0
 
 #message(CompilerMsgMask.SemTypes)
 {
-    let msg = Swag.compiler().getMessage()!
+    let msg = unwrap Swag.compiler().getMessage()
     Swag.assert(msg.kind == CompilerMsgKind.SemTypes)
 
     if msg.name == "MessageLateType"
     {
         MessageLateTypeCount += 1
         MessageSawLateType   = true
-        let msgType = msg.type!
+        let msgType = unwrap msg.type
         Swag.assert(msgType.kind == TypeInfoKind.Struct)
         Swag.assert(msgType.name == "MessageLateType")
     }
@@ -165,7 +165,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessageStrictAliasCount += 1
         MessageSawStrictAlias   = true
-        let msgType = msg.type!
+        let msgType = unwrap msg.type
         Swag.assert(msgType.kind == TypeInfoKind.Alias)
         Swag.assert(msgType.name == "MessageStrictHandle")
 
@@ -177,7 +177,7 @@ var MessageUnknownCountArrayCount = 0
 
 #message(CompilerMsgMask.SemGlobals)
 {
-    let msg = Swag.compiler().getMessage()!
+    let msg = unwrap Swag.compiler().getMessage()
     Swag.assert(msg.kind == CompilerMsgKind.SemGlobals)
 
     if msg.name == "MessageLateGlobal"
@@ -191,7 +191,7 @@ var MessageUnknownCountArrayCount = 0
     {
         MessageUnknownCountArrayCount += 1
         MessageSawUnknownCountArray   = true
-        let msgType = msg.type!
+        let msgType = unwrap msg.type
         Swag.assert(msgType.kind == TypeInfoKind.Array)
 
         let typeArray = assume cast(const *TypeInfoArray, msgType)

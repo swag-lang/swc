@@ -51,7 +51,7 @@ using Core, Pixel, Gui, Viewers
 // The fixed 4 KiB master-page unit is the file-level contract this fixture records.
 const IndesignFixtureHeaderSize = 4096'u64
 
-func indesignDataPath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+func indesignDataPath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
 
 // Returns the minimal dual-header document fixture shared by this viewer and the smoke run.
 func indesignFixturePath()->String => indesignDataPath("viewer.indd")

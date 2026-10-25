@@ -82,7 +82,7 @@ impl Capture
         output.makeLinear()
 
         var result: retval
-        result.add(output.toSlice()!)
+        result.add(unwrap output.toSlice())
         return result
     }
 

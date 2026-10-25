@@ -8,7 +8,7 @@ using Core, Pixel
 // editor lives with the editor (values/*.swg) and is driven by Properties.refreshItem.
 internal impl Properties
 {
-    func attributeString(value: any?)->string => assume cast (string, value!)
+    func attributeString(value: any?)->string => assume cast (string, unwrap value)
 
     // The string an attribute declares, as the reader sees it: an attribute value is a
     // compile-time constant, so the installed resolver is what can turn it into a
@@ -263,7 +263,7 @@ internal impl Properties
         // structs after the struct's own fields — a derived type then edits its most specific
         // fields first even though the language forces the base to be declared first.
         var walkOrder: Array'u64
-        let tsFields = typeStruct.fields!
+        let tsFields = unwrap typeStruct.fields
         for i in typeStruct.fields.count
         {
             if not .usingFieldsLast or not tsFields[i].flags.has(.HasUsing) do

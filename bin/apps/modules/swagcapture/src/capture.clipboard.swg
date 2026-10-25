@@ -113,7 +113,7 @@ impl Capture
         undo.oldForms = result
 
         // Center the pasted forms on the mouse.
-        let editView = .editView!
+        let editView = unwrap .editView
         var pt       = editView.app().mouse.position()
         pt   = editView.screenToSurface(pt)
         pt   = editView.surfaceToLocal(pt)

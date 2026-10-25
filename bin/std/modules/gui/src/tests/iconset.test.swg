@@ -18,8 +18,8 @@ using Swag, Core, Pixel
 
     let small     = icons.icon(0, 16, 1)
     let large     = icons.icon(0, 24, 1)
-    let smallList = small.imageList!
-    let largeList = large.imageList!
+    let smallList = unwrap small.imageList
+    let largeList = unwrap large.imageList
     discard IconButton.create(&host.root, small, {10, 10, 40, 40})
     discard IconButton.create(&host.root, large, {65, 10, 40, 40})
     let before = host.render()

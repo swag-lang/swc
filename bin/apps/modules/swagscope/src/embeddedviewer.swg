@@ -35,7 +35,7 @@ struct EmbeddedViewer
     currentSideButton: *IconButton?
 }
 
-private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer => view.ancestorByType'EmbeddedViewer()!
+private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer => unwrap view.ancestorByType'EmbeddedViewer()
 
 private func reportEmbeddedFailure(view: *Wnd, reason: string)
 {

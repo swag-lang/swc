@@ -161,7 +161,7 @@ internal impl Properties
     {
         let n = .instanceCount(item)
         for k in n do
-            cast(*f32, (cast([*] u8?, .instanceAddr(item, k)) + byteOffset)!)[] = val
+            cast(*f32, unwrap (cast([*] u8?, .instanceAddr(item, k)) + byteOffset))[] = val
     }
 
     // Set or clear the masked bits of the enum-flags field in every instance, leaving the
@@ -173,7 +173,7 @@ internal impl Properties
         for k in n
         {
             // Only a value row reaches here, and a value row has storage.
-            let addr = .instanceAddr(item, k)!
+            let addr = unwrap .instanceAddr(item, k)
             var v    = readEnumBits(addr, sz)
             if set do
                 v |= mask

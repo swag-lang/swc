@@ -12,7 +12,7 @@ namespace GenericMkSliceLazyCodegen
         req.size    = size
         req.address = buffer
 
-        let talloc = (allocator orelse Swag.getContext().allocator)!
+        let talloc = unwrap (allocator orelse Swag.getContext().allocator)
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericMkSliceLazyCodegen
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = (allocator orelse Swag.getContext().allocator)!
+        let talloc = unwrap (allocator orelse Swag.getContext().allocator)
         talloc.realloc(&req)
         return req.address
     }
@@ -86,7 +86,7 @@ namespace GenericMkSliceLazyCodegen
 
         mtd add(value: T)
         {
-            let buf = .buffer!
+            let buf = unwrap .buffer
             buf[.count] = value
             .count      += 1
         }

@@ -38,7 +38,7 @@ const ATTRIBUTE_USING_INFO = cast(const *Swag.TypeInfoStruct, #typeof(AttributeU
                 continue
 
             Swag.assert(attribute.params.count == 1)
-            let params = attribute.params!
+            let params = unwrap attribute.params
             Swag.assert(params[0].name == "value")
 
             if field.name == "grouped"

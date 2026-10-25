@@ -204,7 +204,7 @@ using Swag, Core
     view.items.add(it)
     view.loadOne(it)
 
-    let itCapture = it.capture!
+    let itCapture = unwrap it.capture
     Swag.assert(not itCapture.preview.isValid())
     Swag.assert(itCapture.haar.size == 0)
 }

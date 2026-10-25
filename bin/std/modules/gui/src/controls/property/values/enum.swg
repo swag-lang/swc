@@ -26,20 +26,20 @@ internal impl Properties
             switch item.typeValue.pointedType!.sizeof
             {
             case 1:
-                val1 = cast(u64, cast(const *u8, item.data!)[])
-                val2 = cast(u64, cast(const *u8, item.typeValue.value!)[])
+                val1 = cast(u64, cast(const *u8, unwrap item.data)[])
+                val2 = cast(u64, cast(const *u8, unwrap item.typeValue.value)[])
 
             case 2:
-                val1 = cast(u64, cast(const *u16, item.data!)[])
-                val2 = cast(u64, cast(const *u16, item.typeValue.value!)[])
+                val1 = cast(u64, cast(const *u16, unwrap item.data)[])
+                val2 = cast(u64, cast(const *u16, unwrap item.typeValue.value)[])
 
             case 4:
-                val1 = cast(u64, cast(const *u32, item.data!)[])
-                val2 = cast(u64, cast(const *u32, item.typeValue.value!)[])
+                val1 = cast(u64, cast(const *u32, unwrap item.data)[])
+                val2 = cast(u64, cast(const *u32, unwrap item.typeValue.value)[])
 
             case 8:
-                val1 = cast(u64, cast(const *u64, item.data!)[])
-                val2 = cast(u64, cast(const *u64, item.typeValue.value!)[])
+                val1 = cast(u64, cast(const *u64, unwrap item.data)[])
+                val2 = cast(u64, cast(const *u64, unwrap item.typeValue.value)[])
             }
 
             // Multi-selection: a flag whose bit disagrees across instances is indeterminate.
@@ -61,11 +61,11 @@ internal impl Properties
             var val1s, val2s: string?
             switch typeEnum.rawType!.sizeof
             {
-            case 1:  val1 = cast(u64, cast(const *u8, item.data!)[])
-            case 2:  val1 = cast(u64, cast(const *u16, item.data!)[])
-            case 4:  val1 = cast(u64, cast(const *u32, item.data!)[])
-            case 8:  val1 = cast(u64, cast(const *u64, item.data!)[])
-            case 16: val1s = cast(const *string, item.data!)[]
+            case 1:  val1 = cast(u64, cast(const *u8, unwrap item.data)[])
+            case 2:  val1 = cast(u64, cast(const *u16, unwrap item.data)[])
+            case 4:  val1 = cast(u64, cast(const *u32, unwrap item.data)[])
+            case 8:  val1 = cast(u64, cast(const *u64, unwrap item.data)[])
+            case 16: val1s = cast(const *string, unwrap item.data)[]
             }
 
             var idxSel = 0'u64
@@ -73,11 +73,11 @@ internal impl Properties
             {
                 switch typeEnum.rawType!.sizeof
                 {
-                case 1:  val2 = cast(u64, cast(const *u8, v.value!)[])
-                case 2:  val2 = cast(u64, cast(const *u16, v.value!)[])
-                case 4:  val2 = cast(u64, cast(const *u32, v.value!)[])
-                case 8:  val2 = cast(u64, cast(const *u64, v.value!)[])
-                case 16: val2s = cast(const *string, v.value!)[]
+                case 1:  val2 = cast(u64, cast(const *u8, unwrap v.value)[])
+                case 2:  val2 = cast(u64, cast(const *u16, unwrap v.value)[])
+                case 4:  val2 = cast(u64, cast(const *u32, unwrap v.value)[])
+                case 8:  val2 = cast(u64, cast(const *u64, unwrap v.value)[])
+                case 16: val2s = cast(const *string, unwrap v.value)[]
                 }
 
                 if val1 == val2 and val1s == val2s do
@@ -112,7 +112,7 @@ internal impl Properties
             // Set/clear this one flag bit in every edited instance (other bits, which may
             // differ per instance, are left alone). The row's mask is the flag value.
             let sz   = item.typeValue.pointedType!.sizeof
-            let mask = readEnumBits(cast(*u8, item.checkBox.userData!), sz)
+            let mask = readEnumBits(cast(*u8, unwrap item.checkBox.userData), sz)
             .writeEnumBit(item, mask, item.checkBox.isChecked())
         }
 
@@ -126,8 +126,8 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p  = cast(*T, item.data!)
-                let p1 = cast(const *T, typeEnum.values![idxEnum].value!)
+                let p  = cast(*T, unwrap item.data)
+                let p1 = cast(const *T, unwrap typeEnum.values![idxEnum].value)
                 p[] = p1[]
             }
 

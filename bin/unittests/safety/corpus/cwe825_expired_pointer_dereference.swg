@@ -58,7 +58,7 @@ impl Bag
     }
 
     // Hands out a view INTO the payload, which is what goes stale.
-    mtd view()->[..] s32 => Swag.makeSlice(.buffer!, .count)
+    mtd view()->[..] s32 => Swag.makeSlice(unwrap .buffer, .count)
 
     mtd const at(index: u64)->s32 => .buffer![index]
 }

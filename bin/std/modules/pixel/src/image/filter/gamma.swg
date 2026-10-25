@@ -17,7 +17,7 @@ public impl Image
             var context = inverseGamma
             .transformLogicalPixels(&context)
             {
-                let exponent = cast(const *f32, userData!)[]
+                let exponent = cast(const *f32, unwrap userData)[]
                 value.r = Math.pow(Math.max(value.r, 0.0), exponent)
                 value.g = Math.pow(Math.max(value.g, 0.0), exponent)
                 value.b = Math.pow(Math.max(value.b, 0.0), exponent)

@@ -59,7 +59,7 @@ impl PropWnd
         func selectedKind(prop: *PropWnd, type: typeinfo, fieldName: string)->FormShapeKind
         {
             var val: u32
-            let field = Reflection.findField(type, fieldName)!
+            let field = unwrap Reflection.findField(type, fieldName)
             Reflection.readFieldValue(&val, field, prop.getSelectedBaseForm())
             return cast(FormShapeKind, val)
         }

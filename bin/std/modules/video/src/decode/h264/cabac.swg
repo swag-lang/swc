@@ -202,8 +202,8 @@ impl Slice
     // Parses one full macroblock with CABAC entropy coding.
     mtd parseMbCabac(mb: *Mb) fail
     {
-        let dec = .dec!
-        let pps = dec.pps!
+        let dec = unwrap .dec
+        let pps = unwrap dec.pps
 
         var isIntra = false
         var mbType  = 0'u32
@@ -659,13 +659,13 @@ impl Slice
         let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
         if not neighbor.available do
             return false
-        let info = neighbor.info!
+        let info = unwrap neighbor.info
         if info.class != MbClassInter do
             return false
         if .header.type == SliceTypeP and info.skipped do
             return false
 
-        let dec   = .dec!
+        let dec   = unwrap .dec
         let index = neighbor.blockBase + cast(u64, ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3)))
         if dec.directFlags[index] != 0 and .header.type == SliceTypeB do
             return false
@@ -1042,7 +1042,7 @@ impl Slice
     // Parses every residual block of the macroblock with CABAC coding.
     mtd parseResidualCabac(mb: *Mb)
     {
-        let dec = .dec!
+        let dec = unwrap .dec
 
         // A 4:4:4 macroblock codes its colour planes exactly as luma, one whole plane after
         // another and all three under the same coded block pattern.

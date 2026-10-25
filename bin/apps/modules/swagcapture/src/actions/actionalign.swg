@@ -72,7 +72,7 @@ impl IActionUI for ActionAlign
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()!
+        let capture = unwrap main.getCapture()
 
         var undo: *Undo
         switch cxt.id

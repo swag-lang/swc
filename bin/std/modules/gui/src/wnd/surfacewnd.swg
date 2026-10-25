@@ -32,7 +32,7 @@ impl IWnd for SurfaceWnd
 {
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         switch evt.kind
         {
         case .Pressed:
@@ -135,13 +135,13 @@ impl IWnd for SurfaceWnd
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        let surface = .surface!
+        let surface = unwrap .surface
         surface.app.destroySurface(surface)
     }
 
     mtd impl onSysCommandEvent(evt: *SysCommandEvent)
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         switch evt.kind
         {
         case .Maximize:
@@ -163,7 +163,7 @@ impl IWnd for SurfaceWnd
 
     mtd impl onResizeEvent(evt: *ResizeEvent)
     {
-        let srfn       = .surface!
+        let srfn       = unwrap .surface
         let clientRect = .clientRect()
         let metrics    = .themeMetrics()
 
@@ -204,7 +204,7 @@ impl IWnd for SurfaceWnd
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         if .isPendingDestroy do
             return
         let bc     = evt.paintContext
@@ -375,7 +375,7 @@ impl SurfaceWnd
 
     mtd hitTestCaption(surfacePos: Math.Point)->bool
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         if not srfn.flags.has(.LargeCaption | .SmallCaption) do
             return false
         if .hitTestCaptionButton(surfacePos) do
@@ -405,7 +405,7 @@ impl SurfaceWnd
     mtd hitTestBorders(surfacePos: Math.Point)->SizingBorder
     {
         // `surfacePos` is logical, so the surface extent must be logical as well.
-        let srfn    = .surface!
+        let srfn    = unwrap .surface
         let metrics = .themeMetrics()
         let sdw     = metrics.surfaceWnd_ShadowSize
         let size    = srfn.size()
@@ -458,7 +458,7 @@ impl SurfaceWnd
 
     func onMaximize(btn: *Button)
     {
-        let srfn = btn.surface!
+        let srfn = unwrap btn.surface
         if srfn.isMaximized do
             srfn.requestRestore()
         else do
@@ -472,7 +472,7 @@ impl SurfaceWnd
 
     private mtd applySurfaceFlags()
     {
-        let srfn  = .surface!
+        let srfn  = unwrap .surface
         let theme = srfn.app.theme
         if not theme.initialized do
             return

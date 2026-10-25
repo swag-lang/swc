@@ -80,7 +80,7 @@ func warehouseInit()->Warehouse
     var wh: Warehouse
     let size = cast(u64, MaxDim) * MaxDim * #sizeof(Tile)
     wh.cells = cast([*] Tile?, testAlloc(size))
-    let cells = wh.cells!
+    let cells = unwrap wh.cells
     for index in MaxDim * MaxDim
     {
         cells[index] = Tile.Empty
@@ -98,7 +98,7 @@ func warehouseAt(wh: *Warehouse, r, c: u32)->Tile => wh.cells![r * MaxDim + c]
 
 func warehouseSet(wh: *Warehouse, r, c: u32, t: Tile)
 {
-    let cells = wh.cells!
+    let cells = unwrap wh.cells
     cells[r * MaxDim + c] = t
 }
 
@@ -198,7 +198,7 @@ func parseInput(text: string)->Parsed
     result.nMoves = moveCount
 
     // Swag.makeSlice: create a slice view over the allocated move buffer
-    let moveSlice = Swag.makeSlice(result.moves!, cast(u64, moveCount))
+    let moveSlice = Swag.makeSlice(unwrap result.moves, cast(u64, moveCount))
 
     // .buffer: verify the slice's data pointer matches the allocation
     Swag.assert(moveSlice.buffer == result.moves)
@@ -237,7 +237,7 @@ func dirDelta(ch: u8, dr: *s32, dc: *s32)
 
 func simulate(p: *Parsed)
 {
-    let moves = p.moves!
+    let moves = unwrap p.moves
     for mi in p.nMoves
     {
         var dr: s32
@@ -394,7 +394,7 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     var p = parseInput(SmallInput)
     defer parsedFree(&p)
 
-    let moves     = p.moves!
+    let moves     = unwrap p.moves
     let moveSlice = Swag.makeSlice(moves, cast(u64, p.nMoves))
     Swag.assert(moveSlice.count == cast(u64, p.nMoves))
     Swag.assert(moveSlice.buffer == p.moves)
@@ -410,7 +410,7 @@ func boxRmsBucket(wh: *Warehouse)->s32 => cast(s32, Swag.floor(boxRmsFromCentre(
     defer parsedFree(&p)
 
     // Verify first move
-    let moves = p.moves!
+    let moves = unwrap p.moves
     Swag.assert(moves[0] == '<')
 
     simulate(&p)

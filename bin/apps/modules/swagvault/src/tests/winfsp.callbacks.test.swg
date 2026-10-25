@@ -11,7 +11,7 @@ struct DirectoryCapture
 
 func captureDirectoryEntry(context: *void?, name: const [*] u8?, _: const *WinFsp.FileInfo)->u8
 {
-    let capture = cast(*DirectoryCapture, context!)
+    let capture = cast(*DirectoryCapture, unwrap context)
     if capture.limit and capture.names.count >= capture.limit do
         return 0
     capture.names.add(WinFsp.cString(name))

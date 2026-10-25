@@ -134,9 +134,9 @@ func pageSubtitle(page: s32)->string
 
 func updateHeader()
 {
-    let title    = g_Title!
-    let subTitle = g_SubTitle!
-    let footer   = g_Footer!
+    let title    = unwrap g_Title
+    let subTitle = unwrap g_SubTitle
+    let footer   = unwrap g_Footer
     title.setText(Format.toString("GUI8 list showcase - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
     footer.setText(Format.toString("F1 : next page (%/%). Resize the window to stress list and header layout.",
@@ -146,7 +146,7 @@ func updateHeader()
 
 func updateThemeButton()
 {
-    let btn = g_ThemeButton!
+    let btn = unwrap g_ThemeButton
     if g_DarkTheme do
         btn.name = "White theme"
     else do
@@ -173,7 +173,7 @@ func toggleTheme(_: *Button)
 
 func clearPage()
 {
-    let pageView0 = g_PageView!
+    let pageView0 = unwrap g_PageView
     for child in pageView0.children
     {
         child.destroy()
@@ -187,14 +187,14 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:  createListsPage(g_PageView!)
-    case 1:  createColumnsPage(g_PageView!)
-    case 2:  createTreesPage(g_PageView!)
-    case 3:  createHeadersPage(g_PageView!)
+    case 0:  createListsPage(unwrap g_PageView)
+    case 1:  createColumnsPage(unwrap g_PageView)
+    case 2:  createTreesPage(unwrap g_PageView)
+    case 3:  createHeadersPage(unwrap g_PageView)
     default: unreachable
     }
 
-    refreshLayoutTree(g_PageView!)
+    refreshLayoutTree(unwrap g_PageView)
     g_PageView!.invalidate()
 }
 
@@ -203,8 +203,8 @@ func layoutRootView()
     if not g_View or not g_PageView do
         return
 
-    let view     = g_View!
-    let pageView = g_PageView!
+    let view     = unwrap g_View
+    let pageView = unwrap g_PageView
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -212,10 +212,10 @@ func layoutRootView()
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title2      = g_Title!
-    let themeButton = g_ThemeButton!
-    let subTitle2   = g_SubTitle!
-    let footer2     = g_Footer!
+    let title2      = unwrap g_Title
+    let themeButton = unwrap g_ThemeButton
+    let subTitle2   = unwrap g_SubTitle
+    let footer2     = unwrap g_Footer
     title2.setPosition({RootMargin, 18, titleWidth, 34})
     themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
@@ -261,8 +261,8 @@ func canUsePageArrows()->bool
     if not g_View or not g_PageView do
         return false
 
-    let view2     = g_View!
-    let pageView2 = g_PageView!
+    let view2     = unwrap g_View
+    let pageView2 = unwrap g_PageView
 
     let focus = view2.focusedWindow()
     if not focus or focus == g_View do

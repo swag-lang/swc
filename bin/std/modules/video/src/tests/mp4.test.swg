@@ -151,7 +151,7 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
 {
     var reader = expect Reader.open(videoFixturePath("glint-aac-mjpeg.mp4"))
     Swag.assert(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
-    let sound = reader.audioTrack(0)!
+    let sound = unwrap reader.audioTrack(0)
     Swag.assert(sound.sampleEncoding() == .AacLc)
     Swag.assert(sound.sampleRateHz() == 44_100 and sound.numChannels() == 2)
     Swag.assert(sound.packetCount() >= 18 and not sound.isDataPreloaded())
@@ -167,12 +167,12 @@ func mp4ReadU64(bytes: const [..] u8, offset: u64)->u64 => (cast(u64, mp4ReadU32
     var reader = expect Reader.open(videoFixturePath("glint-aac-drift.mp4"))
     Swag.assert(reader.frameCount() == 10 and reader.audioTrackCount() == 1)
 
-    let drifted = reader.audioTrack(0)!
+    let drifted = unwrap reader.audioTrack(0)
     Swag.assert(drifted.sampleEncoding() == .AacLc)
     Swag.assert(drifted.sampleRateHz() == 44_100 and drifted.numChannels() == 2)
 
     var steady = expect Reader.open(videoFixturePath("glint-aac-mjpeg.mp4"))
-    let even   = steady.audioTrack(0)!
+    let even   = unwrap steady.audioTrack(0)
     Swag.assert(drifted.packetCount() == even.packetCount())
     Swag.assert(drifted.sampleFrameCount() == even.sampleFrameCount())
 }

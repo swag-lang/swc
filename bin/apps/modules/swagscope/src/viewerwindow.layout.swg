@@ -4,7 +4,7 @@ impl ViewerWindow
     // the about box, and the accent rail along the top edge.
     private mtd createAppearanceChrome()
     {
-        .appearanceButton = AppearanceButton.create(.surface!, "scope.appearance")
+        .appearanceButton = AppearanceButton.create(unwrap .surface, "scope.appearance")
         .appearanceButton.sigThemeChanged += func|window = me|(button)
         {
             window.themeIndex = cast(u32, button.appearanceTheme)

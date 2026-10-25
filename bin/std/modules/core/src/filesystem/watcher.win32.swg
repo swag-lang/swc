@@ -15,7 +15,7 @@ private struct WatcherNative
     cancelled:     Swag.AtomicValue'u32
 }
 
-private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative, value!)
+private func watcherNative(value: *void?)->*WatcherNative => cast(*WatcherNative, unwrap value)
 
 private func watchFilterNative(filter: WatchFilter)->DWORD
 {

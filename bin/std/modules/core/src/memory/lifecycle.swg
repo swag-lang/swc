@@ -41,7 +41,7 @@ internal func copyValueStorage(dst: *void, src: const *void, type: typeinfo)
 
     let info = assume cast(const *TypeInfoStruct, concreteType)
     for field in info.fields do
-        copyValueStorage(target + field.offset, source + field.offset, field.pointedType!)
+        copyValueStorage(target + field.offset, source + field.offset, unwrap field.pointedType)
 }
 
 private func resetDynamicSlots(dst: *void, type: const *TypeInfoStruct, index: u64)

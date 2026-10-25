@@ -249,8 +249,8 @@ internal struct Decoder
 
 impl Decoder
 {
-    mtd safeSampleBuf()->[*] u8 => .pSampleBuf!
-    mtd safeInBufOfs()->[*] u8  => .inBufOfs!
+    mtd safeSampleBuf()->[*] u8 => unwrap .pSampleBuf
+    mtd safeInBufOfs()->[*] u8  => unwrap .inBufOfs
 
     mtd init(buffer: const [..] u8, options: DecodeOptions) fail
     {
@@ -292,7 +292,7 @@ impl Decoder
                     break
 
                 var pdest1 = pdest
-                var psrc   = cast([*] u8, scanLineOfs!)
+                var psrc   = cast([*] u8, unwrap scanLineOfs)
                 for .imageSizeX
                 {
                     pdest1[0] = psrc[]
@@ -314,7 +314,7 @@ impl Decoder
             {
                 if try .decode(&scanLineOfs, &scanLineLen) do
                     break
-                Memory.copy(pdest, cast(*void, scanLineOfs!), cast(u64, .imageSizeX) * 3)
+                Memory.copy(pdest, cast(*void, unwrap scanLineOfs), cast(u64, .imageSizeX) * 3)
                 pdest -= .imageSizeX * 3
             }
         }

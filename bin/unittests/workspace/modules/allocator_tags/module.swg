@@ -1,6 +1,6 @@
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     // Only the test command supplies an entry point for this test-only module.
     cfg.backendKind = #command == Swag.CompilerCommand.Test ? .Executable : .Export
 

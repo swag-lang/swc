@@ -107,8 +107,8 @@ private impl Panel
     mtd refreshCueButton()
     {
         let label = .currentCue == Swag.U64.Max
-            ? cueCountText(.track!.cueCount())
-            : Format.toString(texts().ui_CuePosition, .currentCue + 1, .cueText.count)
+                    ? cueCountText(.track!.cueCount())
+                    : Format.toString(texts().ui_CuePosition, .currentCue + 1, .cueText.count)
         .cueButton.setText(label)
     }
 
@@ -131,6 +131,7 @@ private impl Panel
             .setCurrentCue(index)
             return
         }
+
         .setCurrentCue(.cueText.count - 1)
     }
 
@@ -144,14 +145,15 @@ private impl Panel
             if not .transcript.isEmpty()
             {
                 .transcript += "\n\n"
-                line += 2
+                line        += 2
             }
+
             let firstLine = line
             .transcript += clockText(.track.cueStartTime(index))
             .transcript += "  →  "
             .transcript += clockText(.track.cueEndTime(index))
             .transcript += "\n"
-            line += 1
+            line        += 1
             let offset  = .transcript.length
             let content = .track.cueContent(index)
             .transcript += content
@@ -203,8 +205,11 @@ private impl Panel
             if .currentCue + 1 < .cueText.count do
                 discard .revealCue(.currentCue + 1)
         }
-        elif .currentCue do
+        elif .currentCue
+        {
             discard .revealCue(.currentCue - 1)
+        }
+
         return true
     }
 
@@ -220,7 +225,7 @@ private impl Panel
         if .cueText.isEmpty() do
             return
         let message = Format.toString(texts().ui_CueRange, .cueText.count)
-        let dialog  = EditDlg.createSingleLine(.surface!, {title: texts().ui_GoToCue, message: message, text: "1"})
+        let dialog  = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToCue, message: message, text: "1"})
         if dialog.doModal() != Dialog.BtnOk do
             return
         var parseErrorOutcome: Swag.Error
@@ -236,7 +241,7 @@ private impl Panel
     {
         if .cueText.isEmpty() do
             return
-        let dialog = EditDlg.createSingleLine(.surface!, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00.000"})
+        let dialog = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00.000"})
         if dialog.doModal() != Dialog.BtnOk do
             return
 
@@ -300,20 +305,26 @@ private impl Panel
             {
             case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .PageUp:
                 return view.navigateCue(false)
+
             case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .PageDown:
                 return view.navigateCue(true)
+
             case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .Home:
                 return view.navigateCueBoundary(false)
+
             case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .End:
                 return view.navigateCueBoundary(true)
+
             case KeyEvent as key:
                 key.target!.processEvent(evt)
                 view.syncCurrentCue()
                 return key.accepted
+
             case MouseEvent as mouse:
                 mouse.target!.processEvent(evt)
                 view.syncCurrentCue()
                 return mouse.accepted
+
             default:
                 return false
             }

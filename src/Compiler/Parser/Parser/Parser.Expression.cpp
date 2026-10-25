@@ -6,13 +6,6 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    // The postfix '!' shares its node with try/catch/expect; only the token tells them apart.
-    bool isNotNullExpr(const Ast& ast, AstNodeRef nodeRef)
-    {
-        const AstNode& node = ast.node(nodeRef);
-        return node.is(AstNodeId::ErrorManagementExpr) && ast.srcView().token(node.tokRef()).id == TokenId::SymBang;
-    }
-
     bool canStartSubType(TokenId id)
     {
         if (Token::isType(id))
@@ -733,13 +726,17 @@ AstNodeRef Parser::parsePostFixExpression()
     TokenRef firstOptionalAccessTokRef = TokenRef::invalid();
     while (true)
     {
-        // Not-null assertion. Recognized here rather than lexed, because in PREFIX position
-        // the same character is the logical negation ('if !.buffer do'); only a postfix '!'
-        // opens the assertion, and a postfix '!' has no other meaning. Being postfix, it
-        // binds tighter than every prefix form and chains with '.', '[' and '('.
+        // An asserted access keeps its receiver non-null. Standalone extraction is
+        // spelled 'unwrap expr', so a postfix '!' always leads into an access.
         if (is(TokenId::SymBang) && !tok().flags.hasAny({TokenFlagsE::EolBefore, TokenFlagsE::BlankBefore}))
         {
-            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementExpr>(consume());
+            const TokenRef assertionRef    = consume();
+            const bool     memberAccess    = is(TokenId::SymDot) && !tok().flags.has(TokenFlagsE::EolBefore);
+            const bool     indexedOrCalled = isAny(TokenId::SymLeftBracket, TokenId::SymLeftParen) && !tok().flags.hasAny({TokenFlagsE::EolBefore, TokenFlagsE::BlankBefore});
+            if (!memberAccess && !indexedOrCalled)
+                raiseError(DiagnosticId::parser_err_terminal_bang, assertionRef);
+
+            auto [nodeParent, nodePtr] = ast_->makeNode<AstNodeId::ErrorManagementExpr>(assertionRef);
             nodePtr->nodeExprRef       = nodeRef;
             nodeRef                    = nodeParent;
             continue;
@@ -1179,6 +1176,9 @@ AstNodeRef Parser::parsePrefixExpr()
 {
     switch (id())
     {
+        case TokenId::KwdUnwrap:
+            return parseErrorManagementExpr();
+
         case TokenId::ModifierCopy:
         case TokenId::ModifierMove:
         case TokenId::SymAmpersand:
@@ -1305,18 +1305,6 @@ AstNodeRef Parser::parseErrorManagementExpr()
         if (consumeIf(TokenId::KwdAs).isValid())
             nodePtr->nodeCaptureRef = parsePrefixExpr();
         parseCatchHandlerOrFallback(nodePtr->nodeFallbackRef, nodePtr->errNameTokRef, false);
-    }
-
-    // 'expect f()!' asserts the RESULT is not null, not the fallible call. The postfix '!'
-    // binds tighter than the keyword, so it was folded onto the operand; hoist it back out.
-    // Explicit parentheses still give the inner reading.
-    if (nodePtr->nodeExprRef.isValid() && isNotNullExpr(*ast_, nodePtr->nodeExprRef))
-    {
-        auto&      inner      = ast_->node(nodePtr->nodeExprRef).cast<AstErrorManagementExpr>();
-        const auto notNullRef = nodePtr->nodeExprRef;
-        nodePtr->nodeExprRef  = inner.nodeExprRef;
-        inner.nodeExprRef     = nodeRef;
-        return notNullRef;
     }
 
     return nodeRef;

@@ -24,7 +24,7 @@ func(T) roundTripSerializedField(value: T)->T fail
     serializer.end()
 
     var result: retval
-    serializer.startRead(&decoder, buffer.toSlice()!)
+    serializer.startRead(&decoder, unwrap buffer.toSlice())
     serializer.beginSection()
     serializer.serialize("value", &result)
     serializer.endSection()
@@ -62,7 +62,7 @@ func(T) roundTripSerializedField(value: T)->T fail
 
     first  = 0
     second = 0
-    expect serializer.startRead(&decoder, buffer.toSlice()!)
+    expect serializer.startRead(&decoder, unwrap buffer.toSlice())
     expect serializer.beginSection(.Ordered)
     expect serializer.serialize("first", &first)
     expect serializer.endSection()

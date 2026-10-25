@@ -356,7 +356,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
 
     volume.close()
     var reopened     = expect Volume.open(path, testPassword())
-    let reopenedNode = reopened.resolve("\\sparse.bin")!
+    let reopenedNode = unwrap reopened.resolve("\\sparse.bin")
     Swag.assert(reopenedNode.size == 20)
     var persisted: [20] u8
     let bytesRead4 = expect reopened.readNode(reopenedNode.id, 0, persisted)
@@ -722,7 +722,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     // Deleting everything gives the metadata pages back too.
     for i in FileCount
     {
-        let node = reopened.resolve(Format.toString("\\entry_%.bin", i))!
+        let node = unwrap reopened.resolve(Format.toString("\\entry_%.bin", i))
         expect reopened.deleteNode(node.id)
     }
 
@@ -755,7 +755,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     Swag.assert(rejectsPassword(path, testPassword()))
     var reopened  = expect Volume.open(path, secondPassword())
     var readBack: [64] u8
-    let node      = reopened.resolve("\\secret.bin")!
+    let node      = unwrap reopened.resolve("\\secret.bin")
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
     Swag.assert(Slice.equals(payload, readBack))
@@ -937,7 +937,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     Swag.assert(rejectsPassword(path, testPassword()))
     var reopened  = expect Volume.open(path, emptyBytes())
     var readBack: [32] u8
-    let node      = reopened.resolve("\\open.bin")!
+    let node      = unwrap reopened.resolve("\\open.bin")
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
     Swag.assert(Slice.equals(payload, readBack))
@@ -1012,7 +1012,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     Swag.assert(reopened.blockCount == originalBlocks + 64)
 
     var readBack: [64] u8
-    let node      = reopened.resolve("\\kept.bin")!
+    let node      = unwrap reopened.resolve("\\kept.bin")
     let bytesRead = expect reopened.readNode(node.id, 0, readBack)
     Swag.assert(bytesRead == #sizeof(readBack))
     Swag.assert(Slice.equals(payload, readBack))
@@ -1078,7 +1078,7 @@ func pagingContainerSize()->u64 => DataOffset + 512 * BlockRecordSize
     expect volume.deleteNode(fillerId)
 
     // Allocation starts at the high end, so this file really occupies the part being removed.
-    let before = volume.nodeById(fileId)!
+    let before = unwrap volume.nodeById(fileId)
     Swag.assert(before.blocks.count and before.blocks[0].physical >= (MinimumSize - DataOffset) / BlockRecordSize)
 
     expect volume.resize(MinimumSize)

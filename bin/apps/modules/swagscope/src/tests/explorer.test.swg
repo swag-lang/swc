@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-func fixture(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
+func fixture(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
 
 func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 {
@@ -21,7 +21,7 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 // Filesystem and ZIP locations expose the same immediate-child model, including implicit folders.
 #test
 {
-    var listing = expect ExplorerListing.load(Path.directoryName(fixture("comprehensive.txt"))!)
+    var listing = expect ExplorerListing.load(unwrap Path.directoryName(fixture("comprehensive.txt")))
     Swag.assert(not listing.isArchive and listing.entries.count > 10)
     var found = false
     for &entry in listing.entries where entry.name == "comprehensive.txt"
@@ -78,6 +78,8 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     explorer.activate(selected)
     completeQueuedViewerFile(&host, window)
     Swag.assert(not explorer.isLocallyVisible() and window.currentView != null)
+    window.setFilePanelVisible(true)
+    Swag.assert(not window.isExploring() and window.folderList.lineCount() == window.folderFiles.count)
     window.closeFile()
     host.pump()
     Swag.assert(explorer.isLocallyVisible() and explorer.selected == selected and explorer.mode == .Details)
@@ -91,8 +93,8 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     var host: Testing.HeadlessHost
     host.setup(960, 640)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    window.openExplorer(Path.directoryName(fixture("comprehensive.txt"))!)
-    let explorer = window.explorer!
+    window.openExplorer(unwrap Path.directoryName(fixture("comprehensive.txt")))
+    let explorer = unwrap window.explorer
     explorer.setMode(.Names)
     explorer.navigate(fixture("viewer.archive.zip"))
     completeExplorer(&host, explorer)
@@ -112,7 +114,7 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     host.notify(.ThemeChanged)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openExplorer(fixture("viewer.archive.zip"))
-    let explorer = window.explorer!
+    let explorer = unwrap window.explorer
     explorer.setMode(.Details)
     completeExplorer(&host, explorer)
     window.applyLayout()
@@ -128,7 +130,7 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     host.setup(960, 640)
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openExplorer(fixture("viewer.archive.zip"))
-    let explorer = window.explorer!
+    let explorer = unwrap window.explorer
     explorer.setMode(.Names)
     explorer.navigate(fixture("viewer.archive.zip"), "docs/")
     completeExplorer(&host, explorer)
@@ -151,6 +153,8 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     Swag.assert(window.currentView != null and not explorer.isLocallyVisible())
     Swag.assert(Utf8.endsWith(explorer.displayPath(window.currentFile), "docs/readme.txt"))
     Swag.assert(window.folderFiles.isEmpty())
+    window.setFilePanelVisible(true)
+    Swag.assert(window.isArchivePreview() and window.folderList.lineCount() == 1)
     window.closeFile()
     host.pump()
     Swag.assert(explorer.isLocallyVisible() and explorer.selected == 0)
@@ -214,7 +218,7 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         host.notify(.ThemeChanged)
         let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         window.openExplorer(fixture("viewer.archive.zip"))
-        let explorer = window.explorer!
+        let explorer = unwrap window.explorer
         explorer.setMode(.Names)
         completeExplorer(&host, explorer)
         explorer.entries.clear()
@@ -253,11 +257,51 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
         host.settleAnimations(window)
         Swag.assert(explorer.grid.clientRect().height > 200)
         Swag.assert(explorer.filter.position.width > 100)
+        let filterRect = explorer.filter.surfaceRect()
+        let modesRect  = explorer.modes.surfaceRect()
+        Swag.assert(filterRect.y == modesRect.y and filterRect.height == modesRect.height)
+        Swag.assert(modesRect.height <= 36)
+        host.moveMouse(explorer.grid.localToSurface(Math.Point{32, 32}))
+        Swag.assert(explorer.grid.hovered == 0)
+
+        // Keep one publication pending to photograph its indicator without starting a decoder.
+        host.app.renderer.removeTexture(&explorer.entries[2].texture)
+        explorer.preview.index      = 2
+        explorer.preview.generation = explorer.generation
+        explorer.preview.submit(func() {})
         var image = host.render(window)
+        Swag.assert(explorer.grid.spinner.isLocallyVisible())
+        explorer.preview.wait()
+        explorer.grid.invalidate()
+        discard host.render(window)
+        Swag.assert(not explorer.grid.spinner.isLocallyVisible())
         if palette == 0 do
             Pixel.Testing.assertImageGolden(&image, "explorer.gallery")
         let review = Env.variable("SWAG_SCOPE_REVIEW")
         if not review.isEmpty() do
             expect image.save(Path.combine(review, Format.toString("explorer-palette-%.png", palette)))
     }
+}
+
+// Returning to Explorer follows the current file, even when a previous location was retained.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(fixture("viewer.archive.zip"))
+    let explorer = unwrap window.explorer
+    explorer.setMode(.Names)
+    completeExplorer(&host, explorer)
+    window.queueFile(fixture("comprehensive.txt"))
+    completeQueuedViewerFile(&host, window)
+    window.exploreFolder()
+    completeExplorer(&host, explorer)
+    Swag.assert(window.isExploring() and not explorer.listing.isArchive)
+    Swag.assert(explorer.listing.path == (expect Path.absolute(unwrap Path.directoryName(fixture("comprehensive.txt")))))
+    window.setFilePanelVisible(true)
+    var folders: u64
+    for &entry in explorer.entries where entry.directory do
+        folders += 1
+    Swag.assert(window.folderList.lineCount() == folders)
 }

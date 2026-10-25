@@ -21,6 +21,7 @@ struct ViewerChoiceLoad
     fileName:        String
     recent:          Array'String
     result:          ViewerClassifiedFile
+    includeNeighbors: bool
 }
 
 impl ViewerChoiceLoad
@@ -28,7 +29,7 @@ impl ViewerChoiceLoad
     // Classifies `fileName` on the worker task: its absolute path, existence, viewer choices, size
     // and metadata, the `recent` files that still exist, and the sorted files of its folder.
     // `owner` receives a [[Gui.TaskEvent]] when the classification ends.
-    mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String, owner: *Wnd? = null)
+    mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String, owner: *Wnd? = null, includeNeighbors = true)
     {
         Swag.assert(not .started)
 
@@ -38,6 +39,7 @@ impl ViewerChoiceLoad
         .index    = index
         .fileName = fileName
         .recent   = recent
+        .includeNeighbors = includeNeighbors
 
         let operation = me
         .submit(func|operation|()
@@ -65,6 +67,9 @@ impl ViewerChoiceLoad
                 }
             }
 
+            // A thumbnail needs only its document; rescanning the folder for every tile is quadratic.
+            if not operation.includeNeighbors do
+                return
             for one in operation.recent where File.exists(one[]) do
                 operation.result.recent.add(one[])
 

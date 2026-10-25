@@ -1,5 +1,12 @@
 impl ViewerWindow
 {
+    mtd isExploring()->bool => .explorerActive and .explorer and .explorer.isLocallyVisible()
+
+    mtd isArchivePreview()->bool => not .isExploring() and
+                                    .explorer and
+                                    .explorer.listing.isArchive and
+                                    .explorer.displayPath(.currentFile) != .currentFile.toString()
+
     // Fills the three readouts of the information bar; each one carries its full text as tooltip.
     mtd showFileInfo(name, path, details, size: string)
     {
@@ -159,15 +166,21 @@ impl ViewerWindow
 
         discard .fillFileList(.recentList, .recent.toSlice())
         var currentIndex = Swag.U32.Max
-        .kindButton.show(not .explorerActive)
-        .folderFilterBox.show(not .explorerActive)
-        if .explorerActive and .explorer
+        .kindButton.show(not .isExploring() and not .isArchivePreview())
+        .folderFilterBox.show(not .isExploring())
+        if (.isExploring() or .isArchivePreview()) and .explorer
         {
             .folderList.clear()
-            for &entry, index in .explorer.entries where entry.directory
+            for &entry, index in .explorer.entries where entry.directory == .isExploring()
             {
+                if not .isExploring() and
+                   not .folderFilter.isEmpty() and
+                   Utf8.indexOf(entry.name, .folderFilter, comparisonType: .Latin1NoCase) == Swag.U64.Max do
+                    continue
                 let line = .folderList.createLine(entry.name, .explorer.entryIcon(index))
                 line.userData0 = cast(*void, index + 1)
+                if .isArchivePreview() and index == .explorer.selected do
+                    .folderList.selectLine(line.index)
             }
 
             .folderList.computeLayout()
@@ -179,8 +192,8 @@ impl ViewerWindow
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
-        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.currentFile)
-        .folderLabel.setText(.explorerActive ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder))
+        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString())
+        .folderLabel.setText(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder))
         .filePanel.applyLayout()
         if .isFolderReading() and currentIndex != Swag.U32.Max do
             .folderList.ensureVisibleLine(currentIndex)
@@ -193,7 +206,7 @@ impl ViewerWindow
     // file to act on it never opens it.
     mtd showFileMenu(list: *ListCtrl, files: const [..] String, position: Math.Point)
     {
-        if list == .folderList and .explorerActive do
+        if list == .folderList and (.isExploring() or .isArchivePreview()) do
             return
         let line = list.selectedLine()
         if not line do
@@ -256,7 +269,7 @@ impl ViewerWindow
             return
         for one in .folderHistory where one.folder == folder
         {
-            if .explorerActive do
+            if .isExploring() do
                 .openExplorer(one.folder)
             else do
                 .queueFile(one.file)
@@ -343,8 +356,9 @@ impl ViewerWindow
         var index = selected[0]!.index
         if list == .folderList and selected[0]!.userData0 do
             index = cast(u32, cast(u64, selected[0]!.userData0) - 1)
-        if list == .folderList and .explorerActive and .explorer
+        if list == .folderList and (.isExploring() or .isArchivePreview()) and .explorer
         {
+            .explorer.selected = index
             .explorer.activate(index)
             return
         }

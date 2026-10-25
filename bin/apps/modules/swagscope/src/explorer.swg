@@ -138,6 +138,22 @@ impl Explorer
         }
 
         result.retranslate()
+        with result.grid.spinner = Spinner.create(result.grid)
+        {
+            .backgroundStyle = .Transparent
+            .hide()
+            .hookOnEvent = func|result|(_, evt)
+            {
+                if evt is MouseEvent as mouse
+                {
+                    result.grid.itf.onMouseEvent(mouse)
+                    return true
+                }
+
+                return false
+            }
+        }
+
         result.setMode(.Medium)
         return result
     }
@@ -198,16 +214,24 @@ impl Explorer
             .setTextAlignment(.Left, .Center)
         }
 
-        with .modes = ComboBox.create(.bar, {0, 0, 184, 36})
+        with let options = Wnd.create'Wnd(.bar, {0, 0, 0, 36})
+        {
+            .dockStyle       = .Center
+            .backgroundStyle = .Transparent
+            .margin          = {4, 4, 0, 0}
+        }
+
+        with .modes = ComboBox.create(options, {0, 0, 184, 36})
         {
             .dockStyle  = .Right
             .sigChanged += func|view = me|(_, index) { view.setMode(cast(ExplorerMode, index)) }
         }
 
-        with .filter = EditBox.create(.bar, "", {}, flags: .ClearButton)
+        with .filter = EditBox.create(options, "", {0, 0, 0, 36}, flags: .ClearButton)
         {
             .dockStyle = .Center
-            .margin    = {4, 4, 16, 0}
+            .margin.z  = 16
+            .setIcon(me.theme().icon(.Search, themeActionIconSize(me.themeMetrics())))
             .setPlaceholder(appStrings().ui_FilterFiles)
             .sigTextChanged += func|view = me|(_) { view.fill() }
         }
@@ -331,6 +355,7 @@ impl Explorer
 
     mtd fill()
     {
+        .grid.hovered = Swag.U64.Max
         .shown.clear()
         .list.clear()
         let query = .filter.text()
@@ -447,7 +472,7 @@ impl Explorer
     // Only visible tiles are decoded, one at a time, with at most 128 uploaded thumbnails.
     mtd requestPreview()
     {
-        if .preview.started or .load.started or not .isVisible() do
+        if .preview.started or .load.started or (not .isVisible() and .pendingOpen == Swag.U64.Max) do
             return
         var wanted  = .pendingOpen
         let opening = wanted != Swag.U64.Max
@@ -504,6 +529,7 @@ impl Explorer
             .preview.entry = .listing.archive.entries[entry.archiveIndex]
         entry.attempted = true
         .preview.start(me)
+        .grid.invalidate()
     }
 }
 
@@ -537,6 +563,8 @@ impl IWnd for Explorer
         elif .preview.claim(evt)
         {
             .preview.wait()
+            .grid.spinner.hide()
+            .grid.invalidate()
             if .preview.generation != .generation and not .preview.temporary.isEmpty()
             {
                 catch File.delete(.preview.temporary)
@@ -629,10 +657,28 @@ struct ExplorerGrid
     late explorer: *Explorer
     columns:       u64        = 1
     cell:          Math.Point = {160, 152}
+    hovered:       u64        = Swag.U64.Max
+    late spinner:  *Spinner
 }
 
 impl ExplorerGrid
 {
+    mtd rowAt(point: Math.Point)->u64
+    {
+        let local = point + .scrollPos - Math.Point{12, 12}
+        if local.x < 0 or local.y < 0 do
+            return Swag.U64.Max
+        let column = cast(u64, local.x / .cell.x)
+        let line   = cast(u64, local.y / .cell.y)
+        let row    = line * .columns + column
+        if column >= .columns or
+           row >= .explorer.shown.count or
+           local.x - cast(f32, column) * .cell.x >= .cell.x - 8 or
+           local.y - cast(f32, line) * .cell.y >= .cell.y - 8 do
+            return Swag.U64.Max
+        return row
+    }
+
     mtd refreshLayout()
     {
         let width: f32 = .explorer.mode == .Small ? 112.0 : (.explorer.mode == .Large ? 240.0 : 168.0)
@@ -676,6 +722,7 @@ impl IWnd for ExplorerGrid
     {
         let painter = evt.paintContext.painter
         let range   = .visibleRange()
+        var busy    = false
         for row in range.first until range.end
         {
             let index = .explorer.shown[row]
@@ -684,6 +731,8 @@ impl IWnd for ExplorerGrid
                                        12 + cast(f32, row / .columns) * .cell.y, .cell.x - 8, .cell.y - 8}
             if .explorer.selected == index do
                 .theme().drawSubRect(painter, rect, &.themeRects().selectionBox_Bk, .themeColors().listItem_SelectedBk)
+            elif .hovered == row do
+                .theme().drawSubRect(painter, rect, &.themeRects().selectionBox_Bk, .themeColors().listItem_HotBk)
             let preview = Math.Rectangle{rect.x + 8, rect.y + 8, rect.width - 16, rect.height - 40}
             if entry.texture.isValid()
             {
@@ -691,6 +740,15 @@ impl IWnd for ExplorerGrid
                 let width  = cast(f32, entry.texture.width) * scale
                 let height = cast(f32, entry.texture.height) * scale
                 painter.drawTexture({preview.horzCenter() - width / 2, preview.vertCenter() - height / 2, width, height}, entry.texture)
+            }
+            elif .explorer.preview.started and
+                 not .explorer.preview.opening and
+                 .explorer.preview.generation == .explorer.generation and
+                 .explorer.preview.index == index
+            {
+                let size = .themeMetrics().spinner_Size
+                .spinner.setPosition({preview.horzCenter() - size / 2, preview.vertCenter() - size / 2, size, size}, computeLayout: false)
+                busy = true
             }
             else
             {
@@ -707,24 +765,31 @@ impl IWnd for ExplorerGrid
             painter.drawRichString({rect.x + 4, rect.bottom() - 28, rect.width - 8, 24}, &name, format)
         }
 
+        .spinner.show(busy)
         .explorer.requestPreview()
     }
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
+        if evt.kind == .Move or evt.kind == .Enter or evt.kind == .Leave
+        {
+            let row = evt.kind == .Leave ? Swag.U64.Max : .rowAt(.surfaceToLocal(evt.surfacePos))
+            if .hovered != row
+            {
+                .hovered = row
+                .invalidate()
+            }
+
+            return
+        }
+
         if (evt.kind != .Pressed and evt.kind != .DoubleClick) or evt.button != .Left
         {
             evt.accepted = false
             return
         }
 
-        let point = .surfaceToLocal(evt.surfacePos) + .scrollPos - Math.Point{12, 12}
-        if point.x < 0 or point.y < 0 do
-            return
-        let column = cast(u64, point.x / .cell.x)
-        if column >= .columns do
-            return
-        let row = cast(u64, point.y / .cell.y) * .columns + column
+        let row = .rowAt(.surfaceToLocal(evt.surfacePos))
         .select(row)
         .setFocus()
         if evt.kind == .DoubleClick and row < .explorer.shown.count do

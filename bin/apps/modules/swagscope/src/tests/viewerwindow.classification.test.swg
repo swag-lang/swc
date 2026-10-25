@@ -43,6 +43,12 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     load.task.wait()
     var second = load.finish()
     assertClassificationFolder(&second, names.toSlice())
+
+    load.start(&index, names[1], names.toSlice(), includeNeighbors: false)
+    load.task.wait()
+    let thumbnail = load.finish()
+    Swag.assert(thumbnail.exists and not thumbnail.choices.isEmpty())
+    Swag.assert(thumbnail.folderFiles.isEmpty() and thumbnail.recent.isEmpty())
 }
 
 struct ClassificationRetirementGate

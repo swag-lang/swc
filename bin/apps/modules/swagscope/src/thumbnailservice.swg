@@ -78,11 +78,8 @@ func runThumbnailWorker(directory: string) fail
     var app: Application
     app.setRenderer(&cpu)
     registerAppStrings(&app.resources)
-    let surface = try app.createSurface(0, 0, 960, 640, .None)
-    app.theme.setSwagDark()
-    let window = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
-    window.thumbnailMode = true
-    surface.show()
+    let registry = createViewerPluginRegistry()
+    var window: *ViewerWindow?
 
     let ready       = Path.combine(directory, "ready")
     let request     = Path.combine(directory, "request")
@@ -93,7 +90,7 @@ func runThumbnailWorker(directory: string) fail
     {
         if not File.exists(ready)
         {
-            if window.currentView or not window.pendingEmpty.isEmpty() do
+            if window and (window.currentView or not window.pendingEmpty.isEmpty()) do
                 app.runFrame()
             Threading.Thread.sleep(10'ms)
             continue
@@ -105,12 +102,23 @@ func runThumbnailWorker(directory: string) fail
         {
             var image:       Image
             var pluginIndex: u64
-            if window.index.namePlugin(path, &pluginIndex) and window.index.plugins[pluginIndex].thumbnail
+            if registry.namePlugin(path, &pluginIndex) and registry.plugins[pluginIndex].thumbnail
             {
-                image = try window.index.plugins[pluginIndex].thumbnail!(path)
+                image = try registry.plugins[pluginIndex].thumbnail!(path)
             }
             else
             {
+                // Image and video decoders do not need a native surface or a complete viewer tree.
+                if not window
+                {
+                    let surface = try app.createSurface(0, 0, 640, 480, .None)
+                    app.theme.setSwagDark()
+                    window = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
+                    window.thumbnailMode = true
+                    surface.show()
+                }
+
+                let surface = unwrap window.surface
                 window.queueFile(path, remember: false)
                 let started = Time.monotonicMicroseconds()
                 for
@@ -137,7 +145,7 @@ func runThumbnailWorker(directory: string) fail
                 app.animator.finishAll()
                 surface.invalidate()
                 app.runFrame()
-                image = app.renderer.readRenderTarget(&surface.rt, 0, 0, 960, 640)
+                image = app.renderer.readRenderTarget(&surface.rt, 0, 0, 640, 480)
                 image.crop(window.currentView.surfaceRect())
             }
 
@@ -153,7 +161,7 @@ func runThumbnailWorker(directory: string) fail
             try image.save(output)
         }
 
-        window.closeFile()
+        window?.closeFile()
         discard try File.writeAllText(done, "")
         lastRequest = Time.monotonicMicroseconds()
     }

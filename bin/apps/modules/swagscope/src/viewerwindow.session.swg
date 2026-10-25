@@ -91,7 +91,7 @@ impl ViewerWindow
             if .choiceLoad.fileName != .pendingFile
             {
                 discard .choiceLoad.finish()
-                .choiceLoad.start(&.index, .pendingFile, .recent.toSlice(), me)
+                .choiceLoad.start(&.index, .pendingFile, .recent.toSlice(), me, includeNeighbors: not .thumbnailMode)
                 return
             }
 
@@ -142,7 +142,7 @@ impl ViewerWindow
             return
         }
 
-        .choiceLoad.start(&.index, .pendingFile, .recent.toSlice(), me)
+        .choiceLoad.start(&.index, .pendingFile, .recent.toSlice(), me, includeNeighbors: not .thumbnailMode)
     }
 
     mtd chooseFile()

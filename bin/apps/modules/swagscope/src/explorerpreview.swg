@@ -35,6 +35,17 @@ impl ExplorerPreview
 
     private mtd produce() fail
     {
+        let source = .archivePath.isEmpty() ? .path.toString() : .archivePath.toString()
+        let member = .archivePath.isEmpty() ? "" : .path.toString()
+        var cache: String
+        if not .opening
+        {
+            cache  = catch ThumbnailCache.key(source, member)
+            .image = ThumbnailCache.read(cache)
+            if .image.isValid() do
+                return
+        }
+
         var file = String.from(.path)
         if not .archivePath.isEmpty()
         {
@@ -59,8 +70,15 @@ impl ExplorerPreview
             }
         }
 
-        if not .opening do
+        if not .opening
+        {
             .image = try .service.render(file)
+
+            // A file replaced during rendering must not publish an image under its old identity.
+            let current = catch ThumbnailCache.key(source, member)
+            if not Swag.isCancelled() and cache == current do
+                catch ThumbnailCache.write(cache, &.image)
+        }
     }
 
     mtd opDrop()

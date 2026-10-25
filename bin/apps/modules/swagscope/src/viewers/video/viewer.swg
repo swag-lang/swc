@@ -26,12 +26,6 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private func loadThumbnail(fileName: string)->Image fail
-{
-    var reader = try Reader.open(fileName)
-    return try reader.decodeFrame(0)
-}
-
 private
 {
     const SeekSeconds  = 10.0

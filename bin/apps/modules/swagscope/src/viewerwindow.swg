@@ -1054,17 +1054,26 @@ impl ViewerWindow
     // Enters exploration explicitly; opening one ordinary file never creates an explorer.
     mtd exploreFolder()
     {
-        if .explorerActive and .explorer and not .explorer.isLocallyVisible()
+        if .explorerActive and
+           .explorer and
+           not .explorer.isLocallyVisible() and
+           .explorer.displayPath(.currentFile) != .currentFile.toString()
         {
             .closeFile()
             return
         }
 
-        if not .explorerActive and not .currentFile.isEmpty()
+        if not .currentFile.isEmpty()
         {
             let folder = Path.directoryName(.currentFile) orelse ""
-            if folder.count do
-                .openExplorer(folder)
+            if folder.count
+            {
+                if .explorerActive and .explorer and .explorer.listing.path == folder do
+                    .closeFile()
+                else do
+                    .openExplorer(folder)
+            }
+
             return
         }
 

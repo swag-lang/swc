@@ -3,6 +3,38 @@
 
 using Core, Pixel, Gui, Video, Audio, Viewers
 
+// Opening fades are excluded; histogram selection returns a representative later scene.
+#test
+{
+    let path = Path.combine(Env.getSpecialDirectory(.Temp), "thumbnail-fade.y4m")
+    defer catch File.delete(path)
+    var clip = expect Clip.create(64, 48, expect FrameRate.create(4, 1))
+    for index in 20
+    {
+        var image = Image.create(64, 48, .RGB8)
+        image.fill(index < 5 ? Color.fromRgb(0, 0, 0) : Color.fromRgb(56, 189, 248))
+        expect clip.addFrame(image)
+    }
+
+    expect clip.save(path)
+    let thumbnail = expect Film.loadThumbnail(path)
+    let color     = thumbnail.pixelColor(32, 24)
+    Swag.assert(color.g > 160 and color.b > 200)
+
+    var candidates: Array'Film.ThumbnailCandidate
+    for color in [Color.fromRgb(0, 0, 0), Color.fromRgb(255, 255, 255), Color.fromRgb(56, 189, 248)]
+    {
+        var candidate: Film.ThumbnailCandidate
+        candidate.image = Image.create(32, 24, .RGB8)
+        candidate.image.fill(color)
+        candidate.analyze()
+        candidates.add(#move candidate)
+    }
+
+    Swag.assert(not candidates[0].usable and not candidates[1].usable and candidates[2].usable)
+    Swag.assert(Film.representativeThumbnail(candidates.toSlice()) == 2)
+}
+
 // Both decoder paths propagate failure into the producer's catch before the queue reports it.
 #test
 {

@@ -190,7 +190,7 @@ func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     painter.popTransform()
     painter.popClippingRect()
     drawWrappedText(painter,
-                    (body.x + 18, body.bottom() - 32, body.width - 36, 22),
+                    Math.Rectangle{body.x + 18, body.bottom() - 32, body.width - 36, 22},
                     "TypeFace.buildStringOutline + gradient fill + textured outline",
                     g_HelpFont,
                     Argb.DimGray)

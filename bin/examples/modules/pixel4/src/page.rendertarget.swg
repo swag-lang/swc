@@ -107,7 +107,10 @@ func drawRenderTargetBrushCard(painter: *Pixel.Painter, rect: Math.Rectangle, te
         painter.fillPolygon(flower[to], Brush.createTiled(g_TileTexture))
         drawClosedOutline(painter, flower[to], pen)
         drawWrappedText(painter,
-                        (rightRect.x + 10, rightRect.bottom() - 24, rightRect.width - 20, 22),
+                        Math.Rectangle{rightRect.x + 10,
+                                       rightRect.bottom() - 24,
+                                       rightRect.width - 20,
+                                       22},
                         "Textured outline from the same target",
                         g_HelpFont,
                         Argb.DarkSlateGray)

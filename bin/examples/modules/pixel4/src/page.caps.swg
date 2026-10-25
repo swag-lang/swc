@@ -33,7 +33,7 @@ func drawCapRow(painter: *Pixel.Painter, rect: Math.Rectangle, row: CapRow)
 
     painter.fillRect(rect.x, rect.y + rect.height - 1, rect.width, 1, Color.fromArgb(30, Argb.SlateGray))
     drawWrappedText(painter,
-                    (rect.x + 8, rect.y + 10, 190, rect.height - 14),
+                    Math.Rectangle{rect.x + 8, rect.y + 10, 190, rect.height - 14},
                     row.label,
                     g_LabelFont,
                     Argb.DarkSlateGray)
@@ -72,7 +72,7 @@ func drawCapsPage(painter: *Pixel.Painter)
                    "Page 1 : starts, endings and cap styles on the same straight segment.")
 
     let body = drawPanel(painter,
-                         (28, 98, 924, 586),
+                         Math.Rectangle{28, 98, 924, 586},
                          "Caps and endings",
                          "The path starts on the left, ends on the right. Only the pen changes from row to row.")
     let rowHeight = body.height / cast(f32, CapRows.count)

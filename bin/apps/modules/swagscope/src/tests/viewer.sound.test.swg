@@ -54,7 +54,7 @@ func previewWav()->Array'u8
     return result
 }
 
-func waveformFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/waveform.samples.txt")
+func waveformFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/waveform.samples.txt")
 
 func writeU16(bytes: *Array'u8, offset: u64, value: u16)
 {
@@ -85,7 +85,7 @@ func waitForSoundOpen(host: *Testing.HeadlessHost, view: *Sound.Panel)
 
 func markSoundOpenFailure(wnd: *Wnd, _: string)
 {
-    let failed = cast(*bool, wnd.userData!)
+    let failed = cast(*bool, unwrap wnd.userData)
     failed[] = true
 }
 
@@ -118,7 +118,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
 
     var failed: bool
     var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &markSoundOpenFailure})
@@ -142,11 +141,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
@@ -232,7 +227,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -333,7 +327,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 // on whether a playback device can be opened.
 #test
 {
-    let pacmanWav = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/pacman_beginning.wav")
+    let pacmanWav = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/pacman_beginning.wav")
     let sound     = expect SoundFile.load(pacmanWav)
     Swag.assert(sound.sampleRateHz() == 11_025)
     Swag.assert(sound.numChannels() == 1)
@@ -352,7 +346,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(640, 320)
-    defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, pacmanWav, commandParent: commands)
     Swag.assert(result.view != null)
@@ -370,7 +363,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 // Answers a sound that has been played through with the continuation stored on the view.
 func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 {
-    let answer = cast(*Viewer.Continuation, wnd.userData!)
+    let answer = cast(*Viewer.Continuation, unwrap wnd.userData)
     return answer[]
 }
 
@@ -388,7 +381,6 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
-    defer host.shutdown()
 
     let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 480, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerSoundEnd})

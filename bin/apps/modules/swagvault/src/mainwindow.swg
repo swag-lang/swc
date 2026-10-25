@@ -497,7 +497,7 @@ impl MainWindow
     func create(parent: *Wnd)->*MainWindow
     {
         let result  = Wnd.create'MainWindow(parent, "vault.mainWindow")
-        let surface = result.surface!
+        let surface = unwrap result.surface
         surface.setView(result)
         surface.minSize        = Math.Point{WindowWidth, 0}
         result.backgroundStyle = .View
@@ -529,7 +529,7 @@ impl MainWindow
     // Creates the caption's appearance action, which persists the palette and language it applies.
     mtd createAppearanceButton()
     {
-        with .appearanceButton = AppearanceButton.create(.surface!, "vault.appearance")
+        with .appearanceButton = AppearanceButton.create(unwrap .surface, "vault.appearance")
         {
             .sigThemeChanged += func|window = me|(button)
             {
@@ -589,7 +589,7 @@ impl MainWindow
             .copyrightHolder = "Christophe Beaudet"
         }
 
-        discard AboutDlg.createApplication(.surface!, about).doModal()
+        discard AboutDlg.createApplication(unwrap .surface, about).doModal()
     }
 
     // The stop the window opens on: the first thing there is to fill in on the page that is up.
@@ -657,7 +657,7 @@ impl MainWindow
             return
         .fittingSize = true
         defer .fittingSize = false
-        let surface = .surface!
+        let surface = unwrap .surface
         let frame   = surface.wnd.padding
         let shadow  = surface.shadowMargin() * 2
         let width   = surface.size().x - frame.x - frame.z - shadow

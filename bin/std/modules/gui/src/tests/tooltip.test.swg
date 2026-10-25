@@ -36,7 +36,7 @@ func assertPassiveAndFits(tip: *FrameWnd, label: *Label)
 
     // Inside both caps: the one the theme sets, and the window that has to show it.
     let metrics = tip.themeMetrics()
-    let parent  = tip.parent!
+    let parent  = unwrap tip.parent
     Swag.assert(tip.position.width <= metrics.toolTip_MaxWidth)
     Swag.assert(tip.position.height <= metrics.toolTip_MaxHeight)
     Swag.assert(tip.position.x >= 0 and tip.position.y >= 0)
@@ -65,12 +65,11 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(420, 200)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Refresh", Math.Rectangle{20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
 
-    let tip = host.app.toolTip.current!
+    let tip = unwrap host.app.toolTip.current
     assertPassiveAndFits(tip, lbl)
 
     // Nothing was dropped, so no line budget was needed and the text is intact.
@@ -88,12 +87,11 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(600, 300)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Library", Math.Rectangle{20, 20, 100, 30})
     let lbl = showTip(btn, "Afficher la bibliothèque de captures et retrouver les images enregistrées pendant la session")
 
-    let tip = host.app.toolTip.current!
+    let tip = unwrap host.app.toolTip.current
     assertPassiveAndFits(tip, lbl)
 
     // Wrapped, not cut: several lines tall, and no budget was imposed.
@@ -109,11 +107,10 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(420, 200, 1.5)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Files", Math.Rectangle{20, 20, 100, 30})
     let lbl = showTip(btn, "Fichiers à côté de celui-ci")
-    let tip = host.app.toolTip.current!
+    let tip = unwrap host.app.toolTip.current
     assertPassiveAndFits(tip, lbl)
 
     Swag.assert(lbl.maxLines == 0)
@@ -128,13 +125,12 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(600, 400)
-    defer host.shutdown()
 
     let long = longAnnotation()
     let btn  = PushButton.create(&host.root, "Help", Math.Rectangle{20, 20, 100, 30})
     let lbl  = showTip(btn, long.toString())
 
-    let tip = host.app.toolTip.current!
+    let tip = unwrap host.app.toolTip.current
     assertPassiveAndFits(tip, lbl)
 
     // The height cap bit, so the label carries the line budget that produces the ellipsis.
@@ -148,13 +144,12 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(240, 110)
-    defer host.shutdown()
 
     let long = longAnnotation()
     let btn  = PushButton.create(&host.root, "Help", Math.Rectangle{10, 10, 60, 24})
     let lbl  = showTip(btn, long.toString())
 
-    assertPassiveAndFits(host.app.toolTip.current!, lbl)
+    assertPassiveAndFits(unwrap host.app.toolTip.current, lbl)
 }
 
 var g_LinkOwner: *Wnd?
@@ -165,12 +160,11 @@ var g_LinkText:  String
 {
     var host: Testing.HeadlessHost
     host.setup(460, 220)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Docs", Math.Rectangle{20, 20, 100, 30})
     let lbl = showTip(btn, "Read <b>the guide</b> at <url>swag-lang.org</url> for the rest")
 
-    assertPassiveAndFits(host.app.toolTip.current!, lbl)
+    assertPassiveAndFits(unwrap host.app.toolTip.current, lbl)
     Swag.assert(lbl.name.hasUrl)
 
     // The palette survived. A tip that painted its text with one explicit color would collapse
@@ -204,7 +198,6 @@ var g_LinkText:  String
 {
     var host: Testing.HeadlessHost
     host.setup(420, 200)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Refresh", Math.Rectangle{20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
@@ -230,7 +223,6 @@ var g_LinkText:  String
 
     var second: Testing.HeadlessHost
     second.setup(420, 200)
-    defer second.shutdown()
     Swag.assert(second.app.toolTip.current == null)
     Swag.assert(second.app.toolTip.pending == null)
 }
@@ -241,7 +233,6 @@ var g_LinkText:  String
 {
     var host: Testing.HeadlessHost
     host.setup(460, 320)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Library", Math.Rectangle{20, 20, 100, 30})
 

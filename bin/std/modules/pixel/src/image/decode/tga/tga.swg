@@ -191,7 +191,7 @@ func writePalettePixel(dst: [*] u8, palette: Palette, index: u32) fail
     if index < palette.first or index >= cast(u32, palette.first) + palette.count do
         fail InvalidFormatError{"invalid palette index"}
 
-    let paletteData = cast(const [*] u8, palette.data!)
+    let paletteData = cast(const [*] u8, unwrap palette.data)
     let entry       = paletteData + cast(u64, (index - palette.first)) * palette.bytesPerPixel
     switch palette.bitsPerPixel
     {

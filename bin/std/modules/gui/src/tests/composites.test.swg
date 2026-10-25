@@ -27,7 +27,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
 
     var options: FormDlgOptions
     options.title = "Credentials"
@@ -68,7 +67,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 60)
-    defer host.shutdown()
     let ctrl = EditCtrl.create(&host.root, "Name", "Bob", Math.Rectangle{0, 0, 240, 26})
     Swag.assert(ctrl.label.text() == "Name")
     Swag.assert(ctrl.edit.text() == "Bob")
@@ -87,7 +85,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Edit")
     dlg.addButton("OK", Dialog.BtnOk, true)
     let ctrl = EditCtrl.create(dlg, "Name", "Bob", Math.Rectangle{20, 20, 210, 26})
@@ -117,7 +114,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 60)
-    defer host.shutdown()
     CompositeSliderChangedCount = 0
 
     let ctrl = SliderCtrl.create(&host.root, "Vol", Math.Rectangle{0, 0, 300, 30})
@@ -139,7 +135,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 60)
-    defer host.shutdown()
     let ctrl = SliderCtrl.create(&host.root, "N", Math.Rectangle{0, 0, 300, 30})
     ctrl.setUnsignedBounds(0, 100)
 
@@ -153,7 +148,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 60)
-    defer host.shutdown()
     let ctrl = ComboCtrl.create(&host.root, "Mode", Math.Rectangle{0, 0, 240, 26})
     Swag.assert(ctrl.label.text() == "Mode")
 
@@ -174,7 +168,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
     CompositeInfoDismissedCount = 0
 
     let bar = InfoBar.create(&host.root, "Saved", .Information, flags: .Bottom)
@@ -200,7 +193,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
 
     let bar = InfoBar.create(&host.root, "A message far longer than the bar it is ever shown in", .Information)
     host.root.applyLayout()
@@ -216,7 +208,6 @@ func compositeColorChanged(_: *ColorPickerCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(380, 360)
-    defer host.shutdown()
     CompositeColorChangedCount = 0
 
     let picker = ColorPickerCtrl.create(&host.root, Math.Rectangle{0, 0, 340, 330})

@@ -405,7 +405,7 @@ impl Decoder
     // Reports whether the block covering `(xNb, yNb)` may be predicted from, clause 6.4.1.
     mtd const isAvailable(xCurr, yCurr, xNb, yNb: s32)->bool
     {
-        let sps = .activeSps!
+        let sps = unwrap .activeSps
         if xNb < 0 or yNb < 0 or xNb >= cast(s32, sps.width) or yNb >= cast(s32, sps.height) do
             return false
 
@@ -448,7 +448,7 @@ impl Decoder
     #[Swag.Inline]
     mtd const ctbAddressRs(x, y: s32)->u64
     {
-        let sps = .activeSps!
+        let sps = unwrap .activeSps
         return cast(u64, (cast(u32, y) >> sps.ctbLog2Size)) * cast(u64, sps.widthInCtbs) + cast(u64, (cast(u32, x) >> sps.ctbLog2Size))
     }
 
@@ -488,7 +488,7 @@ impl Decoder
         for index in .referenceCount
         {
             let reference = &.references[index]
-            let frame     = reference.frame!
+            let frame     = unwrap reference.frame
             if frame.poc != poc do
                 continue
             if shortTerm and reference.marking != .ShortTerm do
@@ -504,7 +504,7 @@ impl Decoder
     {
         for index in .referenceCount
         {
-            let frame = .references[index].frame!
+            let frame = unwrap .references[index].frame
             if (cast(u32, frame.poc) & mask) == pocLsb do
                 return frame
         }
@@ -590,7 +590,7 @@ impl Decoder
         for index in .referenceCount
         {
             let reference = &.references[index]
-            let frame     = reference.frame!
+            let frame     = unwrap reference.frame
             if frame == .current do
                 continue
 
@@ -623,7 +623,7 @@ impl Decoder
         var index = 0'u32
         while index < .referenceCount
         {
-            let frame = .references[index].frame!
+            let frame = unwrap .references[index].frame
             if frame != .current and not keep[index]
             {
                 Atomic.add(&frame.reconstructionHolds, ~0'u32)
@@ -727,7 +727,7 @@ impl Decoder
         var bestDistance = Swag.S32.Max
         for index in .referenceCount
         {
-            let frame = .references[index].frame!
+            let frame = unwrap .references[index].frame
             if frame == .current do
                 continue
             let distance = Math.abs(frame.poc - poc)

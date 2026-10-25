@@ -211,7 +211,7 @@ impl InPlaceEditWnd
         switch actionId
         {
         case "copy":
-            with let cap = me.capture!
+            with let cap = unwrap me.capture
             {
                 .cropToGrab()
                 .copyAll()

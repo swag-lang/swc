@@ -3,7 +3,7 @@
 
 using Core, Gui, Viewers
 
-func viewerRegistryFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+func viewerRegistryFixturePath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
 
 private func choicePlugin(registry: const *ViewerPluginRegistry, choice: const *ViewerPluginChoice)->const *Viewer.Plugin => &registry.plugins[choice.pluginIndex]
 
@@ -265,7 +265,6 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     var session = openTestViewer(choicePlugin(&registry, &choices[0])[], &host.root, "sample.plug")
     Swag.assert(session.view != null and session.failureReason.isEmpty())
 

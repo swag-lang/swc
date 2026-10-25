@@ -62,7 +62,7 @@ impl ViewerReadingState
         .query  = search
         .scrolls.clear()
         var path: Array'u32
-        .captureScrolls(session.view!, &path)
+        .captureScrolls(unwrap session.view, &path)
         switch session.view
         {
         case Viewers.PlainText.Panel as view:
@@ -112,7 +112,7 @@ impl ViewerReadingState
     // Applies the recorded reading scale to the reloaded `session`, then arms [[ViewerReadingState.restore]].
     mtd applySettings(session: *ViewerSession)
     {
-        switch session.view!
+        switch unwrap session.view
         {
         case Viewers.PlainText.Panel as view:
             view.setZoom(.zoom)

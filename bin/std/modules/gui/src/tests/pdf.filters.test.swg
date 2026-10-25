@@ -95,7 +95,7 @@ using Core, Pdf
 
     let content  = "q 5 0 0 2 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
-    let image    = onlyItem(document.pages[0], .Image).imageValue()!
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
     Swag.assert(image.width == 5 and image.height == 2)
 
     // The decoded samples are 45 45 45 45 45 / 65 45 45 45 66.
@@ -123,7 +123,7 @@ using Core, Pdf
 
     let content  = "q 4 0 0 3 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
-    let image    = onlyItem(document.pages[0], .Image).imageValue()!
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
     Swag.assert(image.width == 4 and image.height == 3)
 
     Swag.assert(image.pixelColor(0, 0).r == 10)

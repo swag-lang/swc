@@ -187,7 +187,7 @@ func setGrabBounds(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64)-
             return false
         let rect       = getGrabRect()
         let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
-        g_CaptureWindow = getCaptureWindowForRect(main.surface!, screenRect)
+        g_CaptureWindow = getCaptureWindowForRect(unwrap main.surface, screenRect)
 
     case .Area:
         return false
@@ -202,7 +202,7 @@ func screenShot(main: *MainWnd, captureMode: CaptureMode, monitorIndex: u64 = 0)
     let platformScope = beginCapturePlatformScope()
 
     // Keep the editor out of the desktop pixels unless the option says otherwise.
-    let surface   = main.surface!
+    let surface   = unwrap main.surface
     let wasHidden = surface.isHidden
     if main.captureOptions.hideEditorBefore and not surface.isHidden and not surface.isMinimized do
         surface.hide()

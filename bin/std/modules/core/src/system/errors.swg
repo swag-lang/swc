@@ -157,7 +157,7 @@ func mkString(str: string?)->string?
     if not context.errorAllocator.capacity
     {
         const Capacity = #run Swag.compiler().getBuildCfg()!.errorAllocatorCapacity
-        context.errorAllocator.setCapacity(Capacity, context.allocator!)
+        context.errorAllocator.setCapacity(Capacity, unwrap context.allocator)
     }
 
     let count     = str.count

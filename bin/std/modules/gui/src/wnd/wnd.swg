@@ -636,7 +636,7 @@ impl Wnd
     // still released at the end of the frame. Prefer [[Gui.Wnd.destroy]] from an event handler.
     mtd destroyNow()
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         Swag.assert(not .isPendingDestroy)
 
         // Each child's destroyWnd removes it from '.children': iterating the array while it
@@ -654,7 +654,7 @@ impl Wnd
     // form to call from an event handler.
     mtd destroy()
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         if .isPendingDestroy
         {
             .wndFlags.add(.Hidden)
@@ -1421,7 +1421,7 @@ impl Wnd
     // screen edge. The near edges are then kept visible too.
     mtd fitPosInParent(marginW, marginH: f32 = 0, simX, simY = false)
     {
-        let parent = .parent!
+        let parent = unwrap .parent
         var pos    = .position
         if pos.x + pos.width > parent.position.width - marginW
         {
@@ -1451,7 +1451,7 @@ impl Wnd
     // Converts a physical screen position to logical coordinates of this window's surface.
     mtd const screenToSurface(pos: Math.Point)->Math.Point
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         return Math.Point{(pos.x - srfn.position.x) / srfn.dpiScale, (pos.y - srfn.position.y) / srfn.dpiScale}
     }
 
@@ -1617,7 +1617,7 @@ impl Wnd
     // Moves this window before all siblings so it is painted behind them.
     mtd sendToBack()
     {
-        let parent = .parent!
+        let parent = unwrap .parent
         if parent.children.front() == me do
             return
 
@@ -1631,7 +1631,7 @@ impl Wnd
     // Moves this window after normal siblings so it is painted in front of them.
     mtd bringToFront()
     {
-        let parent = .parent!
+        let parent = unwrap .parent
         if parent.children.back() == me do
             return
 
@@ -2080,7 +2080,7 @@ impl Wnd
             return
         }
 
-        let srfn = .surface!
+        let srfn = unwrap .surface
         if srfn.app.keyboardFocusWnd == me do
             return
         if not .isEnabled() or srfn.isDisabled do
@@ -2398,7 +2398,7 @@ impl Wnd
     // dispatch.
     mtd postEvent(evt: IEvent)
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         let ptr  = assume cast (*Event, evt)
         ptr.target = me
         srfn.app.postEvent(evt)
@@ -2435,7 +2435,7 @@ impl Wnd
     // Delivers `evt` to this window immediately, through the owner and parent routing chain.
     mtd sendEvent(evt: IEvent)
     {
-        let srfn = .surface!
+        let srfn = unwrap .surface
         let ptr  = assume cast (*Event, evt)
         ptr.target = me
         srfn.app.sendEvent(evt)

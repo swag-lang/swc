@@ -109,7 +109,7 @@ impl ImageCanvas
     // off-screen layer does.
     private mtd beginFrame()
     {
-        .painter.bindRenderTarget(.target!, true)
+        .painter.bindRenderTarget(unwrap .target, true)
         .painter.setColorMaskFull()
         .painter.clear(.background)
         .painter.setColorMaskColor()
@@ -145,7 +145,7 @@ impl ImageCanvas
         var result: retval
         try open(&result, image.width, image.height)
 
-        let renderer = result.renderer!
+        let renderer = unwrap result.renderer
         renderer.begin(result.width, result.height)
         let rendererItf: IRenderer = renderer
         result.source = rendererItf.addImage(image)
@@ -196,11 +196,11 @@ impl ImageCanvas
         .painter.unbindRenderTarget()
         .painter.end()
 
-        let renderer = .renderer!
+        let renderer = unwrap .renderer
         renderer.begin(.width, .height)
         let rendererItf: IRenderer = renderer
         .painter.render()
-        var result: retval = rendererItf.readRenderTarget(.target!, 0, 0, .width, .height)
+        var result: retval = rendererItf.readRenderTarget(unwrap .target, 0, 0, .width, .height)
         rendererItf.end()
 
         .painter.begin()
@@ -215,10 +215,10 @@ impl ImageCanvas
             return
         .isOpen = false
 
-        let renderer = .renderer!
+        let renderer = unwrap .renderer
         renderer.begin(.width, .height)
         let rendererItf: IRenderer = renderer
-        rendererItf.deleteRenderTarget(.target!)
+        rendererItf.deleteRenderTarget(unwrap .target)
         rendererItf.end()
 
         Memory.delete(.renderer)

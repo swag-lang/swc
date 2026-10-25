@@ -332,8 +332,8 @@ namespace
                 }
 
                 case AstNodeId::ErrorManagementExpr:
-                    // 'notnull x' asserts non-null; other wrappers stay conservative.
-                    return tokenIdOf(node, TokenId::KwdCatch) == TokenId::SymBang &&
+                    // Presence assertions preserve the operand's initialization shape.
+                    return Token::isPresenceAssertion(tokenIdOf(node, TokenId::KwdCatch)) &&
                            valueShapeIsNonNull(node.cast<AstErrorManagementExpr>().nodeExprRef);
 
                 default:

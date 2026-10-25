@@ -26,7 +26,6 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-    defer host.shutdown()
     host.recordCommands()
     PopupHeadlessChangedCount = 0
 
@@ -58,7 +57,6 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-    defer host.shutdown()
     let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26})
     combo.addItem("One")
     combo.addItem("Two")
@@ -81,7 +79,6 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-    defer host.shutdown()
     let popup = PopupListCtrl.create(&host.root)
     Swag.assert(popup.itemHeight == 24)
     Swag.assert(popup.iconSize == 16)
@@ -113,7 +110,6 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-    defer host.shutdown()
 
     let popup = PopupListCtrl.create(&host.root)
     popup.addItem("A")
@@ -152,7 +148,6 @@ func popupListContentPainter(_: *PopupListCtrlItem, _: *PaintContext, _: Math.Re
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-    defer host.shutdown()
     PopupListContentPaintCount = 0
     PopupListContentPaintFlags = .None
 

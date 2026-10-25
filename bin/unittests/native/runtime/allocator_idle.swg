@@ -40,14 +40,14 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
     // its own capacity; the block past a full page opens the next one.
     held[][0] = allocOne(itf, 64)
     var count = 1'u64
-    let first = allocatorPageOf(cast(u64, held[][0]))!
+    let first = unwrap allocatorPageOf(cast(u64, held[][0]))
     for first.capacityBytes() / first.blockSize
     {
         held[][count] = allocOne(itf, 64)
         count         += 1
     }
 
-    let second = allocatorPageOf(cast(u64, held[][count - 1]))!
+    let second = unwrap allocatorPageOf(cast(u64, held[][count - 1]))
     Swag.assert(second != first)
     for second.capacityBytes() / second.blockSize
     {
@@ -158,7 +158,7 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
     {
         let owner = cast(*IdleOwner, param)
         for i in owner.blocks.count do
-            owner.blocks[i] = allocOne(owner.itf!, 64)
+            owner.blocks[i] = allocOne(unwrap owner.itf, 64)
         discard Swag.atomicExchange(&owner.allocated, 1)
         while Swag.atomicCompareExchange(&owner.release, 0, 0) == 0 {}
 
@@ -185,7 +185,7 @@ func fillFirstPages(itf: IAllocator, held: *[HeldCount] (*void?))->*AllocatorPag
 
         for block in owner.blocks do
             freeOne(itf, block)
-        let page = allocatorPageOf(cast(u64, owner.blocks[0]))!
+        let page = unwrap allocatorPageOf(cast(u64, owner.blocks[0]))
         Swag.assert(page.remoteCount() == owner.blocks.count)
         Swag.assert(allocator.stats().countAlloc == 0)
         Swag.assert(allocator.stats().countPage == 1)

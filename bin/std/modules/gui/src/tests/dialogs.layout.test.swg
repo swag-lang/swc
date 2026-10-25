@@ -8,7 +8,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let dlg     = EditDlg.createSingleLine(&host.surface, {title: "Rename", message: "Enter the new name."})
     let metrics = dlg.themeMetrics()
@@ -27,7 +26,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     var options: EditDlgOptions
     options.title   = "Rename"
@@ -50,7 +48,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let options = EditDlgOptions{title: "Description", editorHeight: 150}
     let dlg     = EditDlg.createMultiLine(&host.surface, options)
@@ -71,7 +68,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let params = AboutDlgParams{
         surfaceTitle: "About",
@@ -101,7 +97,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let icon = Image.create(32, 32, .RGBA8)
     host.app.setAppIcon(icon)
@@ -126,7 +121,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -139,7 +133,7 @@ using Swag, Core, Pixel
         contentIcon: icon})
 
     dlg.applyLayout()
-    let surface = dlg.surface!
+    let surface = unwrap dlg.surface
     surface.invalidate()
     surface.paint()
     let rendered = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
@@ -156,7 +150,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     // Short actions: the box opens at the floor instead of closing in on three small buttons
     // until the bar is the whole box.
@@ -199,7 +192,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600, 1.5)
-    defer host.shutdown()
 
     // One glyph more each round, which walks the fractional part of the measured width across
     // the whole range a rounding can lose.
@@ -232,7 +224,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 900)
-    defer host.shutdown()
 
     var message: String
     for index in 80 do
@@ -265,7 +256,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(900, 900)
-    defer host.shutdown()
 
     let icon = Image.create(32, 32, .RGBA8)
     host.app.setAppIcon(icon)

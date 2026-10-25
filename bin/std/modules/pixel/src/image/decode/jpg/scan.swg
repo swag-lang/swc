@@ -29,7 +29,7 @@ impl Decoder
             {
                 let componentId = .mcuOrg[mcuBlock]
 
-                var p   = .blockSeg[rowBlock]!
+                var p   = unwrap .blockSeg[rowBlock]
                 let q   = .quant[.compQuant[componentId]].storage()
                 var pAC = coeffBufGetp(.acCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
                 let pDC = coeffBufGetp(.dcCoeffs[componentId], blockMcuX[componentId] + blockMcuOfsX, .blockMcuY[componentId] + blockMcuOfsY)
@@ -159,7 +159,7 @@ impl Decoder
             for mcuBlock in .blocksPerMcu
             {
                 let componentId = .mcuOrg[mcuBlock]
-                var p = .blockSeg[rowBlock]!
+                var p = unwrap .blockSeg[rowBlock]
                 let q = .quant[.compQuant[componentId]].storage()
 
                 var s = .huffDecode(&.h[.compDcTab[componentId]])
@@ -474,7 +474,7 @@ impl Decoder
     mtd stuffChar(q: u8)
     {
         .inBufOfs -= 1
-        let inBufOfs = .inBufOfs!
+        let inBufOfs = unwrap .inBufOfs
         inBufOfs[] = q
         .inBufLeft += 1
     }

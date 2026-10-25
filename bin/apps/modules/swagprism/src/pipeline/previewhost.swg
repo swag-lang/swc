@@ -17,12 +17,10 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     var library = try NativeLibrary.load(libraryPath)
     let header  = channel.header()
     var host: Gui.Testing.HeadlessHost
-    defer if gui do
-        host.shutdown()
     var shade: (func(f32, f32, f32)->u32)?
     if gui
     {
-        let build = cast(func(*Wnd), library.symbol("prism_build")!)
+        let build = cast(func(*Wnd), unwrap library.symbol("prism_build"))
         host.setup(FrameChannel.Width, FrameChannel.Height)
         host.setReducedMotion(false)
         host.theme.setSwagDark()
@@ -32,7 +30,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
     }
     else
     {
-        shade = cast(func(f32, f32, f32)->u32, library.symbol("prism_shade")!)
+        shade = cast(func(f32, f32, f32)->u32, unwrap library.symbol("prism_shade"))
     }
 
     var clock: Time.Stopwatch
@@ -59,7 +57,7 @@ func runPreviewHost(channelPath: string, libraryPath: string, gui: bool) fail
         else
         {
             let pixels = cast([*] u32, channel.pixels())
-            let shader = shade!
+            let shader = unwrap shade
             let time   = frame == 0 ? 0.0 : cast(f32, clock.elapsedMicroseconds()) / 1_000_000
             parallel for |pixels, shader, time| y in cast(u64, FrameChannel.Height)
             {

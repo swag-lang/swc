@@ -557,7 +557,7 @@ func fromUnicode(src: const [..] rune)->String
     // Four bytes per rune in the worst case, and one more for the terminator.
     var result: retval
     result.reserve(4 * src.count + 1)
-    let buffer = result.buffer!
+    let buffer = unwrap result.buffer
     result.length         = fromUnicode(Swag.makeSlice(buffer, 4 * src.count), src)
     buffer[result.length] = 0
     return result

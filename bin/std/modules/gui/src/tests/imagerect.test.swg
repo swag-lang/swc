@@ -8,7 +8,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    defer host.shutdown()
     let img = ImageRect.create(&host.root, Math.Rectangle{20, 20, 120, 120})
     Swag.assert(img != null)
     Swag.assert(host.wndAt(Math.Point{40, 40}) == img)
@@ -20,7 +19,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    defer host.shutdown()
     let image   = Pixel.Image.create(4, 2, .RGBA8)
     var texture = host.app.renderer.addImage(image)
     defer host.app.renderer.removeTexture(&texture)
@@ -62,7 +60,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    defer host.shutdown()
     let view = ImageRect.create(&host.root, Math.Rectangle{20, 20, 120, 120})
     view.setImage(Pixel.Image.create(2, 2, .RGBA8))
     Swag.assert(view.movie.isValid())
@@ -79,7 +76,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    defer host.shutdown()
     let image   = Pixel.Image.create(4, 2, .RGBA8)
     var texture = host.app.renderer.addImage(image)
     defer host.app.renderer.removeTexture(&texture)

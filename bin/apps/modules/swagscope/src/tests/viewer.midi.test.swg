@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.mid")
+func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.mid")
 
 #test
 {
@@ -38,7 +38,6 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
 
         var host: Testing.HeadlessHost
         host.setup(640, 360)
-        defer host.shutdown()
         let roll = Midi.RollView.create(&host.root, #move document)
         roll.refreshLayout()
         Swag.assert(roll.lowKey <= key and roll.highKey >= key and roll.highKey >= roll.lowKey)
@@ -52,7 +51,6 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
 {
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
@@ -119,7 +117,6 @@ func midiViewerFixturePath()->String => Path.combine(Path.directoryName(#curloca
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     var result = openTestViewer(Midi.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let viewer = assume cast(*Midi.Panel, result.view)

@@ -133,7 +133,7 @@ func hasExpectedMethodReflection(type: typeinfo, expectedCount: s32, expectedNam
     if expectedCount == 0 do
         return true
 
-    let methods = info.methods!
+    let methods = unwrap info.methods
     let m0Type  = methods[0].pointedType
     return methods[0].name == expectedName and
            m0Type != null and m0Type.kind == .Func and
@@ -211,7 +211,7 @@ func callReflectedExportedMethods(type: typeinfo, seed: s32)->bool
     if info.methods.count != 4 do
         return false
 
-    let methods    = info.methods!
+    let methods    = unwrap info.methods
     let scaleInfo  = methods[0]
     let addInfo    = methods[1]
     let scaledInfo = methods[2]

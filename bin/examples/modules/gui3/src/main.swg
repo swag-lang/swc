@@ -127,9 +127,9 @@ func pageSubtitle(page: s32)->string
 
 func updateHeader()
 {
-    let title    = g_Title!
-    let subTitle = g_SubTitle!
-    let footer   = g_Footer!
+    let title    = unwrap g_Title
+    let subTitle = unwrap g_SubTitle
+    let footer   = unwrap g_Footer
     title.setText(Format.toString("GUI3 rich edit showcase - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
     footer.setText(Format.toString("F1 : next page (%/%). Pages : lexer, styles, modes, workspace.", g_Page + 1, MaxPages))
@@ -204,7 +204,7 @@ func createDocumentEditor(parent: *Wnd,
 
 func clearPage()
 {
-    let pageView = g_PageView!
+    let pageView = unwrap g_PageView
     for child in pageView.children
     {
         child.destroy()
@@ -218,10 +218,10 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:  createLexerPage(g_PageView!)
-    case 1:  createStylesPage(g_PageView!)
-    case 2:  createModesPage(g_PageView!)
-    case 3:  createWorkspacePage(g_PageView!)
+    case 0:  createLexerPage(unwrap g_PageView)
+    case 1:  createStylesPage(unwrap g_PageView)
+    case 2:  createModesPage(unwrap g_PageView)
+    case 3:  createWorkspacePage(unwrap g_PageView)
     default: unreachable
     }
 
@@ -233,8 +233,8 @@ func layoutRootView()
     if not g_View or not g_PageView do
         return
 
-    let view     = g_View!
-    let pageView = g_PageView!
+    let view     = unwrap g_View
+    let pageView = unwrap g_PageView
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -243,10 +243,10 @@ func layoutRootView()
     let footerY    = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title       = g_Title!
-    let themeButton = g_ThemeButton!
-    let subTitle    = g_SubTitle!
-    let footer      = g_Footer!
+    let title       = unwrap g_Title
+    let themeButton = unwrap g_ThemeButton
+    let subTitle    = unwrap g_SubTitle
+    let footer      = unwrap g_Footer
     title.setPosition(Math.Rectangle{RootMargin, 18, titleWidth, 34})
     themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
@@ -314,8 +314,8 @@ func canUsePageArrows()->bool
     if not g_View or not g_PageView do
         return false
 
-    let view     = g_View!
-    let pageView = g_PageView!
+    let view     = unwrap g_View
+    let pageView = unwrap g_PageView
 
     let focus = view.focusedWindow()
     if not focus or focus == g_View do

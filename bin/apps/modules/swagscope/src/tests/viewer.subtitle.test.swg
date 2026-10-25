@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.srt")
+func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.srt")
 
 // Go-to-time accepts its documented forms and rejects values that only look like timestamps.
 #test
@@ -29,11 +29,7 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
 {
     var host: Testing.HeadlessHost
     host.setup(820, 520)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let fileName = subtitleViewerFixturePath()
     var result   = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
@@ -106,7 +102,6 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
 {
     var host: Testing.HeadlessHost
     host.setup(820, 520)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0

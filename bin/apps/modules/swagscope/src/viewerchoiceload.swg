@@ -8,6 +8,7 @@ struct ViewerClassifiedFile
     choices:          Array'ViewerPluginChoice
     folderFiles:      Array'String
     recent:           Array'String
+    isDirectory:      bool
     exists:           bool
     metadata:         File.FileInfo
 }
@@ -15,11 +16,12 @@ struct ViewerClassifiedFile
 // Classifies one requested file without making the GUI thread open or probe it.
 struct ViewerChoiceLoad
 {
-    using operation: Viewer.BackgroundOperation
-    index:           *ViewerPluginRegistry?
-    fileName:        String
-    recent:          Array'String
-    result:          ViewerClassifiedFile
+    using operation:  Viewer.BackgroundOperation
+    index:            *ViewerPluginRegistry?
+    fileName:         String
+    recent:           Array'String
+    result:           ViewerClassifiedFile
+    includeNeighbors: bool
 }
 
 impl ViewerChoiceLoad
@@ -27,16 +29,17 @@ impl ViewerChoiceLoad
     // Classifies `fileName` on the worker task: its absolute path, existence, viewer choices, size
     // and metadata, the `recent` files that still exist, and the sorted files of its folder.
     // `owner` receives a [[Gui.TaskEvent]] when the classification ends.
-    mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String, owner: *Wnd? = null)
+    mtd start(index: *ViewerPluginRegistry, fileName: string, recent: const [..] String, owner: *Wnd? = null, includeNeighbors = true)
     {
         Swag.assert(not .started)
 
         // The operation is reusable. A completed result was moved to the window, so rebuild every
         // owning field before the worker appends the next folder and history snapshot.
-        .result   = {}
-        .index    = index
-        .fileName = fileName
-        .recent   = recent
+        .result           = {}
+        .index            = index
+        .fileName         = fileName
+        .recent           = recent
+        .includeNeighbors = includeNeighbors
 
         let operation = me
         .submit(func|operation|()
@@ -48,8 +51,9 @@ impl ViewerChoiceLoad
             if pathError != null do
                 absolute = operation.fileName
             operation.result.absoluteFileName = #move absolute
-            operation.result.exists = File.exists(operation.result.absoluteFileName)
-            if operation.result.exists
+            operation.result.isDirectory      = Directory.exists(operation.result.absoluteFileName)
+            operation.result.exists           = operation.result.isDirectory or File.exists(operation.result.absoluteFileName)
+            if operation.result.exists and not operation.result.isDirectory
             {
                 operation.result.choices = operation.index!.choices(operation.result.absoluteFileName)
                 var infoErrorOutcome: Swag.Error
@@ -63,6 +67,9 @@ impl ViewerChoiceLoad
                 }
             }
 
+            // A thumbnail needs only its document; rescanning the folder for every tile is quadratic.
+            if not operation.includeNeighbors do
+                return
             for one in operation.recent where File.exists(one[]) do
                 operation.result.recent.add(one[])
 

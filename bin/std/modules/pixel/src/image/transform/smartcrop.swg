@@ -174,7 +174,7 @@ impl Image
         mec.visitPixels(&f)
         {
             let p      = image.pixelColor(x, y)
-            let params = cast(*#decltype(f), userData!)
+            let params = cast(*#decltype(f), unwrap userData)
 
             // linear luminance
             let lumBuf = params.lum.storage()

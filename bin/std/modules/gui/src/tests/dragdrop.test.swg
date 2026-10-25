@@ -54,7 +54,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 100, 100})
     let effect  = host.dropFiles(Math.Point{50, 50}, ["c:/tmp/one.txt"])
@@ -70,7 +69,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
 
@@ -92,7 +90,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
     discard host.dragFilesOver(Math.Point{50, 50}, ["c:/tmp/one.txt"])
@@ -108,7 +105,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
     discard host.dropFiles(Math.Point{50, 50}, ["c:/tmp/one.txt"])
@@ -122,7 +118,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
     discard host.dragFilesOver(Math.Point{50, 50}, ["c:/tmp/one.txt"])
@@ -142,7 +137,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let outer = makeCatcher(&host.root, Math.Rectangle{10, 10, 150, 150})
     let inner = makeCatcher(outer, Math.Rectangle{10, 10, 50, 50})
@@ -175,7 +169,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     Swag.assert(not data.hasFiles() and not data.hasText() and not data.hasImage())
@@ -190,7 +183,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     Swag.assert(data.hasImage())
 
     // A picture handed in is the one handed back, with no encode-decode round trip in between.
-    let held = data.image()!
+    let held = unwrap data.image()
     Swag.assert(held.width == 5 and held.height == 3)
 
     data.clear()
@@ -250,7 +243,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     Swag.assert(data.hasImage())
     Swag.assert(data.imageBytes.isEmpty())
 
-    let held = data.image()!
+    let held = unwrap data.image()
     Swag.assert(held.width == 6 and held.height == 4)
     Swag.assert(data.imageBytes.isEmpty())
 
@@ -267,7 +260,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 80, 80})
 
@@ -293,7 +285,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 20, 20})
     let effect  = host.dropFiles(Math.Point{500, 500}, ["c:/tmp/one.txt"])
@@ -307,7 +298,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
 
     let edit    = EditBox.create(&host.root, "AC", Math.Rectangle{0, 0, 240, 26})
     var changed = 0'u32
@@ -335,7 +325,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
 
     let edit = EditBox.create(&host.root, "keep", Math.Rectangle{0, 0, 240, 26})
     edit.updateFlags(.ReadOnly)
@@ -350,7 +339,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
 
     let edit = EditBox.create(&host.root, "", Math.Rectangle{0, 0, 240, 26})
     let pt   = edit.surfaceRect().center()
@@ -377,7 +365,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.surfaceWnd, Math.Rectangle{10, 10, 100, 100})
     let effect  = host.dropFiles(Math.Point{50, 50}, ["c:/tmp/one.txt"])
@@ -394,7 +381,6 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = makeCatcher(&host.root, Math.Rectangle{10, 10, 100, 100})
     let overlay = Wnd.create'Wnd(catcher, Math.Rectangle{0, 0, 100, 100})

@@ -117,7 +117,7 @@ private impl IWnd for SubtitleOverlay
 
         let painter = evt.paintContext.painter
         let rect    = .clientRect()
-        let font    = .font().regular!
+        let font    = unwrap .font().regular
         let lines   = Tokenize.splitLines(.text)
         if lines.isEmpty() do
             return
@@ -230,7 +230,7 @@ private impl IWnd for SeekOverlay
     {
         let painter  = evt.paintContext.painter
         let rect     = .clientRect()
-        let font     = .font().regular!
+        let font     = unwrap .font().regular
         let textSize = Painter.measureString(.text, font)
         let textX    = Math.floor(rect.horzCenter() - textSize.width * 0.5)
         let textY    = Math.floor(rect.vertCenter() - font.height * 0.5)

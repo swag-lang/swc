@@ -161,7 +161,7 @@ impl Dialog
         Swag.assert(contentHeight >= 0, "dialog content height cannot be negative")
 
         let metrics = .themeMetrics()
-        let surface = .surface!
+        let surface = unwrap .surface
         var height  = contentHeight + 2 * metrics.dialog_Padding
         height += .buttonBar.position.height + 2 * metrics.wnd_BorderSize
         if surface.flags.has(.SmallCaption) do
@@ -186,7 +186,7 @@ impl Dialog
     // Tab. A modal is a question, and the reader has to be told what pressing Enter now decides.
     mtd doModal()->WndId
     {
-        let surface = .surface!
+        let surface = unwrap .surface
         surface.wnd.setInitialFocus(.keyboardEntry())
         surface.app.setFocusVisible(true)
         surface.bringToFront()
@@ -226,7 +226,7 @@ impl Dialog
             me.buttons.add(btn)
         }
 
-        let srf = .surface!
+        let srf = unwrap .surface
         if isDefault do
             srf.defaultButton = btn
 

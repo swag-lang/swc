@@ -169,7 +169,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             }
             h.col[col] = count
         }
-        let locks = result.locks!
+        let locks = unwrap result.locks
         locks[result.lockCount] = h
         result.lockCount        += 1
     }
@@ -186,7 +186,7 @@ func parseOneSchematic(bytes: const [..] u8, startPos: u32, result: *ParseResult
             }
             h.col[col] = count
         }
-        let keys = result.keys!
+        let keys = unwrap result.keys
         keys[result.keyCount] = h
         result.keyCount       += 1
     }
@@ -218,8 +218,8 @@ func parse(text: string)->ParseResult
 func countFittingPairs(r: *ParseResult)->u64
 {
     var count: u64
-    let locks = r.locks!
-    let keys  = r.keys!
+    let locks = unwrap r.locks
+    let keys  = unwrap r.keys
     for li in r.lockCount
     {
         for ki in r.keyCount
@@ -305,7 +305,7 @@ func solve(text: string)->SolveResult
     Swag.assert(pr.lockCount == 2'u32)
     Swag.assert(pr.keyCount == 3'u32)
 
-    let locks = pr.locks!
+    let locks = unwrap pr.locks
 
     // Lock 1: 0,5,3,4,3
     Swag.assert(locks[0].col[0] == 0)
@@ -328,7 +328,7 @@ func solve(text: string)->SolveResult
     var pr = parse(SampleInput)
     defer parseFree(&pr)
 
-    let keys = pr.keys!
+    let keys = unwrap pr.keys
 
     // Key 1: 5,0,2,1,3
     Swag.assert(keys[0].col[0] == 5)
@@ -446,7 +446,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     defer parseFree(&pr)
     Swag.assert(pr.lockCount == 1'u32)
     Swag.assert(pr.keyCount == 0'u32)
-    let locks = pr.locks!
+    let locks = unwrap pr.locks
     Swag.assert(locks[0].col[0] == 0)
     Swag.assert(locks[0].col[1] == 5)
     Swag.assert(locks[0].col[2] == 3)
@@ -469,7 +469,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     defer parseFree(&pr)
     Swag.assert(pr.lockCount == 0'u32)
     Swag.assert(pr.keyCount == 1'u32)
-    let keys = pr.keys!
+    let keys = unwrap pr.keys
     Swag.assert(keys[0].col[0] == 5)
     Swag.assert(keys[0].col[1] == 0)
     Swag.assert(keys[0].col[2] == 2)
@@ -530,8 +530,8 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var pr = parse(SampleInput)
     defer parseFree(&pr)
 
-    let locks = pr.locks!
-    let keys  = pr.keys!
+    let locks = unwrap pr.locks
+    let keys  = unwrap pr.keys
 
     // Lock 0 (0,5,3,4,3) vs Key 0 (5,0,2,1,3): overlap col4: 3+3=6
     Swag.assert(not locks[0].fits(keys[0]))
@@ -562,7 +562,7 @@ func makeHeightPair(lock: Heights, key: Heights)->HeightPair
     var pr = parse(keyStr)
     defer parseFree(&pr)
     Swag.assert(pr.keyCount == 1'u32)
-    let keys = pr.keys!
+    let keys = unwrap pr.keys
     // Only bottom 2 rows have '#' → heights should be 1 for cols 0,2,4
     Swag.assert(keys[0].col[0] == 1)
     Swag.assert(keys[0].col[1] == 0)

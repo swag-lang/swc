@@ -8,7 +8,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let label = Label.create(&host.root, "Hello", Math.Rectangle{20, 20, 200, 20})
     Swag.assert(label.text() == "Hello")
     Swag.assert(host.wndAt(Math.Point{40, 30}) == label)
@@ -25,7 +24,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(240, 160)
-    defer host.shutdown()
     let label = Label.create(&host.root, "A wrapped label that spans several words", Math.Rectangle{20, 20, 100, 20})
     label.updateFlags(.WordWrap | .AutoHeight | .SecondaryText)
     label.setTextAlignment(.Left, .Top)
@@ -46,7 +44,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(240, 160)
-    defer host.shutdown()
     let label = Label.create(&host.root, "First\nSecond\nThird", Math.Rectangle{0, 0, 200, 0}, flags: .WordWrap | .AutoHeight)
     label.setTextAlignment(.Left, .Top)
     let initial     = label.measure(Math.Point{200, 0}).preferred.y

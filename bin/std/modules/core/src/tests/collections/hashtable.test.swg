@@ -139,7 +139,7 @@ func assertTableStringValue(table: HashTable'(string, String), key: string, expe
     var original: HashTable'(string, s32)
     original.add("alpha", 1)
 
-    let entry = original.tryFind("alpha")!
+    let entry = unwrap original.tryFind("alpha")
     Swag.assert(entry.value == 1)
 }
 

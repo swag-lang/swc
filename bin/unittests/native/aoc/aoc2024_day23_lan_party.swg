@@ -54,7 +54,7 @@ func graphInit()->Graph
 {
     var g: Graph
     g.adj = cast([*] bool?, testAlloc(cast(u64, MaxNodes) * MaxNodes * #sizeof(bool)))
-    let adj = g.adj!
+    let adj = unwrap g.adj
     for index in MaxNodes * MaxNodes { adj[index] = false }
     return g
 }
@@ -75,7 +75,7 @@ impl Graph
 
     mtd addEdge(a: u32, b: u32)
     {
-        let adj = me.adj!
+        let adj = unwrap me.adj
         adj[a * MaxNodes + b] = true
         adj[b * MaxNodes + a] = true
         if not me.nodeUsed[a]
@@ -218,7 +218,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
     if candCount == 0 do return
 
     // Copy candidates for iteration (we modify the set)
-    let iterBuf = cast([*] u32, (testAlloc(cast(u64, candCount) * #sizeof(u32)))!)
+    let iterBuf = cast([*] u32, unwrap testAlloc(cast(u64, candCount) * #sizeof(u32)))
     defer testFree(iterBuf)
     for i in candCount { iterBuf[i] = candidates[i] }
 
@@ -231,7 +231,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         state.curSize += 1
 
         // New candidates = candidates ∩ neighbors(v)
-        let newCand = cast([*] u32, (testAlloc(cast(u64, candCount) * #sizeof(u32)))!)
+        let newCand = cast([*] u32, unwrap testAlloc(cast(u64, candCount) * #sizeof(u32)))
         var newCandCount: u32
         for i in candCount
         {
@@ -243,7 +243,7 @@ func bronKerbosch(g: *Graph, state: *CliqueState,
         }
 
         // New excluded = excluded ∩ neighbors(v)
-        let newExcl = cast([*] u32, (testAlloc(cast(u64, (exclCount + 1)) * #sizeof(u32)))!)
+        let newExcl = cast([*] u32, unwrap testAlloc(cast(u64, (exclCount + 1)) * #sizeof(u32)))
         var newExclCount: u32
         for i in exclCount
         {

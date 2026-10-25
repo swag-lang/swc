@@ -44,7 +44,7 @@ impl MainWnd
     mtd getPixSels()->Array'IForm
     {
         var result: retval
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
         foreachSelected'BaseForm(capture, capture.selection)
         {
             if form.subKind == .PixSel do
@@ -71,7 +71,7 @@ impl MainWnd
         if forms.isEmpty() do
             return
 
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
 
         with let undo = capture.newUndo(.SetImage)
         {
@@ -86,8 +86,8 @@ impl MainWnd
         var params = {capture: capture, boundRects: boundRects.buffer, forms: &forms, argb: argb}
         undo.newImg.visitPixels(&params)
         {
-            var p = cast(*#decltype(params), userData!)
-            let boundRects = p.boundRects!
+            var p = cast(*#decltype(params), unwrap userData)
+            let boundRects = unwrap p.boundRects
             for f, idx in p.forms[]
             {
                 var pt = Math.Point{cast(f32, x), cast(f32, p.capture.backImg.height) - y}
@@ -116,7 +116,7 @@ impl MainWnd
         if forms.isEmpty() do
             return
 
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
 
         with let undo = capture.newUndo(.SetImage)
         {
@@ -162,7 +162,7 @@ impl MainWnd
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bytesPerPixel
                         pix32     += y1 * undo.newImg.width * undo.newImg.bytesPerPixel
-                        col1.argb = cast(const *u32, pix32!)[]
+                        col1.argb = cast(const *u32, unwrap pix32)[]
                         break
                     }
 
@@ -179,7 +179,7 @@ impl MainWnd
                     {
                         var pix32 = undo.newImg.pixels.buffer + x * undo.newImg.bytesPerPixel
                         pix32     += y2 * undo.newImg.width * undo.newImg.bytesPerPixel
-                        col2.argb = cast(const *u32, pix32!)[]
+                        col2.argb = cast(const *u32, unwrap pix32)[]
                         break
                     }
 
@@ -195,8 +195,8 @@ impl MainWnd
         var params = {capture: capture, infos: infos.buffer, forms: &forms, masks: masks}
         undo.newImg.visitPixels(&params)
         {
-            var p     = cast(*#decltype(params), userData!)
-            let infos = p.infos!
+            var p     = cast(*#decltype(params), unwrap userData)
+            let infos = unwrap p.infos
 
             // The pixel in capture coordinates, where the selections were drawn.
             var pt = Math.Point{cast(f32, x), cast(f32, p.capture.backImg.height) - y}
@@ -214,7 +214,7 @@ impl MainWnd
                     // Store pixel mask
                     if p.masks
                     {
-                        let masks = p.masks!
+                        let masks = unwrap p.masks
                         let xx    = cast(s32, pt.x - infos[idx].boundRect.x)
                         var yy    = cast(s32, pt.y - infos[idx].boundRect.y)
                         let pmask = masks.storage() + idx
@@ -248,7 +248,7 @@ impl MainWnd
         if forms.isEmpty() do
             return
 
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
 
         let serial = capture.undoMgr.newSerial()
 
@@ -285,7 +285,7 @@ impl MainWnd
         for f, idx in undo.oldForms
         {
             let nf = assume cast(*FormImage, f)
-            nf.backCaptureMask((masks.buffer + idx)!)
+            nf.backCaptureMask(unwrap (masks.buffer + idx))
         }
 
         undo = capture.newUndo(.DeleteSelection)

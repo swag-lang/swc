@@ -169,7 +169,7 @@ private impl IWnd for Panel
             return
         }
 
-        .document    = DocumentView.create(me, content.face!, content.typeFace!, #move content.bytes, .sampleEdit)
+        .document    = DocumentView.create(me, unwrap content.face, unwrap content.typeFace, #move content.bytes, .sampleEdit)
         content.face = null
         .details     = #move content.details
         .refreshPageCommands()

@@ -537,8 +537,9 @@ impl Theme
         }
     }
 
-    // Creates the `style` face of the fixed-width font at `size`, rasterized as `mode` asks;
-    // see [[Gui.Theme.createDefaultFont]].
+    // Creates the `style` face of the fixed-width font at `size`, rasterized as `mode` asks.
+    //
+    // See [[Gui.Theme.createDefaultFont]].
     mtd createDefaultFontFs(size: u32, style = FontFamilyStyle.Regular, mode = FontRenderMode.Auto)->*Font
     {
         switch #complete style

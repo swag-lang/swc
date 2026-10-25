@@ -271,7 +271,7 @@ private func registerTypeGraphNoLock(type: typeinfo?)
     if not registerTypeNoLock(type) do
         return
 
-    let nnType = type!
+    let nnType = unwrap type
     switch nnType.kind
     {
     case .Alias:

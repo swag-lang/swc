@@ -31,7 +31,7 @@ impl Decoder
         if mbRow == 0 do
             return
 
-        let frame = .current!
+        let frame = unwrap .current
         frame.extendRowEdges(mbRow - 1)
         frame.publishProgress(mbRow)
     }
@@ -41,7 +41,7 @@ impl Decoder
     mtd completeInlinePicture()
     {
         let last  = cast(s32, .sps!.mbHeight) - 1
-        let frame = .current!
+        let frame = unwrap .current
         .filterRow(last)
         frame.extendRowEdges(last)
         frame.extendBottomEdge()
@@ -81,7 +81,7 @@ impl Decoder
     // in raster order because their prediction reads neighboring samples of this picture.
     mtd reconstructPicture() fail
     {
-        let sps     = .sps!
+        let sps     = unwrap .sps
         let mbCount = cast(u32, (sps.mbWidth * sps.mbHeight))
 
         if .pipelineBandCount > 0
@@ -116,9 +116,9 @@ impl Slice
         if mb.class == MbClassIPcm do
             return
 
-        let dec     = .dec!
-        let pps     = .pps!
-        let frame   = dec.current!
+        let dec     = unwrap .dec
+        let pps     = unwrap .pps
+        let frame   = unwrap dec.current
         let isIntra = mb.class != MbClassInter
         let is444   = dec.sps!.is444()
 
@@ -277,7 +277,7 @@ impl Slice
     // Adds the residual of one colour plane of a macroblock whose prediction is already in place.
     mtd addPlaneResidual(mb: *Mb, frame: *Frame, plane: u32, qp: s32)
     {
-        let pps     = .pps!
+        let pps     = unwrap .pps
         let stride  = frame.planeStride(plane)
         let storage = .planeResidual(mb, plane)
 
@@ -358,7 +358,7 @@ impl Slice
     // Adds one chroma plane's residual: transformed DC plus per-block AC.
     mtd addChromaResidual(mb: *Mb, frame: *Frame, plane: u32, qpc: s32)
     {
-        let pps    = .pps!
+        let pps    = unwrap .pps
         let stride = frame.strideChroma
         if mb.cbpChroma == 0 do
             return
@@ -417,7 +417,7 @@ impl Slice
     // Runs every motion-compensation job of an inter macroblock.
     mtd compensate(mb: *Mb, frame: *Frame) fail
     {
-        let dec = .dec!
+        let dec = unwrap .dec
         .prefetchMotion(mb, 0)
 
         // Skip and direct derivations partition uniformly: when every job carries the same
@@ -489,7 +489,7 @@ impl Slice
                 else
                 {
                     let list      = ref0 ? 0'u32 : 1'u32
-                    let reference = ref0 ? ref0 : ref1!
+                    let reference = ref0 ? ref0 : unwrap ref1
                     if .useWeights
                     {
                         var tempA: [16 * 16] u8
@@ -538,7 +538,7 @@ impl Slice
                 else
                 {
                     let list      = ref0 ? 0'u32 : 1'u32
-                    let reference = ref0 ? ref0 : ref1!
+                    let reference = ref0 ? ref0 : unwrap ref1
                     if not .useWeights
                     {
                         // Both planes share the vector, the phase and the window, and a plain

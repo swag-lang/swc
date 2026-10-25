@@ -21,7 +21,6 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
 
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    defer host.shutdown()
 
     var names: Array'String
     for i in 3'u32
@@ -44,6 +43,12 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
     load.task.wait()
     var second = load.finish()
     assertClassificationFolder(&second, names.toSlice())
+
+    load.start(&index, names[1], names.toSlice(), includeNeighbors: false)
+    load.task.wait()
+    let thumbnail = load.finish()
+    Swag.assert(thumbnail.exists and not thumbnail.choices.isEmpty())
+    Swag.assert(thumbnail.folderFiles.isEmpty() and thumbnail.recent.isEmpty())
 }
 
 struct ClassificationRetirementGate
@@ -80,7 +85,6 @@ func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStat
     gate.release.init(manual: true)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     with let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     {
         .resize(960, 680)
@@ -89,7 +93,7 @@ func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStat
 
     completeQueuedViewerFile(&host, window)
     Swag.assert(window.choices[window.activeChoiceIndex].key == PlainText.ViewerKey)
-    let previousView = window.currentView!
+    let previousView = unwrap window.currentView
     let previous     = assume cast(*PlainText.Panel, previousView)
     Swag.assert(not previous.isStreaming())
 

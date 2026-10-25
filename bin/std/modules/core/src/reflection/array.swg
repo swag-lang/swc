@@ -23,7 +23,7 @@ func dynamicArrayElementType(t: typeinfo?)->typeinfo?
         return null
 
     let typeStruct = assume cast(const *TypeInfoStruct, t)
-    let generics   = typeStruct.generics!
+    let generics   = unwrap typeStruct.generics
     return generics[0].pointedType
 }
 
@@ -67,7 +67,7 @@ func removeDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ind
         return
     }
 
-    let removed = arrayView.buffer! + index * elementBytes
+    let removed = unwrap arrayView.buffer + index * elementBytes
     Memory.dropType(removed, elementType)
 
     if index != arrayView.count - 1
@@ -154,7 +154,7 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
         Memory.clear(newBuffer, newCapacity * elementBytes)
 
         if arrayView.count do
-            Memory.copy(newBuffer, oldBuffer!, arrayView.count * elementBytes)
+            Memory.copy(newBuffer, unwrap oldBuffer, arrayView.count * elementBytes)
         if hasPostMove(elementType)
         {
             var movedElement = newBuffer
@@ -171,7 +171,7 @@ func appendDynamicArrayElement(arrayPointer: *void?, elementType: typeinfo?, ini
     }
 
     // The buffer holds at least one free slot here.
-    let result = arrayView.buffer! + (arrayView.count * elementBytes)
+    let result = unwrap arrayView.buffer + (arrayView.count * elementBytes)
     arrayView.count += 1
     if initialize do
         Memory.defaultInit(result, elementType)

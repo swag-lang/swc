@@ -31,37 +31,37 @@ func onAbout(_: *Button)
         .contentIcon  = app.theme.icon(.About, 64)
     }
 
-    discard AboutDlg.create(g_Surface!, params).doModal()
+    discard AboutDlg.create(unwrap g_Surface, params).doModal()
 }
 
 func onMsgOk(_: *Button)
 {
-    MessageDlg.ok(g_Surface!, "This is a simple information message.")
+    MessageDlg.ok(unwrap g_Surface, "This is a simple information message.")
 }
 
 func onMsgOkCancel(_: *Button)
 {
-    discard MessageDlg.okCancel(g_Surface!, "Apply the pending changes?")
+    discard MessageDlg.okCancel(unwrap g_Surface, "Apply the pending changes?")
 }
 
 func onMsgYesNo(_: *Button)
 {
-    discard MessageDlg.yesNo(g_Surface!, "Do you enjoy this showcase?")
+    discard MessageDlg.yesNo(unwrap g_Surface, "Do you enjoy this showcase?")
 }
 
 func onMsgYesNoCancel(_: *Button)
 {
-    discard MessageDlg.yesNoCancel(g_Surface!, "Save the document before closing?")
+    discard MessageDlg.yesNoCancel(unwrap g_Surface, "Save the document before closing?")
 }
 
 func onMsgConfirm(_: *Button)
 {
-    discard MessageDlg.confirm(g_Surface!, "This will reset everything.")
+    discard MessageDlg.confirm(unwrap g_Surface, "This will reset everything.")
 }
 
 func onMsgError(_: *Button)
 {
-    MessageDlg.error(g_Surface!,
+    MessageDlg.error(unwrap g_Surface,
                      "Unable to mount the virtual disk.\n\nThe password is incorrect or the container is damaged.")
 }
 
@@ -71,7 +71,7 @@ func onEditSingle(_: *Button)
     opt.title   = "Single line edit"
     opt.message = "Enter your name:"
     opt.text    = "John Doe"
-    discard EditDlg.createSingleLine(g_Surface!, opt).doModal()
+    discard EditDlg.createSingleLine(unwrap g_Surface, opt).doModal()
 }
 
 func onEditMulti(_: *Button)
@@ -80,7 +80,7 @@ func onEditMulti(_: *Button)
     opt.title   = "Multi line edit"
     opt.message = "Enter a description:"
     opt.text    = "First line\nSecond line"
-    discard EditDlg.createMultiLine(g_Surface!, opt).doModal()
+    discard EditDlg.createMultiLine(unwrap g_Surface, opt).doModal()
 }
 
 func onForm(_: *Button)
@@ -88,7 +88,7 @@ func onForm(_: *Button)
     var opt: FormDlgOptions
     opt.title = "Profile"
 
-    let dlg = FormDlg.create(g_Surface!, opt)
+    let dlg = FormDlg.create(unwrap g_Surface, opt)
     discard dlg.form.addTextField("NAME", "Ada", placeholder: "Display name")
     discard dlg.form.addPasswordField("PASSWORD",
                                       placeholder: "Optional password",
@@ -108,7 +108,7 @@ func onFileOpen(_: *Button)
     opt.state = &g_FileState
     opt.filters.add({name: "All files", extensions: ""})
     opt.filters.add({name: "Images", extensions: ".png;.jpg;.bmp"})
-    discard FileDlg.create(g_Surface!, opt).doModal()
+    discard FileDlg.create(unwrap g_Surface, opt).doModal()
 }
 
 func onFileSave(_: *Button)
@@ -117,7 +117,7 @@ func onFileSave(_: *Button)
     opt.mode  = .CreateFile
     opt.state = &g_FileState
     opt.filters.add({name: "Text", extensions: ".txt"})
-    discard FileDlg.create(g_Surface!, opt).doModal()
+    discard FileDlg.create(unwrap g_Surface, opt).doModal()
 }
 
 func onSelectFolder(_: *Button)
@@ -125,7 +125,7 @@ func onSelectFolder(_: *Button)
     var opt: FileDlgOptions
     opt.mode  = .SelectFolder
     opt.state = &g_FileState
-    discard FileDlg.create(g_Surface!, opt).doModal()
+    discard FileDlg.create(unwrap g_Surface, opt).doModal()
 }
 
 //
@@ -145,7 +145,7 @@ func createRootView()
     view.backgroundStyle = .View
 
     // Title bar (docked top so the layout reflows on resize).
-    with let title = Label.create(g_View!, "GUI9 - Dialogs & FileBrowserCtrl", Math.Rectangle{0, 0, 0, 46})
+    with let title = Label.create(unwrap g_View, "GUI9 - Dialogs & FileBrowserCtrl", Math.Rectangle{0, 0, 0, 46})
     {
         .dockStyle = .Top
         .margin    = Math.Vector4{16, 12, 16, 0}
@@ -154,7 +154,7 @@ func createRootView()
     }
 
     // Content area below the title.
-    let content = Wnd.create'Wnd(g_View!, Math.Rectangle{})
+    let content = Wnd.create'Wnd(unwrap g_View, Math.Rectangle{})
     content.dockStyle       = .Center
     content.backgroundStyle = .Transparent
 

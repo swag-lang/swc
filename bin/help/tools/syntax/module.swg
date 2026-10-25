@@ -1,7 +1,7 @@
 #run
 {
     let itf = Swag.compiler()
-    let cfg = itf.getBuildCfg()!
+    let cfg = unwrap itf.getBuildCfg()
     cfg.backendKind = .Executable
 
     cfg.genDoc.kind         = .Pages

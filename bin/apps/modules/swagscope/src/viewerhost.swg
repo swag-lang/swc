@@ -85,6 +85,7 @@ impl ViewerSession
 // Implements the plugin API for one Swag Scope viewer instance.
 struct ViewerPluginHost
 {
+    thumbnail:       bool = false
     session:         *ViewerSession
     documentParent:  *Wnd
     sidePanelParent: *Wnd
@@ -160,6 +161,7 @@ private impl ViewerPluginHost
 
 impl Viewer.Host for ViewerPluginHost
 {
+    mtd impl isThumbnail()->bool             => .thumbnail
     mtd impl application()->*Application     => .documentParent.app()
     mtd impl contentParent()->*Wnd           => .documentParent
     mtd impl fileName()->string              => .sourceFileName
@@ -234,7 +236,7 @@ impl Viewer.Host for ViewerPluginHost
         {
             let splitter: *SplitterCtrl = .sideSplitter
             let paneIndex = .sidePaneIndex
-            .session.sidePanelItem      = splitter.items[paneIndex]!
+            .session.sidePanelItem      = unwrap splitter.items[paneIndex]
             .session.sidePanelItem.size = panelWidth + gutter
             .session.sidePanelButton.sigCheckedChanged += func|target = splitter, paneIndex|(button)
             {

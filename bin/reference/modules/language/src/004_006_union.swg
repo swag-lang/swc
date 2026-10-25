@@ -186,7 +186,8 @@ assigned again.
 /**
 # Asserting a Case with `!`
 
-When the proof lives elsewhere, the postfix `!` asserts the case at the access. A safety check
+When the proof lives elsewhere, the postfix `!` asserts the case at an access such as
+`shape.rect!.w`. Use `unwrap shape.rect` to extract the payload itself. A safety check
 panics at runtime when another case is active. A `!` on an access that is already proven is
 rejected, as it is on a value already proven non-null.
 */

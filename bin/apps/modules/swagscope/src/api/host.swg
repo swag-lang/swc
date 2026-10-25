@@ -150,6 +150,9 @@ struct SidePanel
 // it with the attached document view.
 interface Host
 {
+    // Reports an offscreen thumbnail session, which must not play media or change user preferences.
+    mtd isThumbnail()->bool
+
     // Returns the application that owns the viewer surface.
     mtd application()->*Application
 

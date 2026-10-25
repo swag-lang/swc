@@ -36,7 +36,7 @@ namespaces.
 ```swag
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleVersion  = 1
     cfg.moduleRevision = 0
     cfg.moduleBuildNum = 0
@@ -135,7 +135,7 @@ beside it:
 ```swag
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.backendKind         = .Executable
     cfg.publishDependencies = true
 }

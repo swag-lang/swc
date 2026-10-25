@@ -158,7 +158,7 @@ impl IWnd for MainWnd
         case .TrayIcon:
             if evt.trayAction == .Activate
             {
-                with let surface = .surface!
+                with let surface = unwrap .surface
                 {
                     .show()
                     .bringToFront()
@@ -373,7 +373,7 @@ impl MainWnd
         // reported and the two writes cannot interleave.
         .flushCaptureSave()
         catch capture.save() do
-            MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
+            MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
     }
 
     // Waits for the background save targeting `file` (any when null) and reports its
@@ -382,7 +382,7 @@ impl MainWnd
     {
         let failed = g_CaptureSaves.flush(file)
         if not failed.isEmpty() do
-            MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedSaveCapture, failed))
+            MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedSaveCapture, failed))
     }
 
     // Changes the user-defined name of a capture and persists it. The library shows
@@ -413,7 +413,7 @@ impl MainWnd
                 .saveCapture(loaded)
             }
             {
-                MessageDlg.error(.surface!, appStrings().msg_FailedRename, Swag.err)
+                MessageDlg.error(unwrap .surface, appStrings().msg_FailedRename, Swag.err)
                 return
             }
         }
@@ -443,7 +443,7 @@ impl MainWnd
             Clipboard.addImage(loaded.toImage())
         }
         {
-            MessageDlg.error(.surface!, appStrings().msg_FailedCopyImage, Swag.err)
+            MessageDlg.error(unwrap .surface, appStrings().msg_FailedCopyImage, Swag.err)
         }
     }
 
@@ -453,7 +453,7 @@ impl MainWnd
     {
         let imgToLoad = catch Image.load(arg)
         {
-            MessageDlg.error(.surface!, Format.toString(appStrings().msg_FailedLoadFile, arg), Swag.err)
+            MessageDlg.error(unwrap .surface, Format.toString(appStrings().msg_FailedLoadFile, arg), Swag.err)
             return
         }
 
@@ -770,7 +770,7 @@ impl MainWnd
     // and the tool panel, with the library hidden behind them until it is asked for.
     func create(parent: *Wnd)->*MainWnd
     {
-        let srf = parent.surface!
+        let srf = unwrap parent.surface
         srf.minSize = Math.Point{1024, 512}
 
         var imgApp: Image

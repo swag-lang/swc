@@ -80,7 +80,7 @@ impl IActionUI for ActionImage
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()!
+        let capture = unwrap main.getCapture()
 
         // The backImgOriginal snapshot (which enables appStrings().act_RestoreOriginal) is taken lazily
         // at the point backImg is genuinely mutated (see doProcessImage/trimCapture), not here:
@@ -129,7 +129,7 @@ impl MainWnd
     // adds; `w, h` the size of a resize.
     mtd doProcessImage(cmdId: WndId, l, t, r, b, w, h: s32 = 0)
     {
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
 
         // A real backImg mutation is about to be committed: snapshot the first original now.
         if not capture.backImgOriginal.isValid() do
@@ -182,10 +182,10 @@ impl MainWnd
     // Asks for a new size and scales the background image to it, keeping the ratio when asked.
     mtd resizeImage()
     {
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
         let ratio   = cast(f32, capture.width) / capture.height
 
-        with let dialog = Dialog.create(.surface!, 350, 265, title: appStrings().dlg_TitleResizeImage)
+        with let dialog = Dialog.create(unwrap .surface, 350, 265, title: appStrings().dlg_TitleResizeImage)
         {
             .addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
@@ -270,7 +270,7 @@ impl MainWnd
     // picked in `g_Width`, `g_Height`, and `g_ResizeMode`. Returns the button that closed it.
     mtd createExpandDialog(title: String, w, h: s32)->WndId
     {
-        with let dialog = Dialog.create(.surface!, 350, 265, title: title)
+        with let dialog = Dialog.create(unwrap .surface, 350, 265, title: title)
         {
             .addButton(appStrings().dlg_BtnResize, Dialog.BtnOk, true)
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)
@@ -333,7 +333,7 @@ impl MainWnd
 
     mtd expandImage()
     {
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
         let result  = .createExpandDialog(appStrings().dlg_TitleExpandImage, capture.backImg.width, capture.backImg.height)
         if result != Dialog.BtnOk do
             return
@@ -350,7 +350,7 @@ impl MainWnd
     // Asks for a larger canvas and grows it around the chosen anchor, as one undo step.
     mtd expandCapture()
     {
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
         let result  = .createExpandDialog(appStrings().dlg_TitleExpandCapture, capture.width, capture.height)
         if result != Dialog.BtnOk do
             return
@@ -391,7 +391,7 @@ impl MainWnd
     // forms left outside, and crops the image to the canvas, as one undo step.
     mtd trimCapture()
     {
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
         capture.selection.clear()
 
         var minX = Swag.F32.Max

@@ -34,7 +34,6 @@ using Core, Pixel
     defer discard catch File.delete(fileName)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(640, 360)
     view.applyLayout()
@@ -85,7 +84,6 @@ using Core, Pixel
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(720, 480)
-    defer host.shutdown()
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
@@ -175,7 +173,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     let source = "<html><body><h1>Guide &amp; help</h1><pre>h2 is text</pre><h2 style='display:none'>Hidden</h2><h2 style='visibility:hidden'>Invisible</h2><div style='height:900px'></div><h3><em>Repeated</em></h3><h3>Repeated</h3><div style='height:900px'></div></body></html>"
     let view   = HtmlView.createText(&host.root, source)
     view.resize(640, 360)
@@ -200,7 +197,7 @@ using Core, Pixel
 // produce the same top-left page coordinates as the displayed content.
 #test
 {
-    let path    = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/document-outline.pdf")
+    let path    = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/document-outline.pdf")
     var reader  = expect Pdf.Reader.open(path)
     let outline = reader.loadOutline()
     Swag.assert(outline.count == 4)
@@ -211,7 +208,6 @@ using Core, Pixel
     Swag.assert(outline[3].pageIndex == Swag.U64.Max)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     let view = PdfView.create(&host.root)
     var page = expect reader.loadPage(0)
     view.exchangeDocument(&reader, &page)

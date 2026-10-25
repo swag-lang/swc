@@ -124,7 +124,7 @@ public impl IWnd for MenuCtrl
 
         for i, idx in .items
         {
-            let it = i!
+            let it = unwrap i
             if it.hidden do
                 continue
             if it.separator do
@@ -225,7 +225,7 @@ public impl IWnd for MenuCtrl
         var lastIsSeparator = true
         for i, idx in .items
         {
-            let it = i!
+            let it = unwrap i
             if it.hidden do
                 continue
             if it.separator and lastIsSeparator do
@@ -474,7 +474,7 @@ public impl IWnd for MenuCtrl
         {
             if .hotIdx != Swag.U32.Max
             {
-                let hotItem = .items[.hotIdx]!
+                let hotItem = unwrap .items[.hotIdx]
                 if hotItem.popup != null
                 {
                     .hideSubVisible()
@@ -503,7 +503,7 @@ impl MenuCtrl
         if .submenuDirection == .Right do
             return false
 
-        let popupParent   = .parent!
+        let popupParent   = unwrap .parent
         let bounds        = popupParent.clientRect()
         let metrics       = .themeMetrics()
         let parentTopLeft = popupParent.surfaceToLocal(Math.Point{surfaceRect.x, surfaceRect.y})
@@ -564,7 +564,7 @@ impl MenuCtrl
     // then describes an edge the body no longer has.
     private mtd popupButtonAnchorFits()->bool
     {
-        let parent = .parent!
+        let parent = unwrap .parent
         let shadow = .themeMetrics().menuPopup_ShadowSize
         let anchor = .popupBarItemSurfaceRect
         let local  = parent.surfaceToLocal(Math.Point{anchor.x, anchor.y})
@@ -713,7 +713,7 @@ impl MenuCtrl
             return
         }
 
-        let i        = (.ownerMenu!.items[.popupBarItemIdx])!
+        let i        = unwrap .ownerMenu!.items[.popupBarItemIdx]
         var labelPos = anchorRect
         labelPos.x     += metrics.menuBar_SpaceBetween * 0.5
         labelPos.width -= metrics.menuBar_SpaceBetween
@@ -826,7 +826,7 @@ impl MenuCtrl
     {
         for i in .items
         {
-            let it  = i!
+            let it  = unwrap i
             let evt = .sendComputeCommandStateEvent(it.id)
             if evt.updatedFields.has(.Disabled) do
                 it.disabled = evt.disabled
@@ -867,7 +867,7 @@ impl MenuCtrl
     mtd showHotPopupBar()
     {
         .selectedIdx = .hotIdx
-        let hotItem = .items[.hotIdx]!
+        let hotItem = unwrap .items[.hotIdx]
         let metrics = .themeMetrics()
 
         var anchorRect = .localToSurface(.getBarItemRect(hotItem))
@@ -889,7 +889,7 @@ impl MenuCtrl
         // false stem as tall as the command row below it. The popup's actual parent owns both
         // the caption and the client area, and is therefore the coordinate space that can keep
         // the popup inside the surface without moving it away from its bar item.
-        let popupParent = sub.parent!
+        let popupParent = unwrap sub.parent
         let bounds      = popupParent.clientRect()
         var pt          = popupParent.surfaceToLocal(Math.Point{pos.x, pos.y})
         let subPos      = sub.position
@@ -903,7 +903,7 @@ impl MenuCtrl
     mtd showHotPopupPopup()
     {
         .selectedIdx = .hotIdx
-        let hotItem = .items[.hotIdx]!
+        let hotItem = unwrap .items[.hotIdx]
 
         let surfaceRect = .surfaceRect()
         let sdw         = .themeMetrics().menuPopup_ShadowSize
@@ -916,7 +916,7 @@ impl MenuCtrl
         // client content live in the top view; menus from surface chrome live above that view.
         sub.updateState()
         sub.computeLayoutPopup()
-        let popupParent   = sub.parent!
+        let popupParent   = unwrap sub.parent
         let bounds        = popupParent.clientRect()
         let parentTopLeft = popupParent.surfaceToLocal(Math.Point{surfaceRect.x, surfaceRect.y})
         let subPos        = sub.position
@@ -954,7 +954,7 @@ impl MenuCtrl
         let pos = .surfaceToLocal(surfacePos)
         for iIt, idx in .items
         {
-            let i = iIt!
+            let i = unwrap iIt
             if i.hidden do
                 continue
             if i.separator do
@@ -976,7 +976,7 @@ impl MenuCtrl
         var lastIsSeparator = true
         for i, idx in .items
         {
-            let it = i!
+            let it = unwrap i
             if it.hidden do
                 continue
             if it.separator and lastIsSeparator do
@@ -1010,7 +1010,7 @@ impl MenuCtrl
 
         for i in .items
         {
-            let it = i!
+            let it = unwrap i
             if it.hidden do
                 continue
             if .onPrepareItem do
@@ -1047,7 +1047,7 @@ impl MenuCtrl
         .popupHasRadioIcons = false
         for i, idx in .items
         {
-            let it = i!
+            let it = unwrap i
             if it.hidden do
                 continue
             if it.separator and lastIsSeparator do
@@ -1226,7 +1226,7 @@ public impl MenuCtrl
     mtd const itemAt(index: u32)->*PopupMenuItem
     {
         Swag.assert(index < .items.count, "menu item index is out of range")
-        return .items[index]!
+        return unwrap .items[index]
     }
 
     // Removes one item and invalidates cached menu layout.
@@ -1493,7 +1493,7 @@ public impl MenuCtrl
         .endModal          = false
         .endModalResult    = null
         .app().inModalLoop += 1
-        let srf = .surface!
+        let srf = unwrap .surface
         while not .endModal do
             srf.app.runFrame()
         .app().inModalLoop -= 1

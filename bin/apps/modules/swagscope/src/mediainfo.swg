@@ -292,6 +292,21 @@ impl MediaInfoPanel
         return result
     }
 
+    // Gives the property and value columns the panel's current width instead of retaining their
+    // initial widths when the user resizes the side pane.
+    mtd layoutColumns()
+    {
+        let header  = .list.header
+        let spacing = header.contentWidth() - header.itemWidthAt(0) - header.itemWidthAt(1)
+        let width   = .list.listView.position.width - spacing
+        if width <= 0 do
+            return
+
+        let propertyWidth = Math.round(width * 0.42)
+        .list.setColumnWidth(0, propertyWidth)
+        .list.setColumnWidth(1, Math.max(width - propertyWidth, 1))
+    }
+
     // Returns every row as one line of text, for the clipboard.
     mtd text()->String
     {
@@ -347,12 +362,21 @@ impl MediaInfoPanel
             .lines[index].setItem(0, row.label())
         .list.computeLayout()
         .applyLayout()
+        .layoutColumns()
         .invalidate()
     }
 }
 
 private impl IWnd for MediaInfoPanel
 {
+    mtd impl onResizeEvent(_: *ResizeEvent)
+    {
+        if .list == null do
+            return
+        .applyLayout()
+        .layoutColumns()
+    }
+
     mtd impl onNotifyEvent(evt: *NotifyEvent)
     {
         if evt.kind == .LanguageChanged do

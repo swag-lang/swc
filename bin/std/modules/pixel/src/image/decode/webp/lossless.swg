@@ -606,7 +606,7 @@ func losslessDecodePixels(reader: *LosslessBitReader, result: *Array'u8, width, 
         if lookupGroup
         {
             let mapIndex   = 4 * (tilesPerRow * (y >> huffmanBits) + (x >> huffmanBits))
-            let mapData    = cast([*] u8, huffmanData!)
+            let mapData    = cast([*] u8, unwrap huffmanData)
             let groupIndex = (cast(u32, mapData[mapIndex]) << 8) | mapData[mapIndex + 1]
             if groupIndex >= groups.count do
                 fail InvalidFormatError{"WebP lossless Huffman-group index is out of range"}

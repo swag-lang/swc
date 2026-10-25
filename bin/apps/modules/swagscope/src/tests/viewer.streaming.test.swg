@@ -15,7 +15,6 @@ using Core, Pixel, Gui, Viewers
     discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
     var session  = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
@@ -65,7 +64,6 @@ using Core, Pixel, Gui, Viewers
     discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     with let view = Code.Panel.create(&host.root, fileName)
     {
         .resize(640, 360)

@@ -34,7 +34,6 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
@@ -62,7 +61,6 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
@@ -80,7 +78,6 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    defer host.shutdown()
     let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
     slider.setBounds(0, 10, 6)
     slider.setValue(10)
@@ -96,7 +93,6 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    defer host.shutdown()
     let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
     slider.setBounds(0, 1, 1)
 
@@ -111,7 +107,6 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
@@ -142,7 +137,6 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30}, null, true)
@@ -170,7 +164,6 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})
@@ -203,7 +196,6 @@ func sliderHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(280, 80)
-    defer host.shutdown()
     sliderHeadlessReset()
 
     let slider = Slider.create(&host.root, Math.Rectangle{20, 20, 220, 30})

@@ -146,8 +146,8 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
 {
     var allocator: Allocator
     let itf   = failureAllocator(&allocator)
-    let first = allocOne(itf, 64)!
-    let page  = allocatorPageOf(cast(u64, first))!
+    let first = unwrap allocOne(itf, 64)
+    let page  = unwrap allocatorPageOf(cast(u64, first))
     let fill  = cast(u64, page.capacityBytes() / page.blockSize) - 1
     var held:      [1024] (*void?)
     Swag.assert(fill <= held.count)
@@ -168,7 +168,7 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     let served = allocOne(itf, 64)
     allocatorClearOsFailures()
     Swag.assert(served != null)
-    Swag.assert(allocatorSegmentOf(allocatorPageOf(cast(u64, served))!) != segment)
+    Swag.assert(allocatorSegmentOf(unwrap allocatorPageOf(cast(u64, served))) != segment)
     checkSegments(&allocator)
 
     freeOne(itf, served)
@@ -212,7 +212,7 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
 
     allocatorReleaseSegment(fresh)
     for i in pooled do
-        allocatorReleaseSegment(held[i]!)
+        allocatorReleaseSegment(unwrap held[i])
 }
 
 // A header-path block whose reservation or commit is refused is not allocated, commits nothing,
@@ -260,7 +260,7 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     var request: AllocatorRequest
     request.size = 66000
     itf.alloc(&request)
-    let original = request.address!
+    let original = unwrap request.address
     let bytes    = cast([*] u8, original)
     for i in 66000 do
         bytes[i] = cast #wrap (u8, i)
@@ -290,7 +290,7 @@ func checkRecovers(allocator: *Allocator, itf: IAllocator)
     var allocator: Allocator
     let itf = failureAllocator(&allocator)
 
-    let first  = allocOne(itf, 66000)!
+    let first  = unwrap allocOne(itf, 66000)
     let region = allocator.headerOf(cast(u64, first)).allocAddr
     freeOne(itf, first)
     Swag.assert(allocator.cachedBlockCount == 1)

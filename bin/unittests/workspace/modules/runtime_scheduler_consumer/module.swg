@@ -2,7 +2,7 @@
 
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleNamespace = "SchedulerConsumer"
     cfg.backendKind     = .Executable
     cfg.embeddedImports = true

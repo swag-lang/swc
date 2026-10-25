@@ -8,10 +8,9 @@ using Core, Pixel, Gui, Viewers
 {
     for name in ["imageset-animation.webp", "imageset-animation.apng", "imageset-animation.gif", "imageset-pages-raw.tiff", "imageset-icons.ico", "imageset-array.dds", "imageset-array.ktx2", "imageset-parts.exr", "imageset-layers-0.psd"]
     {
-        let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
+        let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
         var host: Testing.HeadlessHost
         host.setup(960, 540)
-        defer host.shutdown()
         var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
         let view    = assume cast(*Picture.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load)

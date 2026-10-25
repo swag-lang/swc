@@ -117,7 +117,7 @@ impl LibraryWnd
 
         for i in .listCtrl.lineCount()
         {
-            let line = .listCtrl.lineAt(cast(u32, i))!
+            let line = unwrap .listCtrl.lineAt(cast(u32, i))
             let kind = cast(LibrarySidebarFilter, cast(u64, line.userData3))
             if kind != wantedKind do
                 continue

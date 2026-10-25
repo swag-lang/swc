@@ -296,7 +296,7 @@ public impl FontCache
     {
         for it in .glyphCaches
         {
-            let cache = it!
+            let cache = unwrap it
             if cache.typeFace == typeFace and
                cache.refSize == refSize and
                cache.spread == spread and
@@ -347,7 +347,7 @@ public impl FontCache
 
         for it in .fonts
         {
-            let font = it!
+            let font = unwrap it
             if font.cache.typeFace == typeFace and
                font.size == size and
                font.cache.refSize == refSize and
@@ -677,7 +677,7 @@ impl GlyphCache
         var src = bmpRef.buffer
         for bmpRef.rows
         {
-            Memory.copy(buffer, src!, cast(u64, rowBytes))
+            Memory.copy(buffer, unwrap src, cast(u64, rowBytes))
             src    += bmpRef.pitch
             buffer -= ca.width
         }

@@ -672,7 +672,7 @@ impl IAllocator for LibraryRejectAllocator
 
     for i in lib.listCtrl.lineCount()
     {
-        let line = lib.listCtrl.lineAt(cast(u32, i))!
+        let line = unwrap lib.listCtrl.lineAt(cast(u32, i))
         if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Application do
             continue
         let idx = cast(u64, line.userData0)
@@ -690,7 +690,7 @@ impl IAllocator for LibraryRejectAllocator
 
     for i in lib.listCtrl.lineCount()
     {
-        let line = lib.listCtrl.lineAt(cast(u32, i))!
+        let line = unwrap lib.listCtrl.lineAt(cast(u32, i))
         if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Tag do
             continue
         let idx = cast(u64, line.userData0)
@@ -710,7 +710,7 @@ impl IAllocator for LibraryRejectAllocator
     var foundApplication = false
     for i in lib.listCtrl.lineCount()
     {
-        let line = lib.listCtrl.lineAt(cast(u32, i))!
+        let line = unwrap lib.listCtrl.lineAt(cast(u32, i))
         if cast(LibrarySidebarFilter, cast(u64, line.userData3)) != .Application do
             continue
         let idx = cast(u64, line.userData0)

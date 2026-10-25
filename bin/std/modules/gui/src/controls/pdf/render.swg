@@ -167,7 +167,7 @@ internal impl RenderFontCache
                 .fallbackResolved = true
             }
 
-            return .fallback!
+            return unwrap .fallback
         }
 
         if not .substituteResolved[index]
@@ -176,7 +176,7 @@ internal impl RenderFontCache
             .substituteResolved[index] = true
         }
 
-        return .substitute[index]!
+        return unwrap .substitute[index]
     }
 }
 
@@ -512,7 +512,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             if activeRegion != InvalidClipPath do
                 painter.resetClippingRegion()
             if region != InvalidClipPath do
-                writeClipRegion(painter, page.clipPaths[region]!, pageToSurface)
+                writeClipRegion(painter, unwrap page.clipPaths[region], pageToSurface)
             activeRegion = region
         }
 
@@ -621,7 +621,7 @@ internal func drawPageItems(painter: *Painter, page: *Page, pageToSurface: Trans
             var brush = Brush.createTexture(textures[textureIndex])
             brush.mapOver(Math.Rectangle{0, 0, 1, 1})
             brush.setTint(item.fillColor)
-            let clip = page.clipPaths[item.clipPath]!
+            let clip = unwrap page.clipPaths[item.clipPath]
             painter.setFlattenScale(flattenScale * unitSquareScale(item.transform))
             painter.fillPath(&item.imageClip, brush, clipFillRule(clip))
             painter.setFlattenScale(flattenScale)

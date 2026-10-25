@@ -436,7 +436,7 @@ impl Decoder
             try .awaitReferenceProgress(true)
         try .reconstructPicture()
         deblockPicture(me)
-        let result = .current!
+        let result = unwrap .current
         result.extendEdges()
 
         result.publishProgress(result.progressComplete())
@@ -721,7 +721,7 @@ impl Decoder
             found = created
         }
 
-        let sps   = .sps!
+        let sps   = unwrap .sps
         let frame = found
         frame.prepare(sps.mbWidth, sps.mbHeight, sps.chromaShift())
         frame.frameNum = frameNum
@@ -800,7 +800,7 @@ impl Decoder
     // Verifies that the parsed slices cover the complete current picture.
     private mtd validatePicture() fail
     {
-        let sps     = .sps!
+        let sps     = unwrap .sps
         let mbCount = cast(u64, sps.mbWidth) * cast(u64, sps.mbHeight)
         if .decodedMbs != mbCount do
             fail InvalidFormatError{"H.264 access unit does not cover the whole picture"}
@@ -970,7 +970,7 @@ impl Decoder
     // Computes the picture order count of the picture a slice header starts, section 8.2.1.
     mtd computePoc(header: *SliceHeader)->s32
     {
-        let sps         = .sps!
+        let sps         = unwrap .sps
         let maxFrameNum = 1's32 << sps.log2MaxFrameNum
         let frameNum    = cast(s32, header.frameNum)
 

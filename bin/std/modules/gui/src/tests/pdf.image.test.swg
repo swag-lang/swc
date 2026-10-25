@@ -18,7 +18,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     // Two rows of four one-bit samples; each row is padded to a byte.
     let oneBit: [2] u8 = [0b1010_0000, 0b0101_0000]
     let bilevel        = imageDocument("/Type /XObject /Subtype /Image /Width 4 /Height 2 /ColorSpace /DeviceGray /BitsPerComponent 1", oneBit)
-    let bilevelImage   = onlyItem(bilevel.pages[0], .Image).imageValue()!
+    let bilevelImage   = unwrap onlyItem(bilevel.pages[0], .Image).imageValue()
     Swag.assert(bilevelImage.width == 4 and bilevelImage.height == 2)
     Swag.assert(bilevelImage.pixelColor(0, 0).r == 255 and bilevelImage.pixelColor(1, 0).r == 0)
     Swag.assert(bilevelImage.pixelColor(0, 1).r == 0 and bilevelImage.pixelColor(1, 1).r == 255)
@@ -26,7 +26,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     // Four-bit samples: 0, 5, 10, and 15 sixteenths of full intensity.
     let fourBit: [2] u8 = [0x05, 0xAF]
     let quantized       = imageDocument("/Type /XObject /Subtype /Image /Width 4 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 4", fourBit)
-    let quantizedImage  = onlyItem(quantized.pages[0], .Image).imageValue()!
+    let quantizedImage  = unwrap onlyItem(quantized.pages[0], .Image).imageValue()
     Swag.assert(quantizedImage.pixelColor(0, 0).r == 0)
     Swag.assert(quantizedImage.pixelColor(3, 0).r == 255)
     Swag.assert(quantizedImage.pixelColor(1, 0).r == 85)
@@ -34,7 +34,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     // Sixteen-bit samples are read most significant byte first and scaled down to eight bits.
     let sixteenBit: [6] u8 = [0x00, 0x00, 0x80, 0x00, 0xFF, 0xFF]
     let deep      = imageDocument("/Type /XObject /Subtype /Image /Width 3 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 16", sixteenBit)
-    let deepImage = onlyItem(deep.pages[0], .Image).imageValue()!
+    let deepImage = unwrap onlyItem(deep.pages[0], .Image).imageValue()
     Swag.assert(deepImage.pixelColor(0, 0).r == 0)
     Swag.assert(deepImage.pixelColor(1, 0).r == 128)
     Swag.assert(deepImage.pixelColor(2, 0).r == 255)
@@ -45,7 +45,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 {
     let samples: [2] u8 = [0, 255]
     let inverted        = imageDocument("/Type /XObject /Subtype /Image /Width 2 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Decode [1 0]", samples)
-    let image           = onlyItem(inverted.pages[0], .Image).imageValue()!
+    let image           = unwrap onlyItem(inverted.pages[0], .Image).imageValue()
     Swag.assert(image.pixelColor(0, 0).r == 255)
     Swag.assert(image.pixelColor(1, 0).r == 0)
 }
@@ -139,7 +139,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
         255, 0, 255, 0,
         255, 255, 0, 0]
     let document = imageDocument("/Type /XObject /Subtype /Image /Width 5 /Height 1 /ColorSpace /DeviceCMYK /BitsPerComponent 8", samples)
-    let image    = onlyItem(document.pages[0], .Image).imageValue()!
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
     Swag.assert(image.pixelColor(0, 0) == Color.fromRgb(255, 255, 255))
     Swag.assert(image.pixelColor(1, 0) == Color.fromRgb(0, 0, 0))
     Swag.assert(image.pixelColor(2, 0) == Color.fromRgb(255, 0, 0))
@@ -153,7 +153,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     let samples: [4] u8 = [0, 1, 2, 1]
     let palette         = "/ColorSpace [/Indexed /DeviceRGB 2 <FF0000 00FF00 0000FF>]"
     let document        = imageDocument(Format.toString("/Type /XObject /Subtype /Image /Width 4 /Height 1 % /BitsPerComponent 8", palette).toString(), samples)
-    let image           = onlyItem(document.pages[0], .Image).imageValue()!
+    let image           = unwrap onlyItem(document.pages[0], .Image).imageValue()
     Swag.assert(image.pixelColor(0, 0).r == 255 and image.pixelColor(0, 0).g == 0)
     Swag.assert(image.pixelColor(1, 0).g == 255 and image.pixelColor(1, 0).r == 0)
     Swag.assert(image.pixelColor(2, 0).b == 255)
@@ -169,7 +169,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
-    let image    = onlyItem(document.pages[0], .Image).imageValue()!
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
     Swag.assert(image.pixelColor(0, 0).r == 10 and
                 image.pixelColor(0, 0).g == 20 and
                 image.pixelColor(0, 0).b == 30)
@@ -184,7 +184,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
     let content  = "q 1 0 0 rg 10 0 0 10 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
-    let image    = onlyItem(document.pages[0], .Image).imageValue()!
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
     Swag.assert(image.pixelFormat == .RGBA8)
 
     let painted = image.pixelColor(0, 0)
@@ -201,7 +201,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
     let content  = "q 10 0 0 10 0 0 cm /Im0 Do Q"
     let document = expect Document.decode(singlePagePdf("/XObject << /Im0 5 0 R >>", cast(const [..] u8, content), extra.toSlice()).toSlice())
-    let image    = onlyItem(document.pages[0], .Image).imageValue()!
+    let image    = unwrap onlyItem(document.pages[0], .Image).imageValue()
     Swag.assert(image.pixelFormat == .RGBA8)
     Swag.assert(image.pixelColor(0, 0).a == 0 and image.pixelColor(1, 0).a == 0)
     Swag.assert(image.pixelColor(2, 0).a == 255 and image.pixelColor(3, 0).a == 255)
@@ -213,7 +213,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 {
     let samples: [3] u8 = [10, 200, 30]
     let document        = imageDocument("/Type /XObject /Subtype /Image /Width 3 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Mask [150 255]", samples)
-    let image           = onlyItem(document.pages[0], .Image).imageValue()!
+    let image           = unwrap onlyItem(document.pages[0], .Image).imageValue()
     Swag.assert(image.pixelFormat == .RGBA8)
     Swag.assert(image.pixelColor(0, 0).a == 255)
     Swag.assert(image.pixelColor(1, 0).a == 0)
@@ -230,7 +230,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
 
     let document = expect Document.decode(singlePagePdf("", content.toSlice(), "").toSlice())
     let item     = onlyItem(document.pages[0], .Image)
-    let image    = item.imageValue()!
+    let image    = unwrap item.imageValue()
     Swag.assert(image.width == 2 and image.height == 1)
     Swag.assert(image.pixelColor(0, 0).r == 255 and image.pixelColor(0, 0).b == 0)
     Swag.assert(image.pixelColor(1, 0).b == 255 and image.pixelColor(1, 0).r == 0)
@@ -255,7 +255,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     var photo: const *Image?
     for item in page.items where item.kind == .Image
     {
-        let image = item.imageValue()!
+        let image = unwrap item.imageValue()
         if image.width == 64 do
             fax = image
         elif image.width == 48 do
@@ -310,7 +310,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.assert(Utf8.indexOf(text, "/SMask") == Swag.U64.Max)
 
     let decoded = expect Document.decode(bytes.toSlice())
-    let image   = onlyItem(decoded.pages[0], .Image).imageValue()!
+    let image   = unwrap onlyItem(decoded.pages[0], .Image).imageValue()
     Swag.assert(image.width == 2 and image.height == 2)
     Swag.assert(image.pixelColor(0, 1).r == 10 and image.pixelColor(0, 1).g == 10)
     Swag.assert(image.pixelColor(1, 0).r == 200 and image.pixelColor(1, 1).r == 40)
@@ -328,7 +328,7 @@ private func imageDocument(dictionary: string, samples: const [..] u8)->Document
     Swag.assert(Utf8.indexOf(cast(string, bytes.toSlice()), "/SMask") != Swag.U64.Max)
 
     var decoded = expect Document.decode(bytes.toSlice())
-    let image   = onlyItem(decoded.pages[0], .Image).imageValue()!
+    let image   = unwrap onlyItem(decoded.pages[0], .Image).imageValue()
     Swag.assert(image.pixelFormat == .RGBA8)
 
     // Every pixel keeps its own coverage through the writer and the reader.

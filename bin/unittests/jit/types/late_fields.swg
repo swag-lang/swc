@@ -97,7 +97,7 @@ struct JitLateDirty
 
 func jitLateDirtyMemoryInit()->bool
 {
-    let raw = testAlloc(#sizeof(JitLateDirty))!
+    let raw = unwrap testAlloc(#sizeof(JitLateDirty))
     Swag.memset(raw, 0xD0, #sizeof(JitLateDirty))
 
     let box = cast(*JitLateDirty, raw)

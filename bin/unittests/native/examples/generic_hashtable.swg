@@ -30,7 +30,7 @@ func(K, V) allocateStorage(table: *HashTable'(K, V), capacity: u64)
     table.capacity = capacity
     table.count    = 0
 
-    let states = table.states!
+    let states = unwrap table.states
     for i in capacity do
         states[i] = SlotEmpty
 }
@@ -59,8 +59,8 @@ func(K, V) insertAssumeSpace(table: *HashTable'(K, V), key: K, value: V)
 {
     let start   = table.hashFn(key) % table.capacity
     var idx     = start
-    let states  = table.states!
-    let entries = table.entries!
+    let states  = unwrap table.states
+    let entries = unwrap table.entries
 
     while true
     {
@@ -92,8 +92,8 @@ func(K, V) rehash(table: *HashTable'(K, V), newCapacity: u64)
 
     allocateStorage'(K, V)(table, newCapacity)
 
-    let entries = oldEntries!
-    let states  = oldStates!
+    let entries = unwrap oldEntries
+    let states  = unwrap oldStates
     for i in oldCapacity
     {
         if states[i] == SlotUsed do
@@ -125,8 +125,8 @@ func(K, V) tryGet(table: *HashTable'(K, V), key: K)->*V?
 
     let start   = table.hashFn(key) % table.capacity
     var idx     = start
-    let states  = table.states!
-    let entries = table.entries!
+    let states  = unwrap table.states
+    let entries = unwrap table.entries
 
     while true
     {
@@ -214,7 +214,7 @@ struct InventoryRow
     Swag.assert(getOr'(string, s32)(&table, "apples", -1) == 20)
     Swag.assert(getOr'(string, s32)(&table, "pears", -1) == -1)
 
-    let ptr = (tryGet'(string, s32)(&table, "bananas"))!
+    let ptr = unwrap tryGet'(string, s32)(&table, "bananas")
     ptr[] += 5
     Swag.assert(getOr'(string, s32)(&table, "bananas", -1) == 12)
 }

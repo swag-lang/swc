@@ -27,7 +27,7 @@ private func hashDynamicStorage(type: typeinfo, data: const [*] u8)->u64
         let info   = assume cast(const *TypeInfoStruct, type)
         var result = 0'u64
         for field in info.fields do
-            result = murmur3(result, hashDynamicStorage(field.pointedType!, data + field.offset))
+            result = murmur3(result, hashDynamicStorage(unwrap field.pointedType, data + field.offset))
         return result
 
     default:

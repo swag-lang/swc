@@ -24,12 +24,11 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(420, 220)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 200})
     var lexer: RichEditLexerSwag
     ed.setLexer(&lexer)
-    ed.setText("Swag.assert(value)\nSwag.vecSplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)\n#[Swag.Inline]")
+    ed.setText("Swag.assert(value)\nSwag.vecSplat(value)\nSwag.CompilerCommand.Test\nSwag.custom(value)\nUserSwag.assert(value)\n#[Swag.Inline]\nunwrap nullable\nunwrapped")
     ed.lexAll()
 
     Swag.assert(ed.runeAt(RichEditCursor{0, 0}).style == RichEditLexerSwag.Style.Namespace)
@@ -46,6 +45,8 @@ using Swag, Core
     Swag.assert(ed.runeAt(RichEditCursor{5, 2}).style == RichEditLexerSwag.Style.Namespace)
     Swag.assert(ed.runeAt(RichEditCursor{5, 6}).style == RichEditLexerSwag.Style.Default)
     Swag.assert(ed.runeAt(RichEditCursor{5, 7}).style == RichEditLexerSwag.Style.Preprocessor)
+    Swag.assert(ed.runeAt(RichEditCursor{6, 0}).style == RichEditLexerSwag.Style.Keyword)
+    Swag.assert(ed.runeAt(RichEditCursor{7, 0}).style == RichEditLexerSwag.Style.Default)
 }
 
 // The default shortcut table contains one command per key/modifier pair.
@@ -53,7 +54,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Shift) == .SelectRuneDown)
     Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Control) == .ScrollLineDown)
@@ -76,7 +76,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(360, 260)
-    defer host.shutdown()
 
     let dlg = Dialog.create(&host.surface, 320, 230, title: "Edit")
     let ed  = RichEditCtrl.create(dlg.view(), Math.Rectangle{16, 16, 280, 120})
@@ -111,7 +110,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     ed.setText("Hello")
     Swag.assert(ed.text() == "Hello")
@@ -127,7 +125,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 100})
     var notified: bool
@@ -152,7 +149,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 100})
     for 20 do
@@ -184,7 +180,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     ed.setText("Selectable")
     ed.selectAll()
@@ -196,7 +191,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     ed.setText("abc")
 
@@ -219,7 +213,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     ed.setText("First line")
 
@@ -254,7 +247,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(360, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 340, 200})
     ed.marginLeft  = 12
     ed.marginRight = 12
@@ -291,7 +283,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(420, 220)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 200})
     ed.clear()
@@ -320,7 +311,6 @@ impl IRichEditLexer for CountingLexer
 {
     var host: Testing.HeadlessHost
     host.setup(420, 260)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 240})
     var lexer: CountingLexer
@@ -348,7 +338,6 @@ impl IRichEditLexer for CountingLexer
 {
     var host: Testing.HeadlessHost
     host.setup(420, 260)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 240})
     ed.setFlags(.WordWrap)

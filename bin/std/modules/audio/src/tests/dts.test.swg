@@ -194,7 +194,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 
     // The streaming buffer targets 100 ms. Nine complete 512-frame core packets fit.
     Swag.assert(decoded.size == 9 * 512 * 6 * #sizeof(s16))
-    let samples = cast(const [*] s16, decoded.buffer!)
+    let samples = cast(const [*] s16, unwrap decoded.buffer)
     const Frequencies: [6] f64 = [300, 400, 500, 60, 700, 800]
     for channel in 6
     {
@@ -266,7 +266,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
 
     Swag.assert(coreDecoded.size == cast(u64, info.frames) * info.channels * #sizeof(s16))
     Swag.assert(extendedDecoded.size == coreDecoded.size)
-    Swag.assert(Slice.equals(Swag.makeSlice(cast(const [*] u8, coreDecoded.buffer!), coreDecoded.size), Swag.makeSlice(cast(const [*] u8, extendedDecoded.buffer!), extendedDecoded.size)))
+    Swag.assert(Slice.equals(Swag.makeSlice(cast(const [*] u8, unwrap coreDecoded.buffer), coreDecoded.size), Swag.makeSlice(cast(const [*] u8, unwrap extendedDecoded.buffer), extendedDecoded.size)))
 }
 
 // A high-frequency VQ address is consumed and its band omitted instead of making the otherwise
@@ -308,7 +308,7 @@ private func dtsAssertNativeStream(fileName: string, packetBytes: u32)
     let voice = expect Voice.create(&sound)
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
-    let samples = Swag.makeSlice(cast(const [*] s16, decoded.buffer!), decoded.size / #sizeof(s16))
+    let samples = Swag.makeSlice(cast(const [*] s16, unwrap decoded.buffer), decoded.size / #sizeof(s16))
     var nonZero: u64
     for sample in samples where sample do
         nonZero += 1

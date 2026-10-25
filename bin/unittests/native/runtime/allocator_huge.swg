@@ -84,7 +84,7 @@ func freeOne(itf: IAllocator, address: *void?)
     var request: AllocatorRequest
     request.size = HugeBytes
     itf.alloc(&request)
-    let original = request.address!
+    let original = unwrap request.address
     let header   = allocator.headerOf(cast(u64, original))
     Swag.assert(header.allocSize >= HugeBytes + 1024 * 1024)
     Swag.assert(header.commitSize < header.allocSize)

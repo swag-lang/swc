@@ -70,7 +70,7 @@ impl FormDlg
     mtd doModal()->WndId
     {
         .adaptSizeToForm()
-        .surface!.center(.parentSurface!)
+        .surface!.center(unwrap .parentSurface)
         return Dialog.doModal(me)
     }
 
@@ -90,7 +90,7 @@ impl FormDlg
             return
 
         // Everything measured above is in logical units; a surface rectangle is physical.
-        let srf = .surface!
+        let srf = unwrap .surface
         var pos = srf.position
         pos.height += grow * srf.dpiScale
         srf.setPosition(pos)

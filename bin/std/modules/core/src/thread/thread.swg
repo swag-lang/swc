@@ -93,7 +93,7 @@ impl Thread
         // A worker inherits allocator policy, not the creator's live scratch blocks or errors.
         .context.resetThreadState()
 
-        let allocator = .context.allocator!
+        let allocator = unwrap .context.allocator
         if tempAllocSize < 0 do
             .context.tempAllocator.setCapacity(inheritedCapacity, allocator)
         elif tempAllocSize != 0 do
@@ -142,7 +142,7 @@ impl Thread
 #[Swag.CallingConvention(.C)]
 private func threadEntry(param: *void?)->u32
 {
-    let thread = cast(*Thread, param!)
+    let thread = cast(*Thread, unwrap param)
     Swag.setContext(thread.context)
     let lambda = thread.userLambda
     if lambda do

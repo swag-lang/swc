@@ -217,7 +217,7 @@ impl Deflate
 
     mtd setup(flags: u32)
     {
-        with let state = .state!
+        with let state = unwrap .state
         {
             .compressFlags    = flags
             .maxProbes[0]     = 1 + ((flags & 0xFFF) + 2) / 3
@@ -233,13 +233,13 @@ impl Deflate
 
     mtd recordLiteral(lit: u8)
     {
-        let d = .state!
+        let d = unwrap .state
 
         d.totalLzBytes += 1
-        let lzCodeBufAddr = d.lzCodeBufAddr!
+        let lzCodeBufAddr = unwrap d.lzCodeBufAddr
         lzCodeBufAddr[] = lit
         d.lzCodeBufAddr += 1
-        let lzFlags = d.lzFlags!
+        let lzFlags = unwrap d.lzFlags
         lzFlags[] = cast(u8, (lzFlags[] >> 1))
 
         d.numFlagsLeft -= 1
@@ -256,11 +256,11 @@ impl Deflate
     mtd recordMatch(matchLen: u32, md: u32)
     {
         var matchDist = md
-        let d         = .state!
+        let d         = unwrap .state
 
         d.totalLzBytes += matchLen
 
-        let lzCodeBufAddr = d.lzCodeBufAddr!
+        let lzCodeBufAddr = unwrap d.lzCodeBufAddr
         lzCodeBufAddr[0] = cast(u8, (matchLen - MinMatchLen))
 
         matchDist        -= 1
@@ -268,7 +268,7 @@ impl Deflate
         lzCodeBufAddr[2] = Math.byteAt(matchDist, 1)
         d.lzCodeBufAddr  += 3
 
-        let lzFlags = d.lzFlags!
+        let lzFlags = unwrap d.lzFlags
         lzFlags[]      = cast(u8, ((lzFlags[] >> 1) | 0x80))
         d.numFlagsLeft -= 1
         if d.numFlagsLeft == 0
@@ -287,7 +287,7 @@ impl Deflate
     #[Swag.Safety(.All, false)]
     mtd findMatch(laPos, maxDist, maxMatchLen: u32, matchDistAddr, matchLenAddr: *u32)
     {
-        let d = .state!
+        let d = unwrap .state
 
         let pos      = laPos & LzDictSizeMask
         var matchLen = matchLenAddr[]
@@ -380,7 +380,7 @@ impl Deflate
     #[Swag.Safety(.All, false)]
     mtd findShortMatch(pos: u32, matchDistAddr, matchLenAddr: *u32)
     {
-        let d    = .state!
+        let d    = unwrap .state
         let head = cast(u32, d.prev3[pos])
         if not head do
             return
@@ -401,7 +401,7 @@ impl Deflate
 
     mtd putBits(bits, bitCount: u32)
     {
-        let d = .state!
+        let d = unwrap .state
 
         d.bitBuffer |= (bits << d.bitsIn)
         d.bitsIn    += bitCount
@@ -409,7 +409,7 @@ impl Deflate
         {
             if d.outputBufAddr < d.outputBufEndAddr
             {
-                let outputBufAddr = d.outputBufAddr!
+                let outputBufAddr = unwrap d.outputBufAddr
                 outputBufAddr[] = cast(u8, d.bitBuffer)
                 d.outputBufAddr += 1
             }
@@ -568,7 +568,7 @@ impl Deflate
 
     mtd optimizeHuffmanTable(tableNum, tableLen, codeSizeLimit: u32, staticTable: bool)
     {
-        let d = .state!
+        let d = unwrap .state
 
         var numCodes: [1 + MaxSupportedHuffCodeSize] s32
         var nextCode: [MaxSupportedHuffCodeSize + 1] u32
@@ -642,7 +642,7 @@ impl Deflate
 
     mtd startStaticBlock()
     {
-        let d = .state!
+        let d = unwrap .state
 
         var i = 0
         while i <= 143
@@ -682,7 +682,7 @@ impl Deflate
     {
         if rleRepeatCount
         {
-            let d = .state!
+            let d = unwrap .state
             if rleRepeatCount < 3
             {
                 d.huffCount[2, prevCodeSize] = cast(u16, (d.huffCount[2, prevCodeSize] + rleRepeatCount))
@@ -744,7 +744,7 @@ impl Deflate
 
     mtd startDynamicBlock()
     {
-        let d = .state!
+        let d = unwrap .state
 
         var codeSizesToPack: [MaxHuffSymbols0 + MaxHuffSymbols1] u8
         var packedCodeSizes: [MaxHuffSymbols0 + MaxHuffSymbols1] u8
@@ -861,7 +861,7 @@ impl Deflate
 
     mtd compressLzCodes()->bool
     {
-        let d     = .state!
+        let d     = unwrap .state
         var flags = 1'u32
         for var lzCodes = cast([*] u8, &d.lzCodeBuf[0]); lzCodes < d.lzCodeBufAddr; flags >>= 1
         {
@@ -918,14 +918,14 @@ impl Deflate
 
     mtd flushBlock(finish: bool)
     {
-        let d = .state!
+        let d = unwrap .state
 
         var compBlockSucceeded = false
         let useRawBlock        = ((d.compressFlags & ForceAllRawBlocks) != 0) and
                                  (d.lookaheadPos - d.lzCodeBufDictPos) <= d.dictSize
 
         var outputBufStart: [*] u8?
-        let result = d.result!
+        let result = unwrap d.result
         if result.capacity - result.count >= OutBufSize do
             outputBufStart = result.buffer + d.outBufOfs
         else do
@@ -935,7 +935,7 @@ impl Deflate
         d.outputBufEndAddr = d.outputBufAddr + OutBufSize - 16
 
         let numFlagsLeft = cast(u8, d.numFlagsLeft)
-        let lzFlags      = d.lzFlags!
+        let lzFlags      = unwrap d.lzFlags
         lzFlags[]       = cast(u8, (lzFlags[] >> numFlagsLeft))
         d.lzCodeBufAddr -= (d.numFlagsLeft == 8) ? 1 : 0
 
@@ -997,7 +997,7 @@ impl Deflate
             if outputBufStart == &d.outputBuf[0]
             {
                 result.resize(result.count + n)
-                Memory.copy(result.buffer! + d.outBufOfs, d.outputBuf, cast(u64, n))
+                Memory.copy(unwrap result.buffer + d.outBufOfs, d.outputBuf, cast(u64, n))
                 d.outBufOfs += n
             }
             else
@@ -1010,7 +1010,7 @@ impl Deflate
 
     mtd const shouldFlushBlock()->bool
     {
-        let d = .state!
+        let d = unwrap .state
         let recordsEnd = cast([*] u8, &d.lzCodeBuf[LzCodeBufSize - 8])
         if d.lzCodeBufAddr > recordsEnd do
             return true
@@ -1025,7 +1025,7 @@ impl Deflate
 
     mtd compress() fail
     {
-        let d          = .state!
+        let d          = unwrap .state
         var pSrc       = d.inSrc
         var srcBufLeft = d.srcBufLeft
 

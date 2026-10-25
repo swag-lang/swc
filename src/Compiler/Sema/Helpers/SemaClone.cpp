@@ -982,7 +982,7 @@ namespace
         return cloneSpan(sema, spanRef, noReplacements);
     }
 
-    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, WalkPath<AstNodeRef>& activeSourceRefSet);
+    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, WalkPath<AstNodeRef>& activeSourceRefSet, bool* needsReanalysis);
 
     void pinResolvedCallCallee(Sema& sema, AstNodeRef calleeRef, const SymbolFunction& fn)
     {
@@ -1126,7 +1126,7 @@ namespace
         return clonedRef;
     }
 
-    AstNodeRef cloneDetachedExprImpl(Sema& sema, AstNodeRef sourceRef)
+    AstNodeRef cloneDetachedExprImpl(Sema& sema, AstNodeRef sourceRef, bool* needsReanalysis = nullptr)
     {
         SWC_ASSERT(sourceRef.isValid());
         const SemaClone::CloneContext noBindings{std::span<const SemaClone::ParamBinding>{}, std::span<const SemaClone::NodeReplacement>{}, false, nullptr, false, true};
@@ -1135,7 +1135,7 @@ namespace
             return AstNodeRef::invalid();
 
         WalkPath<AstNodeRef> activeSourceRefSet;
-        copyDetachedBindingExprState(sema, sourceRef, clonedRef, activeSourceRefSet);
+        copyDetachedBindingExprState(sema, sourceRef, clonedRef, activeSourceRefSet, needsReanalysis);
         return clonedRef;
     }
 
@@ -1150,7 +1150,7 @@ namespace
         return SemaInline::expansionPayload(sema, resolvedRef) != nullptr;
     }
 
-    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, WalkPath<AstNodeRef>& activeSourceRefSet)
+    void copyDetachedBindingExprState(Sema& sema, AstNodeRef sourceRef, AstNodeRef clonedRef, WalkPath<AstNodeRef>& activeSourceRefSet, bool* needsReanalysis)
     {
         SWC_ASSERT(sourceRef.isValid());
         SWC_ASSERT(clonedRef.isValid());
@@ -1159,6 +1159,8 @@ namespace
         const bool       shouldReexpand                  = shouldReexpandDetachedExpr(sema, sourceRef, resolvedRef);
         const bool       sourceHasImplicitCastSubstitute = isImplicitCastSubstitute(sema, sourceRef, resolvedRef);
 
+        if (shouldReexpand && needsReanalysis)
+            *needsReanalysis = true;
         activeSourceRefSet.insert(sourceRef);
         if (!shouldReexpand && !sourceHasImplicitCastSubstitute)
             sema.inheritPayload(sema.node(clonedRef), sourceRef);
@@ -1203,7 +1205,7 @@ namespace
             !sourceHasImplicitCastSubstitute &&
             !activeSourceRefSet.contains(resolvedRef))
         {
-            const AstNodeRef clonedResolvedRef = cloneDetachedExprImpl(sema, resolvedRef);
+            const AstNodeRef clonedResolvedRef = cloneDetachedExprImpl(sema, resolvedRef, needsReanalysis);
             sema.setSubstitute(clonedRef, clonedResolvedRef);
         }
 
@@ -1239,12 +1241,12 @@ namespace
                 !sourceChildHasImplicitCastSubstitute &&
                 !activeSourceRefSet.contains(resolvedChildRef))
             {
-                const AstNodeRef clonedResolvedChildRef = cloneDetachedExprImpl(sema, resolvedChildRef);
+                const AstNodeRef clonedResolvedChildRef = cloneDetachedExprImpl(sema, resolvedChildRef, needsReanalysis);
                 sema.setSubstitute(clonedChildRef, clonedResolvedChildRef);
                 continue;
             }
 
-            copyDetachedBindingExprState(sema, sourceChildRef, clonedChildRef, activeSourceRefSet);
+            copyDetachedBindingExprState(sema, sourceChildRef, clonedChildRef, activeSourceRefSet, needsReanalysis);
         }
 
         activeSourceRefSet.erase(sourceRef);
@@ -1534,9 +1536,11 @@ AstNodeRef SemaClone::cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContex
     return clonedRef;
 }
 
-AstNodeRef SemaClone::cloneDetachedExpr(Sema& sema, AstNodeRef nodeRef)
+AstNodeRef SemaClone::cloneDetachedExpr(Sema& sema, AstNodeRef nodeRef, bool* needsReanalysis)
 {
-    return cloneDetachedExprImpl(sema, nodeRef);
+    if (needsReanalysis)
+        *needsReanalysis = false;
+    return cloneDetachedExprImpl(sema, nodeRef, needsReanalysis);
 }
 
 AstNodeRef SemaClone::cloneAstPreservingResolvedIdentifierSymbols(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext)

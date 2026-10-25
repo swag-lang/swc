@@ -3,7 +3,7 @@
 
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.moduleNamespace = "StaticApi"
     cfg.backendKind     = .StaticLibrary
 }

@@ -47,7 +47,7 @@ impl Capture
     {
         .updateEditModeFromSelection()
         .updateModelFromSelection()
-        with let editView = .editView!
+        with let editView = unwrap .editView
         {
             .main.updateState()
             .invalidate()

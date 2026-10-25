@@ -11,7 +11,7 @@ func enumUnderlyingType(type: typeinfo)->typeinfo
         return type
 
     let enumType = assume cast(const *TypeInfoEnum, type)
-    return enumType.rawType!
+    return unwrap enumType.rawType
 }
 
 // Returns reflected information for a named enum value, or null.
@@ -40,10 +40,10 @@ func enumName(type: typeinfo?, valueAddress: const *void?, fullyQualified = true
     var result: retval
     if not isEnum(type) or not valueAddress do
         return result
-    let enumTypeInfo      = type!
+    let enumTypeInfo      = unwrap type
     let inputValueAddress = valueAddress
     let typeEnum          = assume cast(const *TypeInfoEnum, enumTypeInfo)
-    let rawType           = typeEnum.rawType!
+    let rawType           = unwrap typeEnum.rawType
     let isFlags           = hasAttribute(type, EnumFlags)
 
     // Read the input using the enum's underlying representation.

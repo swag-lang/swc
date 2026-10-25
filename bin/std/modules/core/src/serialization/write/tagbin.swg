@@ -132,7 +132,7 @@ private impl TagBin
     {
         if not .freeSections.isEmpty()
         {
-            let ptr = .freeSections.popBack()!
+            let ptr = unwrap .freeSections.popBack()
             ptr.mapSeek.clear()
             ptr.keys.clear()
             ptr.offsets.clear()
@@ -164,7 +164,7 @@ private impl TagBin
     {
         if not .freeTmpBuf.isEmpty()
         {
-            let b = .freeTmpBuf.popBack()!
+            let b = unwrap .freeTmpBuf.popBack()
             b.clear()
             return b
         }
@@ -200,7 +200,7 @@ private impl TagBin
         sec.kind = kind
         sec.plan = plan
 
-        let output = .output!
+        let output = unwrap .output
         if kind == .Raw
         {
             sec.startSeek = output.position()
@@ -261,7 +261,7 @@ impl TagBin
     // Writes an unsigned value as LEB128, the framing encoding of a version 1 stream.
     mtd writeVarint(value: u64)
     {
-        .writeVarintTo(.output!, value)
+        .writeVarintTo(unwrap .output, value)
     }
 
     // Validates and returns the stable key of a concrete interface object.
@@ -304,7 +304,7 @@ impl TagBin
     // Writes the stream header.
     mtd beginRoot()
     {
-        let header = .finalOutput!
+        let header = unwrap .finalOutput
         header.addNative(TagBinSignature.Root)
         header.addNative(TagBinVersion1)
 
@@ -349,7 +349,7 @@ impl TagBin
             }
         }
 
-        let header = .finalOutput!
+        let header = unwrap .finalOutput
         let endPos = header.position()
         header.setPosition(.headerPatch)
         header.addNative(shapeDirOffset)
@@ -357,7 +357,7 @@ impl TagBin
 
         // The body always holds at least the shape directory, so the slice exists.
         .body.makeLinear()
-        let bodyBytes = .body.toSlice()!
+        let bodyBytes = unwrap .body.toSlice()
 
         if .compressStream
         {
@@ -400,8 +400,8 @@ impl TagBin
     // Closes the current section and writes its index.
     mtd endSection()
     {
-        let sec    = .sections.back()!
-        let output = .output!
+        let sec    = unwrap .sections.back()
+        let output = unwrap .output
 
         if sec.kind == .Raw
         {
@@ -449,7 +449,7 @@ impl TagBin
     // Opens the struct `structType`, writing its version, and returns false so the encoder writes its fields.
     mtd beginStruct(structType: typeinfo?, _: const [*] u8?)->bool fail
     {
-        let output = .output!
+        let output = unwrap .output
         if not structType
         {
             output.addNative(TagBinSignature.Version)
@@ -489,11 +489,11 @@ impl TagBin
         Swag.assert(not .sections.isEmpty(), "Missing a previous 'beginSection' call")
 
         // If section is raw, then we just have values without versioning
-        let sec = .sections.back()!
+        let sec = unwrap .sections.back()
         if sec.kind == .Raw do
             return
 
-        let output = .output!
+        let output = unwrap .output
         var compressed: bool
 
         if sec.plan
@@ -560,7 +560,7 @@ impl TagBin
     mtd endElement(_: TypeValue)
     {
         // If section is raw, then we just have values without versioning
-        let sec = .sections.back()!
+        let sec = unwrap .sections.back()
         if sec.kind == .Raw do
             return
 
@@ -571,10 +571,10 @@ impl TagBin
 
         // We must have a previous buffer to append into
         Swag.assert(not .outStack.isEmpty())
-        let parentOut = .outStack.popBack()!
+        let parentOut = unwrap .outStack.popBack()
 
         // Gather uncompressed bytes
-        let tmpBuf     = ctx.tmpBuf!
+        let tmpBuf     = unwrap ctx.tmpBuf
         let childBytes = tmpBuf.toString()
 
         // Compress
@@ -613,7 +613,7 @@ impl TagBin
     // Opens a sequence of `countElem` values and returns whether it wrote them in bulk as raw bytes.
     mtd beginSequence(typeElem: typeinfo?, data: const *void?, countElem: u64)->bool
     {
-        let output = .output!
+        let output = unwrap .output
         output.addNative(TagBinSignature.Sequence)
         .writeVarint(countElem)
 
@@ -673,7 +673,7 @@ impl TagBin
     // Writes `value` as the host lays it out, or a string as its byte count followed by its bytes.
     mtd(NT) writeNative(value: NT)
     {
-        let output = .output!
+        let output = unwrap .output
         #static if Reflection.isString(NT)
         {
             .writeVarint(value.count)

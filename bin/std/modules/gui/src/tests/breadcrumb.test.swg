@@ -12,12 +12,33 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
     BreadcrumbPressedCount += 1
 }
 
+// A horizontally scrolled path hit-tests the visible level in content coordinates.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(180, 60)
+    let scroll     = Wnd.create'ScrollWnd(&host.root, Math.Rectangle{0, 0, 180, 40})
+    let breadcrumb = BreadcrumbCtrl.create(scroll)
+    scroll.setView(breadcrumb)
+    breadcrumb.addItem("A long ancestor folder")
+    breadcrumb.addItem("Documents")
+    breadcrumb.addItem("Current")
+    breadcrumb.sigItemPressed += &breadcrumbPressed
+    breadcrumb.layout()
+    scroll.setScrollSize(breadcrumb.items.back().arrowRect.right(), 0)
+    scroll.setScrollPos(scroll.scrollSize.x, 0)
+    breadcrumb.layout()
+    BreadcrumbPressedIndex = Swag.U64.Max
+    let body = breadcrumb.items.back().bodyRect
+    host.click(breadcrumb.localToSurface(Math.Point{body.horzCenter(), body.vertCenter()} - breadcrumb.scrollPos))
+    Swag.assert(BreadcrumbPressedIndex == 2)
+}
+
 // Levels lay out left-to-right without overlap; a leaf level has no chevron.
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
-    defer host.shutdown()
     let bc = BreadcrumbCtrl.create(&host.root, Math.Rectangle{0, 0, 400, 32})
     bc.addItem("Home", bc.theme().icon(.OpenFile, 28), 1)
     bc.addItem("Docs", {}, 2)
@@ -48,7 +69,6 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
-    defer host.shutdown()
     BreadcrumbPressedCount = 0
     BreadcrumbPressedIndex = Swag.U64.Max
 

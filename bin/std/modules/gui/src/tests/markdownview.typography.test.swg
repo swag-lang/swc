@@ -8,12 +8,11 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 240, dpiScale: 1.5)
-    defer host.shutdown()
 
     var style = Markdown.Style.theme()
     style.bodyFontSize = 19
     let view   = Markdown.View.createText(&host.root, "abandonnée comme axe", style)
-    let inline = view.blocks[0].inline!
+    let inline = unwrap view.blocks[0].inline
     discard inline.layout(600)
 
     let font   = view.documentFont(.Paragraph, style.bodyFontSize)
@@ -30,14 +29,13 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 240)
-    defer host.shutdown()
     let view  = Markdown.View.createText(&host.root, "A\u2192\u65E5\u672C\u8A9E")
     var style = Markdown.Style.theme()
     style.bodyTypeFaces[0] = host.theme.res.defaultFsTypeFaceR
     view.setDocumentStyle(style)
     view.resize(640, 240)
     view.applyLayout()
-    let inline  = view.blocks[0].inline!
+    let inline  = unwrap view.blocks[0].inline
     let font    = view.documentFont(.Paragraph, style.bodyFontSize)
     let shaped  = Painter.shapeRun("A\u2192\u65E5\u672C\u8A9E", font)
     let metrics = shaped.lineMetrics()
@@ -59,9 +57,8 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
     let view   = Markdown.View.createText(&host.root, "iiii WWWW")
-    let inline = view.blocks[0].inline!
+    let inline = unwrap view.blocks[0].inline
     discard inline.layout(600)
     let original = inline.atoms[0].position.width
     var style    = Markdown.Style.theme()
@@ -85,12 +82,11 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
 
     for source in ["prefix **word**, suffix", "prefix *word*, suffix", "prefix [word](target), suffix", "prefix `word`, suffix", "prefix **wo**rd, suffix", "prefix (**word**), suffix", "prefix $x$, suffix"]
     {
         let view   = Markdown.View.createText(&host.root, source)
-        let inline = view.blocks[0].inline!
+        let inline = unwrap view.blocks[0].inline
         discard inline.layout(600)
         let end   = inline.atoms.count - 2
         let width = inline.atoms[end - 1].position.right() - 1
@@ -108,9 +104,8 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
     let view   = Markdown.View.createText(&host.root, "abcdefghijklmnopqrstuvwx, tail")
-    let inline = view.blocks[0].inline!
+    let inline = unwrap view.blocks[0].inline
     discard inline.layout(90)
     Swag.assert(inline.atoms[0].text == "abcdefghijklmnopqrstuvwx,")
     Swag.assert(inline.text() == "abcdefghijklmnopqrstuvwx, tail")
@@ -145,7 +140,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     let fileName = Testing.tempFilePath("markdown-themed-html-", ".md")
@@ -158,7 +152,7 @@ using Core, Pixel
     view.resize(640, 400)
     view.applyLayout()
     view.layoutDocument()
-    let html = view.blocks[0].html!
+    let html = unwrap view.blocks[0].html
     for style in html.layout.styles do
         Swag.assert(style.color.argb == 0xFF333333)
 }

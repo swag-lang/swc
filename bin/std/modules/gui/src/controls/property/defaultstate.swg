@@ -62,7 +62,7 @@ internal impl Properties
 
         for i in fromIdx until .items.count
         {
-            let it = .items[i]!
+            let it = unwrap .items[i]
             it.defaultData = null
 
             if not it.data do
@@ -88,7 +88,7 @@ internal impl Properties
     mtd freeDefaultRoots()
     {
         for r in .defaultRoots do
-            Memory.delete(r.base!, r.type!)
+            Memory.delete(unwrap r.base, unwrap r.type)
         .defaultRoots.clear()
     }
 
@@ -129,10 +129,10 @@ internal impl Properties
 
         if item.type == Core.String
         {
-            let d = cast(*String, item.defaultData!)
+            let d = cast(*String, unwrap item.defaultData)
             for k in n
             {
-                if cast(const *String, .instanceAddr(item, k)!)[] != d[] do
+                if cast(const *String, unwrap .instanceAddr(item, k))[] != d[] do
                     return true
             }
 
@@ -145,7 +145,7 @@ internal impl Properties
 
         for k in n
         {
-            if Memory.compare(.instanceAddr(item, k)!, item.defaultData!, sz) != 0 do
+            if Memory.compare(unwrap .instanceAddr(item, k), unwrap item.defaultData, sz) != 0 do
                 return true
         }
 
@@ -178,13 +178,13 @@ internal impl Properties
         if item.type == Core.String
         {
             for k in n do
-                cast(*String, .instanceAddr(item, k)!)[] = cast(const *String, item.defaultData!)[]
+                cast(*String, unwrap .instanceAddr(item, k))[] = cast(const *String, unwrap item.defaultData)[]
         }
         else
         {
             let sz = .fieldSize(item)
             for k in n do
-                Memory.copy(.instanceAddr(item, k)!, item.defaultData!, sz)
+                Memory.copy(unwrap .instanceAddr(item, k), unwrap item.defaultData, sz)
         }
 
         .refreshItem(item)
@@ -199,7 +199,7 @@ internal impl Properties
         var changed = false
         for it in .items
         {
-            if .updateItemDefaultState(it!) do
+            if .updateItemDefaultState(unwrap it) do
                 changed = true
         }
 

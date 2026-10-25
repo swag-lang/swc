@@ -57,7 +57,7 @@ namespace GenericReallocDefaultArgsCodegen
             req.size      = size
             req.address   = buffer
 
-            let talloc = (allocator orelse Swag.getContext().allocator)!
+            let talloc = unwrap (allocator orelse Swag.getContext().allocator)
             talloc.free(&req)
         }
 
@@ -76,7 +76,7 @@ namespace GenericReallocDefaultArgsCodegen
             req.oldSize   = oldSize
             req.alignment = alignment
 
-            let talloc = (allocator orelse Swag.getContext().allocator)!
+            let talloc = unwrap (allocator orelse Swag.getContext().allocator)
             talloc.realloc(&req)
             return req.address
         }
@@ -138,7 +138,7 @@ namespace GenericReallocDefaultArgsCodegen
         {
             if .count == .capacity do
                 .reserve(.capacity ? .capacity * 2 : 2)
-            let buf = .buffer!
+            let buf = unwrap .buffer
             buf[.count] = value
             .count      += 1
         }
@@ -147,7 +147,7 @@ namespace GenericReallocDefaultArgsCodegen
         {
             if .count == .capacity do
                 .reserveNamed(.capacity ? .capacity * 2 : 3)
-            let buf = .buffer!
+            let buf = unwrap .buffer
             buf[.count] = value
             .count      += 1
         }

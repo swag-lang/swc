@@ -33,7 +33,7 @@ impl BuildSettings
         return """\
             #run
             {
-                with let cfg = Swag.compiler().getBuildCfg()!
+                with let cfg = unwrap Swag.compiler().getBuildCfg()
                 {
                     .safetyGuards = .None
                     #static if #hastag("Swag.AllocatorDiagnostics") do
@@ -73,7 +73,7 @@ impl BuildRequest
                               %
                               #run
                               {
-                                  with let cfg = Swag.compiler().getBuildCfg()!
+                                  with let cfg = unwrap Swag.compiler().getBuildCfg()
                                   {
                                       .backendKind = .%
                                       .publishDependencies = true

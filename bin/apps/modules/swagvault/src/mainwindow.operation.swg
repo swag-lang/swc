@@ -78,7 +78,7 @@ impl MainWindow
             .width = 520
         }
 
-        let dialog = FormDlg.create(.surface!, options)
+        let dialog = FormDlg.create(unwrap .surface, options)
         let fields = buildHiddenCreateForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -133,7 +133,7 @@ impl MainWindow
             .width = 520
         }
 
-        let dialog = FormDlg.create(.surface!, options)
+        let dialog = FormDlg.create(unwrap .surface, options)
         let fields = buildHiddenProtectionForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return false
@@ -259,7 +259,7 @@ impl MainWindow
             .height = 300
         }
 
-        let dialog = FormDlg.create(.surface!, options)
+        let dialog = FormDlg.create(unwrap .surface, options)
         let fields = buildPasswordChangeForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return
@@ -294,7 +294,7 @@ impl MainWindow
             .confirmButtonText = appStrings().dlg_BtnApply
         }
 
-        let dialog = FormDlg.create(.surface!, options)
+        let dialog = FormDlg.create(unwrap .surface, options)
         let files  = buildKeyFileChangeForm(dialog, .mountKeyFiles.paths.toSlice())
         if dialog.doModal() != Dialog.BtnOk or files.samePaths(.mountKeyFiles.paths.toSlice()) do
             return
@@ -331,7 +331,7 @@ impl MainWindow
             .height = 240
         }
 
-        let dialog = FormDlg.create(.surface!, options)
+        let dialog = FormDlg.create(unwrap .surface, options)
         let fields = buildVaultResizeForm(dialog)
         if dialog.doModal() != Dialog.BtnOk do
             return

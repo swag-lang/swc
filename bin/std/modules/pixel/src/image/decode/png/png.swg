@@ -130,11 +130,11 @@ internal struct Decoder
 
 impl Decoder
 {
-    func safeDatas(chunk: DecodeChunk)->const [..] u8 => cast(const [..] u8, chunk.datas!)
+    func safeDatas(chunk: DecodeChunk)->const [..] u8 => cast(const [..] u8, unwrap chunk.datas)
 
-    mtd safeTRNSData()->const [..] u8 => cast(const [..] u8, .chunkTRNS.datas!)
+    mtd safeTRNSData()->const [..] u8 => cast(const [..] u8, unwrap .chunkTRNS.datas)
 
-    mtd safeDstPixels()->[*] u8 => .dstPixels!
+    mtd safeDstPixels()->[*] u8 => unwrap .dstPixels
 
     mtd readChunk(ch: ChunkHeader)->DecodeChunk fail
     {
@@ -600,6 +600,6 @@ impl IImageSetDecoder for Decoder
             fail InvalidFormatError{"PNG image index is out of range"}
         var decoder: Decoder
         decoder.decOptions = options
-        return try decoder.doIt(.input!, .animation.frames[index].kind == .Animation ? cast(s32, index) : -1)
+        return try decoder.doIt(unwrap .input, .animation.frames[index].kind == .Animation ? cast(s32, index) : -1)
     }
 }

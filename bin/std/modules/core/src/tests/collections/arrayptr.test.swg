@@ -31,13 +31,13 @@ func assertIntArrayPtr(values: *ArrayPtr's32, expected: const [..] s32)->bool
 
     for value, index in values
     {
-        let src = value!
-        let dup = copy[index]!
+        let src = unwrap value
+        let dup = unwrap copy[index]
         Swag.assert(dup != src)
         Swag.assert(dup[] == src[])
     }
 
-    let slot1 = copy[1]!
+    let slot1 = unwrap copy[1]
     slot1[] = 42
     Swag.assert(values[1]![] == 2)
     Swag.assert(copy[1]![] == 42)
@@ -107,10 +107,10 @@ impl ApTracked
     // deleteAt keeps order and drops the object: [0,1,2,3,4] -> remove id 1 -> [0,2,3,4].
     arr.deleteAt(1)
     Swag.assert(arr.count == 4 and g_ApDropCount == 1)
-    let a0 = arr[0]!
-    let a1 = arr[1]!
-    let a2 = arr[2]!
-    let a3 = arr[3]!
+    let a0 = unwrap arr[0]
+    let a1 = unwrap arr[1]
+    let a2 = unwrap arr[2]
+    let a3 = unwrap arr[3]
     Swag.assert(a0.id == 0 and a1.id == 2 and a2.id == 3 and a3.id == 4)
 
     // deleteBack drops the last: -> [0,2,3].
@@ -121,15 +121,15 @@ impl ApTracked
     // deleteAtUnordered swaps the last into the hole: remove index 0 (id 0) -> [3,2].
     arr.deleteAtUnordered(0)
     Swag.assert(arr.count == 2 and g_ApDropCount == 3)
-    let b0 = arr[0]!
-    let b1 = arr[1]!
+    let b0 = unwrap arr[0]
+    let b1 = unwrap arr[1]
     Swag.assert(b0.id == 3 and b1.id == 2)
 
     // insertNew allocates and inserts at the index.
     let ins = arr.insertNew(1)
     ins.id = 99
     Swag.assert(arr.count == 3)
-    let c1 = arr[1]!
+    let c1 = unwrap arr[1]
     Swag.assert(c1.id == 99)
 
     // The 3 remaining elements are deallocated when 'arr' drops at scope end.
@@ -189,7 +189,7 @@ func apCountByValue(values: Array'rune)->u64
 
     var holder: ArrayPtr'ApFlagged
     discard holder.addNew()
-    let first = holder[0]!
+    let first = unwrap holder[0]
     first.tag = 2
     g_ApTotal = apCountByValue(runes) + first.tag
     Swag.assert(g_ApTotal == cast(u64, 'X') + 2)

@@ -600,7 +600,7 @@ impl RenderOgl
     {
         for it in .fonts.glyphCaches
         {
-            let cache = it!
+            let cache = unwrap it
             for &atlas in cache.atlases where atlas.texture.handle != InvalidTextureHandle
             {
                 var id: GLuint = cast(atlas.texture.handle)
@@ -904,7 +904,7 @@ impl RenderOgl
     // Reads the active target into a new image, then restores the previous target.
     internal mtd unbindRenderTargetToImageImpl(x, y, w, h: s32)->Image
     {
-        let curRT = .curRT!
+        let curRT = unwrap .curRT
 
         var result: retval = Image.create(w, h, .BGRA8)
 
@@ -925,7 +925,7 @@ impl RenderOgl
         if .stackRT.count
         {
             .curRT = .stackRT.popBack()
-            let curRT = .curRT!
+            let curRT = unwrap .curRT
             glBindFramebuffer(GL_FRAMEBUFFER, cast(GLuint, curRT.handle))
             glViewport(0, 0, curRT.colorBuffer.width, curRT.colorBuffer.height)
         }
@@ -1279,7 +1279,7 @@ impl RenderOgl
         case .Transform:
             let params = &cmd.transform
             .buildModelMatrix(params.tr)
-            let curShader = .curShader!
+            let curShader = unwrap .curShader
             glUniformMatrix4fv(cast(GLint, curShader.mdl), 1, GL_FALSE, &.modelMatrix.m[0, 0])
 
         case .StartClippingRegion:
@@ -1528,7 +1528,7 @@ impl RenderOgl
                 .planarPrevShader = null
             }
 
-            let curShader = .curShader!
+            let curShader = unwrap .curShader
             glUniform1f(cast(GLint, curShader.paintType), cast(GLfloat, cast(u32, BrushType.SolidColor)))
             glUniform1f(cast(GLint, curShader.uvMode), cast(GLfloat, cast(u32, UVMode.Fill)))
             glUniform1f(cast(GLint, curShader.interpolationMode), cast(GLfloat, cast(u32, InterpolationMode.Pixel)))
@@ -1568,7 +1568,7 @@ impl RenderOgl
                 .planarPrevShader = null
             }
 
-            let curShader = .curShader!
+            let curShader = unwrap .curShader
             glUniform4fv(cast(GLint, curShader.boundRect), 1, &params.boundRect.x)
             glUniform4fv(cast(GLint, curShader.textureRect), 1, &params.textureRect.x)
             glUniform1f(cast(GLint, curShader.uvMode), cast(GLfloat, params.uvMode))
@@ -1686,10 +1686,10 @@ impl RenderOgl
 
         case .BindRenderTarget:
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
-            let curRT = .curRT!
+            let curRT = unwrap .curRT
             curRT.paintAlpha    = cmd.renderTgt.paintAlpha
             curRT.paintAlphaIdx = cmdIdx
-            let curShader = .curShader!
+            let curShader = unwrap .curShader
             .computeMatrices(curShader.mvp, curShader.mdl)
 
             // A layer has a space of its own: the region in force around it cuts the layer when
@@ -1730,7 +1730,7 @@ impl RenderOgl
             }
 
             .unbindRenderTargetImpl()
-            let curShader = .curShader!
+            let curShader = unwrap .curShader
             .computeMatrices(curShader.mvp, curShader.mdl)
             if .stackClipMaskOn.count
             {
@@ -1828,7 +1828,7 @@ impl RenderOgl
         // Default shader; a planar picture drawn last in the previous submission no longer
         // holds a program to restore.
         .selectProgram(&.shaderAA)
-        let curShader = .curShader!
+        let curShader = unwrap .curShader
         .computeMatrices(curShader.mvp, curShader.mdl)
 
         // Default state
@@ -2031,7 +2031,7 @@ impl RenderOgl
 
         for rt, i in .stackReleasedRT
         {
-            let r = rt!
+            let r = unwrap rt
             if r.colorBuffer.width == w2 and r.colorBuffer.height == h2
             {
                 .stackReleasedRT.removeAt(i)
@@ -2041,7 +2041,7 @@ impl RenderOgl
 
         for rt, i in .stackReleasedRT
         {
-            let r = rt!
+            let r = unwrap rt
             if r.colorBuffer.width >= w2 and r.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(i)

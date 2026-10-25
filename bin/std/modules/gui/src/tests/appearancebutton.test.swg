@@ -9,7 +9,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(248, 96)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
@@ -33,7 +32,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(248, 184)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
@@ -61,11 +59,7 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(480, 240)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.surface.flags        = SurfaceFlags.StandardWindow
     host.surfaceWnd.padding.y = host.theme.metrics.wnd_BigCaptionCY

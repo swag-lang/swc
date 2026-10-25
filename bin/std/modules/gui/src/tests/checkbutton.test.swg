@@ -17,7 +17,6 @@ func checkButtonHeadlessChanged(_: *CheckButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 
@@ -46,7 +45,6 @@ func checkButtonHeadlessChanged(_: *CheckButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 
@@ -75,7 +73,6 @@ func checkButtonHeadlessChanged(_: *CheckButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     CheckButtonHeadlessChangedCount = 0
 
     let check = CheckButton.create(&host.root, "Key", Math.Rectangle{20, 20, 120, 30})
@@ -96,7 +93,6 @@ func checkButtonHeadlessChanged(_: *CheckButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
     CheckButtonHeadlessChangedCount = 0
 

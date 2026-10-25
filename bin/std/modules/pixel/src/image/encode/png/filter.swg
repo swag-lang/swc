@@ -356,8 +356,8 @@ impl Encoder
         if size > Swag.S32.Max / 128 do
             return Swag.S32.Max
 
-        let scanline     = .scanline!
-        let prevScanline = .prevScanline!
+        let scanline     = unwrap .scanline
+        let prevScanline = unwrap .prevScanline
         switch #complete filter
         {
         case .None:    return filterSumIndependent(scanline, prevScanline, size, false)
@@ -370,8 +370,8 @@ impl Encoder
 
     mtd filterScanline(filtered: [*] u8, size: u32, filter: Filter)
     {
-        let scanline     = .scanline!
-        let prevScanline = .prevScanline!
+        let scanline     = unwrap .scanline
+        let prevScanline = unwrap .prevScanline
         switch filter
         {
         case .None:    break

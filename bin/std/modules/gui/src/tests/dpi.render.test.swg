@@ -14,7 +14,6 @@ func renderViewChild(dpiScale: f32)->Image
 {
     var host: Testing.HeadlessHost
     host.setup(96, 64, dpiScale)
-    defer host.shutdown()
 
     let child = Wnd.create'Wnd(&host.root, Math.Rectangle{16, 8, 32, 24})
     child.backgroundStyle = .View
@@ -27,7 +26,6 @@ func renderViewChild(dpiScale: f32)->Image
 {
     var host: Testing.HeadlessHost
     host.setup(180, 20)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -85,7 +83,6 @@ func renderViewChild(dpiScale: f32)->Image
 {
     var host: Testing.HeadlessHost
     host.setup(96, 64, dpiScale: 2)
-    defer host.shutdown()
 
     Swag.assert(host.surface.dpiScale == 2)
     Swag.assert(host.surface.size().x == 96 and host.surface.size().y == 64)

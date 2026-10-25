@@ -117,7 +117,7 @@ impl IActionUI for ActionFile
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()!
+        let capture = unwrap main.getCapture()
 
         switch cxt.id
         {
@@ -137,7 +137,7 @@ impl IActionUI for ActionFile
             main.openImage()
 
         case .UnlinkImage:
-            if MessageDlg.confirm(main.surface!, appStrings().msg_RemoveAssociation) == Dialog.BtnYes
+            if MessageDlg.confirm(unwrap main.surface, appStrings().msg_RemoveAssociation) == Dialog.BtnYes
             {
                 capture.linkedImage.clear()
                 capture.changed        = true
@@ -150,7 +150,7 @@ impl IActionUI for ActionFile
             updateLinkedImage(main, capture)
 
         case .DeleteCapture:
-            if MessageDlg.confirm(main.surface!, appStrings().msg_DeleteCaptures) == Dialog.BtnYes
+            if MessageDlg.confirm(unwrap main.surface, appStrings().msg_DeleteCaptures) == Dialog.BtnYes
             {
                 if main.libraryMode do
                     main.libWnd.removeSelected()
@@ -175,7 +175,7 @@ impl IActionUI for ActionFile
                 catch loaded.save()
             }
             {
-                MessageDlg.error(main.surface!, appStrings().msg_FailedDuplicate)
+                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedDuplicate)
                 break
             }
 
@@ -193,7 +193,7 @@ impl IActionUI for ActionFile
             editOptions.title   = appStrings().dlg_TitleRenameCapture
             editOptions.message = appStrings().ui_CaptureName
             editOptions.text    = capture.title
-            let dialog = EditDlg.createSingleLine(main.surface!, editOptions)
+            let dialog = EditDlg.createSingleLine(unwrap main.surface, editOptions)
             if dialog.doModal() == Dialog.BtnOk do
                 main.setCaptureTitle(file, dialog.text())
 
@@ -205,11 +205,11 @@ impl IActionUI for ActionFile
 
         case .CaptureFileLocation:
             if not Env.showInFileExplorer(capture.file) do
-                MessageDlg.error(main.surface!, appStrings().msg_FailedLocateCapture)
+                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedLocateCapture)
 
         case .LinkedFileLocation:
             if not Env.showInFileExplorer(capture.linkedImage) do
-                MessageDlg.error(main.surface!, appStrings().msg_FailedLocateLinked)
+                MessageDlg.error(unwrap main.surface, appStrings().msg_FailedLocateLinked)
 
         case .FileDetails:
             showFileDetails(main, capture)
@@ -257,7 +257,7 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
             dialog.setExtension(askAgain)
         }
 
-        if MessageDlg.confirm(main.surface!, message, options: options) != Dialog.BtnYes do
+        if MessageDlg.confirm(unwrap main.surface, message, options: options) != Dialog.BtnYes do
             return
     }
 
@@ -270,7 +270,7 @@ private func updateLinkedImage(main: *MainWnd, capture: *Capture)
 private func showFileDetails(main: *MainWnd, capture: *Capture)
 {
     let texts  = appStrings()
-    let dialog = Dialog.create(main.surface!,
+    let dialog = Dialog.create(unwrap main.surface,
                                600,
                                400,
                                title: texts.dlg_TitleDetails,
@@ -360,7 +360,7 @@ impl MainWnd
         let formats = Image.decodableFormats()
         addImageFilters(&opt, formats.toSlice())
 
-        let dialog = FileDlg.create(.surface!, opt)
+        let dialog = FileDlg.create(unwrap .surface, opt)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
@@ -498,7 +498,7 @@ impl MainWnd
 
         catch img.save(nameFile, optImg)
         {
-            MessageDlg.error(.surface!, appStrings().msg_FailedSaveFile, Swag.err)
+            MessageDlg.error(unwrap .surface, appStrings().msg_FailedSaveFile, Swag.err)
             return
         }
 
@@ -525,7 +525,7 @@ impl MainWnd
     // can be written; empty when the reader cancels.
     mtd getSaveAsImageName()->String
     {
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
 
         with var opt: FileDlgOptions
         {
@@ -549,7 +549,7 @@ impl MainWnd
         let formats = Image.encodableFormats()
         addImageFilters(&opt, formats.toSlice(), preferred)
 
-        let dialog = FileDlg.create(.surface!, opt)
+        let dialog = FileDlg.create(unwrap .surface, opt)
         if .inPlaceEdit do
             dialog.surface?.setTopMost()
         if dialog.doModal() != Dialog.BtnOk do
@@ -559,7 +559,7 @@ impl MainWnd
 
     mtd doSaveAsImage(fileName: String, linked = false)
     {
-        let capture = .getCapture()!
+        let capture = unwrap .getCapture()
         Cursor.activateWait()
         var image = capture.toImage()
         if linked do
@@ -570,7 +570,7 @@ impl MainWnd
     // Asks for a size and creates a blank capture of it.
     mtd newImage()
     {
-        with let dialog = Dialog.create(.surface!, 350, 235, title: appStrings().act_NewImage)
+        with let dialog = Dialog.create(unwrap .surface, 350, 235, title: appStrings().act_NewImage)
         {
             .addButton(appStrings().dlg_BtnCreate, Dialog.BtnOk, true)
             .addButton(Gui.strings().dlg_Cancel, Dialog.BtnCancel)

@@ -30,7 +30,6 @@ const TestFrench = "# comment\nhello Bonjour\nquoted \"  Salut\"\n"
     var rootNotifications, childNotifications: u32
     var host: Testing.HeadlessHost
     host.setup(320, 180)
-    defer host.shutdown()
 
     let child = Wnd.create'Wnd(&host.root)
     host.root.hookOnEvent = func|count = &rootNotifications|(_, evt)

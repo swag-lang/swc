@@ -2128,10 +2128,10 @@ impl Allocator
         if owned
         {
             if page.inFull do
-                .unparkFullPage(heap!, page)
+                .unparkFullPage(unwrap heap, page)
             page.releaseBlock(address)
             if page.used == 0 do
-                .retirePage(heap!, page)
+                .retirePage(unwrap heap, page)
         }
         else
         {
@@ -2494,7 +2494,7 @@ impl Allocator
             while scan
             {
                 .checkAllocated(scan)
-                let tracking = scan.tracking!
+                let tracking = unwrap scan.tracking
 
                 Swag.print("\x1b[91m")
                 Swag.print("allocation #", tracking.allocId, ": size ")

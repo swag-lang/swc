@@ -156,7 +156,7 @@ impl Serializer
 
         if .isWrite
         {
-            let encode = .encode!
+            let encode = unwrap .encode
             try encode.beginField(value)
             defer #nofail try encode.endField(value)
 
@@ -178,7 +178,7 @@ impl Serializer
         }
         else
         {
-            let decode = .decode!
+            let decode = unwrap .decode
             if not (try decode.beginField(value)) do
                 return
             defer #nofail try decode.endField(value)

@@ -14,7 +14,7 @@ internal func testAlloc(size: u64)->[*] void?
     var request: Swag.AllocatorRequest
     request.size      = size + TestAllocationHeaderSize
     request.alignment = 16
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     allocator.alloc(&request)
     if not request.address do
         return null
@@ -43,7 +43,7 @@ internal func testRealloc(ptr: [*] void?, size: u64)->[*] void?
     request.oldSize   = header.totalSize
     request.size      = size + TestAllocationHeaderSize
     request.alignment = 16
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     allocator.realloc(&request)
     if not request.address do
         return null
@@ -63,6 +63,6 @@ internal func testFree(ptr: [*] void?)
     var request: Swag.AllocatorRequest
     request.address = header
     request.size    = header.totalSize
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     allocator.free(&request)
 }

@@ -143,7 +143,7 @@ internal impl IWnd for PopupListView
         var y = pos.y + .scrollPos.y
         for vIt, i in .list.items
         {
-            let v = vIt!
+            let v = unwrap vIt
             let h = v.isSeparator ? .list.separatorHeight : .list.itemHeight
             if y <= h
             {
@@ -176,7 +176,7 @@ internal impl IWnd for PopupListView
         var y = 0'f32
         for i, idx in .list.items
         {
-            let it = i!
+            let it = unwrap i
             labelPos.x      = clientRect.x
             labelPos.y      = y
             labelPos.width  = clientRect.width

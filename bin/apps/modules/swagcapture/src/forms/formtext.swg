@@ -99,7 +99,7 @@ impl FormText
             }
         }
 
-        return result!
+        return unwrap result
     }
 
     // Builds the outline of each line of `text`, and of its border when it has one, and measures

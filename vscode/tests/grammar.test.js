@@ -136,3 +136,11 @@ test('tuple and record patterns highlight ignored fields and stop before the val
     const functionLine = 'func pair(value: s32) => (value, value)';
     assert.ok(!scopesAt(functionLine, functionLine.indexOf('value')).some(scope => scope.startsWith('meta.destructuring')));
 });
+
+test('unwrap is a keyword while longer identifiers keep their own scope', () => {
+    const line = 'let value = unwrap nullable';
+    assert.ok(scopesAt(line, line.indexOf('unwrap')).includes('keyword'));
+    for (const identifier of ['unwrapKey', 'unwrapped', 'unwrapValue']) {
+        assert.ok(!scopesAt(identifier, 0).includes('keyword'), identifier);
+    }
+});

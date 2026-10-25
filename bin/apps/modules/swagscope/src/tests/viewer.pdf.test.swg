@@ -24,11 +24,7 @@ private func createPdfFixture()->String
 
     var host: HeadlessHost
     host.setup(640, 450, dpiScale: 1.5)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
@@ -103,7 +99,6 @@ private func createPdfFixture()->String
 
     var host: HeadlessHost
     host.setup(720, 500)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -148,7 +143,6 @@ private func createPdfFixture()->String
 
     var host: HeadlessHost
     host.setup(ViewerWindow.MinWidth, ViewerWindow.InfoHeight)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     host.root.backgroundStyle = .InformationBar
@@ -194,7 +188,6 @@ private func createPdfFixture()->String
 
     var host: HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands == null)
     let view = assume cast(*PdfDocument.Panel, result.view)
@@ -211,7 +204,6 @@ private func createPdfFixture()->String
 
     var host: HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     var result = openTestViewer(PdfDocument.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.collectMatches != null and

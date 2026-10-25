@@ -12,12 +12,11 @@ using Swag, Core, Pixel
 
     var host: Testing.HeadlessHost
     host.setup(720, 900, 1.5)
-    defer host.shutdown()
 
     let view = Markdown.View.createText(&host.root, source.toString())
     view.resize(720, 900)
     view.applyLayout()
-    let inline = view.blocks[0].inline!
+    let inline = unwrap view.blocks[0].inline
 
     let first = host.render(view)
     Swag.assert(inline.renderLayer.contentTarget != null)
@@ -44,13 +43,12 @@ using Swag, Core, Pixel
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
-    defer host.shutdown()
 
     let view = Markdown.View.createText(&host.root, source.toString())
     view.resize(720, 360)
     view.applyLayout()
     discard host.render(view)
-    let first = view.blocks[1].inline!
+    let first = unwrap view.blocks[1].inline
     Swag.assert(first.renderLayer.contentTarget != null)
 
     let target = view.blocks[80].wnd.position.y
@@ -68,7 +66,6 @@ using Swag, Core, Pixel
     {
         var host: Testing.HeadlessHost
         host.setup(640, 480, dpiScale: scale)
-        defer host.shutdown()
         host.app.frameTrace.enabled = true
 
         let sources = [
@@ -83,7 +80,7 @@ using Swag, Core, Pixel
             view.resize(640, 480)
             view.applyLayout()
             Swag.assert(view.blocks.count == 1)
-            let inline = view.blocks[0].inline!
+            let inline = unwrap view.blocks[0].inline
 
             let first    = host.render(view)
             let vertices = host.surface.paintVertices
@@ -125,7 +122,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 320)
-    defer host.shutdown()
     var source: String
     for index in 24 do
         source += Format.toString("## Entry %\n\n- Evidence for this entry.\n- Next action for this entry.\n\n", index)
@@ -133,7 +129,7 @@ using Swag, Core, Pixel
     view.resize(640, 320)
     view.applyLayout()
     discard host.render(view)
-    let list   = view.blocks[1].inline!
+    let list   = unwrap view.blocks[1].inline
     let target = list.renderLayer.contentTarget
     Swag.assert(target != null)
     view.scroll.setScrollPos(0, 16)

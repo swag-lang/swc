@@ -111,7 +111,7 @@ public impl EditDlg
         }
 
         .fitContent()
-        .surface!.center(.parentSurface!)
+        .surface!.center(unwrap .parentSurface)
     }
 
     // Fits the shared dialog layers around the editor and its optional explanation.
@@ -142,7 +142,7 @@ public impl EditDlg
         // A resizable editor may grow, but it must not shrink below its fitted content.
         if richEdit
         {
-            let surface = .surface!
+            let surface = unwrap .surface
             surface.minSize.y = surface.position.height / surface.dpiScale
         }
     }
@@ -177,7 +177,7 @@ public impl EditDlg
         if .label == null
         {
             Swag.assert(.surface != null)
-            .label = Label.create(.contentView!, message, Math.Rectangle{0, 0, 0, height}, flags: .WordWrap | .SecondaryText)
+            .label = Label.create(unwrap .contentView, message, Math.Rectangle{0, 0, 0, height}, flags: .WordWrap | .SecondaryText)
             with me.label
             {
                 .dockStyle = .Center
@@ -192,6 +192,6 @@ public impl EditDlg
         }
 
         .fitContent()
-        .surface!.center(.parentSurface!)
+        .surface!.center(unwrap .parentSurface)
     }
 }

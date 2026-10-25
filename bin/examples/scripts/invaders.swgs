@@ -347,7 +347,7 @@ func loadBindTextures()
         g_SoundLaser     = try loadSound("laser.wav")
         g_SoundMusic     = try loadSound("music.wav")
 
-        g_Font = g_Wnd.theme().res.fontDefaultFs.regular!
+        g_Font = unwrap g_Wnd.theme().res.fontDefaultFs.regular
     }
 }
 

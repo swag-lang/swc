@@ -416,7 +416,8 @@ reliably in every configuration. A failed function still produces no result;
 'assume' does not make it initialize a default.
 
 Like 'expect', 'assume' preserves the successful result's type, including non-null
-pointers and types without a default. It does not unwrap a nullable success value.
+pointers and types without a default. It does not unwrap a nullable success value;
+write `unwrap assume operation()` when presence is also an invariant.
 Nested 'catch' expressions keep handling their own failures normally.
 
 For conversions, 'assume cast(T, value)' states the same invariant. Its checks use

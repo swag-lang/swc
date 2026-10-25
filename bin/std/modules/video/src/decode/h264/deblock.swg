@@ -25,7 +25,7 @@ private struct DeblockContext
 // Filters the whole decoded picture.
 func deblockPicture(dec: *Decoder)
 {
-    let sps       = dec.sps!
+    let sps       = unwrap dec.sps
     let laneCount = Math.min(Swag.workerCount(), DeblockLanes, cast(u32, sps.mbHeight))
     if laneCount <= 1
     {
@@ -235,8 +235,8 @@ func deblockRow(dec: *Decoder, mbY: s32)
 
 func deblockMb(dec: *Decoder, mbX, mbY: s32)
 {
-    let sps     = dec.sps!
-    let frame   = dec.current!
+    let sps     = unwrap dec.sps
+    let frame   = unwrap dec.current
     let mbIndex = cast(u64, (mbY * sps.mbWidth + mbX))
     let info    = &dec.mbInfo[mbIndex]
     if info.deblockIdc == 1 do

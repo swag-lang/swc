@@ -63,13 +63,13 @@ impl XAudio2DriverNative
         result = XAudio2Create(&.xAudio2, 0)
         if result != S_OK do
             fail SystemError{"cannot create xaudio2 device", errorID: hresultErrorId(result)}
-        let safeXAudio2 = .xAudio2!
+        let safeXAudio2 = unwrap .xAudio2
 
         let createMasteringVoice = safeXAudio2.vtbl.createMasteringVoice
         result = createMasteringVoice(safeXAudio2, &.masteringVoice)
         if result != S_OK do
             fail SystemError{"cannot create xaudio2 mastering voice", errorID: hresultErrorId(result)}
-        let safeMasteringVoice = .masteringVoice!
+        let safeMasteringVoice = unwrap .masteringVoice
 
         var debug: XAUDIO2_DEBUG_CONFIGURATION
         debug.traceMask = XAUDIO2_LOG_ERRORS | XAUDIO2_LOG_WARNINGS
@@ -94,7 +94,7 @@ impl XAudio2DriverNative
 
             .resetThreadState()
 
-            let allocator = .allocator!
+            let allocator = unwrap .allocator
             .tempAllocator.setCapacity(tempCapacity, allocator)
             .errorAllocator.setCapacity(errorCapacity, allocator)
         }
@@ -224,7 +224,7 @@ impl Voice
     {
         Swag.assert(g_Driver.xAudio2.xAudio2 != null, "driver should be created first")
 
-        let file = voice.file!
+        let file = unwrap voice.file
 
         var wfx: WAVEFORMATEXTENSIBLE
         wfx.format.nChannels      = cast(u16, file.channelCount)
@@ -258,7 +258,7 @@ impl Voice
         if not createFlags.has(.PitchControl) do
             flags |= XAUDIO2_VOICE_NOPITCH
         var handle: *IXAudio2SourceVoice?
-        let safeXAudio2       = g_Driver.xAudio2.xAudio2!
+        let safeXAudio2       = unwrap g_Driver.xAudio2.xAudio2
         let createSourceVoice = safeXAudio2.vtbl.createSourceVoice
         let hr = createSourceVoice(safeXAudio2,
                                    &handle,
@@ -299,7 +299,7 @@ impl Voice
             if not sizeBuffer do
                 break
 
-            let safePtrBuffer      = ptrBuffer!
+            let safePtrBuffer      = unwrap ptrBuffer
             let buffer             = makeXAudio2Buffer(cast(const *BYTE, safePtrBuffer), cast(sizeBuffer), me)
             let submitSourceBuffer = handle.vtbl.submitSourceBuffer
             let hr                 = submitSourceBuffer(handle, &buffer, null)
@@ -432,7 +432,7 @@ internal impl Voice
             for i in count
             {
                 let bus = buses[i]
-                let safeBusHandle = bus.handle!
+                let safeBusHandle = unwrap bus.handle
                 sfxSend[i].pOutputVoice = cast(*IXAudio2Voice, cast(*void, safeBusHandle))
             }
 
@@ -441,7 +441,7 @@ internal impl Voice
             pSFXSEndList          = &sfxSendList
         }
 
-        let safeHandle      = .handle!
+        let safeHandle      = unwrap .handle
         let handle          = cast(*IXAudio2SourceVoice, safeHandle)
         let setOutputVoices = handle.vtbl.setOutputVoices
         let hr              = setOutputVoices(cast(*IXAudio2Voice, cast(*void, handle)), pSFXSEndList)
@@ -471,7 +471,7 @@ impl Bus
         }
 
         var handle: *IXAudio2SubmixVoice?
-        let safeXAudio2       = g_Driver.xAudio2.xAudio2!
+        let safeXAudio2       = unwrap g_Driver.xAudio2.xAudio2
         let createSubmixVoice = safeXAudio2.vtbl.createSubmixVoice
         let hr = createSubmixVoice(safeXAudio2,
                                    &handle,

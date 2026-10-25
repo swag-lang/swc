@@ -249,7 +249,7 @@ impl IWnd for Properties
     {
         for itIt in .items
         {
-            let it = itIt!
+            let it = unwrap itIt
             if it.validationLabel != null and it.validation != .None do
                 .applyValidationVisual(it)
             if it.flags.has(.Note) do
@@ -362,12 +362,12 @@ internal impl Properties
             }
             elif Reflection.isString(pointed) and (item.editBox != null)
             {
-                item.editBox.setText(cast(const *string, item.data!)[])
+                item.editBox.setText(cast(const *string, unwrap item.data)[])
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and (item.editBox != null)
             {
-                item.editBox.setText(cast(const *String, item.data!)[])
+                item.editBox.setText(cast(const *String, unwrap item.data)[])
                 .setEditMixed(item, item.editBox)
             }
             elif pointed == Core.String and (item.comboBox != null)
@@ -616,7 +616,7 @@ impl Properties
         let base0 = cast([*] u8, bases[0])
         for i in fromIdx until .items.count
         {
-            let it = .items[i]!
+            let it = unwrap .items[i]
             it.dataInstances.clear()
             if not it.data do
                 continue
@@ -637,7 +637,7 @@ impl Properties
     mtd refresh()
     {
         for it in .items do
-            .refreshItem(it!)
+            .refreshItem(unwrap it)
     }
 
     // Commits a value an editor wrote, with propagation, undo, refresh, validation, layout, and notifications.
@@ -911,7 +911,7 @@ impl Properties
         .updateValidation()
         .updateDefaults()
         for it in .items do
-            .updateItemState(it!)
+            .updateItemState(unwrap it)
         .applyLayout()
         .scrollWnd.view.sendResizeEvent()
     }

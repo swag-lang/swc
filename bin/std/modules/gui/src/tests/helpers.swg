@@ -52,7 +52,7 @@ func onlyItem(page: const *Pdf.Page, kind: Pdf.ItemKind)->const *Pdf.Item
     }
 
     Swag.assert(count == 1)
-    return result!
+    return unwrap result
 }
 
 // Concatenates the UTF-8 of every text item, in paint order.
@@ -99,4 +99,4 @@ func pdfPageRectOnScreen(view: *Gui.PdfView, index: u64)->Math.Rectangle
 //
 // Resolving it from the source location keeps a focused run working from every worktree and
 // current directory.
-func corpusPdfPath(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
+func corpusPdfPath(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), Format.toString("datas/%", name).toString())

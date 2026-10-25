@@ -117,7 +117,7 @@ private impl PasswordEdit
                     .setRevealed(false)
 
             case .Move:
-                let button = .revealButton!
+                let button = unwrap .revealButton
                 if button.isPressing do
                     .setRevealed(wnd.clientRect().contains(wnd.surfaceToLocal(mouse.surfacePos)))
 

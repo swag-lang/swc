@@ -64,7 +64,7 @@ impl Image
             var context = {kernel: cast(const [..] s32, kernel), dstImage: dstImage}
             .visitPixels(&context)
             {
-                let params       = cast(const *#decltype(context), userData!)[]
+                let params       = cast(const *#decltype(context), unwrap userData)[]
                 let radius       = params.kernel[0] / 2
                 var coefficients = params.kernel.buffer + 2
                 var sum          = PixelValue{0, 0, 0, 0}
@@ -110,7 +110,7 @@ impl Image
         var context = {kernel: cast(const [..] s32, kernel), dstImage: dstImage}
         .visitPixels(&context)
         {
-            let params        = cast(*#decltype(context), userData!)
+            let params        = cast(*#decltype(context), unwrap userData)
             let radius        = params.kernel[0] / 2
             let bytesPerPixel = image.bytesPerPixel
             let rowStride     = image.rowStride

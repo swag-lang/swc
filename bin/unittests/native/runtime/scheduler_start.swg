@@ -45,7 +45,7 @@ func accumulateParallelProbe(values: *[4] u32)
 
 func probeScheduler(param: *void?)->u32
 {
-    let probe = cast(*SchedulerProbe, param!)
+    let probe = cast(*SchedulerProbe, unwrap param)
     Swag.setContext(&probe.context)
     defer
     {

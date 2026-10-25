@@ -7,6 +7,25 @@ Dynamic values such as zoom sit at the trailing edge of the information band and
 that change them; every viewer-specific command group is centered in one lower band that appears
 only when it is needed.
 
+## Explore folders and archives
+
+Opening a folder, or choosing Explore folder (`Ctrl+E`), displays its contents in the central
+area. ZIP files use the same navigation. Choose names, sortable details, or small, medium and
+large thumbnails. Double-click or press Enter to open an item; closing its viewer returns to the
+explorer with the selection and display mode preserved. Opening an ordinary file directly still
+opens its viewer without requiring exploration. The optional left panel retains recent files and
+shows the current location's subfolders. Alt+Left/Right navigate history, Alt+Up or Backspace goes
+up, and F5 refreshes the location.
+
+Enumeration, metadata, sorting, archive extraction and thumbnail decoding run asynchronously.
+Lists and thumbnail grids render only their visible rows. A reusable child process renders
+thumbnails through the existing viewer registry, including documents, source code, fonts and
+audio. A viewer can optionally provide `Viewer.Plugin.thumbnail` as a direct image decoder;
+otherwise its ordinary viewer renders offscreen with `Viewer.Host.isThumbnail()` set. This mode
+must not play media or persist reader preferences. One request runs at a time, obsolete requests
+are cancelled, and at most 128 thumbnails are retained in the renderer. A decoder failure or
+timeout leaves the file's type icon available for opening it normally.
+
 ## Integrated viewer registry
 
 `src/viewerpluginregistry.swg` is the only registry, and it holds no format knowledge: an ordered
@@ -65,6 +84,10 @@ alternative instead of guessing an encoding.
   formula to its mathematical source. Rendering is offline and executes no embedded HTML or
   script. Reading width and appearance stay in the centered lower band; zoom is a clickable
   information-band percentage.
+  GitHub, Newsprint, Night, Pixyll, and Whitey follow their Typora typography, including heading
+  weights, italics, line boxes, collapsing block margins, and heading rules. Fonts resolve from
+  installed system families with the theme's fallback order; missing optional fonts are never
+  downloaded or installed.
 - `HTML` adapts the reusable GUI `HtmlView`. It streams document blocks into a centered page,
   keeps links explicit, follows the active palette, and applies the supported CSS subset. Head,
   script, style, template, and embedded-document content never executes. Default document text
@@ -133,13 +156,12 @@ alternative instead of guessing an encoding.
   remain unsupported. IDML renders the supported page, text, and graphics subset; it does not
   reproduce InDesign's full typesetting and composition.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
-  as a real hierarchical file browser. Selecting an entry prepares a bounded temporary copy,
-  verifies its declared size and CRC-32, and hosts that copy through the ordinary viewer registry
-  in the adjacent preview pane. Stored and Deflate entries are decoded; encrypted entries,
+  in the common folder explorer. Opening an entry asynchronously prepares a bounded temporary
+  copy, verifies its declared size and CRC-32, and opens it through the ordinary viewer registry.
+  Closing the viewer returns to the archive. Stored and Deflate entries are decoded; encrypted entries,
   multi-disk archives, unsupported compression methods, oversized directories, and previews above
-  256 MiB stop with an exact explanation. Nested archives therefore open as nested archive
-  browsers without a second rendering path. The master-detail surface keeps the archive tree and
-  the viewed content visible together, so archive navigation does not require global document tabs.
+  256 MiB stop with an exact explanation. Nested archives use the same navigation history and
+  retain their logical paths while their temporary sources remain owned by exploration.
 - `Binary` displays a format's structure tree with field name, decoded value, file offset, and
   meaning. Its bounded 64 MiB prefix is read through a mapping and scanned pages are released from
   the process working set once the owned report is built. It recognizes Windows images, COFF and

@@ -64,7 +64,7 @@ impl IForm for FormStep
 
         var xbu     = 0
         var ybu     = 0
-        let capture = .capture!
+        let capture = unwrap .capture
         capture.snap(&xbu, &ybu, true, true, 0, me)
         xa += xbu
         ya += ybu

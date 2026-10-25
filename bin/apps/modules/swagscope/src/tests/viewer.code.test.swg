@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func codeFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+func codeFixturePath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
 
 // Builds the Swag document the highlighting test lexes.
 //
@@ -44,7 +44,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
 
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
@@ -58,16 +57,12 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, infoParent: &host.root)
     Swag.assert(result.view != null and result.info != null)
     let view = assume cast(*Code.Panel, result.view)
-    assertViewerInfoButton(view.zoomLabel!)
+    assertViewerInfoButton(unwrap view.zoomLabel)
     Swag.assert(result.info.preferredSize.x == Viewer.ZoomSlotWidth)
 
     view.setZoom(150)
@@ -92,7 +87,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -135,7 +129,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     with let view = Code.Panel.create(&host.root, fileName)
     {
         .resize(640, 360)
@@ -163,7 +156,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     with let view = Code.Panel.create(&host.root, fileName)
     {
         .resize(640, 360)
@@ -247,7 +239,6 @@ struct CodeLanguageSample
     var lexer: Code.GenericLexer
     var host:  Testing.HeadlessHost
     host.setup(640, 180)
-    defer host.shutdown()
     let editor = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 620, 160})
     lexer.configure(.TypeScript)
     editor.setLexer(&lexer)
@@ -307,7 +298,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 160)
-    defer host.shutdown()
     let view = Code.Panel.create(&host.root, fileName)
     view.editor.lexAll()
     Swag.assert(view.editor.runeAt(RichEditCursor{0, 0}).style == RichEditLexerSwag.Style.Keyword)
@@ -325,7 +315,6 @@ struct CodeLanguageSample
 {
     var host: Testing.HeadlessHost
     host.setup(640, 180)
-    defer host.shutdown()
     let editor = RichEditCtrl.create(&host.root, Math.Rectangle{0, 0, 620, 160})
 
     var code: Code.GenericLexer

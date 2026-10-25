@@ -17,7 +17,7 @@ namespace InlineCodePayload
         mtd opIndexSet(index: u64, value: T)
         {
             InlineCodePayloadDebug.bound(index < .count, "index out of range")
-            let buffer = .buffer!
+            let buffer = unwrap .buffer
             buffer[index] = value
         }
 
@@ -25,7 +25,7 @@ namespace InlineCodePayload
         mtd opIndexPtr(index: u64)->*T
         {
             InlineCodePayloadDebug.bound(index < .count, "index out of range")
-            let buffer = .buffer!
+            let buffer = unwrap .buffer
             return buffer + index
         }
     }

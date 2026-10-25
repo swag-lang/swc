@@ -39,7 +39,7 @@ func aviAssertProbes(fileName: string, probes: const [..] AviProbe, tolerance: s
     Swag.assert(reader.frameCount() == 233)
     Swag.assert(reader.audioTrackCount() == 1)
 
-    let sound = reader.audioTrack(0)!
+    let sound = unwrap reader.audioTrack(0)
     Swag.assert(sound.sampleEncoding() == .Pcm8 and sound.sampleRateHz() == 11_024 and sound.numChannels() == 1)
     Swag.assert(sound.sampleFrameCount() == 171_240 and sound.payloadSize() == 171_240 and sound.isPacketStream())
     let crossing = expect sound.readPayload(11_020, 8)

@@ -20,7 +20,7 @@ private var g_DropCounter:  *u32?
 {
     if g_DropCounter
     {
-        let counter = g_DropCounter!
+        let counter = unwrap g_DropCounter
         counter[] += 1
     }
 }

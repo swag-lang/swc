@@ -16,7 +16,6 @@ var ComboHeadlessLastIdx:      u32
 {
     var host: Testing.HeadlessHost
     host.setup(440, 60)
-    defer host.shutdown()
     host.theme.colors.setLight()
 
     for alignment, index in [StringHorzAlignment.Left, .Center, .Right]
@@ -45,7 +44,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26})
@@ -75,7 +73,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26}, mode: .Editable)
     combo.addItem("One")
     combo.addItem("Two")
@@ -98,7 +95,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     host.recordCommands()
     ComboHeadlessChangedCount = 0
     ComboHeadlessLastIdx      = 0
@@ -141,7 +137,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26})
     combo.addItem("One")
     combo.addItem("Two")
@@ -159,7 +154,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26}, null, ComboBoxMode.Editable)
     Swag.assert(combo.editBox != null)
     combo.addItem("Alpha")
@@ -176,7 +170,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     ComboHeadlessChangedCount = 0
 
     let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26})
@@ -216,7 +209,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-    defer host.shutdown()
     let combo = ComboBox.create(&host.root, Math.Rectangle{20, 20, 160, 26})
     combo.addItem("One")
     combo.addItem("Two")
@@ -238,7 +230,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 180)
-    defer host.shutdown()
 
     let document = RichEditCtrl.create(&host.root, Math.Rectangle{20, 20, 180, 100})
     let combo    = ComboBox.create(&host.root, Math.Rectangle{220, 20, 120, 26})
@@ -275,7 +266,6 @@ func comboHeadlessChanged(_: *ComboBox, idx: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 180)
-    defer host.shutdown()
 
     let document = EditBox.create(&host.root, "Document", Math.Rectangle{20, 20, 180, 26})
     let combo    = ComboBox.create(&host.root, Math.Rectangle{220, 20, 120, 26})

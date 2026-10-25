@@ -18,7 +18,7 @@ impl Decoder
     // Decodes one coding tree unit, clause 7.3.8.2.
     mtd codingTreeUnit() fail
     {
-        let sps  = .activeSps!
+        let sps  = unwrap .activeSps
         let xCtb = cast(s32, ((.ctbAddrRs % sps.widthInCtbs) << sps.ctbLog2Size))
         let yCtb = cast(s32, ((.ctbAddrRs / sps.widthInCtbs) << sps.ctbLog2Size))
 
@@ -31,8 +31,8 @@ impl Decoder
     // Walks the coding quadtree of one coding tree block, clause 7.3.8.4.
     mtd codingQuadtree(x0, y0: s32, log2CbSize, depth: u32) fail
     {
-        let sps  = .activeSps!
-        let pps  = .activePps!
+        let sps  = unwrap .activeSps
+        let pps  = unwrap .activePps
         let size = 1's32 << log2CbSize
 
         var split = log2CbSize > sps.minCbLog2Size
@@ -75,8 +75,8 @@ impl Decoder
     // Decodes one coding unit, clause 7.3.8.5.
     mtd codingUnit(x0, y0: s32, log2CbSize, depth: u32) fail
     {
-        let sps    = .activeSps!
-        let pps    = .activePps!
+        let sps    = unwrap .activeSps
+        let pps    = unwrap .activePps
         let header = &.header
         let nCbS   = 1's32 << log2CbSize
 
@@ -141,7 +141,7 @@ impl Decoder
     // Decodes the prediction and residual of an intra coding unit.
     private mtd intraCodingUnit(x0, y0: s32, log2CbSize, partMode: u32, bypass: bool) fail
     {
-        let sps  = .activeSps!
+        let sps  = unwrap .activeSps
         let nCbS = 1's32 << log2CbSize
 
         // The four blocks of a split unit each state their own mode; a whole unit states one.
@@ -218,7 +218,7 @@ impl Decoder
     // Derives one luma intra prediction mode from its neighbours, clause 8.4.2.
     private mtd deriveIntraLumaMode(x, y: s32, code: u32)->u8
     {
-        let sps = .activeSps!
+        let sps = unwrap .activeSps
 
         var candidateA = IntraDc
         if .isAvailable(x, y, x - 1, y) and .predMode[.blockIndex(x - 1, y)] == ModeIntra do
@@ -292,7 +292,7 @@ impl Decoder
     // Decodes the prediction and residual of an inter coding unit.
     private mtd interCodingUnit(x0, y0: s32, log2CbSize, partMode: u32, bypass: bool) fail
     {
-        let sps     = .activeSps!
+        let sps     = unwrap .activeSps
         let nCbS    = 1's32 << log2CbSize
         let half    = nCbS >> 1
         let quarter = nCbS >> 2
@@ -555,7 +555,7 @@ impl Decoder
     // Walks the residual quadtree of one coding unit, clause 7.3.8.8.
     mtd transformTree(x0, y0, xBase, yBase: s32, log2TrafoSize, trafoDepth, blkIdx: u32, parentCbfCb, parentCbfCr: bool, maxTrafoDepth: u32, isIntra, intraSplit, bypass: bool, partMode: u32, chromaMode: u8) fail
     {
-        let sps = .activeSps!
+        let sps = unwrap .activeSps
 
         var split = false
         if log2TrafoSize <= sps.maxTbLog2Size and
@@ -606,8 +606,8 @@ impl Decoder
     // Decodes one transform unit and reconstructs its samples, clause 7.3.8.10.
     mtd transformUnit(x0, y0, xBase, yBase: s32, log2TrafoSize, _, blkIdx: u32, cbfLuma, cbfCb, cbfCr, isIntra, bypass: bool, chromaMode: u8) fail
     {
-        let sps  = .activeSps!
-        let pps  = .activePps!
+        let sps  = unwrap .activeSps
+        let pps  = unwrap .activePps
         let size = 1's32 << log2TrafoSize
 
         // A 4x4 luma block shares one chroma block with its three siblings, so the chroma of the

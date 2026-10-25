@@ -54,7 +54,7 @@ namespace SemaClone
 
     AstNodeRef cloneAst(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext);
     AstNodeRef cloneAstPreservingResolvedIdentifierSymbols(Sema& sema, AstNodeRef nodeRef, const CloneContext& cloneContext);
-    AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef nodeRef);
+    AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef nodeRef, bool* needsReanalysis = nullptr);
 }
 
 SWC_END_NAMESPACE();

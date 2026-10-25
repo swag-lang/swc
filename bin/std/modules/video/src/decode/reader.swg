@@ -238,7 +238,7 @@ impl Reader
         .decoderType = selected.type
 
         // The registry only ever holds types that implement the interface, so the table resolves.
-        .decoder = Swag.makeInterface(Memory.new(selected.type), selected.type, IDecoder)!
+        .decoder = unwrap Swag.makeInterface(Memory.new(selected.type), selected.type, IDecoder)
         let instance = (.decoder).buffer
         .audioDecoder    = Swag.makeInterface(instance, selected.type, IAudioDecoder)
         .subtitleDecoder = Swag.makeInterface(instance, selected.type, ISubtitleDecoder)
@@ -259,7 +259,7 @@ impl Reader
     {
         if .decoder
         {
-            let type     = .decoderType!
+            let type     = unwrap .decoderType
             let instance = (.decoder).buffer
             if type.opDrop do
                 type.opDrop(instance)

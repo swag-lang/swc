@@ -106,20 +106,20 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     Swag.assert(not Slice.equals(slot.wrapped, other.wrapped))
 
     var unwrapped: [Crypto.MasterKeySize] u8
-    Swag.assert(expect slot.unwrap(slotKey, 0, unwrapped))
+    Swag.assert(expect slot.unwrapKey(slotKey, 0, unwrapped))
     Swag.assert(Slice.equals(unwrapped, master))
 
     // The slot index is bound into the record, so a slot cannot be copied to
     // another position.
-    Swag.assert(not (expect slot.unwrap(slotKey, 1, unwrapped)))
+    Swag.assert(not (expect slot.unwrapKey(slotKey, 1, unwrapped)))
 
-    Swag.assert(not (expect slot.unwrap(wrongSlotKey, 0, unwrapped)))
+    Swag.assert(not (expect slot.unwrapKey(wrongSlotKey, 0, unwrapped)))
 
     // A slot survives a round trip through its on-disk record, padding included.
     let record = expect slot.encode()
     Swag.assert(record.count == KeySlotPayloadSize)
     var decoded = KeySlot.decode(record)
-    Swag.assert(expect decoded.unwrap(slotKey, 0, unwrapped))
+    Swag.assert(expect decoded.unwrapKey(slotKey, 0, unwrapped))
     Swag.assert(Slice.equals(unwrapped, master))
 
     // Two encodings of the same slot differ only in their random padding.
@@ -132,7 +132,7 @@ func testMasterKey(seed: u8)->[Crypto.MasterKeySize] u8
     var noise: [KeySlotPayloadSize] u8
     expect Core.Crypto.randomBytes(noise)
     var fromNoise = KeySlot.decode(noise)
-    Swag.assert(not (expect fromNoise.unwrap(slotKey, 0, unwrapped)))
+    Swag.assert(not (expect fromNoise.unwrapKey(slotKey, 0, unwrapped)))
 
     slot.clear()
     other.clear()

@@ -144,6 +144,7 @@ impl IRichEditLexer for RichEditLexerSwag
         .mapWords.add("catch", State.Keyword)
         .mapWords.add("assume", State.Keyword)
         .mapWords.add("expect", State.Keyword)
+        .mapWords.add("unwrap", State.Keyword)
         .mapWords.add("fail", State.Keyword)
         .mapWords.add("discard", State.Keyword)
 
@@ -458,7 +459,7 @@ impl IRichEditLexer for RichEditLexerSwag
         if ch == '\n'
         {
             let cp          = ed.selectionStart()
-            let line        = ed.lines[cp.lineIndex]!
+            let line        = unwrap ed.lines[cp.lineIndex]
             var str: String = "\n"
 
             if cp.charPosInLine

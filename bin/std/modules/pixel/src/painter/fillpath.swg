@@ -169,7 +169,7 @@ public impl Painter
 
         // Triangulation
         if p.triangles.vertices.isEmpty() do
-            buildRegionTessellation(t!, &.sharedDirections, p, paths, island, ruled)
+            buildRegionTessellation(unwrap t, &.sharedDirections, p, paths, island, ruled)
 
         // The solid stops half a band short of the contour and the band, centered on the
         // contour, carries the coverage from there out. A solid left on the true contour is a

@@ -49,8 +49,8 @@ func gridInit()->Grid
     var g: Grid
     g.cells = cast([*] u8?, testAlloc(cast(u64, MaxCells)))
     g.dist  = cast([*] u32?, testAlloc(cast(u64, MaxCells) * #sizeof(u32)))
-    let cells = g.cells!
-    let dist  = g.dist!
+    let cells = unwrap g.cells
+    let dist  = unwrap g.dist
     for index in MaxCells
     {
         cells[index] = 0
@@ -79,7 +79,7 @@ impl Grid
     #[Swag.Inline]
     mtd distAt(r: u32, c: u32)->u32 { return me.dist![me.idx(r, c)] }
 
-    mtd setDist(r: u32, c: u32, d: u32) { let dist = me.dist!; dist[me.idx(r, c)] = d }
+    mtd setDist(r: u32, c: u32, d: u32) { let dist = unwrap me.dist; dist[me.idx(r, c)] = d }
 
     #[Swag.Inline]
     mtd inBounds(r: s32, c: s32)->bool
@@ -125,7 +125,7 @@ func manhattan(a: Pos, b: Pos)->u32
 func parseGrid(text: string)->Grid
 {
     var g     = gridInit()
-    let cells = g.cells!
+    let cells = unwrap g.cells
     let bytes = cast(const [..] u8, text)
     var row: u32
     var col: u32
@@ -211,7 +211,7 @@ func countCheats(g: *Grid, maxCheat: u32, minSaving: u32)->u64
 
     // Collect path cells into array for efficient pairwise iteration
     let pathSize = g.pathLen + 1
-    let pathBuf  = cast([*] Pos, (testAlloc(cast(u64, pathSize) * #sizeof(Pos)))!)
+    let pathBuf  = cast([*] Pos, unwrap testAlloc(cast(u64, pathSize) * #sizeof(Pos)))
     defer testFree(pathBuf)
 
     // Fill path buffer in distance order
@@ -363,7 +363,7 @@ func solve(text: string, minSaving: u32)->SolveResult
     // ###
     // #S#   (S is also E)
     // ###
-    let cells = g.cells!
+    let cells = unwrap g.cells
     cells[0 * MaxDim + 0] = '#'; cells[0 * MaxDim + 1] = '#'; cells[0 * MaxDim + 2] = '#'
     cells[1 * MaxDim + 0] = '#'; cells[1 * MaxDim + 1] = 'S'; cells[1 * MaxDim + 2] = '#'
     cells[2 * MaxDim + 0] = '#'; cells[2 * MaxDim + 1] = '#'; cells[2 * MaxDim + 2] = '#'

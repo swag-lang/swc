@@ -145,7 +145,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 180)
-    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 220, 160})
     list.setVirtualCount(6)
     list.setSelectionMode(.Multi)
@@ -179,7 +178,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(420, 320)
-    defer host.shutdown()
 
     let list = ListCtrl.createMultiColumns(&host.root, Math.Rectangle{0, 0, 400, 300})
     list.addColumn("Name", 200)
@@ -224,7 +222,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(420, 320)
-    defer host.shutdown()
 
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 400, 300})
     list.onFillVirtualLine = func(_, line, index)
@@ -246,7 +243,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     let list  = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     let root0 = list.createLine("root0")
     list.createLine("childA", parentLine: root0)
@@ -271,7 +267,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     ListCtrlHeadlessSelCount = 0
 
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
@@ -302,7 +297,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
@@ -318,7 +312,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     ListCtrlHeadlessSelCount = 0
 
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
@@ -345,7 +338,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.setSelectionMode(.Multi)
     list.createLine("a")
@@ -368,7 +360,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
@@ -395,7 +386,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
@@ -430,7 +420,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
     list.createLine("a")
     list.createLine("b")
@@ -457,7 +446,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     let list = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 200, 300})
 
     let vs   = list.listView.surfaceRect()
@@ -478,7 +466,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(220, 100)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.root.backgroundStyle = .View
     host.notify(.ThemeChanged)
@@ -506,7 +493,6 @@ func listCtrlHeadlessSel(_: *ListCtrl)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 180)
-    defer host.shutdown()
 
     let list  = ListCtrl.createSimple(&host.root, Math.Rectangle{0, 0, 220, 160})
     let root0 = list.createLine("b-root")

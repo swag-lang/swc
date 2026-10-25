@@ -38,7 +38,7 @@ public impl Crc64
         if length == 0 do
             return
 
-        let bytes = cast(const [*] u8, data.buffer!)
+        let bytes = cast(const [*] u8, unwrap data.buffer)
         var cur   = .currentValue
         var i     = 0'u64
         switch #complete .kind

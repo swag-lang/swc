@@ -126,7 +126,7 @@ internal impl IImageEncoder for Encoder
         for name in names do
             channelEntry(&channels, name, pixelType)
         channels.addNative(0'u8)
-        writeAttribute(result, "channels", "chlist", channels.toSlice()!)
+        writeAttribute(result, "channels", "chlist", unwrap channels.toSlice())
         const NoCompression: [1] u8 = [0]
         writeAttribute(result, "compression", "compression", NoCompression)
 
@@ -135,8 +135,8 @@ internal impl IImageEncoder for Encoder
         writeU32(&box, 0)
         writeU32(&box, cast(u32, source.width) - 1)
         writeU32(&box, cast(u32, source.height) - 1)
-        writeAttribute(result, "dataWindow", "box2i", box.toSlice()!)
-        writeAttribute(result, "displayWindow", "box2i", box.toSlice()!)
+        writeAttribute(result, "dataWindow", "box2i", unwrap box.toSlice())
+        writeAttribute(result, "displayWindow", "box2i", unwrap box.toSlice())
         const IncreasingY: [1] u8 = [0]
         writeAttribute(result, "lineOrder", "lineOrder", IncreasingY)
         const One:   [4] u8 = [0, 0, 0x80, 0x3F]

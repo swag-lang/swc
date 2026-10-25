@@ -240,8 +240,8 @@ func showPage(page: s32)
 {
     g_Page = page
 
-    let widgets = g_Widgets!
-    let sheet   = g_Sheet!
+    let widgets = unwrap g_Widgets
+    let sheet   = unwrap g_Sheet
     let isSheet = page != 3
     widgets.show(not isSheet)
     sheet.show(isSheet)
@@ -263,7 +263,7 @@ func layoutRootView()
     if not g_View do
         return
 
-    let view         = g_View!
+    let view         = unwrap g_View
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
 

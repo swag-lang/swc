@@ -5,7 +5,7 @@ internal impl Properties
 {
     mtd validateDynamicString(item: *PropertiesItem)
     {
-        var data = cast(*String, item.data!)
+        var data = cast(*String, unwrap item.data)
         if item.editBox != null do
             data[] = item.editBox.text()
         .commitItemChange(item)
@@ -24,7 +24,7 @@ internal impl Properties
             return
         }
 
-        let cur = cast(*String, item.data!)
+        let cur = cast(*String, unwrap item.data)
         var sel = 0'u32
         for &fnt, idx in g_PropSysFonts
         {
@@ -41,7 +41,7 @@ internal impl Properties
         if sel == Swag.U32.Max do
             return
 
-        var data = cast(*String, item.data!)
+        var data = cast(*String, unwrap item.data)
         if sel == 0 do
             data.clear()
         else do
@@ -117,7 +117,7 @@ internal impl Properties
         {
             if item.label != null do
                 item.label.hide()
-            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), cast(const *String, data!)[], flags: .ReleaseFocusOnEnterOrEscape)
+            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), cast(const *String, unwrap data)[], flags: .ReleaseFocusOnEnterOrEscape)
             {
                 .anchorStyle = .Right
                 .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
@@ -126,7 +126,7 @@ internal impl Properties
             ed = ctrl.edit
         }
         else do
-            ed = EditBox.create(item.line, cast(const *String, data!)[])
+            ed = EditBox.create(item.line, cast(const *String, unwrap data)[])
 
         with let edit: *EditBox = ed
         {
@@ -161,7 +161,7 @@ internal impl Properties
                 {
                     var editOptions: EditDlgOptions
                     editOptions.text = ed.text()
-                    let dlg = EditDlg.createMultiLine(prop.surface!, editOptions)
+                    let dlg = EditDlg.createMultiLine(unwrap prop.surface, editOptions)
                     if dlg.doModal() != Dialog.BtnOk do
                         return
                     ed.setText(dlg.text())
@@ -183,7 +183,7 @@ internal impl Properties
         {
             if item.label != null do
                 item.label.hide()
-            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), cast(const *string, data!)[])
+            with let ctrl = EditCtrl.create(item.line, itemDisplayName(value).toString(), cast(const *string, unwrap data)[])
             {
                 .anchorStyle = .Right
                 .setLayoutMetrics(.labelWidth, cast(f32, Reflection.attributeValue(value, me.EditSize, "size", 0)))
@@ -192,7 +192,7 @@ internal impl Properties
             ed = ctrl.edit
         }
         else do
-            ed = EditBox.create(item.line, cast(const *string, data!)[])
+            ed = EditBox.create(item.line, cast(const *string, unwrap data)[])
 
         with let edit: *EditBox = ed
         {

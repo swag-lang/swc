@@ -182,7 +182,7 @@ impl Encoder
     mtd writeHeader(chunkType: const [4] u8, chunkLength: u64)->[*] u8
     {
         let total  = chunkLength + 8 + 4
-        let stream = .stream!
+        let stream = unwrap .stream
         stream.grow(total)
 
         .currentChunk.length = cast(u32, chunkLength)
@@ -275,7 +275,7 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            .userOptions = cast(const *EncodeOptions, options.buffer!)[]
+            .userOptions = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
         let supported = image.pixelFormat == .Gray8 or

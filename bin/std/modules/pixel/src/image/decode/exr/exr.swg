@@ -419,7 +419,7 @@ impl IImageSetDecoder for Decoder
     {
         if index >= .parts.count do
             fail InvalidFormatError{"OpenEXR part index is out of range"}
-        return try .parts[index].decode(.bytes!, index, .multipart, options)
+        return try .parts[index].decode(unwrap .bytes, index, .multipart, options)
     }
 }
 

@@ -3,14 +3,13 @@
 
 using Core, Gui, Viewers
 
-func midiZoomFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.mid")
+func midiZoomFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.mid")
 
 #test
 {
     var document = expect Midi.loadDocument(midiZoomFixturePath())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let roll = Midi.RollView.create(&host.root, #move document)
     host.root.applyLayout()
@@ -47,11 +46,7 @@ func midiZoomFixturePath()->String => Path.combine(Path.directoryName(#curlocati
     Midi.g_ViewerSettings = {}
     var host: Testing.HeadlessHost
     host.setup(800, 520)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var session = openTestViewer(Midi.viewerPlugin(), &host.root, midiZoomFixturePath())
     let viewer  = assume cast(*Midi.Panel, session.view)
@@ -82,7 +77,6 @@ func midiZoomFixturePath()->String => Path.combine(Path.directoryName(#curlocati
     var document = expect Midi.loadDocument(midiZoomFixturePath())
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0

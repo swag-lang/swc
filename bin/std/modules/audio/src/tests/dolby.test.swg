@@ -89,7 +89,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
 
     // The streaming buffer targets 100 ms. Three complete 32 ms AC-3 sync frames fit.
     Swag.assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))
-    let samples = cast(const [*] s16, decoded.buffer!)
+    let samples = cast(const [*] s16, unwrap decoded.buffer)
     const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
     for channel in 6
     {
@@ -120,7 +120,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 3 * 1536 * 2 * #sizeof(s16))
-    let samples = cast(const [*] s16, decoded.buffer!)
+    let samples = cast(const [*] s16, unwrap decoded.buffer)
     Swag.assert(dolbyTonePower(samples, 2048, 2048, 2, 0, 440) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 0, 660))
     Swag.assert(dolbyTonePower(samples, 2048, 2048, 2, 1, 660) > 8.0 * dolbyTonePower(samples, 2048, 2048, 2, 1, 440))
 }
@@ -147,7 +147,7 @@ private func eac3TestPackets(path: string)->Array'SoundPacket fail
     defer voice.destroy()
     let decoded = expect voice.readBuffer()
     Swag.assert(decoded.size == 3 * 1536 * 6 * #sizeof(s16))
-    let samples = cast(const [*] s16, decoded.buffer!)
+    let samples = cast(const [*] s16, unwrap decoded.buffer)
     const Frequencies: [6] f64 = [300, 400, 500, 600, 700, 800]
     for channel in 6
     {

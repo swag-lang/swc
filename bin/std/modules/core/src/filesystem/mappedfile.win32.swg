@@ -61,7 +61,7 @@ internal impl MappedRegion
         .mapHandle  = cast(FileHandle, mapping)
         .fileHandle = cast(FileHandle, duplicate)
         .nativeView = nativeView
-        .view       = cast([*] u8, nativeView!) + prefix
+        .view       = cast([*] u8, unwrap nativeView) + prefix
     }
 
     mtd closeNative()

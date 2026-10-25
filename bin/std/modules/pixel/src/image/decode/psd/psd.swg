@@ -332,7 +332,7 @@ impl Layer
             if channel.id < -1 or cast(s32, channel.id) >= cast(s32, alpha) do
                 continue
             let component = channel.id == -1 ? alpha : cast(u16, channel.id)
-            let bytes     = channel.bytes!
+            let bytes     = unwrap channel.bytes
             if bytes.count < 2 do
                 fail InvalidFormatError{"PSD layer channel compression is missing"}
             let compression = readU16(bytes.buffer)
@@ -474,7 +474,7 @@ impl IImageSetDecoder for Decoder
         if not index
         {
             let single: IImageDecoder = me
-            return try single.decode(.bytes!, options)
+            return try single.decode(unwrap .bytes, options)
         }
 
         if index > .imageLayers.count do

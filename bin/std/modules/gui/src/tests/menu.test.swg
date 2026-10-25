@@ -33,7 +33,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 240)
-    defer host.shutdown()
 
     switch palette
     {
@@ -101,7 +100,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     bar.addItem("New", Menu_New)
     Swag.assert(bar.items.count == 1)
@@ -136,7 +134,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
 
     MenuResolvedLabel = "Open"
     let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
@@ -164,7 +161,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
 
     MenuResolvedLabel = "File"
     let sub = MenuCtrl.createPopup(&host.root)
@@ -197,7 +193,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200, 1.5)
-    defer host.shutdown()
 
     let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 380, 0})
     bar.addItem("Affichage", Menu_New)
@@ -229,7 +224,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Open", Menu_Open)
     popup.addItem("Quit", Menu_Quit)
@@ -266,7 +260,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     host.recordCommands()
 
     for expected in ["Menu.Short", "Menu.Command.With.An.Allocated.Identifier"]
@@ -294,7 +287,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
 
     let sub = MenuCtrl.createPopup(&host.root)
     sub.addItem("System language", Menu_Open)
@@ -316,7 +308,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let popup = MenuCtrl.createPopup(&host.root)
     let sub   = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
@@ -365,7 +356,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
 
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Actual size", Menu_Open)
@@ -398,7 +388,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Open", Menu_Open)
 
@@ -428,7 +417,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 240)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -469,7 +457,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 240)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -508,7 +495,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 160)
-    defer host.shutdown()
 
     let popup = MenuCtrl.createPopup(&host.root)
     for index in 8 do
@@ -540,7 +526,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 240)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -575,7 +560,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
 
     let popup = MenuCtrl.createPopup(&host.root)
     let sub   = MenuCtrl.createPopup(&host.root)
@@ -607,7 +591,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(520, 220)
-    defer host.shutdown()
 
     let popup = MenuCtrl.createPopup(&host.root)
     let sub   = MenuCtrl.createPopup(&host.root)
@@ -642,7 +625,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 220)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
@@ -680,7 +662,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 220)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
@@ -731,7 +712,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let popup = MenuCtrl.createPopup(&host.root)
     popup.addItem("Open", Menu_Open)
     popup.addItem("Hidden", "Menu.Hidden")
@@ -742,8 +722,8 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     // Consecutive separators collapse into one, so this is Open / Hidden / --- / Quit.
     Swag.assert(popup.items.count == 4)
 
-    let hiddenIt = popup.items[1]!
-    let quitIt   = popup.items[3]!
+    let hiddenIt = unwrap popup.items[1]
+    let quitIt   = unwrap popup.items[3]
     hiddenIt.hidden = true
     popup.computeLayoutPopup()
     popup.setPosition(Math.Rectangle{0, 0, popup.position.width, popup.position.height})
@@ -761,7 +741,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     bar.addItem("New", Menu_New)
 
@@ -781,14 +760,13 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let bar = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     let sub = MenuCtrl.createPopup(&host.root)
     sub.addItem("Open", Menu_Open)
     bar.addPopup("File", sub)
 
     bar.computeLayoutBar()
-    let barIt0 = bar.items[0]!
+    let barIt0 = unwrap bar.items[0]
     let itemX  = barIt0.pos + barIt0.size * 0.5
     let itemY  = bar.position.height * 0.5
 
@@ -809,7 +787,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let metrics   = host.root.themeMetrics()
     let barHeight = metrics.menuBar_Height + 12
     let bar       = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, barHeight})
@@ -820,7 +797,7 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
     bar.computeLayoutBar()
     let expectedItemY = (barHeight - metrics.menuBar_Height) * 0.5
 
-    let barIt0 = bar.items[0]!
+    let barIt0 = unwrap bar.items[0]
     let itemX  = barIt0.pos + barIt0.size * 0.5
     Swag.assert(bar.hitTestBar(Math.Point{itemX, 1}) == Swag.U32.Max)
     Swag.assert(bar.hitTestBar(Math.Point{itemX, expectedItemY + 1}) == 0)
@@ -842,7 +819,6 @@ func assertMenuMarkerGolden(palette: MenuMarkerPalette, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let metrics = host.root.themeMetrics()
     let bar     = MenuCtrl.createBar(&host.root, Math.Rectangle{0, 0, 300, 0})
     let sub     = MenuCtrl.createPopup(&host.root)

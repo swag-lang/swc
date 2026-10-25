@@ -16,7 +16,7 @@ var callback: NativeCall? = &nativeTarget
 #[Swag.NoInline]
 func forwardStack(a, b, c, d, e, f, g, h: s32, mask, filter: u32)
 {
-    let target = callback!
+    let target = unwrap callback
     target(a, b, c, d, e, f, g, h, mask, filter)
 }
 

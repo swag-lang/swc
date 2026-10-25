@@ -100,7 +100,6 @@ using Swag
     discard expect File.writeAllText(fileName, content)
 
     var stream = expect File.openRead(fileName)
-    defer stream.close()
 
     var recovered: String
     while true
@@ -123,7 +122,6 @@ using Swag
 
     discard expect File.writeAllBytes(fileName, ['a'u8, 0xFF'u8, 'b'u8])
     var stream = expect File.openRead(fileName)
-    defer stream.close()
 
     Swag.assert((expect stream.readUtf8Chunk(16)) == "a")
     var errOutcome: Swag.Error
@@ -142,7 +140,6 @@ using Swag
     defer discard catch File.delete(fileName)
 
     var stream = expect File.open(fileName, File.FileMode.CreateNew, File.FileAccess.ReadWrite, File.FileShare.Read)
-    defer stream.close()
 
     let offsets: [4] u64 = [0x7FFF_FFFF, 0x8000_0000, 0x1_0000_0000, 0x3_1234_5678]
     for offset in offsets

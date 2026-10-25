@@ -56,7 +56,6 @@ using Core, Pixel, Gui, Viewers
 
     var host: Testing.HeadlessHost
     host.setup(760, 480)
-    defer host.shutdown()
 
     var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and
@@ -128,18 +127,14 @@ using Core, Pixel, Gui, Viewers
 {
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     Table.registerTexts(&host.app)
     var document = expect Table.parseDocument(";Column 2\nfirst;second;third\n", ';')
     let view     = Table.Panel.createDocument(&host.root, #move document)
     var details: String
     view.userData = &details
-    view.services.reportDetails = func(wnd, value) { cast(*String, wnd.userData!)[] = value }
+    view.services.reportDetails = func(wnd, value) { cast(*String, unwrap wnd.userData)[] = value }
     view.list.selectLine(0)
     let list       = view.list
     let oldHeading = String.from(view.list.header.items[0]!.name.raw)
@@ -166,7 +161,6 @@ using Core, Pixel, Gui, Viewers
 
     var host: Testing.HeadlessHost
     host.setup(900, 560)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0

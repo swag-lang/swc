@@ -15,7 +15,6 @@ func circularHeadlessChanged(_: *Circular)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    defer host.shutdown()
     CircularHeadlessChangedCount = 0
 
     let circ = Circular.create(&host.root, Math.Rectangle{20, 20, 120, 120})
@@ -41,7 +40,6 @@ func circularHeadlessChanged(_: *Circular)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    defer host.shutdown()
     let circ = Circular.create(&host.root, Math.Rectangle{20, 20, 120, 120})
     circ.setAngleRange(Math.Angle.fromDegrees(90), Math.Angle.fromDegrees(270))
     circ.updateGeometry()
@@ -56,7 +54,6 @@ func circularHeadlessChanged(_: *Circular)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    defer host.shutdown()
     let circ = Circular.create(&host.root, Math.Rectangle{20, 20, 120, 120}, null, true)
     circ.setBounds(0, 100)
 

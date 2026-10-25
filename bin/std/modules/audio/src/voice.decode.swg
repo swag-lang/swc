@@ -22,7 +22,7 @@ impl Voice
     {
         if .decodedCapacity do
             return .decodedCapacity
-        let file = .file!
+        let file = unwrap .file
         var largestPacketFrames = 0'u64
         if file.usesPacketCodec()
         {
@@ -39,7 +39,7 @@ impl Voice
     // commands or the picture clock.
     mtd decodedFillSize()->u64
     {
-        let file        = .file!
+        let file        = unwrap .file
         var targetBytes = Math.max(cast(u64, file.sampleRate) / 10 * .decodedBytesPerFrame(), 1)
         if file.usesPacketCodec()
         {
@@ -52,7 +52,7 @@ impl Voice
 
     mtd readBuffer()->{ buffer: [*] void?, size: u64 } fail
     {
-        let file = .file!
+        let file = unwrap .file
 
         if file.usesPacketCodec()
         {
@@ -111,11 +111,11 @@ impl Voice
 
     mtd createCodec() fail
     {
-        let file       = .file!
+        let file       = unwrap .file
         let descriptor = findCodec(.requestedEncoding, file.encoding)
         if not descriptor do
             fail UnsupportedFormatError{"unsupported encoding"}
-        let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
+        let allocator   = .handle ? .allocationAllocator : unwrap Swag.getContext().allocator
         let decoderData = Memory.new(descriptor.type, allocator)
         let decoder     = cast(*Codec, decoderData)
         decoder.configure(file.encoding, .requestedEncoding, descriptor.type, allocator)
@@ -136,11 +136,11 @@ impl Voice
 
     mtd createPacketCodec() fail
     {
-        let file       = .file!
+        let file       = unwrap .file
         let descriptor = findPacketCodec(file.encoding)
         if not descriptor do
             fail UnsupportedFormatError{"unsupported packetized encoding"}
-        let allocator   = .handle ? .allocationAllocator : Swag.getContext().allocator!
+        let allocator   = .handle ? .allocationAllocator : unwrap Swag.getContext().allocator
         let decoderData = Memory.new(descriptor.type, allocator)
         let decoder     = cast(*Codec, decoderData)
         decoder.configure(file.encoding, .Pcm16, descriptor.type, allocator)
@@ -166,7 +166,7 @@ impl Voice
     // one artificial contiguous allocation.
     mtd decodePacketData(destination: [*] void, destinationSize: u64)->u64 fail
     {
-        let file = .file!
+        let file = unwrap .file
         if not .packetCodec do
             try .createPacketCodec()
 
@@ -248,7 +248,7 @@ impl Voice
 
     mtd decodeData(destBuffer: [*] void, length: u64)->u64 fail
     {
-        let file = .file!
+        let file = unwrap .file
 
         // If the file contains data in the encoding requested by the driver, no need
         // to decode, we can directly read in the destination buffer
@@ -267,7 +267,7 @@ impl Voice
             .streamBuffer.reserve(StreamBufferSize)
             let readStart    = .streamCurSeek
             let streamBuffer = .streamBuffer.storage()
-            let codec        = .codec!
+            let codec        = unwrap .codec
             .streamBuffer.count = try .readData(streamBuffer, StreamBufferSize)
             .streamCurSeek      = readStart + (try codec.initialize(streamBuffer, .streamBuffer.count))
         }
@@ -283,7 +283,7 @@ impl Voice
 
     mtd readData(destBuffer: [*] void, length: u64)->u64 fail
     {
-        let file = .file!
+        let file = unwrap .file
 
         // End of the audio payload.
         if .streamCurSeek >= file.dataSize do
@@ -326,7 +326,7 @@ impl Voice
     // Reads a logical byte range from PCM chunks that are scattered through a container.
     mtd readPacketBytes(destBuffer: [*] void, length: u64)->u64 fail
     {
-        let file              = .file!
+        let file              = unwrap .file
         let bytesPerFrame     = cast(u64, file.channelCount) * cast(u64, (file.bitsPerSample / 8))
         var writtenBytes      = 0'u64
         var logicalByteOffset = .streamCurSeek

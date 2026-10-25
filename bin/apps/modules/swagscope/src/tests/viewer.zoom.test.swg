@@ -3,7 +3,7 @@
 
 using Core, Gui, Viewers
 
-func zoomFixturePath(name: string)->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), name)
+func zoomFixturePath(name: string)->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), name)
 
 private var g_ReportedDetails: String
 
@@ -13,10 +13,10 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
 {
     var host: Testing.HeadlessHost
     host.setup(800, 520)
-    defer host.shutdown()
 
     var textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, zoomFixturePath("comprehensive.txt"))
     let text       = assume cast(*PlainText.Panel, textResult.view)
+    defer text.setZoom(100)
     var wheel      = MouseEvent{kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.assert(text.hookOnChildEvent!(text.editor, &wheel) and text.zoomPercent == 125)
     textResult = openTestViewer(PlainText.viewerPlugin(), &host.root, zoomFixturePath("comprehensive.txt"))
@@ -24,6 +24,7 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
 
     var codeResult = openTestViewer(Code.viewerPlugin(), &host.root, zoomFixturePath("sample.cpp"))
     let code       = assume cast(*Code.Panel, codeResult.view)
+    defer code.setZoom(100)
     wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.assert(code.hookOnChildEvent!(code.editor, &wheel) and code.zoomPercent == 125)
     codeResult = openTestViewer(Code.viewerPlugin(), &host.root, zoomFixturePath("sample.cpp"))
@@ -31,6 +32,7 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
 
     var htmlResult = openTestViewer(Html.viewerPlugin(), &host.root, zoomFixturePath("viewer.html"))
     let html       = assume cast(*Html.Panel, htmlResult.view)
+    defer html.setZoom(100)
     wheel = {kind: .Wheel, delta: Math.Point{0, 120}, modifiers: .Control}
     Swag.assert(html.hookOnChildEvent!(html.view, &wheel) and html.zoomPercent == 125)
     htmlResult = openTestViewer(Html.viewerPlugin(), &host.root, zoomFixturePath("viewer.html"))
@@ -45,7 +47,6 @@ private func reportTestDetails(_: *Wnd, details: string) { g_ReportedDetails = d
 
     var host: Testing.HeadlessHost
     host.setup(800, 520)
-    defer host.shutdown()
 
     var services: Viewer.HostServices
     services.reportDetails = &reportTestDetails

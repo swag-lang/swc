@@ -186,12 +186,12 @@ impl Writer
     // Selects the encoder for `fileName`, creates its instance, and writes the stream header.
     private mtd start(fileName: string, options: any?) fail
     {
-        let selected = findEncoder(fileName)!
+        let selected = unwrap findEncoder(fileName)
         .format      = selected.format
         .encoderType = selected.type
 
         // The registry only ever holds types that implement the interface, so the table resolves.
-        .encoder = Swag.makeInterface(Memory.new(selected.type), selected.type, IEncoder)!
+        .encoder = unwrap Swag.makeInterface(Memory.new(selected.type), selected.type, IEncoder)
         try .encoder.begin(&.sink, .info, options)
     }
 
@@ -254,7 +254,7 @@ impl Writer
         if not .encoder do
             return
 
-        let type     = .encoderType!
+        let type     = unwrap .encoderType
         let instance = (.encoder).buffer
         if type.opDrop do
             type.opDrop(instance)

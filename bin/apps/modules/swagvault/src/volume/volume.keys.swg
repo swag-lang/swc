@@ -22,7 +22,7 @@ impl Volume
             Core.Crypto.secureClear(candidate)
             var slot = KeySlot.decode(area[index * KeySlotSize + KeySlotPrefixSize until (index + 1) * KeySlotSize])
             defer slot.clear()
-            if try slot.unwrap(slotKey, index, candidate)
+            if try slot.unwrapKey(slotKey, index, candidate)
             {
                 Swag.memcpy(&.master[0], &candidate[0], Crypto.MasterKeySize)
                 found = true
@@ -84,7 +84,7 @@ impl Volume
             Core.Crypto.secureClear(candidate)
             var slot = KeySlot.decode(area[index * KeySlotSize + KeySlotPrefixSize until (index + 1) * KeySlotSize])
             defer slot.clear()
-            if try slot.unwrap(slotKey, index, candidate) do
+            if try slot.unwrapKey(slotKey, index, candidate) do
                 return index
         }
 

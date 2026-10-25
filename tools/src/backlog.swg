@@ -417,7 +417,7 @@ private func readBacklogIdentity(context: *Context, revision: string, path: stri
 
     var result: retval
     result.path = String.from(path)
-    let prefix = Format.toString("### %.", Path.fileNameWithoutExtension(path)!)
+    let prefix = Format.toString("### %.", unwrap Path.fileNameWithoutExtension(path))
     for line in Tokenize.splitLines(content.toString())
     {
         if Utf8.startsWith(cast(const [..] u8, line), "### ")
@@ -569,7 +569,7 @@ private func collectBacklogAllocationHistory(context: *Context, revision: string
 
 private func auditDomainAllocations(context: *Context, seen: *HashSet'String, domain: Domain, renames: string)->u32 fail
 {
-    let stem        = Path.fileNameWithoutExtension(domain.name.toString())!
+    let stem        = unwrap Path.fileNameWithoutExtension(domain.name.toString())
     var historyPath = Format.toString("backlog/%", domain.name.toString())
     for line in Tokenize.splitLines(renames)
     {

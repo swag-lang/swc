@@ -469,34 +469,34 @@ func paintStates(paintEvt: *PaintEvent)
 
     var y = BoardWithBorderSize + 12
     str = Format.toString("% player turn", g_Game.whiteTurn ? "White" : "Black")
-    painter.drawString(0, y, str, Res.smallfont!, Argb.White)
+    painter.drawString(0, y, str, unwrap Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("White king is %", isCheck(g_Board, true) ? "in check" : "safe")
-    painter.drawString(0, y, str, Res.smallfont!, Argb.White)
+    painter.drawString(0, y, str, unwrap Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("Black king is %", isCheck(g_Board, false) ? "in check" : "safe")
-    painter.drawString(0, y, str, Res.smallfont!, Argb.White)
+    painter.drawString(0, y, str, unwrap Res.smallfont, Argb.White)
     y += 12
 
-    painter.drawString(0, y, g_Game.gameStatus, Res.smallfont!, Argb.White)
+    painter.drawString(0, y, g_Game.gameStatus, unwrap Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("White little castle is %", castleStatus(g_Game.castle[0, 0], g_Game.whiteTurn, 6, 8))
-    painter.drawString(0, y, str, Res.smallfont!, Argb.White)
+    painter.drawString(0, y, str, unwrap Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("White big castle is %", castleStatus(g_Game.castle[0, 1], g_Game.whiteTurn, 6, 4))
-    painter.drawString(0, y, str, Res.smallfont!, Argb.White)
+    painter.drawString(0, y, str, unwrap Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("Black little castle is %", castleStatus(g_Game.castle[1, 0], not g_Game.whiteTurn, 90, 92))
-    painter.drawString(0, y, str, Res.smallfont!, Argb.White)
+    painter.drawString(0, y, str, unwrap Res.smallfont, Argb.White)
     y += 12
 
     str = Format.toString("Black big castle is %", castleStatus(g_Game.castle[1, 1], not g_Game.whiteTurn, 90, 88))
-    painter.drawString(0, y, str, Res.smallfont!, Argb.White)
+    painter.drawString(0, y, str, unwrap Res.smallfont, Argb.White)
     y += 12
 }
 

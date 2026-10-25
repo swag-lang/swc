@@ -69,13 +69,13 @@ private func loadDragHelper()
     if CoCreateInstance(&clsid, null, CLSCTX_INPROC_SERVER, &iid, &raw) != S_OK do
         return
 
-    g_DropTargetHelper = cast(*IDropTargetHelper, raw!)
+    g_DropTargetHelper = cast(*IDropTargetHelper, unwrap raw)
 
-    let target = g_DropTargetHelper!
+    let target = unwrap g_DropTargetHelper
     var srcRaw: LPVOID
     var srcIid = IID_IDragSourceHelper
     if target.lpVtbl.QueryInterface(target, &srcIid, &srcRaw) == S_OK do
-        g_DragSourceHelper = cast(*IDragSourceHelper, srcRaw!)
+        g_DragSourceHelper = cast(*IDragSourceHelper, unwrap srcRaw)
 }
 
 // Returns the half of the drag helper that draws the picture over a window being dragged over.
@@ -354,7 +354,7 @@ private func comDragEnter(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState
     readDragData(dataObj, &target.data, false)
     target.allowed = toDropEffect(pdwEffect[])
 
-    let surface = target.surface!
+    let surface = unwrap target.surface
     let effect  = surface.app.dragUpdate(surface, Math.Point{pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     pdwEffect[] = fromDropEffect(effect)
 
@@ -374,7 +374,7 @@ private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwE
     let target = dropTargetOf(itf)
     target.allowed = toDropEffect(pdwEffect[])
 
-    let surface = target.surface!
+    let surface = unwrap target.surface
     let effect  = surface.app.dragUpdate(surface, Math.Point{pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     pdwEffect[] = fromDropEffect(effect)
 
@@ -392,7 +392,7 @@ private func comDragOver(itf: *IDropTarget, grfKeyState: DWORD, pt: POINTL, pdwE
 private func comDragLeave(itf: *IDropTarget)->HRESULT
 {
     let target  = dropTargetOf(itf)
-    let surface = target.surface!
+    let surface = unwrap target.surface
     surface.app.dragLeave(&target.data)
     target.data.clear()
 
@@ -413,7 +413,7 @@ private func comDrop(itf: *IDropTarget, dataObj: *IDataObject?, grfKeyState: DWO
     readDragData(dataObj, &target.data, true)
     target.allowed = toDropEffect(pdwEffect[])
 
-    let surface = target.surface!
+    let surface = unwrap target.surface
     let effect  = surface.app.dragDrop(surface, Math.Point{pt.x, pt.y}, &target.data, target.allowed, toKeyModifiers(grfKeyState))
     pdwEffect[] = fromDropEffect(effect)
     target.data.clear()
@@ -811,7 +811,7 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
     if entry < 0 do
         return DV_E_FORMATETC
 
-    let data   = obj.data!
+    let data   = unwrap obj.data
     var hglob  = cast(HGLOBAL, null)
     let format = cast(u32, fmt.cfFormat)
 
@@ -861,7 +861,7 @@ private func srcGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIU
         }
 
         med.tymed = TYMED_ISTREAM
-        med.pstm  = cast(*IStream, raw!)
+        med.pstm  = cast(*IStream, unwrap raw)
         med.pUnkForRelease = null
         return S_OK
     }

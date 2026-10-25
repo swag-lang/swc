@@ -58,7 +58,7 @@ public impl Image
         for &encoder in encoders where encoder.type == type do
             return
 
-        let itf = Swag.makeInterface(null, type, IImageEncoder)!
+        let itf = unwrap Swag.makeInterface(null, type, IImageEncoder)
         encoders.add(ImageEncoder{itf.format(), type})
     }
 
@@ -108,7 +108,7 @@ public impl Image
 
         // Encode
         // The registry only ever holds types that implement the interface, so the table resolves.
-        let itf = Swag.makeInterface(ptrEncoder, encoderType, IImageEncoder)!
+        let itf = unwrap Swag.makeInterface(ptrEncoder, encoderType, IImageEncoder)
         var result: retval
         if .alphaMode == .Premultiplied
         {

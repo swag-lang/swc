@@ -425,7 +425,7 @@ private impl Animator
 
     mtd finishAt(index: u64, result: AnimationResult)
     {
-        let run = .animations[index]!
+        let run = unwrap .animations[index]
         .animations.removeAtOrdered(index)
         for track in run.tracks
         {
@@ -444,7 +444,7 @@ private impl Animator
         {
             for track in run!.tracks
             {
-                let value = track!
+                let value = unwrap track
                 if not value.finished and value.target == target and value.channel == channel do
                     return value
             }
@@ -457,7 +457,7 @@ private impl Animator
     {
         for index in reversed(.animations.count)
         {
-            let run     = .animations[index]!
+            let run     = unwrap .animations[index]
             var matches = false
             for track in run.tracks
             {
@@ -481,11 +481,11 @@ private impl Animator
     {
         for index in reversed(.animations.count)
         {
-            let run     = .animations[index]!
+            let run     = unwrap .animations[index]
             var matches = false
             for track in run.tracks
             {
-                let value = track!
+                let value = unwrap track
                 if value.target != target do
                     continue
                 if value.channel != channel do
@@ -635,7 +635,7 @@ private impl Animator
             var stepRemainder = Swag.F64.Max
             for trackIt in run.tracks
             {
-                let track = trackIt!
+                let track = unwrap trackIt
                 if track.finished or track.step != run.currentStep do
                     continue
                 hasStep = true
@@ -697,14 +697,14 @@ impl Animator
                not target.surface
             {
                 for cancelledTrack in group.tracks do
-                    .completeTrack(cancelledTrack!, .Cancelled)
+                    .completeTrack(unwrap cancelledTrack, .Cancelled)
                 if group.completion do
                     group.completion(.Cancelled)
                 return AnimationHandle{}
             }
         }
 
-        let first = group.tracks[0]!
+        let first = unwrap group.tracks[0]
         if not .app do
             .app = first.target.app()
         for track in group.tracks
@@ -730,7 +730,7 @@ impl Animator
         {
             for trackIt in run.tracks
             {
-                let track = trackIt!
+                let track = unwrap trackIt
                 if track.options.motion != .Decorative do
                     continue
 
@@ -891,7 +891,7 @@ impl Animator
         {
             for track in run!.tracks
             {
-                let value = track!
+                let value = unwrap track
                 if not value.finished and value.target == target and value.channel == channel do
                     return true
             }
@@ -905,7 +905,7 @@ impl Animator
     {
         while not .animations.isEmpty()
         {
-            let run = .animations[0]!
+            let run = unwrap .animations[0]
 
             // Endpoint callbacks can cancel or replace their own animation. Keep its storage
             // alive until the callback and its paint invalidation have returned.
@@ -915,7 +915,7 @@ impl Animator
             {
                 if run.cancelRequested do
                     break
-                let value = track!
+                let value = unwrap track
                 if value.finished do
                     continue
                 .applyTrack(value, restProgress(value))
@@ -939,7 +939,7 @@ impl Animator
         var initialCount = .animations.count
         while index < initialCount
         {
-            let run  = .animations[index]!
+            let run  = unwrap .animations[index]
             let done = not run.cancelRequested and .advanceRun(run, deltaSeconds)
             if run.cancelRequested or done
             {
@@ -970,10 +970,10 @@ impl Animator
     {
         for index in reversed(.animations.count)
         {
-            let run = .animations[index]!
+            let run = unwrap .animations[index]
             for track in run.tracks
             {
-                let value = track!
+                let value = unwrap track
                 if value.finished or value.options.motion == .Essential do
                     continue
                 .applyTrack(value, restProgress(value))

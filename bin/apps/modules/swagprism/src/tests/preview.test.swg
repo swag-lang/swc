@@ -8,7 +8,6 @@ using Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     Swag.assert(not window.comparisonEnabled)
     Swag.assert(window.panels[0].kind == .Render2D)
     Swag.assert(window.panels[1].kind == .Microcode)
@@ -44,7 +43,6 @@ using Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     window.openExample(.Gui)
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     awaitFrame(viewer)
@@ -64,7 +62,6 @@ using Core, Gui, Pixel
     {
         var host: Testing.HeadlessHost
         let window = testSetupMainWindow(&host)
-        defer host.shutdown()
         window.compile()
         let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
         awaitFrame(viewer)
@@ -79,7 +76,6 @@ using Core, Gui, Pixel
         {
             var host: Testing.HeadlessHost
             let window = testSetupMainWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
-            defer host.shutdown()
             if palette == 0 do
                 host.theme.setSwagDark()
             elif palette == 1 do
@@ -124,7 +120,6 @@ using Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     viewer.compileSource("func shade(_: f32, _: f32, _: f32)->u32 { for {} }")
     var watch: Time.Stopwatch
@@ -145,7 +140,6 @@ using Core, Gui, Pixel
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     viewer.compileSource("using Gui\nfunc shade(_: f32, _: f32, _: f32)->u32 => 0")
     var watch: Time.Stopwatch
@@ -178,7 +172,6 @@ func assertPreviewSurface(gui: bool)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -209,7 +202,6 @@ func assertPreviewSurface(gui: bool)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     let panel  = window.panels[0]
     let render = assume cast(*PreviewViewer, panel.viewer!.window())
@@ -244,7 +236,6 @@ func assertPreviewSurface(gui: bool)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     window.editor.setFocus()
     host.sendRune(.Space, ' ')
     Swag.assert(window.editTimer != null)

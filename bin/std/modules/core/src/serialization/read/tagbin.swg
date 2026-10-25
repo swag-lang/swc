@@ -153,7 +153,7 @@ private impl TagBin
         var ptr: *TagBinSection?
         if .freeSections.count
         {
-            let recycled = .freeSections.popBack()!
+            let recycled = unwrap .freeSections.popBack()
             recycled.mapSeek.clear()
             .sections.add(recycled)
             ptr = recycled
@@ -185,7 +185,7 @@ private impl TagBin
     {
         if .tmpPool.count
         {
-            let b = .tmpPool.popBack()!
+            let b = unwrap .tmpPool.popBack()
             b.clear()
             return b
         }
@@ -210,7 +210,7 @@ private impl TagBin
         if count > .remaining() do
             fail SerializationError{"string runs past the end of the stream"}
         result.reserve(count)
-        try .stream.readBytes(result.buffer!, count)
+        try .stream.readBytes(unwrap result.buffer, count)
         result.length = count
         return result
     }
@@ -471,7 +471,7 @@ private impl TagBin
     // instance, building the field index.
     mtd loadShapedFat(sec: *TagBinSection) fail
     {
-        let shape     = sec.shape!
+        let shape     = unwrap sec.shape
         let savedSeek = .stream.position()
         .stream.setPosition(sec.fatSeek)
         for i in shape.fields.count
@@ -782,7 +782,7 @@ impl TagBin
     // Closes the current section and moves past its end.
     mtd endSection() fail
     {
-        let sec = .sections.back()!
+        let sec = unwrap .sections.back()
 
         if sec.kind == .Raw
         {
@@ -875,7 +875,7 @@ impl TagBin
             return false
         }
 
-        let sec = .sections.back()!
+        let sec = unwrap .sections.back()
 
         // If section is raw, then we just have values without versionning
         if sec.kind == .Raw
@@ -888,7 +888,7 @@ impl TagBin
         // next one in the stream and carries no inline metadata.
         if sec.positional
         {
-            let shape = sec.shape!
+            let shape = unwrap sec.shape
             Swag.assert(sec.posIndex < shape.fields.count)
             let sf = shape.fields.storage() + sec.posIndex
             Swag.assert(sf.key == wireFieldKey(val))
@@ -991,7 +991,7 @@ impl TagBin
         // Switch current 'output' back to parent and recycle tmp
         .stream.readBuffer = parentOut
         .stream.seek       = parentSeek
-        .releaseTmpBuf(ctx.tmpBuf!)
+        .releaseTmpBuf(unwrap ctx.tmpBuf)
     }
 
     // Does nothing: TagBin values need no opening mark.
@@ -1067,7 +1067,7 @@ impl TagBin
                 if not Reflection.isPod(valueType) do
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
-                let vt       = valueType!
+                let vt       = unwrap valueType
                 let elemSize = vt.sizeof
 
                 // Validate the payload against the remaining bytes before any
@@ -1082,12 +1082,12 @@ impl TagBin
                 if byteLen != byteCount do
                     fail SerializationError{"raw element layout changed"}
 
-                let bufArr = cast(*Array'u8, data!)
+                let bufArr = cast(*Array'u8, unwrap data)
                 bufArr.count = countElem[]
                 bufArr.reserve(byteCount)
                 bufArr.capacity = bufArr.count
                 if byteCount do
-                    try .stream.readBytes(bufArr.buffer!, byteCount)
+                    try .stream.readBytes(unwrap bufArr.buffer, byteCount)
                 return true
             }
         }
@@ -1107,7 +1107,7 @@ impl TagBin
                 if not Reflection.isPod(typeElem) do
                     fail SerializationError{"cannot load a raw array into a non-pod element type"}
 
-                let te = typeElem!
+                let te = unwrap typeElem
                 if te.sizeof != 0 and streamCount > .remaining() / te.sizeof do
                     fail SerializationError{"raw sequence runs past the end of the stream"}
 
@@ -1116,7 +1116,7 @@ impl TagBin
                     fail SerializationError{"raw element layout changed"}
 
                 if countElem[] and te.sizeof do
-                    try .stream.readBytes(data!, countElem[] * te.sizeof)
+                    try .stream.readBytes(unwrap data, countElem[] * te.sizeof)
 
                 // The stream can hold more elements than the array does now; skip them
                 // so the next value starts at the right position.
@@ -1171,7 +1171,7 @@ impl TagBin
                 fail Core.Errors.SerializationError{"string runs past the end of the stream"}
 
             result.reserve(count)
-            try .stream.readBytes(result.buffer!, count)
+            try .stream.readBytes(unwrap result.buffer, count)
             result.length = count
             return result
         }

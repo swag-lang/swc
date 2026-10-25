@@ -1,5 +1,12 @@
 impl ViewerWindow
 {
+    mtd isExploring()->bool => .explorerActive and .explorer and .explorer.isLocallyVisible()
+
+    mtd isArchivePreview()->bool => not .isExploring() and
+                                    .explorer and
+                                    .explorer.listing.isArchive and
+                                    .explorer.displayPath(.currentFile) != .currentFile.toString()
+
     // Fills the three readouts of the information bar; each one carries its full text as tooltip.
     mtd showFileInfo(name, path, details, size: string)
     {
@@ -13,7 +20,8 @@ impl ViewerWindow
 
     mtd updateFileInfo(details: string)
     {
-        .showFileInfo(Path.fileName(.currentFile) orelse .currentFile, .currentFile, details, .currentFileSize)
+        let path = .explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString()
+        .showFileInfo(Path.fileName(path) orelse path, path, details, .currentFileSize)
         if .activeChoiceIndex < .choices.count do
             .infoIconLabel.setIcon(.choiceIcon(.activeChoiceIndex))
         .infoIconLabel.setIconColor(.themeColors().label_TextFaint)
@@ -157,12 +165,35 @@ impl ViewerWindow
         defer .refreshingLists = false
 
         discard .fillFileList(.recentList, .recent.toSlice())
-        let currentIndex = .fillFileList(.folderList, .siblings.toSlice())
+        var currentIndex = Swag.U32.Max
+        .kindButton.show(not .isExploring() and not .isArchivePreview())
+        .folderFilterBox.show(not .isExploring())
+        if (.isExploring() or .isArchivePreview()) and .explorer
+        {
+            .folderList.clear()
+            for &entry, index in .explorer.entries where entry.directory == .isExploring()
+            {
+                if not .isExploring() and
+                   not .folderFilter.isEmpty() and
+                   Utf8.indexOf(entry.name, .folderFilter, comparisonType: .Latin1NoCase) == Swag.U64.Max do
+                    continue
+                let line = .folderList.createLine(entry.name, .explorer.entryIcon(index))
+                line.userData0 = cast(*void, index + 1)
+                if .isArchivePreview() and index == .explorer.selected do
+                    .folderList.selectLine(line.index)
+            }
+
+            .folderList.computeLayout()
+        }
+        else
+        {
+            currentIndex = .fillFileList(.folderList, .siblings.toSlice())
+        }
 
         let hasRecent = not .recent.isEmpty()
         .filePanel.setPaneVisible(0, hasRecent)
-        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.currentFile)
-        .folderLabel.setText(Path.fileName(folder) orelse folder orelse appStrings().ui_Folder)
+        let folder = .currentFile.isEmpty() ? null : Path.directoryName(.explorer ? .explorer.displayPath(.currentFile) : .currentFile.toString())
+        .folderLabel.setText(.isExploring() ? appStrings().explore_Folders : (Path.fileName(folder) orelse folder orelse appStrings().ui_Folder))
         .filePanel.applyLayout()
         if .isFolderReading() and currentIndex != Swag.U32.Max do
             .folderList.ensureVisibleLine(currentIndex)
@@ -175,6 +206,8 @@ impl ViewerWindow
     // file to act on it never opens it.
     mtd showFileMenu(list: *ListCtrl, files: const [..] String, position: Math.Point)
     {
+        if list == .folderList and (.isExploring() or .isArchivePreview()) do
+            return
         let line = list.selectedLine()
         if not line do
             return
@@ -236,7 +269,10 @@ impl ViewerWindow
             return
         for one in .folderHistory where one.folder == folder
         {
-            .queueFile(one.file)
+            if .isExploring() do
+                .openExplorer(one.folder)
+            else do
+                .queueFile(one.file)
             return
         }
     }
@@ -305,7 +341,7 @@ impl ViewerWindow
     // Confirms the destructive history action before applying it.
     mtd confirmClearRecent()
     {
-        if MessageDlg.confirm(.surface!, appStrings().ui_ConfirmClearHistory) == Dialog.BtnYes do
+        if MessageDlg.confirm(unwrap .surface, appStrings().ui_ConfirmClearHistory) == Dialog.BtnYes do
             .clearRecent()
     }
 
@@ -320,6 +356,13 @@ impl ViewerWindow
         var index = selected[0]!.index
         if list == .folderList and selected[0]!.userData0 do
             index = cast(u32, cast(u64, selected[0]!.userData0) - 1)
+        if list == .folderList and (.isExploring() or .isArchivePreview()) and .explorer
+        {
+            .explorer.selected = index
+            .explorer.activate(index)
+            return
+        }
+
         if index >= files.count do
             return
         let fileName = files[index].toString()

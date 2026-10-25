@@ -15,7 +15,6 @@ using Swag, Core
 
     var host: Testing.HeadlessHost
     host.setup(720, 1000)
-    defer host.shutdown()
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 1000)
     view.applyLayout()
@@ -44,7 +43,6 @@ using Swag, Core
     {
         var host: Testing.HeadlessHost
         host.setup(720, 1000)
-        defer host.shutdown()
         host.setReducedMotion(reduced)
         let view = Markdown.View.createFile(&host.root, fileName)
         view.resize(720, 1000)
@@ -77,7 +75,6 @@ using Swag, Core
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
-    defer host.shutdown()
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()

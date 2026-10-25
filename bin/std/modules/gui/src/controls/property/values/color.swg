@@ -9,7 +9,7 @@ internal impl Properties
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = .addItem(value, data, parentItem)
-        let color = cast(*Color, data!)
+        let color = cast(*Color, unwrap data)
 
         let opaque    = Reflection.hasAttribute(value, .Opaque)
         let keepAlpha = Reflection.hasAttribute(value, .KeepAlpha)
@@ -125,7 +125,7 @@ internal impl IPropertyEditor for ColorEditor
 {
     mtd impl canEdit(type: typeinfo?)->bool => type == Color
 
-    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem => list.constructColor(value, data, parent!)
+    mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem => list.constructColor(value, data, unwrap parent)
 }
 
 #init

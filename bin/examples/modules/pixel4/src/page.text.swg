@@ -152,7 +152,7 @@ func drawBaselineCard(painter: *Pixel.Painter, rect: Math.Rectangle)
     fmt.minLineHeight = 18
     fmt.maxLines      = 2
     fmt.letterSpacing = 0.3
-    painter.drawRichString((sample.x + 24, sample.bottom() - 54, sample.width - 48, 46), &paragraph, fmt)
+    painter.drawRichString(Math.Rectangle{sample.x + 24, sample.bottom() - 54, sample.width - 48, 46}, &paragraph, fmt)
 }
 
 func drawOutlineTextCard(painter: *Pixel.Painter, rect: Math.Rectangle)

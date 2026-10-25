@@ -19,6 +19,14 @@ private const StreamBlockBudget = 8'u32
 private const SeekFrameBudget = 12_000'u64
 private const SeekBlockBudget = 64'u32
 
+// Selects the theme color used by a document rule.
+enum RuleColor
+{
+    Border       // Use the theme's edit border color.
+    Text         // Use the theme's primary text color.
+    RichText     // Use the theme's first rich-text palette slot.
+}
+
 // Controls the reading measure and typography of a [[Gui.Markdown.View]].
 //
 // Colors resolve from the active [[Gui.Theme]], including local theme-sheet overrides.
@@ -27,24 +35,51 @@ struct Style
 {
     public
     {
-        maxContentWidth:      f32                 = 860                    // Widest document column, in logical pixels.
-        horizontalInset:      f32                 = 48                     // Minimum room kept on each side of the document column.
-        topInset:             f32                 = 38                     // Space before the first document block.
-        bottomInset:          f32                 = 34                     // Space after the last document block.
-        bodyFontSize:         u32                 = 16                     // Body-text draw size, in logical pixels.
-        codeFontSize:         u32                 = 14                     // Fixed-width code and table draw size, in logical pixels.
-        mathFontSize:         u32                 = 22                     // Base draw size of Pixel mathematical layout.
-        heading1FontSize:     u32                 = 36                     // Level-one heading draw size, in logical pixels.
-        heading2FontSize:     u32                 = 28                     // Level-two heading draw size, in logical pixels.
-        heading3FontSize:     u32                 = 24                     // Level-three heading draw size, in logical pixels.
-        heading4FontSize:     u32                 = 20                     // Level-four heading draw size, in logical pixels.
-        heading5FontSize:     u32                 = 16                     // Level-five heading draw size, in logical pixels.
-        heading6FontSize:     u32                 = 16                     // Level-six heading draw size, in logical pixels.
-        headingTopSpacing:    [6] u32             = [0, 0, 2, 2, 2, 2]     // Space before heading levels one through six, in logical pixels.
-        headingBottomSpacing: [6] u32             = [8, 8, 2, 2, 2, 2]     // Space after heading levels one through six, in logical pixels.
-        lineHeight:           f32                 = 1.6                    // Minimum body line height, relative to the active font.
-        headingAlignment:     StringHorzAlignment = .Left                  // Horizontal alignment of headings.
-        imageAlignment:       StringHorzAlignment = .Left                  // Horizontal alignment of paragraphs containing one image and no other text.
+        maxContentWidth:      f32     = 860                    // Widest document column, in logical pixels.
+        horizontalInset:      f32     = 48                     // Minimum room kept on each side of the document column.
+        topInset:             f32     = 38                     // Space before the first document block.
+        bottomInset:          f32     = 34                     // Space after the last document block.
+        bodyFontSize:         u32     = 16                     // Body-text draw size, in logical pixels.
+        codeFontSize:         u32     = 14                     // Fixed-width code and table draw size, in logical pixels.
+        mathFontSize:         u32     = 22                     // Base draw size of Pixel mathematical layout.
+        heading1FontSize:     u32     = 36                     // Level-one heading draw size, in logical pixels.
+        heading2FontSize:     u32     = 28                     // Level-two heading draw size, in logical pixels.
+        heading3FontSize:     u32     = 24                     // Level-three heading draw size, in logical pixels.
+        heading4FontSize:     u32     = 20                     // Level-four heading draw size, in logical pixels.
+        heading5FontSize:     u32     = 16                     // Level-five heading draw size, in logical pixels.
+        heading6FontSize:     u32     = 16                     // Level-six heading draw size, in logical pixels.
+        headingTopSpacing:    [6] u32 = [0, 0, 2, 2, 2, 2]     // Space before heading levels one through six, in logical pixels.
+        headingBottomSpacing: [6] u32 = [8, 8, 2, 2, 2, 2]     // Space after heading levels one through six, in logical pixels.
+        lineHeight:           f32     = 1.6                    // Minimum body line height, relative to the active font.
+
+        // Optional line-box heights in logical pixels; zero retains font-relative line height.
+        //
+        // Glyphs taller than the requested box still fit without clipping. Heading entries
+        // correspond to levels one through six; code also covers fixed-width table text.
+        bodyLineHeight:     f32         // Body line-box height, or zero for font-relative leading.
+        codeLineHeight:     f32         // Fixed-width line-box height, or zero for font-relative leading.
+        headingLineHeights: [6] f32     // Line-box heights for heading levels one through six.
+
+        // Collapsing top and bottom block margins, in logical pixels.
+        //
+        // A negative component retains the default padded layout. With two nonnegative
+        // components, adjacent margins take their maximum, and heading spacing becomes
+        // external margins instead of padding. The first block keeps its top margin.
+        blockMargins: Math.Vector2 = Math.Vector2{-1, -1}
+
+        // Heading underline widths, in logical pixels: zero omits a rule, negative fills the column.
+        headingRuleWidths:      [6] f32
+        headingRuleColor:       RuleColor           = .Border              // Theme color of heading underlines.
+        headingRulePadding:     [6] f32                                    // Space between heading text and its underline, in logical pixels.
+        quotePadding:           Math.Vector4        = Math.Vector4{18, 10, 10, 10}     // Left, top, right and bottom quote insets, in logical pixels.
+        quoteRuleWidth:         f32                 = 3                    // Width of the quote's leading rule, in logical pixels; zero omits it.
+        quoteRuleColor:         RuleColor           = .RichText            // Theme color of the quote's leading rule.
+        quoteRuleInset:         f32                 = 8                    // Room above and below the quote's leading rule, in logical pixels.
+        quoteIndent:            f32                                        // Extra room before the quote's rule and text, in logical pixels.
+        quoteFontStyle:         FontFamilyStyle     = .Regular             // Base font style of quoted text.
+        headingAlignment:       StringHorzAlignment = .Left                // Horizontal alignment of headings.
+        headingAlignmentLevels: u32                 = 6                    // Leading heading levels using headingAlignment; remaining levels align left.
+        imageAlignment:         StringHorzAlignment = .Left                // Horizontal alignment of paragraphs containing one image and no other text.
 
         // Horizontal alignment of body paragraphs.
         //
@@ -403,8 +438,26 @@ private impl View
             .scroll.smoothScrollTo(target)
     }
 
-    mtd placeBlock(block: *VisualBlock, x, width: f32, y: *f32)
+    mtd blockMargins(kind: BlockKind)->Math.Vector2
     {
+        if kind >= .Heading1 and kind <= .Heading6
+        {
+            let index = cast(u32, kind) - cast(u32, BlockKind.Heading1)
+            return Math.Vector2{.documentStyle.headingTopSpacing[index], .documentStyle.headingBottomSpacing[index]}
+        }
+
+        return .documentStyle.blockMargins
+    }
+
+    mtd placeBlock(block: *VisualBlock, index: u64, x, width: f32, y: *f32)
+    {
+        let collapse = .documentStyle.blockMargins.x >= 0 and .documentStyle.blockMargins.y >= 0
+        if collapse
+        {
+            let previousBottom = index > 0 ? .blockMargins(.blocks[index - 1].kind).y : 0
+            y[] += Math.max(.blockMargins(block.kind).x - previousBottom, 0)
+        }
+
         // Retain the current height while measuring. Collapsing an embedded HTML view first
         // makes it lay out once at zero height and again at its final size.
         block.wnd.setPosition(Math.Rectangle{x, y[], width, block.wnd.position.height})
@@ -417,7 +470,8 @@ private impl View
         else do
             block.wnd.resize(width, block.inline!.preferredHeight(width))
 
-        y[] += block.wnd.position.height + blockGap(block.kind)
+        let gap = collapse ? .blockMargins(block.kind).y : blockGap(block.kind)
+        y[] += block.wnd.position.height + gap
     }
 
     mtd layoutDocument(preservePosition = false)
@@ -449,8 +503,8 @@ private impl View
 
         let geometry = .documentGeometry()
         var y        = .virtualOrigin + .documentStyle.topInset
-        for &block in .blocks do
-            .placeBlock(block, geometry.x, geometry.width, &y)
+        for &block, index in .blocks do
+            .placeBlock(block, index, geometry.x, geometry.width, &y)
         .contentHeight = y
         .updateDocumentSize()
 
@@ -495,7 +549,7 @@ private impl View
                     applyThemeColors(visual.wnd, .documentThemeColors.toString())
                 .blocks.add(visual)
                 let geometry = .documentGeometry()
-                .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
+                .placeBlock(.blocks.backPtr(), .blocks.count - 1, geometry.x, geometry.width, &.contentHeight)
                 return
             }
         }
@@ -508,7 +562,7 @@ private impl View
                 applyThemeColors(visual.wnd, .documentThemeColors.toString())
             .blocks.add(visual)
             let geometry = .documentGeometry()
-            .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
+            .placeBlock(.blocks.backPtr(), .blocks.count - 1, geometry.x, geometry.width, &.contentHeight)
             return
         }
         elif block.kind == .Html
@@ -532,7 +586,7 @@ private impl View
 
             .blocks.add(visual)
             let geometry = .documentGeometry()
-            .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
+            .placeBlock(.blocks.backPtr(), .blocks.count - 1, geometry.x, geometry.width, &.contentHeight)
             return
         }
 
@@ -548,7 +602,7 @@ private impl View
         .blocks.add(visual)
 
         let geometry = .documentGeometry()
-        .placeBlock(.blocks.backPtr(), geometry.x, geometry.width, &.contentHeight)
+        .placeBlock(.blocks.backPtr(), .blocks.count - 1, geometry.x, geometry.width, &.contentHeight)
     }
 
     mtd needsMore()->bool
@@ -629,6 +683,8 @@ private impl View
         .searchBlockIndex = .searchBlockIndex >= count and .searchBlockIndex != Swag.U64.Max ? .searchBlockIndex - count : Swag.U64.Max
         .residentStart    = .blocks[0].sourceOffset
         .virtualOrigin    = .blocks[0].wnd.position.y - .documentStyle.topInset
+        if .documentStyle.blockMargins.x >= 0 and .documentStyle.blockMargins.y >= 0 do
+            .virtualOrigin -= .blockMargins(.blocks[0].kind).x
     }
 
     mtd readSource()
@@ -1104,7 +1160,7 @@ private impl View
 
         // Arrow navigation advances by the same minimum line height used by body text. Page
         // navigation remains viewport-relative in handleDocumentKey.
-        .scroll.verticalScrollStep = .documentFont(.Paragraph, .documentStyle.bodyFontSize).height * .documentStyle.lineHeight
+        .scroll.verticalScrollStep = .documentStyle.bodyLineHeight > 0 ? .documentStyle.bodyLineHeight : .documentFont(.Paragraph, .documentStyle.bodyFontSize).height * .documentStyle.lineHeight
         for &block in .blocks
         {
             block.releaseRenderCaches()
@@ -1112,7 +1168,7 @@ private impl View
             {
                 block.inline.layoutWidth = 0
                 if block.kind >= .Heading1 and block.kind <= .Heading6 do
-                    block.inline.horizontalAlignment = .documentStyle.headingAlignment
+                    block.inline.horizontalAlignment = block.inline.headingAlignment()
                 elif block.kind == .Paragraph do
                     block.inline.horizontalAlignment = .documentStyle.paragraphAlignment
             }
@@ -1176,7 +1232,7 @@ impl View
         result.scroll = Wnd.create'ScrollWnd(result, "", Math.Rectangle{})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
-        result.scroll.verticalScrollStep       = result.documentFont(.Paragraph, documentStyle.bodyFontSize).height * documentStyle.lineHeight
+        result.scroll.verticalScrollStep       = documentStyle.bodyLineHeight > 0 ? documentStyle.bodyLineHeight : result.documentFont(.Paragraph, documentStyle.bodyFontSize).height * documentStyle.lineHeight
         result.body = result.scroll.createView'Wnd()
         result.body.backgroundStyle            = .View
         result.scroll.sigScrollPositionChanged += func|view = result|(_, oldPosition, newPosition)

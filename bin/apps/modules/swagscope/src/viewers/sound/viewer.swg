@@ -451,6 +451,7 @@ struct Panel
     duration:    f32
     elapsed:     f32
     engineReady: bool
+    thumbnail:   bool
     playing:     bool
     muted:       bool
     volume:      f32 = 1
@@ -475,7 +476,7 @@ impl Panel
     }
 
     // Reports whether the host should cover the view, which is until the sound has opened.
-    mtd needsLoadingOverlay()->bool => not .openFinished
+    mtd needsLoadingOverlay()->bool => not .openFinished or (.thumbnail and .isLoading())
 
     // Publishes the file opened in the background and initializes playback on the GUI thread.
     mtd completeOpen() fail
@@ -492,7 +493,7 @@ impl Panel
             .timeline.setBounds(0, .duration, Math.min(0.01'f32, .duration / 100))
         .startWaveform()
 
-        .engineReady = acquireEngine()
+        .engineReady = not .thumbnail and acquireEngine()
         if .engineReady do
             .playButton.enable(true)
         .backwardButton.enable(.engineReady and .duration > 0)
@@ -936,6 +937,7 @@ impl Panel
         {
             .backgroundStyle = .View
             .services        = services
+            .thumbnail       = host.isThumbnail()
         }
 
         result.commands = host.createCommandGroup(CommandWidth)

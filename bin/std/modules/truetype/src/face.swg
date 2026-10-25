@@ -85,7 +85,7 @@ private func loadFaceBytes(bytes: const [..] u8, faceIndex: u32, fallbackFamilyN
 {
     if bytes.count == 0 do
         try fault(0x06)
-    let allocationAllocator = (allocator orelse Swag.getContext().allocator)!
+    let allocationAllocator = unwrap (allocator orelse Swag.getContext().allocator)
     let faceData = Memory.new'FaceImpl(allocationAllocator)
     faceData.allocationAllocator = allocationAllocator
     defer #fail Memory.delete(faceData, allocationAllocator)
@@ -478,7 +478,7 @@ public impl Face
         if xhS == xh and (ch <= xh or chS == ch) do
             return
 
-        let points = o.points!
+        let points = unwrap o.points
         for index in cast(u32, o.pointCount) do
             points[index].y = hintMapY(points[index].y, xh, xhS, ch, chS)
     }

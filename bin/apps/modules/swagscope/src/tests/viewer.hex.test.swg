@@ -60,7 +60,7 @@ func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, heig
     var viewerSession = openTestViewer(Hex.viewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
     let view          = assume cast(*Hex.Panel, viewerSession.view)
     completeViewerBackgroundLoad(host, &view.load)
-    assertViewerInfoButton(view.zoomLabel!)
+    assertViewerInfoButton(unwrap view.zoomLabel)
     view.dockStyle = .Center
     view.resize(width, height)
     view.applyLayout()
@@ -118,7 +118,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 {
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
 
     var result = openTestViewer(Hex.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
@@ -135,7 +134,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
@@ -324,7 +322,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -387,7 +384,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(1_100, 700)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -505,7 +501,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.grid.doc.fileSize == StreamedFileSize)
@@ -538,7 +533,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
@@ -563,7 +557,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
@@ -604,7 +597,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
@@ -626,7 +618,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.byteOrderCombo.selectedIndex == 0)
@@ -657,7 +648,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
 
@@ -703,7 +693,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
@@ -750,7 +739,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view     = createTestViewer(&host, fileName, 900, 560)
     var revealed = view.revealOffset(11, 5)
@@ -775,7 +763,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
 
@@ -824,7 +811,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
@@ -857,7 +843,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600, dpiScale: 1.5)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
@@ -879,7 +864,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let view = createTestViewer(&host, fileName, 900, 560)
@@ -912,7 +896,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     let grid = view.grid
@@ -934,7 +917,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 900, 560)
     Swag.assert(view.commands.position.width <= 640)
@@ -968,7 +950,6 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
 
     var host: Testing.HeadlessHost
     host.setup(860, 460)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0

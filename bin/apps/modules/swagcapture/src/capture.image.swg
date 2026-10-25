@@ -29,7 +29,7 @@ impl Capture
         let rect    = Math.Rectangle{width: .width * zoom, height: .height * zoom}
         let render  = g_App.renderer
         var painter = Pixel.Painter.create(render)
-        let surface = (.editView!.surface)!
+        let surface = unwrap .editView!.surface
         render.begin(surface.renderingContext())
         painter.begin()
 
@@ -71,7 +71,7 @@ impl Capture
         render.draw(&painter)
         render.end()
 
-        let rt     = layer.contentTarget!
+        let rt     = unwrap layer.contentTarget
         var buffer = render.readTexturePixels(rt.colorBuffer, .BGRA8)
         result = Image.create(rt.colorBuffer.width, rt.colorBuffer.height, .BGRA8, buffer.toSlice())
         result.crop(0, 0, cast(s32, rect.width), cast(s32, rect.height))

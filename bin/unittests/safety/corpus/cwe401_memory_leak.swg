@@ -71,7 +71,7 @@ func leakThroughOwnerWithoutDrop()
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -84,7 +84,7 @@ func leakThroughOwnerWithoutDrop()
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -98,7 +98,7 @@ func leakThroughOwnerWithoutDrop()
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -111,7 +111,7 @@ func leakThroughOwnerWithoutDrop()
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -167,7 +167,7 @@ func ownerReleasesOnDrop()->s32
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 

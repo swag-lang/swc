@@ -160,14 +160,14 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
             continue
 
         Swag.assert(g_AdminRouteCount < MaxAdminRoutes)
-        let params = attribute.params!
+        let params = unwrap attribute.params
         g_AdminRoutes[g_AdminRouteCount] = {
             type: msg.type,
-            handlerName: msg.name!,
-            method: assume cast(string, params[0].value!),
-            path: assume cast(string, params[1].value!),
-            permission: assume cast (string, params[2].value!),
-            auditCode: assume cast (string, params[3].value!),
+            handlerName: unwrap msg.name,
+            method: assume cast(string, unwrap params[0].value),
+            path: assume cast(string, unwrap params[1].value),
+            permission: assume cast (string, unwrap params[2].value),
+            auditCode: assume cast (string, unwrap params[3].value),
             critical: assume cast (bool, params[4].value)
             }
         g_AdminRouteCount += 1
@@ -191,9 +191,9 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         for parameter in typeFunc.parameters
         {
             len = appendAst(&buffer[0], len, "    ")
-            len = appendAst(&buffer[0], len, parameter.name!)
+            len = appendAst(&buffer[0], len, unwrap parameter.name)
             len = appendAst(&buffer[0], len, ": ")
-            len = appendAst(&buffer[0], len, (parameter.pointedType!.name)!)
+            len = appendAst(&buffer[0], len, unwrap parameter.pointedType!.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         len = appendAst(&buffer[0], len, "}\n\n")
@@ -206,7 +206,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
         if typeFunc.returnType != null and typeFunc.returnType != void
         {
             len = appendAst(&buffer[0], len, "->")
-            len = appendAst(&buffer[0], len, (typeFunc.returnType.name)!)
+            len = appendAst(&buffer[0], len, unwrap typeFunc.returnType.name)
         }
 
         len = appendAst(&buffer[0], len, "\n{\n    ")
@@ -220,7 +220,7 @@ func appendBoolLiteral(buffer: [*] u8, start: u64, value: bool)->u64
             if index != 0 do
                 len = appendAst(&buffer[0], len, ", ")
             len = appendAst(&buffer[0], len, "request.")
-            len = appendAst(&buffer[0], len, parameter.name!)
+            len = appendAst(&buffer[0], len, unwrap parameter.name)
         }
         len = appendAst(&buffer[0], len, ")\n}\n\n")
     }

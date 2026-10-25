@@ -638,6 +638,8 @@ impl InlineView
         {
         case .Heading1, .Heading2, .Heading3, .Heading4, .Heading5, .Heading6:
             let index = cast(u32, .kind) - cast(u32, BlockKind.Heading1)
+            if .owner.documentStyle.blockMargins.x >= 0 and .owner.documentStyle.blockMargins.y >= 0 do
+                return Math.Vector4{0, 0, 0, .owner.documentStyle.headingRulePadding[index]}
             return Math.Vector4{0, .owner.documentStyle.headingTopSpacing[index], 0, .owner.documentStyle.headingBottomSpacing[index]}
 
         case .Code:
@@ -646,7 +648,12 @@ impl InlineView
         case .Table:
             return Math.Vector4{16, 12, 16, 12}
 
-        case .Quote, .AlertNote, .AlertTip, .AlertImportant,
+        case .Quote:
+            var result = .owner.documentStyle.quotePadding
+            result.x += .owner.documentStyle.quoteIndent
+            return result
+
+        case .AlertNote, .AlertTip, .AlertImportant,
              .AlertWarning, .AlertCaution:
             return Math.Vector4{18, 10, 10, 10}
 
@@ -660,6 +667,8 @@ impl InlineView
             return Math.Vector4{0, 4, 0, 4}
 
         default:
+            if .owner.documentStyle.blockMargins.x >= 0 and .owner.documentStyle.blockMargins.y >= 0 do
+                return {}
             return Math.Vector4{0, 2, 0, 2}
         }
     }
@@ -683,7 +692,9 @@ impl InlineView
 
     mtd fontStyle(flags: InlineFlags)->FontFamilyStyle
     {
-        let base   = .kind >= .Heading1 and .kind <= .Heading6 ? .owner.documentStyle.headingFontStyles[cast(u32, .kind) - cast(u32, BlockKind.Heading1)] : FontFamilyStyle.Regular
+        var base = .kind == .Quote ? .owner.documentStyle.quoteFontStyle : FontFamilyStyle.Regular
+        if .kind >= .Heading1 and .kind <= .Heading6 do
+            base = .owner.documentStyle.headingFontStyles[cast(u32, .kind) - cast(u32, BlockKind.Heading1)]
         let bold   = flags.has(.Bold) or base == .Bold or base == .BoldItalic
         let italic = flags.has(.Italic) or base == .Italic or base == .BoldItalic
         if bold and italic do
@@ -765,6 +776,36 @@ impl InlineView
     // Atom bounds include taller fallback faces; Painter draws against the primary baseline.
     private mtd textTop(atom: const *InlineAtom, font: *Font)->f32 => atom.ascent == font.ascent ? atom.position.y : atom.position.y + (atom.ascent - font.ascent)
 
+    // Resolves explicit document line boxes before falling back to font-relative leading.
+    mtd lineHeight()->f32
+    {
+        let style  = &.owner.documentStyle
+        var height = style.bodyLineHeight
+        if .kind >= .Heading1 and .kind <= .Heading6 do
+            height = style.headingLineHeights[cast(u32, .kind) - cast(u32, BlockKind.Heading1)]
+        elif .kind == .Code or .kind == .Table or .kind == .Metadata do
+            height = style.codeLineHeight
+        if height > 0 do
+            return height
+        return .owner.documentFont(.kind, .fontSize()).height * style.lineHeight
+    }
+
+    mtd headingAlignment()->StringHorzAlignment
+    {
+        let level = cast(u32, .kind) - cast(u32, BlockKind.Heading1)
+        return level < .owner.documentStyle.headingAlignmentLevels ? .owner.documentStyle.headingAlignment : .Left
+    }
+
+    mtd ruleColor(role: RuleColor)->Color
+    {
+        switch #complete role
+        {
+        case .Border:   return .themeColors().edit_Border
+        case .Text:     return .themeColors().label_Text
+        case .RichText: return .themeColors().richColor1
+        }
+    }
+
     // Places one finished line of atoms and returns the height it takes.
     //
     // `wrapped` says the line ended because the next word did not fit, which is the only line a
@@ -773,7 +814,7 @@ impl InlineView
     mtd finishLine(first, last: u64, top, left, right: f32, wrapped: bool)->f32
     {
         if first >= last do
-            return .owner.documentFont(.kind, .fontSize()).height * .owner.documentStyle.lineHeight
+            return .lineHeight()
 
         var ascent:  f32
         var descent: f32
@@ -784,7 +825,7 @@ impl InlineView
         }
 
         let natural   = ascent + descent
-        let line      = Math.max(natural, .owner.documentFont(.kind, .fontSize()).height * .owner.documentStyle.lineHeight)
+        let line      = Math.max(natural, .lineHeight())
         let offset    = (line - natural) * 0.5
         var lineRight = left
         for index in first until last where .atoms[index].visible do
@@ -875,7 +916,7 @@ impl InlineView
         if .kind == .Rule
         {
             .layoutWidth  = width
-            .layoutHeight = 24
+            .layoutHeight = .owner.documentStyle.blockMargins.x >= 0 and .owner.documentStyle.blockMargins.y >= 0 ? 1 : 24
             return .layoutHeight
         }
 
@@ -1328,7 +1369,7 @@ impl InlineView
         result.orderIndex = owner.registerInline(result)
 
         if kind >= .Heading1 and kind <= .Heading6 do
-            result.horizontalAlignment = owner.documentStyle.headingAlignment
+            result.horizontalAlignment = result.headingAlignment()
         elif kind == .Paragraph do
             result.horizontalAlignment = owner.documentStyle.paragraphAlignment
         result.parse(source)
@@ -1416,7 +1457,7 @@ impl IWnd for InlineView
 
         if .kind == .Quote or .kind >= .AlertNote and .kind <= .AlertCaution
         {
-            var accent = .themeColors().richColor1
+            var accent = .kind == .Quote ? .ruleColor(.owner.documentStyle.quoteRuleColor) : .themeColors().richColor1
             if .kind >= .AlertNote and .kind <= .AlertImportant
             {
                 accent = .themeColors().embInfo_InformationText
@@ -1433,13 +1474,27 @@ impl IWnd for InlineView
                 painter.fillRect(rect, .themeColors().embInfo_CriticalBk)
             }
 
-            painter.fillRect(Math.Rectangle{0, 8, 3, Math.max(rect.height - 16, 0)}, accent)
+            let width = .kind == .Quote ? .owner.documentStyle.quoteRuleWidth : 3
+            let inset = .kind == .Quote ? .owner.documentStyle.quoteRuleInset : 8
+            let x     = .kind == .Quote ? .owner.documentStyle.quoteIndent : 0
+            painter.fillRect(Math.Rectangle{x, inset, width, Math.max(rect.height - 2 * inset, 0)}, accent)
         }
 
         if .kind == .Rule
         {
             painter.fillRect(Math.Rectangle{0, Math.floor(rect.vertCenter()), rect.width, 1}, .themeColors().edit_Border)
             return
+        }
+
+        if .kind >= .Heading1 and .kind <= .Heading6
+        {
+            let index   = cast(u32, .kind) - cast(u32, BlockKind.Heading1)
+            let measure = .owner.documentStyle.headingRuleWidths[index]
+            if measure != 0
+            {
+                let width = measure < 0 ? rect.width : Math.min(measure, rect.width)
+                painter.fillRect(Math.Rectangle{(rect.width - width) * 0.5, rect.height - 1, width, 1}, .ruleColor(.owner.documentStyle.headingRuleColor))
+            }
         }
 
         // What a word carries under it comes first, then the reader's selection over all of it,

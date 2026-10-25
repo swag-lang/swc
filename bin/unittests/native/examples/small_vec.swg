@@ -46,8 +46,8 @@ impl SmallVec
         while newCap < want do
             newCap *= 2
 
-        let newBuf = cast([*] s32, (testAlloc(newCap * #sizeof(s32)))!)
-        let oldPtr = .ptr!
+        let newBuf = cast([*] s32, unwrap testAlloc(newCap * #sizeof(s32)))
+        let oldPtr = unwrap .ptr
         for i in .count do
             newBuf[i] = oldPtr[i]
 
@@ -61,7 +61,7 @@ impl SmallVec
     mtd push(value: s32)
     {
         .growTo(.count + 1)
-        let ptr = .ptr!
+        let ptr = unwrap .ptr
         ptr[.count] = value
         .count      += 1
     }
@@ -98,8 +98,8 @@ impl SmallVec
         else
         {
             // Heap path: allocate a fresh buffer and copy the elements.
-            let oldPtr = .ptr!
-            let newPtr = cast([*] s32, (testAlloc(.capacity * #sizeof(s32)))!)
+            let oldPtr = unwrap .ptr
+            let newPtr = cast([*] s32, unwrap testAlloc(.capacity * #sizeof(s32)))
             for i in .count do
                 newPtr[i] = oldPtr[i]
             .ptr = newPtr
@@ -185,7 +185,7 @@ impl SmallVec
     Swag.assert(dst.at(2) == 3)
 
     // Mutate dst -- src must be unaffected.
-    let dstPtr = dst.ptr!
+    let dstPtr = unwrap dst.ptr
     dstPtr[0] = 99
     Swag.assert(src.at(0) == 1)
     Swag.assert(dst.at(0) == 99)
@@ -216,7 +216,7 @@ impl SmallVec
     Swag.assert(dst.at(5) == 105)
 
     // Mutate dst -- src stays intact.
-    let dstPtr = dst.ptr!
+    let dstPtr = unwrap dst.ptr
     dstPtr[0] = -1
     Swag.assert(src.at(0) == 100)
     Swag.assert(dst.at(0) == -1)

@@ -85,7 +85,7 @@ func countAcrossCalls(slots: [*] u64)->u64
     var slots: [8] u64
     takeCountAddress()
     g_TakenCount = 0
-    Swag.assert(countThroughEscapedAddress(&slots[0], g_TakenAddress!) == 828)
+    Swag.assert(countThroughEscapedAddress(&slots[0], unwrap g_TakenAddress) == 828)
     Swag.assert(slots[7] == 107)
 
     g_DirectCount = 1

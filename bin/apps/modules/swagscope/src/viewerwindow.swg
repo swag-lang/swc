@@ -20,7 +20,7 @@ struct ViewerFolderHistory
 }
 
 // Returns the application window that hosts `view`.
-func viewerWindowFor(view: *Wnd)->*ViewerWindow => view.ancestorByType'ViewerWindow()!
+func viewerWindowFor(view: *Wnd)->*ViewerWindow => unwrap view.ancestorByType'ViewerWindow()
 
 // Replaces a viewer that failed after creation with the standard error surface.
 func reportViewerFailure(view: *Wnd, reason: string) { viewerWindowFor(view).replaceFailedViewer(view, reason) }
@@ -83,6 +83,11 @@ struct ViewerWindow
         folderFilterBox:      *EditBox
         folderList:           *ListCtrl
     }
+
+    thumbnailMode:  bool
+    explorerActive: bool
+    explorer:       *Explorer?
+    exploreButton:  *IconButton?
 
     index:                   ViewerPluginRegistry
     pluginIcons:             Array'ViewerPluginIcons
@@ -335,6 +340,8 @@ impl IWnd for ViewerWindow
         let plain = evt.modifiers == .None
         switch evt.key
         {
+        case .E where evt.modifiers.has(.Control): .exploreFolder()
+        case .Escape where plain and not .fullScreen and .explorerActive: .closeFile()
         case .F11 where plain:                     .setFullScreen(not .fullScreen)
         case .Escape where plain and .fullScreen:  .setFullScreen(false)
         case .O where evt.modifiers.has(.Control): .chooseFile()
@@ -445,6 +452,8 @@ impl IWnd for ViewerWindow
             return
         }
 
+        if .thumbnailMode do
+            return
         catch g_App.loadState()
         .applyTheme(.themeIndex)
         .applyLanguage()
@@ -466,7 +475,7 @@ impl IWnd for ViewerWindow
             let splitter = assume cast(*SplitterCtrl, .currentSidePanelHost.parent)
             for index in splitter.items.count
             {
-                let item = splitter.items[index]!
+                let item = unwrap splitter.items[index]
                 if item.view == .currentSidePanelHost do
                     .rightPanelWidth = item.size - .themeMetrics().panel_GutterSize
             }
@@ -693,7 +702,7 @@ impl ViewerWindow
     // window placement. Closing first restores the regular placement, then persists it.
     private mtd saveState() fail
     {
-        if .fullScreen do
+        if .fullScreen or .thumbnailMode do
             return
         try g_App.saveState()
     }
@@ -718,7 +727,7 @@ impl ViewerWindow
         if .fullScreen == enabled do
             return
 
-        let surface = .surface!
+        let surface = unwrap .surface
         if enabled
         {
             .fullScreenRestorePosition = surface.isMaximized ? surface.restoredPosition : surface.position
@@ -726,7 +735,7 @@ impl ViewerWindow
             .fullScreenWasMaximized    = surface.isMaximized
             .fullScreen = true
             surface.updateFlags(add: FullScreenAddedFlags, remove: FullScreenRemovedFlags)
-            .documentHost.padding = {}
+            .updateDocumentInsets()
             .documentPanel.backgroundStyle = .View
             .accentRail.hide()
             .commandBar.dockStyle  = .None
@@ -753,8 +762,7 @@ impl ViewerWindow
             let flagsToAdd      = .fullScreenRestoreFlags & transitionFlags
             let flagsToRemove   = transitionFlags & ~.fullScreenRestoreFlags
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
-            let gutter = .themeMetrics().panel_GutterSize
-            .documentHost.padding = Math.Vector4{gutter, 0, gutter, 0}
+            .updateDocumentInsets()
             .documentPanel.backgroundStyle = .Panel
             .accentRail.show()
             .commandBar.dockStyle  = .Top
@@ -882,7 +890,7 @@ impl ViewerWindow
         // The registry remains the source of the compact capability line, but extension details
         // stay out of the identity box: the viewer names communicate the supported content
         // families without turning About into a file-association inventory.
-        let dialog = AboutDlg.createApplication(.surface!, about)
+        let dialog = AboutDlg.createApplication(unwrap .surface, about)
         dialog.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
         return dialog
     }
@@ -1010,6 +1018,8 @@ impl ViewerWindow
     {
         let texts = appStrings()
         .surface?.setTitle(texts.ui_WindowTitle)
+        if .exploreButton do
+            .exploreButton.toolTip = texts.explore_Open
         .openButton.toolTip          = texts.ui_Open
         .closeButton.toolTip         = texts.ui_CloseFile
         .openDefaultButton.toolTip   = texts.ui_OpenDefault
@@ -1029,12 +1039,70 @@ impl ViewerWindow
             assume cast(*ViewerErrorView, instance.view).retranslate()
         if .currentFile.isEmpty()
         {
-            .folderLabel.setText(texts.ui_Folder)
+            .folderLabel.setText(.explorerActive ? texts.explore_Folders : texts.ui_Folder)
             .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
             .emptyHintLabel.setText(texts.ui_DropHint)
             .infoStatsLabel.setText("")
         }
 
         .invalidate()
+    }
+}
+
+impl ViewerWindow
+{
+    // Enters exploration explicitly; opening one ordinary file never creates an explorer.
+    mtd exploreFolder()
+    {
+        if .explorerActive and
+           .explorer and
+           not .explorer.isLocallyVisible() and
+           .explorer.displayPath(.currentFile) != .currentFile.toString()
+        {
+            .closeFile()
+            return
+        }
+
+        if not .currentFile.isEmpty()
+        {
+            let folder = Path.directoryName(.currentFile) orelse ""
+            if folder.count
+            {
+                if .explorerActive and .explorer and .explorer.listing.path == folder do
+                    .closeFile()
+                else do
+                    .openExplorer(folder)
+            }
+
+            return
+        }
+
+        with var options: FileDlgOptions
+        {
+            .mode  = .SelectFolder
+            .state = &me.fileDlgState
+        }
+
+        let dialog = FileDlg.create(unwrap .surface, options)
+        if dialog.doModal() == Dialog.BtnOk do
+            .openExplorer(dialog.selectedPath())
+    }
+
+    mtd openExplorer(path: string)
+    {
+        // Own the path before retiring the viewer whose currentFile may have supplied it.
+        let source = String.from(path)
+        if not .explorer do
+            .explorer = Explorer.create(.documentPanel, me)
+        .explorer.history.push(Format.toString("%\n", source))
+        .explorerActive = true
+        .closeFile()
+        .explorerActive = true
+        .emptyView.hide()
+        .infoBarHost.hide()
+        .explorer.show()
+        .explorer.navigate(source)
+        .closeButton.enable(true)
+        .applyLayout()
     }
 }

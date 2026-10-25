@@ -9,7 +9,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(600, 300)
-    defer host.shutdown()
 
     let metrics = host.root.themeMetrics()
     let short   = PushButton.create(&host.root, "OK")
@@ -35,7 +34,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(600, 300)
-    defer host.shutdown()
 
     const Sentence = "Encrypted storage that looks and behaves like a regular Windows drive and keeps working when the application closes."
 
@@ -55,7 +53,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(600, 300)
-    defer host.shutdown()
 
     let combo = ComboBox.create(&host.root)
     combo.addItem("en")
@@ -72,7 +69,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(500, 80)
-    defer host.shutdown()
 
     let row  = StackLayoutCtrl.create(&host.root, .Left, Math.Rectangle{0, 0, 500, 40})
     let name = Label.create(row, "", Math.Rectangle{0, 0, 0, 32})
@@ -94,7 +90,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     let band = StackLayoutCtrl.create(&host.root, .Top)
     band.dockStyle = .Top
@@ -121,7 +116,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(500, 300)
-    defer host.shutdown()
     defer discard catch applyLanguage(&host.app.resources, ReferenceLanguage)
 
     // "Reset to default" and its French wording are not the same width, and neither
@@ -155,7 +149,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(300, 400)
-    defer host.shutdown()
 
     let form = FormLayoutCtrl.create(&host.root, {helpHeight: 16}, Math.Rectangle{0, 0, 300, 400})
     discard form.addTextField("SHORT", help: "One")
@@ -175,7 +168,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(400, 120)
-    defer host.shutdown()
 
     let row   = StackLayoutCtrl.create(&host.root, .Left, Math.Rectangle{0, 0, 120, 32})
     let label = Label.create(row, "a name far longer than the row that shows it", Math.Rectangle{0, 0, 0, 32}, null, .Ellipsis)

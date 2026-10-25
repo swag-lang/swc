@@ -1,6 +1,6 @@
 #global private
 
-// The postfix `!` asserts a value is not null; `expect` is error management only.
+// `unwrap` asserts a value is not null; `expect` is error management only.
 // Each rejects the other's role.
 
 struct NotNullOperandNode { value: s32 }
@@ -9,8 +9,8 @@ func notNullOperandPlain()->s32 { return 42 }
 
 #test
 {
-    // `!` on a type is not a value expression.
-    let bad = NotNullOperandNode!     // swc-expected-error {{sema_err_not_value_expr}}
+    // `unwrap` on a type is not a value expression.
+    let bad = unwrap NotNullOperandNode     // swc-expected-error {{sema_err_not_value_expr}}
 }
 
 #test

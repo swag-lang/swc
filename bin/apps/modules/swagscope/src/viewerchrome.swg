@@ -289,7 +289,7 @@ impl ViewerSearchOverlay
     // a line's leading is what bounds the marker vertically while nothing bounds it horizontally.
     mtd showMatch(bounds: Math.Rectangle)
     {
-        let parent  = .parent!
+        let parent  = unwrap .parent
         let topLeft = parent.surfaceToLocal(Math.Point{bounds.x, bounds.y})
         .setPosition(Math.Rectangle{topLeft.x - InsetX, topLeft.y - InsetY, bounds.width + InsetX * 2, bounds.height + InsetY * 2}, computeLayout: false)
         .show()

@@ -28,7 +28,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     discard expect face.setPixelSize(0, 18)
     discard expect face.loadChar('A')
@@ -60,7 +60,7 @@ using Swag, Core
 
     discard expect face.loadChar('A')
     let transformIdx     = findPointWithNonZeroY(&face.glyph.outline)
-    let transformPts     = face.glyph.outline.points!
+    let transformPts     = unwrap face.glyph.outline.points
     let beforeTransformX = transformPts[transformIdx].x
     let beforeTransformY = transformPts[transformIdx].y
     let scaleY           = Matrix{xx: 65536, yy: 131072}
@@ -88,7 +88,7 @@ using Swag, Core
     let sampleIdx = findPointWithNonZeroY(&face.glyph.outline)
 
     // The calls above alias the outline, so the point array is unproven again here.
-    let samplePts     = face.glyph.outline.points!
+    let samplePts     = unwrap face.glyph.outline.points
     let sampleBeforeX = samplePts[sampleIdx].x
     let sampleBeforeY = samplePts[sampleIdx].y
     face.glyph.oblique()

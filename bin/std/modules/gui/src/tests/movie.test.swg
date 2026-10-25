@@ -4,7 +4,7 @@
 using Core, Pixel
 
 // Returns the full path of the fixture `name` in the `datas` folder beside this file.
-func movieFixture(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
+func movieFixture(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
 
 // An animated WebP or APNG advances on its frame durations, honors its encoded loop count, and
 // counts the loops it completes.
@@ -67,7 +67,6 @@ func movieFixture(name: string)->String => Path.combine(Path.directoryName(#curl
 
     var host: Testing.HeadlessHost
     host.setup(300, 200)
-    defer host.shutdown()
     let view = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     expect view.loadMovie(movieFixture("imageset-icons.ico").toString())
     Swag.assert(not view.movie.isAnimated() and view.movie.isPaused and view.movie.frameIndex == 1)

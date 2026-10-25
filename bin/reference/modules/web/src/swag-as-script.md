@@ -102,7 +102,7 @@ rest of the file is compiled:
 ```swag
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     cfg.safetyGuards = Swag.SafetyWhat.All
 }
 ```

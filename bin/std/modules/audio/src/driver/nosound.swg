@@ -38,7 +38,7 @@ impl Voice
     func createNoSound(voice: *Voice, _ = VoiceCreateFlags.Default) fail
     {
         voice.handle = cast(*void?, Memory.new'NoSoundVoice(voice.allocationAllocator))
-        let file = voice.file!
+        let file = unwrap voice.file
         voice.requestedEncoding = file.encoding == .AacLc ? .Pcm16 : file.encoding
         if not voice.handle do
             fail BadParameterError{"cannot create no-sound voice"}

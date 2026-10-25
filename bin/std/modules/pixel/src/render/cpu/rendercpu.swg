@@ -212,7 +212,7 @@ private impl RenderCpu
     {
         if .curRT
         {
-            let texture = .findTexture(.curRT.colorBuffer.handle)!
+            let texture = unwrap .findTexture(.curRT.colorBuffer.handle)
             return &texture.stencil
         }
 
@@ -892,7 +892,7 @@ private impl RenderCpu
     {
         if p.gradientStopCount == 0 do
             return Color.fromArgb(Argb.White)
-        let stops = .gradientStops!
+        let stops = unwrap .gradientStops
 
         var t: f32
         switch p.type
@@ -1426,7 +1426,7 @@ private impl RenderCpu
         let c2 = Color.fromArgb(v2.color)
         let constantColor = c0 == c1 and c1 == c2
 
-        let image       = batch.image!
+        let image       = unwrap batch.image
         let stencilTest = .stencilOn
         let maskColor   = .colorMask.r and .colorMask.g and .colorMask.b and not .colorMask.a
         let maskFull    = .colorMask.r and .colorMask.g and .colorMask.b and .colorMask.a
@@ -2357,7 +2357,7 @@ private impl RenderCpu
 
         case .BindRenderTarget:
             .bindRenderTargetImpl(cmd.renderTgt.tgt)
-            let target = .curRT!
+            let target = unwrap .curRT
             target.paintAlpha    = cmd.renderTgt.paintAlpha
             target.paintAlphaIdx = cmdIdx
 
@@ -2368,7 +2368,7 @@ private impl RenderCpu
             .stencilWrite = false
 
         case .UnbindRenderTarget:
-            let target = .curRT!
+            let target = unwrap .curRT
             if target.paintAlpha do
                 .replayTargetAlpha(painter, target.paintAlphaIdx, cmdIdx)
             .unbindRenderTargetImpl()
@@ -2538,7 +2538,7 @@ impl RenderCpu
     // Reads the active target into a new image, then restores the previous target.
     internal mtd unbindRenderTargetToImageImpl(x, y, width, height: s32)->Image
     {
-        let rt     = .curRT!
+        let rt     = unwrap .curRT
         var result = .readRenderTargetImpl(rt, x, y, width, height)
         .unbindRenderTargetImpl()
         return result
@@ -2729,7 +2729,7 @@ impl RenderCpu
         // and keeps the sampled texture extent aligned with the requested layer whenever possible.
         for rt, idx in .stackReleasedRT
         {
-            let candidate = rt!
+            let candidate = unwrap rt
             if candidate.colorBuffer.width == w2 and candidate.colorBuffer.height == h2
             {
                 .stackReleasedRT.removeAt(idx)
@@ -2739,7 +2739,7 @@ impl RenderCpu
 
         for rt, idx in .stackReleasedRT
         {
-            let candidate = rt!
+            let candidate = unwrap rt
             if candidate.colorBuffer.width >= w2 and candidate.colorBuffer.height >= h2
             {
                 .stackReleasedRT.removeAt(idx)

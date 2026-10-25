@@ -68,7 +68,7 @@ impl KeySlot
 
     // Unwraps the master key into `master`, reporting whether this slot belongs
     // to the already-derived password key.
-    mtd const unwrap(slotKey: const [..] u8, index: u64, master: [..] u8)->bool fail
+    mtd const unwrapKey(slotKey: const [..] u8, index: u64, master: [..] u8)->bool fail
     {
         Swag.assert(slotKey.count == Crypto.KeySize)
         Swag.assert(master.count == Crypto.MasterKeySize)

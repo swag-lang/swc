@@ -170,7 +170,7 @@ func testSetupGlobalMain(main: *MainWnd)
     Swag.assert(not f.main.app().animator.isActive(f.main.editWnd, AnimationChannel.from("Gui.Page.Offset")))
     Swag.assert(f.main.editWnd.presentationOpacity == 1 and f.main.editWnd.presentationOffset == Math.Point{})
 
-    let surface = f.main.surface!
+    let surface = unwrap f.main.surface
     surface.show()
     Swag.assert(not surface.isHidden)
 

@@ -95,14 +95,14 @@ func narrowTernary(p: *NarrowNode?)->s32
 // runs, which is what used to hand back a nullable result here.
 func narrowTernaryJoin(a, b: *NarrowNode?)->s32
 {
-    let chosen = a ? a : b!
+    let chosen = a ? a : unwrap b
     return takesPtr(chosen)
 }
 
 // The same on the false side: 'a == null' proves 'a' non-null where the test fails.
 func narrowTernaryJoinFalseSide(a, b: *NarrowNode?)->s32
 {
-    let chosen = a == null ? b! : a
+    let chosen = a == null ? unwrap b : a
     return takesPtr(chosen)
 }
 
@@ -243,7 +243,7 @@ impl NarrowNode
 
 func narrowNotNullInOptionalChain(p: *NarrowNode?)->bool
 {
-    return p?.sameNode(p!) orelse false
+    return p?.sameNode(unwrap p) orelse false
 }
 
 // `Swag.assert` panics when its condition is false, so the statements after it are only

@@ -139,11 +139,11 @@ struct AdvancingFront
     late searchNode: *Node
 }
 
-func nnPoint(p: *Point?)->*Point => p!
+func nnPoint(p: *Point?)->*Point => unwrap p
 
-func nnNode(n: *Node?)->*Node => n!
+func nnNode(n: *Node?)->*Node => unwrap n
 
-func nnTriangle(t: *Triangle?)->*Triangle => t!
+func nnTriangle(t: *Triangle?)->*Triangle => unwrap t
 
 impl Result
 {
@@ -1118,7 +1118,7 @@ impl Tessellate
 
             if p == eq and op == ep
             {
-                let constrainedEdge = .edgeEvent.constrainedEdge!
+                let constrainedEdge = unwrap .edgeEvent.constrainedEdge
                 if eq == constrainedEdge.q and ep == constrainedEdge.p
                 {
                     t.markConstrainedEdge(ep, eq)

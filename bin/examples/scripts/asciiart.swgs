@@ -25,7 +25,7 @@ func openImage(surface: *Surface?)
         .filters.add({name: "TGA - Truevision Targa (*.tga)", extensions: ".tga"})
     }
 
-    let dlg = FileDlg.create(surface!, opt)
+    let dlg = FileDlg.create(unwrap surface, opt)
     if dlg.doModal() != Dialog.BtnOk do
         return
 

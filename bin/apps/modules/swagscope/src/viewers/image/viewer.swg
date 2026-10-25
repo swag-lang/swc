@@ -17,6 +17,7 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Image)
         .create       = &createViewer
+        .thumbnail    = &loadViewerImage
         .smokeFixture = "sample.svg"
     }
 

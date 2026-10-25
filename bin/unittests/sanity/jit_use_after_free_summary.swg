@@ -28,9 +28,9 @@ func allocateForJitSummary(size: u64 = 4)->*void
 {
     var request: AllocatorRequest
     request.size = size
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     allocator.alloc(&request)
-    return request.address!
+    return unwrap request.address
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
@@ -39,7 +39,7 @@ func releaseForJitSummary(pointer: *void, size: u64 = 4)
     var request: AllocatorRequest
     request.address = pointer
     request.size    = size
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     allocator.free(&request)
 }
 
@@ -82,7 +82,7 @@ func probeJitSummary()->s32
 
 #run
 {
-    let base = Swag.getContext().allocator!
+    let base = unwrap Swag.getContext().allocator
     var retained: RetainedAllocation
     retained.base = base
     let context = Swag.getContext()
@@ -138,7 +138,7 @@ impl JitOwner
     mtd opDrop() { if .data do releaseForJitSummary(.data) }
 
     #[Swag.NoInline]
-    mtd const view()->*void => .data!
+    mtd const view()->*void => unwrap .data
 
     #[Swag.NoInline]
     mtd const forwardedView()->*void => identityWrapperForJitSummary(.view())

@@ -100,9 +100,9 @@ public struct Decoder
 
 impl Decoder
 {
-    mtd safeStream()->const [*] u8      => cast(const [*] u8, .stream!)
-    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8, .streamStart!)
-    mtd safePalette()->*Palette         => cast(*Palette, .palette!)
+    mtd safeStream()->const [*] u8      => cast(const [*] u8, unwrap .stream)
+    mtd safeStreamStart()->const [*] u8 => cast(const [*] u8, unwrap .streamStart)
+    mtd safePalette()->*Palette         => cast(*Palette, unwrap .palette)
 }
 
 public impl Decoder
@@ -293,7 +293,7 @@ impl IImageSetDecoder for SetDecoder
         if not options.decodePixels do
             return result
         result.allocPixels()
-        let palette = .decoder.palette!
+        let palette = unwrap .decoder.palette
         for y in result.height
         {
             for x in result.width

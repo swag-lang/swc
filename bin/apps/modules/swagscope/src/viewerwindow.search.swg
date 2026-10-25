@@ -435,6 +435,12 @@ impl ViewerWindow
 
     mtd showSearch()
     {
+        if .explorerActive and .explorer and .explorer.isLocallyVisible()
+        {
+            .explorer.filter.setFocus()
+            return
+        }
+
         if not .searchBox.isEnabled() do
             return
         .searchBox.setFocus()

@@ -56,7 +56,7 @@ func mazeInit()->Maze
 {
     var m: Maze
     m.cells = cast([*] u8?, testAlloc(cast(u64, MaxCells)))
-    let cells = m.cells!
+    let cells = unwrap m.cells
     for index in MaxCells { cells[index] = 0 }
     return m
 }
@@ -71,7 +71,7 @@ func mazeFree(m: *Maze)
 #[Swag.Inline]
 func cellAt(m: *Maze, r: u32, c: u32)->u8
 {
-    let cells = m.cells!
+    let cells = unwrap m.cells
     return cells[r * MaxDim + c]
 }
 
@@ -91,7 +91,7 @@ func isEnd(m: *Maze, r: u32, c: u32)->bool
 func parseMaze(text: string)->Maze
 {
     var m     = mazeInit()
-    let cells = m.cells!
+    let cells = unwrap m.cells
     let bytes = cast(const [..] u8, text)
     var row: u32
     var col: u32
@@ -157,11 +157,11 @@ func solve(text: string)->u64
     defer mazeFree(&m)
 
     let stateCount = MaxCells * 4
-    let best       = cast([*] u64, (testAlloc(cast(u64, stateCount) * #sizeof(u64)))!)
+    let best       = cast([*] u64, unwrap testAlloc(cast(u64, stateCount) * #sizeof(u64)))
     defer testFree(best)
     for index in stateCount { best[index] = Infinity }
 
-    let queue = cast([*] QEntry, (testAlloc(cast(u64, MaxQueue) * #sizeof(QEntry)))!)
+    let queue = cast([*] QEntry, unwrap testAlloc(cast(u64, MaxQueue) * #sizeof(QEntry)))
     defer testFree(queue)
     var head: u32
     discard head

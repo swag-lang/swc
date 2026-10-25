@@ -138,7 +138,7 @@ func failCopiedMessage(text: string) fail
     context.allocator        = previous.allocator
     context.defaultAllocator = previous.defaultAllocator
     context.runtimeFlags     = previous.runtimeFlags
-    context.errorAllocator.setCapacity(16, context.allocator!)
+    context.errorAllocator.setCapacity(16, unwrap context.allocator)
     defer context.errorAllocator.release()
     Swag.setContext(context)
 
@@ -230,7 +230,7 @@ struct OwnedThreadError
 
 func publishOwnedThreadError(thread: const *Threading.Thread)
 {
-    let state = cast(*OwnedThreadError, thread.userParam!)
+    let state = cast(*OwnedThreadError, unwrap thread.userParam)
 
     // The text is allocated in the producer's root storage, before its catch frame begins.
     let message = Errors.mkString("the public error owner retains text beyond producer exit")

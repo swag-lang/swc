@@ -29,7 +29,6 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-    defer host.shutdown()
     host.recordCommands()
     iconButtonHeadlessReset()
 
@@ -46,7 +45,6 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-    defer host.shutdown()
     host.recordCommands()
     iconButtonHeadlessReset()
 
@@ -68,7 +66,6 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-    defer host.shutdown()
     host.recordCommands()
     iconButtonHeadlessReset()
 
@@ -90,7 +87,6 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(180, 120)
-    defer host.shutdown()
     iconButtonHeadlessReset()
 
     let toggle = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40}, flags: .Toggle)
@@ -115,7 +111,6 @@ func iconButtonHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(180, 120)
-    defer host.shutdown()
     host.recordCommands()
     iconButtonHeadlessReset()
 
@@ -158,7 +153,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(80, 80)
-    defer host.shutdown()
     host.theme.setSwagDark()     // a palette that marks the active item with a rail
     host.notify(.ThemeChanged)
 
@@ -200,7 +194,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(80, 80)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -251,7 +244,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(80, 80)
-    defer host.shutdown()
 
     let btn = IconButton.create(&host.root, host.theme.icon(.Filter, 24), Math.Rectangle{20, 20, 40, 40}, flags: .Toggle)
     btn.setCheckIndicator(.Frame)
@@ -280,7 +272,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(80, 80)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -306,7 +297,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-    defer host.shutdown()
     let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40})
     btn.isHot          = true
     btn.isPressed      = true
@@ -324,7 +314,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-    defer host.shutdown()
     let btn = IconButton.create(&host.root, {}, Math.Rectangle{20, 20, 40, 40})
     btn.isHot              = true
     btn.isIn               = true
@@ -351,7 +340,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
 
     let icon = host.root.theme().icon(ThemeIcons.Play, 18)
     let btn  = IconButton.create(&host.root, icon, Math.Rectangle{0, 0, 80, 30}, IconButtonHeadless_Command)
@@ -383,7 +371,6 @@ func iconButtonColorCount(image: const *Image, color: Color)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(160, 68)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 

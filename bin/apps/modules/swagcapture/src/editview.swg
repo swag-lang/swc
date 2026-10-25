@@ -105,7 +105,7 @@ impl EditView
     {
         var captureRect: retval
         let rect    = .scroll.scrollableClientRect()
-        let capture = .capture!
+        let capture = unwrap .capture
         captureRect.width  = capture.width * .zoom
         captureRect.height = capture.height * .zoom
         if .inPlaceEdit

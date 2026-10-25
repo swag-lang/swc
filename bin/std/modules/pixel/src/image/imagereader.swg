@@ -108,7 +108,7 @@ impl ImageReader
     {
         if .decoder
         {
-            let type = .decoderType!
+            let type = unwrap .decoderType
             if type.opDrop do
                 type.opDrop(.decoder)
             Memory.free(.decoder, cast(u64, type.sizeof))
@@ -201,7 +201,7 @@ public impl ImageReader
         }
         else
         {
-            let single       = Swag.makeInterface(result.decoder, found.type, IImageDecoder)!
+            let single       = unwrap Swag.makeInterface(result.decoder, found.type, IImageDecoder)
             var probeOptions = options
             probeOptions.decodePixels = false
             let probe = try single.decode(result.bytes.toSlice(), probeOptions)
@@ -244,10 +244,10 @@ public impl ImageReader
     {
         if not .decoder or index >= .info.frames.count do
             fail InvalidFormatError{"image index is outside the open container"}
-        let multiple = Swag.makeInterface(.decoder, .decoderType!, IImageSetDecoder)
+        let multiple = Swag.makeInterface(.decoder, unwrap .decoderType, IImageSetDecoder)
         if not multiple
         {
-            let single = Swag.makeInterface(.decoder, .decoderType, IImageDecoder)!
+            let single = unwrap Swag.makeInterface(.decoder, .decoderType, IImageDecoder)
             return try single.decode(.bytes.toSlice(), .options)
         }
 

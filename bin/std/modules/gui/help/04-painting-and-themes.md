@@ -69,13 +69,14 @@ interface after editing shared theme data.
 [[Gui.Testing.HeadlessHost]] builds a deterministic application and widget tree
 without creating an OS window. [[Gui.Testing.HeadlessHost.render]] runs the normal
 surface paint pipeline through Pixel's software renderer and returns owned pixels.
+The host shuts down automatically when it leaves scope. Declare any data borrowed
+by its windows or callbacks before the host so that it stays alive during teardown.
 
 ```swag
 #test
 {
     var host: Testing.HeadlessHost
     host.setup(160, 80)
-    defer host.shutdown()
     discard PushButton.create(&host.root, "Continue", Math.Rectangle{20, 20, 120, 32})
 
     let image = host.render()

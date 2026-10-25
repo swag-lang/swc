@@ -20,7 +20,7 @@ public impl Image
             var context = {hue: clampedHue, saturation: clampedSaturation, strength: clampedStrength}
             .transformLogicalPixels(&context)
             {
-                let params    = cast(const *#decltype(context), userData!)[]
+                let params    = cast(const *#decltype(context), unwrap userData)[]
                 let lightness = (Math.min(value.r, value.g, value.b) + Math.max(value.r, value.g, value.b)) * 0.5
                 let colorized = hslPixelValue(params.hue, params.saturation, lightness)
                 value.r = Math.lerp(value.r, colorized.r, params.strength)
@@ -58,7 +58,7 @@ public impl Image
         var context = {colors: cast([*] f32, &colorByLightness[0, 0]), strength: clampedStrength}
         .visitPixels(&context)
         {
-            let params    = cast(*#decltype(context), userData!)
+            let params    = cast(*#decltype(context), unwrap userData)
             let lowest    = Math.min(pix[0], pix[1], pix[2])
             let highest   = Math.max(pix[0], pix[1], pix[2])
             let lightness = cast(u8, ((cast(s32, highest) + cast(s32, lowest)) / 2))

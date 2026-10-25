@@ -317,14 +317,14 @@ impl IWnd for Tab
             {
                 if idx == .selectedIndex do
                     continue
-                let v = .items[idx]!
+                let v = unwrap .items[idx]
                 if v.pos + v.width > clientRect.right() do
                     break
                 .paintItem(painter, v, cast(u32, idx))
             }
 
             // Paint selected item
-            .paintItem(painter, .items[.selectedIndex]!, .selectedIndex)
+            .paintItem(painter, unwrap .items[.selectedIndex], .selectedIndex)
 
             // Flat tabs always select with one moving rule. Shaped tabs carry their own state.
             if .hasSelectionRail
@@ -467,7 +467,7 @@ private impl Tab
 
     mtd selectionRailRect(index: u32)->Math.Rectangle
     {
-        let item    = .items[index]!
+        let item    = unwrap .items[index]
         let metrics = .themeMetrics()
         let size    = metrics.activeRail_Size
         var rail    = Math.Rectangle{item.pos, .barHeight - size, item.width, size}
@@ -484,7 +484,7 @@ private impl Tab
         let rect = .itemBarRect()
         for idx in .firstVisibleIndex until cast(u32, .items.count)
         {
-            let v = .items[idx]!
+            let v = unwrap .items[idx]
             if v.pos + v.width > rect.right() do
                 break
             if pos.x >= v.pos and pos.x < v.pos + v.width do
@@ -509,7 +509,7 @@ private impl Tab
     {
         var result = 0'f32
         for v in .items do
-            result += Math.max(.itemContentWidth(v!), .minimumItemWidth)
+            result += Math.max(.itemContentWidth(unwrap v), .minimumItemWidth)
         return result
     }
 
@@ -540,7 +540,7 @@ private impl Tab
         case .Content:
             for vIt in .items
             {
-                let v = vIt!
+                let v = unwrap vIt
                 v.width       = .itemContentWidth(v)
                 .mostRightPos += v.width
             }
@@ -550,7 +550,7 @@ private impl Tab
         .mostRightPos = Math.round(rect.x)
         for idx in .firstVisibleIndex until cast(u32, .items.count)
         {
-            let v    = .items[idx]!
+            let v    = unwrap .items[idx]
             let left = Math.round(x)
             x += v.width
             let right = Math.round(x)

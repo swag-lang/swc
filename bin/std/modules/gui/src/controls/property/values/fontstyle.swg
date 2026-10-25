@@ -11,7 +11,7 @@ internal impl IPropertyEditor for FontStyleEditor
 
     mtd impl construct(list: *Properties, value: Swag.TypeValue, data: [*] u8?, parent: *PropertiesItem?)->*PropertiesItem
     {
-        let parentItem = parent!
+        let parentItem = unwrap parent
         parentItem.flags.add(.NoSeparator | .NoFocus)
 
         let item  = list.addItem(value, data, parentItem)

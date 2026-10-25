@@ -18,7 +18,7 @@ func runMacro(count: u32)->u32
     var sum = 0'u32
     InlineLocalForwardCall.visitTwice(count, &sum) #code(index, data)
     {
-        let total = cast(*u32, data!)
+        let total = cast(*u32, unwrap data)
         total[] += index
     }
     return sum

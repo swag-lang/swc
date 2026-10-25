@@ -204,7 +204,7 @@ impl Encoder
 
         if Reflection.isType(type)
         {
-            let typeType = cast(const *(typeinfo?), data!)[]
+            let typeType = cast(const *(typeinfo?), unwrap data)[]
             .serializer.writeNative(typeType ? .serializer.typeCrcOf(typeType) : 0'u32)
             return
         }
@@ -284,7 +284,7 @@ impl Encoder
                     var bufArr = cast(const [*] u8?, ptrArr.buffer)
                     for ptrArr.count
                     {
-                        try .writeValue(bufArr!, valueType)
+                        try .writeValue(unwrap bufArr, valueType)
                         bufArr += valueType.sizeof
                     }
                 }

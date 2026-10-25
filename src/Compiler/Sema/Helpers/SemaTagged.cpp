@@ -87,7 +87,7 @@ namespace
             return false;
 
         const AstNode& parent = sema.node(parentRef);
-        if (!parent.is(AstNodeId::ErrorManagementExpr) || sema.token(parent.codeRef()).id != TokenId::SymBang)
+        if (!parent.is(AstNodeId::ErrorManagementExpr) || !Token::isPresenceAssertion(sema.token(parent.codeRef()).id))
             return false;
 
         return parent.cast<AstErrorManagementExpr>().nodeExprRef == sema.curNodeRef();
@@ -389,6 +389,7 @@ Result SemaTagged::checkCaseAssertion(Sema& sema, AstNodeRef childRef, bool& out
 
     auto diag = SemaError::report(sema, DiagnosticId::sema_err_tagged_case_already_proven, resolvedRef);
     diag.addArgument(Diagnostic::ARG_SYM, symbol->name(sema.ctx()));
+    diag.addArgument(Diagnostic::ARG_TOK, Token::toName(sema.token(sema.curNode().codeRef()).id));
     diag.report(sema.ctx());
     return Result::Error;
 }

@@ -152,7 +152,7 @@ impl Decoder
         reader.bitPos    = .preparedHeaderBit
         .preparedPicture = false
         try .awaitReferencePictures()
-        try .decodeSliceData(&reader, .preparedBody.toSlice(), .activeSps!, .activePps!)
+        try .decodeSliceData(&reader, .preparedBody.toSlice(), unwrap .activeSps, unwrap .activePps)
         return try .finishPicture()
     }
 
@@ -290,7 +290,7 @@ impl Decoder
     // Copies the motion of the finished picture into the grid later pictures read, clause 8.5.3.2.8.
     private mtd storeCollocatedMotion()
     {
-        let frame = .current!
+        let frame = unwrap .current
         let step  = 1'u32 << (ColMotionLog2 - MinBlockLog2)
 
         for row in frame.colHeight
@@ -661,7 +661,7 @@ impl Decoder
         {
             if not .waitWavefrontProgress(job, row - 1, 2) do
                 return
-            .cabac.restore(job.states! + row - 1)
+            .cabac.restore(unwrap job.states + row - 1)
         }
         else
         {
@@ -684,7 +684,7 @@ impl Decoder
 
             if column == 1
             {
-                .cabac.save(job.states! + row)
+                .cabac.save(unwrap job.states + row)
                 scheduleNextWppRow(job)
             }
 
@@ -692,7 +692,7 @@ impl Decoder
             if .cabac.hasOverrun() do
                 fail InvalidFormatError{"HEVC slice segment data is truncated"}
 
-            Atomic.exchange(job.progress! + row, column + 1)
+            Atomic.exchange(unwrap job.progress + row, column + 1)
             job.events![row].signal()
             let finalBlock = row + 1 == job.rowCount and column + 1 == job.width
             if endOfSlice != finalBlock do
@@ -704,20 +704,20 @@ impl Decoder
     // closes the signal race without burning a worker core while another row reconstructs.
     private mtd waitWavefrontProgress(job: *WppRowJob, row, needed: u32)->bool
     {
-        while Atomic.get(job.progress! + row) < needed and Atomic.get(job.failed!) == 0
+        while Atomic.get(unwrap job.progress + row) < needed and Atomic.get(unwrap job.failed) == 0
         {
             job.events![row].reset()
-            if Atomic.get(job.progress + row) < needed and Atomic.get(job.failed!) == 0 do
+            if Atomic.get(job.progress + row) < needed and Atomic.get(unwrap job.failed) == 0 do
                 job.events[row].wait()
         }
 
-        return Atomic.get(job.failed!) == 0
+        return Atomic.get(unwrap job.failed) == 0
     }
 }
 
 private func runWppRow(job: *WppRowJob)
 {
-    if Atomic.get(job.failed!) != 0
+    if Atomic.get(unwrap job.failed) != 0
     {
         scheduleNextWppRow(job)
         return
@@ -742,7 +742,7 @@ private func scheduleNextWppRow(job: *WppRowJob)
         return
     job.nextScheduled = true
     if job.row + 1 < job.rowCount do
-        submitWppRow(job.jobs! + job.row + 1)
+        submitWppRow(unwrap job.jobs + job.row + 1)
 }
 
 // Hands one row to the runtime scheduler.

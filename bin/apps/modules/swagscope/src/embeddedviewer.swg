@@ -35,7 +35,7 @@ struct EmbeddedViewer
     currentSideButton: *IconButton?
 }
 
-private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer => view.ancestorByType'EmbeddedViewer()!
+private func embeddedViewerFor(view: *Wnd)->*EmbeddedViewer => unwrap view.ancestorByType'EmbeddedViewer()
 
 private func reportEmbeddedFailure(view: *Wnd, reason: string)
 {
@@ -216,6 +216,7 @@ private impl EmbeddedViewer
         var next:      ViewerSession
         with var host: ViewerPluginHost
         {
+            .thumbnail       = me.owner.thumbnailMode
             .session         = &next
             .documentParent  = me.document
             .sideSplitter    = sideSplitter
@@ -321,6 +322,7 @@ private impl EmbeddedViewer
         {
             .position.height = result.themeMetrics().panel_GutterSize
             .dockStyle       = .Bottom
+            .fillCenterGroup = true
         }
 
         with result.sideSplitter = SplitterCtrl.create(result)
@@ -344,8 +346,9 @@ private impl EmbeddedViewer
         let rightWidth    = owner.rightPanelWidth > 0 ? owner.rightPanelWidth : ViewerWindow.RightPanelDefaultWidth
         with let sideItem = result.sideSplitter.addPane(result.sidePlaceholder, rightWidth + result.themeMetrics().panel_GutterSize)
         {
-            .minimumSize = ViewerWindow.RightPanelMinWidth + result.themeMetrics().panel_GutterSize
-            .maximumSize = ViewerWindow.RightPanelMaxWidth + result.themeMetrics().panel_GutterSize
+            .minimumSize  = ViewerWindow.RightPanelMinWidth + result.themeMetrics().panel_GutterSize
+            .maximumSize  = ViewerWindow.RightPanelMaxWidth + result.themeMetrics().panel_GutterSize
+            .preserveSize = true
         }
 
         result.sideSplitter.setPaneVisible(1, false)

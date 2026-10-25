@@ -88,7 +88,7 @@ impl MainWindow
             .height            = 250
         }
 
-        let dialog = FormDlg.create(.surface!, options)
+        let dialog = FormDlg.create(unwrap .surface, options)
         VaultForm.configure(dialog.form)
         let password = dialog.form.addPasswordField(appStrings().ui_Password, placeholder: appStrings().ui_ContainerPassword, help: path)
         let keyFiles = KeyFileField.create(dialog.form)

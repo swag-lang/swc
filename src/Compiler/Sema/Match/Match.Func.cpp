@@ -1334,7 +1334,17 @@ namespace
 
         const SymbolEnum* enumSym = SemaHelpers::enumSymbolFromTypeRef(sema, paramTy);
         if (!enumSym)
+        {
+            // A deferred leading-dot argument has no source type yet. Report the
+            // missing scope instead of a cast failure with an empty type name.
+            if (sema.viewType(argRef).typeRef().isInvalid())
+            {
+                const IdentifierRef idRef = sema.idMgr().addIdentifier(sema.ctx(), sema.node(autoMem.nodeIdentRef).codeRef());
+                cf.diagId                 = DiagnosticId::sema_err_cannot_compute_auto_scope;
+                cf.valueStr               = Utf8{sema.idMgr().get(idRef).name};
+            }
             return Result::Continue;
+        }
 
         SWC_RESULT(sema.waitSemaCompleted(enumSym, argNode.codeRef()));
 

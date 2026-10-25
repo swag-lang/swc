@@ -54,7 +54,7 @@ impl PropertiesCtrl
                 if not sel do
                     return
                 list.toggleExpand(sel)
-                let item = cast(*PropertiesItem, sel.userData0!)
+                let item = cast(*PropertiesItem, unwrap sel.userData0)
                 let pos  = item.label.rectRelativeTo(ed.properties.edView)
                 ed.properties.scrollWnd.setScrollPos(0, pos.y)
             }
@@ -126,7 +126,7 @@ impl PropertiesCtrl
         var parentLine: *ListLine?
         for &it, idx in .properties.sections
         {
-            let item = it.item!
+            let item = unwrap it.item
             var naked: String
             if item.label != null do
                 naked = RichString.plainText(item.label.text())

@@ -50,7 +50,7 @@ private func audioCheckPcmTails(encoding: SoundFileEncoding, sampleSize: u64) fa
     destination.resize((MaxSamples + 2) * #sizeof(s16))
 
     var codec: CodecPcmToPcm16
-    codec.configure(encoding, .Pcm16, #typeof(CodecPcmToPcm16), Swag.getContext().allocator!)
+    codec.configure(encoding, .Pcm16, #typeof(CodecPcmToPcm16), unwrap Swag.getContext().allocator)
     let decoder: ICodec = &codec
 
     // Every source tail crosses every vector boundary, while every destination byte count

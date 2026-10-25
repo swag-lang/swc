@@ -145,7 +145,7 @@ func formatAllocationFailure(operation: string, request: Swag.AllocatorRequest, 
                 Swag.assert(block[i] == Swag.Allocator.AllocByte)
             if tracked
             {
-                let tracking = runtime.firstAlloc!.tracking!
+                let tracking = unwrap runtime.firstAlloc!.tracking
                 Swag.assert(tracking.hint == "tracked fast allocation")
                 Swag.assert(tracking.loc.lineStart == loc.lineStart)
             }

@@ -20,9 +20,9 @@ func myAlloc(size: u64)->*void
 {
     var req: AllocatorRequest
     req.size = size
-    let allocItf = Swag.getContext().allocator!
+    let allocItf = unwrap Swag.getContext().allocator
     allocItf.alloc(&req)
-    return req.address!
+    return unwrap req.address
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -31,7 +31,7 @@ func myFree(ptr: *void, size: u64)
     var req: AllocatorRequest
     req.address = ptr
     req.size    = size
-    let allocItf = Swag.getContext().allocator!
+    let allocItf = unwrap Swag.getContext().allocator
     allocItf.free(&req)
 }
 
@@ -101,7 +101,7 @@ func rejectFreeBorrowed()
     var req:   AllocatorRequest
     req.address = &value
     req.size    = #sizeof(s32)
-    let allocItf = Swag.getContext().allocator!
+    let allocItf = unwrap Swag.getContext().allocator
     allocItf.free(&req)     // swc-expected-error {{sanity_err_free_borrowed}}
 }
 
@@ -132,7 +132,7 @@ var gUafOwned: *s32?
     gUafOwned    = cast(*s32, myAlloc(4))
     gUafOwned![] = 9
     Swag.assert(gUafOwned![] == 9)
-    myFree(gUafOwned!, 4)
+    myFree(unwrap gUafOwned, 4)
     gUafOwned = null
 }
 
@@ -241,8 +241,8 @@ func releaseObjectField()->s32
 #[Swag.Sanity(.Lifecycle, true)]
 func releaseFieldOfParameterObject(n: *UafNode)->s32
 {
-    myFree(n.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return n.data[]        // swc-expected-error {{sanity_err_use_after_free}}
+    myFree(unwrap n.data, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return n.data[]     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -263,8 +263,8 @@ impl UafNode
     #[Swag.Sanity(.Lifecycle, true)]
     mtd releaseThenTouch()
     {
-        myFree(.data!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-        .data[] = 0           // swc-expected-error {{sanity_err_use_after_free}}
+        myFree(unwrap .data, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+        .data[] = 0     // swc-expected-error {{sanity_err_use_after_free}}
     }
 
     // Putting the field back is what a correct one does, whether with null or with a
@@ -272,14 +272,14 @@ impl UafNode
     #[Swag.Sanity(.Lifecycle, true)]
     mtd release()
     {
-        myFree(.data!, 4)
+        myFree(unwrap .data, 4)
         .data = null
     }
 
     #[Swag.Sanity(.Lifecycle, true)]
     mtd reset()
     {
-        myFree(.data!, 4)
+        myFree(unwrap .data, 4)
         .data   = cast(*s32, myAlloc(4))
         .data[] = 1
     }
@@ -445,8 +445,8 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
 {
     var table: [4] (*s32?)
     table[0] = cast(*s32, myAlloc(4))
-    myFree(table[0]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    let x = table[0]![]      // swc-expected-error {{sanity_err_use_after_free}}
+    myFree(unwrap table[0], 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    let x = table[0]![]            // swc-expected-error {{sanity_err_use_after_free}}
     discard x
 }
 
@@ -455,8 +455,8 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
 {
     var table: [4] (*s32?)
     table[2] = cast(*s32, myAlloc(4))
-    myFree(table[2]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    table[2]![] = 1          // swc-expected-error {{sanity_err_use_after_free}}
+    myFree(unwrap table[2], 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    table[2]![] = 1     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 // Releasing one element says nothing about the next one.
@@ -467,9 +467,9 @@ func releaseOneOfTwoParameters(first: *s32, second: *s32)->s32
     table[0]    = cast(*s32, myAlloc(4))
     table[1]    = cast(*s32, myAlloc(4))
     table[1]![] = 4
-    myFree(table[0]!, 4)
+    myFree(unwrap table[0], 4)
     Swag.assert(table[1]![] == 4)
-    myFree(table[1]!, 4)
+    myFree(unwrap table[1], 4)
 }
 
 // A pointer kept in a field of a local, which is what an owning value looks like.

@@ -48,7 +48,7 @@ impl IPropertyEditor for AlignEditor
         parent!.flags.add(.NoSeparator | .NoFocus)
 
         let item  = list.addItem(value, data, parent)
-        let align = cast(*FormTextAlign, data!)
+        let align = cast(*FormTextAlign, unwrap data)
         let vert  = value.name == #nameof(FormText.alignVert)
 
         const BtnW = 34

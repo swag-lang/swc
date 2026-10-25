@@ -10,7 +10,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p = cast(*T, data!)
+                let p = cast(*T, unwrap data)
                 item.sliderBox.slider.setValue(cast(f32, p[]))
             }
 
@@ -36,7 +36,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                let p = cast(*T, data!)
+                let p = cast(*T, unwrap data)
                 item.editBox.setText(Format.toString("%", p[]))
             }
 
@@ -69,7 +69,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                var p = cast(*T, data!)
+                var p = cast(*T, unwrap data)
                 p[] = cast(T, item.sliderBox.slider.value())
             }
 
@@ -92,7 +92,7 @@ internal impl Properties
             #[Swag.Mixin]
             func(T) setEd()
             {
-                var p = cast(*T, data!)
+                var p = cast(*T, unwrap data)
                 p[] = catch StrConv.toNum'T(txt)
             }
 
@@ -137,8 +137,8 @@ internal impl Properties
             if unit != null do
                 slider.edit.setUnit(attributeText(unit))
 
-            let minV = assume cast (f32, Reflection.attributeValue(value, .SliderMinMax, "min")!)
-            let maxV = assume cast (f32, Reflection.attributeValue(value, .SliderMinMax, "max")!)
+            let minV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "min"))
+            let maxV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "max"))
 
             // Whole bounds read as an integer slider (no trailing decimals), even for a
             // float field whose values are conceptually whole (a size, an angle...).
@@ -179,8 +179,8 @@ internal impl Properties
         if Reflection.hasAttribute(value, .MinMax)
         {
             hasMinMax = true
-            minV      = assume cast (s64, Reflection.attributeValue(value, .MinMax, "min")!)
-            maxV      = assume cast (s64, Reflection.attributeValue(value, .MinMax, "max")!)
+            minV      = assume cast (s64, unwrap Reflection.attributeValue(value, .MinMax, "min"))
+            maxV      = assume cast (s64, unwrap Reflection.attributeValue(value, .MinMax, "max"))
         }
 
         switch typeNative.nativeKind
@@ -240,8 +240,8 @@ internal impl Properties
             if unit != null do
                 slider.edit.setUnit(attributeText(unit))
 
-            let minV = assume cast (f32, Reflection.attributeValue(value, .SliderMinMax, "min")!)
-            let maxV = assume cast (f32, Reflection.attributeValue(value, .SliderMinMax, "max")!)
+            let minV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "min"))
+            let maxV = assume cast (f32, unwrap Reflection.attributeValue(value, .SliderMinMax, "max"))
 
             switch typeNative.nativeKind
             {
@@ -276,8 +276,8 @@ internal impl Properties
             if Reflection.hasAttribute(value, .MinMax)
             {
                 hasMinMax = true
-                minV      = assume cast (s64, Reflection.attributeValue(value, .MinMax, "min")!)
-                maxV      = assume cast (s64, Reflection.attributeValue(value, .MinMax, "max")!)
+                minV      = assume cast (s64, unwrap Reflection.attributeValue(value, .MinMax, "min"))
+                maxV      = assume cast (s64, unwrap Reflection.attributeValue(value, .MinMax, "max"))
             }
 
             item.assignEditBox(ed)

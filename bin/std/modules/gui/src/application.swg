@@ -230,7 +230,7 @@ private impl Application
         event.target.processEvent(evt)
         while not event.accepted
         {
-            let target = event.target!
+            let target = unwrap event.target
             event.target = target.owner orelse target.parent
             if not event.target or event.target == stopAt do
                 break
@@ -1356,7 +1356,7 @@ impl Application
         writer.manifest()[] = #move manifest
         let chunkType = stateChunkType()
         let chunkRole = stateChunkRole()
-        let stateId   = try writer.addChunk(buf.toSlice()!, {typeId: chunkType, roleId: chunkRole, flags: .Required | .Metadata})
+        let stateId   = try writer.addChunk(unwrap buf.toSlice(), {typeId: chunkType, roleId: chunkRole, flags: .Required | .Metadata})
 
         var entry: Scc.Entry
         entry.id           = Guid128.random()

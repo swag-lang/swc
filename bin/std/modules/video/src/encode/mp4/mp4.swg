@@ -121,7 +121,7 @@ impl IEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            .options = cast(const *EncodeOptions, options.buffer!)[]
+            .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
         try .writeFileType(sink)
@@ -141,7 +141,7 @@ impl IEncoder for Encoder
         frameOptions.quality = .options.quality
         var encoded = try image.encode(JpegName, frameOptions)
         encoded.makeLinear()
-        let payload = encoded.toSlice()!
+        let payload = unwrap encoded.toSlice()
         if payload.count > Swag.U32.Max do
             fail UnsupportedFormatError{"MP4 JPEG sample exceeds the four gigabytes its sample table can describe"}
 

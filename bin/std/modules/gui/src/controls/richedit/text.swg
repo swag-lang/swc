@@ -13,7 +13,7 @@ impl RichEditCtrl
         if not .hasSelRect
         {
             // First line
-            var line  = .lines[start.lineIndex]!
+            var line  = unwrap .lines[start.lineIndex]
             var count = line.length()
             if count
             {
@@ -59,7 +59,7 @@ impl RichEditCtrl
             // Last line
             if start.lineIndex != end.lineIndex
             {
-                line  = .lines[end.lineIndex]!
+                line  = unwrap .lines[end.lineIndex]
                 count = line.length()
                 if count
                 {
@@ -97,14 +97,14 @@ impl RichEditCtrl
         return result
     }
 
-    mtd unwrap(lineIndex: u64)
+    mtd joinWrappedLines(lineIndex: u64)
     {
         // Make one single line with current wrapped lines
         var i       = lineIndex + 1
-        let dstLine = .lines[lineIndex]!
+        let dstLine = unwrap .lines[lineIndex]
         while i < .lines.count
         {
-            let srcLine = .lines[i]!
+            let srcLine = unwrap .lines[i]
             if not srcLine.wordWrap do
                 break
 
@@ -152,7 +152,7 @@ impl RichEditCtrl
 
         if not .font().getFont(.styles[0].fontMode) do
             return
-        let line  = .lines[lineIndex]!
+        let line  = unwrap .lines[lineIndex]
         let right = .scrollWnd.paddedClientRect().width - .scrollWnd.paddingZ - .rightMargin()
         var cuts: Array'u64
         var start, i, wordEnd: u64
@@ -241,9 +241,9 @@ impl RichEditCtrl
 
         if c == '\n'
         {
-            let linep = .lines[cp.lineIndex]!
+            let linep = unwrap .lines[cp.lineIndex]
             discard .newLine(cp.lineIndex + 1)
-            let line = (.lines[cp.lineIndex + 1])!
+            let line = unwrap .lines[cp.lineIndex + 1]
             if cp.charPosInLine < linep.length() do
                 line.insertRunes(0, linep, cp.charPosInLine, linep.length() - cp.charPosInLine)
             linep.setLength(cp.charPosInLine)
@@ -252,7 +252,7 @@ impl RichEditCtrl
         }
         elif c == '\t' and .flags.has(.TabToSpaces)
         {
-            let line = .lines[cp.lineIndex]!
+            let line = unwrap .lines[cp.lineIndex]
             for .tabSize
             {
                 let posIns = Math.min(cp.charPosInLine, line.length())
@@ -262,7 +262,7 @@ impl RichEditCtrl
         }
         else
         {
-            let line   = .lines[cp.lineIndex]!
+            let line   = unwrap .lines[cp.lineIndex]
             let posIns = Math.min(cp.charPosInLine, line.length())
             line.insertRune(posIns, c, txtStyle)
             cp.charPosInLine += 1
@@ -296,7 +296,7 @@ impl RichEditCtrl
             var rankBeg, rankEnd: u64
             for
             {
-                let line = .lines[lineIndex]!
+                let line = unwrap .lines[lineIndex]
                 if rankEnd == runes.count or runes[rankEnd] == '\n'
                 {
                     var posIns = posInLine
@@ -370,8 +370,8 @@ impl RichEditCtrl
                 pe.lineIndex -= 1
             }
 
-            let lineSrc = .lines[ps.lineIndex]!
-            let lineEnd = .lines[pe.lineIndex]!
+            let lineSrc = unwrap .lines[ps.lineIndex]
+            let lineEnd = unwrap .lines[pe.lineIndex]
 
             if ps.lineIndex == pe.lineIndex
             {
@@ -399,7 +399,7 @@ impl RichEditCtrl
                 var rankBeg, rankEnd: u64
                 if .selectionRectRange(li, &rankBeg, &rankEnd)
                 {
-                    let ln = .lines[li]!
+                    let ln = unwrap .lines[li]
                     ln.removeRunes(rankBeg, rankEnd - rankBeg)
                 }
 
@@ -672,7 +672,7 @@ public impl RichEditCtrl
         // Add a deletion
         if .currentUndo > 1
         {
-            pundo = (.undoMgr[.currentUndo - 2])!
+            pundo = unwrap .undoMgr[.currentUndo - 2]
             if pundo.type == .Delete and pundo.concatChars
             {
                 if .cursorPos.charPosInLine != .lines[.cursorPos.lineIndex]!.length()
@@ -688,11 +688,11 @@ public impl RichEditCtrl
         }
 
         // Append the character to the last undo
-        pundo = (.undoMgr[.currentUndo - 1])!
+        pundo = unwrap .undoMgr[.currentUndo - 1]
         pundo.runes.add(c)
 
         // Get the style from the previous character
-        let line = .lines[.cursorPos.lineIndex]!
+        let line = unwrap .lines[.cursorPos.lineIndex]
         var st: u8
         if not .cursorPos.charPosInLine and line.length() do
             st = line.styles[0]
@@ -812,7 +812,7 @@ public impl RichEditCtrl
         while beg.lineIndex <= end.lineIndex
         {
             // Go to the first non white character
-            let line = .lines[beg.lineIndex]!
+            let line = unwrap .lines[beg.lineIndex]
             if multiline
             {
                 while beg.charPosInLine < line.length() and Unicode.isSpace(line.chars[beg.charPosInLine])

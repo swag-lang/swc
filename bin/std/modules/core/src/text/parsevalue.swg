@@ -67,7 +67,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
     if Reflection.isEnum(type)
     {
         let enumType = assume cast(const *TypeInfoEnum, type)
-        let rawType  = enumType.rawType!
+        let rawType  = unwrap enumType.rawType
         if rawType != string and enumType.sizeof > 8 do
             fail UnsupportedFormatError{Errors.mkString(Format.toString("unsupported enum type [[%]]", rawType.name))}
         let enumFlags = Reflection.hasAttribute(enumType, EnumFlags)
@@ -89,7 +89,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
             let v  = Reflection.enumValue(type, id)
             if not v do
                 fail InvalidFormatError{Errors.mkString(Format.toString("unknown enum value [[%]]", id))}
-            let enumValue = v.value!
+            let enumValue = unwrap v.value
 
             if enumType.rawType == string
             {
@@ -155,7 +155,7 @@ public func parseValue(addr: *void, type: typeinfo, buf: string)->string fail
         {
             if not one.count or one[0] == '}' do
                 break
-            one = try parseValue(cast([*] u8, addr) + field.offset, field.pointedType!, one)
+            one = try parseValue(cast([*] u8, addr) + field.offset, unwrap field.pointedType, one)
             one = Tokenize.eatSpaces(one)
             if one.count and one[0] == ','
             {

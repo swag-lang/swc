@@ -18,7 +18,7 @@ using Swag, Core
     Swag.assert(textPaint.itf.buffer != textItf.buffer)
     Swag.assert(f.main.mdlFormText.text == "Keep me")
     Swag.assert(textItf.boundRect() == textRectBefore)
-    Swag.assert(assume cast(*FormText, textPaint.itf!).text == "A")
+    Swag.assert(assume cast(*FormText, unwrap textPaint.itf).text == "A")
     textPaint.release()
 
     f.main.mdlFormPolygon.points.add(Math.Vector2{10, 10})
@@ -31,7 +31,7 @@ using Swag, Core
     Swag.assert(polyPaint.itf.buffer != polyItf.buffer)
     Swag.assert(f.main.mdlFormPolygon.points.count == 3)
     Swag.assert(f.main.mdlFormPolygon.points[0] == pointBefore)
-    Swag.assert(assume cast(*FormPolygon, polyPaint.itf!).points.count == 6)
+    Swag.assert(assume cast(*FormPolygon, unwrap polyPaint.itf).points.count == 6)
     polyPaint.release()
 }
 
@@ -97,7 +97,7 @@ using Swag, Core
         {
             var paint = QuickStylePaintForm.create(itf)
             defer paint.release()
-            Capture.paintForm(bc.painter, {}, Math.Rectangle{0, 0, QuickCellSize, QuickCellSize}, paint.itf!, zoom: 1, quickMode: true)
+            Capture.paintForm(bc.painter, {}, Math.Rectangle{0, 0, QuickCellSize, QuickCellSize}, unwrap paint.itf, zoom: 1, quickMode: true)
         }
 
         var image = f.gui.render(button)
@@ -151,7 +151,7 @@ using Swag, Core
     var sliderCtrlBefore: *SliderCtrl?
     for item in f.main.propWnd.grid.items
     {
-        let it = item!
+        let it = unwrap item
         if it.sliderBox != null
         {
             sliderCtrlBefore = it.sliderBox
@@ -159,7 +159,7 @@ using Swag, Core
         }
     }
 
-    let sliderBefore         = sliderCtrlBefore!
+    let sliderBefore         = unwrap sliderCtrlBefore
     let sliderCtrlPosBefore  = sliderBefore.position
     let sliderTrackPosBefore = sliderBefore.slider.position
     let sliderEditPosBefore  = sliderBefore.edit.position

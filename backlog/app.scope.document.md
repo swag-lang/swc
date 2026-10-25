@@ -5,6 +5,17 @@ Parser, layout, and renderer defects remain with their engines in [std.gui.markd
 [std.gui.html.md](std.gui.html.md), and [std.gui.pdf.md](std.gui.pdf.md); entries here own navigation, inspection, and application
 integration around those engines.
 
+### app.scope.document.024 — Markdown visual snapshots diverge from the current baseline
+
+- Evidence: the `viewer.markdown.test.swg` golden selection differs for `fullscreen`, `zoom`,
+  `information`, `images`, `images.whitey`, `images.hidpi`, `document`, and `whitey`. The unchanged
+  application sources and the sidebar changes produce byte-identical actual images with the same
+  rebuilt DevMode compiler, so the differences predate the sidebar changes.
+- Next: compare the image rendering, resource resolution, and style inheritance with the recorded
+  snapshots; correct regressions before accepting any intended rendering changes.
+- Done when: the focused Markdown golden selection passes with reviewed images across its existing
+  reading themes and DPI scales.
+
 ### app.scope.document.001 — The Markdown outline has no filtering or current-section tracking
 
 - Evidence: `DocumentOutline` lists Markdown headings with depth and distinct source offsets

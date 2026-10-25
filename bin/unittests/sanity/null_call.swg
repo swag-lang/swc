@@ -13,7 +13,7 @@
 #test
 {
     var f: (func()->s32)?
-    let g = f!
+    let g = unwrap f
     let x = g()     // swc-expected-error {{sanity_err_null_call}}
     discard x
 }
@@ -24,7 +24,7 @@
 {
     var f: (func()->s32)?
     var g = f
-    let h = g!
+    let h = unwrap g
     let x = h()     // swc-expected-error {{sanity_err_null_call}}
     discard x
 }

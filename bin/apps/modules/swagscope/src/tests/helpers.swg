@@ -32,6 +32,7 @@ func openTestViewer(plugin: Viewer.Plugin, contentParent: *Wnd, fileName: string
 
     with var pluginHost: ViewerPluginHost
     {
+        .thumbnail       = false
         .session         = &result
         .documentParent  = contentParent
         .sidePanelParent = contentParent

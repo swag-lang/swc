@@ -8,14 +8,13 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
 
     var image = Image.create(4, 2, .RGBA8)
     image.fill(Argb.White)
     let fileName = Testing.tempFilePath("gui-imageview-", ".gif")
     defer discard catch File.delete(fileName)
     let encoded = expect image.encode("prepared.gif")
-    expect File.writeAllBytes(fileName, encoded.toSlice()!)
+    expect File.writeAllBytes(fileName, unwrap encoded.toSlice())
     var movie: Movie
     expect movie.load(fileName)
 
@@ -35,7 +34,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
 
     let view  = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)
@@ -87,7 +85,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
 
     let view  = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)
@@ -121,7 +118,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
 
     let view  = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)
@@ -142,7 +138,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(260, 160)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -197,7 +192,6 @@ private func edgeSpread(image: *Image, row: s32)->s32
 
     var host: Testing.HeadlessHost
     host.setup(240, 240)
-    defer host.shutdown()
 
     let drawing = expect Svg.Drawing.parse(Source)
     let view    = ImageView.create(&host.root, Math.Rectangle{0, 0, 240, 240})
@@ -232,7 +226,6 @@ private func edgeSpread(image: *Image, row: s32)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
 
     let view = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
 
@@ -286,7 +279,6 @@ private func edgeSpread(image: *Image, row: s32)->s32
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
 
     let view  = ImageView.create(&host.root, Math.Rectangle{0, 0, 300, 200})
     var image = Image.create(100, 50, .RGBA8)

@@ -240,7 +240,7 @@ func buildTiff(le: bool, width, height, spp, photo, compression, rowsPerStrip, b
 
     if hasPalette
     {
-        let pal = palette!
+        let pal = unwrap palette
         for i in palCount do
             tw16(&cb, le, pal[i])
     }

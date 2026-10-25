@@ -7,7 +7,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(280, 60)
-    defer host.shutdown()
 
     let password = PasswordEdit.create(&host.root, Math.Rectangle{20, 20, 240, 26})
     password.setPlaceholder("Password")
@@ -35,7 +34,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(280, 60)
-    defer host.shutdown()
 
     let password = PasswordEdit.create(&host.root, Math.Rectangle{20, 20, 240, 26})
     host.focus(password.edit)
@@ -63,7 +61,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(280, 60)
-    defer host.shutdown()
 
     let password = PasswordEdit.create(&host.root, Math.Rectangle{20, 20, 240, 26})
     let rect     = password.edit.surfaceRect()

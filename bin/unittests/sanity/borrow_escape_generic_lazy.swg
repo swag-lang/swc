@@ -39,7 +39,7 @@ impl BorrowLazyBuffer
     mtd add(value: #fwd T)
     {
         .reserve()
-        let buffer = .data!
+        let buffer = unwrap .data
         buffer[.count] = #nodrop #fwd value
         .count         += 1
     }

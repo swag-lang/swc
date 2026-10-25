@@ -482,6 +482,6 @@ impl IImageSetDecoder for Decoder
     {
         if index >= .directories.count do
             fail InvalidFormatError{"TIFF page index is out of range"}
-        return try .decodePage(.bytes!, options, .directories[index])
+        return try .decodePage(unwrap .bytes, options, .directories[index])
     }
 }

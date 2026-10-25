@@ -376,6 +376,9 @@ let renderer: IRenderer = &cpu
 - Give owning value types an idempotent `close`/`reset` operation when early release is useful and
   an `opDrop` that safely releases remaining ownership. A type with `opDrop` is non-copyable
   unless it supplies `opPostCopy`; use `#[Swag.NoCopy]` for an additional copy restriction.
+- Do not repeat cleanup in a `defer` when `opDrop` already owns it. Keep explicit cleanup when
+  its timing matters. Declare data borrowed during destruction before its owner, so it outlives
+  that owner's teardown; `Gui.Testing.HeadlessHost` is one such owner.
 - Immediately place `defer` after a successful manual acquisition when the resource cannot own its
   cleanup. Order acquisitions so deferred releases naturally run in reverse dependency order.
 - Use `defer` for cleanup, state restoration, and failure-safe unwinding. Keep an explicit `end`
@@ -433,9 +436,9 @@ through it directly, and only a whole-value read or write opens the place with t
 - Before adding a local, ask what it contributes beyond another name for the same value. A local
   that only relays a receiver, field, call result, or arithmetic expression to one nearby use adds
   a step without adding meaning; compose the expression directly. For example, call
-  `.parent!.invalidate()` instead of binding `.parent!` just to call through it, return
+  `.parent!.invalidate()` instead of binding `unwrap .parent` just to call through it, return
   `operation()` instead of binding it just to return it, and write
-  `return .buffer! + x + y * w` instead of binding `.buffer!` to `buffer` first. Apply this to
+  `return unwrap .buffer + x + y * w` instead of binding `unwrap .buffer` to `buffer` first. Apply this to
   alias chains too: remove relay steps rather than shortening each temporary's name.
 - Keep a local when it names a meaningful domain value, unit, condition, or algorithmic step; when
   several operations reuse it; or when it makes a long expression easier to inspect. Keep it too
@@ -572,7 +575,12 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   from the values themselves, especially numeric, boolean, and enum settings. Keep their original
   parameter order, and leave an obvious owner or primary value positional. Do not name every
   argument solely to make a call longer.
-- Use `orelse`, the postfix `!`, optional chaining, and `with` when they express absence or
+- Extract a present `T` from `T?` with `unwrap value`; reserve postfix `!` for a following
+  member access, index, dereference, or call. Both assert presence under `.Expect`.
+  Write `unwrap read()` and `unwrap items[index]` without grouping a plain operand.
+  Keep parentheses around a binary or conditional operand; prefer `value!.field` to
+  `(unwrap value).field` for a direct access.
+- Use `orelse`, `unwrap`, asserted accesses with `!`, optional chaining, and `with` when they express absence or
   structured initialization more directly than temporary variables and repeated checks.
 - Use range, value, index, and filtered iteration instead of manual counters when iteration itself
   is the intent.
@@ -653,8 +661,9 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   API can express the workflow.
 - Factor lifecycle-heavy setup into a small helper when that makes the tested behavior dominant,
   but keep test-specific expectations visible.
-- Follow successful fixture setup immediately with its cleanup `defer`; do not leave teardown at
-  the bottom of a test where an assertion or early return can bypass it.
+- Let owning fixtures clean up through `opDrop`. When setup needs manual cleanup, follow it
+  immediately with its `defer`; do not leave teardown at the bottom of a test where an assertion
+  or early return can bypass it.
 - Use `expect` for failures that make a test invalid and `try` in examples that propagate failure.
   A `#test` body does not change `try` into `expect`: propagation still needs a function declared
   with `fail` or an enclosing error-handling block.

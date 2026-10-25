@@ -337,7 +337,7 @@ private func applyTableLanguage(table: *StringTable, resources: const *Resources
         return
 
     let bytes = try resources.load(resName.toString())
-    try parseStringsContent(table.type, cast([*] u8, table.data!), cast(string, bytes.toSlice()), &table.pool)
+    try parseStringsContent(table.type, cast([*] u8, unwrap table.data), cast(string, bytes.toSlice()), &table.pool)
 }
 
 // Decodes `content` against the string table type `T` without touching any live table.
@@ -384,7 +384,7 @@ private func langResourceName(tag: string, file: String)->String => Format.toStr
 private func resetTable(table: *StringTable)
 {
     let structType = assume cast(const *Swag.TypeInfoStruct, table.type)
-    let data       = table.data!
+    let data       = unwrap table.data
     if structType.opDrop != null do
         structType.opDrop(data)
     if structType.opInit != null do

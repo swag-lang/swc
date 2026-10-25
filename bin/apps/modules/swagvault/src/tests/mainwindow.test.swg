@@ -8,7 +8,6 @@ using Swag, Core, Gui
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
     expect g_App.setLanguage(ReferenceLanguage)
     let path = Testing.tempFilePath("vault-operation-", ".bin")
@@ -124,7 +123,6 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     Swag.assert(activeLanguage() == ReferenceLanguage)
     Swag.assert(window.createButton.text() == "Create encrypted vault")
@@ -148,7 +146,6 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     Swag.assert(window.privacyMode)
     Swag.assert(not window.protectHidden.isChecked())
@@ -173,7 +170,6 @@ func containsStateBytes(bytes, needle: const [..] u8)->bool
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     Swag.assert(not window.appearanceButton.sigAboutRequested.isEmpty())
     host.clickModalButtonWhenShown(Dialog.BtnCancel)
@@ -202,7 +198,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
     for &one in languages()
@@ -249,7 +244,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     {
         var host: Testing.HeadlessHost
         let window = testSetupMainWindow(&host, 1.5)
-        defer host.shutdown()
         window.themeIndex = cast(u32, variant)
         window.applyTheme()
         host.setReducedMotion(false)
@@ -275,7 +269,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
     // Entry zero follows the account, so the registered languages start at one: one is the
@@ -305,7 +298,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
     // The window opens on the reference language rather than on the account.
@@ -327,7 +319,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     window.privacyMode = false
     window.applyPrivacyControl()
@@ -374,7 +365,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     Swag.assert(window.unmountOnLock.isChecked())
     Swag.assert(window.unmountOnSuspend.isChecked())
@@ -404,7 +394,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     window.mountedDrives.drives.add(MountedDrive{null, "C:\\protected", "mount-x", "X:", true, false, true, 0, 0})
     window.mountedDrives.drives.add((null, "C:\\open", "mount-y", "Y:", false, false, false, 0, 0))
@@ -431,7 +420,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     // It opens on the first field to fill in and not on the strip, even though the strip is what
     // reads first, and Tab moves on from there.
@@ -509,7 +497,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     // Walk to the browse action of the mount card the way the reader does: bring its page up,
     // then Tab from the field the page opens on to the action beside it.
@@ -565,7 +552,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     window.createPassword.setFocus()
     Swag.assert(window.createPassword.hasFocus())
@@ -584,7 +570,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
     Swag.assert(window.statusText() == "Ready — create a vault or choose one to open.")
@@ -605,7 +590,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     discard testSetupMainWindow(&host)
-    defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
     func messageFor(kind: ErrorKind)->String
@@ -644,7 +628,6 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     Swag.assert(not window.canCreate())
     window.createPath.setText("C:\\open")
@@ -679,7 +662,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     discard testSetupMainWindow(&host)
-    defer host.shutdown()
 
     let texts = appStrings()
 
@@ -728,7 +710,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     discard testSetupMainWindow(&host)
-    defer host.shutdown()
     defer discard catch g_App.setLanguage(ReferenceLanguage)
 
     func assertFormFits(host: *Testing.HeadlessHost, dialog: *FormDlg)
@@ -783,7 +764,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     window.privacyMode = false
     window.applyPrivacyControl()
@@ -835,7 +815,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     window.privacyMode = false
     window.applyPrivacyControl()
@@ -863,7 +842,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     discard testSetupMainWindow(&host)
-    defer host.shutdown()
 
     Swag.assert(capacityText(256 * 1024 * 1024) == "256 MiB")
     Swag.assert(capacityText(2 * 1024 * 1024 * 1024) == "2 GiB")
@@ -884,7 +862,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     let path = Testing.tempFilePath("vault-vault-", "")
     host.acceptModalFileDialog(path)
@@ -900,7 +877,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     let path = Testing.tempFilePath("vault-open-state-", ".vault")
     defer discard catch File.delete(path)
@@ -925,7 +901,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     let existing = Testing.tempFilePath("vault-key-existing-", ".key")
     defer discard catch File.delete(existing)
@@ -956,7 +931,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     window.showTab(MainWindow.OpenTabIndex)
     Swag.assert(host.dropFilesOnWnd(window.mountPath, ["c:/vaults/private"]) == DropEffect.Copy)
@@ -971,7 +945,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     window.showTab(0)
     Swag.assert(host.dropFilesOnWnd(window, ["c:/vaults/private"]) == DropEffect.Copy)
@@ -986,7 +959,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     window.showTab(0)
     Swag.assert(host.dropFilesOnWnd(window, ["c:/vaults/private.anything"]) == DropEffect.Copy)
@@ -1023,7 +995,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
 
@@ -1047,7 +1018,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -1075,7 +1045,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     window.privacyMode = false
     window.startupVaults.add(StartupVault{"C:\\vault.bin", "mount-x", true, false, true})
     var keyFiles: Array'String
@@ -1098,7 +1067,6 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     {
         var host: Testing.HeadlessHost
         let window = testSetupMainWindow(&host, scale)
-        defer host.shutdown()
         for &one in languages()
         {
             expect g_App.setLanguage(one.tag)

@@ -55,7 +55,7 @@ impl IActionUI for ActionLibTrash
             libWnd.setTrashMode(not libWnd.trashMode)
 
         case .Empty:
-            let result = MessageDlg.confirm(libWnd.main.surface!, appStrings().msg_EraseTrash)
+            let result = MessageDlg.confirm(unwrap libWnd.main.surface, appStrings().msg_EraseTrash)
             if result == MessageDlg.BtnYes
             {
                 Library.emptyTrash()
@@ -68,7 +68,7 @@ impl IActionUI for ActionLibTrash
             libWnd.restoreSelected()
 
         case .DeleteForever:
-            let result = MessageDlg.confirm(libWnd.main.surface!, appStrings().msg_EraseSelected)
+            let result = MessageDlg.confirm(unwrap libWnd.main.surface, appStrings().msg_EraseSelected)
             if result == MessageDlg.BtnYes do
                 libWnd.deleteForeverSelected()
         }

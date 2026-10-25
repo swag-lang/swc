@@ -12,7 +12,7 @@ namespace GenericForeachLazyCodegen
         req.size    = size
         req.address = buffer
 
-        let talloc = (allocator orelse Swag.getContext().allocator)!
+        let talloc = unwrap (allocator orelse Swag.getContext().allocator)
         talloc.free(&req)
     }
 
@@ -23,7 +23,7 @@ namespace GenericForeachLazyCodegen
         req.size    = newSize
         req.oldSize = oldSize
 
-        let talloc = (allocator orelse Swag.getContext().allocator)!
+        let talloc = unwrap (allocator orelse Swag.getContext().allocator)
         talloc.realloc(&req)
         return req.address
     }
@@ -61,7 +61,7 @@ namespace GenericForeachLazyCodegen
 
         mtd add(value: T)
         {
-            let buf = .buffer!
+            let buf = unwrap .buffer
             buf[.count] = value
             .count      += 1
         }
@@ -147,7 +147,7 @@ namespace GenericForeachLazyCodegen
 
     func allocS32(value: s32)->*s32
     {
-        let ptr = cast(*s32, testAlloc(#sizeof(s32))!)
+        let ptr = cast(*s32, unwrap testAlloc(#sizeof(s32)))
         ptr[] = value
         return ptr
     }

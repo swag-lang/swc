@@ -1906,10 +1906,10 @@ private impl Decoder
     // Restarts the single demux cursor on the key cluster advertised by Cues.
     mtd seekWindow(index: u64) fail
     {
-        let fileIndex = .fileIndex!
+        let fileIndex = unwrap .fileIndex
         Atomic.exchange(&fileIndex.soundPause, 1)
         .resumeSoundIndexAfterDecode = true
-        let layout = fileIndex.progressive!
+        let layout = unwrap fileIndex.progressive
         let bytes  = fileIndex.region.bytes()
         let target = .targetTimestamp(index)
         .soundWindowAttempt = 0
@@ -1975,11 +1975,11 @@ private impl Decoder
             return
         }
 
-        let fileIndex = .fileIndex!
+        let fileIndex = unwrap .fileIndex
         if Atomic.get(&fileIndex.cancel) do
             fail BadParameterError{"video reader operation was cancelled"}
 
-        let layout = fileIndex.progressive!
+        let layout = unwrap fileIndex.progressive
         let bytes  = fileIndex.region.bytes()
         if not .streamOpen
         {
@@ -2203,7 +2203,7 @@ impl IDecoder for Decoder
         let timestamp = .targetTimestamp(index)
         if timestamp < 0 do
             return index
-        let layout = fileIndex.progressive!
+        let layout = unwrap fileIndex.progressive
         let cue    = layout.cueAtOrAfter(cast(u64, timestamp))
         if cue
         {
@@ -2227,8 +2227,8 @@ impl IDecoder for Decoder
         if .memoryComplete or .sawVideoSync do
             return
 
-        let fileIndex = .fileIndex!
-        let layout    = fileIndex.progressive!
+        let fileIndex = unwrap .fileIndex
+        let layout    = unwrap fileIndex.progressive
         let bytes     = fileIndex.region.bytes()
         var reach     = .streamSampleCount
         while true

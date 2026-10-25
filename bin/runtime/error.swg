@@ -281,7 +281,7 @@ private struct PanicCatchFrame
 private func catchPanicHook(message: string?, loc: SourceCodeLocation)
 {
     let cxt   = Swag.getContext()
-    let frame = cast(*PanicCatchFrame, cxt.panicCatch!)
+    let frame = cast(*PanicCatchFrame, unwrap cxt.panicCatch)
 
     // The message can live in a frame the resume abandons.
     if message
@@ -297,7 +297,7 @@ private func catchPanicHook(message: string?, loc: SourceCodeLocation)
     // slots are about to be reused.
     while cxt.errorCaptures != frame.errorCaptures
     {
-        let capture = cxt.errorCaptures!
+        let capture = unwrap cxt.errorCaptures
         cxt.errorCaptures = capture.next
         capture.opDrop()
     }
@@ -350,7 +350,7 @@ private func __releaseErrArena(arena: *ErrorMessageArena)
 // cannot invalidate a message still reachable through a transported error.
 private func __detachErrMessages(storage: *ScratchAllocator)
 {
-    let arena = cast(*ErrorMessageArena, storage.releaseOwner!)
+    let arena = cast(*ErrorMessageArena, unwrap storage.releaseOwner)
     Swag.memcpy(&arena.storage, storage, #sizeof(ScratchAllocator))
     arena.storage.releaseOwner = null
     arena.storage.releaseHook  = null
@@ -367,7 +367,7 @@ private func __errMessages(storage: *ScratchAllocator)->*ErrorMessageArena?
     if not storage.block and not storage.firstLeak do
         return null
 
-    let allocator = storage.allocator!
+    let allocator = unwrap storage.allocator
     let arena     = cast(*ErrorMessageArena, __allocateErrMemory(allocator, #sizeof(ErrorMessageArena)))
     arena[] = ErrorMessageArena{allocator: allocator}
     arena.references.store(1)
@@ -430,7 +430,7 @@ private func __prependErrArena(messages: *ErrorMessageLink?, arena: *ErrorMessag
     while known
     {
         if known.arena == arena do
-            return messages!
+            return unwrap messages
         known = known.next
     }
 
@@ -480,7 +480,7 @@ private func __finishErrStorage(context: *Context, failed: bool)
     let parentArena = __errMessages(parent)
     if parentArena
     {
-        let childArena = __errMessages(current)!
+        let childArena = unwrap __errMessages(current)
         childArena.retained = __prependErrArena(childArena.retained, parentArena, childArena.allocator)
     }
 
@@ -495,7 +495,7 @@ func __releaseErrRecord(record: *ErrorRecord?)
     let value     = record.value
     let size      = cast(u64, Swag.kindOf(value).sizeof)
     __dropErr(value)
-    __freeErrMemory(allocator, value.buffer!, size)
+    __freeErrMemory(allocator, unwrap value.buffer, size)
     __releaseErrMessages(record.messages)
     __freeErrMemory(allocator, record, #sizeof(ErrorRecord))
 }
@@ -537,7 +537,7 @@ private func __copyErrRaw(data: *void, type: typeinfo, source: *ErrorRecord?)->*
     let context = Swag.getContext()
     if not context.errorAllocator.capacity do
         context.errorAllocator.setCapacity(cast(__buildCfg.errorAllocatorCapacity), __runtimeAllocator())
-    let allocator = context.errorAllocator.allocator!
+    let allocator = unwrap context.errorAllocator.allocator
     let record    = cast(*ErrorRecord, __allocateErrMemory(allocator, #sizeof(ErrorRecord)))
     record[] = ErrorRecord{allocator: allocator}
     record.references.store(1)
@@ -568,7 +568,7 @@ func __copyErrRecord(error: any)->*ErrorRecord
 
 func __copyOwnedErrRecord(source: *ErrorRecord)->*ErrorRecord
 {
-    return __copyErrRaw(source.value.buffer!, Swag.kindOf(source.value), source)
+    return __copyErrRaw(unwrap source.value.buffer, Swag.kindOf(source.value), source)
 }
 
 private func __installErrRecord(record: *ErrorRecord)
@@ -738,7 +738,7 @@ func __catchErr(owner: *ErrorCapture)
     let slot = __errorValue(context, context.errorIndex)
     if context.hasError
     {
-        let record = slot.record!
+        let record = unwrap slot.record
         owner.record = record
 
         // Failure defers can have added or merged message storage since the error was raised.
@@ -823,7 +823,7 @@ func __errorValue(context: *Context, index: u32)->*ErrorValue
     {
         if not link[] do
             link[] = __allocateErrorBlock()
-        let block = link[]!
+        let block = unwrap link[]
         if index - first < ErrorBlockCount do
             return &block.values[index - first]
         first += ErrorBlockCount
@@ -893,7 +893,7 @@ func __failedExpect(loc: SourceCodeLocation)
            (type == Swag.BaseError)
         {
             let data = raised.buffer
-            let val  = cast(const *Swag.BaseError, data!)
+            let val  = cast(const *Swag.BaseError, unwrap data)
             maxLen = Swag.min(val.message.count, 128)
             if maxLen
             {

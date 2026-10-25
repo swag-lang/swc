@@ -53,7 +53,7 @@ impl IWnd for RichEditView
 
     mtd impl onMouseEvent(evt: *MouseEvent)
     {
-        let edn = .ed!
+        let edn = unwrap .ed
         evt.accepted = false
         switch evt.kind
         {
@@ -121,7 +121,7 @@ impl IWnd for RichEditView
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        let edn = .ed!
+        let edn = unwrap .ed
         if evt.kind == .Pressed
         {
             // Lose focus with escape or enter
@@ -166,7 +166,7 @@ impl IWnd for RichEditView
             .invalidate()
 
         case .Lost:
-            .surface!.app.removeTimer(.timerCaret!)
+            .surface!.app.removeTimer(unwrap .timerCaret)
             .timerCaret   = null
             .visibleCaret = false
             .invalidate()
@@ -181,7 +181,7 @@ impl IWnd for RichEditView
 
     mtd impl onPaint(evt: *PaintEvent)
     {
-        let edn     = .ed!
+        let edn     = unwrap .ed
         let painter = evt.paintContext.painter
         let colors  = .themeColors()
 
@@ -273,7 +273,7 @@ impl IWnd for RichEditView
                 edn.countVisibleLines += 1
             edn.lastVisibleLineView = i
 
-            let l = edn.lines[i]!
+            let l = unwrap edn.lines[i]
 
             l.drawingRect.x      = marginLeft
             l.drawingRect.y      = y
@@ -296,7 +296,7 @@ impl IWnd for RichEditView
             // Lex the line
             if not l.wordWrap and (l.dirtyStyle or edn.recomputeWrap)
             {
-                edn.unwrap(i)
+                edn.joinWrappedLines(i)
 
                 // Lexing reads the text, not the viewport: a reflow must not redo it.
                 if l.dirtyStyle
@@ -399,7 +399,7 @@ impl RichEditView
 
     mtd paintString(bc: *PaintContext, x, y: f32, str: String, strStyle: RichEditRuneStyle, visible: bool)->f32
     {
-        let edn     = .ed!
+        let edn     = unwrap .ed
         let painter = bc.painter
 
         let fontR = edn.font().getFont(strStyle.fontMode)
@@ -445,8 +445,8 @@ impl RichEditView
 
     mtd paintLine(bc: *PaintContext, lineIndex: u64, py: f32, visible: bool)->f32
     {
-        let edn  = .ed!
-        let line = edn.lines[lineIndex]!
+        let edn  = unwrap .ed
+        let line = unwrap edn.lines[lineIndex]
         let y    = py
 
         // Dummy character for empty lines, so that a selected line display something

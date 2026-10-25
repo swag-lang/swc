@@ -23,7 +23,7 @@ namespace
     constexpr std::string_view MODULE_SOURCE = R"(#run
 {
     let itf = Swag.compiler()
-    let cfg = itf.getBuildCfg()!
+    let cfg = unwrap itf.getBuildCfg()
     cfg.backendKind = .Executable
 }
 )";

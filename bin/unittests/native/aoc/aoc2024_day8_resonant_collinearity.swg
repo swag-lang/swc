@@ -129,7 +129,7 @@ func markAntinode(grid: *AntinodeGrid, x, y: s32)->bool
         return false
 
     let idx   = cast(u32, y) * grid.width + cast(u32, x)
-    let cells = grid.cells!
+    let cells = unwrap grid.cells
     let isNew = cells[idx] == 0'u8
     cells[idx] = 1'u8
     return isNew
@@ -137,7 +137,7 @@ func markAntinode(grid: *AntinodeGrid, x, y: s32)->bool
 
 func clearGrid(grid: *AntinodeGrid)
 {
-    let cells = grid.cells!
+    let cells = unwrap grid.cells
     for index in grid.width * grid.height
     {
         cells[cast(u32, index)] = 0'u8
@@ -147,7 +147,7 @@ func clearGrid(grid: *AntinodeGrid)
 func countMarked(grid: AntinodeGrid)->u32
 {
     var count: u32
-    let cells = grid.cells!
+    let cells = unwrap grid.cells
     for index in grid.width * grid.height
     {
         if cells[cast(u32, index)] != 0'u8 do

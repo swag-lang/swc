@@ -122,7 +122,7 @@ private func markedPixels(frame: const *Image)->u64
     let item      = onlyItem(document.pages[0], .Image)
     Swag.assert(not item.hasMask)
 
-    let image = item.imageValue()!
+    let image = unwrap item.imageValue()
     Swag.assert(image.pixelFormat == .RGBA8)
     Swag.assert(image.pixelColor(0, 1).a == 255)
     Swag.assert(image.pixelColor(1, 0).a == 0)
@@ -189,7 +189,6 @@ private func markedPixels(frame: const *Image)->u64
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     expect view.open(fileName.toString())

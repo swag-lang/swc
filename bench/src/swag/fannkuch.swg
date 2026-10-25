@@ -3,9 +3,9 @@ const N = 9's64
 #run
 {
     // ---- data generation (not timed) ----
-    let perm  = cast([*] s64, (benchAlloc(N * #sizeof(s64)))!)
-    let perm1 = cast([*] s64, (benchAlloc(N * #sizeof(s64)))!)
-    let count = cast([*] s64, (benchAlloc(N * #sizeof(s64)))!)
+    let perm  = cast([*] s64, unwrap benchAlloc(N * #sizeof(s64)))
+    let perm1 = cast([*] s64, unwrap benchAlloc(N * #sizeof(s64)))
+    let count = cast([*] s64, unwrap benchAlloc(N * #sizeof(s64)))
 
     // ---- timed work ----
     let t0 = now()

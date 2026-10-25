@@ -120,7 +120,7 @@ func nestedSquares()->LinePathList
     painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
     painter.end()
 
-    let cache         = list.fillCache!
+    let cache         = unwrap list.fillCache
     var triangleCount = 0'u64
     for p in cache.paths do
         triangleCount += p.triangles.vertices.count
@@ -336,7 +336,7 @@ const TouchingCells: [5] Cell = [
     painter.fillPath(&list, Color.fromArgb(Argb.Black), .EvenOdd)
     painter.end()
 
-    let cache     = list.fillCache!
+    let cache     = unwrap list.fillCache
     let revision  = list.paths[0].revision
     var triangles = 0'u64
     for p in cache.paths do
@@ -406,7 +406,7 @@ const TouchingCells: [5] Cell = [
     var preparer: FillPreparer
     preparer.prepare(&list, 1, .EvenOdd)
 
-    let cache     = list.fillCache!
+    let cache     = unwrap list.fillCache
     var triangles = 0'u64
     for p in cache.paths do
         triangles += p.triangles.vertices.count

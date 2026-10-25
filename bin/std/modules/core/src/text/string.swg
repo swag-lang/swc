@@ -116,7 +116,7 @@ impl String
         let newCapacity = value.count + 1
         .grow(newCapacity)
         .length = newCapacity - 1
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         Memory.copy(buffer, value!.buffer, .length)
         buffer[.length] = 0
     }
@@ -137,7 +137,7 @@ impl String
             return false
         if not .length do
             return true
-        return Memory.compare(.buffer!, other!.buffer, .length) == 0
+        return Memory.compare(unwrap .buffer, other!.buffer, .length) == 0
     }
 
     // Compares the bytes of the string with `other`, returning -1, 0 or 1.
@@ -148,7 +148,7 @@ impl String
         where op == .AddAssign or op == .SubAssign
     {
         Debug.safetyBoundCheck(index < .length, "index out of range")
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         #static switch op
         {
         case .AddAssign: buffer[index] += #wrap value
@@ -226,7 +226,7 @@ impl String
             .buffer   = null
             .capacity = 0
             .reserve(.length + 1)
-            Memory.copy(.buffer!, oldBuffer, .length + 1)
+            Memory.copy(unwrap .buffer, oldBuffer, .length + 1)
         }
     }
 
@@ -272,7 +272,7 @@ impl String
     {
         if not .length do
             return
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         for index in .length
         {
             #static if ptr do
@@ -336,7 +336,7 @@ impl String
         while idx != Swag.U64.Max
         {
             .grow(.length - whatLength + byLength + 1)
-            let buffer = .buffer!
+            let buffer = unwrap .buffer
             Memory.copyOverlapping(buffer + idx + byLength, buffer + idx + whatLength, .length - idx - whatLength)
             Memory.copy(buffer + idx, by.buffer, byLength)
             .length = .length - whatLength + byLength
@@ -346,7 +346,7 @@ impl String
             idx = Utf8.indexOf(.toString(), what, idx)
         }
 
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         buffer[.length] = 0
     }
 
@@ -378,7 +378,7 @@ impl String
         while idx != Swag.U64.Max
         {
             .reserve(.length + byLength + 1)
-            Memory.copyOverlapping(.buffer! + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
+            Memory.copyOverlapping(unwrap .buffer + idx + byLength, .buffer + idx + whatLength, .length - (idx + whatLength) + 1)
             if byLength do
                 Memory.copy(.buffer + idx, by!.buffer, byLength)
             .length -= whatLength
@@ -389,7 +389,7 @@ impl String
             idx = Utf8.indexOf(.toString(), what, idx, comparisonType)
         }
 
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         buffer[.length] = 0
     }
 
@@ -407,7 +407,7 @@ impl String
         if not byteCount do
             return
         Debug.safetyBoundCheck(isRangeInBounds(.length, byteIndex, byteCount), "index out of range")
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         Memory.copyOverlapping(buffer + byteIndex, buffer + byteIndex + byteCount, .length - (byteIndex + byteCount))
         .length         -= byteCount
         buffer[.length] = 0
@@ -438,7 +438,7 @@ impl String
         Swag.assert(value != 0)
 
         .grow(.length + 2)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         Memory.copyOverlapping(buffer + byteIndex + 1, buffer + byteIndex, .length - byteIndex + 1)
         buffer[byteIndex] = value
         .length += 1
@@ -467,7 +467,7 @@ impl String
         }
 
         .grow(.length + insertedBytes + 1)
-        Memory.copyOverlapping(.buffer! + byteIndex + insertedBytes, .buffer + byteIndex, .length - byteIndex + 1)
+        Memory.copyOverlapping(unwrap .buffer + byteIndex + insertedBytes, .buffer + byteIndex, .length - byteIndex + 1)
         Memory.copy(.buffer + byteIndex, value.buffer, insertedBytes)
         .length += insertedBytes
     }
@@ -485,7 +485,7 @@ impl String
         .grow(.length + 2)
 
         // One 16-bit store writes the byte and the zero terminator together.
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         var ptr    = cast(*u16, (buffer + .length))
         ptr[]   = value
         .length += 1
@@ -498,7 +498,7 @@ impl String
         var encoded: [4] u8
         let encodedBytes = Utf8.encodeRune(encoded, value)
         .grow(.length + encodedBytes + 1)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         for i in encodedBytes do
             buffer[.length + i] = encoded[i]
         .length         += encodedBytes
@@ -520,7 +520,7 @@ impl String
 
         let newLength = .length + concatLength + 1
         .grow(newLength)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         Memory.copy(buffer + .length, value!.buffer, concatLength)
         .length         = newLength - 1
         buffer[.length] = 0
@@ -584,7 +584,7 @@ impl String
         // Grow from inline storage into an allocation.
         elif .buffer == cast(&.padding[0])
         {
-            let oldBuffer = .buffer!
+            let oldBuffer = unwrap .buffer
             .buffer = cast(Memory.alloc(newCapacity, .allocator))
             Memory.copy(.buffer, oldBuffer, Math.min(newCapacity, .length + 1))
             .capacity = newCapacity
@@ -609,7 +609,7 @@ impl String
         if not .length do
             return
 
-        let buffer     = .buffer!
+        let buffer     = unwrap .buffer
         let asciiBytes = Latin1.firstNonSpace(.toSlice(), includeLatin1: false)
         var ptr        = buffer + asciiBytes
         .length -= asciiBytes
@@ -632,7 +632,7 @@ impl String
         if not .length do
             return
 
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         .length = Latin1.lastNonSpace(.toSlice(), includeLatin1: false)
         for
         {
@@ -679,7 +679,7 @@ impl String
     {
         // Four bytes per rune in the worst case, and one more for the terminator.
         .reserve(runes.count * 4 + 1)
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         .length         = Utf8.fromUnicode(Swag.makeSlice(buffer, runes.count * 4), runes)
         buffer[.length] = 0
     }

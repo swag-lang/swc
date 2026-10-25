@@ -144,7 +144,7 @@ public impl PacketDurationProbe
         switch .encoding
         {
         case .Vorbis:
-            let probe = cast(*Vorbis.DurationProbe, .vorbis!)
+            let probe = cast(*Vorbis.DurationProbe, unwrap .vorbis)
             return try probe.frames(packet)
 
         case .Opus:

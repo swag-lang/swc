@@ -84,7 +84,7 @@ impl IWnd for CaptureRectWnd
     mtd testAutoGrab()
     {
         let pt     = Input.mousePosition()
-        let window = getCaptureWindowAtPos(.surface!, pt.x, pt.y)
+        let window = getCaptureWindowAtPos(unwrap .surface, pt.x, pt.y)
         let r      = screenToDesktopRect(window.rect)
         if not r.isEmpty()
         {
@@ -144,7 +144,7 @@ impl IWnd for CaptureRectWnd
                 // Resolve which window owns the manually selected rectangle.
                 let rect       = getGrabRect()
                 let screenRect = Math.Rectangle{g_DesktopX + rect.x, g_DesktopY + rect.y, rect.width, rect.height}
-                g_CaptureWindow = getCaptureWindowForRect(.surface!, screenRect)
+                g_CaptureWindow = getCaptureWindowForRect(unwrap .surface, screenRect)
                 g_GrabDone      = true
                 g_Exit          = true
             }
@@ -264,7 +264,7 @@ impl IWnd for CaptureRectWnd
         // are machine data, so both are set in the fixed-width theme family.
         if grabRect.width > 0 and grabRect.height > 0
         {
-            let fontR = .theme().res.fontDefaultFs.regular!
+            let fontR = unwrap .theme().res.fontDefaultFs.regular
             let size  = Format.toString("%×%", grabRect.width, grabRect.height)
             let org   = Format.toString("+%,%", grabRect.x, grabRect.y)
 

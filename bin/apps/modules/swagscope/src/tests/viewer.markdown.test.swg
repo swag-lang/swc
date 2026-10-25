@@ -28,7 +28,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 {
     var host: Testing.HeadlessHost
     host.setup(960, 200)
-    defer host.shutdown()
     let view = Markdown.View.createText(&host.root, "> ***530 → 780 → 470 → 580 → 600 → 500 → 420 → 560 → 650 → 520***")
     view.resize(960, 200)
     MarkdownText.applyViewerStyle(view, 5, 1)
@@ -47,16 +46,18 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     MarkdownText.g_ViewerSettings = {themeIndex: 1}
     var host: Testing.HeadlessHost
     host.setup(1280, 720, 1.5)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
-    let padding = window.documentHost.padding
+    let padding  = window.documentHost.padding
+    let viewport = host.surface.position
     window.setFullScreen(true)
-    window.resize(1280, 720)
+
+    // Keep the virtual monitor fixed; the desktop monitor belongs to the machine running the test.
+    host.surface.showNormalAt(viewport)
     window.applyLayout()
     for 64 where assume cast(*Markdown.View, window.currentView).isLoading() do
         host.fireTimers()
@@ -71,6 +72,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     window.updateFullScreenChrome(Math.Point{640, 360})
     host.settleAnimations(window)
     var image = host.render(window)
+    Swag.assert(image.width == cast(u32, viewport.width) and image.height == cast(u32, viewport.height))
     Swag.assert(image.pixelColor(0, 0).argb == 0xFFFFFFFF)
     Pixel.Testing.assertImageGolden(&image, "viewer.markdown.fullscreen")
     window.setFullScreen(false)
@@ -86,7 +88,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     MarkdownText.g_ViewerSettings = {}
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     var result = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath())
@@ -139,11 +140,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 
     var host: Testing.HeadlessHost
     host.setup(880, 560)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
@@ -165,7 +162,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     window.applyLayout()
-    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lignes · 4 mots")
+    Swag.assert(window.infoStatsLabel.text() == "Markdown · UTF-8 · 2 lignes · 4 mots · 23 caractères")
     Swag.assert(window.infoStatsLabel.position.width >= Math.ceil(window.infoStatsLabel.itf.measureContent({}).x))
 }
 
@@ -174,11 +171,10 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680, dpiScale)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
     var result   = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
     Swag.assert(result.view != null and result.failureReason.isEmpty())
     let view = assume cast(*Markdown.View, result.view)
@@ -207,8 +203,8 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
 #[Swag.TestTag("golden")]
 #test { assertMarkdownImages(1, 1.5, "viewer.markdown.images.hidpi") }
 
-private func markdownFixturePath()->String       => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")
-private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/whitey.md")
+private func markdownFixturePath()->String       => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/comprehensive.md")
+private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/whitey.md")
 
 // Theme and line width are viewer preferences, not properties of one Markdown file.
 #test
@@ -219,11 +215,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var first      = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath(), commandParent: &host.root)
     let firstWidth = assume cast(*ComboBox, first.commands!.children[0])
@@ -261,7 +253,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 {
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
 
     let fileName = Gui.Testing.tempFilePath("scope-markdown-missing-", ".md")
     var result   = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
@@ -281,7 +272,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -349,7 +339,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     with let view = Markdown.View.createFile(&host.root, fileName)
     {
         .resize(960, 680)
@@ -384,7 +373,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -410,14 +398,13 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 }
 
 // Exercises every shipped appearance headlessly, including page color, typography, reading
-// measure, and Whitey's bold, spaced, centered headings.
+// measure, and Whitey's light, spaced, centered headings.
 #test
 {
     let source = expect File.readAllText(markdownFixturePath())
     let backgrounds: [6] u32 = [0xFF15151A, 0xFFFFFFFF, 0xFFF3F2EE, 0xFF363B40, 0xFFFFFFFF, 0xFFFEFEFE]
     var host:        Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -433,10 +420,9 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
         if themeIndex == 5
         {
             Swag.assert(view.documentStyle.headingAlignment == .Center)
-            for style in view.documentStyle.headingFontStyles do
-                Swag.assert(style == .Bold)
-            Swag.assert(view.documentStyle.headingTopSpacing[0] == 34 and view.documentStyle.headingBottomSpacing[0] == 22)
-            Swag.assert(view.documentStyle.headingTopSpacing[5] == 18 and view.documentStyle.headingBottomSpacing[5] == 10)
+            Swag.assert(view.documentStyle.headingFontStyles[0] == .Regular)
+            Swag.assert(view.documentStyle.headingFontStyles[1] == .Regular)
+            Swag.assert(view.documentStyle.headingFontStyles[2] == .Italic)
         }
 
         Testing.assertContentFits(view)
@@ -453,7 +439,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 {
     var host: Testing.HeadlessHost
     host.setup(960, 900)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -474,7 +459,6 @@ private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryN
 {
     var host: Testing.HeadlessHost
     host.setup(1160, 260, dpiScale: 1.5)
-    defer host.shutdown()
 
     let source = "L'unité que cet étalon porte a été prise au pays lui-même. Le mètre est le **dix-millionième** d'un **quart de méridien**, l'arc du pôle à l'équateur. On l'a mesuré sur le terrain du nord au sud, de Dunkerque à Barcelone **par Paris**, le long de cette ligne que le premier chant avait chiffrée sous *Devin* et que la flèche de Roncevaux avait ensuite abandonnée comme axe. Le bec du coq ouvrait un quart dès le premier matin, sans qu'on pût savoir lequel, et la géodésie, la science qui mesure la Terre, n'en connaît qu'un. Congédié comme direction, le méridien de Paris revient comme étalon. Il ne tient plus la carte, il tient l'unité avec quoi on la mesure."
     let view   = Markdown.View.createText(&host.root, source)

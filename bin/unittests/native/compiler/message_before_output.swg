@@ -5,7 +5,7 @@ internal var MessageBeforeOutputValue = 0
 
 #message(CompilerMsgMask.PassBeforeOutput)
 {
-    let msg = Swag.compiler().getMessage()!
+    let msg = unwrap Swag.compiler().getMessage()
     let itf = Swag.compiler()
     Swag.assert(msg.kind == CompilerMsgKind.PassBeforeOutput)
     Swag.assert(msg.name == "")

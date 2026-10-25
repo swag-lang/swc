@@ -45,7 +45,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var pressedCount: u32
     var host:         Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     host.root.hookOnEvent = func|&pressedCount|(_, evt)
     {
@@ -68,7 +67,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let card  = focusHeadlessCard(&host.root, Math.Rectangle{10, 10, 200, 180})
     let order = FocusOrder.collect(&host.root)
@@ -84,7 +82,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let left  = focusHeadlessCard(&host.root, Math.Rectangle{10, 10, 180, 180})
     let right = focusHeadlessCard(&host.root, Math.Rectangle{200, 10, 180, 180})
@@ -102,7 +99,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let card = focusHeadlessCard(&host.root, Math.Rectangle{10, 10, 200, 180})
     host.root.setInitialFocus()
@@ -126,7 +122,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let card = focusHeadlessCard(&host.root, Math.Rectangle{10, 10, 200, 180})
 
@@ -148,7 +143,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let edit = EditBox.create(&host.root, "text", Math.Rectangle{10, 10, 180, 24})
     var lostCount: u32
@@ -179,7 +173,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let card = focusHeadlessCard(&host.root, Math.Rectangle{10, 10, 200, 180})
     card.field.setFocus()
@@ -206,7 +199,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let card = focusHeadlessCard(&host.root, Math.Rectangle{10, 10, 200, 180})
     card.browse.setFocus()
@@ -226,7 +218,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let panel = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 10, 180, 60})
     let first = EditBox.create(panel, "", Math.Rectangle{0, 0, 160, 24})
@@ -251,7 +242,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let password = PasswordEdit.create(&host.root, Math.Rectangle{10, 10, 200, 24})
     let list     = ListCtrl.createSimple(&host.root, Math.Rectangle{10, 50, 200, 100})
@@ -275,7 +265,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let a     = RadioButton.create(&host.root, "A", Math.Rectangle{10, 10, 120, 24})
     let b     = RadioButton.create(&host.root, "B", Math.Rectangle{10, 40, 120, 24})
@@ -309,7 +298,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
     host.recordCommands()
 
     let ok     = PushButton.create(&host.root, "Ok", Math.Rectangle{10, 10, 80, 24}, FocusHeadless_Default)
@@ -342,7 +330,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let field = EditBox.create(&host.root, "", Math.Rectangle{10, 10, 200, 24})
     let bar   = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 60, 300, 40})
@@ -375,7 +362,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(320, 260)
-    defer host.shutdown()
     host.recordCommands()
 
     let list   = ListCtrl.createSimple(&host.root, Math.Rectangle{10, 10, 200, 120})
@@ -419,7 +405,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
 
     let field  = EditBox.create(&host.root, "", Math.Rectangle{10, 10, 200, 24})
     let bar    = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 60, 300, 40})
@@ -464,7 +449,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 240)
-    defer host.shutdown()
 
     let card = focusHeadlessCard(&host.root, Math.Rectangle{10, 10, 200, 180})
     card.browse.setFocus()
@@ -494,7 +478,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
 
     let alone = PushButton.create(&host.root, "A", Math.Rectangle{10, 10, 80, 24})
     let box   = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 60, 200, 40})
@@ -515,7 +498,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
 
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Confirm")
     dlg.addButton("Yes", Dialog.BtnYes)
@@ -546,7 +528,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
 
     let caller = EditBox.create(&host.root, "caller", Math.Rectangle{20, 20, 180, 26})
     caller.setFocus()
@@ -576,7 +557,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
 
     let dlg   = Dialog.create(&host.surface, 260, 160, title: "Rename")
     let field = EditBox.create(dlg.view(), "name", Math.Rectangle{20, 20, 180, 26})
@@ -615,7 +595,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
 
     let dlg    = Dialog.create(&host.surface, 260, 170, title: "Confirm")
     let again  = CheckButton.create(dlg.view(), "Do not ask again", Math.Rectangle{20, 20, 180, 26})
@@ -661,7 +640,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(120, 64)
-    defer host.shutdown()
 
     let button = PushButton.create(&host.root, "Go", Math.Rectangle{20, 16, 80, 32})
     let idle   = host.render()
@@ -692,7 +670,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(240, 64)
-    defer host.shutdown()
 
     let bar    = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 64})
     let ok     = PushButton.create(bar, "Ok", Math.Rectangle{20, 16, 90, 32}, form: .Default)
@@ -725,7 +702,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(120, 64)
-    defer host.shutdown()
 
     let button = PushButton.create(&host.root, "Go", Math.Rectangle{20, 16, 80, 32}, form: .Default)
     let idle   = host.render()
@@ -749,7 +725,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(120, 64)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
@@ -775,7 +750,6 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
 {
     var host: Testing.HeadlessHost
     host.setup(96, 56)
-    defer host.shutdown()
 
     let toggle = ToggleButton.create(&host.root, Math.Rectangle{20, 15, 56, 26})
     toggle.setChecked(true)

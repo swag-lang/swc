@@ -29,7 +29,6 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     iconBarHeadlessReset()
 
     let bar = IconBar.create(&host.root, 24, Math.Rectangle{20, 20})
@@ -49,7 +48,6 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     let bar              = IconBar.create(&host.root, 20, Math.Rectangle{20, 20}, itemPadding: 2)
     let btn              = bar.addButton({}, IconBarHeadless_Btn1)
     let descriptorWidth  = btn.icon.sizeX
@@ -73,7 +71,6 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     iconBarHeadlessReset()
 
     let bar = IconBar.create(&host.root, 24, Math.Rectangle{20, 20})
@@ -90,7 +87,6 @@ func iconBarHeadlessReset()
 {
     var host: Testing.HeadlessHost
     host.setup(240, 80)
-    defer host.shutdown()
     iconBarHeadlessReset()
 
     let bar = IconBar.create(&host.root, 24, Math.Rectangle{20, 20})

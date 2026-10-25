@@ -379,12 +379,12 @@ namespace
 
         const AstNodeRef resolvedExprRef = codeGen.resolvedNodeRef(exprRef);
         if (!resolvedExprRef.isValid())
-            return raiseInternalCodeGenError(codeGen, "cannot resolve the 'notnull' operand", ownerRef);
+            return raiseInternalCodeGenError(codeGen, "cannot resolve the presence assertion operand", ownerRef);
 
         const SemaNodeView exprView    = codeGen.viewType(resolvedExprRef);
         TypeRef            exprTypeRef = exprView.typeRef();
         if (!exprTypeRef.isValid())
-            return raiseInternalCodeGenError(codeGen, "missing the 'notnull' operand type", ownerRef);
+            return raiseInternalCodeGenError(codeGen, "missing the presence assertion operand type", ownerRef);
 
         const TypeInfo& originalType      = *exprView.type();
         const TypeInfo* unwrappedExprType = originalType.unwrapAliasEnumType(codeGen.ctx());
@@ -1595,8 +1595,16 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         // An inlined callee whose only exit is fail emits no success-path definition
         // of the result register. Define its address here too, from the local stack
         // base that dominates both paths, before writing the explicit fallback.
-        if (resultPayload.isAddress() && resultStorage && codeGen.localStackBaseReg().isValid() &&
-            resultStorage->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+        MicroReg        directReturnReg = MicroReg::invalid();
+        SymbolVariable* directReturnSym = nullptr;
+        if (resultPayload.isAddress() && CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, nodeRef, resultType, directReturnReg, directReturnSym))
+        {
+            // The failed call may have targeted the caller's return buffer. Its
+            // success-only result register cannot supply that address on failure.
+            builder.emitLoadRegReg(resultPayload.reg, directReturnReg, MicroOpBits::B64);
+        }
+        else if (resultPayload.isAddress() && resultStorage && codeGen.localStackBaseReg().isValid() &&
+                 resultStorage->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
             builder.emitLoadAddressRegMem(resultPayload.reg, codeGen.localStackBaseReg(), resultStorage->offset(), MicroOpBits::B64);
         }

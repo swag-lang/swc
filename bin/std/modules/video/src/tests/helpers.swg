@@ -3,7 +3,7 @@
 using Core, Pixel
 
 // Returns the path of a fixture of this test suite.
-func videoFixturePath(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
+func videoFixturePath(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), Format.toString("datas/%", name).toString())
 
 // Returns a unique path in the temporary directory, for a stream a test writes itself.
 //

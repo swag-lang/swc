@@ -53,7 +53,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
 
     // The body keeps one inset, the same on all four sides, and the box owns it rather than
     // each dialog restating it.
-    let body = dlg.contentView!
+    let body = unwrap dlg.contentView
     Swag.assert(Math.abs(body.padding.x - bodyInset) < 0.5)
     Swag.assert(Math.abs(body.padding.y - bodyInset) < 0.5)
     Swag.assert(Math.abs(body.padding.z - bodyInset) < 0.5)
@@ -71,7 +71,6 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
 {
     var host: Testing.HeadlessHost
     host.setup(1000, 700)
-    defer host.shutdown()
 
     let message = MessageDlg.create(&host.surface, "The password is incorrect.", {title: "Error"})
     message.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
@@ -121,14 +120,13 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
 {
     var host: Testing.HeadlessHost
     host.setup(900, 620)
-    defer host.shutdown()
 
     let fb = FileBrowserCtrl.create(&host.root, {mode: .SelectFile, showLocationsPane: false}, Math.Rectangle{0, 0, 860, 580})
     fb.applyLayout()
 
     let list = fb.listCtrl
-    let bar  = fb.backButton.parent!
-    let form = fb.editFile.parent!
+    let bar  = unwrap fb.backButton.parent
+    let form = unwrap fb.editFile.parent
 
     Swag.assert(Math.abs(list.position.x - (bar.position.x + bar.padding.x)) < 0.5)
     Swag.assert(Math.abs(list.position.x - (form.position.x + form.padding.x)) < 0.5)

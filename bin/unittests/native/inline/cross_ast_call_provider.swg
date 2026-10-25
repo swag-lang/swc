@@ -409,7 +409,7 @@ func inlineGenericParallelContextDataShadow(dstImage: *InlinePixelProbe)
 {
     genericParallelVisitLike(Swag.makeSlice(dstImage.buffer, 1), 1, dstImage)
     {
-        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe, data!)
+        let dstImage = cast(*InlineCrossAstCall.InlinePixelProbe, unwrap data)
         let x        = 1
         let y        = 1
         let pixDst   = dstImage.buffer + x * dstImage.bpp8 + y * dstImage.width

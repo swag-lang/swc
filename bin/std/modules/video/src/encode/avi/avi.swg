@@ -85,7 +85,7 @@ impl IEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            .options = cast(const *EncodeOptions, options.buffer!)[]
+            .options = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
         sink.writeNative(RiffId)
@@ -130,7 +130,7 @@ impl IEncoder for Encoder
         var encoded = image.encode(JpegName, frameOptions)
         encoded.makeLinear()
 
-        let payload = encoded.toSlice()!
+        let payload = unwrap encoded.toSlice()
         let size    = payload.count
         .reserve(sink, size)
 

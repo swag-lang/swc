@@ -154,7 +154,7 @@ impl PropWnd
             return assume cast(*BaseForm, iform)
         }
 
-        return capture.getSelectedBaseForm()!
+        return unwrap capture.getSelectedBaseForm()
     }
 
     // Returns the selected form as a `T`, or null when the selection is not one.
@@ -176,7 +176,7 @@ impl PropWnd
             return Swag.kindOf(iform)
         }
 
-        return capture.getSelectedFormType()!
+        return unwrap capture.getSelectedFormType()
     }
 
     // Sets field `name` to `val`: on the model of the active tool when nothing is selected,
@@ -190,7 +190,7 @@ impl PropWnd
         if not capture or not capture.selection.count
         {
             let form   = .getSelectedBaseForm()
-            let field  = Reflection.findField(type, name)!
+            let field  = unwrap Reflection.findField(type, name)
             var valU32 = val
             Reflection.writeFieldValue(form, field, &valU32)
         }
@@ -204,7 +204,7 @@ impl PropWnd
                 .valU32 = val
                 if not common do
                     .mdlType = type
-                .valRef = Reflection.findField(type, name)!
+                .valRef = unwrap Reflection.findField(type, name)
             }
 
             capture.pushUndo(undo)
@@ -278,7 +278,7 @@ impl PropWnd
         {
             for item in .grid.items
             {
-                let it = item!
+                let it = unwrap item
                 if it.typeValue.name != #nameof(BaseForm.borderSize) or it.sliderBox == null do
                     continue
                 let sliderBox = it.sliderBox
@@ -296,7 +296,7 @@ impl PropWnd
     {
         for item in .grid.items
         {
-            let it = item!
+            let it = unwrap item
             if not it.flags.has(.Category) do
                 continue
             it.label.style.setFont(.theme().res.fontDefault)
@@ -330,7 +330,7 @@ impl PropWnd
             }
 
             if label do
-                width = Math.max(width, Painter.measureString(label.name.raw, label.font().regular!).width)
+                width = Math.max(width, Painter.measureString(label.name.raw, unwrap label.font().regular).width)
         }
 
         width = Math.ceil(width)

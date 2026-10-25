@@ -45,11 +45,11 @@ func appendPatchFields(buffer: [*] u8, start: u64, type: typeinfo)->u64
     for field in typeStruct.fields
     {
         len = appendAst(buffer, len, "has_")
-        len = appendAst(buffer, len, field.name!)
+        len = appendAst(buffer, len, unwrap field.name)
         len = appendAst(buffer, len, ": bool\n")
         len = appendAst(buffer, len, field.name)
         len = appendAst(buffer, len, ": ")
-        len = appendAst(buffer, len, field.pointedType!.name!)
+        len = appendAst(buffer, len, unwrap field.pointedType!.name)
         if field.pointedType == string do
             len = appendAst(buffer, len, "?")
         len = appendAst(buffer, len, "\n")
@@ -80,7 +80,7 @@ func(T) clearPatch(patch: *ApiPatch'T)
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "patch.has_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " = false\n")
         }
         if len == 0 do
@@ -99,7 +99,7 @@ func(T) capturePatch(patch: *ApiPatch'T, value: T)
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "patch.has_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " = true\n")
             len = appendAst(&buffer[0], len, "patch.")
             len = appendAst(&buffer[0], len, field.name)
@@ -124,7 +124,7 @@ func(T) patchChangedCount(patch: ApiPatch'T)->s32
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    count += 1\n")
         }
@@ -147,7 +147,7 @@ func(T) patchChangedMask(patch: ApiPatch'T)->u64
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    mask |= bit\n")
             len = appendAst(&buffer[0], len, "bit <<= 1\n")
@@ -170,16 +170,16 @@ func(T) applyPatch(patch: ApiPatch'T, base: T)->T
         for field in typeStruct.fields
         {
             len = appendAst(&buffer[0], len, "if patch.has_")
-            len = appendAst(&buffer[0], len, field.name!)
+            len = appendAst(&buffer[0], len, unwrap field.name)
             len = appendAst(&buffer[0], len, " do\n")
             len = appendAst(&buffer[0], len, "    result.")
             len = appendAst(&buffer[0], len, field.name)
-            len = appendAst(&buffer[0], len, " = patch.")
-            len = appendAst(&buffer[0], len, field.name)
-
+            len = appendAst(&buffer[0], len, " = ")
             // A 'string?' field needs the assertion on the generated read.
             if field.pointedType == string do
-                len = appendAst(&buffer[0], len, "!")
+                len = appendAst(&buffer[0], len, "unwrap ")
+            len = appendAst(&buffer[0], len, "patch.")
+            len = appendAst(&buffer[0], len, field.name)
             len = appendAst(&buffer[0], len, "\n")
         }
         if len == 0 do

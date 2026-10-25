@@ -26,7 +26,6 @@ func renderSpinner(dpiScale: f32)->Image
 {
     var host: Testing.HeadlessHost
     host.setup(64, 64, dpiScale)
-    defer host.shutdown()
 
     let spin = Spinner.create(&host.root, Math.Rectangle{16, 16, 32, 32})
     spin.animationPhase = 0.25
@@ -38,7 +37,6 @@ func renderSpinner(dpiScale: f32)->Image
 {
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    defer host.shutdown()
 
     let size = host.root.themeMetrics().spinner_Size
     let spin = Spinner.create(&host.root, Math.Rectangle{8, 8})
@@ -51,7 +49,6 @@ func renderSpinner(dpiScale: f32)->Image
 {
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    defer host.shutdown()
 
     let spin = Spinner.create(&host.root, Math.Rectangle{16, 16, 32, 32})
     spin.animationPhase = 0.95

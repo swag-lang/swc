@@ -540,7 +540,7 @@ impl IPropertyEditor for RatingEditor
                 .updateFlags(.Flat)
                 .sigPressed += func|prop, item, rating, idx|(_)
                 {
-                    let rat = rating!
+                    let rat = unwrap rating
                     rat.value = rat.value == idx + 1 ? idx : idx + 1
                     prop.commitItemChange(item)
                 }
@@ -594,9 +594,9 @@ func updateStatus(item: *PropertiesItem?)
 
 func updateHeader()
 {
-    let title    = g_Title!
-    let subTitle = g_SubTitle!
-    let footer   = g_Footer!
+    let title    = unwrap g_Title
+    let subTitle = unwrap g_SubTitle
+    let footer   = unwrap g_Footer
     title.setText("GUI4 property control inspector")
     subTitle.setText("One property control edits several cards at once (multi-selection). The card struct uses nested category subgroups plus Heading / Gap / HelpBox decorators; the combo switches the display mode.")
     footer.setText(Format.toString("Grouping, decorators, multi-selection and live preview in one grid. %", g_StatusText))
@@ -607,8 +607,8 @@ func layoutRootView()
     if not g_View or not g_PageView do
         return
 
-    let view     = g_View!
-    let pageView = g_PageView!
+    let view     = unwrap g_View
+    let pageView = unwrap g_PageView
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -616,10 +616,10 @@ func layoutRootView()
     let footerY      = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth   = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title       = g_Title!
-    let themeButton = g_ThemeButton!
-    let subTitle    = g_SubTitle!
-    let footer      = g_Footer!
+    let title       = unwrap g_Title
+    let themeButton = unwrap g_ThemeButton
+    let subTitle    = unwrap g_SubTitle
+    let footer      = unwrap g_Footer
     title.setPosition(Math.Rectangle{RootMargin, 18, titleWidth, 34})
     themeButton.setPosition(Math.Rectangle{RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle.setPosition(Math.Rectangle{RootMargin + 2, 56, contentWidth - 4, 42})
@@ -728,7 +728,7 @@ func onFrame(_: *Application)
     surface.setIcon(app.theme.icon(ThemeIcons.Options, 18))
 
     createRootView()
-    createInspectorPage(g_PageView!)
+    createInspectorPage(unwrap g_PageView)
     updateHeader()
     applyTheme()
 

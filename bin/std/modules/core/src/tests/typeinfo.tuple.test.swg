@@ -36,7 +36,7 @@ alias CoreTupleLifecycleStrict = #decltype({first: CoreTupleLifecycleProbe{}, se
 
 func coreTupleLifecycleProbeAt(base: [*] u8, type: const *TypeInfoStruct, index: u64)->*CoreTupleLifecycleProbe
 {
-    let fields = type.fields!
+    let fields = unwrap type.fields
     return cast(*CoreTupleLifecycleProbe, (base + fields[index].offset))
 }
 

@@ -90,7 +90,7 @@ private impl FileDlg
         options.width  = 440
         options.height = 220
 
-        let dlg  = FormDlg.create(.surface!, options)
+        let dlg  = FormDlg.create(unwrap .surface, options)
         let edit = dlg.form.addTextField(strings().fileDlg_NewFolderField, strings().fileDlg_NewFolderDefault, placeholder: strings().fileDlg_NewFolderHint)
         dlg.form.computeLayout()
         edit.selectAll()
@@ -112,7 +112,7 @@ private impl FileDlg
 
             if not Path.isValidFileName(folderName)
             {
-                MessageDlg.error(dlg.surface!, strings().fileDlg_ErrFolderName)
+                MessageDlg.error(unwrap dlg.surface, strings().fileDlg_ErrFolderName)
                 edit.selectAll()
                 edit.setFocus()
                 return false
@@ -231,7 +231,7 @@ impl FileDlg
                 let selName = dlg.browser.selectedPath()
                 if dlg.options.mode == .CreateFile and File.exists(selName)
                 {
-                    let res = MessageDlg.confirm(dlg.surface!, strings().fileDlg_ReplaceTitle, strings().fileDlg_ReplaceText)
+                    let res = MessageDlg.confirm(unwrap dlg.surface, strings().fileDlg_ReplaceTitle, strings().fileDlg_ReplaceText)
                     if res != Dialog.BtnYes do
                         return false
                 }

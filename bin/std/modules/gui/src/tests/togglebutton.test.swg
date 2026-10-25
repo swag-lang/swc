@@ -17,7 +17,6 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
@@ -43,7 +42,6 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
@@ -65,7 +63,6 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
     ToggleButtonHeadlessChangedCount = 0
 
@@ -86,7 +83,6 @@ func toggleButtonHeadlessChanged(_: *ToggleButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     let toggle = ToggleButton.create(&host.root, Math.Rectangle{20, 20, 60, 30})
     toggle.isHot              = true
     toggle.isPressed          = true

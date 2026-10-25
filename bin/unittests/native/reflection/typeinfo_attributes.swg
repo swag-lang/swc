@@ -61,7 +61,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
         {
             foundTyped = true
             Swag.assert(attribute.params.count == 2)
-            let params = attribute.params!
+            let params = unwrap attribute.params
             Swag.assert(params[0].name == "tag")
             Swag.assert(assume cast(s32, params[0].value) == 7)
             Swag.assert(params[1].name == "label")
@@ -80,7 +80,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
         {
             foundDefaulted = true
             Swag.assert(attribute.params.count == 2)
-            let params = attribute.params!
+            let params = unwrap attribute.params
             Swag.assert(params[0].name == "priority")
             Swag.assert(assume cast (s32, params[0].value) == 5)
             Swag.assert(params[1].name == "enabled")
@@ -92,7 +92,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
         {
             foundVariadic = true
             Swag.assert(attribute.params.count == 3)
-            let params = attribute.params!
+            let params = unwrap attribute.params
             Swag.assert(params[0].name == "values")
             Swag.assert(params[1].name == "values")
             Swag.assert(params[2].name == "values")
@@ -113,7 +113,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
     Swag.assert(REFLECTED_FUNCTION_INFO.parameters.count == 1)
 
     var foundParamAttribute = false
-    let parameters = REFLECTED_FUNCTION_INFO.parameters!
+    let parameters = unwrap REFLECTED_FUNCTION_INFO.parameters
     for attribute in parameters[0].attributes
     {
         if attribute.type != #typeof(ParamReflectionAttr) do
@@ -121,7 +121,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
 
         foundParamAttribute = true
         Swag.assert(attribute.params.count == 1)
-        let params = attribute.params!
+        let params = unwrap attribute.params
         Swag.assert(params[0].name == "name")
         Swag.assert(assume cast(string?, params[0].value) == "payload")
     }
@@ -136,14 +136,14 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
     let attribute = REFLECTED_STRUCT_INFO.attributes![0]
     Swag.assert(attribute.type == #typeof(StructReflectionAttr))
     Swag.assert(attribute.params.count == 1)
-    let params = attribute.params!
+    let params = unwrap attribute.params
     Swag.assert(params[0].name == "name")
     Swag.assert(assume cast(string?, params[0].value) == "demo")
 
     Swag.assert(REFLECTED_STRUCT_INFO.fields.count == 1)
 
     var foundFieldAttribute = false
-    let fields = REFLECTED_STRUCT_INFO.fields!
+    let fields = unwrap REFLECTED_STRUCT_INFO.fields
     for fieldAttribute in fields[0].attributes
     {
         if fieldAttribute.type != #typeof(FieldReflectionAttr) do
@@ -151,7 +151,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
 
         foundFieldAttribute = true
         Swag.assert(fieldAttribute.params.count == 1)
-        let fieldParams = fieldAttribute.params!
+        let fieldParams = unwrap fieldAttribute.params
         Swag.assert(fieldParams[0].name == "weight")
         Swag.assert(assume cast(s32, fieldParams[0].value) == 11)
     }
@@ -167,7 +167,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
     let enumAttribute = REFLECTED_ENUM_INFO.attributes![0]
     Swag.assert(enumAttribute.type == #typeof(EnumReflectionAttr))
     Swag.assert(enumAttribute.params.count == 1)
-    let enumParams = enumAttribute.params!
+    let enumParams = unwrap enumAttribute.params
     Swag.assert(enumParams[0].name == "label")
     Swag.assert(assume cast(string?, enumParams[0].value) == "state")
 
@@ -181,7 +181,7 @@ const REFLECTED_ENUM_INFO     = cast(const *Swag.TypeInfoEnum, #typeof(Reflected
                 continue
 
             Swag.assert(enumValueAttribute.params.count == 1)
-            let valueParams = enumValueAttribute.params!
+            let valueParams = unwrap enumValueAttribute.params
             Swag.assert(valueParams[0].name == "weight")
 
             if enumValue.name == "First"

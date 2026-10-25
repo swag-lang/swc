@@ -24,7 +24,7 @@ func release(value: *Value)->u64
         var request: Swag.AllocatorRequest
         request.size = #sizeof(Value)
         Swag.getContext().allocator!.alloc(&request)
-        let value = cast(*Value, request.address!)
+        let value = cast(*Value, unwrap request.address)
         value[] = Value{first: 42}
         discard consume(value[], release(value))
     }

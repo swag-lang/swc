@@ -8,7 +8,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(120, 60)
-    defer host.shutdown()
 
     var atlas: IconAtlas
     expect atlas.setup(#raw """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect x="4" y="4" width="16" height="16" fill="black"/></svg>""")
@@ -18,8 +17,8 @@ using Swag, Core, Pixel
 
     let small     = icons.icon(0, 16, 1)
     let large     = icons.icon(0, 24, 1)
-    let smallList = small.imageList!
-    let largeList = large.imageList!
+    let smallList = unwrap small.imageList
+    let largeList = unwrap large.imageList
     discard IconButton.create(&host.root, small, Math.Rectangle{10, 10, 40, 40})
     discard IconButton.create(&host.root, large, Math.Rectangle{65, 10, 40, 40})
     let before = host.render()

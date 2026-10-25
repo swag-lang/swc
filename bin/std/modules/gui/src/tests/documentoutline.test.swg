@@ -197,7 +197,7 @@ using Core, Pixel
 // produce the same top-left page coordinates as the displayed content.
 #test
 {
-    let path    = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/document-outline.pdf")
+    let path    = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/document-outline.pdf")
     var reader  = expect Pdf.Reader.open(path)
     let outline = reader.loadOutline()
     Swag.assert(outline.count == 4)

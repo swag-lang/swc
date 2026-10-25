@@ -112,7 +112,7 @@ impl Driver
     {
         Swag.assert(not .isCreated)
         .driverIsClosing     = false
-        .allocationAllocator = (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)!
+        .allocationAllocator = unwrap (Swag.getContext().defaultAllocator orelse Swag.getContext().allocator)
 
         // Every driver-owned collection can be mutated on one thread and released
         // on another, so all of them use the engine's stable allocator.

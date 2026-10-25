@@ -14,7 +14,7 @@ struct PageCommitShared
 
 func pageCommitWorker(thread: const *Threading.Thread)
 {
-    let shared = cast(*PageCommitShared, thread.userParam!)
+    let shared = cast(*PageCommitShared, unwrap thread.userParam)
     discard Swag.atomicAdd(&shared.ready, 1)
     while Swag.atomicLoad(&shared.start) == 0 do
         Threading.Thread.yield()

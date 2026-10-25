@@ -83,10 +83,10 @@ func notNullRedundant(node: *NotNullNode?)->s32
     return node.value
 }
 
-// A bare unwrap binds the proven value; nothing needs to follow the '!'.
+// 'unwrap' binds the proven value without a following access.
 func notNullBinding()->s32
 {
-    let node = notNullGet()!
+    let node = unwrap notNullGet()
     return node.value
 }
 
@@ -143,12 +143,11 @@ func notNullWriteThroughRef(box: *NotNullBox, newValue: s32)
 // A cast whose source is asserted first: the assertion binds tighter than the cast.
 func notNullCastOperand(raw: *void?)->s32
 {
-    let typed = cast(*NotNullNode, raw!)
+    let typed = cast(*NotNullNode, unwrap raw)
     return typed.value
 }
 
-// Rule C: a '!' after an error-management keyword asserts its RESULT, not the
-// fallible call, which is what the keyword already swallowed.
+// 'unwrap' asserts the successful result after error management.
 func notNullFallible(fails: bool)->*NotNullNode? fail
 {
     if fails do
@@ -156,7 +155,7 @@ func notNullFallible(fails: bool)->*NotNullNode? fail
     return &g_notNullNode
 }
 
-func notNullAfterExpect()->s32 => (expect notNullFallible(false)!).value
+func notNullAfterExpect()->s32 => (unwrap expect notNullFallible(false)).value
 
 // An assignment through '!.' writes to the proven storage.
 func notNullAssign(newValue: s32)

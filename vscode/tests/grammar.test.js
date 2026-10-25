@@ -119,3 +119,11 @@ test('the language reference catalog covers all compiler keywords and intrinsics
         /TokenIdKindE::(?:Keyword|Type|Modifier|Compiler|Intrinsic)\b/.test(flags) && !catalog.has(spelling));
     assert.deepEqual(missing, []);
 });
+
+test('unwrap is a keyword while longer identifiers keep their own scope', () => {
+    const line = 'let value = unwrap nullable';
+    assert.ok(scopesAt(line, line.indexOf('unwrap')).includes('keyword'));
+    for (const identifier of ['unwrapKey', 'unwrapped', 'unwrapValue']) {
+        assert.ok(!scopesAt(identifier, 0).includes('keyword'), identifier);
+    }
+});

@@ -20,13 +20,13 @@ impl Rack
 
     mtd const opIndexPtr(index: u64)->const *T
     {
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         return buffer + index
     }
 
     mtd opIndexPtr(index: u64)->*T
     {
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         return buffer + index
     }
 
@@ -35,7 +35,7 @@ impl Rack
     {
         if not .count do
             return
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
 
         var scan = buffer - 1
         for idx in .count

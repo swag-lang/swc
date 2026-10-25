@@ -71,7 +71,7 @@ func(T, V) findSorted(values: const [..] T?, value: V)->u64
     var upper = values.count
     if not upper do
         return Swag.U64.Max
-    let vals = values!
+    let vals = unwrap values
 
     while lower < upper
     {
@@ -98,7 +98,7 @@ func findLinear(values: const [..] u8?, value: u8)->u64
     let count = values.count
     if not count do
         return Swag.U64.Max
-    return findByte((values!).buffer, count, value)
+    return findByte((unwrap values).buffer, count, value)
 }
 
 func(T, V) findLinear(values: const [..] T?, value: V)->u64
@@ -195,7 +195,7 @@ func equals(dst, src: const [..] u8?)->bool
         return false
     if not dst.count do
         return true
-    return Memory.compare((dst!).buffer, (src!).buffer, dst.count) == 0
+    return Memory.compare((unwrap dst).buffer, (unwrap src).buffer, dst.count) == 0
 }
 
 #[Swag.ConstExpr]
@@ -206,8 +206,8 @@ func(T) equals(dst, src: const [..] T?)->bool
     if not dst.count or not src.count do
         return true
 
-    let dstn = dst!
-    let srcn = src!
+    let dstn = unwrap dst
+    let srcn = unwrap src
     for i in dstn.count where dstn[i] != srcn[i] do
         return false
     return true

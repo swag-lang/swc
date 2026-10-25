@@ -8,7 +8,7 @@ internal func loadNativeLibrary(path: string)->const *void fail
     let handle     = LoadLibraryW(nativePath.buffer)
     if not handle do
         try failWinError(GetLastError())
-    return cast(const *void, handle!)
+    return cast(const *void, unwrap handle)
 }
 
 internal func nativeLibrarySymbol(handle: const *void, name: string)->const *void?

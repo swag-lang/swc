@@ -36,7 +36,7 @@ impl HiddenLocator
         {
             var slot = KeySlot.decode(area[keySlotPayloadOffset(index) until (index + 1) * KeySlotSize])
             defer slot.clear()
-            if try slot.unwrap(key, index, master) do
+            if try slot.unwrapKey(key, index, master) do
                 return true
         }
 

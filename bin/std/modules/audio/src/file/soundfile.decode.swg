@@ -46,7 +46,7 @@ impl SoundFile
         }
 
         var codec: CodecPcmToPcm16
-        codec.configure(.encoding, .Pcm16, #typeof(CodecPcmToPcm16), Swag.getContext().allocator!)
+        codec.configure(.encoding, .Pcm16, #typeof(CodecPcmToPcm16), unwrap Swag.getContext().allocator)
         let decoder: ICodec = &codec
         var empty:   u8
         discard try decoder.initialize(&empty, 0)
@@ -85,7 +85,7 @@ private impl SoundFile
         if not descriptor do
             fail UnsupportedFormatError{"unsupported packetized encoding"}
 
-        let allocator   = Swag.getContext().allocator!
+        let allocator   = unwrap Swag.getContext().allocator
         let decoderData = Memory.new(descriptor.type, allocator)
         let decoder     = cast(*Codec, decoderData)
         decoder.configure(.encoding, .Pcm16, descriptor.type, allocator)

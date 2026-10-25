@@ -94,7 +94,7 @@ func testAssertMainMenuGolden(index: u32, golden: string)
     Swag.assert(index < bar.items.count)
     discard host.render(bar)
 
-    let item  = bar.items[index]!
+    let item  = unwrap bar.items[index]
     let local = Math.Point{item.pos + item.size * 0.5, bar.position.height * 0.5}
     var pt    = bar.localToSurface(local)
     bar.surface!.surfaceToScreen(&pt)

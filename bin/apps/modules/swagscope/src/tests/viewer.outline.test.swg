@@ -14,7 +14,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.setup(640, 360)
     var session = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
     let zoom    = assume cast(*MarkdownText.ZoomButton, session.info!.children[0])
-    let outline = zoom.outline!
+    let outline = unwrap zoom.outline
     outline.startMarkdown()
     completeViewerBackgroundLoad(&host, &outline.load)
     Swag.assert(outline.rows.count == 1)
@@ -70,7 +70,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         let view    = assume cast(*OpenDocument.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load)
         Swag.assert(view.failureReason.isEmpty())
-        let outline = view.outline!
+        let outline = unwrap view.outline
         Swag.assert(outline.rows.count == 2)
         outline.list.selectLine(1)
         if index == 0 do
@@ -105,7 +105,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let zoom    = assume cast(*MarkdownText.ZoomButton, window.currentInfo!.children[0])
-    let outline = zoom.outline!
+    let outline = unwrap zoom.outline
     Swag.assert(not outline.load.started)
     outline.toggle.setChecked(true)
     outline.toggle.sigCheckedChanged.call(outline.toggle)
@@ -165,11 +165,11 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     host.setup(640, 360)
-    let path    = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/document-outline.pdf")
+    let path    = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/document-outline.pdf")
     var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, path)
     let view    = assume cast(*PdfDocument.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load)
-    let outline = view.outline!
+    let outline = unwrap view.outline
     Swag.assert(outline.rows.count == 4 and outline.rows[1].level == 1 and not outline.rows[0].canExpand())
     view.pdfView.setZoom(1)
     outline.list.selectLine(1)

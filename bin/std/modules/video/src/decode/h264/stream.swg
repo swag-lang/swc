@@ -410,7 +410,7 @@ impl AvcStream
         {
             if .pending[index].rank < rank
             {
-                .decoders[0].releaseFrame(.pending[index].frame!)
+                .decoders[0].releaseFrame(unwrap .pending[index].frame)
                 .pending.removeAt(index)
                 continue
             }
@@ -594,7 +594,7 @@ impl AvcStream
         {
             for index in .pending.count where .pending[index].rank == wanted
             {
-                let frame = .pending[index].frame!
+                let frame = unwrap .pending[index].frame
                 .pending.removeAt(index)
                 .nextRank    = wanted + 1
                 .decodeLimit = Swag.U64.Max
@@ -637,7 +637,7 @@ impl AvcStream
     mtd releasePending()
     {
         for entry in .pending do
-            .decoders[0].releaseFrame(entry.frame!)
+            .decoders[0].releaseFrame(unwrap entry.frame)
         .pending.clear()
     }
 }

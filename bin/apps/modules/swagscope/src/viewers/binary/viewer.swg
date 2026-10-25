@@ -227,7 +227,7 @@ impl Panel
         {
             let open = index < .restoreExpanded.count ? .restoreExpanded[index] : row.open
             if open and not row.level and .rowLines[index] do
-                .list.expand(.rowLines[index]!)
+                .list.expand(unwrap .rowLines[index])
         }
 
         .restoreExpanded.clear()
@@ -241,7 +241,7 @@ impl Panel
         for row, index in .doc.report.rows where row.level and .rowLines[index] do
             .rowLines[index]!.expanded = true
         for row, index in .doc.report.rows where not row.level and .rowLines[index] do
-            .list.expand(.rowLines[index]!)
+            .list.expand(unwrap .rowLines[index])
     }
 
     // Selects again the row that was selected before the tree was rebuilt.

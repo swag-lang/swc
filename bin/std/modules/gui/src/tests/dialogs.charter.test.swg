@@ -53,7 +53,7 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
 
     // The body keeps one inset, the same on all four sides, and the box owns it rather than
     // each dialog restating it.
-    let body = dlg.contentView!
+    let body = unwrap dlg.contentView
     Swag.assert(Math.abs(body.padding.x - bodyInset) < 0.5)
     Swag.assert(Math.abs(body.padding.y - bodyInset) < 0.5)
     Swag.assert(Math.abs(body.padding.z - bodyInset) < 0.5)
@@ -125,8 +125,8 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
     fb.applyLayout()
 
     let list = fb.listCtrl
-    let bar  = fb.backButton.parent!
-    let form = fb.editFile.parent!
+    let bar  = unwrap fb.backButton.parent
+    let form = unwrap fb.editFile.parent
 
     Swag.assert(Math.abs(list.position.x - (bar.position.x + bar.padding.x)) < 0.5)
     Swag.assert(Math.abs(list.position.x - (form.position.x + form.padding.x)) < 0.5)

@@ -157,15 +157,15 @@ impl Undo
     // pixels under them, so a move or a background change re-renders those too.
     mtd invalidateFormCaches()
     {
-        let capture = .capture!
+        let capture = unwrap .capture
         switch .kind
         {
         case .MoveBaseForm:
-            if .newSizeX != 0 or .newSizeY != 0 or Swag.kindOf(.baseForm!) == FormImage do
-                capture.invalidateFormCache(.baseForm!)
+            if .newSizeX != 0 or .newSizeY != 0 or Swag.kindOf(unwrap .baseForm) == FormImage do
+                capture.invalidateFormCache(unwrap .baseForm)
 
         case .MovePoint:
-            capture.invalidateFormCache(.baseForm!)
+            capture.invalidateFormCache(unwrap .baseForm)
 
         case .OffsetSelection, .AlignLeft, .AlignCenter,
              .AlignRight, .AlignTop, .AlignMiddle, .AlignBottom:
@@ -214,7 +214,7 @@ impl Undo
     // Saves what the command will change, before it runs for the first time.
     mtd init()
     {
-        let capture = .capture!
+        let capture = unwrap .capture
         switch .kind
         {
         case .RestoreOrg:
@@ -299,7 +299,7 @@ impl Undo
                     continue
                 let mdlType = .mdlType orelse #typeof(FormShape)
                 let storage = Memory.new(mdlType)
-                let view    = Swag.makeInterface(storage, mdlType, IForm)!
+                let view    = unwrap Swag.makeInterface(storage, mdlType, IForm)
                 let save    = assume cast(*BaseForm, view)
                 itf.copy(save, form)
                 .oldForm.add(save)
@@ -371,7 +371,7 @@ impl Undo
     {
         mtd removeSelection()
         {
-            let capture = .capture!
+            let capture = unwrap .capture
             .toFreeForms.clear()
             .selection.sort()
             var offset = 0
@@ -393,7 +393,7 @@ impl Undo
         {
             if srcIdx == dstIdx do
                 return
-            let capture = .capture!
+            let capture = unwrap .capture
             let form    = capture.forms[srcIdx]
             capture.forms.removeAtOrdered(srcIdx)
             capture.forms.insertAt(dstIdx, form)
@@ -401,7 +401,7 @@ impl Undo
             capture.selection.add(dstIdx)
         }
 
-        let capture = .capture!
+        let capture = unwrap .capture
 
         switch #complete .kind
         {
@@ -644,7 +644,7 @@ impl Undo
     // Puts back what `doIt` changed.
     mtd undoIt()
     {
-        let capture = .capture!
+        let capture = unwrap .capture
 
         switch #complete .kind
         {

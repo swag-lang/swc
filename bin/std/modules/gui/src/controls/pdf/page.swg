@@ -338,7 +338,7 @@ internal impl Page
     // between steps.
     mtd prepareClipPath(index: u64, scale: f32, preparer: *Pixel.FillPreparer)
     {
-        let clip = .clipPaths[index]!
+        let clip = unwrap .clipPaths[index]
         preparer.prepare(&clip.path, scale, clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero)
     }
 
@@ -367,7 +367,7 @@ internal impl Page
             // page as the image is wide in points.
             if item.clipPath != InvalidClipPath
             {
-                let clip = .clipPaths[item.clipPath]!
+                let clip = unwrap .clipPaths[item.clipPath]
                 preparer.prepare(&item.imageClip, scale * unitSquareScale(item.transform), clip.evenOdd ? PathFillRule.EvenOdd : PathFillRule.NonZero)
             }
         }

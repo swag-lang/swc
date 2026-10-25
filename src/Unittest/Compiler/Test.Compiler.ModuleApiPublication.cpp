@@ -933,7 +933,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLin
     ApiPublicationTestDirectory directory("WorkspaceParseBeforeLink");
     constexpr std::string_view  providerSetup  = R"(#run
 {
-    with let cfg = Swag.compiler().getBuildCfg()!
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
     {
         .moduleNamespace = "Provider"
         .backendKind = .SharedLibrary
@@ -943,7 +943,7 @@ SWC_FILESYSTEM_TEST_BEGIN(Workspace_ParsesDependentBeforeJoiningItsDependencyLin
     constexpr std::string_view  consumerSetup  = R"(#import("provider")
 #run
 {
-    with let cfg = Swag.compiler().getBuildCfg()!
+    with let cfg = unwrap Swag.compiler().getBuildCfg()
     {
         .moduleNamespace = "Consumer"
         .backendKind = .SharedLibrary

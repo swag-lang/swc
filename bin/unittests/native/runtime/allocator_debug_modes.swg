@@ -52,7 +52,7 @@ func makeDebugModeAllocator(alloc: *Allocator, electricMode: bool = false, track
     Swag.assert(alloc.firstAlloc != null)
 
     let header   = cast(*AllocatorHeader, (cast([*] u8, req.address) - #sizeof(AllocatorHeader)))
-    let tracking = header.tracking!
+    let tracking = unwrap header.tracking
     Swag.assert(header == alloc.firstAlloc)
     Swag.assert(tracking.stackCount == 0)
 

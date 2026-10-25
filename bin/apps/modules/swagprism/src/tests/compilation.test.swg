@@ -46,7 +46,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 {
     var cache:   Pipeline.CompilationCache
     var request: Pipeline.BuildRequest = {source: "func sum(a, b: s32)->s32 => a + b", stage: "pre-emit"}
-    request.settings.configuration = "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.safetyGuards = .All; cfg.backend.inlineMode = .Never }"
+    request.settings.configuration = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.safetyGuards = .All; cfg.backend.inlineMode = .Never }"
     scope
     {
         var guarded = cache.acquire(request)
@@ -54,7 +54,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
         Swag.assert(guarded.artifact!.result.text.contains("safetyPanic"))
     }
 
-    request.settings.configuration = "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.safetyGuards = .None }"
+    request.settings.configuration = "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.safetyGuards = .None }"
     scope
     {
         var unguarded = cache.acquire(request)
@@ -246,7 +246,7 @@ func waitBuild(lease: *Pipeline.BuildLease)
 // per statement, the nested block indented, and the closing brace ending the last line.
 #test
 {
-    Swag.assert(Pipeline.BuildRequest.ModuleTemplate == "%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = Swag.compiler().getBuildCfg()!\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n")
+    Swag.assert(Pipeline.BuildRequest.ModuleTemplate == "%\n#run { Swag.compiler().getBuildCfg()!.backend.optimLevel = .O% }\n%\n#run\n{\n    with let cfg = unwrap Swag.compiler().getBuildCfg()\n    {\n        .backendKind = .%\n        .publishDependencies = true\n    }\n}\n")
 }
 
 // A snippet that reaches into `core` still reaches the compiler with the import the scan asked for.

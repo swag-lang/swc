@@ -346,7 +346,7 @@ impl QuickWnd
         if result == "0" and btn
         {
             let qbtn = assume cast(*QuickButton, btn)
-            .currentStyle!.remove(qbtn.formItf!)
+            .currentStyle!.remove(unwrap qbtn.formItf)
             qbtn.destroy()
             .updateQuickStyles(forceRebuild: true)
         }
@@ -804,7 +804,7 @@ impl QuickWnd
         if not .currentStyle do
             return
 
-        if MessageDlg.confirm(.surface!, appStrings().msg_ResetStyles) != MessageDlg.BtnYes do
+        if MessageDlg.confirm(unwrap .surface, appStrings().msg_ResetStyles) != MessageDlg.BtnYes do
             return
 
         .currentStyle.clear()
@@ -868,10 +868,10 @@ impl QuickWnd
     func paintPreset(painter: *Painter, btnp: *QuickButton)
     {
         painter.setParams(.Antialiased)
-        var paintForm = QuickStylePaintForm.create(btnp.formItf!)
+        var paintForm = QuickStylePaintForm.create(unwrap btnp.formItf)
         defer paintForm.release()
 
-        Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, paintForm.itf!, zoom: 1, quickMode: true)
+        Capture.paintForm(painter, {}, {0, 0, QuickCellSize, QuickCellSize}, unwrap paintForm.itf, zoom: 1, quickMode: true)
     }
 
     // Adds the cell of one preset; checking it applies the preset to the tool and to the selection.
@@ -901,10 +901,10 @@ impl QuickWnd
 
             let quickBtn = assume cast(*QuickButton, button)
             let quick    = quickBtn.quickWnd
-            let it       = quickBtn.formItf!
+            let it       = unwrap quickBtn.formItf
             quick.main.updateModel(it)
 
-            let capture = quick.main.getCapture()!
+            let capture = unwrap quick.main.getCapture()
             if not capture.selection.isEmpty()
             {
                 with let undo = capture.newUndo(.SetFormFromModel)

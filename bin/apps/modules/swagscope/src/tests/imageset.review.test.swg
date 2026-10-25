@@ -6,7 +6,7 @@ using Core, Pixel, Gui, Viewers
 #[Swag.TestTag("golden")]
 #test
 {
-    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/imageset-real-review.webp")
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/imageset-real-review.webp")
     var host: Testing.HeadlessHost
     host.setup(1000, 760)
     var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)

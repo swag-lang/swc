@@ -54,7 +54,7 @@ impl RecursiveAssocTable
 
         let oldTable    = .table
         let oldCapacity = .capacity
-        let newTable    = cast([*] RecursiveAssocEntry'(K, V), (testAlloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!)
+        let newTable    = cast([*] RecursiveAssocEntry'(K, V), unwrap (testAlloc(oldCapacity * #sizeof(RecursiveAssocEntry'(K, V)))))
         .table = newTable
 
         for i in oldCapacity
@@ -95,7 +95,7 @@ impl RecursiveAssocTable
         let oldTable    = .table
         let oldCapacity = .capacity
 
-        let newTable = cast([*] RecursiveAssocEntry'(K, V), (testAlloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V))))!)
+        let newTable = cast([*] RecursiveAssocEntry'(K, V), unwrap (testAlloc(reqCapacity * #sizeof(RecursiveAssocEntry'(K, V)))))
         .table    = newTable
         .count    = 0
         .deleted  = 0
@@ -123,7 +123,7 @@ impl RecursiveAssocTable
     {
         .grow()
 
-        let table = .table!
+        let table = unwrap .table
         var index = hashVal % .capacity
         while table[index].hash >= 2
         {
@@ -220,8 +220,8 @@ struct RecursiveAssocNode
     Swag.assert(assocMap.contains(10))
     Swag.assert(assocMap.contains(20))
 
-    let foundA = assocMap.tryFind(10)!
-    let foundB = assocMap.tryFind(20)!
+    let foundA = unwrap assocMap.tryFind(10)
+    let foundB = unwrap assocMap.tryFind(20)
     Swag.assert(foundA.value.count == 1)
     Swag.assert(foundB.value.count == 1)
     Swag.assert(foundA.value.first == &nodeA)
@@ -244,8 +244,8 @@ struct RecursiveAssocNode
     Swag.assert(assocCopy.contains(10))
     Swag.assert(assocCopy.contains(20))
 
-    let copyA = assocCopy.tryFind(10)!
-    let copyB = assocCopy.tryFind(20)!
+    let copyA = unwrap assocCopy.tryFind(10)
+    let copyB = unwrap assocCopy.tryFind(20)
     Swag.assert(copyA.value.count == 1)
     Swag.assert(copyB.value.count == 1)
     Swag.assert(copyA.value.first == &nodeA)

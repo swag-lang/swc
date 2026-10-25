@@ -131,7 +131,7 @@ using Swag, Core
     splitter.addPane(pane0)
     splitter.addPane(pane1, 100)
 
-    let pane0It = splitter.items[0]!
+    let pane0It = unwrap splitter.items[0]
     pane0It.minimumSize = 20
     splitter.setPaneSize(0, -50)
     Swag.assert(pane0It.size >= 20)

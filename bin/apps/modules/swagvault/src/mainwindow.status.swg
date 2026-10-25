@@ -113,8 +113,8 @@ impl MainWindow
     mtd showError(message: string, err: any? = null)
     {
         if err == null do
-            MessageDlg.error(.surface!, message)
+            MessageDlg.error(unwrap .surface, message)
         else do
-            MessageDlg.error(.surface!, Format.toString("%\n\n%", message, caughtMessage(err)))
+            MessageDlg.error(unwrap .surface, Format.toString("%\n\n%", message, caughtMessage(err)))
     }
 }

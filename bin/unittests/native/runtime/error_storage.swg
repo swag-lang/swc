@@ -14,7 +14,7 @@ func copyStoredText(text: string)->string
     var request: AllocatorRequest
     request.size = text.count
     allocator.alloc(&request)
-    let bytes = cast([*] u8, request.address!)
+    let bytes = cast([*] u8, unwrap request.address)
     Swag.memcpy(bytes, text.buffer, text.count)
     return Swag.makeString(bytes, text.count)
 }

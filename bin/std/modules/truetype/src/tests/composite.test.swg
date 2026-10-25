@@ -6,7 +6,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     let glyphIndex = face.glyphIndex(0x00E9)
     Swag.assert(glyphIndex > 0)

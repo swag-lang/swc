@@ -15,7 +15,7 @@ impl HeapFieldAddressTable
     #[Swag.NoInline]
     mtd valueAddr()->*s32
     {
-        let slots = .entries!
+        let slots = unwrap .entries
         return &slots[0].value
     }
 }
@@ -26,12 +26,12 @@ var heapFieldAddressSaved: *s32?
 {
     var request: Swag.AllocatorRequest
     request.size = #sizeof(HeapFieldAddressEntry)
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     allocator.alloc(&request)
     defer allocator.free(&request)
 
     var table: HeapFieldAddressTable
-    table.entries          = cast([*] HeapFieldAddressEntry, request.address!)
+    table.entries          = cast([*] HeapFieldAddressEntry, unwrap request.address)
     table.entries[0].value = 41
     heapFieldAddressSaved  = table.valueAddr()
     Swag.assert(heapFieldAddressSaved![] == 41)

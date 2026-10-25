@@ -18,7 +18,7 @@ func idleThread(_: const *Threading.Thread) {}
 
 func waitManyThread(th: const *Threading.Thread)
 {
-    let payload = cast(*WaitManyPayload, th.userParam!)
+    let payload = cast(*WaitManyPayload, unwrap th.userParam)
     if payload.sleepMs != 0 do
         Sleep(payload.sleepMs)
     Atomic.add(payload.doneCount, 1)

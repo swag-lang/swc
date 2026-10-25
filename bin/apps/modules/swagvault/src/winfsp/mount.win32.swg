@@ -109,7 +109,7 @@ namespace WinFsp
                 fail volumeError(.DriverUnavailable, statusBits(createStatus))
             }
 
-            let fileSystem = .fileSystem!
+            let fileSystem = unwrap .fileSystem
             fileSystem.userContext = .context
 
             // WinFsp keeps namespace mutations ordered while reads and file I/O may proceed on

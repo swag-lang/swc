@@ -42,7 +42,7 @@ internal impl IWnd for PropertiesView
             let contentW = .ed.listContentWidthFromUseful(cw)
             for itemIt in .ed.items
             {
-                let item = itemIt!
+                let item = unwrap itemIt
                 item.line.maxSize.x = cw
                 if item.label != null do
                     item.label.position.width = contentW
@@ -56,7 +56,7 @@ internal impl IWnd for PropertiesView
         var lastItem: *PropertiesItem?
         for itemIt in .ed.items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if item.label != null do
                 item.label.updateAutomaticHeight()
             if item.labelDesc != null do

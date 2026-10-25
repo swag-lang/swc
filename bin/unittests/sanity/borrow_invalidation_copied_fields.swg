@@ -70,7 +70,7 @@ func borrowFieldIdentity(value: *s32?)->*s32? => value
     var cache: BorrowFieldCache
     cache.reserve(1)
     cache.set(&value)
-    let entry     = cache.entry()!
+    let entry     = unwrap cache.entry()
     let copied    = entry.value
     let forwarded = borrowFieldIdentity(entry.value)
     cache.reserve(2)
@@ -81,7 +81,7 @@ func borrowFieldIdentity(value: *s32?)->*s32? => value
 // Copying a field must not change the original accessor snapshot shared by entry.
 func borrowFieldRejectEntry(cache: *BorrowFieldCache)->s32
 {
-    let entry  = cache.entry()!
+    let entry  = unwrap cache.entry()
     let copied = entry.value
     Swag.assert(copied != null)
     cache.reserve(2)     // swc-expected-error {{sanity_err_borrow_invalidated}}
@@ -90,7 +90,7 @@ func borrowFieldRejectEntry(cache: *BorrowFieldCache)->s32
 
 func borrowFieldRejectForwardedSlot(cache: *BorrowFieldCache)->s32
 {
-    let entry = cache.entry()!
+    let entry = unwrap cache.entry()
     let slot  = borrowFieldIdentity(&entry.marker)
     cache.reserve(2)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return slot![]
@@ -102,7 +102,7 @@ func borrowFieldCacheIdentity(cache: *BorrowFieldCache)->*BorrowFieldCache => ca
 // The accessor can sit between storage-preserving calls on either side.
 func borrowFieldRejectForwardedOwner(cache: *BorrowFieldCache)->s32
 {
-    let entry = borrowFieldCacheIdentity(cache).entry()!
+    let entry = unwrap borrowFieldCacheIdentity(cache).entry()
     let slot  = borrowFieldIdentity(&entry.marker)
     cache.reserve(2)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return slot![]
@@ -186,7 +186,7 @@ func borrowFieldRejectDirectNestedView(cache: *BorrowFieldCache)->s32
 
 func borrowFieldRejectCopyFirst(cache: *BorrowFieldCache, chooseSlot: bool)->s32
 {
-    let entry   = cache.entry()!
+    let entry   = unwrap cache.entry()
     var pointer = entry.value
     if chooseSlot do pointer = &entry.marker
     cache.reserve(2)     // swc-expected-error {{sanity_err_borrow_invalidated}}
@@ -195,7 +195,7 @@ func borrowFieldRejectCopyFirst(cache: *BorrowFieldCache, chooseSlot: bool)->s32
 
 func borrowFieldRejectSlotFirst(cache: *BorrowFieldCache, chooseCopy: bool)->s32
 {
-    let entry = cache.entry()!
+    let entry = unwrap cache.entry()
     var pointer: *s32? = &entry.marker
     if chooseCopy do pointer = entry.value
     cache.reserve(2)     // swc-expected-error {{sanity_err_borrow_invalidated}}
@@ -205,7 +205,7 @@ func borrowFieldRejectSlotFirst(cache: *BorrowFieldCache, chooseCopy: bool)->s32
 #[Swag.NoInline]
 func borrowFieldSelect(cache: *BorrowFieldCache, chooseSlot: bool)->*s32?
 {
-    let entry = cache.entry()!
+    let entry = unwrap cache.entry()
     if chooseSlot do return &entry.marker
     return entry.value
 }

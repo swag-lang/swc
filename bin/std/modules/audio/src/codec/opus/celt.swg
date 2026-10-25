@@ -1647,7 +1647,7 @@ internal impl CeltDecoder
             if dualStereo
             {
                 xcm = .quantBand(&ctx, x, n, b / 2, B, lowband, lm, lowbandOut, 1.0, useScratch, xcm, dec)
-                ycm = .quantBand(&ctx, y!, n, b / 2, B, lowband2, lm, lowbandOut2, 1.0, useScratch, ycm, dec)
+                ycm = .quantBand(&ctx, unwrap y, n, b / 2, B, lowband2, lm, lowbandOut2, 1.0, useScratch, ycm, dec)
             }
             else
             {

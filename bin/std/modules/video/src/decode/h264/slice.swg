@@ -349,8 +349,8 @@ impl Slice
     // Builds both reference lists, section 8.2.4, once the current picture exists.
     mtd buildLists() fail
     {
-        let dec         = .dec!
-        let current     = dec.current!
+        let dec         = unwrap .dec
+        let current     = unwrap dec.current
         let maxFrameNum = 1's32 << dec.sps!.log2MaxFrameNum
 
         // Picture numbers of the short-term references, relative to this slice.
@@ -490,7 +490,7 @@ impl Slice
         if not ops.count do
             return
 
-        let dec         = .dec!
+        let dec         = unwrap .dec
         let maxFrameNum = 1's32 << dec.sps!.log2MaxFrameNum
         let wanted      = .header.refCount[listIndex]
 

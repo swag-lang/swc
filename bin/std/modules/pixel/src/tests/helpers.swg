@@ -28,7 +28,7 @@ func makeTempGifPath()->String  => makeTempImagePath(".gif")
 func makeTempTiffPath()->String => makeTempImagePath(".tif")
 func makeTempIcoPath()->String  => makeTempImagePath(".ico")
 
-func nnBytes(bytes: const [..] u8?)->const [..] u8 => bytes!
+func nnBytes(bytes: const [..] u8?)->const [..] u8 => unwrap bytes
 
 func makeImage(width, height: s32, pf: PixelFormat, buffer: const [..] u8)->Image
 {

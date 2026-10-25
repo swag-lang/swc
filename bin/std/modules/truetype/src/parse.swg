@@ -119,7 +119,7 @@ func parsePost(faceData: *FaceImpl, allowMissing: bool) fail
         try fault(0x94)
     }
 
-    let record    = rec!
+    let record    = unwrap rec
     let postTable = try getSlice(faceData.fontData.toSlice(), record.offset, record.length)
     let format    = try readU32(postTable, 0)
     if format != 0x00010000 and format != 0x00020000 and format != 0x00025000 and format != 0x00030000 do
@@ -164,7 +164,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         try fault(0x92)
     }
 
-    let table     = record!
+    let table     = unwrap record
     let cmapTable = try getSlice(faceData.fontData.toSlice(), table.offset, table.length)
     let count     = try readU16(cmapTable, 2)
 
@@ -210,7 +210,7 @@ func parseCMap(faceData: *FaceImpl, allowMissing: bool) fail
         try fault(0x96)
     }
 
-    faceData.chosenCMap = bestSlice!
+    faceData.chosenCMap = unwrap bestSlice
     faceData.cmapFormat = bestFmt
     faceData.hasCMap    = true
 }
@@ -399,7 +399,7 @@ func familyNameIn(data: const [..] u8, faceIndex: u32)->String fail
 
     // The guard above raises, but "fault" is an ordinary fallible call: nothing marks it as
     // never returning, so the proof has to be stated here.
-    let familyName = decodeBestName(nameTable!, NAME_ID_FAMILY)
+    let familyName = decodeBestName(unwrap nameTable, NAME_ID_FAMILY)
     if familyName.isEmpty() do
         return DEFAULT_FAMILY_NAME
     return familyName
@@ -567,7 +567,7 @@ func parseFace(faceData: *FaceImpl, faceIndex: u32, fallbackFamilyName: string =
     // `glyf` nor the `loca` index into it; everything else it declares is unchanged.
     if faceData.outlineSource == .Cff
     {
-        let record = cffTable!
+        let record = unwrap cffTable
         faceData.cff = parseCffFont(getSlice(data, record.offset, record.length))
     }
     else

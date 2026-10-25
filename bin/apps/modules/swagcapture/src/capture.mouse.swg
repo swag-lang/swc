@@ -381,7 +381,7 @@ impl Capture
         var createdNow = false
         if .firstMouseMove
         {
-            let editView = .editView!
+            let editView = unwrap .editView
             if Math.abs(newPosX) <= 3 and Math.abs(newPosY) <= 3 and editView.main.editMode != .Step do
                 return true
             .firstMouseMove = false
@@ -451,7 +451,7 @@ impl Capture
         var result: retval
         if .forms.isEmpty() do
             return result
-        let editView = .editView!
+        let editView = unwrap .editView
         for i in reversed(.forms.count)
         {
             let f = .forms[i]

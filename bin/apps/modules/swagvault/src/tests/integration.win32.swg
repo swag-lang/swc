@@ -56,8 +56,8 @@ namespace Integration
         var interfaceId = Win32.GUID{0x947AAB5F, 0x0A5C, 0x4C13, [0xB4, 0xD6, 0x4B, 0xF7, 0x83, 0x6F, 0xC9, 0xF8]}
         var raw: Win32.LPVOID
         verify(Win32.CoCreateInstance(&classId, null, Win32.CLSCTX_INPROC_SERVER, &interfaceId, &raw) >= 0, "Windows must create the Shell file operation")
-        let operation = cast(*IFileOperation, raw!)
-        defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown, raw!))
+        let operation = cast(*IFileOperation, unwrap raw)
+        defer discard (operation.lpVtbl.base.Release)(cast(*Win32.IUnknown, unwrap raw))
 
         var idLists: Array'PIDLIST_ABSOLUTE
         defer
@@ -86,7 +86,7 @@ namespace Integration
         const Flags = 0x0004'u32 | 0x0008 | 0x0010 | 0x0400 | 0x00100000 | 0x00200000
         verify((operation.lpVtbl.SetOperationFlags)(operation, Flags) >= 0, "the Shell must accept the batch rename options")
         let name16 = Utf16.toZeroTerminated(name)
-        verify((operation.lpVtbl.RenameItems)(operation, cast(*IUnknown, cast(*void, items!)), name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
+        verify((operation.lpVtbl.RenameItems)(operation, cast(*IUnknown, cast(*void, unwrap items)), name16.storage()) >= 0, "the Shell must queue every file under the same requested name")
         verify((operation.lpVtbl.PerformOperations)(operation) >= 0, "the Shell must complete the batch rename")
         var aborted: s32
         verify((operation.lpVtbl.GetAnyOperationsAborted)(operation, &aborted) >= 0 and not aborted, "the Shell must not skip any batch rename")
@@ -255,7 +255,7 @@ namespace Integration
         {
             if not .mountedActive do
                 return
-            let mounted = .mounted!
+            let mounted = unwrap .mounted
             var closeErrorOutcome: Swag.Error
             discard catch mounted.close() as closeErrorOutcome
             Memory.delete(mounted)
@@ -268,7 +268,7 @@ namespace Integration
         {
             if .mountedActive
             {
-                let mounted = .mounted!
+                let mounted = unwrap .mounted
                 discard catch mounted.close()
                 Memory.delete(mounted)
                 .mounted       = null
@@ -590,7 +590,7 @@ namespace Integration
         defer discard FreeLibrary(module)
         let address = GetProcAddress(module, ("FspSxsIdent").buffer)
         try verify(address != null, "WinFsp must expose its active SxS identity")
-        let readIdentity = cast(FspSxsIdentFn, address!)
+        let readIdentity = cast(FspSxsIdentFn, unwrap address)
         let identity     = readIdentity()
         var count        = 0'u64
         while count < 32 and identity[count] do
@@ -611,8 +611,8 @@ namespace Integration
 
         let firstIdentity  = stagedRuntimeIdentity(first)
         let secondIdentity = stagedRuntimeIdentity(second)
-        let expectedFirst  = File.readAllText(Path.combine(Path.directoryName(first)!, "winfsp.sxs"))
-        let expectedSecond = File.readAllText(Path.combine(Path.directoryName(second)!, "winfsp.sxs"))
+        let expectedFirst  = File.readAllText(Path.combine(unwrap Path.directoryName(first), "winfsp.sxs"))
+        let expectedSecond = File.readAllText(Path.combine(unwrap Path.directoryName(second), "winfsp.sxs"))
         verify(firstIdentity == expectedFirst and secondIdentity == expectedSecond, "WinFsp must read the complete staged identities")
         verify(firstIdentity.startsWith("swagvault-") and secondIdentity.startsWith("swagvault-"), "each runtime identity must belong to Swag Vault")
         verify(firstIdentity != secondIdentity, "independent guardians must never share a driver registration")

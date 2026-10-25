@@ -80,7 +80,7 @@ internal impl PropFieldValue
             .isString = true
             .strings.reserve(.n)
             for k in .n do
-                .strings.add(cast(const *String, .addrs[k]!)[])
+                .strings.add(cast(const *String, unwrap .addrs[k])[])
         }
         else
         {
@@ -89,7 +89,7 @@ internal impl PropFieldValue
                 return
             .bytes.resize(.n * .sz)
             for k in .n do
-                Memory.copy(.bytes.storage() + k * .sz, .addrs[k]!, .sz)
+                Memory.copy(.bytes.storage() + k * .sz, unwrap .addrs[k], .sz)
         }
 
         .valid = true
@@ -106,12 +106,12 @@ internal impl PropFieldValue
         if .isString
         {
             for k in .n do
-                cast(*String, .addrs[k]!)[] = .strings[k]
+                cast(*String, unwrap .addrs[k])[] = .strings[k]
         }
         else
         {
             for k in .n do
-                Memory.copy(.addrs[k]!, .bytes.storage() + k * .sz, .sz)
+                Memory.copy(unwrap .addrs[k], .bytes.storage() + k * .sz, .sz)
         }
     }
 
@@ -188,7 +188,7 @@ internal impl Properties
     {
         for i in fromIdx until .items.count
         {
-            let it = .items[i]!
+            let it = unwrap .items[i]
             it.undoValue.capture(me, it)
         }
     }
@@ -244,7 +244,7 @@ internal impl Properties
         // the timeline position we just moved to.
         for it in .items
         {
-            let itn = it!
+            let itn = unwrap it
             itn.undoValue.capture(me, itn)
         }
 
@@ -318,7 +318,7 @@ impl Properties
         .activeUndoMgr().clear()
         for it in .items
         {
-            let itn = it!
+            let itn = unwrap it
             itn.undoValue.capture(me, itn)
         }
     }

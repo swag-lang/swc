@@ -183,7 +183,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     Swag.assert(data.hasImage())
 
     // A picture handed in is the one handed back, with no encode-decode round trip in between.
-    let held = data.image()!
+    let held = unwrap data.image()
     Swag.assert(held.width == 5 and held.height == 3)
 
     data.clear()
@@ -243,7 +243,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     Swag.assert(data.hasImage())
     Swag.assert(data.imageBytes.isEmpty())
 
-    let held = data.image()!
+    let held = unwrap data.image()
     Swag.assert(held.width == 6 and held.height == 4)
     Swag.assert(data.imageBytes.isEmpty())
 

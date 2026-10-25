@@ -78,7 +78,7 @@ public impl MessageDlg
     mtd doModal()->WndId
     {
         .adaptSizeToMessage()
-        .surface!.center(.parentSurface!)
+        .surface!.center(unwrap .parentSurface)
         return Dialog.doModal(me)
     }
 
@@ -100,7 +100,7 @@ public impl MessageDlg
     internal mtd adaptSizeToMessage(maxSurfaceHeight = Swag.F32.Inf)
     {
         let metrics = .themeMetrics()
-        let srf     = .surface!
+        let srf     = unwrap .surface
 
         // The room the message loses to the frame and to the standard body inset, on each side.
         let chrome   = 2 * metrics.dialog_Padding + 2 * metrics.wnd_BorderSize
@@ -155,7 +155,7 @@ public impl MessageDlg
         {
             if not .messageScroll
             {
-                with let scroll = Wnd.create'ScrollWnd(.label.parent!)
+                with let scroll = Wnd.create'ScrollWnd(unwrap .label.parent)
                 {
                     .dockStyle   = .Center
                     .padding     = 0
@@ -235,7 +235,7 @@ public impl MessageDlg
 
         let gap = .themeMetrics().dialog_BtnPadding * 2
         if .labelIcon == null do
-            .labelIcon = Label.create(.label.parent!, "", {0, 0, icon.sizeX + gap, 0})
+            .labelIcon = Label.create(unwrap .label.parent, "", {0, 0, icon.sizeX + gap, 0})
 
         with me.labelIcon
         {

@@ -20,7 +20,7 @@ impl TextReader
     mtd readBuffer() fail
     {
         .byteSeek     = 0
-        .buffer.count = try .stream.read(.buffer.buffer!, .buffer.capacity)
+        .buffer.count = try .stream.read(unwrap .buffer.buffer, .buffer.capacity)
         if not .checkPreamble do
             return
 
@@ -133,7 +133,7 @@ public impl TextReader
         {
             let remainingBytes = .buffer.count - .byteSeek
             result.grow(result.length + remainingBytes)
-            Memory.copy(result.buffer! + result.length, .buffer.buffer! + .byteSeek, remainingBytes)
+            Memory.copy(unwrap result.buffer + result.length, unwrap .buffer.buffer + .byteSeek, remainingBytes)
             result.length += remainingBytes
             try .readBuffer()
         }

@@ -130,25 +130,25 @@ func hasLifecycleShape(type: typeinfo, wantDrop: bool, wantCopy: bool, wantMove:
 
 func runInit(type: typeinfo, value: *void)
 {
-    let op = typeStruct(type).opInit!
+    let op = unwrap typeStruct(type).opInit
     op(value)
 }
 
 func runDrop(type: typeinfo, value: *void)
 {
-    let op = typeStruct(type).opDrop!
+    let op = unwrap typeStruct(type).opDrop
     op(value)
 }
 
 func runCopy(type: typeinfo, value: *void)
 {
-    let op = typeStruct(type).opPostCopy!
+    let op = unwrap typeStruct(type).opPostCopy
     op(value)
 }
 
 func runMove(type: typeinfo, value: *void)
 {
-    let op = typeStruct(type).opPostMove!
+    let op = unwrap typeStruct(type).opPostMove
     op(value)
 }
 

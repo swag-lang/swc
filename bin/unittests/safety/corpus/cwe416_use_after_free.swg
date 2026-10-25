@@ -266,8 +266,8 @@ func readTableElementAfterFree()->s32
 {
     var table: [4] (*s32?)
     table[0] = cast(*s32, heapAlloc(4))
-    heapFree(table[0]!, 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
-    return table[0]![]         // swc-expected-error {{sanity_err_use_after_free}}
+    heapFree(unwrap table[0], 4)     // swc-expected-note {{sanity_note_pointer_released_here}}
+    return table[0]![]     // swc-expected-error {{sanity_err_use_after_free}}
 }
 
 #test
@@ -295,7 +295,7 @@ func readNestedFieldAfterFree()->s32
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -323,7 +323,7 @@ func conditionalFree(release: bool)->s32
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -356,7 +356,7 @@ func readNestedFieldBeforeFree()->s32
 #test
 {
     let context = Swag.getContext()
-    var heap    = RetainedHeap{base: context.allocator!}
+    var heap    = RetainedHeap{base: unwrap context.allocator}
     context.allocator = &heap
     defer context.allocator = heap.base
 
@@ -424,9 +424,9 @@ func readOtherTableElement()->s32
     table[0]    = cast(*s32, heapAlloc(4))
     table[1]    = cast(*s32, heapAlloc(4))
     table[1]![] = 5
-    heapFree(table[0]!, 4)
+    heapFree(unwrap table[0], 4)
     let value = table[1]![]
-    heapFree(table[1]!, 4)
+    heapFree(unwrap table[1], 4)
     return value
 }
 

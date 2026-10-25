@@ -21,7 +21,7 @@ func reflectedNotify(value: bool)
 #test
 {
     let type       = assume cast(const *Swag.TypeInfoFunc, #typeof(reflectedAdd))
-    let parameters = type.parameters!
+    let parameters = unwrap type.parameters
 
     Swag.assert(parameters.count == 2)
     Swag.assert(parameters[0].name == "left")

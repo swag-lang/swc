@@ -157,7 +157,7 @@ impl Capture
         if y do
             .snapY = -1
 
-        let editView    = .editView!
+        let editView    = unwrap .editView
         let keyboard    = &editView.app().keyboard
         let ctrlPressed = keyboard.isKeyPressed(.Control)
         if not editView.main.snap and not ctrlPressed do

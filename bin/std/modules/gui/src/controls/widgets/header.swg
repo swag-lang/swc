@@ -303,7 +303,7 @@ private impl Header
         var x = .padding.x
         for itemIt, idx in .items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if pos.x >= x and pos.x < x + item.width do
                 return {cast(u32, idx), false}
             x += item.width
@@ -376,7 +376,7 @@ impl Header
     mtd const itemAt(index: u32)->*HeaderItem
     {
         Swag.assert(index < .items.count)
-        return .items[index]!
+        return unwrap .items[index]
     }
 
     // Returns the item for one logical column identifier.
@@ -407,7 +407,7 @@ impl Header
 
         for itemIt in .items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if item.column == column do
                 return item.width
         }
@@ -431,7 +431,7 @@ impl Header
         let m = .themeMetrics().header_Separator
         for itemIt in .items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if item.column == column do
                 return x
             x += item.width + m
@@ -483,7 +483,7 @@ impl Header
         Swag.assert(index < .items.count)
         Swag.assert(minimum >= 0)
         Swag.assert(maximum == 0 or maximum >= minimum)
-        let item = .items[index]!
+        let item = unwrap .items[index]
         item.minimumWidth = minimum
         item.maximumWidth = maximum
         .setItemWidth(index, item.width)

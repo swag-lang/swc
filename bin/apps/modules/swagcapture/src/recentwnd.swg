@@ -73,7 +73,7 @@ impl RecentView
         // Save current zoom
         if .selected < .items.count
         {
-            let sel = .items[.selected]!
+            let sel = unwrap .items[.selected]
             sel.zoom = view.zoom
         }
 
@@ -84,7 +84,7 @@ impl RecentView
         if previousCapture do
             .main.saveCapture(previousCapture)
         view.setCapture(capture)
-        let item = .items[idx]!
+        let item = unwrap .items[idx]
         if item.zoom == 0 do
             view.zoomToFit(false)
         else do
@@ -107,7 +107,7 @@ impl RecentView
         }
 
         // Select new recent item
-        let item = .items[idx]!
+        let item = unwrap .items[idx]
 
         // A background save of this same file may still be writing; loading now would
         // read the previous version.
@@ -276,7 +276,7 @@ impl IWnd for RecentView
         var x = clientRect.x
         for item, idx in .items
         {
-            let it = item!
+            let it = unwrap item
             let w  = clientRect.height * 4.0 / 3
 
             let rect = Math.Rectangle{x, clientRect.y, w, clientRect.height}
@@ -349,7 +349,7 @@ impl IWnd for RecentWnd
             return
         let failedSave = g_CaptureSaves.collect()
         if not failedSave.isEmpty() do
-            MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, failedSave))
+            MessageDlg.error(unwrap .main.surface, Format.toString(appStrings().msg_FailedSaveCapture, failedSave))
 
         let capture = .main.editWnd.getCapture()
         if capture and capture.changed
@@ -365,7 +365,7 @@ impl IWnd for RecentWnd
             if .recentView.selected < .recentView.items.count
             {
                 capture.computePreview()
-                let item = .recentView.items[.recentView.selected]!
+                let item = unwrap .recentView.items[.recentView.selected]
                 .app().renderer.removeTexture(&item.preview)
                 item.preview = .app().renderer.addImage(capture.preview)
                 .invalidate()
@@ -375,7 +375,7 @@ impl IWnd for RecentWnd
                 // The snapshot happens now; a worker produces the file and
                 // atomically replaces it, and the next tick collects the outcome.
                 catch capture.scheduleSave() do
-                    MessageDlg.error(.main.surface!, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
+                    MessageDlg.error(unwrap .main.surface, Format.toString(appStrings().msg_FailedSaveCapture, capture.file))
                 return
             }
         }
@@ -517,7 +517,7 @@ impl RecentWnd
         if not capture do
             return
 
-        with let item = .recentView.items[.recentView.selected]!
+        with let item = unwrap .recentView.items[.recentView.selected]
         {
             .linked         = capture.linkedImage
             .linkedUpToDate = capture.linkedUpToDate
@@ -531,7 +531,7 @@ impl RecentWnd
         if .recentView.selected >= .recentView.items.count do
             return
 
-        let item = .recentView.items[.recentView.selected]!
+        let item = unwrap .recentView.items[.recentView.selected]
 
         // Be sure there's no pending save
         .stopTimer(&.timer)
@@ -558,7 +558,7 @@ impl RecentWnd
         // Already there ?
         for it, i in .recentView.items
         {
-            let itn = it!
+            let itn = unwrap it
             if itn.file == file
             {
                 var idxSel = i
@@ -620,7 +620,7 @@ impl RecentWnd
         {
             if .recentView.selected == .recentView.items.count - 1 do
                 .recentView.selected = Swag.U64.Max
-            let back = .recentView.items.back()!
+            let back = unwrap .recentView.items.back()
             .recentView.items.destroy(back)
             .recentView.items.count -= 1
         }

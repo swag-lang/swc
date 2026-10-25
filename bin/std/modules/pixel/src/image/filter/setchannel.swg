@@ -37,7 +37,7 @@ public impl Image
             var alpha = value / 255.0
             .transformLogicalPixels(&alpha)
             {
-                value.a = cast(const *f32, userData!)[]
+                value.a = cast(const *f32, unwrap userData)[]
             }
 
             return
@@ -46,7 +46,7 @@ public impl Image
         var alphaByte = value
         .visitVectorBytes(&alphaByte) #code(block, data)
         {
-            let alphaValue = cast(*u8, data!)
+            let alphaValue = cast(*u8, unwrap data)
             let alphaWord  = cast(u32, alphaValue[]) << 24
             let pixels     = Math.Simd.load(cast([*] u32, block))
             Math.Simd.store(cast([*] u32, block), (pixels & Math.Simd.splat(0x00FF_FFFF'u32)) | Math.Simd.splat(alphaWord))
@@ -86,7 +86,7 @@ public impl Image
             var context = {mode: selectedChannels, valueMode: value, color: color / 255.0}
             .transformLogicalPixels(&context)
             {
-                let params = cast(const *#decltype(context), userData!)[]
+                let params = cast(const *#decltype(context), unwrap userData)[]
                 var channelValue: f32
                 switch #complete params.valueMode
                 {
@@ -134,7 +134,7 @@ public impl Image
             var context = {mask: mask, color: color}
             .visitVectorBytes(&context) #code(block, data)
             {
-                let params      = cast(*#decltype(context), data!)
+                let params      = cast(*#decltype(context), unwrap data)
                 let channelMask = Math.Simd.splat(params.mask)
                 let replacement = cast #bit(Math.Simd.U32x4, Math.Simd.splat(params.color))
                 let pixels      = Math.Simd.load(cast([*] u32, block))

@@ -4,7 +4,7 @@
 using Core, Pixel
 
 // Returns the full path of the fixture `name` in the `datas` folder beside this file.
-func movieFixture(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
+func movieFixture(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
 
 // An animated WebP or APNG advances on its frame durations, honors its encoded loop count, and
 // counts the loops it completes.

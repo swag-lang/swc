@@ -41,7 +41,7 @@ impl IActionUI for ActionAbout
             .copyrightHolder = "Christophe Beaudet"
         }
 
-        discard AboutDlg.createApplication(mainWndOf(cxt).surface!, about).doModal()
+        discard AboutDlg.createApplication(unwrap mainWndOf(cxt).surface, about).doModal()
         return true
     }
 }

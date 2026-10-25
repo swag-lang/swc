@@ -25,7 +25,7 @@ public impl Image
             var context = colorPixelValue(color)
             .transformLogicalPixels(&context)
             {
-                let replacement = cast(const *PixelValue, userData!)[]
+                let replacement = cast(const *PixelValue, unwrap userData)[]
                 if value.a == 0
                 {
                     value.r = replacement.r
@@ -45,7 +45,7 @@ public impl Image
 
         .visitVectorBytes(&replacement) #code(block, data)
         {
-            let replacementWord = cast(*u32, data!)
+            let replacementWord = cast(*u32, unwrap data)
             let pixels          = Math.Simd.load(cast([*] u32, block))
             let replaceMask     = (pixels & Math.Simd.splat(0xFF00_0000'u32)) == Math.Simd.splat(0'u32)
             let result          = (pixels & ~replaceMask) | (Math.Simd.splat(replacementWord[]) & replaceMask)

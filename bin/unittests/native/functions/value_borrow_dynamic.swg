@@ -333,7 +333,7 @@ func lifecycleMutation(value: Thing, target: *Thing, operation: u32)->u64
 #[Swag.NoInline]
 func growInPlace(value: Thing, request: *Swag.AllocatorRequest)->u64
 {
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     allocator.realloc(request)
     return value.value
 }
@@ -341,11 +341,11 @@ func growInPlace(value: Thing, request: *Swag.AllocatorRequest)->u64
 // Capacity growth that keeps the borrowed bytes alive is valid and needs no copy.
 #test
 {
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     var request: Swag.AllocatorRequest
     request.size = #sizeof(Thing)
     allocator.alloc(&request)
-    let address = request.address!
+    let address = unwrap request.address
     defer allocator.free(&request)
     let value = cast(*Thing, address)
     Swag.init(value)

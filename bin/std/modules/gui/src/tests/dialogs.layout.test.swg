@@ -133,7 +133,7 @@ using Swag, Core, Pixel
         contentIcon: icon})
 
     dlg.applyLayout()
-    let surface = dlg.surface!
+    let surface = unwrap dlg.surface
     surface.invalidate()
     surface.paint()
     let rendered = surface.app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)

@@ -107,7 +107,7 @@ impl HtmlLayout
     mtd font(styleIndex: u32)->*Font
     {
         if styleIndex < .fontCache.count and .fontCache[styleIndex] != null do
-            return .fontCache[styleIndex]!
+            return unwrap .fontCache[styleIndex]
 
         let style = &.styles[styleIndex]
         let size  = cast(u32, Math.clamp(Math.round(style.fontSize), 6, 300))

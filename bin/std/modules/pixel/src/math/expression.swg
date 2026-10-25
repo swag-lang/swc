@@ -1131,11 +1131,11 @@ impl MathExpression
         let rootId = .root.id
         for nodeRef in .nodes
         {
-            let node = nodeRef!
+            let node = unwrap nodeRef
             for idx in node.children.count
             {
                 let childId = node.children[idx].id
-                node.children[idx] = .nodes[childId]!
+                node.children[idx] = unwrap .nodes[childId]
             }
 
             // Layout caches contain non-owning text views and are cheap to rebuild.
@@ -1148,7 +1148,7 @@ impl MathExpression
             node.paths.clear()
         }
 
-        .root = .nodes[rootId]!
+        .root = unwrap .nodes[rootId]
     }
 
     // Parses a reusable TeX-like mathematical expression.

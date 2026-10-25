@@ -555,7 +555,7 @@ func createViewer(host: Viewer.Host)
     with var lifecycle: Viewer.LifecycleApi
     {
         .isLoading = func|view|()->bool => view.isLoading()
-        .retire    = func|view|()->bool => cast(*ZoomButton, view.userData!).retire()
+        .retire    = func|view|()->bool => cast(*ZoomButton, unwrap view.userData).retire()
     }
 
     host.setLifecycle(lifecycle)

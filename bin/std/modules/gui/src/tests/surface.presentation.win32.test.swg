@@ -59,7 +59,7 @@ using Core, Pixel, Win32
     Swag.assert(surface.position == Math.Rectangle{60, 50, 420, 280})
 
     let expected = app.renderer.readRenderTarget(&surface.rt, 0, 0, surface.rc.width, surface.rc.height)
-    let pixels   = Swag.makeSlice(cast(const [*] u8, surface.presentationPixels!), expected.byteCount)
+    let pixels   = Swag.makeSlice(cast(const [*] u8, unwrap surface.presentationPixels), expected.byteCount)
     Swag.assert(Slice.equals(pixels, expected.pixels.toSlice()))
 
     button.disable()

@@ -49,7 +49,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     let padding  = window.documentHost.padding
@@ -174,7 +174,7 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/markdown.images.md")
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/markdown.images.md")
     var result   = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
     Swag.assert(result.view != null and result.failureReason.isEmpty())
     let view = assume cast(*Markdown.View, result.view)
@@ -203,8 +203,8 @@ func assertMarkdownImages(themeIndex: u32, dpiScale: f32, golden: string)
 #[Swag.TestTag("golden")]
 #test { assertMarkdownImages(1, 1.5, "viewer.markdown.images.hidpi") }
 
-private func markdownFixturePath()->String       => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/comprehensive.md")
-private func markdownWhiteyFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/whitey.md")
+private func markdownFixturePath()->String       => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/comprehensive.md")
+private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/whitey.md")
 
 // Theme and line width are viewer preferences, not properties of one Markdown file.
 #test

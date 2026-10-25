@@ -60,7 +60,7 @@ impl MainWindow
     func create(parent: *Wnd)->*MainWindow
     {
         let result  = Wnd.create'MainWindow(parent, "prism.mainWindow")
-        let surface = result.surface!
+        let surface = unwrap result.surface
         surface.setView(result)
         result.icons.setup(result.app().renderer, prismIcons())
         surface.minSize        = {MinWidth, MinHeight}
@@ -83,7 +83,7 @@ impl MainWindow
     // Creates the caption's appearance action, which persists the palette and language it applies.
     mtd createAppearanceButton()
     {
-        with .appearanceButton = AppearanceButton.create(.surface!, "prism.appearance")
+        with .appearanceButton = AppearanceButton.create(unwrap .surface, "prism.appearance")
         {
             .sigThemeChanged += func|window = me|(button)
             {
@@ -474,7 +474,7 @@ impl MainWindow
             .copyrightHolder = "Christophe Beaudet"
         }
 
-        discard AboutDlg.createApplication(.surface!, about).doModal()
+        discard AboutDlg.createApplication(unwrap .surface, about).doModal()
     }
 }
 

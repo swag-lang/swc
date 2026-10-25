@@ -27,7 +27,7 @@ func contractAllocator(allocator: *Allocator, electric = false)->IAllocator
     let index   = (cast(u64, blocks[0].address) & 15) != 0 ? 0 : 1
     let request = &blocks[index]
     Swag.assert((cast(u64, request.address) & 15) == 8)
-    let bytes = cast([*] u8, request.address!)
+    let bytes = cast([*] u8, unwrap request.address)
     for i in 8 do bytes[i] = cast(u8, (i + 17))
     request.oldSize   = 8
     request.alignment = 16

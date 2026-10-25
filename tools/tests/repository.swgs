@@ -9,7 +9,7 @@ const SampleReadme = "| File | Area |\n| --- | --- |\n| [repo.sample.md](repo.sa
 // Inspect the actual child command line as well as the arguments handed to its script.
 func checkCoreBoundArguments(prefix: const [..] string, forwarded: const [..] string, added: const [..] string) fail
 {
-    let script = #curlocation.fileName!
+    let script = unwrap #curlocation.fileName
     var arguments: Tool.Arguments
     arguments.add(prefix)
     arguments.add([script, "--check-core-bound-child", "value with spaces"])
@@ -68,7 +68,7 @@ func checkBacklog(root: string, content: string, expectedExit: s32, expectedDiag
     discard try File.writeAllBytes(Path.combine(root, "backlog", domain).toString(), cast(const [..] u8, content))
 
     var arguments: Tool.Arguments
-    arguments.add(["--num-cores", "6", #curlocation.fileName!, root])
+    arguments.add(["--num-cores", "6", unwrap #curlocation.fileName, root])
     let commandLine = Tool.joinArguments(arguments.toSlice())
     let executable  = try Env.Process.currentExecutablePath()
     let process     = try Env.runProcess(executable.toString(), commandLine.toString())
@@ -506,7 +506,7 @@ func checkFormatCoverage() fail
 
     if args.count > 1 and args[1] == "--check-core-bound-child"
     {
-        let native = Win32.GetCommandLineW()!
+        let native = unwrap Win32.GetCommandLineW()
         let line   = Utf8.fromUtf16(Swag.makeSlice(native, Utf16.lengthZeroTerminated(native)))
         Console.println("native arguments: ", line.toString())
         let scriptLine = Env.joinArguments(args[1 until args.count])
@@ -526,7 +526,7 @@ func checkFormatCoverage() fail
         // A process can print a valid marker before failing. Its output is usable only after
         // a successful exit, and a failure must preserve both streams for the report.
         let fonts = Env.realSpecialDirectory(.Font)
-        let shell = Path.combine(Path.directoryName(fonts.toString())!, "System32", "cmd.exe")
+        let shell = Path.combine(unwrap Path.directoryName(fonts.toString()), "System32", "cmd.exe")
         var context: Tool.Context
         context.childEnv = Env.currentEnvironment()
         var success: Tool.Arguments
@@ -595,8 +595,8 @@ func checkFormatCoverage() fail
 
     // A focused tool must reject a configuration sweep it cannot run, rather than silently
     // proving just the default configuration.
-    let testsDir = Path.directoryName(#curlocation.fileName)!
-    let toolsDir = Path.directoryName(testsDir)!
+    let testsDir = unwrap Path.directoryName(#curlocation.fileName)
+    let toolsDir = unwrap Path.directoryName(testsDir)
     var arguments: Tool.Arguments
     arguments.add(["--num-cores", "6", Path.combine(toolsDir, "std.swgs").toString(), "--all-cfg"])
     let commandLine = Tool.joinArguments(arguments.toSlice())
@@ -607,11 +607,11 @@ func checkFormatCoverage() fail
     var relaunched:  Tool.Context
     var noArguments: Array'string
     relaunched.compiler = String.from(executable.toString())
-    let sameCompiler = expect Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true)
+    let sameCompiler = expect Tool.relaunchToolIfNeeded(&relaunched, unwrap #curlocation.fileName, noArguments.toSlice(), true)
     Swag.assert(not sameCompiler.didRun)
     relaunched.compiler = Path.combine(root.toString(), "a-different-compiler.exe")
     var relaunchErrorOutcome: Swag.Error
-    discard catch Tool.relaunchToolIfNeeded(&relaunched, #curlocation.fileName!, noArguments.toSlice(), true) as relaunchErrorOutcome
+    discard catch Tool.relaunchToolIfNeeded(&relaunched, unwrap #curlocation.fileName, noArguments.toSlice(), true) as relaunchErrorOutcome
     let relaunchError = relaunchErrorOutcome.value()
     Swag.assert(relaunchError != null)
     Swag.assert(Utf8.contains(Errors.message(relaunchError), "the relaunched tool is running under"))
@@ -624,7 +624,7 @@ func checkFormatCoverage() fail
     Swag.assert(Utf8.contains(process.standardOutput(), "'--all-cfg' is supported only by build, tests, integrations, and goldens"))
 
     var captureArguments: Tool.Arguments
-    captureArguments.add(["--num-cores", "6", #curlocation.fileName!, "--check-capture"])
+    captureArguments.add(["--num-cores", "6", unwrap #curlocation.fileName, "--check-capture"])
     let captureLine = Tool.joinArguments(captureArguments.toSlice())
     let captured    = expect Env.runProcess(executable.toString(), captureLine.toString())
     Swag.assert(captured.exitCode() == 0, captured.standardOutput())

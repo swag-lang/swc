@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func textViewerFixturePath()->String => Path.combine(Path.combine(Path.directoryName(#curlocation.fileName)!, "datas"), "comprehensive.txt")
+func textViewerFixturePath()->String => Path.combine(Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas"), "comprehensive.txt")
 
 func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {

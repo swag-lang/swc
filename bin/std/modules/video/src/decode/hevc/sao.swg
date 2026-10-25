@@ -47,7 +47,7 @@ impl Decoder
     // Reads the sample adaptive offset parameters of one coding tree block, clause 7.3.8.3.
     mtd readSaoParameters(rx, ry: s32) fail
     {
-        let sps    = .activeSps!
+        let sps    = unwrap .activeSps
         let header = &.header
         let index  = cast(u64, ry) * cast(u64, sps.widthInCtbs) + cast(u64, rx)
 
@@ -151,11 +151,11 @@ impl Decoder
     // storage makes that separation free; each block then writes every destination sample once.
     mtd applySampleAdaptiveOffset()
     {
-        let sps = .activeSps!
+        let sps = unwrap .activeSps
         if not sps.saoEnabled or not .saoUsed do
             return
 
-        let frame = .current!
+        let frame = unwrap .current
         .saoSource.resize(frame.luma.count)
         .saoSourceChromaB.resize(frame.chromaB.count)
         .saoSourceChromaR.resize(frame.chromaR.count)
@@ -177,8 +177,8 @@ impl Decoder
     // Applies one block's offsets to one component, clause 8.7.3.2.
     private mtd applySaoBlock(parameters: const *SaoParameters, component: u32, rx, ry: s32)
     {
-        let sps      = .activeSps!
-        let frame    = .current!
+        let sps      = unwrap .activeSps
+        let frame    = unwrap .current
         let scale    = component == 0 ? 1's32 : 2's32
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
         let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))

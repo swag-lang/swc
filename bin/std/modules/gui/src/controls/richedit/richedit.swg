@@ -136,7 +136,7 @@ private impl RichEditCtrl
         .countVisibleLines = 0
         for i in .lines.count
         {
-            let ln = .lines[i]!
+            let ln = unwrap .lines[i]
             ln.drawingRect.clear()
 
             if ln.isVisible()
@@ -185,12 +185,12 @@ private impl RichEditCtrl
         else do
             p = Memory.new'RichEditLine()
 
-        let pn = p!
+        let pn = unwrap p
         pn.resetInternal()
 
         if .lines.count
         {
-            let insLine = (index == .lines.count ? .lines.back() : .lines[index])!
+            let insLine = unwrap (index == .lines.count ? .lines.back() : .lines[index])
             pn.drawingRect   = insLine.drawingRect
             pn.drawingRect.y += pn.drawingRect.height
         }
@@ -467,7 +467,7 @@ impl RichEditCtrl
         var prev, cur, next: *RichEditLine?
         for i in .lines.count
         {
-            cur  = .lines[i]!
+            cur  = unwrap .lines[i]
             next = i == .lines.count - 1 ? null : .lines[i + 1]
             .lexer.compute(prev, cur, next)
             prev = cur

@@ -91,7 +91,7 @@ new language syntax.
   non-null arguments and constants (`nullable_parameter_widening.swg`). Automatic eligibility
   still excludes nullable value-pointer wrappers with calls or postfix assertions; repeated
   single-site wrappers with nullable block pointers qualify. The inline frame also bounds flow
-  facts so a callee assertion cannot change the caller's subsequent `value!`
+  facts so a callee assertion cannot change the caller's subsequent `unwrap value`
   (`inline_nullable_assert.swg`).
 - Next: evaluate automatic nullable value-pointer eligibility without adding unnecessary homes
   or volunteering one-time setup. Broad nullable eligibility previously added frame

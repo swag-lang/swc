@@ -21,7 +21,7 @@ using Swag
     for i in Count
     {
         let shift   = i & 1 ? AllocatorSmallUnitShift : AllocatorMediumUnitShift
-        let segment = allocatorAcquireSegment(&owner, shift)!
+        let segment = unwrap allocatorAcquireSegment(&owner, shift)
         segments[i] = segment
         let base = cast(u64, segment)
         Swag.assert(allocatorPageOf(base + AllocatorSegmentHeaderBytes) == &segment.pages[0])

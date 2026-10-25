@@ -560,7 +560,7 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
         try Directory.create(directory.toString())
 
     let moduleFile = Path.combine(moduleDir.toString(), "module.swg")
-    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
+    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = unwrap Swag.compiler().getBuildCfg()\n    cfg.backendKind = .Executable\n}\n")
     try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8, "#main\n{\n}\n"))
 
     var built = workspaceModuleCommand("build", scratch.toString(), "probe", buildCfg)
@@ -576,7 +576,7 @@ private func verifyModuleSetupCacheInvalidation(context: *Context, options: *Opt
         return 1
     }
 
-    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.name = \"renamed\"\n}\n")
+    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = unwrap Swag.compiler().getBuildCfg()\n    cfg.backendKind = .Executable\n    cfg.name = \"renamed\"\n}\n")
 
     let secondCode = try context.runCompiler(built)
     if secondCode != 0 do
@@ -611,7 +611,7 @@ private func verifyStandaloneModuleSetupCache(context: *Context, options: *Optio
         try Directory.create(directory.toString())
 
     let moduleFile = Path.combine(moduleDir.toString(), "module.swg")
-    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n}\n")
+    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = unwrap Swag.compiler().getBuildCfg()\n    cfg.backendKind = .Executable\n}\n")
     try File.writeAllBytes(Path.combine(sourceDir.toString(), "main.swg").toString(), cast(const [..] u8, "#main\n{\n}\n"))
 
     var built: Arguments
@@ -629,7 +629,7 @@ private func verifyStandaloneModuleSetupCache(context: *Context, options: *Optio
         return 1
     }
 
-    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.name = \"standalone\"\n}\n")
+    try File.writeAllText(moduleFile.toString(), "#run\n{\n    let cfg = unwrap Swag.compiler().getBuildCfg()\n    cfg.backendKind = .Executable\n    cfg.name = \"standalone\"\n}\n")
 
     // A module built on its own names its output directory after the command that produced it, so
     // what the build reports is what says the new name reached the setup.
@@ -920,8 +920,8 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
 
     // Setup has its own cache, written before the artifact. It must not stamp the replacement
     // module.swg as evidence for the configuration read from the source that replaced itself.
-    var setupSource = workspaceSourceRewrite(modulePath.toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.name = \\\"after\\\" }\\n")
-    setupSource.append("\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.name = \"before\"; rewriteSource() }\n")
+    var setupSource = workspaceSourceRewrite(modulePath.toString(), "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .Executable; cfg.name = \\\"after\\\" }\\n")
+    setupSource.append("\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .Executable; cfg.name = \"before\"; rewriteSource() }\n")
     try File.writeAllBytes(modulePath.toString(), cast(const [..] u8, setupSource.toString()))
     try File.writeAllText(mainPath.toString(), "#main { }\n")
     for expected in ["before.exe", "after.exe"]
@@ -943,7 +943,7 @@ private func verifyWorkspaceSourceEditDuringBuild(context: *Context, options: *O
     let providerSource    = Path.combine(providerModule.toString(), "src")
     for directory in [providerWorkspace, providerModules, providerModule, providerSource] do
         try Directory.create(directory.toString())
-    try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"ReadApi\" }\n"))
+    try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .Export; cfg.moduleNamespace = \"ReadApi\" }\n"))
     try File.writeAllBytes(Path.combine(providerSource.toString(), "value.swg").toString(), cast(const [..] u8, "public const Value = 1\n"))
     var producer = workspaceModuleCommand("build", providerWorkspace.toString(), "provider", buildCfg)
     options.appendExtra(&producer)
@@ -1045,7 +1045,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
     }
 
     let providerSource = Path.combine(providerModule.toString(), "src", "value.swg")
-    try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n"))
+    try File.writeAllBytes(Path.combine(providerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n"))
     try File.writeAllText(providerSource.toString(), "public func value()->s32 => 1\n")
     var producer = workspaceModuleCommand("build", providerWorkspace.toString(), "provider", buildCfg)
     options.appendExtra(&producer)
@@ -1065,7 +1065,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
     let replacementSource    = Path.combine(replacementModule.toString(), "src")
     for directory in [replacementWorkspace, replacementModules, replacementModule, replacementSource] do
         try Directory.create(directory.toString())
-    try File.writeAllBytes(Path.combine(replacementModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n"))
+    try File.writeAllBytes(Path.combine(replacementModule.toString(), "module.swg").toString(), cast(const [..] u8, "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"NativeReadApi\" }\n"))
     try File.writeAllBytes(Path.combine(replacementSource.toString(), "value.swg").toString(), cast(const [..] u8, "public func value()->s32 => 2\n"))
     var replacement = workspaceModuleCommand("build", replacementWorkspace.toString(), "provider", buildCfg)
     options.appendExtra(&replacement)
@@ -1079,7 +1079,7 @@ private func verifyWorkspaceNativeReadDuringBuild(context: *Context, options: *O
         return 1
     }
 
-    try File.writeAllBytes(Path.combine(writerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#import(\"core\", location: \"swag@std\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"NativeWriter\" }\n"))
+    try File.writeAllBytes(Path.combine(writerModule.toString(), "module.swg").toString(), cast(const [..] u8, "#import(\"core\", location: \"swag@std\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .Export; cfg.moduleNamespace = \"NativeWriter\" }\n"))
     let writer     = workspaceNativePublisher(replacementNative.toString(), nativeOutput.toString())
     let writerPath = Path.combine(writerModule.toString(), "src", "main.swg")
     try File.writeAllText(writerPath.toString(), "public const Marker = 1\n")
@@ -1153,7 +1153,7 @@ private func verifyRetainedRuntimeAllocator(context: *Context, options: *Options
     for module in ["cache", "first", "second"] do
         try Directory.create(Path.combine(modules.toString(), module, "src", "tests").toString(), recurse: true)
 
-    try File.writeAllText(Path.combine(modules.toString(), "cache", "module.swg").toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Cache\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "cache", "module.swg").toString(), "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Cache\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "cache", "src", "cache.swg").toString(), #raw """
         var g_Allocator: Swag.IAllocator?
         var g_Values:    [*] u64?
@@ -1169,7 +1169,7 @@ private func verifyRetainedRuntimeAllocator(context: *Context, options: *Options
             request.oldSize = g_Count * #sizeof(u64)
             request.size    = (g_Count + 1) * #sizeof(u64)
             g_Allocator!.realloc(&request)
-            g_Values = cast([*] u64, request.address!)
+            g_Values = cast([*] u64, unwrap request.address)
             g_Values![g_Count] = value
             g_Count += 1
             return g_Count
@@ -1178,10 +1178,10 @@ private func verifyRetainedRuntimeAllocator(context: *Context, options: *Options
 
     // 'second' imports 'first' only so that its tests run after those of 'first'.
     let testGuard = "#global if #command == Swag.CompilerCommand.Test\n"
-    try File.writeAllText(Path.combine(modules.toString(), "first", "module.swg").toString(), "#import(\"cache\", link: \"shared-library\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"First\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "first", "module.swg").toString(), "#import(\"cache\", link: \"shared-library\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"First\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "first", "src", "first.swg").toString(), "public func ready()->bool => true\n")
     try File.writeAllText(Path.combine(modules.toString(), "first", "src", "tests", "first.test.swg").toString(), Format.toString("%#test { for i in 16 do discard Cache.remember(i) }\n", testGuard))
-    try File.writeAllText(Path.combine(modules.toString(), "second", "module.swg").toString(), "#import(\"cache\", link: \"shared-library\")\n#import(\"first\", link: \"shared-library\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Second\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "second", "module.swg").toString(), "#import(\"cache\", link: \"shared-library\")\n#import(\"first\", link: \"shared-library\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Second\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "second", "src", "second.swg").toString(), "public func ready()->bool => First.ready()\n")
     try File.writeAllText(Path.combine(modules.toString(), "second", "src", "tests", "second.test.swg").toString(), Format.toString("%#test { let before = Cache.remember(1000); for i in 64 do discard Cache.remember(i); Swag.assert(Cache.remember(0) == before + 65) }\n", testGuard))
 
@@ -1220,27 +1220,27 @@ private func verifyPrivateDependencyInvalidation(context: *Context, options: *Op
         try Directory.create(Path.combine(moduleDirectory.toString(), "src").toString())
     }
 
-    try File.writeAllText(Path.combine(modules.toString(), "provider", "module.swg").toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Provider\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "provider", "module.swg").toString(), "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Provider\" }\n")
     let providerSource = Path.combine(modules.toString(), "provider", "src", "main.swg")
     try File.writeAllText(providerSource.toString(), "private func privateValue()->s32 => 1\npublic func value()->s32 => privateValue()\n")
 
-    try File.writeAllText(Path.combine(modules.toString(), "middle", "module.swg").toString(), "#import(\"provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Middle\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "middle", "module.swg").toString(), "#import(\"provider\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Middle\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "middle", "src", "main.swg").toString(), "public func value()->s32 => Provider.value()\n")
 
-    try File.writeAllText(Path.combine(modules.toString(), "leaf", "module.swg").toString(), "#import(\"middle\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Leaf\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "leaf", "module.swg").toString(), "#import(\"middle\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"Leaf\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "leaf", "src", "main.swg").toString(), "public func value()->s32 => Middle.value()\n")
 
-    try File.writeAllText(Path.combine(modules.toString(), "compile_time", "module.swg").toString(), "#import(\"provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Export; cfg.moduleNamespace = \"CompileTime\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "compile_time", "module.swg").toString(), "#import(\"provider\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .Export; cfg.moduleNamespace = \"CompileTime\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "compile_time", "src", "main.swg").toString(), "public const Captured = #run Provider.value()\n")
 
-    try File.writeAllText(Path.combine(modules.toString(), "dynamic_consumer", "module.swg").toString(), "#import(\"provider\", link: \"shared-library\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .Executable; cfg.publishDependencies = true }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "dynamic_consumer", "module.swg").toString(), "#import(\"provider\", link: \"shared-library\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .Executable; cfg.publishDependencies = true }\n")
     try File.writeAllText(Path.combine(modules.toString(), "dynamic_consumer", "src", "main.swg").toString(), "#main { if Provider.value() == 1 do Swag.print(\"dynamic-value=1\\n\") else do Swag.print(\"dynamic-value=2\\n\") }\n")
 
-    try File.writeAllText(Path.combine(modules.toString(), "static_provider", "module.swg").toString(), "#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .StaticLibrary; cfg.moduleNamespace = \"StaticProvider\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "static_provider", "module.swg").toString(), "#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .StaticLibrary; cfg.moduleNamespace = \"StaticProvider\" }\n")
     let staticProviderSource = Path.combine(modules.toString(), "static_provider", "src", "main.swg")
     try File.writeAllText(staticProviderSource.toString(), "private func privateValue()->s32 => 1\npublic func value()->s32 => privateValue()\n")
 
-    try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { let cfg = Swag.compiler().getBuildCfg()!; cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"StaticConsumer\" }\n")
+    try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { let cfg = unwrap Swag.compiler().getBuildCfg(); cfg.backendKind = .SharedLibrary; cfg.moduleNamespace = \"StaticConsumer\" }\n")
     try File.writeAllText(Path.combine(modules.toString(), "static_consumer", "src", "main.swg").toString(), "public func value()->s32 => StaticProvider.value()\n")
 
     try File.writeAllText(Path.combine(modules.toString(), "relink_consumer", "module.swg").toString(), "#import(\"static_provider\")\n#run { Swag.compiler().getBuildCfg()!.backendKind = .Executable }\n")

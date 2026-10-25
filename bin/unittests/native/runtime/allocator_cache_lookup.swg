@@ -39,7 +39,7 @@ using Swag
             requests[i].size = i == 3 ? 600_000 : Sizes[i]
             itf.alloc(&requests[i])
             Swag.assert(cast(u64, requests[i].address) == addresses[i])
-            cast([*] u8, requests[i].address!)[requests[i].size - 1] = 29
+            cast([*] u8, unwrap requests[i].address)[requests[i].size - 1] = 29
         }
         for &request in requests do
             itf.free(request)

@@ -64,7 +64,7 @@ private func panicAllocationFailure(operation: string, request: *AllocatorReques
     message.allocator = &stackAllocator
     message.setFirstBucket(storage)
     appendAllocationFailure(&message, operation, request[], includeOldAllocation)
-    Swag.panic(cast(string, message.toSlice()!), request.callerLoc)
+    Swag.panic(cast(string, unwrap message.toSlice()), request.callerLoc)
 }
 
 // Asserts that the `size` bytes at `buffer` were allocated by `allocator`.
@@ -154,7 +154,7 @@ func realloc(buffer: [*] void?,
         panicAllocationFailure("Memory.realloc", &req, true)
     }
 
-    return req.address!
+    return unwrap req.address
 }
 
 // Allocates `size` uninitialized bytes and returns their address.
@@ -169,7 +169,7 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
     {
         // Identity is enough to enter the runtime fast path. Other descriptors, including
         // equivalent copies from a shared library, keep the interface's normal dispatch.
-        selected = (selected orelse Swag.getContext().allocator)!
+        selected = unwrap (selected orelse Swag.getContext().allocator)
         let expected: typeinfo = Swag.Allocator
         if cast(const *void, Swag.kindOf(selected)) == cast(const *void, expected)
         {
@@ -198,7 +198,7 @@ func alloc(size: u64, allocator: IAllocator? = null, alignment: u32 = 0, hint: s
 
     if not req.address do
         panicAllocationFailure("Memory.alloc", &req, false)
-    return req.address!
+    return unwrap req.address
 }
 
 // Allocates `size` uninitialized bytes from the context's temporary allocator and returns their address.
@@ -221,5 +221,5 @@ func tempAlloc(size: u64, alignment: u32 = 0, hint: string? = null, loc = #calle
     Swag.getContext().tempAllocator.IAllocator.alloc(&req)
     if not req.address do
         panicAllocationFailure("Memory.tempAlloc", &req, false)
-    return req.address!
+    return unwrap req.address
 }

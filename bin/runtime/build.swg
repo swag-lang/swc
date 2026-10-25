@@ -171,7 +171,7 @@ namespace Swag.Build
     // ```swag
     // #run
     // {
-    //     let cfg = Swag.compiler().getBuildCfg()!
+    //     let cfg = unwrap Swag.compiler().getBuildCfg()
     //     cfg.backend.optimizer.iterations.preRaSweeps = 48
     //     cfg.backend.optimizer.unroll.maxTrips = 32
     //     cfg.backend.optimizer.unroll.memoryBytes = 512
@@ -304,7 +304,7 @@ namespace Swag.Build
     // ```swag
     // #run
     // {
-    //     let cfg = Swag.compiler().getBuildCfg()!
+    //     let cfg = unwrap Swag.compiler().getBuildCfg()
     //     cfg.warnings.asErrors = "all"
     //     cfg.warnings.disabled = "sema_warn_unreachable_code"
     // }

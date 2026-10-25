@@ -6,7 +6,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
     var faceScope: FaceScope
     faceScope.init(fileName)
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     Swag.assert(not faceScope.bytes.isEmpty())
     Swag.assert(face.glyphCount > 0)
@@ -42,7 +42,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     Swag.assert(not faceScope.bytes.isEmpty())
     Swag.assert(face.glyphCount > 0)
@@ -91,7 +91,7 @@ func assertFixtureFontLoads(fileName: string, expectedStyle: StyleFlag)
 #test
 {
     let context = Swag.getContext()
-    let originalAllocator = context.allocator!
+    let originalAllocator = unwrap context.allocator
 
     var scratchA: ScratchAllocator
     var scratchB: ScratchAllocator

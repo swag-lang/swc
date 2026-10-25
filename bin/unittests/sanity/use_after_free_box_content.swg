@@ -26,7 +26,7 @@ func boxAlloc(size: u64)->*void
     var request: AllocatorRequest
     request.size = size
     Swag.getContext().allocator!.alloc(&request)
-    return request.address!
+    return unwrap request.address
 }
 
 #[Swag.Sanity(.Lifecycle, true), Swag.NoInline]
@@ -59,7 +59,7 @@ impl BoxOwner
     mtd stop(field: *(*BoxItem?))
     {
         if field[] do
-            boxFree(field[]!, #sizeof(BoxItem))
+            boxFree(unwrap field[], #sizeof(BoxItem))
         field[] = null
     }
 

@@ -23,7 +23,7 @@ struct Timer
 
 private func timerEntry(param: *void?)
 {
-    let timer = cast(*Timer, param!)
+    let timer = cast(*Timer, unwrap param)
 
     // A periodic callback can overlap another one. Its mutable runtime state belongs to this
     // invocation; the stored timer context contains only inherited policy and user values.
@@ -72,7 +72,7 @@ impl Timer
 
             .resetThreadState()
 
-            let allocator = .allocator!
+            let allocator = unwrap .allocator
             .tempAllocator.setCapacity(tempCapacity, allocator)
             .errorAllocator.setCapacity(errorCapacity, allocator)
         }

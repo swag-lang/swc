@@ -3,7 +3,7 @@
 
 using Core, Pixel, Gui, Viewers
 
-func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/viewer.srt")
+func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/viewer.srt")
 
 // Go-to-time accepts its documented forms and rejects values that only look like timestamps.
 #test

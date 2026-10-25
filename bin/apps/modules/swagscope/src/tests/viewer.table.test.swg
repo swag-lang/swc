@@ -134,7 +134,7 @@ using Core, Pixel, Gui, Viewers
     let view     = Table.Panel.createDocument(&host.root, #move document)
     var details: String
     view.userData = &details
-    view.services.reportDetails = func(wnd, value) { cast(*String, wnd.userData!)[] = value }
+    view.services.reportDetails = func(wnd, value) { cast(*String, unwrap wnd.userData)[] = value }
     view.list.selectLine(0)
     let list       = view.list
     let oldHeading = String.from(view.list.header.items[0]!.name.raw)

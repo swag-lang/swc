@@ -6,7 +6,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     discard expect face.setPixelSize(0, 20)
     let glyphIndex = face.glyphIndex('A')
@@ -26,7 +26,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     discard expect face.setPixelSize(0, 32)
     discard expect face.loadChar('A', .Default)
@@ -45,7 +45,7 @@ using Swag, Core
 
     var hasOutside = false
     var hasInside  = false
-    let sdfBuf     = sdf.buffer!
+    let sdfBuf     = unwrap sdf.buffer
     for index in cast(u64, sdf.width) * sdf.rows
     {
         let value = sdfBuf[index]
@@ -65,7 +65,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     var sawOddWidth = false
     for pixelSize in [17'u32, 31, 64]
@@ -118,7 +118,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     discard expect face.setPixelSize(0, 40)
     discard expect face.loadChar('A', .Default)
@@ -130,7 +130,7 @@ using Swag, Core
     var hasZero    = false
     var hasFull    = false
     var hasPartial = false
-    let bmpBuf     = bmp.buffer!
+    let bmpBuf     = unwrap bmp.buffer
     for index in cast(u64, bmp.width) * bmp.rows
     {
         let v = bmpBuf[index]
@@ -151,7 +151,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     discard expect face.setPixelSize(0, 20)
     discard expect face.loadChar('A', .Default)
@@ -169,7 +169,7 @@ using Swag, Core
     Swag.setWorkerCount(4)
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     // Exceed the row-dispatch threshold so native execution exercises the parallel loop.
     discard expect face.setPixelSize(0, 64)
@@ -201,7 +201,7 @@ using Swag, Core
     var channelsDiffer = false
     var hasInsideA     = false
     var hasOutsideA    = false
-    let msdfBuf        = msdf.buffer!
+    let msdfBuf        = unwrap msdf.buffer
     for y in msdf.rows
     {
         for x in msdf.width

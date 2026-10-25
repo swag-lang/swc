@@ -73,7 +73,7 @@ impl IActionUI for ActionSelection
     mtd impl execute(cxt: ActionContext)->bool
     {
         let main    = mainWndOf(cxt)
-        let capture = main.getCapture()!
+        let capture = unwrap main.getCapture()
 
         switch cxt.id
         {

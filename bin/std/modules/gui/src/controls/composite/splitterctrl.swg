@@ -129,7 +129,7 @@ impl IWnd for SplitterCtrl
 
         for item in .items
         {
-            let it = item!
+            let it = unwrap item
             if not it.visible do
                 continue
 
@@ -183,7 +183,7 @@ impl IWnd for SplitterCtrl
         var visibleIndex = 0
         for item, idx in .items
         {
-            let it = item!
+            let it = unwrap item
             if not it.visible do
                 continue
             visibleIndex += 1
@@ -229,7 +229,7 @@ private impl SplitterCtrl
             var totalSize = 0'f32
             for item in .items
             {
-                let it = item!
+                let it = unwrap item
                 if not it.visible do
                     continue
 
@@ -252,7 +252,7 @@ private impl SplitterCtrl
                 let diff = cast(f32, Math.round(dispatch / countNotPreserve))
                 for item in .items
                 {
-                    let it = item!
+                    let it = unwrap item
                     if it.preserveSize do
                         continue
                     if not it.visible do
@@ -277,7 +277,7 @@ private impl SplitterCtrl
                 let diff = cast(f32, Math.round(dispatch / countPreserve))
                 for item in .items
                 {
-                    let it = item!
+                    let it = unwrap item
                     if not it.preserveSize do
                         continue
                     if not it.visible do
@@ -299,7 +299,7 @@ private impl SplitterCtrl
 
         for item, idx in .items
         {
-            let it = item!
+            let it = unwrap item
             if not it.visible do
                 continue
 
@@ -319,7 +319,7 @@ private impl SplitterCtrl
         var visibleIndex = 0
         for item, idx in .items
         {
-            let it = item!
+            let it = unwrap item
             if not it.visible do
                 continue
             visibleIndex += 1
@@ -354,7 +354,7 @@ private impl SplitterCtrl
         let barSize = .themeMetrics().splitView_BarSize
         for item, i in .items
         {
-            let pane = item!
+            let pane = unwrap item
             if not pane.visible do
                 continue
 
@@ -384,7 +384,7 @@ private impl SplitterCtrl
 
     mtd setPaneSizePrivate(idx: u32, newSize: f32)
     {
-        let curPane = .items[idx]!
+        let curPane = unwrap .items[idx]
         Swag.assert(curPane.visible)
 
         var reqSize = Math.max(curPane.minimumSize, newSize)
@@ -421,7 +421,7 @@ private impl SplitterCtrl
             if i < 0 or i >= .items.count do
                 break
 
-            let otherPane = .items[i]!
+            let otherPane = unwrap .items[i]
             if not otherPane.visible do
                 continue
 
@@ -501,7 +501,7 @@ impl SplitterCtrl
             // Otherwise layout has to shrink the explicitly requested pane again.
             for index in reversed(.items.count - 1)
             {
-                let previous = .items[index]!
+                let previous = unwrap .items[index]
                 if previous.visible
                 {
                     previous.size -= .themeMetrics().splitView_BarSize
@@ -527,7 +527,7 @@ impl SplitterCtrl
     mtd setPaneVisible(idx: u32, visible: bool)
     {
         Swag.assert(idx < .items.count)
-        let pane = .items[idx]!
+        let pane = unwrap .items[idx]
 
         if pane.visible == visible do
             return

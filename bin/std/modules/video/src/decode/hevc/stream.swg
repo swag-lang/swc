@@ -339,7 +339,7 @@ impl HevcStream
         {
             if .pending[index].rank < rank
             {
-                .release(.pending[index].frame!)
+                .release(unwrap .pending[index].frame)
                 .pending.removeAtOrdered(index)
                 continue
             }
@@ -352,7 +352,7 @@ impl HevcStream
     mtd releasePending()
     {
         for entry in .pending do
-            .release(entry.frame!)
+            .release(unwrap entry.frame)
         .pending.clear()
     }
 
@@ -394,7 +394,7 @@ impl HevcStream
 
             for index in .pending.count where .pending[index].rank == .nextRank
             {
-                let frame = .pending[index].frame!
+                let frame = unwrap .pending[index].frame
                 .pending.removeAtOrdered(index)
                 .nextRank    += 1
                 .decodeLimit = Swag.U64.Max

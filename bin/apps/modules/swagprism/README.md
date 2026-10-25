@@ -26,7 +26,7 @@ error or a newer edit leaves the source unchanged. Compilation progress appears 
 information bar, with an animated spinner.
 
 The settings icon in each viewer header opens a Swag configuration editor. Choose a `release` or
-`devmode` preset, then edit a `#run` block using `Swag.compiler().getBuildCfg()!`, as in `module.swg`.
+`devmode` preset, then edit a `#run` block using `unwrap Swag.compiler().getBuildCfg()`, as in `module.swg`.
 The starter fragment includes commented examples for safety, sanity, inlining, vectorization, and
 floating-point options. The reset icon restores that panel's preset, configuration text, and original
 optimization level. Configuration belongs to the panel and survives changing viewer type. Prism

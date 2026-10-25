@@ -14,7 +14,7 @@ impl Panel
         if index >= .video.audioTrackCount() do
             fail BadParameterError{texts().err_AudioTrack}
 
-        let sound = .video.audioTrack(index)!
+        let sound = unwrap .video.audioTrack(index)
         if .voice and index == .audioTrackIndex and .audio == sound do
             return
         let position      = .currentSeconds()
@@ -75,7 +75,7 @@ impl Panel
         commands.reserve(.video.audioTrackCount())
         for index in .video.audioTrackCount()
         {
-            let sound = .video.audioTrack(index)!
+            let sound = unwrap .video.audioTrack(index)
             commands.add(audioTrackCommand(index))
             menu.addRadioItem(audioTrackText(index, sound), commands[index], checked: index == .audioTrackIndex)
         }
@@ -212,7 +212,7 @@ impl Panel
             menu.addSeparator()
         for index in embeddedCount
         {
-            let track = .video.subtitleTrack(index)!
+            let track = unwrap .video.subtitleTrack(index)
             embeddedCommands.add(subtitleTrackCommand(false, index))
             menu.addRadioItem(subtitleTrackText(index, track, false), embeddedCommands[index], checked: .subtitleSource == .Embedded and .subtitleTrackIndex == index)
         }

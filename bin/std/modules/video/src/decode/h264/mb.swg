@@ -177,7 +177,7 @@ impl Slice
     // four calls that each reload it and return a record to copy.
     mtd resolveNeighbors()
     {
-        let dec     = .dec!
+        let dec     = unwrap .dec
         let mbWidth = dec.sps!.mbWidth
         let mbInfo  = dec.mbInfo.storage()
         let mbX     = .mbX
@@ -223,8 +223,8 @@ impl Slice
     // Reports whether the macroblock at `mbX`, `mbY` belongs to this slice's decoded region.
     mtd const mbAvailable(mbX, mbY: s32)->bool
     {
-        let dec = .dec!
-        let sps = dec.sps!
+        let dec = unwrap .dec
+        let sps = unwrap dec.sps
         if mbX < 0 or mbY < 0 or mbX >= sps.mbWidth or mbY >= sps.mbHeight do
             return false
         return dec.mbInfo[cast(u64, (mbY * sps.mbWidth + mbX))].sliceId == .sliceId
@@ -234,7 +234,7 @@ impl Slice
     #[Swag.Inline]
     mtd const mbInfoAt(mbX, mbY: s32)->*MbInfo
     {
-        let dec = .dec!
+        let dec = unwrap .dec
         return &dec.mbInfo[cast(u64, (mbY * dec.sps!.mbWidth + mbX))]
     }
 
@@ -248,7 +248,7 @@ impl Slice
     mtd const motionAt(mb: *Mb, list: u32, rx, ry: s32)->NeighborMotion
     {
         var result: retval
-        let dec = .dec!
+        let dec = unwrap .dec
         let gw  = dec.sps!.mbWidth * 4
 
         var neighbor: const *MbNeighbor?
@@ -285,7 +285,7 @@ impl Slice
             let other = neighbor
             if not other.available do
                 return result
-            let info = other.info!
+            let info = unwrap other.info
             if info.class != MbClassInter
             {
                 result.available = true
@@ -326,7 +326,7 @@ impl Slice
     mtd const neighborMvd(mb: *Mb, list: u32, rx, ry: s32)->[2] s16
     {
         var result: retval
-        let dec = .dec!
+        let dec = unwrap .dec
         var index:  u64
         if rx >= 0 and ry >= 0
         {
@@ -339,7 +339,7 @@ impl Slice
             let other = rx < 0 ? &.neighbors.a : &.neighbors.b
             if not other.available do
                 return result
-            let info = other.info!
+            let info = unwrap other.info
             if info.class != MbClassInter or (.header.type == SliceTypeP and info.skipped) do
                 return result
             index = other.blockBase + cast(u64, ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3)))
@@ -414,7 +414,7 @@ impl Slice
     // direct flags as one word.
     mtd assignMotion(mb: *Mb, list: u32, x4, y4, w4, h4: s32, refIdx: s32, mv: [2] s16, mvd: [2] s16, isDirect: bool)
     {
-        let dec   = .dec!
+        let dec   = unwrap .dec
         let gw    = cast(u64, (dec.sps!.mbWidth * 4))
         let refId = refIdx >= 0 ? .refs[list, refIdx].identity : NoReferenceIdentity
         let entry = packedMotion(mv, cast(s8, refIdx), refId)
@@ -459,7 +459,7 @@ impl Slice
     // duplicate store made by two independent list assignments.
     mtd assignSkipMotion(mb: *Mb, x4, y4, w4, h4: s32, refIdx: [2] s8, mv0, mv1: [2] s16, isDirect: bool)
     {
-        let dec    = .dec!
+        let dec    = unwrap .dec
         let gw     = dec.sps!.mbWidth * 4
         let id0    = refIdx[0] >= 0 ? .refs[0, cast(u64, refIdx[0])].identity : NoReferenceIdentity
         let id1    = refIdx[1] >= 0 ? .refs[1, cast(u64, refIdx[1])].identity : NoReferenceIdentity
@@ -542,7 +542,7 @@ impl Slice
 
         if not mb.extraJobs
         {
-            let dec = .dec!
+            let dec = unwrap .dec
             if dec.inlineRecon
             {
                 mb.extraJobs = &.scratchExtraJobs
@@ -595,7 +595,7 @@ impl Slice
     // Returns the co-located 4x4 block index of the first list-1 reference for one block.
     mtd const colBlockIndex(mb: *Mb, x4, y4: s32)->u64
     {
-        let dec = .dec!
+        let dec = unwrap .dec
         let gw  = dec.sps!.mbWidth * 4
         return cast(u64, ((mb.mbY * 4 + y4) * gw + mb.mbX * 4 + x4))
     }
@@ -606,8 +606,8 @@ impl Slice
     // Spatial direct prediction, section 8.4.1.2.2.
     mtd deriveDirectSpatial(mb: *Mb, quad: s32)
     {
-        let dec = .dec!
-        let col = .refs[1, 0].frame!
+        let dec = unwrap .dec
+        let col = unwrap .refs[1, 0].frame
 
         // One reference pair and one prediction for the whole macroblock.
         var refL0 = -1's32
@@ -776,8 +776,8 @@ impl Slice
     // Temporal direct prediction, section 8.4.1.2.3.
     mtd deriveDirectTemporal(mb: *Mb, quad: s32)
     {
-        let dec        = .dec!
-        let col        = .refs[1, 0].frame!
+        let dec        = unwrap .dec
+        let col        = unwrap .refs[1, 0].frame
         let currentPoc = dec.current!.poc
 
         let quadFirst   = quad < 0 ? 0 : quad
@@ -869,8 +869,8 @@ impl Slice
     // Decodes every macroblock of the slice.
     mtd decodeData() fail
     {
-        let dec     = .dec!
-        let sps     = dec.sps!
+        let dec     = unwrap .dec
+        let sps     = unwrap dec.sps
         let mbCount = cast(u32, (sps.mbWidth * sps.mbHeight))
         .mbAddr = .header.firstMb
         .mbX    = cast(s32, (.mbAddr % cast(u32, sps.mbWidth)))
@@ -885,7 +885,7 @@ impl Slice
                 discard .bits.bit()
             let offset = .bits.bitPos >> 3
             .cabac.initContexts(.qp, .header.type, .header.cabacInitIdc)
-            .cabac.start(.bits.data! + offset, .bits.size - offset)
+            .cabac.start(unwrap .bits.data + offset, .bits.size - offset)
         }
 
         let inter = .header.type != SliceTypeI
@@ -970,7 +970,7 @@ impl Slice
         if mb.residual != &.scratchResidual or mb.residual444 != null do
             return
 
-        let residual = mb.residual!
+        let residual = unwrap mb.residual
         if mb.class == MbClassIntra16x16 do
             Memory.clear(&residual.lumaDc, #sizeof(residual.lumaDc))
         for quad in 4'u64
@@ -1000,7 +1000,7 @@ impl Slice
     // Resets the parse state for the macroblock at the current address.
     mtd prepareMb(mb: *Mb, clearResiduals: bool = true)
     {
-        let dec = .dec!
+        let dec = unwrap .dec
         mb.mbX           = .mbX
         mb.mbY           = .mbY
         mb.sliceIndex    = cast(u32, .sliceId) - 1
@@ -1071,7 +1071,7 @@ impl Slice
     // Decodes one skipped macroblock.
     mtd decodeSkipMb(mb: *Mb) fail
     {
-        let dec = .dec!
+        let dec = unwrap .dec
         if .header.type == SliceTypeP
         {
             // A P-skip never reads residual, intra, sub-partition, or per-block bookkeeping
@@ -1131,8 +1131,8 @@ impl Slice
     // Parses one full macroblock with CAVLC entropy coding.
     mtd parseMbCavlc(mb: *Mb) fail
     {
-        let dec    = .dec!
-        let pps    = dec.pps!
+        let dec    = unwrap .dec
+        let pps    = unwrap dec.pps
         var mbType = .bits.ue()
 
         // Fold the slice-type-specific type space onto the intra space.
@@ -1236,8 +1236,8 @@ impl Slice
     // Parses the prediction of an intra macroblock; `mbType` is already in the intra space.
     mtd parseIntraMb(mb: *Mb, mbType: u32, fromCabac: bool) fail
     {
-        let dec = .dec!
-        let pps = dec.pps!
+        let dec = unwrap .dec
+        let pps = unwrap dec.pps
         if mbType > 25 do
             fail InvalidFormatError{"H.264 intra macroblock type is out of range"}
 
@@ -1360,7 +1360,7 @@ impl Slice
         let neighbor = rx < 0 ? &.neighbors.a : &.neighbors.b
         if not neighbor.available do
             return -1
-        let dec = .dec!
+        let dec = unwrap .dec
         let neighborClass = neighbor.info!.class
         if neighborClass == MbClassInter and dec.pps!.constrainedIntra do
             return -1
@@ -1372,8 +1372,8 @@ impl Slice
     // Reads the raw samples of an I_PCM macroblock.
     mtd parsePcm(mb: *Mb) fail
     {
-        let dec   = .dec!
-        let frame = dec.current!
+        let dec   = unwrap .dec
+        let frame = unwrap dec.current
 
         if .isCabac
         {
@@ -1857,7 +1857,7 @@ impl Slice
     // Writes the completed macroblock's summary for its neighbors and the filter.
     mtd bookkeepMb(mb: *Mb)
     {
-        let dec  = .dec!
+        let dec  = unwrap .dec
         let info = .mbInfoAt(mb.mbX, mb.mbY)
         info.class        = mb.class
         info.cbpLuma      = cast(u8, mb.cbpLuma)
@@ -1970,7 +1970,7 @@ impl Slice
         // non-reference B picture of a pyramid — publishes none of it.
         if not dec.isRefPicture do
             return
-        let frame = dec.current!
+        let frame = unwrap dec.current
         frame.colUniform[mbIdx] = 0
 
         // An intra macroblock leaves no motion at all, so like a macroblock with a single motion
@@ -2064,7 +2064,7 @@ impl Slice
     // Publishes the uniform metadata of a P-skip macroblock four blocks at a time.
     mtd bookkeepSkippedPMb(mb: *Mb)
     {
-        let dec   = .dec!
+        let dec   = unwrap .dec
         let job   = &mb.firstJob
         let ref   = job.refIdx[0]
         let poc   = ref >= 0 ? .refs[0, cast(u64, ref)].poc : 0
@@ -2089,7 +2089,7 @@ impl Slice
         // Only a reference picture is read as a co-located one.
         if not dec.isRefPicture do
             return
-        let frame        = dec.current!
+        let frame        = unwrap dec.current
         let compactIndex = cast(u64, (mb.mbY * dec.sps.mbWidth + mb.mbX))
         frame.colUniform[compactIndex]      = 1
         frame.colMbMv[compactIndex * 2]     = job.mv[0, 0]
@@ -2257,7 +2257,7 @@ impl Slice
         if plane == 0 do
             return {(mb.residual!.lumaDc).buffer, (mb.residual!.lumaAc).buffer, (mb.residual!.luma8).buffer, (mb.nzLuma).buffer}
 
-        let side  = mb.residual444!
+        let side  = unwrap mb.residual444
         let index = cast(u64, plane) - 1
         return {
             (side.dc).buffer + index * 16,
@@ -2316,7 +2316,7 @@ impl Slice
         if neighbor.info!.skipped do
             return 0
 
-        let dec   = .dec!
+        let dec   = unwrap .dec
         let index = neighbor.blockBase + cast(u64, ((ry & 3) * (dec.sps!.mbWidth * 4) + (rx & 3)))
         if plane == 0 do
             return cast(s32, dec.nonZeroLuma[index])
@@ -2353,7 +2353,7 @@ impl Slice
         if neighbor.info!.skipped do
             return 0
 
-        let dec   = .dec!
+        let dec   = unwrap .dec
         let index = neighbor.chromaBase + cast(u64, ((ry & 1) * (dec.sps!.mbWidth * 2) + (rx & 1)))
         return cast(s32, (plane == 0 ? dec.nonZeroCb[index] : dec.nonZeroCr[index]))
     }

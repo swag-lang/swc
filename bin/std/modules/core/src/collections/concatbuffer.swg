@@ -69,14 +69,14 @@ impl ReversedConcatBuffer
         if not .source.firstBucket do
             return
 
-        let firstBucket = .source.firstBucket!
+        let firstBucket = unwrap .source.firstBucket
         var tail        = .source.lastBucket!.next
         scope(Up)
         while tail != firstBucket
         {
             var bucket = firstBucket
             while bucket.next != tail do
-                bucket = bucket.next!
+                bucket = unwrap bucket.next
 
             scope(Down)
             {
@@ -120,12 +120,12 @@ impl ConcatBuffer
     {
         if not .firstBucket do
             return
-        let lastBucket = .lastBucket!
+        let lastBucket = unwrap .lastBucket
         var b = .firstBucket
         scope(Up)
         while b != lastBucket.next
         {
-            let bucket = b!
+            let bucket = unwrap b
             scope(Down)
             {
                 #inject(stmt, bucket = bucket, break = break to Up, continue = break to Down)
@@ -149,8 +149,8 @@ impl ConcatBuffer
         if .lastBucket
         {
             let lastBucket = .lastBucket
-            let currentSP  = .currentSP!
-            let data       = lastBucket.data!
+            let currentSP  = unwrap .currentSP
+            let data       = unwrap lastBucket.data
 
             // Enough room in the last bucket
             let seek = cast(u64, (currentSP - data))
@@ -195,7 +195,7 @@ impl ConcatBuffer
         .curBucket, .lastBucket = newBucket
 
         let bsize      = Math.max(.granularity, numBytes)
-        let lastBucket = .lastBucket!
+        let lastBucket = unwrap .lastBucket
         lastBucket.data = Memory.alloc(bsize, .allocator)
         lastBucket.size = bsize
         .currentSP      = lastBucket.data
@@ -266,9 +266,9 @@ impl ConcatBuffer
     {
         if not .isAtEnd
         {
-            let curBucket = .curBucket!
-            let currentSP = .currentSP!
-            let data      = curBucket.data!
+            let curBucket = unwrap .curBucket
+            let currentSP = unwrap .currentSP
+            let data      = unwrap curBucket.data
 
             // A value that does not fit in the current bucket is split with the next one.
             if #sizeof(T) > curBucket.count or
@@ -286,8 +286,8 @@ impl ConcatBuffer
         else
         {
             .grow(#sizeof(T))
-            let curBucket = .curBucket!
-            let currentSP = .currentSP!
+            let curBucket = unwrap .curBucket
+            let currentSP = unwrap .currentSP
             cast(*T, currentSP)[] = val
             .currentSP            += #sizeof(T)
             curBucket.count       += #sizeof(T)
@@ -341,11 +341,11 @@ impl ConcatBuffer
             .grow(1)
         while num
         {
-            let bucket    = .curBucket!
+            let bucket    = unwrap .curBucket
             let offset    = cast(u64, (.currentSP - bucket.data))
             let available = (.isAtEnd ? bucket.size : bucket.count) - offset
             let chunk     = Math.min(num, available)
-            Memory.copy(.currentSP!, slicePtr, chunk)
+            Memory.copy(unwrap .currentSP, slicePtr, chunk)
             if .isAtEnd do
                 bucket.count += chunk
             .currentSP, slicePtr += chunk
@@ -360,7 +360,7 @@ impl ConcatBuffer
             }
             else
             {
-                .curBucket = bucket.next!
+                .curBucket = unwrap bucket.next
                 .currentSP = .curBucket.data
             }
         }
@@ -399,19 +399,19 @@ impl ConcatBuffer
             Swag.assert(count <= Swag.U64.Max - .count())
             if count or not .lastBucket do
                 .grow(Math.max(count, 1'u64))
-            let result = .currentSP!
-            let bucket = .lastBucket!
+            let result = unwrap .currentSP
+            let bucket = unwrap .lastBucket
             .currentSP   += count
             bucket.count += count
             return result
         }
 
-        let bucket = .curBucket!
+        let bucket = unwrap .curBucket
         let offset = cast(u64, (.currentSP - bucket.data))
         if count <= bucket.count - offset or
            (.curBucket == .lastBucket and count <= bucket.size - offset)
         {
-            let result = .currentSP!
+            let result = unwrap .currentSP
             .currentSP   += count
             bucket.count = Math.max(bucket.count, offset + count)
             .setIsAtEnd()
@@ -422,8 +422,8 @@ impl ConcatBuffer
         Swag.assert(count <= Swag.U64.Max - position)
         let end = position + count
         .rebuildLinear(Math.max(.count(), end))
-        let firstBucket = .firstBucket!
-        let result      = firstBucket.data! + position
+        let firstBucket = unwrap .firstBucket
+        let result      = unwrap firstBucket.data + position
         firstBucket.count = Math.max(firstBucket.count, end)
         .currentSP        = result + count
         .setIsAtEnd()
@@ -439,7 +439,7 @@ impl ConcatBuffer
 
         while not .isAtEnd
         {
-            let curBucket = .curBucket!
+            let curBucket = unwrap .curBucket
             let seek      = cast(u64, (.currentSP - curBucket.data))
             let available = curBucket.count - seek
             if total <= available
@@ -457,12 +457,12 @@ impl ConcatBuffer
                 break
             }
 
-            .curBucket = curBucket.next!
+            .curBucket = unwrap curBucket.next
             .currentSP = .curBucket.data
         }
 
         .grow(total)
-        let curBucket = .curBucket!
+        let curBucket = unwrap .curBucket
         .currentSP      += total
         curBucket.count += total
     }
@@ -470,7 +470,7 @@ impl ConcatBuffer
     #[Swag.Inline]
     private mtd setIsAtEnd()
     {
-        let lastBucket = .lastBucket!
+        let lastBucket = unwrap .lastBucket
         .isAtEnd = .curBucket == .lastBucket and .currentSP == lastBucket.data + lastBucket.count
     }
 
@@ -564,11 +564,11 @@ impl ConcatBuffer
         result.allocator = alloc
         result.reserve(.count() + 1)
 
-        let lastBucket = .lastBucket!
+        let lastBucket = unwrap .lastBucket
         var ptr        = .firstBucket
         while ptr != lastBucket.next
         {
-            let b = ptr!
+            let b = unwrap ptr
             result.append(Swag.makeString(b.data, b.count))
             ptr = b.next
         }
@@ -595,8 +595,8 @@ impl ConcatBuffer
         // Only the storage of a linear buffer can be taken whole.
         Swag.assert(.lastBucket == .firstBucket)
 
-        let firstBucket = .firstBucket!
-        let rdata       = firstBucket.data!
+        let firstBucket = unwrap .firstBucket
+        let rdata       = unwrap firstBucket.data
         let rcount      = firstBucket.count
         let rcapacity   = firstBucket.size
 
@@ -669,7 +669,7 @@ impl ConcatBuffer
         var destination = newData
         for bucket in me where bucket.count
         {
-            Memory.copy(destination, bucket.data!, bucket.count)
+            Memory.copy(destination, unwrap bucket.data, bucket.count)
             destination += bucket.count
         }
 

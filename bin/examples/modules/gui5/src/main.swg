@@ -131,9 +131,9 @@ func colorSummary()->String
 
 func updateHeader()
 {
-    let title    = g_Title!
-    let subTitle = g_SubTitle!
-    let footer   = g_Footer!
+    let title    = unwrap g_Title
+    let subTitle = unwrap g_SubTitle
+    let footer   = unwrap g_Footer
     title.setText(Format.toString("GUI5 color widgets - %", pageTitle(g_Page)))
     subTitle.setText(pageSubtitle(g_Page))
     footer.setText(Format.toString("F1 : next page (%/%). Selected %", g_Page + 1, MaxPages, colorSummary()))
@@ -286,7 +286,7 @@ func drawSwatch(painter: *Painter, rect: Math.Rectangle, label: string, color: C
 
 func drawLiveCard(painter: *Painter, rect: Math.Rectangle, colors: *ThemeColors)
 {
-    let view      = g_View!
+    let view      = unwrap g_View
     let titleFont = view.theme().createDefaultFont(24, .Bold)
     let bodyFont  = view.theme().createDefaultFont(14)
     let textColor = g_Color.contrasting()
@@ -506,7 +506,7 @@ func createPreview(parent: *Wnd, rect: Math.Rectangle, hook: func(view: *Wnd, ev
 
 func clearPage()
 {
-    let pageView = g_PageView!
+    let pageView = unwrap g_PageView
     for child in pageView.children
     {
         child.destroy()
@@ -520,11 +520,11 @@ func buildPage()
 
     switch g_Page
     {
-    case 0:  createCompositePage(g_PageView!)
-    case 1:  createHslModesPage(g_PageView!)
-    case 2:  createRgbModesPage(g_PageView!)
-    case 3:  createPalettesPage(g_PageView!)
-    case 4:  createPreviewPage(g_PageView!)
+    case 0:  createCompositePage(unwrap g_PageView)
+    case 1:  createHslModesPage(unwrap g_PageView)
+    case 2:  createRgbModesPage(unwrap g_PageView)
+    case 3:  createPalettesPage(unwrap g_PageView)
+    case 4:  createPreviewPage(unwrap g_PageView)
     default: unreachable
     }
 
@@ -536,8 +536,8 @@ func layoutRootView()
     if not g_View or not g_PageView do
         return
 
-    let view     = g_View!
-    let pageView = g_PageView!
+    let view     = unwrap g_View
+    let pageView = unwrap g_PageView
 
     let rect         = view.clientRect()
     let contentWidth = Math.max(rect.width - 2 * RootMargin, 1.0)
@@ -546,10 +546,10 @@ func layoutRootView()
     let footerY    = Math.max(rect.height - 42.0, PageTop + pageHeight + 6.0)
     let titleWidth = Math.max(contentWidth - ThemeButtonWidth - HeaderGap, 1.0)
 
-    let title2      = g_Title!
-    let themeButton = g_ThemeButton!
-    let subTitle2   = g_SubTitle!
-    let footer2     = g_Footer!
+    let title2      = unwrap g_Title
+    let themeButton = unwrap g_ThemeButton
+    let subTitle2   = unwrap g_SubTitle
+    let footer2     = unwrap g_Footer
     title2.setPosition({RootMargin, 18, titleWidth, 34})
     themeButton.setPosition({RootMargin + titleWidth + HeaderGap, 18, ThemeButtonWidth, 34})
     subTitle2.setPosition({RootMargin + 2, 56, contentWidth - 4, 42})
@@ -617,8 +617,8 @@ func canUsePageArrows()->bool
     if not g_View or not g_PageView do
         return false
 
-    let view2     = g_View!
-    let pageView2 = g_PageView!
+    let view2     = unwrap g_View
+    let pageView2 = unwrap g_PageView
 
     let focus = view2.focusedWindow()
     if not focus or focus == g_View do

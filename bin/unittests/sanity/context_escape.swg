@@ -117,7 +117,7 @@ struct ContextEscapeHolder
 // A pointer read out of a value is not this frame's storage either.
 func contextEscapeFromHolder(holder: *ContextEscapeHolder)
 {
-    Swag.setContext(holder.context!)
+    Swag.setContext(unwrap holder.context)
 }
 
 #test

@@ -21,7 +21,7 @@ impl List
         discard node
         let n = nullPtr'ListEntry()
         #assert(#typeof(n) == *ListEntry'T?)
-        let nn = n!
+        let nn = unwrap n
         nn.value = value
         return n
     }

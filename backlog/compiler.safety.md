@@ -158,7 +158,7 @@ is the current scorecard.
 
 ### compiler.safety.011 — `!` and `late` stop asserting in release
 
-- Evidence: `p!` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
+- Evidence: `unwrap p` is guarded by `.Expect` and an unset `late` read by `.Null` — two different
   assertions under two different flags, both off in `release` by default. A violated invariant gets a located panic in `devmode`; in unguarded `release`,
   the assertion itself does not diagnose the null. A later dereference can fault or reach an
   unrelated mapped address, depending on the address and offset. Naming either flag in `#[Swag.Safety]` restores its guard in `release`, so the gap is the

@@ -244,7 +244,7 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
-    let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/title.png")
+    let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/title.png")
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
     with let view = assume cast(*Picture.Panel, window.currentView).imageView

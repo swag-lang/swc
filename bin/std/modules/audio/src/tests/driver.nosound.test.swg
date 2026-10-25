@@ -72,8 +72,8 @@ func audioStartNoSoundEngine()
 
     let child = expect Bus.create(1, root)
 
-    let rootHandle  = cast(*NoSoundBus, root.handle!)
-    let childHandle = cast(*NoSoundBus, child.handle!)
+    let rootHandle  = cast(*NoSoundBus, unwrap root.handle)
+    let childHandle = cast(*NoSoundBus, unwrap child.handle)
     Swag.assert(rootHandle.numChannels == 2)
     Swag.assert(rootHandle.parent == null)
     Swag.assert(childHandle.numChannels == 1)
@@ -108,7 +108,7 @@ func audioStartNoSoundEngine()
     var file  = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voice = expect Voice.create(&file)
     #assert(#typeof(voice) == *Voice)
-    let handle = cast(*NoSoundVoice, voice.handle!)
+    let handle = cast(*NoSoundVoice, unwrap voice.handle)
     Swag.assert(voice.requestedEncoding == .Pcm16)
     Swag.assert(not voice.isPlaying())
 
@@ -173,7 +173,7 @@ func audioStartNoSoundEngine()
 
     var file    = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"), preloadData: false)
     let context = Swag.getContext()
-    let originalAllocator = context.allocator!
+    let originalAllocator = unwrap context.allocator
     var scratch: ScratchAllocator
     scratch.setCapacity(1024 * 1024, originalAllocator)
     defer scratch.release()
@@ -215,7 +215,7 @@ func audioStartNoSoundEngine()
 
     var file   = expect SoundFile.load(audioGetTestDataPath("pcm16_stereo.wav"))
     let voice  = expect Voice.create(&file)
-    let handle = cast(*NoSoundVoice, voice.handle!)
+    let handle = cast(*NoSoundVoice, unwrap voice.handle)
 
     discard expect voice.play()
     let shouldKeepUpdating = expect voice.updateNoSound()

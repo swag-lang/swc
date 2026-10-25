@@ -57,7 +57,7 @@ internal func testGlobalBlock(text: string)->HGLOBAL
 {
     let size  = cast(u64, text.count)
     let hglob = GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, size)
-    let buf   = cast([*] u8, GlobalLock(hglob)!)
+    let buf   = cast([*] u8, unwrap GlobalLock(hglob))
     Memory.copy(buf, text.buffer, size)
     discard GlobalUnlock(hglob)
     return hglob
@@ -113,7 +113,7 @@ func streamOnlyQueryGetData(itf: *IDataObject, fmt: const *FORMATETC)->HRESULT
     if not (fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
 
-    let inner = cast(*IDataObject, cast(*void, streamOnlyOf(itf).inner!))
+    let inner = cast(*IDataObject, cast(*void, unwrap streamOnlyOf(itf).inner))
     var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
     return inner.lpVtbl.QueryGetData(inner, &ask)
@@ -125,7 +125,7 @@ func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM
     if not (fmt.tymed & TYMED_ISTREAM) do
         return DV_E_TYMED
 
-    let inner = cast(*IDataObject, cast(*void, streamOnlyOf(itf).inner!))
+    let inner = cast(*IDataObject, cast(*void, unwrap streamOnlyOf(itf).inner))
     var ask   = fmt[]
     ask.tymed = TYMED_HGLOBAL
 
@@ -141,7 +141,7 @@ func streamOnlyGetData(itf: *IDataObject, fmt: const *FORMATETC, med: *STGMEDIUM
     }
 
     med.tymed = TYMED_ISTREAM
-    med.pstm  = cast(*IStream, raw!)
+    med.pstm  = cast(*IStream, unwrap raw)
     med.pUnkForRelease = null
     return S_OK
 }
@@ -367,7 +367,7 @@ impl IWnd for PlatformCatcher
     let payload = testRoundTrip(&host, testDragSource(&session, &data))
 
     Swag.assert(payload.hasImage())
-    let decoded = payload.image()!
+    let decoded = unwrap payload.image()
     Swag.assert(decoded.width == 7)
     Swag.assert(decoded.height == 5)
     Swag.assert(decoded.pixelColor(0, 0).argb == source.pixelColor(0, 0).argb)
@@ -410,7 +410,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC, cast(*void, raw!))
+    let formats = cast(*IEnumFORMATETC, cast(*void, unwrap raw))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
@@ -433,7 +433,7 @@ impl IWnd for PlatformCatcher
     var rawClone: LPVOID
     let cloneResult = formats.lpVtbl.Clone(formats, &rawClone)
     Swag.assert(cloneResult == S_OK)
-    let clone = cast(*IEnumFORMATETC, cast(*void, rawClone!))
+    let clone = cast(*IEnumFORMATETC, cast(*void, unwrap rawClone))
     defer discard clone.lpVtbl.Release(clone)
 
     nextResult = clone.lpVtbl.Next(clone, 1, &entries[0], &fetched)
@@ -644,7 +644,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC, cast(*void, raw!))
+    let formats = cast(*IEnumFORMATETC, cast(*void, unwrap raw))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
@@ -736,7 +736,7 @@ impl IWnd for PlatformCatcher
     let unlockError     = GetLastError()
     Swag.assert(not alreadyUnlocked and unlockError == 158)
 
-    let buf = cast([*] u8, GlobalLock(out.hGlobal)!)
+    let buf = cast([*] u8, unwrap GlobalLock(out.hGlobal))
     Swag.assert(Swag.makeString(buf, 12) == "private bits")
     discard GlobalUnlock(out.hGlobal)
 
@@ -744,7 +744,7 @@ impl IWnd for PlatformCatcher
     var raw: LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC, cast(*void, raw!))
+    let formats = cast(*IEnumFORMATETC, cast(*void, unwrap raw))
     defer discard formats.lpVtbl.Release(formats)
 
     var entries: [8] FORMATETC
@@ -774,7 +774,7 @@ impl IWnd for PlatformCatcher
     var raw:     LPVOID
     let enumFormatEtcResult = source.lpVtbl.EnumFormatEtc(source, 1, &raw)
     Swag.assert(enumFormatEtcResult == S_OK)
-    let formats = cast(*IEnumFORMATETC, raw!)
+    let formats = cast(*IEnumFORMATETC, unwrap raw)
     defer discard formats.lpVtbl.Release(formats)
 
     var fmt:     FORMATETC
@@ -829,7 +829,7 @@ impl IWnd for PlatformCatcher
         let getDataResult = source.lpVtbl.GetData(source, &fmt, &medium)
         Swag.assert(getDataResult == S_OK)
         defer ReleaseStgMedium(&medium)
-        let bytes = cast([*] u8, GlobalLock(medium.hGlobal)!)
+        let bytes = cast([*] u8, unwrap GlobalLock(medium.hGlobal))
         defer discard GlobalUnlock(medium.hGlobal)
         let decoded = expect Pixel.Image.decode("drag.bmp", Swag.makeSlice(bytes, GlobalSize(medium.hGlobal)))
         Swag.assert(decoded.width == image.width and decoded.height == image.height)

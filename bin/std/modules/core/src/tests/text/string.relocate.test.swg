@@ -23,7 +23,7 @@ impl Vec
             .capacity = 8
         }
 
-        Swag.init(.buffer! + .count, 1)
+        Swag.init(unwrap .buffer + .count, 1)
         .buffer![.count] = #nodrop #fwd value
         .count += 1
     }
@@ -32,7 +32,7 @@ impl Vec
     {
         var staged: T = #fwd value
         .count += 1
-        let buffer = .buffer!
+        let buffer = unwrap .buffer
         for var idx = .count - 1; idx > index; idx -= 1 do
             buffer[idx] = #relocate buffer[idx - 1]
         buffer[index] = #nodrop #move staged
@@ -45,6 +45,6 @@ impl Vec
     v.push("one")
     v.push("two")
     v.insertMoved(0, "x")
-    let b = v.buffer!
+    let b = unwrap v.buffer
     Swag.assert(b[0] == "x" and b[1] == "one" and b[2] == "two")
 }

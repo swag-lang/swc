@@ -150,21 +150,21 @@ func hasPostMovePointer(type: typeinfo)->bool => typeStruct(type).opPostMove != 
 func runDrop(type: typeinfo, value: *void)
 {
     let info = typeStruct(type)
-    let op   = info.opDrop!
+    let op   = unwrap info.opDrop
     op(value)
 }
 
 func runPostCopy(type: typeinfo, value: *void)
 {
     let info = typeStruct(type)
-    let op   = info.opPostCopy!
+    let op   = unwrap info.opPostCopy
     op(value)
 }
 
 func runPostMove(type: typeinfo, value: *void)
 {
     let info = typeStruct(type)
-    let op   = info.opPostMove!
+    let op   = unwrap info.opPostMove
     op(value)
 }
 

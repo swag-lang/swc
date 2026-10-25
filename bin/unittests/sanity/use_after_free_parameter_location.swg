@@ -7,9 +7,9 @@ func heapAlloc(size: u64)->*void
 {
     var req: AllocatorRequest
     req.size = size
-    let itf = Swag.getContext().allocator!
+    let itf = unwrap Swag.getContext().allocator
     itf.alloc(&req)
-    return req.address!
+    return unwrap req.address
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -19,7 +19,7 @@ func heapFree(ptr: *void, size: u64)
     var req: AllocatorRequest
     req.address = ptr
     req.size    = size
-    let itf = Swag.getContext().allocator!
+    let itf = unwrap Swag.getContext().allocator
     itf.free(&req)
 }
 

@@ -537,7 +537,7 @@ impl Capture
         .editView         = view
         .gizmo.sigChanged = func|capture = me|(g, _, _)
         {
-            let editView  = capture.editView!
+            let editView  = unwrap capture.editView
             with let undo = capture.newUndo(.MoveCapture)
             {
                 .newPosX  = cast(s32, ((g.rect.x - g.movingRect.x) / editView.zoom))

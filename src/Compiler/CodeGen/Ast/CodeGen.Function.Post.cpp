@@ -379,12 +379,12 @@ namespace
 
         const AstNodeRef resolvedExprRef = codeGen.resolvedNodeRef(exprRef);
         if (!resolvedExprRef.isValid())
-            return raiseInternalCodeGenError(codeGen, "cannot resolve the 'notnull' operand", ownerRef);
+            return raiseInternalCodeGenError(codeGen, "cannot resolve the presence assertion operand", ownerRef);
 
         const SemaNodeView exprView    = codeGen.viewType(resolvedExprRef);
         TypeRef            exprTypeRef = exprView.typeRef();
         if (!exprTypeRef.isValid())
-            return raiseInternalCodeGenError(codeGen, "missing the 'notnull' operand type", ownerRef);
+            return raiseInternalCodeGenError(codeGen, "missing the presence assertion operand type", ownerRef);
 
         const TypeInfo& originalType      = *exprView.type();
         const TypeInfo* unwrappedExprType = originalType.unwrapAliasEnumType(codeGen.ctx());

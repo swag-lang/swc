@@ -55,7 +55,7 @@ struct StorageContainer
 func checkStorage(value: *void, type: typeinfo)
 {
     let info  = cast(const *Swag.TypeInfoStruct, cast(const *void, type))
-    let slots = info.dynamicSlots!
+    let slots = unwrap info.dynamicSlots
     Swag.assert(slots.count == 1)
     let slot   = cast([*] u8, value) + slots[0].offset
     let stored = cast(*u64, cast(*void, slot))[]
@@ -83,7 +83,7 @@ func checkStorage(value: *void, type: typeinfo)
 func checkStorageInline(value: *void, type: typeinfo)
 {
     let info  = cast(const *Swag.TypeInfoStruct, cast(const *void, type))
-    var slots = info.dynamicSlots!
+    var slots = unwrap info.dynamicSlots
     let slot  = cast([*] u8, value) + slots[0].offset
     Swag.assert(cast(*u64, cast(*void, slot))[] == cast(u64, &slots[0]))
 }

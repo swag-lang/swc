@@ -14,7 +14,7 @@ func releaseBorrowedAllocation(value: AllocatorBorrowValue, request: *Swag.Alloc
 // The host allocator used by JIT and the native allocator obey the same early capability.
 #test
 {
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     var request   = Swag.AllocatorRequest{size: #sizeof(AllocatorBorrowValue)}
     allocator.alloc(&request)
     Swag.assert(request.address != null)

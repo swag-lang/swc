@@ -137,7 +137,7 @@ private impl RenderThread
 {
     func worker(thread: const *Threading.Thread)
     {
-        let owner = cast(*RenderThread, thread.userParam!)
+        let owner = cast(*RenderThread, unwrap thread.userParam)
         while true
         {
             owner.requested.wait()
@@ -357,7 +357,7 @@ impl IRenderer for RenderThread
     {
         var result: *RenderTarget?
         .execute(func|me, width, height, &result|() { result = me.backend.acquireRenderTarget(width, height) })
-        return result!
+        return unwrap result
     }
 
     mtd impl releaseRenderTarget(target: *RenderTarget?) { .execute(func|me, target|() { me.backend.releaseRenderTarget(target) }) }

@@ -2427,7 +2427,7 @@
 <p>Zero fields retain the compiler defaults. Set overrides during module setup; the optimizer copies the resulting configuration for each function. These budgets do not enable passes disabled by <a href="#Swag_Build_Backend_optimLevel">Swag.Build.Backend.optimLevel</a> or <a href="#Swag_Build_Backend_vectorize">Swag.Build.Backend.vectorize</a>. Fixed proof limits and instruction representations remain compiler-owned.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>
 {
-    <span class="SKwd">let</span> cfg = <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getBuildCfg</span>()!
+    <span class="SKwd">let</span> cfg = <span class="SKwd">unwrap</span> <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getBuildCfg</span>()
     cfg.backend.optimizer.iterations.preRaSweeps = <span class="SNum">48</span>
     cfg.backend.optimizer.unroll.maxTrips = <span class="SNum">32</span>
     cfg.backend.optimizer.unroll.memoryBytes = <span class="SNum">512</span>
@@ -2537,7 +2537,7 @@
 <p>Each field lists warning identifiers separated with <span class="code-inline">|</span>, and accepts <span class="code-inline">"all"</span> to name every warning at once. A field that names a warning outranks a field that says <span class="code-inline">"all"</span>, whichever field it is, and every field here is outranked by <a href="#Swag_Warning">Warning</a> written on a declaration, a block, or a file.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#run</span>
 {
-    <span class="SKwd">let</span> cfg = <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getBuildCfg</span>()!
+    <span class="SKwd">let</span> cfg = <span class="SKwd">unwrap</span> <span class="SNsp">Swag</span>.<span class="SFct">compiler</span>().<span class="SFct">getBuildCfg</span>()
     cfg.warnings.asErrors = <span class="SStr">"all"</span>
     cfg.warnings.disabled = <span class="SStr">"sema_warn_unreachable_code"</span>
 }</span></div>
@@ -4229,7 +4229,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 </td></tr>
 <tr><td id="Swag_SafetyWhat_DynCast" class="code-type">DynCast</td><td><p>Implicit extraction from erased types</p>
 </td></tr>
-<tr><td id="Swag_SafetyWhat_Expect" class="code-type">Expect</td><td><p>Check presence for the postfix <span class="code-inline">!</span> assertion; <span class="code-inline">expect</span> always panics on error</p>
+<tr><td id="Swag_SafetyWhat_Expect" class="code-type">Expect</td><td><p>Check presence for <span class="code-inline">unwrap</span> and asserted accesses; <span class="code-inline">expect</span> always panics on error</p>
 </td></tr>
 <tr><td id="Swag_SafetyWhat_Lifecycle" class="code-type">Lifecycle</td><td><p>Use of moved-from values, and poisoning of abandoned or dropped storage</p>
 </td></tr>
@@ -8000,7 +8000,7 @@ task.<span class="SFct">submit</span>(<span class="SKwd">func</span>() =&gt; <sp
 "k|Swag.SafetyWhat.Bool|Swag_SafetyWhat_Bool|'bool' holding neither 'true' nor 'false'",
 "k|Swag.SafetyWhat.BoundCheck|Swag_SafetyWhat_BoundCheck|Out-of-bounds index or slice",
 "k|Swag.SafetyWhat.DynCast|Swag_SafetyWhat_DynCast|Implicit extraction from erased types",
-"k|Swag.SafetyWhat.Expect|Swag_SafetyWhat_Expect|Check presence for the postfix '!' assertion; 'expect' always panics on error",
+"k|Swag.SafetyWhat.Expect|Swag_SafetyWhat_Expect|Check presence for 'unwrap' and asserted accesses; 'expect' always panics on error",
 "k|Swag.SafetyWhat.Lifecycle|Swag_SafetyWhat_Lifecycle|Use of moved-from values, and poisoning of abandoned or dropped storage",
 "k|Swag.SafetyWhat.Math|Swag_SafetyWhat_Math|Math functions called outside their domain, such as a negative 'Swag.sqrt'",
 "k|Swag.SafetyWhat.Memory|Swag_SafetyWhat_Memory|Memory misuse, mostly found by the sanity pass",

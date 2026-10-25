@@ -1,3 +1,4 @@
+SWC_DIAG_DEF(parser_err_terminal_bang, Error, "postfix '!' needs a member access, index, dereference, or call; [help] write 'unwrap <expression>' to extract a value")
 SWC_DIAG_DEF(parser_err_unexpected_token, Error, "{tok-fam} '{tok}' does not belong here")
 SWC_DIAG_DEF(parser_err_unexpected_token, Error, "closing {tok-fam} '{tok}' has no matching '{expect-tok}'; [help] remove it, or add that opener before it")
 SWC_DIAG_DEF(parser_err_expected_token, Error, "expected '{expect-tok}' {because}; found {tok-fam} '{tok}'")

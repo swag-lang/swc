@@ -58,7 +58,7 @@ impl Image
         let hbmp = try CreateDIBSection(null, &bi, cast(DIB_RGB_COLORS), &ppvBits, null, 0)
         defer #nofail try DeleteObject(cast(hbmp))
 
-        Memory.copy(ppvBits!, dib.pixels.storage(), dib.byteCount)
+        Memory.copy(unwrap ppvBits, dib.pixels.storage(), dib.byteCount)
 
         // CreateIconIndirect requires a non-null mask: for a 32-bit color icon the
         // alpha channel drives transparency, but the AND mask (hbmMask) must still

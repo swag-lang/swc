@@ -277,7 +277,7 @@ func listCellMatchBounds(list: *ListCtrl, index: u32, column: u32, text: string,
     if slot.isEmpty() do
         return false
 
-    let font   = list.font().regular!
+    let font   = unwrap list.font().regular
     let prefix = Painter.measureString(text[until offset], font).width
     let width  = Painter.measureString(text[offset until offset + length], font).width
 

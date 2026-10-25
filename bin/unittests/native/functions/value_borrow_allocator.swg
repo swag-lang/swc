@@ -15,7 +15,7 @@ func mustReject(action: func||())
 #[Swag.NoInline]
 func invalidateAllocation(value: Thing, address: *void, operation: u32)->u64
 {
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     var request: Swag.AllocatorRequest
     request.address = address
     switch operation
@@ -31,13 +31,13 @@ func invalidateAllocation(value: Thing, address: *void, operation: u32)->u64
 // Borrowing an interior element must prevent freeing or moving the whole allocation.
 #test
 {
-    let allocator = Swag.getContext().allocator!
+    let allocator = unwrap Swag.getContext().allocator
     for size in [3 * #sizeof(Thing), 131072'u64]
     {
         var request: Swag.AllocatorRequest
         request.size = size
         allocator.alloc(&request)
-        let address = request.address!
+        let address = unwrap request.address
         defer
         {
             request.address = address

@@ -147,7 +147,7 @@ func circuitInit()->Circuit
     var c: Circuit
     c.wireVal = cast([*] u8?, testAlloc(cast(u64, MaxWireIdx) * #sizeof(u8)))
     let total   = MaxWireIdx
-    let wireVal = c.wireVal!
+    let wireVal = unwrap c.wireVal
     for index in total { wireVal[index] = 255 }
     c.maxZBit = 0
     return c
@@ -169,7 +169,7 @@ impl Circuit
     #[Swag.Inline]
     mtd setWire(idx: u32, val: u8)
     {
-        let wireVal = me.wireVal!
+        let wireVal = unwrap me.wireVal
         wireVal[idx] = val
     }
 

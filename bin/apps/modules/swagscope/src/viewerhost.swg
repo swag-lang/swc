@@ -234,7 +234,7 @@ impl Viewer.Host for ViewerPluginHost
         {
             let splitter: *SplitterCtrl = .sideSplitter
             let paneIndex = .sidePaneIndex
-            .session.sidePanelItem      = splitter.items[paneIndex]!
+            .session.sidePanelItem      = unwrap splitter.items[paneIndex]
             .session.sidePanelItem.size = panelWidth + gutter
             .session.sidePanelButton.sigCheckedChanged += func|target = splitter, paneIndex|(button)
             {

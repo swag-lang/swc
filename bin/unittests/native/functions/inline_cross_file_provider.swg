@@ -63,14 +63,14 @@ namespace InlineCrossFile
         #[Swag.Inline]
         mtd(op: Swag.Operator) opIndexAssign(index: u64, value: T)
         {
-            let buffer = .data!
+            let buffer = unwrap .data
             #ast("buffer[index] ", op.symbol(), " value")
         }
 
         #[Swag.Inline]
         mtd opIndexPtr(index: u64)->*T
         {
-            let buffer = .data!
+            let buffer = unwrap .data
             return buffer + index
         }
     }

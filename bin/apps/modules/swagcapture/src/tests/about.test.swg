@@ -27,7 +27,7 @@ using Swag, Core, Pixel
 
     dialog.applyLayout()
     Swag.assert(dialog.labelMessage.dockStyle == .None)
-    let surface  = dialog.surface!
+    let surface  = unwrap dialog.surface
     let rendered = host.render(dialog)
 
     // The window's bottom border belongs below the action bar, outside this crop.

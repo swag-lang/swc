@@ -248,13 +248,13 @@ public struct Transform
 impl Transform
 {
     #[Swag.Inline]
-    func nnEdge(e: *Edge?)->*Edge => e!
+    func nnEdge(e: *Edge?)->*Edge => unwrap e
     #[Swag.Inline]
-    func nnOutPt(p: *OutPt?)->*OutPt => p!
+    func nnOutPt(p: *OutPt?)->*OutPt => unwrap p
     #[Swag.Inline]
-    func nnOutRec(r: *OutRec?)->*OutRec => r!
+    func nnOutRec(r: *OutRec?)->*OutRec => unwrap r
     #[Swag.Inline]
-    func nnIntersect(n: *IntersectNode?)->*IntersectNode => n!
+    func nnIntersect(n: *IntersectNode?)->*IntersectNode => unwrap n
 
     // Records carved per block. Large enough that a whole ordinary operation fits in one.
     private const RecordBlockSize = 512'u64
@@ -1080,7 +1080,7 @@ impl Transform
 
     mtd updateEdgeIntoAEL(e: *Edge)->*Edge
     {
-        let eNew = e.nextInLML!
+        let eNew = unwrap e.nextInLML
         eNew.outIdx = e.outIdx
         let aelPrev = e.prevInAEL
         let aelNext = e.nextInAEL
@@ -1842,7 +1842,7 @@ impl Transform
     {
         for join in .joinList
         {
-            let jn      = join!
+            let jn      = unwrap join
             let outRec1 = .getOutRec(nnOutPt(jn.outPt1).idx)
             var outRec2 = .getOutRec(nnOutPt(jn.outPt2).idx)
 
@@ -2141,7 +2141,7 @@ impl Transform
         while isModified
         {
             isModified = false
-            var ec = .sortedEdges!
+            var ec = unwrap .sortedEdges
             while ec.nextInSEL
             {
                 let eNext = nnEdge(ec.nextInSEL)
@@ -2203,7 +2203,7 @@ impl Transform
                     j += 1
                 if j == .intersectList.count do
                     return false
-                swap((.intersectList.buffer + i)!, (.intersectList.buffer + j)!)
+                swap(unwrap (.intersectList.buffer + i), unwrap (.intersectList.buffer + j))
             }
 
             let iNode = nnIntersect(.intersectList[i])
@@ -2402,7 +2402,7 @@ impl Transform
         {
             if not startEdge do
                 startEdge = .activeEdges
-            var se = startEdge!
+            var se = unwrap startEdge
             while se.nextInAEL and not e2InsertsBeforeE1(nnEdge(se.nextInAEL), edge) do
                 se = nnEdge(se.nextInAEL)
             edge.nextInAEL = se.nextInAEL
@@ -3208,7 +3208,7 @@ impl Transform
         var lm: const *LocalMinimum?
         while .popLocalMinima(botY, &lm)
         {
-            let lmn = lm!
+            let lmn = unwrap lm
             let lb  = lmn.leftBound
             let rb  = lmn.rightBound
 
@@ -3262,7 +3262,7 @@ impl Transform
             {
                 for i in .ghostJoinList.count
                 {
-                    let jr = .ghostJoinList[i]!
+                    let jr = unwrap .ghostJoinList[i]
                     if horzSegmentsOverlap(nnOutPt(jr.outPt1).pt.x, jr.offPt.x, rb.bot.x, rb.top.x) do
                         .addJoin(jr.outPt1, nnOutPt(op1), jr.offPt)
                 }

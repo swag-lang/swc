@@ -225,7 +225,7 @@ private impl Panel
         if .cueText.isEmpty() do
             return
         let message = Format.toString(texts().ui_CueRange, .cueText.count)
-        let dialog  = EditDlg.createSingleLine(.surface!, {title: texts().ui_GoToCue, message: message, text: "1"})
+        let dialog  = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToCue, message: message, text: "1"})
         if dialog.doModal() != Dialog.BtnOk do
             return
         var parseErrorOutcome: Swag.Error
@@ -241,7 +241,7 @@ private impl Panel
     {
         if .cueText.isEmpty() do
             return
-        let dialog = EditDlg.createSingleLine(.surface!, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00.000"})
+        let dialog = EditDlg.createSingleLine(unwrap .surface, {title: texts().ui_GoToTime, message: texts().ui_TimeRange, text: "00:00:00.000"})
         if dialog.doModal() != Dialog.BtnOk do
             return
 

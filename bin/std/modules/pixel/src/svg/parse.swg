@@ -694,7 +694,7 @@ private func parseColor(value: string)->{ color: Color, enabled: bool }
     {
         if it.name and not Latin1.compare(it.name, text, ignoreCase: true)
         {
-            result.color = Color.fromArgb(cast(const *Argb, it.value!)[])
+            result.color = Color.fromArgb(cast(const *Argb, unwrap it.value)[])
             return result
         }
     }
@@ -1678,7 +1678,7 @@ private func parsePathData(list: *LinePathList, data: string, state: *GroupState
                 y += curY
             }
 
-            appendArc(path!, state, curX, curY, rx, ry, rotation, largeArc, sweepF, x, y)
+            appendArc(unwrap path, state, curX, curY, rx, ry, rotation, largeArc, sweepF, x, y)
             addMarkerVertex(vertices, {x, y}, {x - curX, y - curY}, {x - curX, y - curY})
             curX = x
             curY = y
@@ -2369,7 +2369,7 @@ private impl Parser
     {
         let slot = cast(u64, kind)
         if .typeFaces[slot] do
-            return .typeFaces[slot]!
+            return unwrap .typeFaces[slot]
 
         var fileName = .options.fontFileName
         switch kind

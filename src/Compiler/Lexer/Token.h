@@ -32,13 +32,14 @@ enum class TokenIdKindE : uint32_t
 
     // Operator families. '++' is deliberately absent: concatenation shares no operand rule
     // with the numeric operators, and every site that accepts it handles it on its own.
-    OpArithmetic    = 1 << 14, // + - * / %
-    OpBitwise       = 1 << 15, // & | ^ << >>
-    OpEquality      = 1 << 16, // == !=
-    OpOrdering      = 1 << 17, // < <= > >= <=>
-    OpLogical       = 1 << 18, // and or && ||
-    OpAssign        = 1 << 19, // = and every compound assignment
-    StorageModifier = 1 << 20, // late tls global
+    OpArithmetic      = 1 << 14, // + - * / %
+    OpBitwise         = 1 << 15, // & | ^ << >>
+    OpEquality        = 1 << 16, // == !=
+    OpOrdering        = 1 << 17, // < <= > >= <=>
+    OpLogical         = 1 << 18, // and or && ||
+    OpAssign          = 1 << 19, // = and every compound assignment
+    StorageModifier   = 1 << 20, // late tls global
+    PresenceAssertion = 1 << 22, // unwrap and the asserted-access postfix !
 };
 using TokenIdKind = EnumFlags<TokenIdKindE>;
 
@@ -171,6 +172,7 @@ struct Token
 
     // The postfix expr[] dereference uses the '[' token.
     static bool isDeref(TokenId id) { return id == TokenId::SymLeftBracket; }
+    static bool isPresenceAssertion(TokenId id) { return toKind(id).hasAll(TokenIdKindE::PresenceAssertion); }
 
     static bool isOpRelational(TokenId id) { return toKind(id).hasAny(TokenIdKindE::OpEquality | TokenIdKindE::OpOrdering); }
     static bool isOpLogical(TokenId id) { return toKind(id).hasAll(TokenIdKindE::OpLogical); }

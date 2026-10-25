@@ -339,7 +339,7 @@ func layoutStagePage()
     g_StageNote!.setPosition({PagePad, PagePad, width, NoteHeight})
 
     let controlsY = PagePad + NoteHeight + RowGap
-    let controls  = g_StageControls!
+    let controls  = unwrap g_StageControls
     controls.setPosition({PagePad, controlsY, width, PanelHeight})
 
     let inner   = controls.contentRect()
@@ -454,7 +454,7 @@ func layoutFieldPage()
     g_FieldNote!.setPosition({PagePad, PagePad, width, NoteHeight})
 
     let controlsY = PagePad + NoteHeight + RowGap
-    let controls  = g_FieldControls!
+    let controls  = unwrap g_FieldControls
     controls.setPosition({PagePad, controlsY, width, PanelHeight})
 
     let inner = controls.contentRect()
@@ -491,7 +491,7 @@ func onFieldPageEvent(_: *Wnd, evt: IEvent)->bool
 // rectangle never changes, so the pointer target is exactly where it was before the loop started.
 func startDecorativePulse()
 {
-    let btn = g_DecorativeBtn!
+    let btn = unwrap g_DecorativeBtn
     btn.setPresentationPivot({0.5, 0.5})
 
     with var options: AnimationOptions
@@ -523,7 +523,7 @@ func startEssentialBreath()
         .motion      = .Essential
     }
 
-    discard app.animator.animateF32(g_EssentialLbl!,
+    discard app.animator.animateF32(unwrap g_EssentialLbl,
                                     AnimationChannel.from("Gui11.Pref.Breath"),
                                     1,
                                     0.35,
@@ -536,7 +536,7 @@ func toggleExpander(_: *Button)
     g_Expanded        = not g_Expanded
     g_ExpandBtn!.name = g_Expanded ? "Hide the panel" : "Show the panel"
     g_ExpandBtn!.invalidate()
-    discard app.animator.animateLayoutHeight(g_Detail!, g_Expanded ? ExpandedDetail : CollapsedDetail)
+    discard app.animator.animateLayoutHeight(unwrap g_Detail, g_Expanded ? ExpandedDetail : CollapsedDetail)
 }
 
 func buildPrefPage(parent: *Wnd)->*Wnd
@@ -730,7 +730,7 @@ func onFrame(_: *Application)
         g_Field!.moveTo({rect.x + rect.width * 0.25, rect.y + rect.height * 0.7})
 
     case 3:
-        toggleExpander(g_ExpandBtn!)
+        toggleExpander(unwrap g_ExpandBtn)
     }
 }
 

@@ -30,7 +30,7 @@ struct SafetyCaseHolder
             holder.value = .Number{3}
         else do
             holder.value = .Text{"three"}
-        return holder.number!     // swc-expected-error {{safety_err_runtime}}
+        return unwrap holder.number     // swc-expected-error {{safety_err_runtime}}
     }
 
     const value = #run readNumber(false)
@@ -50,7 +50,7 @@ struct SafetyCaseHolder
             holder.value = .Number{3}
         else do
             holder.value = .Text{"three"}
-        return holder.number!
+        return unwrap holder.number
     }
 
     #assert(#run readNumber(true) == 3)

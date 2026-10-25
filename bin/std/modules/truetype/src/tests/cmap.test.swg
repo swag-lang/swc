@@ -49,7 +49,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init()
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     let glyphA       = face.glyphIndex('A')
     let glyphE       = face.glyphIndex(0x00E9)
@@ -173,7 +173,7 @@ using Swag, Core
 {
     var faceScope: FaceScope
     faceScope.init("arial.ttf")
-    let face = faceScope.face!
+    let face = unwrap faceScope.face
 
     Swag.assert(not face.hasVariant('A', 0xFE0F))
     Swag.assert(face.glyphIndexVariant('A', 0xFE0F) == face.glyphIndex('A'))

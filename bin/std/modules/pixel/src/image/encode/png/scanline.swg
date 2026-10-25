@@ -114,7 +114,7 @@ impl Encoder
             let initialShift   = 8 - bitDepth
             var shiftAmount    = initialShift
 
-            var scanline = .scanline!
+            var scanline = unwrap .scanline
             Memory.clear(cast([*] u8, scanline), cast(u64, .subimage[pass].scanlineWidth))
 
             for k in .subimage[pass].width
@@ -145,7 +145,7 @@ impl Encoder
         {
             let ioffset = (Adam7StartX[pass] + k * Adam7DeltaX[pass]) * .pixelSize
             let src     = row + ioffset
-            let dst     = .scanline! + k * .pixelSize
+            let dst     = unwrap .scanline + k * .pixelSize
             if .encodeFlags.toBigEndian
             {
                 for sample in .pixelSize / 2
@@ -168,7 +168,7 @@ impl Encoder
             }
         }
 
-        return try .encodeScanLine(cast([*] u8, .scanline!))
+        return try .encodeScanLine(cast([*] u8, unwrap .scanline))
     }
 
     mtd encodeScanLine(sl: [*] u8)->bool fail
@@ -180,7 +180,7 @@ impl Encoder
         {
             if .encodeFlags.toBigEndian
             {
-                let scanline = .scanline!
+                let scanline = unwrap .scanline
                 for var i = 0; i < scanlineWidth - 1; i += 2
                 {
                     scanline[i]     = sl[i + 1]
@@ -189,7 +189,7 @@ impl Encoder
             }
             elif .swapRB and .bytesPerPixel == 3
             {
-                let scanline = .scanline!
+                let scanline = unwrap .scanline
                 for var i = 0; i < scanlineWidth - 1; i += 3
                 {
                     scanline[i]     = sl[i + 2]
@@ -202,7 +202,7 @@ impl Encoder
                 // Swap R and B one whole 32-bit pixel at a time: a byte-wise swizzle
                 // of a full-desktop capture costs seconds in unoptimized builds.
                 let src   = cast(const [*] u32, sl)
-                let dst   = cast([*] u32, .scanline!)
+                let dst   = cast([*] u32, unwrap .scanline)
                 let count = (scanlineWidth - 1) / 4
                 for i in count
                 {
@@ -212,18 +212,18 @@ impl Encoder
             }
             else
             {
-                Memory.copy(.scanline!, sl, cast(u64, scanlineWidth) - 1)
+                Memory.copy(unwrap .scanline, sl, cast(u64, scanlineWidth) - 1)
             }
         }
 
         let requiresPrevious = .encodeFlags.filterChoice & (.Up | .Average | .Paeth)
         if not .rowInfo.scanlineIdx and requiresPrevious do
-            Memory.clear(cast([*] u8, .prevScanline!), cast(u64, scanlineWidth))
+            Memory.clear(cast([*] u8, unwrap .prevScanline), cast(u64, scanlineWidth))
 
-        var filtered = cast([*] u8, .filteredScanline!)
+        var filtered = cast([*] u8, unwrap .filteredScanline)
         let filter   = .getBestFilter(scanlineWidth - 1)
         if filter == .None do
-            filtered = cast([*] u8, .scanline!)
+            filtered = cast([*] u8, unwrap .scanline)
         filtered    -= 1
         filtered[0] = cast(u8, filter)
         filtered    += 1

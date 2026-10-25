@@ -88,7 +88,7 @@ and the caller has no way to know.
     {
         var req: Swag.AllocatorRequest
         req.size = size
-        let allocItf = Swag.getContext().allocator!
+        let allocItf = unwrap Swag.getContext().allocator
         allocItf.alloc(&req)
         return req.address
     }
@@ -98,11 +98,11 @@ and the caller has no way to know.
         var req: Swag.AllocatorRequest
         req.address = ptr
         req.size    = size
-        let allocItf = Swag.getContext().allocator!
+        let allocItf = unwrap Swag.getContext().allocator
         allocItf.free(&req)
     }
 
-    let p    = cast(*s32, exampleAlloc(4)!)
+    let p    = cast(*s32, unwrap exampleAlloc(4))
     let same = p
     p[] = 1
     exampleFree(p, 4)

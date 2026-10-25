@@ -64,7 +64,7 @@ func notNullReadInline(node: *NotNullProvenNode)->s32 => node.value
 #[Swag.NoInline]
 func notNullReportedInlineArgument(node: *NotNullProvenNode)->s32
 {
-    return notNullReadInline(node!)     // swc-expected-error {{sema_err_notnull_already_proven}}
+    return notNullReadInline(unwrap node)     // swc-expected-error {{sema_err_notnull_already_proven}}
 }
 
 // A reassignment drops the proof, so the second assertion is needed again and is not reported.
@@ -119,11 +119,16 @@ impl NotNullProvenNode
 
 func notNullUnderOptionalChain(node: *NotNullProvenNode?)->bool
 {
-    return node?.sameNodes(node!, node!)     // swc-expected-error {{sema_err_notnull_already_proven}}
+    return node?.sameNodes(unwrap node, unwrap node)     // swc-expected-error {{sema_err_notnull_already_proven}}
 }
 
 func notNullDoesNotEscapeOptionalChain(node: *NotNullProvenNode?)->s32
 {
-    let same = node?.sameNode(node!) orelse false
+    let same = node?.sameNode(unwrap node) orelse false
     return (same ? 1 : 0) + node!.value
+}
+
+func unwrapAlreadyPresent(node: *NotNullProvenNode)->*NotNullProvenNode
+{
+    return unwrap node     // swc-expected-error {{sema_err_notnull_already_proven}}
 }

@@ -59,7 +59,7 @@ internal impl IActionUI for ActionProperties
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_Paste
             evt.icon          = theme.icon(.Paste)
-            evt.disabled      = not prop.canChangeItem(item) or not Clipboard.hasTypedValue(item.type!)
+            evt.disabled      = not prop.canChangeItem(item) or not Clipboard.hasTypedValue(unwrap item.type)
 
         case ActionProperties.ResetDefault:
             evt.updatedFields |= .Name | .Icon | .Disabled
@@ -72,7 +72,7 @@ internal impl IActionUI for ActionProperties
             evt.name          = strings().prop_MoveUp
             evt.icon          = theme.icon(.ChevronUp)
             evt.disabled      = not arr.arrElem or
-                                not prop.canChangeItem(arr.arrItem!) or
+                                not prop.canChangeItem(unwrap arr.arrItem) or
                                 prop.arrayElementIndex(arr.arrElem) == 0
 
         case ActionProperties.MoveDown:
@@ -82,17 +82,17 @@ internal impl IActionUI for ActionProperties
             var atEnd = true
             if arr.arrElem
             {
-                let info = prop.arrayElementInfo(arr.arrItem!)
+                let info = prop.arrayElementInfo(unwrap arr.arrItem)
                 atEnd = prop.arrayElementIndex(arr.arrElem) + 1 >= info.count
             }
 
-            evt.disabled = not arr.arrElem or not prop.canChangeItem(arr.arrItem!) or atEnd
+            evt.disabled = not arr.arrElem or not prop.canChangeItem(unwrap arr.arrItem) or atEnd
 
         case ActionProperties.Remove:
             evt.updatedFields |= .Name | .Icon | .Disabled
             evt.name          = strings().prop_Remove
             evt.icon          = theme.icon(.Remove)
-            evt.disabled      = not arr.arrElem or not prop.canChangeItem(arr.arrItem!)
+            evt.disabled      = not arr.arrElem or not prop.canChangeItem(unwrap arr.arrItem)
 
         case ActionProperties.RemoveAll:
             evt.updatedFields |= .Name | .Icon | .Disabled
@@ -101,7 +101,7 @@ internal impl IActionUI for ActionProperties
             var empty = true
             if arr.arrItem
             {
-                let arrData = cast(*Array'u8, arr.arrItem.data!)
+                let arrData = cast(*Array'u8, unwrap arr.arrItem.data)
                 empty = arrData.isEmpty()
             }
 
@@ -123,10 +123,10 @@ internal impl IActionUI for ActionProperties
         switch cxt.id
         {
         case ActionProperties.Copy:
-            Clipboard.addTypedValue(item.data!, item.type!)
+            Clipboard.addTypedValue(unwrap item.data, unwrap item.type)
 
         case ActionProperties.Paste:
-            if Clipboard.getTypedValue(item.data!, item.type!)
+            if Clipboard.getTypedValue(unwrap item.data, unwrap item.type)
             {
                 prop.refreshItem(item)
                 prop.commitItemChange(item)
@@ -146,14 +146,14 @@ internal impl IActionUI for ActionProperties
         case ActionProperties.Remove:
             if not arr.arrElem do
                 break
-            if MessageDlg.confirm(prop.wnd.surface!, strings().prop_ConfirmRemove) != Dialog.BtnYes do
+            if MessageDlg.confirm(unwrap prop.wnd.surface, strings().prop_ConfirmRemove) != Dialog.BtnYes do
                 break
             prop.removeArrayValue(arr.arrElem)
 
         case ActionProperties.RemoveAll:
             if not arr.arrItem do
                 break
-            if MessageDlg.confirm(prop.wnd.surface!, strings().prop_ConfirmRemoveAll) != Dialog.BtnYes do
+            if MessageDlg.confirm(unwrap prop.wnd.surface, strings().prop_ConfirmRemoveAll) != Dialog.BtnYes do
                 break
             prop.clearArray(arr.arrItem)
         }

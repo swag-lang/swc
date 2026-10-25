@@ -17,9 +17,9 @@ func myAlloc(size: u64)->*void
 {
     var req: AllocatorRequest
     req.size = size
-    let allocItf = Swag.getContext().allocator!
+    let allocItf = unwrap Swag.getContext().allocator
     allocItf.alloc(&req)
-    return req.address!
+    return unwrap req.address
 }
 
 #[Swag.Sanity(.Lifecycle, true)]
@@ -28,7 +28,7 @@ func myFree(ptr: *void, size: u64)
     var req: AllocatorRequest
     req.address = ptr
     req.size    = size
-    let allocItf = Swag.getContext().allocator!
+    let allocItf = unwrap Swag.getContext().allocator
     allocItf.free(&req)
 }
 

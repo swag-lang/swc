@@ -20,7 +20,7 @@ struct ViewerFolderHistory
 }
 
 // Returns the application window that hosts `view`.
-func viewerWindowFor(view: *Wnd)->*ViewerWindow => view.ancestorByType'ViewerWindow()!
+func viewerWindowFor(view: *Wnd)->*ViewerWindow => unwrap view.ancestorByType'ViewerWindow()
 
 // Replaces a viewer that failed after creation with the standard error surface.
 func reportViewerFailure(view: *Wnd, reason: string) { viewerWindowFor(view).replaceFailedViewer(view, reason) }
@@ -466,7 +466,7 @@ impl IWnd for ViewerWindow
             let splitter = assume cast(*SplitterCtrl, .currentSidePanelHost.parent)
             for index in splitter.items.count
             {
-                let item = splitter.items[index]!
+                let item = unwrap splitter.items[index]
                 if item.view == .currentSidePanelHost do
                     .rightPanelWidth = item.size - .themeMetrics().panel_GutterSize
             }
@@ -718,7 +718,7 @@ impl ViewerWindow
         if .fullScreen == enabled do
             return
 
-        let surface = .surface!
+        let surface = unwrap .surface
         if enabled
         {
             .fullScreenRestorePosition = surface.isMaximized ? surface.restoredPosition : surface.position
@@ -881,7 +881,7 @@ impl ViewerWindow
         // The registry remains the source of the compact capability line, but extension details
         // stay out of the identity box: the viewer names communicate the supported content
         // families without turning About into a file-association inventory.
-        let dialog = AboutDlg.createApplication(.surface!, about)
+        let dialog = AboutDlg.createApplication(unwrap .surface, about)
         dialog.addSection(appStrings().ui_AboutViewers, .aboutViewerList())
         return dialog
     }

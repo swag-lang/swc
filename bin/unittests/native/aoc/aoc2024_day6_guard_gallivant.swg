@@ -116,7 +116,7 @@ func appendIndex(buffer: IndexBuffer, value: u32)->IndexBuffer
         result.growCount += 1'u32
     }
 
-    let data = result.data!
+    let data = unwrap result.data
     data[result.count] = value
     result.count       += 1'u32
     return result
@@ -273,7 +273,7 @@ func collectVisitedTrace(outVisitedCount: *u32, outTrace: *IndexBuffer, grid: Gr
             break
 
         let nextIndex = cellIndex(cast(u32, nextX), cast(u32, nextY), grid.width)
-        let cells     = grid.cells!
+        let cells     = unwrap grid.cells
         if cells[nextIndex] == '#'u8
         {
             dir = turnRight(dir)
@@ -321,7 +321,7 @@ func doesObstacleCauseLoop(grid: GridMap, obstacleIndex: u32)->bool
             return false
 
         let nextIndex = cellIndex(cast(u32, nextX), cast(u32, nextY), grid.width)
-        let cells     = grid.cells!
+        let cells     = unwrap grid.cells
         if nextIndex == obstacleIndex or cells[nextIndex] == '#'u8
         {
             dir = turnRight(dir)
@@ -339,7 +339,7 @@ func countLoopObstacles(grid: GridMap, trace: IndexBuffer)->u32
 {
     var result: u32
     let startIndex = cellIndex(grid.startX, grid.startY, grid.width)
-    let data       = trace.data!
+    let data       = unwrap trace.data
 
     for index in trace.count
     {

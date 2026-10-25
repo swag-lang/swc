@@ -735,7 +735,7 @@ impl Surface
         let rect   = .presentationDirtyRect
         let stride = cast(u64, .presentationWidth) * 4
         let offset = cast(u64, (cast(f32, .presentationHeight) - rect.bottom())) * stride + cast(u64, rect.x) * 4
-        let pixels = Swag.makeSlice(cast([*] u8, .presentationPixels!) + offset,
+        let pixels = Swag.makeSlice(cast([*] u8, unwrap .presentationPixels) + offset,
                                     stride * cast(u64, .presentationHeight) - offset)
         if .readback.tryCopyTo(pixels, stride)
         {
@@ -776,7 +776,7 @@ impl Surface
         }
 
         let image = .app.renderer.readRenderTarget(target, 0, 0, .rc.width, .rc.height)
-        Memory.copy(.presentationPixels!, image.pixels.storage(), image.byteCount)
+        Memory.copy(unwrap .presentationPixels, image.pixels.storage(), image.byteCount)
         .presentationDirtyRect = {0, 0, cast(f32, .rc.width), cast(f32, .rc.height)}
     }
 

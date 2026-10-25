@@ -64,7 +64,7 @@ func reflectedReader()->u64
 {
     const info = assume cast(const *Swag.TypeInfoStruct, #typeof(ReflectedReader))
     let entry        = info.methods![0]
-    let callback     = cast(Reader, entry.value!)
+    let callback     = cast(Reader, unwrap entry.value)
     var value: Value = {first: 419}
     return callback(value)
 }

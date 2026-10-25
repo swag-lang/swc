@@ -179,7 +179,7 @@ impl Volume
 
         try .writePhysicalRun(physical, source)
 
-        let node = .nodeById(nodeId)!
+        let node = unwrap .nodeById(nodeId)
         .replaceBlockRun(node, logical, physical, 1)
         .touch(nodeId)
         published = true
@@ -205,7 +205,7 @@ impl Volume
             let firstByte = doneBlocks * BlockSize
             let byteCount = allocated.count * BlockSize
             try .writePhysicalRun(allocated.first, source[firstByte until firstByte + byteCount])
-            let node = .nodeById(nodeId)!
+            let node = unwrap .nodeById(nodeId)
             .replaceBlockRun(node, logical + doneBlocks, allocated.first, allocated.count)
             .touch(nodeId)
             published  = true
@@ -255,7 +255,7 @@ impl Volume
     {
         if newSize <= oldSize or oldSize % BlockSize == 0 do
             return
-        let node    = .nodeById(nodeId)!
+        let node    = unwrap .nodeById(nodeId)
         let logical = oldSize / BlockSize
         let search  = node.blockSearch(logical)
         if not search.found do
@@ -274,7 +274,7 @@ impl Volume
     mtd resizeNode(nodeId, newSize: u64) fail
     {
         try .requireWritable()
-        let node = .nodeById(nodeId)!
+        let node = unwrap .nodeById(nodeId)
         if node.isDirectory() do
             fail volumeError(.IsDirectory)
         let oldSize = node.size
@@ -282,7 +282,7 @@ impl Volume
             try .zeroOldTail(nodeId, oldSize, newSize)
         elif newSize < oldSize do
             .trimNode(node, newSize)
-        let current = .nodeById(nodeId)!
+        let current = unwrap .nodeById(nodeId)
         current.size          = newSize
         current.changeTime    = volumeTimeNow()
         current.lastWriteTime = current.changeTime
@@ -398,7 +398,7 @@ impl Volume
                 continue
             }
 
-            let current = .nodeById(nodeId)!
+            let current = unwrap .nodeById(nodeId)
             var block: [BlockSize] u8
             if inBlock or chunk != BlockSize do
                 try .readBlock(current, logical, block)
@@ -408,7 +408,7 @@ impl Volume
             done += chunk
         }
 
-        let updated = .nodeById(nodeId)!
+        let updated = unwrap .nodeById(nodeId)
         if end > updated.size do
             updated.size = end
         let now = volumeTimeNow()

@@ -340,7 +340,7 @@ SWC_TEST_BEGIN(Linker_ArchiveSymbolViewsFollowOwnership)
     if (!assigned.tryReadImport(imported, diag, firstOffset) || imported.importName != symbol || imported.dll != "archive-test.dll")
         return Result::Error;
     const std::span<const std::byte> importData = assigned.memberData(diag, firstOffset);
-    ArchiveImport importedFromBytes;
+    ArchiveImport                    importedFromBytes;
     if (importData.empty() || !assigned.tryReadImport(importedFromBytes, importData))
         return Result::Error;
     if (importedFromBytes.importName != symbol || importedFromBytes.dll != "archive-test.dll")
@@ -368,7 +368,7 @@ SWC_TEST_END()
 SWC_FILESYSTEM_TEST_BEGIN(Linker_MissingResourceDrainsParallelReaders)
 {
     const LinkerTestDirectory testDir("missing_resource");
-    SWC_RESULT(testDir.write("module.swg", "#run\n{\n    let cfg = Swag.compiler().getBuildCfg()!\n    cfg.backendKind = .Executable\n    cfg.resAppIcoFileName = \"missing.ico\"\n}\n"));
+    SWC_RESULT(testDir.write("module.swg", "#run\n{\n    let cfg = unwrap Swag.compiler().getBuildCfg()\n    cfg.backendKind = .Executable\n    cfg.resAppIcoFileName = \"missing.ico\"\n}\n"));
     SWC_RESULT(testDir.write("src/main.swg", "#main {}\n"));
     const std::vector<Utf8> args = {"build", "--module", Utf8(testDir.path()), "--build-cfg", "devmode", "--num-cores", "6", "--no-log-color"};
     SWC_RESULT(runCompiler(args, ExitCode::CompileError, "cannot read resource"));

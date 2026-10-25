@@ -198,7 +198,7 @@ impl Decoder
 
             if objType
             {
-                let dynamicType = objType!
+                let dynamicType = unwrap objType
                 typeVal.pointedType = dynamicType
                 let obj = Memory.new(dynamicType)
 

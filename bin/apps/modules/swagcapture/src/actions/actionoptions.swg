@@ -69,7 +69,7 @@ impl IActionUI for ActionOptions
         let main = mainWndOf(cxt)
         let view = main.editWnd.editView
 
-        let dlg = Dialog.create(view.surface!, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Border | .CloseButton | .Resizable)
+        let dlg = Dialog.create(unwrap view.surface, 800, 600, title: appStrings().dlg_TitleOptions, flags: .Border | .CloseButton | .Resizable)
         dlg.addButton(Gui.strings().dlg_Close, Dialog.BtnCancel, true)
 
         with let opt = PropertiesCtrl.create(dlg.view(), flags: .SectionTabs | .SearchBar)

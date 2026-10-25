@@ -385,14 +385,14 @@ func borrowEscapeMaterializedLocalField()->u16
 {
     var holder: BorrowEscapeSliceField
     holder.values = cast(const [..] u16, borrowEscapeMakeArray())
-    let values = holder.values!
+    let values = unwrap holder.values
     return values[0]
 }
 
 func borrowEscapeMaterializedLocalFieldInitializer()->u16
 {
     let holder = BorrowEscapeSliceField{values: cast(const [..] u16, borrowEscapeMakeArray())}
-    let values = holder.values!
+    let values = unwrap holder.values
     return values[0]
 }
 
@@ -1322,7 +1322,7 @@ impl BorrowEscapeHeapBox
     #[Swag.NoInline]
     mtd slotsPtr()->[*] BorrowEscapeSlot
     {
-        return .slots!
+        return unwrap .slots
     }
 
     // Straight through the payload member.
@@ -1336,7 +1336,7 @@ impl BorrowEscapeHeapBox
     #[Swag.NoInline]
     mtd addThroughLocal(item: *s32)
     {
-        let table = .slots!
+        let table = unwrap .slots
         table[0].item = item
     }
 
@@ -1402,7 +1402,7 @@ func borrowEscapeHeapBackRef()->*s32?
 #[Swag.NoInline]
 func borrowEscapeHeapParamPayload(box: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
 {
-    return box.slots!
+    return unwrap box.slots
 }
 
 func borrowEscapeHeapParamPayloadByValue()->[*] BorrowEscapeSlot
@@ -1428,7 +1428,7 @@ func borrowEscapeHeapParamPayloadForward(box: BorrowEscapeHeapBox)->[*] BorrowEs
 #[Swag.NoInline]
 func borrowEscapeHeapParamPayloadStatic(_: BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
 {
-    return borrowEscapeGlobalHeapBox.slots!
+    return unwrap borrowEscapeGlobalHeapBox.slots
 }
 
 func borrowEscapeHeapParamPayloadByValueStatic()->[*] BorrowEscapeSlot
@@ -1463,7 +1463,7 @@ func borrowEscapeHeapParamPayloadLocalOnly()->*s32?
 #[Swag.NoInline]
 func borrowEscapeHeapParamPayloadPtr(box: *BorrowEscapeHeapBox)->[*] BorrowEscapeSlot
 {
-    return box.slots!
+    return unwrap box.slots
 }
 
 func borrowEscapeHeapParamPayloadCallSite()->[*] BorrowEscapeSlot
@@ -1477,7 +1477,7 @@ var borrowEscapeGlobalHeapBox: BorrowEscapeHeapBox
 
 func borrowEscapeHeapGlobalPayload()->[*] BorrowEscapeSlot
 {
-    return borrowEscapeGlobalHeapBox.slots!
+    return unwrap borrowEscapeGlobalHeapBox.slots
 }
 
 // '!' only asserts non-nullness: it must not hide where the storage came from.
@@ -1485,7 +1485,7 @@ func borrowEscapeNotNullTransparent()->*s32?
 {
     var local: s32
     var p:     *s32? = &local
-    return p!     // swc-expected-error {{sanity_err_borrow_escape}}
+    return unwrap p     // swc-expected-error {{sanity_err_borrow_escape}}
 }
 
 // ---------------------------------------------------------------------------

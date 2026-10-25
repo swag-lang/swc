@@ -51,7 +51,7 @@ impl IActionUI for ActionGlobal
         switch cxt.id
         {
         case .ShowEditor:
-            with let surface = main.surface!
+            with let surface = unwrap main.surface
             {
                 .show()
                 .bringToFront()

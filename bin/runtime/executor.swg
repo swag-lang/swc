@@ -145,7 +145,7 @@ impl Executor
 #[Swag.CallingConvention(.C)]
 private func executorEntry(param: *void?)->u32
 {
-    let executor = cast(*Executor, param!)
+    let executor = cast(*Executor, unwrap param)
     enterWorkerContext(&executor.context)
     if executor.priority == .Background do
         discard __hostThreadEnterBackground()

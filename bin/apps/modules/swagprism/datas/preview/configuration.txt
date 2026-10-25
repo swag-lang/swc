@@ -1,7 +1,7 @@
 // Override the selected defaults.
 #run
 {
-    let cfg = Swag.compiler().getBuildCfg()!
+    let cfg = unwrap Swag.compiler().getBuildCfg()
     discard cfg
 
     // cfg.safetyGuards = .All

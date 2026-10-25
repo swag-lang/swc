@@ -181,8 +181,8 @@ impl Encoder
         else
         {
             let diffc    = cast #bit (u64, cast(s64, diff))     // If negative
-            let category = .category!
-            let bitcode  = .bitcode!
+            let category = unwrap .category
+            let bitcode  = unwrap .bitcode
             .writeBits(hTDC[category[diffc]])
             .writeBits(bitcode[diffc])
         }
@@ -212,8 +212,8 @@ impl Encoder
             }
 
             let offc     = cast #bit (u64, cast(s64, .du[i]))     // If negative
-            let category = .category!
-            let bitcode  = .bitcode!
+            let category = unwrap .category
+            let bitcode  = unwrap .bitcode
             .writeBits(hTAC[nrzeroes * 16 + category[offc]])
             .writeBits(bitcode[offc])
             i += 1

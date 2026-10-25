@@ -161,7 +161,7 @@ func getFaceImpl(face: *Face?)->*FaceImpl fail
 {
     if not face do
         try fault(0x23)
-    let safeFace = face!
+    let safeFace = unwrap face
     return cast(*FaceImpl, cast(*void, safeFace))
 }
 
@@ -183,6 +183,6 @@ func getTableSlice(faceData: *FaceImpl, tag: u32, missingCode: u8)->const [..] u
     let rec = findTable(faceData, tag)
     if not rec do
         try fault(missingCode)
-    let r = rec!
+    let r = unwrap rec
     return try getSlice(faceData.fontData.toSlice(), r.offset, r.length)
 }

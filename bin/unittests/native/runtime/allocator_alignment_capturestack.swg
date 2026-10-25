@@ -53,7 +53,7 @@ func makeAlignmentCaptureAllocator(alloc: *Allocator, captureStack: bool = false
     Swag.assert(captured.address != null)
 
     let header   = cast(*AllocatorHeader, (cast([*] u8, captured.address) - #sizeof(AllocatorHeader)))
-    let tracking = header.tracking!
+    let tracking = unwrap header.tracking
     Swag.assert(header.magic == Allocator.MagicAlloc)
     Swag.assert(tracking.stackCount <= tracking.stack.count)
 

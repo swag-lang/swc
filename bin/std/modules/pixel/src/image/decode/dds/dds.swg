@@ -354,5 +354,5 @@ impl IImageSetDecoder for Decoder
         return result
     }
 
-    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail => try .decodeSurface(.bytes!, options, index)
+    mtd impl readFrame(index: u32, options: DecodeOptions)->Image fail => try .decodeSurface(unwrap .bytes, options, index)
 }

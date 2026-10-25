@@ -44,7 +44,7 @@ directly when it owns a normal workspace module.
 {
     // Obtain the compiler interface and this script's mutable build configuration.
     let itf = Swag.compiler()
-    let cfg = itf.getBuildCfg()!
+    let cfg = unwrap itf.getBuildCfg()
 
     // Keep runtime safety guards outside release builds.
     #static if #cfg == "release" do

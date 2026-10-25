@@ -32,7 +32,7 @@ func metadata(type: const *Swag.TypeInfoStruct)->IMetadata?
     let raw   = cast(const *Swag.Interface, &value)
     Swag.assert(raw.obj == null)
     Swag.assert(raw.itable != null)
-    let present = value!
+    let present = unwrap value
     Swag.assert(present.answer() == 42)
 }
 

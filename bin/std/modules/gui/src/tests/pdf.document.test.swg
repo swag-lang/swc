@@ -2,7 +2,7 @@
 
 using Core, Pixel, Pdf
 
-private func pdfFixturePath(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, Format.toString("datas/%", name).toString())
+private func pdfFixturePath(name: string)->String => Path.combine(unwrap Path.directoryName(#curlocation.fileName), Format.toString("datas/%", name).toString())
 
 private func loadPdfFixture(name: string, pageCount: u64)->Document
 {
@@ -123,7 +123,7 @@ private func sampleDocument()->Document
     Swag.assert(edited.pages[0].items[1].pathStrokeWidth() == 3)
     let editedStroke = edited.pages[0].items[1].itemStrokeColor()
     Swag.assert(editedStroke.r == 50 and editedStroke.g == 60 and editedStroke.b == 70)
-    let editedPath = edited.pages[0].items[1].pathValue()!
+    let editedPath = unwrap edited.pages[0].items[1].pathValue()
     Swag.assert(editedPath.toSlice()[0].startPoint == Math.Vector2{29, 71})
     let editedImageTransform = edited.pages[0].items[2].itemTransform()
     Swag.assert(editedImageTransform.m11 == 32 and editedImageTransform.m12 == 4)

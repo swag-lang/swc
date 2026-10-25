@@ -36,7 +36,7 @@ namespace
         // to explicit inlining until their payload is remapped with the clone.
         if (node.is(AstNodeId::ErrorManagementExpr) || node.is(AstNodeId::ErrorManagementStmt))
         {
-            if (node.is(AstNodeId::ErrorManagementExpr) && firstToken[node.tokRef().get()].id == TokenId::SymBang)
+            if (node.is(AstNodeId::ErrorManagementExpr) && Token::isPresenceAssertion(firstToken[node.tokRef().get()].id))
                 result.hasNotNull = true;
             else
             {

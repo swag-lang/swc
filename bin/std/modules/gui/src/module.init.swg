@@ -2,7 +2,7 @@
 
 using Pixel
 
-func nnFont(font: *Font?)->*Font => font!
+func nnFont(font: *Font?)->*Font => unwrap font
 
 // Returns the top edge of a glyph of height `size` set level with a line of `family` centered on `centerY`.
 //
@@ -25,4 +25,4 @@ func opticalTop(family: const *FontFamily?, centerY, size: f32)->f32
     return font.opticalTop(centerY, size)
 }
 
-func nnPixels(pixels: [*] u8?)->const *u8 => cast(const *u8, pixels!)
+func nnPixels(pixels: [*] u8?)->const *u8 => cast(const *u8, unwrap pixels)

@@ -14,9 +14,9 @@ func hashAt(d: [*] u8, p: s64)->u64
 #run
 {
     // ---- data generation (not timed) ----
-    let letters   = cast([*] u8, (benchAlloc(WORDS * 10))!)
-    let wordStart = cast([*] u64, (benchAlloc(WORDS * #sizeof(u64)))!)
-    let wordLen   = cast([*] u64, (benchAlloc(WORDS * #sizeof(u64)))!)
+    let letters   = cast([*] u8, unwrap (benchAlloc(WORDS * 10)))
+    let wordStart = cast([*] u64, unwrap (benchAlloc(WORDS * #sizeof(u64))))
+    let wordLen   = cast([*] u64, unwrap (benchAlloc(WORDS * #sizeof(u64))))
     var used      = 0'u64
     for k in WORDS
     {
@@ -29,7 +29,7 @@ func hashAt(d: [*] u8, p: s64)->u64
     }
 
     let n    = cast(s64, DATA_SIZE)
-    let data = cast([*] u8, (benchAlloc(DATA_SIZE))!)
+    let data = cast([*] u8, unwrap (benchAlloc(DATA_SIZE)))
     var pos  = 0's64
     while pos < n
     {
@@ -52,14 +52,14 @@ func hashAt(d: [*] u8, p: s64)->u64
     // ---- timed work ----
     let t0 = now()
 
-    let head = cast([*] s64, (benchAlloc(HASH_SIZE * #sizeof(s64)))!)
-    let prev = cast([*] s64, (benchAlloc(cast(u64, WINDOW) * #sizeof(s64)))!)
+    let head = cast([*] s64, unwrap (benchAlloc(HASH_SIZE * #sizeof(s64))))
+    let prev = cast([*] s64, unwrap (benchAlloc(cast(u64, WINDOW) * #sizeof(s64))))
     for i in HASH_SIZE do
         head[i] = -1
     for i in WINDOW do
         prev[i] = -1
 
-    let comp  = cast([*] u8, (benchAlloc(DATA_SIZE * 2 + 16))!)
+    let comp  = cast([*] u8, unwrap (benchAlloc(DATA_SIZE * 2 + 16)))
     var csize = 0's64
 
     var i = 0's64
@@ -128,7 +128,7 @@ func hashAt(d: [*] u8, p: s64)->u64
     }
 
     // ---- decompress and verify ----
-    let out = cast([*] u8, (benchAlloc(DATA_SIZE))!)
+    let out = cast([*] u8, unwrap (benchAlloc(DATA_SIZE)))
     var o   = 0's64
     var c   = 0's64
     while c < csize

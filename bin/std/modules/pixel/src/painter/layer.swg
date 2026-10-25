@@ -138,9 +138,9 @@ impl Layer
         if .resolved do
             return
 
-        let renderer       = .renderer!
-        let painter        = .painter!
-        let paintTarget    = .paintTarget!
+        let renderer       = unwrap .renderer
+        let painter        = unwrap .painter
+        let paintTarget    = unwrap .paintTarget
         let renderScale    = .renderScale
         let resolvedTarget = renderer.acquireRenderTarget(.deviceWidth(), .deviceHeight())
 
@@ -177,9 +177,9 @@ impl Layer
             return
 
         .resolve()
-        let renderer = .renderer!
-        let painter  = .painter!
-        let content  = .contentTarget!
+        let renderer = unwrap .renderer
+        let painter  = unwrap .painter
+        let content  = unwrap .contentTarget
         let target1  = renderer.acquireRenderTarget(.deviceWidth(), .deviceHeight())
         let target2  = renderer.acquireRenderTarget(.deviceWidth(), .deviceHeight())
         let dstRect  = Math.Rectangle{0, 0, .width, .height}
@@ -240,9 +240,9 @@ impl Layer
         let targetRect   = Math.Rectangle{margin, margin, .width, .height}
         let fullDstRect  = Math.Rectangle{0, 0, shadowWidth, shadowHeight}
         let fullSrcRect  = Math.Rectangle{0, 0, shadowWidth * .deviceScale, shadowHeight * .deviceScale}
-        let renderer     = .renderer!
-        let painter      = .painter!
-        let content      = .contentTarget!
+        let renderer     = unwrap .renderer
+        let painter      = unwrap .painter
+        let content      = unwrap .contentTarget
         let target1      = renderer.acquireRenderTarget(devShadowW, devShadowH)
         let target2      = renderer.acquireRenderTarget(devShadowW, devShadowH)
 
@@ -316,7 +316,7 @@ impl Layer
             .resolve()
         }
 
-        with let painter = .painter!
+        with let painter = unwrap .painter
         {
             .pushState()
             .setDefaultShader()

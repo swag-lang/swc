@@ -73,7 +73,7 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
     let current = DynamicViewVisit{fromType, ptr, previous}
     for field in fromStruct.usingFields
     {
-        var fieldType = __concreteAlias(field.pointedType!)
+        var fieldType = __concreteAlias(unwrap field.pointedType)
         if fieldType.flags & .Const and not readOnly do
             continue
         var fieldPtr = cast(*void?, (cast([*] u8, ptr) + field.offset))
@@ -81,7 +81,7 @@ func __findDynamicViewImpl(toType, fromType: typeinfo, ptr: *void?, view: *Inter
         {
             let pointerType = cast(const *TypeInfoPointer, cast(const *void, fieldType))
             fieldType = __concreteAlias(pointerType.pointedType)
-            fieldPtr  = cast(*(*void?), fieldPtr!)[]
+            fieldPtr  = cast(*(*void?), unwrap fieldPtr)[]
         }
 
         if fieldPtr == null do
@@ -102,7 +102,7 @@ func __hasDynamicBase(toType, fromType: typeinfo)->bool
     let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
-        let fieldType = __concreteAlias(field.pointedType!)
+        let fieldType = __concreteAlias(unwrap field.pointedType)
         if fieldType.kind == .Struct and __hasDynamicBase(toType, fieldType) do
             return true
     }
@@ -119,7 +119,7 @@ func __containsDynamicSubobject(toType, fromType: typeinfo, ptr, expected: *void
     let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
-        let fieldType = __concreteAlias(field.pointedType!)
+        let fieldType = __concreteAlias(unwrap field.pointedType)
         if fieldType.kind != .Struct do
             continue
         let fieldPtr = cast(*void, (cast([*] u8, ptr) + field.offset))
@@ -139,7 +139,7 @@ func __findDynamicOwner(toType, fromType: typeinfo, ptr: *void, sourceType: type
     let info = cast(const *TypeInfoStruct, cast(const *void, fromType))
     for field in info.usingFields
     {
-        let fieldType = __concreteAlias(field.pointedType!)
+        let fieldType = __concreteAlias(unwrap field.pointedType)
         if fieldType.kind != .Struct do
             continue
         let fieldPtr = cast(*void, (cast([*] u8, ptr) + field.offset))
@@ -167,13 +167,13 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
     if not borrowValue and requestedType.kind == .Pointer do
         targetType = __concreteAlias(cast(const *TypeInfoPointer, cast(const *void, requestedType)).pointedType)
     if borrowValue do
-        targetType = targetType.unqualified!
+        targetType = unwrap targetType.unqualified
     var sourceType = __concreteAlias(fromType)
     if sourceType.kind != .Pointer and sourceType.kind != .Interface and sourceType.flags & .Const
     {
         if not targetIsConst do
             return null
-        sourceType = sourceType.unqualified!
+        sourceType = unwrap sourceType.unqualified
     }
 
     var sourcePtr         = ptr
@@ -223,7 +223,7 @@ func __dynamicCastImpl(toType, fromType: typeinfo?, ptr: *void?, view: *Interfac
         let sourceView = cast(*Interface, sourcePtr)
         if sourceView.itable == null do
             return null
-        sourceType        = cast(const *TypeInfo, sourceView.itable[0]!)
+        sourceType        = cast(const *TypeInfo, unwrap sourceView.itable[0])
         sourcePtr         = sourceView.obj
         acceptsNullObject = true
     }
@@ -292,8 +292,8 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
        source.flags & .Const and
        not (target.flags & .Const) do
         return false
-    let plainTarget = target.unqualified!
-    let plainSource = source.unqualified!
+    let plainTarget = unwrap target.unqualified
+    let plainSource = unwrap source.unqualified
     if Swag.typeCmp(plainTarget, plainSource, .Strict) do
         return true
     var visit = previous
@@ -332,7 +332,7 @@ func __runtimeTypeCompatible(toType, fromType: typeinfo, previous: const *Runtim
 
     for field in info.usingFields
     {
-        var fieldType = __concreteAlias(field.pointedType!)
+        var fieldType = __concreteAlias(unwrap field.pointedType)
         if fieldType.flags & .Const and not readOnly and not (target.flags & .Const) do
             continue
         if fieldType.kind == .Pointer do
@@ -348,7 +348,7 @@ func __runtimeTypeCast(toType, fromType: typeinfo?)->typeinfo?
 {
     if not __isCompilerType(toType) or not __isCompilerType(fromType) do
         return null
-    if __runtimeTypeCompatible(toType!, fromType!, null) do
+    if __runtimeTypeCompatible(unwrap toType, unwrap fromType, null) do
         return fromType
     return null
 }
@@ -372,7 +372,7 @@ func __runtimeValueCast(toType: typeinfo?, source: const *(any?), storage: *void
     let sourceType = Swag.kindOf(source[])
     if not __isCompilerType(sourceType) do
         return false
-    let target = toType!
+    let target = unwrap toType
     if Swag.typeCmp(target, sourceType, .Strict)
     {
         result.value = source[]
@@ -467,7 +467,7 @@ func typeCmp(typeA, typeB: typeinfo?, cmpFlags: TypeCmpFlags)->bool
             if not namesAreEqual and field1.name != field2.name do
                 return false
 
-            if not Swag.typeCmp(field1.pointedType!, field2.pointedType!, cmpFlags) do
+            if not Swag.typeCmp(unwrap field1.pointedType, unwrap field2.pointedType, cmpFlags) do
                 return false
         }
 
@@ -585,7 +585,7 @@ func __runtimeAllocator()->IAllocator
         }
     }
 
-    return cxt.allocator!
+    return unwrap cxt.allocator
 }
 
 func __ensureRuntimeAllocator()

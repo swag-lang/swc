@@ -5,7 +5,7 @@ impl Capture
     {
         for c in .formCaches
         {
-            let entry = c!
+            let entry = unwrap c
             if entry.form.buffer == f.buffer do
                 return entry
         }
@@ -27,8 +27,8 @@ impl Capture
     {
         for c in .formCaches
         {
-            let entry = c!
-            if Swag.kindOf(entry.form!) == FormImage do
+            let entry = unwrap c
+            if Swag.kindOf(unwrap entry.form) == FormImage do
                 entry.dirty = true
         }
     }
@@ -48,7 +48,7 @@ impl Capture
         var i = 0'u64
         while i < .formCaches.count
         {
-            let c    = .formCaches[i]!
+            let c    = unwrap .formCaches[i]
             var live = false
             for f in .forms
             {
@@ -358,7 +358,7 @@ impl Capture
     // since the last frame.
     mtd paintBackImage(painter: *Painter, x, y: f32, z: f32)
     {
-        let editView = .editView!
+        let editView = unwrap .editView
         let renderer = editView.app().renderer
 
         if not .backTexture.isValid() and .backImg.width > 0

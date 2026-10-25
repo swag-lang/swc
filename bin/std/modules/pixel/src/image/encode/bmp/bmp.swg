@@ -27,7 +27,7 @@ internal impl IImageEncoder for Encoder
         if options.buffer != null
         {
             Swag.assert(Swag.kindOf(options) == EncodeOptions)
-            userOptions = cast(const *EncodeOptions, options.buffer!)[]
+            userOptions = cast(const *EncodeOptions, unwrap options.buffer)[]
         }
 
         if image.width <= 0 or image.height <= 0 or not image.pixels.buffer do

@@ -610,7 +610,7 @@ public impl Crc32
         var length = data.count
         if not length do
             return
-        var current = cast(const [*] u32, data.buffer!)
+        var current = cast(const [*] u32, unwrap data.buffer)
 
         var cur = ~.currentValue
 

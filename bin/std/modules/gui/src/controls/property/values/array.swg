@@ -2,14 +2,14 @@ internal impl Properties
 {
     func setDescEditBox(item: *PropertiesItem)
     {
-        let arrData = cast(*Array'u8, item.data!)
+        let arrData = cast(*Array'u8, unwrap item.data)
         item.editBox.setText(Format.toString("% elements", arrData.count))
     }
 
     mtd reconstructArray(item: *PropertiesItem)
     {
-        let valueType        = Reflection.dynamicArrayElementType(item.type)!
-        let arrData          = cast(*Array'u8, item.data!)
+        let valueType        = unwrap Reflection.dynamicArrayElementType(item.type)
+        let arrData          = cast(*Array'u8, unwrap item.data)
         let countItemsBefore = .items.count
         let itemIdx          = Slice.findLinear(.items.toSlice(), item)
         let insertItemIdx    = itemIdx + item.numChilds + 1
@@ -44,12 +44,12 @@ internal impl Properties
         // Update state of all newly added items
         item.numChilds = numAddedChilds
         for i in item.numChilds do
-            .updateItemState((.items[itemIdx + i + 1])!)
+            .updateItemState(unwrap (.items[itemIdx + i + 1]))
     }
 
     mtd refreshArray(item: *PropertiesItem)
     {
-        let arrData = cast(*Array'u8, item.data!)
+        let arrData = cast(*Array'u8, unwrap item.data)
         if arrData.count == cast(u64, item.userData0) do
             return
         item.userData0 = cast(*void?, arrData.count)
@@ -61,7 +61,7 @@ internal impl Properties
 
     mtd clearArray(item: *PropertiesItem)
     {
-        let valueType = Reflection.dynamicArrayElementType(item.type)!
+        let valueType = unwrap Reflection.dynamicArrayElementType(item.type)
         Reflection.clearDynamicArray(item.data, valueType)
         .refreshArray(item)
         .commitItemChange(item)
@@ -75,8 +75,8 @@ internal impl Properties
     {
         if Reflection.isDynamicArray(arrayItem.type)
         {
-            let vt  = Reflection.dynamicArrayElementType(arrayItem.type)!
-            let arr = cast(*Array'u8, arrayItem.data!)
+            let vt  = unwrap Reflection.dynamicArrayElementType(arrayItem.type)
+            let arr = cast(*Array'u8, unwrap arrayItem.data)
             return {arr.buffer, vt, arr.count}
         }
 
@@ -120,7 +120,7 @@ internal impl Properties
     mtd moveArrayValue(elemItem: *PropertiesItem, dir: s32)
     {
         let arrayItem = elemItem.parent
-        let info      = .arrayElementInfo(arrayItem!)
+        let info      = .arrayElementInfo(unwrap arrayItem)
         let idx       = .arrayElementIndex(elemItem)
         let target    = cast(s64, idx) + dir
         if target < 0 or target >= cast(s64, info.count) do
@@ -132,8 +132,8 @@ internal impl Properties
 
     mtd removeArrayValue(item: *PropertiesItem)
     {
-        let parentItem = item.parent!
-        let valueType  = Reflection.dynamicArrayElementType(parentItem.type)!
+        let parentItem = unwrap item.parent
+        let valueType  = unwrap Reflection.dynamicArrayElementType(parentItem.type)
         let removeIdx  = .arrayElementIndex(item)
 
         Reflection.removeDynamicArrayElement(parentItem.data, valueType, removeIdx)
@@ -144,7 +144,7 @@ internal impl Properties
 
     mtd appendArrayValue(item: *PropertiesItem)
     {
-        let valueType = Reflection.dynamicArrayElementType(item.type)!
+        let valueType = unwrap Reflection.dynamicArrayElementType(item.type)
 
         discard Reflection.appendDynamicArrayElement(item.data, valueType)
 
@@ -158,8 +158,8 @@ internal impl Properties
         let numItemsBefore = .items.count
         item.flags.add(.NoSeparator)
 
-        let valueType = Reflection.dynamicArrayElementType(item.type)!
-        let arrData   = cast(*Array'u8, data!)
+        let valueType = unwrap Reflection.dynamicArrayElementType(item.type)
+        let arrData   = cast(*Array'u8, unwrap data)
         var newData   = arrData.buffer
 
         item.userData0 = cast(*void?, arrData.count)
@@ -174,7 +174,7 @@ internal impl Properties
         }
 
         let parentForBtn = .isGridLike() ? item.line : cast(*Wnd?, item.label)
-        let addBtn       = IconButton.create(parentForBtn!, .theme().icon(ThemeIcons.Plus, 20), {0, 0, 24, 24})
+        let addBtn       = IconButton.create(unwrap parentForBtn, .theme().icon(ThemeIcons.Plus, 20), {0, 0, 24, 24})
         addBtn.dockStyle = .isGridLike() ? .Right : .None
         addBtn.setForm(IconButtonForm.Circle)
         item.arrayAddButton = addBtn

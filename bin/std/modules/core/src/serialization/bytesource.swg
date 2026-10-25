@@ -124,7 +124,7 @@ impl ByteSource
 
         if not .isFile
         {
-            Memory.copy(buffer.buffer, (.memory).buffer! + .cursor, wanted)
+            Memory.copy(buffer.buffer, unwrap (.memory).buffer + .cursor, wanted)
             .cursor += wanted
             return wanted
         }
@@ -239,7 +239,7 @@ impl ByteSource
             return Swag.makeSlice(.window.buffer, 0)
 
         if not .isFile do
-            return Swag.makeSlice((.memory).buffer! + .cursor, .remaining())
+            return Swag.makeSlice(unwrap (.memory).buffer + .cursor, .remaining())
 
         if .cursor < .windowStart or .cursor + count > .windowStart + .windowCount do
             try .fillWindow(count)

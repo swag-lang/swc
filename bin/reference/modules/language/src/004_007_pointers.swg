@@ -49,8 +49,8 @@ A `T?` value cannot flow into a bare (non-null) slot directly, and it cannot be
 dereferenced, indexed, member-accessed or called while it is still nullable: every use
 site needs a proof. Flow narrowing provides it implicitly (a dominating null test such
 as `if p == null do return`, `if p do ...`, `Swag.assert(p != null)`, or the left side of
-`and`/`or`), the postfix `!` asserts it explicitly (a safety check panics at runtime if
-the value is still null), and `?.` skips the access entirely when the value is null.
+`and`/`or`), `unwrap` and asserted accesses with `!` assert it explicitly (a safety check
+panics at runtime if the value is still null), and `?.` skips the access when it is null.
 Comparisons between `T?` and bare values of the same type are always allowed.
 Every declared value begins with its type's safe default; the compiler may elide
 that initialization only after proving that it cannot be observed.
@@ -80,11 +80,11 @@ otherwise the value cannot be moved from safely.
 }
 
 /**
-# Use-Site Nullability, `?.` and `!`
+# Use-Site Nullability, `unwrap`, `?.` and `!`
 
 Dereferencing a value whose type is still `T?` is a compile-time error: the flow
 must prove the value non-null first. The sanctioned routes are a dominating null test
-(flow narrowing), the `?.` guarded access, and the postfix `!` assertion.
+(flow narrowing), the `?.` guarded access, and the explicit `unwrap` or `!` assertion.
 
 `Swag.assert(p != null)` is a dominating null test like any other: the statements after it
 are only reachable when the condition held, so the proof covers the remainder of the
@@ -92,16 +92,23 @@ enclosing block. It reads as a precondition rather than as a per-use assertion, 
 suits a value that is guaranteed non-null for a whole function body. Like every other
 narrowing proof, it is dropped as soon as the path is reassigned.
 
-`p!` and `p?.` are the two outcomes of the same test. `?.` skips the rest of the postfix
-chain when the tested value is null; `!` claims the value is there and panics under
-`Swag.SafetyWhat.Expect` when it is not. Being postfix, `!` binds tighter than every
-prefix form and chains freely: `p!.count`, `buffer![i]`, `handler!()`. Because it cannot
-produce an absent result, what follows keeps its plain type — `node!.count` is an `s64`,
-never a nullable one, and needs no fallback.
+`unwrap p` extracts a present value: its type changes from `T?` to `T`, and a null
+value panics under `Swag.SafetyWhat.Expect`. Use it to initialize, return, or pass a
+non-null value: `let value = unwrap p`, `return unwrap p`, `consume(unwrap p)`.
+Like other prefix expressions, it binds tighter than binary operators and less tightly
+than accesses: `unwrap nodes[index]` extracts the indexed value, while `(unwrap p).count`
+accesses the extracted pointer. The operand is evaluated once.
 
-`try`, `catch` and `expect` swallow everything to their right, so a `!` written after one
-of them applies to its **result**: `expect load(path)!` asserts the loaded value, not the
-fallible call. Parenthesize to assert something inside instead.
+For a direct access, `!` asserts presence and `?.` skips the rest of the chain on null.
+The postfix `!` needs a following member access, index, dereference, or call:
+`p!.count`, `buffer![i]`, `p![]`, `handler!()`. A terminal `p!`, including inside an
+argument list, is rejected; write `unwrap p` there. Both assertion forms use the same
+safety policy. What follows an asserted access keeps its plain type: `node!.count`
+is an `s64` and needs no fallback.
+
+`unwrap` does not handle errors. Write `unwrap expect load(path)` to check the successful
+nullable result of a fallible call. `expect load(path)` alone handles failure and preserves
+the result's nullability. An asserted access can compose directly: `expect load(path)!.count`.
 
 A `?.` chain whose result is itself nullable-capable (a pointer, string, slice,
 interface...) simply produces the null outcome in its own type. A chain producing a
@@ -117,10 +124,11 @@ code that follows without a `!`. A path that leaves the block — a `return`, a 
 Write `!` where an invariant makes the value always present and a null would be a bug
 worth stopping on; write `?.` where absence is an ordinary outcome the code handles.
 
-A `!` is an assertion, so the code after it is reachable only when the value was there: it
+Both `unwrap` and `!` are assertions, so the code after them is reachable only when the value was there: it
 proves its own path for the remainder of the enclosing block, exactly like the
 `Swag.assert(p != null)` it stands for. A second `!` on that path therefore asserts what the
 first already established, and is rejected rather than charged for a guard that cannot fire.
+A redundant `unwrap` is rejected by the same rule.
 Written twice, `!` is saying the path has an invariant — and an invariant is stated once: give
 the value a non-null type, declare the field `late`, bind it to a local, or open the block with
 `Swag.assert`. Every proof dies where the path is reassigned, and the assertion is needed again.
@@ -178,9 +186,10 @@ func readProvenCount(p: *AssertProofDoc?)->s64
     if p != null do
         Swag.assert(p.count == 2)
 
-    // The postfix '!' asserts the proof explicitly (panics at runtime if wrong), and that
+    // 'unwrap' asserts the proof explicitly (panics at runtime if wrong), and that
     // assertion covers the rest of the block: 'p' needs no second '!' below.
-    let q = p!
+    let q = unwrap p
+    #assert(#typeof(q) == *OptChainRefDoc)
     Swag.assert(q.count == 2)
     Swag.assert(p.count == 2)
 

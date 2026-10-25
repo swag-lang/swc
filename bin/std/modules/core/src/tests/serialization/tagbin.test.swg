@@ -305,7 +305,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
                 return true
             defer #nofail try decoder.endField(type)
 
-            cast(*s32, data!)[] = try decoder.readS32() - 6
+            cast(*s32, unwrap data)[] = try decoder.readS32() - 6
             return true
         }
 
@@ -318,8 +318,8 @@ public impl Serialization.ISerialize for TagBinHookPayload
             let raw = try decoder.readBufferU8(4)
             defer Memory.free(raw, 4)
 
-            let values = cast(*Array'u8, data!)
-            let rawPtr = cast([*] u8, raw!)
+            let values = cast(*Array'u8, unwrap data)
+            let rawPtr = cast([*] u8, unwrap raw)
             values.clear()
             for i in 4 do
                 values.add(rawPtr[3 - i])
@@ -336,7 +336,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             try encoder.beginField(type)
             defer #nofail try encoder.endField(type)
 
-            encoder.writeS32(cast(const *s32, data!)[] + 10)
+            encoder.writeS32(cast(const *s32, unwrap data)[] + 10)
             return true
         }
 
@@ -345,7 +345,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
             try encoder.beginField(type)
             defer #nofail try encoder.endField(type)
 
-            let values = cast(const *Array'u8, data!)
+            let values = cast(const *Array'u8, unwrap data)
             try encoder.writeBufferU8(values.buffer, values.count)
             return true
         }
@@ -355,7 +355,7 @@ public impl Serialization.ISerialize for TagBinHookPayload
 
     mtd impl postRead(data: *void?, _: Serialization.IDecoder) fail
     {
-        let value = cast(*TagBinHookPayload, data!)
+        let value = cast(*TagBinHookPayload, unwrap data)
         value.postReadSeen = true
         value.direct       += 1
     }
@@ -386,7 +386,7 @@ public impl Serialization.ISerialize for TagBinVersionProbe
 
     mtd impl postRead(data: *void?, decoder: Serialization.IDecoder) fail
     {
-        let value = cast(*TagBinVersionProbe, data!)
+        let value = cast(*TagBinVersionProbe, unwrap data)
         value.seenVersion = decoder.version()
     }
 }
@@ -468,7 +468,7 @@ func findTagBinV1Field(bytes: const [..] u8, fieldName: string)->TagBinV1Field
             let keyLength = expect stream.readVarint()
             var key: String
             key.reserve(keyLength)
-            expect stream.readBytes(key.buffer!, keyLength)
+            expect stream.readBytes(unwrap key.buffer, keyLength)
             key.length = keyLength
             let typeSeek = stream.position()
             discard expect stream.readNative'u32()
@@ -781,7 +781,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     }
 
     Swag.assert(decoded.other == -11)
-    let score = decoded.score!
+    let score = unwrap decoded.score
     Swag.assert(score.score() == 37)
     Swag.assert(score.labelText() == "iface")
 }

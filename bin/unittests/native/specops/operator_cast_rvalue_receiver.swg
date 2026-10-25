@@ -15,7 +15,7 @@ impl CastFat
     #[Swag.Implicit, Swag.Inline]
     mtd const opCast()->string
     {
-        let buf = .buf!
+        let buf = unwrap .buf
         return Swag.makeString(buf, .len)
     }
 }

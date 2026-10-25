@@ -22,7 +22,7 @@ impl BorrowInvClosureBuffer
         req.address = .data
         req.size    = .capacity
 
-        let alloc = Swag.getContext().allocator!
+        let alloc = unwrap Swag.getContext().allocator
         alloc.free(&req)
     }
 
@@ -37,7 +37,7 @@ impl BorrowInvClosureBuffer
         req.size    = newCapacity
         req.oldSize = .capacity
 
-        let alloc = Swag.getContext().allocator!
+        let alloc = unwrap Swag.getContext().allocator
         alloc.realloc(&req)
 
         .data     = cast(req.address)
@@ -53,7 +53,7 @@ func borrowInvInFunctionExpr()->u8
     {
         var buf: BorrowInvClosureBuffer
         buf.reserve(4)
-        let view = buf.data!
+        let view = unwrap buf.data
         buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
         return view[0]
     }
@@ -68,7 +68,7 @@ func borrowInvInClosure()->u8
     {
         var buf: BorrowInvClosureBuffer
         buf.reserve(seed)
-        let view = buf.data!
+        let view = unwrap buf.data
         buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
         return view[0]
     }

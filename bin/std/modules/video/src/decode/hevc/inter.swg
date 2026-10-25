@@ -69,7 +69,7 @@ impl Decoder
     mtd deriveMergeMotion(xCb, yCb, nCbS, xPb, yPb, nPbW, nPbH: s32, partIdx, partMode, mergeIdx: u32)->PuMotion
     {
         let header = &.header
-        let pps    = .activePps!
+        let pps    = unwrap .activePps
 
         // Every prediction block of a small coding unit shares one candidate list, so a decoder
         // can build the four of them in parallel, clause 8-110.
@@ -333,7 +333,7 @@ impl Decoder
         if not header.temporalMvpEnabled do
             return result
 
-        let sps     = .activeSps!
+        let sps     = unwrap .activeSps
         let colList = header.collocatedFromL0 ? 0'u32 : 1'u32
         if header.collocatedRefIdx >= .refList.count[colList] do
             return result

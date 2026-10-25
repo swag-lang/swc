@@ -162,7 +162,7 @@ impl Decoder
     // rather than twice.
     mtd interPredict(xPb, yPb, nPbW, nPbH: s32, motion: const *PuMotion)
     {
-        let sps      = .activeSps!
+        let sps      = unwrap .activeSps
         let usesL0   = (motion.predFlags & 1) != 0
         let usesL1   = (motion.predFlags & 2) != 0
         let weighted = .header.hasWeights and ((.header.sliceType == SliceTypeP and .activePps!.weightedPred) or (.header.sliceType == SliceTypeB and .activePps!.weightedBipred))
@@ -451,7 +451,7 @@ impl Decoder
     // Interpolates one luma prediction block, clause 8.5.3.3.3.2.
     private mtd interpolateLuma(frame: *Frame, x, y: s32, width, height: u32, mvX, mvY: s16, list: u32)
     {
-        let sps      = .activeSps!
+        let sps      = unwrap .activeSps
         let bitDepth = sps.bitDepthLuma
         let shift1   = Math.min(4'u32, bitDepth - 8)
         let shift2   = 6'u32
@@ -480,7 +480,7 @@ impl Decoder
            firstX + cast(s32, width) + 7 <= cast(s32, frame.width) + pad and
            firstY + cast(s32, height) + 7 <= cast(s32, frame.height) + pad
         {
-            reference       = frame.lumaAt(firstX, firstY)!
+            reference       = unwrap frame.lumaAt(firstX, firstY)
             referenceStride = frame.strideLuma
         }
         else
@@ -624,7 +624,7 @@ impl Decoder
     // Interpolates one chroma prediction block, clause 8.5.3.3.3.3.
     private mtd interpolateChroma(frame: *Frame, component: u32, x, y: s32, width, height: u32, mvX, mvY: s16, list: u32)
     {
-        let sps      = .activeSps!
+        let sps      = unwrap .activeSps
         let bitDepth = sps.bitDepthChroma
         let shift1   = Math.min(4'u32, bitDepth - 8)
         let shift2   = 6'u32
@@ -794,7 +794,7 @@ impl Decoder
     private mtd combinePrediction(component: u32, x, y: s32, width, height: u32, motion: const *PuMotion, sps: const *Sps, identityWeights: bool)
     {
         let header   = &.header
-        let frame    = .current!
+        let frame    = unwrap .current
         let bitDepth = component == 0 ? sps.bitDepthLuma : sps.bitDepthChroma
         let maximum  = cast(s32, ((1'u32 << bitDepth) - 1))
 

@@ -178,7 +178,7 @@ internal impl Properties
             return
         for itemIt in .items
         {
-            let item = itemIt!
+            let item = unwrap itemIt
             if .isGridHeader(item) or not item.numChilds do
                 continue
             let depth = .itemDepth(item)
@@ -217,7 +217,7 @@ internal impl Properties
     mtd syncColumnLabels()
     {
         for item in .items do
-            .syncColumnLabel(item!)
+            .syncColumnLabel(unwrap item)
     }
 
     mtd columnPosition()->f32 => .gridColumnSize + .gridMarginColumn * 0.5

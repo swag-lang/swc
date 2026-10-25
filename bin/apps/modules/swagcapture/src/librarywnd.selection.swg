@@ -157,14 +157,14 @@ impl LibraryWnd
             capture.changed = true
             discard catch capture.save()
             {
-                MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, Swag.err)
+                MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedSaveMetadata, Swag.err)
                 return
             }
 
             .refreshPreviewMetadata(file, capture)
         }
         {
-            MessageDlg.error(.main.surface!, appStrings().msg_FailedSaveMetadata, Swag.err)
+            MessageDlg.error(unwrap .main.surface, appStrings().msg_FailedSaveMetadata, Swag.err)
         }
     }
 
@@ -194,7 +194,7 @@ impl LibraryWnd
         options.title   = appStrings().dlg_TitleEditTags
         options.message = appStrings().ui_CommaSeparatedTags
         options.text    = text
-        let dialog = EditDlg.createSingleLine(.main.surface!, options)
+        let dialog = EditDlg.createSingleLine(unwrap .main.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
 
@@ -266,7 +266,7 @@ impl LibraryWnd
         options.initialFolder     = initialFolder
         options.title             = appStrings().dlg_TitleExportCaptures
         options.confirmButtonText = appStrings().dlg_BtnExport
-        let dialog = FileDlg.create(.main.surface!, options)
+        let dialog = FileDlg.create(unwrap .main.surface, options)
         if dialog.doModal() != Dialog.BtnOk do
             return
 

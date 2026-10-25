@@ -22,7 +22,7 @@
 
     // Now store a string
     a = "string"
-    Swag.assert(assume cast (string, a!) == "string")
+    Swag.assert(assume cast (string, unwrap a) == "string")
 
     // Now store a bool
     a = true

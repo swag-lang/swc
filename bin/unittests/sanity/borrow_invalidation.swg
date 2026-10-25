@@ -34,7 +34,7 @@ impl BorrowInvBuffer
         req.address = .data
         req.size    = .capacity
 
-        let alloc = Swag.getContext().allocator!
+        let alloc = unwrap Swag.getContext().allocator
         alloc.free(&req)
 
         .data     = null
@@ -53,7 +53,7 @@ impl BorrowInvBuffer
         req.size    = newCapacity
         req.oldSize = .capacity
 
-        let alloc = Swag.getContext().allocator!
+        let alloc = unwrap Swag.getContext().allocator
         alloc.realloc(&req)
 
         .data     = cast(req.address)
@@ -76,7 +76,7 @@ impl BorrowInvBuffer
     #[Swag.NoInline]
     mtd const view()->[..] u8
     {
-        return Swag.makeSlice(.data!, .length)
+        return Swag.makeSlice(unwrap .data, .length)
     }
 
     #[Swag.NoInline]
@@ -91,7 +91,7 @@ impl BorrowInvBuffer
     #[Swag.Inline]
     mtd const inlineView()->[..] u8
     {
-        return Swag.makeSlice(.data!, .length)
+        return Swag.makeSlice(unwrap .data, .length)
     }
 
     #[Swag.NoInline]
@@ -105,9 +105,9 @@ impl BorrowInvBuffer
     // the body just as it does at an ordinary call site.
     mtd receiverInvalidatesOwnView()->u8
     {
-        let view = .data!     // swc-expected-note {{sema_note_borrow_taken_here}}
-        .reserve(64)          // swc-expected-error {{sanity_err_borrow_invalidated}}
-        return view[0]        // swc-expected-note {{sema_note_borrow_read_here}}
+        let view = unwrap .data     // swc-expected-note {{sema_note_borrow_taken_here}}
+        .reserve(64)       // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return view[0]     // swc-expected-note {{sema_note_borrow_read_here}}
     }
 
     // Going through an accessor is the same borrow. The accessor summary is inferred
@@ -132,7 +132,7 @@ impl BorrowInvBuffer
     // to the old payload stale before the copy from it.
     mtd receiverKeepsDetachedOldPayload()->u8
     {
-        let oldData = .data!
+        let oldData = unwrap .data
         .data     = null
         .capacity = 0
         .reserve(64)
@@ -151,7 +151,7 @@ impl BorrowInvBuffer
     // Detaching on only one path cannot erase the route on the other path.
     mtd receiverConditionallyDetachesOldPayload(detach: bool)->u8
     {
-        let oldData = .data!
+        let oldData = unwrap .data
         if detach
         {
             .data     = null
@@ -183,14 +183,14 @@ struct BorrowInvPair
 // A non-null assertion preserves the field that owns the borrowed payload.
 func borrowInvNullableReceiverMatchingField(pair: *BorrowInvPair?)->u8
 {
-    let view = pair!.right.data!
+    let view = unwrap pair!.right.data
     pair.right.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return view[0]
 }
 
 func borrowInvNullableReceiverSiblingField(pair: *BorrowInvPair?)->u8
 {
-    let view = pair!.left.data!
+    let view = unwrap pair!.left.data
     pair.right.reserve(64)
     return view[0]
 }
@@ -213,7 +213,7 @@ impl BorrowInvPair
 {
     mtd receiverInvalidatesMatchingField()->u8
     {
-        let view = .right.data!
+        let view = unwrap .right.data
         .right.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
         return view[0]
     }
@@ -222,7 +222,7 @@ impl BorrowInvPair
     // field cannot invalidate a view into a sibling field.
     mtd receiverKeepsSiblingPayload()->u8
     {
-        let view = .left.data!
+        let view = unwrap .left.data
         .right.reserve(64)
         return view[0]
     }
@@ -244,7 +244,7 @@ func borrowInvDirectMember()->u8
 {
     var buf: BorrowInvBuffer
     buf.reserve(4)
-    let view = buf.data!
+    let view = unwrap buf.data
     buf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return view[0]
 }
@@ -291,7 +291,7 @@ func borrowInvFreeBlock(block: [*] u8?, size: u64)
     req.address = block
     req.size    = size
 
-    let alloc = Swag.getContext().allocator!
+    let alloc = unwrap Swag.getContext().allocator
     alloc.free(&req)
 }
 
@@ -318,7 +318,7 @@ impl BorrowInvChained
     #[Swag.NoInline]
     mtd const view()->[..] u8
     {
-        return Swag.makeSlice(.data!, .capacity)
+        return Swag.makeSlice(unwrap .data, .capacity)
     }
 }
 
@@ -343,7 +343,7 @@ var borrowInvGlobalBox:   BorrowInvChained
 func borrowInvGlobalDirectMember()->u8
 {
     borrowInvGlobalBuf.reserve(4)
-    let view = borrowInvGlobalBuf.data!
+    let view = unwrap borrowInvGlobalBuf.data
     borrowInvGlobalBuf.reserve(64)     // swc-expected-error {{sanity_err_borrow_invalidated}}
     return view[0]
 }
@@ -992,7 +992,7 @@ impl BorrowInvIndexedOwner
 impl BorrowInvTable
 {
     #[Swag.Inline]
-    mtd opIndexPtr(index: u64)->**BorrowInvNode => .slots! + index
+    mtd opIndexPtr(index: u64)->**BorrowInvNode => unwrap .slots + index
 
     mtd indexedPointerSurvivesGrowth()->u8
     {
@@ -1015,7 +1015,7 @@ impl BorrowInvTable
         req.address = .slots
         req.size    = .capacity * #sizeof(*BorrowInvNode)
 
-        let alloc = Swag.getContext().allocator!
+        let alloc = unwrap Swag.getContext().allocator
         alloc.free(&req)
 
         .slots    = null
@@ -1033,7 +1033,7 @@ impl BorrowInvTable
         req.size    = newCapacity * #sizeof(*BorrowInvNode)
         req.oldSize = .capacity * #sizeof(*BorrowInvNode)
 
-        let alloc = Swag.getContext().allocator!
+        let alloc = unwrap Swag.getContext().allocator
         alloc.realloc(&req)
 
         .slots    = cast(req.address)
@@ -1051,8 +1051,8 @@ impl BorrowInvTable
     // The slot itself lives inside the payload, and the growth moves it.
     mtd slotPointerDoesNotSurviveGrowth()->u8
     {
-        let slot = .slots! + 0     // swc-expected-note {{sema_note_borrow_taken_here}}
-        .reserve(64)               // swc-expected-error {{sanity_err_borrow_invalidated}}
-        return slot[].value        // swc-expected-note {{sema_note_borrow_read_here}}
+        let slot = unwrap .slots + 0     // swc-expected-note {{sema_note_borrow_taken_here}}
+        .reserve(64)            // swc-expected-error {{sanity_err_borrow_invalidated}}
+        return slot[].value     // swc-expected-note {{sema_note_borrow_read_here}}
     }
 }

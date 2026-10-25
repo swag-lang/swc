@@ -75,7 +75,7 @@ func freeWhatAGlobalHolds()->s32
     globalOwned    = cast(*s32, heapAlloc(4))
     globalOwned![] = 6
     let value = globalOwned![]
-    heapFree(globalOwned!, 4)
+    heapFree(unwrap globalOwned, 4)
     globalOwned = null
     return value
 }

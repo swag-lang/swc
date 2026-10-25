@@ -408,7 +408,7 @@ private func showMessageDialog(_: *Button)
 {
     var options: MessageDlgOptions
     options.title = "Save changes"
-    discard MessageDlg.yesNoCancel(g_Surface!, "Save the current changes before continuing?", options: options)
+    discard MessageDlg.yesNoCancel(unwrap g_Surface, "Save the current changes before continuing?", options: options)
 }
 
 private func showEditDialog(_: *Button)
@@ -417,7 +417,7 @@ private func showEditDialog(_: *Button)
     options.title   = "Rename item"
     options.message = "Enter a concise name."
     options.text    = "Current name"
-    discard EditDlg.createSingleLine(g_Surface!, options).doModal()
+    discard EditDlg.createSingleLine(unwrap g_Surface, options).doModal()
 }
 
 private func showAboutDialog(_: *Button)
@@ -428,7 +428,7 @@ private func showAboutDialog(_: *Button)
         message: "The reference surface for every palette and standard widget.",
         surfaceIcon: {},
         contentIcon: app.theme.icon(.About, 64)}
-    discard AboutDlg.create(g_Surface!, params).doModal()
+    discard AboutDlg.create(unwrap g_Surface, params).doModal()
 }
 
 private func buildDialogs(flow: *Flow)

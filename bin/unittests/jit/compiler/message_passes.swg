@@ -5,7 +5,7 @@ internal var MessageStageValue = 0
 
 #message(CompilerMsgMask.PassAfterSemantic)
 {
-    let msg = Swag.compiler().getMessage()!
+    let msg = unwrap Swag.compiler().getMessage()
     let itf = Swag.compiler()
     Swag.assert(msg.kind == CompilerMsgKind.PassAfterSemantic)
     Swag.assert(msg.name == "")
@@ -15,7 +15,7 @@ internal var MessageStageValue = 0
 
 #message(CompilerMsgMask.PassBeforeRun)
 {
-    let msg = Swag.compiler().getMessage()!
+    let msg = unwrap Swag.compiler().getMessage()
     let itf = Swag.compiler()
     Swag.assert(msg.kind == CompilerMsgKind.PassBeforeRunByteCode)
     Swag.assert(msg.name == "")

@@ -229,7 +229,7 @@ public impl AboutDlg
             }
         }
 
-        let stack = .sectionsStack!
+        let stack = unwrap .sectionsStack
         if title.count
         {
             // The heading is set through the rich-text marker rather than through a face of its
@@ -260,7 +260,7 @@ public impl AboutDlg
             // Measured against the width left once a bar is there, whether or not one is showing:
             // measured against the full viewport, the text would wrap one line further the moment
             // the bar appeared, and the column would need the room it was just told it had.
-            let inner = .sectionsStack!
+            let inner = unwrap .sectionsStack
             let bar   = .themeMetrics().scrollBar_SmallSize
             let room  = Math.max(scroll.paddedClientRect().width - bar, 1)
 

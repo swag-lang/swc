@@ -14,7 +14,7 @@ public impl Image
                                      cast(f32, color.b) / 255.0, cast(f32, color.a) / 255.0}
             .transformLogicalPixels(&logical)
             {
-                value = cast(const *PixelValue, userData!)[]
+                value = cast(const *PixelValue, unwrap userData)[]
             }
 
             return
@@ -26,7 +26,7 @@ public impl Image
             var pix = .pixels.buffer
             for .width
             {
-                convertToRGBA8'PF(cast([*] u8, pix!), color.r, color.g, color.b, color.a)
+                convertToRGBA8'PF(cast([*] u8, unwrap pix), color.r, color.g, color.b, color.a)
                 pix += .bytesPerPixel
             }
         }

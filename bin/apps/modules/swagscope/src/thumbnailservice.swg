@@ -26,7 +26,7 @@ impl ThumbnailService
         .directory.clear()
     }
 
-    mtd render(path: string)->Image fail
+    mtd render(path: string, settings: string = "")->Image fail
     {
         if .process.isRunning() and (try .process.tryWaitForExit(0'ms)) do
             .reset()
@@ -48,6 +48,7 @@ impl ThumbnailService
         let output  = Path.combine(.directory, "preview.png")
         catch File.delete(done)
         catch File.delete(output)
+        discard try File.writeAllText(Path.combine(.directory, "settings"), settings)
         discard try File.writeAllText(request, path)
         discard try File.writeAllText(Path.combine(.directory, "ready"), "")
         let started = Time.monotonicMicroseconds()
@@ -100,9 +101,14 @@ func runThumbnailWorker(directory: string) fail
         let path = try File.readAllText(request)
         catch
         {
+            let settingsPath = Path.combine(directory, "settings")
+            let bytes        = File.exists(settingsPath) ? try File.readAllText(settingsPath) : String{}
+            var settings     = try ThumbnailSettings.decode(bytes)
             var image:       Image
             var pluginIndex: u64
-            if registry.namePlugin(path, &pluginIndex) and registry.plugins[pluginIndex].thumbnail
+            if registry.namePlugin(path, &pluginIndex) and
+               registry.plugins[pluginIndex].thumbnail and
+               settings.usesDefaultViewer(registry.plugins[pluginIndex].key)
             {
                 image = try registry.plugins[pluginIndex].thumbnail!(path)
             }
@@ -118,6 +124,7 @@ func runThumbnailWorker(directory: string) fail
                     surface.show()
                 }
 
+                settings.apply(window)
                 let surface = unwrap window.surface
                 window.queueFile(path, remember: false)
                 let started = Time.monotonicMicroseconds()

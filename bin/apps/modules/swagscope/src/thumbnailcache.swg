@@ -7,12 +7,12 @@ struct ThumbnailCache {}
 
 impl ThumbnailCache
 {
-    func key(source: string, member: string = "", executable: string = "")->String fail
+    func key(source: string, member: string = "", executable: string = "", settings: string = "")->String fail
     {
         let appPath  = executable.count ? executable : Env.executablePath()
         let file     = try File.info(source)
         let app      = try File.info(appPath)
-        let identity = Format.toString("scope-thumbnail-2\n%\n%\n%\n%\n%\n%\n%\n%\n%",
+        let identity = Format.toString("scope-thumbnail-3\n%\n%\n%\n%\n%\n%\n%\n%\n%\n%",
                                        try Path.absolute(source),
                                        member,
                                        file.size,
@@ -21,7 +21,8 @@ impl ThumbnailCache
                                        appPath,
                                        app.size,
                                        Hash.hash64(app.lastWriteTime),
-                                       Hash.hash64(app.creationTime))
+                                       Hash.hash64(app.creationTime),
+                                       settings)
         let digest = Hash.Sha256.compute(cast(const [..] u8, identity.toString()))
         var name: String
         for word in digest do

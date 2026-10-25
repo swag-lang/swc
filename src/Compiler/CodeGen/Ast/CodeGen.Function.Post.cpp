@@ -1595,8 +1595,16 @@ Result CodeGenFunctionHelpers::emitFallibleWrapperPostNode(CodeGen& codeGen, Ast
         // An inlined callee whose only exit is fail emits no success-path definition
         // of the result register. Define its address here too, from the local stack
         // base that dominates both paths, before writing the explicit fallback.
-        if (resultPayload.isAddress() && resultStorage && codeGen.localStackBaseReg().isValid() &&
-            resultStorage->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
+        MicroReg        directReturnReg = MicroReg::invalid();
+        SymbolVariable* directReturnSym = nullptr;
+        if (resultPayload.isAddress() && CodeGenFunctionHelpers::tryUseDirectReturnStorage(codeGen, nodeRef, resultType, directReturnReg, directReturnSym))
+        {
+            // The failed call may have targeted the caller's return buffer. Its
+            // success-only result register cannot supply that address on failure.
+            builder.emitLoadRegReg(resultPayload.reg, directReturnReg, MicroOpBits::B64);
+        }
+        else if (resultPayload.isAddress() && resultStorage && codeGen.localStackBaseReg().isValid() &&
+                 resultStorage->hasExtraFlag(SymbolVariableFlagsE::CodeGenLocalStack))
         {
             builder.emitLoadAddressRegMem(resultPayload.reg, codeGen.localStackBaseReg(), resultStorage->offset(), MicroOpBits::B64);
         }

@@ -31,3 +31,17 @@ impl AutoScopeOpBox
 {
     let y = .C     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
 }
+
+struct Color { value: u32 }
+func fill(color: Color) {}
+func fillMany(colors: Color...) {}
+
+#test
+{
+    fill(.Red)     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
+}
+
+#test
+{
+    fillMany(.Red)     // swc-expected-error {{sema_err_cannot_compute_auto_scope}}
+}

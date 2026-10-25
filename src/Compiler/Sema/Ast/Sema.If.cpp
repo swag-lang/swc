@@ -185,7 +185,10 @@ namespace
                 return resolvedNode.cast<AstUnaryExpr>().nodeExprRef;
         }
 
-        return resolvedRef;
+        // Detached member uses must clone the source expression, so an inlined
+        // index operator is re-expanded with its own receiver and result payload.
+        // Binding its EmbeddedBlock directly loses the original index lowering.
+        return exprRef;
     }
 
     bool singleVariableSymbol(Sema& sema, AstNodeRef nodeRef, SymbolVariable*& outSym)

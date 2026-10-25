@@ -26,7 +26,7 @@ using Core, Gui, Pixel
     {
         let file = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("parallel-thumbnail-%.txt", index))
         discard expect File.writeAllText(file, "cached preview")
-        let key = expect ThumbnailCache.key(file)
+        let key = expect ThumbnailCache.key(file, settings: ThumbnailSettings.capture(window))
         expect ThumbnailCache.write(key, &image)
         files.add(file)
         keys.add(key)
@@ -34,6 +34,8 @@ using Core, Gui, Pixel
     }
 
     explorer.setMode(.Medium)
+    window.applyLayout()
+    explorer.requestPreview()
     for &preview, index in explorer.previews do
         Swag.assert(preview.started and preview.index == index)
     Swag.assert(explorer.previewTimer != null)
@@ -42,14 +44,34 @@ using Core, Gui, Pixel
     explorer.leave()
     for &preview in explorer.previews do
         preview.task.wait()
-    host.pump()
+    for 100
+    {
+        host.pump()
+        var busy = false
+        for &preview in explorer.previews do
+            busy = busy or preview.started
+        if not busy do
+            break
+        Threading.Thread.sleep(1'ms)
+    }
+
     Swag.assert(explorer.cached.isEmpty() and explorer.previewTimer == null)
 
     explorer.show()
     explorer.requestPreview()
     for &preview in explorer.previews do
         preview.task.wait()
-    host.pump()
+    for 100
+    {
+        host.pump()
+        var busy = false
+        for &preview in explorer.previews do
+            busy = busy or preview.started
+        if not busy do
+            break
+        Threading.Thread.sleep(1'ms)
+    }
+
     Swag.assert(explorer.cached.count == ExplorerWorkerCount and explorer.previewTimer == null)
     for &entry in explorer.entries do
         Swag.assert(entry.texture.isValid())

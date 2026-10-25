@@ -117,6 +117,10 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     let explorer = unwrap window.explorer
     explorer.setMode(.Details)
     completeExplorer(&host, explorer)
+    explorer.breadcrumb.clear()
+    explorer.breadcrumb.addItem("Home")
+    explorer.breadcrumb.addItem("viewer.archive.zip")
+    explorer.pathScroll.setScrollSize(0, 0)
     window.applyLayout()
     host.settleAnimations(window)
     var image = host.render(window)
@@ -242,7 +246,10 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
             explorer.entries.add(#move entry)
         }
 
-        explorer.pathLabel.setText("Gallery")
+        explorer.breadcrumb.clear()
+        explorer.breadcrumb.addItem("Home")
+        explorer.breadcrumb.addItem("Gallery")
+        explorer.pathScroll.setScrollSize(0, 0)
         explorer.selected = 3
         explorer.setMode(.Medium)
         window.setFilePanelVisible(true)

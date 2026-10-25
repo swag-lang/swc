@@ -16,6 +16,7 @@ struct ExplorerPreview
     index:           u64
     generation:      u64
     opening:         bool
+    settings:        String
 }
 
 impl ExplorerPreview
@@ -40,7 +41,7 @@ impl ExplorerPreview
         var cache: String
         if not .opening
         {
-            cache  = catch ThumbnailCache.key(source, member)
+            cache  = catch ThumbnailCache.key(source, member, settings: .settings)
             .image = ThumbnailCache.read(cache)
             if .image.isValid() do
                 return
@@ -72,10 +73,10 @@ impl ExplorerPreview
 
         if not .opening
         {
-            .image = try .service.render(file)
+            .image = try .service.render(file, .settings)
 
             // A file replaced during rendering must not publish an image under its old identity.
-            let current = catch ThumbnailCache.key(source, member)
+            let current = catch ThumbnailCache.key(source, member, settings: .settings)
             if not Swag.isCancelled() and cache == current do
                 catch ThumbnailCache.write(cache, &.image)
         }

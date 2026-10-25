@@ -1478,6 +1478,62 @@ SWC_TEST_BEGIN(Compiler_AstVisitPreservesSiblingsAcrossPauseSkipAndRestart)
 }
 SWC_TEST_END()
 
+SWC_TEST_BEGIN(Compiler_AstVisitRestartsFromChildCallbacks)
+{
+    CommandLine      cmdLine;
+    CompilerInstance compiler(ctx.global(), cmdLine);
+    TaskContext      compilerCtx(compiler);
+    SourceFile&      source = Unittest::addTestSource(compilerCtx, "Compiler", "AstVisitChildRestart", "");
+    Ast&             ast    = source.ast();
+
+    std::array<AstNodeRef, 6> refs;
+    for (AstNodeRef& ref : refs)
+        ref = ast.makeNode<AstNodeId::ArrayLiteral>(TokenRef::invalid()).first;
+    const auto [root, original, oldLeaf, replacement, newLeaf, sibling] = refs;
+    const std::array rootChildren                                       = {original, sibling};
+    const std::array oldChildren                                        = {oldLeaf};
+    const std::array newChildren                                        = {newLeaf};
+    ast.node<AstNodeId::ArrayLiteral>(root)->spanChildrenRef            = ast.pushSpan(std::span<const AstNodeRef>(rootChildren));
+    ast.node<AstNodeId::ArrayLiteral>(original)->spanChildrenRef        = ast.pushSpan(std::span<const AstNodeRef>(oldChildren));
+    ast.node<AstNodeId::ArrayLiteral>(replacement)->spanChildrenRef     = ast.pushSpan(std::span<const AstNodeRef>(newChildren));
+
+    for (const bool restartBeforeChild : {true, false})
+    {
+        AstVisit                visit;
+        std::vector<AstNodeRef> entered;
+        visit.setPreNodeVisitor([&](AstNode&) {
+            entered.push_back(visit.currentNodeRef());
+            return Result::Continue;
+        });
+        const auto restart = [&](AstNode&, AstNodeRef&) {
+            if (visit.currentNodeRef() == original)
+                visit.restartCurrentNode(replacement);
+            return Result::Continue;
+        };
+        if (restartBeforeChild)
+            visit.setPreChildVisitor(restart);
+        else
+            visit.setPostChildVisitor(restart);
+        visit.start(ast, root);
+        bool stopped = false;
+        for (size_t step = 0; step < 100 && !stopped; ++step)
+        {
+            const AstVisitResult result = visit.step(compilerCtx);
+            if (result == AstVisitResult::Error)
+                return Result::Error;
+            stopped = result == AstVisitResult::Stop;
+        }
+
+        std::vector<AstNodeRef> expected = {root, original};
+        if (!restartBeforeChild)
+            expected.push_back(oldLeaf);
+        expected.insert(expected.end(), {replacement, newLeaf, sibling});
+        if (!stopped || entered != expected)
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(Compiler_AstVisitResolvesChildrenWithoutFollowingActiveAncestors)
 {
     CommandLine               cmdLine;

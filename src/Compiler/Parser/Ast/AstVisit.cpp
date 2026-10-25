@@ -181,6 +181,9 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
                     return AstVisitResult::Pause;
                 }
 
+                if (frame.stage != Frame::Stage::Children)
+                    return AstVisitResult::Continue;
+
                 frame.postChildState = Frame::CallState::Done;
             }
 
@@ -212,6 +215,10 @@ AstVisitResult AstVisit::stepChildrenStage(Frame& frame)
                 frame.preChildState = Frame::CallState::Paused;
                 return AstVisitResult::Pause;
             }
+
+            // Restarting replaces the frame and discards this callback's child.
+            if (frame.stage != Frame::Stage::Children)
+                return AstVisitResult::Continue;
 
             frame.preChildState = Frame::CallState::Done;
 

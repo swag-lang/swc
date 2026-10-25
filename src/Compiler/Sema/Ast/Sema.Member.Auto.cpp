@@ -104,14 +104,6 @@ namespace
         return nullptr;
     }
 
-    // `with` rewrites must not reuse an existing resolved expression subtree directly.
-    // A fresh syntax clone lets semantic analysis rebuild substitutes in the new context.
-    AstNodeRef cloneDetachedExpr(Sema& sema, AstNodeRef sourceRef)
-    {
-        SWC_ASSERT(sourceRef.isValid());
-        return SemaClone::cloneDetachedExpr(sema, sourceRef);
-    }
-
     AstNodeRef cloneAutoMemberRightExpr(Sema& sema, AstNodeRef sourceRef)
     {
         SWC_ASSERT(sourceRef.isValid());
@@ -119,10 +111,10 @@ namespace
         return SemaClone::cloneAst(sema, sourceRef, noBindings);
     }
 
-    AstNodeRef makeAutoMemberLeftExpr(Sema& sema, TokenRef tokRef, const SourceCodeRef& autoMemberCodeRef, const AutoMemberCandidate& candidate)
+    AstNodeRef makeAutoMemberLeftExpr(Sema& sema, TokenRef tokRef, const SourceCodeRef& autoMemberCodeRef, const AutoMemberCandidate& candidate, bool* needsReanalysis)
     {
         if (candidate.baseExprRef.isValid())
-            return cloneDetachedExpr(sema, candidate.baseExprRef);
+            return SemaClone::cloneDetachedExpr(sema, candidate.baseExprRef, needsReanalysis);
 
         auto [leftRef, leftPtr] = sema.ast().makeNode<AstNodeId::Identifier>(tokRef);
         leftPtr->setCodeRef(autoMemberCodeRef);
@@ -146,11 +138,11 @@ namespace
         return leftRef;
     }
 
-    AstNodeRef makeAutoMemberAccessExpr(Sema& sema, TokenRef tokRef, const SourceCodeRef& autoMemberCodeRef, const AutoMemberCandidate& candidate, AstNodeRef rightRef, AstMemberAccessExpr*& outNode)
+    AstNodeRef makeAutoMemberAccessExpr(Sema& sema, TokenRef tokRef, const SourceCodeRef& autoMemberCodeRef, const AutoMemberCandidate& candidate, AstNodeRef rightRef, AstMemberAccessExpr*& outNode, bool* needsReanalysis = nullptr)
     {
         auto [nodeRef, nodePtr] = sema.ast().makeNode<AstNodeId::MemberAccessExpr>(tokRef);
         nodePtr->setCodeRef(autoMemberCodeRef);
-        nodePtr->nodeLeftRef = makeAutoMemberLeftExpr(sema, tokRef, autoMemberCodeRef, candidate);
+        nodePtr->nodeLeftRef = makeAutoMemberLeftExpr(sema, tokRef, autoMemberCodeRef, candidate, needsReanalysis);
 
         // Clone the right-hand member name without detached-expression state;
         // stale substitutes from the auto-member source would corrupt left.member.
@@ -973,9 +965,10 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         for (const Symbol* memberSym : foundSymbols)
             SWC_RESULT(SemaAccess::checkMemberAccess(sema, *memberSym, autoMemberCodeRef));
 
-        AstMemberAccessExpr*     substituteNode = nullptr;
-        const AstNodeRef         nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), autoMemberCodeRef, selected, nodeIdentRef, substituteNode);
-        const std::span<Symbol*> symbols        = sema.curViewSymbol().symList();
+        bool                     needsReanalysis = false;
+        AstMemberAccessExpr*     substituteNode  = nullptr;
+        const AstNodeRef         nodeRef         = makeAutoMemberAccessExpr(sema, tokRef(), autoMemberCodeRef, selected, nodeIdentRef, substituteNode, &needsReanalysis);
+        const std::span<Symbol*> symbols         = sema.curViewSymbol().symList();
 
         sema.setSymbolList(nodeRef, symbols);
         sema.setSymbolList(nodeIdentRef, symbols);
@@ -1002,13 +995,22 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         if (!std::ranges::all_of(symbols, [](const Symbol* symbol) { return symbol->isSymMap(); }))
             sema.setIsValue(*substituteNode);
 
+        // A detached with subject can contain an inline call or index that must
+        // be expanded in this use's context before codegen visits its children.
+        if (needsReanalysis)
+        {
+            sema.restartCurrentNode(substituteRef);
+            return Result::Continue;
+        }
+
         return Result::SkipChildren;
     }
 
     // Aggregate structs do not have member symbols, so they must go through
     // the regular member-access semantic path.
-    AstMemberAccessExpr* substituteNode = nullptr;
-    const AstNodeRef     nodeRef        = makeAutoMemberAccessExpr(sema, tokRef(), autoMemberCodeRef, selected, nodeIdentRef, substituteNode);
+    bool                 needsReanalysis = false;
+    AstMemberAccessExpr* substituteNode  = nullptr;
+    const AstNodeRef     nodeRef         = makeAutoMemberAccessExpr(sema, tokRef(), autoMemberCodeRef, selected, nodeIdentRef, substituteNode, &needsReanalysis);
     SWC_RESULT(SemaHelpers::resolveMemberAccess(sema, nodeRef, *substituteNode, allowOverloadSet));
 
     AstNodeRef substituteRef = nodeRef;
@@ -1016,6 +1018,11 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
         substituteRef = Cast::createCastNode(sema, selected.resultTypeRef, nodeRef);
 
     sema.setSubstitute(sema.curNodeRef(), substituteRef);
+    if (needsReanalysis)
+    {
+        sema.restartCurrentNode(substituteRef);
+        return Result::Continue;
+    }
     return Result::SkipChildren;
 }
 

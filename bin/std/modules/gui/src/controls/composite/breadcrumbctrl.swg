@@ -175,7 +175,7 @@ impl BreadcrumbCtrl
 
         let ar  = .items[index].arrowRect
         let sr  = .surfaceRect()
-        let sp  = Math.Point{sr.x + ar.horzCenter(), sr.y + ar.bottom()}
+        let sp  = Math.Point{sr.x + ar.horzCenter() - .scrollPos.x, sr.y + ar.bottom() - .scrollPos.y}
         let sel = menu.doModal(sp, .AnchorTopCenter, autoDestroy: true)
         if sel.count != 0 do
             .sigMenuSelected.call(me, index, sel)
@@ -198,7 +198,7 @@ impl IWnd for BreadcrumbCtrl
         }
 
         .layout()
-        let pos = .surfaceToLocal(evt.surfacePos)
+        let pos = .surfaceToLocal(evt.surfacePos) + .scrollPos
 
         var nh      = Swag.U64.Max
         var nhArrow = false

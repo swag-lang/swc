@@ -20,20 +20,21 @@ struct Explorer
 
     late
     {
-        window:    *ViewerWindow
-        bar:       *Wnd
-        pathLabel: *Label
-        status:    *Label
-        modes:     *ComboBox
-        filter:    *EditBox
-        back:      *IconButton
-        forward:   *IconButton
-        up:        *IconButton
-        refresh:   *IconButton
-        panels:    *IconButton
-        list:      *ListCtrl
-        scroll:    *ScrollWnd
-        grid:      *ExplorerGrid
+        window:     *ViewerWindow
+        bar:        *Wnd
+        breadcrumb: *BreadcrumbCtrl
+        pathScroll: *ScrollWnd
+        status:     *Label
+        modes:      *ComboBox
+        filter:     *EditBox
+        back:       *IconButton
+        forward:    *IconButton
+        up:         *IconButton
+        refresh:    *IconButton
+        panels:     *IconButton
+        list:       *ListCtrl
+        scroll:     *ScrollWnd
+        grid:       *ExplorerGrid
     }
 
     mode:            ExplorerMode = .Medium
@@ -54,6 +55,8 @@ struct Explorer
     sortColumn:      u32
     descending:      bool
     previewTimer:    *Timer?
+    menuPaths:       Array'String
+    previewSettings: String
 }
 
 impl Explorer
@@ -216,12 +219,23 @@ impl Explorer
             .sigPressed += func|view = me|(_) { view.window.toggleFilePanel() }
         }
 
-        with .pathLabel = Label.create(navigation, "", {}, null, .Ellipsis)
+        with .pathScroll = Wnd.create'ScrollWnd(navigation)
         {
             .dockStyle = .Center
             .margin.x  = 12
-            .setTextAlignment(.Left, .Center)
+            .updateFlags(.CompactBars | .TransparentBars)
+            .setFrameFlags(remove: .Borders)
         }
+
+        with .breadcrumb = BreadcrumbCtrl.create(.pathScroll)
+        {
+            .backgroundStyle = .Transparent
+            .sigItemPressed  += func|view = me|(path, index) { view.navigateBreadcrumb(path.items[index].tag) }
+            .sigFillMenu     += func|view = me|(_, index, menu) { view.fillBreadcrumbMenu(index, menu) }
+            .sigMenuSelected += func|view = me|(_, _, path) { view.navigateBreadcrumb(path) }
+        }
+
+        .pathScroll.setView(.breadcrumb)
 
         with let options = Wnd.create'Wnd(.bar, {0, 0, 0, 36})
         {
@@ -292,6 +306,96 @@ impl Explorer
         .navigate(location[0 until split], location[split + 1 to], false)
     }
 
+    mtd navigateBreadcrumb(location: string)
+    {
+        let split = Utf8.indexOf(location, "\n")
+        .navigate(location[0 until split], location[split + 1 to])
+    }
+
+    mtd updateBreadcrumb()
+    {
+        .breadcrumb.clear()
+        var ancestors: Array'String
+        var path = .listing.path.toString()
+        while path.count
+        {
+            ancestors.add(path)
+            let parent = Path.directoryName(path) orelse ""
+            if not parent.count or parent == path do
+                break
+            path = parent
+        }
+
+        for ancestor in ancestors.reversed()
+        {
+            let full = ancestor.toString()
+            let name = Path.fileName(full) orelse full
+            .breadcrumb.addItem(name.count ? name : full, tag: Format.toString("%\n", full))
+        }
+
+        if .listing.isArchive
+        {
+            var begin: u64
+            for offset in .folder.length where .folder[offset] == '/'u8
+            {
+                .breadcrumb.addItem(.folder.toString()[begin until offset],
+                                    tag: Format.toString("%\n%", .listing.path, .folder.toString()[0 until offset + 1]))
+                begin = offset + 1
+            }
+        }
+
+        .breadcrumb.layout()
+        let width = .breadcrumb.items.isEmpty() ? 0.0 : .breadcrumb.items.back().arrowRect.right()
+        .pathScroll.setScrollSize(width, 0)
+        .pathScroll.setScrollPos(width, 0)
+        .breadcrumb.toolTip = Format.toString("% / %", .displayPath(.listing.path), .folder)
+    }
+
+    mtd fillBreadcrumbMenu(index: u64, menu: *MenuCtrl)
+    {
+        if index >= .breadcrumb.items.count do
+            return
+        let location = .breadcrumb.items[index].tag.toString()
+        let split    = Utf8.indexOf(location, "\n")
+        let path     = location[0 until split]
+        let folder   = location[split + 1 to]
+        var children: Array'ExplorerEntry
+        if .listing.isArchive and path == .listing.path.toString()
+        {
+            children = .listing.children(folder)
+        }
+        else
+        {
+            let directories = catch Directory.enumerateDirectories(path)
+            {
+                return
+            }
+
+            for directory in directories do
+                children.add({name: Path.fileName(directory.fullName) orelse directory.fullName.toString(),
+                              path: directory.fullName, directory: true})
+        }
+
+        children.sort(func(a, b)->s32 { return Latin1.compareNatural(a.name, b.name) })
+        .menuPaths.clear()
+        .menuPaths.reserve(children.count)
+        for &child in children where child.directory
+        {
+            let target = .listing.isArchive and path == .listing.path.toString() ?
+                         Format.toString("%\n%", path, child.path) : Format.toString("%\n", child.path)
+            .menuPaths.add(target)
+        }
+
+        var item: u64
+        for &child in children where child.directory
+        {
+            let target   = .menuPaths[item].toString()
+            let selected = index + 1 < .breadcrumb.items.count and .breadcrumb.items[index + 1].tag == target
+            menu.addItem(child.name, target, checked: selected)
+            item += 1
+        }
+    }
+
     mtd goBack()
     {
         if .history.canGoBack() do
@@ -339,10 +443,7 @@ impl Explorer
         .clearTextures()
         .entries  = #move .listing.entries
         .selected = Swag.U64.Max
-        let path = .displayPath(.listing.path)
-        let name = Path.fileName(path) orelse path
-        .pathLabel.setText(.folder.isEmpty() ? String.from(name) : Format.toString("% / %", name, .folder))
-        .pathLabel.toolTip = path
+        .updateBreadcrumb()
 
         .filter.setText("", notify: false)
         .list.header.setSortIndicator(.sortColumn, .descending ? .Descending : .Ascending)
@@ -489,9 +590,37 @@ impl Explorer
     // Keep three independent renderers busy on visible tiles, with at most 128 uploaded previews.
     mtd requestPreview()
     {
+        .refreshPreviewSettings()
         for &preview in .previews where not preview.started do
             .startPreview(preview)
         .updatePreviewAnimation()
+    }
+
+    mtd refreshPreviewSettings()
+    {
+        let settings = ThumbnailSettings.capture(.window)
+        if .previewSettings == settings do
+            return
+
+        // The first snapshot precedes all jobs; later changes retire every old publication.
+        if not .previewSettings.isEmpty()
+        {
+            // Extracting an opened archive member does not depend on its thumbnail appearance.
+            for &preview in .previews
+            {
+                if preview.opening and preview.generation == .generation do
+                    preview.generation += 1
+                else do
+                    preview.task.cancel()
+            }
+            .generation += 1
+            .clearTextures()
+            for &entry in .entries do
+                entry.attempted = false
+            .grid.invalidate()
+        }
+
+        .previewSettings = settings
     }
 
     mtd updatePreviewAnimation()
@@ -577,6 +706,7 @@ impl Explorer
         preview.index       = wanted
         preview.generation  = .generation
         preview.opening     = opening
+        preview.settings    = .previewSettings
         preview.archivePath = .listing.isArchive ? .listing.path : String{}
         if .listing.isArchive do
             preview.entry = .listing.archive.entries[entry.archiveIndex]
@@ -633,6 +763,7 @@ impl IWnd for Explorer
             for &preview, slot in .previews where preview.claim(evt)
             {
                 preview.wait()
+                .refreshPreviewSettings()
                 .grid.spinners[slot].hide()
                 .grid.invalidate()
                 if preview.generation != .generation and not preview.temporary.isEmpty()

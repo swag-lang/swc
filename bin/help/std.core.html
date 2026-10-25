@@ -440,7 +440,7 @@
 </ul>
 </details>
 <details class="toc-group">
-<summary><span class="toc-label">Functions</span><span class="toc-count">1717</span></summary>
+<summary><span class="toc-label">Functions</span><span class="toc-count">1718</span></summary>
 <ul class="toc-symbols">
 <li><a href="#summary-functions">All Functions</a></li>
 <li><a href="#Core_Hash_Adler32_compute">Adler32.compute</a></li>
@@ -1520,6 +1520,7 @@
 <li><a href="#Core_Reflection_isPointer">Reflection.isPointer</a></li>
 <li><a href="#Core_Reflection_isPointerArithmetic">Reflection.isPointerArithmetic</a></li>
 <li><a href="#Core_Reflection_isPointerRef">Reflection.isPointerRef</a></li>
+<li><a href="#Core_Reflection_isRecord">Reflection.isRecord</a></li>
 <li><a href="#Core_Reflection_isRune">Reflection.isRune</a></li>
 <li><a href="#Core_Reflection_isSimpleNative">Reflection.isSimpleNative</a></li>
 <li><a href="#Core_Reflection_isSlice">Reflection.isSlice</a></li>
@@ -5318,6 +5319,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isPointerRef">Reflection.isPointerRef</a></td><td><p>Returns whether <span class="code-inline">t</span> is a reference type.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Reflection_isRecord">Reflection.isRecord</a></td><td><p>Returns whether <span class="code-inline">t</span> is an anonymous record type with named fields.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isRune">Reflection.isRune</a></td><td><p>Returns whether <span class="code-inline">t</span> is the native <span class="code-inline">rune</span> type.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isSimpleNative">Reflection.isSimpleNative</a></td><td><p>Returns whether <span class="code-inline">t</span> is a native type other than <span class="code-inline">any</span> and <span class="code-inline">string</span>.</p>
@@ -5330,7 +5333,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isStruct">Reflection.isStruct</a></td><td><p>Returns whether <span class="code-inline">t</span> is a struct type.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Reflection_isTuple">Reflection.isTuple</a></td><td><p>Returns whether <span class="code-inline">t</span> is a tuple type.</p>
+<tr><td class="code-type"><a href="#Core_Reflection_isTuple">Reflection.isTuple</a></td><td><p>Returns whether <span class="code-inline">t</span> is a positional tuple type.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isType">Reflection.isType</a></td><td><p>Returns whether <span class="code-inline">t</span> is a pointer to type information, such as <span class="code-inline">typeinfo</span>.</p>
 </td></tr>
@@ -8245,6 +8248,8 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isPointerRef">Reflection.isPointerRef</a></td><td><p>Returns whether <span class="code-inline">t</span> is a reference type.</p>
 </td></tr>
+<tr><td class="code-type"><a href="#Core_Reflection_isRecord">Reflection.isRecord</a></td><td><p>Returns whether <span class="code-inline">t</span> is an anonymous record type with named fields.</p>
+</td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isRune">Reflection.isRune</a></td><td><p>Returns whether <span class="code-inline">t</span> is the native <span class="code-inline">rune</span> type.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isSimpleNative">Reflection.isSimpleNative</a></td><td><p>Returns whether <span class="code-inline">t</span> is a native type other than <span class="code-inline">any</span> and <span class="code-inline">string</span>.</p>
@@ -8257,7 +8262,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isStruct">Reflection.isStruct</a></td><td><p>Returns whether <span class="code-inline">t</span> is a struct type.</p>
 </td></tr>
-<tr><td class="code-type"><a href="#Core_Reflection_isTuple">Reflection.isTuple</a></td><td><p>Returns whether <span class="code-inline">t</span> is a tuple type.</p>
+<tr><td class="code-type"><a href="#Core_Reflection_isTuple">Reflection.isTuple</a></td><td><p>Returns whether <span class="code-inline">t</span> is a positional tuple type.</p>
 </td></tr>
 <tr><td class="code-type"><a href="#Core_Reflection_isType">Reflection.isType</a></td><td><p>Returns whether <span class="code-inline">t</span> is a pointer to type information, such as <span class="code-inline">typeinfo</span>.</p>
 </td></tr>
@@ -9818,7 +9823,7 @@ encoder.serializer.options.saveBlanks = <span class="SKwd">true</span>
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Core_Guid128_value" class="code-type">value</td><td class="code-type">union { ... }</td><td><p>Two-word representation.</p>
+<tr><td id="Core_Guid128_value" class="code-type">value</td><td class="code-type">{bytes: [16] u8, words: [2] u64}</td><td><p>Two-word representation.</p>
 </td></tr>
 </tbody>
 </table>
@@ -23099,7 +23104,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Scc_Reader_initialize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.initialize</span> <a class="api-item-permalink" href="#Core_Scc_Reader_initialize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/scc.swg#L503">src</a></div>
 <p>Initializes this reader and reads only the SCC prefix and header.</p>
-<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">initialize</span>(fileName: <span class="STpe">string</span>, limits: <span class="SCst"><a href="#Core_Scc_ReadLimits">ReadLimits</a></span> = {}) <span class="SKwd">fail</span></span></div>
+<div class="code-block"><span class="SCde"><span class="SKwd">mtd</span> <span class="SFct">initialize</span>(fileName: <span class="STpe">string</span>, limits: <span class="SCst"><a href="#Core_Scc_ReadLimits">ReadLimits</a></span> = <span class="SCst"><a href="#Core_Scc_ReadLimits">ReadLimits</a></span>{}) <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Scc_Reader_kind" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reader.kind</span> <a class="api-item-permalink" href="#Core_Scc_Reader_kind" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/filesystem/scc.swg#L617">src</a></div>
@@ -23444,7 +23449,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">appendDynamicArrayElement</span>(arrayPointer: *<span class="STpe">void</span>?, elementType: <span class="STpe">typeinfo</span>?, initialize: <span class="STpe">bool</span> = <span class="SKwd">true</span>)-&gt;*<span class="STpe">void</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_assign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.assign</span> <a class="api-item-permalink" href="#Core_Reflection_assign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L145">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_assign" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.assign</span> <a class="api-item-permalink" href="#Core_Reflection_assign" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L148">src</a></div>
 <p>Copies the value of runtime type <span class="code-inline">type</span> at <span class="code-inline">source</span> over the value at <span class="code-inline">destination</span>.</p>
 <p>The previous destination value is dropped first, and the copy then runs its post-copy hook. Nothing happens when a pointer or <span class="code-inline">type</span> is null, or when <span class="code-inline">destination</span> and <span class="code-inline">source</span> are the same address. Panics when values of <span class="code-inline">type</span> cannot be copied.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">assign</span>(destination: *<span class="STpe">void</span>?, source: <span class="SKwd">const</span> *<span class="STpe">void</span>?, type: <span class="STpe">typeinfo</span>?)</span></div>
@@ -23504,7 +23509,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">clearDynamicArray</span>(arrayPointer: *<span class="STpe">void</span>?, elementType: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_combinedFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.combinedFlags</span> <a class="api-item-permalink" href="#Core_Reflection_combinedFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L132">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_combinedFlags" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.combinedFlags</span> <a class="api-item-permalink" href="#Core_Reflection_combinedFlags" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L135">src</a></div>
 <p>Returns the union of the flags carried by the supplied types.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">combinedFlags</span>(types: <span class="SKwd">const</span> [..] <span class="STpe">typeinfo</span>)-&gt;<span class="SNsp">Swag</span>.<span class="SCst"><a href="swag.runtime.html#Swag_TypeInfoFlags">TypeInfoFlags</a></span></span></div>
 </section>
@@ -23594,12 +23599,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">hasPostMove</span>(type: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isAny</span> <a class="api-item-permalink" href="#Core_Reflection_isAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L77">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isAny" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isAny</span> <a class="api-item-permalink" href="#Core_Reflection_isAny" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L80">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is the native <span class="code-inline">any</span> type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isAny</span>(t: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isBool" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isBool</span> <a class="api-item-permalink" href="#Core_Reflection_isBool" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L87">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isBool" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isBool</span> <a class="api-item-permalink" href="#Core_Reflection_isBool" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L90">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is the native <span class="code-inline">bool</span> type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isBool</span>(t: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -23614,7 +23619,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isEnum</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isFlagsEnum" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isFlagsEnum</span> <a class="api-item-permalink" href="#Core_Reflection_isFlagsEnum" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L54">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isFlagsEnum" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isFlagsEnum</span> <a class="api-item-permalink" href="#Core_Reflection_isFlagsEnum" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L57">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is an enum marked with <span class="code-inline">#[Swag.EnumFlags]</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isFlagsEnum</span>(t: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -23661,22 +23666,27 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointer</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isPointerArithmetic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPointerArithmetic</span> <a class="api-item-permalink" href="#Core_Reflection_isPointerArithmetic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L51">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isPointerArithmetic" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPointerArithmetic</span> <a class="api-item-permalink" href="#Core_Reflection_isPointerArithmetic" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L54">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is a block pointer that supports pointer arithmetic.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointerArithmetic</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isPointerRef" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPointerRef</span> <a class="api-item-permalink" href="#Core_Reflection_isPointerRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L48">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isPointerRef" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isPointerRef</span> <a class="api-item-permalink" href="#Core_Reflection_isPointerRef" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L51">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is a reference type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isPointerRef</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isRune</span> <a class="api-item-permalink" href="#Core_Reflection_isRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L67">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isRecord" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isRecord</span> <a class="api-item-permalink" href="#Core_Reflection_isRecord" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L45">src</a></div>
+<p>Returns whether <span class="code-inline">t</span> is an anonymous record type with named fields.</p>
+<div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isRecord</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
+</section>
+<section class="api-symbol">
+<div class="api-item api-item-func"><span id="Core_Reflection_isRune" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isRune</span> <a class="api-item-permalink" href="#Core_Reflection_isRune" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L70">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is the native <span class="code-inline">rune</span> type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isRune</span>(t: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isSimpleNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isSimpleNative</span> <a class="api-item-permalink" href="#Core_Reflection_isSimpleNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L57">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isSimpleNative" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isSimpleNative</span> <a class="api-item-permalink" href="#Core_Reflection_isSimpleNative" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L60">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is a native type other than <span class="code-inline">any</span> and <span class="code-inline">string</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isSimpleNative</span>(t: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -23691,7 +23701,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isStaticArray</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isString</span> <a class="api-item-permalink" href="#Core_Reflection_isString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L97">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isString</span> <a class="api-item-permalink" href="#Core_Reflection_isString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L100">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is the native <span class="code-inline">string</span> type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isString</span>(t: <span class="STpe">typeinfo</span>?)-&gt;<span class="STpe">bool</span></span></div>
 </section>
@@ -23702,11 +23712,11 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 </section>
 <section class="api-symbol">
 <div class="api-item api-item-func"><span id="Core_Reflection_isTuple" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isTuple</span> <a class="api-item-permalink" href="#Core_Reflection_isTuple" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L42">src</a></div>
-<p>Returns whether <span class="code-inline">t</span> is a tuple type.</p>
+<p>Returns whether <span class="code-inline">t</span> is a positional tuple type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isTuple</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_isType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isType</span> <a class="api-item-permalink" href="#Core_Reflection_isType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L45">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_isType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.isType</span> <a class="api-item-permalink" href="#Core_Reflection_isType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L48">src</a></div>
 <p>Returns whether <span class="code-inline">t</span> is a pointer to type information, such as <span class="code-inline">typeinfo</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isType</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
@@ -23716,7 +23726,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">isTypeAlias</span>(t: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_maximumSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.maximumSize</span> <a class="api-item-permalink" href="#Core_Reflection_maximumSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L123">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_maximumSize" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.maximumSize</span> <a class="api-item-permalink" href="#Core_Reflection_maximumSize" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L126">src</a></div>
 <p>Returns the largest size among the supplied types.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">maximumSize</span>(types: <span class="SKwd">const</span> [..] <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">u64</span></span></div>
 </section>
@@ -23728,7 +23738,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <span class="SKwd">func</span> <span class="SFct">readFieldValue</span>(destination: *<span class="STpe">void</span>?, field: <span class="SKwd">const</span> *<span class="SCst"><a href="swag.runtime.html#Swag_TypeValue">TypeValue</a></span>?, source: *<span class="STpe">void</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_registerType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.registerType</span> <a class="api-item-permalink" href="#Core_Reflection_registerType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L307">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_registerType" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.registerType</span> <a class="api-item-permalink" href="#Core_Reflection_registerType" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L310">src</a></div>
 <p>Registers <span class="code-inline">type</span> and every type reachable from its reflected graph.</p>
 <p>Registered types can then be found by <a href="#Core_Reflection_typeFromCrc">Core.Reflection.typeFromCrc</a> and <a href="#Core_Reflection_typeFromName">Core.Reflection.typeFromName</a>. Types exported by loaded modules are registered automatically at startup.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">registerType</span>(type: <span class="STpe">typeinfo</span>)</span></div>
@@ -23740,13 +23750,13 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">removeDynamicArrayElement</span>(arrayPointer: *<span class="STpe">void</span>?, elementType: <span class="STpe">typeinfo</span>?, index: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.reset</span> <a class="api-item-permalink" href="#Core_Reflection_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L161">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_reset" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.reset</span> <a class="api-item-permalink" href="#Core_Reflection_reset" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L164">src</a></div>
 <p>Resets the value of runtime type <span class="code-inline">type</span> at <span class="code-inline">destination</span> to its declared default value.</p>
 <p>Panics when <span class="code-inline">destination</span> or <span class="code-inline">type</span> is null, or when <span class="code-inline">type</span> has no default initialization.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">reset</span>(destination: *<span class="STpe">void</span>?, type: <span class="STpe">typeinfo</span>?)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_resolveAliases" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.resolveAliases</span> <a class="api-item-permalink" href="#Core_Reflection_resolveAliases" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L110">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_resolveAliases" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.resolveAliases</span> <a class="api-item-permalink" href="#Core_Reflection_resolveAliases" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L113">src</a></div>
 <p>Resolves nested aliases and returns their underlying type.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">resolveAliases</span>(type: <span class="STpe">typeinfo</span>)-&gt;<span class="STpe">typeinfo</span></span></div>
 </section>
@@ -23757,12 +23767,12 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">swapRuntimeValues</span>(basePointer: *<span class="STpe">void</span>?, valueType: <span class="STpe">typeinfo</span>?, indexA, indexB: <span class="STpe">u64</span>)</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_typeFromCrc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromCrc</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromCrc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L342">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_typeFromCrc" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromCrc</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromCrc" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L345">src</a></div>
 <p>Returns the registered type whose CRC is <span class="code-inline">crc</span>, or null when none is registered.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">typeFromCrc</span>(crc: <span class="STpe">u32</span>)-&gt;<span class="STpe">typeinfo</span>?</span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_Reflection_typeFromName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromName</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L351">src</a></div>
+<div class="api-item api-item-func"><span id="Core_Reflection_typeFromName" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">Reflection.typeFromName</span> <a class="api-item-permalink" href="#Core_Reflection_typeFromName" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/reflection/reflection.swg#L354">src</a></div>
 <p>Returns the registered type named <span class="code-inline">name</span>, or null when none is registered.</p>
 <p><span class="code-inline">name</span> is the type's full name; a type without a full name is registered under its bare name.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">typeFromName</span>(name: <span class="STpe">string</span>)-&gt;<span class="STpe">typeinfo</span>?</span></div>
@@ -24975,7 +24985,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseF64</span>(str: <span class="STpe">string</span>)-&gt;{ value: <span class="STpe">f64</span>, eat: <span class="STpe">u32</span>, ovf: <span class="STpe">bool</span> } <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_parseIdentifier" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.parseIdentifier</span> <a class="api-item-permalink" href="#Core_StrConv_parseIdentifier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L364">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_parseIdentifier" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.parseIdentifier</span> <a class="api-item-permalink" href="#Core_StrConv_parseIdentifier" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L365">src</a></div>
 <p>Returns the identifier at the start of <span class="code-inline">str</span>.</p>
 <p>An identifier starts with <span class="code-inline">_</span> or a letter and continues with <span class="code-inline">_</span>, letters and digits, each byte classified by <a href="#Core_Latin1_isLetter">Core.Latin1.isLetter</a> and <a href="#Core_Latin1_isLetterOrDigit">Core.Latin1.isLetterOrDigit</a>. Fails with <a href="#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a> when <span class="code-inline">str</span> does not start with one.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseIdentifier</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">string</span> <span class="SKwd">fail</span></span></div>
@@ -25011,7 +25021,7 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseS8</span>(str: <span class="STpe">string</span>)-&gt;{ value: <span class="STpe">s8</span>, eat: <span class="STpe">u32</span>, ovf: <span class="STpe">bool</span> } <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_parseString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.parseString</span> <a class="api-item-permalink" href="#Core_StrConv_parseString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L384">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_parseString" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.parseString</span> <a class="api-item-permalink" href="#Core_StrConv_parseString" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L385">src</a></div>
 <p>Parses the text at the start of <span class="code-inline">str</span> into <span class="code-inline">result</span> and returns the number of bytes consumed.</p>
 <p>Text that starts with <span class="code-inline">"</span> ends at the next <span class="code-inline">"</span>, and neither quote is stored; other text runs to the end of <span class="code-inline">str</span>. Fails with <a href="#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a> when <span class="code-inline">str</span> is empty, and with <a href="#Core_Errors_ParseIncompleteError">Core.Errors.ParseIncompleteError</a> when the closing quote is missing.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">parseString</span>(result: *<span class="SCst"><a href="#Core_String">String</a></span>, str: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
@@ -25082,60 +25092,60 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toDisplaySize</span>(value: <span class="STpe">u64</span>)-&gt;<span class="SCst"><a href="#Core_String">String</a></span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toF32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toF32</span> <a class="api-item-permalink" href="#Core_StrConv_toF32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L504">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toF32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toF32</span> <a class="api-item-permalink" href="#Core_StrConv_toF32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L505">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to an <span class="code-inline">f32</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toF32</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">f32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toF64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toF64</span> <a class="api-item-permalink" href="#Core_StrConv_toF64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L510">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toF64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toF64</span> <a class="api-item-permalink" href="#Core_StrConv_toF64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L511">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to an <span class="code-inline">f64</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toF64</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">f64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toNum" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toNum</span> <a class="api-item-permalink" href="#Core_StrConv_toNum" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L520">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toNum" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toNum</span> <a class="api-item-permalink" href="#Core_StrConv_toNum" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L521">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to the integer or floating-point type <span class="code-inline">T</span>.</p>
 <p>The conversion and its failures are those of the matching <span class="code-inline">toX</span> function, such as <a href="#Core_StrConv_toS32">Core.StrConv.toS32</a> for <span class="code-inline">s32</span>.</p>
 <div class="code-block"><span class="SCde"><span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Propagate]</span>
 <span class="SKwd">func</span>(<span class="SCst">T</span>) <span class="SFct">toNum</span>(str: <span class="STpe">string</span>)-&gt;<span class="SCst">T</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toS16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toS16</span> <a class="api-item-permalink" href="#Core_StrConv_toS16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L462">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toS16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toS16</span> <a class="api-item-permalink" href="#Core_StrConv_toS16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L463">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to an <span class="code-inline">s16</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toS16</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">s16</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toS32</span> <a class="api-item-permalink" href="#Core_StrConv_toS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L468">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toS32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toS32</span> <a class="api-item-permalink" href="#Core_StrConv_toS32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L469">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to an <span class="code-inline">s32</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toS32</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">s32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toS64</span> <a class="api-item-permalink" href="#Core_StrConv_toS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L474">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toS64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toS64</span> <a class="api-item-permalink" href="#Core_StrConv_toS64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L475">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to an <span class="code-inline">s64</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toS64</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">s64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toS8" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toS8</span> <a class="api-item-permalink" href="#Core_StrConv_toS8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L456">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toS8" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toS8</span> <a class="api-item-permalink" href="#Core_StrConv_toS8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L457">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to an <span class="code-inline">s8</span>.</p>
 <p>Fails with <a href="#Core_Errors_OverflowError">Core.Errors.OverflowError</a> when the value does not fit, and with <a href="#Core_Errors_SyntaxError">Core.Errors.SyntaxError</a> when <span class="code-inline">str</span> holds anything after the number.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toS8</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">s8</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toU16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toU16</span> <a class="api-item-permalink" href="#Core_StrConv_toU16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L486">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toU16" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toU16</span> <a class="api-item-permalink" href="#Core_StrConv_toU16" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L487">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to a <span class="code-inline">u16</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toU16</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">u16</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toU32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toU32</span> <a class="api-item-permalink" href="#Core_StrConv_toU32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L492">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toU32" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toU32</span> <a class="api-item-permalink" href="#Core_StrConv_toU32" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L493">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to a <span class="code-inline">u32</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toU32</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">u32</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toU64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toU64</span> <a class="api-item-permalink" href="#Core_StrConv_toU64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L498">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toU64" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toU64</span> <a class="api-item-permalink" href="#Core_StrConv_toU64" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L499">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to a <span class="code-inline">u64</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toU64</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">u64</span> <span class="SKwd">fail</span></span></div>
 </section>
 <section class="api-symbol">
-<div class="api-item api-item-func"><span id="Core_StrConv_toU8" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toU8</span> <a class="api-item-permalink" href="#Core_StrConv_toU8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L480">src</a></div>
+<div class="api-item api-item-func"><span id="Core_StrConv_toU8" class="api-item-title"><span class="api-item-title-kind">func</span> <span class="api-item-title-strong">StrConv.toU8</span> <a class="api-item-permalink" href="#Core_StrConv_toU8" aria-label="Permalink">#</a></span><a class="api-item-title-src-ref" href="https://github.com/swag-lang/swc/blob/master/bin/std/modules/core/src/text/parse.swg#L481">src</a></div>
 <p>Converts the whole of <span class="code-inline">str</span> to a <span class="code-inline">u8</span>, like <a href="#Core_StrConv_toS8">Core.StrConv.toS8</a>.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">func</span> <span class="SFct">toU8</span>(str: <span class="STpe">string</span>)-&gt;<span class="STpe">u8</span> <span class="SKwd">fail</span></span></div>
 </section>
@@ -30079,13 +30089,14 @@ bundle.<span class="SFct">addFolder</span>(<span class="SStr">"datas"</span>)
 "f|Core.Reflection.isPointer|Core_Reflection_isPointer|Returns whether t is a pointer type.",
 "f|Core.Reflection.isPointerArithmetic|Core_Reflection_isPointerArithmetic|Returns whether t is a block pointer that supports pointer arithmetic.",
 "f|Core.Reflection.isPointerRef|Core_Reflection_isPointerRef|Returns whether t is a reference type.",
+"f|Core.Reflection.isRecord|Core_Reflection_isRecord|Returns whether t is an anonymous record type with named fields.",
 "f|Core.Reflection.isRune|Core_Reflection_isRune|Returns whether t is the native rune type.",
 "f|Core.Reflection.isSimpleNative|Core_Reflection_isSimpleNative|Returns whether t is a native type other than any and string.",
 "f|Core.Reflection.isSlice|Core_Reflection_isSlice|Returns whether t is a slice type.",
 "f|Core.Reflection.isStaticArray|Core_Reflection_isStaticArray|Returns whether t is a static array type.",
 "f|Core.Reflection.isString|Core_Reflection_isString|Returns whether t is the native string type.",
 "f|Core.Reflection.isStruct|Core_Reflection_isStruct|Returns whether t is a struct type.",
-"f|Core.Reflection.isTuple|Core_Reflection_isTuple|Returns whether t is a tuple type.",
+"f|Core.Reflection.isTuple|Core_Reflection_isTuple|Returns whether t is a positional tuple type.",
 "f|Core.Reflection.isType|Core_Reflection_isType|Returns whether t is a pointer to type information, such as typeinfo.",
 "f|Core.Reflection.isTypeAlias|Core_Reflection_isTypeAlias|Returns whether t is a type alias.",
 "f|Core.Reflection.maximumSize|Core_Reflection_maximumSize|Returns the largest size among the supplied types.",

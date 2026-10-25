@@ -6580,7 +6580,7 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_NOTIFYICONDATAA_cbSize" class="code-type">cbSize</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_NOTIFYICONDATAA_DUMMYUNIONNAME" class="code-type">DUMMYUNIONNAME</td><td class="code-type">union { ... }</td><td></td></tr>
+<tr><td id="Win32_NOTIFYICONDATAA_DUMMYUNIONNAME" class="code-type">DUMMYUNIONNAME</td><td class="code-type">{uTimeout: u32, uVersion: u32}</td><td></td></tr>
 <tr><td id="Win32_NOTIFYICONDATAA_dwInfoFlags" class="code-type">dwInfoFlags</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_NOTIFYICONDATAA_dwState" class="code-type">dwState</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_NOTIFYICONDATAA_dwStateMask" class="code-type">dwStateMask</td><td class="code-type">u32</td><td></td></tr>
@@ -6605,7 +6605,7 @@
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
 <tr><td id="Win32_NOTIFYICONDATAW_cbSize" class="code-type">cbSize</td><td class="code-type">u32</td><td></td></tr>
-<tr><td id="Win32_NOTIFYICONDATAW_DUMMYUNIONNAME" class="code-type">DUMMYUNIONNAME</td><td class="code-type">union { ... }</td><td></td></tr>
+<tr><td id="Win32_NOTIFYICONDATAW_DUMMYUNIONNAME" class="code-type">DUMMYUNIONNAME</td><td class="code-type">{uTimeout: u32, uVersion: u32}</td><td></td></tr>
 <tr><td id="Win32_NOTIFYICONDATAW_dwInfoFlags" class="code-type">dwInfoFlags</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_NOTIFYICONDATAW_dwState" class="code-type">dwState</td><td class="code-type">u32</td><td></td></tr>
 <tr><td id="Win32_NOTIFYICONDATAW_dwStateMask" class="code-type">dwStateMask</td><td class="code-type">u32</td><td></td></tr>
@@ -6629,7 +6629,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Win32_OVERLAPPED_data" class="code-type">data</td><td class="code-type">union { ... }</td><td></td></tr>
+<tr><td id="Win32_OVERLAPPED_data" class="code-type">data</td><td class="code-type">{fileOffset: <a href="#Win32_OVERLAPPED_OFFSET">Win32.OVERLAPPED_OFFSET</a>, Pointer: *void?}</td><td></td></tr>
 <tr><td id="Win32_OVERLAPPED_hEvent" class="code-type">hEvent</td><td class="code-type">const [*] void?</td><td></td></tr>
 <tr><td id="Win32_OVERLAPPED_Internal" class="code-type">Internal</td><td class="code-type">u64</td><td></td></tr>
 <tr><td id="Win32_OVERLAPPED_InternalHigh" class="code-type">InternalHigh</td><td class="code-type">u64</td><td></td></tr>
@@ -6995,7 +6995,7 @@
 <table class="table-enumeration api-summary">
 <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
 <tbody>
-<tr><td id="Win32_STGMEDIUM_DUMMYUNIONNAME" class="code-type">DUMMYUNIONNAME</td><td class="code-type">union { ... }</td><td><p>Stream, for <span class="code-inline">TYMED_ISTREAM</span>.</p>
+<tr><td id="Win32_STGMEDIUM_DUMMYUNIONNAME" class="code-type">DUMMYUNIONNAME</td><td class="code-type">{hGlobal: const [*] void?, pstm: *<a href="#Win32_IStream">Win32.IStream</a>?}</td><td><p>Stream, for <span class="code-inline">TYMED_ISTREAM</span>.</p>
 </td></tr>
 <tr><td id="Win32_STGMEDIUM_pUnkForRelease" class="code-type">pUnkForRelease</td><td class="code-type">*void?</td><td></td></tr>
 <tr><td id="Win32_STGMEDIUM_tymed" class="code-type">tymed</td><td class="code-type">u32</td><td></td></tr>

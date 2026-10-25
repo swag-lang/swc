@@ -2028,7 +2028,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_003_006_operators_swg_Struct_Comparison">Struct Comparison</h3>
 <p><span class="code-inline">==</span> on a struct compares it member by member, and each member compares the way its own type does. A <span class="code-inline">string</span> or a slice member therefore compares the content it views rather than the view itself, and a member owning an <span class="code-inline">opEquals</span> has that method called.</p>
-<p>The compiler compares the bytes in one go whenever every member gives the same answer its bytes give, which is what a struct of numbers, pointers and enums does. It compares the bytes the members occupy and no others: the padding a layout inserts between them is not a member, so two values whose every member is equal are equal whatever those bytes hold. A union is the exception and compares all of its storage, because its members share it and there is no member-wise answer to give.</p>
+<p>The compiler compares the bytes in one go whenever every member gives the same answer its bytes give, as with integer, pointer and enum members. Float members use numeric equality: positive and negative zero compare equal, and a NaN compares unequal, including to itself. This also applies to float arrays and nested aggregates. It compares the bytes the members occupy and no others: the padding a layout inserts between them is not a member, so two values whose every member is equal are equal whatever those bytes hold. A union is the exception and compares all of its storage, because its members share it and there is no member-wise answer to give.</p>
 <p>Declare an <span class="code-inline">opEquals</span> to decide the comparison yourself, or ask for a generated one with <span class="code-inline">#[Swag.Operators(opEquals)]</span>. Declaring one against <i>another</i> type — a struct that answers 'count == "text"' — adds that comparison beside the built-in one rather than replacing it, so two values of the struct still compare the way they did.</p>
 <div class="code-block"><span class="SCde"><span class="SKwd">struct</span> <span class="SCst">Tolerance</span>
 {
@@ -2052,9 +2052,9 @@ swc test -w path/to/workspace -m messages</span></div>
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> a = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">10</span>}, label: <span class="SNum">7</span>}
-    <span class="SKwd">let</span> b = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">11</span>}, label: <span class="SNum">7</span>}
-    <span class="SKwd">let</span> c = <span class="SCst">Measure</span>{reading: {value: <span class="SNum">10</span>}, label: <span class="SNum">8</span>}
+    <span class="SKwd">let</span> a = <span class="SCst">Measure</span>{reading: <span class="SCst">Tolerance</span>{value: <span class="SNum">10</span>}, label: <span class="SNum">7</span>}
+    <span class="SKwd">let</span> b = <span class="SCst">Measure</span>{reading: <span class="SCst">Tolerance</span>{value: <span class="SNum">11</span>}, label: <span class="SNum">7</span>}
+    <span class="SKwd">let</span> c = <span class="SCst">Measure</span>{reading: <span class="SCst">Tolerance</span>{value: <span class="SNum">10</span>}, label: <span class="SNum">8</span>}
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a.reading == b.reading)     <span class="SCmt">// the member decides these readings are equal</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(a == b)     <span class="SCmt">// so the two measures are equal too</span>
@@ -2064,9 +2064,9 @@ swc test -w path/to/workspace -m messages</span></div>
 <p>An array compares element by element, and each element compares the way its own type does, so an array and its elements never disagree. An array of <span class="code-inline">string</span> compares the text its elements view, and an array whose element owns an <span class="code-inline">opEquals</span> has that method called once per element. Elements with nothing of their own to say — numbers, pointers, enums — are still compared as one contiguous run of bytes. A struct member that is an array follows the same rule.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">var</span> readings: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">10</span>}, {value: <span class="SNum">20</span>}]
-    <span class="SKwd">var</span> nearby:   [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">21</span>}]
-    <span class="SKwd">var</span> distant:  [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [{value: <span class="SNum">11</span>}, {value: <span class="SNum">30</span>}]
+    <span class="SKwd">var</span> readings: [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [<span class="SCst">Tolerance</span>{value: <span class="SNum">10</span>}, <span class="SCst">Tolerance</span>{value: <span class="SNum">20</span>}]
+    <span class="SKwd">var</span> nearby:   [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [<span class="SCst">Tolerance</span>{value: <span class="SNum">11</span>}, <span class="SCst">Tolerance</span>{value: <span class="SNum">21</span>}]
+    <span class="SKwd">var</span> distant:  [<span class="SNum">2</span>] <span class="SCst">Tolerance</span> = [<span class="SCst">Tolerance</span>{value: <span class="SNum">11</span>}, <span class="SCst">Tolerance</span>{value: <span class="SNum">30</span>}]
 
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(readings == nearby)     <span class="SCmt">// every element decides it is the same reading</span>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(readings != distant)
@@ -2536,7 +2536,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(myLongVariableName == <span class="SNum">2</span>)
 }</span></div>
 <h2 id="_004_000_data_structures_swg">Data Structures</h2>
-<p>Swag provides fixed arrays, slices, tuples, enums, unions, pointers, and the type-erased <span class="code-inline">any</span> value. Choose the representation that matches ownership and lifetime: arrays own inline storage, slices borrow a contiguous range, and pointers make indirection and nullability explicit.</p>
+<p>Swag provides fixed arrays, slices, tuples, records, enums, unions, pointers, and the type-erased <span class="code-inline">any</span> value. Choose the representation that matches ownership and lifetime: arrays own inline storage, slices borrow a contiguous range, and pointers make indirection and nullability explicit.</p>
 <h3 id="_004_001_array_swg">Array</h3>
 <h3 id="_004_001_array_swg_Static_Arrays_in_Swag">Static Arrays in Swag</h3>
 <p>Static arrays are fixed-size arrays where the size is known at compile time. Unlike dynamic arrays from the standard <span class="code-inline">core</span> module, they cannot grow or shrink during execution. Static arrays are ideal when size and memory usage are deterministic.</p>
@@ -2846,136 +2846,127 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(missing == <span class="SKwd">null</span>)
 }</span></div>
 <h3 id="_004_003_tuple_swg">Tuple</h3>
-<h3 id="_004_003_tuple_swg_Tuples_in_Swag">Tuples in Swag</h3>
-<p>A tuple represents an anonymous structure (a <i>struct literal</i>) that can group multiple values of different types together without defining a named structure. Tuples are enclosed in curly braces <span class="code-inline">{}</span> and can mix any combination of data types.</p>
+<h3 id="_004_003_tuple_swg_Tuples_and_Records">Tuples and Records</h3>
+<p>A tuple groups values by position. A record groups values by field name. Their construction, types and destructuring patterns use different delimiters: parentheses for tuples and braces for records. Neither family implicitly converts to the other.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> tuple1 = {<span class="SNum">2</span>, <span class="SNum">2</span>}
-    <span class="SKwd">let</span> tuple2 = {<span class="SStr">"string"</span>, <span class="SNum">2</span>, <span class="SKwd">true</span>}
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple1.item0 == tuple1.item1 <span class="SLgc">and</span> tuple2.item2)
-}</span></div>
-<h3 id="_004_003_tuple_swg_Accessing_Tuple_Values">Accessing Tuple Values</h3>
-<p>Tuple fields are automatically named <span class="code-inline">itemX</span>, where <span class="code-inline">X</span> is the zero-based index of the field.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> tuple = {<span class="SStr">"string"</span>, <span class="SNum">2</span>, <span class="SKwd">true</span>}
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple.item0 == <span class="SStr">"string"</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple.item1 == <span class="SNum">2</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple.item2 == <span class="SKwd">true</span>)
-}</span></div>
-<h3 id="_004_003_tuple_swg_Named_Fields_in_Tuples">Named Fields in Tuples</h3>
-<p>Tuple fields can have explicit names.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> tuple = {x: <span class="SNum">1.0</span>, y: <span class="SNum">2.0</span>}
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple.x == <span class="SNum">1.0</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(tuple.y == <span class="SNum">2.0</span>)
-}</span></div>
-<h3 id="_004_003_tuple_swg_Automatic_Field_Naming">Automatic Field Naming</h3>
-<p>When creating a tuple from variables, Swag automatically uses the variable names as field names unless overridden.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> x = <span class="SNum">555</span>
-    <span class="SKwd">let</span> y = <span class="SNum">666</span>
-    <span class="SKwd">let</span> t = {x, y}
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(t.x == <span class="SNum">555</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(t.y == <span class="SNum">666</span>)
-}</span></div>
-<h3 id="_004_003_tuple_swg_Tuple_Assignment_and_Compatibility">Tuple Assignment and Compatibility</h3>
-<p>Tuples can be assigned to each other if their field types match, even if field names differ.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">var</span> x:
-    {
-        a: <span class="STpe">s32</span>
-        b: <span class="STpe">s32</span>
-    }
-    <span class="SKwd">var</span> y:
-    {
-        c: <span class="STpe">s32</span>
-        d: <span class="STpe">s32</span>
-    }
+    <span class="SKwd">let</span> pair = (<span class="SNum">10</span>, <span class="SNum">20</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pair.item0 == <span class="SNum">10</span> <span class="SLgc">and</span> pair.item1 == <span class="SNum">20</span>)
 
-    y = {<span class="SNum">1</span>, <span class="SNum">2</span>}
-    x = y
-
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x.a == <span class="SNum">1</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x.b == <span class="SNum">2</span>)
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(x) != <span class="SItr">#typeof</span>(y))
+    <span class="SKwd">let</span> point = {x: <span class="SNum">10</span>, y: <span class="SNum">20</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(point.x == <span class="SNum">10</span> <span class="SLgc">and</span> point.y == <span class="SNum">20</span>)
 }</span></div>
-<h3 id="_004_003_tuple_swg_Positional_Tuple_Destructuring">Positional Tuple Destructuring</h3>
-<p>Curly-braced patterns destructure tuple fields by position. A positional pattern provides one binding or placeholder for every field. Its binding names do not select fields: even when those names match the source's fields, their order determines which values they receive. Use 'field: binding' for selection by name.</p>
+<h3 id="_004_003_tuple_swg_Positional_Tuples">Positional Tuples</h3>
+<p>Tuple elements have zero-based <span class="code-inline">itemN</span> accessors. A tuple type lists the element types in position order. An initializer, argument or return value matches those positions.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> tuple1 = {x: <span class="SNum">1.0</span>, y: <span class="SNum">2.0</span>}
-    <span class="SKwd">let</span> {value0, value1} = tuple1
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value0 == <span class="SNum">1.0</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value1 == <span class="SNum">2.0</span>)
+    <span class="SKwd">func</span> <span class="SFct">makePair</span>()-&gt;(<span class="STpe">string</span>, <span class="STpe">s32</span>) =&gt; (<span class="SStr">"name"</span>, <span class="SNum">42</span>)
 
-    <span class="SKwd">let</span> tuple2        = {<span class="SStr">"name"</span>, <span class="SKwd">true</span>}
-    <span class="SKwd">let</span> {name, value} = tuple2
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(name == <span class="SStr">"name"</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SKwd">true</span>)
+    <span class="SKwd">let</span> (name, count) = <span class="SFct">makePair</span>()
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(name == <span class="SStr">"name"</span> <span class="SLgc">and</span> count == <span class="SNum">42</span>)
+
+    <span class="SKwd">var</span> pair: (<span class="STpe">s32</span>, <span class="STpe">s32</span>) = (<span class="SNum">10</span>, <span class="SNum">20</span>)
+    (pair.item1, pair.item0) = pair
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(pair.item0 == <span class="SNum">20</span> <span class="SLgc">and</span> pair.item1 == <span class="SNum">10</span>)
+}</span></div>
+<h3 id="_004_003_tuple_swg_One-Element_Tuples_and_Grouping">One-Element Tuples and Grouping</h3>
+<p>A comma distinguishes a one-element tuple from a parenthesized expression. Write <span class="code-inline">(value,)</span> and <span class="code-inline">(T,)</span> for its value and type, and <span class="code-inline">(binding,)</span> for its destructuring pattern. <span class="code-inline">(value)</span> remains ordinary grouping. An empty <span class="code-inline">()</span> is not a tuple value.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">var</span> single: (<span class="STpe">s32</span>,) = (<span class="SNum">42</span>,)
+    <span class="SKwd">let</span> (value,)       = single
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">42</span> <span class="SLgc">and</span> (value) == <span class="SNum">42</span>)
+    single.item0 = <span class="SNum">43</span>
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(single.item0 == <span class="SNum">43</span>)
+}</span></div>
+<h3 id="_004_003_tuple_swg_Named_Records">Named Records</h3>
+<p>Each record field has a name. A bare identifier abbreviates 'name: name' in every expression context; the abbreviation does not depend on the destination type. Anonymous record types list the names and their types in braces.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> x     = <span class="SNum">10</span>
+    <span class="SKwd">let</span> y     = <span class="SNum">20</span>
+    <span class="SKwd">let</span> point = {x, y}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(point.x == <span class="SNum">10</span> <span class="SLgc">and</span> point.y == <span class="SNum">20</span>)
+
+    <span class="SKwd">var</span> destination: {x: <span class="STpe">s32</span>, y: <span class="STpe">s32</span>}
+    destination = {y: <span class="SNum">40</span>, x: <span class="SNum">30</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(destination.x == <span class="SNum">30</span> <span class="SLgc">and</span> destination.y == <span class="SNum">40</span>)
+}</span></div>
+<h3 id="_004_003_tuple_swg_Record_Compatibility">Record Compatibility</h3>
+<p>Record assignment, arguments and returns associate fields by name, even when declaration orders differ. Anonymous records need exactly the same field names and compatible field types. A record with <span class="code-inline">width</span> and <span class="code-inline">height</span> does not implicitly become one with <span class="code-inline">x</span> and <span class="code-inline">y</span>. Reconstruct the destination explicitly when changing names or selecting a smaller record.</p>
+<p>Equality compares corresponding fields. Tuples correspond by position; records correspond by name. Field declaration order remains meaningful for storage and reflection.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> point     = {x: <span class="SNum">10</span>, y: <span class="SNum">20</span>}
+    <span class="SKwd">let</span> reordered = {y: <span class="SNum">20</span>, x: <span class="SNum">10</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(point == reordered)
+
+    <span class="SKwd">let</span> dimensions = {width: point.x, height: point.y}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(dimensions.width == <span class="SNum">10</span> <span class="SLgc">and</span> dimensions.height == <span class="SNum">20</span>)
+}</span></div>
+<h3 id="_004_003_tuple_swg_Tuple_Destructuring">Tuple Destructuring</h3>
+<p>A positional pattern has one binding or <span class="code-inline">_</span> placeholder for every element. Binding names do not select elements. Tuple patterns cannot destructure a record or a named struct.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> pair   = (<span class="SNum">10</span>, <span class="SNum">20</span>)
+    <span class="SKwd">let</span> (y, x) = pair
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">10</span> <span class="SLgc">and</span> x == <span class="SNum">20</span>)
+
+    <span class="SKwd">let</span> (<span class="SKwd">_</span>, second) = pair
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(second == <span class="SNum">20</span>)
+}</span></div>
+<h3 id="_004_003_tuple_swg_Record_and_Struct_Destructuring">Record and Struct Destructuring</h3>
+<p>A named pattern selects fields by name. Bare <span class="code-inline">field</span> abbreviates 'field: field'; write 'field: binding' to rename it. Both forms can appear in one pattern. Named patterns can select a subset in any order. A missing field or a field selected twice is an error.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> point  = {x: <span class="SNum">10</span>, y: <span class="SNum">20</span>}
+    <span class="SKwd">let</span> {y, x} = point
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">20</span> <span class="SLgc">and</span> x == <span class="SNum">10</span>)
+
+    <span class="SKwd">let</span> {x: horizontal, z} = {x: <span class="SNum">30</span>, z: <span class="SNum">40</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(horizontal == <span class="SNum">30</span> <span class="SLgc">and</span> z == <span class="SNum">40</span>)
+
+    <span class="SKwd">let</span> {y: vertical} = point
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(vertical == <span class="SNum">20</span>)
 }
 
 <span class="SFct">#test</span>
 {
-    <span class="SKwd">let</span> point  = {x: <span class="SNum">10</span>, y: <span class="SNum">20</span>}
-    <span class="SKwd">let</span> {y, x} = point
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">10</span> <span class="SLgc">and</span> x == <span class="SNum">20</span>)
+    <span class="SKwd">struct</span> <span class="SCst">RGB</span>
+    {
+        red, green, blue: <span class="STpe">f32</span>
+    }
 
-    <span class="SKwd">let</span> {y: vertical, x: horizontal} = point
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(vertical == <span class="SNum">20</span> <span class="SLgc">and</span> horizontal == <span class="SNum">10</span>)
-}</span></div>
-<h3 id="_004_003_tuple_swg_Ignoring_Fields_During_Positional_Destructuring">Ignoring Fields During Positional Destructuring</h3>
-<p>Use <span class="code-inline">_</span> as a placeholder to ignore a field.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> tuple1 = {x: <span class="SNum">1.0</span>, y: <span class="SNum">2.0</span>}
-    <span class="SKwd">let</span> {x, <span class="SKwd">_</span>} = tuple1
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">1.0</span>)
-
-    <span class="SKwd">let</span> {<span class="SKwd">_</span>, y} = tuple1
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">2.0</span>)
-}</span></div>
-<h3 id="_004_003_tuple_swg_Named_Tuple_Destructuring">Named Tuple Destructuring</h3>
-<p>Write 'field: binding' to select fields by name. Named patterns can select a subset of the fields and can list them in any order. Every entry in one pattern uses the same mode: positional and named entries cannot be mixed.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> point = {x: <span class="SNum">10.0</span>, y: <span class="SNum">20.0</span>}
-    <span class="SKwd">let</span> {y: vertical, x: horizontal} = point
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(horizontal == <span class="SNum">10.0</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(vertical == <span class="SNum">20.0</span>)
-
-    <span class="SKwd">let</span> {x: onlyX} = point
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(onlyX == <span class="SNum">10.0</span>)
-}</span></div>
-<p>Unnamed tuple fields retain their implicit <span class="code-inline">itemN</span> names. This also applies when explicit and unnamed fields appear in either order.</p>
-<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
-{
-    <span class="SKwd">let</span> namedThenUnnamed = {x: <span class="SNum">11</span>, <span class="SNum">22</span>}
-    <span class="SKwd">let</span> {x: first, item1: second} = namedThenUnnamed
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(first == <span class="SNum">11</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(second == <span class="SNum">22</span>)
-
-    <span class="SKwd">let</span> unnamedThenNamed = {<span class="SNum">33</span>, y: <span class="SNum">44</span>}
-    <span class="SKwd">let</span> {item0: third, y: fourth} = unnamedThenNamed
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(third == <span class="SNum">33</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(fourth == <span class="SNum">44</span>)
+    <span class="SKwd">let</span> color = <span class="SCst">RGB</span>{<span class="SNum">0.5</span>, <span class="SNum">0.25</span>, <span class="SNum">1.0</span>}
+    <span class="SKwd">let</span> {blue: b, red: r} = color
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SNum">1.0</span> <span class="SLgc">and</span> r == <span class="SNum">0.5</span>)
 }</span></div>
 <h3 id="_004_003_tuple_swg_Destructuring_Assignment">Destructuring Assignment</h3>
-<p>The same positional and named patterns can assign to existing storage.</p>
+<p>The same patterns assign to existing storage. The source is evaluated once and its values are preserved before the targets are overwritten. This also permits exchanging fields.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
 {
     <span class="SKwd">var</span> first, second: <span class="STpe">s32</span>
-    {first, second} = {<span class="SNum">1</span>, <span class="SNum">2</span>}
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(first == <span class="SNum">1</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(second == <span class="SNum">2</span>)
+    (first, second) = (<span class="SNum">10</span>, <span class="SNum">20</span>)
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(first == <span class="SNum">10</span> <span class="SLgc">and</span> second == <span class="SNum">20</span>)
 
-    <span class="SKwd">var</span> point = {x: <span class="SNum">3</span>, y: <span class="SNum">4</span>}
-    {y: second, x: first} = point
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(first == <span class="SNum">3</span>)
-    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(second == <span class="SNum">4</span>)
+    <span class="SKwd">var</span> point = {x: <span class="SNum">30</span>, y: <span class="SNum">40</span>}
+    {y: point.x, x: point.y} = point
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(point.x == <span class="SNum">40</span> <span class="SLgc">and</span> point.y == <span class="SNum">30</span>)
+}</span></div>
+<h3 id="_004_003_tuple_swg_Ignoring_Named_Fields">Ignoring Named Fields</h3>
+<p>An omitted field is not bound. 'field: _' selects a field without introducing a binding. Ignoring a value preserves the ordinary ownership and cleanup rules.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> {x: value, y: <span class="SKwd">_</span>} = {x: <span class="SNum">10</span>, y: <span class="SNum">20</span>}
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(value == <span class="SNum">10</span>)
+}</span></div>
+<h3 id="_004_003_tuple_swg_Nested_Patterns">Nested Patterns</h3>
+<p>A selected field can itself contain a tuple or record pattern. Each nested pattern follows its own delimiter's rules. Patterns have no rest form.</p>
+<div class="code-block"><span class="SCde"><span class="SFct">#test</span>
+{
+    <span class="SKwd">let</span> source = (<span class="SNum">2</span>, {point: (<span class="SNum">10</span>, <span class="SNum">20</span>), label: <span class="SStr">"position"</span>})
+    <span class="SKwd">let</span> (count, {point: (x, y)}) = source
+    <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(count == <span class="SNum">2</span> <span class="SLgc">and</span> x == <span class="SNum">10</span> <span class="SLgc">and</span> y == <span class="SNum">20</span>)
 }</span></div>
 <h3 id="_004_004_enum_swg">Enum</h3>
 <h3 id="_004_004_enum_swg_Enums_in_Swag">Enums in Swag</h3>
@@ -3325,8 +3316,8 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SKwd">using</span> mode: <span class="SKwd">union</span>(<span class="SCst">Mode</span>)
         {
-            <span class="SLgc">case</span> .<span class="SCst">Signed</span>:   signed:   {min, max: <span class="STpe">s64</span>} = {-<span class="SNum">10</span>, <span class="SNum">10</span>}
-            <span class="SLgc">case</span> .<span class="SCst">Unsigned</span>: unsigned: {min, max: <span class="STpe">u64</span>} = {<span class="SNum">0</span>, <span class="SNum">100</span>}
+            <span class="SLgc">case</span> .<span class="SCst">Signed</span>:   signed:   {min, max: <span class="STpe">s64</span>} = {min: -<span class="SNum">10</span>, max: <span class="SNum">10</span>}
+            <span class="SLgc">case</span> .<span class="SCst">Unsigned</span>: unsigned: {min, max: <span class="STpe">u64</span>} = {min: <span class="SNum">0</span>, max: <span class="SNum">100</span>}
         } = .<span class="SCst">Text</span>
     }
 
@@ -4787,7 +4778,7 @@ swc test -w path/to/workspace -m messages</span></div>
         x, y: <span class="STpe">s32</span>
     }
 
-    <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [{<span class="SNum">1</span>, <span class="SNum">2</span>}, {<span class="SNum">3</span>, <span class="SNum">4</span>}]
+    <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [<span class="SCst">Point</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}, <span class="SCst">Point</span>{<span class="SNum">3</span>, <span class="SNum">4</span>}]
     <span class="SKwd">var</span> sum = <span class="SNum">0</span>
 
     <span class="SLgc">for</span> p <span class="SLgc">in</span> points
@@ -4826,7 +4817,7 @@ swc test -w path/to/workspace -m messages</span></div>
         x, y: <span class="STpe">s32</span>
     }
 
-    <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [{<span class="SNum">1</span>, <span class="SNum">2</span>}, {<span class="SNum">3</span>, <span class="SNum">4</span>}]
+    <span class="SKwd">var</span> points: [<span class="SNum">2</span>] <span class="SCst">Point</span> = [<span class="SCst">Point</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}, <span class="SCst">Point</span>{<span class="SNum">3</span>, <span class="SNum">4</span>}]
 
     <span class="SLgc">for</span> &amp;p, index <span class="SLgc">in</span> points <span class="SLgc">do</span>
         p[] = <span class="SCst">Point</span>{<span class="SKwd">cast</span>(<span class="STpe">s32</span>, index), <span class="SKwd">cast</span>(<span class="STpe">s32</span>, index)}
@@ -5577,8 +5568,8 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v2.x == <span class="SNum">1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v2.y == <span class="SNum">20</span>)
 
-    <span class="SCmt">// Tuple initialization</span>
-    <span class="SKwd">let</span> v3: <span class="SCst">MyStruct</span> = {<span class="SNum">10</span>, <span class="SNum">20</span>}
+    <span class="SCmt">// Explicit construction with a declared type</span>
+    <span class="SKwd">let</span> v3: <span class="SCst">MyStruct</span> = <span class="SCst">MyStruct</span>{<span class="SNum">10</span>, <span class="SNum">20</span>}
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v3.x == <span class="SNum">10</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(v3.y == <span class="SNum">20</span>)
 }</span></div>
@@ -5623,15 +5614,15 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SCmt">// Calling with explicit values</span>
     <span class="SFct">toto</span>(<span class="SCst">Struct3</span>{<span class="SNum">5</span>, <span class="SNum">5</span>, <span class="SNum">666</span>})
 
-    <span class="SCmt">// Type inferred from arguments</span>
-    <span class="SFct">toto</span>({<span class="SNum">5</span>, <span class="SNum">5</span>, <span class="SNum">666</span>})
+    <span class="SCmt">// Named record fields match the parameter fields</span>
+    <span class="SFct">toto</span>({z: <span class="SNum">666</span>, y: <span class="SNum">5</span>, x: <span class="SNum">5</span>})
 
     <span class="SCmt">// Partial initialization</span>
-    <span class="SFct">titi</span>({<span class="SNum">5</span>})
-    <span class="SFct">titi</span>({<span class="SNum">5</span>, <span class="SNum">666</span>})
+    <span class="SFct">titi</span>(<span class="SCst">Struct3</span>{<span class="SNum">5</span>})
+    <span class="SFct">titi</span>(<span class="SCst">Struct3</span>{<span class="SNum">5</span>, <span class="SNum">666</span>})
 
     <span class="SCmt">// Named field initialization</span>
-    <span class="SFct">titi</span>({x: <span class="SNum">5</span>, z: <span class="SNum">5</span>})
+    <span class="SFct">titi</span>(<span class="SCst">Struct3</span>{x: <span class="SNum">5</span>, z: <span class="SNum">5</span>})
 }</span></div>
 <h3 id="_006_002_impl_swg">Impl</h3>
 <h3 id="_006_002_impl_swg_Struct_Methods_and_Constants">Struct Methods and Constants</h3>
@@ -6057,26 +6048,26 @@ swc test -w path/to/workspace -m messages</span></div>
     {
         <span class="SCmp">#static</span> <span class="SLgc">switch</span> op
         {
-        <span class="SLgc">case</span> .<span class="SCst">Add</span>: <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
-        <span class="SLgc">case</span> .<span class="SCst">Sub</span>: <span class="SLgc">return</span> {<span class="SNum">2</span>, <span class="SNum">1</span>}
+        <span class="SLgc">case</span> .<span class="SCst">Add</span>: <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">case</span> .<span class="SCst">Sub</span>: <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">2</span>, <span class="SNum">1</span>}
         }
     }
 
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinary</span>(<span class="STpe">me</span>, other: <span class="SCst">AnotherType</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SCmt">// Binary operation when this struct is the right operand</span>
     <span class="SCmt">// Examples: OneType + myStruct, AnotherType * myStruct</span>
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinaryRight</span>(<span class="STpe">me</span>, other: <span class="SCst">OneType</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinaryRight</span>(<span class="STpe">me</span>, other: <span class="SCst">AnotherType</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SCmt">// A commutative opBinary can also be used when the struct is the right operand.</span>
@@ -6084,14 +6075,14 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">Commutative(.Add, .Mul)]</span>
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opBinary</span>(<span class="STpe">me</span>, other: <span class="STpe">u32</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SCmt">// Unary operation. 'op' is one of Not, Pos, Neg, BitNot.</span>
     <span class="SCmt">// Unary '-' arrives as 'Neg', so it never collides with the binary 'Sub'.</span>
     <span class="SKwd">func</span>(op: <span class="SNsp">Swag</span>.<span class="SCst">Operator</span>) <span class="SFct">opUnary</span>(<span class="STpe">me</span>)-&gt;<span class="SCst">Struct</span>
     {
-        <span class="SLgc">return</span> {<span class="SNum">1</span>, <span class="SNum">2</span>}
+        <span class="SLgc">return</span> <span class="SCst">Struct</span>{<span class="SNum">1</span>, <span class="SNum">2</span>}
     }
 
     <span class="SCmt">// Compound assignment. 'op' is one of AddAssign, SubAssign, MulAssign, DivAssign,</span>
@@ -6879,7 +6870,7 @@ swc test -w path/to/workspace -m messages</span></div>
 {
     <span class="SKwd">func</span> <span class="SFct">myFunction</span>()-&gt;{ x, y: <span class="STpe">f32</span> }
     {
-        <span class="SLgc">return</span> {<span class="SNum">1.0</span>, <span class="SNum">2.0</span>}
+        <span class="SLgc">return</span> {x: <span class="SNum">1.0</span>, y: <span class="SNum">2.0</span>}
     }
 
     <span class="SKwd">let</span> result = <span class="SFct">myFunction</span>()
@@ -6888,7 +6879,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">let</span> {x, y} = <span class="SFct">myFunction</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(x == <span class="SNum">1.0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(y == <span class="SNum">2.0</span>)
-    <span class="SKwd">let</span> {z, w} = <span class="SFct">myFunction</span>()
+    <span class="SKwd">let</span> {x: z, y: w} = <span class="SFct">myFunction</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(z == <span class="SNum">1.0</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(w == <span class="SNum">2.0</span>)
 }</span></div>
@@ -7402,7 +7393,7 @@ swc test -w path/to/workspace -m messages</span></div>
         total += index
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(total == <span class="SNum">3</span>)
 
-    <span class="SKwd">let</span> {<span class="SKwd">_</span>, second} = {<span class="SNum">1</span>, <span class="SNum">2</span>}
+    <span class="SKwd">let</span> (<span class="SKwd">_</span>, second) = (<span class="SNum">1</span>, <span class="SNum">2</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(second == <span class="SNum">2</span>)
 
     <span class="SCmt">// A counting loop that does not read its index simply has no name.</span>
@@ -7457,7 +7448,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SLgc">return</span> result
     }
 
-    <span class="SKwd">let</span> {r, g, b} = <span class="SFct">getWhite</span>()
+    <span class="SKwd">let</span> {x: r, y: g, z: b} = <span class="SFct">getWhite</span>()
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(r == <span class="SNum">0.5</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(g == <span class="SNum">0.1</span>)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(b == <span class="SNum">1.0</span>)
@@ -7525,7 +7516,7 @@ swc test -w path/to/workspace -m messages</span></div>
 }</span></div>
 <h3 id="_008_001_init_swg">Init</h3>
 <h3 id="_008_001_init_swg__Swag_init__Intrinsic"><span class="code-inline">Swag.init</span> Intrinsic</h3>
-<p>Reinitializes a variable or memory region to either its type default value or a provided custom value (tuple for aggregates).</p>
+<p>Reinitializes a variable or memory region to either its type default value or a provided custom value.</p>
 <h3 id="_008_001_init_swg_Scalars_-_Default_Initialization">Scalars - Default Initialization</h3>
 <p>Reinitialize a single variable to its default value.</p>
 <div class="code-block"><span class="SCde"><span class="SFct">#test</span>
@@ -8914,7 +8905,7 @@ swc test -w path/to/workspace -m messages</span></div>
     <span class="SKwd">using</span> <span class="SCst">Swag</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>(*<span class="STpe">u8</span>?).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Pointer</span>)         <span class="SCmt">// Pointer</span>
     <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>([<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>]).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Array</span>)      <span class="SCmt">// Array</span>
-    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>({<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>}).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Struct</span>)     <span class="SCmt">// Struct</span>
+    <span class="SCmp">#assert</span>(<span class="SItr">#typeof</span>((<span class="SNum">1</span>, <span class="SNum">2</span>, <span class="SNum">3</span>)).kind == <span class="SCst">TypeInfoKind</span>.<span class="SCst">Struct</span>)     <span class="SCmt">// Struct</span>
 }</span></div>
 <h3 id="_012_000_type_reflection_swg_The___decltype__Query">The <span class="code-inline">#decltype</span> Query</h3>
 <p><span class="code-inline">#decltype</span> performs the reverse of <span class="code-inline">#typeof</span>/<span class="code-inline">Swag.kindOf</span>: it converts a <span class="code-inline">typeinfo</span> back into a compiler type. Use it to materialize a type determined by compile-time information.</p>
@@ -9451,7 +9442,7 @@ swc test -w path/to/workspace -m messages</span></div>
         <span class="SLgc">return</span> value.first
     }
 
-    <span class="SKwd">var</span> value: <span class="SCst">Value</span> = {first: <span class="SNum">17</span>}
+    <span class="SKwd">var</span> value: <span class="SCst">Value</span> = <span class="SCst">Value</span>{first: <span class="SNum">17</span>}
     <span class="SKwd">let</span> observed     = <span class="SFct">readSnapshot</span>(<span class="SItr">#copy</span> value, &amp;value)
     <span class="SNsp">Swag</span>.<span class="SFct">assert</span>(observed == <span class="SNum">17</span> <span class="SLgc">and</span> value.first == <span class="SNum">0</span>)
 }</span></div>
@@ -10015,7 +10006,7 @@ text.<span class="SFct">append</span>(<span class="SStr">" world"</span>)       
 <span class="SAtr">#[</span><span class="SNsp">Swag</span>.<span class="SAtr">ConstExpr]</span>
 <span class="SKwd">func</span> <span class="SFct">makeConstexprPoint</span>(x, y: <span class="STpe">s32</span>)-&gt;<span class="SCst">ConstexprPoint</span>
 {
-    <span class="SLgc">return</span> {x, y}
+    <span class="SLgc">return</span> <span class="SCst">ConstexprPoint</span>{x, y}
 }
 
 <span class="SKwd">const</span> <span class="SCst">ConstexprOrigin</span> = <span class="SFct">makeConstexprPoint</span>(<span class="SNum">3</span>, <span class="SNum">7</span>)
@@ -11422,15 +11413,16 @@ swc build --module mymodule --build-cfg devmode --tag Swag.AllocatorSafety=false
 "h|Transforming a Pointer into a Slice|_004_002_slice_swg_Transforming_a_Pointer_into_a_Slice|",
 "h|Comparing Slices|_004_002_slice_swg_Comparing_Slices|",
 "h|Tuple|_004_003_tuple_swg|",
-"h|Tuples in Swag|_004_003_tuple_swg_Tuples_in_Swag|",
-"h|Accessing Tuple Values|_004_003_tuple_swg_Accessing_Tuple_Values|",
-"h|Named Fields in Tuples|_004_003_tuple_swg_Named_Fields_in_Tuples|",
-"h|Automatic Field Naming|_004_003_tuple_swg_Automatic_Field_Naming|",
-"h|Tuple Assignment and Compatibility|_004_003_tuple_swg_Tuple_Assignment_and_Compatibility|",
-"h|Positional Tuple Destructuring|_004_003_tuple_swg_Positional_Tuple_Destructuring|",
-"h|Ignoring Fields During Positional Destructuring|_004_003_tuple_swg_Ignoring_Fields_During_Positional_Destructuring|",
-"h|Named Tuple Destructuring|_004_003_tuple_swg_Named_Tuple_Destructuring|",
+"h|Tuples and Records|_004_003_tuple_swg_Tuples_and_Records|",
+"h|Positional Tuples|_004_003_tuple_swg_Positional_Tuples|",
+"h|One-Element Tuples and Grouping|_004_003_tuple_swg_One-Element_Tuples_and_Grouping|",
+"h|Named Records|_004_003_tuple_swg_Named_Records|",
+"h|Record Compatibility|_004_003_tuple_swg_Record_Compatibility|",
+"h|Tuple Destructuring|_004_003_tuple_swg_Tuple_Destructuring|",
+"h|Record and Struct Destructuring|_004_003_tuple_swg_Record_and_Struct_Destructuring|",
 "h|Destructuring Assignment|_004_003_tuple_swg_Destructuring_Assignment|",
+"h|Ignoring Named Fields|_004_003_tuple_swg_Ignoring_Named_Fields|",
+"h|Nested Patterns|_004_003_tuple_swg_Nested_Patterns|",
 "h|Enum|_004_004_enum_swg|",
 "h|Enums in Swag|_004_004_enum_swg_Enums_in_Swag|",
 "h|Enum Underlying Type|_004_004_enum_swg_Enum_Underlying_Type|",

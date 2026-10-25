@@ -71,7 +71,7 @@ func makeShort(value: s32)->Point => {value, 2}
     let height       = runtimeValue(4)
     let sized: Point = {width, height}
     Swag.assert(sized.x == 3 and sized.y == 4)
-    Swag.assert(encode({width, width}) == 303)
+    Swag.assert(encode({height, width}) == 403)
     let mixed: Point = {x, height}
     Swag.assert(mixed.x == 2 and mixed.y == 4)
 }

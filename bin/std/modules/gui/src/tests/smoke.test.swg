@@ -300,22 +300,22 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     Swag.assert(host.surface.position.height == 120)
 
     evt.kind       = .Released
-    evt.surfacePos = (50, 20)
+    evt.surfacePos = Math.Point{50, 20}
     host.surfaceWnd.sendEvent(&evt)
 
-    host.surface.position         = (10, 20, 240, 120)
+    host.surface.position         = Math.Rectangle{10, 20, 240, 120}
     host.surfaceWnd.movingSurface = false
     host.surfaceWnd.sizingBorder  = .None
     host.app.mouseEnterWnd        = &host.surfaceWnd
 
     evt.kind       = .Pressed
-    evt.surfacePos = (30, 1)
+    evt.surfacePos = Math.Point{30, 1}
     evt.delta      = {}
     host.surfaceWnd.sendEvent(&evt)
 
     evt.kind       = .Move
-    evt.surfacePos = (30, 11)
-    evt.delta      = (0, 10)
+    evt.surfacePos = Math.Point{30, 11}
+    evt.delta      = Math.Point{0, 10}
     host.surfaceWnd.sendEvent(&evt)
 
     Swag.assert(host.surface.position.x == 10)

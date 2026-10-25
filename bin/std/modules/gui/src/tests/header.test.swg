@@ -8,7 +8,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 80)
-    defer host.shutdown()
     let header = Header.create(&host.root, {10, 10, 300, 24})
     Swag.assert(header.items.isEmpty())
 
@@ -40,7 +39,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(240, 70)
-    defer host.shutdown()
     host.root.backgroundStyle = .Window
 
     let header = Header.create(&host.root, {10, 10, 200, 24})
@@ -68,7 +66,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(420, 100)
-    defer host.shutdown()
     host.root.backgroundStyle = .Window
 
     let page   = Wnd.create'Wnd(&host.root, null, {160, 10, 220, 60})

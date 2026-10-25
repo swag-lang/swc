@@ -40,7 +40,6 @@ func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
     defer MarkdownText.g_ViewerSettings = previous
     var host: Testing.HeadlessHost
     host.setup(880, 560)
-    defer host.shutdown()
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     for percent in [150'u32, 0, 400]
     {
@@ -59,7 +58,6 @@ func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
     defer Midi.g_ViewerSettings = previous
     var host: Testing.HeadlessHost
     host.setup(880, 560)
-    defer host.shutdown()
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
 
     Midi.g_ViewerSettings = {pitchLabelMode: .MidiNumber, keyboardWidthMode: 2}
@@ -189,7 +187,6 @@ func createSidePanelFixture(host: Viewer.Host)
 {
     var host: Testing.HeadlessHost
     host.setup(720, 460)
-    defer host.shutdown()
 
     let infoParent = Wnd.create'Wnd(&host.root, {0, 0, 720, 40})
     var session    = openTestViewer(testViewerPlugin(&createSidePanelFixture), &host.root, "fixture.panel", infoParent: infoParent)
@@ -269,7 +266,6 @@ func createSidePanelFixture(host: Viewer.Host)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
@@ -314,7 +310,6 @@ func createSidePanelFixture(host: Viewer.Host)
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
     let view          = assume cast(*PlainText.Panel, viewerSession.view)
@@ -356,7 +351,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(first, remember: false)
@@ -391,7 +385,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, wideFile, commandParent: commands)
 
@@ -419,7 +412,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, file, commandParent: commands)
 
@@ -453,7 +445,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, file, commandParent: commands)
 
@@ -501,7 +492,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -597,7 +587,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     var selectedFolder: String
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
@@ -640,7 +629,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     var index = createViewerPluginRegistry()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -678,7 +666,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -711,7 +698,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
@@ -773,7 +759,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
@@ -846,7 +831,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.resize(960, 680)
@@ -902,7 +886,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -947,7 +930,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
@@ -1024,7 +1006,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
@@ -1068,7 +1049,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -1099,7 +1079,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -1122,7 +1101,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(900, 700)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -1146,11 +1124,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     registerAppStrings(&host.app.resources)
     var index  = createViewerPluginRegistry()
@@ -1199,7 +1173,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
@@ -1237,7 +1210,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(880, 560)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
@@ -1270,7 +1242,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(880, 560)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
@@ -1365,7 +1336,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     window.openFile(fileName)
@@ -1438,7 +1408,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     host.app.theme.setSwagDark()
     host.app.notifyThemeChanged()
 
@@ -1549,7 +1518,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index = createViewerPluginRegistry()
 
@@ -1606,7 +1574,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index = createViewerPluginRegistry()
 
@@ -1675,7 +1642,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -1714,7 +1680,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -1741,7 +1706,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
 
     var index    = createViewerPluginRegistry()
     let window   = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -1773,7 +1737,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
 
     let fileName = writeTempFile("html", "<p>ready</p>")
     defer discard catch File.delete(fileName)
@@ -1875,7 +1838,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -1918,7 +1880,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -1944,7 +1905,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(1000, 720)
-    defer host.shutdown()
 
     with let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     {
@@ -2006,7 +1966,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -2055,7 +2014,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -2083,7 +2041,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(880, 560)
-    defer host.shutdown()
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     Swag.assert(window.closeButton.parent == window.commandButtons and not window.closeButton.isEnabled())
 
@@ -2123,7 +2080,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     {
         var host: Testing.HeadlessHost
         host.setup(880, 560)
-        defer host.shutdown()
         let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         window.openFile(viewerFixturePath(), remember: false)
         if started do
@@ -2148,7 +2104,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -2171,7 +2126,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
@@ -2224,7 +2178,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
@@ -2298,7 +2251,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index = createViewerPluginRegistry()
 
@@ -2369,7 +2321,6 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -2423,7 +2374,6 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index = createViewerPluginRegistry()
 
@@ -2474,7 +2424,6 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index = createViewerPluginRegistry()
 
@@ -2517,7 +2466,6 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index = createViewerPluginRegistry()
 
@@ -2562,7 +2510,6 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index = createViewerPluginRegistry()
 
@@ -2614,7 +2561,6 @@ func createPictureFolder(stem: string, names: const [..] string)->String
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)

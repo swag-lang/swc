@@ -24,7 +24,6 @@ using Swag, Core, Pixel
     {
         var host: Testing.HeadlessHost
         host.setup(480, 240, index == 3 ? 2 : 1)
-        defer host.shutdown()
         switch index
         {
         case 0, 3, 4: host.theme.setSwagDark()
@@ -84,7 +83,6 @@ using Swag, Core, Pixel
     var started: Swag.Semaphore
     var host:    Testing.HeadlessHost
     host.setup(480, 240)
-    defer host.shutdown()
     host.app.deterministicStreaming = false
     let view = Markdown.View.createText(&host.root, source.toString())
     view.resize(480, 240)
@@ -155,7 +153,6 @@ using Swag, Core, Pixel
                                      "<svg width='120' height='60'><rect width='120' height='60' fill='#285078'/></svg>")
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
     var cache: HtmlImageCache
     cache.asynchronous = true
 
@@ -198,7 +195,6 @@ using Swag, Core, Pixel
     var slowGate, fastGate, started: Swag.Semaphore
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
     var cache: HtmlImageCache
     cache.asynchronous = true
     defer
@@ -257,7 +253,6 @@ using Swag, Core, Pixel
     discard expect File.writeAllText(fileName, Format.toString("![Deferred](<%>)", imagePath).toString())
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
     host.app.deterministicStreaming = false
     let view = Markdown.View.createFile(&host.root, fileName)
     view.resize(320, 240)

@@ -8,7 +8,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
-    defer host.shutdown()
     host.setReducedMotion(false)
     let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
     scroll.createView'Wnd()
@@ -75,7 +74,6 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
-    defer host.shutdown()
     ScrollHeadlessPosCount  = 0
     ScrollHeadlessSizeCount = 0
 
@@ -107,7 +105,6 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
 {
     var host: Testing.HeadlessHost
     host.setup(260, 260)
-    defer host.shutdown()
     let scroll = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 200, 200})
     scroll.createView'Wnd()
     scroll.setScrollSize(50, 50)
@@ -121,7 +118,6 @@ func scrollHeadlessSize(_: *ScrollWnd, _, _: Math.Point)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 260)
-    defer host.shutdown()
     let outer = Wnd.create'ScrollWnd(&host.root, "", {0, 0, 300, 200})
     outer.createView'Wnd()
     outer.setScrollSize(900, 900)
@@ -163,7 +159,6 @@ struct ScrollHeadlessViewport
 {
     var host: Testing.HeadlessHost
     host.setup(360, 260)
-    defer host.shutdown()
     let outer = Wnd.create'ScrollHeadlessViewport(&host.root, "", {0, 0, 300, 200})
     outer.createView'Wnd()
     outer.setScrollSize(900, 900)

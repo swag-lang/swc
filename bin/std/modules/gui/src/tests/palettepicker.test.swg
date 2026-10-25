@@ -16,7 +16,6 @@ func palettePickerHeadlessChanged(_: *PalettePicker)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})
     Swag.assert(picker.colors.isEmpty())
     Swag.assert(picker.selectedIndex == Swag.S32.Max)
@@ -35,7 +34,6 @@ func palettePickerHeadlessChanged(_: *PalettePicker)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     PalettePickerHeadlessChangedCount = 0
 
     let picker = PalettePicker.create(&host.root, {10, 10, 220, 100})

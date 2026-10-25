@@ -65,6 +65,10 @@ alternative instead of guessing an encoding.
   formula to its mathematical source. Rendering is offline and executes no embedded HTML or
   script. Reading width and appearance stay in the centered lower band; zoom is a clickable
   information-band percentage.
+  GitHub, Newsprint, Night, Pixyll, and Whitey follow their Typora typography, including heading
+  weights, italics, line boxes, collapsing block margins, and heading rules. Fonts resolve from
+  installed system families with the theme's fallback order; missing optional fonts are never
+  downloaded or installed.
 - `HTML` adapts the reusable GUI `HtmlView`. It streams document blocks into a centered page,
   keeps links explicit, follows the active palette, and applies the supported CSS subset. Head,
   script, style, template, and embedded-document content never executes. Default document text

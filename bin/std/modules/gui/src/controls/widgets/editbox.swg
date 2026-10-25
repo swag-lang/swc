@@ -85,8 +85,7 @@ struct EditBox
             trailingMargin: f32               // Extra trailing inset in logical units.
             validator:      (func||(*EditBox)->EditBoxCheckResult)?     // Custom validator, or null for built-in validation.
 
-            // Current built-in validation mode, with the bounds of the numeric modes.
-            using inputMode: union(EditBoxInputMode)
+            using inputMode: union(EditBoxInputMode)     // Current validation mode and bounds of numeric input.
             {
                 case .SignedInteger: minMaxS64: {min, max: s64} = {Swag.S64.Min, Swag.S64.Max}          // Signed integer bounds
                 case .UnsignedInteger, .Hexadecimal: minMaxU64: {min, max: u64} = {0, Swag.U64.Max}     // Unsigned integer bounds

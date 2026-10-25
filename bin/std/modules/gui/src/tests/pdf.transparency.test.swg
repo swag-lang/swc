@@ -189,7 +189,6 @@ private func markedPixels(frame: const *Image)->u64
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     expect view.open(fileName.toString())

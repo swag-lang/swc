@@ -12,7 +12,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.closeOnCommand(GuiHeadlessSmoke_CloseWindow)
 
     let button = PushButton.create(&host.root, "Close", {20, 20, 90, 30}, GuiHeadlessSmoke_CloseWindow)
@@ -35,7 +34,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.theme.metrics.surfaceWnd_CornerRadius = 18
     host.surface.flags = .StandardWindow
 
@@ -56,7 +54,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     host.surface.isDirty = false
     host.surface.setPosition({10, 20, 320, 180})
@@ -72,7 +69,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     host.surface.setDpiScaleRaw(1.5)
     host.surface.isDirty = false
@@ -89,7 +85,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     var timerCount: u32
     var host:       Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.root.hookOnEvent = func|count = &timerCount|(_, evt)
     {
         if evt is TimerEvent do
@@ -116,7 +111,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     var timerCount: u32
     let view = Wnd.create'Wnd(&host.root)
@@ -145,7 +139,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     var stagedWasRetired: bool
     let view = Wnd.create'Wnd(&host.root)
@@ -174,7 +167,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     let surface            = expect host.app.createSurface(20, 30, 180, 100, SurfaceFlags.ToolWindow | .TopMost | .NoShadow)
     let background         = expect host.app.createSurface(0, 0, 100, 80, .None)
     let disabledBackground = expect host.app.createSurface(100, 0, 100, 80, .None)
@@ -243,7 +235,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(160, 90)
-    defer host.shutdown()
     var frameCallbacks: u32
     host.app.sigFrame    += func|count = &frameCallbacks|(_) { count[] += 1 }
     host.app.maxRunFrame = 2
@@ -263,7 +254,6 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.wnd_SizingBorderSize    = 8
     host.theme.metrics.wnd_TopSizingBorderSize = 7

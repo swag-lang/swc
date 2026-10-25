@@ -32,7 +32,6 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
@@ -98,7 +97,6 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 
         var host: Testing.HeadlessHost
         host.setup(960, 680)
-        defer host.shutdown()
         let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
         window.openFile(fileName, remember: false)
         completeViewerWindowClassification(&host, window)
@@ -148,7 +146,6 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     defer discard catch File.delete(fileName)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
@@ -188,7 +185,6 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
     host.setReducedMotion(false)
-    defer host.shutdown()
     let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     window.openFile(fileName, remember: false)
     completeQueuedViewerFile(&host, window)
@@ -247,7 +243,6 @@ func pollFileWatch(host: *Testing.HeadlessHost, window: *ViewerWindow)
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/title.png")
     window.openFile(fileName, remember: false)

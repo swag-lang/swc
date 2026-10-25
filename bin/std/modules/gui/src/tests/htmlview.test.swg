@@ -16,7 +16,6 @@ using Core, Pixel
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source.toString()))
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(640, 480)
     view.applyLayout()
@@ -100,7 +99,6 @@ using Core, Pixel
     discard expect File.writeAllBytes(fileName, cast(const [..] u8, source))
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
     let html = Format.toString("<style>body { margin: 0 }</style><img id='natural' src='%'><img id='sized' src='%' width='240'>", fileName, fileName)
     let view = HtmlView.createText(&host.root, html.toString())
     view.resize(640, 480)
@@ -145,7 +143,6 @@ using Core, Pixel
     defer discard catch File.delete(fileName)
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    defer host.shutdown()
     var cache: HtmlImageCache
     let texture = cache.texture(host.app.renderer, fileName.toString(), 16384, 16384)
     Swag.assert(texture != null)
@@ -389,7 +386,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, source.toString())
     view.resize(800, 600)
@@ -412,7 +408,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(420, 220)
-    defer host.shutdown()
     var source: String = "<style>* {color:#123456; font-size:16px}"
     source += ":is(nav a) {color:#ff0000} :not(nav a) {font-size:37px}"
     source += "section > :is(nav a) {color:#00ff00}"
@@ -453,7 +448,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(120, 80)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, "<style>.cut{width:80px;height:50px;background:#f00;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}</style><div class='cut'></div>")
     view.resize(120, 80)
@@ -504,7 +498,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(610, 600)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, source.toString())
     view.resize(610, 600)
@@ -536,7 +529,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(520, 400)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, source.toString())
     view.resize(520, 400)
@@ -556,7 +548,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(400, 400)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0; font-size: 16px }</style><p id=\"p\">"
     for 400 do
@@ -589,7 +580,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(400, 160)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, "<style>body{margin:0}#code{white-space:pre}</style><div id='code'><span>first\nsecond\n</span></div>")
     view.resize(400, 160)
@@ -605,7 +595,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(960, 400)
-    defer host.shutdown()
 
     var source: String = "<style>body { max-width: 840px } pre { background: #101010 }</style>"
     source += "<body><main><article><pre id=\"code\">one line of preformatted text</pre></article></main></body>"
@@ -625,7 +614,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(600, 400)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } td { padding: 4px }</style>"
     source += "<table><tr><td id=\"a\">short</td><td id=\"b\">a considerably longer cell of text</td></tr>"
@@ -647,7 +635,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(300, 140)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } td { padding: 4px } #bottom { vertical-align: bottom }</style>"
     source += "<table><tr><td><div style=\"height:80px\"></div></td><td id=\"bottom\">Bottom</td></tr></table>"
@@ -669,7 +656,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(240, 180)
-    defer host.shutdown()
 
     var source: String = "<style>"
     source += "body { margin: 0; background: #ffffff }"
@@ -704,7 +690,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(120, 80)
-    defer host.shutdown()
 
     let source = "<style>body{margin:0;background:#fff}p{margin:0}img{width:80px;height:160px;background:#f00}</style><p id='short'><img id='picture' src='missing.png'></p>"
     let view   = HtmlView.createText(&host.root, source)
@@ -727,7 +712,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(240, 180)
-    defer host.shutdown()
 
     let source = "<style>body{margin:0}#rail{width:100px;height:100px;overflow-y:auto}.page{height:100px}</style><aside id='rail'><div class='page'></div><div class='page'></div><div class='page'></div></aside>"
     let view   = HtmlView.createText(&host.root, source)
@@ -759,7 +743,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(240, 180)
-    defer host.shutdown()
 
     var source: String = "<style>"
     source += ":root { --header-height: 40px } body { margin: 0 }"
@@ -787,7 +770,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(240, 180)
-    defer host.shutdown()
 
     var source: String = "<style>"
     source += "body { margin: 0 }"
@@ -813,7 +795,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, (expect File.readAllText(htmlFixturePath())).toString())
     view.resize(960, 680)
@@ -868,7 +849,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(960, 680)
@@ -914,7 +894,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(640, 360)
@@ -937,7 +916,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
 
     var source: String = "<p id='words'>"
     for 2_000 do
@@ -968,7 +946,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(220, 240)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, "<p>alpha beta gamma delta epsilon zeta</p>")
     view.resize(220, 240)
@@ -987,7 +964,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(320, 180)
-    defer host.shutdown()
 
     const Source = "<p>same same same</p>"
     let second = Utf8.indexOf(Source, "same", Utf8.indexOf(Source, "same") + 1)
@@ -1015,7 +991,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     let path = guiFixturePath("html.rustdoc-large.html")
     let view = HtmlView.createFile(&host.root, path)
@@ -1075,7 +1050,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(720, 480)
@@ -1119,7 +1093,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(720, 480)
@@ -1173,7 +1146,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 
     var host: Testing.HeadlessHost
     host.setup(720, 480)
-    defer host.shutdown()
     let view = HtmlView.createFile(&host.root, fileName)
     view.resize(720, 480)
     view.applyLayout()
@@ -1221,7 +1193,6 @@ func findVisibleLink(view: *HtmlView, url: string)->HtmlLinkHit
 {
     var host: Testing.HeadlessHost
     host.setup(640, 240)
-    defer host.shutdown()
 
     var source: String = "<main>"
     for 60 do
@@ -1280,7 +1251,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0; background: #ffffff }"
     source += ".box { width: 100px; height: 60px; background: #ff0000; border-radius: 0 24px 0 0 }"
@@ -1306,7 +1276,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0; background: #ffffff }"
     source += ".box { width: 100px; height: 60px; background: #ffffff; border-radius: 10px;"
@@ -1331,7 +1300,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0; background: #ffffff }"
     source += ".box { width: 100px; height: 60px; background: #ffffff;"
@@ -1364,7 +1332,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>html, body { margin: 0; height: 100% }"
     source += ".app { height: 100% }"
@@ -1399,7 +1366,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 }"
     source += ".card { position: relative; margin: 30px; padding: 10px; border: 2px solid #000000; height: 100px }"
@@ -1441,7 +1407,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 }"
     source += ".page { position: relative; padding: 24px }"
@@ -1467,7 +1432,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 }"
     source += ".bar { position: relative; display: flex; gap: 10px; padding: 5px }"
@@ -1509,7 +1473,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 }"
     source += ".card { position: relative; margin: 12px; padding: 6px }"
@@ -1539,7 +1502,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 }"
     source += ".spacer { height: 40px }"
@@ -1568,7 +1530,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(160, 80)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0; background: #ffffff }"
     source += "h2 { position: relative; margin: 0; padding-top: 14px }"
@@ -1621,7 +1582,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(960, 540)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, guiFixturePath("html.flex-grid.html"))
     view.resize(960, 540)
@@ -1644,7 +1604,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(720, 360)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, guiFixturePath("html.frames.html"))
     view.resize(720, 360)
@@ -1678,7 +1637,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(720, 360)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, guiFixturePath("html.frames.html"))
     view.resize(720, 360)
@@ -1700,7 +1658,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(720, 360)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, guiFixturePath("html.frames.html"))
     view.resize(720, 360)
@@ -1727,7 +1684,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(960, 540)
-    defer host.shutdown()
 
     let path = guiFixturePath("std.pixel.html")
     Swag.assert((expect File.info(path)).size > 1024 * 1024)
@@ -1782,7 +1738,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(1660, 1324)
-    defer host.shutdown()
 
     host.theme.setLight()
     host.app.notifyThemeChanged()
@@ -1811,7 +1766,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
 
     let path = Path.combine(Env.getSpecialDirectory(.Temp).toString(), Format.toString("missing_gui_html_%.html", Guid64.random()).toString())
     let view = HtmlView.createFile(&host.root, path)
@@ -1886,7 +1840,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } div { font-family: monospace }"
     source += ".keep { white-space: pre }"
@@ -1930,7 +1883,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     var host: Testing.HeadlessHost
     host.setup(620, 400)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, source.toString())
     view.resize(620, 400)
@@ -1970,7 +1922,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(360, 220)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0; background: #ffffff }"
     source += ".code { margin: 12px; padding: 10px; background: #eef2f6; border: 1px solid #90a0b0; font-family: monospace; font-size: 14px; white-space: pre; color: #102030 }"
@@ -1994,7 +1945,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, guiFixturePath("html.tables.html"))
     view.resize(960, 680)
@@ -2022,7 +1972,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 
     var host: Testing.HeadlessHost
     host.setup(200, 150)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 }</style><img id=\"i\" src=\"data:image/png;base64,"
     source += Embedded
@@ -2046,7 +1995,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
 
     // Windows-1252 declared by its meta tag, with the first accent far beyond the probe: only
     // the declaration can answer, because everything the heuristic sees is plain ASCII.
@@ -2088,7 +2036,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(960, 540)
-    defer host.shutdown()
 
     let view = HtmlView.createFile(&host.root, guiFixturePath("html.flex-grid.html"))
     view.resize(960, 540)
@@ -2181,7 +2128,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(160, 120)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, "<style>body { background: #ff0000 } p { background: #0000ff; margin: 0 }</style><p>x</p>")
     view.resize(160, 120)
@@ -2268,7 +2214,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } p { margin: 0; font-size: 16px; line-height: 20px }"
     source += ".fig { float: left; width: 120px; height: 40px }"
@@ -2309,7 +2254,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } p { margin: 0; font-size: 16px; line-height: 20px }"
     source += ".fig { float: right; width: 120px; height: 40px }"
@@ -2338,7 +2282,6 @@ func rowHasColor(image: *Pixel.Image, y: s32, x0, x1: s32, argb: u32)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(360, 240)
-    defer host.shutdown()
 
     var source: String = "<html><head><style>body { margin: 0; background: #ffffff; color: #102030; font-size: 14px; height: 240px }"
     source += "p { margin: 6px }"
@@ -2383,7 +2326,6 @@ func countTextItems(view: *HtmlView, box: u32)->u64
 {
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } p { margin: 0; overflow-wrap: break-word }</style>"
     source += "<p id=\"t\">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</p>"
@@ -2412,7 +2354,6 @@ func countTextItems(view: *HtmlView, box: u32)->u64
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } p { margin: 0; width: 100px }</style>"
     source += "<p id=\"c\">法国是一个位于西欧的国家法国是一个位于西欧的国家</p>"
@@ -2439,7 +2380,6 @@ func countTextItems(view: *HtmlView, box: u32)->u64
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } p { margin: 0; width: 120px; word-break: break-all }</style>"
     source += "<p id=\"t\">alpha bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb tail</p>"
@@ -2460,7 +2400,6 @@ func countTextItems(view: *HtmlView, box: u32)->u64
 {
     var host: Testing.HeadlessHost
     host.setup(400, 300)
-    defer host.shutdown()
 
     var source: String = "<style>body { margin: 0 } p { margin: 0; width: 140px; font-size: 16px }</style>"
     source += "<p id=\"w\">aaaaaaaaaa<wbr>bbbbbbbbbb</p>"
@@ -2503,7 +2442,6 @@ func countTextItems(view: *HtmlView, box: u32)->u64
 {
     var host: Testing.HeadlessHost
     host.setup(600, 400)
-    defer host.shutdown()
 
     var source: String = "<style>#f { font: italic 700 20px/2 monospace } #ws { word-spacing: 10px }</style>"
     source += "<p id=\"f\">styled</p>"
@@ -2591,7 +2529,6 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
 
     var host: Testing.HeadlessHost
     host.setup(600, 400)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, source.toString())
     view.resize(600, 400)
@@ -2645,7 +2582,6 @@ func closeColor(value: HtmlColorValue, argb: u32, tolerance = 3's32)->bool
     // The whole pipeline survives the same document: styling, box building, layout, painting.
     var host: Testing.HeadlessHost
     host.setup(320, 240)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, source.toString())
     view.resize(320, 240)
@@ -2678,7 +2614,6 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, "<p>alpha beta</p><p>gamma delta</p>")
     view.resize(640, 480)
@@ -2702,7 +2637,6 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, "<p>alpha beta gamma</p>")
     view.resize(640, 480)
@@ -2727,7 +2661,6 @@ func findItemRect(view: *HtmlView, text: string)->Math.Rectangle
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
 
     let view = HtmlView.createText(&host.root, "<p>menu content</p>")
     view.resize(640, 480)

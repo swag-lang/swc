@@ -21,7 +21,6 @@ func awaitReplacement(viewer: *PreviewViewer)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     viewer.compileSource("func shade(_: f32, _: f32, _: f32)->u32 => 0xFF112233")
     awaitFrame(viewer)
@@ -47,7 +46,6 @@ func awaitReplacement(viewer: *PreviewViewer)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     let viewer = assume cast(*PreviewViewer, window.panels[0].viewer!.window())
     viewer.compileSource("func shade(_: f32, _: f32, _: f32)->u32 => 0xFF112233")
     awaitFrame(viewer)

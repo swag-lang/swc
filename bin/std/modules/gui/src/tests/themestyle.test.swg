@@ -7,7 +7,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(320, 100)
-    defer host.shutdown()
 
     let combo = ComboBox.create(&host.root)
     combo.addItem("MiB")

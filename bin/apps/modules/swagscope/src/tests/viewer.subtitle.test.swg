@@ -29,11 +29,7 @@ func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryNa
 {
     var host: Testing.HeadlessHost
     host.setup(820, 520)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let fileName = subtitleViewerFixturePath()
     var result   = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
@@ -106,7 +102,6 @@ func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryNa
 {
     var host: Testing.HeadlessHost
     host.setup(820, 520)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0

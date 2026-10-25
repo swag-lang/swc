@@ -8,7 +8,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 320)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 300})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
@@ -29,7 +28,6 @@ using Swag, Core
     var rootResizeCount: u32
     var host: Testing.HeadlessHost
     host.setup(520, 100)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 500, 80})
     stack.spacing = 8
     let label = Label.create(stack, "A")
@@ -64,7 +62,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Left, {0, 0, 300, 100})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 30, 100})
@@ -84,7 +81,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 120)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .HorizontalCenter, {0, 0, 200, 100})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
@@ -103,7 +99,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 120)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .HorizontalEnd, {0, 0, 200, 100})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
@@ -121,7 +116,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(120, 220)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .VerticalCenter, {0, 0, 100, 200})
     stack.spacing = 5
     let c0 = Wnd.create'Wnd(stack, null, {0, 0, 40, 30})
@@ -152,7 +146,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(220, 240)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 200, 200})
     stack.spacing = 0
     let fixed = Wnd.create'Wnd(stack, null, {0, 0, 200, 40})
@@ -172,7 +165,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(120, 120)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 100, 50})
     stack.spacing = 0
     let child = Wnd.create'Wnd(stack, null, {0, 0, 100, 10})
@@ -188,7 +180,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 160)
-    defer host.shutdown()
     let stack = StackLayoutCtrl.create(&host.root, .Top, {0, 0, 120, 120})
     stack.spacing = 0
     let line = Wnd.create'Wnd(stack, null, {0, 0, 120, 35})
@@ -210,7 +201,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(180, 200)
-    defer host.shutdown()
     let wrap = WrapLayoutCtrl.create(&host.root, {0, 0, 150, 200})
     wrap.itemWidth  = 64
     wrap.itemHeight = 64
@@ -232,7 +222,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 120)
-    defer host.shutdown()
     let grid = GridLayoutCtrl.create(&host.root, 3, 1, {0, 0, 300, 80})
     grid.horizontalSpacing = 0
     grid.setColumnTrack(0, GridTrackKind.Content)
@@ -258,7 +247,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(260, 120)
-    defer host.shutdown()
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.horizontalSpacing = 5
     grid.verticalSpacing   = 5
@@ -287,7 +275,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(260, 120)
-    defer host.shutdown()
     let grid = GridLayoutCtrl.create(&host.root, 2, 2, {0, 0, 250, 100})
     grid.horizontalSpacing = 5
     grid.verticalSpacing   = 5
@@ -305,7 +292,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 120)
-    defer host.shutdown()
     let grid = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 300, 80})
     grid.horizontalSpacing = 0
     grid.setColumnTrack(0, .Fraction, 1, maximum: 50)
@@ -325,7 +311,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(240, 100)
-    defer host.shutdown()
     let grid  = GridLayoutCtrl.create(&host.root, 2, 1, {0, 0, 205, 80})
     let child = Wnd.create'Wnd(grid)
     grid.setCell(child, 0, 0)
@@ -342,7 +327,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(160, 180)
-    defer host.shutdown()
     let wrap = WrapLayoutCtrl.create(&host.root, {0, 0, 130, 160})
     wrap.spacing = 5
     discard Wnd.create'Wnd(wrap, {0, 0, 80, 20})
@@ -359,7 +343,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(520, 320)
-    defer host.shutdown()
 
     var options: FormLayoutOptions
     options.labelPlacement = .Above
@@ -388,7 +371,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(520, 220)
-    defer host.shutdown()
 
     var options: FormLayoutOptions
     options.labelPlacement = .Left
@@ -411,7 +393,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(520, 360)
-    defer host.shutdown()
 
     let form = FormLayoutCtrl.create(&host.root, position: {0, 0, 480, 320})
     let name = form.addTextField("NAME", "Ada", placeholder: "Display name")

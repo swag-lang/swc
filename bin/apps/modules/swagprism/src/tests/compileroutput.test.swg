@@ -18,7 +18,6 @@ using Core, Gui, Pixel
 
     var host: Testing.HeadlessHost
     host.setup(400, 200)
-    defer host.shutdown()
     let editor = RichEditCtrl.create(&host.surfaceWnd)
     editor.setFlags(.ReadOnly)
     editor.setLexer(&output)

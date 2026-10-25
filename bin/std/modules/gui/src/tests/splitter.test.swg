@@ -11,7 +11,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -36,7 +35,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, {})
     let pane1    = Wnd.create'Wnd(splitter, null, {})
@@ -63,7 +61,6 @@ using Swag, Core
     {
         var host: Testing.HeadlessHost
         host.setup(640, 640)
-        defer host.shutdown()
         let splitter = SplitterCtrl.create(&host.root, vertical: vertical)
         let first    = splitter.addPane(Wnd.create'Wnd(splitter), 188)
         first.preserveSize = true
@@ -84,7 +81,6 @@ using Swag, Core
     {
         var host: Testing.HeadlessHost
         host.setup(640, 240)
-        defer host.shutdown()
         let splitter = SplitterCtrl.create(&host.root)
         for 3
         {
@@ -107,7 +103,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, {})
     let pane1    = Wnd.create'Wnd(splitter, null, {})
@@ -130,7 +125,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
     let pane0    = Wnd.create'Wnd(splitter, null, {})
     let pane1    = Wnd.create'Wnd(splitter, null, {})
@@ -148,7 +142,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(340, 220)
-    defer host.shutdown()
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 320, 200})
     let pane0    = Wnd.create'Wnd(splitter)
     let pane1    = Wnd.create'Wnd(splitter)

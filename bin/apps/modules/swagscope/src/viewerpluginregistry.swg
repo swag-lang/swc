@@ -53,7 +53,6 @@ private func readProbeHead(fileName: string)->Array'u8
 {
     var result: retval
     var stream = catch File.openReadLive(fileName) { return result }
-    defer stream.close()
 
     result.resize(Viewer.ProbeHeadSize)
     var readErrorOutcome: Swag.Error

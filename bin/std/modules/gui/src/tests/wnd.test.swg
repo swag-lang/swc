@@ -15,7 +15,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let outer = Wnd.create'AncestorTestWnd(&host.root)
     let inner = Wnd.create'AncestorTestWnd(outer)
@@ -35,7 +34,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(80, 40)
-    defer host.shutdown()
 
     let state = host.root.sendComputeCommandStateEvent("Wnd.Unhandled")
     Swag.assert(not state.accepted)
@@ -53,7 +51,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let a         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.A")
     let b         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.B")
@@ -74,7 +71,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     let left       = Wnd.create'Wnd(&host.root, null, {0, 0, 100, 200})
     let right      = Wnd.create'Wnd(&host.root, null, {100, 0, 100, 200})
     let child      = Wnd.create'Wnd(left, null, {0, 0, 50, 50})
@@ -96,7 +92,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
@@ -123,7 +118,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
@@ -151,7 +145,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {10, 20, 180, 160})
     let child     = Wnd.create'Wnd(container, null, {30, 40, 50, 50})
 
@@ -178,7 +171,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(220, 140)
-    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 100})
     let left      = Wnd.create'Wnd(container, null, {0, 0, 40, 0})
     let right     = Wnd.create'Wnd(container, null, {0, 0, 30, 0})
@@ -199,7 +191,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {10, 10, 180, 180})
     let child     = Wnd.create'Wnd(container, null, {20, 20, 60, 60})
 
@@ -224,7 +215,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let a         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
     let b         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
@@ -246,7 +236,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
     let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
     Swag.assert(container.children.count == 1)
@@ -262,7 +251,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(240, 180)
-    defer host.shutdown()
 
     let scroller = Wnd.create'Wnd(&host.root, null, {10, 20, 200, 140})
     scroller.scrollPos = {0, 70}
@@ -293,7 +281,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(160, 100)
-    defer host.shutdown()
 
     let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     let timer = wnd.addTimer(1'ms)
@@ -309,7 +296,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(160, 100)
-    defer host.shutdown()
 
     let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     let timer = wnd.addTimer(1'ms)
@@ -324,7 +310,6 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(160, 100)
-    defer host.shutdown()
 
     let wnd = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     var timer: *Timer? = wnd.addTimer(1'ms)

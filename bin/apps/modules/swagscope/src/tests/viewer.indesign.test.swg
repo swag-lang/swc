@@ -19,7 +19,6 @@ using Core, Pixel, Gui, Viewers
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, path, commandParent: &host.root)
     Swag.assert(result.view != null)
     let viewer = assume cast(*InDesign.Panel, result.view)
@@ -175,7 +174,6 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 {
     var host: Testing.HeadlessHost
     host.setup(800, 520)
-    defer host.shutdown()
 
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, linkedIdmlFixturePath(), commandParent: &host.root)
     let viewer = assume cast(*InDesign.Panel, result.view)
@@ -229,7 +227,6 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 {
     var host: Testing.HeadlessHost
     host.setup(800, 520)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -303,7 +300,6 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 {
     var host: Testing.HeadlessHost
     host.setup(800, 520)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -376,7 +372,6 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 
     var host: Testing.HeadlessHost
     host.setup(800, 520)
-    defer host.shutdown()
     defer discard catch host.app.setLanguage(ReferenceLanguage)
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
@@ -462,7 +457,6 @@ func linkedIdmlFixturePath()->String => indesignDataPath("iosdc-2025-indesign-te
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     var result = openTestViewer(InDesign.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)
     let viewer = assume cast(*InDesign.Panel, result.view)

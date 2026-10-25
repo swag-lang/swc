@@ -265,7 +265,6 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
 
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     var session = openTestViewer(choicePlugin(&registry, &choices[0])[], &host.root, "sample.plug")
     Swag.assert(session.view != null and session.failureReason.isEmpty())
 

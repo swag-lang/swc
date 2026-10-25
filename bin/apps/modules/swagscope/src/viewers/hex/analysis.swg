@@ -185,8 +185,6 @@ func analyzeRange(fileName: string, range: AnalysisRange, processed: *u64? = nul
         return result
     }
 
-    defer stream.close()
-
     catch stream.seek(.Begin, range.offset)
     {
         result.failureReason = Viewer.failureText(Swag.err)

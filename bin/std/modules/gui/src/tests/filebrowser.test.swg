@@ -12,7 +12,6 @@ using Swag, Core, File
 {
     var host: Testing.HeadlessHost
     host.setup(640, 460)
-    defer host.shutdown()
     var opt: FileDlgOptions
     opt.mode = .SelectFile
     opt.showLocationsPane = false
@@ -68,7 +67,6 @@ using Swag, Core, File
 {
     var host: Testing.HeadlessHost
     host.setup(640, 460)
-    defer host.shutdown()
     var opt: FileDlgOptions
     opt.mode = .SelectFolder
     opt.showLocationsPane = false
@@ -114,7 +112,6 @@ using Swag, Core, File
 
     var host: Testing.HeadlessHost
     host.setup(640, 460)
-    defer host.shutdown()
     with var opt: FileDlgOptions
     {
         .mode  = .SelectFile
@@ -172,7 +169,6 @@ using Swag, Core, File
 {
     var host: Testing.HeadlessHost
     host.setup(640, 460)
-    defer host.shutdown()
     var opt: FileDlgOptions
     opt.mode = .CreateFile
     opt.showLocationsPane = false

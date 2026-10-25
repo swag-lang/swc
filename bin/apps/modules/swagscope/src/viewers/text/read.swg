@@ -26,7 +26,6 @@ impl Read
     mtd read() fail
     {
         var stream = try File.openReadLive(.fileName)
-        defer stream.close()
         if .replace
         {
             var head: [4] u8

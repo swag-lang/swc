@@ -16,7 +16,6 @@ func colorPickerHeadlessChanged(_: *ColorPicker)
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     ColorPickerHeadlessChangedCount = 0
 
     let picker = ColorPicker.create(&host.root, {20, 20, 160, 160})
@@ -44,7 +43,6 @@ func colorPickerHeadlessChanged(_: *ColorPicker)
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
     ColorPickerHeadlessChangedCount = 0
 
     let picker = ColorPicker.create(&host.root, {20, 20, 160, 160})

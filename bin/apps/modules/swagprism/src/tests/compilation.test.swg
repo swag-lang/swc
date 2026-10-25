@@ -98,7 +98,6 @@ func waitBuild(lease: *Pipeline.BuildLease)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     window.setComparisonEnabled(true)
     window.panels[1].optimCombo.setSelectedIndex(0, notify: false)
     window.compile()
@@ -128,7 +127,6 @@ func waitBuild(lease: *Pipeline.BuildLease)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     window.setComparisonEnabled(true)
     window.panels[1].optimCombo.setSelectedIndex(0, notify: false)
     window.panels[1].selectViewer(.Render2D)
@@ -179,7 +177,6 @@ func waitBuild(lease: *Pipeline.BuildLease)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     window.commandBar.liveEdit.setState(.Unchecked)
     let panel = window.panels[0]
     host.click(panel.optionsButton.localToSurface(Math.Point{18, 18}))

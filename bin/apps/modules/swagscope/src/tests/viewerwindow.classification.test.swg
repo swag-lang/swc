@@ -21,7 +21,6 @@ func assertClassificationFolder(result: const *ViewerClassifiedFile, names: cons
 
     var host: Testing.HeadlessHost
     host.setup(64, 64)
-    defer host.shutdown()
 
     var names: Array'String
     for i in 3'u32
@@ -80,7 +79,6 @@ func holdClassificationStatistics(gate: *ClassificationRetirementGate)->TextStat
     gate.release.init(manual: true)
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
     with let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
     {
         .resize(960, 680)

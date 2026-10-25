@@ -12,7 +12,6 @@ using Core, Gui
         {
             var host: Testing.HeadlessHost
             let window = testSetupMainWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
-            defer host.shutdown()
             if palette == 0 do
                 host.theme.setSwagDark()
             elif palette == 1 do

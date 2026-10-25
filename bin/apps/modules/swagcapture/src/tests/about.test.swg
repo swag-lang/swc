@@ -9,7 +9,6 @@ using Swag, Core, Pixel
 {
     var host: Gui.Testing.HeadlessHost
     host.setup(900, 700)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 

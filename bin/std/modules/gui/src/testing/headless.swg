@@ -39,6 +39,9 @@ struct AutoStage
 //
 // After [[Gui.Testing.HeadlessHost.setup]], keep the host at the same address until it is
 // dropped: its windows, surfaces, renderer, and callbacks borrow the host's storage.
+// Dropping the host shuts it down automatically. Data borrowed by its windows and callbacks
+// must outlive the host, including destruction of its window tree.
+#[Swag.NoCopy]
 struct HeadlessHost
 {
     public
@@ -69,6 +72,7 @@ struct HeadlessHost
         dragData: DragData
     }
 
+    initialized:        bool
     autoSawModal:       bool
     autoSawButton:      bool
     autoButtonIds:      Array'String
@@ -77,6 +81,9 @@ struct HeadlessHost
 
 impl HeadlessHost
 {
+    // Shuts down any initialized host before releasing its owned fields.
+    mtd opDrop() { .shutdown() }
+
     // Initializes a headless application, theme, surface, and root window of the requested size.
     //
     // `width` and `height` are logical units. `dpiScale` above one renders the same
@@ -149,6 +156,7 @@ impl HeadlessHost
         .surface.wnd         = &.surfaceWnd
         .surfaceWnd.view     = root
         .app.registerSurface(&.surface)
+        .initialized = true
     }
 
     // Delivers an application-wide notification to the hosted tree.
@@ -211,8 +219,14 @@ impl HeadlessHost
     }
 
     // Destroys the hosted window tree, drains queued work, and releases the rendering context.
+    //
+    // Called automatically when the host is dropped. Does nothing before setup or after shutdown.
     mtd shutdown()
     {
+        if not .initialized do
+            return
+        .initialized = false
+
         // A tip hangs off the surface window rather than the root view, so destroying the tree
         // would leave it behind. The host built the surface, so the host takes it down; a test
         // that showed a tip therefore needs no teardown of its own.

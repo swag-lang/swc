@@ -28,11 +28,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(760, 520)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let fixture = fontFixturePath()
     var result  = openTestViewer(Typeface.viewerPlugin(), &host.root, fixture, commandParent: &host.root)
@@ -64,7 +60,6 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 {
     var host: Testing.HeadlessHost
     host.setup(900, 720)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -108,7 +103,6 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
 
     var result = openTestViewer(Typeface.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null and result.commands != null)

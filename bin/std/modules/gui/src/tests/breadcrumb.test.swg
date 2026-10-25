@@ -17,7 +17,6 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
-    defer host.shutdown()
     let bc = BreadcrumbCtrl.create(&host.root, {0, 0, 400, 32})
     bc.addItem("Home", bc.theme().icon(.OpenFile, 28), 1)
     bc.addItem("Docs", {}, 2)
@@ -48,7 +47,6 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
-    defer host.shutdown()
     BreadcrumbPressedCount = 0
     BreadcrumbPressedIndex = Swag.U64.Max
 

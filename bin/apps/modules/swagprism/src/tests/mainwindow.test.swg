@@ -21,7 +21,6 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    defer host.shutdown()
     Swag.assert(window.commandBar.parent == window.sourcePanel)
     Swag.assert(window.commandBar.runButton.icon.isValid())
     Swag.assert(window.layoutButton.parent == window.panels[0].header)
@@ -47,7 +46,6 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    defer host.shutdown()
 
     let text = window.editor.text()
     Swag.assert(text.contains("\n{\n    var total = 0'f32\n    for i in a.count do\n        total += a[i] * b[i]\n    return total\n}"))
@@ -60,9 +58,8 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    defer host.shutdown()
-    let left  = microcode(window, 0)
-    let right = microcode(window, 1)
+    let left   = microcode(window, 0)
+    let right  = microcode(window, 1)
     window.panels[0].optimCombo.setSelectedIndex(1)
     Swag.assert(left.job.running)
     Swag.assert(left.job.request.settings.optimization == .O1)
@@ -78,7 +75,6 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    defer host.shutdown()
     let first  = microcode(window, 0)
     let second = microcode(window, 1)
     host.click(window.layoutButton.localToSurface(Math.Point{18, 18}))
@@ -107,9 +103,8 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    defer host.shutdown()
-    let left  = microcode(window, 0)
-    let right = microcode(window, 1)
+    let left   = microcode(window, 0)
+    let right  = microcode(window, 1)
     window.setComparisonEnabled(true)
     window.compile()
     Swag.assert(window.spinner.isVisible())
@@ -144,7 +139,6 @@ func microcode(window: *MainWindow, panel: u64)->*MicrocodeViewer => assume cast
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    defer host.shutdown()
     window.compile()
     Swag.assert(microcode(window, 0).job.running)
     Swag.assert(not microcode(window, 1).job.running)
@@ -162,7 +156,6 @@ func assertSurface(comparison: bool)
 {
     var host: Testing.HeadlessHost
     let window = testSetupInspectionWindow(&host)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
 
@@ -196,7 +189,6 @@ func assertSurface(comparison: bool)
         {
             var host: Testing.HeadlessHost
             let window = testSetupInspectionWindow(&host, MainWindow.MinWidth, MainWindow.MinHeight)
-            defer host.shutdown()
             if palette == 0 do
                 host.theme.setSwagDark()
             elif palette == 1 do

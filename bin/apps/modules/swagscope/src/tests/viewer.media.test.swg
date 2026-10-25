@@ -19,11 +19,7 @@ using Core, Pixel, Gui, Viewers
 
     var host: Testing.HeadlessHost
     host.setup(960, 540)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)

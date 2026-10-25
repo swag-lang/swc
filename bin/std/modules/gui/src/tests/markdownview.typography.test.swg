@@ -8,7 +8,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 240, dpiScale: 1.5)
-    defer host.shutdown()
 
     var style = Markdown.Style.theme()
     style.bodyFontSize = 19
@@ -30,7 +29,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 240)
-    defer host.shutdown()
     let view  = Markdown.View.createText(&host.root, "A\u2192\u65E5\u672C\u8A9E")
     var style = Markdown.Style.theme()
     style.bodyTypeFaces[0] = host.theme.res.defaultFsTypeFaceR
@@ -59,7 +57,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
     let view   = Markdown.View.createText(&host.root, "iiii WWWW")
     let inline = unwrap view.blocks[0].inline
     discard inline.layout(600)
@@ -85,7 +82,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
 
     for source in ["prefix **word**, suffix", "prefix *word*, suffix", "prefix [word](target), suffix", "prefix `word`, suffix", "prefix **wo**rd, suffix", "prefix (**word**), suffix", "prefix $x$, suffix"]
     {
@@ -108,7 +104,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
     let view   = Markdown.View.createText(&host.root, "abcdefghijklmnopqrstuvwx, tail")
     let inline = unwrap view.blocks[0].inline
     discard inline.layout(90)
@@ -145,7 +140,6 @@ using Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
     let fileName = Testing.tempFilePath("markdown-themed-html-", ".md")

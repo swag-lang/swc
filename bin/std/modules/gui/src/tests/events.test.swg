@@ -31,7 +31,6 @@ impl OffsetOwnedEvent
     var id:   String
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
 
     for expected in ["Event.Short", "Event.Command.With.An.Allocated.Identifier"]
@@ -85,7 +84,6 @@ impl OffsetOwnedEvent
     var retained: CommandEvent
     var host:     Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     host.root.hookOnEvent = func|retained = &retained|(_, evt)
     {
@@ -133,7 +131,6 @@ impl OffsetOwnedEvent
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
 
     var id     = String.from("Event.Borrowed")
@@ -153,7 +150,6 @@ impl OffsetOwnedEvent
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.closeOnCommand("Event.Close")
 
     var id = String.from("Event.Close")
@@ -168,7 +164,6 @@ impl OffsetOwnedEvent
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     var drops: u32
     let evt = Event.create'OffsetOwnedEvent()
@@ -344,7 +339,6 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     g_TaskEventsSeen = 0
     let watcher = Wnd.create'TaskWatcher(&host.root)
@@ -373,7 +367,6 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
 
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     g_TaskEventsSeen = 0
     let watcher = Wnd.create'TaskWatcher(&host.root)
@@ -403,7 +396,6 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
 
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     g_TaskEventsSeen = 0
     let watcher = Wnd.create'TaskWatcher(&host.root)
@@ -437,7 +429,6 @@ func raiseGateLater(gate: *Swag.AtomicFlag, milliseconds: u32)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
 
     g_TaskEventsSeen = 0
     let watcher = Wnd.create'TaskWatcher(&host.root)

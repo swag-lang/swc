@@ -135,7 +135,6 @@ private func isWrapKey(evt: const *KeyEvent)->bool => evt.kind == .Pressed and e
 private func countStatistics(fileName: string, start: u64, encoding: Text.Encoding)->TextStatistics fail
 {
     var stream = try File.openReadLive(fileName)
-    defer stream.close()
     discard catch stream.seek(.Begin, start)
 
     var counter: TextStatisticsCounter
@@ -258,7 +257,6 @@ impl Panel
     func probe(fileName: string)->Probe
     {
         var stream = catch File.openReadLive(fileName) { return {} }
-        defer stream.close()
 
         var bytes: Array'u8
         bytes.resize(Viewer.ProbeHeadSize)
@@ -873,7 +871,6 @@ impl Panel
         var stream: #decltype(expect File.openReadLive(.fileName))
         catch { stream = try File.openReadLive(.fileName) } as openErrorOutcome
         let openError = openErrorOutcome.value()
-        defer stream.close()
         if openError != null
         {
             .showReadError()

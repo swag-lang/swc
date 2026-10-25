@@ -12,7 +12,6 @@ using Swag, Core, Pixel
 
     var host: Testing.HeadlessHost
     host.setup(720, 900, 1.5)
-    defer host.shutdown()
 
     let view = Markdown.View.createText(&host.root, source.toString())
     view.resize(720, 900)
@@ -44,7 +43,6 @@ using Swag, Core, Pixel
 
     var host: Testing.HeadlessHost
     host.setup(720, 360)
-    defer host.shutdown()
 
     let view = Markdown.View.createText(&host.root, source.toString())
     view.resize(720, 360)
@@ -68,7 +66,6 @@ using Swag, Core, Pixel
     {
         var host: Testing.HeadlessHost
         host.setup(640, 480, dpiScale: scale)
-        defer host.shutdown()
         host.app.frameTrace.enabled = true
 
         let sources = [
@@ -125,7 +122,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(640, 320)
-    defer host.shutdown()
     var source: String
     for index in 24 do
         source += Format.toString("## Entry %\n\n- Evidence for this entry.\n- Next action for this entry.\n\n", index)

@@ -63,11 +63,7 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     {
         var host: Testing.HeadlessHost
         host.setup(720, 440)
-        defer
-        {
-            discard catch host.app.setLanguage(ReferenceLanguage)
-            host.shutdown()
-        }
+        defer discard catch host.app.setLanguage(ReferenceLanguage)
 
         let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
         var session  = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
@@ -112,7 +108,6 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     var host: Gui.Testing.HeadlessHost
     host.setup(720, 440)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
@@ -197,7 +192,6 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 
     var host: Gui.Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
 
     var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
     Swag.assert(result.view != null and
@@ -215,7 +209,6 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 {
     var host: Gui.Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index  = createViewerPluginRegistry()
     let window = ViewerWindow.create(&host.surfaceWnd, #move index)
@@ -242,7 +235,6 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
 {
     var host: Testing.HeadlessHost
     host.setup(720, 440)
-    defer host.shutdown()
 
     let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas/sample.svg")
     var session  = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})
@@ -264,7 +256,6 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
         {
             var host: Testing.HeadlessHost
             host.setup(720, 440)
-            defer host.shutdown()
 
             let fileName = Path.combine(unwrap Path.directoryName(#curlocation.fileName), "datas", name)
             var session  = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, services: {reportFinished: &answerImageCycle, reportShown: &countImageShown})

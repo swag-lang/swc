@@ -65,7 +65,6 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(420, 200)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Refresh", {20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
@@ -88,7 +87,6 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(600, 300)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Library", {20, 20, 100, 30})
     let lbl = showTip(btn, "Afficher la bibliothèque de captures et retrouver les images enregistrées pendant la session")
@@ -109,7 +107,6 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(420, 200, 1.5)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Files", {20, 20, 100, 30})
     let lbl = showTip(btn, "Fichiers à côté de celui-ci")
@@ -128,7 +125,6 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(600, 400)
-    defer host.shutdown()
 
     let long = longAnnotation()
     let btn  = PushButton.create(&host.root, "Help", {20, 20, 100, 30})
@@ -148,7 +144,6 @@ func longAnnotation()->String
 {
     var host: Testing.HeadlessHost
     host.setup(240, 110)
-    defer host.shutdown()
 
     let long = longAnnotation()
     let btn  = PushButton.create(&host.root, "Help", {10, 10, 60, 24})
@@ -165,7 +160,6 @@ var g_LinkText:  String
 {
     var host: Testing.HeadlessHost
     host.setup(460, 220)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Docs", {20, 20, 100, 30})
     let lbl = showTip(btn, "Read <b>the guide</b> at <url>swag-lang.org</url> for the rest")
@@ -204,7 +198,6 @@ var g_LinkText:  String
 {
     var host: Testing.HeadlessHost
     host.setup(420, 200)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Refresh", {20, 20, 100, 30})
     let lbl = showTip(btn, "Refresh")
@@ -230,7 +223,6 @@ var g_LinkText:  String
 
     var second: Testing.HeadlessHost
     second.setup(420, 200)
-    defer second.shutdown()
     Swag.assert(second.app.toolTip.current == null)
     Swag.assert(second.app.toolTip.pending == null)
 }
@@ -241,7 +233,6 @@ var g_LinkText:  String
 {
     var host: Testing.HeadlessHost
     host.setup(460, 320)
-    defer host.shutdown()
 
     let btn = PushButton.create(&host.root, "Library", {20, 20, 100, 30})
 

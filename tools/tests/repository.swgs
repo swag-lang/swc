@@ -365,7 +365,7 @@ impl Tool.Setup.IEnvironmentStore for SetupMemoryEnvironment
 func checkSetupPathCase(path, directory, expected: string, changed: bool, expands: bool = true) fail
 {
     var store: SetupMemoryEnvironment
-    store.userPath = (String.from(path), expands)
+    store.userPath = Tool.Setup.PathValue{String.from(path), expands}
     let added = try Tool.Setup.configureEnvironment(&store, directory)
     Swag.assert(added == changed)
     Swag.assert(store.userPath.text.toString() == expected)

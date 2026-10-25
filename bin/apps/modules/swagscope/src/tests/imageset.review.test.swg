@@ -9,7 +9,6 @@ using Core, Pixel, Gui, Viewers
     let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/imageset-real-review.webp")
     var host: Testing.HeadlessHost
     host.setup(1000, 760)
-    defer host.shutdown()
     var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*Picture.Panel, session.view)
     completeViewerBackgroundLoad(&host, &view.load)

@@ -24,7 +24,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(420, 220)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
     var lexer: RichEditLexerSwag
@@ -53,7 +52,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Shift) == .SelectRuneDown)
     Swag.assert(ed.commandForShortcut(Input.Key.Down, Input.KeyModifiers.Control) == .ScrollLineDown)
@@ -76,7 +74,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(360, 260)
-    defer host.shutdown()
 
     let dlg = Dialog.create(&host.surface, 320, 230, title: "Edit")
     let ed  = RichEditCtrl.create(dlg.view(), {16, 16, 280, 120})
@@ -111,7 +108,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("Hello")
     Swag.assert(ed.text() == "Hello")
@@ -127,7 +123,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
     var notified: bool
@@ -152,7 +147,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 100})
     for 20 do
@@ -184,7 +178,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("Selectable")
     ed.selectAll()
@@ -196,7 +189,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("abc")
 
@@ -219,7 +211,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, {0, 0, 300, 200})
     ed.setText("First line")
 
@@ -254,7 +245,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(360, 220)
-    defer host.shutdown()
     let ed = RichEditCtrl.create(&host.root, {0, 0, 340, 200})
     ed.marginLeft  = 12
     ed.marginRight = 12
@@ -291,7 +281,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(420, 220)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
     ed.clear()
@@ -320,7 +309,6 @@ impl IRichEditLexer for CountingLexer
 {
     var host: Testing.HeadlessHost
     host.setup(420, 260)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 240})
     var lexer: CountingLexer
@@ -348,7 +336,6 @@ impl IRichEditLexer for CountingLexer
 {
     var host: Testing.HeadlessHost
     host.setup(420, 260)
-    defer host.shutdown()
 
     let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 240})
     ed.setFlags(.WordWrap)

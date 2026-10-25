@@ -275,7 +275,6 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var host: Testing.HeadlessHost
     host.setup(860, 520)
-    defer host.shutdown()
     let commands      = Wnd.create'Wnd(&host.root, {0, 0, 36, 36})
     var viewerSession = openTestViewer(Binary.viewerPlugin(), &host.root, fileName, actionParent: commands)
     let view          = assume cast(*Binary.Panel, viewerSession.view)
@@ -773,7 +772,6 @@ func fixtureGuid(text: string)->Guid128 => expect Guid128.parse(text)
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
     var result = openTestViewer(Binary.viewerPlugin(), &host.root, "this-file-does-not-exist.bin", commandParent: &host.root, actionParent: &host.root)
     Swag.assert(result.view != null and
                 result.actions == null and
@@ -809,7 +807,6 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 1100, 600)
     Swag.assert(view.rowLines.count == view.doc.report.rows.count)
@@ -860,7 +857,6 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 1100, 600)
     view.copyReport()
@@ -885,7 +881,6 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 1100, 600)
     var matches: Array'Viewer.SearchMatch
@@ -920,7 +915,6 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
-    defer host.shutdown()
 
     let view = createTestViewer(&host, fileName, 1100, 600)
     view.applyFilter("file offset of the PE signature", {})
@@ -956,7 +950,6 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     var host: Testing.HeadlessHost
     host.setup(960, 680)
-    defer host.shutdown()
 
     var index = createViewerPluginRegistry()
 
@@ -1002,11 +995,7 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
-    defer
-    {
-        expect host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer expect host.app.setLanguage(ReferenceLanguage)
 
     let view = createTestViewer(&host, fileName, 1100, 600)
     Swag.assert(findRow(&view.doc.report, "File") != null)
@@ -1033,7 +1022,6 @@ func binaryCellText(line: *ListLine, column: Binary.Column)->String => RichStrin
 
     var host: Testing.HeadlessHost
     host.setup(1100, 640)
-    defer host.shutdown()
 
     let view    = createTestViewer(&host, fileName, 1100, 600)
     var reached = view.goToTypedOffset("400")

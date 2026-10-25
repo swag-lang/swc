@@ -275,7 +275,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     {
         var host: Testing.HeadlessHost
         host.setup(820, 560)
-        defer host.shutdown()
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-tables.odt"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load)
@@ -288,7 +287,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     {
         var host: Testing.HeadlessHost
         host.setup(820, 560)
-        defer host.shutdown()
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-1000rows.ods"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load)
@@ -303,7 +301,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     {
         var host: Testing.HeadlessHost
         host.setup(820, 560)
-        defer host.shutdown()
         var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, openDocumentFixturePath("odf-cc0-10slides.odp"))
         let view   = assume cast(*OpenDocument.Panel, result.view)
         completeViewerBackgroundLoad(&host, &view.load)
@@ -321,7 +318,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     defer discard catch File.delete(flatFileName)
     var flatHost: Testing.HeadlessHost
     flatHost.setup(820, 560)
-    defer flatHost.shutdown()
     var flatResult = openTestViewer(OpenDocument.viewerPlugin(), &flatHost.root, flatFileName)
     let flatView   = assume cast(*OpenDocument.Panel, flatResult.view)
     completeViewerBackgroundLoad(&flatHost, &flatView.load)
@@ -334,7 +330,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     defer discard catch File.delete(templateFileName)
     var templateHost: Testing.HeadlessHost
     templateHost.setup(820, 560)
-    defer templateHost.shutdown()
     var templateResult = openTestViewer(OpenDocument.viewerPlugin(), &templateHost.root, templateFileName)
     let templateView   = assume cast(*OpenDocument.Panel, templateResult.view)
     completeViewerBackgroundLoad(&templateHost, &templateView.load)
@@ -348,7 +343,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     defer discard catch File.delete(flatFileName)
     var flatHost: Testing.HeadlessHost
     flatHost.setup(820, 560)
-    defer flatHost.shutdown()
     var flatResult = openTestViewer(OpenDocument.viewerPlugin(), &flatHost.root, flatFileName)
     let flatView   = assume cast(*OpenDocument.Panel, flatResult.view)
     completeViewerBackgroundLoad(&flatHost, &flatView.load)
@@ -381,7 +375,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
     defer discard catch File.delete(templateFileName)
     var templateHost: Testing.HeadlessHost
     templateHost.setup(820, 560)
-    defer templateHost.shutdown()
     var templateResult = openTestViewer(OpenDocument.viewerPlugin(), &templateHost.root, templateFileName)
     let templateView   = assume cast(*OpenDocument.Panel, templateResult.view)
     completeViewerBackgroundLoad(&templateHost, &templateView.load)
@@ -400,7 +393,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var host: Testing.HeadlessHost
     host.setup(820, 560)
-    defer host.shutdown()
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
     Swag.assert(result.view != null and
                 result.isLoading != null and
@@ -452,11 +444,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var host: Testing.HeadlessHost
     host.setup(820, 560)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = assume cast(*OpenDocument.Panel, result.view)
@@ -508,11 +496,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var host: Testing.HeadlessHost
     host.setup(820, 560)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var result = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName, services: {reportDetails: &reportOpenDocumentTestDetails})
     let view   = assume cast(*OpenDocument.Panel, result.view)
@@ -577,11 +561,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
@@ -626,11 +606,7 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var host: Testing.HeadlessHost
     host.setup(900, 600)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
@@ -684,7 +660,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
 
     var host: Testing.HeadlessHost
     host.setup(820, 560)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -808,7 +783,6 @@ func drawingOpenDocumentXml()->String      => openDocumentXml("<office:drawing><
         defer discard catch File.delete(fileName)
         var host: Testing.HeadlessHost
         host.setup(640, 360)
-        defer host.shutdown()
         var session = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName)
         let view    = assume cast(*OpenDocument.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load)

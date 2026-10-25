@@ -104,7 +104,6 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -120,7 +119,6 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.setEditorWidth(280)
@@ -148,7 +146,6 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 180)
-    defer host.shutdown()
     var data: PropHeadlessHiddenData
     let prop = Properties.create(&host.root, {0, 0, 240, 160})
     prop.addStruct(data)
@@ -165,7 +162,6 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
-    defer host.shutdown()
     let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
 
     var data: PropHeadlessGroupedData
@@ -204,7 +200,6 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)     // [0]=section [1]=count [2]=label [3]=enabled
@@ -234,7 +229,6 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -263,7 +257,6 @@ struct PropHeadlessCancelData
     {
         var host: Testing.HeadlessHost
         host.setup(420, 420)
-        defer host.shutdown()
         var data: PropHeadlessCancelData
         data.text = "before"
         let prop = Properties.create(&host.root, {0, 0, 400, 400}, kind)
@@ -306,7 +299,6 @@ struct PropHeadlessCancelData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -325,7 +317,6 @@ struct PropHeadlessCancelData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -357,7 +348,6 @@ struct PropHeadlessArrayData
 {
     var host: Testing.HeadlessHost
     host.setup(400, 600)
-    defer host.shutdown()
     var data: PropHeadlessArrayData
     data.actions.resize(1)
     let prop = Properties.create(&host.root, {0, 0, 380, 560}, .List)
@@ -423,7 +413,6 @@ struct PropHeadlessColorData
 {
     var host: Testing.HeadlessHost
     host.setup(300, 200)
-    defer host.shutdown()
     var data: PropHeadlessColorData
     let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
     prop.addStruct(data, "S")
@@ -478,7 +467,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(300, 200)
-    defer host.shutdown()
     var data: PropHeadlessColorData
     let prop = Properties.create(&host.root, {0, 0, 280, 180}, .List)
     prop.addStruct(data, "S")
@@ -502,7 +490,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData     // enabled = true
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -524,7 +511,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     var data: PropHeadlessSliderData     // volume=50, level=5
     let prop = Properties.create(&host.root, {0, 0, 300, 200})
     prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
@@ -558,7 +544,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(320, 220)
-    defer host.shutdown()
     var data: PropHeadlessSliderData     // volume=50, level=5
     let prop = Properties.create(&host.root, {0, 0, 300, 200})
     prop.addStruct(data, "S")     // [0]=section [1]=volume [2]=level
@@ -582,7 +567,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(300, 200)
-    defer host.shutdown()
     var data: PropHeadlessEnumData     // choice = Mid (index 1)
     let prop = Properties.create(&host.root, {0, 0, 280, 180})
     prop.addStruct(data, "E")     // [0]=section [1]=choice
@@ -627,7 +611,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     var data: PropHeadlessCustomData
     let prop = Properties.create(&host.root, {0, 0, 300, 180})
     prop.addStruct(data, "C")     // [0]=section [1]=origin [2]=count
@@ -651,7 +634,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     var data: PropHeadlessCustomData
     let prop = Properties.create(&host.root, {0, 0, 300, 180})
     prop.addStruct(data, "C")
@@ -666,7 +648,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data, "Settings")
@@ -681,7 +662,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(360, 180)
-    defer host.shutdown()
     var data: PropHeadlessData
     let ctrl = PropertiesCtrl.create(&host.root, {0, 0, 320, 120}, .Grid, .None)
     ctrl.addStruct(data, "Settings")
@@ -715,7 +695,6 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
-    defer host.shutdown()
     let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
 
     let filter = EditBox.create(page, "")
@@ -799,7 +778,6 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
 {
     var host: Testing.HeadlessHost
     host.setup(520, 420)
-    defer host.shutdown()
 
     var data: MultiTile
     let prop = Properties.create(&host.root, {0, 0, 500, 400}, .Condensed)
@@ -821,7 +799,6 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-    defer host.shutdown()
     var t0, t1, t2: MultiTile
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
 
@@ -858,7 +835,6 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-    defer host.shutdown()
     var t0, t1: MultiTile
     t0.count = 1
     t1.count = 2     // differs -> mixed
@@ -893,7 +869,6 @@ func findFieldItem(prop: *Properties, name: string)->*PropertiesItem?
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-    defer host.shutdown()
     var t0: MultiTile
     t0.count = 3
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
@@ -928,7 +903,6 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 {
     var host: Testing.HeadlessHost
     host.setup(320, 380)
-    defer host.shutdown()
     var t0, t1: MultiTile
     t0.pos = {1, 10}
     t1.pos = {2, 10}     // x differs (mixed), y uniform
@@ -967,7 +941,6 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     let prop = Properties.create(&host.root, {0, 0, 180, 100}, .List)
 
     var b0, b1: MultiBadges
@@ -1004,7 +977,6 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-    defer host.shutdown()
     var t0, t1: MultiTile
     t0.name = "alpha"
     t1.name = "beta"     // differs -> mixed
@@ -1036,7 +1008,6 @@ func collectEditBoxes(w: *Wnd, out: *Array'(*EditBox?))
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-    defer host.shutdown()
     var t0, t1: MultiTile
     t0.tint = Pixel.Argb.Red
     t1.tint = Pixel.Argb.Blue     // differs -> mixed
@@ -1091,7 +1062,6 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(300, 240)
-    defer host.shutdown()
     var data: ValData     // name empty -> error, count ok
     let prop = Properties.create(&host.root, {0, 0, 280, 220}, .List)
     prop.addStruct(data, "S")
@@ -1125,7 +1095,6 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(280, 220)
-    defer host.shutdown()
     var data: PropHeadlessData     // no IPropertyNotify
     let prop = Properties.create(&host.root, {0, 0, 260, 200}, .List)
     prop.addStruct(data)
@@ -1150,7 +1119,6 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 360)
-    defer host.shutdown()
     g_PropRoDynamic = true
 
     var data: PropHeadlessRoData
@@ -1186,7 +1154,6 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(300, 520)
-    defer host.shutdown()
     var data: PropMoveData
     data.dyn.resize(3)
     data.dyn[0].id = 10
@@ -1237,7 +1204,6 @@ impl Gui.IPropertyNotify for ValData
 {
     var host: Testing.HeadlessHost
     host.setup(320, 520)
-    defer host.shutdown()
     var data: PropMoveData
     data.dyn.resize(3)
     data.dyn[0].id = 10
@@ -1336,7 +1302,6 @@ impl IPropertyEditor for PropAngleEditor
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessAngleData
 
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
@@ -1408,7 +1373,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropDefaultData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -1460,7 +1424,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropDefaultData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -1489,7 +1452,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     g_PropDefResetCalls    = 0
     g_PropDefForceModified = true
 
@@ -1520,7 +1482,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(360, 320)
-    defer host.shutdown()
     var data: PropDefaultData
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
     prop.addStruct(data)
@@ -1569,7 +1530,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(360, 320)
-    defer host.shutdown()
     var data: PropDefaultData
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Condensed)
     prop.addStruct(data)
@@ -1594,7 +1554,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-    defer host.shutdown()
     var t0, t1: PropDefaultData
     t0.count = 42     // at default
     t1.count = 7      // differs
@@ -1620,7 +1579,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -1667,7 +1625,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(300, 360)
-    defer host.shutdown()
     var data: MultiTile
     data.name = "alpha"
     let prop = Properties.create(&host.root, {0, 0, 280, 340}, .List)
@@ -1690,7 +1647,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(320, 360)
-    defer host.shutdown()
     var t0, t1: PropHeadlessData     // both count = 42
     let prop = Properties.create(&host.root, {0, 0, 300, 340}, .List)
     var bases:  Array'(*u8)
@@ -1715,7 +1671,6 @@ impl IPropertyNotify for PropDefaultCustom
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessData
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
     prop.addStruct(data)
@@ -1759,7 +1714,6 @@ struct PropDecorData
 {
     var host: Testing.HeadlessHost
     host.setup(360, 480)
-    defer host.shutdown()
     var data: PropDecorData
     let prop = Properties.create(&host.root, {0, 0, 340, 460}, .Grid)
     prop.addStruct(data, "S")
@@ -1830,7 +1784,6 @@ struct PropHeadlessPanelStringData
 {
     var host: Testing.HeadlessHost
     host.setup(320, 260)
-    defer host.shutdown()
 
     var data: PropHeadlessPanelStringData
     data.dynamic = "Editable"
@@ -1858,7 +1811,6 @@ struct PropHeadlessPanelStringData
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropHeadlessFontStyleData
     let prop = Properties.create(&host.root, {0, 0, 240, 300}, kind: .Panel)
     prop.addStruct(data)
@@ -1899,7 +1851,6 @@ struct PropHeadlessUsingDerived
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
 
     func indexOf(prop: *Properties, name: string)->u64
     {
@@ -1953,7 +1904,6 @@ impl IPropertyNotify for PropFilterHost
 {
     var host: Testing.HeadlessHost
     host.setup(260, 320)
-    defer host.shutdown()
     var data: PropFilterData
     var ntfy: PropFilterHost
     let prop = Properties.create(&host.root, {0, 0, 240, 300})
@@ -1989,7 +1939,6 @@ struct PropDropData
 {
     var host: Testing.HeadlessHost
     host.setup(420, 200)
-    defer host.shutdown()
 
     var data: PropDropData
     let prop = Properties.create(&host.root, {0, 0, 420, 200}, .List)
@@ -2029,7 +1978,6 @@ struct PropSameCategData
 {
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-    defer host.shutdown()
     var data: PropSameCategData
     let opt = PropertiesCtrl.create(&host.root, flags: .SectionTabs | .SearchBar)
     opt.dockStyle = .Center
@@ -2081,7 +2029,6 @@ struct PropAlignData
 {
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-    defer host.shutdown()
     var data: PropAlignData
     let prop = Properties.create(&host.root, {0, 0, 400, 560}, .List)
     prop.addStruct(data, "S")
@@ -2179,7 +2126,6 @@ struct PropAlignData
 
     var host: Testing.HeadlessHost
     host.setup(600, 400)
-    defer host.shutdown()
 
     var data: PropHeadlessResolvedData
     let prop = Properties.create(&host.root, {0, 0, 560, 360})
@@ -2214,7 +2160,6 @@ struct PropAlignData
 {
     var host: Testing.HeadlessHost
     host.setup(360, 320)
-    defer host.shutdown()
 
     var data: PropHeadlessGroupedData
     let prop = Properties.create(&host.root, {0, 0, 340, 300}, .Grid)
@@ -2239,7 +2184,6 @@ struct PropAlignData
 {
     var host: Testing.HeadlessHost
     host.setup(360, 360)
-    defer host.shutdown()
 
     var data: PropHeadlessGroupedData
     let prop = Properties.create(&host.root, {0, 0, 340, 340}, .Grid)
@@ -2277,7 +2221,6 @@ func assertPropertyViewMenuAnchor(light: bool)
 {
     var host: Testing.HeadlessHost
     host.setup(520, 360)
-    defer host.shutdown()
     if light do
         host.theme.setLight()
     else do
@@ -2351,7 +2294,6 @@ func assertPropertyPresentationGolden(kind: PropertiesKind, name: string)
 {
     var host: Testing.HeadlessHost
     host.setup(520, 620)
-    defer host.shutdown()
 
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0

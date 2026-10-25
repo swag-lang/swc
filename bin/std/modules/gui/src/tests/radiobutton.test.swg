@@ -17,7 +17,6 @@ func radioButtonHeadlessChanged(_: *RadioButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
     RadioButtonHeadlessChangedCount = 0
 
@@ -44,7 +43,6 @@ func radioButtonHeadlessChanged(_: *RadioButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 120)
-    defer host.shutdown()
     host.recordCommands()
     RadioButtonHeadlessChangedCount = 0
 
@@ -65,7 +63,6 @@ func radioButtonHeadlessChanged(_: *RadioButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 200)
-    defer host.shutdown()
     host.recordCommands()
 
     let a = RadioButton.create(&host.root, "A", {20, 20, 120, 30})
@@ -89,7 +86,6 @@ func radioButtonHeadlessChanged(_: *RadioButton)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 280)
-    defer host.shutdown()
     let a = RadioButton.create(&host.root, "A", {20, 20, 160, 30})
     let b = RadioButton.create(&host.root, "B", {20, 60, 160, 30})
     let c = RadioButton.create(&host.root, "C", {20, 100, 160, 30})

@@ -8,7 +8,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(300, 120)
-    defer host.shutdown()
 
     host.clickModalButtonWhenShown("missing", maxFrames: 1)
     host.driveAutoStages(&host.app)
@@ -35,7 +34,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(300, 120)
-    defer host.shutdown()
 
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Validate")
     dlg.addButton("Ok", Dialog.BtnOk, true)
@@ -57,7 +55,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(300, 120)
-    defer host.shutdown()
 
     let dlg = Dialog.create(&host.surface, 260, 150, title: "Validate")
     dlg.addButton("Ok", Dialog.BtnOk, true)

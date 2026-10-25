@@ -26,7 +26,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(96, 64)
-    defer host.shutdown()
 
     let background = host.render()
     Swag.assert(background.isValid())
@@ -53,7 +52,6 @@ using Swag, Core, Pixel
 
     var host: Testing.HeadlessHost
     host.setup(640, 400)
-    defer host.shutdown()
 
     for row in Rows
     {
@@ -87,7 +85,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
 
     let button = PushButton.create(&host.root, "edge", {200, 120, 80, 40})
     host.pump()

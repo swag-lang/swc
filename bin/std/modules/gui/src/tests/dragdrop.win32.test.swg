@@ -273,7 +273,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = Wnd.create'PlatformCatcher(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
@@ -307,7 +306,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.addFile("c:/tmp/first.png")
@@ -329,7 +327,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.addFile("c:/tmp/only.txt")
@@ -344,7 +341,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.setText("drag héllo → wörld")
@@ -361,7 +357,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var source = Testing.indexedImage(7, 5)
 
@@ -385,7 +380,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var source = Testing.indexedImage(4, 4)
 
@@ -405,7 +399,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.addFile("c:/tmp/one.png")
@@ -461,7 +454,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.setText("text only")
@@ -493,7 +485,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     host.surface.registerDropTarget()
     let target = cast(*IDropTarget, cast(*void, &host.surface.dropTarget))
@@ -547,7 +538,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.addFile("c:/tmp/only.txt")
@@ -576,7 +566,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
@@ -619,7 +608,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
@@ -645,7 +633,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.addContent("a.txt", cast(const [..] u8, "a"))
@@ -691,7 +678,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.setText("carried by a stream")
@@ -714,7 +700,6 @@ impl IWnd for PlatformCatcher
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    defer host.shutdown()
 
     var data: DragData
     data.setText("payload")

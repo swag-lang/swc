@@ -26,11 +26,7 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     var host: Testing.HeadlessHost
     host.setup(800, 520)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let fileName = textViewerFixturePath()
     var result   = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
@@ -86,7 +82,6 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
 {
     var host: Testing.HeadlessHost
     host.setup(820, 540)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -135,7 +130,6 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, waitForText: false)
 
     with let view = assume cast(*PlainText.Panel, session.view)
@@ -186,7 +180,6 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     discard expect File.writeAllBytes(fileName, "first\r\nsecond\r\nneedle")
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     var session = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*PlainText.Panel, session.view)
     Swag.assert(view.revealOffset(15, "needle"))

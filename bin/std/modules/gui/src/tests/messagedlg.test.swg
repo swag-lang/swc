@@ -23,7 +23,6 @@ func unbreakableMessage()->String
 {
     var host: Testing.HeadlessHost
     host.setup(900, 400)
-    defer host.shutdown()
 
     let message  = unbreakableMessage()
     with let dlg = MessageDlg.create(&host.surface, message.toString())

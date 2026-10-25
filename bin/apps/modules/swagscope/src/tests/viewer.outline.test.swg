@@ -12,7 +12,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     defer discard catch File.delete(fileName)
     var host: HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     var session = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName)
     let zoom    = assume cast(*MarkdownText.ZoomButton, session.info!.children[0])
     let outline = zoom.outline!
@@ -35,9 +34,9 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     defer discard catch File.delete(fileName)
     var host: HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     var session = openTestViewer(Html.viewerPlugin(), &host.root, fileName)
     let view    = assume cast(*Html.Panel, session.view)
+    defer view.setZoom(100)
     for 128 where session.isLoading!() do
         host.fireTimers()
     let outline = assume cast(*DocumentOutline, session.sidePanel!.children[0])
@@ -67,7 +66,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
         defer discard catch File.delete(fileName)
         var host: HeadlessHost
         host.setup(640, 360)
-        defer host.shutdown()
         var session = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName)
         let view    = assume cast(*OpenDocument.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load)
@@ -97,11 +95,7 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     defer discard catch File.delete(fileName)
     var host: HeadlessHost
     host.setup(880, 560)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
@@ -171,7 +165,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
 {
     var host: HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     let path    = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas/document-outline.pdf")
     var session = openTestViewer(PdfDocument.viewerPlugin(), &host.root, path)
     let view    = assume cast(*PdfDocument.Panel, session.view)

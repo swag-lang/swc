@@ -18,7 +18,6 @@
 
         discard expect File.writeAllBytes(fileName, bytes)
         var stream = expect File.openRead(fileName)
-        defer stream.close()
 
         // Five requested bytes are rounded to two complete UTF-16 units.
         let first = expect stream.readTextChunk(5, encoding)

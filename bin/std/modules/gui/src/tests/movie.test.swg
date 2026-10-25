@@ -67,7 +67,6 @@ func movieFixture(name: string)->String => Path.combine(Path.directoryName(#curl
 
     var host: Testing.HeadlessHost
     host.setup(300, 200)
-    defer host.shutdown()
     let view = ImageView.create(&host.root, {0, 0, 300, 200})
     expect view.loadMovie(movieFixture("imageset-icons.ico").toString())
     Swag.assert(not view.movie.isAnimated() and view.movie.isPaused and view.movie.frameIndex == 1)

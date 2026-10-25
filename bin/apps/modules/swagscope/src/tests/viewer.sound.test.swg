@@ -118,7 +118,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
 
     var failed: bool
     var result = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: &host.root, services: {reportFailure: &markSoundOpenFailure})
@@ -142,11 +141,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
@@ -232,7 +227,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -352,7 +346,6 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(640, 320)
-    defer host.shutdown()
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, pacmanWav, commandParent: commands)
     Swag.assert(result.view != null)
@@ -388,7 +381,6 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
 
     var host: Testing.HeadlessHost
     host.setup(720, 420)
-    defer host.shutdown()
 
     let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerSoundEnd})

@@ -212,7 +212,6 @@ func scalarCountZeroPositions(bytes: const [..] u8)->{ even: u64, odd: u64 }
     discard expect File.writeAllBytes(fileName, bytes.toSlice())
 
     var stream = expect File.openRead(fileName)
-    defer stream.close()
 
     var text: String
     var reads = 0'u32

@@ -376,6 +376,9 @@ let renderer: IRenderer = &cpu
 - Give owning value types an idempotent `close`/`reset` operation when early release is useful and
   an `opDrop` that safely releases remaining ownership. A type with `opDrop` is non-copyable
   unless it supplies `opPostCopy`; use `#[Swag.NoCopy]` for an additional copy restriction.
+- Do not repeat cleanup in a `defer` when `opDrop` already owns it. Keep explicit cleanup when
+  its timing matters. Declare data borrowed during destruction before its owner, so it outlives
+  that owner's teardown; `Gui.Testing.HeadlessHost` is one such owner.
 - Immediately place `defer` after a successful manual acquisition when the resource cannot own its
   cleanup. Order acquisitions so deferred releases naturally run in reverse dependency order.
 - Use `defer` for cleanup, state restoration, and failure-safe unwinding. Keep an explicit `end`
@@ -653,8 +656,9 @@ author can group by meaning. Reduce both walls of code and unrelated fragments s
   API can express the workflow.
 - Factor lifecycle-heavy setup into a small helper when that makes the tested behavior dominant,
   but keep test-specific expectations visible.
-- Follow successful fixture setup immediately with its cleanup `defer`; do not leave teardown at
-  the bottom of a test where an assertion or early return can bypass it.
+- Let owning fixtures clean up through `opDrop`. When setup needs manual cleanup, follow it
+  immediately with its `defer`; do not leave teardown at the bottom of a test where an assertion
+  or early return can bypass it.
 - Use `expect` for failures that make a test invalid and `try` in examples that propagate failure.
   A `#test` body does not change `try` into `expect`: propagation still needs a function declared
   with `fail` or an enclosing error-handling block.

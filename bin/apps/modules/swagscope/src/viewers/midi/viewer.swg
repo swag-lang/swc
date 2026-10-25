@@ -219,10 +219,10 @@ impl Panel
 
         with let result = Wnd.create'Panel(host.contentParent(), "scope.midi")
         {
-            .backgroundStyle = .View
-            .services        = services
-            .commands        = commands
-            .info            = info
+            .backgroundStyle   = .View
+            .services          = services
+            .commands          = commands
+            .info              = info
             .pitchLabelMode    = g_ViewerSettings.pitchLabelMode
             .keyboardWidthMode = g_ViewerSettings.keyboardWidthMode
         }

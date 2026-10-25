@@ -14,7 +14,6 @@ using Core
     discard expect File.writeAllText(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
     var style = Markdown.Style.theme()
     style.blockMargins      = {12, 18}
     style.headingTopSpacing = [40, 40, 40, 40, 40, 40]
@@ -41,7 +40,6 @@ using Core
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
     var style = Markdown.Style.theme()
     style.blockMargins         = {12, 18}
     style.bodyLineHeight       = 28

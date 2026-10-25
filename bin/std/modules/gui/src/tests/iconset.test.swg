@@ -8,7 +8,6 @@ using Swag, Core, Pixel
 {
     var host: Testing.HeadlessHost
     host.setup(120, 60)
-    defer host.shutdown()
 
     var atlas: IconAtlas
     expect atlas.setup(#raw """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"><rect x="4" y="4" width="16" height="16" fill="black"/></svg>""")

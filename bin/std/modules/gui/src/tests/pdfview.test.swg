@@ -64,7 +64,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
     var page   = #move expect reader.loadPage(0)
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.exchangeDocument(&reader, &page)
@@ -81,7 +80,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 {
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(800, 560)
@@ -108,7 +106,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(800, 560)
@@ -150,7 +147,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450, dpiScale: 1.5)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -188,7 +184,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -226,7 +221,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -270,7 +264,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -310,7 +303,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -340,7 +332,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -409,7 +400,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -449,7 +439,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -478,7 +467,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -549,7 +537,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 {
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -587,7 +574,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 
     var host: Testing.HeadlessHost
     host.setup(640, 450)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(640, 420)
@@ -613,7 +599,6 @@ func countPageEvidence(image: const *Image)->{ paper: u64, ink: u64 }
 {
     var host: Testing.HeadlessHost
     host.setup(800, 600)
-    defer host.shutdown()
 
     let view = PdfView.create(&host.root)
     view.resize(800, 560)

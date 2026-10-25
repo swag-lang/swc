@@ -28,11 +28,7 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var result = openTestViewer(Html.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view != null)
@@ -83,7 +79,6 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {
     var host: Testing.HeadlessHost
     host.setup(820, 560)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -119,7 +114,6 @@ func finishHtmlViewer(host: *Testing.HeadlessHost, result: *ViewerSession)
 {
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
 
     let fileName = Gui.Testing.tempFilePath("scope-html-missing-", ".html")
     var result   = openTestViewer(Html.viewerPlugin(), &host.root, fileName, commandParent: &host.root)

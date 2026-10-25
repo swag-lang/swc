@@ -9,7 +9,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(2048, 64)
-    defer host.shutdown()
 
     host.surface.paintWnd(&host.root)
     Swag.assert(host.surface.rt.colorBuffer.width == 2048)
@@ -44,7 +43,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(256, 128)
-    defer host.shutdown()
 
     host.surface.invalidate()
     host.surface.paint()
@@ -57,7 +55,6 @@ using Swag, Core
 {
     var host: Testing.HeadlessHost
     host.setup(256, 128)
-    defer host.shutdown()
 
     host.surface.setPosition({0, 0, 384, 224})
     Swag.assert(host.surface.prepareResizeFrame(&host.root))

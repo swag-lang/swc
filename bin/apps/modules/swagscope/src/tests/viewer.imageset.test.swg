@@ -11,7 +11,6 @@ using Core, Pixel, Gui, Viewers
         let fileName = Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
         var host: Testing.HeadlessHost
         host.setup(960, 540)
-        defer host.shutdown()
         var session = openTestViewer(Picture.viewerPlugin(), &host.root, fileName)
         let view    = assume cast(*Picture.Panel, session.view)
         completeViewerBackgroundLoad(&host, &view.load)

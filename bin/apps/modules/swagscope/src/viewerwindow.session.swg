@@ -570,7 +570,7 @@ impl ViewerWindow
             return false
 
         var next: ViewerSession
-        let plugin = &.index.plugins[choice.pluginIndex]
+        let plugin   = &.index.plugins[choice.pluginIndex]
         let splitter = me.mainSplitter
         with var pluginHost: ViewerPluginHost
         {

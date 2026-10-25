@@ -18,7 +18,6 @@ func awaitFormat(window: *MainWindow)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     window.commandBar.liveEdit.setState(.Unchecked)
     const Source = "func value()->s32\n{\nreturn 42\n}\n"
     window.editor.setText(Source)
@@ -41,7 +40,6 @@ func awaitFormat(window: *MainWindow)
 {
     var host: Testing.HeadlessHost
     let window = testSetupMainWindow(&host)
-    defer host.shutdown()
     window.commandBar.liveEdit.setState(.Unchecked)
     const Source = "func broken( {\n"
     window.editor.setText(Source)

@@ -310,7 +310,6 @@ impl Panel
                     return
                 }
             }
-
         }
 
         if not .showFrame(target) do
@@ -342,6 +341,7 @@ impl Panel
                 return true
             .seekFrame(.frameIndex - 1)
         }
+
         return true
     }
 

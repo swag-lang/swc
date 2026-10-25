@@ -44,7 +44,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer host.shutdown()
 
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
     Swag.assert(result.view == null and result.commands == null)
@@ -58,11 +57,7 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, infoParent: &host.root)
     Swag.assert(result.view != null and result.info != null)
@@ -92,7 +87,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0
@@ -135,7 +129,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     with let view = Code.Panel.create(&host.root, fileName)
     {
         .resize(640, 360)
@@ -163,7 +156,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    defer host.shutdown()
     with let view = Code.Panel.create(&host.root, fileName)
     {
         .resize(640, 360)
@@ -247,7 +239,6 @@ struct CodeLanguageSample
     var lexer: Code.GenericLexer
     var host:  Testing.HeadlessHost
     host.setup(640, 180)
-    defer host.shutdown()
     let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})
     lexer.configure(.TypeScript)
     editor.setLexer(&lexer)
@@ -307,7 +298,6 @@ struct CodeLanguageSample
 
     var host: Testing.HeadlessHost
     host.setup(640, 160)
-    defer host.shutdown()
     let view = Code.Panel.create(&host.root, fileName)
     view.editor.lexAll()
     Swag.assert(view.editor.runeAt({0, 0}).style == RichEditLexerSwag.Style.Keyword)
@@ -325,7 +315,6 @@ struct CodeLanguageSample
 {
     var host: Testing.HeadlessHost
     host.setup(640, 180)
-    defer host.shutdown()
     let editor = RichEditCtrl.create(&host.root, {0, 0, 620, 160})
 
     var code: Code.GenericLexer

@@ -101,7 +101,6 @@ func shebang(source: string)->Shebang
 private func fileShebang(fileName: string)->Shebang
 {
     var stream = catch File.openReadLive(fileName) { return {} }
-    defer stream.close()
 
     let head = catch stream.readUtf8Chunk(512) { return {} }
     return shebang(head)
@@ -111,7 +110,6 @@ private func fileShebang(fileName: string)->Shebang
 private func looksLikeObjectiveC(fileName: string)->bool
 {
     var stream = catch File.openReadLive(fileName) { return false }
-    defer stream.close()
 
     let head = catch stream.readUtf8Chunk(4 * 1024) { return false }
     const Markers: [5] string = ["#import", "@interface", "@implementation", "@protocol", "@property"]

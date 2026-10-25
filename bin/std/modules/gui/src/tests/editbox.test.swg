@@ -20,7 +20,6 @@ func editHeadlessEnter(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
 
     let field = EditBox.create(&host.root, "query", {20, 30, 220, 28}, flags: .ClearButton)
     field.setFocus()
@@ -39,7 +38,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
     Swag.assert(edit.text() == "Hello")
 
@@ -52,7 +50,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(300, 100)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "before", {10, 10, 180, 26})
     let next = PushButton.create(&host.root, "Next", {10, 50, 100, 26})
     var lost, committed: u32
@@ -75,7 +72,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     host.focus(edit)
 
@@ -89,7 +85,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     host.focus(edit)
 
@@ -106,7 +101,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "Hello", {20, 20, 200, 26})
     edit.selectAll()
     edit.deleteSelection()
@@ -118,7 +112,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "lock", {20, 20, 200, 26}, null, EditBoxFlags.ReadOnly)
     host.focus(edit)
 
@@ -131,7 +124,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setMaximumLength(3)
     host.focus(edit)
@@ -151,7 +143,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
-    defer host.shutdown()
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
     let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.None)
     host.focus(edit)
@@ -173,7 +164,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(400, 60)
-    defer host.shutdown()
     let longText = "The quick brown fox jumps over the lazy dog 0123456789"
     let edit     = EditBox.create(&host.root, longText, {0, 0, 380, 26}, null, EditBoxFlags.RightAligned)
     host.focus(edit)
@@ -192,7 +182,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 60)
-    defer host.shutdown()
 
     let edit = EditBox.create(&host.root, "query", {0, 0, 280, 36})
     edit.setIcon(host.theme.icon(.Search, 18))
@@ -211,7 +200,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(420, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "Hello world example text", {0, 0, 400, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
@@ -244,7 +232,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(420, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "Monotonic caret round trip", {0, 0, 400, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
@@ -266,7 +253,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(300, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "abcdef", {0, 0, 260, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
@@ -292,7 +278,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(300, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "selection", {0, 0, 260, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
@@ -312,7 +297,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(360, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "one two three", {0, 0, 320, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
@@ -336,7 +320,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 60)
-    defer host.shutdown()
 
     // Narrow box, long text -> horizontal scroll kicks in.
     let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
@@ -357,7 +340,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
@@ -379,7 +361,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(160, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, "abcdefghijklmnopqrstuvwxyz0123456789", {0, 0, 120, 26}, null, EditBoxFlags.None)
     host.focus(edit)
 
@@ -400,7 +381,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     EditHeadlessEnterCount  = 0
     EditHeadlessEscapeCount = 0
 
@@ -421,7 +401,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
     host.recordCommands()
 
     let ok     = PushButton.create(&host.root, "Ok", {10, 10, 80, 24}, EditHeadless_Default)
@@ -452,7 +431,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(320, 120)
-    defer host.shutdown()
     host.recordCommands()
 
     let cancel = PushButton.create(&host.root, "Cancel", {100, 10, 80, 24}, EditHeadless_Cancel)
@@ -474,7 +452,6 @@ func editHeadlessEscape(_: *EditBox)
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
 
     let edit = EditBox.create(&host.root, "255", {20, 20, 200, 26})
     edit.setUnsignedIntegerRange(0, 999)
@@ -503,7 +480,6 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setSignedIntegerRange()
 
@@ -532,7 +508,6 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setUnsignedIntegerRange()
 
@@ -564,7 +539,6 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setHexadecimalRange()
 
@@ -591,7 +565,6 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
     edit.setFloatingPointRange()
 
@@ -623,7 +596,6 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit = EditBox.create(&host.root, null, {20, 20, 200, 26})
 
     assertEditContent(edit, "plain text", .Valid)
@@ -639,7 +611,6 @@ func assertEditContent(edit: *EditBox, text: string, expected: EditBoxCheckResul
 {
     var host: Testing.HeadlessHost
     host.setup(240, 60)
-    defer host.shutdown()
     let edit  = EditBox.create(&host.root, "query", {20, 20, 200, 26})
     var valid = true
     var calls: u32

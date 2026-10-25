@@ -88,8 +88,8 @@ struct ViewerPluginHost
     session:         *ViewerSession
     documentParent:  *Wnd
     sidePanelParent: *Wnd
-    sideSplitter:     *SplitterCtrl?
-    sidePaneIndex:    u32
+    sideSplitter:    *SplitterCtrl?
+    sidePaneIndex:   u32
     actionParent:    *Wnd
     infoParent:      *Wnd
     commandParent:   *Wnd
@@ -200,7 +200,7 @@ impl Viewer.Host for ViewerPluginHost
         Swag.assert(.session.sidePanelHost == null)
         Swag.assert(width > 0)
 
-        let gutter = .sidePanelParent.themeMetrics().panel_GutterSize
+        let gutter     = .sidePanelParent.themeMetrics().panel_GutterSize
         var panelWidth = width
         if .window and .window.rightPanelWidth > 0 do
             panelWidth = .window.rightPanelWidth
@@ -222,7 +222,7 @@ impl Viewer.Host for ViewerPluginHost
             .backgroundStyle = .Panel
         }
 
-        let actionSize      = themeActionButtonSize(.infoParent.themeMetrics())
+        let actionSize = themeActionButtonSize(.infoParent.themeMetrics())
         with .session.sidePanelButton = IconButton.create(.infoParent, icon, {0, 0, actionSize, actionSize}, flags: .Toggle)
         {
             .toolTip = toolTip
@@ -234,7 +234,7 @@ impl Viewer.Host for ViewerPluginHost
         {
             let splitter: *SplitterCtrl = .sideSplitter
             let paneIndex = .sidePaneIndex
-            .session.sidePanelItem = splitter.items[paneIndex]!
+            .session.sidePanelItem      = splitter.items[paneIndex]!
             .session.sidePanelItem.size = panelWidth + gutter
             .session.sidePanelButton.sigCheckedChanged += func|target = splitter, paneIndex|(button)
             {

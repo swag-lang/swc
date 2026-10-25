@@ -71,7 +71,6 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
 {
     var host: Testing.HeadlessHost
     host.setup(1000, 700)
-    defer host.shutdown()
 
     let message = MessageDlg.create(&host.surface, "The password is incorrect.", {title: "Error"})
     message.addButton(strings().dlg_Ok, Dialog.BtnOk, true)
@@ -121,7 +120,6 @@ func assertDialogCharter(dlg: *Dialog, bodyInset: f32)
 {
     var host: Testing.HeadlessHost
     host.setup(900, 620)
-    defer host.shutdown()
 
     let fb = FileBrowserCtrl.create(&host.root, {mode: .SelectFile, showLocationsPane: false}, {0, 0, 860, 580})
     fb.applyLayout()

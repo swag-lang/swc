@@ -134,7 +134,6 @@ func writeZipFixture()->String
 {
     var host: Testing.HeadlessHost
     host.setup(640, 480)
-    defer host.shutdown()
 
     with let list = ListCtrl.createMultiColumns(&host.root)
     {
@@ -247,7 +246,6 @@ func writeZipFixture()->String
 
     var host: Testing.HeadlessHost
     host.setup(1180, 720)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0

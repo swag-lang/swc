@@ -29,11 +29,7 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
 {
     var host: Testing.HeadlessHost
     host.setup(820, 520)
-    defer
-    {
-        discard catch host.app.setLanguage(ReferenceLanguage)
-        host.shutdown()
-    }
+    defer discard catch host.app.setLanguage(ReferenceLanguage)
 
     let fileName = subtitleViewerFixturePath()
     var result   = openTestViewer(Captions.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: &host.root)
@@ -78,9 +74,13 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     var nextAtEnd = KeyEvent{kind: .Pressed, key: .PageDown, modifiers: .Control}
     Swag.assert(view.hookOnChildEvent(view.editor, &nextAtEnd) and view.currentCue == 1)
     var firstCue = KeyEvent{kind: .Pressed, key: .Home, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &firstCue) and view.currentCue == 0 and view.cueButton.text() == "1 / 2")
+    Swag.assert(view.hookOnChildEvent(view.editor, &firstCue) and
+                view.currentCue == 0 and
+                view.cueButton.text() == "1 / 2")
     var lastCue = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
-    Swag.assert(view.hookOnChildEvent(view.editor, &lastCue) and view.currentCue == 1 and view.cueButton.text() == "2 / 2")
+    Swag.assert(view.hookOnChildEvent(view.editor, &lastCue) and
+                view.currentCue == 1 and
+                view.cueButton.text() == "2 / 2")
 
     let oldCount = String.from(view.cueButton.text())
     expect host.app.setLanguage("fr")
@@ -102,7 +102,6 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
 {
     var host: Testing.HeadlessHost
     host.setup(820, 520)
-    defer host.shutdown()
     host.theme.setSwagDark()
     host.theme.metrics.surfaceWnd_ShadowSize   = 0
     host.theme.metrics.surfaceWnd_CornerRadius = 0

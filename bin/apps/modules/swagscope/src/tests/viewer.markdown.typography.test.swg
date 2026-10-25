@@ -8,7 +8,6 @@ func assertMarkdownTypography(theme: u32, name: string, width = 960'u32, dpiScal
 {
     var host: Testing.HeadlessHost
     host.setup(width, 1200, dpiScale)
-    defer host.shutdown()
     let source = """# A quiet document
 
                     A reading theme gives words room to breathe. **Emphasis** stays within the

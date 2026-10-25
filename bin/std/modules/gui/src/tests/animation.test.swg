@@ -63,7 +63,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     host.setReducedMotion(false)
     let target  = Wnd.create'Wnd(&host.root)
     let channel = AnimationChannel.from("test.cancel.endpoint")
@@ -89,7 +88,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200, 1.5)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let target  = Wnd.create'Wnd(&host.root)
@@ -127,7 +125,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let target = Wnd.create'Wnd(&host.root)
@@ -156,7 +153,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let target  = Wnd.create'Wnd(&host.root)
@@ -177,7 +173,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let first   = Wnd.create'Wnd(&host.root)
@@ -210,7 +205,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
     AnimationTestCompleted = 0
 
@@ -232,7 +226,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     let target = Wnd.create'Wnd(&host.root)
 
     discard host.app.animator.animateF32(target, AnimationChannel.from("test.reduced"), 0, 10, &animationSetF32, linearSecond())
@@ -250,7 +243,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
     let target = Wnd.create'Wnd(&host.root)
 
@@ -275,7 +267,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
     let target  = Wnd.create'Wnd(&host.root)
     let channel = AnimationChannel.from("test.environment")
@@ -337,7 +328,6 @@ func linearSecond()->AnimationOptions
 
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let target = Wnd.create'Wnd(&host.root)
@@ -361,7 +351,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let target  = Wnd.create'Wnd(&host.root)
@@ -390,7 +379,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let target  = Wnd.create'Wnd(&host.root)
@@ -415,7 +403,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let target  = Wnd.create'Wnd(&host.root)
@@ -442,7 +429,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
 
     let target  = Wnd.create'Wnd(&host.root)
     var options = linearSecond()
@@ -464,7 +450,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(320, 200)
-    defer host.shutdown()
     host.setReducedMotion(false)
 
     let target = Wnd.create'Wnd(&host.root, {40, 20, 100, 50})
@@ -501,7 +486,6 @@ func linearSecond()->AnimationOptions
 {
     var host: Testing.HeadlessHost
     host.setup(200, 120)
-    defer host.shutdown()
     host.setReducedMotion(false)
     let target  = Wnd.create'Wnd(&host.root)
     let options = linearSecond()

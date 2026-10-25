@@ -39,16 +39,16 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     var vec = Math.Vector2{6, -8}
-    vec += Math.Vector2{1, 2}
+    vec += {1, 2}
     expectVec2(vec, {7, -6})
 
-    vec -= Math.Vector2{3, -4}
+    vec -= {3, -4}
     expectVec2(vec, {4, -2})
 
-    vec *= Math.Vector2{2, -3}
+    vec *= {2, -3}
     expectVec2(vec, {8, 6})
 
-    vec /= Math.Vector2{4, 2}
+    vec /= {4, 2}
     expectVec2(vec, {2, 3})
 
     vec += 1
@@ -67,10 +67,10 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     let vec = Math.Vector2{6, -8}
-    expectVec2(vec + Math.Vector2{1, 2}, {7, -6})
-    expectVec2(vec - Math.Vector2{1, 2}, {5, -10})
-    expectVec2(vec * Math.Vector2{2, -3}, {12, 24})
-    expectVec2(vec / Math.Vector2{3, -2}, {2, 4})
+    expectVec2(vec + {1, 2}, {7, -6})
+    expectVec2(vec - {1, 2}, {5, -10})
+    expectVec2(vec * {2, -3}, {12, 24})
+    expectVec2(vec / {3, -2}, {2, 4})
 
     expectVec2(vec + 1, {7, -7})
     expectVec2(1 + vec, {7, -7})
@@ -259,16 +259,16 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     var vec = Math.Vector3{6, -8, 10}
-    vec += Math.Vector3{1, 2, 3}
+    vec += {1, 2, 3}
     expectVec3(vec, {7, -6, 13})
 
-    vec -= Math.Vector3{3, -4, 5}
+    vec -= {3, -4, 5}
     expectVec3(vec, {4, -2, 8})
 
-    vec *= Math.Vector3{2, -3, 0.5}
+    vec *= {2, -3, 0.5}
     expectVec3(vec, {8, 6, 4})
 
-    vec /= Math.Vector3{4, 2, 2}
+    vec /= {4, 2, 2}
     expectVec3(vec, {2, 3, 2})
 
     vec += 1
@@ -287,10 +287,10 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     let vec = Math.Vector3{6, -8, 10}
-    expectVec3(vec + Math.Vector3{1, 2, 3}, {7, -6, 13})
-    expectVec3(vec - Math.Vector3{1, 2, 3}, {5, -10, 7})
-    expectVec3(vec * Math.Vector3{2, -3, 0.5}, {12, 24, 5})
-    expectVec3(vec / Math.Vector3{3, -2, 5}, {2, 4, 2})
+    expectVec3(vec + {1, 2, 3}, {7, -6, 13})
+    expectVec3(vec - {1, 2, 3}, {5, -10, 7})
+    expectVec3(vec * {2, -3, 0.5}, {12, 24, 5})
+    expectVec3(vec / {3, -2, 5}, {2, 4, 2})
 
     expectVec3(vec + 1, {7, -7, 11})
     expectVec3(1 + vec, {7, -7, 11})
@@ -475,16 +475,16 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     var vec = Math.Vector4{6, -8, 10, -12}
-    vec += Math.Vector4{1, 2, 3, 4}
+    vec += {1, 2, 3, 4}
     expectVec4(vec, {7, -6, 13, -8})
 
-    vec -= Math.Vector4{3, -4, 5, -6}
+    vec -= {3, -4, 5, -6}
     expectVec4(vec, {4, -2, 8, -2})
 
-    vec *= Math.Vector4{2, -3, 0.5, -4}
+    vec *= {2, -3, 0.5, -4}
     expectVec4(vec, {8, 6, 4, 8})
 
-    vec /= Math.Vector4{4, 2, 2, 4}
+    vec /= {4, 2, 2, 4}
     expectVec4(vec, {2, 3, 2, 2})
 
     vec += 1
@@ -503,10 +503,10 @@ func expectVec4(actual, expected: Math.Vector4)
 #test
 {
     let vec = Math.Vector4{6, -8, 10, -12}
-    expectVec4(vec + Math.Vector4{1, 2, 3, 4}, {7, -6, 13, -8})
-    expectVec4(vec - Math.Vector4{1, 2, 3, 4}, {5, -10, 7, -16})
-    expectVec4(vec * Math.Vector4{2, -3, 0.5, -4}, {12, 24, 5, 48})
-    expectVec4(vec / Math.Vector4{3, -2, 5, -6}, {2, 4, 2, 2})
+    expectVec4(vec + {1, 2, 3, 4}, {7, -6, 13, -8})
+    expectVec4(vec - {1, 2, 3, 4}, {5, -10, 7, -16})
+    expectVec4(vec * {2, -3, 0.5, -4}, {12, 24, 5, 48})
+    expectVec4(vec / {3, -2, 5, -6}, {2, 4, 2, 2})
 
     expectVec4(vec + 1, {7, -7, 11, -11})
     expectVec4(1 + vec, {7, -7, 11, -11})

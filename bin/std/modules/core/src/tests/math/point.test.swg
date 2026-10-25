@@ -17,16 +17,16 @@ using Swag
     pt = -3.5
     Swag.assert(pt == Math.Point{-3.5, -3.5})
 
-    pt += Math.Point{1, -3}
+    pt += {1, -3}
     Swag.assert(pt == Math.Point{-2.5, -6.5})
 
-    pt -= Math.Point{-2.5, 0.5}
+    pt -= {-2.5, 0.5}
     Swag.assert(pt == Math.Point{0, -7})
 
-    pt *= Math.Point{4, -5}
+    pt *= {4, -5}
     Swag.assert(pt == Math.Point{0, 35})
 
-    pt /= Math.Point{2, -5}
+    pt /= {2, -5}
     Swag.assert(pt == Math.Point{0, -7})
 }
 
@@ -58,10 +58,10 @@ using Swag
 #test
 {
     let pt = Math.Point{6, -2}
-    Swag.assert(pt + Math.Point{1, 2} == Math.Point{7, 0})
-    Swag.assert(pt - Math.Point{1, 2} == Math.Point{5, -4})
-    Swag.assert(pt * Math.Point{2, 3} == Math.Point{12, -6})
-    Swag.assert(pt / Math.Point{2, -1} == Math.Point{3, 2})
+    Swag.assert(pt + {1, 2} == Math.Point{7, 0})
+    Swag.assert(pt - {1, 2} == Math.Point{5, -4})
+    Swag.assert(pt * {2, 3} == Math.Point{12, -6})
+    Swag.assert(pt / {2, -1} == Math.Point{3, 2})
 
     Swag.assert(pt + 1 == Math.Point{7, -1})
     Swag.assert(pt - 1 == Math.Point{5, -3})

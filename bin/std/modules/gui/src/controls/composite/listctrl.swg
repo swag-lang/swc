@@ -1185,7 +1185,7 @@ impl ListCtrl
             }
 
             // Scroll that contains the list view
-            .scrollWnd = Wnd.create'ScrollWnd(fwnd, Math.Rectangle{})
+            .scrollWnd = Wnd.create'ScrollWnd(fwnd, {})
             .scrollWnd.dockStyle       = .Center
             .scrollWnd.backgroundStyle = .Transparent
             .scrollWnd.setAllPaddings(.themeMetrics().list_Padding)

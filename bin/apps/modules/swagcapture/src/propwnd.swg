@@ -404,7 +404,7 @@ impl PropWnd
     // Builds the property panel: the row of style cells above the grid of fields.
     func create(parent: *Wnd, main: *MainWnd)->*PropWnd
     {
-        with let prop = Wnd.create'PropWnd(parent, Math.Rectangle{0, 0, 0, 300})
+        with let prop = Wnd.create'PropWnd(parent, {0, 0, 0, 300})
         {
             .backgroundStyle = .Transparent
 

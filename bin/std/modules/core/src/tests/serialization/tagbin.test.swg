@@ -589,7 +589,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     Swag.assert(finalPoint.x == -9)
     Swag.assert(finalPoint.y == 12)
 
-    let rawBytes = encodeTagBin(TagBinFinalMigrationPoint{x: 3, y: 4})
+    let rawBytes = encodeTagBin({x: 3, y: 4})
 
     var fieldWiseDecoder: Serialization.Decoder'Serialization.Read.TagBin
     var errfwOutcome:     Swag.Error
@@ -642,7 +642,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
 // an unrelated type that happens to have the same shape.
 #test
 {
-    let bytes = encodeTagBin(TagBinSchemaA{value: 42})
+    let bytes = encodeTagBin({value: 42})
     Swag.assert(bytes.contains("core.test.schema-a"))
 
     var decoder:    Serialization.Decoder'Serialization.Read.TagBin
@@ -1044,7 +1044,7 @@ func releaseTagBinInterface(value: *(ITagBinScore?))
     const SecondKey = "6WMZ2VaaUabd"
     Swag.assert(Hash.Crc32.compute(FirstKey) == Hash.Crc32.compute(SecondKey))
 
-    let bytes = encodeTagBin(TagBinReadableKeyCollision{first: 1130, second: 1138})
+    let bytes = encodeTagBin({first: 1130, second: 1138})
     Swag.assert(bytes.contains(FirstKey))
     Swag.assert(bytes.contains(SecondKey))
 

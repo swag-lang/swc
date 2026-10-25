@@ -275,7 +275,7 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    let infoBar = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 0, 40})
+    let infoBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 40})
     infoBar.dockStyle = .Bottom
 
     var result = openTestViewer(MarkdownText.viewerPlugin(), &host.root, fileName, commandParent: &host.root, infoParent: infoBar)

@@ -380,7 +380,7 @@ impl RollView
     // Builds the piano roll inside its own scroll window, taking ownership of `document`.
     func create(parent: *Wnd, document: #move Document)->*RollView
     {
-        with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", Math.Rectangle{})
+        with let scroll = Wnd.create'ScrollWnd(parent, "scope.midi.scroll", {})
         {
             .dockStyle = .Center
             .updateFlags(.CompactBars | .TransparentBars)

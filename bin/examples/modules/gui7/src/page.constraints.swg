@@ -56,7 +56,7 @@ func createConstraintsPage(parent: *Wnd)
     right.minSize.x = 180
     right.maxSize.x = 280
 
-    let center = Wnd.create'Wnd(host, Math.Rectangle{0, 0, 260, 160})
+    let center = Wnd.create'Wnd(host, {0, 0, 260, 160})
     center.backgroundStyle = .View
     center.dockStyle       = .Center
     center.margin          = 0

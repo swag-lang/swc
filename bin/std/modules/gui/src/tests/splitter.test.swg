@@ -36,8 +36,8 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
-    let pane0    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
-    let pane1    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
+    let pane0    = Wnd.create'Wnd(splitter, null, {})
+    let pane1    = Wnd.create'Wnd(splitter, null, {})
     splitter.addPane(pane0)
     splitter.addPane(pane1, 100)
 
@@ -104,8 +104,8 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
-    let pane0    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
-    let pane1    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
+    let pane0    = Wnd.create'Wnd(splitter, null, {})
+    let pane1    = Wnd.create'Wnd(splitter, null, {})
     splitter.addPane(pane0)
     splitter.addPane(pane1, 100)
 
@@ -126,8 +126,8 @@ using Swag, Core
     var host: Testing.HeadlessHost
     host.setup(320, 220)
     let splitter = SplitterCtrl.create(&host.root, {0, 0, 300, 200})
-    let pane0    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
-    let pane1    = Wnd.create'Wnd(splitter, null, Math.Rectangle{})
+    let pane0    = Wnd.create'Wnd(splitter, null, {})
+    let pane1    = Wnd.create'Wnd(splitter, null, {})
     splitter.addPane(pane0)
     splitter.addPane(pane1, 100)
 

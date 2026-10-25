@@ -161,7 +161,7 @@ impl MainWindow
     // Creates the status line at the bottom of the window.
     mtd createStatusLine()
     {
-        with .statusBar = Wnd.create'Wnd(&.wnd, Math.Rectangle{0, 0, 0, 32})
+        with .statusBar = Wnd.create'Wnd(&.wnd, {0, 0, 0, 32})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .InformationBar

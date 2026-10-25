@@ -65,7 +65,7 @@ func containsCharacter(characters: const [..] rune, expected: rune)->bool
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let commandBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 52})
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window

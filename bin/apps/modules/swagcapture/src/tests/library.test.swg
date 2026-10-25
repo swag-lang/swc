@@ -48,7 +48,7 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert(ratingLabel(3) == appStrings().act_Rating3)
     Swag.assert(ratingLabel(5) == appStrings().act_Rating5)
 
-    with f.main.recentBar = Wnd.create'Wnd(f.main, Math.Rectangle{0, 0, 0, 128})
+    with f.main.recentBar = Wnd.create'Wnd(f.main, {0, 0, 0, 128})
     {
         .dockStyle = .Bottom
     }

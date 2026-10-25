@@ -19,7 +19,7 @@ impl PanelWnd
 {
     func create(parent: *Wnd, title: string)->*PanelWnd
     {
-        let result = Wnd.create'PanelWnd(parent, Math.Rectangle{})
+        let result = Wnd.create'PanelWnd(parent, {})
         result.backgroundStyle = .Transparent
         result.title = title
         return result

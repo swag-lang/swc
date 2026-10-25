@@ -56,7 +56,7 @@ func writePreviewFile()->String
 func createTestViewer(host: *Testing.HeadlessHost, fileName: string, width, height: f32)->*Hex.Panel
 {
     Hex.registerTexts(&host.app)
-    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 640, 36})
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 640, 36})
     var viewerSession = openTestViewer(Hex.viewerPlugin(), &host.root, fileName, commandParent: commands, infoParent: commands)
     let view          = assume cast(*Hex.Panel, viewerSession.view)
     completeViewerBackgroundLoad(host, &view.load)
@@ -826,7 +826,7 @@ func completeHexViewerAnalysis(host: *Testing.HeadlessHost, view: *Hex.Panel)
     host.fireTimer(grid.selectionTimer)
     Swag.assert(grid.topRow > firstTop and grid.selectionLength() > 1)
 
-    with let other = Wnd.create'Wnd(&host.root, "hex.capture.other", Math.Rectangle{0, 0, 40, 20})
+    with let other = Wnd.create'Wnd(&host.root, "hex.capture.other", {0, 0, 40, 20})
     {
         .focusPolicy = .Tab
         .setFocus()

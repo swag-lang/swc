@@ -30,7 +30,7 @@ impl MotionField
 {
     func create(parent: *Wnd)->*MotionField
     {
-        let result = Wnd.create'MotionField(parent, Math.Rectangle{})
+        let result = Wnd.create'MotionField(parent, {})
         result.backgroundStyle = .Transparent
         result.cursor = Cursor.from(CursorShape.Hand)
         return result

@@ -68,7 +68,7 @@ using Swag, Core
     host.setup(420, 100)
     host.root.backgroundStyle = .Window
 
-    let page   = Wnd.create'Wnd(&host.root, null, Math.Rectangle{160, 10, 220, 60})
+    let page   = Wnd.create'Wnd(&host.root, null, {160, 10, 220, 60})
     let header = Header.create(page, {0, 10, 180, 24})
     header.form = .Transparent
     header.addColumn("Mounted", 160)

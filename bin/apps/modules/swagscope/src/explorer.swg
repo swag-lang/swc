@@ -172,14 +172,14 @@ impl Explorer
 
     private mtd createBar()
     {
-        with .bar = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, 84})
+        with .bar = Wnd.create'Wnd(me, {0, 0, 0, 84})
         {
             .dockStyle       = .Top
             .padding         = {8, 4, 8, 4}
             .backgroundStyle = .ToolBar
         }
 
-        with let navigation = Wnd.create'Wnd(.bar, Math.Rectangle{0, 0, 0, 36})
+        with let navigation = Wnd.create'Wnd(.bar, {0, 0, 0, 36})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent
@@ -237,7 +237,7 @@ impl Explorer
 
         .pathScroll.setView(.breadcrumb)
 
-        with let options = Wnd.create'Wnd(.bar, Math.Rectangle{0, 0, 0, 36})
+        with let options = Wnd.create'Wnd(.bar, {0, 0, 0, 36})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -870,7 +870,7 @@ impl ExplorerGrid
 {
     mtd rowAt(point: Math.Point)->u64
     {
-        let local = point + .scrollPos - Math.Point{12, 12}
+        let local = point + .scrollPos - {12, 12}
         if local.x < 0 or local.y < 0 do
             return Swag.U64.Max
         let column = cast(u64, local.x / .cell.x)

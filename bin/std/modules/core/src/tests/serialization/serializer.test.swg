@@ -37,7 +37,7 @@ func(T) roundTripSerializedField(value: T)->T fail
     let number = expect roundTripSerializedField(42'u32)
     Swag.assert(number == 42)
 
-    let payload = expect roundTripSerializedField(SerializerPayload{number: 7, active: true})
+    let payload = expect roundTripSerializedField({number: 7, active: true})
     Swag.assert(payload.number == 7)
     Swag.assert(payload.active)
 }

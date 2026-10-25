@@ -27,7 +27,7 @@ impl BuildOptions
         let result = Wnd.create'BuildOptions(parent)
         result.backgroundStyle = .Transparent
 
-        with let bar = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, 36})
+        with let bar = Wnd.create'Wnd(result, {0, 0, 0, 36})
         {
             .dockStyle = .Top
             .margin    = {0, 0, 0, 8}

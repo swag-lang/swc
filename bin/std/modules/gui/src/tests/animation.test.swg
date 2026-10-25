@@ -452,7 +452,7 @@ func linearSecond()->AnimationOptions
     host.setup(320, 200)
     host.setReducedMotion(false)
 
-    let target = Wnd.create'Wnd(&host.root, Math.Rectangle{40, 20, 100, 50})
+    let target = Wnd.create'Wnd(&host.root, {40, 20, 100, 50})
     Swag.assert(target.presentationRect() == {40, 20, 100, 50})
 
     target.setPresentationScale({0.5, 0.5})

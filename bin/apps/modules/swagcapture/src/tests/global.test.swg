@@ -10,7 +10,7 @@ func testSetupGlobalMain(main: *MainWnd)
     main.topBar = Wnd.create'Wnd(main, Math.Rectangle{0, 0, 900, themeActionButtonSize(main.themeMetrics())})
     main.createCommandRow()
 
-    with main.recentBar = Wnd.create'Wnd(main, Math.Rectangle{0, 0, 0, 128})
+    with main.recentBar = Wnd.create'Wnd(main, {0, 0, 0, 128})
     {
         .dockStyle = .Bottom
     }

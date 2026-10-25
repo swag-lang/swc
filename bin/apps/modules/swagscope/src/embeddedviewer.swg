@@ -284,7 +284,7 @@ private impl EmbeddedViewer
             .owner           = owner
         }
 
-        with result.header = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, EmbeddedHeaderHeight})
+        with result.header = Wnd.create'Wnd(result, {0, 0, 0, EmbeddedHeaderHeight})
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
@@ -303,7 +303,7 @@ private impl EmbeddedViewer
             }
         }
 
-        with result.infoLane = Wnd.create'Wnd(result.header, Math.Rectangle{0, 0, 0, 36})
+        with result.infoLane = Wnd.create'Wnd(result.header, {0, 0, 0, 36})
         {
             .dockStyle       = .Right
             .backgroundStyle = .Transparent

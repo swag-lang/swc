@@ -162,7 +162,7 @@ impl IPropertyNotify for PropHeadlessRoData
 {
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
-    let page = Wnd.create'Wnd(&host.root, Math.Rectangle{24, 104, 1192, 666})
+    let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
 
     var data: PropHeadlessGroupedData
     let ctrl = PropertiesCtrl.create(page, {0, 0, 560, 10}, .Grid, .SectionTabs | .SectionNavigation | .SearchBar)
@@ -175,7 +175,7 @@ impl IPropertyNotify for PropHeadlessRoData
     let paneIt = unwrap ctrl.splitter.items[0]
     paneIt.preserveSize = true
 
-    let preview = Wnd.create'FrameWnd(page, Math.Rectangle{})
+    let preview = Wnd.create'FrameWnd(page, {})
     preview.dockStyle = .Center
 
     page.applyLayout()
@@ -435,7 +435,7 @@ struct PropHeadlessColorData
     Swag.assert(y1 != y0)
 
     // Modal: with a popup open, the same wheel is swallowed and the list stays put.
-    let popup = Wnd.create'Wnd(&host.root, Math.Rectangle{})
+    let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
     sendWheel(prop, -6)
     Swag.assert(prop.scrollWnd.scrollPosition().y == y1)
@@ -479,7 +479,7 @@ func findIconButton(w: *Wnd)->*IconButton?
     Swag.assert(btn.isHot)
 
     // With a popup open, a MouseLeave must still reach the button and clear the hover.
-    let popup = Wnd.create'Wnd(&host.root, Math.Rectangle{})
+    let popup = Wnd.create'Wnd(&host.root, {})
     prop.editPopup = popup
     host.sendMouseEvent(btn, .Leave, {0, 0}, .Left, .None)
     Swag.assert(not btn.isHot)
@@ -695,7 +695,7 @@ func findIconButton(w: *Wnd)->*IconButton?
 {
     var host: Testing.HeadlessHost
     host.setup(1240, 820)
-    let page = Wnd.create'Wnd(&host.root, Math.Rectangle{24, 104, 1192, 666})
+    let page = Wnd.create'Wnd(&host.root, {24, 104, 1192, 666})
 
     let filter = EditBox.create(page, "")
     filter.dockStyle = .Top
@@ -2227,7 +2227,7 @@ func assertPropertyViewMenuAnchor(light: bool)
         host.theme.setDark()
     host.notify(.ThemeChanged)
 
-    let panel = Wnd.create'Wnd(&host.root, Math.Rectangle{36, 40, 440, 280})
+    let panel = Wnd.create'Wnd(&host.root, {36, 40, 440, 280})
     let ctrl  = PropertiesCtrl.create(panel, flags: .SearchBar)
     ctrl.dockStyle = .Center
     host.root.applyLayout()

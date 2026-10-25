@@ -219,7 +219,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var host: Testing.HeadlessHost
     host.setup(400, 200)
 
-    let panel = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 10, 180, 60})
+    let panel = Wnd.create'Wnd(&host.root, {10, 10, 180, 60})
     let first = EditBox.create(panel, "", {0, 0, 160, 24})
     let next  = EditBox.create(&host.root, "", {220, 10, 160, 24})
 
@@ -332,7 +332,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(400, 200)
 
     let field = EditBox.create(&host.root, "", {10, 10, 200, 24})
-    let bar   = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 60, 300, 40})
+    let bar   = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
     let yes   = PushButton.create(bar, "Yes", {0, 0, 80, 24})
     let no    = PushButton.create(bar, "No", {90, 0, 80, 24})
     let more  = PushButton.create(bar, "More", {180, 0, 80, 24})
@@ -407,7 +407,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(320, 240)
 
     let field  = EditBox.create(&host.root, "", {10, 10, 200, 24})
-    let bar    = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 60, 300, 40})
+    let bar    = Wnd.create'Wnd(&host.root, {10, 60, 300, 40})
     let ok     = PushButton.create(bar, "Ok", {0, 0, 80, 24}, form: .Default)
     let cancel = PushButton.create(bar, "Cancel", {90, 0, 80, 24})
 
@@ -480,7 +480,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     host.setup(400, 200)
 
     let alone = PushButton.create(&host.root, "A", {10, 10, 80, 24})
-    let box   = Wnd.create'Wnd(&host.root, Math.Rectangle{10, 60, 200, 40})
+    let box   = Wnd.create'Wnd(&host.root, {10, 60, 200, 40})
     let inner = PushButton.create(box, "B", {0, 0, 80, 24})
 
     inner.setFocus()
@@ -671,7 +671,7 @@ func focusHeadlessCard(parent: *Wnd, rect: Math.Rectangle)->FocusHeadlessCard
     var host: Testing.HeadlessHost
     host.setup(240, 64)
 
-    let bar    = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 64})
+    let bar    = Wnd.create'Wnd(&host.root, {0, 0, 240, 64})
     let ok     = PushButton.create(bar, "Ok", {20, 16, 90, 32}, form: .Default)
     let cancel = PushButton.create(bar, "Cancel", {130, 16, 90, 32})
 

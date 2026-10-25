@@ -87,7 +87,7 @@ impl MicrocodeViewer
             .sigChanged += func|viewer = result|(_, _) { viewer.optionsChanged() }
         }
 
-        with let footer = Wnd.create'Wnd(result, Math.Rectangle{0, 0, 0, 28})
+        with let footer = Wnd.create'Wnd(result, {0, 0, 0, 28})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Transparent

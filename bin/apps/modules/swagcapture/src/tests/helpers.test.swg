@@ -60,12 +60,12 @@ impl HeadlessFixture
 
     mtd setupLibraryWnd()->*LibraryWnd
     {
-        .main.libWnd      = Wnd.create'LibraryWnd(.main, Math.Rectangle{0, 0, 520, 420})
+        .main.libWnd      = Wnd.create'LibraryWnd(.main, {0, 0, 520, 420})
         .main.libWnd.main = .main
         .main.libWnd.registerActions()
 
-        let scroll = Wnd.create'ScrollWnd(.main.libWnd, Math.Rectangle{0, 0, 520, 420})
-        let view   = Wnd.create'LibraryView(scroll, Math.Rectangle{0, 0, 520, 420})
+        let scroll = Wnd.create'ScrollWnd(.main.libWnd, {0, 0, 520, 420})
+        let view   = Wnd.create'LibraryView(scroll, {0, 0, 520, 420})
         view.libWnd    = .main.libWnd
         view.mainWnd   = .main
         view.scrollWnd = scroll

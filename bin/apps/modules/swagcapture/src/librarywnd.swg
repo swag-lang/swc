@@ -291,7 +291,7 @@ impl LibraryWnd
         // the selected form on the right; the library puts its dates on the left and the
         // captures themselves fill the rest. A date list on the right would swap the meaning
         // of the same edge when switching modes.
-        with result.sideBar = Wnd.create'Wnd(result, Math.Rectangle{0, 0, SideBarWidth, 0})
+        with result.sideBar = Wnd.create'Wnd(result, {0, 0, SideBarWidth, 0})
         {
             .dockStyle       = .Left
             .backgroundStyle = .Panel

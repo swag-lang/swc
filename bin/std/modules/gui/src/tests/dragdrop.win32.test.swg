@@ -274,7 +274,7 @@ impl IWnd for PlatformCatcher
     var host: Testing.HeadlessHost
     host.setup(200, 200)
 
-    let catcher = Wnd.create'PlatformCatcher(&host.surfaceWnd, Math.Rectangle{0, 0, 200, 200})
+    let catcher = Wnd.create'PlatformCatcher(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
     var data: DragData
@@ -567,7 +567,7 @@ impl IWnd for PlatformCatcher
     var host: Testing.HeadlessHost
     host.setup(200, 200)
 
-    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, Math.Rectangle{0, 0, 200, 200})
+    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
     var produced = 0'u32
@@ -609,7 +609,7 @@ impl IWnd for PlatformCatcher
     var host: Testing.HeadlessHost
     host.setup(200, 200)
 
-    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, Math.Rectangle{0, 0, 200, 200})
+    let catcher = Wnd.create'ContentCatcher(&host.surfaceWnd, {0, 0, 200, 200})
     host.surfaceWnd.view = catcher
 
     var produced = 0'u32

@@ -21,7 +21,7 @@ impl ViewerActionBar
 {
     func create(parent: *Wnd)->*ViewerActionBar
     {
-        with let result = Wnd.create'ViewerActionBar(parent, Math.Rectangle{0, 0, 0, ViewerWindow.ActionBarHeight})
+        with let result = Wnd.create'ViewerActionBar(parent, {0, 0, 0, ViewerWindow.ActionBarHeight})
         {
             .dockStyle       = .Top
             .backgroundStyle = .ToolBar
@@ -349,7 +349,7 @@ impl ViewerLoadingOverlay
         {
             .wndFlags                |= WndFlags.TopMost | WndFlags.Disabled
             .backgroundStyle         = .Transparent
-            .spinner                 = Wnd.create'ViewerLoadingSpinner(result, Math.Rectangle{0, 0, ViewerLoadingSpinner.Size, ViewerLoadingSpinner.Size})
+            .spinner                 = Wnd.create'ViewerLoadingSpinner(result, {0, 0, ViewerLoadingSpinner.Size, ViewerLoadingSpinner.Size})
             .spinner.backgroundStyle = .Transparent
             .hide()
         }

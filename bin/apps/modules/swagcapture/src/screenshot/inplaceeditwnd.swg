@@ -96,7 +96,7 @@ impl InPlaceEditWnd
     // edits `capture` where it was taken.
     func createMainFrame(main: *MainWnd, parent: *Wnd, capture: *Capture)->*InPlaceEditWnd
     {
-        with let newMain = Wnd.create'MainWnd(main.parent, Math.Rectangle{})
+        with let newMain = Wnd.create'MainWnd(main.parent, {})
         {
             .registerActions()
             .registerShortcuts()

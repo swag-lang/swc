@@ -15,7 +15,7 @@ using Core, Pixel, Gui, Viewers
     discard expect File.writeAllBytes(fileName, source)
     var host: Testing.HeadlessHost
     host.setup(640, 360)
-    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var session  = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, session.view)

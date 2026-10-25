@@ -1246,7 +1246,7 @@ impl PdfView
         result.focusPolicy = .Tab
         result.wndFlags    |= .NoFocusRing
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", Math.Rectangle{})
+        result.scroll = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
 
         // The document is laid out from the viewport the scroll frame gives its view, so the

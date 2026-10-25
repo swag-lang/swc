@@ -107,7 +107,7 @@ impl WidgetWall
 {
     func create(parent: *Wnd)->*WidgetWall
     {
-        let result = Wnd.create'WidgetWall(parent, Math.Rectangle{})
+        let result = Wnd.create'WidgetWall(parent, {})
         result.setFrameForm(.Square)
         result.setFrameFlags(.Borders)
         result.view = result.createView'Wnd()

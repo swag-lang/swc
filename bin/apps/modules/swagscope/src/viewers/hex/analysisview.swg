@@ -98,7 +98,7 @@ impl HistogramView
 
     func create(parent: *Wnd)->*HistogramView
     {
-        with let result = Wnd.create'HistogramView(parent, Math.Rectangle{0, 0, 0, Size})
+        with let result = Wnd.create'HistogramView(parent, {0, 0, 0, Size})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent

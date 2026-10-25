@@ -532,7 +532,7 @@ impl FileBrowserCtrl
 
         // Top navigation bar
         ////////////////////////
-        with let viewTop = Wnd.create'Wnd(fileBrowser, Math.Rectangle{0, 0, 0, 46})
+        with let viewTop = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 46})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Window
@@ -641,7 +641,7 @@ impl FileBrowserCtrl
         discard form.addField(strings().browser_Type, fileBrowser.comboType)
 
         // Status line between the file list and the name editor.
-        with let statusBar = Wnd.create'Wnd(fileBrowser, Math.Rectangle{0, 0, 0, 24})
+        with let statusBar = Wnd.create'Wnd(fileBrowser, {0, 0, 0, 24})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .Window

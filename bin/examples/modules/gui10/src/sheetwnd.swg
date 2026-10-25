@@ -331,7 +331,7 @@ impl SheetWnd
 {
     func create(parent: *Wnd)->*SheetWnd
     {
-        with let result = Wnd.create'SheetWnd(parent, Math.Rectangle{})
+        with let result = Wnd.create'SheetWnd(parent, {})
         {
             .setFrameForm(.Square)
             .setFrameFlags(.Borders)

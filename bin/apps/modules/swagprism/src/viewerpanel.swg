@@ -56,7 +56,7 @@ impl ViewerPanel
     // configuration actions docked to its right edge.
     mtd createHeader()
     {
-        with .header = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, 36})
+        with .header = Wnd.create'Wnd(me, {0, 0, 0, 36})
         {
             .dockStyle       = .Top
             .backgroundStyle = .Transparent

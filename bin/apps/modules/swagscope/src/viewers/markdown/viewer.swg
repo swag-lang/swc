@@ -416,7 +416,7 @@ impl ZoomButton
     // Creates the zoom menu of `view` at the persisted zoom; both selectors restyle the same view.
     func create(parent: *Wnd, view: *Markdown.View, themeCombo, widthCombo: *ComboBox)->*ZoomButton
     {
-        with let result = Wnd.create'ZoomButton(parent, null, Math.Rectangle{0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
+        with let result = Wnd.create'ZoomButton(parent, null, {0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
         {
             .view        = view
             .themeCombo  = themeCombo

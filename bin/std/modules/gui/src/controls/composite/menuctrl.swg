@@ -1191,7 +1191,7 @@ public impl MenuCtrl
         Swag.assert(parent != null)
         let topView     = parent.topView()
         let popupParent = parent == topView or topView.isAncestorOf(parent) ? topView : parent.topWindow()
-        with let res    = Wnd.create'MenuCtrl(popupParent, null, Math.Rectangle{}, id)
+        with let res    = Wnd.create'MenuCtrl(popupParent, null, {}, id)
         {
             .focusPolicy = .Click
             .owner       = owner orelse parent

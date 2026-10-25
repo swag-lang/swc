@@ -12,7 +12,7 @@ impl MainWindow
             .spacing   = 4
         }
 
-        with let titleRow = Wnd.create'Wnd(header, Math.Rectangle{0, 0, 0, 44})
+        with let titleRow = Wnd.create'Wnd(header, {0, 0, 0, 44})
         {
             .dockStyle = .Top
         }
@@ -44,7 +44,7 @@ impl MainWindow
     // Creates the attribution row and, above it, the status line.
     mtd createFooter()
     {
-        with let footerRow = Wnd.create'Wnd(&.wnd, Math.Rectangle{0, 0, 0, 24})
+        with let footerRow = Wnd.create'Wnd(&.wnd, {0, 0, 0, 24})
         {
             .dockStyle = .Bottom
             .margin    = {32, 0, 32, 12}
@@ -65,7 +65,7 @@ impl MainWindow
 
         // The status line is raised off the ground by the same slight panel shape as the card. A
         // border around it would draw a third box on a surface that already reads without one.
-        with .statusView = Wnd.create'Wnd(&.wnd, Math.Rectangle{0, 0, 0, 52})
+        with .statusView = Wnd.create'Wnd(&.wnd, {0, 0, 0, 52})
         {
             .dockStyle       = .Bottom
             .margin          = {32, 0, 32, 12}

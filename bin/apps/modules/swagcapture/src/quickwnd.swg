@@ -355,7 +355,7 @@ impl QuickWnd
     // Builds the quick style panel: a scrolling wrap of preset buttons.
     func create(parent: *Wnd, main: *MainWnd)->*QuickWnd
     {
-        with let quick = Wnd.create'QuickWnd(parent, Math.Rectangle{0, 0, 0, 300})
+        with let quick = Wnd.create'QuickWnd(parent, {0, 0, 0, 300})
         {
             .backgroundStyle = .Transparent
             .updateFlags(.AlwaysShowVertical | .CompactBars | .TransparentBars)
@@ -877,7 +877,7 @@ impl QuickWnd
     // Adds the cell of one preset; checking it applies the preset to the tool and to the selection.
     mtd addPresetButton(form: IForm)
     {
-        with let button = Wnd.create'QuickButton(me.layout, null, Math.Rectangle{0, 0, QuickCellSize, QuickCellSize})
+        with let button = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
         {
             .updateFlags(.Radio)
             .setForm(.Rectangle)
@@ -924,7 +924,7 @@ impl QuickWnd
     // Adds the trailing cell, which shows the current tool style and offers to keep it as a preset.
     mtd addModelButton(form: IForm)
     {
-        with let btn = Wnd.create'QuickButton(me.layout, null, Math.Rectangle{0, 0, QuickCellSize, QuickCellSize})
+        with let btn = Wnd.create'QuickButton(me.layout, null, {0, 0, QuickCellSize, QuickCellSize})
         {
             .updateFlags(.Radio)
             .isModel = true

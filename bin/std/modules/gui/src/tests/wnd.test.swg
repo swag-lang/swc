@@ -51,9 +51,9 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 200, 200})
-    let a         = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 50, 50}, "Wnd.A")
-    let b         = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 50, 50}, "Wnd.B")
+    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
+    let a         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.A")
+    let b         = Wnd.create'Wnd(container, null, {0, 0, 50, 50}, "Wnd.B")
 
     Swag.assert(container.children.count == 2)
     Swag.assert(a.parent == container)
@@ -71,10 +71,10 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let left       = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 100, 200})
-    let right      = Wnd.create'Wnd(&host.root, null, Math.Rectangle{100, 0, 100, 200})
-    let child      = Wnd.create'Wnd(left, null, Math.Rectangle{0, 0, 50, 50})
-    let grandChild = Wnd.create'Wnd(child, null, Math.Rectangle{0, 0, 20, 20})
+    let left       = Wnd.create'Wnd(&host.root, null, {0, 0, 100, 200})
+    let right      = Wnd.create'Wnd(&host.root, null, {100, 0, 100, 200})
+    let child      = Wnd.create'Wnd(left, null, {0, 0, 50, 50})
+    let grandChild = Wnd.create'Wnd(child, null, {0, 0, 20, 20})
 
     Swag.assert(left.detachChild(child))
     Swag.assert(child.parent == null and child.surface == null)
@@ -92,8 +92,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 200, 200})
-    let child     = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 50, 50})
+    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
+    let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
     Swag.assert(child.isVisible())
     Swag.assert(child.isLocallyVisible())
@@ -118,8 +118,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 200, 200})
-    let child     = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 50, 50})
+    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
+    let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
 
     Swag.assert(child.isEnabled())
     Swag.assert(child.isLocallyEnabled())
@@ -145,8 +145,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, Math.Rectangle{10, 20, 180, 160})
-    let child     = Wnd.create'Wnd(container, null, Math.Rectangle{30, 40, 50, 50})
+    let container = Wnd.create'Wnd(&host.root, null, {10, 20, 180, 160})
+    let child     = Wnd.create'Wnd(container, null, {30, 40, 50, 50})
 
     // child is at container(10,20) + local(30,40) in surface space.
     Swag.assert(child.localToSurface(Math.Point{0, 0}) == Math.Point{40, 60})
@@ -171,10 +171,10 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(220, 140)
-    let container = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 200, 100})
-    let left      = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 40, 0})
-    let right     = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 30, 0})
-    let center    = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 0, 0})
+    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 100})
+    let left      = Wnd.create'Wnd(container, null, {0, 0, 40, 0})
+    let right     = Wnd.create'Wnd(container, null, {0, 0, 30, 0})
+    let center    = Wnd.create'Wnd(container, null, {0, 0, 0, 0})
 
     left.dockStyle   = .Left
     right.dockStyle  = .Right
@@ -191,8 +191,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, Math.Rectangle{10, 10, 180, 180})
-    let child     = Wnd.create'Wnd(container, null, Math.Rectangle{20, 20, 60, 60})
+    let container = Wnd.create'Wnd(&host.root, null, {10, 10, 180, 180})
+    let child     = Wnd.create'Wnd(container, null, {20, 20, 60, 60})
 
     // Surface point (40,40) -> container(10,10) -> child local (20,20): inside child.
     Swag.assert(host.root.windowAt(40, 40, true) == child)
@@ -215,9 +215,9 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 200, 200})
-    let a         = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 100, 100})
-    let b         = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 100, 100})
+    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
+    let a         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
+    let b         = Wnd.create'Wnd(container, null, {0, 0, 100, 100})
 
     // b was added last -> painted on top -> hit first.
     Swag.assert(host.root.windowAt(50, 50, true) == b)
@@ -236,8 +236,8 @@ impl IWnd for AncestorTestWnd {}
 {
     var host: Testing.HeadlessHost
     host.setup(200, 200)
-    let container = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 200, 200})
-    let child     = Wnd.create'Wnd(container, null, Math.Rectangle{0, 0, 50, 50})
+    let container = Wnd.create'Wnd(&host.root, null, {0, 0, 200, 200})
+    let child     = Wnd.create'Wnd(container, null, {0, 0, 50, 50})
     Swag.assert(container.children.count == 1)
 
     child.destroy()
@@ -252,19 +252,19 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(240, 180)
 
-    let scroller = Wnd.create'Wnd(&host.root, null, Math.Rectangle{10, 20, 200, 140})
+    let scroller = Wnd.create'Wnd(&host.root, null, {10, 20, 200, 140})
     scroller.scrollPos = {0, 70}
 
-    let normal = Wnd.create'Wnd(scroller, null, Math.Rectangle{5, 100, 40, 30})
+    let normal = Wnd.create'Wnd(scroller, null, {5, 100, 40, 30})
     Swag.assert(normal.surfaceRect().y == 50)
 
-    let fixed = Wnd.create'Wnd(scroller, null, Math.Rectangle{5, 30, 80, 60})
+    let fixed = Wnd.create'Wnd(scroller, null, {5, 30, 80, 60})
     fixed.wndFlags |= .NoScroll
     Swag.assert(fixed.surfaceRect().y == 50)
     Swag.assert(fixed.surfaceToLocal({15, 50}) == Math.Point{0, 0})
 
     fixed.scrollPos = {0, 6}
-    let nested = Wnd.create'Wnd(fixed, null, Math.Rectangle{2, 20, 20, 20})
+    let nested = Wnd.create'Wnd(fixed, null, {2, 20, 20, 20})
     Swag.assert(nested.surfaceRect().y == 64)
 
     host.root.scrollPos = {0, 9}
@@ -282,7 +282,7 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(160, 100)
 
-    let wnd   = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 40, 30})
+    let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     let timer = wnd.addTimer(1'ms)
     Swag.assert(not timer.isPendingRemoval)
     wnd.destroy()
@@ -297,7 +297,7 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(160, 100)
 
-    let wnd   = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 40, 30})
+    let wnd   = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     let timer = wnd.addTimer(1'ms)
     wnd.destroy()
     host.pumpTimerQueues()
@@ -311,7 +311,7 @@ impl IWnd for AncestorTestWnd {}
     var host: Testing.HeadlessHost
     host.setup(160, 100)
 
-    let wnd = Wnd.create'Wnd(&host.root, null, Math.Rectangle{0, 0, 40, 30})
+    let wnd = Wnd.create'Wnd(&host.root, null, {0, 0, 40, 30})
     var timer: *Timer? = wnd.addTimer(1'ms)
     wnd.stopTimer(&timer)
     Swag.assert(timer == null)

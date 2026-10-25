@@ -154,7 +154,7 @@ func createRootView()
     }
 
     // Content area below the title.
-    let content = Wnd.create'Wnd(unwrap g_View, Math.Rectangle{})
+    let content = Wnd.create'Wnd(unwrap g_View, {})
     content.dockStyle       = .Center
     content.backgroundStyle = .Transparent
 
@@ -176,7 +176,7 @@ func createRootView()
     }
 
     // Right: a column of buttons launching each predefined dialog.
-    let panel = Wnd.create'Wnd(content, Math.Rectangle{})
+    let panel = Wnd.create'Wnd(content, {})
     panel.dockStyle       = .Center
     panel.backgroundStyle = .Transparent
 

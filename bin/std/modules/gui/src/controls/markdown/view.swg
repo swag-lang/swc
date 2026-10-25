@@ -1229,7 +1229,7 @@ impl View
             .contentHeight   = documentStyle.topInset
         }
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", Math.Rectangle{})
+        result.scroll = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
         result.scroll.verticalScrollStep       = documentStyle.bodyLineHeight > 0 ? documentStyle.bodyLineHeight : result.documentFont(.Paragraph, documentStyle.bodyFontSize).height * documentStyle.lineHeight

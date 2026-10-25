@@ -17,7 +17,7 @@ func breadcrumbPressed(_: *BreadcrumbCtrl, idx: u64)
 {
     var host: Testing.HeadlessHost
     host.setup(180, 60)
-    let scroll     = Wnd.create'ScrollWnd(&host.root, Math.Rectangle{0, 0, 180, 40})
+    let scroll     = Wnd.create'ScrollWnd(&host.root, {0, 0, 180, 40})
     let breadcrumb = BreadcrumbCtrl.create(scroll)
     scroll.setView(breadcrumb)
     breadcrumb.addItem("A long ancestor folder")

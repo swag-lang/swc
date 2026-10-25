@@ -107,7 +107,7 @@ func subtitleViewerFixturePath()->String => Path.combine(unwrap Path.directoryNa
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let infoBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 40})
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
     {
         .dockStyle       = .Top
         .backgroundStyle = .InformationBar

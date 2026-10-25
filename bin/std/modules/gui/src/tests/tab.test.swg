@@ -82,8 +82,8 @@ var TabHeadlessSelChangedCount: u32
     var host: Testing.HeadlessHost
     host.setup(320, 200)
     let tab   = Tab.create(&host.root, {10, 10, 300, 180})
-    let viewA = Wnd.create'Wnd(tab, null, Math.Rectangle{0, 0, 100, 100})
-    let viewB = Wnd.create'Wnd(tab, null, Math.Rectangle{0, 0, 100, 100})
+    let viewA = Wnd.create'Wnd(tab, null, {0, 0, 100, 100})
+    let viewB = Wnd.create'Wnd(tab, null, {0, 0, 100, 100})
 
     tab.addItem("A", {}, viewA)
     tab.addItem("B", {}, viewB)

@@ -44,7 +44,7 @@ impl CurveWall
 {
     func create(parent: *Wnd)->*CurveWall
     {
-        let result = Wnd.create'CurveWall(parent, Math.Rectangle{})
+        let result = Wnd.create'CurveWall(parent, {})
         result.backgroundStyle = .Transparent
         return result
     }

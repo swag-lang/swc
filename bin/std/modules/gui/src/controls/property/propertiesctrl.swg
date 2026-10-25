@@ -71,7 +71,7 @@ impl PropertiesCtrl
         // Filter bar and view options
         if flags.has(.SearchBar)
         {
-            with let bar = Wnd.create'Wnd(ed, Math.Rectangle{0, 0, 0, 36})
+            with let bar = Wnd.create'Wnd(ed, {0, 0, 0, 36})
             {
                 .dockStyle = .Top
                 .margin.w  = 8

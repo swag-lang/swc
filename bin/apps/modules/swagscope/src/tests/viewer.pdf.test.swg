@@ -102,14 +102,14 @@ private func createPdfFixture()->String
     host.theme.setSwagDark()
     host.notify(.ThemeChanged)
 
-    with let commandBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 52})
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
         .padding         = {16, 8, 16, 8}
     }
 
-    with let infoBar = Wnd.create'ViewerActionBar(&host.root, Math.Rectangle{0, 0, 0, 40})
+    with let infoBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 40})
     {
         .dockStyle       = .Top
         .backgroundStyle = .InformationBar

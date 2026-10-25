@@ -388,7 +388,7 @@ const TouchingCells: [5] Cell = [
         Swag.assert(dirs[i] == expected[i])
 
     // Editing the contour in place is announced through its revision, and the directions follow.
-    path.polygon.points[0] += Math.Vector2{10, 10}
+    path.polygon.points[0] += {10, 10}
     path.touchContour()
     path.polygon.fillOffsetDirections(&expected)
     let moved = path.offsetDirections()

@@ -143,7 +143,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     host.setup(640, 360)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 80, 36})
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands)
     Swag.assert(result.view != null)
     Swag.assert(result.commands != null and result.isLoading != null and result.needsLoadingOverlay != null)
@@ -164,7 +164,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     // A second file opened after the engine exists must decode exactly like the first one: a
     // failure swallowed inside the engine on its way out of the module would leave every waveform
     // but the first one empty.
-    let replacementCommands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 80, 36})
+    let replacementCommands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var replacementResult   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: replacementCommands)
     Swag.assert(replacementResult.view != null)
     let replacement = assume cast(*Sound.Panel, replacementResult.view)
@@ -232,7 +232,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
     host.theme.metrics.surfaceWnd_CornerRadius = 0
     host.notify(.ThemeChanged)
 
-    with let commandBar = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 0, 52})
+    with let commandBar = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
     {
         .dockStyle       = .Bottom
         .backgroundStyle = .Window
@@ -346,7 +346,7 @@ func markSoundOpenFailure(wnd: *Wnd, _: string)
 
     var host: Testing.HeadlessHost
     host.setup(640, 320)
-    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 80, 36})
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 80, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, pacmanWav, commandParent: commands)
     Swag.assert(result.view != null)
     let view = assume cast(*Sound.Panel, result.view)
@@ -382,7 +382,7 @@ func answerSoundEnd(wnd: *Wnd)->Viewer.Continuation
     var host: Testing.HeadlessHost
     host.setup(720, 420)
 
-    let commands = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 480, 36})
+    let commands = Wnd.create'Wnd(&host.root, {0, 0, 480, 36})
     var result   = openTestViewer(Sound.viewerPlugin(), &host.root, fileName, commandParent: commands, services: {reportFinished: &answerSoundEnd})
     Swag.assert(result.view != null)
     let view   = assume cast(*Sound.Panel, result.view)

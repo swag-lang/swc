@@ -63,7 +63,7 @@ func createPanel(parent: *Wnd, title, subtitle: string, rect: Math.Rectangle)->*
 
 func createPane(parent: *Wnd, title, text: string)->*FrameWnd
 {
-    let frame = Wnd.create'FrameWnd(parent, Math.Rectangle{})
+    let frame = Wnd.create'FrameWnd(parent, {})
     frame.setFrameForm(.Round)
     frame.setFrameFlags(.None, .Borders)
 
@@ -327,7 +327,7 @@ func createRootView()
     themeButton.setIcon(app.theme.icon(.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, Math.Rectangle{})
+    let pageView = Wnd.create'Wnd(view, {})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 

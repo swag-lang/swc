@@ -65,7 +65,7 @@ impl AppearanceButton
     func create(surface: *Surface, id: WndId? = null)->*AppearanceButton
     {
         let parent      = assume cast (*SurfaceWnd, surface.wnd)
-        with let result = Wnd.create'AppearanceButton(parent, null, Math.Rectangle{}, id)
+        with let result = Wnd.create'AppearanceButton(parent, null, {}, id)
         {
             .button.setIcon(surface.app.theme.icon(.Appearance, surface.app.theme.metrics.wnd_CaptionButtonGlyph))
             .setForm(.RoundedRectangle)

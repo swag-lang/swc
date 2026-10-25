@@ -164,7 +164,7 @@ impl ViewerWindow
             .padding         = {8, 2, 8, 2}
         }
 
-        with .infoContentGroup = Wnd.create'ViewerInfoLayout(.infoBar, Math.Rectangle{0, 0, 0, 36})
+        with .infoContentGroup = Wnd.create'ViewerInfoLayout(.infoBar, {0, 0, 0, 36})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent
@@ -222,7 +222,7 @@ impl ViewerWindow
 
     private mtd createViewerBar()
     {
-        with .viewerBar = Wnd.create'ViewerActionBar(me, Math.Rectangle{0, 0, 0, BarHeight})
+        with .viewerBar = Wnd.create'ViewerActionBar(me, {0, 0, 0, BarHeight})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar

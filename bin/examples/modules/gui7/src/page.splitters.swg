@@ -28,7 +28,7 @@ func createSplitterPage(parent: *Wnd)
     navItem.maximumSize  = 280
     navItem.preserveSize = true
 
-    let work     = Wnd.create'Wnd(rootSplit, Math.Rectangle{})
+    let work     = Wnd.create'Wnd(rootSplit, {})
     let workItem = rootSplit.addPane(work, 520)
     workItem.minimumSize = 320
 

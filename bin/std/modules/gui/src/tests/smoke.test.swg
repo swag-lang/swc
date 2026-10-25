@@ -261,7 +261,7 @@ const GuiHeadlessSmoke_ModalExit   = "GuiHeadlessSmoke.ModalExit"
     host.surface.position                      = {10, 20, 240, 120}
     host.surface.wnd.padding.y                 = host.theme.metrics.wnd_BigCaptionCY
 
-    let captionChild = Wnd.create'Wnd(&host.surfaceWnd, Math.Rectangle{20, 4, 60, 24})
+    let captionChild = Wnd.create'Wnd(&host.surfaceWnd, {20, 4, 60, 24})
     Swag.assert(not host.surfaceWnd.hitTestCaption({30, 15}))
     Swag.assert(host.surfaceWnd.hitTestCaption({100, 15}))
     captionChild.destroy()

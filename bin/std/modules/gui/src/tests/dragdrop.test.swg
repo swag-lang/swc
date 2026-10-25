@@ -383,7 +383,7 @@ internal func makeCatcher(parent: *Wnd, rect: Math.Rectangle)->*DropCatcher => W
     host.setup(200, 200)
 
     let catcher = makeCatcher(&host.root, {10, 10, 100, 100})
-    let overlay = Wnd.create'Wnd(catcher, Math.Rectangle{0, 0, 100, 100})
+    let overlay = Wnd.create'Wnd(catcher, {0, 0, 100, 100})
     overlay.disable()
 
     let effect = host.dropFiles({50, 50}, ["c:/tmp/one.txt"])

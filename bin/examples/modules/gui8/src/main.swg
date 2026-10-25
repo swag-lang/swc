@@ -327,7 +327,7 @@ func createRootView()
     themeButton.setIcon(app.theme.icon(.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, Math.Rectangle{})
+    let pageView = Wnd.create'Wnd(view, {})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 

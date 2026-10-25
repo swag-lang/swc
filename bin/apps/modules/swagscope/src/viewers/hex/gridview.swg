@@ -1327,7 +1327,7 @@ impl GridView
     // Creates an empty grid inside a scroll frame.
     func create(parent: *Wnd)->*GridView
     {
-        let scroll = Wnd.create'ScrollWnd(parent, "", Math.Rectangle{})
+        let scroll = Wnd.create'ScrollWnd(parent, "", {})
         scroll.dockStyle = .Center
 
         with let result = scroll.createView'GridView()

@@ -1354,7 +1354,7 @@ internal impl HtmlView
             .parser.start(&.document)
         }
 
-        result.scroll = Wnd.create'ScrollWnd(result, "", Math.Rectangle{})
+        result.scroll = Wnd.create'ScrollWnd(result, "", {})
         result.scroll.dockStyle = .Center
         result.scroll.updateFlags(.DisableHorizontal)
 

@@ -231,7 +231,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 #test
 {
     var options: BasicOptions
-    let result = expect CommandLine.parse(&options, ["run", "snake", "-count", "3"], CommandLine.ParseOptions{capturePositionals: true})
+    let result = expect CommandLine.parse(&options, ["run", "snake", "-count", "3"], {capturePositionals: true})
 
     Swag.assert(result.positionals.count == 2)
     Swag.assert(result.positionals[0] == "run")
@@ -245,7 +245,7 @@ func assertStringValues(values: Array'String, expected: const [..] string)->bool
 #test
 {
     var options: BasicOptions
-    let result = expect CommandLine.parse(&options, ["--seed", "123", "-count", "3", "--rebuild", "--out:dir with space"], CommandLine.ParseOptions{captureUnknown: true})
+    let result = expect CommandLine.parse(&options, ["--seed", "123", "-count", "3", "--rebuild", "--out:dir with space"], {captureUnknown: true})
 
     Swag.assert(options.count == 3)
     Swag.assert(result.unknown.count == 4)

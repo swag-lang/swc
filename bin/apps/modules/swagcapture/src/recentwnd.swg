@@ -389,7 +389,7 @@ impl RecentWnd
     // Builds the recent strip: a horizontal scroll of capture thumbnails.
     func create(parent: *Wnd, main: *MainWnd)->*RecentWnd
     {
-        with let recent = Wnd.create'RecentWnd(parent, Math.Rectangle{0, 0, 0, PreviewHeight + RecentPadding * 2})
+        with let recent = Wnd.create'RecentWnd(parent, {0, 0, 0, PreviewHeight + RecentPadding * 2})
         {
             .updateFlags(.CompactBars | .AlwaysShowHorizontal)
             .backgroundStyle = .Panel

@@ -263,7 +263,7 @@ impl SeekOverlay
 {
     func create(parent: *Wnd)->*SeekOverlay
     {
-        with let result = Wnd.create'SeekOverlay(parent, "scope.video.seek", Math.Rectangle{0, 0, SeekOverlaySize.x, SeekOverlaySize.y})
+        with let result = Wnd.create'SeekOverlay(parent, "scope.video.seek", {0, 0, SeekOverlaySize.x, SeekOverlaySize.y})
         {
             .wndFlags        |= .TopMost | .Disabled
             .backgroundStyle = .Transparent

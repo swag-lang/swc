@@ -188,7 +188,7 @@ func createSidePanelFixture(host: Viewer.Host)
     var host: Testing.HeadlessHost
     host.setup(720, 460)
 
-    let infoParent = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 720, 40})
+    let infoParent = Wnd.create'Wnd(&host.root, {0, 0, 720, 40})
     var session    = openTestViewer(testViewerPlugin(&createSidePanelFixture), &host.root, "fixture.panel", infoParent: infoParent)
     host.root.applyLayout()
 
@@ -266,7 +266,7 @@ func createSidePanelFixture(host: Viewer.Host)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -310,7 +310,7 @@ func createSidePanelFixture(host: Viewer.Host)
 
     var host: Testing.HeadlessHost
     host.setup(640, 420)
-    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 36})
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
     let view          = assume cast(*PlainText.Panel, viewerSession.view)
     completeTextStatistics(&host, view)
@@ -385,7 +385,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 36})
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, wideFile, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -412,7 +412,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 36})
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, file, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -445,7 +445,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 240, 36})
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 240, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, file, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -930,7 +930,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -1006,7 +1006,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     var host: Testing.HeadlessHost
     host.setup(800, 560)
-    let commands      = Wnd.create'Wnd(&host.root, Math.Rectangle{0, 0, 200, 36})
+    let commands      = Wnd.create'Wnd(&host.root, {0, 0, 200, 36})
     var viewerSession = openTestViewer(PlainText.viewerPlugin(), &host.root, fileName, commandParent: commands)
 
     with let view = assume cast(*PlainText.Panel, viewerSession.view)
@@ -1503,7 +1503,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     // Viewer tools have their own full-width band and cannot collide with the global selector.
     window.resize(ViewerWindow.MinWidth, 680)
     window.viewerCombo.show()
-    let widestCommands = Wnd.create'Wnd(window.viewerBar, Math.Rectangle{0, 0, 0, 36})
+    let widestCommands = Wnd.create'Wnd(window.viewerBar, {0, 0, 0, 36})
     widestCommands.dockStyle         = .Center
     window.viewerBar.position.height = ViewerWindow.BarHeight
     window.viewerBar.show()

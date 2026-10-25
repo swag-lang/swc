@@ -369,12 +369,12 @@ func setCardCount(count: s32)
 func createInspectorPage(parent: *Wnd)
 {
     // Left column: a control row (display mode + edited count), then the property controller.
-    let objHost = Wnd.create'Wnd(parent, Math.Rectangle{0, 0, InspectorWidth, 10})
+    let objHost = Wnd.create'Wnd(parent, {0, 0, InspectorWidth, 10})
     g_ObjHost         = objHost
     objHost.dockStyle = .Left
     objHost.margin.z  = SplitGap
 
-    let controls = Wnd.create'Wnd(objHost, Math.Rectangle{0, 0, 0, 44})
+    let controls = Wnd.create'Wnd(objHost, {0, 0, 0, 44})
     controls.dockStyle = .Top
     controls.margin.w  = 8
 
@@ -675,7 +675,7 @@ func createRootView()
     themeButton.setIcon(app.theme.icon(ThemeIcons.Picker, 18))
     themeButton.sigPressed += &toggleTheme
 
-    let pageView = Wnd.create'Wnd(view, Math.Rectangle{})
+    let pageView = Wnd.create'Wnd(view, {})
     g_PageView = pageView
     pageView.backgroundStyle = .Transparent
 

@@ -356,7 +356,7 @@ impl MainWnd
     mtd createRecentBar()
     {
         let panelGutter = .themeMetrics().panel_GutterSize
-        with .recentBar = Wnd.create'Wnd(me, Math.Rectangle{0, 0, 0, 136})
+        with .recentBar = Wnd.create'Wnd(me, {0, 0, 0, 136})
         {
             .dockStyle       = .Bottom
             .backgroundStyle = .ToolBar
@@ -381,7 +381,7 @@ impl MainWnd
             .padding         = Math.Vector4{panelGutter, panelGutter, panelGutter, 0}
         }
 
-        with let rightPanel = Wnd.create'Wnd(me.rightBar, Math.Rectangle{0, 0, RightPanelWidth, 0})
+        with let rightPanel = Wnd.create'Wnd(me.rightBar, {0, 0, RightPanelWidth, 0})
         {
             .dockStyle       = .Center
             .backgroundStyle = .Transparent

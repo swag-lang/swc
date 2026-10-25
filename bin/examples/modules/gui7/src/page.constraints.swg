@@ -63,10 +63,12 @@ func createConstraintsPage(parent: *Wnd)
 
     host.sendResizeEvent()
 
-    discard createText(center, "Anchored center", (14, 12, Math.max(center.position.width - 28, 120.0), 24))
+    discard createText(center,
+                       "Anchored center",
+                       Math.Rectangle{14, 12, Math.max(center.position.width - 28, 120.0), 24})
     discard createHelpText(center,
                            "The center pane fills the remaining rectangle. The action button keeps its distance to the bottom-right corner.",
-                           (14, 42, Math.max(center.position.width - 28, 120.0), 46))
+                           Math.Rectangle{14, 42, Math.max(center.position.width - 28, 120.0), 46})
 
     let actionX = Math.max(center.position.width - 190, 14.0)
     let actionY = Math.max(center.position.height - 54, 96.0)

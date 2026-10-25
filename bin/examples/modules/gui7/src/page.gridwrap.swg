@@ -8,7 +8,7 @@ func createGridCell(parent: *Wnd, text: string, icon: ThemeIcons)->*Label
         .setIcon(app.theme.icon(icon, 16))
         .setIconHorizontalAlignment(.Left)
         .setTextHorizontalAlignment(.Left)
-        .setIconPadding((10, 0, 0, 0))
+        .setIconPadding(Math.Vector4{10, 0, 0, 0})
         .setTextPadding(Math.Vector4{34, 0, 10, 0})
     }
 

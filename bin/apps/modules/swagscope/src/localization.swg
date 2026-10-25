@@ -8,6 +8,26 @@ using Core, Gui
 // spelling, so neither is translated wherever it appears inside one of these sentences.
 struct AppStrings
 {
+    explore_Panels:   string = "History and folders"         // Toggles the exploration sidebar.
+    explore_Folders:  string = "Subfolders"                  // Sidebar navigation through the current location.
+    explore_Open:     string = "Explore folder (Ctrl+E)"     // Exploration control or status.
+    explore_Back:     string = "Back"                        // Exploration control or status.
+    explore_Forward:  string = "Forward"                     // Exploration control or status.
+    explore_Up:       string = "Parent folder"               // Exploration control or status.
+    explore_Refresh:  string = "Refresh"                     // Exploration control or status.
+    explore_Names:    string = "Names"                       // Exploration control or status.
+    explore_Details:  string = "Details"                     // Exploration control or status.
+    explore_Small:    string = "Small thumbnails"            // Exploration control or status.
+    explore_Medium:   string = "Medium thumbnails"           // Exploration control or status.
+    explore_Large:    string = "Large thumbnails"            // Exploration control or status.
+    explore_Name:     string = "Name"                        // Exploration control or status.
+    explore_Type:     string = "Type"                        // Exploration control or status.
+    explore_Size:     string = "Size"                        // Exploration control or status.
+    explore_Modified: string = "Modified"                    // Exploration control or status.
+    explore_Loading:  string = "Reading folder…"             // Exploration control or status.
+    explore_Empty:    string = "No files to show"            // Exploration control or status.
+    explore_Count:    string = "% items"                     // Exploration control or status.
+
     ui_WindowTitle:                    string = "Swag Scope — Universal viewer"               // Title of the application window.
     ui_Open:                           string = "Open (Ctrl+O)"                               // Tooltip of the open-file button.
     ui_OpenDefault:                    string = "Open with default application"               // Tooltip of the system-default application button.

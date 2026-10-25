@@ -83,6 +83,17 @@ impl ViewerWindow
 
         if .currentFile != absolute
         {
+            if key == "archive" and
+               .explorerActive and
+               .explorer and
+               .explorer.listing.path == absolute and
+               not .explorer.load.started
+            {
+                .closeFile()
+                .finishSmokeViewer(key, fixture)
+                return
+            }
+
             .waitForSmokeViewer(key, fileName)
             return
         }
@@ -138,6 +149,11 @@ impl ViewerWindow
             return
         }
 
+        .finishSmokeViewer(key, fixture)
+    }
+
+    private mtd finishSmokeViewer(key, fixture: string)
+    {
         Console.println("Swag Scope smoke reviewed '", key, "' with '", fixture, "'")
         .smokeSpecIndex += 1
         .smokeWaitSteps = 0

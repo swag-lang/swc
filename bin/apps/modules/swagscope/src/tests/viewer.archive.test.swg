@@ -237,8 +237,8 @@ func writeZipFixture()->String
     Swag.assert(extractError is Errors.InvalidFormatError)
 }
 
-// The integrated viewer builds synthetic folders and hosts the selected entry with the ordinary
-// file viewer registry instead of maintaining an archive-only rendering path.
+// Offscreen archive rendering retains the embedded viewer for thumbnail generation. Interactive
+// navigation uses Explorer instead; its tests cover the common folder and ZIP surface.
 #[Swag.TestTag("golden")]
 #test
 {
@@ -255,6 +255,7 @@ func writeZipFixture()->String
 
     with let window = ViewerWindow.create(&host.surfaceWnd, #move index)
     {
+        .thumbnailMode = true
         .resize(1180, 720)
         .openFile(archiveFile)
     }

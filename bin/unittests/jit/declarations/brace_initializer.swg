@@ -12,7 +12,7 @@ struct Depth { x, y, z: s32 = 9 }
 func runtimeValue(value: s32)->s32 => value
 
 func encode(point: Point)->s32 => point.x * 100 + point.y
-func encodeBox(box: Box)->s32 => encode(box.origin) * 10_000 + box.width * 100 + box.height
+func encodeBox(box: Box)->s32  => encode(box.origin) * 10_000 + box.width * 100 + box.height
 func makePoint(value: s32)->Point { return {value, value + 1} }
 func makeShort(value: s32)->Point => {value, 2}
 
@@ -67,8 +67,8 @@ func makeShort(value: s32)->Point => {value, 2}
     Swag.assert(typed.x == 2 and typed.y == 1)
     Swag.assert(encode({y, x}) == 201)
 
-    let width  = runtimeValue(3)
-    let height = runtimeValue(4)
+    let width        = runtimeValue(3)
+    let height       = runtimeValue(4)
     let sized: Point = {width, height}
     Swag.assert(sized.x == 3 and sized.y == 4)
     Swag.assert(encode({width, width}) == 303)

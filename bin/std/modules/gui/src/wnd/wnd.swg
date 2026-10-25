@@ -276,12 +276,12 @@ struct Wnd
 
         readonly
         {
-            presentationOpacity: f32        = 1                        // Opacity of this window and its descendants, from zero through one.
-            presentationOffset:  Math.Point                            // Paint-only displacement in logical pixels.
+            presentationOpacity: f32        = 1              // Opacity of this window and its descendants, from zero through one.
+            presentationOffset:  Math.Point                  // Paint-only displacement in logical pixels.
             presentationScale:   Math.Point = {1, 1}         // Paint-only horizontal and vertical scale factors, both positive.
             presentationPivot:   Math.Point = {0.5, 0.5}     // Fixed point of the scale, normalized inside the logical rectangle.
-            presentationClip:    Math.Rectangle                        // Local reveal rectangle when presentation clipping is enabled.
-            hasPresentationClip: bool                                  // Whether `presentationClip` limits painting.
+            presentationClip:    Math.Rectangle              // Local reveal rectangle when presentation clipping is enabled.
+            hasPresentationClip: bool                        // Whether `presentationClip` limits painting.
         }
 
         parent: *Wnd?     // Structural parent responsible for position, layout, and lifetime.

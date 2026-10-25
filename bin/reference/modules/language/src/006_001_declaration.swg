@@ -156,8 +156,8 @@ any other bare identifier is an ordinary positional value.
     Swag.assert(v4.y == 30)
 
     // Other identifiers are positional values
-    let width  = 50
-    let height = 60
+    let width        = 50
+    let height       = 60
     let v5: MyStruct = {width, height}
     Swag.assert(v5.x == 50)
     Swag.assert(v5.y == 60)

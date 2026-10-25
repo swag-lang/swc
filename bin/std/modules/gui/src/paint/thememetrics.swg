@@ -71,9 +71,9 @@ struct ThemeMetrics
         editBox_SquarePadding: Math.Vector4 = {10, 5, 10, 5}     // Inset of the text of a square-cornered field.
         editBox_RoundPadding:  Math.Vector4 = {12, 5, 12, 5}     // Inset of the text of a round field.
         editBox_FlatPadding:   Math.Vector4 = {12, 0, 12, 5}     // Inset of the text of a flat field.
-        editBox_Width:         f32          = 100                            // Default width of a field.
-        editBox_Height:        f32          = 32                             // Height of a field.
-        editBox_UnitMargin:    f32          = 3                              // Air between the value of a field and its unit.
+        editBox_Width:         f32          = 100                // Default width of a field.
+        editBox_Height:        f32          = 32                 // Height of a field.
+        editBox_UnitMargin:    f32          = 3                  // Air between the value of a field and its unit.
 
         btnToggle_Width:  f32 = 50     // Width of a toggle.
         btnToggle_Height: f32 = 26     // Height of a toggle.

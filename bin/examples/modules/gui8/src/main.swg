@@ -99,10 +99,10 @@ func getPageLayout(parent: *Wnd)->PageLayout
     let halfW   = (rect.width - gap) * 0.5
 
     var result: retval
-    result.full   = (0, 0, rect.width, rect.height)
-    result.left   = (0, 0, halfW, topH)
-    result.right  = (halfW + gap, 0, rect.width - halfW - gap, topH)
-    result.bottom = (0, topH + gap, rect.width, rect.height - topH - gap)
+    result.full   = Math.Rectangle{0, 0, rect.width, rect.height}
+    result.left   = Math.Rectangle{0, 0, halfW, topH}
+    result.right  = Math.Rectangle{halfW + gap, 0, rect.width - halfW - gap, topH}
+    result.bottom = Math.Rectangle{0, topH + gap, rect.width, rect.height - topH - gap}
     return result
 }
 

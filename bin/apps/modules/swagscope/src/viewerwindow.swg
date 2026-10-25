@@ -1074,7 +1074,7 @@ impl ViewerWindow
             .state = &me.fileDlgState
         }
 
-        let dialog = FileDlg.create(.surface!, options)
+        let dialog = FileDlg.create(unwrap .surface, options)
         if dialog.doModal() == Dialog.BtnOk do
             .openExplorer(dialog.selectedPath())
     }

@@ -89,7 +89,7 @@ impl Explorer
             {
                 if not line do
                     return
-                let explorer = list.ancestorByType'Explorer()!
+                let explorer = unwrap list.ancestorByType'Explorer()
                 let index    = explorer.shown[row]
                 let entry    = &explorer.entries[index]
                 line.setItem(0, entry.name, explorer.entryIcon(index))

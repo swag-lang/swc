@@ -186,7 +186,7 @@ impl ViewerWindow
         .showEmpty(appStrings().ui_DropTitle)
         if .explorerActive
         {
-            let explorer = .explorer!
+            let explorer = unwrap .explorer
             if explorer.mode == .Names or explorer.mode == .Details do
                 explorer.list.setFocus()
             else do

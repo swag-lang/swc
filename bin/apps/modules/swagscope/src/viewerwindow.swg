@@ -84,6 +84,11 @@ struct ViewerWindow
         folderList:           *ListCtrl
     }
 
+    thumbnailMode:  bool
+    explorerActive: bool
+    explorer:       *Explorer?
+    exploreButton:  *IconButton?
+
     index:                   ViewerPluginRegistry
     pluginIcons:             Array'ViewerPluginIcons
     currentView:             *Wnd?
@@ -335,6 +340,8 @@ impl IWnd for ViewerWindow
         let plain = evt.modifiers == .None
         switch evt.key
         {
+        case .E where evt.modifiers.has(.Control): .exploreFolder()
+        case .Escape where plain and not .fullScreen and .explorerActive: .closeFile()
         case .F11 where plain:                     .setFullScreen(not .fullScreen)
         case .Escape where plain and .fullScreen:  .setFullScreen(false)
         case .O where evt.modifiers.has(.Control): .chooseFile()
@@ -445,6 +452,8 @@ impl IWnd for ViewerWindow
             return
         }
 
+        if .thumbnailMode do
+            return
         catch g_App.loadState()
         .applyTheme(.themeIndex)
         .applyLanguage()
@@ -693,7 +702,7 @@ impl ViewerWindow
     // window placement. Closing first restores the regular placement, then persists it.
     private mtd saveState() fail
     {
-        if .fullScreen do
+        if .fullScreen or .thumbnailMode do
             return
         try g_App.saveState()
     }
@@ -1009,6 +1018,8 @@ impl ViewerWindow
     {
         let texts = appStrings()
         .surface?.setTitle(texts.ui_WindowTitle)
+        if .exploreButton do
+            .exploreButton.toolTip = texts.explore_Open
         .openButton.toolTip          = texts.ui_Open
         .closeButton.toolTip         = texts.ui_CloseFile
         .openDefaultButton.toolTip   = texts.ui_OpenDefault
@@ -1028,12 +1039,61 @@ impl ViewerWindow
             assume cast(*ViewerErrorView, instance.view).retranslate()
         if .currentFile.isEmpty()
         {
-            .folderLabel.setText(texts.ui_Folder)
+            .folderLabel.setText(.explorerActive ? texts.explore_Folders : texts.ui_Folder)
             .emptyLabel.setText(Format.toString("<b>%</b>", texts.ui_DropTitle))
             .emptyHintLabel.setText(texts.ui_DropHint)
             .infoStatsLabel.setText("")
         }
 
         .invalidate()
+    }
+}
+
+impl ViewerWindow
+{
+    // Enters exploration explicitly; opening one ordinary file never creates an explorer.
+    mtd exploreFolder()
+    {
+        if .explorerActive and .explorer and not .explorer.isLocallyVisible()
+        {
+            .closeFile()
+            return
+        }
+
+        if not .explorerActive and not .currentFile.isEmpty()
+        {
+            let folder = Path.directoryName(.currentFile) orelse ""
+            if folder.count do
+                .openExplorer(folder)
+            return
+        }
+
+        with var options: FileDlgOptions
+        {
+            .mode  = .SelectFolder
+            .state = &me.fileDlgState
+        }
+
+        let dialog = FileDlg.create(.surface!, options)
+        if dialog.doModal() == Dialog.BtnOk do
+            .openExplorer(dialog.selectedPath())
+    }
+
+    mtd openExplorer(path: string)
+    {
+        // Own the path before retiring the viewer whose currentFile may have supplied it.
+        let source = String.from(path)
+        if not .explorer do
+            .explorer = Explorer.create(.documentPanel, me)
+        .explorer.history.push(Format.toString("%\n", source))
+        .explorerActive = true
+        .closeFile()
+        .explorerActive = true
+        .emptyView.hide()
+        .infoBarHost.hide()
+        .explorer.show()
+        .explorer.navigate(source)
+        .closeButton.enable(true)
+        .applyLayout()
     }
 }

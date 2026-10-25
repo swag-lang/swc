@@ -1,0 +1,263 @@
+#global if #command == Swag.CompilerCommand.Test
+#global private
+
+using Core, Gui, Pixel
+
+func fixture(name: string)->String => Path.combine(Path.directoryName(#curlocation.fileName)!, "datas", name)
+
+func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
+{
+    for 16
+    {
+        if not explorer.load.started do
+            return
+        explorer.load.task.wait()
+        host.pump()
+    }
+
+    Swag.assert(false, "exploration did not settle")
+}
+
+// Filesystem and ZIP locations expose the same immediate-child model, including implicit folders.
+#test
+{
+    var listing = expect ExplorerListing.load(Path.directoryName(fixture("comprehensive.txt"))!)
+    Swag.assert(not listing.isArchive and listing.entries.count > 10)
+    var found = false
+    for &entry in listing.entries where entry.name == "comprehensive.txt"
+    {
+        found = true
+        Swag.assert(not entry.directory and entry.size > 0 and not entry.modified.isEmpty())
+    }
+
+    Swag.assert(found)
+
+    var archive = expect ExplorerListing.load(fixture("viewer.archive.zip"))
+    Swag.assert(archive.isArchive)
+    let roots = archive.children("")
+    Swag.assert(roots.count == 2)
+    let documents = archive.children("docs/")
+    Swag.assert(documents.count == 1 and documents[0].name == "readme.txt")
+    Swag.assert(documents[0].path == "docs/readme.txt" and documents[0].archiveIndex != Swag.U64.Max)
+    for &entry in roots where entry.directory
+    {
+        let children = archive.children(entry.path)
+        for &child in children do
+            Swag.assert(Utf8.startsWith(child.path, entry.path))
+    }
+
+    archive.archive.entries.clear()
+    archive.archive.entries.add({path: "docs", isDirectory: true})
+    archive.archive.entries.add({path: "docs/one.txt"})
+    archive.archive.entries.add({path: "docs2/two.txt"})
+    let explicitFolders = archive.children("")
+    Swag.assert(explicitFolders.count == 2 and explicitFolders[0].path == "docs/")
+    Swag.assert(archive.children(explicitFolders[0].path).count == 1)
+}
+
+// Opening a file directly stays simple; explicit exploration survives viewing and closing a file.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.queueFile(fixture("comprehensive.txt"))
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(not window.explorerActive and window.explorer == null)
+    window.exploreFolder()
+    Swag.assert(window.explorerActive and window.explorer != null)
+    let explorer = window.explorer
+    explorer.setMode(.Details)
+    completeExplorer(&host, explorer)
+    Swag.assert(explorer.isLocallyVisible() and explorer.shown.count > 0)
+    var selected = Swag.U64.Max
+    for &entry, index in explorer.entries where entry.name == "comprehensive.txt" do
+        selected = index
+    Swag.assert(selected != Swag.U64.Max)
+    explorer.selected = selected
+    explorer.activate(selected)
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(not explorer.isLocallyVisible() and window.currentView != null)
+    window.closeFile()
+    host.pump()
+    Swag.assert(explorer.isLocallyVisible() and explorer.selected == selected and explorer.mode == .Details)
+    window.closeFile()
+    Swag.assert(not window.explorerActive and window.emptyView.isLocallyVisible())
+}
+
+// A later location wins even when the preceding enumeration has not returned yet.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(Path.directoryName(fixture("comprehensive.txt"))!)
+    let explorer = window.explorer!
+    explorer.setMode(.Names)
+    explorer.navigate(fixture("viewer.archive.zip"))
+    completeExplorer(&host, explorer)
+    Swag.assert(explorer.listing.isArchive and explorer.listing.path == (expect Path.absolute(fixture("viewer.archive.zip"))))
+    explorer.goBack()
+    completeExplorer(&host, explorer)
+    Swag.assert(not explorer.listing.isArchive)
+}
+
+// The first exploration surface shares the application geometry without making a file mandatory.
+#[Swag.TestTag("golden")]
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    host.theme.setSwagDark()
+    host.notify(.ThemeChanged)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(fixture("viewer.archive.zip"))
+    let explorer = window.explorer!
+    explorer.setMode(.Details)
+    completeExplorer(&host, explorer)
+    window.applyLayout()
+    host.settleAnimations(window)
+    var image = host.render(window)
+    Pixel.Testing.assertImageGolden(&image, "explorer.archive")
+}
+
+// An archive member opens asynchronously with its logical name, then returns to its selected row.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    window.openExplorer(fixture("viewer.archive.zip"))
+    let explorer = window.explorer!
+    explorer.setMode(.Names)
+    explorer.navigate(fixture("viewer.archive.zip"), "docs/")
+    completeExplorer(&host, explorer)
+    explorer.selected = 0
+    explorer.activate(0)
+    Swag.assert(explorer.preview.started and explorer.preview.opening)
+
+    // A second activation supersedes the extraction even if the first worker already finished.
+    explorer.preview.task.wait()
+    explorer.activate(0)
+    explorer.preview.task.wait()
+    host.pump()
+    if explorer.preview.started
+    {
+        explorer.preview.task.wait()
+        host.pump()
+    }
+
+    completeQueuedViewerFile(&host, window)
+    Swag.assert(window.currentView != null and not explorer.isLocallyVisible())
+    Swag.assert(Utf8.endsWith(explorer.displayPath(window.currentFile), "docs/readme.txt"))
+    Swag.assert(window.folderFiles.isEmpty())
+    window.closeFile()
+    host.pump()
+    Swag.assert(explorer.isLocallyVisible() and explorer.selected == 0)
+
+    explorer.activate(0)
+    window.closeFile()
+    explorer.preview.task.wait()
+    host.pump()
+    Swag.assert(not window.explorerActive and window.pendingFile.isEmpty() and window.currentView == null)
+}
+
+// Tile geometry remains bounded by the viewport even for a large folder, and survives mode changes.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(960, 640)
+    let window   = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+    let explorer = Explorer.create(window.documentPanel, window)
+    explorer.setMode(.Names)
+    for index in 20_000
+    {
+        with var entry: ExplorerEntry
+        {
+            .name      = Format.toString("File %.txt", index)
+            .attempted = true
+        }
+
+        explorer.entries.add(#move entry)
+    }
+
+    explorer.fill()
+    explorer.selected = 1234
+    explorer.setMode(.Small)
+    window.applyLayout()
+    let visible = explorer.grid.visibleRange()
+    Swag.assert(visible.end - visible.first < 100 and explorer.shown.count == 20_000)
+    explorer.setMode(.Details)
+    Swag.assert(explorer.selected == 1234 and explorer.list.focusIndex == 1234)
+    explorer.filter.setText("File 1234.txt")
+    Swag.assert(explorer.shown.count == 1 and explorer.shown[0] == 1234)
+}
+
+// All palettes keep the gallery usable at minimum size, including French labels and the folder pane.
+// Set SWAG_SCOPE_REVIEW to a directory inside the test sandbox to inspect the noncanonical palettes.
+#[Swag.TestTag("golden")]
+#test
+{
+    for palette in 3
+    {
+        var host: Testing.HeadlessHost
+        host.setup(880, 420)
+        defer discard catch host.app.setLanguage(ReferenceLanguage)
+        registerAppStrings(&host.app.resources)
+        switch palette
+        {
+        case 0: host.theme.setSwagDark()
+        case 1: host.theme.setDark()
+        case 2: host.theme.setLight()
+        }
+
+        host.notify(.ThemeChanged)
+        let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+        window.openExplorer(fixture("viewer.archive.zip"))
+        let explorer = window.explorer!
+        explorer.setMode(.Names)
+        completeExplorer(&host, explorer)
+        explorer.entries.clear()
+        explorer.entries.add({name: "Documents", directory: true, attempted: true})
+        for name in ["qrcode.png", "title.png", "sample.cpp", "A document with a long descriptive filename.pdf"]
+        {
+            with var entry: ExplorerEntry
+            {
+                .name      = name
+                .path      = name
+                .attempted = true
+            }
+
+            if Utf8.endsWith(name, ".png")
+            {
+                let image = expect Image.load(fixture(name))
+                entry.texture = host.app.renderer.addImage(&image)
+            }
+
+            explorer.entries.add(#move entry)
+        }
+
+        explorer.pathLabel.setText("Gallery")
+        explorer.selected = 3
+        explorer.setMode(.Medium)
+        window.setFilePanelVisible(true)
+        if palette == 2
+        {
+            discard expect host.app.setLanguage("fr")
+            host.notify(.LanguageChanged)
+            Swag.assert(explorer.modes.items.count == 5)
+            Swag.assert(window.folderLabel.text() == appStrings().explore_Folders)
+        }
+
+        window.applyLayout()
+        host.settleAnimations(window)
+        Swag.assert(explorer.grid.clientRect().height > 200)
+        Swag.assert(explorer.filter.position.width > 100)
+        var image = host.render(window)
+        if palette == 0 do
+            Pixel.Testing.assertImageGolden(&image, "explorer.gallery")
+        let review = Env.variable("SWAG_SCOPE_REVIEW")
+        if not review.isEmpty() do
+            expect image.save(Path.combine(review, Format.toString("explorer-palette-%.png", palette)))
+    }
+}

@@ -47,6 +47,12 @@ impl ViewerWindow
             .sigPressed += func|window = me|(_) { window.chooseFile() }
         }
 
+        with .exploreButton = .commandButtons.addButton(.theme().icon(.ParentFolder, iconSize))
+        {
+            .toolTip    = appStrings().explore_Open
+            .sigPressed += func|window = me|(_) { window.exploreFolder() }
+        }
+
         with .openDefaultButton = .commandButtons.addButton(.theme().icon(.OpenExternal, iconSize))
         {
             .toolTip = appStrings().ui_OpenDefault

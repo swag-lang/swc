@@ -8,13 +8,13 @@ const ProductName   = "Swag Scope"
 const ApplicationId = "swagscope"
 const SurfaceId     = "swag.scope"
 
-// Returns the first command-line argument that names an existing file, or an empty string.
+// Returns the first command-line argument that names an existing file or folder, or an empty string.
 func viewerStartupFile(arguments: const [..] string)->String
 {
     if arguments.count <= 1 do
         return {}
 
-    for argument in arguments[1 to] where Path.isValidPathName(argument) and File.exists(argument) do
+    for argument in arguments[1 to] where Path.isValidPathName(argument) and (File.exists(argument) or Directory.exists(argument)) do
         return argument
     return {}
 }
@@ -45,6 +45,13 @@ private func registerViewerFileTypes(registry: const *ViewerPluginRegistry)
 
 #main
 {
+    let arguments = Env.arguments()
+    if arguments.count == 3 and arguments[1] == "--thumbnail-worker"
+    {
+        try runThumbnailWorker(arguments[2])
+        return
+    }
+
     var index = createViewerPluginRegistry()
 
     // Installers opt into registry work once. Normal viewing never pays for dozens of file-type

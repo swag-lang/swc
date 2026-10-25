@@ -7,7 +7,7 @@ using Core, Gui
 //
 // A descriptor whose version the host does not support is rejected before any of its callbacks
 // runs. Increasing this value denotes an incompatible contract change.
-const ApiVersion = 5'u32
+const ApiVersion = 6'u32
 
 // Prepares one plugin for the application it joined, before any other callback runs.
 //
@@ -86,6 +86,12 @@ alias PluginProbe = func(ProbeContent)->bool
 // Resolves a translated or otherwise dynamic viewer name on the GUI thread.
 alias PluginName = func()->string
 
+// Produces an owned still image off the GUI thread, without playback or other user-visible effects.
+//
+// This optional fast path replaces the host's offscreen rendering of the ordinary viewer.
+// Failure leaves the file's type icon visible. The host bounds and caches the returned pixels.
+alias PluginThumbnail = func(string)->Pixel.Image fail
+
 // Describes one viewer plugin independently of the host window implementation.
 //
 // The descriptor owns its strings and selectors for as long as it remains registered, and it is
@@ -104,6 +110,7 @@ struct Plugin
         iconIndex:    s32                   // Zero-based cell of that document, in grid order.
         late create:  PluginCreate          // Synchronous presentation factory.
         probe:        PluginProbe?          // Optional content-aware discovery callback.
+        thumbnail:    PluginThumbnail?      // Optional direct thumbnail decoder; null renders the viewer offscreen.
         matchNames:   bool = true           // Whether non-wildcard selectors offer this plugin directly.
         textual:      bool                  // Whether this format's bytes are text a reader may also want raw.
         smokeFixture: String                // Immutable basename used by application smoke review.

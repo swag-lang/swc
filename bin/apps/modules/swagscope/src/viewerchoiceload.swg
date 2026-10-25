@@ -8,6 +8,7 @@ struct ViewerClassifiedFile
     choices:          Array'ViewerPluginChoice
     folderFiles:      Array'String
     recent:           Array'String
+    isDirectory:      bool
     exists:           bool
     metadata:         File.FileInfo
 }
@@ -48,8 +49,9 @@ impl ViewerChoiceLoad
             if pathError != null do
                 absolute = operation.fileName
             operation.result.absoluteFileName = #move absolute
-            operation.result.exists = File.exists(operation.result.absoluteFileName)
-            if operation.result.exists
+            operation.result.isDirectory      = Directory.exists(operation.result.absoluteFileName)
+            operation.result.exists           = operation.result.isDirectory or File.exists(operation.result.absoluteFileName)
+            if operation.result.exists and not operation.result.isDirectory
             {
                 operation.result.choices = operation.index!.choices(operation.result.absoluteFileName)
                 var infoErrorOutcome: Swag.Error

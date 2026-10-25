@@ -36,6 +36,12 @@ impl ViewerWindow
         // now, the first frame shows the surface the document is about to fill, and the hint's
         // glyph is never rasterized for a launch that names its file.
         .emptyView.hide()
+        if .explorer
+        {
+            .explorer.leave()
+            .explorer.hide()
+        }
+
         .updateLoadingIndicator()
         if not .startupTimer do
             .startupTimer = .addTimer(1'ms)
@@ -117,6 +123,21 @@ impl ViewerWindow
                 return
             }
 
+            var archive = not classified.choices.isEmpty() and classified.choices[0].key == "archive"
+            for preference in .preferences where preference.kind == "archive" and preference.viewer != "archive" do
+                archive = false
+            if not .thumbnailMode and (classified.isDirectory or archive)
+            {
+                if archive and remember
+                {
+                    .rememberRecent(classified.absoluteFileName)
+                    .rememberFolder(classified.absoluteFileName)
+                }
+
+                .openExplorer(classified.absoluteFileName)
+                return
+            }
+
             .openClassifiedFile(#move classified, remember)
             return
         }
@@ -144,6 +165,13 @@ impl ViewerWindow
     // watch, and returns to the empty window with focus on the open button.
     mtd closeFile()
     {
+        if .explorer and .explorer.isLocallyVisible()
+        {
+            .explorerActive = false
+            .explorer.leave()
+            .explorer.hide()
+        }
+
         .pendingFile.clear()
         .pendingEmpty.clear()
         .reloading    = false
@@ -156,7 +184,18 @@ impl ViewerWindow
         .searchBox.setText("", notify: false)
         .closeButton.enable(false)
         .showEmpty(appStrings().ui_DropTitle)
-        .openButton.setFocus()
+        if .explorerActive
+        {
+            let explorer = .explorer!
+            if explorer.mode == .Names or explorer.mode == .Details do
+                explorer.list.setFocus()
+            else do
+                explorer.grid.setFocus()
+        }
+        else
+        {
+            .openButton.setFocus()
+        }
     }
 
     // Returns the window to its empty state with `message`. While a viewer is still retiring or a
@@ -181,6 +220,7 @@ impl ViewerWindow
         .emptyView.show()
         .refreshEmptyArtwork()
         .currentFile.clear()
+        .explorer?.releasePreviews()
         .currentFileSize.clear()
         .choices.clear()
         .viewerCombo.clear()
@@ -199,6 +239,14 @@ impl ViewerWindow
         .updateViewerBar()
         .surface!.setTitle(appStrings().ui_WindowTitle)
         .updateSearchAvailability()
+        if .explorerActive
+        {
+            .emptyView.hide()
+            .infoBarHost.hide()
+            .explorer!.show()
+            .closeButton.enable(true)
+        }
+
         if .panelVisible do
             .refreshFileLists()
         .applyLayout()
@@ -574,6 +622,7 @@ impl ViewerWindow
         let splitter = me.mainSplitter
         with var pluginHost: ViewerPluginHost
         {
+            .thumbnail       = me.thumbnailMode
             .session         = &next
             .documentParent  = me.documentPanel
             .sidePanelParent = splitter
@@ -652,6 +701,13 @@ impl ViewerWindow
     mtd selectViewer(index: u32)
     {
         .readingState.restoring = false
+        if not .thumbnailMode and index < .choices.count and .choices[index].key == "archive"
+        {
+            .rememberPreferredViewer(index)
+            .openExplorer(.currentFile)
+            return
+        }
+
         if index == .activeChoiceIndex do
             return
         if not .activateChoice(index)
@@ -734,8 +790,10 @@ impl ViewerWindow
         .currentFileSize = #move classified.fileSize
         .choices         = #move classified.choices
         .folderFiles     = #move classified.folderFiles
-        .recent          = #move classified.recent
-        .siblingsDirty   = true
+        if .explorer and .explorer.displayPath(.currentFile) != .currentFile.toString() do
+            .folderFiles.clear()
+        .recent        = #move classified.recent
+        .siblingsDirty = true
         .rebuildSiblings()
         .trackFolderReading(.playMode)
         .instances.resize(.choices.count)

@@ -51,3 +51,23 @@ ui_AboutViewers Visionneuses prises en charge
 dlg_TitleOpen   Ouvrir un fichier
 dlg_ButtonOpen  Ouvrir
 dlg_AllFiles    Tous les fichiers
+
+explore_Open Explorer le dossier (Ctrl+E)
+explore_Panels Historique et dossiers
+explore_Folders Sous-dossiers
+explore_Back Précédent
+explore_Forward Suivant
+explore_Up Dossier parent
+explore_Refresh Actualiser
+explore_Names Noms
+explore_Details Détails
+explore_Small Petites vignettes
+explore_Medium Vignettes moyennes
+explore_Large Grandes vignettes
+explore_Name Nom
+explore_Type Type
+explore_Size Taille
+explore_Modified Modifié
+explore_Loading Lecture du dossier…
+explore_Empty Aucun fichier à afficher
+explore_Count % éléments

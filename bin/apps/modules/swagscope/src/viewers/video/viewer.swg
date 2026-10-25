@@ -17,12 +17,19 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Video)
         .create       = &createViewer
+        .thumbnail    = &loadThumbnail
         .smokeFixture = "glint-aac-mjpeg.mp4"
     }
 
     for format in Reader.decodableFormats() do
         result.addSelectors(format.extensions)
     return result
+}
+
+private func loadThumbnail(fileName: string)->Image fail
+{
+    var reader = try Reader.open(fileName)
+    return try reader.decodeFrame(0)
 }
 
 private

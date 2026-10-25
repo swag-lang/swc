@@ -9,14 +9,14 @@ struct Texts
     ui_TipPlay:                string = "Play"                                         // Tooltip while playback is stopped or paused.
     ui_TipPause:               string = "Pause"                                        // Tooltip while playback is running.
     ui_TipStop:                string = "Stop"                                         // Tooltip of the stop button.
-    ui_TipBackward:            string = "Back 10 seconds (Left)"                       // Tooltip of the backward seek button.
-    ui_TipForward:             string = "Forward 10 seconds (Right)"                   // Tooltip of the forward seek button.
+    ui_TipBackward:            string = "Back 10 seconds (Left) · Ctrl+Left: previous frame" // Tooltip of the backward seek button.
+    ui_TipForward:             string = "Forward 10 seconds (Right) · Ctrl+Right: next frame" // Tooltip of the forward seek button.
     ui_TipSeek:                string = "Seek"                                         // Tooltip of the playback timeline.
     ui_TipMute:                string = "Mute or unmute (M)"                           // Tooltip of the mute switch.
     ui_TipVolume:              string = "Volume"                                       // Tooltip of the volume slider.
     ui_TipAudio:               string = "Audio track"                                  // Tooltip of the sound-track selector.
     ui_TipSubtitles:           string = "Subtitles"                                    // Tooltip of the subtitle selector.
-    ui_TipPlaybackSpeed:       string = "Playback speed"                               // Tooltip of the playback-speed menu button.
+    ui_TipPlaybackSpeed:       string = "Playback speed · Shift+Left/Right: adjust"   // Tooltip of playback-speed controls.
     ui_PlayerSpeedNormal:      string = "Normal"                                       // The source playback rate.
     ui_AudioTrack:             string = "<b>%</b>% · <p3>% · % ch · %{f1} kHz</p>"     // One sound-track selector entry.
     ui_AudioTrackNumber:       string = "Audio %"                                      // Fallback name for an unnamed sound track.

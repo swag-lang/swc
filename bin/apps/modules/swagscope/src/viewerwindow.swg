@@ -490,6 +490,7 @@ impl IWnd for ViewerWindow
         catch evt.serializer.serialize("ViewerWindow.searchRegularExpression", &me.searchRegexOption)
         catch evt.serializer.serialize("ViewerWindow.videoSubtitles", &Viewers.Film.g_SubtitleSettings)
         catch evt.serializer.serialize("ViewerWindow.markdown", &Viewers.MarkdownText.g_ViewerSettings)
+        catch evt.serializer.serialize("ViewerWindow.midi", &Viewers.Midi.g_ViewerSettings)
         if evt.serializer.isReading()
         {
             .themeIndex     = Math.min(.themeIndex, cast(u32, AppearanceTheme.Dark))
@@ -522,6 +523,7 @@ impl IWnd for ViewerWindow
             .slideSeconds = Math.clamp(.slideSeconds, Viewer.SlideMinSeconds, Viewer.SlideMaxSeconds)
             Viewers.Film.g_SubtitleSettings.sanitize()
             Viewers.MarkdownText.g_ViewerSettings.sanitize()
+            Viewers.Midi.g_ViewerSettings.sanitize()
         }
     }
 
@@ -925,7 +927,12 @@ impl ViewerWindow
     // once even when the operating system emits repeated pressed transitions while it is held.
     mtd routePlaybackKey(evt: *KeyEvent)->bool
     {
-        if .forwardingViewerKey or evt.modifiers != .None do
+        if .forwardingViewerKey do
+            return false
+        let arrowKey = evt.key == .Left or evt.key == .Right
+        let rateStep = evt.modifiers == .Shift and arrowKey
+        let frameStep = evt.modifiers == .Control and arrowKey
+        if evt.modifiers != .None and not rateStep and not frameStep do
             return false
 
         let toggle = evt.key == .Space or evt.key == .MediaPlayPause
@@ -944,6 +951,13 @@ impl ViewerWindow
         let playbackViewer = key == "video" or key == "sound" or key == "image"
         if not playbackViewer do
             return false
+
+        if rateStep or frameStep
+        {
+            if key != "video" do
+                return false
+            return .forwardKeyToViewer(evt, skipFocused: false, takeFocus: false)
+        }
 
         if toggle
         {

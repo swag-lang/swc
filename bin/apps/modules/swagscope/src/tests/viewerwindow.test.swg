@@ -52,6 +52,29 @@ func loadViewerState(window: *ViewerWindow, bytes: const [..] u8)
     }
 }
 
+// MIDI label and keyboard-width choices round-trip with the main window and sanitize old state.
+#test
+{
+    let previous = Midi.g_ViewerSettings
+    defer Midi.g_ViewerSettings = previous
+    var host: Testing.HeadlessHost
+    host.setup(880, 560)
+    defer host.shutdown()
+    let window = ViewerWindow.create(&host.surfaceWnd, createViewerPluginRegistry())
+
+    Midi.g_ViewerSettings = {pitchLabelMode: .MidiNumber, keyboardWidthMode: 2}
+    let saved = saveViewerState(window)
+    Midi.g_ViewerSettings = {}
+    loadViewerState(window, saved.toSlice())
+    Swag.assert(Midi.g_ViewerSettings.pitchLabelMode == .MidiNumber and Midi.g_ViewerSettings.keyboardWidthMode == 2)
+
+    Midi.g_ViewerSettings.keyboardWidthMode = Swag.U32.Max
+    let damaged = saveViewerState(window)
+    Midi.g_ViewerSettings = {}
+    loadViewerState(window, damaged.toSlice())
+    Swag.assert(Midi.g_ViewerSettings.pitchLabelMode == .MidiNumber and Midi.g_ViewerSettings.keyboardWidthMode == 2)
+}
+
 // The window canonicalizes what it opens, so the fixture is spelled the way it will be read
 // back: `#curlocation` gives its directory with the host separator, which no comparison
 // against `currentFile` would survive.
@@ -495,6 +518,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.filesButton.isChecked)
     Swag.assert(window.mainSplitter.items[0]!.minimumSize == ViewerWindow.PanelMinWidth + window.themeMetrics().panel_GutterSize)
     Swag.assert(window.mainSplitter.items[0]!.maximumSize == ViewerWindow.PanelMaxWidth + window.themeMetrics().panel_GutterSize)
+    window.mainSplitter.setPaneSize(0, 1)
+    Swag.assert(window.mainSplitter.items[0]!.size == window.mainSplitter.items[0]!.minimumSize)
+    window.mainSplitter.setPaneSize(0, 2_000)
+    Swag.assert(window.mainSplitter.items[0]!.size == window.mainSplitter.items[0]!.maximumSize)
     window.mainSplitter.setPaneSize(0, 340)
     Swag.assert(window.filePanelHost.position.width == 340)
     Swag.assert(window.filePanel.isVertical() and window.filePanel.items.count == 2)
@@ -1936,6 +1963,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.mainSplitter.items[2]!.view == window.currentSidePanelHost)
     Swag.assert(window.mainSplitter.items[2]!.minimumSize == ViewerWindow.RightPanelMinWidth + window.themeMetrics().panel_GutterSize)
     Swag.assert(window.mainSplitter.items[2]!.maximumSize == ViewerWindow.RightPanelMaxWidth + window.themeMetrics().panel_GutterSize)
+    window.mainSplitter.setPaneSize(2, 1)
+    Swag.assert(window.mainSplitter.items[2]!.size == window.mainSplitter.items[2]!.minimumSize)
+    window.mainSplitter.setPaneSize(2, 2_000)
+    Swag.assert(window.mainSplitter.items[2]!.size == window.mainSplitter.items[2]!.maximumSize)
 
     window.mainSplitter.setPaneSize(2, 500)
     let panelSize = window.mainSplitter.items[2]!.size

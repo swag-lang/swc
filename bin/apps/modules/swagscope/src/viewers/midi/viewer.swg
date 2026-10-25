@@ -25,7 +25,26 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const CommandWidth = 520.0
+private const CommandWidth = 560.0
+
+// Display preferences of the MIDI viewer, persisted with the main window.
+struct ViewerSettings
+{
+    pitchLabelMode:    PitchLabelMode = .Scientific
+    keyboardWidthMode: u32 = 1
+}
+
+impl ViewerSettings
+{
+    mtd sanitize()
+    {
+        if cast(u32, .pitchLabelMode) > cast(u32, PitchLabelMode.MidiNumber) do
+            .pitchLabelMode = .Scientific
+        .keyboardWidthMode = Math.min(.keyboardWidthMode, 2)
+    }
+}
+
+var g_ViewerSettings: ViewerSettings
 
 // Presents a Standard MIDI File as a piano roll, with a track filter and a zoom menu.
 struct Panel
@@ -204,6 +223,8 @@ impl Panel
             .services        = services
             .commands        = commands
             .info            = info
+            .pitchLabelMode    = g_ViewerSettings.pitchLabelMode
+            .keyboardWidthMode = g_ViewerSettings.keyboardWidthMode
         }
 
         with result.trackCombo = ComboBox.create(result.commands, {0, 0, 224, 36})
@@ -220,15 +241,17 @@ impl Panel
             .toolTip   = texts().ui_PitchLabels
             .addItem(texts().ui_PitchScientific)
             .addItem(texts().ui_PitchMidiNumber)
+            .setSelectedIndex(result.pitchLabelMode == .MidiNumber ? 1 : 0, notify: false)
             .sigChanged += func|view = result|(_, index)
             {
                 view.pitchLabelMode = index ? .MidiNumber : .Scientific
+                g_ViewerSettings.pitchLabelMode = view.pitchLabelMode
                 if not view.isLoading() and view.failureReason.isEmpty() do
                     view.roll.setPitchLabelMode(view.pitchLabelMode)
             }
         }
 
-        with result.keyboardWidthCombo = ComboBox.create(result.commands, {0, 0, 112, 36})
+        with result.keyboardWidthCombo = ComboBox.create(result.commands, {0, 0, 150, 36})
         {
             .dockStyle = .Left
             .margin.x  = 8
@@ -240,6 +263,7 @@ impl Panel
             .sigChanged += func|view = result|(_, index)
             {
                 view.keyboardWidthMode = index
+                g_ViewerSettings.keyboardWidthMode = index
                 if not view.isLoading() and view.failureReason.isEmpty()
                     do
                     view.roll.setKeyboardWidth(index == 0 ? 56 : index == 1 ? 72 : 112)

@@ -25,11 +25,12 @@ large-file work without editing, implicit network access, macros or source mutat
 ### app.scope.text.011 — Subtitle navigation has no current-cue timeline
 
 - Evidence: SubRip and related files become a searchable timestamped transcript. The information
-  bar now exposes validated Go To Cue and Go To Time dialogs, which already reject invalid base-60
-  times, and host search reveals exact cues, but there is no previous/next cue command,
-  current-cue marker, duration filter, or timeline.
-- Next: expose previous/next cue as named keyboard commands, keep a current-cue state shared by
-  direct jumps and search, and add a compact time ruler with overlap markers.
+  bar exposes validated Go To Cue and Go To Time dialogs; Ctrl+Page Up/Down navigates adjacent cues,
+  Ctrl+Home/End jumps to the first or last cue,
+  and the editor caret, direct jumps, and host search update the highlighted cue and its position
+  counter. There is no
+  duration filter or timeline.
+- Next: add a compact time ruler with overlap markers and a duration filter.
 - Done when: cue and time jumps are keyboard accessible, overlapping cues are grouped, the
   current cue is marked, and search reveal, cue selection, and timeline position remain
   synchronized.
@@ -217,12 +218,12 @@ large-file work without editing, implicit network access, macros or source mutat
 
 ### app.scope.text.030 — Text statistics stop at line and word counts
 
-- Evidence: the background pass reports lines and words only. It does not expose decoded scalar
-  count, byte count excluding BOM, newline-kind totals, longest line, invalid-sequence count,
-  control-character count, or sampled versus exact scope, so it cannot explain why a document
-  renders or navigates unexpectedly.
-- Next: turn the existing bounded statistics worker into a cancellable text profile shared with
-  newline and encoding diagnostics.
+- Evidence: the background pass reports exact line and word totals plus decoded Unicode scalar count
+  for the selected encoding; a leading BOM is excluded. It still omits byte count, newline-kind
+  totals, longest line, invalid-sequence count, control-character count, and sampled versus exact
+  scope, so it cannot explain every rendering or navigation discrepancy.
+- Next: extend the text profile with source byte, newline, line-length, decode, and control-character
+  metrics, retaining bounded background work and explicit scope.
 - Done when: every metric names its unit and exact or sampled scope, line-length extremes link
   to source, newline and decode totals reconcile with app.scope.text.003 and .004, progress can be
   cancelled, and profiling does not delay first content.

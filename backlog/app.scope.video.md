@@ -7,12 +7,12 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.001 — Playback rate has no keyboard stepping or pitch-preserving mode
 
-- Evidence: the transport's playback-speed menu offers 0.25x–2x pitch-following rates through
-  `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
+- Evidence: the transport's playback-speed menu and Shift+Left/Right offer 0.25x–2x pitch-following
+  rates through `Voice.setFrequencyRatio`; the silent clock scales with the rate, time labels stay source-time
   based, and the host summary declares a non-1x rate. 2x is the XAudio2 default frequency-ratio
-  ceiling. There is still no keyboard rate stepping, no rate above 2x, no pitch-preserving mode,
-  and no indication of the frame-drop/duplication policy.
-- Next: add keyboard rate stepping, then decide the above-2x path — a voice created with a larger
+  ceiling. There is still no rate above 2x, no pitch-preserving mode, and no indication of the
+  frame-drop/duplication policy.
+- Next: decide the above-2x path — a voice created with a larger
   maximum frequency ratio, or software resampling — leaving pitch preservation explicitly
   unavailable until implemented.
 - Done when: rate is keyboard adjustable, rates above 2x are offered or explicitly declined,
@@ -107,10 +107,10 @@ inspection around `std/video`; codec implementation work remains in [std.video.m
 
 ### app.scope.video.002 — Video has no previous/next frame or exact time/frame address
 
-- Evidence: Left/Right seek by ten seconds and the timeline seeks approximately. A reader cannot
-  step one decoded frame while paused, enter a timestamp, seek to a presentation frame/index, or
-  inspect keyframe versus decoded-frame boundaries.
-- Next: add paused frame stepping and a timecode address box backed by presentation timestamps,
+- Evidence: Left/Right seek by ten seconds, Ctrl+Left/Right step one frame and pause playback when
+  needed, and the timeline seeks approximately. A reader cannot enter a timestamp, seek to a
+  presentation frame/index, or inspect keyframe versus decoded-frame boundaries.
+- Next: add a timecode address box backed by presentation timestamps,
   then expose keyframe/preroll information where the container provides it.
 - Done when: previous/next frame reaches the exact display order, numeric time and frame jumps
   validate their interpretation, variable-frame-rate content never invents a constant mapping, and

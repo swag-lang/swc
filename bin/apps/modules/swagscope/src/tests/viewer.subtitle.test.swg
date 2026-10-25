@@ -46,7 +46,12 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
 
     let view = assume cast(*Captions.Panel, result.view)
     Swag.assert(view.track!.cueCount() == 2)
+    Swag.assert(view.currentCue == Swag.U64.Max)
     Swag.assert(view.cueButton.text() == "2 cues" and view.durationButton.text().count)
+    var initialCue = KeyEvent{kind: .Pressed, key: .PageDown, modifiers: .Control}
+    Swag.assert(view.hookOnChildEvent!(view.editor, &initialCue) and view.currentCue == 0)
+    Swag.assert(view.editor.selectedText() == "The first caption.")
+    Swag.assert(view.cueButton.text() == "1 / 2")
     Swag.assert(view.transcript.indexOf("00:00:00.500") != Swag.U64.Max)
     Swag.assert(view.transcript.indexOf("A second caption\non two lines.") != Swag.U64.Max)
 
@@ -54,20 +59,36 @@ func subtitleViewerFixturePath()->String => Path.combine(Path.directoryName(#cur
     collectViewerMatches(result.collectMatches, "second", &matches)
     Swag.assert(matches.count == 1 and matches[0].major == 1)
     var revealed = result.revealMatch(matches[0], "second")
-    Swag.assert(revealed)
+    Swag.assert(revealed and view.currentCue == 1 and view.cueButton.text() == "2 / 2")
     var bounds: Math.Rectangle
     Swag.assert(result.searchBounds(matches[0], &bounds) and not bounds.isEmpty())
     result.clearSearch()
     revealed = view.revealCue(1) and view.editor.selectedText() == "A second caption\non two lines."
     Swag.assert(revealed)
+    view.editor.setCursorPos(view.editor.cursorFromLogicalPosition(1, 0))
+    view.syncCurrentCue()
+    Swag.assert(view.currentCue == 0 and view.cueButton.text() == "1 / 2")
+    var previousCue = KeyEvent{kind: .Pressed, key: .PageUp, modifiers: .Control}
+    Swag.assert(view.hookOnChildEvent(view.editor, &previousCue) and view.currentCue == 0)
+    var previousAtStart = KeyEvent{kind: .Pressed, key: .PageUp, modifiers: .Control}
+    Swag.assert(view.hookOnChildEvent(view.editor, &previousAtStart) and view.currentCue == 0)
+    var nextCue = KeyEvent{kind: .Pressed, key: .PageDown, modifiers: .Control}
+    Swag.assert(view.hookOnChildEvent(view.editor, &nextCue) and view.currentCue == 1)
+    Swag.assert(view.editor.selectedText() == "A second caption\non two lines.")
+    var nextAtEnd = KeyEvent{kind: .Pressed, key: .PageDown, modifiers: .Control}
+    Swag.assert(view.hookOnChildEvent(view.editor, &nextAtEnd) and view.currentCue == 1)
+    var firstCue = KeyEvent{kind: .Pressed, key: .Home, modifiers: .Control}
+    Swag.assert(view.hookOnChildEvent(view.editor, &firstCue) and view.currentCue == 0 and view.cueButton.text() == "1 / 2")
+    var lastCue = KeyEvent{kind: .Pressed, key: .End, modifiers: .Control}
+    Swag.assert(view.hookOnChildEvent(view.editor, &lastCue) and view.currentCue == 1 and view.cueButton.text() == "2 / 2")
 
     let oldCount = String.from(view.cueButton.text())
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    let expectedCount = Format.toString(Captions.texts().ui_Cues, 2)
-    Swag.assert(view.cueButton.text() == expectedCount.toString() and view.cueButton.text() != oldCount.toString(),
-                Format.toString("subtitle count: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedCount, oldCount))
-    Swag.assert(view.cueButton.toolTip == Captions.texts().ui_GoToCue)
+    let expectedPosition = Format.toString(Captions.texts().ui_CuePosition, 2, 2)
+    Swag.assert(view.cueButton.text() == expectedPosition.toString(),
+                Format.toString("subtitle position: actual '%', expected '%', previous '%'", view.cueButton.text(), expectedPosition, oldCount))
+    Swag.assert(view.cueButton.toolTip == Captions.texts().ui_CueNavigationTip)
     Swag.assert(view.durationButton.toolTip == Captions.texts().ui_GoToTime)
     Swag.assert(view.editor.selectedText() == "A second caption\non two lines.")
     expect host.app.setLanguage(ReferenceLanguage)

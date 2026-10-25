@@ -330,6 +330,8 @@ impl IWnd for RollView
         {
         case .Add, .OemPlus:       .zoomIn()
         case .Subtract, .OemMinus: .zoomOut()
+        case .PageUp:              .scroll.setScrollPos(.scrollPos.x, .scrollPos.y - .clientRect().height)
+        case .PageDown:            .scroll.setScrollPos(.scrollPos.x, .scrollPos.y + .clientRect().height)
         case .F:                   .zoomToFit()
         case .Left:                .scroll.setScrollPos(.scrollPos.x - 96, .scrollPos.y)
         case .Right:               .scroll.setScrollPos(.scrollPos.x + 96, .scrollPos.y)

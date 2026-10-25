@@ -119,6 +119,16 @@ private func playbackRateCommand(index: u32)->String => Format.toString("scope.v
 
 private func subtitleTrackCommand(sidecar: bool, index: u32)->String => Format.toString(sidecar ? "scope.video.subtitle.sidecar.%" : "scope.video.subtitle.embedded.%", index)
 
+// Moves one step through the playback rates offered by the speed menu.
+private func playbackRateStep(current: f64, direction: s32)->f64
+{
+    var currentIndex = 0's32
+    for rate, index in PlaybackRates where rate <= current do
+        currentIndex = cast(s32, index)
+    let nextIndex = Math.clamp(currentIndex + direction, 0, cast(s32, PlaybackRates.count - 1))
+    return PlaybackRates[cast(u32, nextIndex)]
+}
+
 // Names one selectable playback rate; the source rate keeps its word rather than a number.
 private func playbackRateText(rate: f64)->String => rate == 1 ? texts().ui_PlayerSpeedNormal : Format.toString("%×", rate)
 
@@ -597,7 +607,25 @@ private impl IWnd for Panel
 
     mtd impl onKeyEvent(evt: *KeyEvent)
     {
-        if evt.kind != .Pressed or evt.modifiers != .None
+        if evt.kind != .Pressed
+        {
+            evt.accepted = false
+            return
+        }
+
+        if evt.modifiers == .Control and (evt.key == .Left or evt.key == .Right)
+        {
+            discard .stepFrame(evt.key == .Right)
+            return
+        }
+
+        if evt.modifiers == .Shift and (evt.key == .Left or evt.key == .Right)
+        {
+            .setPlaybackRate(playbackRateStep(.playbackRate, evt.key == .Right ? 1 : -1))
+            return
+        }
+
+        if evt.modifiers != .None
         {
             evt.accepted = false
             return

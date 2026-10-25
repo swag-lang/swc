@@ -310,6 +310,7 @@ impl Panel
                     return
                 }
             }
+
         }
 
         if not .showFrame(target) do
@@ -319,6 +320,29 @@ impl Panel
             .resumeAudio()
 
         .audioClockLast = -1
+    }
+
+    // Steps to an adjacent decoded frame and pauses so the selected picture remains inspectable.
+    mtd stepFrame(forward: bool)->bool
+    {
+        if not .hasFrame do
+            return false
+        if .playing do
+            .togglePlayback()
+        let count = .video.frameCount()
+        if forward
+        {
+            if count and .frameIndex + 1 >= count do
+                return true
+            .seekFrame(.frameIndex + 1)
+        }
+        else
+        {
+            if not .frameIndex do
+                return true
+            .seekFrame(.frameIndex - 1)
+        }
+        return true
     }
 
     // Wraps playback to the first picture without the pause a cold user seek shows.

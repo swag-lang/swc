@@ -6,8 +6,8 @@ ui_TrackChoice   % — % notes
 ui_ZoomOut       Réduire le zoom
 ui_ZoomIn        Agrandir le zoom
 ui_Fit           Ajuster la partition complète
-ui_ZoomMenu      Options de zoom horizontal · Ctrl+molette : zoom vertical
-ui_PitchLabels   Noms des notes
+ui_ZoomMenu      Zoom horizontal · Ctrl+molette : zoom vertical · Page précédente/suivante : défilement
+ui_PitchLabels   Noms des notes (C4 = MIDI 60)
 ui_KeyboardWidth Largeur du clavier de piano
 ui_KeyboardCompact Compacte
 ui_KeyboardStandard Standard

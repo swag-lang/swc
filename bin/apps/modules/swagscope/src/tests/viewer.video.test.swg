@@ -367,6 +367,24 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     view.togglePlayback()
     Swag.assert(not view.playing)
 
+    var nextFrame = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
+    view.sendEvent(&nextFrame)
+    waitForVideoFrame(view)
+    Swag.assert(nextFrame.accepted and view.frameIndex == 1 and not view.playing)
+    var previousFrame = KeyEvent{kind: .Pressed, key: .Left, modifiers: .Control}
+    view.sendEvent(&previousFrame)
+    waitForVideoFrame(view)
+    Swag.assert(previousFrame.accepted and view.frameIndex == 0 and not view.playing)
+    var previousAtStart = KeyEvent{kind: .Pressed, key: .Left, modifiers: .Control}
+    view.sendEvent(&previousAtStart)
+    Swag.assert(previousAtStart.accepted and view.frameIndex == 0)
+    view.togglePlayback()
+    let frameBeforePausedStep = view.frameIndex
+    var nextWhilePlaying = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
+    view.sendEvent(&nextWhilePlaying)
+    waitForVideoFrame(view)
+    Swag.assert(nextWhilePlaying.accepted and not view.playing and view.frameIndex == frameBeforePausedStep + 1)
+
     // A Motion JPEG stream has no planes to hand over, so the queue holds packed pictures.
     Swag.assert(not view.planar)
     Swag.assert(view.details.indexOf("160") != Swag.U64.Max)
@@ -554,6 +572,17 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     view.setPlaybackRate(1)
     Swag.assert(view.playbackRate == 1 and view.details.indexOf("2×") == Swag.U64.Max)
     Swag.assert(Math.isEqualEpsilon(expect view.voice.frequencyRatio(), 1, 0.001))
+    var faster = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Shift}
+    view.sendEvent(&faster)
+    Swag.assert(faster.accepted and view.playbackRate == 1.25)
+    Swag.assert(Math.isEqualEpsilon(expect view.voice.frequencyRatio(), 1.25, 0.001))
+    var slower = KeyEvent{kind: .Pressed, key: .Left, modifiers: .Shift}
+    view.sendEvent(&slower)
+    Swag.assert(slower.accepted and view.playbackRate == 1)
+    view.setPlaybackRate(2)
+    var fastest = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Shift}
+    view.sendEvent(&fastest)
+    Swag.assert(fastest.accepted and view.playbackRate == 2)
 }
 
 // The host's answer to a movie that has been played through is what the transport does with
@@ -716,6 +745,17 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(window.hookOnChildEvent(window.viewerCombo, &press))
     Swag.assert(not view.playing and not view.voice!.isPlaying() and window.viewerCombo.hasFocus())
     Swag.assert(window.hookOnChildEvent(window.viewerCombo, &release))
+
+    view.setPlaybackRate(1)
+    var faster = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Shift}
+    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &faster))
+    Swag.assert(view.playbackRate == 1.25 and window.viewerCombo.hasFocus())
+    Swag.assert(Math.isEqualEpsilon(expect view.voice!.frequencyRatio(), 1.25, 0.001))
+    let frameBeforeStep = view.frameIndex
+    var nextFrame = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
+    Swag.assert(window.hookOnChildEvent(window.viewerCombo, &nextFrame))
+    waitForVideoFrame(view)
+    Swag.assert(view.frameIndex == frameBeforeStep + 1 and not view.playing and window.viewerCombo.hasFocus())
 }
 
 // A Matroska file carrying several sound tracks exposes a compact selector. Changing it creates
@@ -813,7 +853,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.assert(view.audioButton.toolTip == "Piste audio")
-    Swag.assert(view.speedButton.toolTip == "Vitesse de lecture")
+    Swag.assert(view.speedButton.toolTip == Film.texts().ui_TipPlaybackSpeed)
     Swag.assert(Film.audioTrackText(1, view.video.audioTrack(1)!).indexOf("can.") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("2 can.") != Swag.U64.Max)
 

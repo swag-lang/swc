@@ -26,8 +26,13 @@ func midiZoomFixturePath()->String => Path.combine(Path.directoryName(#curlocati
 
     host.mouseWheel(roll.surfaceRect().center(), 120, .Control)
     Swag.assert(roll.pitchZoom == 1.5625)
-    roll.scroll.setScrollPos(0, 120)
-    Swag.assert(roll.scroll.scrollPosition().y > 0)
+    var pageDown = KeyEvent{kind: .Pressed, key: .PageDown}
+    roll.sendEvent(&pageDown)
+    let pageDownPosition = roll.scroll.scrollPosition().y
+    Swag.assert(pageDown.accepted and pageDownPosition > 0)
+    var pageUp = KeyEvent{kind: .Pressed, key: .PageUp}
+    roll.sendEvent(&pageUp)
+    Swag.assert(pageUp.accepted and roll.scroll.scrollPosition().y == 0)
 
     roll.applyPitchZoom(0)
     Swag.assert(roll.pitchZoom == 0.5)
@@ -37,6 +42,9 @@ func midiZoomFixturePath()->String => Path.combine(Path.directoryName(#curlocati
 
 #test
 {
+    let previousSettings = Midi.g_ViewerSettings
+    defer Midi.g_ViewerSettings = previousSettings
+    Midi.g_ViewerSettings = {}
     var host: Testing.HeadlessHost
     host.setup(800, 520)
     defer
@@ -50,18 +58,21 @@ func midiZoomFixturePath()->String => Path.combine(Path.directoryName(#curlocati
     completeViewerBackgroundLoad(&host, &viewer.load)
     Swag.assert(viewer.pitchLabelCombo.items.count == 2 and viewer.roll.pitchLabel(60) == "C4")
     Swag.assert(viewer.keyboardWidthCombo.items.count == 3 and viewer.roll.keyboardWidth == 72)
+    Swag.assert(viewer.zoomLabel.toolTip.contains("Page Up/Down"))
 
     viewer.pitchLabelCombo.setSelectedIndex(1)
     Swag.assert(viewer.roll.pitchLabelMode == .MidiNumber and viewer.roll.pitchLabel(60) == "60")
+    Swag.assert(Midi.g_ViewerSettings.pitchLabelMode == .MidiNumber)
     viewer.keyboardWidthCombo.setSelectedIndex(0)
     Swag.assert(viewer.roll.keyboardWidth == 56)
     viewer.keyboardWidthCombo.setSelectedIndex(2)
-    Swag.assert(viewer.roll.keyboardWidth == 112)
+    Swag.assert(viewer.roll.keyboardWidth == 112 and Midi.g_ViewerSettings.keyboardWidthMode == 2)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
     Swag.assert(viewer.pitchLabelCombo.selectedIndex == 1)
     Swag.assert(viewer.keyboardWidthCombo.selectedIndex == 2)
     Swag.assert(viewer.keyboardWidthCombo.items[2]!.name.raw == "Large")
+    Swag.assert(viewer.zoomLabel.toolTip.contains("Page précédente/suivante"))
     expect host.app.setLanguage(ReferenceLanguage)
 }
 

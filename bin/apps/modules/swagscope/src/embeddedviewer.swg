@@ -352,3 +352,25 @@ private impl EmbeddedViewer
         return result
     }
 }
+
+private impl IWnd for EmbeddedViewer
+{
+    mtd impl onSerializeStateEvent(evt: *SerializeStateEvent)
+    {
+        if evt.serializer.isReading()
+        {
+            if .owner.rightPanelWidth > 0
+            {
+                let width = .owner.rightPanelWidth + .themeMetrics().panel_GutterSize
+                if .sideSplitter.items[1]!.view.isLocallyVisible()
+                    do .sideSplitter.setPaneSize(1, width)
+                else do .sideSplitter.items[1]!.size = width
+                .sideSplitter.sendResizeEvent()
+            }
+            return
+        }
+
+        if .sideSplitter.items[1]!.view != .sidePlaceholder
+            do .owner.rightPanelWidth = .sideSplitter.items[1]!.size - .themeMetrics().panel_GutterSize
+    }
+}

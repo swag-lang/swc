@@ -27,6 +27,8 @@ struct ViewerCue
 {
     textOffset: u64
     textLength: u64
+    firstLine:  u64
+    lastLine:   u64
 }
 
 // Presents a timed subtitle file as a searchable transcript of its cues.
@@ -44,6 +46,7 @@ struct Panel
     track:      *Subtitle.Track?
     transcript: String
     cueText:    Array'ViewerCue
+    currentCue: u64 = Swag.U64.Max
     duration:   f64
 }
 
@@ -96,27 +99,65 @@ private impl Panel
 {
     mtd retranslate()
     {
-        .cueButton.setText(cueCountText(.track!.cueCount()))
-        .cueButton.toolTip      = texts().ui_GoToCue
+        .refreshCueButton()
+        .cueButton.toolTip      = texts().ui_CueNavigationTip
         .durationButton.toolTip = texts().ui_GoToTime
+    }
+
+    mtd refreshCueButton()
+    {
+        let label = .currentCue == Swag.U64.Max
+            ? cueCountText(.track!.cueCount())
+            : Format.toString(texts().ui_CuePosition, .currentCue + 1, .cueText.count)
+        .cueButton.setText(label)
+    }
+
+    mtd setCurrentCue(index: u64)
+    {
+        if .currentCue == index do
+            return
+        .currentCue = index
+        .refreshCueButton()
+    }
+
+    // Tracks the cue containing the editor caret, including wrapped display lines.
+    mtd syncCurrentCue()
+    {
+        if .cueText.isEmpty() do
+            return
+        let line = .editor.cursorLogicalLineIndex()
+        for index in .cueText.count where line <= .cueText[index].lastLine
+        {
+            .setCurrentCue(index)
+            return
+        }
+        .setCurrentCue(.cueText.count - 1)
     }
 
     // Builds the transcript, each cue as its time range followed by its content, and records where
     // each cue's content sits so it can be revealed.
     mtd buildTranscript()
     {
+        var line = 0'u64
         for index in .track!.cueCount()
         {
-            if not .transcript.isEmpty() do
+            if not .transcript.isEmpty()
+            {
                 .transcript += "\n\n"
+                line += 2
+            }
+            let firstLine = line
             .transcript += clockText(.track.cueStartTime(index))
             .transcript += "  →  "
             .transcript += clockText(.track.cueEndTime(index))
             .transcript += "\n"
+            line += 1
             let offset  = .transcript.length
             let content = .track.cueContent(index)
             .transcript += content
-            .cueText.add({offset, content.count})
+            for character in content where character == '\n' do
+                line += 1
+            .cueText.add({offset, content.count, firstLine, line})
         }
     }
 
@@ -130,6 +171,7 @@ private impl Panel
     {
         if match.major >= .cueText.count do
             return false
+        .setCurrentCue(match.major)
         let cue = .cueText[match.major]
         Viewer.highlightRichEditMatch(.editor, .transcript, cue.textOffset + match.offset, match.length)
         return true
@@ -142,10 +184,35 @@ private impl Panel
     {
         if index >= .cueText.count do
             return false
+        .setCurrentCue(index)
         let cue = .cueText[index]
         Viewer.highlightRichEditMatch(.editor, .transcript, cue.textOffset, cue.textLength)
         .editor.setFocus()
         return true
+    }
+
+    // Moves to an adjacent cue. With no current cue, begin at the first cue in either direction.
+    mtd navigateCue(forward: bool)->bool
+    {
+        if .cueText.isEmpty() do
+            return false
+        if .currentCue == Swag.U64.Max do
+            return .revealCue(0)
+        if forward
+        {
+            if .currentCue + 1 < .cueText.count do
+                discard .revealCue(.currentCue + 1)
+        }
+        elif .currentCue do
+            discard .revealCue(.currentCue - 1)
+        return true
+    }
+
+    mtd navigateCueBoundary(last: bool)->bool
+    {
+        if .cueText.isEmpty() do
+            return false
+        return .revealCue(last ? .cueText.count - 1 : 0)
     }
 
     mtd promptGoToCue()
@@ -211,7 +278,7 @@ private impl Panel
         with result.cueButton = IconButton.create(info, {}, {0, 0, 108, 32}, "scope.subtitle.cue", .CenterContent)
         {
             .dockStyle = .Right
-            .toolTip   = texts().ui_GoToCue
+            .toolTip   = texts().ui_CueNavigationTip
             .setText(cueCountText(result.track!.cueCount()))
             .setForm(.Rectangle)
             .sigPressed += func|view = result|(_) { view.promptGoToCue() }
@@ -225,6 +292,31 @@ private impl Panel
             .style.setFont(result.theme().createDefaultFontFs(result.themeMetrics().defaultFixedFontSize), .Regular)
             .setFlags(.ReadOnly | .WordWrap)
             .setText(result.transcript)
+        }
+
+        result.hookOnChildEvent = func|view = result|(_, evt)
+        {
+            switch evt
+            {
+            case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .PageUp:
+                return view.navigateCue(false)
+            case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .PageDown:
+                return view.navigateCue(true)
+            case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .Home:
+                return view.navigateCueBoundary(false)
+            case KeyEvent as key where key.kind == .Pressed and key.modifiers == .Control and key.key == .End:
+                return view.navigateCueBoundary(true)
+            case KeyEvent as key:
+                key.target!.processEvent(evt)
+                view.syncCurrentCue()
+                return key.accepted
+            case MouseEvent as mouse:
+                mouse.target!.processEvent(evt)
+                view.syncCurrentCue()
+                return mouse.accepted
+            default:
+                return false
+            }
         }
 
         result.applyLayout()

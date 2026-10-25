@@ -441,7 +441,12 @@ SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNode
     if (payload.runtimeStorageSym != nullptr)
         return *payload.runtimeStorageSym;
 
-    if (SymbolVariable* boundStorage = currentRuntimeStorage(sema))
+    SymbolVariable* boundStorage = currentRuntimeStorage(sema);
+    // Nested initializer conversions can resolve to the same node as a bound result. A field
+    // conversion must not borrow the enclosing aggregate's storage.
+    if (boundStorage &&
+        boundStorage->typeRef().isValid() &&
+        sema.typeMgr().unwrapAlias(sema.ctx(), boundStorage->typeRef()) == sema.typeMgr().unwrapAlias(sema.ctx(), storageTypeRef))
     {
         payload.runtimeStorageSym = boundStorage;
         return *boundStorage;

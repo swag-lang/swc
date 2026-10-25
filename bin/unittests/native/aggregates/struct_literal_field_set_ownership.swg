@@ -68,6 +68,11 @@ func name()->string     => "dyn"
 func ownsItself(owned: Owned)->bool => owned.addr == &owned
 func makeOwned()->Owned => name()
 
+func makeOwnedHolder(value: string)->Holder
+{
+    return Holder{owned: value}
+}
+
 // A conditional whose branch converts through 'opSet' owns its value: it adopts the selected
 // branch, and a branch that did not run leaves nothing to drop.
 func assignConditional(flag: bool)
@@ -99,6 +104,18 @@ func assertBalanced(sets: u32)
     {
         let holder: Holder = Holder{owned: "abc"}
         Swag.assert(holder.owned.value == "abc")
+        Swag.assert(holder.owned.addr == &holder.owned)
+    }
+    assertBalanced(1)
+}
+
+#test
+{
+    resetCounts()
+    scope
+    {
+        let holder = makeOwnedHolder("returned")
+        Swag.assert(holder.owned.value == "returned")
         Swag.assert(holder.owned.addr == &holder.owned)
     }
     assertBalanced(1)

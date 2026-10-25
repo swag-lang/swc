@@ -33,8 +33,8 @@ impl AutoScopeOpBox
 }
 
 struct Color { value: u32 }
-func fill(color: Color) {}
-func fillMany(colors: Color...) {}
+func fill(color: Color) { discard color }
+func fillMany(colors: Color...) { discard colors }
 
 #test
 {

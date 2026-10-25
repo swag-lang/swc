@@ -27,7 +27,7 @@ using Core, Gui, Pixel, Viewers
                           texture: host.app.renderer.addImage(&image)})
     explorer.cached.add(0)
     let generation = explorer.generation
-    explorer.previews[0].opening = true
+    explorer.previews[0].opening    = true
     explorer.previews[0].generation = generation
     explorer.previews[1].generation = generation
     MarkdownText.g_ViewerSettings.themeIndex = 5

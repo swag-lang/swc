@@ -613,6 +613,7 @@ impl Explorer
                 else do
                     preview.task.cancel()
             }
+
             .generation += 1
             .clearTextures()
             for &entry in .entries do

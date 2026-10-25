@@ -136,16 +136,17 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
     completeExplorer(&host, explorer)
     explorer.selected = 0
     explorer.activate(0)
-    Swag.assert(explorer.preview.started and explorer.preview.opening)
+    Swag.assert(explorer.previews[0].started and explorer.previews[0].opening)
 
     // A second activation supersedes the extraction even if the first worker already finished.
-    explorer.preview.task.wait()
+    explorer.previews[0].task.wait()
     explorer.activate(0)
-    explorer.preview.task.wait()
+    for &preview in explorer.previews do
+        preview.task.wait()
     host.pump()
-    if explorer.preview.started
+    for &preview in explorer.previews where preview.started
     {
-        explorer.preview.task.wait()
+        preview.task.wait()
         host.pump()
     }
 
@@ -161,7 +162,7 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 
     explorer.activate(0)
     window.closeFile()
-    explorer.preview.task.wait()
+    explorer.previews[0].task.wait()
     host.pump()
     Swag.assert(not window.explorerActive and window.pendingFile.isEmpty() and window.currentView == null)
 }
@@ -266,15 +267,15 @@ func completeExplorer(host: *Testing.HeadlessHost, explorer: *Explorer)
 
         // Keep one publication pending to photograph its indicator without starting a decoder.
         host.app.renderer.removeTexture(&explorer.entries[2].texture)
-        explorer.preview.index      = 2
-        explorer.preview.generation = explorer.generation
-        explorer.preview.submit(func() {})
+        explorer.previews[0].index      = 2
+        explorer.previews[0].generation = explorer.generation
+        explorer.previews[0].submit(func() {})
         var image = host.render(window)
-        Swag.assert(explorer.grid.spinner.isLocallyVisible())
-        explorer.preview.wait()
+        Swag.assert(explorer.grid.spinners[0].isLocallyVisible())
+        explorer.previews[0].wait()
         explorer.grid.invalidate()
         discard host.render(window)
-        Swag.assert(not explorer.grid.spinner.isLocallyVisible())
+        Swag.assert(not explorer.grid.spinners[0].isLocallyVisible())
         if palette == 0 do
             Pixel.Testing.assertImageGolden(&image, "explorer.gallery")
         let review = Env.variable("SWAG_SCOPE_REVIEW")

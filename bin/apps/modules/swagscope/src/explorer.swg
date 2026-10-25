@@ -4,6 +4,9 @@ using Core, Gui, Pixel
 
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 
+// Each isolated renderer owns two decoder workers, for at most six CPU workers.
+const ExplorerWorkerCount = 3
+
 struct ExplorerTemporary
 {
     file:  String
@@ -42,7 +45,7 @@ struct Explorer
     requested:       String
     requestedFolder: String
     load:            ExplorerListingLoad
-    preview:         ExplorerPreview
+    previews:        [ExplorerWorkerCount] ExplorerPreview
     generation:      u64
     selected:        u64 = Swag.U64.Max
     pendingOpen:     u64 = Swag.U64.Max
@@ -50,6 +53,7 @@ struct Explorer
     cached:          Array'u64
     sortColumn:      u32
     descending:      bool
+    previewTimer:    *Timer?
 }
 
 impl Explorer
@@ -138,20 +142,25 @@ impl Explorer
         }
 
         result.retranslate()
-        with result.grid.spinner = Spinner.create(result.grid)
+        for ExplorerWorkerCount
         {
-            .backgroundStyle = .Transparent
-            .hide()
-            .hookOnEvent = func|result|(_, evt)
+            with let spinner = Spinner.create(result.grid)
             {
-                if evt is MouseEvent as mouse
+                .backgroundStyle = .Transparent
+                .hide()
+                .hookOnEvent = func|result|(_, evt)
                 {
-                    result.grid.itf.onMouseEvent(mouse)
-                    return true
-                }
+                    if evt is MouseEvent as mouse
+                    {
+                        result.grid.itf.onMouseEvent(mouse)
+                        return true
+                    }
 
-                return false
+                    return false
+                }
             }
+
+            result.grid.spinners.add(spinner)
         }
 
         result.setMode(.Medium)
@@ -393,9 +402,12 @@ impl Explorer
 
     mtd suspend()
     {
-        if .preview.started and .preview.generation == .generation and .preview.index < .entries.count do
-            .entries[.preview.index].attempted = false
-        .preview.task.cancel()
+        for &preview in .previews
+        {
+            if preview.started and preview.generation == .generation and preview.index < .entries.count do
+                .entries[preview.index].attempted = false
+            preview.task.cancel()
+        }
     }
 
     mtd leave()
@@ -430,14 +442,19 @@ impl Explorer
 
     private mtd prioritizeVisible()
     {
-        if .preview.started and not .preview.opening
+        .grid.hovered = Swag.U64.Max
+        for &preview in .previews where preview.started and not preview.opening
         {
             let range   = .grid.visibleRange()
             var visible = false
-            for row in range.first until range.end where .shown[row] == .preview.index do
+            for row in range.first until range.end where .shown[row] == preview.index do
                 visible = true
-            if not visible do
-                .suspend()
+            if not visible
+            {
+                if preview.generation == .generation and preview.index < .entries.count do
+                    .entries[preview.index].attempted = false
+                preview.task.cancel()
+            }
         }
 
         .requestPreview()
@@ -469,10 +486,44 @@ impl Explorer
         }
     }
 
-    // Only visible tiles are decoded, one at a time, with at most 128 uploaded thumbnails.
+    // Keep three independent renderers busy on visible tiles, with at most 128 uploaded previews.
     mtd requestPreview()
     {
-        if .preview.started or .load.started or (not .isVisible() and .pendingOpen == Swag.U64.Max) do
+        for &preview in .previews where not preview.started do
+            .startPreview(preview)
+        .updatePreviewAnimation()
+    }
+
+    mtd updatePreviewAnimation()
+    {
+        var busy = false
+        for &preview in .previews where preview.started and not preview.opening and preview.generation == .generation do
+            busy = true
+        if busy and .isVisible()
+        {
+            if not .previewTimer do
+                .previewTimer = .addTimer(16'ms)
+        }
+        else
+        {
+            .stopTimer(&.previewTimer)
+        }
+    }
+
+    // Returns the active slot for a tile, including work waiting for GUI publication.
+    mtd previewSlot(index: u64)->u64
+    {
+        for &preview, slot in .previews where preview.started and
+                                              not preview.opening and
+                                              preview.generation == .generation and
+                                              preview.index == index do
+            return slot
+        return Swag.U64.Max
+    }
+
+    private mtd startPreview(preview: *ExplorerPreview)
+    {
+        if .load.started or (not .isVisible() and .pendingOpen == Swag.U64.Max) do
             return
         var wanted  = .pendingOpen
         let opening = wanted != Swag.U64.Max
@@ -484,7 +535,9 @@ impl Explorer
             for row in range.first until range.end
             {
                 let index = .shown[row]
-                if not .entries[index].directory and not .entries[index].attempted
+                if not .entries[index].directory and
+                   not .entries[index].attempted and
+                   .previewSlot(index) == Swag.U64.Max
                 {
                     wanted = index
                     break
@@ -519,22 +572,37 @@ impl Explorer
         }
 
         let entry = &.entries[wanted]
-        .pendingOpen         = Swag.U64.Max
-        .preview.path        = entry.path
-        .preview.index       = wanted
-        .preview.generation  = .generation
-        .preview.opening     = opening
-        .preview.archivePath = .listing.isArchive ? .listing.path : String{}
+        .pendingOpen        = Swag.U64.Max
+        preview.path        = entry.path
+        preview.index       = wanted
+        preview.generation  = .generation
+        preview.opening     = opening
+        preview.archivePath = .listing.isArchive ? .listing.path : String{}
         if .listing.isArchive do
-            .preview.entry = .listing.archive.entries[entry.archiveIndex]
+            preview.entry = .listing.archive.entries[entry.archiveIndex]
         entry.attempted = true
-        .preview.start(me)
+        preview.start(me)
         .grid.invalidate()
     }
 }
 
 impl IWnd for Explorer
 {
+    mtd impl onTimerEvent(evt: *TimerEvent)
+    {
+        if evt.timer == .previewTimer
+        {
+            .updatePreviewAnimation()
+
+            // Keep repainting the visible tiles while background workers own their previews.
+            .grid.invalidate()
+        }
+        else
+        {
+            evt.accepted = false
+        }
+    }
+
     mtd impl onTaskEvent(evt: *TaskEvent)
     {
         if .load.claim(evt)
@@ -560,60 +628,65 @@ impl IWnd for Explorer
             .folder  = .requestedFolder
             .publish()
         }
-        elif .preview.claim(evt)
-        {
-            .preview.wait()
-            .grid.spinner.hide()
-            .grid.invalidate()
-            if .preview.generation != .generation and not .preview.temporary.isEmpty()
-            {
-                catch File.delete(.preview.temporary)
-                .preview.temporary.clear()
-            }
-
-            if not .preview.temporary.isEmpty()
-            {
-                let title = Format.toString("% / %", .displayPath(.preview.archivePath), .preview.path)
-                .temporaryFiles.add({#move .preview.temporary, title})
-            }
-
-            if .preview.generation == .generation
-            {
-                if .preview.opening
-                {
-                    if .preview.error.isEmpty() and not .temporaryFiles.isEmpty() do
-                        .window.queueFile(.temporaryFiles.back().file, remember: false)
-                    else do
-                        .status.setText(.preview.error)
-                }
-                elif .preview.image.isValid()
-                {
-                    if .cached.count >= 128
-                    {
-                        let old = .cached[0]
-                        .app().renderer.removeTexture(&.entries[old].texture)
-                        .entries[old].attempted = false
-                        .cached.removeAtOrdered(0)
-                    }
-
-                    .entries[.preview.index].texture = .app().renderer.addImage(.preview.image)
-                    .cached.add(.preview.index)
-                    .grid.invalidate()
-                }
-            }
-
-            .requestPreview()
-        }
         else
         {
+            for &preview, slot in .previews where preview.claim(evt)
+            {
+                preview.wait()
+                .grid.spinners[slot].hide()
+                .grid.invalidate()
+                if preview.generation != .generation and not preview.temporary.isEmpty()
+                {
+                    catch File.delete(preview.temporary)
+                    preview.temporary.clear()
+                }
+
+                if not preview.temporary.isEmpty()
+                {
+                    let title = Format.toString("% / %", .displayPath(preview.archivePath), preview.path)
+                    .temporaryFiles.add({#move preview.temporary, title})
+                }
+
+                if preview.generation == .generation
+                {
+                    if preview.opening
+                    {
+                        if preview.error.isEmpty() and not .temporaryFiles.isEmpty() do
+                            .window.queueFile(.temporaryFiles.back().file, remember: false)
+                        else do
+                            .status.setText(preview.error)
+                    }
+                    elif preview.image.isValid()
+                    {
+                        if .cached.count >= 128
+                        {
+                            let old = .cached[0]
+                            .app().renderer.removeTexture(&.entries[old].texture)
+                            .entries[old].attempted = false
+                            .cached.removeAtOrdered(0)
+                        }
+
+                        .entries[preview.index].texture = .app().renderer.addImage(preview.image)
+                        .cached.add(preview.index)
+                        .grid.invalidate()
+                    }
+                }
+
+                .requestPreview()
+                return
+            }
+
             evt.accepted = false
         }
     }
 
     mtd impl onDestroyEvent(_: *DestroyEvent)
     {
-        .preview.task.cancel()
-        .preview.wait()
+        .stopTimer(&.previewTimer)
+        for &preview in .previews do
+            preview.task.cancel()
+        for &preview in .previews do
+            preview.wait()
         .clearTextures()
         for file in .temporaryFiles do
             catch File.delete(file.file)
@@ -658,7 +731,7 @@ struct ExplorerGrid
     columns:       u64        = 1
     cell:          Math.Point = {160, 152}
     hovered:       u64        = Swag.U64.Max
-    late spinner:  *Spinner
+    spinners:      Array'(*Spinner)
 }
 
 impl ExplorerGrid
@@ -722,7 +795,7 @@ impl IWnd for ExplorerGrid
     {
         let painter = evt.paintContext.painter
         let range   = .visibleRange()
-        var busy    = false
+        var busy: [ExplorerWorkerCount] bool
         for row in range.first until range.end
         {
             let index = .explorer.shown[row]
@@ -733,6 +806,7 @@ impl IWnd for ExplorerGrid
                 .theme().drawSubRect(painter, rect, &.themeRects().selectionBox_Bk, .themeColors().listItem_SelectedBk)
             elif .hovered == row do
                 .theme().drawSubRect(painter, rect, &.themeRects().selectionBox_Bk, .themeColors().listItem_HotBk)
+            let slot    = .explorer.previewSlot(index)
             let preview = Math.Rectangle{rect.x + 8, rect.y + 8, rect.width - 16, rect.height - 40}
             if entry.texture.isValid()
             {
@@ -741,14 +815,11 @@ impl IWnd for ExplorerGrid
                 let height = cast(f32, entry.texture.height) * scale
                 painter.drawTexture({preview.horzCenter() - width / 2, preview.vertCenter() - height / 2, width, height}, entry.texture)
             }
-            elif .explorer.preview.started and
-                 not .explorer.preview.opening and
-                 .explorer.preview.generation == .explorer.generation and
-                 .explorer.preview.index == index
+            elif slot != Swag.U64.Max
             {
                 let size = .themeMetrics().spinner_Size
-                .spinner.setPosition({preview.horzCenter() - size / 2, preview.vertCenter() - size / 2, size, size}, computeLayout: false)
-                busy = true
+                .spinners[slot].setPosition({preview.horzCenter() - size / 2, preview.vertCenter() - size / 2, size, size}, computeLayout: false)
+                busy[slot] = true
             }
             else
             {
@@ -765,7 +836,8 @@ impl IWnd for ExplorerGrid
             painter.drawRichString({rect.x + 4, rect.bottom() - 28, rect.width - 8, 24}, &name, format)
         }
 
-        .spinner.show(busy)
+        for slot in ExplorerWorkerCount do
+            .spinners[slot].show(busy[slot])
         .explorer.requestPreview()
     }
 

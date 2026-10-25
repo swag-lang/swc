@@ -34,7 +34,14 @@ impl ThumbnailCache
     {
         if not path.count or not File.exists(path) do
             return {}
-        return catch Image.load(path) orelse Image{}
+        var result: retval
+        catch { result = try Image.load(path) }
+        {
+            // A truncated or damaged entry is a miss and must not be retried on every visit.
+            catch File.delete(path)
+        }
+
+        return result
     }
 
     // Publish only complete PNGs. A competing process may already have published the same key.

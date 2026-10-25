@@ -16,11 +16,11 @@ struct ViewerClassifiedFile
 // Classifies one requested file without making the GUI thread open or probe it.
 struct ViewerChoiceLoad
 {
-    using operation: Viewer.BackgroundOperation
-    index:           *ViewerPluginRegistry?
-    fileName:        String
-    recent:          Array'String
-    result:          ViewerClassifiedFile
+    using operation:  Viewer.BackgroundOperation
+    index:            *ViewerPluginRegistry?
+    fileName:         String
+    recent:           Array'String
+    result:           ViewerClassifiedFile
     includeNeighbors: bool
 }
 
@@ -35,10 +35,10 @@ impl ViewerChoiceLoad
 
         // The operation is reusable. A completed result was moved to the window, so rebuild every
         // owning field before the worker appends the next folder and history snapshot.
-        .result   = {}
-        .index    = index
-        .fileName = fileName
-        .recent   = recent
+        .result           = {}
+        .index            = index
+        .fileName         = fileName
+        .recent           = recent
         .includeNeighbors = includeNeighbors
 
         let operation = me

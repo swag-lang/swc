@@ -20,9 +20,9 @@ func showAnchorMenu(btn: *Button, pos: PopupPosition)
     var pt: Math.Point
     switch pos
     {
-    case .AnchorTopCenter:    pt = (rect.horzCenter(), rect.bottom())
-    case .AnchorBottomCenter: pt = (rect.horzCenter(), rect.y)
-    default: pt = (rect.x, rect.bottom())
+    case .AnchorTopCenter:    pt = Math.Point{rect.horzCenter(), rect.bottom()}
+    case .AnchorBottomCenter: pt = Math.Point{rect.horzCenter(), rect.y}
+    default: pt = Math.Point{rect.x, rect.bottom()}
     }
 
     discard menu.doModal(pt, pos, autoDestroy: true)
@@ -49,13 +49,13 @@ func createAnchoredPopupPage(parent: *Wnd)
     plainBtn.setIcon(app.theme.icon(.More, 18))
     plainBtn.sigPressed += func(btn) { showAnchorMenu(btn, .TopLeft); }
 
-    discard createActionButton(left, "Switch to columns", (246, 178, 200), MenuCmd.ModeColumns, .Sort)
+    discard createActionButton(left, "Switch to columns", Math.Rectangle{246, 178, 200}, MenuCmd.ModeColumns, .Sort)
 
     let right = createPanel(parent,
                             "Current selection",
                             "Anchored popups reuse the same commands as the menu bar and state page.",
                             layout.right)
-    g_Preview = createPreview(right, (18, 86, layout.right.width - 36, layout.right.height - 104))
+    g_Preview = createPreview(right, Math.Rectangle{18, 86, layout.right.width - 36, layout.right.height - 104})
 
     createStatusPanel(parent, layout.bottom)
 }

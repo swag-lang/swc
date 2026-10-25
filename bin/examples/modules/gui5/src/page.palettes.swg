@@ -9,9 +9,9 @@ func createPalettesPage(parent: *Wnd)
                              layout.left)
     scope
     {
-        discard createPaletteRamp(left, "Hue families", (24, 118, 360, 68), 0, g_Color)
-        discard createPaletteRamp(left, "Luminance from selected", (24, 226, 360, 68), 1, g_Color)
-        discard createPaletteRamp(left, "Saturation from selected", (24, 334, 360, 68), 2, g_Color)
+        discard createPaletteRamp(left, "Hue families", Math.Rectangle{24, 118, 360, 68}, 0, g_Color)
+        discard createPaletteRamp(left, "Luminance from selected", Math.Rectangle{24, 226, 360, 68}, 1, g_Color)
+        discard createPaletteRamp(left, "Saturation from selected", Math.Rectangle{24, 334, 360, 68}, 2, g_Color)
     }
 
     let right = createPanel(parent,
@@ -46,7 +46,7 @@ func createPalettesPage(parent: *Wnd)
         cool.sigSelectionChanged += func(palette) { selectPaletteColor(palette, "Cool palette") }
         createCaption(right, "Cool set", 24, 198, 240)
 
-        discard createPaletteRamp(right, "Alpha set", (24, 334, 360, 68), 3, g_Color, false)
+        discard createPaletteRamp(right, "Alpha set", Math.Rectangle{24, 334, 360, 68}, 3, g_Color, false)
     }
 
     let bottom = createPanel(parent,
@@ -55,6 +55,6 @@ func createPalettesPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        discard createPreview(bottom, (18, 86, layout.bottom.width - 36, layout.bottom.height - 104), &onDerivedPreviewEvent)
+        discard createPreview(bottom, Math.Rectangle{18, 86, layout.bottom.width - 36, layout.bottom.height - 104}, &onDerivedPreviewEvent)
     }
 }

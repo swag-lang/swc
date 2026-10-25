@@ -13,7 +13,7 @@ func createCompositePage(parent: *Wnd)
         picker.setFrameForm(.Round)
         picker.setColor(g_Color)
         picker.sigColorChanged += func(picker) { setSelectedColor(picker.color(), "ColorPickerCtrl alpha") }
-        discard createQuickPalette(left, (400, 124, 196, 200), "Shared presets")
+        discard createQuickPalette(left, Math.Rectangle{400, 124, 196, 200}, "Shared presets")
     }
 
     let right = createPanel(parent,
@@ -28,12 +28,12 @@ func createCompositePage(parent: *Wnd)
         picker.setFrameForm(.Round)
         picker.setColor(opaque)
         picker.sigColorChanged += func(picker) { setSelectedColor(picker.color(), "ColorPickerCtrl opaque") }
-        discard createQuickPalette(right, (400, 124, 196, 200), "Opaque presets")
+        discard createQuickPalette(right, Math.Rectangle{400, 124, 196, 200}, "Opaque presets")
     }
 
     let bottom = createPanel(parent,
                              "Shared selection",
                              "All controls in this example write to one selected color so each page can be inspected independently.",
                              layout.bottom)
-    discard createPreview(bottom, (18, 86, layout.bottom.width - 36, layout.bottom.height - 104), &onLivePreviewEvent)
+    discard createPreview(bottom, Math.Rectangle{18, 86, layout.bottom.width - 36, layout.bottom.height - 104}, &onLivePreviewEvent)
 }

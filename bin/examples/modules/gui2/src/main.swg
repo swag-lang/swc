@@ -82,9 +82,9 @@ func getPagePanelLayout(parent: *Wnd)->PagePanelLayout
     let bottomHeight = Math.max(MinBottomPanelHeight, height - bottomY)
 
     var result: retval
-    result.left   = (0, 0, halfWidth, topHeight)
-    result.right  = (halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight)
-    result.bottom = (0, bottomY, width, bottomHeight)
+    result.left   = Math.Rectangle{0, 0, halfWidth, topHeight}
+    result.right  = Math.Rectangle{halfWidth + PanelGap, 0, width - halfWidth - PanelGap, topHeight}
+    result.bottom = Math.Rectangle{0, bottomY, width, bottomHeight}
     return result
 }
 

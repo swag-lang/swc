@@ -31,7 +31,7 @@ func createPushButtonPage(parent: *Wnd)
                             layout.right)
     scope
     {
-        let status = createText(right, "No button pressed yet.", (22, 190, 430, 28))
+        let status = createText(right, "No button pressed yet.", Math.Rectangle{22, 190, 430, 28})
 
         var btn = PushButton.create(right, "Press me", Math.Rectangle{22, 92, 150})
         btn.sigPressed += func|status|(_) { status.setText("Pressed: standard button") }

@@ -50,7 +50,7 @@ func createCheckButtonPage(parent: *Wnd)
                              layout.bottom)
     scope
     {
-        let status = createText(bottom, "No option changed yet.", (24, 180, 420, 28))
+        let status = createText(bottom, "No option changed yet.", Math.Rectangle{24, 180, 420, 28})
 
         let grid = CheckButton.create(bottom, "Grid snapping", Math.Rectangle{24, 94, 210})
         grid.sigChanged += func|status|(btn) { status.setText(btn.isChecked() ? "Grid snapping enabled" : "Grid snapping disabled") }

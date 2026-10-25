@@ -414,7 +414,7 @@ Result Cast::retargetLiteralRuntimeStorageIfNeeded(Sema& sema, AstNodeRef nodeRe
     if (!createIfMissing)
         return Result::Continue;
 
-    return SemaHelpers::attachRuntimeStorageIfNeeded(sema, nodeRef, sema.node(nodeRef), storageTypeRef, "__literal_runtime_storage");
+    return SemaHelpers::attachRuntimeStorageIfNeeded(sema, nodeRef, sema.node(nodeRef), storageTypeRef, "__literal_runtime_storage", true);
 }
 
 namespace

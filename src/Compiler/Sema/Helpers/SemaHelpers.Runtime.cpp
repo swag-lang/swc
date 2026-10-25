@@ -178,20 +178,20 @@ TypeRef SemaHelpers::indirectReturnRuntimeStorageTypeRef(Sema& sema, const Symbo
     return returnTypeRef;
 }
 
-Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName)
+Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName, bool allowBoundStorageTypeMismatch)
 {
     if (storageTypeRef.isInvalid())
         return Result::Continue;
 
-    auto& storageSym = getOrCreateRuntimeStorageSymbol(sema, payloadNodeRef, storageNode, storageTypeRef, privateName);
+    auto& storageSym = getOrCreateRuntimeStorageSymbol(sema, payloadNodeRef, storageNode, storageTypeRef, privateName, allowBoundStorageTypeMismatch);
     SWC_RESULT(ensureRuntimeStorageDeclaredAndCompleted(sema, storageSym, storageTypeRef));
 
     return Result::Continue;
 }
 
-Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName)
+Result SemaHelpers::attachRuntimeStorageIfNeeded(Sema& sema, const AstNode& node, TypeRef storageTypeRef, std::string_view privateName, bool allowBoundStorageTypeMismatch)
 {
-    return attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), node, storageTypeRef, privateName);
+    return attachRuntimeStorageIfNeeded(sema, sema.curNodeRef(), node, storageTypeRef, privateName, allowBoundStorageTypeMismatch);
 }
 
 Result SemaHelpers::requireRuntimeFunctionDependency(SymbolFunction*& outRuntimeFn, Sema& sema, IdentifierManager::RuntimeFunctionKind kind, const SourceCodeRef& codeRef)
@@ -432,21 +432,21 @@ Result SemaHelpers::attachLiteralRuntimeStorageIfNeeded(Sema& sema, const AstNod
     if (!literalView.type()->isAggregateStruct() && !literalView.type()->isAggregateArray())
         return Result::Continue;
 
-    return attachRuntimeStorageIfNeeded(sema, node, literalView.typeRef(), "__literal_runtime_storage");
+    return attachRuntimeStorageIfNeeded(sema, node, literalView.typeRef(), "__literal_runtime_storage", true);
 }
 
-SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName)
+SymbolVariable& SemaHelpers::getOrCreateRuntimeStorageSymbol(Sema& sema, AstNodeRef payloadNodeRef, const AstNode& storageNode, TypeRef storageTypeRef, std::string_view privateName, bool allowBoundStorageTypeMismatch)
 {
     auto& payload = ensureCodeGenLoweringPayload(sema, payloadNodeRef);
     if (payload.runtimeStorageSym != nullptr)
         return *payload.runtimeStorageSym;
 
     SymbolVariable* boundStorage = currentRuntimeStorage(sema);
-    // Nested initializer conversions can resolve to the same node as a bound result. A field
-    // conversion must not borrow the enclosing aggregate's storage.
+    // A retyped literal can share its destination; a conversion result needs storage of its own.
     if (boundStorage &&
-        boundStorage->typeRef().isValid() &&
-        sema.typeMgr().unwrapAlias(sema.ctx(), boundStorage->typeRef()) == sema.typeMgr().unwrapAlias(sema.ctx(), storageTypeRef))
+        (allowBoundStorageTypeMismatch ||
+         (boundStorage->typeRef().isValid() &&
+          sema.typeMgr().unwrapAlias(sema.ctx(), boundStorage->typeRef()) == sema.typeMgr().unwrapAlias(sema.ctx(), storageTypeRef))))
     {
         payload.runtimeStorageSym = boundStorage;
         return *boundStorage;

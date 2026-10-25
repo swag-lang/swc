@@ -13,7 +13,7 @@ namespace Integration
         using base: Swag.BaseError
     }
 
-    func harnessError(message: string)->HarnessError => {base: (Errors.mkString(message),)}
+    func harnessError(message: string)->HarnessError => {base: Swag.BaseError{Errors.mkString(message)}}
 
     const PasswordText            = "integration horse battery staple"
     const WrongPasswordText       = "definitely not the password"

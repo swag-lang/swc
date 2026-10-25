@@ -380,7 +380,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(previousAtStart.accepted and view.frameIndex == 0)
     view.togglePlayback()
     let frameBeforePausedStep = view.frameIndex
-    var nextWhilePlaying = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
+    var nextWhilePlaying      = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
     view.sendEvent(&nextWhilePlaying)
     waitForVideoFrame(view)
     Swag.assert(nextWhilePlaying.accepted and not view.playing and view.frameIndex == frameBeforePausedStep + 1)
@@ -427,6 +427,38 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     view.stopPlayback()
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == 0 and view.elapsed == 0)
+}
+
+// The transport fills a wide host bar and gives its changing width to the timeline.
+#test
+{
+    let fileName = expect videoPreviewFile("viewer.video.transport.y4m")
+    defer discard catch File.delete(fileName)
+
+    var host: Testing.HeadlessHost
+    host.setup(1600, 420)
+    defer host.shutdown()
+
+    with let commandBar = Wnd.create'ViewerActionBar(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .padding         = {12, 8, 12, 8}
+        .fillCenterGroup = true
+    }
+
+    var result = openTestViewer(Film.viewerPlugin(), &host.root, fileName, commandParent: commandBar)
+    let view   = assume cast(*Film.Panel, result.view)
+    waitForVideoFrame(view)
+    view.dockStyle         = .Center
+    commandBar.centerGroup = view.commands
+    host.root.applyLayout()
+    commandBar.centerContent()
+    Swag.assert(view.commands.position.width == commandBar.paddedClientRect().width)
+    let wideTimeline = view.timeline.position.width
+
+    host.root.resize(1280, 420)
+    Swag.assert(view.commands.position.width == commandBar.paddedClientRect().width)
+    Swag.assert(view.timeline.position.width > 0 and view.timeline.position.width < wideTimeline)
 }
 
 #[Swag.TestTag("golden")]
@@ -559,7 +591,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
-    Swag.assert(view.speedButton.icon.index == cast(s32, ThemeIcons.PlaybackSpeed) and view.speedButton.isEnabled())
+    Swag.assert(view.speedButton.text() == "1×" and view.speedButton.isEnabled())
     Swag.assert(not view.playModeButton.isEnabled())
     Swag.assert(view.audio != null and view.voice != null)
 
@@ -752,7 +784,7 @@ func videoMatroskaFixturePath()->String => Path.combine(Path.directoryName(#curl
     Swag.assert(view.playbackRate == 1.25 and window.viewerCombo.hasFocus())
     Swag.assert(Math.isEqualEpsilon(expect view.voice!.frequencyRatio(), 1.25, 0.001))
     let frameBeforeStep = view.frameIndex
-    var nextFrame = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
+    var nextFrame       = KeyEvent{kind: .Pressed, key: .Right, modifiers: .Control}
     Swag.assert(window.hookOnChildEvent(window.viewerCombo, &nextFrame))
     waitForVideoFrame(view)
     Swag.assert(view.frameIndex == frameBeforeStep + 1 and not view.playing and window.viewerCombo.hasFocus())

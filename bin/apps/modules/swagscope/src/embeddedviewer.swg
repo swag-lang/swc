@@ -11,14 +11,14 @@ struct EmbeddedViewer
 
     late
     {
-        header:      *Wnd
-        titleLabel:  *Label
-        viewerCombo: *ComboBox
-        infoLane:    *Wnd
-        sideSplitter: *SplitterCtrl
-        document:    *Wnd
+        header:          *Wnd
+        titleLabel:      *Label
+        viewerCombo:     *ComboBox
+        infoLane:        *Wnd
+        sideSplitter:    *SplitterCtrl
+        document:        *Wnd
         sidePlaceholder: *Wnd
-        commandBar:  *ViewerActionBar
+        commandBar:      *ViewerActionBar
     }
 
     late owner:        *ViewerWindow
@@ -210,8 +210,8 @@ private impl EmbeddedViewer
             return true
         }
 
-        let choice = &.choices[index]
-        let plugin = &.owner.index.plugins[choice.pluginIndex]
+        let choice       = &.choices[index]
+        let plugin       = &.owner.index.plugins[choice.pluginIndex]
         let sideSplitter = .sideSplitter
         var next:      ViewerSession
         with var host: ViewerPluginHost
@@ -321,6 +321,7 @@ private impl EmbeddedViewer
         {
             .position.height = result.themeMetrics().panel_GutterSize
             .dockStyle       = .Bottom
+            .fillCenterGroup = true
         }
 
         with result.sideSplitter = SplitterCtrl.create(result)
@@ -340,12 +341,15 @@ private impl EmbeddedViewer
             .backgroundStyle = .Transparent
             .hide()
         }
-        let rightWidth = owner.rightPanelWidth > 0 ? owner.rightPanelWidth : ViewerWindow.RightPanelDefaultWidth
+
+        let rightWidth    = owner.rightPanelWidth > 0 ? owner.rightPanelWidth : ViewerWindow.RightPanelDefaultWidth
         with let sideItem = result.sideSplitter.addPane(result.sidePlaceholder, rightWidth + result.themeMetrics().panel_GutterSize)
         {
-            .minimumSize = ViewerWindow.RightPanelMinWidth + result.themeMetrics().panel_GutterSize
-            .maximumSize = ViewerWindow.RightPanelMaxWidth + result.themeMetrics().panel_GutterSize
+            .minimumSize  = ViewerWindow.RightPanelMinWidth + result.themeMetrics().panel_GutterSize
+            .maximumSize  = ViewerWindow.RightPanelMaxWidth + result.themeMetrics().panel_GutterSize
+            .preserveSize = true
         }
+
         result.sideSplitter.setPaneVisible(1, false)
 
         result.applyLayout()
@@ -363,14 +367,18 @@ private impl IWnd for EmbeddedViewer
             {
                 let width = .owner.rightPanelWidth + .themeMetrics().panel_GutterSize
                 if .sideSplitter.items[1]!.view.isLocallyVisible()
-                    do .sideSplitter.setPaneSize(1, width)
-                else do .sideSplitter.items[1]!.size = width
+                    do
+                    .sideSplitter.setPaneSize(1, width)
+                else do
+                    .sideSplitter.items[1]!.size = width
                 .sideSplitter.sendResizeEvent()
             }
+
             return
         }
 
         if .sideSplitter.items[1]!.view != .sidePlaceholder
-            do .owner.rightPanelWidth = .sideSplitter.items[1]!.size - .themeMetrics().panel_GutterSize
+            do
+            .owner.rightPanelWidth = .sideSplitter.items[1]!.size - .themeMetrics().panel_GutterSize
     }
 }

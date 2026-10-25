@@ -44,6 +44,17 @@ using Core, Pixel, Gui, Viewers
     view.information.copyButton.sigPressed.call(view.information.copyButton)
 
     host.root.applyLayout()
+    let originalWidth = session.sidePanelHost.position.width
+    session.sidePanelHost.resize(224, session.sidePanelHost.position.height)
+    host.root.applyLayout()
+    let narrowValueWidth = view.information.list.header.itemWidthAt(1)
+    Swag.assert(Math.abs(view.information.list.header.contentWidth() - view.information.list.listView.position.width) <= 1)
+    session.sidePanelHost.resize(564, session.sidePanelHost.position.height)
+    host.root.applyLayout()
+    Swag.assert(view.information.list.header.itemWidthAt(1) > narrowValueWidth + 100)
+    Swag.assert(Math.abs(view.information.list.header.contentWidth() - view.information.list.listView.position.width) <= 1)
+    session.sidePanelHost.resize(originalWidth, session.sidePanelHost.position.height)
+    host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
     Testing.assertContentFits(&host.root)
     Swag.assert(view.position.width > session.sidePanelHost.position.width)

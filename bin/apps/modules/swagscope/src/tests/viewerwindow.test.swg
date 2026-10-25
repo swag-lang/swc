@@ -529,7 +529,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.recentList.listFlags.has(.Ellipsis) and window.folderList.listFlags.has(.Ellipsis))
     Swag.assert(window.recentList.scrollWnd.flags.has(.DisableHorizontal) and window.folderList.scrollWnd.flags.has(.DisableHorizontal))
     Swag.assert(window.folderHistoryButton.parent == window.folderLabel.parent and window.folderHistoryButton.isEnabled())
-    Swag.assert(window.kindButton.position.x - window.folderHistoryButton.position.right() == 8)
+    Swag.assert(window.kindButton.position.x == window.folderHistoryButton.position.right())
     Swag.assert(window.folderHistory.count == 1 and window.folderHistory[0].folder == folder)
     assertFolderFiles(window, names.toSlice())
     Swag.assert(window.recentList.lineCount() == 1)
@@ -562,7 +562,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.filePanel.setPaneSize(0, 120)
     let panelWidth = window.mainSplitter.items[0]!.size
-    let state = saveViewerState(window)
+    let state      = saveViewerState(window)
     window.recent.clear()
     window.filePanel.setPaneSize(0, 180)
     window.setFilePanelVisible(false)
@@ -1488,6 +1488,9 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(window.documentPanel.padding == {})
     Swag.assert(window.documentPanel.parent == window.documentHost and window.emptyView.parent == window.documentPanel)
     Swag.assert(window.recentPane.backgroundStyle == .Panel and window.folderPane.backgroundStyle == .Panel)
+    Swag.assert(window.recentLabel.parent!.backgroundStyle == .Transparent and
+                window.folderLabel.parent!.backgroundStyle == .Transparent)
+    Swag.assert(window.folderFilterBox.form == .Rectangle)
     Swag.assert(window.filesButton.parent == window.infoContentGroup)
     Swag.assert(window.viewerBar.backgroundStyle == .ToolBar)
     Swag.assert(window.themeColors().view_Bk != window.themeColors().informationBar_Bk)
@@ -1948,6 +1951,7 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
         .resize(1000, 720)
         .openFile(hexViewerFixturePath())
     }
+
     completeQueuedViewerFile(&host, window)
     var hexChoice = Swag.U32.Max
     for choice, index in window.choices where choice.key == "hex" do
@@ -1970,11 +1974,27 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
 
     window.mainSplitter.setPaneSize(2, 500)
     let panelSize = window.mainSplitter.items[2]!.size
-    let state = saveViewerState(window)
+    let state     = saveViewerState(window)
     window.mainSplitter.setPaneSize(2, 560)
     loadViewerState(window, state.toSlice())
     Swag.assert(window.rightPanelWidth == panelSize - window.themeMetrics().panel_GutterSize)
     Swag.assert(window.mainSplitter.items[2]!.size == panelSize)
+
+    window.setFullScreen(true)
+    Swag.assert(not window.mainSplitter.isPaneVisible(2))
+    window.setFullScreen(false)
+    Swag.assert(window.mainSplitter.isPaneVisible(2) and button.isChecked)
+    Swag.assert(window.mainSplitter.items[2]!.size == panelSize,
+                Format.toString("right pane width changed from % to % after full screen (splitter: %)",
+                                panelSize,
+                                window.mainSplitter.items[2]!.size,
+                                window.mainSplitter.position.width))
+    Swag.assert(Math.abs(window.currentSidePanelHost!.position.right() - window.mainSplitter.paddedClientRect().right()) <= 1)
+    let divider = window.themeMetrics().splitView_BarSize
+    Swag.assert(Math.abs(window.currentSidePanelHost.surfaceRect().x - window.documentPanel.surfaceRect().right() - divider) <= 1)
+    window.setFilePanelVisible(true)
+    Swag.assert(Math.abs(window.documentPanel.surfaceRect().x - window.filePanel.surfaceRect().right() - divider) <= 1)
+    Swag.assert(Math.abs(window.currentSidePanelHost.surfaceRect().x - window.documentPanel.surfaceRect().right() - divider) <= 1)
 }
 
 #test

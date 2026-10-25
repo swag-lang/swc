@@ -411,6 +411,7 @@ impl Panel
         // keeps correcting the picture back onto the sound.
         if .voice do
             catch .voice.setFrequencyRatio(cast(f32, rate))
+        .speedButton.setText(Format.toString("%×", rate))
         .refreshDetails()
     }
 
@@ -869,12 +870,13 @@ private impl Panel
             .setTextAlignment(.Right, .Center)
         }
 
-        with .speedButton = Viewer.createActionDropDown(.commands, .PlaybackSpeed)
+        with .speedButton = IconButton.create(.commands, {}, {0, 0, dropDownWidth + 16, buttonSize}, flags: .CenterContent)
         {
             .dockStyle = .Right
             .margin.x  = 4
             .toolTip   = texts().ui_TipPlaybackSpeed
             .setArrowPosition(.RightUpward)
+            .setText(Format.toString("%×", me.playbackRate))
             .sigPressed += func|view = me|(_) { view.showPlaybackSpeedMenu() }
         }
 
@@ -962,6 +964,7 @@ private impl Panel
         }
 
         result.commands    = host.createCommandGroup(CommandWidth)
+        result.commands.preferredSize.x = 0
         result.information = MediaInfoPanel.create(host)
         result.createTransportBar(services.playback)
 

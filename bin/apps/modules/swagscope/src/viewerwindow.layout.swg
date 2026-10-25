@@ -340,7 +340,6 @@ impl ViewerWindow
                                                       flags: .CenterContent)
         {
             .dockStyle = .Right
-            .margin.z  = 8
             .toolTip   = appStrings().ui_FolderHistory
             .setArrowPosition(.RightDownward)
             .enable(false)
@@ -388,8 +387,9 @@ impl ViewerWindow
         .filePanel.addPane(.folderPane).minimumSize = PaneMinSize
         with let panelItem = .mainSplitter.addPane(.filePanelHost, .leftPanelWidth + panelGutter)
         {
-            .minimumSize = PanelMinWidth + panelGutter
-            .maximumSize = PanelMaxWidth + panelGutter
+            .minimumSize  = PanelMinWidth + panelGutter
+            .maximumSize  = PanelMaxWidth + panelGutter
+            .preserveSize = true
         }
 
         .mainSplitter.setPaneVisible(0, .panelVisible)
@@ -399,8 +399,8 @@ impl ViewerWindow
     // overlays drawn above the active viewer.
     private mtd createDocumentPanel(panelGutter: f32)
     {
-        // The document is the middle panel of the same composition. It owns the seams on both
-        // sides, so showing either optional side panel never doubles the four-pixel rhythm.
+        // Outer edges use the integration gutter. A visible side pane meets the document through
+        // the splitter's own drag band, without adding a second gutter to that band.
         with .documentHost = Wnd.create'Wnd(.mainSplitter)
         {
             .backgroundStyle = .ToolBar
@@ -449,16 +449,35 @@ impl ViewerWindow
             .backgroundStyle = .Transparent
             .hide()
         }
+
         with let sideItem = .mainSplitter.addPane(.sidePanelPlaceholder, RightPanelDefaultWidth + panelGutter)
         {
-            .minimumSize = RightPanelMinWidth + panelGutter
-            .maximumSize = RightPanelMaxWidth + panelGutter
+            .minimumSize  = RightPanelMinWidth + panelGutter
+            .maximumSize  = RightPanelMaxWidth + panelGutter
+            .preserveSize = true
         }
+
         .mainSplitter.setPaneVisible(2, false)
+    }
+
+    private mtd updateDocumentInsets()
+    {
+        let gutter = .themeMetrics().panel_GutterSize
+        let left   = .fullScreen or .mainSplitter.isPaneVisible(0) ? 0 : gutter
+        let right  = .fullScreen or .mainSplitter.isPaneVisible(2) ? 0 : gutter
+        .documentHost.padding = {left, 0, right, 0}
     }
 
     private mtd hookChildEvents()
     {
+        .mainSplitter.hookOnEvent = func|window = me|(_, evt)
+        {
+            if evt is ResizeEvent do
+                window.updateDocumentInsets()
+            return false
+        }
+
+        .updateDocumentInsets()
         .hookOnChildEvent = func|window = me|(_, evt)
         {
             switch evt

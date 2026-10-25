@@ -33,55 +33,55 @@ struct ViewerWindow
 
     late
     {
-        commandBar:          *ViewerActionBar
-        commandButtons:      *IconBar
-        kindButton:          *IconButton
-        openButton:          *IconButton
-        closeButton:         *IconButton
-        openDefaultButton:   *IconButton
-        filesButton:         *IconButton
-        fullScreenButton:    *IconButton
-        searchGroup:         *StackLayoutCtrl
-        searchNavigation:    *StackLayoutCtrl
-        searchBox:           *EditBox
-        searchCountLabel:    *Label
-        searchPrevious:      *IconButton
-        searchNext:          *IconButton
-        searchOptionsButton: *IconButton
-        viewerCombo:         *ComboBox
-        appearanceButton:    *AppearanceButton
-        accentRail:          *Separator
-        infoBarHost:         *Wnd
-        infoBar:             *ViewerInfoBar
-        infoContentGroup:    *ViewerInfoLayout
-        infoFileGroup:       *StackLayoutCtrl
-        infoIconLabel:       *Label
-        infoNameLabel:       *Label
-        infoStatsLabel:      *Label
-        infoSizeLabel:       *Label
-        documentHost:        *Wnd
-        documentPanel:       *Wnd
-        mainSplitter:        *SplitterCtrl
+        commandBar:           *ViewerActionBar
+        commandButtons:       *IconBar
+        kindButton:           *IconButton
+        openButton:           *IconButton
+        closeButton:          *IconButton
+        openDefaultButton:    *IconButton
+        filesButton:          *IconButton
+        fullScreenButton:     *IconButton
+        searchGroup:          *StackLayoutCtrl
+        searchNavigation:     *StackLayoutCtrl
+        searchBox:            *EditBox
+        searchCountLabel:     *Label
+        searchPrevious:       *IconButton
+        searchNext:           *IconButton
+        searchOptionsButton:  *IconButton
+        viewerCombo:          *ComboBox
+        appearanceButton:     *AppearanceButton
+        accentRail:           *Separator
+        infoBarHost:          *Wnd
+        infoBar:              *ViewerInfoBar
+        infoContentGroup:     *ViewerInfoLayout
+        infoFileGroup:        *StackLayoutCtrl
+        infoIconLabel:        *Label
+        infoNameLabel:        *Label
+        infoStatsLabel:       *Label
+        infoSizeLabel:        *Label
+        documentHost:         *Wnd
+        documentPanel:        *Wnd
+        mainSplitter:         *SplitterCtrl
         sidePanelPlaceholder: *Wnd
-        loadingOverlay:      *ViewerLoadingOverlay
-        searchOverlay:       *ViewerSearchOverlay
-        dropHighlight:       *ViewerDropHighlight
-        viewerBar:           *ViewerActionBar
-        emptyView:           *StackLayoutCtrl
-        emptyIconLabel:      *Label
-        emptyLabel:          *Label
-        emptyHintLabel:      *Label
-        filePanelHost:       *Wnd
-        filePanel:           *SplitterCtrl
-        recentPane:          *Wnd
-        recentLabel:         *Label
-        recentClearButton:   *IconButton
-        recentList:          *ListCtrl
-        folderPane:          *Wnd
-        folderHistoryButton: *IconButton
-        folderLabel:         *Label
-        folderFilterBox:     *EditBox
-        folderList:          *ListCtrl
+        loadingOverlay:       *ViewerLoadingOverlay
+        searchOverlay:        *ViewerSearchOverlay
+        dropHighlight:        *ViewerDropHighlight
+        viewerBar:            *ViewerActionBar
+        emptyView:            *StackLayoutCtrl
+        emptyIconLabel:       *Label
+        emptyLabel:           *Label
+        emptyHintLabel:       *Label
+        filePanelHost:        *Wnd
+        filePanel:            *SplitterCtrl
+        recentPane:           *Wnd
+        recentLabel:          *Label
+        recentClearButton:    *IconButton
+        recentList:           *ListCtrl
+        folderPane:           *Wnd
+        folderHistoryButton:  *IconButton
+        folderLabel:          *Label
+        folderFilterBox:      *EditBox
+        folderList:           *ListCtrl
     }
 
     index:                   ViewerPluginRegistry
@@ -505,11 +505,15 @@ impl IWnd for ViewerWindow
                 {
                     let rightWidth = .rightPanelWidth + .themeMetrics().panel_GutterSize
                     if .mainSplitter.items[2]!.view.isLocallyVisible()
-                        do .mainSplitter.setPaneSize(2, rightWidth)
-                    else do .mainSplitter.items[2]!.size = rightWidth
+                        do
+                        .mainSplitter.setPaneSize(2, rightWidth)
+                    else do
+                        .mainSplitter.items[2]!.size = rightWidth
                 }
+
                 .mainSplitter.sendResizeEvent()
             }
+
             if not .filePanel.items.isEmpty() do
                 .filePanel.items[0]!.size = .recentPaneSize
             while .recent.count > RecentCount do
@@ -559,15 +563,15 @@ impl ViewerWindow
     const MinWidth        = 880
 
     // The side panel that lists what is beside the current file, and what was read before it.
-    const PanelWidth       = 276.0
-    const PanelMinWidth    = 180.0
-    const PanelMaxWidth    = 520.0
-    const DocumentMinWidth = 320.0
-    const RightPanelMinWidth = 220.0
-    const RightPanelMaxWidth = 600.0
+    const PanelWidth             = 276.0
+    const PanelMinWidth          = 180.0
+    const PanelMaxWidth          = 520.0
+    const DocumentMinWidth       = 320.0
+    const RightPanelMinWidth     = 220.0
+    const RightPanelMaxWidth     = 600.0
     const RightPanelDefaultWidth = 368.0
-    const RecentHeight     = 188.0
-    const PaneMinSize      = 88.0
+    const RecentHeight           = 188.0
+    const PaneMinSize            = 88.0
 
     // Files the recent list keeps. Long enough to cross a working session, short enough that the
     // list stays something a reader scans rather than searches.
@@ -722,7 +726,7 @@ impl ViewerWindow
             .fullScreenWasMaximized    = surface.isMaximized
             .fullScreen = true
             surface.updateFlags(add: FullScreenAddedFlags, remove: FullScreenRemovedFlags)
-            .documentHost.padding = {}
+            .updateDocumentInsets()
             .documentPanel.backgroundStyle = .View
             .accentRail.hide()
             .commandBar.dockStyle  = .None
@@ -749,8 +753,7 @@ impl ViewerWindow
             let flagsToAdd      = .fullScreenRestoreFlags & transitionFlags
             let flagsToRemove   = transitionFlags & ~.fullScreenRestoreFlags
             surface.updateFlags(add: flagsToAdd, remove: flagsToRemove)
-            let gutter = .themeMetrics().panel_GutterSize
-            .documentHost.padding = {gutter, 0, gutter, 0}
+            .updateDocumentInsets()
             .documentPanel.backgroundStyle = .Panel
             .accentRail.show()
             .commandBar.dockStyle  = .Top
@@ -929,8 +932,8 @@ impl ViewerWindow
     {
         if .forwardingViewerKey do
             return false
-        let arrowKey = evt.key == .Left or evt.key == .Right
-        let rateStep = evt.modifiers == .Shift and arrowKey
+        let arrowKey  = evt.key == .Left or evt.key == .Right
+        let rateStep  = evt.modifiers == .Shift and arrowKey
         let frameStep = evt.modifiers == .Control and arrowKey
         if evt.modifiers != .None and not rateStep and not frameStep do
             return false

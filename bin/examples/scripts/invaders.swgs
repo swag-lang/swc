@@ -81,7 +81,7 @@ func updatePlayer()
     // Laser
     if kb.isKeyJustPressed(.Space)
     {
-        g_Lasers.add({item0: g_Player.x + g_PlayerImg.width / 2, item1: g_Player.y, player: true})
+        g_Lasers.add(Laser{g_Player.x + g_PlayerImg.width / 2, g_Player.y, false, true})
         catch { try Audio.Voice.play(&g_SoundLaser) }
     }
 }
@@ -135,7 +135,7 @@ func udpateAliens()
         if g_NumAlienLasers <= 1 and Random.shared().nextS32(0, 100) <= 1
         {
             g_NumAlienLasers += 1
-            g_Lasers.add((alien.x + alien.type.width / 2, alien.y + alien.type.height))
+            g_Lasers.add(Laser{alien.x + alien.type.width / 2, alien.y + alien.type.height, false, false})
         }
     }
 }

@@ -396,7 +396,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     let window = testSetupMainWindow(&host)
 
     window.mountedDrives.drives.add(MountedDrive{null, "C:\\protected", "mount-x", "X:", true, false, true, 0, 0})
-    window.mountedDrives.drives.add((null, "C:\\open", "mount-y", "Y:", false, false, false, 0, 0))
+    window.mountedDrives.drives.add(MountedDrive{null, "C:\\open", "mount-y", "Y:", false, false, false, 0, 0})
     window.mountedDrives.refresh()
     window.handleAutoUnmount(.SessionLock)
 
@@ -405,7 +405,7 @@ func assertFormEndsInsideCard(card: const *VaultCard, tolerance = 0.5'f32)
     Swag.assert(window.statusMessage == .AutoUnmounted)
 
     window.autoUnmount.onSessionLock = false
-    window.mountedDrives.drives.add((null, "C:\\second", "mount-z", "Z:", true, false, false, 0, 0))
+    window.mountedDrives.drives.add(MountedDrive{null, "C:\\second", "mount-z", "Z:", true, false, false, 0, 0})
     window.handleAutoUnmount(.SessionLock)
     Swag.assert(window.mountedDrives.drives.count == 2)
 }
@@ -774,7 +774,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     Swag.assert(not window.mountedDrives.unmountButton.isEnabled())
 
     window.mountedDrives.drives.add(MountedDrive{null, "C:\\vaults\\one", "mount-x", "X:", true, false, false, 256 * 1024 * 1024, 192 * 1024 * 1024})
-    window.mountedDrives.drives.add((null, "C:\\vaults\\two", "mount-y", "Y:", false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024))
+    window.mountedDrives.drives.add(MountedDrive{null, "C:\\vaults\\two", "mount-y", "Y:", false, false, true, 2 * 1024 * 1024 * 1024, 1536 * 1024 * 1024})
     window.mountedDrives.refresh()
 
     Swag.assert(window.mountedDrives.list.isLocallyVisible())
@@ -831,7 +831,7 @@ func openAndDismiss(host: *Testing.HeadlessHost, dialog: *FormDlg)
     discard window.mountedDrives.detach(0)
     Swag.assert(window.startupVaults.count == 1)
 
-    window.mountedDrives.drives.add((null, "C:\\one", "mount-x", "X:", true, false, true, 0, 0))
+    window.mountedDrives.drives.add(MountedDrive{null, "C:\\one", "mount-x", "X:", true, false, true, 0, 0})
     window.mountedDrives.refresh()
     window.mountedDrives.list.setLineChecked(0, false)
     Swag.assert(window.startupVaults.isEmpty())

@@ -160,7 +160,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         painter.translateTransform(originX, originY)
 
         // Generate trail
-        trailPoints.add({x2, y2})
+        trailPoints.add(Vector2{x2, y2})
         if trailPoints.count > 500 do
             trailPoints.removeAtOrdered(0)
 

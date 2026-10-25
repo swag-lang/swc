@@ -16,9 +16,9 @@ func openImage(surface: *Surface?)
         .mode  = .SelectFile
         .title = "Load Image"
         .confirmButtonText = "Load"
-        .shortcuts.add((Env.SpecialDirectory.Desktop, "Desktop"))
-        .shortcuts.add((Env.SpecialDirectory.UserPictures, "My Images"))
-        .shortcuts.add((Env.SpecialDirectory.CommonPictures, "Images"))
+        .shortcuts.add({type: Env.SpecialDirectory.Desktop, name: "Desktop"})
+        .shortcuts.add({type: Env.SpecialDirectory.UserPictures, name: "My Images"})
+        .shortcuts.add({type: Env.SpecialDirectory.CommonPictures, name: "Images"})
         .filters.add({name: "PNG - Portable Network Graphics (*.png)", extensions: ".png"})
         .filters.add({name: "JPG - JPEG Image (*.jpg)", extensions: ".jpg"})
         .filters.add({name: "BMP - Windows Bitmap (*.bmp)", extensions: ".bmp"})

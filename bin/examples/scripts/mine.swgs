@@ -96,7 +96,7 @@ func floodFill(x, y: s32)
                     continue
                 if g_Grid[ti, tj].show do
                     continue
-                arr.add({ti, tj})
+                arr.add({x: ti, y: tj})
             }
         }
     }

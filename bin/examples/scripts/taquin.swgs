@@ -54,7 +54,7 @@ func onEvent(wnd: *Wnd, evt: IEvent)->bool
         {
             for j in NumElems
             {
-                toAdd.add({i, j})
+                toAdd.add(Elem{i, j})
             }
         }
 

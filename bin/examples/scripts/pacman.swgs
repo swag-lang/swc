@@ -465,10 +465,10 @@ impl Ghost
         // Each colour selects a unique corner to target
         switch .colour
         {
-        case .RED:    target = (25, 33)
-        case .PINK:   target = (2, 33)
-        case .BLUE:   target = (27, -2)
-        case .YELLOW: target = (0, -2)
+        case .RED:    target = Dest{25, 33}
+        case .PINK:   target = Dest{2, 33}
+        case .BLUE:   target = Dest{27, -2}
+        case .YELLOW: target = Dest{0, -2}
         }
 
         // Set direction at junction to head towards SCATTER point
@@ -533,11 +533,11 @@ impl Ghost
             dy     = target.y - redGhost.getY()
 
             // BLUE's target is then twice the change in X and Y from RED's position
-            target = (redGhost.getX() + 2 * dx, redGhost.getY() + 2 * dy)
+            target = Dest{redGhost.getX() + 2 * dx, redGhost.getY() + 2 * dy}
 
         case .YELLOW:
             if distanceBetween(currentPos, target) <= 8 do
-                target = (0, -2)
+                target = Dest{0, -2}
         }
 
         .dir = .targetTile(target)
@@ -614,7 +614,7 @@ impl Ghost
             // Prevent direction reversing and ensure exit is traversible
             if .dir != .DOWN and not isImpassible(.getNextTile(.UP))
             {
-                nextPos = (.getX(), .getY() + 1)
+                nextPos = Dest{.getX(), .getY() + 1}
                 let d = distanceBetween(nextPos, target)
                 if d < distance
                 {
@@ -629,7 +629,7 @@ impl Ghost
         // Check RIGHT exit
         if .dir != .LEFT and not isImpassible(.getNextTile(.RIGHT))
         {
-            nextPos = (.getX() + 1, .getY())
+            nextPos = Dest{.getX() + 1, .getY()}
             let d = distanceBetween(nextPos, target)
             if d < distance
             {
@@ -641,7 +641,7 @@ impl Ghost
         // Check DOWN exit
         if .dir != .UP and not isImpassible(.getNextTile(.DOWN))
         {
-            nextPos = (.getX(), .getY() - 1)
+            nextPos = Dest{.getX(), .getY() - 1}
             let d = distanceBetween(nextPos, target)
             if d < distance
             {
@@ -653,7 +653,7 @@ impl Ghost
         // Check LEFT exit
         if .dir != .RIGHT and not isImpassible(.getNextTile(.LEFT))
         {
-            nextPos = (.getX() - 1, .getY())
+            nextPos = Dest{.getX() - 1, .getY()}
             let d = distanceBetween(nextPos, target)
             if d < distance
             {

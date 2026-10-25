@@ -204,7 +204,8 @@ using Core, Pixel
     Swag.assert(outline[0].title == "Chapter one" and outline[0].level == 1 and outline[0].pageIndex == 0)
     Swag.assert(outline[1].title == "Section é" and outline[1].level == 2 and outline[1].pageIndex == 1)
     Swag.assert(outline[1].position == Math.Point{24, 400})
-    Swag.assert(outline[2].pageIndex == 2 and outline[2].position == Math.Point{980, 20})
+    Swag.assert(outline[2].pageIndex == 2)
+    Swag.assert(outline[2].position == Math.Point{980, 20})
     Swag.assert(outline[3].pageIndex == Swag.U64.Max)
     var host: Testing.HeadlessHost
     host.setup(640, 360)

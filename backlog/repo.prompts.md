@@ -185,10 +185,25 @@ RUN THE LADDER, STOP AT THE FIRST FAILURE
 Some applications (Swag Prism) launch `bin\swc.exe` itself, so keep the Release compiler current
 before running a campaign that reaches them.
 
-After a fix: run its smallest reproducer, then resume at the earliest step the fix can affect.
-Restart from step 1 only when the fix changes the compiler, runtime, standard library, or the
-repository tools that earlier steps consumed. A test, golden, fixture, or application-local fix
-resumes where it failed. Record each decision in the live table.
+VALIDATE IN BATCHES; DO NOT REPEAT GREEN WORK
+
+- Keep successful gate results as evidence. A later failure does not invalidate an earlier green
+  step; never restart the ladder just because a later step failed.
+- When a campaign stops at its first failing input, gather failures from the remaining independent
+  inputs in that same stage before editing. Use a single continuation sweep over the stage's
+  remaining files/modules/configurations, and collect all diagnostics. Do not rerun inputs already
+  proven green. If the runner cannot continue after a failure, invoke only the unvisited siblings.
+- Fix the complete failure set from that stage as one coherent batch. Run focused checks for the
+  changed inputs together, then rerun the failed gate once. If that gate passes, continue forward;
+  do not rerun earlier gates unless the fix changes something they consume.
+- After every fix, run its smallest reproducer, then resume at the earliest affected gate. Restart
+  from step 1 only for compiler, runtime, standard-library, or repository-tool changes that alter
+  an earlier gate's inputs or behavior. Test, golden, fixture, documentation, and application-local
+  fixes resume at their failed gate. Avoid rerunning an entire campaign when a documented
+  file/module filter covers the changed inputs.
+- If a compiler change is found downstream, add the regression at the compiler boundary, rebuild
+  only the affected compiler incrementally, and restart at step 1 once for the retained compiler
+  batch. Do not repeat that full sequence for each test or consumer exposed by the same root cause.
 
 FIX, DO NOT EXPLAIN AWAY
 
@@ -209,31 +224,33 @@ Once the ladder is green (a newly exposed code failure takes priority again at a
      change nothing. Fix a nondeterministic generator, never its output by hand.
   3. Backlog and markers: make every backlog entry true against the current code, delete what
      is done or invalid, keep the file invariants (`tools\tests\repository.swgs` checks them), and
-     resolve or properly record every TODO/FIXME/HACK/XXX marker. A secondary agent may do this
-     audit in parallel while tests run, but must not edit test inputs under a running suite.
+     resolve or properly record every actionable TODO/FIXME/HACK/XXX marker. Exclude intentional
+     lexer fixtures, data labels, and literal strings; do not rewrite them as cleanup. Do not
+     delegate or edit test inputs under a running suite.
   4. Hygiene: remove exact, reviewed residue (scratch files, stale `.actual.*`, crash dumps,
      misplaced `.output` folders other than `bin/unittests/.output` and
-     `bin/unittests/workspace/.output`, line-ending-only changes). Never run a broad clean.
-  5. Benchmark: after the last source commit, run
-     `bin\swc.exe --num-cores 6 tools\bench.swgs --no-build --swc-cores 6 --label "prompt 1 baseline"`
-     on a quiet machine, check checksums and acceptance, and commit its history and report.
-  6. LAST: `bin\swc.exe tools\vault.swgs dm` (UAC elevation, bundled WinFsp). Nothing else may
+     `bin/unittests/workspace/.output`, line-ending-only changes). Resolve every recursive target
+     and verify that it is inside the intended workspace before removal. Never run a broad clean.
+     If automatic review rejects a deletion, stop retrying that target through alternate commands;
+     report its exact path and the rejection, then continue independent work.
+  5. LAST: `bin\swc.exe tools\vault.swgs dm` (UAC elevation, bundled WinFsp). Nothing else may
      run after it except inspecting its result; a defect it exposes is fixed and the affected
      steps rerun before retrying it.
 
 THE CAMPAIGN ENDS ONLY WHEN
 
-The ladder, formatting, generation, benchmark, and Vault are green for the final code; no defect
+The ladder, formatting, generation, and Vault are green for the final code; no defect
 found during the campaign remains open or relabeled; the backlog is truthful; and every change is
 committed on `master` with a clean working tree. A genuine external blocker is reported precisely
 and means the reset is incomplete, not green.
 
 REPORT
 
-Keep a live table of each command, start/end, result, root cause, fix, and rerun. At the end give
-the final commits, every validation result, backlog changes, formatting and generation results,
-the benchmark campaign, removed residue, and any blocker. Say "ready for new work" only when
-every end condition holds.
+Keep a compact table with one row per ladder gate and one row per failure batch; include the
+command/scope and result, plus the root cause and focused rerun for failures. Do not log helper
+commands or repeat successful rows after a later fix. At the end give the final commits, gate
+results, backlog changes, formatting and generation results, removed residue, and any blocker. Say
+"ready for new work" only when every end condition holds.
 ```
 
 ---

@@ -727,7 +727,7 @@ func onFrame(_: *Application)
 
     case 2:
         let rect = g_Field!.clientRect()
-        g_Field!.moveTo((rect.x + rect.width * 0.25, rect.y + rect.height * 0.7))
+        g_Field!.moveTo(Math.Point{rect.x + rect.width * 0.25, rect.y + rect.height * 0.7})
 
     case 3:
         toggleExpander(unwrap g_ExpandBtn)

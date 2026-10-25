@@ -99,7 +99,7 @@ impl IWnd for MotionField
         if .hasGoal do
             return
         let rect = .clientRect()
-        .puck = (rect.horzCenter(), rect.vertCenter())
+        .puck = Math.Point{rect.horzCenter(), rect.vertCenter()}
     }
 
     mtd impl onPaint(evt: *PaintEvent)

@@ -68,6 +68,9 @@ internal interface IDeferredDecoder
     mtd frameRate()->FrameRate
     mtd durationInSeconds()->f64
     mtd requestCancel()
+
+    // Called before open when the reader exposes no sound or subtitle track.
+    mtd skipSound()
 }
 
 // Optional decoder capability exposing sound tracks carried by a video container.
@@ -199,6 +202,11 @@ impl Reader
     // The extension selects the decoder, and only the header is read: opening a stream costs
     // the same whatever its length. The file stays open until the reader is closed.
     //
+    // `pictureOnly` opens the pictures alone: the reader reports no sound or subtitle track,
+    // and a container that indexes its sound beside its pictures reads nothing for it. A
+    // caller that wants a few frames, such as a thumbnail, then pays for those frames rather
+    // than for walking the sound of a whole film.
+    //
     // ## Example
     //
     // ```swag
@@ -207,28 +215,29 @@ impl Reader
     // for index in reader.frameCount() do
     //     try reader.decodeFrameInto(&frame, index)
     // ```
-    func open(fileName: string)->Reader fail
+    func open(fileName: string, pictureOnly: bool = false)->Reader fail
     {
         var result: retval
         result.source = try ByteSource.openFile(fileName)
-        try result.start(fileName)
+        try result.start(fileName, pictureOnly)
         return result
     }
 
     // Opens an encoded stream held in memory, without copying it.
     //
     // `fileName` selects the decoder by extension; no file is opened. `bytes` is borrowed and
-    // must stay valid and unchanged until the reader is closed.
-    func openMemory(fileName: string, bytes: const [..] u8)->Reader fail
+    // must stay valid and unchanged until the reader is closed. `pictureOnly` has the meaning
+    // it has for [[Video.Reader.open]].
+    func openMemory(fileName: string, bytes: const [..] u8, pictureOnly: bool = false)->Reader fail
     {
         var result: retval
         result.source = ByteSource.openMemory(bytes)
-        try result.start(fileName)
+        try result.start(fileName, pictureOnly)
         return result
     }
 
     // Selects the decoder for `fileName`, creates its instance, and opens the source with it.
-    private mtd start(fileName: string) fail
+    private mtd start(fileName: string, pictureOnly: bool) fail
     {
         let selected = findDecoder(fileName)
         if not selected do
@@ -240,12 +249,21 @@ impl Reader
         // The registry only ever holds types that implement the interface, so the table resolves.
         .decoder = unwrap Swag.makeInterface(Memory.new(selected.type), selected.type, IDecoder)
         let instance = (.decoder).buffer
-        .audioDecoder    = Swag.makeInterface(instance, selected.type, IAudioDecoder)
-        .subtitleDecoder = Swag.makeInterface(instance, selected.type, ISubtitleDecoder)
-        .planarDecoder   = Swag.makeInterface(instance, selected.type, IPlanarDecoder)
-        .timedDecoder    = Swag.makeInterface(instance, selected.type, ITimedDecoder)
-        .deferred        = Swag.makeInterface(instance, selected.type, IDeferredDecoder)
-        .info            = try .decoder.open(&.source)
+        .planarDecoder = Swag.makeInterface(instance, selected.type, IPlanarDecoder)
+        .timedDecoder  = Swag.makeInterface(instance, selected.type, ITimedDecoder)
+        .deferred      = Swag.makeInterface(instance, selected.type, IDeferredDecoder)
+        if pictureOnly
+        {
+            // Told before opening, which is where a deferred container starts reading its sound.
+            .deferred?.skipSound()
+        }
+        else
+        {
+            .audioDecoder    = Swag.makeInterface(instance, selected.type, IAudioDecoder)
+            .subtitleDecoder = Swag.makeInterface(instance, selected.type, ISubtitleDecoder)
+        }
+
+        .info = try .decoder.open(&.source)
     }
 
     // Releases the decoder instance and the source when the reader leaves scope.

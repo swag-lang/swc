@@ -1757,6 +1757,7 @@ struct Decoder
         memorySubtitleTracks:        Array'Subtitle.Track
         sawVideoSync:                bool     // A sample the container marks as a clean decode point was seen.
         syncScanAt:                  u64      // How far the search for one has read.
+        pictureOnly:                 bool     // The reader exposes no sound or subtitle track, so none is indexed.
     }
 }
 
@@ -1916,7 +1917,7 @@ private impl Decoder
 
         // A container whose sound this module cannot read has no window to build; asking for one
         // walked the whole file looking for packets that were never going to appear.
-        if target >= 0 and (layout.audioTracks.count or layout.subtitleTracks.count)
+        if target >= 0 and not .pictureOnly and (layout.audioTracks.count or layout.subtitleTracks.count)
         {
             selectSoundWindow(fileIndex, cast(u64, target))
             discard catch buildSoundWindow(fileIndex, cast(u64, target))
@@ -2165,6 +2166,12 @@ impl IDecoder for Decoder
             .fileIndex.path = path
             try .configureMetadata(.fileIndex.progressive)
 
+            // The opening window reads a minute of interleaved clusters and the complete scan reads
+            // the whole file. A reader that wants pictures alone needs neither: across a network
+            // share, they made one thumbnail of a film read over a hundred megabytes.
+            if .pictureOnly do
+                return .info
+
             // The opening sound window is built beside the picture rather than before it. It
             // reads a minute of interleaved clusters, which is a second on a film read across a
             // network share, and a player has nothing to show for that second: it can present
@@ -2183,7 +2190,8 @@ impl IDecoder for Decoder
         let bytes = try source.peek(source.size())
         var layout: Layout
         discard try layout.parse(bytes)
-        try buildSubtitleTracks(bytes, &layout, &.memorySubtitleTracks)
+        if not .pictureOnly do
+            try buildSubtitleTracks(bytes, &layout, &.memorySubtitleTracks)
         try .openMemory(&layout)
         return .info
     }
@@ -2407,5 +2415,10 @@ impl IDeferredDecoder for Decoder
     {
         if .fileIndex do
             Atomic.exchange(&.fileIndex.cancel, 1)
+    }
+
+    mtd impl skipSound()
+    {
+        .pictureOnly = true
     }
 }

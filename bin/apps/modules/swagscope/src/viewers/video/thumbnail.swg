@@ -77,7 +77,7 @@ func representativeThumbnail(candidates: const [..] ThumbnailCandidate)->u64
 
 func loadThumbnail(fileName: string)->Image fail
 {
-    var reader   = try Reader.open(fileName)
+    var reader   = try Reader.open(fileName, pictureOnly: true)
     var candidates: Array'ThumbnailCandidate
     var previous = Swag.U64.Max
     let duration = reader.durationInSeconds()

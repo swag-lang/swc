@@ -60,7 +60,7 @@ struct SceneCard
 
     // Transform group, with a nested "Advanced" subgroup ("Transform/Advanced").
     #[Category("Transform"), Description("Offset from the slot center.")]
-    offset: Math.Point = (0, 0)
+    offset: Math.Point = Math.Point{0, 0}
 
     #[SliderMinMax(0.5, 1.8), Description("Uniform scale factor.")]
     scale: f32 = 1.0

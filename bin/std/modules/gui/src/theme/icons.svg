@@ -282,4 +282,11 @@
     <path d="M12 5 V7 M5 10 L7 11 M19 10 L17 11 M12 15 L16 7"/>
     <circle cx="12" cy="15" r="1" fill="#ffffff"/>
   </g>
+  <g id="ExploreFolder" transform="translate(168 192)">
+    <path fill-rule="evenodd" d="M5 3H9.17C9.7 3 10.21 3.21 10.59 3.59L12 5H19C20.66 5 22 6.34 22 8V18C22 19.66 20.66 21 19 21H5C3.34 21 2 19.66 2 18V6C2 4.34 3.34 3 5 3ZM5 5C4.45 5 4 5.45 4 6V18C4 18.55 4.45 19 5 19H19C19.55 19 20 18.55 20 18V9H11.17L8.34 5H5Z" fill="#ffffff"/>
+    <rect x="7" y="10.5" width="4" height="3.25" rx="0.75" fill="#ffffff"/>
+    <rect x="13" y="10.5" width="4" height="3.25" rx="0.75" fill="#ffffff"/>
+    <rect x="7" y="14.75" width="4" height="3.25" rx="0.75" fill="#ffffff"/>
+    <rect x="13" y="14.75" width="4" height="3.25" rx="0.75" fill="#ffffff"/>
+  </g>
 </svg>

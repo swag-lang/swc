@@ -88,6 +88,7 @@ enum ThemeIcons
     Shuffle           // Play the files of the folder in random order, each once before any comes again.
     OpenExternal      // Open content in another application or window.
     PlaybackSpeed     // Adjust the rate of media playback.
+    ExploreFolder     // Browse the files of a folder as a gallery of previews.
 }
 
 impl Theme

@@ -11,7 +11,6 @@ SWC_BEGIN_NAMESPACE();
 struct CompilerCacheStoreTestAccess
 {
     using Archive   = CompilerCacheStore::Archive;
-    using Entries   = CompilerCacheStore::Entries;
     using EntryView = CompilerCacheStore::EntryView;
 
     static Archive makeArchive(const std::vector<std::pair<std::string, uint8_t>>& records)
@@ -31,20 +30,14 @@ struct CompilerCacheStoreTestAccess
         return archive;
     }
 
-    static void addPending(Entries& entries, const std::string_view key, const uint8_t value)
+    static std::vector<EntryView> merge(std::span<const Archive* const> oldestFirst)
     {
-        auto bytes = std::make_shared<const ByteArray>(ByteArray{static_cast<std::byte>(value)});
-        entries.insert_or_assign(Utf8(key), CompilerCacheStore::Record{bytes, ByteView(bytes->span())});
+        return CompilerCacheStore::mergeSegments(oldestFirst);
     }
 
-    static std::vector<EntryView> merge(const Archive& archive, const Entries& pending)
+    static bool measure(const std::vector<EntryView>& entries, size_t& extent, const size_t limit)
     {
-        return CompilerCacheStore::mergeEntries(archive, pending);
-    }
-
-    static bool measure(const std::vector<EntryView>& entries, size_t& extent)
-    {
-        return CompilerCacheStore::measureExtent(entries, extent);
+        return CompilerCacheStore::measureExtent(entries, extent, limit);
     }
 
     static std::unique_ptr<CompilerCacheStore> open(const fs::path& directory)
@@ -52,8 +45,9 @@ struct CompilerCacheStoreTestAccess
         return std::unique_ptr<CompilerCacheStore>(new CompilerCacheStore(directory));
     }
 
-    static void flush(CompilerCacheStore& store) { store.flush(); }
-    static void invalidate(CompilerCacheStore& store) { store.invalidateOnce(); }
+    static void   flush(CompilerCacheStore& store) { store.flush(); }
+    static void   invalidate(CompilerCacheStore& store) { store.invalidateOnce(); }
+    static size_t segmentCount(const CompilerCacheStore& store) { return store.listSegments().size(); }
 };
 
 namespace
@@ -74,19 +68,23 @@ namespace
             fs::remove_all(path, ec);
         }
     };
+
+    Utf8 testKey(const size_t index)
+    {
+        return Utf8(std::format("{:064x}", index));
+    }
 }
 
-SWC_TEST_BEGIN(CompilerCacheStore_MergesSortedArchiveAndPendingRecords)
+SWC_TEST_BEGIN(CompilerCacheStore_MergesSegmentsKeepingNewestRecord)
 {
-    const std::string                     keyA(64, 'a');
-    const std::string                     keyB(64, 'b');
-    const std::string                     keyC(64, 'c');
-    const auto                            archive = CompilerCacheStoreTestAccess::makeArchive({{keyA, 1}, {keyB, 2}});
-    CompilerCacheStoreTestAccess::Entries pending;
-    CompilerCacheStoreTestAccess::addPending(pending, keyB, 20);
-    CompilerCacheStoreTestAccess::addPending(pending, keyC, 3);
+    const std::string keyA(64, 'a');
+    const std::string keyB(64, 'b');
+    const std::string keyC(64, 'c');
+    const auto        older    = CompilerCacheStoreTestAccess::makeArchive({{keyA, 1}, {keyB, 2}});
+    const auto        newer    = CompilerCacheStoreTestAccess::makeArchive({{keyB, 20}, {keyC, 3}});
+    const std::array  segments = {&older, &newer};
 
-    const auto merged = CompilerCacheStoreTestAccess::merge(archive, pending);
+    const auto merged = CompilerCacheStoreTestAccess::merge(segments);
     if (merged.size() != 3 || merged[0].key != keyA || merged[1].key != keyB || merged[2].key != keyC)
         return Result::Error;
     if (merged[0].bytes.data()[0] != std::byte{1} || merged[1].bytes.data()[0] != std::byte{20} || merged[2].bytes.data()[0] != std::byte{3})
@@ -95,7 +93,9 @@ SWC_TEST_BEGIN(CompilerCacheStore_MergesSortedArchiveAndPendingRecords)
 }
 SWC_TEST_END()
 
-SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_RetainsMoreThanOneModuleWorkingSet)
+// A publication adds a segment holding what it produced and leaves every earlier
+// segment as it was.
+SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_RetainsEveryPublication)
 {
     CacheStoreTestDirectory directory;
     const Utf8              firstKey(std::string(64, 'a'));
@@ -107,50 +107,88 @@ SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_RetainsMoreThanOneModuleWorkingSet)
         auto store = CompilerCacheStoreTestAccess::open(directory.path);
         store->write(firstKey, ByteArray(K_RECORD_SIZE, std::byte{1}));
         CompilerCacheStoreTestAccess::flush(*store);
-        // Two successive module builds must coexist even beyond the old
-        // whole-compiler archive limit of 64 MiB.
         store->write(secondKey, ByteArray(K_RECORD_SIZE, std::byte{2}));
         CompilerCacheStoreTestAccess::flush(*store);
+        if (CompilerCacheStoreTestAccess::segmentCount(*store) != 2)
+            return Result::Error;
     }
 
-    auto       firstProcess = CompilerCacheStoreTestAccess::open(directory.path);
-    const auto retained     = firstProcess->read(firstKey);
-    const auto second       = firstProcess->read(secondKey);
-    if (!retained || !second || retained.bytes.size() != K_RECORD_SIZE || second.bytes.size() != K_RECORD_SIZE)
-        return Result::Error;
-    if (retained.bytes.data()[K_RECORD_SIZE - 1] != std::byte{1} || second.bytes.data()[K_RECORD_SIZE - 1] != std::byte{2})
-        return Result::Error;
+    {
+        auto       firstProcess = CompilerCacheStoreTestAccess::open(directory.path);
+        const auto retained     = firstProcess->read(firstKey);
+        const auto second       = firstProcess->read(secondKey);
+        if (!retained || !second || retained.bytes.size() != K_RECORD_SIZE || second.bytes.size() != K_RECORD_SIZE)
+            return Result::Error;
+        if (retained.bytes.data()[K_RECORD_SIZE - 1] != std::byte{1} || second.bytes.data()[K_RECORD_SIZE - 1] != std::byte{2})
+            return Result::Error;
 
-    // A separately opened writer must preserve both existing partitions, and
-    // an outstanding mapped record must remain valid after replacement.
-    auto secondProcess = CompilerCacheStoreTestAccess::open(directory.path);
-    secondProcess->write(firstKey, ByteArray{std::byte{3}});
-    secondProcess->write(thirdKey, ByteArray{std::byte{4}});
-    CompilerCacheStoreTestAccess::flush(*secondProcess);
-    if (retained.bytes.data()[K_RECORD_SIZE - 1] != std::byte{1})
-        return Result::Error;
+        // A separately opened writer leaves both segments alone, and a mapped record
+        // stays valid while newer records for its key are published.
+        auto secondProcess = CompilerCacheStoreTestAccess::open(directory.path);
+        secondProcess->write(firstKey, ByteArray{std::byte{3}});
+        secondProcess->write(thirdKey, ByteArray{std::byte{4}});
+        CompilerCacheStoreTestAccess::flush(*secondProcess);
+        if (retained.bytes.data()[K_RECORD_SIZE - 1] != std::byte{1})
+            return Result::Error;
 
-    auto       reopened = CompilerCacheStoreTestAccess::open(directory.path);
-    const auto replaced = reopened->read(firstKey);
-    if (!replaced || replaced.bytes.data()[0] != std::byte{3} || !reopened->read(secondKey) || !reopened->read(thirdKey))
-        return Result::Error;
+        auto       reopened = CompilerCacheStoreTestAccess::open(directory.path);
+        const auto replaced = reopened->read(firstKey);
+        if (!replaced || replaced.bytes.data()[0] != std::byte{3} || !reopened->read(secondKey) || !reopened->read(thirdKey))
+            return Result::Error;
+    }
 
-    CompilerCacheStoreTestAccess::invalidate(*reopened);
-    CompilerCacheStoreTestAccess::flush(*reopened);
+    {
+        auto rebuilding = CompilerCacheStoreTestAccess::open(directory.path);
+        CompilerCacheStoreTestAccess::invalidate(*rebuilding);
+        CompilerCacheStoreTestAccess::flush(*rebuilding);
+    }
     auto cleared = CompilerCacheStoreTestAccess::open(directory.path);
-    if (cleared->read(firstKey) || cleared->read(secondKey) || cleared->read(thirdKey))
+    if (cleared->read(firstKey) || cleared->read(secondKey) || cleared->read(thirdKey) || CompilerCacheStoreTestAccess::segmentCount(*cleared))
         return Result::Error;
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(CompilerCacheStore_RejectsArchiveExtentOverflow)
+// Small publications accumulate until a fold merges them; the large first segment
+// stays untouched and every record stays readable.
+SWC_FILESYSTEM_TEST_BEGIN(CompilerCacheStore_FoldsSmallSegments)
 {
-    constexpr size_t                                           K_MAX_ARCHIVE_SIZE = 64 * 1024 * 1024;
+    CacheStoreTestDirectory directory;
+    constexpr size_t        K_PUBLICATIONS = 12;
+    {
+        auto store = CompilerCacheStoreTestAccess::open(directory.path);
+        store->write(testKey(0), ByteArray(4096, std::byte{7}));
+        CompilerCacheStoreTestAccess::flush(*store);
+    }
+    for (size_t index = 1; index < K_PUBLICATIONS; ++index)
+    {
+        auto store = CompilerCacheStoreTestAccess::open(directory.path);
+        store->write(testKey(index), ByteArray{static_cast<std::byte>(index)});
+        CompilerCacheStoreTestAccess::flush(*store);
+    }
+
+    auto store = CompilerCacheStoreTestAccess::open(directory.path);
+    if (CompilerCacheStoreTestAccess::segmentCount(*store) > 8)
+        return Result::Error;
+    const auto base = store->read(testKey(0));
+    if (!base || base.bytes.size() != 4096)
+        return Result::Error;
+    for (size_t index = 1; index < K_PUBLICATIONS; ++index)
+    {
+        const auto record = store->read(testKey(index));
+        if (!record || record.bytes.size() != 1 || record.bytes.data()[0] != static_cast<std::byte>(index))
+            return Result::Error;
+    }
+}
+SWC_TEST_END()
+
+SWC_TEST_BEGIN(CompilerCacheStore_RejectsSegmentExtentOverflow)
+{
+    constexpr size_t                                           K_LIMIT = 4096;
     const std::string                                          key(64, 'a');
-    const ByteArray                                            bytes(K_MAX_ARCHIVE_SIZE - 151, std::byte{0});
+    const ByteArray                                            bytes(K_LIMIT - 151, std::byte{0});
     const std::vector<CompilerCacheStoreTestAccess::EntryView> entries = {{key, ByteView(bytes.span())}, {key, ByteView{}}};
     size_t                                                     extent;
-    if (CompilerCacheStoreTestAccess::measure(entries, extent))
+    if (CompilerCacheStoreTestAccess::measure(entries, extent, K_LIMIT))
         return Result::Error;
     return Result::Continue;
 }

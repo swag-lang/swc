@@ -18,29 +18,6 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
 - Done when: a reduced regression fails before a root-cause repair and passes afterwards,
   with the complete documentation command green under both compiler executables.
 
-### compiler.core.087 — Make machine-code cache keys independent of worker scheduling
-
-- Evidence: with six workers, rebuilding the same benchmark task with an unchanged compiler and
-  inputs publishes new variants on every build (`lz77` release: archive 133 552, 139 986,
-  149 665, 151 156, 158 489, 162 528 bytes over six builds); with one worker the second build hits
-  every entry. `MachineCodeCache::inputKey` hashes the pre-optimization Micro stream, which
-  therefore depends on the order workers finish. Two six-worker DevMode `core` rebuilds
-  produced 858 and 864 distinct keys, with 85 keys appearing only in the second run.
-  The first differing relocation payloads in allocator functions encode distances between
-  globals whose allocation order varies. The store now republishes only dirty hash partitions;
-  the extra variants still occupy capacity and miss reuse.
-- Evidence: projecting away only private-global distances removes one of those 85 misses;
-  projecting away every global distance removes 81. Most affected relocations are observable
-  globals, so treating private globals alone cannot resolve the issue. Optimizer alias proofs
-  still consume concrete address ranges; dropping the distances would make reuse unsound.
-- Next: represent optimizer global-address assumptions by allocation identity and bounded access
-  ranges, preserving observable pointer operations. Rebind each emitted global relocation to its
-  own input allocation before relaxing placement in the cache key. Keep concrete distances until
-  all consumers of those facts have been audited.
-- Done when: two six-worker builds of the same inputs produce the same keys, so the second build
-  publishes nothing.
-- Related: compiler.core.085.
-
 ### compiler.core.085 — Build shared libraries to identical bytes
 
 - Evidence: executables, static libraries and the benchmark tasks rebuild identically with six
@@ -48,7 +25,9 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   generic instances varies: one build of `core.dll` emits one more `Core.Math.max` instance than
   the next, and a shared library emits every instance its analysis created. And `.rdata` holds a
   duplicated 16-byte string constant in some builds only: `Core.Env.showInFileExplorer` reaches
-  three such constants in one build and two in the next.
+  three such constants in one build and two in the next. The machine-code cache keys ignore
+  both string copies and global placement; the varying instance set alone still adds one or two
+  records per six-worker `core` build.
 - Next: log which call sites create `Core.Math.max` instances in two builds and find the
   speculative instantiation; then trace the `showInFileExplorer` string constants back to
   `materializeRuntimeStringConstant` and `materializeRuntimeBufferConstant` to see which cache
@@ -325,7 +304,7 @@ Entries stay in one flat list. Keep only measurements that affect the next actio
   regenerate; this per-function incremental cache has no JIT path. The separate automatic
   `MachineCodeCache` reuses supported non-debug module, runtime and imported-API machine code
   in native and JIT builds, including relocations (compiler.core.030). Lookup still follows
-  fresh IR generation, and global-layout differences can miss otherwise unchanged bodies.
+  fresh IR generation.
   `NativeObjFileWriter` already writes one function per archive member, and the integrated
   linker resolves members lazily. Broader coverage therefore extends the fingerprint and
   admission policy, not the storage format.

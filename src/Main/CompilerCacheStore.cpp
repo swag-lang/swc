@@ -5,6 +5,8 @@
 #include "Main/WorkspaceLayout.h"
 #include "Support/Core/Utf8Helper.h"
 #include "Support/Math/Sha256.h"
+#include "Support/Os/DirectoryLock.h"
+#include "Support/Os/Os.h"
 #include "Support/Os/ReadOnlyFileMapping.h"
 #include "Support/Report/Assert.h"
 
@@ -12,12 +14,23 @@ SWC_BEGIN_NAMESPACE();
 
 namespace
 {
-    constexpr uint64_t               K_STORE_MAGIC      = 0x32544553434d5753; // SWMCSET2
-    constexpr size_t                 K_MAX_ARCHIVE_SIZE = 64 * 1024 * 1024;
-    constexpr size_t                 K_HEADER_SIZE      = 16;
-    constexpr size_t                 K_KEY_SIZE         = 64;
-    constexpr size_t                 K_INDEX_ENTRY_SIZE = K_KEY_SIZE + 4;
-    std::atomic<CompilerCacheStore*> activeStore        = nullptr;
+    constexpr uint64_t               K_STORE_MAGIC       = 0x32544553434d5753; // SWMCSET2
+    constexpr size_t                 K_MAX_SEGMENT_SIZE  = 512 * 1024 * 1024;
+    constexpr size_t                 K_MAX_STORE_SIZE    = 1024 * 1024 * 1024;
+    constexpr size_t                 K_MAX_SEGMENTS      = 8;
+    constexpr size_t                 K_HEADER_SIZE       = 16;
+    constexpr size_t                 K_KEY_SIZE          = 64;
+    constexpr size_t                 K_INDEX_ENTRY_SIZE  = K_KEY_SIZE + 4;
+    constexpr std::string_view       K_SEGMENT_EXTENSION = ".seg";
+    std::atomic<CompilerCacheStore*> activeStore         = nullptr;
+
+    // Segment names sort by publication time, so a listing orders segments oldest first.
+    fs::path newSegmentPath(const fs::path& directory)
+    {
+        static std::atomic_uint32_t sequence = 0;
+        const auto                  now      = static_cast<uint64_t>(std::chrono::system_clock::now().time_since_epoch().count());
+        return directory / std::format("{:016x}-{:08x}-{:08x}{}", now, Os::currentProcessId(), sequence.fetch_add(1, std::memory_order_relaxed), K_SEGMENT_EXTENSION);
+    }
 }
 
 CompilerCacheStore::CompilerCacheStore(fs::path directory) :
@@ -53,52 +66,85 @@ CompilerCacheStore& CompilerCacheStore::get(const bool rebuild)
 void CompilerCacheStore::invalidateOnce()
 {
     std::call_once(invalidated_, [this] {
-        for (auto& shard : shards_)
+        // Close lazy loading first so a later reader cannot bring back an invalidated segment.
+        std::call_once(loaded_, [] {});
         {
-            // Close lazy loading before clearing a partition so a later reader
-            // cannot restore the invalidated file generation.
-            std::call_once(shard.loaded, [] {});
-            const std::unique_lock lock(shard.mutex);
-            shard.archive = {};
-            shard.pending.clear();
-            shard.replace = true;
+            const std::unique_lock lock(segmentsMutex_);
+            segments_.clear();
         }
+        for (PendingShard& shard : pending_)
+        {
+            const std::scoped_lock lock(shard.mutex);
+            shard.entries.clear();
+        }
+        replace_.store(true, std::memory_order_release);
     });
 }
 
-fs::path CompilerCacheStore::shardPath(const size_t index) const
+std::vector<fs::path> CompilerCacheStore::listSegments() const
 {
-    return directory_ / std::format("{:x}", index) / "code.bin";
+    std::vector<fs::path> paths;
+    std::error_code       ec;
+    for (fs::directory_iterator it(directory_, fs::directory_options::skip_permission_denied, ec), end; !ec && it != end; it.increment(ec))
+    {
+        if (it->path().extension() == K_SEGMENT_EXTENSION)
+            paths.push_back(it->path());
+    }
+    std::ranges::sort(paths, {}, [](const fs::path& path) { return path.filename(); });
+    return paths;
 }
 
-CompilerCacheStore::Shard& CompilerCacheStore::shardFor(const Utf8& key) const
+void CompilerCacheStore::ensureLoaded() const
 {
-    // Keys are lowercase hexadecimal SHA-256 digests. Their first nibble gives
-    // uniform partitions without hashing the text again.
+    std::call_once(loaded_, [this] {
+        std::vector<Segment> loaded;
+        for (fs::path& path : listSegments())
+        {
+            Archive archive = load(path);
+            if (archive.record)
+                loaded.push_back({std::move(path), std::move(archive)});
+        }
+        const std::unique_lock lock(segmentsMutex_);
+        segments_ = std::move(loaded);
+    });
+}
+
+CompilerCacheStore::PendingShard& CompilerCacheStore::pendingFor(const Utf8& key) const
+{
+    // Keys are lowercase hexadecimal SHA-256 digests. Their first nibble spreads
+    // concurrent writers without hashing the text again.
     SWC_ASSERT(key.size() == K_KEY_SIZE);
     const uint32_t digit = static_cast<uint8_t>(key[0]);
     const size_t   index = digit <= '9' ? digit - '0' : digit - 'a' + 10;
-    SWC_ASSERT(index < K_SHARD_COUNT);
-    Shard& shard = shards_[index];
-    std::call_once(shard.loaded, [this, &shard, index] { shard.archive = load(shardPath(index)); });
-    return shard;
+    SWC_ASSERT(index < K_PENDING_SHARDS);
+    return pending_[index];
 }
 
 CompilerCacheStore::Record CompilerCacheStore::read(const Utf8& key) const
 {
-    Shard&                 shard = shardFor(key);
-    const std::shared_lock lock(shard.mutex);
-    const auto             found = shard.pending.find(key);
-    return found == shard.pending.end() ? shard.archive.read(key) : found->second;
+    {
+        PendingShard&          shard = pendingFor(key);
+        const std::scoped_lock lock(shard.mutex);
+        if (const auto found = shard.entries.find(key); found != shard.entries.end())
+            return found->second;
+    }
+
+    ensureLoaded();
+    const std::shared_lock lock(segmentsMutex_);
+    for (auto it = segments_.rbegin(); it != segments_.rend(); ++it)
+    {
+        if (Record record = it->archive.read(key))
+            return record;
+    }
+    return {};
 }
 
 void CompilerCacheStore::write(const Utf8& key, ByteArray bytes)
 {
     const auto             owner = std::make_shared<const ByteArray>(std::move(bytes));
-    const Record           entry{owner, ByteView(owner->span())};
-    Shard&                 shard = shardFor(key);
-    const std::unique_lock lock(shard.mutex);
-    shard.pending.insert_or_assign(key, entry);
+    PendingShard&          shard = pendingFor(key);
+    const std::scoped_lock lock(shard.mutex);
+    shard.entries.insert_or_assign(key, Record{owner, ByteView(owner->span())});
 }
 
 void CompilerCacheStore::flushAll()
@@ -115,132 +161,193 @@ void CompilerCacheStore::invalidateAll()
 
 void CompilerCacheStore::flush()
 {
-    for (size_t index = 0; index < K_SHARD_COUNT; ++index)
-        flushShard(index);
+    const std::scoped_lock flushLock(flushMutex_);
+
+    // Records written while this publication runs stay pending for the next one.
+    Entries published;
+    for (PendingShard& shard : pending_)
+    {
+        const std::scoped_lock lock(shard.mutex);
+        for (const auto& [key, record] : shard.entries)
+            published.insert_or_assign(key, record);
+    }
+
+    const bool replace = replace_.load(std::memory_order_acquire);
+    if (published.empty() && !replace)
+        return;
+
+    std::error_code ec;
+    fs::create_directories(directory_, ec);
+    if (ec)
+        return;
+    const std::vector<fs::path> replaced = replace ? listSegments() : std::vector<fs::path>{};
+
+    if (!published.empty())
+    {
+        std::vector<EntryView> entries;
+        entries.reserve(published.size());
+        for (const auto& [key, record] : published)
+            entries.push_back({key.view(), record.bytes});
+        std::ranges::sort(entries, {}, &EntryView::key);
+
+        Archive        archive;
+        const fs::path path = newSegmentPath(directory_);
+        if (!publish(archive, path, entries))
+            return;
+        {
+            const std::unique_lock lock(segmentsMutex_);
+            segments_.push_back({path, std::move(archive)});
+        }
+        for (PendingShard& shard : pending_)
+        {
+            const std::scoped_lock lock(shard.mutex);
+            std::erase_if(shard.entries, [&](const auto& entry) {
+                const auto found = published.find(entry.first);
+                return found != published.end() && found->second.owner == entry.second.owner;
+            });
+        }
+    }
+
+    if (replace)
+    {
+        for (const fs::path& path : replaced)
+            fs::remove(path, ec);
+        replace_.store(false, std::memory_order_release);
+    }
+
+    compact();
 }
 
-void CompilerCacheStore::flushShard(const size_t index)
+// Folds segments once they accumulate. The largest one, the working set a first build left,
+// stays untouched while it outweighs the others together, so an edit-compile cycle rewrites
+// only the small segments its own builds added. Past the store bound, the oldest segments go.
+void CompilerCacheStore::compact() const
 {
-    Shard&                 shard = shards_[index];
-    const std::unique_lock lock(shard.mutex);
-    if (shard.pending.empty() && !shard.replace)
-        return;
-    const fs::path  path = shardPath(index);
-    std::error_code ec;
-    fs::create_directories(path.parent_path(), ec);
-    if (ec)
+    if (listSegments().size() <= K_MAX_SEGMENTS)
         return;
     Os::DirectoryLock publication;
     Utf8              because;
-    if (!publication.lock(because, path.parent_path()))
+    if (!publication.lock(because, directory_))
         return;
-    if (shard.replace && shard.pending.empty())
+
+    // Another compiler may have folded the segments while this one waited.
+    std::vector<Segment> segments;
+    for (fs::path& path : listSegments())
     {
+        Archive archive = load(path);
+        if (archive.record)
+            segments.push_back({std::move(path), std::move(archive)});
+    }
+    if (segments.size() <= K_MAX_SEGMENTS)
+        return;
+
+    std::error_code ec;
+    size_t          total = 0;
+    for (const Segment& segment : segments)
+        total += segment.archive.record.bytes.size();
+    while (total > K_MAX_STORE_SIZE && segments.size() > 1)
+    {
+        total -= segments.front().archive.record.bytes.size();
+        fs::remove(segments.front().path, ec);
+        segments.erase(segments.begin());
+    }
+
+    const auto                  largest = std::ranges::max_element(segments, {}, [](const Segment& segment) { return segment.archive.record.bytes.size(); });
+    const bool                  keep    = largest->archive.record.bytes.size() * 2 >= total;
+    std::vector<const Archive*> folded;
+    std::vector<fs::path>       foldedPaths;
+    for (const Segment& segment : segments)
+    {
+        if (keep && &segment == &*largest)
+            continue;
+        folded.push_back(&segment.archive);
+        foldedPaths.push_back(segment.path);
+    }
+    if (folded.size() < 2)
+        return;
+
+    Archive archive;
+    if (!publish(archive, newSegmentPath(directory_), mergeSegments(folded)))
+        return;
+    // A segment another compiler still maps stays until a later fold finds it free; its records
+    // are duplicates of the folded ones by then.
+    for (const fs::path& path : foldedPaths)
         fs::remove(path, ec);
-        if (!ec)
-            shard.replace = false;
-        return;
-    }
-    const Archive          current = shard.replace ? Archive{} : load(path);
-    std::vector<EntryView> merged  = mergeEntries(current, shard.pending);
-    size_t                 extent;
-    bool                   fitsArchive = measureExtent(merged, extent);
-    // Keep the newest working set when the archive reaches its size bound.
-    if (!fitsArchive)
-    {
-        std::vector<EntryView> recent;
-        recent.reserve(shard.pending.size());
-        for (const auto& [key, record] : shard.pending)
-            recent.push_back({key.view(), record.bytes});
-        std::ranges::sort(recent, {}, &EntryView::key);
-        merged      = std::move(recent);
-        fitsArchive = measureExtent(merged, extent);
-    }
-    if (!fitsArchive)
-        return;
-
-    ByteArray archive;
-    archive.reserve(extent);
-    archive.appendLe64(K_STORE_MAGIC);
-    archive.appendLe32(static_cast<uint32_t>(merged.size()));
-    archive.appendLe32(0);
-    for (const EntryView& entry : merged)
-    {
-        archive.append(entry.key);
-        archive.appendLe32(static_cast<uint32_t>(entry.bytes.size()));
-    }
-    for (const EntryView& entry : merged)
-        archive.append(entry.bytes.span());
-
-    // Retain this generation in memory before replacing the file. Releasing our
-    // previous mappings lets the ordinary rename succeed when no other compiler
-    // is still reading that generation. Outstanding reader records keep it alive.
-    const auto published = std::make_shared<const ByteArray>(std::move(archive));
-    shard.archive        = Archive::decode(Record{published, ByteView(published->span())});
-    FileSystem::IoErrorInfo error;
-    if (published->size() <= K_MAX_ARCHIVE_SIZE && FileSystem::writeBinaryFileAtomic(path, published->data(), published->size(), error, FileSystem::FileReplacement::Mapped) == Result::Continue)
-    {
-        shard.pending.clear();
-        shard.replace = false;
-    }
 }
 
-std::vector<CompilerCacheStore::EntryView> CompilerCacheStore::mergeEntries(const Archive& archive, const Entries& pendingEntries)
+std::vector<CompilerCacheStore::EntryView> CompilerCacheStore::mergeSegments(const std::span<const Archive* const> oldestFirst)
 {
-    // Keep archived keys mapped and sort only the pending delta before the linear merge.
-    std::vector<const Entries::value_type*> pending;
-    pending.reserve(pendingEntries.size());
-    for (const auto& entry : pendingEntries)
-        pending.push_back(&entry);
-    std::ranges::sort(pending, [](const auto* left, const auto* right) { return left->first < right->first; });
-
-    std::vector<EntryView> merged;
-    merged.reserve(archive.offsets.size() + pending.size());
-    size_t archiveIndex = 0;
-    size_t pendingIndex = 0;
-    while (archiveIndex < archive.offsets.size() || pendingIndex < pending.size())
+    struct Ranked
     {
-        const size_t           archiveKeyOffset = K_HEADER_SIZE + archiveIndex * K_INDEX_ENTRY_SIZE;
-        const std::string_view archiveKey       = archiveIndex < archive.offsets.size()
-                                                      ? std::string_view(reinterpret_cast<const char*>(archive.record.bytes.data() + archiveKeyOffset), K_KEY_SIZE)
-                                                      : std::string_view{};
-        if (pendingIndex == pending.size() || (archiveIndex < archive.offsets.size() && archiveKey < pending[pendingIndex]->first.view()))
-        {
-            const uint32_t length = archive.record.bytes.readLe32(archiveKeyOffset + K_KEY_SIZE);
-            merged.push_back({archiveKey, ByteView(archive.record.bytes.span().subspan(archive.offsets[archiveIndex], length))});
-            ++archiveIndex;
-        }
-        else if (archiveIndex == archive.offsets.size() || pending[pendingIndex]->first.view() < archiveKey)
-        {
-            const auto& [key, record] = *pending[pendingIndex++];
-            merged.push_back({key.view(), record.bytes});
-        }
-        else
-        {
-            const auto& [key, record] = *pending[pendingIndex++];
-            merged.push_back({key.view(), record.bytes});
-            ++archiveIndex;
-        }
+        EntryView entry;
+        size_t    age;
+    };
+
+    std::vector<Ranked> ranked;
+    for (size_t age = 0; age < oldestFirst.size(); ++age)
+    {
+        const Archive& archive = *oldestFirst[age];
+        for (size_t index = 0; index < archive.offsets.size(); ++index)
+            ranked.push_back({archive.entry(index), age});
+    }
+
+    // The newest record of a key wins.
+    std::ranges::sort(ranked, [](const Ranked& left, const Ranked& right) { return left.entry.key != right.entry.key ? left.entry.key < right.entry.key : left.age > right.age; });
+    std::vector<EntryView> merged;
+    merged.reserve(ranked.size());
+    for (const Ranked& item : ranked)
+    {
+        if (merged.empty() || merged.back().key != item.entry.key)
+            merged.push_back(item.entry);
     }
     return merged;
 }
 
-bool CompilerCacheStore::measureExtent(const std::vector<EntryView>& entries, size_t& extent)
+bool CompilerCacheStore::measureExtent(const std::vector<EntryView>& entries, size_t& extent, const size_t limit)
 {
     extent = K_HEADER_SIZE;
     for (const EntryView& entry : entries)
     {
-        if (extent > K_MAX_ARCHIVE_SIZE - K_INDEX_ENTRY_SIZE || entry.bytes.size() > K_MAX_ARCHIVE_SIZE - extent - K_INDEX_ENTRY_SIZE)
+        if (extent > limit - K_INDEX_ENTRY_SIZE || entry.bytes.size() > limit - extent - K_INDEX_ENTRY_SIZE)
             return false;
         extent += K_INDEX_ENTRY_SIZE + entry.bytes.size();
     }
     return true;
 }
 
+// Writes sorted, distinct entries as a new segment. The segment is renamed into place under a
+// name nothing else uses, so readers see it complete or not at all.
+bool CompilerCacheStore::publish(Archive& outArchive, const fs::path& path, const std::vector<EntryView>& entries)
+{
+    size_t extent = 0;
+    if (!measureExtent(entries, extent, K_MAX_SEGMENT_SIZE))
+        return false;
+
+    ByteArray bytes;
+    bytes.reserve(extent);
+    bytes.appendLe64(K_STORE_MAGIC);
+    bytes.appendLe32(static_cast<uint32_t>(entries.size()));
+    bytes.appendLe32(0);
+    for (const EntryView& entry : entries)
+    {
+        bytes.append(entry.key);
+        bytes.appendLe32(static_cast<uint32_t>(entry.bytes.size()));
+    }
+    for (const EntryView& entry : entries)
+        bytes.append(entry.bytes.span());
+
+    const auto              owner = std::make_shared<const ByteArray>(std::move(bytes));
+    FileSystem::IoErrorInfo error;
+    if (FileSystem::writeBinaryFileAtomic(path, owner->data(), owner->size(), error) != Result::Continue)
+        return false;
+    outArchive = Archive::decode(Record{owner, ByteView(owner->span())});
+    return true;
+}
+
 CompilerCacheStore::Archive CompilerCacheStore::load(const fs::path& path)
 {
     const auto mapping = std::make_shared<Os::ReadOnlyFileMapping>();
-    if (!mapping->open(path, K_MAX_ARCHIVE_SIZE))
+    if (!mapping->open(path, K_MAX_SEGMENT_SIZE))
         return {};
     return Archive::decode(Record{mapping, ByteView(mapping->bytes())});
 }
@@ -275,6 +382,14 @@ CompilerCacheStore::Archive CompilerCacheStore::Archive::decode(Record record)
         return {};
     archive.record = std::move(record);
     return archive;
+}
+
+CompilerCacheStore::EntryView CompilerCacheStore::Archive::entry(const size_t index) const
+{
+    const size_t keyOffset = K_HEADER_SIZE + index * K_INDEX_ENTRY_SIZE;
+    const auto   key       = std::string_view(reinterpret_cast<const char*>(record.bytes.data() + keyOffset), K_KEY_SIZE);
+    const auto   length    = record.bytes.readLe32(keyOffset + K_KEY_SIZE);
+    return {key, ByteView(record.bytes.span().subspan(offsets[index], length))};
 }
 
 CompilerCacheStore::Record CompilerCacheStore::Archive::read(const Utf8& key) const

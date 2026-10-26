@@ -521,12 +521,54 @@ SWC_TEST_BEGIN(BranchSimplify_ConvertsConditionalConstantToCmov)
 }
 SWC_TEST_END()
 
-// A two-instruction body is not a conditional move candidate.
-SWC_TEST_BEGIN(BranchSimplify_KeepsMultiInstructionBranchBody)
+// jcc over several copies, a heap selecting a child index and its value
+// together, becomes one conditional move per copy, in the body's order.
+SWC_TEST_BEGIN(BranchSimplify_ConvertsCopyRunToCmovs)
 {
-    const MicroReg vA = MicroReg::virtualIntReg(10);
-    const MicroReg vB = MicroReg::virtualIntReg(11);
-    const MicroReg vC = MicroReg::virtualIntReg(12);
+    const MicroReg vIndex  = MicroReg::virtualIntReg(10);
+    const MicroReg vValue  = MicroReg::virtualIntReg(11);
+    const MicroReg vRight  = MicroReg::virtualIntReg(12);
+    const MicroReg vRightD = MicroReg::virtualIntReg(13);
+    MicroBuilder   builder(ctx);
+
+    const MicroLabelRef skip = builder.createLabel();
+
+    builder.emitCmpRegReg(vRightD, vValue, MicroOpBits::B64);
+    builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, skip);
+    builder.emitLoadRegReg(vIndex, vRight, MicroOpBits::B64);
+    builder.emitLoadRegReg(vValue, vRightD, MicroOpBits::B64);
+    builder.placeLabel(skip);
+    builder.emitRet();
+
+    SWC_RESULT(Backend::Unittest::runMicroPass<MicroBranchSimplifyPass>(builder));
+
+    if (countConditionalJumps(builder) != 0)
+        return Result::Error;
+
+    const std::pair<MicroReg, MicroReg> expected[] = {{vIndex, vRight}, {vValue, vRightD}};
+    size_t                              seen       = 0;
+    for (const MicroInstr& inst : builder.instructions().view())
+    {
+        if (inst.op != MicroInstrOpcode::LoadCondRegReg)
+            continue;
+        const MicroInstrOperand* ops = inst.ops(builder.operands());
+        if (seen >= std::size(expected) || !ops || ops[2].cpuCond != MicroCond::Below)
+            return Result::Error;
+        if (ops[0].reg != expected[seen].first || ops[1].reg != expected[seen].second)
+            return Result::Error;
+        ++seen;
+    }
+
+    return seen == std::size(expected) ? Result::Continue : Result::Error;
+}
+SWC_TEST_END()
+
+// A body that writes memory cannot run on the path that skipped it.
+SWC_TEST_BEGIN(BranchSimplify_KeepsBranchBodyWithStore)
+{
+    const MicroReg vA    = MicroReg::virtualIntReg(10);
+    const MicroReg vB    = MicroReg::virtualIntReg(11);
+    const MicroReg vBase = MicroReg::virtualIntReg(12);
     MicroBuilder   builder(ctx);
 
     const MicroLabelRef skip = builder.createLabel();
@@ -534,7 +576,7 @@ SWC_TEST_BEGIN(BranchSimplify_KeepsMultiInstructionBranchBody)
     builder.emitCmpRegReg(vB, vA, MicroOpBits::B64);
     builder.emitJumpToLabel(MicroCond::AboveOrEqual, MicroOpBits::B32, skip);
     builder.emitLoadRegReg(vA, vB, MicroOpBits::B64);
-    builder.emitLoadRegReg(vC, vB, MicroOpBits::B64);
+    builder.emitLoadMemReg(vBase, 8, vB, MicroOpBits::B64);
     builder.placeLabel(skip);
     builder.emitRet();
 

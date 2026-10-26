@@ -73,6 +73,27 @@ func absDiffSum(a, b: [*] s32, n: u64)->s64
     return sum
 }
 
+// A branch over several copies selects them all on one condition: the
+// smaller child of a heap node hands over its index and its value together.
+#[Swag.Optimize(true)]
+func smallerChild(heap: [*] u64, l, n: u64)->u64
+{
+    let r      = l + 1
+    var m      = l
+    var childD = heap[l]
+    if r < n
+    {
+        let rightD = heap[r]
+        if rightD < childD
+        {
+            m      = r
+            childD = rightD
+        }
+    }
+
+    return m * 1000 + childD
+}
+
 #test
 {
     Swag.assert(selectMin(3, 5) == 3)
@@ -109,4 +130,10 @@ func absDiffSum(a, b: [*] s32, n: u64)->s64
     Swag.assert(absEarly(0) == 0)
     Swag.assert(selectEarlyConstant(0) == 1)
     Swag.assert(selectEarlyConstant(21) == 42)
+
+    var heap: [4] u64 = [5, 3, 4, 4]
+    Swag.assert(smallerChild(&heap[0], 0, 4) == 1003)
+    Swag.assert(smallerChild(&heap[0], 0, 1) == 5)
+    Swag.assert(smallerChild(&heap[0], 1, 4) == 1003)
+    Swag.assert(smallerChild(&heap[0], 2, 4) == 2004)
 }

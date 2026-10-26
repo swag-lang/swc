@@ -134,15 +134,33 @@ namespace
         return ctx.cstMgr().resolveConstantDataSegmentRef(out, target.constantRef, reinterpret_cast<const void*>(target.targetAddress));
     }
 
+    bool isGlobalRelocation(const MicroRelocation& relocation)
+    {
+        return relocation.kind == MicroRelocation::Kind::GlobalZeroAddress || relocation.kind == MicroRelocation::Kind::GlobalInitAddress;
+    }
+
+    // The global storage allocation a relocation targets. Workers allocate globals in the
+    // order they reach their variables, so where an allocation sits is never an identity;
+    // the native layout places each one on its own as well.
+    bool globalAllocation(TaskContext& ctx, DataSegmentAllocation& out, const MicroRelocation& relocation)
+    {
+        const DataSegment& segment = relocation.kind == MicroRelocation::Kind::GlobalInitAddress ? ctx.compiler().globalInitSegment() : ctx.compiler().globalZeroSegment();
+        return relocation.targetAddress <= std::numeric_limits<uint32_t>::max() && segment.findAllocation(out, static_cast<uint32_t>(relocation.targetAddress));
+    }
+
     // Data pointers in constants are edges, not bytes. Number allocations in traversal
     // order to preserve sharing and cycles without persisting shard offsets or addresses.
+    // A pointer-free allocation is numbered by its bytes instead: constant shards intern
+    // their own copy of a string, and which copy a constant points to is not an input.
     struct InputIdentity
     {
         TaskContext*                                        ctx = nullptr;
         std::unordered_map<uint64_t, uint32_t>              allocations;
+        std::unordered_map<std::string, uint32_t>           leaves;
+        uint32_t                                            numAllocations = 0;
         std::unordered_map<const SymbolFunction*, uint32_t> functions;
         std::unordered_map<uint64_t, uint32_t>              sources;
-        std::optional<uint64_t>                             globalBases[2];
+        std::unordered_map<uint64_t, uint32_t>              globals;
 
         void appendSource(ByteArray& out, const DebugSourceInfo& source)
         {
@@ -158,6 +176,27 @@ namespace
             out.appendLe32(entry->second);
         }
 
+        // A global is the allocation it lies in, numbered in traversal order, and the offset
+        // inside it. Optimizer facts about globals compare targets for equality or byte
+        // ranges for overlap, and two allocations never overlap wherever they are placed.
+        bool appendGlobal(ByteArray& out, const MicroRelocation& target)
+        {
+            DataSegmentAllocation allocation;
+            if (!globalAllocation(*ctx, allocation, target))
+                return false;
+            const uint64_t key           = (static_cast<uint64_t>(target.kind) << 32) | allocation.offset;
+            const auto [entry, inserted] = globals.emplace(key, static_cast<uint32_t>(globals.size()));
+            out.appendLe32(entry->second);
+            out.appendLe32(static_cast<uint32_t>(target.targetAddress - allocation.offset));
+            out.appendLe32(inserted);
+            if (inserted)
+            {
+                out.appendLe32(allocation.size);
+                out.appendLe32(allocation.align);
+            }
+            return true;
+        }
+
         bool appendFunctionTarget(ByteArray& out, const SymbolFunction& function)
         {
             const auto [entry, inserted] = functions.emplace(&function, static_cast<uint32_t>(functions.size()));
@@ -168,21 +207,33 @@ namespace
 
         bool appendConstant(ByteArray& out, const DataSegmentRef source, const uint32_t depth = 0)
         {
-            if (depth >= 128 || allocations.size() >= 4096 || out.size() >= K_MAX_IMAGE_SIZE)
+            if (depth >= 128 || numAllocations >= 4096 || out.size() >= K_MAX_IMAGE_SIZE)
                 return false;
             const DataSegment&    segment = ctx->cstMgr().shardDataSegment(source.shardIndex);
             DataSegmentAllocation allocation;
             if (!segment.findAllocation(allocation, source.offset))
                 return false;
-            const uint64_t key           = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
-            const auto [entry, inserted] = allocations.emplace(key, static_cast<uint32_t>(allocations.size()));
-            out.appendLe32(entry->second);
+            if (allocation.size > K_MAX_IMAGE_SIZE - std::min<size_t>(out.size(), K_MAX_IMAGE_SIZE))
+                return false;
+            const uint64_t key                   = (static_cast<uint64_t>(source.shardIndex) << 32) | allocation.offset;
+            const auto [allocationEntry, unseen] = allocations.emplace(key, numAllocations);
+            bool inserted                        = unseen;
+            if (unseen && !segment.hasRelocations(allocation.offset, allocation.size))
+            {
+                std::string content(sizeof(uint32_t), '\0');
+                std::memcpy(content.data(), &allocation.align, sizeof(uint32_t));
+                content.append(segment.ptr<char>(allocation.offset), allocation.size);
+                const auto [leafEntry, added] = leaves.emplace(std::move(content), numAllocations);
+                allocationEntry->second       = leafEntry->second;
+                inserted                      = added;
+            }
+            const uint32_t index = allocationEntry->second;
+            numAllocations += inserted;
+            out.appendLe32(index);
             out.appendLe32(source.offset - allocation.offset);
             out.appendLe32(inserted);
             if (!inserted)
                 return true;
-            if (allocation.size > K_MAX_IMAGE_SIZE - std::min<size_t>(out.size(), K_MAX_IMAGE_SIZE))
-                return false;
 
             std::vector<DataSegmentRelocation> relocations;
             segment.copyRelocations(relocations, allocation.offset, allocation.size);
@@ -315,15 +366,7 @@ namespace
             }
             case MicroRelocation::Kind::GlobalZeroAddress:
             case MicroRelocation::Kind::GlobalInitAddress:
-            {
-                // Translation within one segment preserves every alias/distance relation.
-                // Publication remaps the group's base through a current input relocation.
-                auto& base = constants.globalBases[target.kind == MicroRelocation::Kind::GlobalInitAddress];
-                if (!base)
-                    base = target.targetAddress;
-                out.appendLe64(target.targetAddress - *base);
-                return true;
-            }
+                return constants.appendGlobal(out, target);
             case MicroRelocation::Kind::CompilerAddress:
                 return false;
         }
@@ -341,8 +384,13 @@ namespace
             return true;
         if (input.kind == MicroRelocation::Kind::LocalFunctionAddress || input.kind == MicroRelocation::Kind::ForeignFunctionAddress)
             return input.targetSymbol == output.targetSymbol;
-        if (input.kind == MicroRelocation::Kind::GlobalInitAddress || input.kind == MicroRelocation::Kind::GlobalZeroAddress)
+        if (isGlobalRelocation(input))
         {
+            // Only the input's own allocation: the distance to another global holds for
+            // this build's placement alone.
+            DataSegmentAllocation allocation;
+            if (!globalAllocation(ctx, allocation, input) || output.targetAddress < allocation.offset || output.targetAddress - allocation.offset >= allocation.size)
+                return false;
             outDelta = static_cast<int64_t>(output.targetAddress) - static_cast<int64_t>(input.targetAddress);
             return true;
         }
@@ -561,10 +609,11 @@ bool MachineCodeCache::read(MachineCode& out) const
         }
         else if (delta)
         {
-            if (relocation.kind == MicroRelocation::Kind::GlobalInitAddress || relocation.kind == MicroRelocation::Kind::GlobalZeroAddress)
+            if (isGlobalRelocation(relocation))
             {
-                const auto offset = static_cast<int64_t>(relocation.targetAddress) + delta;
-                if (offset < 0 || offset > std::numeric_limits<uint32_t>::max())
+                DataSegmentAllocation allocation;
+                const auto            offset = static_cast<int64_t>(relocation.targetAddress) + delta;
+                if (!globalAllocation(*ctx_, allocation, relocation) || offset < allocation.offset || offset - allocation.offset >= allocation.size)
                     return false;
                 relocation.targetAddress = static_cast<uint64_t>(offset);
             }

@@ -1,5 +1,8 @@
 #include "pch.h"
 #include "Support/Math/Sha256.h"
+#if defined(_M_X64)
+#include <intrin.h>
+#endif
 
 SWC_BEGIN_NAMESPACE();
 
@@ -17,6 +20,62 @@ namespace
 
     uint32_t rotr(const uint32_t value, const uint32_t count) { return (value >> count) | (value << (32 - count)); }
 
+#if defined(_M_X64)
+    // The SHA extensions run two rounds per instruction, an order of magnitude faster than the
+    // portable rounds. The machine-code cache hashes every function's input stream with this.
+    bool hasShaExtensions()
+    {
+        static const bool available = [] {
+            int registers[4];
+            __cpuid(registers, 0);
+            if (registers[0] < 7)
+                return false;
+            __cpuidex(registers, 7, 0);
+            return (registers[1] & (1 << 29)) != 0;
+        }();
+        return available;
+    }
+
+    // Intel's reference schedule. The state lives as ABEF/CDGH pairs across the rounds; each
+    // group of four message words is extended from the previous four groups.
+    void shaExtensionBlocks(uint32_t state[8], const uint8_t* data, size_t count)
+    {
+        const __m128i byteSwap = _mm_set_epi64x(0x0c0d0e0f08090a0bull, 0x0405060700010203ull);
+        __m128i       lower    = _mm_shuffle_epi32(_mm_loadu_si128(reinterpret_cast<const __m128i*>(&state[0])), 0xB1);
+        __m128i       upper    = _mm_shuffle_epi32(_mm_loadu_si128(reinterpret_cast<const __m128i*>(&state[4])), 0x1B);
+        __m128i       abef     = _mm_alignr_epi8(lower, upper, 8);
+        __m128i       cdgh     = _mm_blend_epi16(upper, lower, 0xF0);
+        for (; count; --count, data += 64)
+        {
+            const __m128i savedAbef = abef;
+            const __m128i savedCdgh = cdgh;
+            __m128i       message[4];
+            for (int group = 0; group < 16; ++group)
+            {
+                __m128i& words = message[group & 3];
+                if (group < 4)
+                    words = _mm_shuffle_epi8(_mm_loadu_si128(reinterpret_cast<const __m128i*>(data + group * 16)), byteSwap);
+                else
+                {
+                    const __m128i& previous = message[(group - 1) & 3];
+                    const __m128i  shifted  = _mm_alignr_epi8(previous, message[(group - 2) & 3], 4);
+                    words                   = _mm_sha256msg2_epu32(_mm_add_epi32(_mm_sha256msg1_epu32(words, message[(group - 3) & 3]), shifted), previous);
+                }
+                __m128i scheduled = _mm_add_epi32(words, _mm_loadu_si128(reinterpret_cast<const __m128i*>(&K_RC[group * 4])));
+                cdgh              = _mm_sha256rnds2_epu32(cdgh, abef, scheduled);
+                scheduled         = _mm_shuffle_epi32(scheduled, 0x0E);
+                abef              = _mm_sha256rnds2_epu32(abef, cdgh, scheduled);
+            }
+            abef = _mm_add_epi32(abef, savedAbef);
+            cdgh = _mm_add_epi32(cdgh, savedCdgh);
+        }
+        const __m128i feba = _mm_shuffle_epi32(abef, 0x1B);
+        const __m128i dchg = _mm_shuffle_epi32(cdgh, 0xB1);
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(&state[0]), _mm_blend_epi16(feba, dchg, 0xF0));
+        _mm_storeu_si128(reinterpret_cast<__m128i*>(&state[4]), _mm_alignr_epi8(dchg, feba, 8));
+    }
+#endif
+
     struct Sha256State
     {
         uint32_t                h[8] = {0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
@@ -24,7 +83,20 @@ namespace
         uint64_t                totalBytes = 0;
         size_t                  used       = 0;
 
-        void block(const uint8_t* data)
+        void blocks(const uint8_t* data, size_t count)
+        {
+#if defined(_M_X64)
+            if (hasShaExtensions())
+            {
+                shaExtensionBlocks(h, data, count);
+                return;
+            }
+#endif
+            for (; count; --count, data += 64)
+                portableBlock(data);
+        }
+
+        void portableBlock(const uint8_t* data)
         {
             uint32_t w[64];
             for (size_t i = 0; i < 16; ++i)
@@ -84,14 +156,12 @@ namespace
                 data = data.subspan(count);
                 if (used != tail.size())
                     return;
-                block(tail.data());
+                blocks(tail.data(), 1);
                 used = 0;
             }
-            while (data.size() >= tail.size())
-            {
-                block(reinterpret_cast<const uint8_t*>(data.data()));
-                data = data.subspan(tail.size());
-            }
+            const size_t whole = data.size() / tail.size();
+            blocks(reinterpret_cast<const uint8_t*>(data.data()), whole);
+            data = data.subspan(whole * tail.size());
             if (!data.empty())
             {
                 std::memcpy(tail.data(), data.data(), data.size());
@@ -106,13 +176,13 @@ namespace
             if (used > 56)
             {
                 std::memset(tail.data() + used, 0, tail.size() - used);
-                block(tail.data());
+                blocks(tail.data(), 1);
                 used = 0;
             }
             std::memset(tail.data() + used, 0, 56 - used);
             for (size_t index = 0; index < 8; ++index)
                 tail[63 - index] = static_cast<uint8_t>(bitLength >> (8 * index));
-            block(tail.data());
+            blocks(tail.data(), 1);
             std::array<uint8_t, 32> out{};
             for (int i = 0; i < 8; ++i)
             {

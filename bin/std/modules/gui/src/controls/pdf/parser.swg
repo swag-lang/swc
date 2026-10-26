@@ -685,7 +685,10 @@ impl PdfParser
             .pos = savedPos
         }
 
-        return .withPrevious(result, dictId)
+        // Assigned, then returned: a return that reads the result it is built into would
+        // overwrite it first (compiler.safety.034).
+        result = .withPrevious(result, dictId)
+        return result
     }
 
     // Reads a cross-reference stream, the form every file with compressed objects uses.
@@ -797,7 +800,10 @@ impl PdfParser
 
         result.ok = true
         .recordTrailer(nodeId)
-        return .withPrevious(result, nodeId)
+        // Assigned, then returned: a return that reads the result it is built into would
+        // overwrite it first (compiler.safety.034).
+        result = .withPrevious(result, nodeId)
+        return result
     }
 
     // Fills in where the previous section of the chain starts, when the trailer names one.

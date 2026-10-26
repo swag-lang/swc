@@ -139,6 +139,22 @@ new language syntax.
   multi-access rewrite.
 - Related: std.video.005, compiler.optimization.011, compiler.optimization.020.
 
+### compiler.optimization.034 — Reuse the selected Dijkstra heap child across its comparison
+
+- Evidence: the Release heap `push` and `pop` keep their heap pointers resident with no
+  frame access or saved register
+  ([comparison](../bench/results/generated-code/20261006-heap-values/README.md)). `pop`
+  compares both child values, selects the child index with a conditional move, then reloads
+  the selected value. The left value is not loaded on the path where the right child is out
+  of bounds, so plain forwarding is insufficient. Carrying the value by hand in the benchmark
+  source only moves the problem: the benchmark must measure the compiler, not a hand-tuned
+  source, so `bench/src/swagnat/dijkstra.swg` keeps the reload.
+- Next: carry the available child value through the selection while preserving the
+  one-child path, bounds, intervening alias writes and register pressure.
+- Done when: the selected-child reload disappears from the unchanged benchmark source with
+  sound path availability, or a focused experiment identifies the register-residency
+  constraint.
+
 ### compiler.optimization.035 — Improve spill choices after register and memory promotion
 
 - Evidence: after removing the permanent integer legalization reserve,

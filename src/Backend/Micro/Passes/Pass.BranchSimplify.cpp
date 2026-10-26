@@ -5182,12 +5182,18 @@ namespace
     //
     // The skipped body runs exactly when CC is false, which is what the
     // conditional move with the inverted condition expresses; the label stays
-    // for any other jump that targets it. A single-copy body converts
-    // directly. A single immediate-load body converts by materializing the
-    // immediate into a fresh scratch register above the branch — an immediate
-    // load never touches the CPU flags the move consumes. This removes the
-    // classic min/max and conditional-constant branches, which are the least
-    // predictable ones in the numeric kernels.
+    // for any other jump that targets it. A copy converts directly. An
+    // immediate load converts by materializing the immediate into a fresh
+    // scratch register above the branch — an immediate load never touches the
+    // CPU flags the move consumes. This removes the classic min/max and
+    // conditional-constant branches, which are the least predictable ones in
+    // the numeric kernels.
+    //
+    // A body of several copies converts to one conditional move per copy, in
+    // order. A conditional move leaves the flags alone, so every move tests the
+    // same condition, and each one performs its copy exactly when the skipped
+    // body would have, after the copies before it: `m = r ; v = w` selecting an
+    // index and its value together, as a heap's child selection does.
     // A float select between the two values a comparison tested is their
     // maximum or minimum, as LLVM's x86 lowering picks maxss and minss:
     //
@@ -5316,19 +5322,36 @@ namespace
         return changed;
     }
 
+    using MicroOptimizationLimits::BranchSimplify::K_MAX_IF_CONVERT_ARM_INSTR;
+
+    // A body instruction a conditional move can perform: a copy or an immediate
+    // load into a 32/64-bit integer register, the widths cmov exists for.
+    bool isConditionalMoveBody(const MicroInstr& inst, const MicroInstrOperand* ops)
+    {
+        if (!ops || (inst.op != MicroInstrOpcode::LoadRegImm && inst.op != MicroInstrOpcode::LoadRegReg))
+            return false;
+        const bool fromImm = inst.op == MicroInstrOpcode::LoadRegImm;
+        if (getNumBits(fromImm ? ops[1].opBits : ops[2].opBits) < 32)
+            return false;
+        if (!ops[0].reg.isVirtualInt() && !ops[0].reg.isInt())
+            return false;
+        // A >64-bit immediate cannot be re-materialized from the stored word.
+        if (fromImm)
+            return ops[2].valueInt.bitWidth() <= 64;
+        return ops[1].reg.isVirtualInt() || ops[1].reg.isInt();
+    }
+
     bool convertBranchesToConditionalMoves(MicroStorage& storage, MicroOperandStorage& operands, MicroPassContext& context)
     {
         struct Conversion
         {
-            MicroInstrRef jumpRef  = MicroInstrRef::invalid();
-            MicroInstrRef bodyRef  = MicroInstrRef::invalid();
-            MicroInstrRef labelRef = MicroInstrRef::invalid();
-            MicroCond     cond     = MicroCond::Unconditional;
-            bool          fromImm  = false;
+            MicroInstrRef                                          jumpRef = MicroInstrRef::invalid();
+            SmallVector<MicroInstrRef, K_MAX_IF_CONVERT_ARM_INSTR> bodyRefs;
+            MicroInstrRef                                          labelRef = MicroInstrRef::invalid();
+            MicroCond                                              cond     = MicroCond::Unconditional;
         };
 
         SmallVector<Conversion> conversions;
-        bool                    needsScratch = false;
 
         for (auto it = storage.view().begin(), endIt = storage.view().end(); it != endIt; ++it)
         {
@@ -5339,44 +5362,20 @@ namespace
             if (!jumpOps || jumpOps[0].cpuCond == MicroCond::Unconditional)
                 continue;
 
-            const MicroInstrRef bodyRef = storage.findNextInstructionRef(it.current);
-            if (!bodyRef.isValid())
-                continue;
-            const MicroInstr* bodyInst = storage.ptr(bodyRef);
-            if (!bodyInst)
-                continue;
-
-            bool fromImm = false;
-            if (bodyInst->op == MicroInstrOpcode::LoadRegImm)
-                fromImm = true;
-            else if (bodyInst->op != MicroInstrOpcode::LoadRegReg)
-                continue;
-
-            const MicroInstrOperand* bodyOps = bodyInst->ops(operands);
-            if (!bodyOps)
-                continue;
-
-            // cmov exists for 32/64-bit integer registers only.
-            const MicroOpBits bodyBits = fromImm ? bodyOps[1].opBits : bodyOps[2].opBits;
-            if (getNumBits(bodyBits) < 32)
-                continue;
-            const MicroReg dstReg = bodyOps[0].reg;
-            if (!dstReg.isVirtualInt() && !dstReg.isInt())
-                continue;
-            if (!fromImm)
+            Conversion    conversion;
+            MicroInstrRef nextRef = storage.findNextInstructionRef(it.current);
+            while (nextRef.isValid() && conversion.bodyRefs.size() < K_MAX_IF_CONVERT_ARM_INSTR)
             {
-                const MicroReg srcReg = bodyOps[1].reg;
-                if (!srcReg.isVirtualInt() && !srcReg.isInt())
-                    continue;
+                const MicroInstr* bodyInst = storage.ptr(nextRef);
+                if (!bodyInst || !isConditionalMoveBody(*bodyInst, bodyInst->ops(operands)))
+                    break;
+                conversion.bodyRefs.push_back(nextRef);
+                nextRef = storage.findNextInstructionRef(nextRef);
             }
-            // A >64-bit immediate cannot be re-materialized from the stored word.
-            if (fromImm && bodyOps[2].valueInt.bitWidth() > 64)
+            if (conversion.bodyRefs.empty() || !nextRef.isValid())
                 continue;
 
-            const MicroInstrRef labelRef = storage.findNextInstructionRef(bodyRef);
-            if (!labelRef.isValid())
-                continue;
-            const MicroInstr* labelInst = storage.ptr(labelRef);
+            const MicroInstr* labelInst = storage.ptr(nextRef);
             if (!labelInst || labelInst->op != MicroInstrOpcode::Label)
                 continue;
             uint32_t labelId = 0;
@@ -5386,12 +5385,12 @@ namespace
             if (!tryGetJumpTargetLabelId(targetLabelId, jumpInst, jumpOps) || targetLabelId != labelId)
                 continue;
 
-            MicroCond inverted = MicroCond::Unconditional;
-            if (!MicroPassHelpers::invertCondition(inverted, jumpOps[0].cpuCond) || !conditionSupportsConditionalMove(inverted))
+            if (!MicroPassHelpers::invertCondition(conversion.cond, jumpOps[0].cpuCond) || !conditionSupportsConditionalMove(conversion.cond))
                 continue;
 
-            conversions.push_back({.jumpRef = it.current, .bodyRef = bodyRef, .labelRef = labelRef, .cond = inverted, .fromImm = fromImm});
-            needsScratch = needsScratch || fromImm;
+            conversion.jumpRef  = it.current;
+            conversion.labelRef = nextRef;
+            conversions.push_back(std::move(conversion));
         }
 
         if (conversions.empty())
@@ -5403,39 +5402,38 @@ namespace
 
         for (const Conversion& conversion : conversions)
         {
-            const MicroInstr*        bodyInst = storage.ptr(conversion.bodyRef);
-            const MicroInstrOperand* bodyOps  = bodyInst ? bodyInst->ops(operands) : nullptr;
-            if (!bodyOps)
-                continue;
-
-            const MicroReg    dstReg   = bodyOps[0].reg;
-            const MicroOpBits bodyBits = conversion.fromImm ? bodyOps[1].opBits : bodyOps[2].opBits;
-            MicroReg          srcReg   = MicroReg::invalid();
-
-            if (conversion.fromImm)
+            for (const MicroInstrRef bodyRef : conversion.bodyRefs)
             {
-                srcReg = nextVirtualIntRegs.take();
+                // Read every operand first: an insertion may move the operand storage.
+                const MicroInstr*        bodyInst = storage.ptr(bodyRef);
+                const MicroInstrOperand* bodyOps  = bodyInst->ops(operands);
+                const bool               fromImm  = bodyInst->op == MicroInstrOpcode::LoadRegImm;
+                const MicroReg           dstReg   = bodyOps[0].reg;
+                const MicroOpBits        bodyBits = fromImm ? bodyOps[1].opBits : bodyOps[2].opBits;
+                MicroReg                 srcReg   = fromImm ? MicroReg::invalid() : bodyOps[1].reg;
 
-                MicroInstrOperand immOps[3];
-                immOps[0].reg    = srcReg;
-                immOps[1].opBits = bodyBits;
-                immOps[2].setImmediateValue(bodyOps[2].immediateValue());
-                storage.insertDerivedBefore(operands, conversion.jumpRef, MicroInstrOpcode::LoadRegImm, immOps);
-            }
-            else
-            {
-                srcReg = bodyOps[1].reg;
-            }
+                if (fromImm)
+                {
+                    srcReg = nextVirtualIntRegs.take();
 
-            MicroInstrOperand movOps[4];
-            movOps[0].reg     = dstReg;
-            movOps[1].reg     = srcReg;
-            movOps[2].cpuCond = conversion.cond;
-            movOps[3].opBits  = bodyBits;
-            storage.insertDerivedBefore(operands, conversion.labelRef, MicroInstrOpcode::LoadCondRegReg, movOps);
+                    MicroInstrOperand immOps[3];
+                    immOps[0].reg    = srcReg;
+                    immOps[1].opBits = bodyBits;
+                    immOps[2].setImmediateValue(bodyOps[2].immediateValue());
+                    storage.insertDerivedBefore(operands, conversion.jumpRef, MicroInstrOpcode::LoadRegImm, immOps);
+                }
+
+                MicroInstrOperand movOps[4];
+                movOps[0].reg     = dstReg;
+                movOps[1].reg     = srcReg;
+                movOps[2].cpuCond = conversion.cond;
+                movOps[3].opBits  = bodyBits;
+                storage.insertDerivedBefore(operands, conversion.labelRef, MicroInstrOpcode::LoadCondRegReg, movOps);
+            }
 
             storage.erase(conversion.jumpRef);
-            storage.erase(conversion.bodyRef);
+            for (const MicroInstrRef bodyRef : conversion.bodyRefs)
+                storage.erase(bodyRef);
         }
 
         return true;
@@ -5462,7 +5460,6 @@ namespace
     // triangle is convertBranchesToConditionalMoves above; a diamond whose
     // arms hold their own selects converts from the inside out, one
     // fixed-point iteration per nesting level.
-    using MicroOptimizationLimits::BranchSimplify::K_MAX_IF_CONVERT_ARM_INSTR;
 
     bool isSpeculatableMicroOp(const MicroOp op)
     {

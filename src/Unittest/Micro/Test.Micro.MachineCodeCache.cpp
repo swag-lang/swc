@@ -39,6 +39,22 @@ namespace
         return MachineCodeCache::inputKey(ctx, sources, function, builder, "unit-test-compiler");
     }
 
+    uint32_t reserveGlobal(TaskContext& ctx, const uint32_t size)
+    {
+        return ctx.compiler().globalZeroSegment().reserveBytes(size, 8, true).first;
+    }
+
+    // A load of the constant bytes stored at `offset` in constant shard `shard`.
+    void emitConstantLoad(TaskContext& ctx, MicroBuilder& builder, const uint32_t reg, const uint32_t shard, const uint32_t offset)
+    {
+        const std::byte* bytes = ctx.cstMgr().shardDataSegment(shard).ptr<std::byte>(offset);
+        builder.emitLoadRegPtrReloc(MicroReg::virtualIntReg(reg), reinterpret_cast<uint64_t>(bytes), ctx.cstMgr().addS32(ctx, 1));
+        MicroRelocation& relocation = builder.codeRelocations().back();
+        relocation.targetAddress    = reinterpret_cast<uint64_t>(bytes);
+        relocation.constantShard    = shard;
+        relocation.constantOffset   = offset;
+    }
+
     struct ModuleCacheFixture
     {
         CommandLine                       command;
@@ -186,6 +202,55 @@ SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RejectsGeneratedConstantsWithPointerE
 }
 SWC_TEST_END()
 
+// Reused code reaches each global through the current input's own allocation, at the
+// offset it used inside it. A global the input never named cannot be rebound.
+SWC_FILESYSTEM_TEST_BEGIN(MachineCodeCache_RebindsGlobalsToTheirOwnAllocation)
+{
+    ModuleCacheFixture fixture(ctx.global(), "cacheGlobalRebindCaller");
+    TaskContext&       localCtx = *fixture.context;
+    const uint32_t     first    = reserveGlobal(localCtx, 16);
+    const uint32_t     second   = reserveGlobal(localCtx, 16);
+    const uint32_t     stranger = reserveGlobal(localCtx, 16);
+    MicroBuilder       input(localCtx);
+    input.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, first);
+    input.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, second);
+
+    MachineCode expected;
+    expected.bytes.resize(8, std::byte{0});
+    expected.codeAlignment = 16;
+    MicroRelocation relocation;
+    relocation.kind              = MicroRelocation::Kind::GlobalZeroAddress;
+    relocation.form              = MicroRelocation::Form::Relative32;
+    relocation.targetAddress     = first + 8;
+    relocation.relativeEndOffset = 4;
+    expected.codeRelocations.push_back(relocation);
+    relocation.targetAddress     = second;
+    relocation.codeOffset        = 4;
+    relocation.relativeEndOffset = 8;
+    expected.codeRelocations.push_back(relocation);
+    MachineCodeCache(localCtx, *fixture.function, input).write(expected);
+
+    const uint32_t movedSecond = reserveGlobal(localCtx, 16);
+    const uint32_t movedFirst  = reserveGlobal(localCtx, 16);
+    MicroBuilder   moved(localCtx);
+    moved.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, movedFirst);
+    moved.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, movedSecond);
+    MachineCode restored;
+    if (!MachineCodeCache(localCtx, *fixture.function, moved).read(restored) || restored.codeRelocations.size() != 2)
+        return Result::Error;
+    if (restored.codeRelocations[0].targetAddress != movedFirst + 8 || restored.codeRelocations[1].targetAddress != movedSecond)
+        return Result::Error;
+
+    MicroBuilder escaping(localCtx);
+    escaping.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, first);
+    escaping.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, first + 8);
+    expected.codeRelocations[1].targetAddress = stranger;
+    MachineCodeCache(localCtx, *fixture.function, escaping).write(expected);
+    if (MachineCodeCache(localCtx, *fixture.function, escaping).read(restored))
+        return Result::Error;
+}
+SWC_TEST_END()
+
 SWC_TEST_BEGIN(MachineCodeCache_RebindsSourceLocationsWithoutChangingCodeIdentity)
 {
     SourceFile&  first  = Unittest::addTestSource(ctx, "Micro", "CacheSourceOriginal", "");
@@ -285,18 +350,52 @@ SWC_TEST_BEGIN(MachineCodeCache_TracksCallClobbers)
 }
 SWC_TEST_END()
 
-SWC_TEST_BEGIN(MachineCodeCache_PreservesGlobalAddressDistances)
+// Workers allocate globals in the order they reach them, so the key names a global
+// by its allocation and the offset inside it, never by where the allocation sits.
+SWC_TEST_BEGIN(MachineCodeCache_IdentifiesGlobalsByAllocation)
 {
-    auto*        caller = makeCacheFunction(ctx, "cacheGlobalCaller");
-    MicroBuilder original(ctx), translated(ctx), changed(ctx);
-    original.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, 32);
-    original.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, 48);
-    translated.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, 96);
-    translated.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, 112);
-    changed.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, 96);
-    changed.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, 120);
+    auto*          caller = makeCacheFunction(ctx, "cacheGlobalCaller");
+    const uint32_t first  = reserveGlobal(ctx, 16);
+    const uint32_t second = reserveGlobal(ctx, 16);
+    const uint32_t third  = reserveGlobal(ctx, 16);
+    const uint32_t fourth = reserveGlobal(ctx, 16);
+    const uint32_t wide   = reserveGlobal(ctx, 32);
+    MicroBuilder   original(ctx), placed(ctx), interior(ctx), shared(ctx), resized(ctx);
+    original.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, first);
+    original.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, second);
+    placed.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, fourth);
+    placed.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, third);
+    interior.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, first);
+    interior.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, second + 8);
+    shared.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, first);
+    shared.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, first);
+    resized.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(0), DataSegmentKind::GlobalZero, first);
+    resized.emitLoadRegDataSegmentReloc(MicroReg::virtualIntReg(1), DataSegmentKind::GlobalZero, wide);
     const Utf8 key = cacheKey(ctx, *caller, original);
-    if (key.empty() || key != cacheKey(ctx, *caller, translated) || key == cacheKey(ctx, *caller, changed))
+    if (key.empty() || key != cacheKey(ctx, *caller, placed))
+        return Result::Error;
+    if (key == cacheKey(ctx, *caller, interior) || key == cacheKey(ctx, *caller, shared) || key == cacheKey(ctx, *caller, resized))
+        return Result::Error;
+}
+SWC_TEST_END()
+
+// Constant shards intern their own copy of a string: which copy a load names is not
+// part of the input, but the bytes are.
+SWC_TEST_BEGIN(MachineCodeCache_IdentifiesPointerFreeConstantsByContent)
+{
+    auto*          caller = makeCacheFunction(ctx, "cacheLeafCaller");
+    const uint32_t copyA  = ctx.cstMgr().shardDataSegment(0).addString("cache leaf").second;
+    const uint32_t copyB  = ctx.cstMgr().shardDataSegment(1).addString("cache leaf").second;
+    const uint32_t other  = ctx.cstMgr().shardDataSegment(1).addString("cache leaves").second;
+    MicroBuilder   sameCopy(ctx), twoCopies(ctx), changed(ctx);
+    emitConstantLoad(ctx, sameCopy, 0, 0, copyA);
+    emitConstantLoad(ctx, sameCopy, 1, 0, copyA);
+    emitConstantLoad(ctx, twoCopies, 0, 0, copyA);
+    emitConstantLoad(ctx, twoCopies, 1, 1, copyB);
+    emitConstantLoad(ctx, changed, 0, 0, copyA);
+    emitConstantLoad(ctx, changed, 1, 1, other);
+    const Utf8 key = cacheKey(ctx, *caller, sameCopy);
+    if (key.empty() || key != cacheKey(ctx, *caller, twoCopies) || key == cacheKey(ctx, *caller, changed))
         return Result::Error;
 }
 SWC_TEST_END()

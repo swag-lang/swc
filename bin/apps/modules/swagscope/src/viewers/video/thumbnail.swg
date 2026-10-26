@@ -87,31 +87,29 @@ func representativeThumbnail(candidates: const [..] ThumbnailCandidate)->u64
 //
 // A third of the way in is past the opening titles and rarely a transition. Every position costs
 // a seek and a decoded picture, which across a network share is most of a thumbnail, so the first
-// lively picture is kept and the others are only fallbacks for a dark or blank frame there.
+// lively picture is kept and the others are only fallbacks for a dark or blank frame there. Each
+// is read as a key picture: the clean point the container indexes near it, read alone.
 const ThumbnailPositions: [5] f64 = [0.3, 0.5, 0.15, 0.7, 0.9]
 
 func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 {
     var reader   = try Reader.open(fileName, pictureOnly: true)
     var candidates: Array'ThumbnailCandidate
-    var previous = Swag.U64.Max
+    var previous = -1.0'f64
     let duration = reader.durationInSeconds()
     for fraction in ThumbnailPositions
     {
         if Swag.isCancelled() do
             break
-        let count  = reader.frameCount()
-        let target = duration > 0 ? reader.frameAtTime(duration * fraction) : cast(u64, candidates.count)
-        var index  = count ? Math.min(target, count - 1) : target
-        let sync   = reader.syncFrameAt(index)
-        if sync >= index and (not count or sync < count) do
-            index = sync
-        if index == previous do
+
+        // Without a duration every position is the start of the stream.
+        let seconds = duration * fraction
+        if seconds == previous do
             continue
-        previous = index
+        previous = seconds
 
         var candidate: ThumbnailCandidate
-        candidate.image = catch reader.decodeFrame(index) { continue }
+        candidate.image = catch reader.decodeKeyPicture(seconds) { continue }
         let largest = Math.max(candidate.image.width, candidate.image.height)
         if largest > maxSide
         {

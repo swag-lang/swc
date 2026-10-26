@@ -50,9 +50,9 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   renderers, for about 1.3 GB across the processes and a first preview at 1.4 s instead of 1 s.
   Concurrent renderers had shared an exchange directory when their `Guid64` generators were seeded
   in the same microsecond, losing a preview now and then. Video previews keep the first lively
-  frame of five positions instead of decoding all five; on the NAS share Z:/films the visible
-  tiles fill at about five per second, each still reading 3 to 9 MB because a seek indexes the
-  whole key cluster and the next one. Film folders use screen-shaped tiles, previews trim
+  frame of five positions, each read as a key picture (`Reader.decodeKeyPicture`: the clean point
+  a cue names, read alone), 0.3 to 1.2 MB a film instead of 3 to 9 MB. Folders on a network share
+  run six renderers, which the NAS serves faster than twenty: 100 cold tiles of Z:/Séries in 6.4 s. Film folders use screen-shaped tiles, previews trim
   encoded black bands, stand on their names with the interface corner, and films carry their
   duration. The former generic
   path created a complete viewer for each uncached file. Generic thumbnails now use

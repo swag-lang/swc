@@ -38,6 +38,13 @@ func thumbnailDuration(image: const *Image)->u64
 // the machine; two are left to the interface and to the decoders of the open viewer.
 func explorerWorkerCount()->u64 => Math.max(cast(u64, Hardware.processorCount()), 3'u64) - 2
 
+// How many previews of a folder on a network share run at once.
+//
+// A share answers a bounded number of scattered reads a second, and every renderer past what it
+// keeps busy only lengthens the queue in front of it: on a NAS, twenty renderers filled the folder
+// half as fast as a handful.
+const ExplorerRemoteWorkerCount = 6'u64
+
 struct ExplorerTemporary
 {
     file:  String
@@ -89,6 +96,7 @@ struct Explorer
     previewSettings: String
     bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
     previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
+    previewBudget:   u64     // How many previews of the shown listing run at once.
 }
 
 impl Explorer
@@ -178,6 +186,7 @@ impl Explorer
 
         result.retranslate()
         result.previews.resize(explorerWorkerCount())
+        result.previewBudget = result.previews.count
         result.grid.busy.resize(result.previews.count)
         for result.previews.count
         {
@@ -489,6 +498,7 @@ impl Explorer
         .entries       = #move .listing.entries
         .selected      = Swag.U64.Max
         .previewAspect = .listingPreviewAspect()
+        .previewBudget = Directory.isRemote(.listing.path) ? Math.min(ExplorerRemoteWorkerCount, .previews.count) : .previews.count
         .updateBreadcrumb()
 
         .filter.setText("", notify: false)
@@ -655,8 +665,18 @@ impl Explorer
     mtd requestPreview()
     {
         .refreshPreviewSettings()
-        for &preview in .previews where not preview.started do
+        var running = 0'u64
+        for &preview in .previews where preview.started do
+            running += 1
+        for &preview in .previews where not preview.started
+        {
+            // Opening a file is what the user waits for; only background previews keep the budget.
+            if running >= .previewBudget and .pendingOpen == Swag.U64.Max do
+                break
             .startPreview(preview)
+            if preview.started do
+                running += 1
+        }
     }
 
     mtd refreshPreviewSettings()

@@ -37,6 +37,9 @@ public struct Face
         glyphCount:         u32           // Number of glyphs in the face.
         familyName:         String        // Owned font-family name.
         styleName:          String        // Owned style name such as `Regular` or `Bold`.
+        version:            String        // Version string the face declares, such as `Version 7.01`, or empty.
+        designer:           String        // Name of the face's designer, or empty.
+        copyright:          String        // Copyright notice the face carries, or empty.
         bbox:               BBox          // Global bounding box in font design units.
         unitsPerEm:         u16           // Number of font design units in one em.
         ascender:           s16           // Typographic ascender in design units.
@@ -113,6 +116,13 @@ public impl Face
     {
         .familyName = familyName
         .styleName  = styleName
+    }
+
+    internal mtd setDescription(version, designer, copyright: String)
+    {
+        .version   = version
+        .designer  = designer
+        .copyright = copyright
     }
 
     internal mtd setUnderline(position, thickness: s16)

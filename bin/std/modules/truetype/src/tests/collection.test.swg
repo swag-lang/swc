@@ -14,6 +14,16 @@ using Swag, Core
     Swag.assert(face.familyName == "Arial")
 }
 
+// A face reports the version, designer, and copyright its name table declares.
+#test
+{
+    let bytes = loadFontBytes("segoeui.ttf")
+    let face  = expect Face.load(bytes.toSlice())
+    defer face.destroy()
+    Swag.assert(Utf8.startsWith(face.version.toString(), "Version "))
+    Swag.assert(face.copyright.indexOf("Microsoft") != Swag.U64.Max)
+}
+
 // Every face of a collection loads independently, and the index selects which one.
 #test
 {

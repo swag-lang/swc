@@ -83,7 +83,8 @@ struct DocumentCell
 struct DocumentLayout
 {
     nameTop:    f32         // Top of the family name.
-    metricsTop: f32         // Top of the style, glyph count and units-per-em line.
+    metricsTop: f32         // Top of the style, version, glyph count and units-per-em line.
+    noticeTop:  f32         // Top of the designer and copyright line, when the face names either.
     captionTop: f32         // Top of the specimen caption.
     sampleTops: [SampleCount] f32     // Top of each specimen line, one per entry of `SampleSizes`.
     mapTop:     f32         // Top of the character-map caption.
@@ -124,6 +125,52 @@ struct DocumentView
 
 private impl DocumentView
 {
+    // Returns the face's version without the build details some foundries append after a
+    // semicolon, such as `Version 1.000;PS 1.0;hotconv`.
+    mtd versionText()->string
+    {
+        let version = .face!.version.toString()
+        let end     = Utf8.indexOf(version, ";")
+        return Latin1.trim(end == Swag.U64.Max ? version : version[until end])
+    }
+
+    // Returns the designer and the first copyright notice the face carries, joined on one line.
+    //
+    // A face often stacks several notices separated by line breaks, tabs, or runs of spaces; the
+    // first is the one that names the face, and a long one is cut so it never runs off the page.
+    mtd noticeText()->String
+    {
+        const NoticeLimit = 120'u64
+        let source = .face!.copyright.toString()
+        var end    = source.count
+        for index in source.count
+        {
+            let byte = source[index]
+            if byte == '\n' or byte == '\r' or byte == '\t' or (byte == ' ' and index + 1 < source.count and source[index + 1] == ' ')
+            {
+                end = index
+                break
+            }
+        }
+
+        var copyright = Latin1.trim(source[until Math.min(end, NoticeLimit)])
+        let designer  = Latin1.trim(.face.designer.toString())
+
+        var result: retval
+        if designer.count do
+            result += designer
+        if copyright.count
+        {
+            if result.count do
+                result += " · "
+            result += copyright
+            if end > NoticeLimit do
+                result += "…"
+        }
+
+        return result
+    }
+
     // Returns the view the inspected face is drawn at for one specimen size.
     //
     // A font cache hands out views of shared glyph storage and walks a handful of entries to do it,
@@ -139,8 +186,13 @@ private impl DocumentView
         let style  = .face.styleName.isEmpty() ? texts().ui_Regular : .face.styleName.toString()
 
         painter.drawString(ContentInset, .layout.nameTop, family, .fontName, colors.label_Text)
-        let metrics = Format.toString(texts().ui_Metrics, style, .face.glyphCount, .face.unitsPerEm)
+        let version  = .versionText()
+        let identity = version.count ? Format.toString("% · %", style, version) : String.from(style)
+        let metrics  = Format.toString(texts().ui_Metrics, identity, .face.glyphCount, .face.unitsPerEm)
         painter.drawString(ContentInset, .layout.metricsTop, metrics, .fontCode, colors.label_TextFaint)
+        let notice = .noticeText()
+        if notice.count do
+            painter.drawString(ContentInset, .layout.noticeTop, notice, .fontCode, colors.label_TextFaint)
         painter.drawString(ContentInset, .layout.captionTop, texts().ui_Specimen, .fontLabel, colors.label_TextFaint)
 
         let sample = .sampleEdit.text()
@@ -322,7 +374,14 @@ impl DocumentView
         y += .fontName.height
 
         .layout.metricsTop = y
-        y += .fontCode.height + SectionGap
+        y += .fontCode.height
+        if .face and .noticeText().count
+        {
+            .layout.noticeTop = y + 4
+            y += .fontCode.height + 4
+        }
+
+        y += SectionGap
 
         .layout.captionTop = y
         y += .fontLabel.height + CaptionGap

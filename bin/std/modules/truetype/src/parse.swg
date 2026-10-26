@@ -1,7 +1,10 @@
 using Swag, Core
 
-const NAME_ID_FAMILY = 1'u16
-const NAME_ID_STYLE  = 2'u16
+const NAME_ID_COPYRIGHT = 0'u16
+const NAME_ID_FAMILY    = 1'u16
+const NAME_ID_STYLE     = 2'u16
+const NAME_ID_VERSION   = 5'u16
+const NAME_ID_DESIGNER  = 9'u16
 
 // What a face is called when its 'name' table declares no record this module can
 // read. Both are reported like any other name, so a caller never sees an empty one.
@@ -107,6 +110,12 @@ func parseNames(faceData: *FaceImpl, fallbackFamilyName: string) fail
     if styleName.isEmpty() do
         styleName = defaultStyle
     faceData.face.setNames(familyName, styleName)
+
+    // The descriptive names only inform a reader, so a record that does not decode leaves its
+    // name empty rather than refusing a face that renders perfectly well.
+    faceData.face.setDescription(catch decodeBestName(nameTable, NAME_ID_VERSION),
+                                 catch decodeBestName(nameTable, NAME_ID_DESIGNER),
+                                 catch decodeBestName(nameTable, NAME_ID_COPYRIGHT))
 }
 
 func parsePost(faceData: *FaceImpl, allowMissing: bool) fail

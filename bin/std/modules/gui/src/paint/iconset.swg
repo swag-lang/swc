@@ -36,10 +36,15 @@ impl IconAtlas
     // Returns the sheet rasterized with `cell` device pixels per glyph, building it on first use.
     //
     // The image is borrowed from the atlas and stays valid for its lifetime; a caller uploads a
-    // copy of it into its own renderer rather than holding this one. `renderer` only performs the
-    // rasterization — the backends agree on the pixels, so the first caller's backend fills an
-    // entry that every later one reuses.
-    internal mtd image(renderer: IRenderer, cell: s32)->*Image
+    // copy of it into its own renderer rather than holding this one.
+    //
+    // The sheet is rasterized on the processor, whatever renderer the application draws with, as
+    // the theme's widgets atlas is. A window builds its controls, and asks for their icons, before
+    // it is first shown, and an OpenGL window whose context did offscreen rasterization while still
+    // hidden could come up with none of its frames ever reaching the compositor: a taskbar entry
+    // and no window, on a display chained through a DisplayLink adapter. The processor costs about
+    // a hundred milliseconds more at startup for the sheets a window first needs.
+    internal mtd image(cell: s32)->*Image
     {
         Sync.scopedLock(&.lock)
 
@@ -57,7 +62,7 @@ impl IconAtlas
         while ss > 1 and cols * cell * cast(s32, ss) > 8192 do
             ss /= 2
 
-        return &.rasters.add(key, .drawing.rasterize(renderer, cols * cell, rows * cell, ss)).value
+        return &.rasters.add(key, .drawing.rasterize(cols * cell, rows * cell, ss)).value
     }
 }
 
@@ -149,7 +154,7 @@ impl IconSet
     private mtd updateList(list: *ImageList, size: s32, scale: f32)
     {
         let cell    = size * cast(s32, scale)
-        let image   = .atlas!.image(.renderer, cell)
+        let image   = .atlas!.image(cell)
         let texture = .renderer.addImage(image[])
         list.release(.renderer)
         list.set(texture, cell, cell)

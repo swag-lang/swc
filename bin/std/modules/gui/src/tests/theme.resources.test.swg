@@ -30,7 +30,7 @@ using Swag, Core, Pixel
     Swag.assert(first.theme.res.imgWidgets.width == 24)
     let firstIcon = first.theme.res.icons.icon(0, 24, 1)
     Swag.assert(firstIcon.imageList!.frameCount == 1)
-    let firstPixels = first.theme.res.icons.atlas!.image(&first.renderer, 24)
+    let firstPixels = first.theme.res.icons.atlas!.image(24)
     Swag.assert(firstPixels.pixelColor(12, 12).argb == 0xFFFF0000)
 
     discard expect File.writeAllText(widgetsPath, Blue)
@@ -40,7 +40,7 @@ using Swag, Core, Pixel
     second.setup(80, 60)
     Swag.assert(second.theme.res.imgWidgets.width == 48)
     Swag.assert(second.theme.res.icons.icon(0, 24, 1).imageList!.frameCount == 2)
-    let secondPixels = second.theme.res.icons.atlas!.image(&second.renderer, 24)
+    let secondPixels = second.theme.res.icons.atlas!.image(24)
     Swag.assert(secondPixels.pixelColor(12, 12).argb == 0xFF0000FF)
     first.theme.ensureAtlasScale(&first.renderer, 2)
     Swag.assert(first.theme.res.imgWidgets.width == 48)

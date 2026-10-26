@@ -398,6 +398,14 @@ private struct Layout
 // is released. The decoder reads its payloads from the clusters just behind the index, so those
 // stay; everything further back is only the memory the process would otherwise seem to hold.
 private const ScanReleaseKeepBytes = 64 * 1024 * 1024'u64
+
+// How a seek without a cue table places itself: how far it looks for the next cluster from an
+// estimated offset, how many estimates it makes, and how much earlier than the target each one
+// aims, as a fraction of the duration, so a cluster found just after the estimate still precedes
+// the target.
+private const ClusterSearchWindow   = 32 * 1024 * 1024'u64
+private const ClusterSearchAttempts = 8
+private const ClusterSearchLead     = 0.01
 private const ScanReleaseStepBytes = 16 * 1024 * 1024'u64
 
 private impl Layout
@@ -664,6 +672,84 @@ private impl Layout
         .indexComplete        = false
         .lastClusterTimestamp = 0
         .hasClusterTimestamp  = false
+    }
+
+    // Finds a cluster that starts at or before `timestampNanoseconds`, in a file without a cue table.
+    //
+    // Walking from the first cluster reads every picture before the target, which for the end of a
+    // film across a network share is the whole film. The duration and the segment size place an
+    // estimate instead, the next cluster is found by its identifier, and the estimate moves back
+    // while that cluster starts after the target. Indexing then walks forward from it as it walks
+    // from a cue, so the seek lands on the same picture; only the reading before it shrinks. Returns
+    // the start of the segment when no cluster qualifies.
+    mtd clusterBefore(bytes: const [..] u8, timestampNanoseconds: u64)->u64
+    {
+        let start    = .segment.data
+        let end      = Math.min(.segment.end, bytes.count)
+        let duration = .durationTicks * cast(f64, .timestampScale)
+        if duration <= 0 or end <= start do
+            return start
+
+        let target   = cast(f64, timestampNanoseconds)
+        var fraction = target / duration - ClusterSearchLead
+        for ClusterSearchAttempts
+        {
+            if fraction <= 0 do
+                break
+            let guess = start + cast(u64, fraction * cast(f64, end - start))
+            let found = .nextClusterFrom(bytes, guess, end)
+            if found.offset == NoOffset
+            {
+                // Nothing within reach, which is the unwritten tail of a file cut short.
+                fraction -= ClusterSearchLead * 4
+                continue
+            }
+
+            let foundNanoseconds = cast(f64, found.timestamp) * cast(f64, .timestampScale)
+            if foundNanoseconds <= target do
+                return found.offset
+            fraction -= (foundNanoseconds - target) / duration + ClusterSearchLead
+        }
+
+        return start
+    }
+
+    // Returns the first cluster at or after `from`, within [[ClusterSearchWindow]], with its timestamp.
+    mtd nextClusterFrom(bytes: const [..] u8, from, end: u64)->{offset: u64, timestamp: u64}
+    {
+        let limit    = Math.min(end, from + ClusterSearchWindow)
+        var position = from
+        while position + 4 <= limit
+        {
+            if bytes[position] == 0x1F and bytes[position + 1] == 0x43 and bytes[position + 2] == 0xB6 and bytes[position + 3] == 0x75
+            {
+                let timestamp = catch .clusterTimestampAt(bytes, position)
+                {
+                    position += 1
+                    continue
+                }
+
+                return {position, timestamp}
+            }
+
+            position += 1
+        }
+
+        return {NoOffset, 0}
+    }
+
+    // Reads the timestamp of the cluster at `offset`, failing when the bytes there are not one.
+    mtd clusterTimestampAt(bytes: const [..] u8, offset: u64)->u64 fail
+    {
+        var cursor = Cursor.open(bytes)
+        try cursor.seek(offset)
+        let cluster = try cursor.readElement(.segment.end)
+        if cluster.id != ClusterId do
+            fail InvalidFormatError{"Matroska cluster expected"}
+        let first = try cursor.readElement(cluster.end)
+        if first.id != ClusterTimestampId do
+            fail InvalidFormatError{"Matroska cluster timestamp expected"}
+        return try cursor.readUnsigned(first)
     }
 
     // Finds the last cue not later than `timestampNanoseconds`.
@@ -1926,6 +2012,8 @@ private impl Decoder
         let cue = target >= 0 ? layout.cueAtOrBefore(cast(u64, target)) : null
         if cue do
             try layout.resetMediaAt(cue.clusterOffset)
+        elif target > 0 and layout.cues.isEmpty() do
+            try layout.resetMediaAt(layout.clusterBefore(bytes, cast(u64, target)))
         else do
             try layout.resetMediaAt(layout.segment.data)
 
@@ -2212,7 +2300,12 @@ impl IDecoder for Decoder
         if timestamp < 0 do
             return index
         let layout = unwrap fileIndex.progressive
-        let cue    = layout.cueAtOrAfter(cast(u64, timestamp))
+
+        // Without a cue table nothing says where the next clean point is, which is not the same as
+        // saying none remains: answering the frame count sent every seek of such a file to its end.
+        if layout.cues.isEmpty() do
+            return index
+        let cue = layout.cueAtOrAfter(cast(u64, timestamp))
         if cue
         {
             let cueNanoseconds = cast(f64, cue.timestamp) * cast(f64, layout.timestampScale)

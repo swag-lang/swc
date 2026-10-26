@@ -12,6 +12,7 @@ struct ExplorerEntry
     directory:    bool
     archiveIndex: u64 = Swag.U64.Max
     texture:      Texture
+    duration:     u64     // Seconds of a time-based medium, from its thumbnail; zero for anything else.
     attempted:    bool
 }
 

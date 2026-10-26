@@ -93,8 +93,14 @@ alias PluginName = func()->string
 //
 // The second argument is the longest side the host keeps. A decoder that can produce its picture at
 // that size directly — a vector drawing, a scaled decode — should, rather than producing it whole
-// for the host to shrink; a larger result is still accepted.
+// for the host to shrink; a larger result is still accepted. A time-based medium can label the
+// image with its duration, in a text metadata record named [[Viewer.ThumbnailDurationTag]].
 alias PluginThumbnail = func(string, u32)->Pixel.Image fail
+
+// Names the metadata record of a thumbnail that carries the duration of its medium, in whole
+// seconds written as decimal text. The host shows it on the tile, the way a media library labels a
+// film, and the record travels with the cached picture.
+const ThumbnailDurationTag = "Duration"
 
 // Describes one viewer plugin independently of the host window implementation.
 //

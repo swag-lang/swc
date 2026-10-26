@@ -4,7 +4,33 @@ using Core, Gui, Pixel
 
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 
+// Width over height of a tile's picture: a page for a folder of documents, a screen for a folder
+// that is mostly films.
 const ExplorerTilePreviewAspect: f32 = 0.8
+const ExplorerFilmPreviewAspect: f32 = 16.0 / 9.0
+
+// The duration label of a film tile: small, bold, light ink on a translucent ink ground.
+const ExplorerDurationFontSize = 11'u32
+const ExplorerDurationGround   = 0xB30B0B0D'u32
+const ExplorerDurationInk      = 0xFFE6E6EA'u32
+
+// Writes a duration the way players do: hours only when there are some, minutes and seconds always.
+func formatDuration(seconds: u64)->String
+{
+    let hours   = seconds / 3600
+    let minutes = (seconds / 60) % 60
+    if hours do
+        return Format.toString("%:%{02}:%{02}", hours, minutes, seconds % 60)
+    return Format.toString("%:%{02}", minutes, seconds % 60)
+}
+
+// Returns the duration a thumbnail is labelled with, in seconds, or zero when it carries none.
+func thumbnailDuration(image: const *Image)->u64
+{
+    for &record in image.metadata where record.isTag(cast(const [..] u8, Viewer.ThumbnailDurationTag)) do
+        return catch StrConv.toU64(cast(string, record.toSlice()))
+    return 0
+}
 
 // Returns how many isolated renderers the Explorer keeps busy.
 //
@@ -62,6 +88,7 @@ struct Explorer
     menuPaths:       Array'String
     previewSettings: String
     bypassCache:     bool     // Whether the previews of the shown listing ignore the persistent cache, after a forced refresh.
+    previewAspect:   f32 = ExplorerTilePreviewAspect     // Shape of the tiles, chosen from what the listing holds.
 }
 
 impl Explorer
@@ -459,8 +486,9 @@ impl Explorer
     private mtd publish()
     {
         .clearTextures()
-        .entries  = #move .listing.entries
-        .selected = Swag.U64.Max
+        .entries       = #move .listing.entries
+        .selected      = Swag.U64.Max
+        .previewAspect = .listingPreviewAspect()
         .updateBreadcrumb()
 
         .filter.setText("", notify: false)
@@ -468,6 +496,24 @@ impl Explorer
         .fill()
         .scroll.setScrollPos(0, 0)
         .window.refreshFileLists()
+    }
+
+    // Chooses the shape of the tiles from the files listed, before any preview exists.
+    //
+    // A page-shaped tile leaves most of itself empty around a film, and a folder of films is a row of
+    // screens; deciding from the names keeps the grid from changing shape while previews arrive.
+    mtd listingPreviewAspect()->f32
+    {
+        var files, films: u64
+        for &entry in .entries where not entry.directory
+        {
+            files += 1
+            var pluginIndex: u64
+            if .window.index.namePlugin(entry.path, &pluginIndex) and .window.index.plugins[pluginIndex].key == "video" do
+                films += 1
+        }
+
+        return films * 2 > files ? ExplorerFilmPreviewAspect : ExplorerTilePreviewAspect
     }
 
     mtd entryIcon(index: u64, size: f32 = 16)->Icon
@@ -785,7 +831,8 @@ impl IWnd for Explorer
                             .cached.removeAtOrdered(0)
                         }
 
-                        .entries[preview.index].texture = .app().renderer.addImage(preview.image)
+                        .entries[preview.index].texture  = .app().renderer.addImage(preview.image)
+                        .entries[preview.index].duration = thumbnailDuration(&preview.image)
                         .cached.add(preview.index)
                         .grid.invalidate()
                     }
@@ -875,11 +922,43 @@ impl ExplorerGrid
     {
         let width: f32 = .explorer.mode == .Small ? 128.0 : (.explorer.mode == .Large ? 256.0 : 192.0)
         let previewWidth = width - 24
-        .cell    = Math.Point{width, previewWidth / ExplorerTilePreviewAspect + 48}
+        .cell    = Math.Point{width, previewWidth / .explorer.previewAspect + 48}
         .columns = Math.max(1'u64, cast(u64, Math.max(0.0, .clientRect().width - 24) / width))
         let rows = (.explorer.shown.count + .columns - 1) / .columns
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 24)
         .invalidate()
+    }
+
+    // Draws a preview with the interface corner, its edge, and the duration of a film.
+    //
+    // A dark frame on the dark gallery ground loses its outline, so the rule draws it. The duration
+    // sits on the picture, the way a media library labels a film; its ground stays ink in every
+    // theme because it is read against the picture rather than against the interface.
+    mtd paintThumbnail(painter: *Painter, picture: Math.Rectangle, entry: const *ExplorerEntry)
+    {
+        let radius = .themeRects().btnIcon_RoundSquareBk.radius
+        painter.pushState()
+        defer painter.popState()
+        painter.setAntialiased(true)
+        painter.fillRoundRect(picture, radius, radius, Brush.createTexture(entry.texture))
+
+        // The rule is inset by half its weight, so it takes the corner stepped in by that half.
+        var edge = picture
+        edge.inflate(-0.5)
+        painter.drawRoundRect(edge, radius - 0.5, radius - 0.5, .themeColors().border)
+
+        if not entry.duration do
+            return
+        let label = formatDuration(entry.duration)
+        let font  = .app().renderer.fontCache().createFont(.theme().res.defaultTypeFaceB, ExplorerDurationFontSize)
+        let text  = Painter.measureString(label, font)
+        var chip  = Math.Rectangle{0, 0, Math.round(text.width) + 8, Math.round(font.height) + 2}
+        if chip.width + 8 > picture.width or chip.height + 8 > picture.height do
+            return
+        chip.x = picture.right() - chip.width - 4
+        chip.y = picture.bottom() - chip.height - 4
+        painter.fillRoundRect(chip, radius, radius, Color.fromArgb(ExplorerDurationGround))
+        painter.drawString(chip.x + 4, chip.y + 1, label, font, Color.fromArgb(ExplorerDurationInk))
     }
 
     mtd visibleRange()->{first: u64, end: u64}
@@ -931,9 +1010,11 @@ impl IWnd for ExplorerGrid
             if entry.texture.isValid()
             {
                 let scale  = Math.min(preview.width / cast(f32, entry.texture.width), preview.height / cast(f32, entry.texture.height))
-                let width  = cast(f32, entry.texture.width) * scale
-                let height = cast(f32, entry.texture.height) * scale
-                painter.drawTexture(Math.Rectangle{preview.horzCenter() - width / 2, preview.vertCenter() - height / 2, width, height}, entry.texture)
+                let width  = Math.round(cast(f32, entry.texture.width) * scale)
+                let height = Math.round(cast(f32, entry.texture.height) * scale)
+                // Previews stand on the line of their names, so a row of films of any shape reads
+                // as one row and each picture stays next to what it is called.
+                .paintThumbnail(painter, Math.Rectangle{Math.round(preview.horzCenter() - width / 2), Math.round(preview.bottom() - height), width, height}, entry)
             }
             elif slot != Swag.U64.Max
             {

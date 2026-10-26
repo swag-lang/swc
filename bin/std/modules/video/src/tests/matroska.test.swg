@@ -380,6 +380,37 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     }
 }
 
+// A file whose cue table is missing still seeks without reading the film up to the target: the next
+// cluster is found from an offset estimated from the duration, and indexing walks forward from it,
+// so the picture is the one the cue table leads to. Nothing about a missing table says that no clean
+// point remains, which is what the file used to answer.
+#test
+{
+    let source = videoFixturePath("ffmpeg-h264-two-aac-10min.mkv")
+    var bytes  = expect File.readAllBytes(source)
+    var cues   = bytes.count - 4
+    while cues and not (bytes[cues] == 0x1C and bytes[cues + 1] == 0x53 and bytes[cues + 2] == 0xBB and bytes[cues + 3] == 0x6B) do
+        cues -= 1
+    Swag.assert(cues != 0)
+    Memory.set(&bytes[cues], 0, 4)
+    let path = videoTempPath("cueless", "mkv")
+    defer catch File.delete(path)
+    discard expect File.writeAllBytes(path, bytes.toSlice())
+
+    var indexed = expect Reader.open(source, pictureOnly: true)
+    var cueless = expect Reader.open(path, pictureOnly: true)
+    for fraction in [0.8, 0.5]
+    {
+        let target = cueless.frameAtTime(cueless.durationInSeconds() * fraction)
+        Swag.assert(cueless.syncFrameAt(target) == target)
+        let frame    = indexed.syncFrameAt(target)
+        let expected = expect indexed.decodeFrame(frame)
+        let actual   = expect cueless.decodeFrame(frame)
+        Swag.assert(actual.width == expected.width and actual.height == expected.height)
+        Swag.assert(Memory.compare(actual.pixels.storage(), expected.pixels.storage(), actual.pixels.count) == 0)
+    }
+}
+
 // A writer that knows every frame of a track begins with the same bytes may state them once and
 // store the frames without them, which is what mkvmerge does by default to several codecs. The
 // frames are the same frames, so what comes out of them is the same pictures.

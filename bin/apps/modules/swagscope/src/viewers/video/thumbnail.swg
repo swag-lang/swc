@@ -121,14 +121,68 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
                                    .Bilinear)
         }
 
+        trimLetterbox(&candidate.image)
         candidate.analyze()
-        if candidate.lively do
+        if candidate.lively
+        {
+            labelDuration(&candidate.image, duration)
             return #move candidate.image
+        }
+
         candidates.add(#move candidate)
     }
 
     if candidates.isEmpty() do
         fail Errors.InvalidFormatError{}
     let selected = representativeThumbnail(candidates.toSlice())
+    labelDuration(&candidates[selected].image, duration)
     return #move candidates[selected].image
+}
+
+// Trims the black bands a film was encoded with, so the thumbnail shows the picture rather than the
+// letterbox or pillarbox around it.
+//
+// A band is a run of near-black rows or columns at an edge. A frame dark across more than a quarter
+// from an edge is a dark scene rather than a band, and is left whole.
+func trimLetterbox(image: *Image)
+{
+    let width  = image.width
+    let height = image.height
+    let top    = bandDepth(image, height / 4, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(sample * image.width / 32, depth))
+    let bottom = bandDepth(image, height / 4, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(sample * image.width / 32, image.height - 1 - depth))
+    let left   = bandDepth(image, width / 4, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(depth, sample * image.height / 32))
+    let right  = bandDepth(image, width / 4, func(image: const *Image, depth, sample: s32)->Color => image.pixelColor(image.width - 1 - depth, sample * image.height / 32))
+    if top + bottom + left + right == 0 do
+        return
+    image.crop(left, top, width - left - right, height - top - bottom)
+}
+
+// Returns how many lines from one edge are near black, or zero when the run reaches `limit`.
+private func bandDepth(image: const *Image, limit: s32, sampleAt: func(const *Image, s32, s32)->Color)->s32
+{
+    var depth = 0
+    while depth < limit
+    {
+        for sample in 32
+        {
+            let color = sampleAt(image, depth, sample)
+            if color.r > 24 or color.g > 24 or color.b > 24 do
+                return depth
+        }
+
+        depth += 1
+    }
+
+    return 0
+}
+
+// Labels a thumbnail with the duration of its film, when the container states one.
+private func labelDuration(image: *Image, seconds: f64)
+{
+    if seconds < 1 do
+        return
+    var record: ImageMetadata
+    record.tag   = Viewer.ThumbnailDurationTag
+    record.value = Format.toString("%", cast(u64, seconds))
+    image.metadata.add(#move record)
 }

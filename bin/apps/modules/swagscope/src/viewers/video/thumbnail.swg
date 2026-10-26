@@ -9,6 +9,7 @@ struct ThumbnailCandidate
     image:     Image
     histogram: [48] f32
     usable:    bool
+    lively:    bool     // Contrasted and mostly lit, which a viewer reads as a scene rather than a transition.
 }
 
 impl ThumbnailCandidate
@@ -16,6 +17,7 @@ impl ThumbnailCandidate
     mtd analyze()
     {
         var black, white, samples: u32
+        var lumaSum, lumaSquares: f32
         for y in 24
         {
             for x in 32
@@ -26,6 +28,8 @@ impl ThumbnailCandidate
                     black += 1
                 if luma > 240 do
                     white += 1
+                lumaSum     += cast(f32, luma)
+                lumaSquares += cast(f32, luma * luma)
                 .histogram[color.r / 16]      += 1
                 .histogram[16 + color.g / 16] += 1
                 .histogram[32 + color.b / 16] += 1
@@ -34,6 +38,10 @@ impl ThumbnailCandidate
         }
 
         .usable = black * 100 < samples * 98 and white * 100 < samples * 98
+
+        let mean     = lumaSum / cast(f32, samples)
+        let variance = lumaSquares / cast(f32, samples) - mean * mean
+        .lively = .usable and black * 100 < samples * 60 and variance >= 24 * 24
     }
 }
 
@@ -75,13 +83,20 @@ func representativeThumbnail(candidates: const [..] ThumbnailCandidate)->u64
     return best
 }
 
+// Positions tried, as fractions of the duration, in order of preference.
+//
+// A third of the way in is past the opening titles and rarely a transition. Every position costs
+// a seek and a decoded picture, which across a network share is most of a thumbnail, so the first
+// lively picture is kept and the others are only fallbacks for a dark or blank frame there.
+const ThumbnailPositions: [5] f64 = [0.3, 0.5, 0.15, 0.7, 0.9]
+
 func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 {
     var reader   = try Reader.open(fileName, pictureOnly: true)
     var candidates: Array'ThumbnailCandidate
     var previous = Swag.U64.Max
     let duration = reader.durationInSeconds()
-    for fraction in [0.1, 0.3, 0.5, 0.7, 0.9]
+    for fraction in ThumbnailPositions
     {
         if Swag.isCancelled() do
             break
@@ -107,6 +122,8 @@ func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
         }
 
         candidate.analyze()
+        if candidate.lively do
+            return #move candidate.image
         candidates.add(#move candidate)
     }
 

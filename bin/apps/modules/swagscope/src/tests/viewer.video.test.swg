@@ -35,6 +35,24 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     Swag.assert(Film.representativeThumbnail(candidates.toSlice()) == 2)
 }
 
+// The first lively picture is kept without decoding the other positions: contrast decides, a flat
+// colour or a mostly dark frame does not qualify.
+#test
+{
+    var flat: Film.ThumbnailCandidate
+    flat.image = Image.create(32, 24, .RGB8)
+    flat.image.fill(Color.fromRgb(56, 189, 248))
+    flat.analyze()
+    Swag.assert(flat.usable and not flat.lively)
+
+    var bands: Film.ThumbnailCandidate
+    bands.image = Image.create(32, 24, .RGB8)
+    for index in bands.image.pixels.count do
+        bands.image.pixels[index] = cast(u8, ((index / 3) % 32) * 8)
+    bands.analyze()
+    Swag.assert(bands.usable and bands.lively)
+}
+
 // Both decoder paths propagate failure into the producer's catch before the queue reports it.
 #test
 {

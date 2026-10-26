@@ -7,7 +7,9 @@ ui_Empty             Cette archive ne contient aucun fichier.
 ui_Select            Sélectionnez un fichier pour afficher son aperçu.
 ui_Previewing        Préparation de l'aperçu…
 ui_PreviewError      Impossible d'afficher l'aperçu de cette entrée.
-ui_Details           % entrées · % décompressés · % compressés
+ui_OneEntry          1 entrée
+ui_Entries           % entrées
+ui_Details           % · % décompressés · % compressés
 ui_SearchPlaceholder Filtrer les entrées de l'archive
 
 err_ShortField16       un enregistrement ZIP s'arrête avant un champ de 16 bits

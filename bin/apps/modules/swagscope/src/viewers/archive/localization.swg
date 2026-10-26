@@ -13,7 +13,9 @@ struct Texts
     ui_Select:              string = "Select a file to preview it."
     ui_Previewing:          string = "Preparing preview…"
     ui_PreviewError:        string = "This entry cannot be previewed."
-    ui_Details:             string = "% entries · % unpacked · % packed"
+    ui_OneEntry:            string = "1 entry"
+    ui_Entries:             string = "% entries"
+    ui_Details:             string = "% · % unpacked · % packed"
     ui_SearchPlaceholder:   string = "Filter archive entries"
     err_ShortField16:       string = "ZIP record ends before a 16-bit field"     // Diagnostics of an archive the reader cannot open.
     err_ShortField32:       string = "ZIP record ends before a 32-bit field"

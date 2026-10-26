@@ -204,10 +204,12 @@ private impl Panel
 {
     mtd publishArchiveDetails()
     {
-        let text = Format.toString(texts().ui_Details,
-                                   .archive.entries.count,
-                                   StrConv.toDisplaySize(.archive.uncompressedSize),
-                                   StrConv.toDisplaySize(.archive.compressedSize))
+        let count   = .archive.entries.count
+        let entries = count == 1 ? String.from(texts().ui_OneEntry) : Format.toString(texts().ui_Entries, count)
+        let text    = Format.toString(texts().ui_Details,
+                                      entries,
+                                      StrConv.toDisplaySize(.archive.uncompressedSize),
+                                      StrConv.toDisplaySize(.archive.compressedSize))
         .services.showDetails(me, text)
     }
 

@@ -550,7 +550,12 @@ impl Explorer
             .shown.add(index)
         }
 
-        .status.setText(.shown.isEmpty() ? appStrings().explore_Empty : Format.toString(appStrings().explore_Count, .shown.count))
+        switch .shown.count
+        {
+        case 0:  .status.setText(appStrings().explore_Empty)
+        case 1:  .status.setText(appStrings().explore_OneItem)
+        default: .status.setText(Format.toString(appStrings().explore_Count, .shown.count))
+        }
         .list.setVirtualCount(cast(u32, .shown.count))
         for index, row in .shown where index == .selected
         {

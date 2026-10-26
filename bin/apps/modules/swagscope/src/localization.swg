@@ -26,6 +26,7 @@ struct AppStrings
     explore_Modified: string = "Modified"                    // Exploration control or status.
     explore_Loading:  string = "Reading folder…"             // Exploration control or status.
     explore_Empty:    string = "No files to show"            // Exploration control or status.
+    explore_OneItem:  string = "1 item"                      // Exploration control or status.
     explore_Count:    string = "% items"                     // Exploration control or status.
 
     ui_WindowTitle:                    string = "Swag Scope — Universal viewer"               // Title of the application window.

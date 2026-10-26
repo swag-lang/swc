@@ -682,6 +682,37 @@ namespace
     const SymbolVariable* returnExprRetValVariable(CodeGen& codeGen, AstNodeRef exprRef);
     AstNodeRef            returnExprThroughRetValMove(CodeGen& codeGen, AstNodeRef exprRef);
 
+    // A return of another value while a retval local is in scope replaces the value that
+    // local holds in the result storage, which must then be released like an assignment target.
+    const SymbolVariable* returnReplacedRetVal(CodeGen& codeGen, AstNodeRef exprRef, TypeRef returnTypeRef, const SemaInlinePayload* returnContext)
+    {
+        if (returnExprRetValVariable(codeGen, exprRef) || codeGen.typeMgr().get(returnTypeRef).isReference())
+            return nullptr;
+
+        const SymbolVariable* retVal = codeGen.retValInScope(returnContext);
+        if (!retVal || codeGen.isImplicitDropElided(*retVal))
+            return nullptr;
+
+        return retVal;
+    }
+
+    // Releases the replaced value before the returned one is stored over it. That value was
+    // built apart (see SemaHelpers::returnStorageExposed), but a pointer can still make it
+    // the result storage itself: the returned label then skips the release and the store.
+    Result emitReplacedRetValDrop(CodeGen& codeGen, MicroLabelRef& outSkipLabel, TypeRef typeRef, MicroReg storageReg, const CodeGenNodePayload& exprPayload)
+    {
+        outSkipLabel          = MicroLabelRef::invalid();
+        MicroBuilder& builder = codeGen.builder();
+        if (exprPayload.isAddress())
+        {
+            outSkipLabel = builder.createLabel();
+            builder.emitCmpRegReg(storageReg, exprPayload.reg, MicroOpBits::B64);
+            builder.emitJumpToLabel(MicroCond::Equal, MicroOpBits::B32, outSkipLabel);
+        }
+
+        return codeGen.emitLifecycle(typeRef, CodeGen::LifecycleKind::Drop, storageReg);
+    }
+
     Result emitInlineResultStore(CodeGen& codeGen, const SemaInlinePayload& inlinePayload, AstNodeRef returnExprRef, const SymbolVariable* moveOutVar)
     {
         const AstNodeRef exprRef = returnExprThroughRetValMove(codeGen, returnExprRef);
@@ -698,8 +729,16 @@ namespace
 
         // Storage identity proves an in-place result even when the expression and
         // return path materialize distinct address registers. Avoid a self-copy.
+        const SymbolVariable* replacedRetVal = returnReplacedRetVal(codeGen, exprRef, inlinePayload.returnTypeRef, &inlinePayload);
         if (exprPayload.isAddress() && exprPayload.runtimeStorageSym == &resultStorage)
+        {
+            SWC_ASSERT(!replacedRetVal);
             return Result::Continue;
+        }
+
+        MicroLabelRef replacedSkipLabel = MicroLabelRef::invalid();
+        if (replacedRetVal)
+            SWC_RESULT(emitReplacedRetValDrop(codeGen, replacedSkipLabel, inlinePayload.returnTypeRef, resultAddr, exprPayload));
 
         SWC_RESULT(emitPayloadToAddress(codeGen, resultAddr, exprPayload, inlinePayload.returnTypeRef));
 
@@ -718,6 +757,9 @@ namespace
 
         if (movedPlaceRef.isValid())
             SWC_RESULT(resetMovedReturnPlace(codeGen, inlinePayload.returnTypeRef, exprRef, movedPlaceRef));
+
+        if (replacedSkipLabel.isValid())
+            codeGen.builder().placeLabel(replacedSkipLabel);
 
         if (movesOwnership)
             cancelReturnedTemporaryDrops(codeGen, exprRef, exprPayload);
@@ -1054,11 +1096,19 @@ namespace
         if (movesOwnedTemporary)
             cancelReturnedTemporaryDrops(codeGen, exprRef, exprPayload);
 
+        const SymbolVariable* replacedRetVal     = needsPersistentCompilerReturn ? nullptr : returnReplacedRetVal(codeGen, exprRef, returnTypeRef, nullptr);
         const SymbolVariable* previousMoveOutVar = codeGen.returnMoveOutVar();
         if (normalizedRet.isIndirect)
         {
             // Hidden first argument points to caller-provided return storage.
-            const MicroReg outputStorageReg = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
+            const MicroReg outputStorageReg  = codeGen.ensureCurrentFunctionIndirectReturnReg(callConvKind);
+            MicroLabelRef  replacedSkipLabel = MicroLabelRef::invalid();
+            if (replacedRetVal)
+            {
+                SWC_ASSERT(!delayReturnMaterialization && !returnValueIsInPlace);
+                SWC_RESULT(emitReplacedRetValDrop(codeGen, replacedSkipLabel, returnTypeRef, outputStorageReg, exprPayload));
+            }
+
             if (!delayReturnMaterialization && needsPersistentCompilerReturn)
             {
                 CodeGenFunctionHelpers::emitPersistCompilerRunValue(codeGen, returnTypeRef, outputStorageReg, exprPayload.reg, codeGen.localStackBaseReg(), codeGen.localStackFrameSize());
@@ -1080,6 +1130,9 @@ namespace
                 if (movedPlaceRef.isValid())
                     SWC_RESULT(finishMovedPlaceReturn(codeGen, returnTypeRef, exprRef, movedPlaceRef, outputStorageReg));
             }
+
+            if (replacedSkipLabel.isValid())
+                builder.placeLabel(replacedSkipLabel);
 
             // Capture the result before destroying operand temporaries. Their
             // generic post-node flush would execute after the return instruction.
@@ -1134,8 +1187,12 @@ namespace
             // generic post-node flush would execute after the return instruction.
             SWC_RESULT(codeGen.flushTemporaryDrops(codeGen.curNodeRef()));
 
+            // The retval local is distinct storage here: the value already left it, so it
+            // is released with the other locals.
             codeGen.setReturnMoveOutVar(moveOutVar);
+            codeGen.setReturnReplacedRetVal(replacedRetVal);
             const Result deferredResult = codeGen.emitDeferredActionsForReturn();
+            codeGen.setReturnReplacedRetVal(nullptr);
             codeGen.setReturnMoveOutVar(previousMoveOutVar);
             SWC_RESULT(deferredResult);
 

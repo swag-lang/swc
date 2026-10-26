@@ -101,6 +101,7 @@ struct CodeGenDeferredAction
         ImplicitDrop,
         PopErrorScope,
         EndValueBorrow,
+        RetValInScope, // a retval local holds the result: only a return that replaces it drops it
     };
 
     Kind     kind               = Kind::DeferStmt;
@@ -518,6 +519,10 @@ public:
     const SymbolVariable* returnMoveOutVar() const { return returnMoveOutVar_; }
     void                  setReturnMoveOutVar(const SymbolVariable* symVar) { returnMoveOutVar_ = symVar; }
 
+    // Retval local whose value the return being emitted replaces, released with the locals.
+    void                  setReturnReplacedRetVal(const SymbolVariable* symVar) { returnReplacedRetVal_ = symVar; }
+    const SymbolVariable* retValInScope(const SemaInlinePayload* returnContext) const;
+
     void                                      clearGlobalsToDropScratchLayout();
     void                                      setGlobalsToDropScratchLayout(uint32_t offset, uint32_t size, std::span<const CodeGenGlobalToDropEntry> entries);
     bool                                      hasGlobalsToDropScratchLayout() const { return globalsToDropScratchSize_ != 0; }
@@ -578,6 +583,7 @@ private:
     FlatKeyMap<CodeGenMoveElisionVar, uint64_t> moveElisionVars_;
     PointerSet<const SymbolVariable>            elidedImplicitDrops_;
     const SymbolVariable*                       returnMoveOutVar_    = nullptr;
+    const SymbolVariable*                       returnReplacedRetVal_ = nullptr;
     bool                                        moveElisionAnalyzed_ = false;
 
     SymbolFunction* function_            = nullptr;

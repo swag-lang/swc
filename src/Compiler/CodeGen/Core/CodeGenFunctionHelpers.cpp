@@ -266,28 +266,12 @@ bool CodeGenFunctionHelpers::functionUsesIndirectReturnStorage(CodeGen& codeGen,
     return normalizedRet.isIndirect;
 }
 
-namespace
-{
-    const SemaInlinePayload* inlineReturnStorageOwner(CodeGen& codeGen, const SymbolVariable& symVar)
-    {
-        if (!symVar.decl())
-            return nullptr;
-
-        const AstNodeRef declRef = codeGen.ast().tryFindNodeRef(symVar.decl());
-        if (declRef.isInvalid())
-            return nullptr;
-
-        const auto* expansion = codeGen.sema().inlinePayload(declRef);
-        return expansion && !expansion->returnsToCallerSite() ? expansion : nullptr;
-    }
-}
-
 bool CodeGenFunctionHelpers::usesCallerReturnStorage(CodeGen& codeGen, const SymbolVariable& symVar)
 {
     if (!symVar.hasExtraFlag(SymbolVariableFlagsE::RetVal))
         return false;
 
-    if (const auto* expansion = inlineReturnStorageOwner(codeGen, symVar))
+    if (const auto* expansion = SemaHelpers::retValStorageOwner(codeGen.sema(), symVar))
         return expansion->resultVar != nullptr;
 
     return functionUsesIndirectReturnStorage(codeGen, codeGen.function());
@@ -299,7 +283,7 @@ CodeGenNodePayload CodeGenFunctionHelpers::resolveCallerReturnStoragePayload(Cod
 
     // A cloned 'retval' belongs to the inline expansion, even when the enclosing
     // function also returns indirectly (possibly into a smaller buffer).
-    if (const auto* expansion = inlineReturnStorageOwner(codeGen, symVar))
+    if (const auto* expansion = SemaHelpers::retValStorageOwner(codeGen.sema(), symVar))
     {
         for (const auto& frame : codeGen.frames())
         {
@@ -1351,7 +1335,7 @@ bool CodeGenFunctionHelpers::tryUseDirectVarInitStorage(CodeGen& codeGen, AstNod
         {
             // Another named 'retval' local denotes this same slot, so the expression could
             // read it while constructing the result. Keep an intermediate in that case.
-            if (SemaHelpers::functionExposesReturnSlot(codeGen.function(), &symVar))
+            if (SemaHelpers::returnStorageExposed(codeGen.sema(), codeGen.function(), SemaHelpers::retValStorageOwner(codeGen.sema(), symVar), &symVar))
                 return false;
 
             const CodeGenNodePayload storagePayload = resolveCallerReturnStoragePayload(codeGen, symVar);
@@ -1393,6 +1377,11 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
     }
 
     if (!inlineCtx && !codeGen.currentFunctionIndirectReturnReg().isValid() && !codeGen.hasCurrentFunctionIndirectReturnStackOffset())
+        return false;
+
+    // A named 'retval' local makes the destination readable: the value could read what it
+    // overwrites, so it is built apart and stored by the return.
+    if (SemaHelpers::returnStorageExposed(codeGen.sema(), codeGen.function(), inlineCtx ? inlineCtx->payload : nullptr))
         return false;
 
     // Build directly only when the expression already has the return type.

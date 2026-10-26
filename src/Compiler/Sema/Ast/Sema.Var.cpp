@@ -1312,7 +1312,7 @@ Result AstSingleVarDecl::semaPostNodeChild(Sema& sema, const AstNodeRef& childRe
                 SWC_RESULT(SemaHelpers::currentFunctionUsesIndirectReturnStorage(bindRetValRuntimeStorage, sema));
                 // An earlier 'retval' local already named the slot, so this initializer must not
                 // be evaluated into it: it could read what it is overwriting.
-                if (bindRetValRuntimeStorage && sema.isCurrentFunction() && SemaHelpers::functionExposesReturnSlot(*sema.currentFunction(), retValSym))
+                if (bindRetValRuntimeStorage && sema.isCurrentFunction() && SemaHelpers::returnStorageExposed(sema, *sema.currentFunction(), SemaHelpers::retValStorageOwner(sema, *retValSym), retValSym))
                     bindRetValRuntimeStorage = false;
             }
             if (bindArrayRuntimeStorage ||

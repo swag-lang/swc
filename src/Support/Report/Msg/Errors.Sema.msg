@@ -242,6 +242,7 @@ SWC_DIAG_DEF(sema_err_method_outside_impl, Error, "method declaration is outside
 SWC_DIAG_DEF(sema_err_method_impl_outside_interface, Error, "modifier 'impl' needs an interface implementation block; [help] move the method into 'impl <Interface> for <Type>', or remove 'impl' to declare an ordinary method")
 SWC_DIAG_DEF(sema_err_retval_outside_function, Error, "'retval' can only be used inside a function")
 SWC_DIAG_DEF(sema_err_retval_unknown_return_type, Error, "'retval' cannot be used before the function return type is known; [help] add an explicit return type before using 'retval'")
+SWC_DIAG_DEF(sema_err_return_reads_retval, Error, "returned value cannot read 'retval' variable '{sym}', which this 'return' replaces; [help] assign the value to '{sym}', then return '{sym}'")
 SWC_DIAG_DEF(sema_err_tok_outside_impl, Error, "'{tok}' can only be used inside an implementation block; [help] move it into an 'impl <Type> { ... }' block")
 SWC_DIAG_DEF(sema_err_spec_op_outside_impl, Error, "operator overload '{tok}' is outside a struct implementation block; [help] declare it inside the struct's 'impl' block")
 SWC_DIAG_DEF(sema_err_spec_op_in_impl_for, Error, "operator overload '{tok}' cannot be declared in an interface implementation block; [help] declare it in the struct's own 'impl' block instead")

@@ -342,8 +342,9 @@ impl DocumentView
         .layout.columns = Math.max(1, cast(u32, ((usable + CellGap) / (CellWidth + CellGap))))
         .layout.rows    = (.cells.count + .layout.columns - 1) / .layout.columns
 
-        let gridWidth = cast(f32, .layout.columns) * CellWidth + cast(f32, .layout.columns - 1) * CellGap
-        .layout.gridLeft = Math.max(ContentInset, (client.width - gridWidth) * 0.5)
+        // The grid starts on the same edge as the name, the specimen, and the section captions, so
+        // the page reads as one column.
+        .layout.gridLeft = ContentInset
 
         var grid = .fontCode.height
         if .layout.rows do

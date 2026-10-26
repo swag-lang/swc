@@ -685,8 +685,6 @@ impl PdfParser
             .pos = savedPos
         }
 
-        // Assigned, then returned: a return that reads the result it is built into would
-        // overwrite it first (compiler.safety.034).
         result = .withPrevious(result, dictId)
         return result
     }
@@ -800,8 +798,6 @@ impl PdfParser
 
         result.ok = true
         .recordTrailer(nodeId)
-        // Assigned, then returned: a return that reads the result it is built into would
-        // overwrite it first (compiler.safety.034).
         result = .withPrevious(result, nodeId)
         return result
     }

@@ -73,3 +73,28 @@ initialization or copying, resulting in faster, more memory-efficient code.
     Swag.assert(arr[100] == 100)
     Swag.assert(arr[254] == 254)
 }
+
+/**
+# Returning Another Value
+A function with a `retval` variable can still return another value. That value replaces the
+variable, which is released first, exactly as an assignment would release it.
+
+Because the returned value is stored where the variable lives, it cannot read the variable:
+`return result + 1` is rejected. Assign the variable, then return it.
+*/
+#test
+{
+    func clampedDouble(value: s32)->s32
+    {
+        var result: retval = value * 2
+        if result < 0 do
+            return 0     // Replaces 'result'
+
+        result = Swag.min(result, 100)
+        return result
+    }
+
+    Swag.assert(clampedDouble(-4) == 0)
+    Swag.assert(clampedDouble(4) == 8)
+    Swag.assert(clampedDouble(80) == 100)
+}

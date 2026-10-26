@@ -1379,11 +1379,6 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
     if (!inlineCtx && !codeGen.currentFunctionIndirectReturnReg().isValid() && !codeGen.hasCurrentFunctionIndirectReturnStackOffset())
         return false;
 
-    // A named 'retval' local makes the destination readable: the value could read what it
-    // overwrites, so it is built apart and stored by the return.
-    if (SemaHelpers::returnStorageExposed(codeGen.sema(), codeGen.function(), inlineCtx ? inlineCtx->payload : nullptr))
-        return false;
-
     // Build directly only when the expression already has the return type.
     // A conversion such as string to String needs its own temporary; writing
     // source bytes into the return slot would leave it holding the wrong type.
@@ -1424,6 +1419,11 @@ bool CodeGenFunctionHelpers::tryUseDirectReturnStorage(CodeGen& codeGen, AstNode
         const auto&      returnNode        = parent.cast<AstReturnStmt>();
         const AstNodeRef resolvedReturnRef = codeGen.resolvedNodeRef(returnNode.nodeExprRef);
         if (resolvedReturnRef != directExprRef)
+            return false;
+
+        // A named 'retval' local makes the destination readable: the value could read what it
+        // overwrites, so it is built apart and stored by the return.
+        if (SemaHelpers::returnStorageExposed(codeGen.sema(), codeGen.function(), inlineCtx ? inlineCtx->payload : nullptr))
             return false;
 
         if (inlineCtx)

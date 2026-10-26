@@ -343,6 +343,46 @@ private impl RenderCpu
         return Math.Simd.bitmask(mask0 & mask1 & mask2)
     }
 
+    // Narrows the columns `x0` to `x1` of one row to those that can pass one edge test.
+    //
+    // The edge value at pixel centre `sx` is `a * (sx - originX) + c`. A long thin triangle — a
+    // stroke band on a diagonal, a spoke of a fan — covers a sliver of its bounding box, and a walk
+    // over the box tests mostly pixels outside it. Where `a` is not zero the edge crosses the row
+    // once, and every centre on its outer side tests outside, so the row starts or ends there. The
+    // bound is moved past that crossing by more than the rounding of the per-pixel test: the
+    // narrowed walk skips only pixels the test rejects, and paints the image the box walk paints.
+    func narrowEdgeSpan(x0, x1: *s32, a, c, originX: f32)
+    {
+        // The value is the same across the row, so one negative value rejects all of it.
+        if a == 0
+        {
+            if c < 0 do
+                x1[] = x0[] - 1
+            return
+        }
+
+        let root = originX - c / a
+        if not Math.isFinite(root) do
+            return
+        let margin = 1 + 0.000001 * (Math.abs(root - originX) + Math.abs(cast(f32, x0[]) - originX) + Math.abs(cast(f32, x1[]) - originX))
+        if a > 0
+        {
+            let first = root - 0.5 - margin
+            if first > cast(f32, x1[]) do
+                x0[] = x1[] + 1
+            elif first > cast(f32, x0[]) do
+                x0[] = cast(s32, Math.floor(first))
+        }
+        else
+        {
+            let last = root - 0.5 + margin
+            if last < cast(f32, x0[]) do
+                x1[] = x0[] - 1
+            elif last < cast(f32, x1[]) do
+                x1[] = cast(s32, Math.ceil(last))
+        }
+    }
+
     func lerpColor(c0, c1: Color, t: f32)->Color
     {
         let u = Math.saturate(t)
@@ -1413,6 +1453,9 @@ private impl RenderCpu
         let dx2 = p1.x - p0.x
         let dy2 = p1.y - p0.y
 
+        // Narrowing costs three divisions a row, which a triangle a few pixels wide never repays.
+        let narrowRows = maxX - minX >= 8
+
         let dcDx     = (v0.cov * (p1.y - p2.y) + v1.cov * (p2.y - p0.y) + v2.cov * (p0.y - p1.y)) * invArea
         let dcDy     = (v0.cov * (p2.x - p1.x) + v1.cov * (p0.x - p2.x) + v2.cov * (p1.x - p0.x)) * invArea
         let covWidth = Math.max(Math.abs(dcDx) + Math.abs(dcDy), 0.00001)
@@ -1491,12 +1534,21 @@ private impl RenderCpu
                     let rowDy2     = sy - edge2Origin.y
                     let rowPixels  = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
                     let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
-                    var x          = minX
-                    while x <= maxX
+                    var x0 = minX
+                    var x1 = maxX
+                    if narrowRows
+                    {
+                        narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
+                        narrowEdgeSpan(&x0, &x1, -dy1, dx1 * rowDy1, edge1Origin.x)
+                        narrowEdgeSpan(&x0, &x1, -dy2, dx2 * rowDy2, edge2Origin.x)
+                    }
+
+                    var x = x0
+                    while x <= x1
                     {
                         var coverage: u32
                         var laneCount = 1
-                        if maxX - x >= 3
+                        if x1 - x >= 3
                         {
                             let sx = Math.Simd.splat(cast(f32, x) + 0.5) + CpuPixelLanes
                             let e0 = Math.mulAdd(Math.Simd.splat(-dy0), sx - edge0Origin.x, Math.Simd.splat(dx0 * rowDy0))
@@ -1653,7 +1705,16 @@ private impl RenderCpu
                     let rowDy1    = sy - edge1Origin.y
                     let rowDy2    = sy - edge2Origin.y
                     let rowPixels = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
-                    for var x = minX; x <= maxX; x += 1
+                    var x0 = minX
+                    var x1 = maxX
+                    if narrowRows
+                    {
+                        narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
+                        narrowEdgeSpan(&x0, &x1, -dy1, dx1 * rowDy1, edge1Origin.x)
+                        narrowEdgeSpan(&x0, &x1, -dy2, dx2 * rowDy2, edge2Origin.x)
+                    }
+
+                    for var x = x0; x <= x1; x += 1
                     {
                         let sx = cast(f32, x) + 0.5
                         let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)
@@ -1716,7 +1777,16 @@ private impl RenderCpu
             let rowDy2     = sy - edge2Origin.y
             let rowPixels  = batch.pixels + cast(u64, (batch.height - y - 1)) * cast(u64, batch.rowStride)
             let rowStencil = batch.stencil + cast(u64, y) * cast(u64, batch.width)
-            for var x = minX; x <= maxX; x += 1
+            var x0 = minX
+            var x1 = maxX
+            if narrowRows
+            {
+                narrowEdgeSpan(&x0, &x1, -dy0, dx0 * rowDy0, edge0Origin.x)
+                narrowEdgeSpan(&x0, &x1, -dy1, dx1 * rowDy1, edge1Origin.x)
+                narrowEdgeSpan(&x0, &x1, -dy2, dx2 * rowDy2, edge2Origin.x)
+            }
+
+            for var x = x0; x <= x1; x += 1
             {
                 let sx = cast(f32, x) + 0.5
                 let e0 = Math.mulAdd(-dy0, sx - edge0Origin.x, dx0 * rowDy0)

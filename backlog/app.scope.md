@@ -49,7 +49,12 @@ Reusable engine work remains in the backlog of the standard module that owns it.
   own size, and with `RenderCpu` walking only the span of each triangle row; 3.8 s with twenty
   renderers, for about 1.3 GB across the processes and a first preview at 1.4 s instead of 1 s.
   Concurrent renderers had shared an exchange directory when their `Guid64` generators were seeded
-  in the same microsecond, losing a preview now and then. The former generic
+  in the same microsecond, losing a preview now and then. Video previews keep the first lively
+  frame of five positions instead of decoding all five; on the NAS share Z:/films the visible
+  tiles fill at about five per second, each still reading 3 to 9 MB because a seek indexes the
+  whole key cluster and the next one. Film folders use screen-shaped tiles, previews trim
+  encoded black bands, stand on their names with the interface corner, and films carry their
+  duration. The former generic
   path created a complete viewer for each uncached file. Generic thumbnails now use
   one persistent CPU canvas and font cache per worker, reading at most 16 KiB for text or mapping
   the first 2 KiB for binary input. Image and video plugins keep their direct decoders. The Explorer

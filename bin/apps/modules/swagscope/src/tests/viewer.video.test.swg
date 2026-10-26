@@ -53,6 +53,43 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     Swag.assert(bands.usable and bands.lively)
 }
 
+// The black bands a film was encoded with are trimmed from every edge; a frame dark from edge to
+// edge is a dark scene and stays whole.
+#test
+{
+    var boxed = Image.create(64, 48, .RGB8)
+    Memory.set(boxed.pixels.storage(), 0, boxed.pixels.count)
+    for y in 6 until 42
+    {
+        for x in 4 until 60
+        {
+            let pixel = boxed.pixels.storage() + cast(u64, y) * cast(u64, boxed.rowStride) + cast(u64, x) * 3
+            Memory.set(pixel, 160, 3)
+        }
+    }
+
+    Film.trimLetterbox(&boxed)
+    Swag.assert(boxed.width == 56 and boxed.height == 36)
+
+    var night = Image.create(64, 48, .RGB8)
+    Memory.set(night.pixels.storage(), 8, night.pixels.count)
+    Film.trimLetterbox(&night)
+    Swag.assert(night.width == 64 and night.height == 48)
+}
+
+// The duration a thumbnail carries comes back from its metadata and reads the way players write it.
+#test
+{
+    var image = Image.create(4, 4, .RGB8)
+    Swag.assert(thumbnailDuration(&image) == 0)
+    var record: ImageMetadata
+    record.tag   = Viewer.ThumbnailDurationTag
+    record.value = "7083"
+    image.metadata.add(#move record)
+    Swag.assert(thumbnailDuration(&image) == 7083)
+    Swag.assert(formatDuration(7083) == "1:58:03" and formatDuration(65) == "1:05" and formatDuration(9) == "0:09")
+}
+
 // Both decoder paths propagate failure into the producer's catch before the queue reports it.
 #test
 {

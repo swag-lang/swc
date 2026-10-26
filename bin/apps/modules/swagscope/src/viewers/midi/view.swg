@@ -188,8 +188,7 @@ impl RollView
         let left   = .scrollPos.x + ContentInset
         let top    = .scrollPos.y
         painter.fillRect(.scrollPos.x, top, .clientRect().width, HeaderHeight, colors.view_Bk)
-        let title = Format.toString("MIDI · format %", .document.format)
-        painter.drawString(left, top + 18, title, .titleFont, colors.label_Text)
+        painter.drawString(left, top + 18, .document.title, .titleFont, colors.label_Text)
         let summary = .summaryText()
         painter.drawString(left, top + 48, summary, .codeFont, colors.label_TextFaint)
         painter.drawLine(left, top + HeaderHeight - 1, .scrollPos.x + .clientRect().width - ContentInset, top + HeaderHeight - 1, colors.border, 1)

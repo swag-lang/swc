@@ -52,6 +52,7 @@ struct KeySignature
 // A Standard MIDI File reduced to what the piano roll shows: its notes, tracks, and timing.
 struct Document
 {
+    title:           String     // The sequence name the first track carries, or the file name.
     format:          u16
     division:        u16
     declaredTracks:  u16
@@ -329,6 +330,8 @@ private func parseTrack(document: *Document, bytes: const [..] u8, trackIndex: u
     for &slot in active do
         closeNote(document, slot, tick)
 
+    if trackIndex == 0 and not track.name.isEmpty() do
+        document.title = track.name
     if track.name.isEmpty() do
         track.name = Format.toString(texts().ui_TrackName, trackIndex + 1)
     document.durationTicks = Math.max(document.durationTicks, tick)
@@ -417,6 +420,8 @@ func loadDocument(fileName: string)->Document fail
         result.maxKey = 72
     }
 
+    if result.title.isEmpty() do
+        result.title = Path.fileNameWithoutExtension(fileName) orelse ""
     result.notes.sort(func(a, b) => a.startTick <=> b.startTick)
     computeDuration(&result)
     return result

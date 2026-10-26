@@ -317,6 +317,55 @@ func isNumericCell(text: string)->bool
     return digits
 }
 
+// Reads the quantity `text` spells into `result`, and reports whether it spells one. Spaces and a
+// percent sign are dropped; a comma is a thousands separator beside a decimal point or before a
+// group of three digits, and a decimal comma otherwise.
+func quantityOf(text: string, result: *f64)->bool
+{
+    var hasDot, commas, digitsAfterComma: u64
+    for byte in text
+    {
+        if byte == '.' do
+            hasDot += 1
+        elif byte == ','
+        {
+            commas += 1
+            digitsAfterComma = 0
+        }
+        elif byte >= '0' and byte <= '9' do
+            digitsAfterComma += 1
+    }
+
+    let decimalComma = not hasDot and commas == 1 and digitsAfterComma != 3
+    var clean: String
+    for byte in text
+    {
+        if byte == ' ' or byte == '%' do
+            continue
+        if byte == ','
+        {
+            if decimalComma do
+                clean += '.'
+            continue
+        }
+
+        clean += cast(rune, byte)
+    }
+
+    let value = catch StrConv.toF64(clean.toString()) { return false }
+    result[] = value
+    return true
+}
+
+// What one row is ordered by when its table is sorted on a column.
+private struct SortKey
+{
+    row:      u32
+    numeric:  bool
+    quantity: f64
+    text:     string
+}
+
 private func countText(count: u64, one, many: string)->String
 {
     if count == 1 do
@@ -333,6 +382,10 @@ struct Panel
 
     document:      Document
     numeric:       Array'bool
+    order:         Array'u32     // Document row shown at each line, in the sorted order.
+    rowLines:      Array'u32     // Line each document row is shown at.
+    sortColumn:    u32 = Swag.U32.Max
+    descending:    bool
     searchRow:     u64 = Swag.U64.Max
     searchColumn:  u64
     searchOffset:  u64
@@ -416,11 +469,65 @@ private impl Panel
             .list.addColumn(column.toString()[range.start until range.end], width)
         }
 
+        .order.clear()
+        .rowLines.clear()
         .list.setVirtualCount(cast(u32, .document.rows.count))
         .applyLayout()
         .setInitialFocus(.list)
 
         .refreshDetails()
+    }
+
+    // Returns the document row shown at line `index`, and the line document row `row` is shown at.
+    mtd documentRow(index: u64)->u64 => .order.count ? .order[index] : index
+    mtd lineOfRow(row: u64)->u32     => .rowLines.count ? .rowLines[row] : cast(u32, row)
+
+    // Orders the rows by `column`, ascending first and descending when the same column is chosen
+    // again. Quantities compare as numbers and words in natural order; empty cells stay last
+    // either way, and equal cells keep the order of the file.
+    mtd sortBy(column: u32)
+    {
+        if column >= .document.columns.count do
+            return
+        .descending = .sortColumn == column and not .descending
+        .sortColumn = column
+
+        // The keyboard stays on the row it was on, wherever the order moves it.
+        let focused = .list.focusIndex < .document.rows.count ? .documentRow(.list.focusIndex) : Swag.U64.Max
+
+        let numeric = column < .numeric.count and .numeric[column]
+        var keys:  Array'SortKey
+        var empty: Array'u32
+        for row, index in .document.rows
+        {
+            let text = column < row.cells.count ? row.cells[column].toString() : ""
+            var key  = SortKey{row: cast(u32, index), numeric: numeric, text: text}
+            if text.count == 0 or (numeric and not quantityOf(text, &key.quantity)) do
+                empty.add(key.row)
+            else do
+                keys.add(key)
+        }
+
+        keys.sort(func(a, b)->s32
+        {
+            let order = a.numeric ? (a.quantity <=> b.quantity) : Latin1.compareNatural(a.text, b.text)
+            return order != 0 ? order : a.row <=> b.row
+        })
+
+        .order.clear()
+        .rowLines.resize(.document.rows.count)
+        for index in keys.count do
+            .order.add(keys[.descending ? keys.count - 1 - index : index].row)
+        for row in empty do
+            .order.add(row)
+        for row, line in .order do
+            .rowLines[row] = cast(u32, line)
+
+        .list.header.setSortIndicator(column, .descending ? .Descending : .Ascending)
+        .list.unselectAll()
+        if focused != Swag.U64.Max do
+            .list.setFocusedIndex(.lineOfRow(focused))
+        .list.invalidate()
     }
 
     mtd refreshDetails()
@@ -441,15 +548,16 @@ private impl Panel
     {
         if index >= .document.rows.count do
             return
-        let row = &.document.rows[index]
+        let rowIndex = .documentRow(index)
+        let row      = &.document.rows[rowIndex]
         for column in .document.columns.count
         {
             let value = column < row.cells.count ? row.cells[column].toString() : ""
-            let range = cellPreviewRange(value, index == .searchRow and column == .searchColumn ? .searchOffset : Swag.U64.Max)
+            let range = cellPreviewRange(value, rowIndex == .searchRow and column == .searchColumn ? .searchOffset : Swag.U64.Max)
             let item  = line.setItem(cast(u32, column), value[range.start until range.end])
             if column < .numeric.count and .numeric[column] do
                 item.horzAlign = .Right
-            if index == .searchRow and column == .searchColumn
+            if rowIndex == .searchRow and column == .searchColumn
             {
                 item.colorBk = .themeColors().edit_SelectedBk
                 item.colorFg = .themeColors().label_Text
@@ -493,6 +601,7 @@ private impl Panel
             .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
             .header.form       = .Transparent
             .onFillVirtualLine = &fillVirtualLine
+            .header.sigColumnClicked += func|result|(_, column) { result.sortBy(column) }
         }
 
         result.applyLayout()
@@ -524,7 +633,7 @@ impl Panel
         .searchOffset = match.offset
         .searchLength = match.length
         .list.unselectAll()
-        .list.setFocusedIndex(cast(u32, match.major))
+        .list.setFocusedIndex(.lineOfRow(match.major))
         .list.invalidate()
         return true
     }
@@ -551,7 +660,7 @@ impl Panel
             shown += "\u2026"
         let lead = shown.length
         shown += value[range.start until range.end]
-        return Viewer.listCellMatchBounds(.list, cast(u32, .searchRow), cast(u32, .searchColumn), shown, lead + markedStart - range.start, markedEnd - markedStart, result)
+        return Viewer.listCellMatchBounds(.list, .lineOfRow(.searchRow), cast(u32, .searchColumn), shown, lead + markedStart - range.start, markedEnd - markedStart, result)
     }
 
     mtd clearSearch()

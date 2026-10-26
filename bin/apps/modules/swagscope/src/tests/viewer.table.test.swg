@@ -94,6 +94,45 @@ using Core, Pixel, Gui, Viewers
     Swag.assert(not result.searchBounds(matches[0], &bounds))
 }
 
+// A header click sorts the rows without moving them in the document: quantities as numbers, words
+// in natural order, empty cells last, and search still reaches the line a row moved to.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-table-sort-", ".csv")
+    defer discard catch File.delete(fileName)
+    expect File.writeAllBytes(fileName, "name,size\nfile10,1 200\nfile9,\nfile2,35\nFile1,-4.5\n")
+
+    var host: Testing.HeadlessHost
+    host.setup(760, 480)
+    var result = openTestViewer(Table.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    Swag.assert(result.collectMatches != null and result.revealMatch != null)
+    let view   = assume cast(*Table.Panel, result.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    Swag.assert(view.numeric[1] and not view.numeric[0])
+
+    view.sortBy(1)
+    Swag.assert(view.order[0] == 3 and view.order[1] == 2 and view.order[2] == 0 and view.order[3] == 1)
+    var line: ListLine
+    view.fillLine(&line, 0)
+    Swag.assert(line.itemAt(0).name.raw == "File1")
+
+    view.sortBy(1)
+    Swag.assert(view.descending and view.order[0] == 0 and view.order[2] == 3 and view.order[3] == 1)
+
+    view.sortBy(0)
+    Swag.assert(not view.descending and view.order[0] == 3 and view.order[1] == 2 and view.order[3] == 0)
+
+    var matches: Array'Viewer.SearchMatch
+    collectViewerMatches(result.collectMatches, "file10", &matches)
+    Swag.assert(matches.count == 1 and result.revealMatch(matches[0], "file10"))
+    Swag.assert(view.list.focusIndex == view.lineOfRow(0) and view.lineOfRow(0) == 3)
+
+    var quantity: f64
+    Swag.assert(Table.quantityOf("1,5", &quantity) and quantity == 1.5)
+    Swag.assert(Table.quantityOf("1,234.5", &quantity) and quantity == 1234.5)
+    Swag.assert(Table.quantityOf("12 %", &quantity) and quantity == 12)
+}
+
 #test
 {
     var giant: String

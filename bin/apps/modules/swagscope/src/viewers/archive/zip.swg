@@ -189,11 +189,8 @@ impl Zip
         return result
     }
 
-    // Reads and validates one bounded archive entry without materializing a temporary file.
-    //
-    // Archive previews write this result to a disposable path, while container readers such as IDML
-    // consume their XML in memory. Both paths therefore share the same size, compression,
-    // and CRC boundary.
+    // Reads and validates one bounded archive entry in memory, enforcing its size, compression,
+    // and CRC before anything is written for a preview.
     func loadEntry(archiveFileName: string, entry: const *ZipEntry)->Array'u8 fail
     {
         if entry.isDirectory do

@@ -40,7 +40,7 @@ render primitives remain in [std.pixel.md](std.pixel.md).
 ### app.scope.image.014 — XMP image properties remain opaque
 
 - Evidence: split from app.scope.image.011. The metadata panel does not interpret image XMP
-  packets; the separate InDesign preview reader does not provide an image metadata contract.
+  packets.
 - Next: parse a bounded set of XMP descriptive properties with namespace-aware field identity,
   preserving unrecognized packets and source provenance.
 - Done when: supported XMP fields are readable and copyable, conflicting EXIF/XMP values

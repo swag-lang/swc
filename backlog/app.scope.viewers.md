@@ -96,21 +96,18 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
   in the application or shell-host process.
 - Related: app.scope.viewers.011, platform.portability.072, platform.portability.073
 
-### app.scope.viewers.013 — Five decoder families cannot claim files independently of their extension
+### app.scope.viewers.013 — Three decoder families cannot claim files independently of their extension
 
 - Evidence: `choices` reads the head of a file once and lets a descriptor claim it from its own
   bytes, and `html`, `code`, `pdf`, `font`, `midi`, `archive`, and `text` do. `image`, `video`,
-  `sound`, and `indesign` cannot: `Pixel.Image.decode`, `Video.Reader.open`, and
-  `Audio.SoundFile.load` select a codec from the filename extension alone, and the InDesign
-  viewer reads `.indd` against `.idml` to decide how to open the file.
+  and `sound` cannot: `Pixel.Image.decode`, `Video.Reader.open`, and `Audio.SoundFile.load` select
+  a codec from the filename extension alone.
   A JPEG named `.dat` is therefore still offered as bytes only, and a viewer that claimed it from
   its signature would then fail to open it.
 - Next: give the three decoder registries a content-based lookup, as a signature predicate declared
   beside the extension list each codec already publishes plus one `decoderFor(bytes)` entry point
-  per module, then add the missing probes and let the InDesign viewer decide its container
-  from the head instead of the name.
-- Done when: a raster image, a video container, a sound file, and an
-  InDesign document are each offered their own viewer through a copy renamed to an extension
+  per module, then add the missing probes.
+- Done when: a raster image, a video container, and a sound file are each offered their own viewer through a copy renamed to an extension
   nothing claims, and every viewer a probe offers can open the file it claimed.
 - Related: app.scope.image.001, app.scope.viewers.012
 

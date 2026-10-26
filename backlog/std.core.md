@@ -226,11 +226,12 @@ new module rather than growth inside `core`.
 ### std.core.032 — The recovered inflate rewrite fails a real-document golden
 
 - Evidence: the rewrite, with a refill of its own for the careful path's length/distance group,
-  is preserved in commit `643900899`; `bin/std` keeps master's inflate. The rewrite decodes Swag
-  Scope's InDesign document (`bin/apps/modules/swagscope/src/tests/viewer.indesign.test.swg`)
-  to an image the golden rejects, and the mismatch has not been attributed to specific decoded
-  bytes. No synthetic Deflate stream from the repository's own compressor reaches the careful
-  path with a drained bit buffer, so that test is what exercises the real shape.
+  is preserved in commit `643900899`; `bin/std` keeps master's inflate. The rewrite decoded the
+  native InDesign fixture `publicdomain.indd` (removed from Swag Scope with its viewer; still in the
+  history of `bin/apps/modules/swagscope/src/tests/datas/`) to an image the golden rejected, and the
+  mismatch has not been attributed to specific decoded bytes. No synthetic Deflate stream from the
+  repository's own compressor reaches the careful path with a drained bit buffer, so that file is
+  what exercises the real shape.
 - Next: decode the document's streams with both decoders and compare the output, rather than
   rendered images, so the divergence is a byte offset instead of a pixel. Only then decide
   whether the rewrite is repairable, and measure what it buys over master's inflate.

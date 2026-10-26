@@ -38,7 +38,7 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
     expect File.writeAllBytes(binaryFile, [0x89'u8, 0x50'u8, 0x4E'u8, 0x47'u8, 0'u8, 0xFF'u8])
 
     let registry = createViewerPluginRegistry()
-    Swag.assert(registry.plugins.count == 16)
+    Swag.assert(registry.plugins.count == 15)
     for plugin in registry.plugins do
         Swag.assert(plugin.apiVersion == Viewer.ApiVersion and
                     plugin.create != null and
@@ -114,14 +114,6 @@ private func testPlugin(key = "custom", selector = ".plug")->Viewer.Plugin
                 openDocumentChoices[2].key == "hex")
     Swag.assert(registry.choices("bundle.zip")[0].key == "archive")
 
-    let indesignChoices = registry.choices("layout.indd")
-    Swag.assert(indesignChoices[0].key == "indesign" and
-                indesignChoices[1].key == "binary" and
-                indesignChoices[2].key == "hex")
-    let idmlChoices = registry.choices("layout.idml")
-    Swag.assert(idmlChoices[0].key == "indesign" and
-                idmlChoices[1].key == "binary" and
-                idmlChoices[2].key == "hex")
 
     const SoundFiles: [11] string = ["sound.wav", "sound.flac", "sound.mp3", "sound.aac", "sound.ac3", "sound.eac3", "sound.ec3", "sound.dts", "sound.ogg", "sound.oga", "sound.opus"]
     for file in SoundFiles do

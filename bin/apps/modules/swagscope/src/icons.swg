@@ -23,7 +23,6 @@ enum ViewerIcons
     Midi             // Piano-roll viewer.
     Subtitle         // Timed subtitle viewer.
     Archive          // Compressed-archive browser.
-    Indesign         // Native InDesign saved-preview viewer.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

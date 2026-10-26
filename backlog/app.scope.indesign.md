@@ -1,17 +1,27 @@
 # Swag Scope InDesign Viewer Backlog
 
-This backlog owns the read-only InDesign viewer under
-`bin/apps/modules/swagscope/src/viewers/indesign`. Its goal is a dependable offline document
-viewer, not an editor: opening, rendering, navigating, searching, inspecting, selecting and
-exporting view data must never execute document content, contact the network, or rewrite a source
-file. The current viewer validates native `.indd` headers, presents bounded saved XMP previews, and
-builds an offline IDML page scene in Swag with page navigation, fit and explicit zoom, local linked
-images, styled text, search, and visual regression fixtures.
+This backlog owns the InDesign reader Swag Scope will ship once it is complete. Its goal is a
+dependable offline document viewer, not an editor: opening, rendering, navigating, searching,
+inspecting, selecting and exporting view data must never execute document content, contact the
+network, or rewrite a source file.
 
-IDML is the interoperable layout route. Native INDD may use its saved preview while native page
-composition remains an explicitly separate capability. A feature-complete viewer is judged against
-representative, openly licensed real documents and their visible reading workflow, never merely by
-whether a JPEG preview decoded.
+No reader ships today: `.indd` and `.idml` files open in the Binary and Hexadecimal viewers only.
+The partial reader, which showed the saved previews of native documents and an approximate IDML
+page scene, was withdrawn because a viewer that shows part of a document misleads its reader. The
+entries below were written against it; its decoder, tests, and openly licensed fixtures remain in
+the history of `bin/apps/modules/swagscope/src/viewers/indesign/` for the complete implementation
+to start from. A feature-complete viewer is judged against representative real documents and their
+visible reading workflow, never merely by whether a JPEG preview decoded.
+
+### app.scope.indesign.019 — Ship a complete InDesign reader
+
+- Evidence: `.indd` and `.idml` have no format viewer; the withdrawn reader clipped and estimated
+  text flows, flattened masters and layers, and dropped image fitting, effects, and tables.
+- Next: rebuild IDML composition on app.scope.indesign.004, .005, .007, and .009 before offering
+  the format again; offer native documents only once their pages compose without saved previews.
+- Done when: every InDesign file Swag Scope offers to open renders its pages faithfully, and every
+  component it cannot show is named rather than silently dropped.
+- Related: app.scope.indesign.018, app.scope.indesign.002
 
 ### app.scope.indesign.011 — InDesign text selection stops at the rendered page scene
 

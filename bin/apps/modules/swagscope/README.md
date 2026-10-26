@@ -133,13 +133,6 @@ alternative instead of guessing an encoding.
   tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
   view, and provides horizontal zoom through the common information-band control without
   synthesizing or executing file content.
-- `InDesign` opens native `.indd` documents through their saved XMP JPEG page previews and
-  `.idml` packages through positioned pages, styled text, vector frame backgrounds, and embedded
-  or local linked images. Both provide page navigation, fit, and zoom; IDML also participates in
-  shared document search. Native documents validate both master-page headers and decode selected
-  previews into a bounded cache. Native layout objects and pages without saved preview pixels
-  remain unsupported. IDML renders the supported page, text, and graphics subset; it does not
-  reproduce InDesign's full typesetting and composition.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer. Opening an entry asynchronously prepares a bounded temporary
   copy, verifies its declared size and CRC-32, and opens it through the ordinary viewer registry.

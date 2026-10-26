@@ -40,7 +40,9 @@ viewers may claim the same extension, so the selector lists format-specific view
 viewers that recognized the file from its own bytes, then `Basic text` when the file reads as text
 and nothing that claimed it reads as something else, and finally the `Binary` and `Hexadecimal`
 fallbacks, each beside the glyph its viewer owns. Changing the selector reuses a view already
-opened for the current file or creates it on demand; it does not reopen the window.
+opened for the current file or creates it on demand; it does not reopen the window. A video or a
+sound that was playing pauses when another viewer takes its place, and is still paused when the
+reader comes back to it.
 
 The content pass is what a name cannot answer. A descriptor may carry a probe, and the host reads
 the first four kilobytes of the file once and shows the same bytes to every one of them, so an

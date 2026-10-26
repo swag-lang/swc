@@ -828,19 +828,27 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     completeViewerWindowClassification(&host, window)
     let view = assume cast(*Film.Panel, window.currentView)
     waitForVideoFrame(view)
-    Swag.assert(view.playing and view.voice!.isPlaying())
+    Swag.assert(view.playing and (unwrap view.voice).isPlaying())
 
     var binary = Swag.U32.Max
     for choice, choiceIndex in window.choices where window.index.plugins[choice.pluginIndex].key == "binary" do
         binary = cast(u32, choiceIndex)
     let film = window.activeChoiceIndex
     Swag.assert(binary != Swag.U32.Max and window.activateChoice(binary))
-    Swag.assert(window.currentView != view, "view still current")
-    Swag.assert(not view.playing, "still playing")
-    Swag.assert(not view.voice.isPlaying(), "voice still playing")
+    Swag.assert(window.currentView != view and not view.playing)
+    Swag.assert(view.voice != null and not view.voice.isPlaying())
+
+    // The binary report finishes before the film is chosen again: a viewer still loading is
+    // retired rather than kept, and the host waits for that.
+    let report = &window.instances[binary]
+    for 4_096 where report.isLoading and report.isLoading()
+    {
+        Threading.Thread.sleep(1'ms)
+        host.fireTimers()
+    }
 
     Swag.assert(window.activateChoice(film) and window.currentView == view)
-    Swag.assert(not view.playing and not view.voice!.isPlaying())
+    Swag.assert(not view.playing and not view.voice.isPlaying())
 }
 
 // Playback shortcuts belong to the active media viewer, not to whichever toolbar or panel

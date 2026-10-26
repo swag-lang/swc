@@ -39,8 +39,10 @@ ui_AnalysisMetrics      Entropie %{f2}/8 · zéro %{f1}%% · imprimable %{f1}%%
 ui_AnalysisNoBytes      Aucun octet analysé
 ui_AnalysisByteHint     Survolez la carte pour voir le compte exact
 ui_AnalysisByte         Octet %{X02} · % occurrences · %{f2}%%
+ui_AnalysisByteOnce     Octet %{X02} · 1 occurrence · %{f2}%%
 ui_AnalysisStrings      Chaînes inférées
 ui_AnalysisStringsCount % chaînes inférées
+ui_AnalysisOneString    1 chaîne inférée
 ui_AnalysisStringsLimited Premières % chaînes inférées · limite de résultats atteinte
 ui_AnalysisAscii        ASCII
 ui_AnalysisUtf16Little  UTF-16 LE

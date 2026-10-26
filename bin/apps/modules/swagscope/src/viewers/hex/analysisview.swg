@@ -190,7 +190,10 @@ private impl AnalysisView
 
         let count = .result.histogram[value]
         let share = cast(f64, count) * 100 / cast(f64, .result.scanned)
-        .byteLabel.setText(Format.toString(texts().ui_AnalysisByte, value, count, share))
+        if count == 1 do
+            .byteLabel.setText(Format.toString(texts().ui_AnalysisByteOnce, value, share))
+        else do
+            .byteLabel.setText(Format.toString(texts().ui_AnalysisByte, value, count, share))
     }
 
     mtd fillStringLine(line: *ListLine, index: u32)
@@ -241,6 +244,8 @@ private impl AnalysisView
 
         if .result.stringsTruncated do
             .stringsLabel.setText(Format.toString(texts().ui_AnalysisStringsLimited, .result.strings.count))
+        elif .result.strings.count == 1 do
+            .stringsLabel.setText(texts().ui_AnalysisOneString)
         else do
             .stringsLabel.setText(Format.toString(texts().ui_AnalysisStringsCount, .result.strings.count))
     }

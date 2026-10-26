@@ -408,16 +408,18 @@ impl GridView
         if available <= 0 or .charWidth <= 0 do
             return MinBytesPerRow
 
-        let unit      = .valueSize()
-        var candidate = MaxBytesPerRow / unit * unit
+        // A row ends on a group boundary, so offsets step by round values and every row shows the
+        // same column groups as the header.
+        let step      = Math.max(.displayGroupSize(), .valueSize())
+        var candidate = MaxBytesPerRow / step * step
         while candidate > MinBytesPerRow
         {
             if .contentWidthFor(candidate) <= available do
                 return candidate
-            candidate -= unit
+            candidate -= step
         }
 
-        return Math.max(MinBytesPerRow / unit * unit, unit)
+        return Math.max(MinBytesPerRow / step * step, step)
     }
 
     mtd computeMetrics()

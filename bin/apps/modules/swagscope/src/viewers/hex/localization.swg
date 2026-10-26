@@ -49,8 +49,10 @@ struct Texts
     ui_AnalysisNoBytes:        string = "No bytes were analyzed"                                                                              // Empty analysis result.
     ui_AnalysisByteHint:       string = "Point at the byte map to inspect an exact count"                                                     // Histogram interaction hint.
     ui_AnalysisByte:           string = "Byte %{X02} · % occurrences · %{f2}%%"                                                               // Exact count under the histogram pointer.
+    ui_AnalysisByteOnce:       string = "Byte %{X02} · 1 occurrence · %{f2}%%"                                                                // The same, for a byte seen once.
     ui_AnalysisStrings:        string = "Inferred strings"                                                                                    // Heading before string extraction completes.
     ui_AnalysisStringsCount:   string = "% inferred strings"                                                                                  // Complete inferred-string count.
+    ui_AnalysisOneString:      string = "1 inferred string"                                                                                   // The same, for a single string.
     ui_AnalysisStringsLimited: string = "First % inferred strings · result limit reached"                                                     // Bounded inferred-string count.
     ui_AnalysisAscii:          string = "ASCII"                                                                                               // Inferred single-byte text.
     ui_AnalysisUtf16Little:    string = "UTF-16 LE"                                                                                           // Inferred little-endian wide text.

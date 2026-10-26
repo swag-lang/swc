@@ -118,8 +118,10 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   percentage provides zoom presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
-  mute, volume, and matching keyboard controls, plus a playback-speed menu offering a 0.25x-2x playback
-  rate whose pitch follows the rate and whose time labels stay in source time.
+  mute, volume, and matching keyboard controls, plus one options button gathering the play mode,
+  a 0.25x-2x playback rate whose pitch follows the rate and whose time labels stay in source time,
+  the sound track, and the subtitle tracks, style and delay. The rate shows beside the button
+  while it is not the normal one.
   It indexes packets without decoding the file up front and keeps bounded picture and audio
   queues alongside codec reference buffers.
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
@@ -205,7 +207,7 @@ that has been played through: stop there, play it again, continue with the next 
 kind in its folder, or continue
 with a random one that has not had its turn in that folder yet, every file once before any comes
 again. Video and sound hand over when their stream ends, an animated picture when its animation
-has run one cycle, and a still picture after the time per picture the image viewer's menu sets, which turns
+has run one cycle, and a still picture after the time per picture the image viewer's options set, which turns
 a folder of pictures into a slideshow. The mode holds across files and sessions, the folder is
 walked whatever the panel filter shows, and a file the mode brings up stays out of the history.
 
@@ -262,10 +264,11 @@ with the exact decoder reason before attaching a view; the application presents 
 failure on the same error surface and owns cleanup of all contributed windows.
 
 Playback controls belong to the viewer's lower command group. The image viewer creates a
-`Viewer.PlaybackButton` there with `host.services().playback` and enables its still-picture
-duration submenu. The video viewer creates the same button for end-of-file modes and keeps its
-playback-speed menu separate. The host stores the shared policy and handles file continuation;
-it creates no playback button or menu.
+`Viewer.PlaybackButton` there with `host.services().playback`; it shows the mode in force and
+opens an option sheet with the play mode and the time per picture. The video viewer adds the same
+rows to its own options through `PlaybackApi.addOptionRows`, beside its speed, sound track and
+subtitles. The host stores the shared policy and handles file continuation; it creates no
+playback button or options.
 
 The fixture lives in `src/tests/datas`, is unique to that descriptor, and is a valid file the
 plugin can open. The key is never translated or reused because remembered viewer choices persist

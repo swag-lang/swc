@@ -9,6 +9,7 @@ ui_Files        Fichiers à côté de celui-ci
 ui_FullScreen   Plein écran (F11)
 ui_ExitFullScreen Quitter le plein écran (F11)
 ui_SameKind     Seulement les fichiers du même type
+ui_Options      Options
 ui_PlayMode     Mode de lecture
 ui_PlayOnce     S'arrêter à la fin
 ui_PlayRepeat   Répéter le fichier

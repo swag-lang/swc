@@ -51,6 +51,17 @@ impl Row
 
     // Reports whether activating the row would do something.
     mtd const isActive()->bool => .kind != .Heading and not .disabled
+
+    // Fills `page` with the rows of the page this link opens, as the sheet does when the reader activates it.
+    //
+    // This is how a test reads what a sheet would show two pages deep without opening it.
+    mtd const buildLink(page: *Page)
+    {
+        Swag.assert(.kind == .Link, "only a link opens a page")
+        page.title = .label.raw
+        let build = unwrap .open
+        build(page)
+    }
 }
 
 // The rows of one page of an option sheet, in display order.

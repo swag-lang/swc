@@ -113,14 +113,7 @@ func soundSample(sound: const *SoundFile, seconds: f64)->u64
     return cast(u64, Math.round(local * cast(f64, sound.sampleRateHz())))
 }
 
-// Menu identifiers of the audio track, playback speed, and subtitle track choices.
-private func audioTrackCommand(index: u32)->String => Format.toString("scope.video.audioTrack.%", index)
-
-private func playbackRateCommand(index: u32)->String => Format.toString("scope.video.player.speed.%", index)
-
-private func subtitleTrackCommand(sidecar: bool, index: u32)->String => Format.toString(sidecar ? "scope.video.subtitle.sidecar.%" : "scope.video.subtitle.embedded.%", index)
-
-// Moves one step through the playback rates offered by the speed menu.
+// Moves one step through the playback rates the options offer.
 private func playbackRateStep(current: f64, direction: s32)->f64
 {
     var currentIndex = 0's32
@@ -160,10 +153,7 @@ struct Panel
         forwardButton:   *IconButton
         timeline:        *Slider
         timeLabel:       *Label
-        speedButton:     *IconButton
-        playModeButton:  *Viewer.PlaybackButton
-        audioButton:     *IconButton
-        subtitleButton:  *IconButton
+        optionsButton:   *IconButton
         muteButton:      *IconButton
         volumeSlider:    *Slider
         imageView:       *ImageView
@@ -365,10 +355,7 @@ private impl Panel
         .timeline.toolTip       = texts().ui_TipSeek
         .muteButton.toolTip     = texts().ui_TipMute
         .volumeSlider.toolTip   = texts().ui_TipVolume
-
-        .audioButton.toolTip    = texts().ui_TipAudio
-        .subtitleButton.toolTip = texts().ui_TipSubtitles
-        .speedButton.toolTip    = texts().ui_TipPlaybackSpeed
+        .optionsButton.toolTip  = appStrings().ui_Options
 
         .refreshDetails()
     }
@@ -412,7 +399,7 @@ impl Panel
         // keeps correcting the picture back onto the sound.
         if .voice do
             catch .voice.setFrequencyRatio(cast(f32, rate))
-        .speedButton.setText(Format.toString("%×", rate))
+        .refreshOptionsBadge()
         .refreshDetails()
     }
 
@@ -801,7 +788,6 @@ private impl Panel
         if not .audioReady and audioCount
         {
             .audioReady = true
-            .audioButton.enable(audioCount > 1)
             .muteButton.enable(true)
             .volumeSlider.enable(true)
             if not Sound.acquireEngine() do
@@ -825,20 +811,22 @@ private impl Panel
         if not subtitleCount and .subtitleOverlay.sidecars.isEmpty() do
             return
 
-        .subtitleReady = true
-        .subtitleButton.enable(true)
+        .subtitleReady       = true
         .subtitleSource      = .subtitleOverlay.sidecars.isEmpty() ? .Embedded : .Sidecar
         .subtitleTrackIndex  = 0
         .subtitleLastSeconds = -1
     }
 
-    // Creates the transport in the command group: transport and seek buttons with the clock on the
-    // left, the rate, play-mode, track, and sound controls on the right, and the timeline between.
-    mtd createTransportBar(playback: Viewer.PlaybackApi)
+    // Writes the playback rate beside the options button while it is not the normal one.
+    mtd refreshOptionsBadge()
     {
-        let buttonSize    = themeActionButtonSize(.themeMetrics())
-        let dropDownWidth = themeDropDownButtonWidth(.themeMetrics())
+        Viewer.setOptionsBadge(.optionsButton, .playbackRate == 1 ? "" : Format.toString("%×", .playbackRate))
+    }
 
+    // Creates the transport in the command group: transport and seek buttons with the clock on the
+    // left, the options and the sound on the right, and the timeline between.
+    mtd createTransportBar()
+    {
         with .playButton = Viewer.createActionButton(.commands, .Play)
         {
             .dockStyle = .Left
@@ -882,41 +870,13 @@ private impl Panel
             .setTextAlignment(.Right, .Center)
         }
 
-        with .speedButton = IconButton.create(.commands, {}, Math.Rectangle{0, 0, dropDownWidth + 16, buttonSize}, flags: .CenterContent)
+        // One button gathers what used to be four drop-downs: play mode, speed, sound track and
+        // subtitles. The rate stays in sight beside it whenever it is not the normal one.
+        with .optionsButton = Viewer.createOptionsButton(.commands)
         {
-            .dockStyle = .Right
-            .margin.x  = 4
-            .toolTip   = texts().ui_TipPlaybackSpeed
-            .setArrowPosition(.RightUpward)
-            .setText(Format.toString("%×", me.playbackRate))
-            .sigPressed += func|view = me|(_) { view.showPlaybackSpeedMenu() }
-        }
-
-        with .playModeButton = Viewer.PlaybackButton.create(.commands, me, playback)
-        {
-            .dockStyle = .Right
-            .margin.x  = 4
-        }
-
-        with .audioButton = Viewer.createActionDropDown(.commands, .AudioTracks)
-        {
-            .dockStyle = .Right
-            .toolTip   = texts().ui_TipAudio
-            .setArrowPosition(.RightUpward)
-            .enable(false)
-            .sigPressed += func|view = me|(_) { view.showAudioTrackMenu() }
-        }
-
-        with .subtitleButton = IconButton.create(.commands, {}, Math.Rectangle{0, 0, dropDownWidth, buttonSize}, flags: .CenterContent)
-        {
-            .dockStyle = .Right
-            .margin.x  = 4
-            .toolTip   = texts().ui_TipSubtitles
-            .setText("CC")
-            .setArrowPosition(.RightUpward)
-            .style.setFont(me.theme().createDefaultFont(10, .Bold), .Regular)
-            .enable(false)
-            .sigPressed += func|view = me|(_) { view.showSubtitleMenu() }
+            .dockStyle  = .Right
+            .margin.x   = 4
+            .sigPressed += func|view = me|(_) { view.showOptions() }
         }
 
         with .volumeSlider = Slider.create(.commands, {0, 0, 96, 36})
@@ -978,7 +938,7 @@ private impl Panel
         result.commands    = host.createCommandGroup(CommandWidth)
         result.commands.preferredSize.x = 0
         result.information = MediaInfoPanel.create(host)
-        result.createTransportBar(services.playback)
+        result.createTransportBar()
 
         result.imageView = ImageView.create(result)
         result.imageView.dockStyle = .Center

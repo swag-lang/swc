@@ -703,9 +703,15 @@ private impl ListView
             pos.moveLeft(widthCheck + 4)
         }
 
-        // Take care of header item margin
-        if .list.header != null do
+        // Take care of header item margin. Content aligned away from the leading edge keeps the
+        // same inset from the trailing one, so a right-aligned figure does not touch the column
+        // that follows it.
+        if .list.header != null
+        {
             pos.moveLeft(.list.header.itemPadding)
+            if item.horzAlign != .Left do
+                pos.width = Math.max(pos.width - .list.header.itemPadding, 0)
+        }
 
         // Left margin, or icon
         result.icon = item.icon

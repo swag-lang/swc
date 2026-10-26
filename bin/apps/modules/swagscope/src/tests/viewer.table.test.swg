@@ -11,6 +11,13 @@ using Core, Pixel, Gui, Viewers
     Swag.assert(not Viewer.isByteRangeInBounds(4, 1, Swag.U64.Max))
 }
 
+// Quantities align on the right; a word, or a cell with no digit at all, keeps the column textual.
+#test
+{
+    Swag.assert(Table.isNumericCell("148") and Table.isNumericCell("-3.5") and Table.isNumericCell("1,234 %"))
+    Swag.assert(not Table.isNumericCell("") and not Table.isNumericCell("-") and not Table.isNumericCell("v2"))
+}
+
 #test
 {
     Table.registerTexts(&g_App)

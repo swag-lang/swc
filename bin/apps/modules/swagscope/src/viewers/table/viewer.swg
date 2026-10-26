@@ -301,6 +301,22 @@ func delimiterKind(delimiter: u8)->string
     }
 }
 
+// Reports whether `text` reads as a quantity: digits, with signs, separators, and a percent sign
+// as the only other characters.
+func isNumericCell(text: string)->bool
+{
+    var digits = false
+    for byte in text
+    {
+        if byte >= '0' and byte <= '9' do
+            digits = true
+        elif byte != '+' and byte != '-' and byte != '.' and byte != ',' and byte != '%' and byte != ' ' do
+            return false
+    }
+
+    return digits
+}
+
 private func countText(count: u64, one, many: string)->String
 {
     if count == 1 do
@@ -316,6 +332,7 @@ struct Panel
     late list: *ListCtrl
 
     document:      Document
+    numeric:       Array'bool
     searchRow:     u64 = Swag.U64.Max
     searchColumn:  u64
     searchOffset:  u64
@@ -373,15 +390,27 @@ private impl Panel
     }
 
     // Creates the columns, each sized from its name and the first 128 rows, then shows the rows
-    // virtually.
+    // virtually. A column whose values all read as quantities is aligned on the right, where
+    // their digits line up the way a reader compares them.
     mtd publishDocument()
     {
         .refreshColumnNames()
         for column, index in .document.columns
         {
             var longest = column.length
-            for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count do
+            var numeric = false
+            var textual = false
+            for row in .document.rows.toSlice()[until Math.min(.document.rows.count, 128)] where index < row.cells.count
+            {
+                let cell = row.cells[index].toString()
                 longest = Math.max(longest, row.cells[index].length)
+                if isNumericCell(cell) do
+                    numeric = true
+                elif cell.count do
+                    textual = true
+            }
+
+            .numeric.add(numeric and not textual)
             let width = Math.clamp(cast(f32, longest) * CellWidth + 24, ColumnMinWidth, ColumnMaxWidth)
             let range = cellPreviewRange(column.toString())
             .list.addColumn(column.toString()[range.start until range.end], width)
@@ -418,6 +447,8 @@ private impl Panel
             let value = column < row.cells.count ? row.cells[column].toString() : ""
             let range = cellPreviewRange(value, index == .searchRow and column == .searchColumn ? .searchOffset : Swag.U64.Max)
             let item  = line.setItem(cast(u32, column), value[range.start until range.end])
+            if column < .numeric.count and .numeric[column] do
+                item.horzAlign = .Right
             if index == .searchRow and column == .searchColumn
             {
                 item.colorBk = .themeColors().edit_SelectedBk

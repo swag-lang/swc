@@ -16,6 +16,7 @@ const SlideDefaultSeconds   = 5'f32        // Initial duration of a still pictur
 const SlideMinSeconds       = 1'f32        // Shortest supported still-picture duration.
 const SlideMaxSeconds       = 3600'f32     // Longest supported still-picture duration.
 const SlideChoices: [5] f32 = [3, 5, 10, 30, 60]     // Still-picture durations offered by the playback menu, in seconds.
+const VolumeStep            = 0.05'f32     // Volume change of one Up or Down key press in a media viewer.
 
 // Shared playback preferences, retained by the host across files and viewer instances.
 struct PlaybackSettings

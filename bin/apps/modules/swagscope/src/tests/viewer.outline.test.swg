@@ -50,38 +50,6 @@ using Core, Pixel, Gui, Gui.Testing, Viewers
     Swag.assert(scroll.scrollPosition().y < 2)
 }
 
-#test
-{
-    let bodies = [
-        "<office:text><text:h text:outline-level='1'>Guide</text:h><text:p>Introduction</text:p><text:h text:outline-level='3'>Details</text:h><text:p>Explanation</text:p></office:text>",
-        "<office:spreadsheet><table:table table:name='First'><table:table-row><table:table-cell><text:p>Cell</text:p></table:table-cell></table:table-row></table:table><table:table table:name='Second'><table:table-row><table:table-cell><text:p>Other cell</text:p></table:table-cell></table:table-row></table:table></office:spreadsheet>",
-        "<office:presentation><draw:page draw:name='First'><text:h>First</text:h></draw:page><draw:page draw:name='Second'><text:h>Second</text:h></draw:page></office:presentation>",
-        "<office:drawing><draw:page draw:name='First'><text:h>First</text:h></draw:page><draw:page draw:name='Second'><text:h>Second</text:h></draw:page></office:drawing>"]
-    let extensions = [".fodt", ".fods", ".fodp", ".fodg"]
-    for body, index in bodies
-    {
-        let fileName = Testing.tempFilePath("scope-outline-", extensions[index])
-        let source   = Format.toString("<?xml version='1.0'?><office:document-content xmlns:office='urn:o' xmlns:text='urn:t' xmlns:table='urn:table' xmlns:draw='urn:draw'><office:body>%</office:body></office:document-content>", body)
-        discard expect File.writeAllBytes(fileName, source)
-        defer discard catch File.delete(fileName)
-        var host: HeadlessHost
-        host.setup(640, 360)
-        var session = openTestViewer(OpenDocument.viewerPlugin(), &host.root, fileName)
-        let view    = assume cast(*OpenDocument.Panel, session.view)
-        completeViewerBackgroundLoad(&host, &view.load)
-        Swag.assert(view.failureReason.isEmpty())
-        let outline = unwrap view.outline
-        Swag.assert(outline.rows.count == 2)
-        outline.list.selectLine(1)
-        if index == 0 do
-            Swag.assert(outline.rows[1].level == 1 and not outline.rows[0].canExpand())
-        elif index == 1 do
-            Swag.assert(view.sheetIndex == 1)
-        else do
-            Swag.assert(view.slideIndex == 1)
-    }
-}
-
 // The panel is hosted at the information edge and exposes the document hierarchy in both languages.
 #[Swag.TestTag("golden")]
 #test

@@ -82,7 +82,7 @@ impl RollView
     mtd const keyCount()->u32        => cast(u32, .highKey - .lowKey + 1)
     mtd const keyAtRow(row: u32)->u8 => cast(u8, cast(u32, .highKey) - row)
 
-    mtd summaryText()->String => Format.toString(texts().ui_Summary, .document.tracks.count, .selectedNoteCount(), Viewer.durationText(.document.durationSeconds), .document.bpm(), .document.meterText(), .document.keyText())
+    mtd summaryText()->String => Format.toString(texts().ui_Summary, trackCountText(.document.tracks.count), noteCountText(.selectedNoteCount()), Viewer.durationText(.document.durationSeconds), .document.bpm(), .document.meterText(), .document.keyText())
 
     // Recomputes the piano-roll geometry: the key range with two keys of margin, the row height,
     // the ticks per beat and the timeline width, fitting the whole piece when `fit` is set.
@@ -281,7 +281,8 @@ impl RollView
             }
         }
 
-        painter.drawLine(left + ContentInset + .keyboardWidth, .plotTop, left + ContentInset + .keyboardWidth, .clientRect().height - ContentInset, colors.border, 1)
+        let plotBottom = .plotTop + cast(f32, .keyCount()) * .rowHeight
+        painter.drawLine(left + ContentInset + .keyboardWidth, .plotTop, left + ContentInset + .keyboardWidth, plotBottom, colors.border, 1)
     }
 }
 

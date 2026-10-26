@@ -75,9 +75,6 @@ impl ViewerReadingState
         case Viewers.Html.Panel as view:
             .zoom = view.zoomPercent
 
-        case Viewers.OpenDocument.Panel as view:
-            .zoom = view.zoomPercent
-
         case Viewers.PdfDocument.Panel as view:
             .pdfZoom     = view.pdfView.zoom
             .pdfZoomMode = view.pdfView.zoomMode
@@ -123,9 +120,6 @@ impl ViewerReadingState
             view.setZoom(.zoom)
 
         case Viewers.Html.Panel as view:
-            view.setZoom(.zoom)
-
-        case Viewers.OpenDocument.Panel as view:
             view.setZoom(.zoom)
         }
 

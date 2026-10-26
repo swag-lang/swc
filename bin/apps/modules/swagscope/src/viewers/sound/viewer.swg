@@ -840,6 +840,9 @@ impl IWnd for Panel
         case .Left:                   .seekRelative(-SeekSeconds)
         case .Right:                  .seekRelative(SeekSeconds)
         case .M, .VolumeMute:         .setMuted(not .muted)
+        case .Up:                     .setVolume(Math.min(.volume + Viewer.VolumeStep, 1))
+        case .Down:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
+        case .Home:                   .seekSeconds(0)
         case .MediaStop:              .stopPlayback()
         default:                      evt.accepted = false
         }

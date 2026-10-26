@@ -100,16 +100,16 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
 
 - Evidence: `choices` reads the head of a file once and lets a descriptor claim it from its own
   bytes, and `html`, `code`, `pdf`, `font`, `midi`, `archive`, and `text` do. `image`, `video`,
-  `sound`, `opendocument`, and `indesign` cannot: `Pixel.Image.decode`, `Video.Reader.open`, and
-  `Audio.SoundFile.load` select a codec from the filename extension alone, and the two office
-  viewers read `.fodt` against `.odt` and `.indd` against `.idml` to decide how to open the file.
+  `sound`, and `indesign` cannot: `Pixel.Image.decode`, `Video.Reader.open`, and
+  `Audio.SoundFile.load` select a codec from the filename extension alone, and the InDesign
+  viewer reads `.indd` against `.idml` to decide how to open the file.
   A JPEG named `.dat` is therefore still offered as bytes only, and a viewer that claimed it from
   its signature would then fail to open it.
 - Next: give the three decoder registries a content-based lookup, as a signature predicate declared
   beside the extension list each codec already publishes plus one `decoderFor(bytes)` entry point
-  per module, then add the missing probes and let the two office viewers decide their container
+  per module, then add the missing probes and let the InDesign viewer decide its container
   from the head instead of the name.
-- Done when: a raster image, a video container, a sound file, an OpenDocument package, and an
+- Done when: a raster image, a video container, a sound file, and an
   InDesign document are each offered their own viewer through a copy renamed to an extension
   nothing claims, and every viewer a probe offers can open the file it claimed.
 - Related: app.scope.image.001, app.scope.viewers.012
@@ -196,7 +196,7 @@ integration belongs to [platform.portability.md](platform.portability.md). Reusa
 | Tabular text | `.csv` `.tsv` `.tab` | table up to 32 MiB, and raw text | bounded streaming, dialect, sort/filter, types | [app.scope.text.015](app.scope.text.md), [app.scope.text.016](app.scope.text.md) |
 | PDF | `.pdf` | page rendering, bookmarks, single-page and continuous layouts | partial pages, thumbnails, facing pages | [app.scope.document.011](app.scope.document.md), [app.scope.document.012](app.scope.document.md), [std.gui.pdf.038](std.gui.pdf.md), [std.gui.pdf.md](std.gui.pdf.md) |
 | Office OOXML | `.docx` `.xlsx` `.pptx` | structure | readable text and sheets | [app.scope.document.020](app.scope.document.md) |
-| OpenDocument | `.odt` `.ott` `.fodt` `.ods` `.ots` `.fods` `.odp` `.otp` `.fodp` `.odg` `.otg` `.fodg` | readable text, sheets, slides, and drawing pages | layout, semantics, inspection, and fidelity | [OpenDocument roadmap](app.scope.opendocument.md) |
+| OpenDocument | `.odt` `.ods` `.odp` | structure; the partial reader was withdrawn | a complete reader for text, sheets, slides, and drawings | [OpenDocument roadmap](app.scope.opendocument.md) |
 | Legacy Office | `.doc` `.xls` `.ppt` | signature | out of scope | — |
 | EPUB | `.epub` | structure | spine read through `HtmlView` | [app.scope.document.021](app.scope.document.md) |
 | RTF | `.rtf` | raw text, recognized from its content | a safe document renderer | — |

@@ -24,7 +24,6 @@ enum ViewerIcons
     Subtitle         // Timed subtitle viewer.
     Archive          // Compressed-archive browser.
     Indesign         // Native InDesign saved-preview viewer.
-    OpenDocument     // OpenDocument text, spreadsheet, presentation, and drawing viewer.
 }
 
 private const IconsSvg = #include("../datas/icons.svg")

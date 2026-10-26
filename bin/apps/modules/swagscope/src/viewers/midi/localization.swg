@@ -8,7 +8,7 @@ struct Texts
 {
     ui_AllTracks:        string = "All tracks"
     ui_TrackName:        string = "Track %"
-    ui_TrackChoice:      string = "% — % notes"
+    ui_TrackChoice:      string = "% — %"
     ui_ZoomOut:          string = "Zoom out"
     ui_ZoomIn:           string = "Zoom in"
     ui_Fit:              string = "Fit complete score"
@@ -22,8 +22,12 @@ struct Texts
     ui_KeyboardWide:     string = "Wide"
     ui_PianoRoll:        string = "PIANO ROLL"
     ui_NoNotes:          string = "No note events"
-    ui_Summary:          string = "% tracks · % notes · % · % BPM · % · %"
-    ui_Details:          string = "MIDI format % · % tracks · % notes · %"
+    ui_OneTrack:         string = "1 track"
+    ui_Tracks:           string = "% tracks"
+    ui_OneNote:          string = "1 note"
+    ui_Notes:            string = "% notes"
+    ui_Summary:          string = "% · % · % · % BPM · % · %"
+    ui_Details:          string = "MIDI format % · % · % · %"
     ui_Major:            string = "major"
     ui_Minor:            string = "minor"
     err_TooLarge:        string = "the MIDI viewer accepts files up to 32 MiB"
@@ -40,6 +44,10 @@ private var g_Texts: Texts
 
 // Returns the visible strings of the MIDI viewer in the active language.
 func texts()->const *Texts => &g_Texts
+
+// Counts tracks and notes in the active language, singular for one.
+func trackCountText(count: u64)->String => count == 1 ? String.from(texts().ui_OneTrack) : Format.toString(texts().ui_Tracks, count)
+func noteCountText(count: u64)->String  => count == 1 ? String.from(texts().ui_OneNote) : Format.toString(texts().ui_Notes, count)
 
 // Registers this viewer's string table with the application.
 func registerTexts(app: *Application)

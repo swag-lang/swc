@@ -639,6 +639,9 @@ private impl IWnd for Panel
         case .Left:                   .seekRelative(-SeekSeconds)
         case .Right:                  .seekRelative(SeekSeconds)
         case .M, .VolumeMute:         .setMuted(not .muted)
+        case .Up:                     .setVolume(Math.min(.volume + Viewer.VolumeStep, 1))
+        case .Down:                   .setVolume(Math.max(.volume - Viewer.VolumeStep, 0))
+        case .Home:                   .seekSeconds(0)
         case .MediaStop:              .stopPlayback()
         default:                      evt.accepted = false
         }
@@ -688,7 +691,7 @@ private impl Panel
                 data.add(.Name, track.displayName())
             if track.language().count do
                 data.add(.Language, track.language())
-            data.add(.Encoding, Format.toString("%", track.sampleEncoding()))
+            data.add(.Encoding, audioEncodingText(track.sampleEncoding()))
             data.add(.SampleRate, Format.toString("% Hz", track.sampleRateHz()))
             data.add(.Channels, Format.toString("%", track.numChannels()))
         }
@@ -703,7 +706,7 @@ private impl Panel
                 data.add(.Name, track.name)
             if not track.language.isEmpty() do
                 data.add(.Language, track.language)
-            data.add(.Format, Format.toString("%", track.format))
+            data.add(.Format, subtitleFormatText(track.format))
         }
 
         .information.publish(&data)

@@ -1,15 +1,29 @@
 # Swag Scope OpenDocument Backlog
 
-This backlog owns the OpenDocument decoder and reader in Swag Scope. It is deliberately a
-read-only product: opening a package must never execute a macro, a formula, a script, a linked
+This backlog owns the OpenDocument reader Swag Scope will ship once it is complete. It is
+deliberately a read-only product: opening a package must never execute a macro, a formula, a script, a linked
 resource, or an embedded application. A feature-complete outcome means that a supported ODF
 document keeps its readable semantics, layout, navigation, metadata, and safe local media, while
 every unsupported component is named rather than silently discarded.
 
-The current reader opens ODT, ODS, ODP, ODG, their templates, and Flat XML variants. It reads
-basic text structure, common text emphasis, bounded package raster images, every spreadsheet sheet,
-and every presentation slide or drawing page. It is a readable-content decoder, not yet an ODF
-layout engine or a complete package model.
+No reader ships today: ODF packages open in the Archive and Binary viewers only. The partial
+reader that rendered text structure, emphasis, package images, sheets, and slides was withdrawn
+because a viewer that shows part of a document misleads its reader. The entries below were
+written against it; its decoder, tests, and CC0 fixtures remain in the history of
+`bin/apps/modules/swagscope/src/viewers/opendocument/` for the complete implementation to start
+from.
+
+### app.scope.opendocument.023 — Ship a complete OpenDocument reader
+
+- Evidence: `.odt`, `.ods`, `.odp`, and `.odg` have no format viewer; the withdrawn reader dropped
+  page layout, most styles, drawing primitives, spans, charts, and notes, and showed the rest as
+  if it were the document.
+- Next: rebuild the reader on a verified package model (app.scope.opendocument.001) and a resolved
+  style graph (app.scope.opendocument.005), then bring each family back only when its entries below
+  are done.
+- Done when: every ODF family Swag Scope offers to open renders its stored layout faithfully, and
+  every component it cannot show is named rather than silently dropped.
+- Related: app.scope.opendocument.022, app.scope.document.020
 
 ### app.scope.opendocument.017 — Unify the existing ODF outline with richer navigation and search
 

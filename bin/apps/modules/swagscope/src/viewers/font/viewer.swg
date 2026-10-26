@@ -39,7 +39,7 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const CommandWidth = 456.0
+private const CommandWidth = 512.0
 
 // What loading a font file produces: its bytes, the face and typeface built on them, and the
 // details line.
@@ -252,7 +252,7 @@ impl Panel
             }
         }
 
-        with .pageLabel = IconButton.create(.commands, {}, {0, 0, 108, 36}, "scope.font.range", .CenterContent)
+        with .pageLabel = IconButton.create(.commands, {}, {0, 0, 164, 36}, "scope.font.range", .CenterContent)
         {
             .dockStyle = .Left
             .margin.x  = 8

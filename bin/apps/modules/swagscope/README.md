@@ -99,22 +99,6 @@ alternative instead of guessing an encoding.
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. Source files
   are capped at 32 MiB; larger tables retain the bounded streamed basic-text alternative.
-- `OpenDocument` opens OpenDocument files, templates, and Flat XML variants (`.odt`, `.ott`,
-  `.fodt`, `.ods`, `.ots`, `.fods`, `.odp`, `.otp`, `.fodp`, `.odg`, `.otg`, and `.fodg`) without starting LibreOffice or a
-  macro runtime. It reads the archive's declared MIME type or bounded UTF-8 Flat XML, then renders
-  document heading levels, paragraphs, bulleted and numbered lists, tables, explicit links, and common automatic text
-  emphasis (bold, italic, underline, strikeout, superscript, and subscript), relative font sizes, paragraph alignment,
-  and named styles
-  from `styles.xml`, through the offline HTML reader. Bounded local package images are embedded as
-  data URIs and their bounded frame dimensions; remote image references remain inactive. Spreadsheet cells retain cached source values
-  but formulas never execute. The bounded title, subject, and creator from `meta.xml` remain available to the reader, and the title appears in its document details.
-  Text documents and presentations provide the standard zoom control and
-  keyboard shortcuts. Repeated table content is capped at 100,000 rows and 1,000,000 cells per sheet.
-  Each spreadsheet sheet uses the same virtual table surface as CSV, and each presentation slide or drawing page is
-  an isolated reading surface. A compact selector appears when needed; Left/Right, Page Up/Page Down,
-  and Home/End navigate presentation slides and drawing pages; shared search reveals results
-  across every sheet or slide. Links only open after an explicit activation; linked resources,
-  scripts, and macros are never loaded or executed.
 - `Image` maps encoded raster and SVG input read-only, so decoding does not first allocate a
   second file-sized heap buffer. It uses Pixel decoders for BMP, DDS, EXR, GIF, ICO, JPEG, KTX2,
   PNG, PSD, QOI, TGA, TIFF, and WebP, plus Pixel's SVG parser. It plays GIF, APNG, and WebP
@@ -285,8 +269,8 @@ it. A built-in glyph remains a 24-unit cell in `datas/icons.svg` with a matching
 case in grid order; a separately built plugin would name a cell of the document it embeds itself.
 
 Keep tests at `src/tests/viewer.<format>.test.swg`, fixtures in `src/tests/datas`, and image goldens
-in `src/tests/goldens`. The OpenDocument suite also opens immutable external CC0 fixtures from all
-three document families; their source URLs, license, and hashes are recorded in `datas/THIRDPARTY.md`.
+in `src/tests/goldens`. External fixtures record their source URLs, license, and hashes in
+`datas/THIRDPARTY.md`.
 Run a focused test with:
 
 ```text

@@ -150,11 +150,11 @@ integration around those engines.
 ### app.scope.document.020 — Office Open XML files stop at the ZIP structure
 
 - Evidence: `.docx`, `.xlsx`, and `.pptx` are selected only by the Archive and Binary viewers,
-  so they still show a list of parts. OpenDocument files have their own reader, but the
-  Microsoft Office family needs the same readable-content boundary.
+  so they still show a list of parts, as OpenDocument files do since their partial reader was
+  withdrawn (app.scope.opendocument.023).
 - Next: identify the shared document structure that can read paragraphs, headings, lists, tables,
-  and spreadsheet cells without expanding the OpenDocument decoder into an Office compatibility
-  layer.
+  and spreadsheet cells for both office families, so the complete OpenDocument reader and this one
+  do not grow two compatibility layers.
 - Done when: Office Open XML documents open through readable document and table surfaces rather
   than only their ZIP hierarchy.
 - Related: app.scope.text.015, app.scope.binary.010

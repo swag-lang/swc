@@ -84,7 +84,7 @@ private impl Panel
         .trackCombo.addItem(texts().ui_AllTracks)
         for track in .roll.document.tracks
         {
-            let label = Format.toString(texts().ui_TrackChoice, track.name, track.noteCount)
+            let label = Format.toString(texts().ui_TrackChoice, track.name, noteCountText(track.noteCount))
             .trackCombo.addItem(label)
         }
 
@@ -143,7 +143,7 @@ private impl Panel
     // Rebuilds the host summary in the active language and reports it.
     mtd refreshDetails()
     {
-        .details = Format.toString(texts().ui_Details, .roll.document.format, .roll.document.tracks.count, .roll.document.notes.count, Viewer.durationText(.roll.document.durationSeconds))
+        .details = Format.toString(texts().ui_Details, .roll.document.format, trackCountText(.roll.document.tracks.count), noteCountText(.roll.document.notes.count), Viewer.durationText(.roll.document.durationSeconds))
         .services.showDetails(me, .details)
     }
 

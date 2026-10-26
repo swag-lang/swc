@@ -104,6 +104,20 @@ func audioEncodingText(encoding: Audio.SoundFileEncoding)->string
     }
 }
 
+// Names a subtitle syntax the way its specification spells it.
+func subtitleFormatText(format: Video.Subtitle.Format)->string
+{
+    switch #complete format
+    {
+    case .SubRip:          return "SubRip"
+    case .WebVtt:          return "WebVTT"
+    case .SubStationAlpha: return "SubStation Alpha"
+    case .Lyric:           return "LRC"
+    case .MicroDvd:        return "MicroDVD"
+    case .MatroskaText:    return "Matroska"
+    }
+}
+
 // Formats the active sound track for the information bar.
 func audioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(texts().ui_AudioDetails, audioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
 

@@ -99,7 +99,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     var result: retval
     let extension = String.toLower(Path.extension(fileName))
     result.information.add(.Image, group: true)
-    result.information.add(.Format, extension.toUpper())
+    result.information.add(.Format, String.toUpper(extension.toString()[Math.min(extension.count, 1) to]))
     if extension == ".svg"
     {
         result.drawing      = try loadViewerDrawing(fileName)
@@ -118,7 +118,7 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         result.facts.bits   = frame.bitsPerPixel
         result.facts.frames = result.movie.frameCount
         result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height))
-        result.information.add(.PixelFormat, Format.toString("%", frame.pixelFormat))
+        result.information.add(.PixelFormat, Reflection.enumName(PixelFormat, &frame.pixelFormat, fullyQualified: false))
         result.information.add(.Depth, Format.toString("%", frame.bitsPerPixel))
         if result.movie.frameCount > 1 do
             result.information.add(.Frames, Format.toString("%", result.movie.frameCount))

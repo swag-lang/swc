@@ -42,12 +42,22 @@ private impl IWnd for InfoControls
     mtd impl measureContent(_: Math.Point)->Math.Point => .preferredSize
 }
 
-// What opening a PDF produces: the reader, its first page, its outline, and the details line.
+// What the details line says about a document: its length, the size of its first page, and the
+// title and author it declares.
+struct DocumentFacts
+{
+    pageCount: u64
+    pageSize:  Math.Point     // In points, or zero when the first page has no readable box.
+    title:     String
+    author:    String
+}
+
+// What opening a PDF produces: the reader, its first page, its outline, and its facts.
 struct ViewerContent
 {
     reader:  Pdf.Reader
     page:    Pdf.Page
-    details: String
+    facts:   DocumentFacts
     outline: Array'Pdf.OutlineEntry
 }
 
@@ -58,8 +68,68 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     result.outline = result.reader.loadOutline()
     if not result.reader.pageCount() do
         fail Errors.InvalidFormatError{texts().err_NoPage}
-    result.page    = #move try result.reader.loadPage(0)
-    result.details = "PDF"
+    result.page = #move try result.reader.loadPage(0)
+
+    let metadata = result.reader.metadata()
+    with result.facts
+    {
+        .pageCount = result.reader.pageCount()
+        .pageSize  = catch result.reader.pageSize(0)
+        .title     = String.from(Latin1.trim(metadata.title.toString()))
+        .author    = String.from(Latin1.trim(metadata.author.toString()))
+    }
+
+    return result
+}
+
+// Names a page size the way a reader asks for paper: a standard format in either orientation,
+// or its millimetres otherwise.
+func paperText(size: Math.Point)->String
+{
+    let papers: [6] { name: string, width: f32, height: f32 } = [
+        {name: "A3", width: 842, height: 1191},
+        {name: "A4", width: 595, height: 842},
+        {name: "A5", width: 420, height: 595},
+        {name: "Letter", width: 612, height: 792},
+        {name: "Legal", width: 612, height: 1008},
+        {name: "Tabloid", width: 792, height: 1224}]
+
+    let shortSide = Math.min(size.x, size.y)
+    let longSide  = Math.max(size.x, size.y)
+    for paper in papers where Math.abs(shortSide - paper.width) <= 3 and Math.abs(longSide - paper.height) <= 3 do
+        return String.from(paper.name)
+
+    const MillimetresPerPoint = 25.4'f32 / 72
+    return Format.toString("% × % mm", cast(u32, Math.round(size.x * MillimetresPerPoint)), cast(u32, Math.round(size.y * MillimetresPerPoint)))
+}
+
+// Builds the details line of a document in the active language.
+func detailsText(facts: const *DocumentFacts)->String
+{
+    var result: retval = "PDF"
+    result += " · "
+    if facts.pageCount == 1 do
+        result += texts().ui_OnePage
+    else do
+        result += Format.toString(texts().ui_Pages, facts.pageCount)
+    if facts.pageSize.x > 0 and facts.pageSize.y > 0
+    {
+        result += " · "
+        result += paperText(facts.pageSize)
+    }
+
+    if not facts.title.isEmpty()
+    {
+        result += " · "
+        result += facts.title
+    }
+
+    if not facts.author.isEmpty()
+    {
+        result += " · "
+        result += facts.author
+    }
+
     return result
 }
 
@@ -68,6 +138,7 @@ struct Panel
 {
     using wnd:     Wnd
     details:       String
+    facts:         DocumentFacts
     services:      Viewer.HostServices
     load:          Viewer.BackgroundLoad'ViewerContent
     failureReason: String
@@ -95,6 +166,11 @@ private impl IWnd for Panel
             .nextButton.toolTip     = texts().ui_Next
             .pageLabel.toolTip      = texts().ui_GoToPage
             .zoomLabel.toolTip      = texts().ui_ZoomMenu
+            if .facts.pageCount
+            {
+                .details = detailsText(&.facts)
+                .services.showDetails(me, .details)
+            }
         }
 
         .wnd.IWnd.onNotifyEvent(evt)
@@ -126,7 +202,8 @@ private impl IWnd for Panel
             .outline.refresh()
         }
 
-        .details = #move content.details
+        .facts   = #move content.facts
+        .details = detailsText(&.facts)
         .applyLayout()
         .refreshNavigation()
         .setInitialFocus(.pdfView)

@@ -12,5 +12,7 @@ ui_GoToPage  Aller à la page
 ui_PageRange Numéro de page entre 1 et %.
 ui_Continuous Continu
 ui_SinglePage Page par page
+ui_OnePage    1 page
+ui_Pages      % pages
 
 err_NoPage le document PDF ne contient aucune page

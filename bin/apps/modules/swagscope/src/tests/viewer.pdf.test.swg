@@ -7,6 +7,8 @@ private func createPdfFixture()->String
 {
     let fileName = Gui.Testing.tempFilePath("scope-pdf-", ".pdf")
     var document = Pdf.Document.create()
+    document.metadata.title  = "Viewer fixture"
+    document.metadata.author = "Swag Scope"
     var first    = Pdf.Page.create(320, 220)
     first.addText("PDF viewer", 32, 28, 24, Color.fromArgb(Argb.Black))
     document.addPage(#move first)
@@ -35,7 +37,8 @@ private func createPdfFixture()->String
     let view = assume cast(*PdfDocument.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     assertViewerInfoButton(view.zoomLabel)
-    Swag.assert(view.details == "PDF")
+    Swag.assert(view.details == "PDF · 2 pages · 113 × 78 mm · Viewer fixture · Swag Scope")
+    Swag.assert(PdfDocument.paperText({842, 595}) == "A4" and PdfDocument.paperText({612, 792}) == "Letter")
     view.resize(640, 420)
     view.applyLayout()
 

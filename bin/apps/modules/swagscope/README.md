@@ -130,7 +130,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   video sync frame without moving or stretching sound.
 - `Sound` uses the Audio module to stream WAV (PCM, float, and ADPCM), FLAC, MP3, AAC, AC-3, E-AC-3, DTS,
   Ogg Vorbis, and Opus files. Its transport provides the same
-  basic time, seek, mute, volume, and keyboard controls as video. Playback does not retain the
+  basic time, seek, mute, volume, and keyboard controls as video, and names the recording by the title,
+  artist, album, and year of its ID3 or Vorbis tags. Playback does not retain the
   complete payload, and a low-priority worker builds the waveform from bounded blocks.
 - `Font` renders TrueType fonts and the first face of a TrueType collection as a live specimen.
   Its paged character map walks mapped Unicode scalars without materializing the whole map; the

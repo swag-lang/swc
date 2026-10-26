@@ -459,6 +459,7 @@ struct Panel
     retireRequested: bool
     retired:         bool
 
+    tags:     SoundTags     // Written by the open worker; read only once it has finished.
     details:  String
     services: Viewer.HostServices
 }
@@ -511,11 +512,24 @@ impl Panel
     // Rebuilds the host summary in the active language and reports it.
     mtd refreshDetails()
     {
-        .details = Format.toString(texts().ui_Details,
-                                   .sound.sampleRateHz(),
-                                   channelCountText(.sound.numChannels()),
-                                   .sound.sampleStorageBits(),
-                                   durationText(.duration))
+        let format = Format.toString(texts().ui_Details,
+                                     .sound.sampleRateHz(),
+                                     channelCountText(.sound.numChannels()),
+                                     .sound.sampleStorageBits(),
+                                     durationText(.duration))
+
+        // What the recording is comes before how it is stored.
+        var names: Array'string
+        for name in [.tags.title.toString(), .tags.artist.toString(), .tags.album.toString(), .tags.year.toString()] where name.count do
+            names.add(name)
+        .details.clear()
+        for name in names
+        {
+            .details += name
+            .details += " · "
+        }
+
+        .details += format
         .services.showDetails(me, .details)
     }
 
@@ -961,7 +975,13 @@ impl Panel
         // A worker allocates with the default allocator, so the owned packet table it builds can
         // be handed to the GUI thread.
         let view = result
-        result.openTask.submit(func|view|()->SoundFile fail => try SoundFile.load(view.openFileName, preloadData: false),
+        result.openTask.submit(func|view|()->SoundFile fail
+        {
+            // The tags are read beside the sound, and the GUI thread reads neither until the
+            // task has finished.
+            view.tags = SoundTags.read(view.openFileName)
+            return try SoundFile.load(view.openFileName, preloadData: false)
+        },
                                result.taskNotifier(&result.openTask))
         return result
     }

@@ -19,6 +19,27 @@ using Swag, Core
     Swag.assert(line.dirtyStyle)
 }
 
+// The line-number gutter holds at least three digits, widens for longer numbers, and moves the
+// text and the caret past it.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(420, 220)
+
+    let ed = RichEditCtrl.create(&host.root, {0, 0, 400, 200})
+    ed.marginLeft = 4
+    ed.setText("first\nsecond")
+    Swag.assert(ed.leftMargin() == 4)
+
+    ed.setFlags(.LineNumbers)
+    let advance = ed.xGlyphSize().x
+    Swag.assert(ed.leftMargin() == 4 + 6 * advance)
+    Swag.assert(ed.cursorDisplayPosition({1, 0}).x == ed.leftMargin())
+
+    ed.setFirstLineNumber(99_999)
+    Swag.assert(ed.leftMargin() == 4 + 9 * advance)
+}
+
 // The built-in namespace keeps its own style while its member retains the semantic style.
 #test
 {

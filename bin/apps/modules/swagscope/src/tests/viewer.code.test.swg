@@ -50,6 +50,32 @@ struct CodeLanguageSample
     Swag.assert(Utf8.contains(result.failureReason.toSlice(), Code.texts().err_ZeroByte))
 }
 
+// A resident window revealed deep in a long source keeps numbering the lines of the whole file,
+// counting forward from the window already numbered and back from the start of the file.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-code-lines-", ".cpp")
+    defer discard catch File.delete(fileName)
+    var source: String
+    for index in 40_000 do
+        source += Format.toString("int value% = %;\n", index, index)
+    discard expect File.writeAllText(fileName, source)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var result = openTestViewer(Code.viewerPlugin(), &host.root, fileName, commandParent: &host.root)
+    let view   = assume cast(*Code.Panel, result.view)
+    Swag.assert(view.editor.flags.has(.LineNumbers))
+
+    let line30000 = source.indexOf("int value30000 ")
+    Swag.assert(view.revealOffset(line30000, "value30000"))
+    Swag.assert(view.residentStart > 0 and view.numberedOffset == view.residentStart)
+    Swag.assert(view.numberedLine == view.lineNumberAt(view.residentStart))
+    Swag.assert(view.lineNumberAt(line30000) == 30_001)
+    Swag.assert(view.lineNumberAt(source.indexOf("int value12 ")) == 13)
+    Swag.assert(view.lineNumberAt(0) == 1)
+}
+
 // The code zoom value keeps the shared information-band air outside its button frame.
 #test
 {

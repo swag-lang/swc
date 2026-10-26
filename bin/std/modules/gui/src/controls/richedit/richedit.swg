@@ -14,6 +14,7 @@ enum RichEditFlags
     TabToSpaces       // Inserts spaces instead of a tab character.
     WordWrap          // Wraps long logical lines to the available view width.
     AutoLoseFocus     // Releases focus when an unmodified Enter key is pressed.
+    LineNumbers       // Numbers each logical line in a gutter before the text.
 }
 
 // Selects the editor's theme treatment.
@@ -93,6 +94,7 @@ struct RichEditCtrl
     loadedContentHeight:    f32                       // Height laid out from the text currently held in memory.
     residentContentOffset:  f32                       // Virtual y origin of the resident text window.
     estimatedContentHeight: f32                       // Optional larger virtual height published by a streaming owner.
+    firstLineNumber:        u64 = 1                   // Number the gutter gives the first logical line.
     clipFormat:             Clipboard.ValueFormat     // Clipboard format carrying the rune styles of a copy.
     cursorPosUndo:          RichEditCursor            // Caret when the outermost undo group opened.
     selBegUndo:             RichEditCursor            // Anchor when the outermost undo group opened.
@@ -113,7 +115,25 @@ private impl IWnd for RichEditCtrl
 
 private impl RichEditCtrl
 {
-    mtd leftMargin()->f32 => .marginLeft
+    mtd leftMargin()->f32 => .marginLeft + .gutterWidth()
+
+    // Width of the line-number gutter: the widest number, never fewer than three digits so a short
+    // document does not shift its text as it grows, one blank advance before it and two after.
+    mtd gutterWidth()->f32
+    {
+        if not .flags.has(.LineNumbers) do
+            return 0
+
+        var digits = 1'u64
+        var last   = .firstLineNumber + Math.max(.lines.count, 1) - 1
+        while last >= 10
+        {
+            last   /= 10
+            digits += 1
+        }
+
+        return cast(f32, Math.max(digits, 3) + 3) * .xGlyphSize().x
+    }
 
     mtd rightMargin()->f32 => .marginRight
 
@@ -383,6 +403,20 @@ impl RichEditCtrl
         .residentContentOffset  = 0
         .estimatedContentHeight = Math.max(height, 0)
         .scrollWnd.setScrollSize(.scrollWnd.scrollSize.x, Math.max(.loadedContentHeight, .estimatedContentHeight))
+        .edView.invalidate()
+    }
+
+    // Sets the number the line-number gutter gives the first logical line.
+    //
+    // An owner that holds a window of a longer document passes the number of the window's first
+    // line, so the gutter keeps counting the lines of the whole document.
+    mtd setFirstLineNumber(number: u64)
+    {
+        if .firstLineNumber == number do
+            return
+        .firstLineNumber = number
+        .recomputeWrap   = true
+        .recomputeScroll = true
         .edView.invalidate()
     }
 

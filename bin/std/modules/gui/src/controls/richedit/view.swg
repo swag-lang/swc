@@ -255,6 +255,11 @@ impl IWnd for RichEditView
             }
         }
 
+        // The text scrolls sideways under the line numbers, never over them.
+        let gutterWidth = edn.gutterWidth()
+        if gutterWidth > 0 do
+            painter.pushClippingRect({clientRect.x + marginLeft, clientRect.y, Math.max(clientRect.width - marginLeft, 0), clientRect.height})
+
         // All lines
         while i < edn.lines.count
         {
@@ -355,6 +360,12 @@ impl IWnd for RichEditView
             }
         }
 
+        if gutterWidth > 0
+        {
+            painter.popClippingRect()
+            .paintLineNumbers(painter)
+        }
+
         // Scroll size
         edn.loadedContentHeight = cast(f32, (edn.countVisibleLines * size.y))
         y = Math.max(edn.residentContentOffset + edn.loadedContentHeight, edn.estimatedContentHeight)
@@ -394,6 +405,50 @@ impl RichEditView
             .visibleCaret = true
             .timerCaret.restart()
             .invalidate()
+        }
+    }
+
+    // Paints the number of each visible logical line, right-aligned two blank advances before the
+    // text. A wrapped continuation carries no number of its own.
+    mtd paintLineNumbers(painter: *Painter)
+    {
+        let edn = unwrap .ed
+        if edn.firstVisibleLineView >= edn.lines.count do
+            return
+        let fontR = edn.font().getFont(edn.styles[0].fontMode)
+        if not fontR do
+            return
+
+        let font   = nnFont(fontR)
+        let colors = .themeColors()
+        let right  = edn.leftMargin() - 2 * edn.xGlyphSize().x
+        let bottom = .scrollPos.y + .clientRect().height
+
+        var number = edn.firstLineNumber
+        for before in edn.firstVisibleLineView where not edn.lines[before]!.wordWrap do
+            number += 1
+
+        var index = edn.firstVisibleLineView
+        while index < edn.lines.count
+        {
+            let line = unwrap edn.lines[index]
+            if line.drawingRect.y > bottom do
+                break
+
+            if not line.wordWrap
+            {
+                if line.isVisible()
+                {
+                    let text  = Format.toString("%", number)
+                    let width = Painter.measureString(text, font).width
+                    let color = index == edn.cursorPos.lineIndex ? colors.richEdit_Text : colors.richEdit_TextSpecial
+                    painter.drawString(right - width, line.drawingRect.y - .scrollPos.y, text, font, color)
+                }
+
+                number += 1
+            }
+
+            index += 1
         }
     }
 

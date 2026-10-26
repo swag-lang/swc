@@ -72,7 +72,8 @@ alternative instead of guessing an encoding.
   TypeScript, Go, Rust, Python, shell languages, structured data, shaders, build files, and the
   other extensions and common exact file names declared by the registry. An otherwise unregistered
   script with a shebang is recognized from its first line. Swag vocabulary follows the compiler's
-  current keywords, intrinsics, directives, and modifiers. HTML keeps its rendered viewer first
+  current keywords, intrinsics, directives, and modifiers. A gutter numbers the lines of the whole
+  file, including a window streamed from deep inside a long one. HTML keeps its rendered viewer first
   and offers Code as the source alternative. Its information-band zoom uses the same percentage
   menu and keyboard gestures as the other text readers.
 - `Markdown` adapts the reusable GUI `Markdown.View`. It supports headings, prose, GFM alerts,
@@ -193,7 +194,8 @@ current folder with Left/Right, reloads with F5, opens with Ctrl+O,
 and accepts one file dropped anywhere on the surface. The recent and current-folder lists show the
 glyph of each file's default viewer; the current-folder heading opens the recent-folder menu and
 returns to the last file viewed in the selected folder. Audio and video claim bare Left/Right for
-ten-second seeks while active, and use Space for play/pause and M for mute. An
+ten-second seeks while active, and use Space for play/pause, M for mute, Up/Down for volume, and
+Home for the start. An
 installer may run `swagscope.exe --register-file-types`; normal launches never write the registry.
 
 The image and video command bars offer the same play-mode button. They decide what follows a file

@@ -26,7 +26,7 @@ struct Row
 {
     public readonly
     {
-        kind:        RowKind
+        kind:        RowKind        // What the row shows and does.
         label:       RichString     // Wording of the row.
         value:       RichString     // Current value of a link or a stepper, written after the label.
         detail:      RichString     // Second line under the wording of a choice, or empty.

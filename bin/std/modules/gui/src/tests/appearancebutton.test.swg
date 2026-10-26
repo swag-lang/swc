@@ -94,14 +94,49 @@ using Swag, Core, Pixel
     Swag.assert(button.appearanceTheme == .Dark and host.theme.colors.bk == ThemeColors.darkPalette().ground)
     button.setAppearanceTheme(.Light, notify: true)
     Swag.assert(button.appearanceTheme == .Light and host.theme.colors.bk == ThemeColors.lightPalette().ground)
-    button.applyAppearanceSelection("Gui.Appearance.Theme.SwagDark")
+
+    // The button opens a sheet whose theme page applies a palette as soon as it is chosen.
+    host.activateOptionRowWhenShown(strings().appearance_Theme)
+    host.thenActivateOptionRow(strings().appearance_SwagDark)
+    host.clickWnd(button)
+    Swag.assert(host.autoHandled)
     Swag.assert(button.appearanceTheme == .SwagDark and host.theme.colors.bk == ThemeColors.swagDarkPalette().ground)
     expect button.setAppearanceLanguage("fr", notify: true)
     Swag.assert(themeChanges == 3 and languageChanges == 1)
     Swag.assert(host.app.language() == "fr")
 
-    button.applyAppearanceSelection("Gui.Appearance.About")
+    // About closes the sheet before its owner opens anything.
+    host.activateOptionRowWhenShown(strings().appearance_About)
+    host.clickWnd(button)
     Swag.assert(aboutRequests == 1)
+
+    // The first page names the palette and the language in force.
+    var options: OptionSheet.Page
+    button.describeAppearance(&options)
+    Swag.assert(options.rows[0].value == strings().appearance_SwagDark)
+    Swag.assert(options.rows[2].kind == .Action and options.rows[2].closesSheet)
+
+    // From the title bar the sheet joins its button and is drawn above the content of the window.
+    var sheetChecked: bool
+    host.app.sigFrame += func|host = &host, button, checked = &sheetChecked|(_)
+    {
+        let sheet = host.capturedOptionSheet()
+        if checked[] or not sheet do
+            return
+        host.finishAnimations()
+        Swag.assert(sheet.parent == &host.surfaceWnd and not sheet.opensUp)
+        Swag.assert(Math.abs(sheet.localToSurface(Math.Point{0, sheet.body.y}).y - button.surfaceRect().bottom()) < 0.5)
+        Swag.assert(sheet.activateRow(strings().appearance_Theme))
+        host.finishAnimations()
+        var image = host.render(&host.surfaceWnd)
+        Pixel.Testing.assertImageGolden(&image, "appearancebutton.sheet.caption")
+        sheet.close()
+        checked[] = true
+    }
+
+    host.clickWnd(button)
+    host.app.sigFrame.clear()
+    Swag.assert(sheetChecked)
 
     let popup = MenuCtrl.createPopup(button)
     let sub   = MenuCtrl.createPopup(popup)

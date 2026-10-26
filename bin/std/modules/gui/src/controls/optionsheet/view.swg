@@ -87,8 +87,9 @@ struct View
     openProgress:   f32 = 1     // Progress of the arrival of a sheet presented over a veil.
     slideHandle:    AnimationHandle
     heightHandle:   AnimationHandle
-    pendingTimer:   *Timer?     // Delay that lets a choice show its check before the sheet moves on.
-    pendingClose:   bool        // Whether the pending delay closes the sheet rather than going back.
+    pendingTimer:   *Timer?         // Delay that lets a choice show its check before the sheet moves on.
+    pendingClose:   bool            // Whether the pending delay closes the sheet rather than going back.
+    deferredRun:    (func||())?     // Action that closed the sheet, to run once it has left the screen.
 
     ended: bool     // Whether the modal loop must stop.
 }
@@ -444,6 +445,15 @@ private impl View
         .releaseMouse()
         .hide()
         .resetPresentation()
+
+        // An action that opens something else does it once nothing of the sheet is left on screen.
+        if .deferredRun
+        {
+            let run = .deferredRun
+            .deferredRun = null
+            run()
+        }
+
         if autoDestroy do
             .destroy()
     }
@@ -753,6 +763,10 @@ private impl View
             let stepper = unwrap row.step
             stepper(step)
             .refresh()
+
+        case .Action where row.closesSheet:
+            .deferredRun = row.run
+            .close()
 
         case .Action:
             let run = unwrap row.run

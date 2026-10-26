@@ -10,7 +10,7 @@ enum AppearanceTheme
     Light    = 1     // Uses the neutral light palette.
 }
 
-// Hosts the standard theme, language, and application-information menu in a title bar.
+// Hosts the standard theme, language, and application-information options in a title bar.
 //
 // An empty [[Gui.AppearanceButton.language]] follows the user account. A non-empty value is a tag registered through
 // [[Gui.registerLanguage]]. The control applies both choices before emitting their signals, so an
@@ -33,12 +33,6 @@ struct AppearanceButton
         }
     }
 }
-
-private const AppearanceThemeSwagDarkId = "Gui.Appearance.Theme.SwagDark"
-private const AppearanceThemeDarkId     = "Gui.Appearance.Theme.Dark"
-private const AppearanceThemeLightId    = "Gui.Appearance.Theme.Light"
-private const AppearanceLanguageSysId   = "Gui.Appearance.Language.System"
-private const AppearanceAboutId         = "Gui.Appearance.About"
 
 impl IWnd for AppearanceButton
 {
@@ -73,7 +67,7 @@ impl AppearanceButton
             .toolTip     = strings().appearance_ToolTip
             .sigPressed  += func(button)
             {
-                assume cast (*AppearanceButton, button).showAppearanceMenu()
+                assume cast (*AppearanceButton, button).showAppearanceOptions()
             }
         }
 
@@ -111,52 +105,62 @@ impl AppearanceButton
             .sigLanguageChanged.call(me)
     }
 
-    private mtd showAppearanceMenu()
+    // Opens the theme, the language and the information about the application below the button.
+    //
+    // A theme or a language applies as soon as it is chosen, so the sheet itself is redrawn in it
+    // and the reader sees the choice before closing.
+    private mtd showAppearanceOptions()
     {
-        let root = .createAppearanceMenu()
-        .applyAppearanceSelection(root.doModal(me, autoDestroy: true))
+        let sheet = OptionSheet.View.create(me, func|button = me|(page) { button.describeAppearance(page) }, owner: me)
+        sheet.doModal(me, autoDestroy: true)
     }
 
-    private mtd createAppearanceMenu()->*MenuCtrl
+    internal mtd describeAppearance(page: *OptionSheet.Page)
     {
-        let root = MenuCtrl.createPopup(me, owner: me)
-        root.updateFlags(.HideShortcuts)
-        root.setSubmenuDirection(.Left)
+        let texts    = strings()
+        let iconSize = themeRowIconSize(.themeMetrics())
+        page.addLink(texts.appearance_Theme,
+                     appearanceThemeName(.appearanceTheme),
+                     func|button = me|(themes)
+                     {
+                         for theme in [AppearanceTheme.SwagDark, .Dark, .Light] do
+                             themes.addChoice(appearanceThemeName(theme), theme == button.appearanceTheme, func|button, theme|() { button.setAppearanceTheme(theme, notify: true) })
+                     },
+                     .theme().icon(.Appearance, iconSize))
 
-        let themes = MenuCtrl.createPopup(root, owner: me)
-        themes.addItem(strings().appearance_SwagDark, AppearanceThemeSwagDarkId, checked: .appearanceTheme == .SwagDark)
-        themes.addItem(strings().appearance_Dark, AppearanceThemeDarkId, checked: .appearanceTheme == .Dark)
-        themes.addItem(strings().appearance_Light, AppearanceThemeLightId, checked: .appearanceTheme == .Light)
-        root.addPopup(strings().appearance_Theme, themes)
+        let language = .language.isEmpty() ? texts.appearance_SystemLanguage : (findLanguage(.language)?.nativeName.toString() orelse .language.toString())
+        page.addLink(texts.appearance_Language,
+                     language,
+                     func|button = me|(choices)
+                     {
+                         choices.addChoice(strings().appearance_SystemLanguage, button.language.isEmpty(), func|button|()
+                         {
+                             discard catch button.setAppearanceLanguage("", notify: true)
+                         })
 
-        let languageMenu = MenuCtrl.createPopup(root, owner: me)
-        languageMenu.addItem(strings().appearance_SystemLanguage, AppearanceLanguageSysId, checked: .language.isEmpty())
-        for &one in languages() do
-            languageMenu.addItem(one.nativeName.toString(), one.tag.toString(), checked: not .language.isEmpty() and one.tag == .language)
-        root.addPopup(strings().appearance_Language, languageMenu)
+                         for &one in languages()
+                         {
+                             let tag = one.tag.toString()
+                             choices.addChoice(one.nativeName.toString(), one.tag == button.language, func|button, tag|()
+                             {
+                                 discard catch button.setAppearanceLanguage(tag, notify: true)
+                             })
+                         }
+                     },
+                     .theme().icon(.Information, iconSize))
 
-        if not .sigAboutRequested.isEmpty()
-        {
-            root.addSeparator()
-            root.addItem(strings().appearance_About, AppearanceAboutId, icon: .theme().icon(.About))
-        }
-
-        return root
+        if not .sigAboutRequested.isEmpty() do
+            page.addAction(texts.appearance_About, func|button = me|() { button.sigAboutRequested.call(button) }, closesSheet: true)
     }
+}
 
-    internal mtd applyAppearanceSelection(selected: WndId?)
+// Names one palette in the language of the interface.
+private func appearanceThemeName(theme: AppearanceTheme)->string
+{
+    switch #complete theme
     {
-        if selected == AppearanceThemeSwagDarkId do
-            .setAppearanceTheme(.SwagDark, notify: true)
-        elif selected == AppearanceThemeDarkId do
-            .setAppearanceTheme(.Dark, notify: true)
-        elif selected == AppearanceThemeLightId do
-            .setAppearanceTheme(.Light, notify: true)
-        elif selected == AppearanceLanguageSysId do
-            discard catch .setAppearanceLanguage("", notify: true)
-        elif selected == AppearanceAboutId do
-            .sigAboutRequested.call(me)
-        elif selected and findLanguage(selected) do
-            discard catch .setAppearanceLanguage(selected, notify: true)
+    case .SwagDark: return strings().appearance_SwagDark
+    case .Dark:     return strings().appearance_Dark
+    case .Light:    return strings().appearance_Light
     }
 }

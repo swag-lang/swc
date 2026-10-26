@@ -35,6 +35,7 @@ struct Row
         disabled:    bool           // Whether the row cannot be activated.
         canDecrease: bool           // Whether a stepper can step down.
         canIncrease: bool           // Whether a stepper can step up.
+        closesSheet: bool           // Whether an action closes the sheet and runs once it is gone.
     }
 
     open:   Builder?
@@ -158,14 +159,18 @@ impl Page
     }
 
     // Adds a command run at once, such as resetting a setting to its default.
-    mtd addAction(label: string, run: func||(), disabled = false)
+    //
+    // An action that opens something else — a dialog, another window — passes `closesSheet`: the
+    // sheet closes first, and `run` runs once it has left the screen.
+    mtd addAction(label: string, run: func||(), disabled = false, closesSheet = false)
     {
         with var row: Row
         {
             .kind = .Action
             .label.set(label)
-            .disabled = disabled
-            .run      = run
+            .disabled    = disabled
+            .closesSheet = closesSheet
+            .run         = run
         }
 
         .rows.add(#move row)

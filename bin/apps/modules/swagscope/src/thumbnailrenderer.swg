@@ -27,12 +27,12 @@ impl ThumbnailRenderer
         if not face do
             fail Errors.InvalidFormatError{"a system font is unavailable"}
 
-        var result: #returntype
-        result.canvas = try ImageCanvas.create(ThumbnailWidth, ThumbnailHeight)
-        let fonts = result.canvas.painter.renderer().fontCache()
-        result.bodyFont  = fonts.createFont(face, 12, .Bitmap, false)
-        result.titleFont = fonts.createFont(face, 13, .Bitmap, true)
-        return result
+        // The renderer owns the font cache, so the fonts outlive the canvas moving in.
+        var canvas = try ImageCanvas.create(ThumbnailWidth, ThumbnailHeight)
+        let fonts  = canvas.painter.renderer().fontCache()
+        let body   = fonts.createFont(face, 12, .Bitmap, false)
+        let title  = fonts.createFont(face, 13, .Bitmap, true)
+        return {canvas: #move canvas, bodyFont: body, titleFont: title}
     }
 
     // Renders a bounded text sample or a compact byte map into the same portrait page.

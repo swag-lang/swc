@@ -133,13 +133,18 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
         result.facts.height = Format.toString("%", shown.height)
         result.facts.bits   = frame.bitsPerPixel
         result.facts.frames = result.movie.frameCount
-        result.information.add(.Dimensions, Format.toString("% × % px", shown.width, shown.height))
-        result.information.add(.PixelFormat, Reflection.enumName(PixelFormat, &frame.pixelFormat, fullyQualified: false))
-        result.information.add(.Depth, Format.toString("%", frame.bitsPerPixel))
+
+        // Adding information can move what 'result' holds: read the frame first.
+        let dimensions  = Format.toString("% × % px", shown.width, shown.height)
+        let pixelFormat = Reflection.enumName(PixelFormat, &frame.pixelFormat, fullyQualified: false)
+        let depth       = Format.toString("%", frame.bitsPerPixel)
+        result.information.add(.Dimensions, dimensions)
+        result.information.add(.PixelFormat, pixelFormat)
+        result.information.add(.Depth, depth)
         if animated do
             result.information.add(.Frames, Format.toString("%", result.movie.frameCount))
 
-        result.information.addImageMetadata(frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
+        result.information.addImageMetadata(result.movie.frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
         if result.movie.frameCount <= 1 do
             result.movie.clear()
     }

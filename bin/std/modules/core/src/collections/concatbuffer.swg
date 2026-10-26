@@ -142,7 +142,7 @@ impl ConcatBuffer
     mtd const count()->u64 => .lastBucket ? .lastBucket.countBefore + .lastBucket.count : 0
 
     // Ensures the last bucket has room for `numBytes` more bytes, reusing a retained bucket or allocating one.
-    private mtd grow(numBytes: u64)
+    mtd grow(numBytes: u64)
     {
         Swag.assert(.isAtEnd)
 

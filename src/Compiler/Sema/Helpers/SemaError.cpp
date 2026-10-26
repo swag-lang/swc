@@ -569,6 +569,21 @@ void SemaError::addUnknownMemberArguments(Sema& sema, Diagnostic& diag, Identifi
         diag.addArgument(Diagnostic::ARG_VALUE, *suggestion);
 }
 
+// An imported struct publishes only its public methods: the others never reach the module API the
+// importer reads, so a name missing there may exist and simply not be public. Runtime types are
+// read from source, so their non-public members are known and keep the plain report.
+DiagnosticId SemaError::unknownMemberDiagnosticId(const Sema& sema, const SymbolMap* owner)
+{
+    if (!owner || !owner->isStruct() || owner->srcViewRef().isInvalid())
+        return DiagnosticId::sema_err_unknown_symbol;
+
+    const SourceFile* sourceFile = sema.ownerSourceFile(owner->srcViewRef());
+    if (sourceFile && sourceFile->hasFlag(FileFlagsE::ImportedApi))
+        return DiagnosticId::sema_err_unknown_public_member;
+
+    return DiagnosticId::sema_err_unknown_symbol;
+}
+
 Utf8 SemaError::formatStructMemberList(Sema& sema, TypeRef typeRef)
 {
     if (!typeRef.isValid())

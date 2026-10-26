@@ -857,7 +857,7 @@ private impl View
     }
 
     // Height the body needs to show every row of `page`, `levels` pages deep.
-    mtd contentHeight(page: const *Page, levels: u64)->f32
+    internal mtd contentHeight(page: const *Page, levels: u64)->f32
     {
         let metrics = .themeMetrics()
         var height  = .headerHeight(levels) + 2 * metrics.optionSheet_Inset
@@ -888,7 +888,7 @@ private impl View
         }
     }
 
-    mtd rowHeight(row: const *Row)->f32
+    internal mtd rowHeight(row: const *Row)->f32
     {
         let metrics = .themeMetrics()
         switch row.kind
@@ -900,7 +900,7 @@ private impl View
     }
 
     // Top of the row at `index` relative to the top of the scrolled list.
-    mtd rowTop(page: const *Page, index: s32)->f32
+    internal mtd rowTop(page: const *Page, index: s32)->f32
     {
         var top = .themeMetrics().optionSheet_Inset
         for i in index do
@@ -908,7 +908,7 @@ private impl View
         return top
     }
 
-    mtd listRect(levels: u64)->Math.Rectangle
+    internal mtd listRect(levels: u64)->Math.Rectangle
     {
         var result: retval = .body
         let header         = .headerHeight(levels)
@@ -991,7 +991,7 @@ private impl View
     }
 
     // Ground of a row whose top is `y`, inset from the edges of the body.
-    mtd rowRect(list: Math.Rectangle, y, height: f32)->Math.Rectangle
+    internal mtd rowRect(list: Math.Rectangle, y, height: f32)->Math.Rectangle
     {
         let inset = .themeMetrics().optionSheet_Inset
         return {list.x + inset, y, list.width - 2 * inset, height}
@@ -1009,7 +1009,7 @@ private impl View
     }
 
     // Lays out the two step buttons and the value between them at the trailing end of a row.
-    mtd stepperParts(rect: Math.Rectangle)->{decrease: Math.Rectangle, value: Math.Rectangle, increase: Math.Rectangle}
+    internal mtd stepperParts(rect: Math.Rectangle)->{decrease: Math.Rectangle, value: Math.Rectangle, increase: Math.Rectangle}
     {
         let metrics = .themeMetrics()
         let side    = Math.round(rect.height * 0.75)

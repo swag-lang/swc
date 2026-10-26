@@ -3,6 +3,8 @@
 #include "Compiler/Sema/Core/Sema.h"
 #include "Compiler/Sema/Helpers/SemaError.h"
 #include "Compiler/Sema/Helpers/SemaHelpers.h"
+#include "Compiler/Sema/Symbol/Symbol.Function.h"
+#include "Compiler/Sema/Symbol/Symbol.Impl.h"
 #include "Compiler/Sema/Symbol/Symbol.impl.h"
 #include "Compiler/SourceFile.h"
 #include "Main/CompilerInstance.h"
@@ -71,6 +73,28 @@ namespace
         return false;
     }
 
+    // A method takes its access from its 'impl', or from its own modifier, and 'private' grants
+    // the declaring type exactly as it does on a field. A method that implements an interface
+    // answers to the interface instead, which every holder of the interface may call.
+    const SymbolStruct* privateMethodOwner(const Symbol& sym)
+    {
+        const auto* function = sym.safeCast<SymbolFunction>();
+        if (!function || !function->isPrivate())
+            return nullptr;
+
+        const SymbolMap* owner = function->ownerSymMap();
+        const auto*      impl  = owner ? owner->safeCast<SymbolImpl>() : nullptr;
+        if (!impl || impl->isForInterface())
+            return nullptr;
+
+        return impl->symStruct();
+    }
+
+    bool canCallPrivateMethod(Sema& sema, const SymbolFunction& method, const SymbolStruct& ownerStruct, const SourceViewRef siteViewRef)
+    {
+        return inDeclaringModule(sema, method, siteViewRef) && inDeclaringType(sema, ownerStruct, siteViewRef);
+    }
+
     __forceinline bool canAccessMemberInOwner(Sema& sema, const SymbolVariable& field, const SymbolStruct& ownerStruct, const SourceViewRef siteViewRef)
     {
         if (!inDeclaringModule(sema, field, siteViewRef))
@@ -106,8 +130,55 @@ bool SemaAccess::canAccessMember(Sema& sema, const SymbolVariable& field, const 
     return canAccessMemberInOwner(sema, field, *ownerStruct, siteViewRef);
 }
 
+bool SemaAccess::canAccessSymbol(Sema& sema, const Symbol& sym, const SourceViewRef siteViewRef)
+{
+    if (const auto* field = sym.safeCast<SymbolVariable>())
+        return canAccessMember(sema, *field, siteViewRef);
+
+    const SymbolStruct* ownerStruct = privateMethodOwner(sym);
+    return !ownerStruct || canCallPrivateMethod(sema, sym.cast<SymbolFunction>(), *ownerStruct, siteViewRef);
+}
+
+void SemaAccess::dropUnreachableOverloads(Sema& sema, SmallVector<const Symbol*>& symbols, const SourceViewRef siteViewRef)
+{
+    // Leave a set with nothing reachable intact, so the access check can name what is private.
+    if (symbols.size() < 2)
+        return;
+
+    const auto reachable = [&](const Symbol* sym) {
+        return canAccessSymbol(sema, *sym, siteViewRef);
+    };
+    if (std::ranges::all_of(symbols, reachable) || std::ranges::none_of(symbols, reachable))
+        return;
+
+    size_t kept = 0;
+    for (const Symbol* sym : symbols)
+    {
+        if (reachable(sym))
+            symbols[kept++] = sym;
+    }
+
+    symbols.resize(kept);
+}
+
 Result SemaAccess::checkMemberAccess(Sema& sema, const Symbol& sym, const SourceCodeRef& codeRef)
 {
+    if (const SymbolStruct* methodOwner = privateMethodOwner(sym))
+    {
+        const auto& method = sym.cast<SymbolFunction>();
+        if (canCallPrivateMethod(sema, method, *methodOwner, codeRef.srcViewRef))
+            return Result::Continue;
+
+        Diagnostic diag = SemaError::report(sema, DiagnosticId::sema_err_method_private, codeRef);
+        diag.addArgument(Diagnostic::ARG_SYM, method.name(sema.ctx()));
+        diag.addArgument(Diagnostic::ARG_TYPE, methodOwner->getFullScopedName(sema.ctx()));
+        diag.addNote(DiagnosticId::sema_note_method_access_declared_here);
+        diag.last().addArgument(Diagnostic::ARG_SYM, method.name(sema.ctx()));
+        diag.last().addSpan(method.codeRange(sema.ctx()));
+        diag.report(sema.ctx());
+        return Result::Error;
+    }
+
     const auto* field = sym.safeCast<SymbolVariable>();
     if (!field || field->memberAccess() == MemberAccess::Public)
         return Result::Continue;

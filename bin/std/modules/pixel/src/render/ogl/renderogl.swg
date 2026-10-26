@@ -261,7 +261,7 @@ private impl RenderOgl
     // A shader travels as the bytes of its file, and GLSL accepts nothing at all before
     // `#version`: a mark an editor left at the start of one makes every program built from it
     // fail to compile, which reaches the screen as a picture that simply never draws.
-    func shaderSource(bytes: const [..] u8)->string
+    internal func shaderSource(bytes: const [..] u8)->string
     {
         if bytes.count >= 3 and bytes[0] == 0xEF and bytes[1] == 0xBB and bytes[2] == 0xBF do
             return Swag.makeString(bytes.buffer + 3, bytes.count - 3)

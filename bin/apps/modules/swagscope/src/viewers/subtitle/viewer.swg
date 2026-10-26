@@ -160,7 +160,7 @@ private impl Panel
     }
 
     // Tracks the cue containing the editor caret, including wrapped display lines.
-    mtd syncCurrentCue()
+    internal mtd syncCurrentCue()
     {
         if .cueText.isEmpty() do
             return
@@ -202,13 +202,13 @@ private impl Panel
         }
     }
 
-    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    internal mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for index in .track!.cueCount() do
             Viewer.collectTextMatches(.track.cueContent(index), text, options, index, 0, 0, result)
     }
 
-    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
+    internal mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
         if match.major >= .cueText.count do
             return false
@@ -218,10 +218,10 @@ private impl Panel
         return true
     }
 
-    mtd searchBounds(result: *Math.Rectangle)->bool => Viewer.richEditMatchBounds(.editor, result)
-    mtd clearSearch() => Viewer.clearRichEditMatch(.editor)
+    internal mtd searchBounds(result: *Math.Rectangle)->bool => Viewer.richEditMatchBounds(.editor, result)
+    internal mtd clearSearch() => Viewer.clearRichEditMatch(.editor)
 
-    mtd revealCue(index: u64)->bool
+    internal mtd revealCue(index: u64)->bool
     {
         if index >= .cueText.count do
             return false

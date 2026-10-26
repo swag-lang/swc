@@ -215,7 +215,7 @@ impl Surface
         .applySurfaceFlags()
     }
 
-    private mtd applySurfaceFlags()
+    internal mtd applySurfaceFlags()
     {
         if .flags.has(.LargeCaption) do
             .wnd.padding.y = .app.theme.metrics.wnd_BigCaptionCY
@@ -1037,7 +1037,7 @@ impl Surface
         .wnd.sendResizeEvent()
     }
 
-    private mtd serializeState(ser: *Serializer) fail
+    internal mtd serializeState(ser: *Serializer) fail
     {
         // Save position and surface state
         if .wnd.view != null and .wnd.view.id != null

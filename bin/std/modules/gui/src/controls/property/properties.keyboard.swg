@@ -319,7 +319,7 @@ private impl Properties
     }
 
     // Set the selected (highlighted) row, scroll it into view and repaint.
-    mtd setSelItem(item: *PropertiesItem?)
+    internal mtd setSelItem(item: *PropertiesItem?)
     {
         .selItem = item
         if item do

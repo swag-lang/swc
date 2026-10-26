@@ -74,7 +74,7 @@ public struct Voice
     }
 }
 
-private impl Voice
+impl Voice
 {
     mtd recycle()
     {

@@ -1120,7 +1120,7 @@ namespace
     Result reportUnknownMemberSymbol(Sema& sema, const AstMemberAccessExpr& node, IdentifierRef idRef, TokenRef tokNameRef, const SymbolMap* owner = nullptr, TypeRef ownerTypeRef = TypeRef::invalid())
     {
         const SourceCodeRef codeRef{node.srcViewRef(), tokNameRef};
-        auto                diag = SemaError::report(sema, DiagnosticId::sema_err_unknown_symbol, codeRef);
+        auto                diag = SemaError::report(sema, SemaError::unknownMemberDiagnosticId(sema, owner), codeRef);
         diag.addArgument(Diagnostic::ARG_SYM, idRef);
         if (owner)
         {
@@ -1360,6 +1360,7 @@ namespace
         }
 
         // Bind member-access node (curNodeRef) and RHS identifier.
+        SemaAccess::dropUnreachableOverloads(sema, lookUpCxt.symbols(), codeRef.srcViewRef);
         SWC_RESULT(bindMatchedMemberSymbols(sema, targetNodeRef, node.nodeRightRef, allowOverloadSet, lookUpCxt.symbols().span()));
 
         // Constant struct member access

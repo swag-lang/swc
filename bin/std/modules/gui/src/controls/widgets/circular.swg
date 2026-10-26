@@ -234,7 +234,7 @@ impl IWnd for Circular
 
 private impl Circular
 {
-    mtd updateGeometry()
+    internal mtd updateGeometry()
     {
         let clientRect = .clientRect()
         .centerX = clientRect.x + clientRect.width * 0.5
@@ -271,7 +271,7 @@ private impl Circular
         return normalizedAngle / totalAngle
     }
 
-    mtd const valueToAngle(val: f32)->f32
+    internal mtd const valueToAngle(val: f32)->f32
     {
         let totalAngle = .endAngle - .startAngle
         return .startAngle + (val * totalAngle)
@@ -298,7 +298,7 @@ private impl Circular
         return angle
     }
 
-    mtd positionAtAngle(angle: f32)->Math.Vector2
+    internal mtd positionAtAngle(angle: f32)->Math.Vector2
     {
         var result: retval
 

@@ -325,15 +325,19 @@ func quantityOf(text: string, result: *f64)->bool
     var hasDot, commas, digitsAfterComma: u64
     for byte in text
     {
-        if byte == '.' do
+        if byte == '.'
+        {
             hasDot += 1
+        }
         elif byte == ','
         {
             commas += 1
             digitsAfterComma = 0
         }
-        elif byte >= '0' and byte <= '9' do
+        elif byte >= '0' and byte <= '9'
+        {
             digitsAfterComma += 1
+        }
     }
 
     let decimalComma = not hasDot and commas == 1 and digitsAfterComma != 3
@@ -488,7 +492,7 @@ private impl Panel
 
     // Returns the selected lines, or the focused one when none is selected, as a spreadsheet pastes
     // them: complete cell values separated by tabs, one row per line, in the order shown.
-    mtd selectionText()->String
+    internal mtd selectionText()->String
     {
         var result: retval
         let anySelected = .hasSelection()
@@ -519,13 +523,13 @@ private impl Panel
     }
 
     // Returns the document row shown at line `index`, and the line document row `row` is shown at.
-    mtd documentRow(index: u64)->u64 => .order.count ? .order[index] : index
-    mtd lineOfRow(row: u64)->u32     => .rowLines.count ? .rowLines[row] : cast(u32, row)
+    mtd documentRow(index: u64)->u64      => .order.count ? .order[index] : index
+    internal mtd lineOfRow(row: u64)->u32 => .rowLines.count ? .rowLines[row] : cast(u32, row)
 
     // Orders the rows by `column`, ascending first and descending when the same column is chosen
     // again. Quantities compare as numbers and words in natural order; empty cells stay last
     // either way, and equal cells keep the order of the file.
-    mtd sortBy(column: u32)
+    internal mtd sortBy(column: u32)
     {
         if column >= .document.columns.count do
             return
@@ -577,14 +581,14 @@ private impl Panel
         .services.showDetails(me, Format.toString(texts().ui_Details, delimiterKind(.document.delimiter), rows, columns))
     }
 
-    mtd retire()->bool
+    internal mtd retire()->bool
     {
         return .load.retire()
     }
 
     // Fills list line `index` with previews of the row's cells. The cell holding the current search
     // hit is highlighted, with the match in bold and the preview window moved to show it.
-    mtd fillLine(line: *ListLine, index: u32)
+    internal mtd fillLine(line: *ListLine, index: u32)
     {
         if index >= .document.rows.count do
             return
@@ -639,8 +643,8 @@ private impl Panel
             .setSelectionMode(.Multi)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
-            .header.form       = .Transparent
-            .onFillVirtualLine = &fillVirtualLine
+            .header.form             = .Transparent
+            .onFillVirtualLine       = &fillVirtualLine
             .header.sigColumnClicked += func|result|(_, column) { result.sortBy(column) }
         }
 

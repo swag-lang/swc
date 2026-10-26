@@ -287,7 +287,7 @@ impl HeadlessHost
         return .clickModalButton(stage.button)
     }
 
-    private mtd driveAutoStages(app: *Application)
+    internal mtd driveAutoStages(app: *Application)
     {
         if not .autoArmed do
             return

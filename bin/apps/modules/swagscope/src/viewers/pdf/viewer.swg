@@ -87,11 +87,11 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
 func paperText(size: Math.Point)->String
 {
     let papers: [6] { name: string, width: f32, height: f32 } = [
-        {name: "A3", width: 842, height: 1191},
-        {name: "A4", width: 595, height: 842},
-        {name: "A5", width: 420, height: 595},
-        {name: "Letter", width: 612, height: 792},
-        {name: "Legal", width: 612, height: 1008},
+        {name: "A3",      width: 842, height: 1191},
+        {name: "A4",      width: 595, height: 842},
+        {name: "A5",      width: 420, height: 595},
+        {name: "Letter",  width: 612, height: 792},
+        {name: "Legal",   width: 612, height: 1008},
         {name: "Tabloid", width: 792, height: 1224}]
 
     let shortSide = Math.min(size.x, size.y)
@@ -233,7 +233,7 @@ private impl IWnd for Panel
 
 private impl Panel
 {
-    mtd retire()->bool
+    internal mtd retire()->bool
     {
         return .load.retire()
     }
@@ -272,7 +272,7 @@ private impl Panel
         .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.pdfView.effectiveZoom() * 100)), "%"))
     }
 
-    mtd goToTypedPage(text: string)->bool
+    internal mtd goToTypedPage(text: string)->bool
     {
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU64(text))

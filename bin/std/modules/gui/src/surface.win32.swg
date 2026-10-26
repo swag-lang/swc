@@ -506,7 +506,7 @@ private func winProc(hWnd: HWND, msg: UINT, wParam: WPARAM, lParam: LPARAM)->LRE
 
 private impl Surface
 {
-    mtd setFocus()
+    internal mtd setFocus()
     {
         SetFocus(.hWnd)
     }
@@ -579,7 +579,7 @@ private impl Surface
         result.registerDropTarget()
     }
 
-    mtd destroyNative()
+    internal mtd destroyNative()
     {
         if .rc.data
         {

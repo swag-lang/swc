@@ -70,6 +70,11 @@ struct DepDefaultAccessField
     defaultValue:      s32
 }
 
+private impl DepDefaultAccessField
+{
+    mtd hiddenValue()->s32 => .defaultValue
+}
+
 struct DepPublicWithPrivateInlineUnion
 {
     public publicValue: s32

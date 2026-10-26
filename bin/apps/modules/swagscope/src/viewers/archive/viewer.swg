@@ -301,7 +301,7 @@ private impl Panel
             .requestPreview(index)
     }
 
-    mtd requestPreview(index: u64)
+    internal mtd requestPreview(index: u64)
     {
         if index >= .archive.entries.count or .archive.entries[index].isDirectory do
             return
@@ -406,7 +406,7 @@ private impl Panel
 
     // Selects the entry line of `match`, expanding the folders above it. Returns false when the
     // entry has no line in the tree.
-    mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
+    internal mtd revealMatch(match: Viewer.SearchMatch, _: string)->bool
     {
         if match.major >= .entryLines.count do
             return false
@@ -440,7 +440,7 @@ private impl Panel
     //
     // A query matches an entry's whole path, and what the reader can see of that path is the
     // name in the tree.
-    mtd searchBounds(result: *Math.Rectangle)->bool
+    internal mtd searchBounds(result: *Math.Rectangle)->bool
     {
         if .list.focusIndex >= .list.lineCount() do
             return false
@@ -451,13 +451,13 @@ private impl Panel
         return Viewer.listCellMatchBounds(.list, .list.focusIndex, 0, name, 0, name.length, result)
     }
 
-    mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
+    internal mtd collectMatches(text: string, options: Viewer.SearchOptions, result: *Array'Viewer.SearchMatch)
     {
         for &entry, index in .archive.entries do
             Viewer.collectTextMatches(entry.path, text, options, index, 0, 0, result)
     }
 
-    mtd clearSearch()
+    internal mtd clearSearch()
     {
         .list.unselectAll()
     }

@@ -14,6 +14,19 @@ impl AccessSafe
     mtd read()->s32 => .key
 }
 
+// A method of a 'private impl' belongs to the type, as a private field does. 'pick' is an
+// overload set that mixes both levels, so another file reaches the internal overload only.
+private impl AccessSafe
+{
+    mtd secret()->s32      => .key
+    mtd pick(_: bool)->s32 => 0
+}
+
+impl AccessSafe
+{
+    mtd pick(_: s32)->s32 => .secret()
+}
+
 struct AccessCounter
 {
     public readonly count: s32

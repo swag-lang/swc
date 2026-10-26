@@ -79,7 +79,7 @@ impl ThemeStyle
         refr.count += 1
     }
 
-    private mtd set(theme: *Theme)
+    internal mtd set(theme: *Theme)
     {
         .own(theme)
     }
@@ -93,7 +93,7 @@ impl ThemeStyle
         .set(theme)
     }
 
-    private mtd compute(owner: *Wnd, parent: *ThemeStyle)
+    internal mtd compute(owner: *Wnd, parent: *ThemeStyle)
     {
         // First time, initialize to parent
         if not .refr

@@ -3,7 +3,7 @@
 
 using Core, Gui, Pixel
 
-// All slots schedule distinct visible tiles; cancelled generations never publish stale textures.
+// Busy slots schedule distinct visible tiles; cancelled generations never publish stale textures.
 #test
 {
     var host: Testing.HeadlessHost
@@ -22,7 +22,8 @@ using Core, Gui, Pixel
 
     var image = Image.create(24, 18, .RGB8)
     image.fill(Color.fromRgb(56, 189, 248))
-    for index in ExplorerWorkerCount
+    let count = Math.min(explorer.previews.count, 3'u64)
+    for index in count
     {
         let file = Path.combine(Env.getSpecialDirectory(.Temp), Format.toString("parallel-thumbnail-%.txt", index))
         discard expect File.writeAllText(file, "cached preview")
@@ -37,7 +38,7 @@ using Core, Gui, Pixel
     window.applyLayout()
     explorer.requestPreview()
     for &preview, index in explorer.previews do
-        Swag.assert(preview.started and preview.index == index)
+        Swag.assert(preview.started == (index < count) and (not preview.started or preview.index == index))
     explorer.hide()
     explorer.leave()
     for &preview in explorer.previews do
@@ -70,7 +71,7 @@ using Core, Gui, Pixel
         Threading.Thread.sleep(1'ms)
     }
 
-    Swag.assert(explorer.cached.count == ExplorerWorkerCount)
+    Swag.assert(explorer.cached.count == count)
     for &entry in explorer.entries do
         Swag.assert(entry.texture.isValid())
 }

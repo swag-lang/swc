@@ -17,7 +17,7 @@ func viewerPlugin()->Viewer.Plugin
         .iconAtlas    = viewerIcons()
         .iconIndex    = cast(s32, ViewerIcons.Image)
         .create       = &createViewer
-        .thumbnail    = &loadViewerImage
+        .thumbnail    = &loadThumbnail
         .smokeFixture = "sample.svg"
     }
 
@@ -63,6 +63,24 @@ func loadViewerImage(fileName: string)->Image fail
     let width   = cast(s32, Math.max(Math.round(drawing.width * scale), 1))
     let height  = cast(s32, Math.max(Math.round(drawing.height * scale), 1))
     return drawing.rasterize(width, height, 1)
+}
+
+// Produces a thumbnail whose longest side is at most `maxSide`.
+//
+// A drawing is rasterized straight at that size: filling its pixels is the whole cost, and
+// filling them at the drawing's own size only to shrink the result costs ten times as much for a
+// softer picture than sampling twice per axis at the size that is kept.
+func loadThumbnail(fileName: string, maxSide: u32)->Image fail
+{
+    if Path.lowercaseExtension(fileName) != ".svg" do
+        return try loadViewerImage(fileName)
+
+    let drawing = try loadViewerDrawing(fileName)
+    let largest = Math.max(drawing.width, drawing.height, 1)
+    let scale   = Math.min(cast(f32, maxSide) / largest, 1)
+    let width   = cast(s32, Math.max(Math.round(drawing.width * scale), 1))
+    let height  = cast(s32, Math.max(Math.round(drawing.height * scale), 1))
+    return drawing.rasterize(width, height, 2)
 }
 
 // Parses the vector document of an SVG file.

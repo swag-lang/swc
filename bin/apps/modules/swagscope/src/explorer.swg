@@ -6,8 +6,11 @@ enum ExplorerMode { Names, Details, Small, Medium, Large }
 
 const ExplorerTilePreviewAspect: f32 = 0.8
 
-// Each isolated renderer owns one decoder worker, for at most three CPU workers.
-const ExplorerWorkerCount = 3
+// Returns how many isolated renderers the Explorer keeps busy.
+//
+// Each renderer is a child process decoding on one thread, so one per logical processor saturates
+// the machine; two are left to the interface and to the decoders of the open viewer.
+func explorerWorkerCount()->u64 => Math.max(cast(u64, Hardware.processorCount()), 3'u64) - 2
 
 struct ExplorerTemporary
 {
@@ -48,7 +51,7 @@ struct Explorer
     requested:       String
     requestedFolder: String
     load:            ExplorerListingLoad
-    previews:        [ExplorerWorkerCount] ExplorerPreview
+    previews:        Array'ExplorerPreview     // Sized once: a running task borrows its preview.
     generation:      u64
     selected:        u64 = Swag.U64.Max
     pendingOpen:     u64 = Swag.U64.Max
@@ -146,7 +149,9 @@ impl Explorer
         }
 
         result.retranslate()
-        for ExplorerWorkerCount
+        result.previews.resize(explorerWorkerCount())
+        result.grid.busy.resize(result.previews.count)
+        for result.previews.count
         {
             with let spinner = Spinner.create(result.grid)
             {
@@ -588,7 +593,7 @@ impl Explorer
         }
     }
 
-    // Keep three independent renderers busy on visible tiles, with at most 128 uploaded previews.
+    // Keep every independent renderer busy on visible tiles, with at most 128 uploaded previews.
     mtd requestPreview()
     {
         .refreshPreviewSettings()
@@ -832,6 +837,7 @@ struct ExplorerGrid
     cell:          Math.Point = {160, 152}
     hovered:       u64        = Swag.U64.Max
     spinners:      Array'(*Spinner)
+    busy:          Array'bool     // Which spinners a visible tile claimed during the current paint.
 }
 
 impl ExplorerGrid
@@ -896,7 +902,7 @@ impl IWnd for ExplorerGrid
     {
         let painter = evt.paintContext.painter
         let range   = .visibleRange()
-        var busy: [ExplorerWorkerCount] bool
+        .busy.fill(false)
         for row in range.first until range.end
         {
             let index = .explorer.shown[row]
@@ -920,7 +926,7 @@ impl IWnd for ExplorerGrid
             {
                 let size = .themeMetrics().spinner_Size
                 .spinners[slot].setPosition(Math.Rectangle{preview.horzCenter() - size / 2, preview.vertCenter() - size / 2, size, size}, computeLayout: false)
-                busy[slot] = true
+                .busy[slot] = true
             }
             else
             {
@@ -937,8 +943,8 @@ impl IWnd for ExplorerGrid
             painter.drawRichString(Math.Rectangle{rect.x + 4, rect.bottom() - 28, rect.width - 8, 24}, &name, format)
         }
 
-        for slot in ExplorerWorkerCount do
-            .spinners[slot].show(busy[slot])
+        for spinner, slot in .spinners do
+            spinner.show(.busy[slot])
         .explorer.requestPreview()
     }
 

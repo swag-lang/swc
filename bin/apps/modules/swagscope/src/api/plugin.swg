@@ -7,7 +7,7 @@ using Core, Gui
 //
 // A descriptor whose version the host does not support is rejected before any of its callbacks
 // runs. Increasing this value denotes an incompatible contract change.
-const ApiVersion = 6'u32
+const ApiVersion = 7'u32
 
 // Prepares one plugin for the application it joined, before any other callback runs.
 //
@@ -90,7 +90,11 @@ alias PluginName = func()->string
 //
 // Use this when the format has a useful direct thumbnail decoder. The shared source renderer handles
 // plugins without one. Failure leaves the file's type icon visible; the host bounds and caches the pixels.
-alias PluginThumbnail = func(string)->Pixel.Image fail
+//
+// The second argument is the longest side the host keeps. A decoder that can produce its picture at
+// that size directly — a vector drawing, a scaled decode — should, rather than producing it whole
+// for the host to shrink; a larger result is still accepted.
+alias PluginThumbnail = func(string, u32)->Pixel.Image fail
 
 // Describes one viewer plugin independently of the host window implementation.
 //

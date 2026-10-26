@@ -75,7 +75,7 @@ func representativeThumbnail(candidates: const [..] ThumbnailCandidate)->u64
     return best
 }
 
-func loadThumbnail(fileName: string)->Image fail
+func loadThumbnail(fileName: string, maxSide: u32 = 256)->Image fail
 {
     var reader   = try Reader.open(fileName, pictureOnly: true)
     var candidates: Array'ThumbnailCandidate
@@ -98,9 +98,9 @@ func loadThumbnail(fileName: string)->Image fail
         var candidate: ThumbnailCandidate
         candidate.image = catch reader.decodeFrame(index) { continue }
         let largest = Math.max(candidate.image.width, candidate.image.height)
-        if largest > 256
+        if largest > maxSide
         {
-            let scale = 256.0 / cast(f32, largest)
+            let scale = cast(f32, maxSide) / cast(f32, largest)
             candidate.image.resize(Math.max(1, cast(s32, cast(f32, candidate.image.width) * scale)),
                                    Math.max(1, cast(s32, cast(f32, candidate.image.height) * scale)),
                                    .Bilinear)

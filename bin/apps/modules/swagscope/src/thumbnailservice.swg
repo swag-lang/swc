@@ -85,7 +85,7 @@ func renderThumbnail(registry: const *ViewerPluginRegistry,
        registry.plugins[pluginIndex].thumbnail and
        settings.usesDefaultViewer(registry.plugins[pluginIndex].key)
     {
-        return try registry.plugins[pluginIndex].thumbnail!(path)
+        return try registry.plugins[pluginIndex].thumbnail!(path, ThumbnailMaxSize)
     }
 
     let viewerName = knownPlugin ? registry.plugins[pluginIndex].staticName : "File"

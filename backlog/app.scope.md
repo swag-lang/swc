@@ -43,7 +43,13 @@ Reusable engine work remains in the backlog of the standard module that owns it.
 
 ### app.scope.004 — Folder previews are slow and use the wrong page shape
 
-- Evidence: `Explorer` runs three isolated thumbnail renderers concurrently. The former generic
+- Evidence: `Explorer` runs one isolated thumbnail renderer per logical processor, less two. On a
+  22-thread machine, the 60 visible previews of a cold 181-SVG folder took about 20 s with three
+  renderers; 8 s once SVG drawings were rasterized at the 320-pixel thumbnail size instead of their
+  own size, and with `RenderCpu` walking only the span of each triangle row; 3.8 s with twenty
+  renderers, for about 1.3 GB across the processes and a first preview at 1.4 s instead of 1 s.
+  Concurrent renderers had shared an exchange directory when their `Guid64` generators were seeded
+  in the same microsecond, losing a preview now and then. The former generic
   path created a complete viewer for each uncached file. Generic thumbnails now use
   one persistent CPU canvas and font cache per worker, reading at most 16 KiB for text or mapping
   the first 2 KiB for binary input. Image and video plugins keep their direct decoders. The Explorer

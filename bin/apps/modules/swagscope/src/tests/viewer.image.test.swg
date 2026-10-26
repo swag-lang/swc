@@ -85,6 +85,10 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     let view   = assume cast(*Picture.Panel, result.view)
     completeViewerBackgroundLoad(&host, &view.load)
     Swag.assert(view.facts.width == "20" and view.facts.height == "40")
+
+    // Ctrl+C copies this upright picture.
+    let picture = unwrap view.imageView.picture()
+    Swag.assert(picture.width == 20 and picture.height == 40)
 }
 
 // Changing language refreshes image facts and commands without changing the displayed frame.

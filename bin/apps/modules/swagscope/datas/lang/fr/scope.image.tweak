@@ -12,6 +12,7 @@ ui_RotateCounterClockwise Pivoter à gauche
 ui_MirrorHorizontal       Miroir horizontal
 ui_MirrorVertical         Miroir vertical
 ui_ResetTransform         Réinitialiser l'orientation
+ui_CopyImage              Copier l'image
 word_Mirrored             miroir
 
 word_Frame     image

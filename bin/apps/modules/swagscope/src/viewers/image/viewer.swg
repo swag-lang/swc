@@ -320,7 +320,22 @@ impl Panel
         menu.addItem(texts.ui_MirrorVertical, "scope.image.mirrorVertical", rightName: "V")
         menu.addSeparator()
         menu.addItem(texts.ui_ResetTransform, "scope.image.reset", .theme().icon(.Update, themeRowIconSize(.themeMetrics())), rightName: "Ctrl+R")
+        if .imageView.picture()
+        {
+            menu.addSeparator()
+            menu.addItem(texts.ui_CopyImage, "scope.image.copy", .theme().icon(.Copy, themeRowIconSize(.themeMetrics())), rightName: "Ctrl+C")
+        }
+
         return menu
+    }
+
+    // Puts the picture on the clipboard as decoded and stood upright, without the view's own
+    // rotation or zoom.
+    mtd copyPicture()
+    {
+        let picture = .imageView.picture()
+        if picture do
+            Clipboard.addImage(picture[])
     }
 
     mtd showTransformMenu()
@@ -333,6 +348,7 @@ impl Panel
         case "scope.image.mirrorHorizontal": .mirrorHorizontally()
         case "scope.image.mirrorVertical":   .mirrorVertically()
         case "scope.image.reset":            .resetTransform()
+        case "scope.image.copy":             .copyPicture()
         }
     }
 
@@ -468,6 +484,9 @@ private impl IWnd for Panel
 
         case .R where evt.modifiers == .Control:
             .resetTransform()
+
+        case .C where evt.modifiers == .Control:
+            .copyPicture()
 
         case .H where evt.modifiers == .None:
             .mirrorHorizontally()

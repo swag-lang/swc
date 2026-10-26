@@ -590,6 +590,9 @@ impl Wnd
         // Returns the current frame timing.
         mtd timing() => &.surface!.app.timing
 
+        // Returns the time between the last two painted frames of the surface, in seconds.
+        mtd paintDeltaSeconds() => .surface!.paintDeltaSeconds
+
         // Returns the resolved font family.
         mtd font() => .style.resolvedFont()
     }

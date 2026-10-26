@@ -712,6 +712,14 @@ private impl Application
             surface.paint()
     }
 
+    // Advances the clock, and the time each surface with a pending repaint has waited for it.
+    mtd advanceClock()
+    {
+        .timing.update()
+        for surface in .surfaces where surface.isDirty do
+            surface.unpaintedSeconds += .timing.deltaSeconds
+    }
+
     // Advances everything that runs on its own clock, repaints, and does nothing else.
     //
     // This is what the desktop's move and size loop calls while it holds the application loop.
@@ -727,7 +735,7 @@ private impl Application
         .inClockFrame = true
         defer .inClockFrame = false
 
-        .timing.update()
+        .advanceClock()
         .animator.advance(.timing.deltaSeconds)
         .sendFrameEvents()
         .sendTimerEvents()
@@ -742,7 +750,7 @@ private impl Application
     {
         let startedAt = Time.monotonicMicroseconds()
         .frameTrace.beginFrame()
-        .timing.update()
+        .advanceClock()
         Memory.releaseTemporaryAllocations()
 
         .animator.advance(.timing.deltaSeconds)

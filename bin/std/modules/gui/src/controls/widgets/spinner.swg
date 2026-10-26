@@ -36,7 +36,7 @@ impl IWnd for Spinner
         let rect = .paddedClientRect()
         Spinner.paintRing(painter, rect, .animationPhase, .themeColors().spinner_Dot, metrics.spinner_DotCount)
 
-        .animationPhase = Math.fract(.animationPhase + .timing().deltaSeconds * metrics.spinner_Speed)
+        .animationPhase = Math.fract(.animationPhase + .paintDeltaSeconds() * metrics.spinner_Speed)
         .invalidate()
     }
 }

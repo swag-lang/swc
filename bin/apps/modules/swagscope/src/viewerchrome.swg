@@ -310,7 +310,7 @@ impl IWnd for ViewerLoadingSpinner
         painter.drawArc(center.x, center.y, shape.radius, Math.Angle.fromDegrees(shape.start), Math.Angle.fromDegrees(end), Ink, 9)
         painter.drawArc(center.x, center.y, shape.radius, Math.Angle.fromDegrees(shape.start), Math.Angle.fromDegrees(end), Voltage, 5)
 
-        .animationPhase = Math.fract(.animationPhase + .timing().deltaSeconds * 0.7)
+        .animationPhase = Math.fract(.animationPhase + .paintDeltaSeconds() * 0.7)
         .invalidate()
     }
 }

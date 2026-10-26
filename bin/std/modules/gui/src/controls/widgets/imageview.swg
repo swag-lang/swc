@@ -236,7 +236,7 @@ impl IWnd for ImageView
         let painter = evt.paintContext.painter
         let client  = .clientRect()
 
-        if .movie.isValid() and .movie.update(.app().timing.deltaSeconds)
+        if .movie.isValid() and .movie.update(.paintDeltaSeconds())
         {
             .updateUploadedFrame()
             .sigFrameChanged.call(me)

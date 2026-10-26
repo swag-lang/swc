@@ -81,7 +81,7 @@ impl IWnd for ProgressBar
             posBox.x = -w + (.animationPhase * wt)
 
             // Advance only presentation; the caller's finite value remains intact.
-            .animationPhase += .timing().deltaSeconds * metrics.progressBar_SpeedInf
+            .animationPhase += .paintDeltaSeconds() * metrics.progressBar_SpeedInf
             if .animationPhase > 1 do
                 .animationPhase = 0
             .invalidate()

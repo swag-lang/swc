@@ -1389,7 +1389,7 @@ impl IWnd for InlineView
     {
         let rect    = .clientRect()
         let painter = evt.paintContext.painter
-        .images.loadingPhase = Math.fract(.images.loadingPhase + .timing().deltaSeconds * .themeMetrics().spinner_Speed)
+        .images.loadingPhase = Math.fract(.images.loadingPhase + .paintDeltaSeconds() *.themeMetrics().spinner_Speed)
         discard .layout(rect.width)
 
         // Lists, headings and code stay unchanged during scrolling just as prose does. Image

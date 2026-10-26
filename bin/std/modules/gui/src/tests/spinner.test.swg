@@ -56,6 +56,24 @@ func renderSpinner(dpiScale: f32)->Image
     Swag.assert(spin.animationPhase >= 0 and spin.animationPhase < 1)
 }
 
+// A paint covers every loop turn the surface spent waiting to repaint, not only the last one: a
+// surface waiting for its previous presentation keeps the loop turning far faster than the
+// display, and advancing by one turn per paint froze the ring.
+#test
+{
+    var host: Testing.HeadlessHost
+    host.setup(64, 64)
+
+    let spin = Spinner.create(&host.root, {16, 16, 32, 32})
+    discard host.render()
+    spin.animationPhase = 0
+
+    host.surface.unpaintedSeconds = 0.2
+    discard host.render()
+    Swag.assert(host.surface.paintDeltaSeconds == 0.1 and host.surface.unpaintedSeconds == 0)
+    Swag.assert(Math.abs(spin.animationPhase - 0.1 * host.root.themeMetrics().spinner_Speed) < 0.0001)
+}
+
 // The ring is drawn, never sampled from an atlas: rendering the same logical spinner at twice the
 // density covers four times the pixels, which is what a resolution-independent form means. A
 // sprite sheet would resample one frame and land far from that ratio.

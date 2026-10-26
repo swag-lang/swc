@@ -33,7 +33,7 @@ impl IWnd for ImageRect
             return
 
         // Advance playback and upload a newly decoded GIF frame when necessary.
-        if .movie.update(.app().timing.deltaSeconds)
+        if .movie.update(.paintDeltaSeconds())
         {
             if .movie.source != .SpriteSheet
             {

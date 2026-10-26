@@ -81,6 +81,14 @@ struct Surface
             // that the size it is being asked for is one of many, and that a reflow it cannot run
             // at pointer cadence belongs after the gesture rather than in it.
             isSizing: bool
+
+            // Seconds between the last two painted frames of this surface.
+            //
+            // A turn of the application loop is not a painted frame: a surface waiting for its
+            // previous presentation skips painting while the loop keeps turning, much faster than
+            // the display. Content that advances from its own paint — a spinner, a playing movie —
+            // reads this through [[Gui.Wnd.paintDeltaSeconds]] rather than the loop's delta.
+            paintDeltaSeconds: f32 = 1 / 60.0
         }
     }
 
@@ -89,6 +97,8 @@ struct Surface
     rc:        RenderContext     // Drawable and viewport the frame targets.
     dirtyRect: Math.Rectangle = {Swag.F32.Max, Swag.F32.Max, 0, 0}     // Region to repaint.
     isDirty:   bool     // Whether a repaint is pending.
+
+    unpaintedSeconds: f32     // Loop time accumulated while a repaint was pending.
 
     // Recorded before a native placement and reported when its prepared image is presented.
     paintRecordUs:     u64
@@ -482,6 +492,12 @@ impl Surface
         .dirtyRect   = {Swag.F32.Max, Swag.F32.Max, 0, 0}
         .isDirty     = false
 
+        // A host that never runs the application loop accumulates nothing and keeps the
+        // loop's delta, which is what makes a headless frame deterministic.
+        let timing = &.app.timing
+        .paintDeltaSeconds = .unpaintedSeconds > 0 ? Math.min(.unpaintedSeconds, timing.maximumDeltaSeconds) : timing.deltaSeconds
+        .unpaintedSeconds  = 0
+
         var traceWatch: Time.Stopwatch
         let tracing = .app.frameTrace.enabled
         if tracing
@@ -631,7 +647,7 @@ impl Surface
         var color: Color
         if .isDisabled and .app.fadeDisabledSurface
         {
-            .colorDisabled = Color.lerp(.colorDisabled, .app.theme.colors.surfaceDisabled, .app.deltaSeconds())
+            .colorDisabled = Color.lerp(.colorDisabled, .app.theme.colors.surfaceDisabled, .paintDeltaSeconds)
             color          = .colorDisabled
             .isDirty       = true
             .dirtyRect.clear()

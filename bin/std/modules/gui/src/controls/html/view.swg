@@ -1649,7 +1649,7 @@ internal impl IWnd for HtmlCanvas
         var painter = owner.painter()
         painter.painter           = evt.paintContext.painter
         painter.loadingWnd        = me
-        owner.images.loadingPhase = Math.fract(owner.images.loadingPhase + .timing().deltaSeconds * .themeMetrics().spinner_Speed)
+        owner.images.loadingPhase = Math.fract(owner.images.loadingPhase + .paintDeltaSeconds() *.themeMetrics().spinner_Speed)
         painter.paint()
     }
 

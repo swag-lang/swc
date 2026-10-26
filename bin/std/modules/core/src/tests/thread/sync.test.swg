@@ -13,25 +13,25 @@ struct FakeSync
 
 impl FakeSync
 {
-    mtd lock()
+    internal mtd lock()
     {
         .lockCount += 1
         .depth     += 1
     }
 
-    mtd unlock()
+    internal mtd unlock()
     {
         .unlockCount += 1
         .depth       -= 1
     }
 
-    mtd lockShared()
+    internal mtd lockShared()
     {
         .sharedLockCount += 1
         .sharedDepth     += 1
     }
 
-    mtd unlockShared()
+    internal mtd unlockShared()
     {
         .sharedUnlockCount += 1
         .sharedDepth       -= 1

@@ -803,7 +803,7 @@ private impl Panel
         }
     }
 
-    mtd finishSubtitles()
+    internal mtd finishSubtitles()
     {
         if .subtitleReady or not .video.isOpen() do
             return

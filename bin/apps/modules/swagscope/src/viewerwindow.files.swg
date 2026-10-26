@@ -32,7 +32,7 @@ impl ViewerWindow
     // Measures the identity row again after asynchronous metadata changes. Text widths are
     // rounded outward because the stack places children on whole logical units; rounding a
     // fractional glyph extent down is enough to paint an ellipsis on an otherwise complete line.
-    private mtd layoutFileInfo()
+    internal mtd layoutFileInfo()
     {
         .infoNameLabel.preferredSize.x  = Math.ceil(.infoNameLabel.itf.measureContent({}).x)
         .infoStatsLabel.preferredSize.x = Math.ceil(.infoStatsLabel.itf.measureContent({}).x)
@@ -278,7 +278,7 @@ impl ViewerWindow
     }
 
     // Builds what one file offers, wherever the reader pointed at it.
-    private mtd createFileActionsMenu(history: bool)->*MenuCtrl
+    internal mtd createFileActionsMenu(history: bool)->*MenuCtrl
     {
         let texts = appStrings()
         let menu  = MenuCtrl.createPopup(me, owner: me)

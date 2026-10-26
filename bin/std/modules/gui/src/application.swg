@@ -171,7 +171,7 @@ private impl Application
     // Delivers one node of an application-wide notification without routing it to an owner or
     // parent. The broadcast already walks every node, so bubbling would notify ancestors again
     // and could follow an ownership link invalidated by an earlier notification handler.
-    mtd sendBroadcastNotifyEvent(wnd: *Wnd, kind: NotifyEvent.Kind)
+    internal mtd sendBroadcastNotifyEvent(wnd: *Wnd, kind: NotifyEvent.Kind)
     {
         var evt = NotifyEvent{}
         evt.kind   = kind
@@ -409,7 +409,7 @@ private impl Application
             surface.wnd.view.setFocus()
     }
 
-    mtd sendMouseWheelEvent(sourceSurface: *Surface, screenPos: Math.Point, z: s32)
+    internal mtd sendMouseWheelEvent(sourceSurface: *Surface, screenPos: Math.Point, z: s32)
     {
         var targetWnd = .mouseEnterWnd
 
@@ -478,7 +478,7 @@ private impl Application
         }
     }
 
-    mtd sendRuneEvent(key: Input.Key, r: rune)
+    internal mtd sendRuneEvent(key: Input.Key, r: rune)
     {
         var targetWnd = .keyboardFocusWnd
         targetWnd = skipDisabled(targetWnd)
@@ -492,7 +492,7 @@ private impl Application
         targetWnd.sendEvent(&evt)
     }
 
-    mtd sendPostedEvents()
+    internal mtd sendPostedEvents()
     {
         // Dispatch a snapshot: a posted event can open a modal loop, which drains the queue again,
         // and the lock must not be held while handlers run.
@@ -541,7 +541,7 @@ private impl Application
 
     // Unregisters and releases `surface`. Callers close a surface with `Surface.destroy`, which
     // reaches this through the destroy event of its root window.
-    mtd destroySurface(surface: *Surface)
+    internal mtd destroySurface(surface: *Surface)
     {
         .unregisterSurface(surface)
         if surface == .mainSurface do
@@ -554,7 +554,7 @@ private impl Application
         .toDelete.add({ptr: surface, type: #typeof(surface[])})
     }
 
-    mtd unregisterWnd(wnd: *Wnd)
+    internal mtd unregisterWnd(wnd: *Wnd)
     {
         .animator.cancelTarget(wnd)
 
@@ -656,7 +656,7 @@ private impl Application
         .timersToDelete.clear()
     }
 
-    mtd sendFrameEvents()
+    internal mtd sendFrameEvents()
     {
         // What a window defers to the next frame is often a rebuild, and a rebuild destroys
         // windows — `destroyWnd` then takes them out of this very list. So the walk re-reads the

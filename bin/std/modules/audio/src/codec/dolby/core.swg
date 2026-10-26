@@ -55,9 +55,9 @@ private struct BitReader
 
 private impl BitReader
 {
-    func create(data: const [*] u8, size: u64)->BitReader => BitReader{data, size * 8}
+    internal func create(data: const [*] u8, size: u64)->BitReader => BitReader{data, size * 8}
 
-    mtd read(count: u32)->u32
+    internal mtd read(count: u32)->u32
     {
         var value: u32
         for count
@@ -91,7 +91,7 @@ private impl BitReader
         return cast(s32, raw)
     }
 
-    mtd skip(count: u64)
+    internal mtd skip(count: u64)
     {
         .bitPos += count
         if .bitPos > .bitSize do
@@ -243,7 +243,7 @@ private func imdctShort(coefficients: const [*] f64, output: [*] f64)
     }
 }
 
-private impl Imdct
+impl Imdct
 {
     mtd reset() => Memory.set(&.delay, 0, #sizeof(.delay))
 
@@ -439,7 +439,7 @@ private struct MantissaReader
     bap4At: u32 = 2
 }
 
-private impl MantissaReader
+impl MantissaReader
 {
     func create(reader: *BitReader)->MantissaReader => MantissaReader{reader}
 

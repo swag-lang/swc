@@ -38,10 +38,11 @@ namespace SemaError
 
     SourceCodeRange getNodeCodeRange(Sema& sema, AstNodeRef atNodeRef, ReportLocation location);
 
-    Utf8 formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
-    Utf8 formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
-    Utf8 formatStructMemberList(Sema& sema, TypeRef typeRef);
-    void addUnknownMemberArguments(Sema& sema, Diagnostic& diag, IdentifierRef idRef, const SymbolMap& owner);
+    Utf8         formatEnumValueList(const TaskContext& ctx, const SymbolEnum& symEnum);
+    Utf8         formatStructFieldList(const TaskContext& ctx, const SymbolStruct& symStruct);
+    Utf8         formatStructMemberList(Sema& sema, TypeRef typeRef);
+    void         addUnknownMemberArguments(Sema& sema, Diagnostic& diag, IdentifierRef idRef, const SymbolMap& owner);
+    DiagnosticId unknownMemberDiagnosticId(const Sema& sema, const SymbolMap* owner);
 
     SymbolDiagnosticOrigin symbolDiagnosticOrigin(const Sema& sema, const Symbol& symbol);
     bool                   isCurrentModuleSymbol(const Sema& sema, const Symbol& symbol);

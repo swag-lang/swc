@@ -554,7 +554,7 @@ impl MenuCtrl
         .popupButtonOpensUp      = button.arrowPosition == .RightUpward
     }
 
-    private mtd getPopupBarAnchorHeight()->f32 => .hasPopupBarAnchor() ? .popupBarItemSurfaceRect.height : 0
+    internal mtd getPopupBarAnchorHeight()->f32 => .hasPopupBarAnchor() ? .popupBarItemSurfaceRect.height : 0
 
     // Reports whether the body of an attached popup still fits on the side its tab opens to.
     //
@@ -625,7 +625,7 @@ impl MenuCtrl
         return result
     }
 
-    private mtd getPopupBodyRect()->Math.Rectangle
+    internal mtd getPopupBodyRect()->Math.Rectangle
     {
         let metrics        = .themeMetrics()
         var result: retval = .clientRect()

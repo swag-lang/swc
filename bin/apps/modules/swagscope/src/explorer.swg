@@ -4,7 +4,9 @@ using Core, Gui, Pixel
 
 enum ExplorerMode { Names, Details, Small, Medium, Large }
 
-// Each isolated renderer owns two decoder workers, for at most six CPU workers.
+const ExplorerTilePreviewAspect: f32 = 0.8
+
+// Each isolated renderer owns one decoder worker, for at most three CPU workers.
 const ExplorerWorkerCount = 3
 
 struct ExplorerTemporary
@@ -886,8 +888,9 @@ impl ExplorerGrid
 
     mtd refreshLayout()
     {
-        let width: f32 = .explorer.mode == .Small ? 112.0 : (.explorer.mode == .Large ? 240.0 : 168.0)
-        .cell    = Math.Point{width, width * 0.72 + 48}
+        let width: f32 = .explorer.mode == .Small ? 128.0 : (.explorer.mode == .Large ? 256.0 : 192.0)
+        let previewWidth = width - 24
+        .cell    = Math.Point{width, previewWidth / ExplorerTilePreviewAspect + 48}
         .columns = Math.max(1'u64, cast(u64, Math.max(0.0, .clientRect().width - 24) / width))
         let rows = (.explorer.shown.count + .columns - 1) / .columns
         .explorer.scroll.setScrollSize(0, cast(f32, rows) * .cell.y + 24)

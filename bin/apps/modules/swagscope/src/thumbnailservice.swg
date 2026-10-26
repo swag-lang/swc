@@ -2,6 +2,8 @@
 
 using Core, Pixel, Gui
 
+private const ThumbnailMaxSize: u32  = 320
+
 // One reusable, isolated renderer. Only a background task calls this service.
 // Viewer globals, font caches and decoder failures cannot interfere with the interactive app.
 struct ThumbnailService
@@ -71,16 +73,32 @@ impl ThumbnailService
     mtd opDrop() { .reset() }
 }
 
-// Runs only in the dedicated child process. Its CPU surface and viewer tree survive between jobs.
+// Uses a plugin decoder when it has one, otherwise renders a bounded source sample.
+func renderThumbnail(registry: const *ViewerPluginRegistry,
+                     renderer: *ThumbnailRenderer,
+                     settings: *ThumbnailSettings,
+                     path: string)->Image fail
+{
+    var pluginIndex: u64
+    let knownPlugin = registry.namePlugin(path, &pluginIndex)
+    if knownPlugin and
+       registry.plugins[pluginIndex].thumbnail and
+       settings.usesDefaultViewer(registry.plugins[pluginIndex].key)
+    {
+        return try registry.plugins[pluginIndex].thumbnail!(path)
+    }
+
+    let viewerName = knownPlugin ? registry.plugins[pluginIndex].staticName : "File"
+    let textual    = knownPlugin and registry.plugins[pluginIndex].textual
+    return try renderer.render(path, viewerName, textual)
+}
+
+// Runs only in the dedicated child process. Its renderer and decoder cache survive between jobs.
 func runThumbnailWorker(directory: string) fail
 {
-    Swag.setWorkerCount(2)
-    var cpu: RenderCpu
-    var app: Application
-    app.setRenderer(&cpu)
-    registerAppStrings(&app.resources)
+    Swag.setWorkerCount(1)
     let registry = createViewerPluginRegistry()
-    var window: *ViewerWindow?
+    var renderer = try ThumbnailRenderer.create()
 
     let ready       = Path.combine(directory, "ready")
     let request     = Path.combine(directory, "request")
@@ -91,8 +109,6 @@ func runThumbnailWorker(directory: string) fail
     {
         if not File.exists(ready)
         {
-            if window and (window.currentView or not window.pendingEmpty.isEmpty()) do
-                app.runFrame()
             Threading.Thread.sleep(10'ms)
             continue
         }
@@ -104,62 +120,12 @@ func runThumbnailWorker(directory: string) fail
             let settingsPath = Path.combine(directory, "settings")
             let bytes        = File.exists(settingsPath) ? try File.readAllText(settingsPath) : {}
             var settings     = try ThumbnailSettings.decode(bytes)
-            var image:       Image
-            var pluginIndex: u64
-            if registry.namePlugin(path, &pluginIndex) and
-               registry.plugins[pluginIndex].thumbnail and
-               settings.usesDefaultViewer(registry.plugins[pluginIndex].key)
-            {
-                image = try registry.plugins[pluginIndex].thumbnail!(path)
-            }
-            else
-            {
-                // Image and video decoders do not need a native surface or a complete viewer tree.
-                if not window
-                {
-                    let surface = try app.createSurface(0, 0, 640, 480, .None)
-                    app.theme.setSwagDark()
-                    window = ViewerWindow.create(surface.wnd, createViewerPluginRegistry())
-                    window.thumbnailMode = true
-                    surface.show()
-                }
-
-                settings.apply(window)
-                let surface = unwrap window.surface
-                window.queueFile(path, remember: false)
-                let started = Time.monotonicMicroseconds()
-                for
-                {
-                    app.runFrame()
-                    var blocking = false
-                    if window.activeChoiceIndex < window.instances.count
-                    {
-                        let instance = &window.instances[window.activeChoiceIndex]
-                        blocking = instance.isLoading and
-                                   instance.isLoading() and
-                                   (not instance.needsLoadingOverlay or instance.needsLoadingOverlay())
-                    }
-
-                    if window.pendingFile.isEmpty() and not blocking do
-                        break
-                    if Time.monotonicMicroseconds() - started > 15_000_000 do
-                        fail Errors.InvalidFormatError{}
-                    Threading.Thread.sleep(1'ms)
-                }
-
-                if not window.currentView do
-                    fail Errors.InvalidFormatError{}
-                app.animator.finishAll()
-                surface.invalidate()
-                app.runFrame()
-                image = app.renderer.readRenderTarget(&surface.rt, 0, 0, 640, 480)
-                image.crop(window.currentView.surfaceRect())
-            }
+            var image = try renderThumbnail(&registry, &renderer, &settings, path)
 
             let largest = Math.max(image.width, image.height)
-            if largest > 256
+            if largest > ThumbnailMaxSize
             {
-                let scale = 256.0 / cast(f32, largest)
+                let scale = cast(f32, ThumbnailMaxSize) / cast(f32, largest)
                 image.resize(Math.max(1, cast(s32, cast(f32, image.width) * scale)),
                              Math.max(1, cast(s32, cast(f32, image.height) * scale)),
                              .Bilinear)
@@ -168,7 +134,6 @@ func runThumbnailWorker(directory: string) fail
             try image.save(output)
         }
 
-        window?.closeFile()
         discard try File.writeAllText(done, "")
         lastRequest = Time.monotonicMicroseconds()
     }

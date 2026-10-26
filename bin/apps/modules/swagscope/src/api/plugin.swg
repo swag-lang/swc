@@ -86,10 +86,10 @@ alias PluginProbe = func(ProbeContent)->bool
 // Resolves a translated or otherwise dynamic viewer name on the GUI thread.
 alias PluginName = func()->string
 
-// Produces an owned still image off the GUI thread, without playback or other user-visible effects.
+// Produces an owned still image directly from file data, off the GUI thread and without creating a viewer.
 //
-// This optional fast path replaces the host's offscreen rendering of the ordinary viewer.
-// Failure leaves the file's type icon visible. The host bounds and caches the returned pixels.
+// Use this when the format has a useful direct thumbnail decoder. The shared source renderer handles
+// plugins without one. Failure leaves the file's type icon visible; the host bounds and caches the pixels.
 alias PluginThumbnail = func(string)->Pixel.Image fail
 
 // Describes one viewer plugin independently of the host window implementation.
@@ -110,7 +110,7 @@ struct Plugin
         iconIndex:    s32                   // Zero-based cell of that document, in grid order.
         late create:  PluginCreate          // Synchronous presentation factory.
         probe:        PluginProbe?          // Optional content-aware discovery callback.
-        thumbnail:    PluginThumbnail?      // Optional direct thumbnail decoder; null renders the viewer offscreen.
+        thumbnail:    PluginThumbnail?      // Optional direct decoder; null uses the shared source renderer without creating a viewer.
         matchNames:   bool = true           // Whether non-wildcard selectors offer this plugin directly.
         textual:      bool                  // Whether this format's bytes are text a reader may also want raw.
         smokeFixture: String                // Immutable basename used by application smoke review.

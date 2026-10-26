@@ -12,7 +12,7 @@ impl ThumbnailCache
         let appPath  = executable.count ? executable : Env.executablePath()
         let file     = try File.info(source)
         let app      = try File.info(appPath)
-        let identity = Format.toString("scope-thumbnail-3\n%\n%\n%\n%\n%\n%\n%\n%\n%\n%",
+        let identity = Format.toString("scope-thumbnail-5\n%\n%\n%\n%\n%\n%\n%\n%\n%\n%",
                                        try Path.absolute(source),
                                        member,
                                        file.size,

@@ -233,7 +233,7 @@ private impl IWnd for Panel
 
 private impl Panel
 {
-    mtd retire()->bool
+    internal mtd retire()->bool
     {
         return .load.retire()
     }
@@ -272,7 +272,7 @@ private impl Panel
         .zoomLabel.setText(Format.toString("% %", cast(u32, Math.round(.pdfView.effectiveZoom() * 100)), "%"))
     }
 
-    mtd goToTypedPage(text: string)->bool
+    internal mtd goToTypedPage(text: string)->bool
     {
         var parseErrorOutcome: Swag.Error
         var parsed: #decltype(expect StrConv.parseU64(text))

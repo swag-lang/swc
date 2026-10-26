@@ -275,7 +275,7 @@ private impl EmbeddedViewer
 
     // Builds the embedded viewer: a header holding the entry title, information lane and viewer
     // selector, a bottom command bar, and the document area where the active instance docks.
-    func create(parent: *Wnd, owner: *ViewerWindow)->*EmbeddedViewer
+    internal func create(parent: *Wnd, owner: *ViewerWindow)->*EmbeddedViewer
     {
         with let result = Wnd.create'EmbeddedViewer(parent, "scope.embedded")
         {

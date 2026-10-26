@@ -119,6 +119,11 @@ sibling 'public', 'internal', or 'private' group; bare 'readonly' is the one mod
 ride inside it. An 'impl' is different: omit a repeated level, but a different level remains a
 deliberate local override, so a 'private impl' may still expose one method with 'public'.
 
+A method follows the same rule as a field. A method of a 'private impl', or one marked
+'private', is called only by its type; the rest of the module needs 'internal' for it. A
+call through an overload set keeps the overloads the site can reach, so a private overload
+never takes a call from outside the type.
+
 A public struct takes every field into the generated module API, because an importer lays it
 out. The types its non-public fields name travel with it as supporting declarations and keep
 their own access, so an implementation type stays internal however deep it is embedded. A

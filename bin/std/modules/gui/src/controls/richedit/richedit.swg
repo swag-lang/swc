@@ -115,11 +115,11 @@ private impl IWnd for RichEditCtrl
 
 private impl RichEditCtrl
 {
-    mtd leftMargin()->f32 => .marginLeft + .gutterWidth()
+    internal mtd leftMargin()->f32 => .marginLeft + .gutterWidth()
 
     // Width of the line-number gutter: the widest number, never fewer than three digits so a short
     // document does not shift its text as it grows, one blank advance before it and two after.
-    mtd gutterWidth()->f32
+    internal mtd gutterWidth()->f32
     {
         if not .flags.has(.LineNumbers) do
             return 0
@@ -135,7 +135,7 @@ private impl RichEditCtrl
         return cast(f32, Math.max(digits, 3) + 3) * .xGlyphSize().x
     }
 
-    mtd rightMargin()->f32 => .marginRight
+    internal mtd rightMargin()->f32 => .marginRight
 
     mtd setDefaultStyles()
     {

@@ -310,75 +310,91 @@ impl LibraryWnd
         return result
     }
 
-    mtd applyDynamicFilter(id: WndId?)
+    // Shows how the library is presented under `btn`: thumbnail size, order, and the marks painted
+    // over each thumbnail.
+    mtd showViewOptions(btn: *IconButton)
     {
-        if not id do
-            return
-        if Utf8.startsWith(id, "capture.library.app:")
-        {
-            .applicationFilter = id[("capture.library.app:").count to]
-            .view.filter()
-        }
-        elif Utf8.startsWith(id, "capture.library.tag:")
-        {
-            .tagFilter = id[("capture.library.tag:").count to]
-            .view.filter()
-        }
+        let sheet = OptionSheet.View.create(me, func|libWnd = me|(page) { libWnd.describeViewOptions(page) }, owner: me)
+        sheet.doModal(btn, autoDestroy: true)
     }
 
-    // Shows the filter menu under `btn`: the content kinds, the link states, the rating, and one
-    // entry per known application and tag.
-    mtd showFilterMenu(btn: *IconButton)
+    mtd describeViewOptions(page: *OptionSheet.Page)
     {
-        let applications = .uniqueFilterValues(true)
-        let tags         = .uniqueFilterValues(false)
+        page.addCommandLink(appStrings().ui_ThumbnailSize, ThumbnailSizeIds, me)
+        page.addCommandLink(appStrings().ui_SortBy, SortIds, me)
+        page.addCommand(ActionLibSort.Invert, me)
+        page.addHeading(appStrings().ui_Overlays)
+        page.addCommand(ActionLibView.Ratings, me)
+        page.addCommand(ActionLibView.LinkMarkers, me)
+    }
 
-        .menuValues.clear()
-        .menuValues.reserve(2 * (applications.count + tags.count) + 2)
+    // Shows the filters under `btn`: the content kinds, the favorites, one page per application,
+    // tag and rating, the link states, and the reset.
+    mtd showFilterOptions(btn: *IconButton)
+    {
+        let sheet = OptionSheet.View.create(me, func|libWnd = me|(page) { libWnd.describeFilterOptions(page) }, owner: me)
+        sheet.doModal(btn, autoDestroy: true)
+    }
 
-        with let menu = MenuCtrl.createPopup(me, owner: me)
+    mtd describeFilterOptions(page: *OptionSheet.Page)
+    {
+        let texts = appStrings()
+        page.addCommandLink(texts.ui_FilterContent, ContentFilterIds, me)
+        page.addCommand(ActionLibFilter.FavoritesOnly, me)
+
+        let application = .applicationFilter.isEmpty() ? texts.act_AllApplications : .applicationFilter.toString()
+        page.addLink(texts.act_Application, application, func|libWnd = me|(choices)
         {
-            .addItem(ActionLibFilter.Reset)
-            .addSeparator()
-            .addItems([ActionLibFilter.AllItems, ActionLibFilter.Captures, ActionLibFilter.ScreenCaptures, ActionLibFilter.ImportedCaptures, ActionLibFilter.Images])
-            .addSeparator()
-            .addItem(ActionLibFilter.FavoritesOnly)
-
-            with let apps = MenuCtrl.createPopup(menu, owner: me)
+            choices.addChoice(appStrings().act_AllApplications, libWnd.applicationFilter.isEmpty(), func|libWnd|() { libWnd.setApplicationFilter("") })
+            for &one in libWnd.uniqueFilterValues(true)
             {
-                me.menuValues.add("capture.library.app:")
-                .addItem(appStrings().act_AllApplications, me.menuValues.back(), checked: me.applicationFilter.isEmpty())
-                for application in applications
-                {
-                    me.menuValues.add(Format.toString("capture.library.app:%", application[]))
-                    .addItem(application[], me.menuValues.back(), checked: Utf8.compare(application.toSlice(), me.applicationFilter, .Latin1NoCase) == 0)
-                }
-
-                menu.addPopup(appStrings().act_Application, apps)
+                let name = one.toString()
+                let on   = Utf8.compare(one.toSlice(), libWnd.applicationFilter, .Latin1NoCase) == 0
+                choices.addChoice(name, on, func|libWnd, name|() { libWnd.setApplicationFilter(name) })
             }
+        })
 
-            with let tagMenu = MenuCtrl.createPopup(menu, owner: me)
+        let tag = .tagFilter.isEmpty() ? texts.act_AllTags : .tagFilter.toString()
+        page.addLink(texts.act_Tags, tag, func|libWnd = me|(choices)
+        {
+            choices.addChoice(appStrings().act_AllTags, libWnd.tagFilter.isEmpty(), func|libWnd|() { libWnd.setTagFilter("") })
+            for &one in libWnd.uniqueFilterValues(false)
             {
-                me.menuValues.add("capture.library.tag:")
-                .addItem(appStrings().act_AllTags, me.menuValues.back(), checked: me.tagFilter.isEmpty())
-                for tag in tags
-                {
-                    me.menuValues.add(Format.toString("capture.library.tag:%", tag[]))
-                    .addItem(tag[], me.menuValues.back(), checked: Utf8.compare(tag.toSlice(), me.tagFilter, .Latin1NoCase) == 0)
-                }
-
-                menu.addPopup(appStrings().act_Tags, tagMenu)
+                let name = one.toString()
+                let on   = Utf8.compare(one.toSlice(), libWnd.tagFilter, .Latin1NoCase) == 0
+                choices.addChoice(name, on, func|libWnd, name|() { libWnd.setTagFilter(name) })
             }
+        })
 
-            .addSeparator()
-            .addItems([ActionLibFilter.RatingAny, ActionLibFilter.Rating1, ActionLibFilter.Rating2, ActionLibFilter.Rating3, ActionLibFilter.Rating4, ActionLibFilter.Rating5])
-            .addSeparator()
-            .addItem(ActionLibFilter.UpToDateLinkedImage)
-            .addItem(ActionLibFilter.UnSavedLinkedImage)
-            .addItem(ActionLibFilter.LinkedImage)
-            .addItem(ActionLibFilter.UnLinkedImage)
-        }
+        page.addCommandLink(texts.ui_FilterRating, RatingFilterIds, me)
+        page.addLink(texts.ui_FilterLinks, "", func|libWnd = me|(links)
+        {
+            for id in LinkFilterIds do
+                links.addCommand(id, libWnd)
+        })
 
-        .applyDynamicFilter(menu.doModal(btn, autoDestroy: true))
+        page.addCommand(ActionLibFilter.Reset, me)
+    }
+
+    // Shows only the captures of the application `name`, or every capture when it is empty.
+    mtd setApplicationFilter(name: string)
+    {
+        .applicationFilter = name
+        .view.filter()
+    }
+
+    // Shows only the captures tagged `name`, or every capture when it is empty.
+    mtd setTagFilter(name: string)
+    {
+        .tagFilter = name
+        .view.filter()
     }
 }
+
+// The commands each group of the library options offers, in the order a page lists them. A page
+// borrows its identifiers, which these constants keep alive for as long as the program runs.
+const ThumbnailSizeIds = [ActionRecentSize.LibSmall, ActionRecentSize.LibMedium, ActionRecentSize.LibBig]
+const SortIds          = [ActionLibSort.Recent, ActionLibSort.Modified, ActionLibSort.Name, ActionLibSort.Application, ActionLibSort.WindowTitle, ActionLibSort.Dimensions, ActionLibSort.FileSize, ActionLibSort.Similar]
+const ContentFilterIds = [ActionLibFilter.AllItems, ActionLibFilter.Captures, ActionLibFilter.ScreenCaptures, ActionLibFilter.ImportedCaptures, ActionLibFilter.Images]
+const RatingFilterIds  = [ActionLibFilter.RatingAny, ActionLibFilter.Rating1, ActionLibFilter.Rating2, ActionLibFilter.Rating3, ActionLibFilter.Rating4, ActionLibFilter.Rating5]
+const LinkFilterIds    = [ActionLibFilter.UpToDateLinkedImage, ActionLibFilter.UnSavedLinkedImage, ActionLibFilter.LinkedImage, ActionLibFilter.UnLinkedImage]

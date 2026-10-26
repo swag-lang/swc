@@ -9,23 +9,21 @@ using Core, Gui
 // than in this table.
 struct Texts
 {
-    ui_Name:         string = "Basic text"                     // Name of this viewer in the viewer selector.
-    ui_WrapOn:       string = "Line wrapping on (Ctrl+W)"      // Tooltip while long lines are folded.
-    ui_WrapOff:      string = "Line wrapping off (Ctrl+W)"     // Tooltip while long lines run off the edge.
-    ui_NumbersOn:    string = "Line numbers on"                // Tooltip while the gutter numbers lines.
-    ui_NumbersOff:   string = "Line numbers off"               // Tooltip while lines are not numbered.
-    ui_Encoding:     string = "Character encoding"             // Tooltip of the encoding selector.
-    ui_ZoomMenu:     string = "Text zoom options"              // Tooltip of the zoom value menu.
+    ui_Name:         string = "Basic text"             // Name of this viewer in the viewer selector.
+    ui_Wrap:         string = "Wrap long lines"        // Option folding long lines into the view; Ctrl+W also switches it.
+    ui_Numbers:      string = "Line numbers"           // Option numbering the lines in a gutter.
+    ui_Encoding:     string = "Character encoding"     // Option choosing how the bytes are read as text.
+    ui_ZoomMenu:     string = "Text zoom options"      // Tooltip of the zoom value menu.
     ui_NotText:      string = "This file does not contain readable text. Select Hexadecimal to inspect its bytes."     // No encoding reads the file as text.
-    ui_Details:      string = "% · %"                          // Encoding and the current cursor line.
-    ui_DetailsStats: string = "% · % · % · % · %"              // Encoding, current cursor line, and line, word, and Unicode character counts.
-    ui_CurrentLine:  string = "line %"                         // Current logical line under the cursor.
-    ui_OneLine:      string = "1 line"                         // Singular line count.
-    ui_Lines:        string = "% lines"                        // Plural line count.
-    ui_OneWord:      string = "1 word"                         // Singular word count.
-    ui_Words:        string = "% words"                        // Plural word count.
-    ui_OneCharacter: string = "1 character"                    // Singular Unicode character count.
-    ui_Characters:   string = "% characters"                   // Plural Unicode character count.
+    ui_Details:      string = "% · %"                  // Encoding and the current cursor line.
+    ui_DetailsStats: string = "% · % · % · % · %"      // Encoding, current cursor line, and line, word, and Unicode character counts.
+    ui_CurrentLine:  string = "line %"                 // Current logical line under the cursor.
+    ui_OneLine:      string = "1 line"                 // Singular line count.
+    ui_Lines:        string = "% lines"                // Plural line count.
+    ui_OneWord:      string = "1 word"                 // Singular word count.
+    ui_Words:        string = "% words"                // Plural word count.
+    ui_OneCharacter: string = "1 character"            // Singular Unicode character count.
+    ui_Characters:   string = "% characters"           // Plural Unicode character count.
 }
 
 private const FrenchStringsName = "lang/fr/scope.text.tweak"

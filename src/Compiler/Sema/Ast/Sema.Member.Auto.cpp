@@ -957,6 +957,7 @@ Result AstAutoMemberAccessExpr::semaPreNodeChild(Sema& sema, const AstNodeRef& c
 
     if (selected.symMap)
     {
+        SemaAccess::dropUnreachableOverloads(sema, matches.front().symbols, autoMemberCodeRef.srcViewRef);
         const std::span foundSymbols = matches.front().symbols.span();
         SWC_RESULT(SemaSymbolLookup::bindResolvedSymbols(sema, sema.curNodeRef(), allowOverloadSet, foundSymbols));
 

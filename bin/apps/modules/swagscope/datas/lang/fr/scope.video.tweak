@@ -8,10 +8,9 @@ ui_TipForward    Avancer de 10 secondes (Droite) · Ctrl+Droite : image suivante
 ui_TipSeek       Rechercher une image
 ui_TipMute       Couper ou rétablir le son (M)
 ui_TipVolume     Volume
-ui_TipAudio      Piste audio
-ui_AudioTrack        <b>%</b>% · <p3>% · % can. · %{f1} kHz</p>
-ui_TipSubtitles  Sous-titres
-ui_TipPlaybackSpeed  Vitesse de lecture · Maj+gauche/droite : ajuster
+ui_OptionSpeed       Vitesse
+ui_OptionAudio       Piste audio
+ui_OptionSubtitles   Sous-titres
 ui_PlayerSpeedNormal  Normale
 ui_AudioTrackNumber  Audio %
 ui_AudioTrackLang    <p2> (%)</p>
@@ -20,8 +19,10 @@ ui_AudioDetails  % · % can. · %{f1} kHz
 ui_SubtitleOff             Désactivés
 ui_SubtitleTrackNumber     Sous-titres %
 ui_SubtitleTrackLang       <p2> (%)</p>
-ui_SubtitleEmbedded        <b>%</b>% · <p3>Intégrés</p>
-ui_SubtitleSidecar         <b>%</b>% · <p3>Fichier externe</p>
+ui_SubtitleEmbedded        Intégrés
+ui_SubtitleSidecar         Fichier externe
+ui_SubtitleTrack           Piste
+ui_SubtitleAppearance      Apparence
 ui_SubtitleFont            Police
 ui_SubtitleFontSans        Sans empattement système
 ui_SubtitleFontMono        Chasse fixe

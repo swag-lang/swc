@@ -470,7 +470,7 @@ impl SurfaceWnd
         btn.surface!.requestClose()
     }
 
-    private mtd applySurfaceFlags()
+    internal mtd applySurfaceFlags()
     {
         let srfn  = unwrap .surface
         let theme = srfn.app.theme

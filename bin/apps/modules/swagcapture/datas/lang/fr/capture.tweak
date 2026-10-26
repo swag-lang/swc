@@ -14,7 +14,11 @@ ui_CommaSeparatedTags  Étiquettes séparées par des virgules
 ui_Search              Rechercher
 ui_BarView             Affichage
 ui_Overlays            Surimpressions
-ui_BarSort             Tri
+ui_ThumbnailSize       Taille des vignettes
+ui_SortBy              Trier par
+ui_FilterContent       Contenu
+ui_FilterRating        Note
+ui_FilterLinks         Images liées
 ui_BarFilter           Filtre
 ui_BarFolders          Dossiers
 ui_RemoveQuickStyle    Supprimer le style rapide

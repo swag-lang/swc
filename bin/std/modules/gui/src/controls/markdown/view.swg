@@ -474,7 +474,7 @@ private impl View
         y[] += block.wnd.position.height + gap
     }
 
-    mtd layoutDocument(preservePosition = false)
+    internal mtd layoutDocument(preservePosition = false)
     {
         let viewport = .scroll.paddedClientRect()
         if viewport.width <= 0 do
@@ -653,7 +653,7 @@ private impl View
 
     // Source bytes do not bound decoded SVG memory. Keep two prefetch reserves behind the
     // reader and release older windows without moving any surviving block or rebuilding it.
-    mtd retireDistantBlocks()
+    internal mtd retireDistantBlocks()
     {
         if not .fileSize or
            not .retainedBlocks.isEmpty() or
@@ -733,7 +733,7 @@ private impl View
         .stream.close()
     }
 
-    mtd preparePending()->bool
+    internal mtd preparePending()->bool
     {
         if .pendingIndex < .pendingBlocks.count do
             return true
@@ -761,7 +761,7 @@ private impl View
 
     // Read image dimensions on a worker before the next block acquires geometry. Expensive SVG
     // contents remain deferred until paint, where each visible image can show its own spinner.
-    mtd prepareImages()->bool
+    internal mtd prepareImages()->bool
     {
         if .pendingImageIndex == .pendingIndex do
             return not .imageTask.isPending()
@@ -826,7 +826,7 @@ private impl View
         return not .imageTask.isPending()
     }
 
-    mtd streamStep()
+    internal mtd streamStep()
     {
         defer
         {
@@ -1092,7 +1092,7 @@ private impl View
     }
 
     // Adds one text view to the reading order and returns the index it took.
-    mtd registerInline(view: *InlineView)->u64
+    internal mtd registerInline(view: *InlineView)->u64
     {
         .inlineOrder.add(view)
         return .inlineOrder.count - 1

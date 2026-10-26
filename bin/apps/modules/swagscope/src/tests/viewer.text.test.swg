@@ -52,9 +52,15 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     Swag.assert(not view.editor.flags.has(.LineNumbers))
 
     view.toggleLineNumbers()
-    defer if view.lineNumbers do view.toggleLineNumbers()
-    Swag.assert(view.numbersButton.isChecked and view.editor.flags.has(.LineNumbers))
-    Swag.assert(view.numbersButton.toolTip == PlainText.texts().ui_NumbersOn)
+    defer if view.lineNumbers do
+        view.toggleLineNumbers()
+    Swag.assert(view.editor.flags.has(.LineNumbers))
+
+    // The options show both switches in the state the panel is in.
+    var options: OptionSheet.Page
+    view.describeOptions(&options)
+    Swag.assert(options.rows[0].kind == .Toggle and options.rows[0].checked == view.wrapping)
+    Swag.assert(options.rows[1].label == PlainText.texts().ui_Numbers and options.rows[1].checked)
     view.toggleWrap()
     Swag.assert(view.editor.flags.has(.LineNumbers) and not view.editor.flags.has(.WordWrap))
     view.toggleWrap()
@@ -108,11 +114,21 @@ func finishTextStatistics(host: *Testing.HeadlessHost, view: *PlainText.Panel)
     let currentLine    = Format.toString(PlainText.texts().ui_CurrentLine, view.editor.cursorLogicalLineIndex() + 1)
     Swag.assert(changedDetails == Format.toString(PlainText.texts().ui_Details, "UTF-16 LE", currentLine))
 
-    let oldEncodingTip = String.from(view.encodingCombo.toolTip)
+    // The encoding is chosen among the options, from a page that checks the one in force.
+    host.activateOptionRowWhenShown(PlainText.texts().ui_Encoding)
+    host.thenActivateOptionRow("UTF-8")
+    view.showOptions()
+    Swag.assert(host.autoHandled and view.encoding == .Utf8)
+    host.activateOptionRowWhenShown(PlainText.texts().ui_Wrap)
+    view.showOptions()
+    Swag.assert(view.wrapping)
+    view.toggleWrap()
+
+    let oldEncoding = String.from(PlainText.texts().ui_Encoding)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.wrapButton.toolTip == PlainText.texts().ui_WrapOff)
-    Swag.assert(view.encodingCombo.toolTip == PlainText.texts().ui_Encoding and view.encodingCombo.toolTip != oldEncodingTip)
+    Swag.assert(view.optionsButton.toolTip == "Options")
+    Swag.assert(oldEncoding != PlainText.texts().ui_Encoding)
     Swag.assert(view.zoomLabel.toolTip == PlainText.texts().ui_ZoomMenu)
 }
 

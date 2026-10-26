@@ -25,7 +25,7 @@ func viewerPlugin()->Viewer.Plugin
     return result
 }
 
-private const CommandWidth = 560.0
+private const CommandWidth = 64.0
 
 // Display preferences of the MIDI viewer, persisted with the main window.
 struct ViewerSettings
@@ -53,13 +53,11 @@ struct Panel
 
     late
     {
-        commands:           *Wnd
-        info:               *Wnd
-        trackCombo:         *ComboBox
-        pitchLabelCombo:    *ComboBox
-        keyboardWidthCombo: *ComboBox
-        zoomLabel:          *IconButton
-        roll:               *RollView
+        commands:      *Wnd
+        info:          *Wnd
+        optionsButton: *IconButton
+        zoomLabel:     *IconButton
+        roll:          *RollView
     }
 
     details:           String
@@ -77,50 +75,12 @@ private impl Panel
         .zoomLabel.setText(Format.toString("% %%", cast(u32, Math.round(.roll.zoom * 100))))
     }
 
-    mtd fillTracks()
-    {
-        let selected = .trackCombo.selectedIndex
-        .trackCombo.clear()
-        .trackCombo.addItem(texts().ui_AllTracks)
-        for track in .roll.document.tracks
-        {
-            let label = Format.toString(texts().ui_TrackChoice, track.name, noteCountText(track.noteCount))
-            .trackCombo.addItem(label)
-        }
-
-        .trackCombo.setSelectedIndex(selected == Swag.U32.Max ? 0 : selected, notify: false)
-    }
-
-    mtd fillPitchLabels()
-    {
-        let selected = .pitchLabelCombo.selectedIndex
-        .pitchLabelCombo.clear()
-        .pitchLabelCombo.addItem(texts().ui_PitchScientific)
-        .pitchLabelCombo.addItem(texts().ui_PitchMidiNumber)
-        .pitchLabelCombo.setSelectedIndex(selected == Swag.U32.Max ? 0 : selected, notify: false)
-    }
-
-    mtd fillKeyboardWidths()
-    {
-        let selected = .keyboardWidthCombo.selectedIndex
-        .keyboardWidthCombo.clear()
-        .keyboardWidthCombo.addItem(texts().ui_KeyboardCompact)
-        .keyboardWidthCombo.addItem(texts().ui_KeyboardStandard)
-        .keyboardWidthCombo.addItem(texts().ui_KeyboardWide)
-        .keyboardWidthCombo.setSelectedIndex(selected == Swag.U32.Max ? .keyboardWidthMode : selected, notify: false)
-    }
-
     mtd retranslate()
     {
-        .trackCombo.toolTip         = texts().ui_AllTracks
-        .pitchLabelCombo.toolTip    = texts().ui_PitchLabels
-        .keyboardWidthCombo.toolTip = texts().ui_KeyboardWidth
-        .zoomLabel.toolTip          = texts().ui_ZoomMenu
+        .optionsButton.toolTip = appStrings().ui_Options
+        .zoomLabel.toolTip     = texts().ui_ZoomMenu
         if .isLoading() do
             return
-        .fillTracks()
-        .fillPitchLabels()
-        .fillKeyboardWidths()
         .roll.invalidate()
     }
 
@@ -130,9 +90,6 @@ private impl Panel
         .roll.setPitchLabelMode(.pitchLabelMode)
         .roll.setKeyboardWidth(.keyboardWidthMode == 0 ? 56 : .keyboardWidthMode == 1 ? 72 : 112)
         .roll.sigZoomChanged += func|view = me|(_) { view.refreshZoom() }
-        .fillTracks()
-        .fillPitchLabels()
-        .trackCombo.setSelectedIndex(0, notify: false)
         .applyLayout()
         .roll.refreshLayout()
         .refreshZoom()
@@ -209,7 +166,69 @@ private impl IWnd for Panel
 
 impl Panel
 {
-    // Builds the MIDI panel: the track selector and the zoom button. Loads the file in the
+    // Opens what the roll shows and how: the track, the names of the pitches, the keyboard width.
+    mtd showOptions()
+    {
+        let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
+        sheet.doModal(.optionsButton, autoDestroy: true)
+    }
+
+    mtd describeOptions(page: *OptionSheet.Page)
+    {
+        let strings = texts()
+        if not .isLoading() and .failureReason.isEmpty()
+        {
+            let selected = .roll.selectedTrack
+            let current  = selected == Swag.U32.Max ? strings.ui_AllTracks : .roll.document.tracks[selected].name.toString()
+            page.addLink(strings.ui_Track, current, func|view = me|(tracks)
+            {
+                tracks.addChoice(texts().ui_AllTracks, view.roll.selectedTrack == Swag.U32.Max, func|view|() { view.roll.setTrack(Swag.U32.Max) })
+                for track, index in view.roll.document.tracks
+                {
+                    tracks.addChoice(track.name,
+                                     view.roll.selectedTrack == index,
+                                     func|view, index|()
+                                     {
+                                         view.roll.setTrack(cast(u32, index))
+                                     },
+                                     detail: noteCountText(track.noteCount))
+                }
+            })
+        }
+
+        page.addLink(strings.ui_PitchLabels, pitchLabelText(.pitchLabelMode), func|view = me|(labels)
+        {
+            for mode in [PitchLabelMode.Scientific, .MidiNumber] do
+                labels.addChoice(pitchLabelText(mode), mode == view.pitchLabelMode, func|view, mode|() { view.setPitchLabelMode(mode) })
+        })
+
+        page.addLink(strings.ui_KeyboardWidth, keyboardWidthText(.keyboardWidthMode), func|view = me|(widths)
+        {
+            for index in 3'u32 do
+                widths.addChoice(keyboardWidthText(index), index == view.keyboardWidthMode, func|view, index|() { view.setKeyboardWidthMode(index) })
+        })
+    }
+
+    // Names each pitch by its note and octave, or by its MIDI number; the choice is remembered.
+    mtd setPitchLabelMode(mode: PitchLabelMode)
+    {
+        .pitchLabelMode = mode
+        g_ViewerSettings.pitchLabelMode = mode
+        if not .isLoading() and .failureReason.isEmpty() do
+            .roll.setPitchLabelMode(mode)
+    }
+
+    // Draws the piano keyboard compact, standard or wide; the choice is remembered.
+    mtd setKeyboardWidthMode(index: u32)
+    {
+        Swag.assert(index < 3)
+        .keyboardWidthMode = index
+        g_ViewerSettings.keyboardWidthMode = index
+        if not .isLoading() and .failureReason.isEmpty() do
+            .roll.setKeyboardWidth(index == 0 ? 56 : index == 1 ? 72 : 112)
+    }
+
+    // Builds the MIDI panel: the options button and the zoom button. Loads the file in the
     // background; the piano roll is created when the document arrives.
     func create(host: Viewer.Host)->*Panel
     {
@@ -227,47 +246,10 @@ impl Panel
             .keyboardWidthMode = g_ViewerSettings.keyboardWidthMode
         }
 
-        with result.trackCombo = ComboBox.create(result.commands, {0, 0, 224, 36})
+        with result.optionsButton = Viewer.createOptionsButton(result.commands)
         {
             .dockStyle  = .Left
-            .toolTip    = texts().ui_AllTracks
-            .sigChanged += func|view = result|(_, index) { view.roll.setTrack(index ? index - 1 : Swag.U32.Max) }
-        }
-
-        with result.pitchLabelCombo = ComboBox.create(result.commands, {0, 0, 160, 36})
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_PitchLabels
-            .addItem(texts().ui_PitchScientific)
-            .addItem(texts().ui_PitchMidiNumber)
-            .setSelectedIndex(result.pitchLabelMode == .MidiNumber ? 1 : 0, notify: false)
-            .sigChanged += func|view = result|(_, index)
-            {
-                view.pitchLabelMode = index ? .MidiNumber : .Scientific
-                g_ViewerSettings.pitchLabelMode = view.pitchLabelMode
-                if not view.isLoading() and view.failureReason.isEmpty() do
-                    view.roll.setPitchLabelMode(view.pitchLabelMode)
-            }
-        }
-
-        with result.keyboardWidthCombo = ComboBox.create(result.commands, {0, 0, 150, 36})
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_KeyboardWidth
-            .addItem(texts().ui_KeyboardCompact)
-            .addItem(texts().ui_KeyboardStandard)
-            .addItem(texts().ui_KeyboardWide)
-            .setSelectedIndex(result.keyboardWidthMode, notify: false)
-            .sigChanged += func|view = result|(_, index)
-            {
-                view.keyboardWidthMode = index
-                g_ViewerSettings.keyboardWidthMode = index
-                if not view.isLoading() and view.failureReason.isEmpty()
-                    do
-                    view.roll.setKeyboardWidth(index == 0 ? 56 : index == 1 ? 72 : 112)
-            }
+            .sigPressed += func|view = result|(_) { view.showOptions() }
         }
 
         result.zoomLabel = Viewer.createZoomButton(result.info, "scope.midi.zoom", texts().ui_ZoomMenu)

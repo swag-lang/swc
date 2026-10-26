@@ -394,7 +394,7 @@ impl Theme
         .rects.btnPush_DisabledBorder = .rects.edit_SquareBorder
     }
 
-    private mtd freeDefault()
+    internal mtd freeDefault()
     {
         .res.icons.free()
         .res.icons.atlas = null
@@ -413,7 +413,7 @@ impl Theme
     // [[Gui.Theme.ensureAtlasScale]] cannot reuse a coarser atlas: building at 1 first would
     // throw that work away on every scaled display. Fonts and vector art resolve through
     // `resources`; an unreadable or malformed disk override falls back to its embedded source.
-    private mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0'f32)
+    internal mtd setupDefault(renderer: IRenderer, resources: const *Resources.Bundle, dpiScale = 1.0'f32)
     {
         .initialized = true
         .fonts       = renderer.fontCache()

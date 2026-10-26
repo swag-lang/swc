@@ -666,7 +666,7 @@ private impl EditBox
     }
 
     // Validates the current content according to inputMode or custom callback.
-    mtd checkContent()->EditBoxCheckResult
+    internal mtd checkContent()->EditBoxCheckResult
     {
         var res = EditBoxCheckResult.Valid
         if .validator
@@ -814,7 +814,7 @@ private impl EditBox
     }
 
     // Returns the left padding for text rendering (accounts for icon).
-    mtd leftTextMargin()->f32
+    internal mtd leftTextMargin()->f32
     {
         var rect = .editRect()
         if .icon.isValid() do
@@ -850,7 +850,7 @@ private impl EditBox
     // Returns the width the box needs to display the widest value of its numeric input range.
     //
     // The value is measured with the current font and chrome, and is zero for text input.
-    mtd numericPreferredWidth()->f32
+    internal mtd numericPreferredWidth()->f32
     {
         let fontR = .font().regular
         if not fontR do
@@ -896,7 +896,7 @@ private impl EditBox
     }
 
     // Computes the caret rectangle in surface coordinates.
-    mtd caretRect()->Math.Rectangle
+    internal mtd caretRect()->Math.Rectangle
     {
         var result: #returntype
 

@@ -65,8 +65,9 @@ itself for a document another viewer claims as binary: a PDF, an office file and
 with enough printable bytes to pass a content probe, and offering to read one as a page of text
 says something untrue about the file. It loads small UTF-8 segments
 on demand and stays about two viewports ahead, so a large source file does not need to fit in
-memory before its first screen appears. A lower-band switch numbers its lines, counted in the units
-of the file's encoding across the whole file, and the choice follows the reader to the next file.
+memory before its first screen appears. Its lower-band options wrap long lines, choose the
+encoding, and number the lines, counted in the units of the file's encoding across the whole file;
+the numbering follows the reader to the next file.
 Binary content directs the reader to the hexadecimal alternative instead of guessing an encoding.
 
 ## Shipped viewers
@@ -86,7 +87,7 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   column. Text selects across blocks with the pointer or Ctrl+A and copies with Ctrl+C, as plain
   text: inline formatting resolves to the words it decorated, a table to tabs and lines, and a
   formula to its mathematical source. Rendering is offline and executes no embedded HTML or
-  script. Reading width and appearance stay in the centered lower band; zoom is a clickable
+  script. Reading width and appearance are the options of the lower band; zoom is a clickable
   information-band percentage.
   GitHub, Newsprint, Night, Pixyll, and Whitey follow their Typora typography, including heading
   weights, italics, line boxes, collapsing block margins, and heading rules. Fonts resolve from
@@ -118,15 +119,17 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   percentage provides zoom presets, fit, and actual size while also reporting temporary orientation.
 - `Video` uses the Video and Audio modules for YUV4MPEG2, AVI, ISO-BMFF, and Matroska streams. Its
   transport provides play/pause, stop, ten-second seeks, a time-based timeline, elapsed/total time,
-  mute, volume, and matching keyboard controls, plus a playback-speed menu offering a 0.25x-2x playback
-  rate whose pitch follows the rate and whose time labels stay in source time.
+  mute, volume, and matching keyboard controls, plus one options button gathering the play mode,
+  a 0.25x-2x playback rate whose pitch follows the rate and whose time labels stay in source time,
+  the sound track, and the subtitle tracks, style and delay. The rate shows beside the button
+  while it is not the normal one.
   It indexes packets without decoding the file up front and keeps bounded picture and audio
   queues alongside codec reference buffers.
   AVI accepts Motion JPEG, MPEG-4 Part 2, or uncompressed picture tracks and integer PCM sound.
   MP4, M4V, and MOV accept Motion JPEG, H.264, or H.265 picture tracks and AAC-LC mono/stereo
   sound. MKV accepts H.264, H.265, or MPEG-4 Part 2 pictures and every AAC-LC, AC-3, independent
-  E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus track, with a selector when several are
-  present. The decoded run-ahead targets a 64 MiB budget, with a two-picture floor for
+  E-AC-3, DTS Core, FLAC, MPEG Layer III, Vorbis, or Opus track, chosen among the options when
+  several are present. The decoded run-ahead targets a 64 MiB budget, with a two-picture floor for
   high-resolution streams.
   The output-device sample cursor is the master clock: slow picture decoding drops to a clean
   video sync frame without moving or stretching sound.
@@ -139,8 +142,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   Its paged character map walks mapped Unicode scalars without materializing the whole map; the
   current range opens shortcuts to common Unicode blocks.
 - `MIDI` parses Standard MIDI Files into a dedicated piano roll. It shows musical duration,
-  tempo, meter, key signature, named tracks and note ranges, offers an all-tracks or per-track
-  view, and provides horizontal zoom through the common information-band control without
+  tempo, meter, key signature, named tracks and note ranges; its options choose an all-tracks or
+  per-track view, the pitch names and the keyboard width, and it provides horizontal zoom through the common information-band control without
   synthesizing or executing file content.
 - `Archive` opens ZIP and ZIP64 containers, including JAR, APK, EPUB, office and package formats,
   in the common folder explorer. Opening an entry asynchronously prepares a bounded temporary
@@ -159,8 +162,9 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   group walks visited rows backward or forward and opens the structure-command menu for copying,
   expansion, collapse, and file-offset navigation.
 - `Hexadecimal` is available for every file. It keeps one 256 KiB resident window whose reads are
-  aligned to 64 KiB boundaries, uses 64-bit offsets, and supports independent scalar width,
-  representation, explicit Little/Big byte order, and fixed-width font zoom. Its information-band
+  aligned to 64 KiB boundaries, uses 64-bit offsets, and its options set the row width and an
+  independent scalar width, representation, and explicit Little/Big byte order; zoom sets the
+  fixed-width font. Its information-band
   inspector reports the exact caret offset and file percentage, selection length, active value,
   and the same bytes as signed, unsigned, hexadecimal, binary, octal, boolean, floating-point, and
   printable readings. Go To accepts hexadecimal, `0d` decimal, percentage, `caret`, `filesize`, and
@@ -205,7 +209,7 @@ that has been played through: stop there, play it again, continue with the next 
 kind in its folder, or continue
 with a random one that has not had its turn in that folder yet, every file once before any comes
 again. Video and sound hand over when their stream ends, an animated picture when its animation
-has run one cycle, and a still picture after the time per picture the image viewer's menu sets, which turns
+has run one cycle, and a still picture after the time per picture the image viewer's options set, which turns
 a folder of pictures into a slideshow. The mode holds across files and sessions, the folder is
 walked whatever the panel filter shows, and a file the mode brings up stays out of the history.
 
@@ -262,10 +266,11 @@ with the exact decoder reason before attaching a view; the application presents 
 failure on the same error surface and owns cleanup of all contributed windows.
 
 Playback controls belong to the viewer's lower command group. The image viewer creates a
-`Viewer.PlaybackButton` there with `host.services().playback` and enables its still-picture
-duration submenu. The video viewer creates the same button for end-of-file modes and keeps its
-playback-speed menu separate. The host stores the shared policy and handles file continuation;
-it creates no playback button or menu.
+`Viewer.PlaybackButton` there with `host.services().playback`; it shows the mode in force and
+opens an option sheet with the play mode and the time per picture. The video viewer adds the same
+rows to its own options through `PlaybackApi.addOptionRows`, beside its speed, sound track and
+subtitles. The host stores the shared policy and handles file continuation; it creates no
+playback button or options.
 
 The fixture lives in `src/tests/datas`, is unique to that descriptor, and is a valid file the
 plugin can open. The key is never translated or reused because remembered viewer choices persist

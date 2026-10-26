@@ -72,7 +72,7 @@ private func isBreakingSpace(c: rune)->bool => Unicode.isSpace(c) and c != '\u00
 impl RichString
 {
     // Reports whether the original marked-up text equals `other`.
-    mtd opEquals(other: string)->bool => .raw == other
+    mtd const opEquals(other: string)->bool => .raw == other
 
     // Invalidates the copied chunks, whose slices still point into the source text.
     mtd opPostCopy()

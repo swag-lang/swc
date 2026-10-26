@@ -3,10 +3,11 @@
 
 using Core, Gui
 
-// A viewer-owned playback-mode button for a dedicated command bar.
+// A viewer-owned playback button for a dedicated command bar, showing the play mode in force.
 //
+// It opens an option sheet with the play mode and, for still pictures, the time per picture.
 // The button borrows its document view and host callbacks. Its parent must be destroyed before
-// or with that view. The host retains the playback policy; the button creates and owns its menu.
+// or with that view. The host retains the playback policy.
 struct PlaybackButton
 {
     public using button: IconButton     // Standard icon-button layout and input behavior.
@@ -55,27 +56,22 @@ impl PlaybackButton
             .setArrowPosition(.RightUpward)
             .enable(playback.isAvailable())
             .refreshIcon()
-            .sigPressed += func(button) { assume cast(*PlaybackButton, button).showMenu() }
+            .sigPressed += func(button) { assume cast(*PlaybackButton, button).showOptions() }
         }
 
         return result
     }
 
-    // Builds the current playback menu; the caller owns and must destroy it.
-    mtd createMenu()->*MenuCtrl
+    // Opens the playback options above this button; each choice applies the host policy at once.
+    mtd showOptions()
     {
-        let menu = MenuCtrl.createPopup(me, owner: .view)
-        .playback.appendMenuItems(menu, .view, .showSlideDuration)
-        return menu
-    }
-
-    // Opens the menu above this button and applies the selected host policy.
-    mtd showMenu()
-    {
-        let menu   = .createMenu()
-        let chosen = menu.doModal(me, autoDestroy: true)
-        if chosen do
-            discard .playback.applyMenuChoice(.view, chosen, .showSlideDuration)
+        let sheet = OptionSheet.View.create(me,
+                                            func|button = me|(page)
+                                            {
+                                                button.playback.addOptionRows(page, button.view, button.showSlideDuration)
+                                            },
+                                            owner: .view)
+        sheet.doModal(me, autoDestroy: true)
         .refreshIcon()
     }
 

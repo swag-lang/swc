@@ -134,6 +134,7 @@ impl WidgetWall
         buildContainers(&.flow)
         buildText(&.flow)
         buildDialogs(&.flow)
+        buildOptionSheets(&.flow)
         .setScrollSize(0, .flow.contentHeight())
     }
 }
@@ -444,4 +445,72 @@ private func buildDialogs(flow: *Flow)
 
     let about = PushButton.create(flow.view, "About", flow.next(128))
     about.sigPressed += &showAboutDialog
+}
+
+// What the option sheets of the wall set; nothing reads it but the sheets themselves.
+struct SheetSettings
+{
+    speed:    u32  = 1
+    quality:  u32
+    delay:    s32
+    captions: bool = true
+}
+
+var g_SheetSettings: SheetSettings
+
+const SheetSpeeds    = ["Slow", "Normal", "Fast"]
+const SheetQualities = ["Automatic", "High", "Low"]
+
+// Describes the first page of every sheet of the wall: links, a switch, a stepper and an action,
+// so each kind of row is seen in the active palette.
+private func describeSheet(page: *OptionSheet.Page)
+{
+    page.addLink("Speed",
+                 SheetSpeeds[g_SheetSettings.speed],
+                 func(speeds)
+                 {
+                     for name, index in SheetSpeeds do
+                         speeds.addChoice(name, index == g_SheetSettings.speed, func|index|() { g_SheetSettings.speed = cast(u32, index) })
+                 },
+                 app.theme.icon(.PlaybackSpeed, 16))
+
+    page.addLink("Quality",
+                 SheetQualities[g_SheetSettings.quality],
+                 func(qualities)
+                 {
+                     for name, index in SheetQualities do
+                         qualities.addChoice(name, index == g_SheetSettings.quality, func|index|() { g_SheetSettings.quality = cast(u32, index) }, detail: index ? "Fixed resolution" : "Follows the connection")
+                 },
+                 app.theme.icon(.FitView, 16))
+
+    page.addHeading("Captions")
+    page.addToggle("Show captions", g_SheetSettings.captions, func(on) { g_SheetSettings.captions = on })
+    page.addStepper("Delay", Format.toString("% ms", g_SheetSettings.delay * 100), func(step) { g_SheetSettings.delay += step })
+    page.addAction("Reset the delay", func() { g_SheetSettings.delay = 0 }, disabled: g_SheetSettings.delay == 0)
+}
+
+private func showSheet(button: *IconButton, placement: OptionSheet.Placement)
+{
+    let sheet = OptionSheet.View.create(button, &describeSheet)
+    sheet.placement = placement
+    sheet.doModal(button, autoDestroy: true)
+}
+
+private func buildOptionSheets(flow: *Flow)
+{
+    flow.section("Option sheets")
+    flow.caption("open")
+
+    let anchored = IconButton.create(flow.view, app.theme.icon(.Options, 18), flow.next(40))
+    anchored.sigPressed += func(button) { showSheet(assume cast(*IconButton, button), .Anchored) }
+
+    let bottom = IconButton.create(flow.view, app.theme.icon(.Options, 18), flow.next(124))
+    bottom.setText("Bottom sheet")
+    bottom.setTextPosition(.Right)
+    bottom.sigPressed += func(button) { showSheet(assume cast(*IconButton, button), .BottomSheet) }
+
+    let side = IconButton.create(flow.view, app.theme.icon(.Options, 18), flow.next(124))
+    side.setText("Side panel")
+    side.setTextPosition(.Right)
+    side.sigPressed += func(button) { showSheet(assume cast(*IconButton, button), .SidePanel) }
 }

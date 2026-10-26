@@ -71,6 +71,7 @@ SWC_DIAG_DEF(sema_note_spec_op_reserved, Note, "function names starting with 'op
 SWC_DIAG_DEF(sema_note_expected_signature, Note, "expected signature: '{value}'")
 SWC_DIAG_DEF(sema_note_attribute_declared_usage, Note, "the attribute declares what it accepts here")
 SWC_DIAG_DEF(sema_note_field_access_declared_here, Note, "field '{sym}' declares its access here")
+SWC_DIAG_DEF(sema_note_method_access_declared_here, Note, "method '{sym}' takes its access here")
 SWC_DIAG_DEF(sema_note_runtime_raise_location, Note, "raised at {value}")
 SWC_DIAG_DEF(sema_note_flow_stops_here, Note, "the flow of the block stops here")
 SWC_DIAG_DEF(sema_note_enclosing_scope_here, Note, "the enclosing 'scope' starts here")

@@ -20,6 +20,8 @@ appearance_Dark           Sombre
 appearance_Light          Clair
 appearance_About          À propos...
 
+optionSheet_Title         Options
+
 about_Build     Compilé le %{f}
 about_Source    % est un logiciel libre écrit en <url>Swag</url>. Son code est <url>ici</url>.
 about_Copyright Copyright © % %

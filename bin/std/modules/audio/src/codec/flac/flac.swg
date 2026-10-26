@@ -171,7 +171,7 @@ private struct Codec
 private impl Codec
 {
     // Reads the "fLaC" marker and the stream information block a container carries.
-    mtd readStreamInfo(config: const [..] u8) fail
+    internal mtd readStreamInfo(config: const [..] u8) fail
     {
         if config.count < 4 do
             fail InvalidFormatError{"FLAC stream information is truncated"}

@@ -87,7 +87,9 @@ using Core, Pixel, Gui, Video, Audio, Viewers
     record.value = "7083"
     image.metadata.add(#move record)
     Swag.assert(thumbnailDuration(&image) == 7083)
-    Swag.assert(formatDuration(7083) == "1:58:03" and formatDuration(65) == "1:05" and formatDuration(9) == "0:09")
+    Swag.assert(formatDuration(7083) == "1:58:03" and
+                formatDuration(65) == "1:05" and
+                formatDuration(9) == "0:09")
 }
 
 // Both decoder paths propagate failure into the producer's catch before the queue reports it.
@@ -292,14 +294,12 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     view.finishSubtitles()
     view.refreshSubtitle()
     Swag.assert(view.subtitleOverlay.sidecars.count == 1 and view.subtitleSource == .Sidecar)
-    Swag.assert(view.subtitleButton.isEnabled())
-    let sidecarTrackText  = Film.subtitleTrackText(0, view.subtitleOverlay.sidecars[0], true)
-    let embeddedTrackText = Film.subtitleTrackText(0, view.subtitleOverlay.sidecars[0], false)
-    let languageText      = Format.toString(Film.texts().ui_SubtitleTrackLang, "fr")
-    Swag.assert(Utf8.contains(sidecarTrackText, "<b>") and Utf8.contains(sidecarTrackText, "<p3>External file</p>"))
+    Swag.assert(view.subtitleReady and view.optionsButton.isEnabled())
+    let trackName    = Film.subtitleTrackName(0, view.subtitleOverlay.sidecars[0])
+    let languageText = Format.toString(Film.texts().ui_SubtitleTrackLang, "fr")
     Swag.assert(Utf8.contains(languageText, "<p2> (fr)</p>"))
-    Swag.assert(Utf8.contains(embeddedTrackText, "<p3>Embedded</p>"))
-    Swag.assert(not Utf8.contains(RichString.plainText(sidecarTrackText), "<p"))
+    Swag.assert(not Utf8.contains(RichString.plainText(trackName), "<p"))
+    Swag.assert(view.subtitleText() == RichString.plainText(trackName))
     let opening = view.subtitleOverlay.sidecars[0].cueContent(0)
     Swag.assert(opening == "Opening caption")
     Swag.assert(view.subtitleOverlay.text == "Opening caption")
@@ -312,13 +312,27 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     view.subtitleSettingsChanged()
     Swag.assert(view.subtitleOverlay.text == "Opening caption")
 
-    host.openPopupSubMenuWhenShown(Film.texts().ui_SubtitleSize)
-    host.thenClickPopupMenuItem("scope.video.subtitle.size.large")
-    view.showSubtitleMenu()
+    // The options reach every subtitle setting: a style two pages deep, the delay stepped in
+    // place, and the track.
+    let strings = Film.texts()
+    host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
+    host.thenActivateOptionRow(strings.ui_SubtitleSize)
+    host.thenActivateOptionRow(strings.ui_SubtitleSizeLarge)
+    view.showOptions()
+    Swag.assert(host.autoHandled)
     Swag.assert(Film.g_SubtitleSettings.size == .Large)
-    host.clickPopupMenuItemWhenShown("scope.video.subtitle.off")
-    view.showSubtitleMenu()
+
+    host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
+    host.thenActivateOptionRow(strings.ui_SubtitleDelay, step: 10)
+    view.showOptions()
+    Swag.assert(Math.isEqualEpsilon(Film.g_SubtitleSettings.delay, 0.5, 0.0001))
+    host.activateOptionRowWhenShown(strings.ui_OptionSubtitles)
+    host.thenActivateOptionRow(strings.ui_SubtitleDelayReset)
+    host.thenActivateOptionRow(strings.ui_SubtitleOff)
+    view.showOptions()
+    Swag.assert(Film.g_SubtitleSettings.delay == 0)
     Swag.assert(view.subtitleSource == .Off and view.subtitleOverlay.text.isEmpty())
+    Film.g_SubtitleSettings = {}
 }
 
 // Switching files retires the old decoder immediately, before deferred GUI deletion keeps its
@@ -573,7 +587,12 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     view.commands.dockStyle = .Center
     view.seekFrame(2)
     waitForVideoFrame(view)
-    Swag.assert(view.audioButton.isVisible() and not view.audioButton.isEnabled())
+
+    // A film without sound offers no sound track among its options.
+    var options: OptionSheet.Page
+    view.describeOptions(&options)
+    for row in options.rows do
+        Swag.assert(row.label != Film.texts().ui_OptionAudio)
     Swag.assert(view.muteButton.isVisible() and not view.muteButton.isEnabled())
     Swag.assert(view.volumeSlider.isVisible() and not view.volumeSlider.isEnabled())
 
@@ -669,14 +688,15 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(result.view != null)
     let view = assume cast(*Film.Panel, result.view)
     waitForVideoFrame(view)
-    Swag.assert(view.speedButton.text() == "1×" and view.speedButton.isEnabled())
-    Swag.assert(not view.playModeButton.isEnabled())
+    Swag.assert(view.optionsButton.text() == "" and view.optionsButton.isEnabled())
     Swag.assert(view.audio != null and view.voice != null)
 
     // The speed entry rescales the voice with the clock, and the summary declares the rate.
-    host.clickPopupMenuItemWhenShown("scope.video.player.speed.6")
-    view.showPlaybackSpeedMenu()
+    host.activateOptionRowWhenShown(Film.texts().ui_OptionSpeed)
+    host.thenActivateOptionRow("2×")
+    view.showOptions()
     Swag.assert(view.playbackRate == 2)
+    Swag.assert(view.optionsButton.text() == "2×")
     Swag.assert(Math.isEqualEpsilon(expect view.voice.frequencyRatio(), 2, 0.001))
     Swag.assert(view.details.indexOf("2×") != Swag.U64.Max)
     view.setPlaybackRate(1)
@@ -750,18 +770,23 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
         let view = assume cast(*Film.Panel, window.instances[window.activeChoiceIndex].view)
         waitForVideoFrame(view)
         Swag.assert(window.currentView == view and view.playing)
-        Swag.assert(view.playModeButton.parent == window.currentCommands and view.speedButton.parent == window.currentCommands)
-        host.clickPopupMenuItemWhenShown("scope.play.shuffle")
-        view.playModeButton.showMenu()
-        Swag.assert(window.playMode == .Shuffle and view.playModeButton.icon.index == cast(s32, ThemeIcons.Shuffle))
-        host.clickPopupMenuItemWhenShown("scope.video.player.speed.6")
-        view.showPlaybackSpeedMenu()
+        Swag.assert(view.optionsButton.parent == window.currentCommands)
+
+        // The clip is shorter than the walk through the sheet, so it waits while the reader chooses.
+        view.togglePlayback()
+        host.activateOptionRowWhenShown(appStrings().ui_PlayMode)
+        host.thenActivateOptionRow(appStrings().ui_PlayShuffle)
+        host.thenActivateOptionRow(Film.texts().ui_OptionSpeed)
+        host.thenActivateOptionRow("2×")
+        view.showOptions()
+        view.togglePlayback()
         Swag.assert(view.playbackRate == 2 and window.playMode == .Shuffle)
         view.setPlaybackRate(1)
         window.setPlayMode(.Folder)
-        let menu = view.playModeButton.createMenu()
-        Swag.assert(menu.items.count == 4)
-        menu.destroy()
+
+        var page: OptionSheet.Page
+        view.describeOptions(&page)
+        Swag.assert(page.rows[0].label == appStrings().ui_PlayMode and page.rows[0].value == appStrings().ui_PlayFolder)
 
         playVideoThrough(view)
         Swag.assert(not view.playing and Path.fileName(window.pendingFile) == expected)
@@ -938,11 +963,10 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(Utf8.contains(view.information.text(), "Name: Primary"))
     Swag.assert(Utf8.contains(view.information.text(), "Name: Alternate"))
     Swag.assert(Utf8.contains(view.information.text(), "44100 Hz"))
-    Swag.assert(view.audioButton.isVisible() and view.audioButton.icon.isValid() and view.audioTrackIndex == 0)
-    let primaryTrackText = Film.audioTrackText(0, unwrap view.video.audioTrack(0))
-    Swag.assert(primaryTrackText == "<b>Primary</b> · <p3>AAC-LC · 2 ch · 44.1 kHz</p>")
-    Swag.assert(RichString.plainText(primaryTrackText) == "Primary · AAC-LC · 2 ch · 44.1 kHz")
-    Swag.assert(Film.audioTrackText(1, unwrap view.video.audioTrack(1)) == "<b>Alternate</b> · <p3>AAC-LC · 2 ch · 44.1 kHz</p>")
+    Swag.assert(view.audioTrackIndex == 0)
+    Swag.assert(Film.audioTrackName(0, unwrap view.video.audioTrack(0)) == "Primary")
+    Swag.assert(Film.audioTrackName(1, unwrap view.video.audioTrack(1)) == "Alternate")
+    Swag.assert(Film.audioDetailsText(unwrap view.video.audioTrack(1)) == "AAC-LC · 2 ch · 44.1 kHz")
     Swag.assert(Format.toString(Film.texts().ui_AudioTrackLang, "fre") == "<p2> (fre)</p>")
     Swag.assert(view.muteButton.isVisible() and view.volumeSlider.isVisible())
     Swag.assert(view.details.indexOf("AAC-LC") != Swag.U64.Max and view.details.indexOf("2 ch") != Swag.U64.Max)
@@ -964,8 +988,9 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
     Swag.assert(not view.playing and not view.voice!.isPlaying())
     let previousVoice = unwrap view.voice
 
-    host.clickPopupMenuItemWhenShown("scope.video.audioTrack.1")
-    view.showAudioTrackMenu()
+    host.activateOptionRowWhenShown(Film.texts().ui_OptionAudio)
+    host.thenActivateOptionRow("Alternate")
+    view.showOptions()
     Swag.assert(view.audioTrackIndex == 1 and view.audio == view.video.audioTrack(1))
     Swag.assert(view.voice != null and view.voice != previousVoice)
     Swag.assert(not view.playing and not view.voice.isPlaying())
@@ -995,25 +1020,22 @@ func videoMatroskaFixturePath()->String => Path.combine(unwrap Path.directoryNam
 
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(view.audioButton.toolTip == "Piste audio")
-    Swag.assert(view.speedButton.toolTip == Film.texts().ui_TipPlaybackSpeed)
-    Swag.assert(Film.audioTrackText(1, unwrap view.video.audioTrack(1)).indexOf("can.") != Swag.U64.Max)
+    Swag.assert(view.optionsButton.toolTip == "Options")
+    Swag.assert(Film.texts().ui_OptionAudio == "Piste audio")
+    Swag.assert(Film.audioDetailsText(unwrap view.video.audioTrack(1)).indexOf("can.") != Swag.U64.Max)
     Swag.assert(view.details.indexOf("2 can.") != Swag.U64.Max)
 
     view.dockStyle = .Center
     view.commands.dockStyle = .Center
     host.root.applyLayout()
     host.settleAnimations(&host.root, 4)
-    Swag.assert(view.audioButton.position.width == themeDropDownButtonWidth(view.themeMetrics()))
-    Swag.assert(view.audioButton.arrowPosition == .RightUpward and view.subtitleButton.arrowPosition == .RightUpward)
+    Swag.assert(view.optionsButton.position.width == themeDropDownButtonWidth(view.themeMetrics()))
+    Swag.assert(view.optionsButton.arrowPosition == .RightUpward)
     Swag.assert(view.timeLabel.position.right() <= view.timeline.position.x)
     Swag.assert(view.timeline.position.right() <= view.muteButton.position.x)
     Swag.assert(view.timeLabel.textHorizontalAlignment == .Right)
-    Swag.assert(view.volumeSlider.position.right() <= view.subtitleButton.position.x)
-    Swag.assert(view.subtitleButton.position.right() <= view.audioButton.position.x)
-    Swag.assert(view.audioButton.position.right() <= view.playModeButton.position.x)
-    Swag.assert(view.playModeButton.position.right() <= view.speedButton.position.x)
-    Swag.assert(view.speedButton.position.right() == view.commands.clientRect().right())
+    Swag.assert(view.volumeSlider.position.right() <= view.optionsButton.position.x)
+    Swag.assert(view.optionsButton.position.right() == view.commands.clientRect().right())
     Testing.assertContentFits(view.commands)
     var image = host.render(&host.root)
     Pixel.Testing.assertImageGolden(&image, "viewer.video.multiaudio")
@@ -1323,4 +1345,77 @@ func assertSubtitleEffect(effect: Film.SubtitleEffect, size: Film.SubtitleSize, 
     assertSubtitleEffect(.Outline, .VeryLarge, 1.5, "viewer.video.subtitle.outline.large.hidpi")
     assertSubtitleEffect(.Shadow, .VeryLarge, 1.5, "viewer.video.subtitle.shadow.large.hidpi")
     assertSubtitleEffect(.Background, .VeryLarge, 1.5, "viewer.video.subtitle.background.large.hidpi")
+}
+
+// The options of a film gather the play mode, the speed, the sound track and the subtitles
+// behind one button, each with the value in force, and the page of a setting lists its choices
+// with the one in force checked. The sheet stands on its button above the transport.
+#[Swag.TestTag("golden")]
+#test
+{
+    Swag.assert(Sound.acquireEngine(.NoSound))
+    defer Sound.releaseEngine()
+
+    var host: Testing.HeadlessHost
+    host.setup(ViewerWindow.MinWidth, 450)
+    host.setReducedMotion(true)
+    host.theme.setSwagDark()
+    host.theme.metrics.surfaceWnd_ShadowSize   = 0
+    host.theme.metrics.surfaceWnd_CornerRadius = 0
+    host.notify(.ThemeChanged)
+
+    with let commands = Wnd.create'Wnd(&host.root, {0, 0, 0, 52})
+    {
+        .dockStyle       = .Bottom
+        .backgroundStyle = .Window
+        .padding         = {16, 8, 16, 8}
+    }
+
+    var result = openTestViewer(Film.viewerPlugin(), &host.root, videoMatroskaFixturePath(), commandParent: commands)
+    Swag.assert(result.view != null)
+    let view = assume cast(*Film.Panel, result.view)
+    waitForVideoFrame(view)
+    waitForVideoAudio(view, 2)
+    if view.playing do
+        view.togglePlayback()
+    view.seekFrame(5)
+    waitForVideoFrame(view)
+    view.setPlaybackRate(1.5)
+
+    view.dockStyle = .Center
+    view.commands.dockStyle = .Center
+    host.root.applyLayout()
+    host.settleAnimations(&host.root, 4)
+
+    var rendered: u32
+    host.app.sigFrame += func|host = &host, rendered = &rendered|(_)
+    {
+        let sheet = host.capturedOptionSheet()
+        if not sheet or rendered[] == 2 do
+            return
+        host.finishAnimations()
+
+        if rendered[] == 0
+        {
+            Swag.assert(sheet.page.rows.count == 4)
+            Swag.assert(sheet.page.rows[1].value == "1.5×" and sheet.page.rows[2].value == "Primary")
+            var first = host.render()
+            Pixel.Testing.assertImageGolden(&first, "viewer.video.options")
+            Swag.assert(sheet.activateRow(Film.texts().ui_OptionAudio))
+            host.finishAnimations()
+        }
+        else
+        {
+            Swag.assert(sheet.page.rows[0].checked and sheet.page.rows[1].detail == "AAC-LC · 2 ch · 44.1 kHz")
+            var tracks = host.render()
+            Pixel.Testing.assertImageGolden(&tracks, "viewer.video.options.audio")
+            sheet.close()
+        }
+
+        rendered[] += 1
+    }
+
+    view.showOptions()
+    host.app.sigFrame.clear()
+    Swag.assert(rendered == 2)
 }

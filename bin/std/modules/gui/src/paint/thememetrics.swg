@@ -98,6 +98,17 @@ struct ThemeMetrics
         menuPopup_BarItemOverlap:  f32 = 12     // Depth by which a popup menu and the menu bar entry that opened it overlap.
         menuPopup_WindowMargin:    f32 = 8      // Air between a popup menu and the edge of its window.
 
+        // An option sheet: one row per setting, the pages of its choices sliding inside one frame.
+        optionSheet_Width:           f32 = 300     // Width of an anchored sheet, and of the column of a bottom sheet.
+        optionSheet_SidePanelWidth:  f32 = 380     // Width of a side panel, before the window bounds it.
+        optionSheet_RowHeight:       f32 = 34      // Pitch of a row holding one line.
+        optionSheet_DetailRowHeight: f32 = 44      // Pitch of a row whose wording carries a detail line.
+        optionSheet_HeaderHeight:    f32 = 40      // Height of the band that titles a page and leads back from it.
+        optionSheet_HeadingHeight:   f32 = 28      // Height of the title of a group of rows.
+        optionSheet_Inset:           f32 = 6       // Air between the edge of a sheet and the grounds of its rows.
+        optionSheet_RowPadding:      f32 = 10      // Air between the ground of a row and what it shows.
+        optionSheet_ValueMaxWidth:   f32 = 150     // Widest the current value of a row grows before it is shortened.
+
         menuBar_Height:       f32 = 30     // Height of a menu bar.
         menuBar_SpaceBetween: f32 = 24     // Air between two menu bar entries.
 

@@ -28,6 +28,7 @@ struct AppStrings
     explore_Empty:    string = "No files to show"            // Exploration control or status.
     explore_OneItem:  string = "1 item"                      // Exploration control or status.
     explore_Count:    string = "% items"                     // Exploration control or status.
+    explore_NotFound: string = "Location not found"          // Exploration control or status.
 
     ui_WindowTitle:                    string = "Swag Scope — Universal viewer"               // Title of the application window.
     ui_Open:                           string = "Open (Ctrl+O)"                               // Tooltip of the open-file button.
@@ -38,12 +39,13 @@ struct AppStrings
     ui_FullScreen:                     string = "Full screen (F11)"                           // Tooltip of the enter-full-screen button.
     ui_ExitFullScreen:                 string = "Exit full screen (F11)"                      // Tooltip of the leave-full-screen button.
     ui_SameKind:                       string = "Only files of the same kind"                 // Tooltip of the folder-navigation filter toggle.
-    ui_PlayMode:                       string = "Play mode"                                   // Tooltip of the play-mode menu button.
+    ui_Options:                        string = "Options"                                     // Tooltip of the button opening the options of a viewer.
+    ui_PlayMode:                       string = "Play mode"                                   // Tooltip of the play-mode button, and its row among the options.
     ui_PlayOnce:                       string = "Stop at the end"                             // Play-mode entry leaving a played file where it ended.
     ui_PlayRepeat:                     string = "Repeat the file"                             // Play-mode entry replaying the same file.
     ui_PlayFolder:                     string = "Play the folder in order"                    // Play-mode entry continuing with the next file of the same kind.
     ui_PlayShuffle:                    string = "Play the folder shuffled"                    // Play-mode entry continuing with a random file of the same kind.
-    ui_PlaySlide:                      string = "Time per picture"                            // Play-mode submenu choosing how long a still picture stays.
+    ui_PlaySlide:                      string = "Time per picture"                            // Option choosing how long a still picture stays.
     ui_Recent:                         string = "Recent"                                      // Panel section listing what was read before.
     ui_ClearHistory:                   string = "Clear history"                               // Tooltip of the clear-history button.
     ui_ConfirmClearHistory:            string = "The whole file history will be cleared."     // Consequence stated before confirming that the recent list is emptied.

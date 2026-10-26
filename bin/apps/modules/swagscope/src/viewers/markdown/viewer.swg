@@ -340,12 +340,7 @@ struct ZoomButton
 {
     using button: IconButton
 
-    late
-    {
-        view:       *Markdown.View
-        themeCombo: *ComboBox
-        widthCombo: *ComboBox
-    }
+    late view: *Markdown.View
 
     zoomPercent:    u32 = 100
     statisticsLoad: Viewer.BackgroundLoad'TextStatistics
@@ -400,7 +395,7 @@ impl ZoomButton
             return
         .zoomPercent = bounded
         .setText(Viewer.zoomText(bounded))
-        applyViewerStyle(.view, .themeCombo.selectedIndex, .widthCombo.selectedIndex, bounded, applyColors: false)
+        applyViewerStyle(.view, g_ViewerSettings.themeIndex, g_ViewerSettings.widthIndex, bounded, applyColors: false)
 
         // The window saves preferences on navigation and close, outside wheel handling.
         g_ViewerSettings.zoomPercent = bounded
@@ -413,14 +408,12 @@ impl ZoomButton
             .applyZoom(percent)
     }
 
-    // Creates the zoom menu of `view` at the persisted zoom; both selectors restyle the same view.
-    func create(parent: *Wnd, view: *Markdown.View, themeCombo, widthCombo: *ComboBox)->*ZoomButton
+    // Creates the zoom menu of `view` at the persisted zoom, in the persisted measure and appearance.
+    func create(parent: *Wnd, view: *Markdown.View)->*ZoomButton
     {
         with let result = Wnd.create'ZoomButton(parent, null, {0, 0, Viewer.ZoomButtonWidth, 32}, "scope.markdown.zoom")
         {
             .view        = view
-            .themeCombo  = themeCombo
-            .widthCombo  = widthCombo
             .dockStyle   = .Center
             .margin      = {Viewer.ZoomButtonInset, 0, Viewer.ZoomButtonInset, 0}
             .zoomPercent = Viewer.clampZoom(g_ViewerSettings.zoomPercent)
@@ -437,34 +430,67 @@ impl ZoomButton
     }
 }
 
-// Adds the reading measures to `combo`, in the order of [[ViewerSettings.widthIndex]].
-private func addWidths(combo: *ComboBox)
+// Names one reading measure, in the order of [[ViewerSettings.widthIndex]].
+func widthName(index: u32)->string
 {
-    combo.addItem(texts().ui_Narrow)
-    combo.addItem(texts().ui_Medium)
-    combo.addItem(texts().ui_Wide)
-    combo.addItem(texts().ui_Fluid)
+    switch index
+    {
+    case 0:  return texts().ui_Narrow
+    case 1:  return texts().ui_Medium
+    case 2:  return texts().ui_Wide
+    default: return texts().ui_Fluid
+    }
 }
 
-// Adds the appearances to `combo`, in the order of [[ViewerSettings.themeIndex]].
+// Names one appearance, in the order of [[ViewerSettings.themeIndex]].
 //
 // Only the application's own appearance is translated: the others are the names their styles are
 // known by.
-private func addThemes(combo: *ComboBox)
+func themeName(index: u32)->string
 {
-    combo.addItem(texts().ui_ThemeApp)
-    for name in ["GitHub", "Newsprint", "Night", "Pixyll", "Whitey"] do
-        combo.addItem(name)
+    const Names = ["GitHub", "Newsprint", "Night", "Pixyll", "Whitey"]
+    return index ? Names[Math.min(index - 1, Names.count - 1)] : texts().ui_ThemeApp
 }
 
-// Fills `combo` again in the current language with `fill`, keeping its selection.
-private func refill(combo: *ComboBox, fill: func(*ComboBox), toolTip: string)
+const WidthCount = 4'u32
+const ThemeCount = 6'u32
+
+// Opens how the document reads: its measure and its appearance. Both choices are remembered, and
+// the keyboard goes back to the document, where the reader was.
+func showOptions(button: *IconButton, view: *Markdown.View, zoom: *ZoomButton)
 {
-    let selected = combo.selectedIndex
-    combo.clear()
-    fill(combo)
-    combo.setSelectedIndex(selected, notify: false)
-    combo.toolTip = toolTip
+    let sheet = OptionSheet.View.create(button, func|view, zoom|(page) { describeOptions(page, view, zoom) }, owner: view)
+    sheet.doModal(button, autoDestroy: true)
+    view.setFocus()
+}
+
+func describeOptions(page: *OptionSheet.Page, view: *Markdown.View, zoom: *ZoomButton)
+{
+    page.addLink(texts().ui_Width, widthName(g_ViewerSettings.widthIndex), func|view, zoom|(widths)
+    {
+        for index in WidthCount
+        {
+            widths.addChoice(widthName(index), index == g_ViewerSettings.widthIndex, func|view, zoom, index|()
+            {
+                g_ViewerSettings.widthIndex = index
+                applyViewerStyle(view, g_ViewerSettings.themeIndex, index, zoom.zoomPercent, applyColors: false)
+                catch g_App.saveState()
+            })
+        }
+    })
+
+    page.addLink(texts().ui_Theme, themeName(g_ViewerSettings.themeIndex), func|view, zoom|(themes)
+    {
+        for index in ThemeCount
+        {
+            themes.addChoice(themeName(index), index == g_ViewerSettings.themeIndex, func|view, zoom, index|()
+            {
+                g_ViewerSettings.themeIndex = index
+                applyViewerStyle(view, index, g_ViewerSettings.widthIndex, zoom.zoomPercent)
+                catch g_App.saveState()
+            })
+        }
+    })
 }
 
 // Creates the integrated Markdown view.
@@ -478,32 +504,22 @@ func createViewer(host: Viewer.Host)
         return
     }
 
-    let commandGroup = host.createCommandGroup(264)
+    let commandGroup  = host.createCommandGroup(themeDropDownButtonWidth(view.themeMetrics()))
+    let optionsButton = Viewer.createOptionsButton(commandGroup)
+    optionsButton.dockStyle = .Right
 
-    with let widthCombo = ComboBox.create(commandGroup, {0, 0, 104, 36})
-    {
-        .dockStyle = .Right
-        .toolTip   = texts().ui_TipWidth
-        addWidths(widthCombo)
-        .setSelectedIndex(g_ViewerSettings.widthIndex, notify: false)
-    }
-
-    with let themeCombo = ComboBox.create(commandGroup, {0, 0, 148, 36})
-    {
-        .dockStyle = .Right
-        .margin.z  = 8
-        .toolTip   = texts().ui_TipTheme
-        addThemes(themeCombo)
-        .setSelectedIndex(g_ViewerSettings.themeIndex, notify: false)
-    }
-
-    with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view, themeCombo, widthCombo)
+    with let zoomButton = ZoomButton.create(host.createInfoGroup(Viewer.ZoomSlotWidth), view)
     {
         .outline = DocumentOutline.create(host)
         .outline.bindMarkdown(view, host.fileName())
     }
 
-    view.hookOnEvent = func|widthCombo, themeCombo, zoomButton|(_, evt)
+    optionsButton.sigPressed += func|view, zoomButton|(button)
+    {
+        showOptions(assume cast(*IconButton, button), view, zoomButton)
+    }
+
+    view.hookOnEvent = func|optionsButton, zoomButton|(_, evt)
     {
         switch evt
         {
@@ -519,9 +535,8 @@ func createViewer(host: Viewer.Host)
             return true
 
         case NotifyEvent as notification where notification.kind == .LanguageChanged:
-            refill(widthCombo, &addWidths, texts().ui_TipWidth)
-            refill(themeCombo, &addThemes, texts().ui_TipTheme)
-            zoomButton.toolTip = texts().ui_ZoomMenu
+            optionsButton.toolTip = appStrings().ui_Options
+            zoomButton.toolTip    = texts().ui_ZoomMenu
             zoomButton.reportStatistics()
         }
 
@@ -559,20 +574,6 @@ func createViewer(host: Viewer.Host)
     }
 
     host.setLifecycle(lifecycle)
-
-    themeCombo.sigChanged += func|view, widthCombo, zoomButton|(_, index)
-    {
-        g_ViewerSettings.themeIndex = index
-        applyViewerStyle(view, index, widthCombo.selectedIndex, zoomButton.zoomPercent)
-        catch g_App.saveState()
-    }
-
-    widthCombo.sigChanged += func|view, themeCombo, zoomButton|(_, index)
-    {
-        g_ViewerSettings.widthIndex = index
-        applyViewerStyle(view, themeCombo.selectedIndex, index, zoomButton.zoomPercent, applyColors: false)
-        catch g_App.saveState()
-    }
 
     view.sigLinkActivated += func(_, url)
     {

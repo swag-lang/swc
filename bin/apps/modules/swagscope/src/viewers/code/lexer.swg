@@ -303,7 +303,7 @@ private impl GenericLexer
     }
 
     // Selects the `language` to highlight and registers its keywords. XML and HTML register none.
-    mtd configure(language: SourceLanguage)
+    internal mtd configure(language: SourceLanguage)
     {
         .language = language
         switch language

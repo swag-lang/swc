@@ -1023,7 +1023,7 @@ impl ViewerWindow
         .openButton.toolTip          = texts.ui_Open
         .closeButton.toolTip         = texts.ui_CloseFile
         .openDefaultButton.toolTip   = texts.ui_OpenDefault
-        .filesButton.toolTip         = texts.ui_Files
+        .filesButton.toolTip         = .isExploring() ? texts.explore_Panels : texts.ui_Files
         .kindButton.toolTip          = texts.ui_SameKind
         .folderHistoryButton.toolTip = texts.ui_FolderHistory
         .folderFilterBox.setPlaceholder(texts.ui_FilterFiles)
@@ -1099,8 +1099,7 @@ impl ViewerWindow
         .closeFile()
         .explorerActive = true
         .emptyView.hide()
-        .infoBarHost.hide()
-        .explorer.show()
+        .explorer.setShown(true)
         .explorer.navigate(source)
         .closeButton.enable(true)
         .applyLayout()

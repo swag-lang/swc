@@ -397,7 +397,10 @@ func assertFolderFiles(window: *ViewerWindow, names: const [..] String)
     Swag.assert(view.encoding == .Utf16Le)
     Swag.assert(view.encodingName() == "UTF-16 LE")
     Swag.assert(view.editor.text() == "Hello, wide world")
-    Swag.assert(view.encodingCombo.selectedIndex == 1)
+
+    var options: OptionSheet.Page
+    view.describeOptions(&options)
+    Swag.assert(options.rows[2].value == "UTF-16 LE")
 }
 
 // A single-byte page has no mark to announce it, and every byte decodes, so the accented byte is
@@ -2576,34 +2579,39 @@ func createPictureFolder(stem: string, names: const [..] string)->String
     Swag.assert(button.parent == window.currentCommands and button.parent != window.commandBar)
     Swag.assert(button.isVisible())
 
-    host.clickPopupMenuItemWhenShown("scope.play.shuffle")
-    button.showMenu()
+    host.activateOptionRowWhenShown(appStrings().ui_PlayMode)
+    host.thenActivateOptionRow(appStrings().ui_PlayShuffle)
+    button.showOptions()
     Swag.assert(window.playMode == .Shuffle and button.icon.index == cast(s32, ThemeIcons.Shuffle))
 
-    host.clickPopupMenuItemWhenShown("scope.play.folder")
-    button.showMenu()
+    host.activateOptionRowWhenShown(appStrings().ui_PlayMode)
+    host.thenActivateOptionRow(appStrings().ui_PlayFolder)
+    host.thenActivateOptionRow(appStrings().ui_PlaySlide)
+    host.thenActivateOptionRow("10 s")
+    button.showOptions()
     Swag.assert(window.playMode == .Folder and button.icon.index == cast(s32, ThemeIcons.RepeatAll))
-
-    host.openPopupSubMenuWhenShown(appStrings().ui_PlaySlide)
-    host.thenClickPopupMenuItem("scope.play.slide.2")
-    button.showMenu()
     Swag.assert(window.slideSeconds == 10)
 
-    // The modes are one choice and the paces another: each entry carries a radio mark, and
-    // exactly one of each group is taken. Built last, because a popup lives in the top view
-    // until the next frame, where the driver of the menus above could find it first.
-    let menu = button.createMenu()
-    defer menu.destroy()
+    // The modes are one choice and the paces another: each page checks exactly the value in
+    // force, and each mode carries the glyph the button shows for it.
+    var options: OptionSheet.Page
+    button.playback.addOptionRows(&options, button.view, showSlideDuration: true)
+    Swag.assert(options.rows.count == 2)
+    Swag.assert(options.rows[0].value == appStrings().ui_PlayFolder and options.rows[1].value == "10 s")
+
+    var modes: OptionSheet.Page
+    options.rows[0].buildLink(&modes)
     let icons = [ThemeIcons.PlayOnce, .RepeatOne, .RepeatAll, .Shuffle]
-    for entry in 4'u32
+    for entry in 4
     {
-        Swag.assert(menu.itemAt(entry).rg == .ExclusiveGroup and menu.itemAt(entry).checked == (entry == 2))
-        Swag.assert(menu.itemAt(entry).icon.index == cast(s32, icons[entry]))
+        Swag.assert(modes.rows[entry].kind == .Choice and modes.rows[entry].checked == (entry == 2))
+        Swag.assert(modes.rows[entry].icon.index == cast(s32, icons[entry]))
     }
 
-    let slideMenu = menu.itemAt(5).popup
-    for entry in cast(u32, Viewer.SlideChoices.count) do
-        Swag.assert(slideMenu.itemAt(entry).rg == .ExclusiveGroup and slideMenu.itemAt(entry).checked == (entry == 2))
+    var paces: OptionSheet.Page
+    options.rows[1].buildLink(&paces)
+    for entry in Viewer.SlideChoices.count do
+        Swag.assert(paces.rows[entry].checked == (entry == 2))
 
     // The same picture can be inspected as bytes; presentation follows the selected viewer.
     for choice, index in window.choices where choice.key == "hex"

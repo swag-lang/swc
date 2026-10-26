@@ -85,10 +85,17 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     viewer.dockStyle          = .Center
     viewer.commands.dockStyle = .None
     result.info.dockStyle     = .None
-    Swag.assert(viewer.trackCombo.items.count == 2)
-    viewer.trackCombo.setSelectedIndex(1)
+    var options: OptionSheet.Page
+    viewer.describeOptions(&options)
+    var tracks: OptionSheet.Page
+    options.rows[0].buildLink(&tracks)
+    Swag.assert(options.rows[0].value == Midi.texts().ui_AllTracks and tracks.rows.count == 2)
+
+    host.activateOptionRowWhenShown(Midi.texts().ui_Track)
+    host.thenActivateOptionRow(tracks.rows[1].label.raw)
+    viewer.showOptions()
     Swag.assert(viewer.roll.selectedTrack == 0 and viewer.roll.selectedNoteCount() == 7)
-    viewer.trackCombo.setSelectedIndex(0)
+    viewer.roll.setTrack(Swag.U32.Max)
     let fitZoom = viewer.roll.zoom
     viewer.roll.zoomIn()
     Swag.assert(not viewer.roll.fit and viewer.roll.zoom > fitZoom)
@@ -104,7 +111,9 @@ func midiViewerFixturePath()->String => Path.combine(unwrap Path.directoryName(#
     host.notify(.LanguageChanged)
     host.root.applyLayout()
     discard host.render(&host.root)
-    Swag.assert(viewer.trackCombo.selectedItem()!.name.raw == "Toutes les pistes")
+    var translated: OptionSheet.Page
+    viewer.describeOptions(&translated)
+    Swag.assert(translated.rows[0].value == "Toutes les pistes")
     Swag.assert(viewer.zoomLabel.toolTip == Midi.texts().ui_ZoomMenu)
     Testing.assertContentFits(viewer.commands)
 }

@@ -506,7 +506,7 @@ private impl IWnd for Panel
 
 private impl Panel
 {
-    mtd retire()->bool
+    internal mtd retire()->bool
     {
         return .load.retire()
     }

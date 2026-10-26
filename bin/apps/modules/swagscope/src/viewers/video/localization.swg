@@ -14,20 +14,21 @@ struct Texts
     ui_TipSeek:                string = "Seek"                                                    // Tooltip of the playback timeline.
     ui_TipMute:                string = "Mute or unmute (M)"                                      // Tooltip of the mute switch.
     ui_TipVolume:              string = "Volume"                                                  // Tooltip of the volume slider.
-    ui_TipAudio:               string = "Audio track"                                             // Tooltip of the sound-track selector.
-    ui_TipSubtitles:           string = "Subtitles"                                               // Tooltip of the subtitle selector.
-    ui_TipPlaybackSpeed:       string = "Playback speed · Shift+Left/Right: adjust"               // Tooltip of playback-speed controls.
+    ui_OptionSpeed:            string = "Speed"                                                   // Option choosing the playback rate.
+    ui_OptionAudio:            string = "Audio track"                                             // Option choosing the sound track.
+    ui_OptionSubtitles:        string = "Subtitles"                                               // Option choosing and styling the subtitles.
     ui_PlayerSpeedNormal:      string = "Normal"                                                  // The source playback rate.
-    ui_AudioTrack:             string = "<b>%</b>% · <p3>% · % ch · %{f1} kHz</p>"                // One sound-track selector entry.
     ui_AudioTrackNumber:       string = "Audio %"                                                 // Fallback name for an unnamed sound track.
     ui_AudioTrackLang:         string = "<p2> (%)</p>"                                            // A sound-track language suffix.
     ui_AudioDetails:           string = "% · % ch · %{f1} kHz"                                    // Encoding, channel count, and sample rate in the host summary.
     ui_SubtitleOff:            string = "Off"                                                     // Disables subtitle presentation.
     ui_SubtitleTrackNumber:    string = "Subtitle %"                                              // Fallback name for an unnamed subtitle track.
     ui_SubtitleTrackLang:      string = "<p2> (%)</p>"                                            // A subtitle-track language suffix.
-    ui_SubtitleEmbedded:       string = "<b>%</b>% · <p3>Embedded</p>"                            // Embedded subtitle-track entry.
-    ui_SubtitleSidecar:        string = "<b>%</b>% · <p3>External file</p>"                       // Sidecar subtitle-track entry.
-    ui_SubtitleFont:           string = "Font"                                                    // Subtitle font submenu.
+    ui_SubtitleEmbedded:       string = "Embedded"                                                // Where a subtitle track comes from: the film itself.
+    ui_SubtitleSidecar:        string = "External file"                                           // Where a subtitle track comes from: a file beside the film.
+    ui_SubtitleTrack:          string = "Track"                                                   // Heading of the subtitle tracks.
+    ui_SubtitleAppearance:     string = "Appearance"                                              // Heading of the subtitle style options.
+    ui_SubtitleFont:           string = "Font"                                                    // Subtitle font option.
     ui_SubtitleFontSans:       string = "System sans serif"                                       // Proportional subtitle font.
     ui_SubtitleFontMono:       string = "Monospace"                                               // Fixed-width subtitle font.
     ui_SubtitleSize:           string = "Text size"                                               // Subtitle size submenu.
@@ -69,15 +70,14 @@ func texts()->const *Texts => &g_Texts
 // Returns `count` followed by the frame noun in the form that count calls for.
 func frameCountText(count: u64)->String => Format.toString("% %", count, count == 1 ? texts().word_Frame : texts().word_Frames)
 
-// Formats one sound-track selector entry from the properties its decoder validated.
-func audioTrackText(index: u32, sound: const *Audio.SoundFile)->String
+// Names one sound track, with its language when the file declares one.
+func audioTrackName(index: u32, sound: const *Audio.SoundFile)->String
 {
-    let strings = texts()
-    let name    = sound.displayName().count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
-    var language: String
+    let strings        = texts()
+    var result: retval = sound.displayName().count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
     if sound.language().count and sound.language() != "und" do
-        language = Format.toString(strings.ui_AudioTrackLang, sound.language())
-    return Format.toString(strings.ui_AudioTrack, name, language, audioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
+        result += Format.toString(strings.ui_AudioTrackLang, sound.language())
+    return result
 }
 
 // Returns the established technical name of an audio payload encoding.
@@ -121,17 +121,66 @@ func subtitleFormatText(format: Video.Subtitle.Format)->string
 // Formats the active sound track for the information bar.
 func audioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(texts().ui_AudioDetails, audioEncodingText(sound.sampleEncoding()), sound.numChannels(), cast(f64, sound.sampleRateHz()) / 1_000.0)
 
-// Formats one embedded or sidecar subtitle-track entry.
-func subtitleTrackText(index: u32, track: const *Video.Subtitle.Track, sidecar: bool)->String
+// Names one embedded or sidecar subtitle track, with its language when it declares one.
+func subtitleTrackName(index: u32, track: const *Video.Subtitle.Track)->String
 {
-    let strings     = texts()
-    let displayName = track.displayName()
-    let language    = track.languageTag()
-    let name        = displayName.count ? String.from(displayName) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
-    var languageSuffix: String
+    let strings        = texts()
+    let language       = track.languageTag()
+    var result: retval = track.displayName().count ? String.from(track.displayName()) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
     if language.count and language != "und" do
-        languageSuffix = Format.toString(strings.ui_SubtitleTrackLang, language)
-    return Format.toString(sidecar ? strings.ui_SubtitleSidecar : strings.ui_SubtitleEmbedded, name, languageSuffix)
+        result += Format.toString(strings.ui_SubtitleTrackLang, language)
+    return result
+}
+
+// Names each subtitle style in the language of the interface.
+func subtitleFontText(font: SubtitleFont)->string
+{
+    switch #complete font
+    {
+    case .Sans:      return texts().ui_SubtitleFontSans
+    case .Monospace: return texts().ui_SubtitleFontMono
+    }
+}
+
+func subtitleSizeText(size: SubtitleSize)->string
+{
+    switch #complete size
+    {
+    case .Small:     return texts().ui_SubtitleSizeSmall
+    case .Normal:    return texts().ui_SubtitleSizeNormal
+    case .Large:     return texts().ui_SubtitleSizeLarge
+    case .VeryLarge: return texts().ui_SubtitleSizeVeryLarge
+    }
+}
+
+func subtitleEffectText(effect: SubtitleEffect)->string
+{
+    switch #complete effect
+    {
+    case .Outline:    return texts().ui_SubtitleEffectOutline
+    case .Shadow:     return texts().ui_SubtitleEffectShadow
+    case .Background: return texts().ui_SubtitleEffectBackdrop
+    case .None:       return texts().ui_SubtitleEffectNone
+    }
+}
+
+func subtitlePositionText(position: SubtitlePosition)->string
+{
+    switch #complete position
+    {
+    case .Bottom: return texts().ui_SubtitlePositionBottom
+    case .Center: return texts().ui_SubtitlePositionCenter
+    case .Top:    return texts().ui_SubtitlePositionTop
+    }
+}
+
+func subtitleColorText(color: SubtitleColor)->string
+{
+    switch #complete color
+    {
+    case .White:  return texts().ui_SubtitleColorWhite
+    case .Yellow: return texts().ui_SubtitleColorYellow
+    }
 }
 
 // Registers this viewer's string table with the application.

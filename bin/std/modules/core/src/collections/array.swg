@@ -317,8 +317,9 @@ impl Array
 
     // Ensures the capacity can hold at least `newCount` elements, at least doubling it when it grows.
     //
-    // The element count is unchanged. See also [[reserve]].
-    private mtd grow(newCount: u64)
+    // The element count is unchanged. See also [[reserve]]. Internal: the codecs of this module
+    // fill an array they grow themselves.
+    internal mtd grow(newCount: u64)
     {
         if newCount <= .capacity do
             return

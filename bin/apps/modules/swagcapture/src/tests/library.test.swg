@@ -617,9 +617,8 @@ impl IAllocator for LibraryRejectAllocator
     Swag.assert((lib.folderBtn.text()).count != 0)
     Swag.assert(lib.searchEdit.position.right() == lib.commandBar.paddedClientRect().right())
     Swag.assert(lib.listCtrl.scrollWnd.scrollSize.x <= lib.listCtrl.listView.paddedClientRect().width)
-    Swag.assert(lib.commandBar.children.count == 7)
-    Swag.assert(lib.sortBtn.position.x - lib.viewBtn.position.right() == LibButtonGap)
-    Swag.assert(lib.filterBtn.position.x - lib.sortBtn.position.right() == LibButtonGap)
+    Swag.assert(lib.commandBar.children.count == 6)
+    Swag.assert(lib.filterBtn.position.x - lib.viewBtn.position.right() == LibButtonGap)
     Swag.assert(lib.folderBtn.position.x - lib.filterBtn.position.right() == LibButtonGap)
 
     // The rail owns the left edge and the content begins one gutter after it. That column is

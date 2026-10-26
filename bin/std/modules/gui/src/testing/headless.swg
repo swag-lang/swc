@@ -19,6 +19,7 @@ enum AutoStageKind
     ModalButton      // Fills staged inputs, then activates a modal button.
     PopupSubMenu     // Opens a submenu by label.
     PopupItem        // Activates a popup item by identifier.
+    OptionRow        // Activates a row of an option sheet by its wording.
 }
 
 // One step of the auto UI driver armed by [[Gui.Testing.HeadlessHost.clickModalButtonWhenShown]] and its siblings.
@@ -29,7 +30,8 @@ struct AutoStage
         kind:   AutoStageKind = ModalButton     // Action the stage performs.
         folder: String                 // Folder a file-dialog stage browses to first; empty keeps the current one.
         file:   String                 // File name a file-dialog stage types; empty for any other modal.
-        label:  String                 // Label of the submenu a `PopupSubMenu` stage opens.
+        label:  String                 // Label of the submenu a `PopupSubMenu` stage opens, or of the row an `OptionRow` stage activates.
+        step:   s32                    // Direction an `OptionRow` stage steps a stepper row in.
         edits:  Array'AutoEdit         // Edit boxes a `ModalButton` stage fills before its click.
         button: WndId         = ""     // Modal button a `ModalButton` stage clicks, or item a `PopupItem` stage activates.
     }
@@ -267,6 +269,7 @@ impl HeadlessHost
         {
         case .PopupSubMenu: return .openPopupSubMenu(stage.label.toString())
         case .PopupItem:    return .clickPopupMenuItem(stage.button)
+        case .OptionRow:    return .activateOptionRow(stage.label.toString(), stage.step)
         }
 
         if not stage.file.isEmpty()
@@ -284,7 +287,7 @@ impl HeadlessHost
         return .clickModalButton(stage.button)
     }
 
-    private mtd driveAutoStages(app: *Application)
+    internal mtd driveAutoStages(app: *Application)
     {
         if not .autoArmed do
             return
@@ -333,6 +336,11 @@ impl HeadlessHost
             {
                 .autoArmed   = false
                 .autoHandled = true
+
+                // A sheet stays open after a row like a reader would leave it, so the last staged
+                // row closes it and hands control back to the code under test.
+                if stage.kind == .OptionRow do
+                    .capturedOptionSheet()?.close()
             }
         }
         else
@@ -373,6 +381,8 @@ impl HeadlessHost
             .autoArmed = false
             if stage.kind == .ModalButton do
                 app.exitModal(Dialog.BtnCancel)
+            elif stage.kind == .OptionRow do
+                .capturedOptionSheet()?.close()
             else do
                 discard .dismissPopupMenu()
         }
@@ -442,6 +452,25 @@ impl HeadlessHost
     {
         .armAutoDriver(maxFrames)
         discard .addAutoStage(.PopupSubMenu, label: label)
+    }
+
+    // Arms the auto UI driver to activate the row worded `label` of the option sheet as soon as it is shown.
+    //
+    // `step` is the direction of a stepper row. Chain more rows with
+    // [[Gui.Testing.HeadlessHost.thenActivateOptionRow]]; the sheet closes after the last one.
+    mtd activateOptionRowWhenShown(label: string, step: s32 = 0, maxFrames: u32 = 60)
+    {
+        .armAutoDriver(maxFrames)
+        let stage = .addAutoStage(.OptionRow, label: label)
+        stage.step = step
+    }
+
+    // Appends a step that activates the row worded `label` of the option sheet, such as a row of the page the previous step opened.
+    mtd thenActivateOptionRow(label: string, step: s32 = 0)
+    {
+        Swag.assert(.autoArmed)
+        let stage = .addAutoStage(.OptionRow, label: label)
+        stage.step = step
     }
 
     // Appends a step that clicks `button` in the next modal once the previous step succeeded.
@@ -855,6 +884,30 @@ impl HeadlessHost
             return null
 
         return menu
+    }
+
+    // Returns the option sheet holding the pointer capture, or `null` when none does.
+    //
+    // Drive it through [[Gui.OptionSheet.View.activateRow]], [[Gui.OptionSheet.View.back]] and
+    // [[Gui.OptionSheet.View.close]], or with the keys and the pointer of this host.
+    mtd capturedOptionSheet()->*OptionSheet.View? => catch cast(*OptionSheet.View?, .app.mouseCaptureWnd)
+
+    // Activates the row worded `label` of the captured option sheet and reports whether it was found.
+    //
+    // The sheet first settles: a page still sliding arrives, and a choice still showing its check
+    // moves on. `step` is the direction of a stepper row.
+    mtd activateOptionRow(label: string, step: s32 = 0)->bool
+    {
+        let sheet = .capturedOptionSheet()
+        if not sheet do
+            return false
+        if sheet.pendingTimer do
+            .fireTimer(sheet.pendingTimer)
+        .finishAnimations()
+        if not sheet.activateRow(label, step) do
+            return false
+        .finishAnimations()
+        return true
     }
 
     // Activates an item in the captured popup menu and reports whether it was found.

@@ -200,7 +200,7 @@ impl RichEditCtrl
         return result
     }
 
-    private mtd ensureCaretIsVisibleInternal(center: bool)
+    internal mtd ensureCaretIsVisibleInternal(center: bool)
     {
         .checkSelection()
         .ensureCursorIsVisible(.cursorPos, center)

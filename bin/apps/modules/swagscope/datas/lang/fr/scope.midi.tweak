@@ -1,5 +1,6 @@
 # French strings of the Swag Scope MIDI viewer. A key omitted here keeps its English value.
 
+ui_Track         Piste
 ui_AllTracks     Toutes les pistes
 ui_TrackName     Piste %
 ui_TrackChoice   % — %

@@ -217,35 +217,42 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
     host.setup(640, 360)
     defer discard catch host.app.setLanguage(ReferenceLanguage)
 
-    var first      = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath(), commandParent: &host.root)
-    let firstWidth = assume cast(*ComboBox, first.commands!.children[0])
-    let firstTheme = assume cast(*ComboBox, first.commands.children[1])
-    let firstZoom  = assume cast(*MarkdownText.ZoomButton, first.info!.children[0])
+    var first         = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownFixturePath(), commandParent: &host.root)
+    let firstOptions  = assume cast(*IconButton, first.commands!.children[0])
+    let firstZoom     = assume cast(*MarkdownText.ZoomButton, first.info!.children[0])
+    let firstMarkdown = assume cast(*Markdown.View, first.view)
     assertViewerInfoButton(firstZoom)
     Swag.assert(first.info.preferredSize.x == Viewer.ZoomSlotWidth)
-    Swag.assert(firstWidth.selectedIndex == 2 and firstTheme.selectedIndex == 3)
-    firstWidth.setSelectedIndex(0)
-    firstTheme.setSelectedIndex(5)
+
+    var options: OptionSheet.Page
+    MarkdownText.describeOptions(&options, firstMarkdown, firstZoom)
+    Swag.assert(options.rows[0].value == MarkdownText.texts().ui_Wide and options.rows[1].value == "Night")
+
+    host.activateOptionRowWhenShown(MarkdownText.texts().ui_Width)
+    host.thenActivateOptionRow(MarkdownText.texts().ui_Narrow)
+    host.thenActivateOptionRow(MarkdownText.texts().ui_Theme)
+    host.thenActivateOptionRow("Whitey")
+    MarkdownText.showOptions(firstOptions, firstMarkdown, firstZoom)
+    Swag.assert(host.autoHandled and firstMarkdown.hasFocus())
     Swag.assert(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
 
-    var second      = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownWhiteyFixturePath(), commandParent: &host.root)
-    let secondWidth = assume cast(*ComboBox, second.commands!.children[0])
-    let secondTheme = assume cast(*ComboBox, second.commands.children[1])
-    Swag.assert(secondWidth.selectedIndex == 0 and secondTheme.selectedIndex == 5)
+    var second = openTestViewer(MarkdownText.viewerPlugin(), &host.root, markdownWhiteyFixturePath(), commandParent: &host.root)
+    var secondOptions: OptionSheet.Page
+    MarkdownText.describeOptions(&secondOptions, assume cast(*Markdown.View, second.view), assume cast(*MarkdownText.ZoomButton, second.info!.children[0]))
+    Swag.assert(secondOptions.rows[0].value == MarkdownText.texts().ui_Narrow and secondOptions.rows[1].value == "Whitey")
 
-    let oldWidth = String.from(firstWidth.items[0]!.name.raw)
+    let oldWidth = String.from(MarkdownText.texts().ui_Narrow)
     expect host.app.setLanguage("fr")
     host.notify(.LanguageChanged)
-    Swag.assert(firstWidth.items[0]!.name.raw == MarkdownText.texts().ui_Narrow and firstWidth.items[0]!.name.raw != oldWidth)
-    Swag.assert(secondWidth.items[0]!.name.raw == firstWidth.items[0]!.name.raw)
-    Swag.assert(firstTheme.items[0]!.name.raw == MarkdownText.texts().ui_ThemeApp)
-    Swag.assert(firstWidth.toolTip == MarkdownText.texts().ui_TipWidth and firstTheme.toolTip == MarkdownText.texts().ui_TipTheme)
+    var translated: OptionSheet.Page
+    MarkdownText.describeOptions(&translated, firstMarkdown, firstZoom)
+    Swag.assert(translated.rows[0].value == MarkdownText.texts().ui_Narrow and translated.rows[0].value.raw != oldWidth)
+    Swag.assert(firstOptions.toolTip == "Options")
     Swag.assert(firstZoom.toolTip == MarkdownText.texts().ui_ZoomMenu)
-    Swag.assert(firstWidth.selectedIndex == 0 and firstTheme.selectedIndex == 5)
     Swag.assert(MarkdownText.g_ViewerSettings.widthIndex == 0 and MarkdownText.g_ViewerSettings.themeIndex == 5)
     expect host.app.setLanguage(ReferenceLanguage)
     host.notify(.LanguageChanged)
-    Swag.assert(firstWidth.items[0]!.name.raw == oldWidth)
+    Swag.assert(oldWidth == MarkdownText.texts().ui_Narrow)
 }
 
 // File-open failures cross the viewer boundary instead of becoming viewer-specific content.
@@ -288,26 +295,14 @@ private func markdownWhiteyFixturePath()->String => Path.combine(unwrap Path.dir
     let commands = result.commands
     commands.applyLayout()
 
-    // Pointer use of either document command must return focus to the Markdown canvas after the
-    // popup closes, leaving navigation keys attached to the document.
-    let widthCombo = assume cast(*ComboBox, commands.children[0])
-    let themeCombo = assume cast(*ComboBox, commands.children[1])
+    // Pointer use of the document options must return focus to the Markdown canvas once the sheet
+    // closes, leaving navigation keys attached to the document.
+    let optionsButton = assume cast(*IconButton, commands.children[0])
     Swag.assert(assume cast(*Markdown.View, wnd).hasFocus())
-    var comboPoint = widthCombo.surfaceRect().center()
-    widthCombo.surface!.surfaceToScreen(&comboPoint)
-    host.mouseDown(comboPoint)
-    Swag.assert(widthCombo.hasFocus() and not widthCombo.hasVisibleFocus())
-    host.keyPress(Input.Key.Escape)
-    Swag.assert(assume cast(*Markdown.View, wnd).hasFocus())
-    host.mouseUp(comboPoint)
-
-    comboPoint = themeCombo.surfaceRect().center()
-    themeCombo.surface!.surfaceToScreen(&comboPoint)
-    host.mouseDown(comboPoint)
-    Swag.assert(themeCombo.hasFocus() and not themeCombo.hasVisibleFocus())
-    host.keyPress(Input.Key.Escape)
-    Swag.assert(assume cast(*Markdown.View, wnd).hasFocus())
-    host.mouseUp(comboPoint)
+    host.activateOptionRowWhenShown(MarkdownText.texts().ui_Width)
+    host.clickWnd(optionsButton)
+    Swag.assert(host.autoHandled)
+    Swag.assert(assume cast(*Markdown.View, wnd).hasFocus() and not optionsButton.hasFocus())
 
     // The application spinner follows scheduled work, not lazy source left on disk.
     for 64 where result.isLoading() do

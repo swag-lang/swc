@@ -70,10 +70,10 @@ private impl ImageView
     }
 
     // Reports whether the view holds a vector document rather than a bitmap.
-    mtd const hasDrawing()->bool => .drawing.width > 0 and .drawing.height > 0
+    internal mtd const hasDrawing()->bool => .drawing.width > 0 and .drawing.height > 0
 
     // Reports whether the view has something to paint, whatever kind of content it holds.
-    mtd const hasContent()->bool => .currentImage().isValid() or .planarWidth > 0 or .hasDrawing()
+    internal mtd const hasContent()->bool => .currentImage().isValid() or .planarWidth > 0 or .hasDrawing()
 
     // Returns the size the content is laid out and drawn at.
     //
@@ -93,7 +93,7 @@ private impl ImageView
     }
 
     // Returns the axis-aligned size after the temporary view transform.
-    mtd const contentSize()->{ width, height: s32 }
+    internal mtd const contentSize()->{ width, height: s32 }
     {
         let source = .sourceSize()
         if .rotationQuarterTurns & 1 do

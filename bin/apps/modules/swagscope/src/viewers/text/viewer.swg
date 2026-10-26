@@ -92,9 +92,7 @@ struct Panel
         commands:      *Wnd
         info:          *Wnd
         editor:        *RichEditCtrl
-        wrapButton:    *IconButton
-        numbersButton: *IconButton
-        encodingCombo: *ComboBox
+        optionsButton: *IconButton
         zoomLabel:     *IconButton
     }
 
@@ -196,9 +194,7 @@ impl Panel
 
     mtd retranslate()
     {
-        .wrapButton.toolTip    = .wrapping ? texts().ui_WrapOn : texts().ui_WrapOff
-        .numbersButton.toolTip = .lineNumbers ? texts().ui_NumbersOn : texts().ui_NumbersOff
-        .encodingCombo.toolTip = texts().ui_Encoding
+        .optionsButton.toolTip = appStrings().ui_Options
         .zoomLabel.toolTip     = texts().ui_ZoomMenu
         .reportStatistics()
     }
@@ -520,10 +516,6 @@ impl Panel
         if .lineNumbers and .windowNumbered do
             flags.add(.LineNumbers)
         .editor.setFlags(flags)
-        .wrapButton.setChecked(.wrapping)
-        .wrapButton.toolTip = .wrapping ? texts().ui_WrapOn : texts().ui_WrapOff
-        .numbersButton.setChecked(.lineNumbers)
-        .numbersButton.toolTip = .lineNumbers ? texts().ui_NumbersOn : texts().ui_NumbersOff
         .scheduleMore()
     }
 
@@ -567,8 +559,6 @@ impl Panel
         .contentStart = 0
         discard .revealOffset(.residentStart, "")
         .restartStatistics()
-        for candidate, index in Encodings where candidate == encoding do
-            .encodingCombo.setSelectedIndex(cast(u32, index), notify: false)
         .reportStatistics()
     }
 
@@ -763,41 +753,38 @@ impl Panel
         .scheduleMore()
     }
 
-    // Creates the wrap toggle and the encoding selector in the viewer's command group.
+    // Creates the options button in the viewer's command group.
     private mtd createCommandBar(host: Viewer.Host)
     {
-        .commands = host.createCommandGroup(244)
+        .commands = host.createCommandGroup(themeDropDownButtonWidth(.themeMetrics()))
 
-        with .wrapButton = Viewer.createActionButton(.commands, .Wrap, .Toggle)
+        with .optionsButton = Viewer.createOptionsButton(.commands)
         {
-            .dockStyle = .Left
-            .toolTip   = texts().ui_WrapOn
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|view = me|(_) { view.toggleWrap() }
+            .dockStyle  = .Left
+            .sigPressed += func|view = me|(_) { view.showOptions() }
         }
+    }
 
-        with .numbersButton = Viewer.createActionButton(.commands, .LineNumbers, .Toggle)
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_NumbersOff
-            .setCheckIndicator(.Frame)
-            .sigCheckedChanged += func|view = me|(_) { view.toggleLineNumbers() }
-        }
+    // Opens how the text is laid out and decoded: wrapping, line numbers, and the encoding.
+    mtd showOptions()
+    {
+        let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
+        sheet.doModal(.optionsButton, autoDestroy: true)
+    }
+
+    mtd describeOptions(page: *OptionSheet.Page)
+    {
+        let strings = texts()
+        page.addToggle(strings.ui_Wrap, .wrapping, func|view = me|(_) { view.toggleWrap() })
+        page.addToggle(strings.ui_Numbers, .lineNumbers, func|view = me|(_) { view.toggleLineNumbers() })
 
         // The detected encoding is shown rather than assumed: a file that reads as nonsense is
         // usually one whose encoding was guessed wrong, and this is where a reader corrects it.
-        with .encodingCombo = ComboBox.create(.commands, {0, 0, 156, 36})
+        page.addLink(strings.ui_Encoding, .encodingName(), func|view = me|(encodings)
         {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_Encoding
-            for name in EncodingNames do
-                .addItem(name)
-            for candidate, index in Encodings where candidate == me.encoding do
-                .setSelectedIndex(cast(u32, index), notify: false)
-            .sigChanged += func|view = me|(_, index) { view.applyEncoding(Encodings[index]) }
-        }
+            for encoding, index in Encodings do
+                encodings.addChoice(EncodingNames[index], encoding == view.encoding, func|view, encoding|() { view.applyEncoding(encoding) })
+        })
     }
 
     // Creates the zoom menu button in the viewer's information group.

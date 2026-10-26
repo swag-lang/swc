@@ -129,7 +129,9 @@ impl ViewerWindow
         }
         else
         {
-            .searchOptionsButton.setIcon(.theme().icon(.Options, themeActionIconSize(.themeMetrics())))
+            // The gear belongs to the options of the viewer, in its own bar; the matching rules
+            // of the search take a glyph of their own.
+            .searchOptionsButton.setIcon(.theme().icon(.MatchWholeWord, themeActionIconSize(.themeMetrics())))
             .searchBox.setIcon(.theme().icon(.Search, themeActionIconSize(.themeMetrics())))
         }
 
@@ -488,6 +490,8 @@ impl ViewerWindow
         .currentActions?.show(not available or actionsBesideSearch)
         if available do
             .commandBar.centerGroup = .searchGroup
+        elif .isExploring() do
+            .commandBar.centerGroup = .explorer!.filter
         elif actionsBesideSearch do
             .commandBar.centerGroup = null
         else do

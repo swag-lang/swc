@@ -25,9 +25,8 @@ func viewerPlugin()->Viewer.Plugin
 
 private
 {
-    const CommandWidth   = 640.0
-    const ComboWidth     = 120.0
     const InspectorWidth = 420.0
+    const RowWidthCount  = 5'u32
     const InfoWidth      = InspectorWidth + Viewer.ZoomSlotWidth
 }
 
@@ -88,24 +87,28 @@ struct Panel
     {
         commands:       *Wnd
         analysisButton: *IconButton
-        rowWidthCombo:  *ComboBox
-        widthCombo:     *ComboBox
-        formatCombo:    *ComboBox
-        byteOrderCombo: *ComboBox
+        optionsButton:  *IconButton
         analysisView:   *AnalysisView
         grid:           *GridView
     }
 
     inspectorLabel: *Label?
     zoomLabel:      *IconButton?
-    searchPattern:  SearchPattern
-    analysis:       AnalysisOperation
-    analysisTimer:  *Timer?     // Refreshes the progress of a running analysis.
-    fileName:       String
-    details:        String
-    load:           Viewer.BackgroundLoad'Document
-    services:       Viewer.HostServices
-    failureReason:  String
+
+    // How the bytes are laid out and read, as the options chose it.
+    rowWidthIndex:   u32      // Zero fits the window; otherwise 8, 16, 32 or 64 bytes per row.
+    valueWidthIndex: u32      // One, two, four or eight bytes per value.
+    formatIndex:     u32      // Hexadecimal, unsigned, signed, or float for the wide values.
+    bigEndian:       bool     // Whether multi-byte values read their most significant byte first.
+
+    searchPattern: SearchPattern
+    analysis:      AnalysisOperation
+    analysisTimer: *Timer?     // Refreshes the progress of a running analysis.
+    fileName:      String
+    details:       String
+    load:          Viewer.BackgroundLoad'Document
+    services:      Viewer.HostServices
+    failureReason: String
 }
 
 private impl IWnd for Panel
@@ -248,113 +251,91 @@ impl Panel
                                         [.Hex32, .Unsigned32, .Signed32, .Float32],
                                         [.Hex64, .Unsigned64, .Signed64, .Float64]]
 
-    mtd selectedGrouping()->Grouping
-    {
-        let widthIndex  = Math.min(.widthCombo.selectedIndex, 3)
-        let formatIndex = Math.min(.formatCombo.selectedIndex, 3)
-        return Groupings[widthIndex, formatIndex]
-    }
+    mtd selectedGrouping()->Grouping => Groupings[.valueWidthIndex, .formatIndex]
 
-    mtd applyValueMode()
+    // Reports how many representations the selected value width offers: the two narrow widths have no float.
+    mtd formatCount()->u32 => .valueWidthIndex >= 2 ? 4 : 3
+
+    // Reads `index` bytes at a time: one, two, four or eight.
+    mtd setValueWidth(index: u32)
     {
+        Swag.assert(index < 4)
+        .valueWidthIndex = index
+        if .formatIndex >= .formatCount() do
+            .formatIndex = 0
         .grid.setGrouping(.selectedGrouping())
     }
 
-    mtd applyByteOrder()
+    // Spells each value as hexadecimal, unsigned, signed or, for the wide values, float.
+    mtd setFormat(index: u32)
     {
-        .grid.setBigEndian(.byteOrderCombo.selectedIndex == 1)
+        Swag.assert(index < .formatCount())
+        .formatIndex = index
+        .grid.setGrouping(.selectedGrouping())
     }
 
-    mtd applyRowWidth()
+    mtd setBigEndian(bigEndian: bool)
     {
-        let index = .rowWidthCombo.selectedIndex
-        if not index
-        {
+        .bigEndian = bigEndian
+        .grid.setBigEndian(bigEndian)
+    }
+
+    // Lays the bytes out to fit the window at index zero, or eight times two to the `index - 1` per row.
+    mtd setRowWidth(index: u32)
+    {
+        Swag.assert(index < RowWidthCount)
+        .rowWidthIndex = index
+        if not index do
             .grid.setBytesPerRow(0, true)
-            return
-        }
-
-        .grid.setBytesPerRow(4'u64 << index, false)
+        else do
+            .grid.setBytesPerRow(4'u64 << index, false)
     }
 
-    // Sizes each selector to its widest localized entry, and the command group to exactly those widths and their leading gaps.
-    //
-    // A fixed width would truncate a long vocabulary and leave unused room around a short one.
-    private mtd fitCommandBar()
-    {
-        let rowWidth  = Math.ceil(.rowWidthCombo.itf.measureContent({}).x)
-        let value     = Math.ceil(.widthCombo.itf.measureContent({}).x)
-        let format    = Math.ceil(.formatCombo.itf.measureContent({}).x)
-        let byteOrder = Math.ceil(.byteOrderCombo.itf.measureContent({}).x)
-        .rowWidthCombo.preferredSize.x  = rowWidth
-        .widthCombo.preferredSize.x     = value
-        .formatCombo.preferredSize.x    = format
-        .byteOrderCombo.preferredSize.x = byteOrder
-        .rowWidthCombo.resize(rowWidth, 36)
-        .widthCombo.resize(value, 36)
-        .formatCombo.resize(format, 36)
-        .byteOrderCombo.resize(byteOrder, 36)
-
-        let width = rowWidth + value + format + byteOrder +
-                    .rowWidthCombo.margin.x + .widthCombo.margin.x +
-                    .formatCombo.margin.x + .byteOrderCombo.margin.x
-        .commands.preferredSize.x = width
-        .commands.resize(width, 36)
-        .commands.applyLayout()
-    }
-
-    mtd rebuildFormats()
-    {
-        let previous = .formatCombo.selectedIndex
-        .formatCombo.clear()
-        .formatCombo.addItem(texts().ui_FormatHex)
-        .formatCombo.addItem(texts().ui_FormatUns)
-        .formatCombo.addItem(texts().ui_FormatSigned)
-        if .widthCombo.selectedIndex >= 2 do
-            .formatCombo.addItem(texts().ui_FormatFloat)
-        let next = previous < .formatCombo.items.count ? previous : 0
-        .formatCombo.setSelectedIndex(cast(u32, next), notify: false)
-        .applyValueMode()
-    }
-
-    // Rebuilds the localized combo items and tooltips in the current language, keeping every
-    // selection, then republishes the details.
+    // Rebuilds what follows the language, keeping every choice, then republishes the details.
     mtd retranslate()
     {
-        let rowWidth = .rowWidthCombo.selectedIndex
-        .rowWidthCombo.clear()
-        .rowWidthCombo.addItem(texts().ui_RowAuto)
-        .rowWidthCombo.addItem("8")
-        .rowWidthCombo.addItem("16")
-        .rowWidthCombo.addItem("32")
-        .rowWidthCombo.addItem("64")
-        .rowWidthCombo.setSelectedIndex(rowWidth, notify: false)
-        .rowWidthCombo.toolTip = texts().ui_RowWidth
-
-        let width = .widthCombo.selectedIndex
-        .widthCombo.clear()
-        .widthCombo.addItem(texts().ui_Width8)
-        .widthCombo.addItem(texts().ui_Width16)
-        .widthCombo.addItem(texts().ui_Width32)
-        .widthCombo.addItem(texts().ui_Width64)
-        .widthCombo.setSelectedIndex(width, notify: false)
-        .widthCombo.toolTip  = texts().ui_TipWidth
-        .formatCombo.toolTip = texts().ui_TipFormat
-        .rebuildFormats()
-
-        let byteOrder = .byteOrderCombo.selectedIndex
-        .byteOrderCombo.clear()
-        .byteOrderCombo.addItem(texts().ui_EndianLittle)
-        .byteOrderCombo.addItem(texts().ui_EndianBig)
-        .byteOrderCombo.setSelectedIndex(byteOrder, notify: false)
-        .byteOrderCombo.toolTip = texts().ui_TipEndian
+        .optionsButton.toolTip  = appStrings().ui_Options
         .analysisButton.toolTip = texts().ui_AnalysisTip
         .analysisView.retranslate()
         .details.clear()
         .services.showDetails(me, .details)
-        .fitCommandBar()
         .grid.invalidate()
         .refreshInspector()
+    }
+
+    // Opens how the bytes are laid out and read: row width, value width, representation, byte order.
+    mtd showOptions()
+    {
+        let sheet = OptionSheet.View.create(.optionsButton, func|view = me|(page) { view.describeOptions(page) }, owner: me)
+        sheet.doModal(.optionsButton, autoDestroy: true)
+    }
+
+    mtd describeOptions(page: *OptionSheet.Page)
+    {
+        let strings = texts()
+        page.addLink(strings.ui_RowWidth, rowWidthName(.rowWidthIndex), func|view = me|(rows)
+        {
+            for index in RowWidthCount do
+                rows.addChoice(rowWidthName(index), index == view.rowWidthIndex, func|view, index|() { view.setRowWidth(index) })
+        })
+
+        page.addLink(strings.ui_ValueWidth, valueWidthName(.valueWidthIndex), func|view = me|(widths)
+        {
+            for index in 4'u32 do
+                widths.addChoice(valueWidthName(index), index == view.valueWidthIndex, func|view, index|() { view.setValueWidth(index) })
+        })
+
+        page.addLink(strings.ui_Representation, formatName(.formatIndex), func|view = me|(formats)
+        {
+            for index in view.formatCount() do
+                formats.addChoice(formatName(index), index == view.formatIndex, func|view, index|() { view.setFormat(index) })
+        })
+
+        page.addLink(strings.ui_ByteOrder, .bigEndian ? strings.ui_EndianBig : strings.ui_EndianLittle, func|view = me|(orders)
+        {
+            orders.addChoice(texts().ui_EndianLittle, not view.bigEndian, func|view|() { view.setBigEndian(false) })
+            orders.addChoice(texts().ui_EndianBig, view.bigEndian, func|view|() { view.setBigEndian(true) })
+        })
     }
 
     private mtd offsetText(offset: u64)->String => formatDigits(offset, .grid.offsetDigits)
@@ -579,7 +560,6 @@ impl Panel
         result.createInfoGroup(host)
         result.createGrid()
 
-        result.fitCommandBar()
         result.applyLayout()
         result.grid.refreshLayout()
         result.refreshInspector()
@@ -589,59 +569,14 @@ impl Panel
         return result
     }
 
-    // Creates the command group: the row width, value width, representation, and byte order selectors.
+    // Creates the command group: the options of the layout and reading of the bytes.
     private mtd createCommandBar(host: Viewer.Host)
     {
-        .commands = host.createCommandGroup(CommandWidth)
-
-        with .rowWidthCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
+        .commands = host.createCommandGroup(themeDropDownButtonWidth(.themeMetrics()))
+        with .optionsButton = Viewer.createOptionsButton(.commands)
         {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_RowWidth
-            .addItem(texts().ui_RowAuto)
-            .addItem("8")
-            .addItem("16")
-            .addItem("32")
-            .addItem("64")
-            .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(_, _) { view.applyRowWidth() }
-        }
-
-        with .widthCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_TipWidth
-            .addItem(texts().ui_Width8)
-            .addItem(texts().ui_Width16)
-            .addItem(texts().ui_Width32)
-            .addItem(texts().ui_Width64)
-            .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(_, _) { view.rebuildFormats() }
-        }
-
-        with .formatCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_TipFormat
-            .addItem(texts().ui_FormatHex)
-            .addItem(texts().ui_FormatUns)
-            .addItem(texts().ui_FormatSigned)
-            .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(_, _) { view.applyValueMode() }
-        }
-
-        with .byteOrderCombo = ComboBox.create(.commands, {0, 0, ComboWidth, 36})
-        {
-            .dockStyle = .Left
-            .margin.x  = 8
-            .toolTip   = texts().ui_TipEndian
-            .addItem(texts().ui_EndianLittle)
-            .addItem(texts().ui_EndianBig)
-            .setSelectedIndex(0, notify: false)
-            .sigChanged += func|view = me|(_, _) { view.applyByteOrder() }
+            .dockStyle  = .Left
+            .sigPressed += func|view = me|(_) { view.showOptions() }
         }
     }
 

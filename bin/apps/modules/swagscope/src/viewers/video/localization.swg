@@ -73,8 +73,8 @@ func frameCountText(count: u64)->String => Format.toString("% %", count, count =
 // Names one sound track, with its language when the file declares one.
 func audioTrackName(index: u32, sound: const *Audio.SoundFile)->String
 {
-    let strings        = texts()
-    var result: retval = sound.displayName().count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
+    let strings = texts()
+    var result: #returntype = sound.displayName().count ? String.from(sound.displayName()) : Format.toString(strings.ui_AudioTrackNumber, index + 1)
     if sound.language().count and sound.language() != "und" do
         result += Format.toString(strings.ui_AudioTrackLang, sound.language())
     return result
@@ -124,9 +124,9 @@ func audioDetailsText(sound: const *Audio.SoundFile)->String => Format.toString(
 // Names one embedded or sidecar subtitle track, with its language when it declares one.
 func subtitleTrackName(index: u32, track: const *Video.Subtitle.Track)->String
 {
-    let strings        = texts()
-    let language       = track.languageTag()
-    var result: retval = track.displayName().count ? String.from(track.displayName()) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
+    let strings  = texts()
+    let language = track.languageTag()
+    var result: #returntype = track.displayName().count ? String.from(track.displayName()) : Format.toString(strings.ui_SubtitleTrackNumber, index + 1)
     if language.count and language != "und" do
         result += Format.toString(strings.ui_SubtitleTrackLang, language)
     return result

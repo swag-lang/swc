@@ -924,8 +924,8 @@ private impl View
 
     internal mtd listRect(levels: u64)->Math.Rectangle
     {
-        var result: retval = .body
-        let header         = .headerHeight(levels)
+        var result: #returntype = .body
+        let header = .headerHeight(levels)
         result.y      += header
         result.height = Math.max(.bodyHeight - header, 0)
         return result
@@ -971,7 +971,7 @@ private impl View
     // Finds the part of the page on screen under the local point `pos`.
     mtd hitTest(pos: Math.Point)->HitPart
     {
-        var result: retval
+        var result: #returntype
         if .slideProgress < 1 or not .body.contains(pos) do
             return result
 
@@ -1308,7 +1308,7 @@ private impl View
 
     mtd textFormat(color: Color, align: StringHorzAlignment)->RichStringFormat
     {
-        var result: retval
+        var result: #returntype
         .theme().setTextColors(&result, color)
         result.horzAlignment = align
         result.vertAlignment = .OpticalCenter

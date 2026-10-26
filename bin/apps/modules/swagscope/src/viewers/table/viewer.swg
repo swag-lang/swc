@@ -426,6 +426,14 @@ private impl IWnd for Panel
         .publishDocument()
         .services.loadingChanged(me)
     }
+
+    mtd impl onKeyEvent(evt: *KeyEvent)
+    {
+        if evt.kind == .Pressed and evt.modifiers == .Control and evt.key == .C do
+            Clipboard.addString(.selectionText())
+        else do
+            evt.accepted = false
+    }
 }
 
 private impl Panel
@@ -476,6 +484,38 @@ private impl Panel
         .setInitialFocus(.list)
 
         .refreshDetails()
+    }
+
+    // Returns the selected lines, or the focused one when none is selected, as a spreadsheet pastes
+    // them: complete cell values separated by tabs, one row per line, in the order shown.
+    mtd selectionText()->String
+    {
+        var result: retval
+        let anySelected = .hasSelection()
+        for line in .document.rows.count
+        {
+            let selected = anySelected ? .list.isLineSelected(cast(u32, line)) : line == .list.focusIndex
+            if not selected do
+                continue
+            let row = &.document.rows[.documentRow(line)]
+            for cell, column in row.cells
+            {
+                if column do
+                    result += "\t"
+                result += cell.toString()
+            }
+
+            result += "\n"
+        }
+
+        return result
+    }
+
+    mtd hasSelection()->bool
+    {
+        for line in .document.rows.count where .list.isLineSelected(cast(u32, line)) do
+            return true
+        return false
     }
 
     // Returns the document row shown at line `index`, and the line document row `row` is shown at.
@@ -596,7 +636,7 @@ private impl Panel
         {
             .dockStyle = .Center
             .style.setFont(result.theme().createDefaultFontFamilyFs(result.themeMetrics().defaultFixedFontSize))
-            .setSelectionMode(.Single)
+            .setSelectionMode(.Multi)
             .setFirstColumnIconMargin(false)
             .updateFlags(.HotTrack | .AlternateLines | .Ellipsis)
             .header.form       = .Transparent

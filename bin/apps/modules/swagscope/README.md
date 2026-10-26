@@ -101,7 +101,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   comma, semicolon, tab, or pipe separators, understands quoted separators and embedded line
   breaks, keeps the first row as a fixed header, and participates in shared search. A click on a
   header sorts the rows by that column, quantities as numbers and words in natural order, with
-  empty cells last; columns of quantities are aligned on the right. Source files
+  empty cells last; columns of quantities are aligned on the right. Ctrl+C copies the selected
+  rows with their complete values, tab-separated, ready to paste into a spreadsheet. Source files
   are capped at 32 MiB; larger tables retain the bounded streamed basic-text alternative.
 - `Image` maps encoded raster and SVG input read-only, so decoding does not first allocate a
   second file-sized heap buffer. It uses Pixel decoders for BMP, DDS, EXR, GIF, ICO, JPEG, KTX2,

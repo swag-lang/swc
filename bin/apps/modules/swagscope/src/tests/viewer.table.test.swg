@@ -127,6 +127,13 @@ using Core, Pixel, Gui, Viewers
     Swag.assert(matches.count == 1 and result.revealMatch(matches[0], "file10"))
     Swag.assert(view.list.focusIndex == view.lineOfRow(0) and view.lineOfRow(0) == 3)
 
+    view.list.unselectAll()
+    view.list.setFocusedIndex(0)
+    Swag.assert(view.selectionText() == "File1\t-4.5\n")
+    view.list.selectLine(1)
+    view.list.selectLine(2)
+    Swag.assert(view.selectionText() == "file2\t35\nfile9\t\n")
+
     var quantity: f64
     Swag.assert(Table.quantityOf("1,5", &quantity) and quantity == 1.5)
     Swag.assert(Table.quantityOf("1,234.5", &quantity) and quantity == 1234.5)

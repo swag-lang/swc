@@ -11,16 +11,21 @@ tls
     private var g_Counter: u32      // Counter of this thread for timestamped identifiers
 }
 
-// Seeds the generator of the calling thread on first use, from the clocks and the MAC address.
+// Seeds the generator of the calling thread on first use, from the clocks, the MAC address, and
+// the process and thread identities.
+//
+// The identities are what keeps threads apart: workers started together seed within the same
+// microsecond, and from the clocks alone they drew the same identifiers.
 #[Swag.Inline]
 private func initRng()
 {
     if not g_RngInit
     {
-        var seed: [3] u64
+        var seed: [4] u64
         seed[0] = Time.monotonicMilliseconds()
         seed[1] = Time.monotonicMicroseconds()
         seed[2] = Hardware.macAddress()
+        seed[3] = (cast(u64, Env.Process.currentProcessId()) << 32) ^ cast(u64, Env.Process.currentThreadId())
         g_Rng.seedU64(seed)
         g_RngInit = true
     }

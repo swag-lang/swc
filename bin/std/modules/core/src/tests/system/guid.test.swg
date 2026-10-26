@@ -48,3 +48,46 @@ using Swag
     Swag.assert((guid.bytes[6] & 0xF0) == 0x40)
     Swag.assert((guid.bytes[8] & 0xC0) == 0x80)
 }
+
+struct GuidRace
+{
+    ready: u32
+    start: u32
+    next:  u32
+    drawn: [16] u64
+}
+
+func guidRaceWorker(thread: const *Threading.Thread)
+{
+    let race = cast(*GuidRace, unwrap thread.userParam)
+    discard Swag.atomicAdd(&race.ready, 1)
+    while Swag.atomicLoad(&race.start) == 0 do
+        Threading.Thread.yield()
+    let slot = Swag.atomicAdd(&race.next, 1)
+    race.drawn[slot] = Guid64.random().value
+}
+
+// Threads released together seed their generators within the same microsecond; each still draws
+// its own identifiers, which is what keeps the temporary names of concurrent workers apart.
+#test
+{
+    var race:    GuidRace
+    var threads: [16] Threading.Thread
+    for &thread in threads
+    {
+        discard expect thread.init(&guidRaceWorker, &race)
+        discard expect thread.start()
+    }
+
+    while Swag.atomicLoad(&race.ready) != threads.count do
+        Threading.Thread.yield()
+    discard Swag.atomicExchange(&race.start, 1)
+    for &thread in threads do
+        thread.wait()
+
+    for i in race.drawn.count
+    {
+        for j in i + 1 until race.drawn.count do
+            Swag.assert(race.drawn[i] != race.drawn[j])
+    }
+}

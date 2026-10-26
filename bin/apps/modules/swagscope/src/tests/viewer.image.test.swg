@@ -56,6 +56,37 @@ func completeImageViewerWindow(host: *Testing.HeadlessHost, window: *ViewerWindo
     Swag.assert(image.width == 128 and image.height == 64)
 }
 
+// A picture a camera stored on its side opens standing up, in the viewer and in its thumbnail.
+#test
+{
+    let fileName = Gui.Testing.tempFilePath("scope-image-orientation-", ".png")
+    defer discard catch File.delete(fileName)
+
+    // A little-endian TIFF header with one directory holding Orientation = 6.
+    let tiff = [0x49'u8, 0x49'u8, 0x2A'u8, 0x00'u8, 0x08'u8, 0x00'u8, 0x00'u8, 0x00'u8,
+                0x01'u8, 0x00'u8,
+                0x12'u8, 0x01'u8, 0x03'u8, 0x00'u8, 0x01'u8, 0x00'u8, 0x00'u8, 0x00'u8, 0x06'u8, 0x00'u8, 0x00'u8, 0x00'u8,
+                0x00'u8, 0x00'u8, 0x00'u8, 0x00'u8]
+    var stored = Image.create(40, 20, .RGB8)
+    var record: ImageMetadata
+    record.signature = 1
+    record.tag       = "Exif"
+    for byte in tiff do
+        record.value.add(byte)
+    stored.metadata.add(#move record)
+    expect stored.save(fileName)
+
+    let image = expect Picture.loadViewerImage(fileName)
+    Swag.assert(image.width == 20 and image.height == 40)
+
+    var host: Testing.HeadlessHost
+    host.setup(640, 420)
+    var result = openTestViewer(Picture.viewerPlugin(), &host.root, fileName, commandParent: &host.root, actionParent: &host.root, infoParent: &host.root)
+    let view   = assume cast(*Picture.Panel, result.view)
+    completeViewerBackgroundLoad(&host, &view.load)
+    Swag.assert(view.facts.width == "20" and view.facts.height == "40")
+}
+
 // Changing language refreshes image facts and commands without changing the displayed frame.
 #test
 {

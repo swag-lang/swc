@@ -107,7 +107,8 @@ Binary content directs the reader to the hexadecimal alternative instead of gues
   second file-sized heap buffer. It uses Pixel decoders for BMP, DDS, EXR, GIF, ICO, JPEG, KTX2,
   PNG, PSD, QOI, TGA, TIFF, and WebP, plus Pixel's SVG parser. It plays GIF, APNG, and WebP
   animations and navigates TIFF pages, icon variants, PSD raster layers, texture subresources,
-  and EXR parts within Pixel's supported subsets. PSD layer effects and masks are not rendered;
+  and EXR parts within Pixel's supported subsets. A photograph stands upright as the EXIF
+  orientation its camera recorded asks, in the viewer and in its thumbnail. PSD layer effects and masks are not rendered;
   unsupported compression and image layouts report a decoder error. Its centered lower group
   provides sibling navigation, orientation commands, and playback. The clickable information-band
   percentage provides zoom presets, fit, and actual size while also reporting temporary orientation.

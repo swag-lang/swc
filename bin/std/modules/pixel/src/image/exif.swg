@@ -124,6 +124,41 @@ func decode(bytes: const [..] u8)->Array'Property fail
     return result
 }
 
+// Returns the `Orientation` value of `properties`, from 1 to 8, or 1 when they hold none or one
+// outside that range.
+//
+// The value says how the stored pixels must be turned to stand upright; see
+// [[Pixel.Image.orient]].
+func orientation(properties: const [..] Property)->u32
+{
+    for property in properties where property.directory == .Image and property.tag == 0x0112
+    {
+        let value = catch StrConv.toU32(property.value.toString()) { return 1 }
+        return value >= 1 and value <= 8 ? value : 1
+    }
+
+    return 1
+}
+
+// Returns the `Orientation` the EXIF record of `metadata` holds, from 1 to 8, or 1 when there is
+// no EXIF record, it does not decode, or it holds no orientation.
+//
+// Reads the record a JPEG `APP1`, a PNG `eXIf`, or a WebP `EXIF` segment decodes to, whether its
+// TIFF header follows an `Exif` identifier, the NUL that ends it, or nothing.
+func orientationOf(metadata: const [..] ImageMetadata)->u32
+{
+    for record in metadata where record.signature == 1 and record.isTag("Exif")
+    {
+        var payload = record.toSlice()
+        while payload.count and payload[0] != 'I' and payload[0] != 'M' do
+            payload = payload[1 to]
+        let properties = catch decode(payload) { return 1 }
+        return orientation(properties.toSlice())
+    }
+
+    return 1
+}
+
 private struct Reader
 {
     bytes:        const [..] u8

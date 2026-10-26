@@ -43,8 +43,9 @@ struct ViewerContent
     information: MediaInfoData
 }
 
-// Rasterizes a vector document at the size it declares, bounded so a poster-sized view box
-// cannot ask for an unbounded bitmap.
+// Decodes a picture standing upright, as the EXIF orientation a camera recorded asks, or
+// rasterizes a vector document at the size it declares, bounded so a poster-sized view box cannot
+// ask for an unbounded bitmap.
 //
 // The viewer itself shows the drawing as vectors, so this is for the callers that genuinely
 // need pixels — a thumbnail, an export, a comparison against a decoded picture.
@@ -54,7 +55,9 @@ func loadViewerImage(fileName: string)->Image fail
     {
         var file   = try File.MappedFile.open(fileName)
         let region = try file.mapAll()
-        return try Image.decode(fileName, region.bytes())
+        var image  = try Image.decode(fileName, region.bytes())
+        image.orient(Exif.orientationOf(image.metadata.toSlice()))
+        return image
     }
 
     let drawing = try loadViewerDrawing(fileName)
@@ -112,18 +115,29 @@ private func loadViewerContent(fileName: string)->ViewerContent fail
     {
         try result.movie.load(fileName)
         try result.movie.prepareCache()
-        let frame = &result.movie.frame
-        result.facts.width  = Format.toString("%", frame.width)
-        result.facts.height = Format.toString("%", frame.height)
+        let frame    = &result.movie.frame
+        let animated = result.movie.frameCount > 1
+
+        // A camera stores a portrait photograph on its side and records how to stand it up. A
+        // still picture is turned once here, so every reading of it, rotations included, starts
+        // upright.
+        var shown = frame
+        if not animated
+        {
+            result.image = frame[]
+            result.image.orient(Exif.orientationOf(frame.metadata.toSlice()))
+            shown = &result.image
+        }
+
+        result.facts.width  = Format.toString("%", shown.width)
+        result.facts.height = Format.toString("%", shown.height)
         result.facts.bits   = frame.bitsPerPixel
         result.facts.frames = result.movie.frameCount
-        result.information.add(.Dimensions, Format.toString("% × % px", frame.width, frame.height))
+        result.information.add(.Dimensions, Format.toString("% × % px", shown.width, shown.height))
         result.information.add(.PixelFormat, Reflection.enumName(PixelFormat, &frame.pixelFormat, fullyQualified: false))
         result.information.add(.Depth, Format.toString("%", frame.bitsPerPixel))
-        if result.movie.frameCount > 1 do
+        if animated do
             result.information.add(.Frames, Format.toString("%", result.movie.frameCount))
-        else do
-            result.image = frame[]
 
         result.information.addImageMetadata(frame.metadata.toSlice(), extension == ".png" or extension == ".apng")
         if result.movie.frameCount <= 1 do

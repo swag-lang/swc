@@ -2,6 +2,7 @@
 #include "Compiler/Sema/Helpers/SemaPurity.h"
 #include "Compiler/Sema/Core/CodeGenLoweringPayload.h"
 #include "Compiler/Sema/Core/Sema.h"
+#include "Compiler/Sema/Helpers/SemaHelpers.h"
 #include "Compiler/Sema/Helpers/SemaSpecOp.h"
 #include "Compiler/Sema/Symbol/Symbols.h"
 
@@ -194,6 +195,12 @@ namespace
             const AstNodeRef currentRef = sema.resolvedNodeRef(toScan.back());
             toScan.pop_back();
             if (currentRef.isInvalid())
+                return false;
+
+            // Lifecycle hooks are calls no node shows: a local's drop at scope exit, a copy or
+            // move hook on a transfer. A body handling such a value is not pure.
+            const SemaNodeView typeView = sema.viewType(currentRef);
+            if (typeView.typeRef().isValid() && SemaHelpers::typeHasLifecycle(sema.ctx(), typeView.typeRef()))
                 return false;
 
             const AstNode& node = sema.node(currentRef);

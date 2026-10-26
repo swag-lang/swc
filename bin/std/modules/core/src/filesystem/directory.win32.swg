@@ -136,6 +136,23 @@ func drives()->Array'String fail
     return result
 }
 
+// Returns whether `path` lives on a network share rather than on a local volume.
+//
+// Reading many files at once from a share is bounded by the round trips of the remote storage, not
+// by the processors: a caller that fans work out over the files of a folder sizes it by this.
+func isRemote(path: string)->bool
+{
+    if path.count >= 2 and (path[0] == '\\' or path[0] == '/') and (path[1] == '\\' or path[1] == '/') do
+        return true
+    if path.count < 2 or path[1] != ':' do
+        return false
+
+    var root = String.from(path[until 2])
+    root += "\\"
+    let winRoot = Utf16.toZeroTerminated(root)
+    return GetDriveTypeW(winRoot.buffer) == DRIVE_REMOTE
+}
+
 // Returns the first mount point of every mounted volume, with normalized separators.
 //
 // A volume without a mount point is skipped.

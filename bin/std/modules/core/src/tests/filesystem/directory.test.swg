@@ -130,3 +130,12 @@ func createDirectoryJunction(link, target: string)->bool
     expect Directory.delete(root, recurse: true)
     Swag.assert(File.exists(targetFile.toString()))
 }
+
+// A UNC path names a share; a local temporary folder and a relative path do not.
+#test
+{
+    Swag.assert(Directory.isRemote("\\\\server\\share\\films"))
+    Swag.assert(Directory.isRemote("//server/share"))
+    Swag.assert(not Directory.isRemote(Env.getSpecialDirectory(.Temp)))
+    Swag.assert(not Directory.isRemote("films"))
+}

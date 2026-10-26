@@ -159,6 +159,7 @@ const TRUNCATE_EXISTING = 5'u32
 const INVALID_HANDLE_VALUE    = cast(HANDLE, cast #bit (u64, -1's64))
 const CONSOLE_TEXTMODE_BUFFER = 1'u32
 const MAX_PATH                = 260
+const DRIVE_REMOTE            = 4
 const LOCALE_NAME_MAX_LENGTH  = 85
 const INFINITE                = 0xFFFFFFFF
 const CREATE_SUSPENDED        = 0x00000004
@@ -634,6 +635,7 @@ const FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
     func GetLogicalDrives()->DWORD
     func GetLogicalDriveStringsA(nBufferLength: DWORD, lpBuffer: LPCSTR)->DWORD
     func GetLogicalDriveStringsW(nBufferLength: DWORD, lpBuffer: LPWSTR)->DWORD
+    func GetDriveTypeW(lpRootPathName: LPCWSTR)->UINT
 
     func GetSystemInfo(lpSystemInfo: *SYSTEM_INFO)
     func K32GetProcessMemoryInfo(hProcess: HANDLE, ppsmemCounters: *PROCESS_MEMORY_COUNTERS, cb: DWORD)->BOOL

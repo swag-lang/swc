@@ -112,6 +112,20 @@ interface IPlanarDecoder
     mtd decodeFramePlanes(source: *ByteSource, target: *PlanarFrame) fail
 }
 
+// Optional decoder capability reaching a clean decode point by time without the frames around it.
+//
+// A seek to a frame reads everything between the container's index entry and that frame, and what
+// follows it while pictures are reordered. A still that only stands for a moment — a thumbnail, a
+// chapter mark — needs the clean point alone, which is a tenth of a second of a film instead of
+// several seconds of it.
+interface IKeyPictureDecoder
+{
+    // Positions the decoder on the clean decode point at or before `seconds`, reading that point
+    // alone, so the next decoded picture is it. Returns false when the stream has no index to find
+    // one by; the reader then seeks the way it seeks to a frame.
+    mtd seekKeyPicture(source: *ByteSource, seconds: f64)->bool fail
+}
+
 // Optional decoder capability exposing exact presentation timestamps.
 interface ITimedDecoder
 {
@@ -143,6 +157,7 @@ struct Reader
         subtitleDecoder: ISubtitleDecoder?     // Optional timed-text capability.
         planarDecoder:   IPlanarDecoder?       // Optional unconverted-picture capability.
         timedDecoder:    ITimedDecoder?        // Optional exact-timestamp capability.
+        keyPictureDecoder: IKeyPictureDecoder?   // Optional clean-point-by-time capability.
         deferred:        IDeferredDecoder?     // Optional deferred sample-index capability.
         decoderType:     const *Swag.TypeInfoStruct?     // Concrete decoder type, used to release it.
     }
@@ -251,6 +266,7 @@ impl Reader
         let instance = (.decoder).buffer
         .planarDecoder = Swag.makeInterface(instance, selected.type, IPlanarDecoder)
         .timedDecoder  = Swag.makeInterface(instance, selected.type, ITimedDecoder)
+        .keyPictureDecoder = Swag.makeInterface(instance, selected.type, IKeyPictureDecoder)
         .deferred      = Swag.makeInterface(instance, selected.type, IDeferredDecoder)
         if pictureOnly
         {
@@ -287,6 +303,7 @@ impl Reader
             .subtitleDecoder = null
             .planarDecoder   = null
             .timedDecoder    = null
+            .keyPictureDecoder = null
             .deferred        = null
             .decoderType     = null
         }
@@ -405,6 +422,37 @@ impl Reader
         try .decoder.seekFrame(&.source, index)
         .refreshDeferredInfo()
         try .planarDecoder.decodeFramePlanes(&.source, target)
+    }
+
+    // Decodes the picture that stands for `seconds` at the least cost: a clean decode point near it.
+    //
+    // The result is not frame `frameAtTime(seconds)`. A container that indexes its clean points
+    // gives the last one at or before `seconds`, read without the frames between it and that time
+    // or after it; across a network share that is the difference between a tenth of a second and
+    // several seconds of the film. Any other stream decodes the first clean point at or after the
+    // frame at that time. This is the picture a thumbnail or a chapter mark wants.
+    mtd decodeKeyPicture(seconds: f64)->Image fail
+    {
+        if not .decoder do
+            fail BadParameterError{"video reader has no open stream"}
+
+        var result: retval
+        if .keyPictureDecoder and (try .keyPictureDecoder.seekKeyPicture(&.source, seconds))
+        {
+            .refreshDeferredInfo()
+            try .decoder.decodeFrame(&.source, &result)
+            return result
+        }
+
+        let count = .frameCount()
+        var index = .frameAtTime(seconds)
+        if count do
+            index = Math.min(index, count - 1)
+        let sync = .syncFrameAt(index)
+        if sync >= index and (not count or sync < count) do
+            index = sync
+        try .decodeFrameInto(&result, index)
+        return result
     }
 
     // Returns the first frame at or after `index` that decodes without any earlier frame.

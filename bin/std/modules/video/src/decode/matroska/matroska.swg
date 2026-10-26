@@ -390,6 +390,7 @@ private struct Layout
     videoChunkEnds:       Array'u64
     cues:                 Array'CueEntry
     releasedThrough:      u64     // File offset below which the walk has handed its pages back.
+    stopAtSync:           bool    // Whether a cluster is read only up to its first clean picture, for a key picture read alone.
 }
 
 // How far behind the walk the mapped pages are handed back, and in what steps.
@@ -406,6 +407,9 @@ private const ScanReleaseKeepBytes = 64 * 1024 * 1024'u64
 private const ClusterSearchWindow   = 32 * 1024 * 1024'u64
 private const ClusterSearchAttempts = 8
 private const ClusterSearchLead     = 0.01
+
+// How many clusters past a cue a key picture read alone looks for its clean picture.
+private const KeyPictureClusters = 4
 private const ScanReleaseStepBytes = 16 * 1024 * 1024'u64
 
 private impl Layout
@@ -1308,6 +1312,15 @@ private impl Layout
             }
 
             try cursor.seek(element.end)
+
+            // A key picture read alone needs nothing past it: the rest of the cluster is the
+            // megabyte the read was meant to avoid.
+            if .stopAtSync
+            {
+                let samples = &.tracks[.selectedVideo].videoSamples
+                if samples.count > firstVideoSample and samples.back().isSync do
+                    break
+            }
         }
 
         // Preserve the existing zero-timestamp interpretation for a cluster that omits the
@@ -1843,6 +1856,7 @@ struct Decoder
         memorySubtitleTracks:        Array'Subtitle.Track
         sawVideoSync:                bool     // A sample the container marks as a clean decode point was seen.
         syncScanAt:                  u64      // How far the search for one has read.
+        keyWindow:                   bool     // The window holds a key picture read alone, which the next frame seek replaces.
         pictureOnly:                 bool     // The reader exposes no sound or subtitle track, so none is indexed.
     }
 }
@@ -1993,6 +2007,7 @@ private impl Decoder
     // Restarts the single demux cursor on the key cluster advertised by Cues.
     mtd seekWindow(index: u64) fail
     {
+        .keyWindow    = false
         let fileIndex = unwrap .fileIndex
         Atomic.exchange(&fileIndex.soundPause, 1)
         .resumeSoundIndexAfterDecode = true
@@ -2089,7 +2104,7 @@ private impl Decoder
         // A jump longer than what the walk would cover, and every jump backwards, still
         // restarts at the nearest cue.
         let ahead = index >= .windowBaseRank ? index - .windowBaseRank : Swag.U64.Max
-        if ahead == Swag.U64.Max or ahead > .streamSampleCount + ForwardWalkSamples
+        if .keyWindow or ahead == Swag.U64.Max or ahead > .streamSampleCount + ForwardWalkSamples
         {
             try .seekWindow(index)
         }
@@ -2388,6 +2403,59 @@ impl IDecoder for Decoder
         }
 
         try .video.decodeNext(source, target)
+    }
+}
+
+impl IKeyPictureDecoder for Decoder
+{
+    mtd impl seekKeyPicture(_: *ByteSource, seconds: f64)->bool fail
+    {
+        let fileIndex = .fileIndex
+        if .memoryComplete or not fileIndex do
+            return false
+        let layout = unwrap fileIndex.progressive
+        let target = cast(u64, Math.max(.presentationOrigin + cast(s64, Math.max(seconds, 0) * 1_000_000_000.0), 0))
+        let bytes  = fileIndex.region.bytes()
+
+        // Without a cue table the cluster comes from an offset estimated from the duration, which
+        // writers start on a clean picture just as they start the clusters a cue names.
+        var clusterOffset = layout.segment.data
+        if layout.cues.isEmpty()
+        {
+            clusterOffset = layout.clusterBefore(bytes, target)
+        }
+        else
+        {
+            let cue = layout.cueAtOrBefore(target)
+            if not cue do
+                return false
+            clusterOffset = cue.clusterOffset
+        }
+
+        layout.stopAtSync = true
+        defer layout.stopAtSync = false
+        try layout.resetMediaAt(clusterOffset)
+
+        // A cue names a cluster that opens on a clean picture; a few clusters of slack cover a
+        // writer that put it a little further in.
+        let video = &layout.tracks[layout.selectedVideo]
+        for KeyPictureClusters
+        {
+            if layout.indexComplete do
+                break
+            if not (try layout.indexUntil(bytes, video.videoSamples.count + 1, &fileIndex.cancel)) do
+                fail BadParameterError{"video reader operation was cancelled"}
+            if not video.videoSamples.isEmpty() and video.videoSamples.back().isSync do
+                break
+        }
+
+        if video.videoSamples.isEmpty() or not video.videoSamples.back().isSync do
+            return false
+        try .replaceAvailableFrames(video)
+        .keyWindow      = true
+        .windowBaseRank = .frameAtTimestamp(cast(f64, video.videoSamples.back().presentationTime))
+        .video.seekTo(.video.syncRankAt(0))
+        return true
     }
 }
 

@@ -411,6 +411,53 @@ func waitForMatroskaSubtitles(reader: *Reader, count: u32)
     }
 }
 
+// A key picture is the clean point at or before a time, read and decoded alone: it is the picture a
+// frame seek to that point decodes, without the frames between it and the time or after it. A file
+// whose cue table is missing finds its cluster from an estimated offset and still answers one.
+#test
+{
+    let source = videoFixturePath("ffmpeg-h264-two-aac-10min.mkv")
+    var keyed  = expect Reader.open(source, pictureOnly: true)
+    var frames = expect Reader.open(source, pictureOnly: true)
+    for fraction in [0.3, 0.75]
+    {
+        let seconds = keyed.durationInSeconds() * fraction
+        let key     = expect keyed.decodeKeyPicture(seconds)
+
+        // The cue before the time is within ten seconds of it; walking the frames there forward
+        // meets the same picture, decoded the ordinary way.
+        let last  = frames.frameAtTime(seconds)
+        var frame = last >= 250 ? last - 250 : 0
+        var found = false
+        while frame <= last and not found
+        {
+            let image = expect frames.decodeFrame(frame)
+            found = image.width == key.width and image.height == key.height and
+                    Memory.compare(key.pixels.storage(), image.pixels.storage(), key.pixels.count) == 0
+            frame += 1
+        }
+
+        Swag.assert(found)
+    }
+
+    // A frame seek after a key picture rebuilds its own window.
+    let after = expect keyed.decodeFrame(10)
+    let first = expect frames.decodeFrame(10)
+    Swag.assert(Memory.compare(after.pixels.storage(), first.pixels.storage(), after.pixels.count) == 0)
+
+    var bytes = expect File.readAllBytes(source)
+    var cues  = bytes.count - 4
+    while cues and not (bytes[cues] == 0x1C and bytes[cues + 1] == 0x53 and bytes[cues + 2] == 0xBB and bytes[cues + 3] == 0x6B) do
+        cues -= 1
+    Memory.set(&bytes[cues], 0, 4)
+    let path = videoTempPath("cueless-key", "mkv")
+    defer catch File.delete(path)
+    discard expect File.writeAllBytes(path, bytes.toSlice())
+    var cueless = expect Reader.open(path, pictureOnly: true)
+    let picture = expect cueless.decodeKeyPicture(cueless.durationInSeconds() * 0.5)
+    Swag.assert(picture.width == keyed.width() and picture.height == keyed.height())
+}
+
 // A writer that knows every frame of a track begins with the same bytes may state them once and
 // store the frames without them, which is what mkvmerge does by default to several codecs. The
 // frames are the same frames, so what comes out of them is the same pictures.
